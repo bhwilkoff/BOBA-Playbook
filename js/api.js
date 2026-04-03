@@ -1,60 +1,72 @@
 /**
- * API Abstraction Layer
+ * API & Data Layer — BOBA Playbook
  *
- * ALL external API calls go through this module. Views and app.js never
- * call fetch() directly. This ensures:
- *  - Single place for auth header injection
- *  - Consistent error handling
- *  - Easy to swap base URLs or add retry logic
- *
- * Usage: const data = await API.get('/endpoint', { param: 'value' });
+ * Handles: card catalog loading, CDN image URLs, Supabase (M2+).
+ * All data loading is cached in memory after first fetch.
+ * Views never call fetch() directly — always go through this module.
  */
 const API = (() => {
   'use strict';
 
-  // FILL IN: Your API base URL
-  const BASE_URL = '';
+  /* ----------------------------------------------------------------
+     CDN — Cloudflare R2
+  ---------------------------------------------------------------- */
+  const CDN_BASE = 'https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev';
 
-  function getAuthHeaders() {
-    // FILL IN: Return auth headers (e.g., { Authorization: 'Bearer ...' })
-    return {};
+  function thumbUrl(imageFile) {
+    return `${CDN_BASE}/thumbs/${imageFile}`;
   }
 
-  async function get(endpoint, params = {}) {
-    const url = new URL(BASE_URL + endpoint);
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null) url.searchParams.set(k, v);
-    });
-    const resp = await fetch(url, { headers: getAuthHeaders() });
-    if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
-    return resp.json();
+  function fullUrl(imageFile) {
+    return `${CDN_BASE}/full/${imageFile}`;
   }
 
-  async function post(endpoint, body = {}, contentType = 'application/json') {
-    const headers = { ...getAuthHeaders() };
-    let fetchBody;
-    if (contentType === 'application/json') {
-      headers['Content-Type'] = 'application/json';
-      fetchBody = JSON.stringify(body);
-    } else {
-      headers['Content-Type'] = contentType;
-      fetchBody = body;
-    }
-    const resp = await fetch(BASE_URL + endpoint, { method: 'POST', headers, body: fetchBody });
-    if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
-    return resp.json();
+  /* ----------------------------------------------------------------
+     Card Catalog — static JSON files served from GitHub Pages
+  ---------------------------------------------------------------- */
+  let _cards       = null;
+  let _searchIndex = null;
+  let _categories  = null;
+
+  async function loadCards() {
+    if (_cards) return _cards;
+    const resp = await fetch('assets/data/cards.json');
+    if (!resp.ok) throw new Error(`Failed to load cards.json: ${resp.status}`);
+    _cards = await resp.json();
+    return _cards;
   }
 
-  // FILL IN: Add your specific API methods here
-  // Example:
-  // async function getTimeline(limit = 50, cursor) {
-  //   return get('/app.bsky.feed.getTimeline', { limit, cursor });
-  // }
+  async function loadSearchIndex() {
+    if (_searchIndex) return _searchIndex;
+    const resp = await fetch('assets/data/search-index.json');
+    if (!resp.ok) throw new Error(`Failed to load search-index.json: ${resp.status}`);
+    _searchIndex = await resp.json();
+    return _searchIndex;
+  }
 
+  async function loadCategories() {
+    if (_categories) return _categories;
+    const resp = await fetch('assets/data/categories.json');
+    if (!resp.ok) throw new Error(`Failed to load categories.json: ${resp.status}`);
+    _categories = await resp.json();
+    return _categories;
+  }
+
+  /* ----------------------------------------------------------------
+     Supabase — M2 (auth, collections, decks)
+     Placeholder: implement in M2
+  ---------------------------------------------------------------- */
+  // const SUPABASE_URL  = '...'; // set from env in M2
+  // const SUPABASE_ANON = '...';
+
+  /* ----------------------------------------------------------------
+     Exports
+  ---------------------------------------------------------------- */
   return {
-    get,
-    post,
-    getAuthHeaders,
-    // Export your API methods here
+    thumbUrl,
+    fullUrl,
+    loadCards,
+    loadSearchIndex,
+    loadCategories,
   };
 })();

@@ -1,0 +1,39 @@
+Card #,Hero,Variation,Treatment,Weapon,Notation,Power,Athlete Inspiration,Play Cost,Play Ability
+LA-1,MVFREE,World Champion Debut,Battlefoil,ALT,,200,Freddie Freeman,0,
+LA-2,Showtime,World Champion Debut,Battlefoil,ALT,,200,Shohei Ohtani,0,
+LA-3,Gambler,World Champion Debut,Battlefoil,ALT,,200,Mookie Betts,0,
+LA-4,MVFREE,World Champion Debut,Paper & Battlefoil,HEX,,185,Freddie Freeman,0,
+LA-5,Showtime,World Champion Debut,Paper & Battlefoil,HEX,,185,Shohei Ohtani,0,
+LA-6,Gambler,World Champion Debut,Paper & Battlefoil,HEX,,185,Mookie Betts,0,
+LA-7,MVFREE,World Champion Debut,Paper & Battlefoil,GLOW,,140,Freddie Freeman,0,
+LA-8,Showtime,World Champion Debut,Paper & Battlefoil,GLOW,,140,Shohei Ohtani,0,
+LA-9,Gambler,World Champion Debut,Paper & Battlefoil,GLOW,,140,Mookie Betts,0,
+LA-10,MVFREE,World Champion Debut,Paper & Battlefoil,FIRE,,135,Freddie Freeman,0,
+LA-11,Showtime,World Champion Debut,Paper & Battlefoil,FIRE,,135,Shohei Ohtani,0,
+LA-12,Gambler,World Champion Debut,Paper & Battlefoil,FIRE,,135,Mookie Betts,0,
+LA-13,MVFREE,World Champion Debut,Paper & Battlefoil,ICE,,135,Freddie Freeman,0,
+LA-14,Showtime,World Champion Debut,Paper & Battlefoil,ICE,,135,Shohei Ohtani,0,
+LA-15,Gambler,World Champion Debut,Paper & Battlefoil,ICE,,135,Mookie Betts,0,
+LA-16,MVFREE,World Champion Debut,Paper & Battlefoil,STEEL,,130,Freddie Freeman,0,
+LA-17,Showtime,World Champion Debut,Paper & Battlefoil,STEEL,,130,Shohei Ohtani,0,
+LA-18,Gambler,World Champion Debut,Paper & Battlefoil,STEEL,,130,Mookie Betts,0,
+LA-19,Bleacher Dog,World Champion Debut,Hot Dog,,,0,,0,
+LA-36,怪獣焼き,Kaiju Dog,Hot Dog,,,0,,0,
+LA-37,怪獣焼き,Kaiju Dog,Hot Dog,,,0,,0,
+LA-38,怪獣焼き,Kaiju Dog,Hot Dog,,,0,,0,
+LA-20,Series MVP Award,World Champion Debut,Plays,,2024,0,,0,If MVFree is your Hero in the current Battle he gets +30.
+LA-21,Game 5 Comeback,World Champion Debut,Plays,,Out Coached,0,,0,"If your opponent has not used a Play in this Battle, your Hero gets +20."
+LA-22,LAD vs NYY,World Champion Debut,Plays,,Back from the Dumps,0,,2,Both Players get 3 Hot Dogs back from their Discard Pile.
+LA-23,MVFree Subs,World Champion Debut,Plays,,Unlimited Subs,0,,4,For the rest of the game all of your Substitutions are free.
+LA-24,Find a Way Doc!,World Champion Debut,Plays,,By Any Means Necessary,0,,6,Play any Play from your Playbook in the active Battle for free. (Re-shuffle your Playbook after).
+LA-25,Close It Out Ferris!,World Champion Debut,Plays,,"Heads I win, Tails you Lose",0,,1,"Flip a coin, If heads your Hero gets +15, if tails your opponent's Hero gets -5."
+LA-26,50/50 Plays on Sale,World Champion Debut,Plays,,Flash Sale,0,,1,"For this Battle and the next, all of your Plays cost 1 less Hot Dog."
+LA-27,The Walk Off Free-Slam,World Champion Debut,Plays,,QB Sneak,0,,0,"If the Heroes in the active Battle are tied, your Hero gets +4."
+LA-28,Showtime's Elbow Guard,World Champion Debut,Plays,,Immunity,0,,1,Your Hero in the active Battle cannot be affected by your opponent's Plays.
+LA-29,Missed The Kerveball,World Champion Debut,Plays,,Curveball,0,,3,Replace your Hero in the active Battle with any Hero from your hand and draw 1 Hero.
+LA-30,二百,Champions Kanji Variation,Kanjifoil,ALT,,200,Shohei Ohtani,0,
+LA-31,百八十五,Champions Kanji Variation,Kanjifoil,HEX,,185,Shohei Ohtani,0,
+LA-32,百四十,Champions Kanji Variation,Kanjifoil,GLOW,,140,Shohei Ohtani,0,
+LA-33,百三十五,Champions Kanji Variation,Kanjifoil,FIRE,,135,Shohei Ohtani,0,
+LA-34,百三十五,Champions Kanji Variation,Kanjifoil,ICE,,135,Shohei Ohtani,0,
+LA-35,百三十,Champions Kanji Variation,Kanjifoil,STEEL,,130,Shohei Ohtani,0,

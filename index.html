@@ -11,6 +11,9 @@
   <meta name="theme-color" content="#080810">
   <!-- Smart App Banner — uncomment when iOS app is on the App Store -->
   <!-- <meta name="apple-itunes-app" content="app-id=YOUR_APP_ID"> -->
+  <link rel="icon" href="assets/icons/boba_playbook_icon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/icons/boba_playbook_icon_60.png" type="image/png" sizes="60x60">
+  <link rel="apple-touch-icon" href="assets/icons/boba_playbook_icon_180.png" sizes="180x180">
   <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,10 +53,11 @@
         <span>Search Cards</span>
       </button>
       <button class="sidebar-nav-item" id="nav-rules-btn" data-view="rules">
-        <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="2" y="2" width="20" height="20" rx="4"/>
+          <path fill="#080810" d="M13.5 4l-5 7h4.5l-2 9 7-9h-5z"/>
         </svg>
-        <span>Rules &amp; Strategy</span>
+        <span>Play</span>
       </button>
       <button class="sidebar-nav-item" id="nav-collection-btn" data-view="collection">
         <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -146,10 +150,10 @@
 
     </section>
 
-    <!-- RULES VIEW -->
-    <section id="view-rules" class="view" hidden aria-label="Rules and Strategy">
+    <!-- PLAY VIEW -->
+    <section id="view-rules" class="view" hidden aria-label="Play">
       <div class="view-inner">
-        <h2 class="view-heading">Rules &amp; Strategy</h2>
+        <h2 class="view-heading">Play</h2>
         <p class="placeholder-text">Rulebook, per-card strategy tips, and deck builder — coming in M4.</p>
       </div>
     </section>

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <!-- Background -->
+  <rect width="180" height="180" fill="#000000"/>
+
+  <!--
+    2×2 grid.
+    Shape outer edge = radius(20) + stroke/2(6) = 26px from center.
+    Centers 62px apart → 10px visible gap between shapes.
+    Centers: (59,59) (121,59) (59,121) (121,121)
+    Padding: 33px on each side.
+  -->
+
+  <!-- Top-left: X -->
+  <g transform="translate(59,59)">
+    <line x1="-20" y1="-20" x2="20" y2="20"
+          stroke="#FF4D00" stroke-width="12" stroke-linecap="round"/>
+    <line x1="20" y1="-20" x2="-20" y2="20"
+          stroke="#FF4D00" stroke-width="12" stroke-linecap="round"/>
+  </g>
+
+  <!-- Top-right: O -->
+  <circle cx="121" cy="59" r="20"
+          fill="none" stroke="#FF4D00" stroke-width="12"/>
+
+  <!-- Bottom-left: O -->
+  <circle cx="59" cy="121" r="20"
+          fill="none" stroke="#FF4D00" stroke-width="12"/>
+
+  <!-- Bottom-right: X -->
+  <g transform="translate(121,121)">
+    <line x1="-20" y1="-20" x2="20" y2="20"
+          stroke="#FF4D00" stroke-width="12" stroke-linecap="round"/>
+    <line x1="20" y1="-20" x2="-20" y2="20"
+          stroke="#FF4D00" stroke-width="12" stroke-linecap="round"/>
+  </g>
+</svg>

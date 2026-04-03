@@ -1,0 +1,31 @@
+import Foundation
+
+struct Card: Codable, Identifiable, Hashable, Sendable {
+    let bvId: Int?          // nullable in source data for some promo/variant cards
+    let cardNumber: String
+    let name: String
+    let hero: String
+    let cardType: String
+    let set: String
+    let subSet: String?
+    let variation: String?
+    let treatment: String?
+    let element: String
+    let power: Int?
+    let playCost: Int?
+    let playAbility: String?
+    let athleteInspiration: String?
+    let isInspiredInk: Bool
+    let imageFile: String?
+    let imageSource: String?
+    let imageAvailable: Bool
+
+    // Stable unique id: prefer bvId, fall back to cardNumber+name composite
+    var id: String {
+        if let bvId { return "\(bvId)" }
+        return "\(cardNumber)-\(name)-\(treatment ?? "")"
+    }
+
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: Card, rhs: Card) -> Bool { lhs.id == rhs.id }
+}

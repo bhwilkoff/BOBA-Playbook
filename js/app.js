@@ -53,6 +53,8 @@
     set:      '',
     treatment:'',
     hasImage: false,
+    powerMin: null,
+    powerMax: null,
   };
 
   /* ================================================================
@@ -70,6 +72,8 @@
   const hasImageToggle  = $('has-image-toggle');
   const loadSentinel    = $('load-sentinel');
   const clearFiltersBtn = $('clear-filters-btn');
+  const powerMinInput  = $('power-min');
+  const powerMaxInput  = $('power-max');
 
   const modalOverlay  = $('card-modal-overlay');
   const modalContent  = $('modal-content');
@@ -204,6 +208,27 @@
       resultNums = resultNums === null ? s : intersect(resultNums, s);
     }
 
+    // Power range filter (applied after number filtering)
+    if (filters.powerMin !== null || filters.powerMax !== null) {
+      const powerSet = new Set();
+      if (resultNums === null) {
+        for (const card of displayCards) powerSet.add(String(card.cardNumber));
+      } else {
+        for (const num of resultNums) powerSet.add(num);
+      }
+      const filtered = new Set();
+      for (const num of powerSet) {
+        const variants = cardsByNumber.get(num);
+        if (!variants) continue;
+        const rep = variants.find(c => c.imageAvailable && c.imageFile) || variants[0];
+        const p = Number(rep.power);
+        const minOk = filters.powerMin === null || p >= filters.powerMin;
+        const maxOk = filters.powerMax === null || p <= filters.powerMax;
+        if (minOk && maxOk) filtered.add(num);
+      }
+      resultNums = filtered;
+    }
+
     if (resultNums === null) return displayCards;
 
     // Map card numbers → display cards
@@ -220,6 +245,35 @@
 
   function intersect(a, b) {
     return new Set([...a].filter(x => b.has(x)));
+  }
+
+  /* ================================================================
+     TREATMENT & SET CLASS HELPERS
+  ================================================================ */
+
+  function getTreatmentClass(treatment) {
+    if (!treatment) return 'tf-base';
+    const t = treatment.toLowerCase();
+    if (t.includes('blizzard')) return 'tf-blizzard';
+    if (t.includes('superfoil')) return 'tf-superfoil';
+    if (t.includes('battlefoil')) return 'tf-battlefoil';
+    if (t.includes('inspired ink') || t.includes('inspired-ink')) return 'tf-inspired';
+    if (t.includes('inspired')) return 'tf-inspired-m';
+    if (t.includes('logofoil')) return 'tf-logofoil';
+    if (t.includes('blast')) return 'tf-blast';
+    if (t.includes('paper')) return 'tf-paper';
+    if (t === 'base' || t === 'standard' || t === '') return 'tf-base';
+    return 'tf-special';
+  }
+
+  function getSetClass(set) {
+    if (!set) return 'set-other';
+    const s = set.toLowerCase();
+    if (s.includes('alpha')) return 'set-alpha';
+    if (s.includes('griffey')) return 'set-griffey';
+    if (s.includes('world champions') || s.includes('champions')) return 'set-champions';
+    if (s.includes('starter')) return 'set-starter';
+    return 'set-other';
   }
 
   /* ================================================================
@@ -313,6 +367,41 @@
     applyFilters();
   });
 
+  // Power range inputs
+  let powerTimer = null;
+  function onPowerInput() {
+    clearTimeout(powerTimer);
+    powerTimer = setTimeout(() => {
+      const minVal = powerMinInput?.value.trim();
+      const maxVal = powerMaxInput?.value.trim();
+      filters.powerMin = minVal !== '' ? Number(minVal) : null;
+      filters.powerMax = maxVal !== '' ? Number(maxVal) : null;
+      // Clear active state on presets when manual input is used
+      document.querySelectorAll('.power-preset').forEach(b => b.classList.remove('active'));
+      if (filters.powerMin === null && filters.powerMax === null) {
+        document.querySelector('.power-preset[data-min=""]')?.classList.add('active');
+      }
+      applyFilters();
+    }, 300);
+  }
+  powerMinInput?.addEventListener('input', onPowerInput);
+  powerMaxInput?.addEventListener('input', onPowerInput);
+
+  // Power preset buttons
+  document.querySelectorAll('.power-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.power-preset').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const minVal = btn.dataset.min;
+      const maxVal = btn.dataset.max;
+      filters.powerMin = minVal !== '' ? Number(minVal) : null;
+      filters.powerMax = maxVal !== '' ? Number(maxVal) : null;
+      if (powerMinInput) powerMinInput.value = minVal;
+      if (powerMaxInput) powerMaxInput.value = maxVal;
+      applyFilters();
+    });
+  });
+
   clearFiltersBtn?.addEventListener('click', resetFilters);
 
   function resetFilters() {
@@ -321,11 +410,17 @@
     filters.set = '';
     filters.treatment = '';
     filters.hasImage = false;
+    filters.powerMin = null;
+    filters.powerMax = null;
     searchInput.value = '';
     searchClear.hidden = true;
     setFilter.value = '';
     buildTreatmentFilter('');
     hasImageToggle.setAttribute('aria-pressed', 'false');
+    if (powerMinInput) powerMinInput.value = '';
+    if (powerMaxInput) powerMaxInput.value = '';
+    document.querySelectorAll('.power-preset').forEach(b => b.classList.remove('active'));
+    document.querySelector('.power-preset[data-min=""]')?.classList.add('active');
     setElementFilter('');
   }
 
@@ -356,8 +451,9 @@
   }
 
   function buildCardElement(card) {
+    const treatmentClass = getTreatmentClass(card.treatment);
     const el = document.createElement('article');
-    el.className = 'card-item';
+    el.className = `card-item ${treatmentClass}`;
     el.setAttribute('role', 'listitem');
     el.dataset.element = card.element || 'NONE';
     el.setAttribute('tabindex', '0');
@@ -366,11 +462,21 @@
     const imgHtml = card.imageAvailable && card.imageFile
       ? `<img class="card-img" src="${escHtml(API.thumbUrl(card.imageFile))}"
               alt="${escHtml(card.name)}" loading="lazy" decoding="async">`
-      : `<div class="card-img-placeholder" data-element="${escHtml(card.element || 'NONE')}"
-              aria-hidden="true">${escHtml(card.element || '?')}</div>`;
+      : `<div class="card-img-placeholder" aria-hidden="true">
+           <span class="placeholder-brand">BOBA PB</span>
+           <span class="placeholder-status">Image Pending</span>
+         </div>`;
+
+    // Only show treatment ribbon for non-base treatments
+    const ribbonHtml = (treatmentClass !== 'tf-base')
+      ? `<div class="card-treatment-ribbon" aria-hidden="true">${escHtml(card.treatment)}</div>`
+      : '';
 
     el.innerHTML = `
-      <div class="card-img-wrap">${imgHtml}</div>
+      <div class="card-img-wrap">
+        ${imgHtml}
+        ${ribbonHtml}
+      </div>
       <div class="card-info">
         <div class="card-number">${escHtml(card.cardNumber)}</div>
         <div class="card-name">${escHtml(card.name)}</div>
@@ -378,7 +484,8 @@
           <span class="element-badge" data-element="${escHtml(card.element || 'NONE')}">${escHtml(card.element || 'NONE')}</span>
           <span class="card-power" aria-label="Power ${card.power}">P${escHtml(String(card.power))}</span>
         </div>
-      </div>`;
+      </div>
+      <div class="card-element-bar" aria-hidden="true"></div>`;
 
     el.addEventListener('click', () => openModal(card));
     el.addEventListener('keydown', e => {
@@ -443,69 +550,98 @@
 
   function buildModalContent(card) {
     const imgSrc = card.imageAvailable && card.imageFile ? API.fullUrl(card.imageFile) : null;
+    const treatmentClass = getTreatmentClass(card.treatment);
+    const setClass = getSetClass(card.set);
+    const element = card.element || 'NONE';
 
     const imgHtml = imgSrc
       ? `<img class="modal-card-img" src="${escHtml(imgSrc)}" alt="${escHtml(card.name)}" loading="lazy">`
-      : `<div class="modal-img-placeholder" data-element="${escHtml(card.element || 'NONE')}"
-              aria-hidden="true">${escHtml(card.element || '?')}</div>`;
+      : `<div class="modal-img-placeholder" aria-hidden="true">
+           <span class="placeholder-brand">BOBA PB</span>
+           <span class="placeholder-card-num">${escHtml(card.cardNumber)}</span>
+           <span class="placeholder-status">Image Pending</span>
+         </div>`;
 
     // All hero/athlete associations for this card
     const variants = cardsByNumber.get(String(card.cardNumber)) || [card];
 
     let heroSection = '';
     if (variants.length > 1) {
-      const rows = variants.map(v =>
-        `<tr>
-          <td>${escHtml(v.hero)}</td>
-          <td>${escHtml(v.athleteInspiration || '—')}</td>
-         </tr>`
-      ).join('');
+      const heroCards = variants.map(v => `
+        <div class="hero-card">
+          <div>
+            <div class="hero-card-name">${escHtml(v.hero || '—')}</div>
+            ${v.athleteInspiration ? `<div class="hero-card-athlete">${escHtml(v.athleteInspiration)}</div>` : ''}
+          </div>
+        </div>`).join('');
       heroSection = `
         <div class="hero-associations">
           <h3 class="section-label">Hero Associations</h3>
-          <table class="stats-table">
-            <thead><tr><th>Hero</th><th>Athlete Inspiration</th></tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
+          <p class="hero-association-note">This card works with ${variants.length} heroes — a BOBA game mechanic.</p>
+          <div class="hero-cards">${heroCards}</div>
         </div>`;
     }
 
-    const statsRows = [
-      ['Set',         card.set],
-      ['Sub-Set',     card.subSet],
-      ['Treatment',   card.treatment],
-      ['Variation',   card.variation],
-      ['Type',        card.cardType],
-      card.playCost   ? ['Play Cost', card.playCost]   : null,
-      card.playAbility ? ['Ability', `<span class="play-ability-text">${escHtml(card.playAbility)}</span>`] : null,
-      variants.length === 1 && card.athleteInspiration ? ['Athlete', card.athleteInspiration] : null,
-    ]
-    .filter(Boolean)
-    .map(([label, val]) =>
-      `<tr><th>${escHtml(label)}</th><td>${label === 'Ability' ? val : escHtml(val ?? '—')}</td></tr>`
+    // Build stat cells — grid layout
+    const statDefs = [
+      { label: 'Set',       val: card.set,       full: false },
+      { label: 'Sub-Set',   val: card.subSet,     full: false },
+      { label: 'Type',      val: card.cardType,   full: false },
+      { label: 'Variation', val: card.variation,  full: false },
+    ].filter(s => s.val);
+
+    if (variants.length === 1 && card.athleteInspiration) {
+      statDefs.push({ label: 'Athlete', val: card.athleteInspiration, full: true });
+    }
+    if (card.playCost) {
+      statDefs.push({ label: 'Play Cost', val: card.playCost, full: false });
+    }
+
+    let statCells = statDefs.map(s =>
+      `<div class="stat-cell${s.full ? ' full' : ''}">
+         <div class="stat-label-sm">${escHtml(s.label)}</div>
+         <div class="stat-val">${escHtml(s.val ?? '—')}</div>
+       </div>`
     ).join('');
 
+    if (card.playAbility) {
+      statCells += `
+        <div class="stat-cell full">
+          <div class="stat-label-sm">Ability</div>
+          <div class="stat-val ability">${escHtml(card.playAbility)}</div>
+        </div>`;
+    }
+
+    // Treatment banner (only for non-base)
+    const treatmentBanner = (treatmentClass !== 'tf-base' && card.treatment)
+      ? `<span class="treatment-banner ${treatmentClass}">${escHtml(card.treatment)}</span>`
+      : '';
+
     return `
-      <div class="modal-layout">
+      <div class="modal-layout ${treatmentClass}" data-element="${escHtml(element)}">
         <div class="modal-art">${imgHtml}</div>
         <div class="modal-details">
           <div class="modal-badges">
             <span class="element-badge element-badge-lg"
-                  data-element="${escHtml(card.element || 'NONE')}">${escHtml(card.element || 'NONE')}</span>
-            ${card.isInspiredInk ? '<span class="inspired-ink-badge">Inspired Ink</span>' : ''}
+                  data-element="${escHtml(element)}">${escHtml(element)}</span>
+            <span class="set-badge ${setClass}">${escHtml(card.set || 'Unknown')}</span>
+            ${treatmentBanner}
           </div>
           <div>
             <h2 class="modal-card-name" id="modal-card-name">${escHtml(card.name)}</h2>
-            <div class="modal-card-number">${escHtml(card.cardNumber)}</div>
+            <div class="modal-card-number"># ${escHtml(card.cardNumber)}</div>
           </div>
-          <div class="modal-power">P<span>${escHtml(String(card.power))}</span></div>
-          <table class="stats-table" aria-label="Card stats">
-            <tbody>${statsRows}</tbody>
-          </table>
+          <div class="modal-power-display">
+            <span class="power-label-txt">POWER</span>
+            <span class="power-number">${escHtml(String(card.power))}</span>
+          </div>
+          <div class="modal-stats" aria-label="Card stats">
+            ${statCells}
+          </div>
           ${heroSection}
           <div class="pricing-section">
-            <h3 class="pricing-title">Pricing Comps</h3>
-            <p class="pricing-note">Radish &amp; eBay live pricing — coming soon.</p>
+            <h3 class="section-label">Pricing Comps</h3>
+            <p class="pricing-note">Radish &amp; eBay live pricing — coming in M3.</p>
           </div>
         </div>
       </div>`;

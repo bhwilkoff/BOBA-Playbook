@@ -1,18 +1,15 @@
 /**
  * BOBA Playbook — Main Application
  *
- * M1: Search Mode — browse, search, and filter 17,793 BOBA cards.
+ * M1: Search Mode — browse, search, and filter BOBA cards.
  *
- * Architecture:
- *  - Single IIFE, plain JS, no framework
- *  - $('id') shorthand for getElementById
- *  - All data loading through API (js/api.js)
- *  - DOM updates use textContent or innerHTML with escHtml()
- *  - Card grid uses pagination (PAGE_SIZE cards at a time) + IntersectionObserver
- *  - Search uses pre-built tokenIndex from search-index.json (prefix matching)
- *  - Filters use byElement / bySet / byTreatment indexes
+ * Data model note: cards.json has multiple rows per physical card when a card
+ * has multiple hero associations (same cardNumber, different hero/athleteInspiration).
+ * The grid shows one entry per unique cardNumber. The detail modal shows all
+ * hero associations for that card.
  *
- * See CLAUDE.md for full conventions.
+ * Search-index note: tokenIndex / byElement / bySet etc. store CARD NUMBERS
+ * (strings like "1", "BF-208") as values — NOT array positions.
  */
 
 (function () {
@@ -21,8 +18,8 @@
   /* ================================================================
      CONSTANTS
   ================================================================ */
-  const PAGE_SIZE    = 60; // cards rendered per batch
-  const SEARCH_DEBOUNCE_MS = 280;
+  const PAGE_SIZE           = 60;
+  const SEARCH_DEBOUNCE_MS  = 280;
 
   /* ================================================================
      HELPERS
@@ -39,19 +36,23 @@
   /* ================================================================
      STATE
   ================================================================ */
-  let cards         = [];   // full catalog (17,793 items)
-  let searchIndex   = null; // { tokenIndex, byElement, bySet, byTreatment, hasImage, ... }
-  let categories    = null; // { sets: { ... }, ... }
+  let cards         = [];         // raw catalog (may have multi-hero dupes)
+  let searchIndex   = null;
+  let categories    = null;
 
-  let filteredCards = [];   // result of current search + filters
-  let displayedCount = 0;   // how many card elements are in the DOM
+  // Built after load:
+  let cardsByNumber = new Map();  // cardNumber (string) → Card[] (all hero associations)
+  let displayCards  = [];         // one Card per unique cardNumber (for the grid)
+
+  let filteredCards  = [];
+  let displayedCount = 0;
 
   const filters = {
-    query:     '',
-    element:   '',
-    set:       '',
-    treatment: '',
-    hasImage:  false,
+    query:    '',
+    element:  '',
+    set:      '',
+    treatment:'',
+    hasImage: false,
   };
 
   /* ================================================================
@@ -81,18 +82,17 @@
   /* ================================================================
      SIDEBAR (mobile)
   ================================================================ */
-  function openSidebar() {
+  sidebarToggle.addEventListener('click', () => {
     sidebar.classList.add('open');
     sidebarOverlay.classList.add('visible');
     sidebarToggle.setAttribute('aria-expanded', 'true');
-  }
+  });
+
   function closeSidebar() {
     sidebar.classList.remove('open');
     sidebarOverlay.classList.remove('visible');
     sidebarToggle.setAttribute('aria-expanded', 'false');
   }
-
-  sidebarToggle.addEventListener('click', openSidebar);
   sidebarOverlay.addEventListener('click', closeSidebar);
 
   /* ================================================================
@@ -111,111 +111,127 @@
       const el = $(`view-${id}`);
       if (el) el.hidden = id !== name;
     });
-
     Object.entries(navBtnIds).forEach(([id, btnId]) => {
       const btn = $(btnId);
       if (!btn) return;
-      const isActive = id === name;
-      btn.classList.toggle('active', isActive);
-      btn.setAttribute('aria-current', isActive ? 'page' : 'false');
+      const active = id === name;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-current', active ? 'page' : 'false');
     });
-
     closeSidebar();
-
     if (!fromHistory) {
-      const url = name === 'search' ? '?' : `?view=${name}`;
-      history.pushState({ view: name }, '', url);
+      history.pushState({ view: name }, '', name === 'search' ? '?' : `?view=${name}`);
     }
   }
 
-  Object.entries(navBtnIds).forEach(([viewName, btnId]) => {
+  Object.entries(navBtnIds).forEach(([view, btnId]) => {
     const btn = $(btnId);
-    if (btn) btn.addEventListener('click', () => showView(viewName));
+    if (btn) btn.addEventListener('click', () => showView(view));
   });
 
   window.addEventListener('popstate', (e) => {
-    const view = e.state?.view || 'search';
-    showView(view, true);
+    showView(e.state?.view || 'search', true);
   });
 
   /* ================================================================
-     SEARCH LOGIC
+     DATA PREPARATION
+     Build lookup structures after cards.json loads.
   ================================================================ */
 
-  /**
-   * Build the result set for current query + filters.
-   * Returns array of card objects.
-   */
-  function computeResults() {
-    let resultSet = null; // null = "all cards"
+  function prepareData() {
+    // Build cardsByNumber: string cardNumber → all Card variants (hero associations)
+    for (const card of cards) {
+      const num = String(card.cardNumber);
+      if (!cardsByNumber.has(num)) cardsByNumber.set(num, []);
+      cardsByNumber.get(num).push(card);
+    }
 
-    // --- Text search ---
+    // Build displayCards: one entry per cardNumber.
+    // Prefer the variant that has an image available.
+    for (const variants of cardsByNumber.values()) {
+      const representative = variants.find(c => c.imageAvailable && c.imageFile) || variants[0];
+      displayCards.push(representative);
+    }
+  }
+
+  /* ================================================================
+     SEARCH LOGIC
+     search-index values are card NUMBERS (strings), not array positions.
+  ================================================================ */
+
+  function computeResults() {
+    let resultNums = null; // null = "all cards"
+
+    // Text search
     const q = filters.query.trim().toLowerCase();
     if (q) {
       const tokens = q.split(/\s+/).filter(Boolean);
       for (const token of tokens) {
-        const tokenMatches = new Set();
-        // Prefix match: find all tokenIndex keys that start with this token
+        const matches = new Set();
         for (const key in searchIndex.tokenIndex) {
           if (key.startsWith(token)) {
-            for (const idx of searchIndex.tokenIndex[key]) {
-              tokenMatches.add(+idx);
+            for (const cardNum of searchIndex.tokenIndex[key]) {
+              matches.add(String(cardNum));
             }
           }
         }
-        resultSet = resultSet === null
-          ? tokenMatches
-          : new Set([...resultSet].filter(i => tokenMatches.has(i)));
+        resultNums = resultNums === null ? matches : intersect(resultNums, matches);
       }
-      // If query tokens produced no matches, return empty
-      if (resultSet !== null && resultSet.size === 0) return [];
+      if (resultNums !== null && resultNums.size === 0) return [];
     }
 
-    // --- Element filter ---
+    // Element filter
     if (filters.element) {
-      const elSet = new Set((searchIndex.byElement[filters.element] || []).map(Number));
-      resultSet = resultSet === null ? elSet : intersect(resultSet, elSet);
+      const s = new Set((searchIndex.byElement[filters.element] || []).map(String));
+      resultNums = resultNums === null ? s : intersect(resultNums, s);
     }
 
-    // --- Set filter ---
+    // Set filter
     if (filters.set) {
-      const setSet = new Set((searchIndex.bySet[filters.set] || []).map(Number));
-      resultSet = resultSet === null ? setSet : intersect(resultSet, setSet);
+      const s = new Set((searchIndex.bySet[filters.set] || []).map(String));
+      resultNums = resultNums === null ? s : intersect(resultNums, s);
     }
 
-    // --- Treatment filter ---
+    // Treatment filter
     if (filters.treatment) {
-      const txSet = new Set((searchIndex.byTreatment[filters.treatment] || []).map(Number));
-      resultSet = resultSet === null ? txSet : intersect(resultSet, txSet);
+      const s = new Set((searchIndex.byTreatment[filters.treatment] || []).map(String));
+      resultNums = resultNums === null ? s : intersect(resultNums, s);
     }
 
-    // --- Has image filter ---
+    // Has image filter
     if (filters.hasImage) {
-      const imgSet = new Set((searchIndex.hasImage || []).map(Number));
-      resultSet = resultSet === null ? imgSet : intersect(resultSet, imgSet);
+      const s = new Set((searchIndex.hasImage || []).map(String));
+      resultNums = resultNums === null ? s : intersect(resultNums, s);
     }
 
-    // All filters cleared — return full catalog
-    if (resultSet === null) return cards;
+    if (resultNums === null) return displayCards;
 
-    return [...resultSet].map(i => cards[i]).filter(Boolean);
+    // Map card numbers → display cards
+    const results = [];
+    for (const num of resultNums) {
+      const card = cardsByNumber.get(num)?.[0]; // representative card
+      if (card) {
+        const rep = cardsByNumber.get(num).find(c => c.imageAvailable && c.imageFile) || card;
+        results.push(rep);
+      }
+    }
+    return results;
   }
 
-  function intersect(setA, setB) {
-    return new Set([...setA].filter(i => setB.has(i)));
+  function intersect(a, b) {
+    return new Set([...a].filter(x => b.has(x)));
   }
 
   /* ================================================================
      FILTER UI
   ================================================================ */
 
-  /** Build element filter pills from searchIndex.byElement keys */
   function buildElementFilters() {
     const elements = Object.keys(searchIndex.byElement).sort();
 
-    // "All" pill
     const allPill = makePill('', 'All');
     allPill.classList.add('active');
+    allPill.setAttribute('aria-pressed', 'true');
     allPill.addEventListener('click', () => setElementFilter(''));
     elementFilters.appendChild(allPill);
 
@@ -231,7 +247,6 @@
     btn.className = 'element-pill';
     btn.dataset.element = element;
     btn.setAttribute('aria-pressed', 'false');
-
     const dot = document.createElement('span');
     dot.className = 'element-pill-dot';
     btn.appendChild(dot);
@@ -241,72 +256,49 @@
 
   function setElementFilter(element) {
     filters.element = element;
-    // Update pill states
     elementFilters.querySelectorAll('.element-pill').forEach(pill => {
-      const isActive = pill.dataset.element === element;
-      pill.classList.toggle('active', isActive);
-      pill.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      const active = pill.dataset.element === element;
+      pill.classList.toggle('active', active);
+      pill.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
     applyFilters();
   }
 
-  /** Populate set dropdown from categories.json */
   function buildSetFilter() {
     const sets = Object.keys(categories.sets || {}).sort();
     for (const set of sets) {
       const opt = document.createElement('option');
       opt.value = set;
-      const count = categories.sets[set]?.count || '';
+      const count = categories.sets[set]?.count;
       opt.textContent = count ? `${set} (${count.toLocaleString()})` : set;
       setFilter.appendChild(opt);
     }
   }
 
-  /** Populate treatment dropdown — all unique treatments across all sets */
-  function buildTreatmentFilter() {
-    const all = new Set();
-    for (const setData of Object.values(categories.sets || {})) {
-      for (const t of setData.treatments || []) all.add(t);
-    }
-    const sorted = [...all].sort();
-    for (const t of sorted) {
-      const opt = document.createElement('option');
-      opt.value = t;
-      opt.textContent = t;
-      treatmentFilter.appendChild(opt);
-    }
-  }
-
-  /** When set changes, narrow treatment options to that set's treatments */
-  function updateTreatmentOptions(selectedSet) {
-    const currentTreatment = treatmentFilter.value;
-    // Clear all except "All Treatments"
+  function buildTreatmentFilter(selectedSet) {
     while (treatmentFilter.options.length > 1) treatmentFilter.remove(1);
-
-    const treatments = selectedSet
+    const all = selectedSet
       ? (categories.sets[selectedSet]?.treatments || []).sort()
-      : [...new Set(Object.values(categories.sets || {})
-          .flatMap(s => s.treatments || []))].sort();
-
-    for (const t of treatments) {
+      : [...new Set(Object.values(categories.sets || {}).flatMap(s => s.treatments || []))].sort();
+    for (const t of all) {
       const opt = document.createElement('option');
       opt.value = t;
       opt.textContent = t;
       treatmentFilter.appendChild(opt);
-    }
-
-    // Restore selection if still valid
-    if ([...treatmentFilter.options].some(o => o.value === currentTreatment)) {
-      treatmentFilter.value = currentTreatment;
-    } else {
-      treatmentFilter.value = '';
-      filters.treatment = '';
     }
   }
 
   setFilter.addEventListener('change', () => {
     filters.set = setFilter.value;
-    updateTreatmentOptions(filters.set);
+    const prev = treatmentFilter.value;
+    buildTreatmentFilter(filters.set);
+    // Restore treatment selection if still valid in new set
+    if ([...treatmentFilter.options].some(o => o.value === prev)) {
+      treatmentFilter.value = prev;
+      filters.treatment = prev;
+    } else {
+      filters.treatment = '';
+    }
     applyFilters();
   });
 
@@ -317,7 +309,7 @@
 
   hasImageToggle.addEventListener('click', () => {
     filters.hasImage = !filters.hasImage;
-    hasImageToggle.setAttribute('aria-pressed', filters.hasImage ? 'true' : 'false');
+    hasImageToggle.setAttribute('aria-pressed', String(filters.hasImage));
     applyFilters();
   });
 
@@ -329,12 +321,10 @@
     filters.set = '';
     filters.treatment = '';
     filters.hasImage = false;
-
     searchInput.value = '';
     searchClear.hidden = true;
     setFilter.value = '';
-    treatmentFilter.value = '';
-    updateTreatmentOptions('');
+    buildTreatmentFilter('');
     hasImageToggle.setAttribute('aria-pressed', 'false');
     setElementFilter('');
   }
@@ -354,11 +344,9 @@
   function renderNextPage() {
     const end = Math.min(displayedCount + PAGE_SIZE, filteredCards.length);
     const fragment = document.createDocumentFragment();
-
     for (let i = displayedCount; i < end; i++) {
       fragment.appendChild(buildCardElement(filteredCards[i]));
     }
-
     cardGrid.appendChild(fragment);
     displayedCount = end;
 
@@ -387,8 +375,7 @@
         <div class="card-number">${escHtml(card.cardNumber)}</div>
         <div class="card-name">${escHtml(card.name)}</div>
         <div class="card-meta">
-          <span class="element-badge" data-element="${escHtml(card.element || 'NONE')}"
-                aria-label="Element: ${escHtml(card.element || 'None')}">${escHtml(card.element || 'NONE')}</span>
+          <span class="element-badge" data-element="${escHtml(card.element || 'NONE')}">${escHtml(card.element || 'NONE')}</span>
           <span class="card-power" aria-label="Power ${card.power}">P${escHtml(String(card.power))}</span>
         </div>
       </div>`;
@@ -397,28 +384,21 @@
     el.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(card); }
     });
-
     return el;
   }
 
   function updateResultsCount() {
-    const total = filteredCards.length;
-    const hasActiveFilter = filters.query || filters.element || filters.set || filters.treatment || filters.hasImage;
-    if (hasActiveFilter) {
-      searchCount.textContent = `${total.toLocaleString()} card${total !== 1 ? 's' : ''}`;
-    } else {
-      searchCount.textContent = `${total.toLocaleString()} cards`;
-    }
+    searchCount.textContent = `${filteredCards.length.toLocaleString()} cards`;
   }
 
   /* ================================================================
-     LOAD MORE (IntersectionObserver on sentinel)
+     LOAD MORE — IntersectionObserver on sentinel
   ================================================================ */
   const sentinelObserver = new IntersectionObserver((entries) => {
     if (entries[0].isIntersecting && displayedCount < filteredCards.length) {
       renderNextPage();
     }
-  }, { rootMargin: '400px' });
+  }, { rootMargin: '300px' });
 
   sentinelObserver.observe(loadSentinel);
 
@@ -448,6 +428,7 @@
   /* ================================================================
      CARD DETAIL MODAL
   ================================================================ */
+
   function openModal(card) {
     modalContent.innerHTML = buildModalContent(card);
     modalOverlay.hidden = false;
@@ -461,30 +442,47 @@
   }
 
   function buildModalContent(card) {
-    const imgSrc = card.imageAvailable && card.imageFile
-      ? API.fullUrl(card.imageFile) : null;
+    const imgSrc = card.imageAvailable && card.imageFile ? API.fullUrl(card.imageFile) : null;
 
     const imgHtml = imgSrc
       ? `<img class="modal-card-img" src="${escHtml(imgSrc)}" alt="${escHtml(card.name)}" loading="lazy">`
       : `<div class="modal-img-placeholder" data-element="${escHtml(card.element || 'NONE')}"
               aria-hidden="true">${escHtml(card.element || '?')}</div>`;
 
+    // All hero/athlete associations for this card
+    const variants = cardsByNumber.get(String(card.cardNumber)) || [card];
+
+    let heroSection = '';
+    if (variants.length > 1) {
+      const rows = variants.map(v =>
+        `<tr>
+          <td>${escHtml(v.hero)}</td>
+          <td>${escHtml(v.athleteInspiration || '—')}</td>
+         </tr>`
+      ).join('');
+      heroSection = `
+        <div class="hero-associations">
+          <h3 class="section-label">Hero Associations</h3>
+          <table class="stats-table">
+            <thead><tr><th>Hero</th><th>Athlete Inspiration</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
     const statsRows = [
-      ['Set',          card.set],
-      ['Sub-Set',      card.subSet],
-      ['Treatment',    card.treatment],
-      ['Variation',    card.variation],
-      ['Type',         card.cardType],
-      card.playCost   ? ['Play Cost',  card.playCost]   : null,
+      ['Set',         card.set],
+      ['Sub-Set',     card.subSet],
+      ['Treatment',   card.treatment],
+      ['Variation',   card.variation],
+      ['Type',        card.cardType],
+      card.playCost   ? ['Play Cost', card.playCost]   : null,
       card.playAbility ? ['Ability', `<span class="play-ability-text">${escHtml(card.playAbility)}</span>`] : null,
-      card.athleteInspiration ? ['Athlete', card.athleteInspiration] : null,
+      variants.length === 1 && card.athleteInspiration ? ['Athlete', card.athleteInspiration] : null,
     ]
     .filter(Boolean)
     .map(([label, val]) =>
-      `<tr>
-        <th>${escHtml(label)}</th>
-        <td>${label === 'Ability' ? val : escHtml(val ?? '—')}</td>
-       </tr>`
+      `<tr><th>${escHtml(label)}</th><td>${label === 'Ability' ? val : escHtml(val ?? '—')}</td></tr>`
     ).join('');
 
     return `
@@ -504,6 +502,7 @@
           <table class="stats-table" aria-label="Card stats">
             <tbody>${statsRows}</tbody>
           </table>
+          ${heroSection}
           <div class="pricing-section">
             <h3 class="pricing-title">Pricing Comps</h3>
             <p class="pricing-note">Radish &amp; eBay live pricing — coming soon.</p>
@@ -513,9 +512,7 @@
   }
 
   modalCloseBtn.addEventListener('click', closeModal);
-  modalOverlay.addEventListener('click', (e) => {
-    if (e.target === modalOverlay) closeModal();
-  });
+  modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !modalOverlay.hidden) closeModal();
   });
@@ -524,16 +521,10 @@
      INITIALIZATION
   ================================================================ */
   async function init() {
-    // URL routing
     const params = new URLSearchParams(window.location.search);
     const urlView = params.get('view');
-    if (urlView && viewIds.includes(urlView)) {
-      showView(urlView, true);
-    } else {
-      showView('search', true);
-    }
+    showView(viewIds.includes(urlView) ? urlView : 'search', true);
 
-    // Load card catalog
     try {
       [cards, searchIndex, categories] = await Promise.all([
         API.loadCards(),
@@ -541,23 +532,22 @@
         API.loadCategories(),
       ]);
     } catch (err) {
-      loadingState.innerHTML = `<p style="color:#FF4D00">Failed to load card catalog. Please refresh.</p>`;
+      loadingState.innerHTML = `<p style="color:var(--boba-orange);font-family:var(--font-mono)">
+        Failed to load card catalog. Please refresh the page.</p>`;
       console.error('Catalog load error:', err);
       return;
     }
 
-    loadingState.hidden = true;
+    prepareData();
 
-    // Build filter controls
+    loadingState.hidden = true;
     buildElementFilters();
     buildSetFilter();
-    buildTreatmentFilter();
+    buildTreatmentFilter('');
 
-    // Initial render — all cards
-    filteredCards = cards;
+    filteredCards = displayCards;
     renderNextPage();
     updateResultsCount();
-    cardGrid.hidden = false;
   }
 
   init();

@@ -1,0 +1,51 @@
+Card #,Hero,Variation,Treatment,Weapon,Notation,Power,Athlete Inspiration,Play Cost,Play Ability
+T-01/50,BoJax,Trainer,Paper,Fire,,100,Bo Jackson,0,
+T-02/50,BoJax,Trainer,Paper,Ice,,100,Bo Jackson,0,
+T-03/50,BoJax,Trainer,Paper,Steel,,100,Bo Jackson,0,
+T-10/50,Showtime,Trainer,Paper,Steel,,95,Shohei Ohtani,0,
+T-11/50,Merlomes,Trainer,Paper,Fire,,95,Patrick Mahomes,0,
+T-19/50,Merlomes,Trainer,Paper,Steel,,95,Patrick Mahomes,0,
+T-26/50,LeBoss,Trainer,Paper,Steel,,90,Lebron James,0,
+T-28/50,Mustang,Trainer,Paper,Steel,,90,Nikola Jokic,0,
+T-29/50,Mustang,Trainer,Paper,Ice,,90,Nikola Jokic,0,
+T-09/50,Matata,Trainer,Paper,Steel,,85,Ronald Acuna Jr.,0,
+T-14/50,Bison,Trainer,Paper,Steel,,85,Josh Allen,0,
+T-27/50,Midas,Trainer,Paper,Steel,,85,Steph Curry,0,
+T-20/50,Warp,Trainer,Paper,Steel,,80,Lamar Jackson,0,
+T-21/50,Ant Hill,Trainer,Paper,Steel,,80,Anthony Edwards,0,
+T-22/50,Ant Hill,Trainer,Paper,Fire,,80,Anthony Edwards,0,
+T-04/50,Chosen,Trainer,Paper,Ice,,75,Juan Soto,0,
+T-05/50,Chosen,Trainer,Paper,Steel,,75,Juan Soto,0,
+T-17/50,J-Jetts,Trainer,Paper,Steel,,75,Justin Jefferson,0,
+T-12/50,Wargod,Trainer,Paper,Fire,,70,Mike Trout,0,
+T-13/50,Wargod,Trainer,Paper,Steel,,70,Mike Trout,0,
+T-23/50,Donny Buckets,Trainer,Paper,Steel,,70,Luka Doncic,0,
+T-15/50,Cheetah,Trainer,Paper,Ice,,65,Tyreek Hill,0,
+T-16/50,Cheetah,Trainer,Paper,Steel,,65,Tyreek Hill,0,
+T-18/50,McArmyKnife,Trainer,Paper,Steel,,65,Christian McCaffery,0,
+T-24/50,Freakshow,Trainer,Paper,Fire,,60,Giannis Antetetokounmpo,0,
+T-25/50,Freakshow,Trainer,Paper,Steel,,60,Giannis Antetetokounmpo,0,
+T-30/50,Shystep,Trainer,Paper,Steel,,60,Shai Gilgeous-Alexander,0,
+T-06/50,Gambler,Trainer,Paper,Ice,,55,Mookie Betts,0,
+T-07/50,Gambler,Trainer,Paper,Steel,,55,Mookie Betts,0,
+T-08/50,Gigawitt,Trainer,Paper,Steel,,55,Bobby Witt Jr,0,
+T-31/50,Crystal Ball,Trainer Play,Plays,,,0,,0,"Pick a number 1-6, then your opponent picks a different number 1-6; roll a die; if it lands on either player's number their Hero gets +30."
+T-32/50,Double or Nothin,Trainer Play,Plays,,,0,,1,"Flip a coin twice; if both land on heads, play the top card from your Hero Deck and add its power to the active Hero in this Battle."
+T-33/50,Gavel of Justice,Trainer Play,Plays,,,0,,4,Lower the opponent's Hero by -30.
+T-34/50,Heads-Up!,Trainer Play,Plays,,,0,,2,Flip a coin 4 times; your Hero gets +5 each time the coin lands on heads.
+T-35/50,Jump Ball,Trainer Play,Plays,,,0,,0,"Flip a coin; if heads, your Hero gets +10, if tails, your Hero gets -10."
+T-36/50,Lucky Seven,Trainer Play,Plays,,,0,,0,Roll a die two times; if the numbers add up to 7 your Hero gets +100; if any other number you must discard a random Hero from your hand.
+T-37/50,Lucky Bounce,Trainer Play,Plays,,,0,,2,Roll a die; your Hero gets +5x the number; (ex. If you roll a 3 your Hero gets +15).
+T-38/50,No Huddle,Trainer Play,Plays,,,0,,0,"If you activated a Play in the previous Battle, this Hero gets +15."
+T-39/50,Robin Who,Trainer Play,Plays,,,0,,1,Steal -5 from your opponent's Hero and give +5 to your own Hero.
+T-40/50,Pinch HItter,Trainer Play,Plays,,,0,,1,Next Battle you can Substitute for free (0 Hot Dog cost).
+T-41/50,Dirty Water Dan,,Hot Dog,,,0,,0,
+T-42/50,Coney Carl,,Hot Dog,,,0,,0,
+T-43/50,Wurst Wayne,,Hot Dog,,,0,,0,
+T-44/50,Mustard Man,,Hot Dog,,,0,,0,
+T-45/50,Pickle Pete,,Hot Dog,,,0,,0,
+T-46/50,Sammy Sausage,,Hot Dog,,,0,,0,
+T-47/50,Brat Wurst,,Hot Dog,,,0,,0,
+T-48/50,Grillbert,,Hot Dog,,,0,,0,
+T-49/50,Dijon Don,,Hot Dog,,,0,,0,
+T-50/50,Frank,,Hot Dog,,,0,,0,

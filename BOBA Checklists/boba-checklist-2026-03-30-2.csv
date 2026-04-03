@@ -1,0 +1,51 @@
+Card #,Hero,Variation,Treatment,Weapon,Notation,Power,Athlete Inspiration,Play Cost,Play Ability
+PHI-1,Eagle-Eye,World Champions Debut,Battlefoil,Super,,200,Jalen Hurts,0,
+PHI-2,SaQuads,World Champions Debut,Battlefoil,Super,,200,Saquan Barkley,0,
+PHI-3,Braun,World Champions Debut,Battlefoil,Super,,200,A.J. Brown,0,
+PHI-4,DeVaulta,World Champions Debut,Battlefoil,Super,,200,Devonte Smith,0,
+PHI-5,DeGenie,World Champions Debut,Battlefoil,Super,,200,Cooper Dejean,0,
+PHI-6,Eagle-Eye,World Champions Debut,Battlefoil,Hex,,185,Jalen Hurts,0,
+PHI-7,SaQuads,World Champions Debut,Battlefoil,Hex,,185,Saquan Barkley,0,
+PHI-8,Braun,World Champions Debut,Battlefoil,Hex,,185,A.J. Brown,0,
+PHI-9,DeVaulta,World Champions Debut,Battlefoil,Hex,,185,Devonte Smith,0,
+PHI-10,DeGenie,World Champions Debut,Battlefoil,Hex,,185,Cooper Dejean,0,
+PHI-11,Eagle-Eye,World Champions Debut,Battlefoil,Glow,,140,Jalen Hurts,0,
+PHI-12,SaQuads,World Champions Debut,Battlefoil,Glow,,140,Saquan Barkley,0,
+PHI-13,Braun,World Champions Debut,Battlefoil,Glow,,140,A.J. Brown,0,
+PHI-14,DeVaulta,World Champions Debut,Battlefoil,Glow,,140,Devonte Smith,0,
+PHI-15,DeGenie,World Champions Debut,Battlefoil,Glow,,140,Cooper Dejean,0,
+PHI-16,Eagle-Eye,World Champions Debut,Battlefoil,Fire,,135,Jalen Hurts,0,
+PHI-17,SaQuads,World Champions Debut,Battlefoil,Fire,,135,Saquan Barkley,0,
+PHI-18,Braun,World Champions Debut,Battlefoil,Fire,,135,A.J. Brown,0,
+PHI-19,DeVaulta,World Champions Debut,Battlefoil,Fire,,135,Devonte Smith,0,
+PHI-20,DeGenie,World Champions Debut,Battlefoil,Fire,,135,Cooper Dejean,0,
+PHI-21,Eagle-Eye,World Champions Debut,Battlefoil,Ice,,135,Jalen Hurts,0,
+PHI-22,SaQuads,World Champions Debut,Battlefoil,Ice,,135,Saquan Barkley,0,
+PHI-23,Braun,World Champions Debut,Battlefoil,Ice,,135,A.J. Brown,0,
+PHI-24,DeVaulta,World Champions Debut,Battlefoil,Ice,,135,Devonte Smith,0,
+PHI-25,DeGenie,World Champions Debut,Battlefoil,Ice,,135,Cooper Dejean,0,
+PHI-26,Eagle-Eye,World Champions Debut,Battlefoil,Steel,,130,Jalen Hurts,0,
+PHI-27,SaQuads,World Champions Debut,Battlefoil,Steel,,130,Saquan Barkley,0,
+PHI-28,Braun,World Champions Debut,Battlefoil,Steel,,130,A.J. Brown,0,
+PHI-29,DeVaulta,World Champions Debut,Battlefoil,Steel,,130,Devonte Smith,0,
+PHI-30,DeGenie,World Champions Debut,Battlefoil,Steel,,130,Cooper Dejean,0,
+PHI-31,Grilladelphia,World Champions Debut,Hot Dog,,,0,,0,
+PHI-32,Game Sealing Interception,World Champions Debut,Plays,,"""Reload"" for official play",0,,1,Pick up 1 Play you used in a previous Battle and add it back to your Hand.
+PHI-33,Big Free Agent Pick-Up,World Champions Debut,Plays,,"""Leave it to Fate"" for official play",0,,3,Both players must send their Hero to the Discard Pile and replace them with the top card from their Hero Deck.
+PHI-34,Taking Down The Dynasty,World Champions Debut,Plays,,"""Pay The Price"" for official play",0,,2,"For the rest of the Game, whenever a dice is rolled, the opponent's Hero loses -5."
+PHI-35,Lifting The Weightroom,World Champions Debut,Plays,,"""2 Get 10"" for official play",0,,2,Your Hero in this Battle and the next Battle gets +10.
+PHI-36,Genius GM,World Champions Debut,Plays,,"""Only Upside"" for official play",0,,1,"Pick a number from 1 to 6, then roll a dice. If it lands on your number, your Hero gets +20. If not, draw a Play from your Playbook."
+PHI-37,Great Draft Picks,World Champions Debut,Plays,,"""Luck of the Draw"" for official play",0,,0,Both players roll a dice; whoever rolls the highest number gets to play the top card from their Playbook for free if able.
+PHI-38,Tush Push,World Champions Debut,Plays,,"""QB Sneak"" for official play",0,,1,"If this Battle is tied, your Hero gets +1."
+PHI-39,Elite Secondary,World Champions Debut,Plays,,"""Prevent D"" for official play",0,,3,Your opponent can't run any Plays in Battle 7.
+PHI-40,Back-Up Magic,World Champions Debut,Plays,,"""Pinch Hitter"" for official play",0,,1,Next Battle you can Substitute for free (0 Hot Dog cost).
+PHI-41,Perfect Playcalling,World Champions Debut,Plays,,"""Change The Future"" for official play",0,,2,"You can re-order your face-down Heroes in future Battles, but you can't look at them."
+PHI-42,Eagle-Eye,Champions Alt Variation,Battlefoil,Alt,,200,Jalen Hurts,0,
+PHI-43,Eagle-Eye,Champions Alt Variation,Battlefoil,Hex,,185,Jalen Hurts,0,
+PHI-44,Eagle-Eye,Champions Alt Variation,Battlefoil,Glow,,140,Jalen Hurts,0,
+PHI-45,Eagle-Eye,Champions Alt Variation,Battlefoil,Fire,,135,Jalen Hurts,0,
+PHI-46,Eagle-Eye,Champions Alt Variation,Battlefoil,Ice,,135,Jalen Hurts,0,
+PHI-47,Eagle-Eye,Champions Alt Variation,Battlefoil,Steel,,130,Jalen Hurts,0,
+PHI-48,Southpaw Sizzler,World Champions Debut,Hot Dog,,,0,,0,
+PHI-49,Southpaw Sizzler,World Champions Debut,Hot Dog,,,0,,0,
+PHI-50,Southpaw Sizzler,World Champions Debut,Hot Dog,,,0,,0,

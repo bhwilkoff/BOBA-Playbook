@@ -1,0 +1,36 @@
+Card #,Hero,Variation,Treatment,Weapon,Notation,Power,Athlete Inspiration,Play Cost,Play Ability
+SSE-1,XL,Sandstorm Edition,Battlefoil,Super,,200,Xavier Legette,0,
+SSE-2,Pet-Dog,Sandstorm Edition,Battlefoil,Super,,200,Ethan Petry,0,
+SSE-3,Hitstick,Sandstorm Edition,Battlefoil,Super,,200,Jadeveon Clowney,0,
+SSE-4,XL,Sandstorm Edition,Paper & Battlefoil,HEX,,185,Xavier Legette,0,
+SSE-5,Pet-Dog,Sandstorm Edition,Paper & Battlefoil,HEX,,185,Ethan Petry,0,
+SSE-6,Hitstick,Sandstorm Edition,Paper & Battlefoil,HEX,,185,Jadeveon Clowney,0,
+SSE-7,XL,Sandstorm Edition,Paper & Battlefoil,GLOW,,140,Xavier Legette,0,
+SSE-8,Pet-Dog,Sandstorm Edition,Paper & Battlefoil,GLOW,,140,Ethan Petry,0,
+SSE-9,Hitstick,Sandstorm Edition,Paper & Battlefoil,GLOW,,140,Jadeveon Clowney,0,
+SSE-10,XL,Sandstorm Edition,Paper & Battlefoil,Fire,,135,Xavier Legette,0,
+SSE-11,Pet-Dog,Sandstorm Edition,Paper & Battlefoil,Fire,,135,Ethan Petry,0,
+SSE-12,Hitstick,Sandstorm Edition,Paper & Battlefoil,Fire,,135,Jadeveon Clowney,0,
+SSE-13,XL,Sandstorm Edition,Paper & Battlefoil,Ice,,135,Xavier Legette,0,
+SSE-14,Pet-Dog,Sandstorm Edition,Paper & Battlefoil,Ice,,135,Ethan Petry,0,
+SSE-15,Hitstick,Sandstorm Edition,Paper & Battlefoil,Ice,,135,Jadeveon Clowney,0,
+SSE-16,XL,Sandstorm Edition,Paper & Battlefoil,Steel,,130,Xavier Legette,0,
+SSE-17,Pet-Dog,Sandstorm Edition,Paper & Battlefoil,Steel,,130,Ethan Petry,0,
+SSE-18,Hitstick,Sandstorm Edition,Paper & Battlefoil,Steel,,130,Jadeveon Clowney,0,
+SSE-19,State Fair Dog,,Hot Dog,,,0,,0,
+SSE-20,Going Back to Back,Sandstorm Edition,Plays,,,0,,3,Any Power your previous Hero gained your Hero in the Active Battle also gains.
+SSE-21,Trash Can,Sandstorm Edition,Plays,,,0,,0,Recover 1 Hot Dog from your Discard Pile.
+SSE-22,Worth the Risk,Sandstorm Edition,Plays,,,0,,1,Roll a dice; if it lands on a 1 or 6 your Heroes power goes to 0. If it lands on a 2-5 you get +25.
+SSE-23,Risk Taker,Sandstorm Edition,Plays,,,0,,1,Send your active Hero to the Discard Pile. Reveal the top 2 Heroes from your deck. Your Opponent chooses 1 to join the battle; the other goes to the Discard Pile.
+SSE-24,Hitting the Gym,Sandstorm Edition,Plays,,,0,,2,Give your Hero in the active Battle and the next Battle +10.
+SSE-25,Fairweather Fan,Sandstorm Edition,Plays,,,0,,1,"Play this in Battle 5 or later, for every Battle you have won your active Hero gets +5."
+SSE-26,"Make it, Take it",Sandstorm Edition,Plays,,,0,,1,"For the rest of the game, if you win a Battle, the Hero in the next Battle gets +5."
+SSE-27,Pick on Someone Your Own Size,Sandstorm Edition,Plays,,,0,,2,Your Hero now has the same power as your Opponent's Hero's current power.
+SSE-28,"You Win Some, You Lose Some",Sandstorm Edition,Plays,,,0,,2,"Your current Hero gets -50, but your next 2 Heroes get +15 each."
+SSE-29,New Playbook,Sandstorm Edition,Plays,,,0,,4,Shuffle all your Plays in your hand back into your Playbook and draw 4 new Plays.
+SSA-1,XL,Xavier Leggette Debut,Inspired Ink Battlefoil,ALT,,200,Xavier Legette,0,
+SSA-2,XL,Xavier Leggette Debut,Inspired Ink Battlefoil,Hex,,185,Xavier Legette,0,
+SSA-3,XL,Xavier Leggette Debut,Inspired Ink Battlefoil,GLOW,,140,Xavier Legette,0,
+SSA-4,XL,Xavier Leggette Debut,Inspired Ink Battlefoil,Fire,,135,Xavier Legette,0,
+SSA-5,XL,Xavier Leggette Debut,Inspired Ink Battlefoil,Ice,,135,Xavier Legette,0,
+SSA-6,XL,Xavier Leggette Debut,Inspired Ink Battlefoil,Steel,,130,Xavier Legette,0,

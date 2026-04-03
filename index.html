@@ -36,24 +36,36 @@
   <!-- Sidebar -->
   <aside id="channels-sidebar" class="channels-sidebar" aria-label="Navigation">
     <div class="sidebar-header">
-      <span class="sidebar-title">BOBA<span class="sidebar-title-accent">PB</span></span>
+      <div class="sidebar-wordmark">
+        <span class="sidebar-boba">BOBA</span>
+        <span class="sidebar-playbook">Playbook</span>
+      </div>
       <span class="sidebar-tagline">Search. Scan. Collect. Play.</span>
     </div>
     <nav class="sidebar-nav" aria-label="Main navigation">
       <button class="sidebar-nav-item active" id="nav-search-btn" data-view="search">
-        <span class="nav-icon" aria-hidden="true">🔍</span>
+        <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
         <span>Search Cards</span>
       </button>
       <button class="sidebar-nav-item" id="nav-rules-btn" data-view="rules">
-        <span class="nav-icon" aria-hidden="true">📖</span>
+        <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
         <span>Rules &amp; Strategy</span>
       </button>
       <button class="sidebar-nav-item" id="nav-collection-btn" data-view="collection">
-        <span class="nav-icon" aria-hidden="true">🗂</span>
+        <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="6" height="8" rx="1"/><rect x="9" y="3" width="6" height="8" rx="1"/><rect x="16" y="3" width="6" height="8" rx="1"/>
+          <rect x="2" y="13" width="6" height="8" rx="1"/><rect x="9" y="13" width="6" height="8" rx="1"/><rect x="16" y="13" width="6" height="8" rx="1"/>
+        </svg>
         <span>My Collection</span>
       </button>
       <button class="sidebar-nav-item" id="nav-profile-btn" data-view="profile">
-        <span class="nav-icon" aria-hidden="true">👤</span>
+        <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
         <span>Profile</span>
       </button>
     </nav>
@@ -91,6 +103,22 @@
             <select class="filter-select" id="treatment-filter" aria-label="Filter by treatment">
               <option value="">All Treatments</option>
             </select>
+          </div>
+
+          <div class="power-range-group" role="group" aria-label="Filter by power range">
+            <span class="filter-label-text">Power</span>
+            <input type="number" class="power-input" id="power-min" placeholder="Min"
+                   aria-label="Minimum power" min="0">
+            <span class="power-range-sep">–</span>
+            <input type="number" class="power-input" id="power-max" placeholder="Max"
+                   aria-label="Maximum power" min="0">
+            <div class="power-presets" role="group" aria-label="Power presets">
+              <button class="power-preset active" data-min="" data-max="">Any</button>
+              <button class="power-preset" data-min="1" data-max="3">Low</button>
+              <button class="power-preset" data-min="4" data-max="6">Mid</button>
+              <button class="power-preset" data-min="7" data-max="9">High</button>
+              <button class="power-preset" data-min="10" data-max="">Elite</button>
+            </div>
           </div>
         </div>
 

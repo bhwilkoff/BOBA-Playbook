@@ -6,8 +6,10 @@
 # Xcode
 build/
 DerivedData/
+xcuserdata/
 *.xcuserdata/
 *.xcworkspace/xcuserdata/
+*.xcuserstate
 *.moved-aside
 *.pbxuser
 *.perspectivev3

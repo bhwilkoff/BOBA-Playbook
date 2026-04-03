@@ -536,14 +536,146 @@
      CARD DETAIL MODAL
   ================================================================ */
 
+  /* ---- Zoom / Pan ---- */
+  let _zoomAbort = null;
+
+  function initZoom() {
+    if (_zoomAbort) _zoomAbort.abort();
+    _zoomAbort = new AbortController();
+    const sig = _zoomAbort.signal;
+
+    const artEl  = modalContent.querySelector('.modal-art');
+    const imgEl  = modalContent.querySelector('.modal-card-img') ||
+                   modalContent.querySelector('.modal-img-placeholder');
+    if (!artEl || !imgEl) return;
+
+    let scale = 1, tx = 0, ty = 0;
+    let pinchDist = 0;
+    let dragging  = false, dStartX = 0, dStartY = 0, dStartTx = 0, dStartTy = 0;
+    let lastTap   = 0;
+
+    function apply(animated) {
+      imgEl.style.transition = animated ? 'transform 0.22s ease' : 'none';
+      imgEl.style.transform  = `translate(${tx}px,${ty}px) scale(${scale})`;
+      artEl.classList.toggle('zoomed',   scale > 1);
+      artEl.classList.toggle('can-pan',  scale > 1 && !dragging);
+      artEl.classList.toggle('dragging', dragging);
+    }
+
+    function clamp() {
+      if (scale <= 1) { tx = 0; ty = 0; return; }
+      const mx = artEl.clientWidth  * (scale - 1) / 2;
+      const my = artEl.clientHeight * (scale - 1) / 2;
+      tx = Math.max(-mx, Math.min(mx, tx));
+      ty = Math.max(-my, Math.min(my, ty));
+    }
+
+    /* Touch — pinch + drag */
+    imgEl.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        pinchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY);
+      } else if (e.touches.length === 1 && scale > 1) {
+        dragging = true;
+        dStartX = e.touches[0].clientX; dStartY = e.touches[0].clientY;
+        dStartTx = tx; dStartTy = ty;
+        apply(false);
+      }
+    }, { passive: false, signal: sig });
+
+    imgEl.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const d = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY);
+        scale = Math.max(1, Math.min(6, scale * d / pinchDist));
+        pinchDist = d;
+        clamp(); apply(false);
+      } else if (dragging && e.touches.length === 1) {
+        e.preventDefault();
+        tx = dStartTx + e.touches[0].clientX - dStartX;
+        ty = dStartTy + e.touches[0].clientY - dStartY;
+        clamp(); apply(false);
+      }
+    }, { passive: false, signal: sig });
+
+    imgEl.addEventListener('touchend', (e) => {
+      dragging = false;
+      if (scale < 1.08) { scale = 1; tx = 0; ty = 0; }
+      // Double-tap to toggle zoom
+      const now = Date.now();
+      if (now - lastTap < 280 && e.changedTouches.length === 1) {
+        scale = scale > 1 ? 1 : 2.5;
+        tx = 0; ty = 0;
+      }
+      lastTap = now;
+      clamp(); apply(true);
+    }, { signal: sig });
+
+    /* Wheel zoom (desktop) */
+    artEl.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      scale = Math.max(1, Math.min(6, scale * (e.deltaY < 0 ? 1.12 : 0.88)));
+      if (scale === 1) { tx = 0; ty = 0; }
+      clamp(); apply(false);
+    }, { passive: false, signal: sig });
+
+    /* Mouse drag (desktop) */
+    artEl.addEventListener('mousedown', (e) => {
+      if (scale <= 1) return;
+      dragging = true;
+      dStartX = e.clientX; dStartY = e.clientY;
+      dStartTx = tx; dStartTy = ty;
+      e.preventDefault();
+      apply(false);
+    }, { signal: sig });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      tx = dStartTx + e.clientX - dStartX;
+      ty = dStartTy + e.clientY - dStartY;
+      clamp(); apply(false);
+    }, { signal: sig });
+
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false; apply(false);
+    }, { signal: sig });
+
+    /* Double-click to toggle zoom (desktop) */
+    let clickTimer = null;
+    artEl.addEventListener('click', (e) => {
+      // Only count as double-click if not a drag
+      if (Math.abs(e.clientX - dStartX) > 4 || Math.abs(e.clientY - dStartY) > 4) return;
+      if (clickTimer) {
+        clearTimeout(clickTimer);
+        clickTimer = null;
+        scale = scale > 1 ? 1 : 2.5;
+        tx = 0; ty = 0;
+        clamp(); apply(true);
+      } else {
+        clickTimer = setTimeout(() => { clickTimer = null; }, 280);
+      }
+    }, { signal: sig });
+  }
+
+  function cleanupZoom() {
+    if (_zoomAbort) { _zoomAbort.abort(); _zoomAbort = null; }
+  }
+
   function openModal(card) {
     modalContent.innerHTML = buildModalContent(card);
     modalOverlay.hidden = false;
     document.body.style.overflow = 'hidden';
     modalCloseBtn.focus();
+    initZoom();
   }
 
   function closeModal() {
+    cleanupZoom();
     modalOverlay.hidden = true;
     document.body.style.overflow = '';
   }

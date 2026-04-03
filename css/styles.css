@@ -41,6 +41,7 @@
   --el-ALT:    #AABBDD;
 
   /* Typography */
+  --font-arena:   'Bebas Neue', 'Barlow Condensed', system-ui, sans-serif;  /* wordmark only */
   --font-display: 'Syne', system-ui, sans-serif;
   --font-mono:    'JetBrains Mono', 'Courier New', monospace;
   --font-body:    'Inter', system-ui, sans-serif;
@@ -134,19 +135,20 @@ select { cursor: pointer; }
 .hamburger:hover span { background: var(--boba-cyan); }
 
 .mobile-title {
-  font-family: var(--font-display);
-  font-size: 1.1rem; font-weight: 800;
-  letter-spacing: 0.04em; text-transform: uppercase;
-  display: flex; align-items: baseline; gap: 5px;
+  display: flex; align-items: baseline; gap: 6px;
 }
 .mobile-title-boba {
+  font-family: var(--font-arena);
+  font-size: 1.6rem; font-weight: 400;
+  letter-spacing: 0.05em; text-transform: uppercase; line-height: 1;
   color: var(--boba-orange);
-  text-shadow: 0 0 16px rgba(255,77,0,0.5);
+  text-shadow: 0 0 14px rgba(255,77,0,0.5);
 }
 .mobile-title-playbook {
-  font-size: 0.78rem; font-weight: 600;
+  font-family: 'Barlow Condensed', system-ui, sans-serif;
+  font-size: 0.82rem; font-weight: 700;
+  letter-spacing: 0.22em; text-transform: uppercase;
   color: var(--boba-text-2);
-  letter-spacing: 0.16em;
 }
 
 /* ================================================================
@@ -194,29 +196,34 @@ select { cursor: pointer; }
   display: flex; flex-direction: column; gap: 0;
 }
 
-/* BOBA — the game. Bold, large, permanent orange presence. */
+/*
+ * BOBA — Bebas Neue: the Battle Arena voice.
+ * Condensed, all-caps, built for scoreboards and arena marquees.
+ * No overflow at 3.4rem because Bebas Neue is narrow by design.
+ */
 .sidebar-boba {
-  font-family: var(--font-display);
-  font-size: 2.6rem; font-weight: 800;
-  letter-spacing: 0.16em; line-height: 1;
+  font-family: var(--font-arena);
+  font-size: 3.4rem; font-weight: 400; /* Bebas Neue is weight 400 */
+  letter-spacing: 0.06em; line-height: 0.95;
   color: var(--boba-orange);
   text-transform: uppercase;
-  /* Static glow — depth without movement */
   text-shadow:
-    0 0  2px rgba(255,77,0,0.9),
-    0 0 20px rgba(255,77,0,0.45),
-    0 0 48px rgba(255,77,0,0.15);
+    0 0  1px rgba(255,77,0,1),
+    0 0 16px rgba(255,77,0,0.5),
+    0 0 40px rgba(255,77,0,0.15);
 }
 
-/* Playbook — the authority. Same family, lower weight, full name. */
+/*
+ * PLAYBOOK — Barlow Condensed: the expert reference.
+ * Wide letter-spacing optically matches the width of BOBA above.
+ */
 .sidebar-playbook {
-  font-family: var(--font-display);
-  font-size: 0.95rem; font-weight: 600;
-  letter-spacing: 0.38em; text-transform: uppercase;
+  font-family: 'Barlow Condensed', system-ui, sans-serif;
+  font-size: 0.78rem; font-weight: 700;
+  letter-spacing: 0.42em; text-transform: uppercase;
   color: var(--boba-text-2);
-  /* Slightly outdented to optically align with BOBA's left edge given tracking */
-  margin-left: 2px;
-  margin-top: 3px;
+  margin-left: 3px; /* optical correction for tracking offset */
+  margin-top: 2px;
 }
 
 .sidebar-tagline {

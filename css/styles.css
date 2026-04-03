@@ -40,11 +40,11 @@
   --el-NONE:   #555578; --el-NONE-glow:  rgba(85,85,120,0.2);
   --el-ALT:    #AABBDD;
 
-  /* Typography */
-  --font-arena:   'Bebas Neue', 'Barlow Condensed', system-ui, sans-serif;  /* wordmark only */
-  --font-display: 'Syne', system-ui, sans-serif;
-  --font-mono:    'JetBrains Mono', 'Courier New', monospace;
-  --font-body:    'Inter', system-ui, sans-serif;
+  /* Typography — 3-font system */
+  --font-arena:   'Bebas Neue', 'Russo One', system-ui, sans-serif; /* wordmark BOBA only */
+  --font-display: 'Russo One', system-ui, sans-serif;               /* headings, card names, nav */
+  --font-mono:    'Chakra Petch', system-ui, sans-serif;            /* stats, labels, numbers, data */
+  --font-body:    'Chakra Petch', system-ui, sans-serif;            /* body text */
 
   /* Spacing */
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
@@ -145,7 +145,7 @@ select { cursor: pointer; }
   text-shadow: 0 0 14px rgba(255,77,0,0.5);
 }
 .mobile-title-playbook {
-  font-family: 'Barlow Condensed', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 0.82rem; font-weight: 700;
   letter-spacing: 0.22em; text-transform: uppercase;
   color: var(--boba-text-2);
@@ -220,7 +220,7 @@ select { cursor: pointer; }
  * Wide letter-spacing optically matches the width of BOBA above.
  */
 .sidebar-playbook {
-  font-family: 'Barlow Condensed', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 0.78rem; font-weight: 700;
   letter-spacing: 0.42em; text-transform: uppercase;
   color: var(--boba-text-2);

@@ -823,16 +823,26 @@ main {
 /* Badges row */
 .modal-badges { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
 
-.element-badge-lg {
-  font-size: 0.75rem; padding: 4px 12px; border-radius: 6px;
+/* Uniform badge height for all badge types in the modal */
+.element-badge-lg,
+.set-badge,
+.treatment-banner {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 0.68rem;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 /* ---- Set badge ---- */
 .set-badge {
-  display: inline-flex; align-items: center;
-  padding: 3px 10px; border-radius: 4px;
-  font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700;
-  letter-spacing: 0.1em; text-transform: uppercase;
+  border-radius: 6px;
 }
 .set-alpha     { background: rgba(255,77,0,0.15);    color: #FF7744; border: 1px solid rgba(255,77,0,0.35); }
 .set-griffey   { background: rgba(61,140,52,0.15);   color: #5CC94A; border: 1px solid rgba(61,140,52,0.35); }
@@ -843,11 +853,6 @@ main {
 
 /* ---- Treatment banner ---- */
 .treatment-banner {
-  display: inline-flex; align-items: center; gap: var(--sp-2);
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
-  letter-spacing: 0.08em; text-transform: uppercase;
   position: relative; overflow: hidden;
 }
 /* Treatment banner specific styles */
@@ -926,22 +931,28 @@ main {
 }
 .stat-cell {
   background: var(--boba-surface-2);
-  padding: var(--sp-3) var(--sp-3);
+  padding: var(--sp-3);
+  display: flex; flex-direction: column; justify-content: center;
+  min-height: 62px;
 }
-.stat-cell.full { grid-column: 1 / -1; }
+.stat-cell.full { grid-column: 1 / -1; min-height: 62px; }
 .stat-label-sm {
   font-family: var(--font-mono); font-size: 0.6rem; font-weight: 700;
   letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--boba-text-muted);
-  margin-bottom: 4px;
+  margin-bottom: 4px; flex-shrink: 0;
 }
 .stat-val {
   font-family: var(--font-body); font-size: 0.88rem; font-weight: 500;
   color: var(--boba-text-2); line-height: 1.3;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+/* Full-width cells (athlete, ability) can wrap */
+.stat-cell.full .stat-val {
+  white-space: normal; text-overflow: unset; overflow: visible;
 }
 .stat-val.ability {
-  font-style: italic; color: var(--boba-cyan);
-  font-size: 0.85rem; line-height: 1.45;
+  font-style: italic; color: var(--boba-cyan); line-height: 1.45;
 }
 
 /* ---- Hero associations ---- */

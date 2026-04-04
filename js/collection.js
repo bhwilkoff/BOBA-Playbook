@@ -6,10 +6,16 @@
 const Collection = (() => {
   'use strict';
 
-  let _cards      = [];
-  let _activeTab  = 'personal';
-  let _addCard    = null; // card being added in the add sheet
-  let _cardLookup = null; // set by app.js after card catalog loads
+  let _cards         = [];
+  let _activeTab     = 'personal';
+  let _addCard       = null;  // card being added in the add sheet
+  let _cardLookup    = null;  // set by app.js after card catalog loads
+  let _variantLookup = null;  // set by app.js: (hero, excludeNum) => Card[]
+
+  // Collection detail overlay state
+  let _detailNum   = null;    // card_number currently shown in detail
+  let _detailState = 'view';  // 'view' | 'edit'
+  let _editEntry   = null;    // user_cards row being edited
 
   const DESIGNATIONS = [
     { key: 'personal',  label: 'Personal'  },
@@ -114,8 +120,23 @@ const Collection = (() => {
       });
     });
 
+    // Open detail on card item click (not on delete button)
+    view.querySelectorAll('[data-detail-num]').forEach(item => {
+      item.addEventListener('click', e => {
+        if (e.target.closest('[data-delete-id]')) return;
+        openCollectionDetail(item.dataset.detailNum);
+      });
+      item.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openCollectionDetail(item.dataset.detailNum);
+        }
+      });
+    });
+
     view.querySelectorAll('[data-delete-id]').forEach(btn => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
         const id = btn.dataset.deleteId;
         if (!confirm('Remove this card from your collection?')) return;
         try {
@@ -145,7 +166,10 @@ const Collection = (() => {
          </div>`;
 
     return `
-      <div class="collection-card-item" role="listitem" data-element="${esc(element)}">
+      <div class="collection-card-item" role="listitem" data-element="${esc(element)}"
+           data-detail-num="${esc(entry.card_number)}"
+           style="cursor:pointer" title="View detail"
+           tabindex="0" aria-label="View ${esc(cardName)} detail">
         ${imgHtml}
         <div class="ccard-body">
           <div class="ccard-name">${esc(cardName)}</div>
@@ -212,6 +236,338 @@ const Collection = (() => {
       ?.addEventListener('click', async () => {
         if (!confirm('Sign out?')) return;
         await Auth.signOut();
+      });
+  }
+
+  /* ================================================================
+     COLLECTION CARD DETAIL OVERLAY
+  ================================================================ */
+
+  function openCollectionDetail(cardNumber) {
+    _detailNum   = String(cardNumber);
+    _detailState = 'view';
+    _editEntry   = null;
+    renderCollectionDetail();
+    const overlay = document.getElementById('cdetail-overlay');
+    overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+    overlay.addEventListener('click', _onDetailOverlayClick);
+  }
+
+  function _onDetailOverlayClick(e) {
+    if (e.target === document.getElementById('cdetail-overlay')) closeCollectionDetail();
+  }
+
+  function closeCollectionDetail() {
+    const overlay = document.getElementById('cdetail-overlay');
+    overlay.hidden = true;
+    overlay.removeEventListener('click', _onDetailOverlayClick);
+    document.body.style.overflow = '';
+    _detailNum   = null;
+    _detailState = 'view';
+    _editEntry   = null;
+  }
+
+  function renderCollectionDetail() {
+    const box = document.getElementById('cdetail-box');
+    if (!box) return;
+
+    if (_detailState === 'edit' && _editEntry) {
+      box.innerHTML = _buildEditFormHtml();
+      _wireEditForm();
+      return;
+    }
+
+    const cardNum     = _detailNum;
+    const catalogCard = _cardLookup ? _cardLookup(cardNum) : null;
+    const cardName    = catalogCard?.name    || cardNum;
+    const imageFile   = catalogCard?.imageFile;
+    const element     = catalogCard?.element || 'NONE';
+    const treatment   = catalogCard?.treatment;
+    const power       = catalogCard?.power;
+    const hero        = catalogCard?.hero;
+
+    const myEntries = _cards.filter(c => c.card_number === cardNum);
+
+    const variations = (hero && _variantLookup)
+      ? _variantLookup(hero, cardNum)
+      : [];
+
+    // Card header image
+    const imgHtml = imageFile
+      ? `<img class="cdetail-card-img" src="${esc(API.fullUrl(imageFile))}"
+              alt="${esc(cardName)}" loading="lazy" decoding="async">`
+      : `<div class="cdetail-card-img cdetail-card-img-placeholder" data-element="${esc(element)}">
+           <span>?</span>
+         </div>`;
+
+    // Treatment class for banner
+    const tfClass = treatment
+      ? 'tf-' + treatment.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      : 'tf-base';
+
+    const headerHtml = `
+      <div class="cdetail-header">
+        ${imgHtml}
+        <div class="cdetail-card-info">
+          <div class="cdetail-card-name">${esc(cardName)}</div>
+          <div class="cdetail-card-num">#${esc(cardNum)}</div>
+          <div class="cdetail-badges-row">
+            <span class="element-badge" data-element="${esc(element)}">${esc(element)}</span>
+            ${treatment ? `<span class="treatment-banner ${esc(tfClass)}">${esc(treatment)}</span>` : ''}
+          </div>
+          ${power != null ? `<div class="cdetail-card-power">${esc(String(power))} PWR</div>` : ''}
+        </div>
+      </div>`;
+
+    // My copies
+    const copiesHtml = myEntries.length === 0
+      ? `<p class="cdetail-empty">No copies found.</p>`
+      : myEntries.map(_buildEntryRowHtml).join('');
+
+    // Variations
+    const variationsHtml = variations.length === 0 ? '' : `
+      <div class="cdetail-section">
+        <div class="cdetail-section-title">OTHER VERSIONS (${variations.length})</div>
+        <div class="cdetail-variations-scroll">
+          ${variations.map(_buildVariationTileHtml).join('')}
+        </div>
+      </div>`;
+
+    box.innerHTML = `
+      <button class="modal-close" id="cdetail-close-btn" aria-label="Close detail">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+             width="18" height="18" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+      <div class="cdetail-inner">
+        ${headerHtml}
+        <div class="cdetail-section">
+          <div class="cdetail-section-hdr">
+            <span class="cdetail-section-title">MY COPIES (${myEntries.length})</span>
+            ${catalogCard ? `<button class="cdetail-add-btn" id="cdetail-add-btn">+ Add Copy</button>` : ''}
+          </div>
+          ${copiesHtml}
+        </div>
+        ${variationsHtml}
+      </div>`;
+
+    box.querySelector('#cdetail-close-btn')
+      .addEventListener('click', closeCollectionDetail);
+
+    // Add copy button
+    box.querySelector('#cdetail-add-btn')
+      ?.addEventListener('click', () => {
+        closeCollectionDetail();
+        if (catalogCard) openAddSheet(catalogCard);
+      });
+
+    // Edit buttons
+    box.querySelectorAll('[data-edit-entry-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        _editEntry   = _cards.find(c => c.id === btn.dataset.editEntryId) || null;
+        _detailState = 'edit';
+        renderCollectionDetail();
+      });
+    });
+
+    // Delete buttons
+    box.querySelectorAll('[data-delete-entry-id]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Remove this copy from your collection?')) return;
+        const id = btn.dataset.deleteEntryId;
+        try {
+          await API.collectionDelete(id);
+          _cards = _cards.filter(c => c.id !== id);
+          renderCollectionView();
+          renderProfileView();
+          const remaining = _cards.filter(c => c.card_number === cardNum);
+          if (remaining.length === 0) closeCollectionDetail();
+          else renderCollectionDetail();
+        } catch (err) {
+          alert('Could not remove: ' + err.message);
+        }
+      });
+    });
+
+    // Variation tile clicks — close detail, open the card's main modal
+    box.querySelectorAll('[data-variant-num]').forEach(tile => {
+      tile.addEventListener('click', () => {
+        const num = tile.dataset.variantNum;
+        closeCollectionDetail();
+        document.dispatchEvent(new CustomEvent('open-card-by-number', { detail: { cardNumber: num } }));
+      });
+    });
+  }
+
+  function _buildEntryRowHtml(entry) {
+    const designLabel = DESIGNATIONS.find(d => d.key === entry.designation)?.label || entry.designation;
+    const condText    = entry.condition ? entry.condition.replace('_', ' ') : null;
+    return `
+      <div class="cdetail-entry">
+        <div class="cdetail-entry-main">
+          <div class="cdetail-entry-top">
+            <span class="desig-badge desig-${esc(entry.designation)}">${esc(designLabel)}</span>
+            ${condText ? `<span class="ccard-condition">${esc(condText)}${entry.grade ? ` · ${esc(entry.grade)}` : ''}</span>` : ''}
+            ${entry.serial_number ? `<span class="cdetail-serial">${esc(entry.serial_number)}</span>` : ''}
+          </div>
+          ${entry.purchase_price != null
+            ? `<div class="cdetail-entry-price">$${Number(entry.purchase_price).toFixed(2)}<span class="cdetail-entry-price-label"> PAID</span></div>`
+            : ''}
+          ${entry.notes ? `<div class="cdetail-entry-notes">${esc(entry.notes)}</div>` : ''}
+        </div>
+        <div class="cdetail-entry-actions">
+          <button class="cdetail-entry-btn" data-edit-entry-id="${esc(entry.id)}" aria-label="Edit copy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 width="15" height="15" aria-hidden="true">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button class="cdetail-entry-btn cdetail-entry-btn-del" data-delete-entry-id="${esc(entry.id)}" aria-label="Remove copy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 width="15" height="15" aria-hidden="true">
+              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+            </svg>
+          </button>
+        </div>
+      </div>`;
+  }
+
+  function _buildVariationTileHtml(card) {
+    const num     = String(card.cardNumber);
+    const owned   = _cards.some(c => c.card_number === num && ['personal','for_sale','for_trade'].includes(c.designation));
+    const wanted  = !owned && _cards.some(c => c.card_number === num && c.designation === 'wanted');
+    const imgHtml = card.imageFile
+      ? `<img class="cdetail-var-img" src="${esc(API.thumbUrl(card.imageFile))}"
+              alt="${esc(card.name)}" loading="lazy" decoding="async">`
+      : `<div class="cdetail-var-img cdetail-var-img-ph" data-element="${esc(card.element || 'NONE')}"><span>?</span></div>`;
+    const badge = owned
+      ? `<span class="cdetail-var-own owned">✓</span>`
+      : wanted
+      ? `<span class="cdetail-var-own wanted">★</span>`
+      : '';
+    return `
+      <button class="cdetail-var-tile" data-variant-num="${esc(num)}">
+        <div class="cdetail-var-img-wrap">${imgHtml}${badge}</div>
+        <div class="cdetail-var-label">${esc(card.treatment || card.set || '')}</div>
+      </button>`;
+  }
+
+  function _buildEditFormHtml() {
+    const entry    = _editEntry;
+    const cardName = (_cardLookup ? _cardLookup(_detailNum)?.name : null) || _detailNum;
+    return `
+      <button class="modal-close" id="cdetail-close-btn" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+             width="18" height="18" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+      <div class="cdetail-inner">
+        <div class="cdetail-edit-hdr">
+          <button class="cdetail-back-btn" id="cdetail-back-btn" aria-label="Back to detail">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                 width="16" height="16" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+          </button>
+          <div>
+            <div class="cdetail-edit-title">Edit Entry</div>
+            <div class="cdetail-edit-subtitle">${esc(cardName)}</div>
+          </div>
+        </div>
+        <form class="add-form" id="cdetail-edit-form" novalidate>
+          <div class="form-field">
+            <label class="form-label" for="cedit-desig">DESIGNATION</label>
+            <select class="form-input form-select" id="cedit-desig">
+              ${DESIGNATIONS.map(d =>
+                `<option value="${d.key}"${entry.designation === d.key ? ' selected' : ''}>${esc(d.label)}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="cedit-condition">CONDITION</label>
+            <select class="form-input form-select" id="cedit-condition">
+              <option value="">Select…</option>
+              ${['mint','near_mint','excellent','good','poor'].map(v =>
+                `<option value="${v}"${entry.condition === v ? ' selected' : ''}>${v.replace('_',' ')}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label" for="cedit-price">PURCHASE PRICE ($)</label>
+              <input class="form-input" type="number" id="cedit-price"
+                     placeholder="0.00" min="0" step="0.01"
+                     value="${entry.purchase_price != null ? entry.purchase_price : ''}">
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="cedit-serial">SERIAL #</label>
+              <input class="form-input" type="text" id="cedit-serial"
+                     placeholder="e.g. 42/100"
+                     value="${esc(entry.serial_number || '')}">
+            </div>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="cedit-notes">NOTES</label>
+            <input class="form-input" type="text" id="cedit-notes"
+                   placeholder="Optional notes…"
+                   value="${esc(entry.notes || '')}">
+          </div>
+          <p class="add-error" id="cedit-error" hidden role="alert"></p>
+          <button type="submit" class="btn-primary add-submit-btn" id="cedit-submit">
+            Save Changes
+          </button>
+        </form>
+      </div>`;
+  }
+
+  function _wireEditForm() {
+    const box = document.getElementById('cdetail-box');
+
+    box.querySelector('#cdetail-close-btn')
+      .addEventListener('click', closeCollectionDetail);
+
+    box.querySelector('#cdetail-back-btn')
+      .addEventListener('click', () => {
+        _detailState = 'view';
+        _editEntry   = null;
+        renderCollectionDetail();
+      });
+
+    box.querySelector('#cdetail-edit-form')
+      .addEventListener('submit', async e => {
+        e.preventDefault();
+        const btn = document.getElementById('cedit-submit');
+        btn.disabled = true; btn.textContent = 'Saving…';
+
+        const priceVal  = document.getElementById('cedit-price')?.value;
+        const serialVal = document.getElementById('cedit-serial')?.value.trim();
+
+        const fields = {
+          designation:    document.getElementById('cedit-desig')?.value    || _editEntry.designation,
+          condition:      document.getElementById('cedit-condition')?.value || null,
+          purchase_price: priceVal ? Number(priceVal) : null,
+          serial_number:  serialVal || null,
+          notes:          document.getElementById('cedit-notes')?.value.trim() || null,
+        };
+
+        try {
+          const updated = await API.collectionUpdate(_editEntry.id, fields);
+          const idx = _cards.findIndex(c => c.id === updated.id);
+          if (idx !== -1) _cards[idx] = updated;
+          _detailState = 'view';
+          _editEntry   = null;
+          renderCollectionDetail();
+          renderCollectionView();
+          renderProfileView();
+        } catch (err) {
+          const errEl = document.getElementById('cedit-error');
+          if (errEl) { errEl.textContent = err.message; errEl.hidden = false; }
+          btn.disabled = false; btn.textContent = 'Save Changes';
+        }
       });
   }
 
@@ -398,6 +754,7 @@ const Collection = (() => {
     openAddSheet,
     isOwned,
     isWanted,
-    setCardLookup: fn => { _cardLookup = fn; },
+    setCardLookup:    fn => { _cardLookup    = fn; },
+    setVariantLookup: fn => { _variantLookup = fn; },
   };
 })();

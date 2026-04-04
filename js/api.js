@@ -123,6 +123,17 @@ const API = (() => {
     if (error) throw new Error(error.message);
   }
 
+  async function collectionUpdate(id, fields) {
+    const { data, error } = await supa()
+      .from('user_cards')
+      .update(fields)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
   /* ----------------------------------------------------------------
      Exports
   ---------------------------------------------------------------- */
@@ -142,5 +153,6 @@ const API = (() => {
     collectionFetch,
     collectionAdd,
     collectionDelete,
+    collectionUpdate,
   };
 })();

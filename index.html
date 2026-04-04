@@ -180,6 +180,12 @@
 
   </main>
 
+  <!-- COLLECTION CARD DETAIL SHEET (must come before card-modal so card-modal stacks on top) -->
+  <div class="modal-overlay" id="cdetail-overlay" hidden
+       role="dialog" aria-modal="true" aria-label="Collection card detail">
+    <div class="cdetail-box" id="cdetail-box"></div>
+  </div>
+
   <!-- CARD DETAIL MODAL -->
   <div class="modal-overlay" id="card-modal-overlay" hidden
        role="dialog" aria-modal="true" aria-labelledby="modal-card-name">
@@ -203,12 +209,6 @@
   <div class="modal-overlay" id="add-collection-overlay" hidden
        role="dialog" aria-modal="true" aria-label="Add card to collection">
     <div class="auth-modal-box add-collection-box" id="add-collection-box"></div>
-  </div>
-
-  <!-- COLLECTION CARD DETAIL SHEET -->
-  <div class="modal-overlay" id="cdetail-overlay" hidden
-       role="dialog" aria-modal="true" aria-label="Collection card detail">
-    <div class="cdetail-box" id="cdetail-box"></div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>

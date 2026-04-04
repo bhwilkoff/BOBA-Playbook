@@ -1712,12 +1712,15 @@ main {
   display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
 }
 
-/* Smaller element + treatment badges for the detail header */
-.cdetail-badges-row .element-badge {
-  height: 22px; font-size: 0.6rem; padding: 0 8px;
-}
+/* Normalise both badge types to the same height in the detail header */
+.cdetail-badges-row .element-badge,
 .cdetail-badges-row .treatment-banner {
-  height: 22px; font-size: 0.6rem; padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 0.6rem;
+  line-height: 1;
 }
 
 .cdetail-card-power {

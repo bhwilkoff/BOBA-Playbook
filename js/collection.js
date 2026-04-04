@@ -358,10 +358,7 @@ const Collection = (() => {
            <span>?</span>
          </div>`;
 
-    // Treatment class for banner
-    const tfClass = treatment
-      ? 'tf-' + treatment.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-      : 'tf-base';
+    const tfClass = _getTreatmentClass(treatment);
 
     const headerHtml = `
       <div class="cdetail-header">
@@ -413,10 +410,9 @@ const Collection = (() => {
     box.querySelector('#cdetail-close-btn')
       .addEventListener('click', closeCollectionDetail);
 
-    // Add copy button
+    // Add copy button — open add sheet on top; detail stays open underneath
     box.querySelector('#cdetail-add-btn')
       ?.addEventListener('click', () => {
-        closeCollectionDetail();
         if (catalogCard) openAddSheet(catalogCard);
       });
 
@@ -448,12 +444,10 @@ const Collection = (() => {
       });
     });
 
-    // Variation tile clicks — close detail, open the card's main modal
+    // Variation tile clicks — open card modal on top; detail stays open underneath
     box.querySelectorAll('[data-variant-num]').forEach(tile => {
       tile.addEventListener('click', () => {
-        const num = tile.dataset.variantNum;
-        closeCollectionDetail();
-        document.dispatchEvent(new CustomEvent('open-card-by-number', { detail: { cardNumber: num } }));
+        document.dispatchEvent(new CustomEvent('open-card-by-number', { detail: { cardNumber: tile.dataset.variantNum } }));
       });
     });
   }
@@ -750,6 +744,8 @@ const Collection = (() => {
       closeAddSheet();
       renderCollectionView();
       renderProfileView();
+      // If collection detail is open for this card, refresh it with the new copy
+      if (_detailNum === String(_addCard.cardNumber)) renderCollectionDetail();
     } catch (err) {
       const errEl = document.getElementById('add-error');
       if (errEl) { errEl.textContent = err.message; errEl.hidden = false; }
@@ -777,6 +773,22 @@ const Collection = (() => {
   /* ================================================================
      HELPERS
   ================================================================ */
+
+  // Mirrors getTreatmentClass in app.js — must stay in sync
+  function _getTreatmentClass(treatment) {
+    if (!treatment) return 'tf-base';
+    const t = treatment.toLowerCase();
+    if (t.includes('blizzard'))                                  return 'tf-blizzard';
+    if (t.includes('superfoil'))                                 return 'tf-superfoil';
+    if (t.includes('battlefoil'))                                return 'tf-battlefoil';
+    if (t.includes('inspired ink') || t.includes('inspired-ink')) return 'tf-inspired';
+    if (t.includes('inspired'))                                  return 'tf-inspired-m';
+    if (t.includes('logofoil'))                                  return 'tf-logofoil';
+    if (t.includes('blast'))                                     return 'tf-blast';
+    if (t.includes('paper'))                                     return 'tf-paper';
+    if (t === 'base' || t === 'standard' || t === '')            return 'tf-base';
+    return 'tf-special';
+  }
 
   function esc(str) {
     if (str == null) return '';

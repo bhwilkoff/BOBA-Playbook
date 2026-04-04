@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BOBA Playbook</title>
+  <script>
+    // Redirect any 404 back to the app root, preserving the query string
+    // so deep-linked views (e.g. ?view=collection) still work.
+    var q = location.search;
+    window.location.replace('/BOBA-Playbook/' + (q ? q : ''));
+  </script>
+</head>
+<body></body>
+</html>

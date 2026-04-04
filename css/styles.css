@@ -300,6 +300,57 @@ main {
 }
 @media (min-width: 768px) { .search-header { top: 0; } }
 
+/* Search controls row: input + filter toggle */
+.search-controls {
+  display: flex; align-items: center; gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+.search-controls .search-bar-wrap { flex: 1; margin-bottom: 0; }
+
+/* Filter toggle button (mobile only) */
+.filter-toggle-btn {
+  position: relative; flex-shrink: 0;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--boba-glass);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 8px;
+  color: var(--boba-text-muted);
+  transition: all 0.15s;
+}
+.filter-toggle-btn:hover { color: var(--boba-text-2); border-color: rgba(255,255,255,0.25); }
+.filter-toggle-btn.has-filters { border-color: var(--boba-orange); color: var(--boba-orange); }
+.filter-toggle-btn[aria-expanded="true"] {
+  background: rgba(0,245,255,0.08); border-color: var(--boba-cyan); color: var(--boba-cyan);
+}
+.filter-badge {
+  position: absolute; top: -5px; right: -5px;
+  min-width: 17px; height: 17px; padding: 0 4px;
+  background: var(--boba-orange); border-radius: 100px;
+  font-family: var(--font-mono); font-size: 0.6rem; font-weight: 700; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 6px var(--boba-orange-glow);
+}
+@media (min-width: 768px) { .filter-toggle-btn { display: none; } }
+
+/* Filter panel — collapsible on mobile, always open on desktop */
+.filter-panel {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  background: rgba(8,8,16,0.96);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--boba-glass-border);
+  padding: 0 var(--sp-4);
+}
+.filter-panel.open { max-height: 600px; padding: var(--sp-3) var(--sp-4); }
+@media (min-width: 768px) {
+  .filter-panel {
+    max-height: none; overflow: visible;
+    padding: var(--sp-2) var(--sp-4) var(--sp-3);
+  }
+}
+
 /* Search bar */
 .search-bar-wrap {
   position: relative;

@@ -74,6 +74,9 @@
   const clearFiltersBtn = $('clear-filters-btn');
   const powerMinInput  = $('power-min');
   const powerMaxInput  = $('power-max');
+  const filterToggleBtn = $('filter-toggle-btn');
+  const filterPanel     = $('filter-panel');
+  const filterBadge     = $('filter-badge');
 
   const modalOverlay  = $('card-modal-overlay');
   const modalContent  = $('modal-content');
@@ -98,6 +101,29 @@
     sidebarToggle.setAttribute('aria-expanded', 'false');
   }
   sidebarOverlay.addEventListener('click', closeSidebar);
+
+  /* ================================================================
+     FILTER PANEL TOGGLE (mobile)
+  ================================================================ */
+  filterToggleBtn?.addEventListener('click', () => {
+    const open = filterPanel.classList.toggle('open');
+    filterToggleBtn.setAttribute('aria-expanded', String(open));
+    filterPanel.setAttribute('aria-hidden', String(!open));
+  });
+
+  function updateFilterBadge() {
+    let count = 0;
+    if (filters.element)                                count++;
+    if (filters.set)                                    count++;
+    if (filters.treatment)                              count++;
+    if (filters.powerMin !== null || filters.powerMax !== null) count++;
+    if (filters.hasImage)                               count++;
+    if (filterBadge) {
+      filterBadge.textContent = String(count);
+      filterBadge.hidden = count === 0;
+    }
+    filterToggleBtn?.classList.toggle('has-filters', count > 0);
+  }
 
   /* ================================================================
      VIEW SYSTEM
@@ -422,6 +448,7 @@
     document.querySelectorAll('.power-preset').forEach(b => b.classList.remove('active'));
     document.querySelector('.power-preset[data-min=""]')?.classList.add('active');
     setElementFilter('');
+    updateFilterBadge();
   }
 
   /* ================================================================
@@ -434,6 +461,7 @@
     cardGrid.innerHTML = '';
     renderNextPage();
     updateResultsCount();
+    updateFilterBadge();
   }
 
   function renderNextPage() {
@@ -459,7 +487,7 @@
     el.setAttribute('tabindex', '0');
     el.setAttribute('aria-label', `${card.name}, ${card.element || 'No element'}, Power ${card.power}`);
 
-    const imgHtml = card.imageAvailable && card.imageFile
+    const imgHtml = card.imageFile
       ? `<img class="card-img" src="${escHtml(API.thumbUrl(card.imageFile))}"
               alt="${escHtml(card.name)}" loading="lazy" decoding="async">`
       : `<div class="card-img-placeholder" aria-hidden="true">

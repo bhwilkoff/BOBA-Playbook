@@ -78,22 +78,15 @@ body {
   font-size: 15px; line-height: 1.5;
   color: var(--boba-text);
   background: var(--boba-near-black);
-  min-height: 100dvh;
-  overflow-x: hidden;
-  /* Prevent rubber-band bounce from carrying content up into the Dynamic Island
-     zone. Without this, Safari overscroll can momentarily push cards above the
-     fixed header. Matches the pattern used in Bsky-Dreams and most app-like UIs. */
-  overscroll-behavior-y: none;
-}
-
-/* Subtle scanline texture */
-body::after {
-  content: '';
-  position: fixed; inset: 0;
-  background: var(--scanline);
-  pointer-events: none;
-  z-index: 9998;
-  opacity: 0.4;
+  /* Bsky Dreams pattern: body is a fixed-height flex column.
+     Content scrolls inside <main>, not on the body itself.
+     This is the only reliable way to prevent content from
+     bleeding into the Dynamic Island in Safari browser mode. */
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  overscroll-behavior: none;
 }
 
 img, svg { display: block; max-width: 100%; }
@@ -126,9 +119,12 @@ select { cursor: pointer; }
 ================================================================ */
 .mobile-header {
   display: flex; align-items: center; gap: var(--sp-3);
-  /* sticky in document flow — Safari positions sticky via its scroll engine,
-     never in a separate compositor layer, so no Dynamic Island bleed. */
-  position: sticky; top: 0;
+  /* position: relative so z-index takes effect — header must paint above
+     the position:fixed sidebar (z-index: 300) when it slides in on mobile.
+     No sticky/fixed needed: body is a flex column with overflow:hidden,
+     so the header naturally stays pinned at the top. */
+  position: relative;
+  flex-shrink: 0;
   height: var(--header-h);
   padding: 0 var(--sp-4);
   background: var(--boba-surface);
@@ -289,15 +285,20 @@ select { cursor: pointer; }
    MAIN LAYOUT
 ================================================================ */
 main {
-  /* sticky header stays in document flow — no top-padding offset needed */
-  padding-top: 0;
-  min-height: 100dvh;
+  /* Bsky Dreams pattern: main is the scroll container, not the body.
+     flex:1 fills remaining height after the mobile header.
+     overflow-y:auto lets content scroll within this box.
+     min-height:0 is required for overflow-y:auto to work in a flex child. */
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  overscroll-behavior: none;
 }
 @media (min-width: 768px) {
-  main { margin-left: var(--sidebar-w); padding-top: 0; }
+  main { margin-left: var(--sidebar-w); }
 }
 
-.view { min-height: 100dvh; }
+.view { min-height: 100%; }
 .view[hidden] { display: none; }
 
 .view-inner {

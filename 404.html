@@ -4,10 +4,12 @@
   <meta charset="UTF-8">
   <title>BOBA Playbook</title>
   <script>
-    // Redirect any 404 back to the app root, preserving the query string
-    // so deep-linked views (e.g. ?view=collection) still work.
+    // Redirect any 404 back to the app root at /, preserving the query
+    // string so deep-linked views (e.g. ?view=collection) still work.
+    // NOTE: do NOT use /BOBA-Playbook/ — that was the old GitHub Pages
+    // sub-path. The custom domain bobaplaybook.com serves from root /.
     var q = location.search;
-    window.location.replace('/BOBA-Playbook/' + (q ? q : ''));
+    window.location.replace('/' + (q ? q : ''));
   </script>
 </head>
 <body></body>

@@ -23,7 +23,7 @@ from pathlib import Path
 KEY_FILE  = "/Users/bhwilkoff/Downloads/AuthKey_Y97R9U9WMG.p8"
 TEAM_ID   = "L2G756LY8N"
 KEY_ID    = "Y97R9U9WMG"
-CLIENT_ID = "com.bhwilkoff.BOBAPlaybook"
+CLIENT_ID = "app.bobaplaybook.ios.web"
 
 # ── Script ────────────────────────────────────────────────────────────────────
 

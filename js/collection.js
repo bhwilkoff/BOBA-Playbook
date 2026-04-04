@@ -210,31 +210,88 @@ const Collection = (() => {
       return;
     }
 
-    const session    = Auth.getSession();
-    const email      = session?.user?.email || '—';
-    const ownedCount = _cards.filter(c => ['personal','for_sale','for_trade'].includes(c.designation)).length;
-    const wantedCount = _cards.filter(c => c.designation === 'wanted').length;
-    const grailsCount = _cards.filter(c => c.designation === 'grails').length;
-    const totalValue  = _cards
+    const session = Auth.getSession();
+    const email   = session?.user?.email || 'BOBA Player';
+
+    // Unique card numbers per designation (mirrors iOS uniqueCardNumbers)
+    const uniqueFor = key => new Set(_cards.filter(c => c.designation === key).map(c => c.card_number)).size;
+    const personalCount  = uniqueFor('personal');
+    const forSaleCount   = uniqueFor('for_sale');
+    const forTradeCount  = uniqueFor('for_trade');
+    const wantedCount    = uniqueFor('wanted');
+    const grailsCount    = uniqueFor('grails');
+    const totalValue     = _cards
       .filter(c => c.purchase_price)
       .reduce((sum, c) => sum + Number(c.purchase_price), 0);
+    const totalValueStr  = totalValue > 0
+      ? '$' + totalValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+      : '—';
+
+    // SVG icons matching iOS SF Symbols
+    const icons = {
+      person:   `<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-5.33 0-8 2.67-8 4v1h16v-1c0-1.33-2.67-4-8-4z"/></svg>`,
+      tag:      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/></svg>`,
+      trade:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>`,
+      star:     `<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
+      crown:    `<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M2 20h20v2H2v-2zM4 18l4-8 4 4 4-7 4 11H4z"/></svg>`,
+      dollar:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M8 9.5C8 8.12 9.34 7 11 7h2c1.66 0 3 1.12 3 2.5S14.66 11 13 11h-2c-1.66 0-3 1.12-3 2.5S9.34 17 11 17h2c1.66 0 3-1.12 3-2.5"/></svg>`,
+    };
+
+    const statRow = (iconKey, label, value, colorClass = '') => `
+      <div class="profile-stat-row">
+        <span class="profile-stat-icon${colorClass ? ' ' + colorClass : ''}">${icons[iconKey]}</span>
+        <span class="profile-stat-label">${esc(label)}</span>
+        <span class="profile-stat-value">${esc(String(value))}</span>
+      </div>`;
 
     view.innerHTML = `
-      <div class="view-inner profile-view">
-        <h2 class="view-heading">Profile</h2>
-        <div class="profile-email">${esc(email)}</div>
-        <div class="profile-stats">
-          <div class="pstat"><span class="pstat-val">${ownedCount}</span><span class="pstat-label">Owned</span></div>
-          <div class="pstat"><span class="pstat-val">${wantedCount}</span><span class="pstat-label">Wanted</span></div>
-          <div class="pstat"><span class="pstat-val">${grailsCount}</span><span class="pstat-label">Grails</span></div>
-          ${totalValue > 0 ? `<div class="pstat"><span class="pstat-val">$${totalValue.toFixed(2)}</span><span class="pstat-label">Cost Basis</span></div>` : ''}
+      <div class="profile-page">
+        <h2 class="view-heading profile-page-heading">Profile</h2>
+
+        <!-- Account card -->
+        <div class="profile-account-card">
+          <div class="profile-avatar">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28" aria-hidden="true">
+              <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-5.33 0-8 2.67-8 4v1h16v-1c0-1.33-2.67-4-8-4z"/>
+            </svg>
+          </div>
+          <div class="profile-account-info">
+            <div class="profile-account-email">${esc(email)}</div>
+            <div class="profile-account-role">Member</div>
+          </div>
         </div>
-        <button class="btn-ghost-sm" id="profile-signout-btn">Sign Out</button>
+
+        <!-- Collection stats -->
+        <div class="profile-section">
+          <div class="profile-section-label">Collection</div>
+          <div class="profile-stat-list">
+            ${statRow('person', 'Personal',  personalCount,  'icon-cyan')}
+            ${statRow('tag',    'For Sale',  forSaleCount,   'icon-orange')}
+            ${statRow('trade',  'For Trade', forTradeCount,  'icon-green')}
+            ${statRow('star',   'Wanted',    wantedCount,    'icon-violet')}
+            ${statRow('crown',  'Grails',    grailsCount,    'icon-gold')}
+            <div class="profile-stat-divider"></div>
+            ${statRow('dollar', 'Total Paid', totalValueStr, 'icon-cyan')}
+          </div>
+        </div>
+
+        <!-- Sign out -->
+        <div class="profile-section">
+          <div class="profile-stat-list">
+            <button class="profile-signout-row" id="profile-signout-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   width="15" height="15" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+              </svg>
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
       </div>`;
 
     view.querySelector('#profile-signout-btn')
       ?.addEventListener('click', async () => {
-        if (!confirm('Sign out?')) return;
+        if (!confirm('Sign out? Your collection data is saved and will sync back when you sign in again.')) return;
         await Auth.signOut();
       });
   }

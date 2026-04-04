@@ -103,6 +103,8 @@
     sidebar.classList.remove('open');
     sidebarOverlay.classList.remove('visible');
     sidebarToggle.setAttribute('aria-expanded', 'false');
+    // Remove focus from the button so :focus-visible ring clears after close
+    sidebarToggle.blur();
   }
   sidebarOverlay.addEventListener('click', closeSidebar);
 

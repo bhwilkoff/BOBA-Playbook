@@ -80,6 +80,10 @@ body {
   background: var(--boba-near-black);
   min-height: 100dvh;
   overflow-x: hidden;
+  /* Prevent rubber-band bounce from carrying content up into the Dynamic Island
+     zone. Without this, Safari overscroll can momentarily push cards above the
+     fixed header. Matches the pattern used in Bsky-Dreams and most app-like UIs. */
+  overscroll-behavior-y: none;
 }
 
 /* Subtle scanline texture */
@@ -143,13 +147,11 @@ select { cursor: pointer; }
   /* Below modal-overlay (500) so modals correctly cover the header,
      but above sidebar and all page content */
   z-index: 400;
-  backdrop-filter: blur(16px);
-  /* Force the header onto its own GPU compositor layer so Safari
-     doesn't briefly drop it behind scrolling content */
+  /* backdrop-filter intentionally omitted: background is fully opaque (#0D0D1A)
+     so blur has no visual effect, but it causes Safari browser-mode to create
+     a special compositor layer that can drop behind scrolling content. */
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
-  /* Note: will-change: transform removed — it causes Safari browser-mode
-     (non-PWA) to misplace the layer during address-bar show/hide transitions */
 }
 @media (min-width: 768px) { .mobile-header { display: none; } }
 

@@ -543,11 +543,12 @@
   /* ================================================================
      LOAD MORE — IntersectionObserver on sentinel
   ================================================================ */
+  // root: main-content because main is the scroll container (body does not scroll)
   const sentinelObserver = new IntersectionObserver((entries) => {
     if (entries[0].isIntersecting && displayedCount < filteredCards.length) {
       renderNextPage();
     }
-  }, { rootMargin: '300px' });
+  }, { root: document.getElementById('main-content'), rootMargin: '300px' });
 
   sentinelObserver.observe(loadSentinel);
 

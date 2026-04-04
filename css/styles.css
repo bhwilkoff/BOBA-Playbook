@@ -138,20 +138,17 @@ select { cursor: pointer; }
 ================================================================ */
 .mobile-header {
   display: flex; align-items: center; gap: var(--sp-3);
-  position: fixed; top: 0; left: 0; right: 0;
+  /* sticky keeps the header in the document flow — Safari browser-mode
+     positions sticky elements via its scroll engine, not a separate GPU
+     compositor layer, so content can never bleed above it into the
+     Dynamic Island zone. */
+  position: sticky; top: 0;
   height: calc(var(--header-h) + env(safe-area-inset-top, 0px));
   padding: 0 var(--sp-4) 0;
   padding-top: env(safe-area-inset-top, 0px);
   background: var(--boba-surface);
   border-bottom: 1px solid var(--boba-glass-border);
-  /* Below modal-overlay (500) so modals correctly cover the header,
-     but above sidebar and all page content */
   z-index: 400;
-  /* backdrop-filter intentionally omitted: background is fully opaque (#0D0D1A)
-     so blur has no visual effect, but it causes Safari browser-mode to create
-     a special compositor layer that can drop behind scrolling content. */
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 @media (min-width: 768px) { .mobile-header { display: none; } }
 
@@ -165,7 +162,13 @@ select { cursor: pointer; }
   display: block; height: 2px; background: var(--boba-text-2); border-radius: 2px;
   transition: background 0.15s;
 }
-.hamburger:hover span { background: var(--boba-cyan); }
+/* Only apply hover highlight on real-hover devices (mouse).
+   On touch screens (iOS Safari), :hover persists after tap and the
+   button would stay cyan-highlighted after closing the sidebar. */
+@media (hover: hover) {
+  .hamburger:hover span { background: var(--boba-cyan); }
+}
+.hamburger:focus-visible { outline: none; }
 
 .mobile-title {
   display: flex; align-items: center; gap: 6px;
@@ -302,7 +305,8 @@ select { cursor: pointer; }
    MAIN LAYOUT
 ================================================================ */
 main {
-  padding-top: calc(var(--header-h) + env(safe-area-inset-top, 0px));
+  /* sticky header stays in document flow — no top-padding offset needed */
+  padding-top: 0;
   min-height: 100dvh;
 }
 @media (min-width: 768px) {

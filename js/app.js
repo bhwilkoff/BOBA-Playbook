@@ -182,6 +182,14 @@
       const representative = variants.find(c => c.imageAvailable && c.imageFile) || variants[0];
       displayCards.push(representative);
     }
+
+    // Sort: cards with images first, no-image cards last.
+    displayCards.sort((a, b) => {
+      const aImg = !!(a.imageFile);
+      const bImg = !!(b.imageFile);
+      if (aImg !== bImg) return aImg ? -1 : 1;
+      return 0;
+    });
   }
 
   /* ================================================================
@@ -826,6 +834,12 @@
     if (e.key === 'Escape' && !modalOverlay.hidden) closeModal();
   });
 
+  // Fired by collection detail when a variation tile is tapped
+  document.addEventListener('open-card-by-number', ({ detail: { cardNumber } }) => {
+    const cardSet = cardsByNumber.get(String(cardNumber));
+    if (cardSet?.length) openModal(cardSet[0]);
+  });
+
   /* ================================================================
      INITIALIZATION
   ================================================================ */
@@ -853,6 +867,9 @@
 
     prepareData();
     Collection.setCardLookup(num => cardsByNumber.get(String(num))?.[0]);
+    Collection.setVariantLookup((hero, excludeNum) =>
+      displayCards.filter(c => c.hero === hero && String(c.cardNumber) !== String(excludeNum))
+    );
 
     loadingState.hidden = true;
     buildElementFilters();

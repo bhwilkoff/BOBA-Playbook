@@ -28,7 +28,12 @@ struct CollectionCardDetailView: View {
         guard let card = catalogCard else { return [] }
         return cardStore.displayCards
             .filter { $0.hero == card.hero && $0.cardNumber != cardNumber }
-            .sorted { ($0.set, $0.treatment ?? "") < ($1.set, $1.treatment ?? "") }
+            .sorted {
+                let lImg = $0.imageFile != nil && !$0.imageFile!.isEmpty
+                let rImg = $1.imageFile != nil && !$1.imageFile!.isEmpty
+                if lImg != rImg { return lImg }
+                return ($0.set, $0.treatment ?? "") < ($1.set, $1.treatment ?? "")
+            }
     }
 
     var body: some View {

@@ -125,6 +125,10 @@ final class CardStore {
                 if !match { return false }
             }
             return true
+        }.sorted {
+            let lImg = $0.imageFile != nil && !$0.imageFile!.isEmpty
+            let rImg = $1.imageFile != nil && !$1.imageFile!.isEmpty
+            return lImg && !rImg
         }
     }
 

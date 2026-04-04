@@ -22,6 +22,12 @@
 </head>
 <body>
 
+  <!-- Safe-area cover: always paints the Dynamic Island / notch zone with the
+       surface color. Height is env(safe-area-inset-top) so it's 0 on devices
+       without a notch and exactly the right size on those that have one.
+       z-index 500 ensures it sits above every other layer. -->
+  <div id="safe-area-cover" aria-hidden="true"></div>
+
   <a href="#main-content" class="skip-link">Skip to content</a>
 
   <!-- Mobile header -->

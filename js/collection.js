@@ -9,6 +9,7 @@ const Collection = (() => {
   let _cards      = [];
   let _activeTab  = 'personal';
   let _addCard    = null; // card being added in the add sheet
+  let _cardLookup = null; // set by app.js after card catalog loads
 
   const DESIGNATIONS = [
     { key: 'personal',  label: 'Personal'  },
@@ -131,12 +132,28 @@ const Collection = (() => {
 
   function buildCollectionCardHtml(entry) {
     const designLabel = DESIGNATIONS.find(d => d.key === entry.designation)?.label || entry.designation;
+    const catalogCard = _cardLookup ? _cardLookup(entry.card_number) : null;
+    const cardName    = catalogCard?.name || entry.card_number;
+    const imageFile   = catalogCard?.imageFile;
+    const element     = catalogCard?.element || 'NONE';
+
+    const imgHtml = imageFile
+      ? `<img class="ccard-thumb" src="${esc(API.thumbUrl(imageFile))}"
+              alt="${esc(cardName)}" loading="lazy" decoding="async">`
+      : `<div class="ccard-thumb ccard-thumb-placeholder" data-element="${esc(element)}" aria-hidden="true">
+           <span>?</span>
+         </div>`;
+
     return `
-      <div class="collection-card-item" role="listitem">
+      <div class="collection-card-item" role="listitem" data-element="${esc(element)}">
+        ${imgHtml}
         <div class="ccard-body">
-          <div class="ccard-num">${esc(entry.card_number || '—')}</div>
-          <div class="ccard-desig desig-badge desig-${esc(entry.designation || '')}">${esc(designLabel)}</div>
-          ${entry.condition ? `<div class="ccard-meta">${esc(entry.condition.replace('_',' '))}${entry.grade ? ` · ${esc(entry.grade)}` : ''}</div>` : ''}
+          <div class="ccard-name">${esc(cardName)}</div>
+          <div class="ccard-num">#${esc(entry.card_number || '—')}</div>
+          <div class="ccard-badges">
+            <span class="desig-badge desig-${esc(entry.designation || '')}">${esc(designLabel)}</span>
+            ${entry.condition ? `<span class="ccard-condition">${esc(entry.condition.replace('_',' '))}${entry.grade ? ` · ${esc(entry.grade)}` : ''}</span>` : ''}
+          </div>
           ${entry.purchase_price ? `<div class="ccard-price">$${Number(entry.purchase_price).toFixed(2)}</div>` : ''}
           ${entry.notes ? `<div class="ccard-notes">${esc(entry.notes)}</div>` : ''}
         </div>
@@ -381,5 +398,6 @@ const Collection = (() => {
     openAddSheet,
     isOwned,
     isWanted,
+    setCardLookup: fn => { _cardLookup = fn; },
   };
 })();

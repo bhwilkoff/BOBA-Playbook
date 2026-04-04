@@ -852,6 +852,7 @@
     }
 
     prepareData();
+    Collection.setCardLookup(num => cardsByNumber.get(String(num))?.[0]);
 
     loadingState.hidden = true;
     buildElementFilters();

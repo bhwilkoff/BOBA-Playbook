@@ -117,35 +117,20 @@ select { cursor: pointer; }
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
-/* ================================================================
-   SAFE-AREA COVER
-   Belt-and-suspenders: unconditionally paints the Dynamic Island /
-   notch zone even if the fixed header compositor layer glitches.
-================================================================ */
-#safe-area-cover {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: env(safe-area-inset-top, 0px);
-  background: var(--boba-surface);
-  /* 9000: above modals (500), mobile-header (400), everything else.
-     pointer-events:none so it never blocks taps on the content below. */
-  z-index: 9000;
-  pointer-events: none;
-}
+/* #safe-area-cover intentionally removed.
+   Without viewport-fit=cover, env(safe-area-inset-top) is always 0
+   and the browser automatically clips content to the safe area. */
 
 /* ================================================================
    MOBILE HEADER
 ================================================================ */
 .mobile-header {
   display: flex; align-items: center; gap: var(--sp-3);
-  /* sticky keeps the header in the document flow — Safari browser-mode
-     positions sticky elements via its scroll engine, not a separate GPU
-     compositor layer, so content can never bleed above it into the
-     Dynamic Island zone. */
+  /* sticky in document flow — Safari positions sticky via its scroll engine,
+     never in a separate compositor layer, so no Dynamic Island bleed. */
   position: sticky; top: 0;
-  height: calc(var(--header-h) + env(safe-area-inset-top, 0px));
-  padding: 0 var(--sp-4) 0;
-  padding-top: env(safe-area-inset-top, 0px);
+  height: var(--header-h);
+  padding: 0 var(--sp-4);
   background: var(--boba-surface);
   border-bottom: 1px solid var(--boba-glass-border);
   z-index: 400;
@@ -212,10 +197,9 @@ select { cursor: pointer; }
   transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
 }
 .channels-sidebar.open { transform: translateX(0); }
-/* On mobile the fixed header sits on top of the sidebar (higher z-index),
-   so push sidebar content below the header so it isn't obscured. */
+/* On mobile, push sidebar content below the sticky header so it isn't obscured. */
 @media (max-width: 767px) {
-  .channels-sidebar { padding-top: calc(var(--header-h) + env(safe-area-inset-top, 0px)); }
+  .channels-sidebar { padding-top: var(--header-h); }
 }
 @media (min-width: 768px) { .channels-sidebar { transform: translateX(0); } }
 

@@ -133,7 +133,7 @@ select { cursor: pointer; }
    MOBILE HEADER
 ================================================================ */
 .mobile-header {
-  display: flex; align-items: flex-end; gap: var(--sp-3);
+  display: flex; align-items: center; gap: var(--sp-3);
   position: fixed; top: 0; left: 0; right: 0;
   height: calc(var(--header-h) + env(safe-area-inset-top, 0px));
   padding: 0 var(--sp-4) 0;
@@ -206,6 +206,11 @@ select { cursor: pointer; }
   transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
 }
 .channels-sidebar.open { transform: translateX(0); }
+/* On mobile the fixed header sits on top of the sidebar (higher z-index),
+   so push sidebar content below the header so it isn't obscured. */
+@media (max-width: 767px) {
+  .channels-sidebar { padding-top: calc(var(--header-h) + env(safe-area-inset-top, 0px)); }
+}
 @media (min-width: 768px) { .channels-sidebar { transform: translateX(0); } }
 
 /* Sidebar brand */
@@ -885,10 +890,13 @@ main {
   touch-action: none; /* we handle all touch ourselves */
 }
 @media (max-width: 639px) {
-  .modal-art { max-height: 52dvh; }
+  /* Explicit height so height:100% on the image resolves correctly */
+  .modal-art { height: 52dvh; }
 }
 @media (min-width: 640px) {
-  .modal-art { width: 260px; min-height: 380px; }
+  /* flex-start: art panel sizes to the image, not the (potentially much taller)
+     details panel. sticky keeps the image in view while scrolling card stats. */
+  .modal-art { width: 260px; align-self: flex-start; position: sticky; top: 0; }
 }
 
 /* Zoom hint — fades out once user zooms */

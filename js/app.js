@@ -727,7 +727,7 @@
     const element = card.element || 'NONE';
 
     const imgHtml = imgSrc
-      ? `<img class="modal-card-img" src="${escHtml(imgSrc)}" alt="${escHtml(card.name)}" loading="lazy">`
+      ? `<img class="modal-card-img" src="${escHtml(imgSrc)}" alt="${escHtml(card.name)}" loading="eager">`
       : `<div class="modal-img-placeholder" aria-hidden="true">
            <span class="placeholder-brand">BOBA PB</span>
            <span class="placeholder-card-num">${escHtml(card.cardNumber)}</span>

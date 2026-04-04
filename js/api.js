@@ -58,7 +58,7 @@ const API = (() => {
      The anon key is public by design — protected by RLS policies.
   ---------------------------------------------------------------- */
   const SUPABASE_URL  = (window.ENV || {}).SUPABASE_URL  || 'https://pazkimtkwwwekuguxkff.supabase.co';
-  const SUPABASE_ANON = (window.ENV || {}).SUPABASE_ANON || 'sb_publishable_SjHCvLfeJl4XsuMWgKe5Xg_OLE0rkVF';
+  const SUPABASE_ANON = (window.ENV || {}).SUPABASE_ANON || 'sb_publishable_nAaO0c10a0dJaNRRYUFv7w_PmH1XjET';
 
   let _supa = null;
   function supa() {

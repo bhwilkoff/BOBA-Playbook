@@ -1,0 +1,88 @@
+import SwiftUI
+import UIKit
+
+// MARK: - SecureInputField
+// UIViewRepresentable wrapper for a secure text field that maintains white dot
+// color even when iOS autofill / strong-password injection resets UIKit styling.
+// SwiftUI's SecureField cannot guarantee foreground color through autofill because
+// UIKit resets textColor on the backing UITextField when the system injects text.
+
+struct SecureInputField: UIViewRepresentable {
+
+    let placeholder: String
+    @Binding var text: String
+    var textContentType: UITextContentType = .password
+    var submitLabel: UIReturnKeyType = .done
+    var onSubmit: (() -> Void)?
+    var focused: Bool = false
+
+    func makeUIView(context: Context) -> UITextField {
+        let field = UITextField()
+        field.isSecureTextEntry = true
+        field.textColor = .white
+        field.tintColor = .white
+        field.keyboardAppearance = .dark
+        field.autocorrectionType = .no
+        field.autocapitalizationType = .none
+        field.spellCheckingType = .no
+        field.returnKeyType = submitLabel
+        field.textContentType = textContentType
+        field.attributedPlaceholder = NSAttributedString(
+            string: placeholder,
+            attributes: [.foregroundColor: UIColor.white.withAlphaComponent(0.35)]
+        )
+        field.font = UIFont(name: "ChakraPetch-Regular", size: 15)
+            ?? UIFont.monospacedSystemFont(ofSize: 15, weight: .regular)
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        field.delegate = context.coordinator
+        field.addTarget(context.coordinator, action: #selector(Coordinator.textChanged(_:)), for: .editingChanged)
+        return field
+    }
+
+    func updateUIView(_ field: UITextField, context: Context) {
+        // Keep UIKit text in sync with SwiftUI binding (but don't reset cursor)
+        if field.text != text {
+            field.text = text
+        }
+        // Always re-assert white — autofill can reset this
+        field.textColor = .white
+        field.textContentType = textContentType
+        field.returnKeyType = submitLabel
+
+        // First-responder management
+        DispatchQueue.main.async {
+            if focused && !field.isFirstResponder {
+                field.becomeFirstResponder()
+            } else if !focused && field.isFirstResponder {
+                field.resignFirstResponder()
+            }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text, onSubmit: onSubmit)
+    }
+
+    // MARK: - Coordinator
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        @Binding var text: String
+        var onSubmit: (() -> Void)?
+
+        init(text: Binding<String>, onSubmit: (() -> Void)?) {
+            _text = text
+            self.onSubmit = onSubmit
+        }
+
+        @objc func textChanged(_ field: UITextField) {
+            text = field.text ?? ""
+            // Re-assert color after every keystroke (autofill can reset mid-entry)
+            field.textColor = .white
+        }
+
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            onSubmit?()
+            return true
+        }
+    }
+}

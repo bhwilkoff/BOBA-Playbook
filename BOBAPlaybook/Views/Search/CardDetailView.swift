@@ -3,14 +3,24 @@ import SwiftUI
 struct CardDetailView: View {
     let card: Card
     @Environment(\.dismiss) private var dismiss
+    @Environment(AuthManager.self) private var auth
+    @Environment(CollectionStore.self) private var collection
 
     // Zoom state
     @State private var scale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
     @GestureState private var dragDelta: CGSize = .zero
     @GestureState private var pinchDelta: CGFloat = 1.0
+    @State private var showingAddSheet = false
+    @State private var showingSignIn = false
 
     private var effectiveScale: CGFloat { (scale * pinchDelta).clamped(to: 1...6) }
+
+    private var collectionStatusIcon: String? {
+        if collection.isOwned(card.cardNumber) { return "checkmark.circle.fill" }
+        if collection.isWanted(card.cardNumber) { return "star.fill" }
+        return nil
+    }
 
     var body: some View {
         NavigationStack {
@@ -35,9 +45,29 @@ struct CardDetailView: View {
                         .foregroundStyle(Design.Colors.textPrimary)
                         .lineLimit(1)
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        if auth.isAuthenticated { showingAddSheet = true }
+                        else { showingSignIn = true }
+                    } label: {
+                        if let icon = collectionStatusIcon {
+                            Image(systemName: icon)
+                                .foregroundStyle(collection.isOwned(card.cardNumber) ? .green : Design.Colors.bobaOrange)
+                        } else {
+                            Image(systemName: "plus.circle")
+                                .foregroundStyle(Design.Colors.bobaOrange)
+                        }
+                    }
+                }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .sheet(isPresented: $showingAddSheet) {
+                AddToCollectionSheet(card: card)
+            }
+            .sheet(isPresented: $showingSignIn) {
+                SignInView()
+            }
         }
     }
 

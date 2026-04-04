@@ -160,6 +160,68 @@ Multi-card mode maintains a scan queue in `ScanStore` with running value tally.
 
 ---
 
+## Decision 014 — iOS Card Catalog: Two-Phase Progressive Loading
+*Date: 2026-04-03*
+
+**Decision**: The iOS card catalog loads in two phases. Phase 1 is synchronous inside `CardStore.init()`: decode `cards-head.json` (500 cards, ~192KB) directly, so 500 cards are available before SwiftUI renders frame 1. Phase 2 runs in `Task.detached(priority: .background)`: decode `display-cards.json` (~12k cards, 4.7MB) without competing with UI work.
+
+**Rationale**: Initial approach used `PropertyListEncoder` to cache decoded cards — this caused a 30-45 second blocking encode on first launch. Removing the cache and running full JSON decode in `.background` priority Task.detached eliminates the bottleneck. Synchronous Phase 1 in `init()` (not an async Task) ensures cards are ready before the first render pass, achieving <50ms time-to-first-card.
+
+**Data files**:
+- `BOBAPlaybook/cards-head.json` — first 500 cards, ~192KB, generated from display-cards.json head
+- `BOBAPlaybook/display-cards.json` — full deduplicated catalog, ~4.7MB, 11,991 cards
+
+**Trade-offs**: No persistent JSON cache between launches; file is re-decoded every launch. Full decode takes 1-3 seconds on device at `.background` priority, which is imperceptible since 500 cards are already showing. `cards-slim.json` deprecated and removed.
+
+---
+
+## Decision 015 — imageAvailable Flag Bypass
+*Date: 2026-04-03*
+
+**Decision**: On both platforms, the `imageAvailable` boolean field is NOT used to gate image loading. Instead, any card with a non-null, non-empty `imageFile` will always attempt to load its CDN image. Placeholder is only shown when `imageFile` is null (no image path exists) or on CDN load failure.
+
+**Rationale**: The `imageAvailable` flag in the JSON source data had false negatives — some cards had `imageAvailable: false` but a valid `imageFile` pointing to real CDN images. Bypassing the flag and trusting the CDN (which returns 404 for missing images, gracefully falling back to placeholder) is more accurate.
+
+**Affected files**: `BOBAPlaybook/Components/CardImageView.swift`, `js/app.js` (`buildCardElement`)
+
+---
+
+## Decision 016 — Tab/Section Named "Play" Not "Rules"
+*Date: 2026-04-03*
+
+**Decision**: The rules/strategy/deck-builder section is named **Play** (not "Rules & Strategy" or "Book") on both platforms. Icon: `bolt.square.fill` (SF Symbols on iOS; custom SVG on web).
+
+**Rationale**: "Rules" implies constraint. "Play" conveys the purpose — how to play the game, strategy, and deck building. The bolt-square icon evokes the battle/energy feel of BOBA without being sport-specific.
+
+---
+
+## Decision 017 — Web Filter Panel: Mobile Collapsible, Desktop Persistent
+*Date: 2026-04-03*
+
+**Decision**: On mobile (<768px), the search filter panel is hidden by default behind a toggle button in the search bar row. Tapping the button slides the panel down with a max-height transition. The panel lives *outside* the sticky `search-header` so it scrolls with page content when open. A badge on the toggle button shows active filter count. On desktop (≥768px), the filter panel is always visible, no toggle needed.
+
+**Rationale**: On mobile, the filter bar consumed significant vertical space on every page load, burying card results before the user has seen them. The iOS app uses a bottom sheet — the web equivalent is a collapsible panel. Desktop users have screen real estate to keep filters visible.
+
+---
+
+## Decision 018 — PWA GitHub Pages 404 Handling
+*Date: 2026-04-03*
+
+**Decision**: A `404.html` file at the repo root redirects any unresolvable GitHub Pages URL back to `/BOBA-Playbook/`, preserving query string. The `manifest.json` includes an explicit `"scope": "/BOBA-Playbook/"` field.
+
+**Rationale**: GitHub Pages project sites serve from a subdirectory path. Without a 404 handler, any URL that doesn't map to a real file (e.g. a PWA homescreen launch resolving to an unexpected path) shows GitHub's own 404 page. The redirect catches all such cases. The `scope` field ensures iOS Safari's PWA handling stays within the correct path boundary.
+
+---
+
+## Decision 019 — App Icon: XOXO Playbook Mark
+*Date: 2026-04-03*
+
+**Decision**: The app icon is an XOXO pattern (X, O, O, X in a 2×2 grid) in BOBA orange (#FF4D00) on near-black (#000000). Files in `Logos/` folder; deployed to `BOBAPlaybook/Assets.xcassets/AppIcon.appiconset/` (1024px, Xcode generates all sizes) and `assets/icons/` (SVG, 60px, 180px, 512px for web).
+
+**Rationale**: The XOXO mark is immediately legible at small sizes, brand-distinctive (orange on black), and evokes strategy/playbook thinking (X's and O's = play diagrams) while being abstract enough to not be tied to a single sport.
+
+---
+
 ## Decision 013 — Pricing Comps Strategy
 *Date: 2026-04-03*
 

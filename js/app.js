@@ -90,9 +90,13 @@
      SIDEBAR (mobile)
   ================================================================ */
   sidebarToggle.addEventListener('click', () => {
-    sidebar.classList.add('open');
-    sidebarOverlay.classList.add('visible');
-    sidebarToggle.setAttribute('aria-expanded', 'true');
+    if (sidebar.classList.contains('open')) {
+      closeSidebar();
+    } else {
+      sidebar.classList.add('open');
+      sidebarOverlay.classList.add('visible');
+      sidebarToggle.setAttribute('aria-expanded', 'true');
+    }
   });
 
   function closeSidebar() {

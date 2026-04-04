@@ -1,0 +1,103 @@
+import Foundation
+
+// MARK: - UserCard
+// One row = one physical copy of a card in the user's collection.
+// Multiple copies of the same card_number are grouped in the UI.
+struct UserCard: Codable, Identifiable, Hashable {
+    let id: UUID
+    let userId: UUID
+    let cardNumber: String
+    var designation: Designation
+    var condition: String?
+    var serialNumber: Int?
+    var grade: String?
+    var gradingCompany: String?
+    var purchasePrice: Decimal?
+    var askingPrice: Decimal?
+    var estimatedValue: Decimal?
+    var lastPriceCheck: Date?
+    let acquiredAt: Date
+    var notes: String?
+
+    // MARK: Designation
+    enum Designation: String, Codable, CaseIterable, Identifiable, Hashable {
+        case personal
+        case for_sale
+        case for_trade
+        case wanted
+        case grails
+
+        var id: String { rawValue }
+
+        var displayName: String {
+            switch self {
+            case .personal:  return "Personal"
+            case .for_sale:  return "For Sale"
+            case .for_trade: return "For Trade"
+            case .wanted:    return "Wanted"
+            case .grails:    return "Grails"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .personal:  return "person.fill"
+            case .for_sale:  return "tag.fill"
+            case .for_trade: return "arrow.left.arrow.right"
+            case .wanted:    return "star.fill"
+            case .grails:    return "crown.fill"
+            }
+        }
+
+        /// Whether this designation represents ownership (vs. a wishlist)
+        var isOwned: Bool {
+            switch self {
+            case .personal, .for_sale, .for_trade: return true
+            case .wanted, .grails: return false
+            }
+        }
+    }
+
+    // MARK: Supabase snake_case mapping
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId          = "user_id"
+        case cardNumber      = "card_number"
+        case designation
+        case condition
+        case serialNumber    = "serial_number"
+        case grade
+        case gradingCompany  = "grading_company"
+        case purchasePrice   = "purchase_price"
+        case askingPrice     = "asking_price"
+        case estimatedValue  = "estimated_value"
+        case lastPriceCheck  = "last_price_check"
+        case acquiredAt      = "acquired_at"
+        case notes
+    }
+}
+
+// MARK: - New card payload (for POST to Supabase)
+struct NewUserCard: Encodable {
+    let cardNumber: String
+    let designation: UserCard.Designation
+    var condition: String?
+    var serialNumber: Int?
+    var grade: String?
+    var gradingCompany: String?
+    var purchasePrice: Decimal?
+    var askingPrice: Decimal?
+    var notes: String?
+
+    enum CodingKeys: String, CodingKey {
+        case cardNumber     = "card_number"
+        case designation
+        case condition
+        case serialNumber   = "serial_number"
+        case grade
+        case gradingCompany = "grading_company"
+        case purchasePrice  = "purchase_price"
+        case askingPrice    = "asking_price"
+        case notes
+    }
+}

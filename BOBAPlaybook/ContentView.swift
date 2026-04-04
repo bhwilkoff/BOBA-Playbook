@@ -2,8 +2,6 @@
 //  ContentView.swift
 //  BOBAPlaybook
 //
-//  Created by Ben Wilkoff on 4/3/26.
-//
 
 import SwiftUI
 
@@ -24,23 +22,15 @@ struct ContentView: View {
                 Label("Play", systemImage: "bolt.square.fill")
             }
 
-            PlaceholderView(
-                title: "My Collection",
-                icon: "square.grid.2x2",
-                message: "Sign in to track your collection and portfolio value — coming in M2."
-            )
-            .tabItem {
-                Label("Collection", systemImage: "square.grid.2x2")
-            }
+            CollectionView()
+                .tabItem {
+                    Label("Collection", systemImage: "square.grid.2x2")
+                }
 
-            PlaceholderView(
-                title: "Profile",
-                icon: "person",
-                message: "Auth and settings — coming in M2."
-            )
-            .tabItem {
-                Label("Profile", systemImage: "person")
-            }
+            ProfileView()
+                .tabItem {
+                    Label("Profile", systemImage: "person")
+                }
         }
         .tint(Design.Colors.bobaOrange)
     }

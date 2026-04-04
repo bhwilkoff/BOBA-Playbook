@@ -700,6 +700,10 @@
     document.body.style.overflow = 'hidden';
     modalCloseBtn.focus();
     initZoom();
+
+    // Wire "Add to Collection" button
+    modalContent.querySelector('[data-action="add-to-collection"]')
+      ?.addEventListener('click', () => Collection.openAddSheet(card));
   }
 
   function closeModal() {
@@ -799,6 +803,15 @@
             ${statCells}
           </div>
           ${heroSection}
+          <div class="modal-collection-action">
+            <button class="btn-collection-add" data-action="add-to-collection">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   width="15" height="15" aria-hidden="true">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+              Add to Collection
+            </button>
+          </div>
           <div class="pricing-section">
             <h3 class="section-label">Pricing Comps</h3>
             <p class="pricing-note">Radish &amp; eBay live pricing — coming in M3.</p>
@@ -817,6 +830,10 @@
      INITIALIZATION
   ================================================================ */
   async function init() {
+    // Init auth + collection modules (must be before first render)
+    Auth.init();
+    Collection.init();
+
     const params = new URLSearchParams(window.location.search);
     const urlView = params.get('view');
     showView(viewIds.includes(urlView) ? urlView : 'search', true);

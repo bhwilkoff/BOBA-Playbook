@@ -2,8 +2,6 @@
 //  BOBAPlaybookApp.swift
 //  BOBAPlaybook
 //
-//  Created by Ben Wilkoff on 4/3/26.
-//
 
 import SwiftUI
 import CoreText
@@ -11,6 +9,8 @@ import CoreText
 @main
 struct BOBAPlaybookApp: App {
     @State private var cardStore = CardStore()
+    @State private var authManager = AuthManager()
+    @State private var collectionStore = CollectionStore()
 
     init() {
         // Persist AsyncImage responses across sessions
@@ -28,7 +28,12 @@ struct BOBAPlaybookApp: App {
         WindowGroup {
             ContentView()
                 .environment(cardStore)
+                .environment(authManager)
+                .environment(collectionStore)
                 .preferredColorScheme(.dark)
+                .onOpenURL { url in
+                    authManager.handleDeepLink(url)
+                }
         }
     }
 }

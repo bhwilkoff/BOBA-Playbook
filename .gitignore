@@ -48,4 +48,5 @@ node_modules/
 .env
 .env.local
 *.key
+*.p8
 credentials.json

@@ -53,11 +53,75 @@ const API = (() => {
   }
 
   /* ----------------------------------------------------------------
-     Supabase — M2 (auth, collections, decks)
-     Placeholder: implement in M2
+     Supabase — M2: auth + user collections
+     Fill in YOUR_SUPABASE_ANON_KEY from your .env.local file.
+     The anon key is public by design — protected by RLS policies.
   ---------------------------------------------------------------- */
-  // const SUPABASE_URL  = '...'; // set from env in M2
-  // const SUPABASE_ANON = '...';
+  const SUPABASE_URL  = (window.ENV || {}).SUPABASE_URL  || 'https://pazkimtkwwwekuguxkff.supabase.co';
+  const SUPABASE_ANON = (window.ENV || {}).SUPABASE_ANON || 'sb_publishable_SjHCvLfeJl4XsuMWgKe5Xg_OLE0rkVF';
+
+  let _supa = null;
+  function supa() {
+    if (!_supa) _supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+      auth: { detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
+    });
+    return _supa;
+  }
+
+  // ---- Auth ----
+
+  async function authSignUp(email, password) {
+    const { data, error } = await supa().auth.signUp({ email, password });
+    if (error) throw new Error(error.message);
+    return data; // { user, session } — session is null when confirmation email required
+  }
+
+  async function authSignIn(email, password) {
+    const { data, error } = await supa().auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
+    return data.session;
+  }
+
+  function authSignInWithApple() {
+    // Strip query/hash so redirectTo is the clean app URL
+    const redirectTo = window.location.origin + window.location.pathname;
+    return supa().auth.signInWithOAuth({ provider: 'apple', options: { redirectTo } });
+  }
+
+  async function authSignOut() {
+    const { error } = await supa().auth.signOut();
+    if (error) throw new Error(error.message);
+  }
+
+  function authOnStateChange(cb) {
+    return supa().auth.onAuthStateChange((event, session) => cb(event, session));
+  }
+
+  // ---- Collection ----
+
+  async function collectionFetch() {
+    const { data, error } = await supa()
+      .from('user_cards').select('*').order('acquired_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async function collectionAdd(card) {
+    const { data: { session } } = await supa().auth.getSession();
+    if (!session) throw new Error('Not signed in');
+    const { data, error } = await supa()
+      .from('user_cards')
+      .insert({ ...card, user_id: session.user.id })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async function collectionDelete(id) {
+    const { error } = await supa().from('user_cards').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  }
 
   /* ----------------------------------------------------------------
      Exports
@@ -68,5 +132,15 @@ const API = (() => {
     loadCards,
     loadSearchIndex,
     loadCategories,
+    // Auth
+    authSignUp,
+    authSignIn,
+    authSignInWithApple,
+    authSignOut,
+    authOnStateChange,
+    // Collection
+    collectionFetch,
+    collectionAdd,
+    collectionDelete,
   };
 })();

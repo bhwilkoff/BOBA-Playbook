@@ -1504,7 +1504,7 @@ main {
 .desig-grails    { color: #FFD700;              border-color: rgba(255,215,0,0.3);  background: rgba(255,215,0,0.08); }
 
 /* ================================================================
-   M2 — PROFILE VIEW
+   M2 — AUTH GATE (shared signed-out state)
 ================================================================ */
 
 .view-inner.auth-gate {
@@ -1521,34 +1521,120 @@ main {
 
 .view-inner.auth-gate .btn-primary { max-width: 260px; }
 
-.view-inner.profile-view {
-  display: flex; flex-direction: column; align-items: flex-start;
-  gap: var(--sp-5);
-  padding: var(--sp-6) var(--sp-4);
+/* ================================================================
+   M2 — PROFILE VIEW
+================================================================ */
+
+.profile-page {
+  padding: var(--sp-4) var(--sp-4) var(--sp-10);
+  max-width: 540px;
+  display: flex; flex-direction: column; gap: var(--sp-4);
 }
 
-.profile-email {
-  font-family: var(--font-mono); font-size: 0.85rem;
-  color: var(--boba-text-muted);
-  padding: var(--sp-2) var(--sp-3);
+.profile-page-heading {
+  margin-bottom: var(--sp-1);
+}
+
+/* Account card */
+.profile-account-card {
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-4);
   background: var(--boba-surface-2);
   border: 1px solid var(--boba-glass-border);
-  border-radius: 8px;
+  border-radius: 14px;
 }
 
-.profile-stats {
-  display: flex; flex-wrap: wrap; gap: var(--sp-4);
-}
-
-.pstat { display: flex; flex-direction: column; gap: 2px; min-width: 64px; }
-.pstat-val {
-  font-family: var(--font-display); font-size: 1.5rem;
+.profile-avatar {
+  flex-shrink: 0;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: rgba(255,77,0,0.15);
+  border: 1px solid rgba(255,77,0,0.35);
+  display: flex; align-items: center; justify-content: center;
   color: var(--boba-orange);
 }
-.pstat-label {
-  font-family: var(--font-mono); font-size: 0.62rem;
-  color: var(--boba-text-muted); letter-spacing: 0.08em; text-transform: uppercase;
+
+.profile-account-info {
+  display: flex; flex-direction: column; gap: 3px; min-width: 0;
 }
+
+.profile-account-email {
+  font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.03em;
+  color: var(--boba-text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.profile-account-role {
+  font-family: var(--font-mono); font-size: 0.7rem;
+  color: var(--boba-text-muted); letter-spacing: 0.06em; text-transform: uppercase;
+}
+
+/* Section */
+.profile-section {
+  display: flex; flex-direction: column; gap: var(--sp-2);
+}
+
+.profile-section-label {
+  font-family: var(--font-mono); font-size: 0.65rem; font-weight: 700;
+  color: var(--boba-text-muted); letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 0 var(--sp-1);
+}
+
+/* Stat list card */
+.profile-stat-list {
+  background: var(--boba-surface-2);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.profile-stat-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--boba-glass-border);
+}
+.profile-stat-row:last-child { border-bottom: none; }
+
+.profile-stat-icon {
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  background: var(--boba-glass);
+  color: var(--boba-text-muted);
+}
+/* Icon accent colors */
+.profile-stat-icon.icon-cyan   { background: rgba(0,245,255,0.12);  color: var(--boba-cyan); }
+.profile-stat-icon.icon-orange { background: rgba(255,77,0,0.12);   color: var(--boba-orange); }
+.profile-stat-icon.icon-green  { background: rgba(34,197,94,0.12);  color: #4ade80; }
+.profile-stat-icon.icon-violet { background: rgba(139,0,255,0.12);  color: #bb55ff; }
+.profile-stat-icon.icon-gold   { background: rgba(255,215,0,0.12);  color: #ffd700; }
+
+.profile-stat-label {
+  font-family: var(--font-mono); font-size: 0.82rem;
+  color: var(--boba-text); flex: 1;
+}
+
+.profile-stat-value {
+  font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700;
+  color: var(--boba-text-muted);
+}
+
+.profile-stat-divider {
+  height: 1px; background: var(--boba-glass-border);
+  margin: 0 var(--sp-4);
+}
+
+/* Sign out row */
+.profile-signout-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-mono); font-size: 0.82rem;
+  color: #f87171;
+  transition: background 0.15s;
+}
+.profile-signout-row:hover { background: rgba(248,113,113,0.06); }
 
 /* ================================================================
    M2 — COLLECTION CARD DETAIL OVERLAY

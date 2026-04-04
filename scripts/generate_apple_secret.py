@@ -20,7 +20,7 @@ from pathlib import Path
 # ── Configuration ─────────────────────────────────────────────────────────────
 # Fill these in before running.
 
-KEY_FILE  = "/Users/bhwilkoff/Downloads/AuthKey_Y97R9U9WMG.p8"
+KEY_FILE  = "/Users/bhwilkoff/Documents/GitHub/BOBA-Playbook/AuthKey_Y97R9U9WMG.p8"
 TEAM_ID   = "L2G756LY8N"
 KEY_ID    = "Y97R9U9WMG"
 CLIENT_ID = "app.bobaplaybook.ios.web"

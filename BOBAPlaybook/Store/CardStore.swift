@@ -111,6 +111,7 @@ final class CardStore {
         let imgOnly   = hasImageOnly
 
         filteredCards = displayCards.filter { card in
+            if isLoadingMore && card.isSealed           { return false }
             if imgOnly && !card.imageAvailable          { return false }
             if !elements.isEmpty && !elements.contains(card.element) { return false }
             if let s = set,       !s.isEmpty, card.set      != s     { return false }

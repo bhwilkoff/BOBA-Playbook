@@ -31,7 +31,16 @@ const Auth = (() => {
 
   function close() {
     overlay.hidden = true;
-    document.body.style.overflow = '';
+    // Only restore scrolling if no other full-screen modal is still open.
+    // If the card detail modal or add-collection sheet is still open,
+    // unsetting overflow here causes iOS to snap the page and lose the modal.
+    const cardModal = document.getElementById('card-modal-overlay');
+    const addModal  = document.getElementById('add-collection-overlay');
+    const otherOpen = (cardModal && !cardModal.hidden) ||
+                      (addModal  && !addModal.hidden);
+    if (!otherOpen) {
+      document.body.style.overflow = '';
+    }
   }
 
   /* ================================================================
@@ -241,6 +250,13 @@ const Auth = (() => {
 
     // Subscribe to Supabase auth state
     API.authOnStateChange((event, session) => {
+      // Guard: if we just restored a session from the QR ?rt= param and
+      // Supabase fires INITIAL_SESSION with null (can happen when the client
+      // initializes before the refresh completes in its internal lock queue),
+      // don't overwrite the session we already set directly.
+      if (event === 'INITIAL_SESSION' && session === null && _session !== null) {
+        return;
+      }
       _session = session;
       updateNavUI();
       // Broadcast so collection.js and app.js can react

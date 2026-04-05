@@ -180,6 +180,7 @@
   ================================================================ */
   const WORKER_URL = 'https://boba-ebay-proxy.benwilkoff.workers.dev';
   let scanStream = null;
+  let _scanQRInterval = null;
 
   function initScanView() {
     const container = $('scan-container');
@@ -197,6 +198,10 @@
     if (scanStream) {
       scanStream.getTracks().forEach(t => t.stop());
       scanStream = null;
+    }
+    if (_scanQRInterval) {
+      clearInterval(_scanQRInterval);
+      _scanQRInterval = null;
     }
     const container = $('scan-container');
     if (container) {
@@ -242,7 +247,14 @@
     startCamera();
     $('scan-capture-btn').addEventListener('click', handleCapture);
 
-    if (isDesktop) generateScanQR().catch(() => {});
+    if (isDesktop) {
+      generateScanQR().catch(() => {});
+      // Refresh QR every 30s so the embedded refresh token is never stale.
+      // Supabase rotates the refresh token on each auto-refresh (~1hr cycle).
+      // If the desktop auto-refreshes after the QR was generated, the old token
+      // in the QR is invalid. Regenerating every 30s keeps the token current.
+      _scanQRInterval = setInterval(() => generateScanQR().catch(() => {}), 30_000);
+    }
   }
 
   async function generateScanQR() {

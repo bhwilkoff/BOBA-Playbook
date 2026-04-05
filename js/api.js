@@ -177,6 +177,10 @@ const API = (() => {
     authSignInWithApple,
     authSignOut,
     authOnStateChange,
+    authGetSession: async () => {
+      const { data: { session } } = await supa().auth.getSession();
+      return session;
+    },
     // Collection
     collectionFetch,
     collectionAdd,

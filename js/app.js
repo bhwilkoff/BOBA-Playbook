@@ -303,18 +303,22 @@
       console.log('[scan] rawText:', rawText);
       console.log('[scan] cardNumber:', cardNumber);
 
-      if (cardNumber) {
-        const matchedVariants = cardsByNumber.get(String(cardNumber).toUpperCase());
-        if (matchedVariants?.length) {
-          showScanMatch(resultEl, matchedVariants[0]);
-          statusEl.textContent = `Found: ${matchedVariants[0].name}`;
-        } else {
-          statusEl.textContent = `Detected #${cardNumber} — not in catalog.`;
-          showScanRetry(resultEl);
-        }
+      // Primary: card number match (same as iOS primary path)
+      let matched = cardNumber
+        ? (cardsByNumber.get(String(cardNumber).toUpperCase()) ?? [])[0]
+        : null;
+
+      // Fallback: hero name + power match (same as iOS secondary path)
+      if (!matched && rawText) matched = findCardByOCRText(rawText);
+
+      if (matched) {
+        showScanMatch(resultEl, matched);
+        statusEl.textContent = `Found: ${matched.name}`;
+      } else if (cardNumber) {
+        statusEl.textContent = `Detected #${cardNumber} — not in catalog.`;
+        showScanRetry(resultEl);
       } else {
-        const preview = rawText ? ` Saw: "${rawText.slice(0, 80)}"` : '';
-        statusEl.textContent = `No card number detected.${preview}`;
+        statusEl.textContent = 'No card detected. Ensure good lighting and try again.';
         showScanRetry(resultEl);
       }
     } catch (err) {
@@ -324,6 +328,27 @@
     }
 
     captureBtn.disabled = false;
+  }
+
+  // Mirrors iOS secondary match: hero name + power both agree.
+  // displayCards is the full loaded catalog (same data source as the search view).
+  function findCardByOCRText(rawText) {
+    const text = rawText.toLowerCase();
+    // Extract 2–3 digit integers (card powers are typically 60–200)
+    const nums = new Set(
+      [...text.matchAll(/\b(\d{2,3})\b/g)].map(m => parseInt(m[1]))
+    );
+    if (nums.size === 0) return null;
+
+    for (const card of displayCards) {
+      if (!card.hero || card.power == null) continue;
+      // Require every word of the hero name (>2 chars) to appear in the OCR text
+      const heroWords = card.hero.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      if (!heroWords.length) continue;
+      const heroMatch = heroWords.every(w => text.includes(w));
+      if (heroMatch && nums.has(card.power)) return card;
+    }
+    return null;
   }
 
   function showScanMatch(container, card) {

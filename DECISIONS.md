@@ -80,6 +80,14 @@ Mobile (<768px): filter panel hidden by default, toggled by a button with an act
 *2026-04-03*
 XOXO pattern (X, O, O, X in 2×2 grid) in BOBA orange (#FF4D00) on near-black. Legible at small sizes, brand-distinctive, evokes strategy/playbook thinking (X's and O's = play diagrams).
 
+## 021 — M4 Deck Builder Persistence: Local Templates, Supabase for User Decks
+*2026-04-05*
+Generic deckbuilding advice, archetype templates (Fire Aggro, Ice Control, Steel Wall, Mixed Toolbox, Economy/Attrition), and rules reference are static/local — no auth required, no Supabase write. User-created decks (custom hero selections, personalized playbooks) are saved to Supabase under the user's account and require sign-in.
+
+**Rationale**: Templates are read-only reference content; bundling them locally means they're available to all users instantly without friction. Personal decks have identity (your choices, your strategy) and should persist across devices like the collection does.
+
+**Consequences**: Supabase will need a `decks` table and `deck_cards` table (already scaffolded in `supabase_schema.sql` from M0). iOS will use the existing `SupabaseClient` pattern. Web will use the existing `API` wrapper in `js/api.js`. Unauthenticated users can browse templates but see a sign-in prompt if they try to save a custom deck.
+
 ## 020 — Web Layout: Body Flex Column, No viewport-fit=cover
 *2026-04-04*
 `body { height: 100dvh; display: flex; flex-direction: column; overflow: hidden }` with `main { flex: 1; overflow-y: auto; min-height: 0 }`. The body does not scroll — content scrolls inside `main`. The mobile header is the first flex item (`flex-shrink: 0; position: relative`).

@@ -161,6 +161,9 @@
     } else {
       teardownScan();
     }
+    if (name === 'rules') {
+      initPlayView();
+    }
     if (!fromHistory) {
       history.pushState({ view: name }, '', name === 'search' ? '?' : `?view=${name}`);
     }
@@ -174,6 +177,47 @@
   window.addEventListener('popstate', (e) => {
     showView(e.state?.view || 'search', true);
   });
+
+  /* ================================================================
+     PLAY VIEW
+  ================================================================ */
+  let playViewInitialized = false;
+
+  function initPlayView() {
+    if (playViewInitialized) return;
+    playViewInitialized = true;
+
+    // Top-level tab pills: Rules ↔ Strategy
+    const tabs   = document.querySelectorAll('.play-tab');
+    const panels = document.querySelectorAll('.play-panel');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        tabs.forEach(t => {
+          t.classList.toggle('active', t.dataset.tab === target);
+          t.setAttribute('aria-selected', String(t.dataset.tab === target));
+        });
+        panels.forEach(p => {
+          p.hidden = p.id !== `play-panel-${target}`;
+        });
+      });
+    });
+
+    // Mode buttons inside the Rules panel: Rookie / Substitution / Playmaker
+    const modeBtns    = document.querySelectorAll('.rules-mode-btn');
+    const modeContent = document.querySelectorAll('.rules-content');
+
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        modeBtns.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+        modeContent.forEach(el => {
+          el.hidden = el.id !== `rules-${mode}`;
+        });
+      });
+    });
+  }
 
   /* ================================================================
      SCAN VIEW

@@ -18,13 +18,9 @@ struct ContentView: View {
                 .tabItem { Label("Scan", systemImage: "camera.viewfinder") }
                 .tag(1)
 
-            PlaceholderView(
-                title: "Play",
-                icon: "bolt.square.fill",
-                message: "Rulebook, strategy tips, and deck builder — coming in M4."
-            )
-            .tabItem { Label("Play", systemImage: "bolt.square.fill") }
-            .tag(2)
+            PlayView()
+                .tabItem { Label("Play", systemImage: "bolt.square.fill") }
+                .tag(2)
 
             CollectionView()
                 .tabItem { Label("Collection", systemImage: "square.grid.2x2") }

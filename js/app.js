@@ -205,10 +205,8 @@
     }
   }
 
-  function renderScanCamera(container) {
+  async function renderScanCamera(container) {
     const isDesktop = window.innerWidth >= 1024;
-    const scanUrl = window.location.origin + window.location.pathname + '?view=scan';
-    const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(scanUrl)}&color=00F5FF&bgcolor=0D0D1A&qzone=1`;
 
     container.innerHTML = `
       <div class="scan-wrap">
@@ -232,9 +230,9 @@
         ${isDesktop ? `
           <div class="scan-desktop-aside">
             <p class="scan-aside-label">Scan on your phone for best results:</p>
-            <img class="scan-qr-img" src="${escHtml(qrSrc)}"
-                 alt="QR code — scan to open on mobile" width="180" height="180">
-            <p class="scan-aside-sub">Or download the <strong>iOS app</strong> for instant on-device scanning.</p>
+            <canvas id="scan-qr-canvas" class="scan-qr-img" width="180" height="180"
+                    aria-label="QR code — scan to open on mobile"></canvas>
+            <p class="scan-aside-sub" id="scan-qr-note"></p>
           </div>
         ` : ''}
       </div>
@@ -242,6 +240,55 @@
 
     startCamera();
     $('scan-capture-btn').addEventListener('click', handleCapture);
+
+    if (isDesktop) generateScanQR().catch(() => {});
+  }
+
+  async function generateScanQR() {
+    const canvas = $('scan-qr-canvas');
+    const note   = $('scan-qr-note');
+    if (!canvas) return;
+
+    const base = window.location.origin + window.location.pathname + '?view=scan';
+    let scanUrl = base;
+    let sessionEmbedded = false;
+
+    if (Auth.isAuthenticated()) {
+      const session = await API.authGetSession();
+      if (session?.access_token) {
+        // Embed tokens in the fragment — Supabase's detectSessionInUrl picks them up
+        // automatically on mobile page load. Fragment is never sent to any server.
+        scanUrl = `${base}#access_token=${session.access_token}` +
+                  `&refresh_token=${session.refresh_token}` +
+                  `&expires_in=${session.expires_in}` +
+                  `&token_type=bearer`;
+        sessionEmbedded = true;
+      }
+    }
+
+    // Lazy-load the QRCode library (only on desktop scan view)
+    if (!window.QRCode) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    await window.QRCode.toCanvas(canvas, scanUrl, {
+      width: 180,
+      margin: 1,
+      color: { dark: '#00F5FF', light: '#0D0D1A' },
+      errorCorrectionLevel: 'M',
+    });
+
+    if (note) {
+      note.textContent = sessionEmbedded
+        ? 'Scan to open on mobile — your session is included.'
+        : 'Or download the iOS app for instant on-device scanning.';
+    }
   }
 
   async function startCamera() {

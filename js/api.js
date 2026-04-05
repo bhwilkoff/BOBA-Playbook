@@ -21,6 +21,30 @@ const API = (() => {
     return `${CDN_BASE}/full/${imageFile}`;
   }
 
+  // Sealed product images live under sealed/thumbs/ and sealed/optimized/
+  function sealedThumbUrl(imageFile) {
+    return `${CDN_BASE}/sealed/thumbs/${imageFile}`;
+  }
+
+  function sealedFullUrl(imageFile) {
+    return `${CDN_BASE}/sealed/optimized/${imageFile}`;
+  }
+
+  // Resolves the correct URL based on card type
+  function cardThumbUrl(card) {
+    if (!card.imageFile) return null;
+    return card.cardType === 'Sealed Product'
+      ? sealedThumbUrl(card.imageFile)
+      : thumbUrl(card.imageFile);
+  }
+
+  function cardFullUrl(card) {
+    if (!card.imageFile) return null;
+    return card.cardType === 'Sealed Product'
+      ? sealedFullUrl(card.imageFile)
+      : fullUrl(card.imageFile);
+  }
+
   /* ----------------------------------------------------------------
      Card Catalog — static JSON files served from GitHub Pages
   ---------------------------------------------------------------- */
@@ -140,6 +164,10 @@ const API = (() => {
   return {
     thumbUrl,
     fullUrl,
+    sealedThumbUrl,
+    sealedFullUrl,
+    cardThumbUrl,
+    cardFullUrl,
     loadCards,
     loadSearchIndex,
     loadCategories,

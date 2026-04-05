@@ -18,26 +18,45 @@ struct CardGridItemView: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
 
-                HStack(spacing: Design.Spacing.xs) {
-                    // Element pill
-                    Text(card.element)
-                        .font(Design.Fonts.mono(9, weight: .bold))
-                        .foregroundStyle(Design.Colors.element(card.element))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(
-                            Capsule()
-                                .fill(Design.Colors.element(card.element).opacity(0.15))
-                                .overlay(Capsule().strokeBorder(Design.Colors.element(card.element).opacity(0.4), lineWidth: 0.5))
-                        )
-
-                    Spacer()
-
-                    // Power
-                    if let power = card.power {
-                        Text("\(power)")
-                            .font(Design.Fonts.mono(11, weight: .bold))
+                if card.isSealed {
+                    HStack(spacing: Design.Spacing.xs) {
+                        Text(card.set.uppercased())
+                            .font(Design.Fonts.mono(9, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule()
+                                    .fill(Design.Colors.bobaOrange.opacity(0.15))
+                                    .overlay(Capsule().strokeBorder(Design.Colors.bobaOrange.opacity(0.4), lineWidth: 0.5))
+                            )
+                        Spacer()
+                        if let msrp = card.msrp {
+                            Text(Decimal(msrp), format: .currency(code: "USD"))
+                                .font(Design.Fonts.mono(10, weight: .bold))
+                                .foregroundStyle(Design.Colors.textSecondary)
+                        }
+                    }
+                } else {
+                    HStack(spacing: Design.Spacing.xs) {
+                        // Element pill
+                        Text(card.element)
+                            .font(Design.Fonts.mono(9, weight: .bold))
                             .foregroundStyle(Design.Colors.element(card.element))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule()
+                                    .fill(Design.Colors.element(card.element).opacity(0.15))
+                                    .overlay(Capsule().strokeBorder(Design.Colors.element(card.element).opacity(0.4), lineWidth: 0.5))
+                            )
+                        Spacer()
+                        // Power
+                        if let power = card.power {
+                            Text("\(power)")
+                                .font(Design.Fonts.mono(11, weight: .bold))
+                                .foregroundStyle(Design.Colors.element(card.element))
+                        }
                     }
                 }
             }
@@ -66,9 +85,14 @@ struct CardGridItemView: View {
         .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
         .overlay(
             RoundedRectangle(cornerRadius: Design.Radius.md)
-                .strokeBorder(Design.Colors.element(card.element).opacity(0.25), lineWidth: 1)
+                .strokeBorder(
+                    card.isSealed
+                        ? Design.Colors.bobaOrange.opacity(0.30)
+                        : Design.Colors.element(card.element).opacity(0.25),
+                    lineWidth: 1
+                )
         )
-        .elementGlow(card.element)
+        .elementGlow(card.isSealed ? "NONE" : card.element)
     }
 
     @ViewBuilder

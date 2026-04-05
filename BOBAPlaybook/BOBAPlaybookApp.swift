@@ -8,6 +8,7 @@ import CoreText
 
 @main
 struct BOBAPlaybookApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var cardStore = CardStore()
     @State private var authManager = AuthManager()
     @State private var collectionStore = CollectionStore()

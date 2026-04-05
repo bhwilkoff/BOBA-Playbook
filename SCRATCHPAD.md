@@ -3,7 +3,7 @@
 ## Current State
 
 - **Active milestone**: M3 — Scan Mode (iOS) + Pricing Comps (both)
-- **Last session**: 2026-04-04 — Web mobile Safari Dynamic Island fixed; web UI polish complete. Ready for M3.
+- **Last session**: 2026-04-05 — Sealed products fully synced: 45 products, 36 images on R2. JSON patched across all files (cards.json, sealed_products.json, display-cards.json, cards-head.json).
 - **Open questions**:
   - eBay pricing API — does CORS allow direct client calls, or do we need a proxy?
   - Rules/strategy content for Play Mode — source? (manual entry, PDF parse, etc.)

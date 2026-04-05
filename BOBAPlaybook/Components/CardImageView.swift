@@ -9,8 +9,8 @@ struct CardImageView: View {
     enum ImageSize { case thumb, full }
 
     var body: some View {
-        if let file = card.imageFile, !file.isEmpty {
-            AsyncImage(url: size == .thumb ? CDN.thumb(for: file) : CDN.full(for: file)) { phase in
+        if let url = size == .thumb ? CDN.thumbURL(for: card) : CDN.fullURL(for: card) {
+            AsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let image):
                     image

@@ -2,107 +2,57 @@
 
 ## Current State
 
-- **Status**: M1 complete on both platforms (minus pricing comps + box lookup, deferred to M3)
-- **Active milestone**: M2 — Collection Mode
-- **Last session**: 2026-04-03 — iOS Search Mode built from scratch; web Search Mode polished; app icons, favicons, PWA fixes, filter UX improvements
+- **Active milestone**: M3 — Scan Mode (iOS) + Pricing Comps (both)
+- **Last session**: 2026-04-04 — Web mobile Safari Dynamic Island fixed; web UI polish complete. Ready for M3.
 - **Open questions**:
   - eBay pricing API — does CORS allow direct client calls, or do we need a proxy?
-  - Rules/strategy content for Book Mode — source? (manual entry, PDF parse, etc.)
+  - Rules/strategy content for Play Mode — source? (manual entry, PDF parse, etc.)
 
 ---
 
 ## Feature Parity Status
 
-✅ Complete on both | 🌐 Web only | 📱 iOS only | ⏳ Planned | ❌ Deferred
+✅ Both | 🌐 Web only | 📱 iOS only | ⏳ Planned | ❌ Deferred
 
 | Feature | Web | iOS | Notes |
 |---|---|---|---|
-| Search Mode (card browser) | ✅ | ✅ | M1 complete on both — parity gate cleared |
-| App icon + branding | ✅ | ✅ | XOXO logo, BOBA Playbook wordmark, bolt.square Play tab |
-| Collection Mode (portfolio) | ⏳ | ⏳ | M2 |
-| Scan Mode (camera OCR) | ❌ | ⏳ | M3 — iOS only by design |
-| Book Mode (rules + decks) | ⏳ | ⏳ | M4 |
-| Discord Trading Channel | ❌ | ❌ | M5 — future, pending research |
+| Search Mode | ✅ | ✅ | M1 complete |
+| App icon + branding | ✅ | ✅ | XOXO logo, wordmark, PWA |
+| Mobile Safari layout | ✅ | n/a | Body flex column, no viewport-fit=cover |
+| Collection Mode | ⏳ | ✅ | M2 iOS done; web deferred, runs alongside M3 |
+| Scan Mode (camera OCR) | ❌ | ✅ | M3 iOS complete — iOS only by design |
+| Pricing comps | ⏳ | ✅ | M3 iOS done (needs Worker deploy); web pending |
+| Play Mode (rules + decks) | ⏳ | ⏳ | M4 |
+| Discord Trading Channel | ❌ | ❌ | M5 — future |
 
 ---
 
 ## Milestones
 
 ### M0 — Project Setup ✅ COMPLETE
-- [x] Card data JSONs in `assets/data/` (display-cards.json, cards-head.json, categories.json, search-index.json)
-- [x] Images on Cloudflare R2 (`full/` + `thumbs/` tiers) — 10,751 images, 89.3% coverage
-- [x] Supabase project created, schema applied, URL + anon key saved
-- [x] CLAUDE.md, DECISIONS.md, SCRATCHPAD.md filled in
-- [x] Xcode project at repo root (`BOBAPlaybook`, no spaces, iOS 26.4 deployment target)
-- [x] GitHub Pages live at https://bhwilkoff.github.io/BOBA-Playbook/
-- [x] `.env.local` created with SUPABASE_URL, SUPABASE_ANON, CDN_BASE
+Card data JSONs, R2 images (89.3% coverage), Supabase schema, GitHub Pages live, Xcode project at repo root.
 
 ---
 
-### M1 — Search Mode (Read-Only Card Browser) ✅ COMPLETE (both platforms)
+### M1 — Search Mode ✅ COMPLETE (both platforms)
 
-**Goal:** Users can browse, search, and filter all BOBA cards with images.
+**Web:** Card grid (IntersectionObserver pagination, 60/page), instant search via search-index.json, collapsible filter panel (element pills, set/treatment selects, power range + presets), card detail modal (zoom/pan, full stats, athlete bio), CDN thumb/full images, treatment ribbons, element glows, branded placeholder. PWA with 404 redirect. XOXO app icon + favicon.
 
-**Web:** ✅ Complete
-- [x] Card grid — lazy-load thumbs, IntersectionObserver pagination (60 per page)
-- [x] Search bar — instant results via `search-index.json`, debounced
-- [x] Filter panel — collapsible on mobile (hidden by default, toggle button with active badge), always visible on desktop; element pills, set/treatment selects, power range (min/max + presets)
-- [x] Card detail modal — full art (pinch/scroll/drag zoom), all stats, athlete bio
-- [x] No-image placeholder — branded "BOBA PB / Image Pending" with element tint
-- [x] Treatment ribbons on card grid tiles (Battlefoil, Superfoil, Blizzard, etc.)
-- [x] Element-reactive glows, set badges, modal element gradient
-- [x] Font system — Bebas Neue / Russo One / Chakra Petch
-- [x] App icon — XOXO logo (assets/icons/); favicon, apple-touch-icon, PWA manifest icons
-- [x] PWA — manifest with scope, 404.html redirect, add-to-homescreen support
-- [x] Image display — loads any card with imageFile regardless of imageAvailable flag
-- [ ] Pricing comps in card detail — deferred to M3
-- [ ] Box lookup page — deferred to M3
-
-**iOS:** ✅ Complete
-- [x] Card grid — `LazyVGrid` 2-column, thumb images from R2 CDN
-- [x] Progressive loading — `cards-head.json` (500 cards) loads synchronously in `init()` for instant first frame; `display-cards.json` (12k cards) loads in background `.background` priority task
-- [x] Search — `.searchable` modifier, debounced filter (120ms)
-- [x] Filter sheet — bottom sheet (`.presentationDetents`), element multi-select, set/treatment pickers, power range with presets, has-image toggle, clear all
-- [x] Card detail view — push navigation, full art from CDN, pinch/drag zoom (1–6x), element gradient, stats grid, athlete inspiration
-- [x] No-image placeholder — branded, element-tinted
-- [x] `BOBAWordmark` — inline nav bar wordmark ("BOBA" orange + "Playbook" white, Bebas Neue)
-- [x] Custom fonts — programmatic registration via `CTFontManagerRegisterFontsForURL` at app launch
-- [x] App icon — XOXO logo (1024px in asset catalog, all appearances)
-- [x] URLCache — 100MB memory / 500MB disk for AsyncImage persistence across sessions
-- [x] Play tab — `bolt.square.fill` SF Symbol
-- [x] Image display — loads any card with `imageFile` regardless of `imageAvailable` flag
-- [ ] Pricing comps in card detail — deferred to M3
-- [ ] Box lookup — deferred to M3
-
-**Parity gate:** ✅ Cleared. Both platforms complete (minus deferred pricing/box lookup).
+**iOS:** LazyVGrid 2-column, two-phase progressive loading (cards-head.json sync → display-cards.json background), .searchable + debounce, filter bottom sheet, pinch/drag zoom detail (1–6x), CDN images, URLCache (100MB/500MB).
 
 ---
 
-### M2 — Collection Mode (Auth + Portfolio Tracker) 🔨 IN PROGRESS
-**Goal:** Logged-in users track owned cards with designations and a value dashboard.
+### M2 — Collection Mode 🔨 IN PROGRESS
 
-**Designations (5):** Personal · For Sale · For Trade · Wanted · Grails
-**Collection model:** one tile per unique `card_number`; multiple physical copies shown on detail page.
+**Goal:** Logged-in users track owned cards with 5 designations and a value dashboard.
+**Designations:** Personal · For Sale · For Trade · Wanted · Grails
 
 **iOS:** ✅ Complete
-- [x] `Config.swift` — Supabase URL + anon key (fill in from .env.local before building)
-- [x] `UserCard.swift` — model with 5 designations, snake_case CodingKeys for Supabase
-- [x] `SupabaseClient.swift` — REST API: auth (email/pass, Apple id_token), user_cards CRUD, Keychain session
-- [x] `AuthManager.swift` — @Observable, Sign in with Apple + email/password, Keychain restore on launch
-- [x] `CollectionStore.swift` — @Observable, load/add/update/delete, derived queries (isOwned, isWanted, totalPurchaseValue)
-- [x] `SignInView.swift` — Sign in with Apple button + email/password form, mode toggle sign in/create account
-- [x] `AddToCollectionSheet.swift` — full add form (designation, condition, grade, serial, price, notes)
-- [x] `CollectionView.swift` — designation tabs, card list (one tile per card_number), value summary header
-- [x] `CollectionCardDetailView.swift` — all copies with swipe-delete/edit; variations panel (other hero printings)
-- [x] `EditCollectionEntrySheet.swift` — inline edit for an existing entry
-- [x] `ProfileView.swift` — signed in (stats, sign out) / signed out (sign in CTA)
-- [x] `CardDetailView.swift` — "+" / checkmark toolbar button → AddToCollectionSheet or SignInView
-- [x] `ContentView.swift` — Collection and Profile tabs wired to real views
-- [x] `BOBAPlaybookApp.swift` — AuthManager + CollectionStore injected as @Environment
+Auth (email/password + Sign in with Apple), Keychain session, Supabase REST CRUD, CollectionView (designation tabs + value summary), CollectionCardDetailView (copies + variations panel), EditCollectionEntrySheet, ProfileView. Injected via `@Environment` in BOBAPlaybookApp.
 
-**⚠️ Before first build:** Fill in `BOBAPlaybook/Config.swift` with your Supabase URL and anon key from `.env.local`
+**⚠️ Before building:** Fill `BOBAPlaybook/Config.swift` with Supabase URL + anon key from `.env.local`.
 
-**⚠️ Supabase migration needed (run in SQL editor):**
+**⚠️ Supabase SQL migration** (run in SQL editor if not done):
 ```sql
 ALTER TABLE user_cards DROP CONSTRAINT IF EXISTS user_cards_designation_check;
 ALTER TABLE user_cards ADD CONSTRAINT user_cards_designation_check
@@ -114,68 +64,69 @@ CREATE POLICY "update own cards" ON user_cards FOR UPDATE USING (auth.uid() = us
 CREATE POLICY "delete own cards" ON user_cards FOR DELETE USING (auth.uid() = user_id);
 ```
 
-**⚠️ Apple Sign In setup (Apple Developer Console):**
-1. App Services → Identifiers → your App ID → Enable "Sign In with Apple"
-2. Supabase dashboard → Authentication → Providers → Apple → add Services ID + key
+**⚠️ Apple Sign In** (Apple Developer Console): App Services → Identifiers → your App ID → Enable "Sign In with Apple". Then Supabase → Auth → Providers → Apple.
 
-**Web:** ⏳ Pending
-- [ ] Auth flow (Supabase JS client: email/password)
+**Web:** ⏳ Pending (building alongside M3)
+- [ ] Auth flow (Supabase JS client: email/password + magic link)
 - [ ] "Add to Collection" button in card detail modal
 - [ ] My Collection view — designation tabs, card list
 - [ ] Value dashboard
 - [ ] Profile / sign out
 
-**Parity gate:** Both platforms complete before M3 starts.
-
 ---
 
-### M3 — Scan Mode (iOS) + Pricing Comps (both)
-**Goal:** Camera card detection on iOS; live pricing on both platforms.
+### M3 — Scan Mode (iOS) + Pricing Comps (both) 🔨 IN PROGRESS
 
-**iOS only:**
-- [ ] `ScanView.swift` — camera preview (`AVCaptureSession`) with card guide overlay
-- [ ] `CardScanner.swift` — Vision OCR pipeline, card number regex, `display-cards.json` matching
-- [ ] Card detection overlay — border animates when card detected
-- [ ] `ScanResultView.swift` — matched card detail sheet with "Add to Collection"
-- [ ] Multi-card queue mode — scan queue in `ScanStore`, running value tally
-- [ ] `MultiScanQueueView.swift` — list + total value + "Save All"
-- [ ] Fallback: "Search manually" if scan fails
+**iOS Scan:** ✅ Complete
+- [x] `ScanStore.swift` — `@Observable` queue, multi-card mode, dedup by cardNumber
+- [x] `CardScanner.swift` — AVFoundation + Vision OCR, 3-frame stability, 2s cooldown
+- [x] `CameraPreviewView.swift` — `UIViewRepresentable` wrapping `AVCaptureVideoPreviewLayer`
+- [x] `ScanDetectionChipView.swift` — bottom chip with thumb, name, power, element glow
+- [x] `ScanView.swift` — camera layer, guide frame (280×200), top bar, multi/single toggle
+- [x] `ScanQueueView.swift` — queue list, swipe-delete, Save All, Clear All
+- [x] `ContentView.swift` — Scan tab added as Tab 2 (`camera.viewfinder`)
+- [x] `BOBAPlaybookApp.swift` — `ScanStore` injected via `@Environment`
+- [x] `Info.plist` — `NSCameraUsageDescription` added
+
+**Pricing — iOS:** ✅ Complete (pending Worker deploy)
+- [x] `PricingService.swift` — actor, Cloudflare Worker proxy, 1hr in-memory cache
+- [x] `SafariView.swift` — `SFSafariViewController` wrapper for Radish deep link
+- [x] `PricingSection.swift` — LOW/AVG/HIGH grid, 7d/30d/90d picker, Radish link
+- [x] `CardDetailView.swift` — `PricingSection` added after athlete inspiration block
+- [x] `Config.swift` — `WorkerConfig.ebayProxyURL` placeholder ready
+
+**⚠️ Worker deploy needed before pricing shows in app:**
+1. `cd workers/ebay-proxy`
+2. `npx wrangler secret put EBAY_APP_ID` → paste `BenWilko-BOBAPlay-PRD-24c5abbf0-7a77c68d`
+3. `npx wrangler deploy`
+4. Copy the Worker URL → paste into `BOBAPlaybook/Config.swift` → `WorkerConfig.ebayProxyURL`
+
+**Pricing — Web:** ⏳ Pending
+- [ ] Add pricing section to web card detail modal (`js/app.js` + `css/styles.css`)
+- [ ] Call Worker endpoint from browser JS (same Worker, CORS enabled)
 
 **Both platforms:**
-- [ ] Pricing comps in card detail (Radish Price Guide + eBay sold listings)
 - [ ] Box lookup page (Hobby, Double Mega, Jumbo — eBay sold listings)
 
 ---
 
-### M4 — Play Mode (Rules, Strategy, Deck Builder)
-**Goal:** In-app rulebook, per-card strategy, and deck builder using your collection.
-
-**Web + iOS:**
-- [ ] Rulebook browser — sections, search, deep-link from card detail
-- [ ] Per-card strategy tips — "How to play" in card detail
-- [ ] Deck builder — full catalog, game rule constraints
-- [ ] "My Collection" deck builder mode
-- [ ] Archetype templates — starter configurations (offensive, defensive, balanced)
-- [ ] Deck sharing — public link
-- [ ] Deck value — total comp value based on pricing
+### M4 — Play Mode ⏳ PLANNED
+Rulebook browser, per-card strategy tips, deck builder (full catalog + collection mode), archetype templates, deck sharing, deck value.
 
 ---
 
-### M5 (Future) — Discord Trading Channel
-**Goal:** Embed BOBA community trading channel in-app.
-**Channel:** discord.com/channels/1305710603440095252/1306146115757936650
-**Note:** Research Discord Activity SDK vs WebView feasibility before committing.
+### M5 — Discord Trading Channel ❌ FUTURE
+Embed community trading channel. `discord.com/channels/1305710603440095252/1306146115757936650`
+Research Discord Activity SDK vs WebView feasibility before committing.
 
 ---
 
 ## Session Log
 
-**2026-04-03** — Cowork research phase complete. Card database (17,793 cards, 89.3% image coverage) ready. CLAUDE.md, DECISIONS.md, SCRATCHPAD.md written. M0 setup complete.
+**2026-04-03** — M0 complete. Web M1 built: card grid, search, filters, modal, CDN images, PWA, branding. iOS M1 built: two-phase loading, filter sheet, zoom detail. Shared polish: XOXO icon, Play tab, collapsible web filters, imageAvailable bypass.
 
-**2026-04-03** — M1 web Search Mode built: card grid, search, filters, modal, pagination, R2 image CDN connected. UI redesigned: element glows, treatment ribbons, set badges, missing image placeholder, zoom/pan on modal, power range filter, uniform stat cell sizing. Font system consolidated (Bebas Neue / Russo One / Chakra Petch). Wordmark redesigned. Pricing comps + box lookup deferred to M3.
+**2026-04-03** — iOS M2 complete: Supabase auth (email + Apple), CRUD, CollectionView, CollectionCardDetailView, value summary, ProfileView.
 
-**2026-04-03** — iOS M1 Search Mode built from scratch. Key files: Card.swift (model), CardStore.swift (two-phase progressive loading), SearchView/CardGridItemView/CardDetailView/FilterSheetView (search UI), BOBAWordmark.swift (inline nav wordmark), CardImageView.swift (AsyncImage + placeholder), CDN.swift (R2 URL helpers), Design.swift (full token library). Fonts registered programmatically via CoreText. Fixed bvId nullable decode bug. Resolved Xcode 16 PBXFileSystemSynchronizedRootGroup auto-discovery (files must be in BOBAPlaybook/ folder). Resolved JSONDecoder blocking on MainActor (Task.detached). Removed blocking PropertyListEncoder cache (was causing 30-45s load). Two-phase loading: synchronous head load in init() + background full load.
+**2026-04-04** — Web mobile Safari fixes: header alignment, modal image layout (mobile height, desktop sticky art), profile padding (undefined CSS vars), non-sticky search header, hamburger toggle + iOS hover fix, Play icon SVG. Dynamic Island: removed `viewport-fit=cover`, changed to body flex-column + `main` as scroll container (Bsky Dreams pattern). IntersectionObserver updated to `root: main-content`.
 
-**2026-04-03** — Web + iOS polish pass. App icon (XOXO BOBA orange/black logo) applied to iOS asset catalog and web (favicon SVG/PNG, apple-touch-icon, PWA manifest icons). Rules tab renamed to Play with bolt.square.fill icon (both platforms). BOBA Playbook wordmark in iOS nav bar. iOS filter sheet: bottom sheet with element multi-select, power presets, clear all. Web filters: collapsible on mobile (toggle button with active badge, filter panel outside sticky header, scrolls with content). Fixed imageAvailable flag false negatives on both platforms — now loads any card with imageFile. PWA 404 fix: 404.html redirect + manifest scope. cards-slim.json removed (replaced by display-cards.json + cards-head.json split). Legacy /ios/ scaffold removed.
-
-**2026-04-03** — M2 iOS Collection Mode built. New files: Config.swift (Supabase credentials), UserCard.swift (model, 5 designations), SupabaseClient.swift (REST auth + CRUD, Keychain session), AuthManager.swift (@Observable, Sign in with Apple + email/password), CollectionStore.swift (@Observable, load/CRUD/derived queries), SignInView.swift, AddToCollectionSheet.swift, CollectionView.swift (designation tabs + value summary), CollectionCardDetailView.swift (copies + variations panel), EditCollectionEntrySheet.swift, ProfileView.swift. Updated: CardDetailView (+ button in toolbar), ContentView (real Collection/Profile tabs), BOBAPlaybookApp (AuthManager + CollectionStore injected). Schema migration SQL in supabase_schema.sql. ⚠️ Fill in Config.swift + run migration + enable Apple Sign In before building.
+**2026-04-04** — M3 iOS Scan Mode complete: ScanStore, CardScanner (Vision OCR, 3-frame stability), CameraPreviewView, ScanDetectionChipView, ScanView (guide frame, multi/single toggle), ScanQueueView (Save All). Pricing iOS complete: PricingService (actor + 1hr cache), SafariView, PricingSection (LOW/AVG/HIGH, 7d/30d/90d, Radish link), CardDetailView updated. Cloudflare Worker created at workers/ebay-proxy/. ⚠️ Worker still needs deployment — see M3 section for steps.

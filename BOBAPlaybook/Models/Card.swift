@@ -20,10 +20,10 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
     let imageSource: String?
     let imageAvailable: Bool
 
-    // Stable unique id: prefer bvId, fall back to cardNumber+name composite
+    // Stable unique id: cardNumber + hero + treatment uniquely identifies each variant.
+    // bvId is NOT unique — multiple hero variants share the same bvId.
     var id: String {
-        if let bvId { return "\(bvId)" }
-        return "\(cardNumber)-\(name)-\(treatment ?? "")"
+        "\(cardNumber)-\(hero)-\(treatment ?? "")"
     }
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }

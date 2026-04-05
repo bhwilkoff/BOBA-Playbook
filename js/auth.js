@@ -225,7 +225,11 @@ const Auth = (() => {
     const rt = params.get('rt');
     if (rt) {
       try {
-        await API.authRefreshSession(rt);
+        const session = await API.authRefreshSession(rt);
+        if (session) {
+          _session = session;
+          updateNavUI();
+        }
       } catch (e) {
         console.warn('[auth] Could not restore session from URL:', e);
       }

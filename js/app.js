@@ -270,16 +270,25 @@
     const canvas      = $('scan-canvas');
 
     captureBtn.disabled = true;
-    statusEl.textContent = 'Scanning…';
     resultEl.hidden = true;
 
-    // Resize frame to max 640px wide before encoding
-    const maxW = 640;
-    const scale = Math.min(1, maxW / (video.videoWidth || maxW));
-    canvas.width  = Math.round((video.videoWidth  || maxW) * scale);
-    canvas.height = Math.round((video.videoHeight || 480) * scale);
+    if (!video.videoWidth) {
+      statusEl.textContent = 'Camera not ready yet. Please wait a moment and try again.';
+      captureBtn.disabled = false;
+      return;
+    }
+
+    statusEl.textContent = 'Scanning…';
+
+    // Resize frame to max 400px wide before encoding (keeps payload small for AI)
+    const maxW = 400;
+    const vw = video.videoWidth  || maxW;
+    const vh = video.videoHeight || 300;
+    const scale = Math.min(1, maxW / vw);
+    canvas.width  = Math.round(vw * scale);
+    canvas.height = Math.round(vh * scale);
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-    const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+    const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
 
     try {
       const res  = await fetch(`${WORKER_URL}/ocr`, {
@@ -287,8 +296,9 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: base64 })
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { cardNumber, candidates } = await res.json();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      const { cardNumber } = data;
 
       if (cardNumber) {
         const matchedVariants = cardsByNumber.get(String(cardNumber));
@@ -296,7 +306,7 @@
           showScanMatch(resultEl, matchedVariants[0]);
           statusEl.textContent = `Found: ${matchedVariants[0].name}`;
         } else {
-          statusEl.textContent = `Detected #${cardNumber} — not found in catalog.`;
+          statusEl.textContent = `Detected #${cardNumber} — not in catalog.`;
           showScanRetry(resultEl);
         }
       } else {
@@ -304,7 +314,7 @@
         showScanRetry(resultEl);
       }
     } catch (err) {
-      statusEl.textContent = 'Scan failed. Check your connection and try again.';
+      statusEl.textContent = `Scan failed: ${err.message}`;
       showScanRetry(resultEl);
       console.error('OCR error:', err);
     }

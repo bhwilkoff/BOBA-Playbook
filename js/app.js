@@ -1381,7 +1381,7 @@
   ================================================================ */
   async function init() {
     // Init auth + collection modules (must be before first render)
-    Auth.init();
+    await Auth.init();
     Collection.init();
 
     const params = new URLSearchParams(window.location.search);

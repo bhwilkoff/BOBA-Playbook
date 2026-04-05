@@ -281,14 +281,14 @@
     statusEl.textContent = 'Scanning…';
 
     // Resize frame to max 400px wide before encoding (keeps payload small for AI)
-    const maxW = 400;
+    const maxW = 640;
     const vw = video.videoWidth  || maxW;
-    const vh = video.videoHeight || 300;
+    const vh = video.videoHeight || 480;
     const scale = Math.min(1, maxW / vw);
     canvas.width  = Math.round(vw * scale);
     canvas.height = Math.round(vh * scale);
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-    const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+    const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
 
     try {
       const res  = await fetch(`${WORKER_URL}/ocr`, {
@@ -298,10 +298,13 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-      const { cardNumber } = data;
+      const { cardNumber, rawText } = data;
+
+      console.log('[scan] rawText:', rawText);
+      console.log('[scan] cardNumber:', cardNumber);
 
       if (cardNumber) {
-        const matchedVariants = cardsByNumber.get(String(cardNumber));
+        const matchedVariants = cardsByNumber.get(String(cardNumber).toUpperCase());
         if (matchedVariants?.length) {
           showScanMatch(resultEl, matchedVariants[0]);
           statusEl.textContent = `Found: ${matchedVariants[0].name}`;
@@ -310,7 +313,8 @@
           showScanRetry(resultEl);
         }
       } else {
-        statusEl.textContent = 'No card number detected. Ensure good lighting and try again.';
+        const preview = rawText ? ` Saw: "${rawText.slice(0, 80)}"` : '';
+        statusEl.textContent = `No card number detected.${preview}`;
         showScanRetry(resultEl);
       }
     } catch (err) {

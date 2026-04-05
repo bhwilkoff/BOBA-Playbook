@@ -95,9 +95,10 @@ async function handleOCR(request, env) {
     // Defensively coerce to string — Workers AI can return response as a non-string in edge cases
     const rawText = String(result?.response ?? result?.description ?? result ?? '').trim();
 
-    // Same regex as iOS ScanStore: #?([A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?)
-    const CARD_NUM_RE = /[A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?/g;
-    const candidates = [...rawText.matchAll(CARD_NUM_RE)].map(m => m[0]);
+    // Same pattern as iOS ScanStore: #?([A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?)
+    // Case-insensitive — AI transcription may mix case; normalise to uppercase for lookup.
+    const CARD_NUM_RE = /[A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?/gi;
+    const candidates = [...rawText.matchAll(CARD_NUM_RE)].map(m => m[0].toUpperCase());
 
     return json({ cardNumber: candidates[0] ?? null, candidates, rawText });
   } catch (err) {

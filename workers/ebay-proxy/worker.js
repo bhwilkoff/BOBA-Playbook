@@ -72,20 +72,38 @@ async function handleOCR(request, env) {
     return json({ error: 'image field required (base64 JPEG)', cardNumber: null }, 400);
   }
 
+  const MODEL = '@cf/meta/llama-3.2-11b-vision-instruct';
+  const runParams = {
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${image}` } },
+        {
+          type: 'text',
+          text: 'This is a trading card. Find the card number printed on it. Card numbers look like: AL-123, GLBF-45, BF-208, RAD-12, BBF-3, or similar patterns of letters-hyphen-numbers. Return ONLY the card number, nothing else. If you cannot find one, return the word none.'
+        }
+      ]
+    }],
+    max_tokens: 32
+  };
+
   try {
-    const result = await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct', {
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${image}` } },
-          {
-            type: 'text',
-            text: 'This is a trading card. Find the card number printed on it. Card numbers look like: AL-123, GLBF-45, BF-208, RAD-12, BBF-3, or similar patterns of letters-hyphen-numbers. Return ONLY the card number, nothing else. If you cannot find one, return the word none.'
-          }
-        ]
-      }],
-      max_tokens: 32
-    });
+    let result;
+    try {
+      result = await env.AI.run(MODEL, runParams);
+    } catch (err) {
+      // Error 5016: Meta Llama license agreement required once per account.
+      // Automatically agree and retry.
+      if (String(err).includes('5016')) {
+        await env.AI.run(MODEL, {
+          messages: [{ role: 'user', content: 'agree' }],
+          max_tokens: 1
+        }).catch(() => {});
+        result = await env.AI.run(MODEL, runParams);
+      } else {
+        throw err;
+      }
+    }
 
     const rawText = (result?.response ?? '').trim();
     const CARD_NUM_RE = /([A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?)/g;

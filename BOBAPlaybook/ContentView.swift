@@ -6,36 +6,33 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Binding var selectedTab: Int
+
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             SearchView()
-                .tabItem {
-                    Label("Search", systemImage: "magnifyingglass")
-                }
+                .tabItem { Label("Search", systemImage: "magnifyingglass") }
+                .tag(0)
 
             ScanView()
-                .tabItem {
-                    Label("Scan", systemImage: "camera.viewfinder")
-                }
+                .tabItem { Label("Scan", systemImage: "camera.viewfinder") }
+                .tag(1)
 
             PlaceholderView(
                 title: "Play",
                 icon: "bolt.square.fill",
                 message: "Rulebook, strategy tips, and deck builder — coming in M4."
             )
-            .tabItem {
-                Label("Play", systemImage: "bolt.square.fill")
-            }
+            .tabItem { Label("Play", systemImage: "bolt.square.fill") }
+            .tag(2)
 
             CollectionView()
-                .tabItem {
-                    Label("Collection", systemImage: "square.grid.2x2")
-                }
+                .tabItem { Label("Collection", systemImage: "square.grid.2x2") }
+                .tag(3)
 
             ProfileView()
-                .tabItem {
-                    Label("Profile", systemImage: "person")
-                }
+                .tabItem { Label("Profile", systemImage: "person") }
+                .tag(4)
         }
         .tint(Design.Colors.bobaOrange)
     }

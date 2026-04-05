@@ -13,6 +13,7 @@ struct BOBAPlaybookApp: App {
     @State private var authManager = AuthManager()
     @State private var collectionStore = CollectionStore()
     @State private var scanStore = ScanStore()
+    @State private var selectedTab = 0
 
     init() {
         // Persist AsyncImage responses across sessions
@@ -28,13 +29,20 @@ struct BOBAPlaybookApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(selectedTab: $selectedTab)
                 .environment(cardStore)
                 .environment(authManager)
                 .environment(collectionStore)
                 .environment(scanStore)
                 .preferredColorScheme(.dark)
                 .onOpenURL { url in
+                    // bobaplaybook://scan → jump straight to the Scan tab.
+                    // This is triggered by the QR code on the desktop web app,
+                    // bypassing the web auth that doesn't work in restricted web views.
+                    if url.scheme == "bobaplaybook", url.host == "scan" {
+                        selectedTab = 1
+                        return
+                    }
                     authManager.handleDeepLink(url)
                 }
         }

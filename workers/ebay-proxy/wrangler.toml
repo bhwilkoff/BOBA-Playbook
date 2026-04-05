@@ -7,3 +7,6 @@ compatibility_date = "2024-01-01"
 
 # After deploying, paste the worker URL into BOBAPlaybook/Config.swift:
 #   WorkerConfig.ebayProxyURL = "https://boba-ebay-proxy.<your-subdomain>.workers.dev"
+
+[ai]
+binding = "AI"

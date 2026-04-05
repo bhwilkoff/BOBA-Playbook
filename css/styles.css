@@ -1980,3 +1980,343 @@ main {
   font-family: var(--font-mono); font-size: 0.72rem;
   color: var(--boba-text-muted); margin-top: 3px;
 }
+
+/* ================================================================
+   SCAN VIEW
+================================================================ */
+.scan-wrap {
+  display: flex;
+  gap: 2rem;
+  padding: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+  min-height: 100%;
+  align-items: flex-start;
+}
+
+.scan-camera-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.scan-video-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  aspect-ratio: 4/3;
+}
+
+.scan-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.scan-guide-frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 75%;
+  height: 55%;
+  border: 2px solid var(--boba-cyan);
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
+  pointer-events: none;
+}
+
+.scan-guide-frame::before,
+.scan-guide-frame::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: var(--boba-cyan);
+  border-style: solid;
+}
+
+.scan-guide-frame::before {
+  top: -2px; left: -2px;
+  border-width: 3px 0 0 3px;
+}
+
+.scan-guide-frame::after {
+  bottom: -2px; right: -2px;
+  border-width: 0 3px 3px 0;
+}
+
+.scan-status {
+  font-size: 0.85rem;
+  color: var(--boba-text-muted);
+  text-align: center;
+  max-width: 360px;
+  font-family: var(--font-mono);
+}
+
+.scan-capture-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--boba-orange);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.75rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.scan-capture-btn:hover:not(:disabled) { filter: brightness(1.12); }
+.scan-capture-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.scan-result {
+  width: 100%;
+  max-width: 480px;
+}
+
+.scan-result-card {
+  display: flex;
+  gap: 1rem;
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-cyan);
+  border-radius: 12px;
+  padding: 1rem;
+  align-items: center;
+}
+
+.scan-result-img {
+  width: 80px;
+  height: 112px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.scan-result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+}
+
+.scan-result-name {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--boba-text);
+}
+
+.scan-result-num {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--boba-text-muted);
+}
+
+.scan-result-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+}
+
+/* Desktop aside */
+.scan-desktop-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-border);
+  border-radius: 12px;
+  width: 220px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.scan-aside-label {
+  font-size: 0.85rem;
+  color: var(--boba-text-muted);
+  font-family: var(--font-mono);
+}
+
+.scan-aside-sub {
+  font-size: 0.8rem;
+  color: var(--boba-text-muted);
+  line-height: 1.5;
+}
+
+.scan-qr-img {
+  border-radius: 8px;
+  display: block;
+}
+
+.scan-qr-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 1023px) {
+  .scan-desktop-aside { display: none; }
+  .scan-wrap { padding: 1rem; }
+}
+
+/* ================================================================
+   PRICING SECTION (modal)
+================================================================ */
+.pricing-section {
+  border-top: 1px solid var(--boba-border);
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+}
+
+.pricing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.pricing-day-picker {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.day-btn {
+  background: transparent;
+  border: 1px solid var(--boba-border);
+  color: var(--boba-text-muted);
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.day-btn.active,
+.day-btn:hover {
+  border-color: var(--boba-cyan);
+  color: var(--boba-cyan);
+  background: rgba(0,245,255,0.08);
+}
+
+.pricing-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--boba-text-muted);
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  padding: 0.5rem 0;
+}
+
+.loading-spinner-sm {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--boba-border);
+  border-top-color: var(--boba-cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.pricing-stat {
+  background: var(--boba-near-black);
+  border: 1px solid var(--boba-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.25rem;
+  text-align: center;
+}
+
+.pricing-stat-center {
+  border-color: var(--boba-cyan);
+  background: rgba(0,245,255,0.06);
+}
+
+.pricing-label {
+  display: block;
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  color: var(--boba-text-muted);
+  letter-spacing: 0.1em;
+  margin-bottom: 0.2rem;
+}
+
+.pricing-val {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--boba-text);
+}
+
+.pricing-val-avg {
+  color: var(--boba-cyan);
+}
+
+.pricing-sale-count {
+  font-size: 0.75rem;
+  color: var(--boba-text-muted);
+  font-family: var(--font-mono);
+  margin: 0.25rem 0 0.6rem;
+}
+
+.pricing-links {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-pricing-ebay,
+.btn-pricing-radish {
+  flex: 1;
+  display: block;
+  text-align: center;
+  padding: 0.45rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: filter 0.15s;
+}
+
+.btn-pricing-ebay {
+  background: var(--boba-orange);
+  color: #fff;
+}
+
+.btn-pricing-radish {
+  background: rgba(0,245,255,0.15);
+  color: var(--boba-cyan);
+  border: 1px solid var(--boba-cyan);
+}
+
+.btn-pricing-ebay:hover,
+.btn-pricing-radish:hover { filter: brightness(1.1); }
+
+.pricing-error,
+.pricing-none {
+  font-size: 0.82rem;
+  color: var(--boba-text-muted);
+  font-family: var(--font-mono);
+  padding: 0.5rem 0;
+}

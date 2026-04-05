@@ -743,8 +743,9 @@ main {
 .element-badge[data-element="GLOW"]  { background: var(--el-GLOW);  color: #000; }
 .element-badge[data-element="GUM"]   { background: var(--el-GUM);   color: #000; }
 .element-badge[data-element="SUPER"] { background: var(--el-SUPER); color: #fff; }
-.element-badge[data-element="NONE"]  { background: var(--el-NONE);  color: var(--boba-text-2); }
-.element-badge[data-element="ALT"]   { background: var(--el-ALT);   color: #000; }
+.element-badge[data-element="NONE"]   { background: var(--el-NONE);   color: var(--boba-text-2); }
+.element-badge[data-element="ALT"]    { background: var(--el-ALT);    color: #000; }
+.element-badge[data-element="SEALED"] { background: var(--boba-orange); color: #fff; }
 
 /* ================================================================
    MISSING IMAGE PLACEHOLDER
@@ -1135,6 +1136,42 @@ main {
   font-family: var(--font-mono); font-size: 0.72rem;
   color: var(--boba-text-dim); margin-top: var(--sp-2);
 }
+
+/* ---- Sealed Products ---- */
+.sealed-highlights { margin-top: var(--sp-4); }
+.sealed-highlights-list {
+  list-style: none; padding: 0; margin: var(--sp-2) 0 0;
+  display: flex; flex-direction: column; gap: var(--sp-2);
+}
+.sealed-highlight {
+  font-family: var(--font-mono); font-size: 0.72rem;
+  color: var(--boba-text-2); padding-left: 1rem; position: relative;
+}
+.sealed-highlight::before {
+  content: '·'; position: absolute; left: 0;
+  color: var(--boba-orange); font-weight: 700;
+}
+.sealed-links {
+  display: flex; gap: var(--sp-3); margin-top: var(--sp-4);
+}
+.btn-ebay-sealed,
+.btn-radish-sealed {
+  display: flex; align-items: center; gap: 6px; justify-content: center;
+  flex: 1; padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700;
+  text-decoration: none; cursor: pointer; transition: background 0.15s;
+}
+.btn-ebay-sealed {
+  background: rgba(255,77,0,0.12); color: var(--boba-orange);
+  border: 1px solid rgba(255,77,0,0.4);
+}
+.btn-ebay-sealed:hover { background: rgba(255,77,0,0.22); }
+.btn-radish-sealed {
+  background: rgba(0,245,255,0.08); color: var(--boba-cyan);
+  border: 1px solid rgba(0,245,255,0.3);
+}
+.btn-radish-sealed:hover { background: rgba(0,245,255,0.16); }
 
 /* ================================================================
    M2 — AUTH MODAL

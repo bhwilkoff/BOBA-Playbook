@@ -2,6 +2,10 @@ import SwiftUI
 import AVFoundation
 import UIKit
 
+// Guide dimensions — standard trading card aspect ratio (5:7), fills ~77% of screen width
+private let kGuideW: CGFloat = 300
+private let kGuideH: CGFloat = 420
+
 struct ScanView: View {
     @Environment(CardStore.self)      private var cardStore
     @Environment(ScanStore.self)      private var scanStore
@@ -17,6 +21,9 @@ struct ScanView: View {
 
     @State private var cameraPermission =
         AVCaptureDevice.authorizationStatus(for: .video)
+
+    // Reference to the preview layer for ROI computation after layout
+    @State private var previewLayer: AVCaptureVideoPreviewLayer?
 
     // MARK: - Body
 
@@ -49,35 +56,47 @@ struct ScanView: View {
     // MARK: - Camera layer
 
     private var cameraLayer: some View {
-        ZStack {
-            // Live preview
-            CameraPreviewView(session: scanner.captureSession)
+        GeometryReader { geo in
+            ZStack {
+                // Live preview
+                CameraPreviewView(session: scanner.captureSession) { layer in
+                    previewLayer = layer
+                    updateROI(in: geo)
+                }
                 .ignoresSafeArea()
 
-            // Gradient vignette — top and bottom
-            VStack {
-                LinearGradient(
-                    colors: [.black.opacity(0.65), .clear],
-                    startPoint: .top, endPoint: .bottom
-                )
-                .frame(height: 140)
-                .ignoresSafeArea()
-                Spacer()
-                LinearGradient(
-                    colors: [.clear, .black.opacity(0.75)],
-                    startPoint: .top, endPoint: .bottom
-                )
-                .frame(height: 220)
-            }
+                // Gradient vignette — top and bottom
+                VStack {
+                    LinearGradient(
+                        colors: [.black.opacity(0.65), .clear],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                    .frame(height: 140)
+                    .ignoresSafeArea()
+                    Spacer()
+                    LinearGradient(
+                        colors: [.clear, .black.opacity(0.75)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                    .frame(height: 220)
+                }
 
-            // Card guide frame
-            cardGuideFrame
+                // Card guide frame
+                cardGuideFrame
 
-            // Top controls
-            VStack {
-                topBar
-                Spacer()
-                bottomControls
+                // Scan hint — tilting the phone deflects specular glare on glossy cards
+                Text("TILT PHONE SLIGHTLY FOR GLOSSY CARDS")
+                    .font(Design.Fonts.mono(9))
+                    .foregroundStyle(.white.opacity(0.4))
+                    .tracking(1.0)
+                    .offset(y: kGuideH / 2 + 18)
+
+                // Top controls
+                VStack {
+                    topBar
+                    Spacer()
+                    bottomControls
+                }
             }
         }
     }
@@ -93,22 +112,22 @@ struct ScanView: View {
                     Rectangle()
                         .fill(Color.white)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12)
+                            RoundedRectangle(cornerRadius: 14)
                                 .fill(Color.black)
-                                .frame(width: 220, height: 308)
+                                .frame(width: kGuideW, height: kGuideH)
                         )
                         .compositingGroup()
                         .luminanceToAlpha()
                 )
 
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
                     detectedCard != nil
                         ? Design.Colors.element(detectedCard!.element)
                         : Design.Colors.bobaOrange,
                     lineWidth: 2
                 )
-                .frame(width: 220, height: 308)
+                .frame(width: kGuideW, height: kGuideH)
                 .shadow(
                     color: (detectedCard != nil
                         ? Design.Colors.element(detectedCard!.element)
@@ -122,24 +141,20 @@ struct ScanView: View {
                 CornerMark()
                     .rotationEffect(.degrees(Double(i) * 90))
                     .offset(
-                        x: (i == 0 || i == 3) ? -100 : 100,
-                        y: (i == 0 || i == 1) ? -144 :  144
+                        x: (i == 0 || i == 3) ? -(kGuideW / 2 - 10) :  (kGuideW / 2 - 10),
+                        y: (i == 0 || i == 1) ? -(kGuideH / 2 - 10) :  (kGuideH / 2 - 10)
                     )
             }
         }
-        .frame(width: 220, height: 308)
+        .frame(width: kGuideW, height: kGuideH)
     }
 
     // MARK: - Top bar
 
     private var topBar: some View {
         HStack(alignment: .center) {
-            // Wordmark
             BOBAWordmark()
-
             Spacer()
-
-            // Queue badge (multi mode only)
             if scanStore.isMultiCardMode && scanStore.queueCount > 0 {
                 Button { showQueueView = true } label: {
                     ZStack(alignment: .topTrailing) {
@@ -160,7 +175,7 @@ struct ScanView: View {
             }
         }
         .padding(.horizontal, Design.Spacing.lg)
-        .padding(.top, 56)   // safe area + status bar clearance
+        .padding(.top, 56)
     }
 
     // MARK: - Bottom controls
@@ -176,12 +191,12 @@ struct ScanView: View {
                         scanner.resetDetection()
                     }
                 }
-                .gesture(
-                    DragGesture()
+                .highPriorityGesture(
+                    DragGesture(minimumDistance: 15)
                         .onEnded { value in
-                            if value.translation.height > 40 {
+                            if value.translation.height > 30 {
                                 withAnimation(.easeOut(duration: 0.25)) { chipVisible = false }
-                                scanner.resetDetection()
+                                scanner.softReset()
                             }
                         }
                 )
@@ -190,7 +205,6 @@ struct ScanView: View {
 
             // Mode toggle + hint
             HStack {
-                // Aim hint
                 Text(scanStore.isMultiCardMode ? "Cards queue automatically" : "Tap card to view details")
                     .font(Design.Fonts.mono(11))
                     .foregroundStyle(.white.opacity(0.5))
@@ -198,7 +212,6 @@ struct ScanView: View {
 
                 Spacer()
 
-                // Multi/Single toggle
                 Button {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         scanStore.isMultiCardMode.toggle()
@@ -236,7 +249,7 @@ struct ScanView: View {
                 }
                 .padding(.trailing, Design.Spacing.lg)
             }
-            .padding(.bottom, 90)   // tab bar (49) + home indicator (34) + margin
+            .padding(.bottom, 90)
         }
     }
 
@@ -294,107 +307,38 @@ struct ScanView: View {
     }
 
     private func configureAndStart() {
-        scanner.configure()
-        scanner.regionOfInterest = computeGuideROI()
-        scanner.onCardObservation = { [self] (observation: ScanObservation) in
+        // Seed Vision with all card numbers as custom vocabulary
+        let numbers = cardStore.displayCards.map { $0.cardNumber.uppercased() }
+        scanner.setCardNumbers(numbers)
+
+        scanner.onCardObservation = { [self] observation in
             handleDetected(observation: observation)
         }
         scanner.start()
     }
 
-    /// Computes a generous regionOfInterest for Vision — centered on the card guide
-    /// but expanded 25% on all sides to give OCR room to find the card number, which
-    /// sits near the bottom edge of the guide. Uses Vision's bottom-left coordinate
-    /// system (y increases upward).
-    ///
-    /// Falls back to the full frame if screen size is unavailable.
-    private func computeGuideROI() -> CGRect {
-        let screen = (UIApplication.shared.connectedScenes.first as? UIWindowScene)?
-            .screen.bounds.size ?? .zero
-        guard screen.width > 0, screen.height > 0 else {
-            return CGRect(x: 0, y: 0, width: 1, height: 1)
-        }
-
-        // Camera dimensions after portrait orientation correction
-        let camW: CGFloat = 720
-        let camH: CGFloat = 1280
-
-        // Guide frame dimensions (must match cardGuideFrame in this file)
-        let guideW: CGFloat = 220
-        let guideH: CGFloat = 308
-
-        // Expand guide bounds by 25% on each side to capture near-edge card text.
-        let expandX = guideW * 0.25
-        let expandY = guideH * 0.25
-        let expandedW = guideW + expandX * 2
-        let expandedH = guideH + expandY * 2
-        let expandedLeft = (screen.width  - guideW) / 2 - expandX
-        let expandedTop  = (screen.height - guideH) / 2 - expandY
-
-        let camAspect    = camW / camH           // ≈ 0.5625
-        let screenAspect = screen.width / screen.height
-
-        let roiX: CGFloat
-        let roiY: CGFloat
-        let roiW: CGFloat
-        let roiH: CGFloat
-
-        if camAspect > screenAspect {
-            // Camera wider than screen: fill by height, crop left & right.
-            let displayedW = camW * (screen.height / camH)
-            let xCrop      = (displayedW - screen.width) / 2
-            roiX = (expandedLeft + xCrop) / displayedW
-            roiW = expandedW / displayedW
-            // Vision bottom-left origin: y = distance from bottom ÷ total height
-            let bottomDist = screen.height - (expandedTop + expandedH)
-            roiY = bottomDist / screen.height
-            roiH = expandedH / screen.height
-        } else {
-            // Camera taller than screen: fill by width, crop top & bottom.
-            let displayedH = camH * (screen.width / camW)
-            let yCrop      = (displayedH - screen.height) / 2
-            roiX = expandedLeft / screen.width
-            roiW = expandedW / screen.width
-            let bottomDist = screen.height - (expandedTop + expandedH)
-            roiY = (bottomDist + yCrop) / displayedH
-            roiH = expandedH / displayedH
-        }
-
-        func clamp(_ v: CGFloat) -> CGFloat { max(0, min(1, v)) }
-        return CGRect(x: clamp(roiX), y: clamp(roiY),
-                      width: clamp(roiW), height: clamp(roiH))
+    private func updateROI(in geo: GeometryProxy) {
+        guard let layer = previewLayer else { return }
+        let guideRect = CGRect(
+            x: (geo.size.width  - kGuideW) / 2,
+            y: (geo.size.height - kGuideH) / 2,
+            width:  kGuideW,
+            height: kGuideH
+        )
+        scanner.updateROI(previewLayer: layer, guideRect: guideRect)
     }
 
-    // Minimum confidence score before a match is reported.
-    // Score of 3 = power matched; 5 = power + 1 name word; etc.
-    private let minimumScore = 3
+    // MARK: - Detection handling
 
     private func handleDetected(observation: ScanObservation) {
-        print("SCAN▶︎ handleDetected: \(observation.cardNumber) | name='\(observation.rawName)' power='\(observation.rawPower)'")
         let candidates = cardStore.displayCards.filter {
             $0.cardNumber.uppercased() == observation.cardNumber
         }
-        print("SCAN▶︎ candidates for \(observation.cardNumber): \(candidates.count)")
         guard !candidates.isEmpty else { return }
 
-        let best: Card
-        if candidates.count == 1 {
-            // Unique card number — trust the OCR match directly.
-            best = candidates[0]
-            print("SCAN▶︎ unique match: \(best.name)")
-        } else {
-            // Multiple cards share this number (different variations).
-            // Score each and pick the highest; require minimum confidence.
-            let scored = candidates
-                .map { (card: $0, score: matchScore($0, observation: observation)) }
-                .filter { $0.score >= minimumScore }
-            scored.forEach { print("SCAN▶︎   score \($0.score) → \($0.card.name)") }
-            guard let top = scored.max(by: { $0.score < $1.score }) else {
-                print("SCAN▶︎ \(candidates.count) candidates, all below minimumScore (\(minimumScore))")
-                return
-            }
-            best = top.card
-        }
+        let scored = candidates
+            .map { (card: $0, score: matchScore($0, observation: observation)) }
+        guard let best = scored.max(by: { $0.score < $1.score })?.card else { return }
 
         detectedCard = best
 
@@ -414,51 +358,111 @@ struct ScanView: View {
     }
 
     /// Scores how well a card matches the OCR observation using per-quadrant text.
-    /// Each field is matched against its own quadrant (the corner where that text lives
-    /// on a physical card). Falls back to fullText if a quadrant returned nothing.
     ///
-    /// Scoring:
-    ///   Power exact match      → +3  (top-right; large number, strong signal)
-    ///   Name word match        → +2 per significant word >3 chars (top-left)
-    ///   Variation keyword      → +2  (bottom-right; e.g. BATTLEFOIL, BLIZZARD)
+    /// Design note: when multiple cards share the same card number AND power
+    /// (e.g. RAD-352 Brockness and RAD-352 Spider, both 120), the hero name
+    /// is the only reliable differentiator. The old scoring only checked the
+    /// top-left quadrant for the name — which is unreliable on dark cards —
+    /// and weighted it below power, so ties were effectively random.
     ///
-    /// minimumScore = 3 requires at least the power to match (or 2+ name words).
+    /// Now: hero/name match searches ALL quadrant text with prefix-aware fuzzy
+    /// matching (handles partial OCR reads like "BROCK" → "BROCKNESS"), is
+    /// weighted above power, and element match adds a tiebreaker.
     private func matchScore(_ card: Card, observation: ScanObservation) -> Int {
         var score = 0
+        let full = observation.fullText
 
-        // Power — top-right quadrant, fall back to full text
-        let powerText = observation.rawPower.isEmpty ? observation.fullText : observation.rawPower
-        if let power = card.power {
-            if extractIntegers(from: powerText).contains(power) { score += 3 }
+        // --- Power match (+3) ---
+        let powerText = observation.rawPower.isEmpty ? full : observation.rawPower
+        if let power = card.power, extractIntegers(from: powerText).contains(power) {
+            score += 3
         }
 
-        // Name — top-left quadrant, fall back to full text
-        let nameText  = observation.rawName.isEmpty ? observation.fullText : observation.rawName
-        let nameWords = card.name.uppercased()
-            .components(separatedBy: .whitespaces)
-            .filter { $0.count > 3 }
-        score += nameWords.filter { nameText.contains($0) }.count * 2
+        // --- Hero / name match (+5 per word) — searched across ALL quadrant text ---
+        // This is the primary differentiator for same-number cards. We search
+        // fullText rather than just the top-left quadrant because:
+        //   • OCR quadrant boundaries shift on dark cards and angled shots
+        //   • The card name can bleed into adjacent quadrant regions
+        // Prefix-aware matching handles partial reads ("BROCK" matches "BROCKNESS").
+        score += heroNameScore(card.hero, in: full) * 5
+        if card.name.uppercased() != card.hero.uppercased() {
+            score += heroNameScore(card.name, in: full) * 3
+        }
 
-        // Variation — bottom-right quadrant, fall back to full text
-        let varText = observation.rawVariation.isEmpty ? observation.fullText : observation.rawVariation
+        // Top-left quadrant bonus — name in the expected position is stronger signal
+        if !observation.rawName.isEmpty {
+            score += heroNameScore(card.hero, in: observation.rawName) * 2
+        }
+
+        // --- Element match (+2) ---
+        // Element text (FIRE, ICE, HEX…) often appears on the card face and
+        // can differentiate cards that share a number but have different elements.
+        if full.contains(card.element.uppercased()) {
+            score += 2
+        }
+
+        // --- Treatment / variation match (+1 per word) ---
+        let varText = observation.rawVariation.isEmpty ? full : "\(observation.rawVariation) \(full)"
         if let treatment = card.treatment, !treatment.isEmpty {
             let tWords = treatment.uppercased()
                 .components(separatedBy: .whitespaces)
                 .filter { $0.count > 3 }
-            if tWords.contains(where: { varText.contains($0) }) { score += 2 }
+            score += tWords.filter { varText.contains($0) }.count
         }
 
         return score
     }
 
-    /// Extracts all integers from a string (handles digit sequences only).
+    /// Scores how well `name` appears in `text`. Returns a count used as a
+    /// multiplier in `matchScore`.
+    ///
+    /// Strategy (in priority order):
+    ///   1. Full-phrase match — "AIR ACE" found verbatim → returns 3 immediately.
+    ///      Fast, unambiguous, handles multi-word names correctly.
+    ///   2. Word-level match — for each word in the name (≥3 chars):
+    ///        • Long words (≥5 chars): prefix-aware — "BROCK" matches "BROCKNESS"
+    ///          to handle OCR truncation.
+    ///        • Short words (3–4 chars): exact match only — "AIR", "ACE", "REX"
+    ///          are too short for safe prefix matching but still meaningful.
+    ///
+    /// The old implementation required ≥5-char words, which silently dropped
+    /// both words of "AIR ACE" and made it score 0, losing to any other card
+    /// that happened to share its number and power.
+    private func heroNameScore(_ name: String, in text: String) -> Int {
+        let upperName = name.uppercased()
+
+        // 1. Full phrase — definitive, return immediately
+        if text.contains(upperName) { return 3 }
+
+        // 2. Word-level
+        let nameWords = upperName.components(separatedBy: .whitespaces).filter { $0.count >= 3 }
+        guard !nameWords.isEmpty else { return 0 }
+
+        let textWords = text.components(separatedBy: .whitespaces)
+        var matches = 0
+        for nw in nameWords {
+            for tw in textWords where tw.count >= 3 {
+                if nw.count >= 5 {
+                    // Prefix match for longer words handles truncated OCR reads
+                    let (shorter, longer) = nw.count <= tw.count ? (nw, tw) : (tw, nw)
+                    if shorter.count >= 5, longer.hasPrefix(shorter) {
+                        matches += 1; break
+                    }
+                } else if nw == tw {
+                    // Short words need exact match to avoid false positives
+                    matches += 1; break
+                }
+            }
+        }
+        return matches
+    }
+
     private func extractIntegers(from text: String) -> Set<Int> {
         var result = Set<Int>()
         var current = ""
         for ch in text {
-            if ch.isNumber {
-                current.append(ch)
-            } else {
+            if ch.isNumber { current.append(ch) }
+            else {
                 if let n = Int(current) { result.insert(n) }
                 current = ""
             }
@@ -473,11 +477,11 @@ struct ScanView: View {
 private struct CornerMark: View {
     var body: some View {
         Path { path in
-            path.move(to:   CGPoint(x: 0, y: 12))
+            path.move(to:    CGPoint(x: 0, y: 14))
             path.addLine(to: CGPoint(x: 0, y: 0))
-            path.addLine(to: CGPoint(x: 12, y: 0))
+            path.addLine(to: CGPoint(x: 14, y: 0))
         }
-        .stroke(Design.Colors.bobaOrange, style: StrokeStyle(lineWidth: 2, lineCap: .round))
-        .frame(width: 12, height: 12)
+        .stroke(Design.Colors.bobaOrange, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+        .frame(width: 14, height: 14)
     }
 }

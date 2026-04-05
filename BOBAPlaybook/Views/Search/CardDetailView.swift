@@ -13,6 +13,8 @@ struct CardDetailView: View {
     @GestureState private var pinchDelta: CGFloat = 1.0
     @State private var showingAddSheet = false
     @State private var showingSignIn = false
+    @State private var showSealedEbay = false
+    @State private var showSealedRadish = false
 
     private var effectiveScale: CGFloat { (scale * pinchDelta).clamped(to: 1...6) }
 
@@ -68,16 +70,24 @@ struct CardDetailView: View {
             .sheet(isPresented: $showingSignIn) {
                 SignInView()
             }
+            .sheet(isPresented: $showSealedEbay) {
+                if let url = sealedEbayURL { SafariView(url: url) }
+            }
+            .sheet(isPresented: $showSealedRadish) {
+                if let urlStr = card.radishUrl, let url = URL(string: urlStr) {
+                    SafariView(url: url)
+                }
+            }
         }
     }
 
     // MARK: - Art panel
     private var artPanel: some View {
         ZStack {
-            // Element gradient background
+            // Element gradient background (orange accent for sealed products)
             LinearGradient(
                 colors: [
-                    Design.Colors.element(card.element).opacity(0.25),
+                    (card.isSealed ? Design.Colors.bobaOrange : Design.Colors.element(card.element)).opacity(0.25),
                     Design.Colors.nearBlack
                 ],
                 startPoint: .top, endPoint: .bottom
@@ -137,8 +147,19 @@ struct CardDetailView: View {
         }
     }
 
-    // MARK: - Info panel
+    // MARK: - Info panel (branches on card type)
     private var infoPanel: some View {
+        Group {
+            if card.isSealed {
+                sealedInfoPanel
+            } else {
+                cardInfoPanel
+            }
+        }
+    }
+
+    // MARK: - Regular card info panel
+    private var cardInfoPanel: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.lg) {
 
             // Name + badges row
@@ -147,9 +168,15 @@ struct CardDetailView: View {
                     Text(card.name)
                         .font(Design.Fonts.display(22))
                         .foregroundStyle(Design.Colors.textPrimary)
-                    Text(card.hero)
-                        .font(Design.Fonts.mono(13))
-                        .foregroundStyle(Design.Colors.textSecondary)
+                    if let variation = card.variation, !variation.isEmpty {
+                        Text(variation)
+                            .font(Design.Fonts.mono(13))
+                            .foregroundStyle(Design.Colors.textSecondary)
+                    } else if card.hero != card.name {
+                        Text(card.hero)
+                            .font(Design.Fonts.mono(13))
+                            .foregroundStyle(Design.Colors.textSecondary)
+                    }
                 }
                 Spacer()
                 if let power = card.power {
@@ -249,6 +276,164 @@ struct CardDetailView: View {
             PricingSection(card: card)
         }
         .padding(Design.Spacing.lg)
+    }
+
+    // MARK: - Sealed product info panel
+    private var sealedInfoPanel: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.lg) {
+
+            // Name + product type
+            VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+                Text(card.name)
+                    .font(Design.Fonts.display(22))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                if let pt = card.productType {
+                    Text(pt.replacingOccurrences(of: "-", with: " ").uppercased())
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                        .tracking(1)
+                }
+            }
+
+            // Badge row
+            HStack(spacing: Design.Spacing.sm) {
+                Text(card.set.uppercased())
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaOrange)
+                    .padding(.horizontal, 10)
+                    .frame(height: 28)
+                    .background(
+                        RoundedRectangle(cornerRadius: Design.Radius.sm)
+                            .fill(Design.Colors.bobaOrange.opacity(0.12))
+                            .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                .strokeBorder(Design.Colors.bobaOrange.opacity(0.4), lineWidth: 1))
+                    )
+                Text("SEALED PRODUCT")
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .padding(.horizontal, 10)
+                    .frame(height: 28)
+                    .background(
+                        RoundedRectangle(cornerRadius: Design.Radius.sm)
+                            .fill(Design.Colors.glass)
+                            .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                .strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+                    )
+            }
+
+            Divider().background(Design.Colors.glassBorder)
+
+            // Product stats grid
+            LazyVGrid(
+                columns: [GridItem(.flexible()), GridItem(.flexible())],
+                spacing: Design.Spacing.sm
+            ) {
+                if let packs = card.packsPerBox {
+                    statCell(label: "Packs/Box", value: "\(packs)")
+                }
+                if let cpp = card.cardsPerPack {
+                    statCell(label: "Cards/Pack", value: "\(cpp)")
+                }
+                if let total = card.totalCards {
+                    statCell(label: "Total Cards", value: "\(total)")
+                }
+                if let msrp = card.msrp {
+                    statCell(label: "MSRP", value: Decimal(msrp).formatted(.currency(code: "USD")))
+                }
+                if let upc = card.upc {
+                    statCell(label: "UPC", value: upc)
+                }
+            }
+
+            // Highlights
+            if let highlights = card.highlights, !highlights.isEmpty {
+                VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+                    Text("WHAT'S INSIDE")
+                        .font(Design.Fonts.mono(9, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .tracking(1.5)
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(highlights, id: \.self) { highlight in
+                            HStack(alignment: .top, spacing: Design.Spacing.sm) {
+                                Text("·")
+                                    .font(Design.Fonts.mono(13, weight: .bold))
+                                    .foregroundStyle(Design.Colors.bobaOrange)
+                                Text(highlight)
+                                    .font(Design.Fonts.mono(12))
+                                    .foregroundStyle(Design.Colors.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                }
+                .padding(Design.Spacing.md)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: Design.Radius.md)
+                        .fill(Design.Colors.glass)
+                        .overlay(RoundedRectangle(cornerRadius: Design.Radius.md)
+                            .strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+                )
+            }
+
+            // External links row
+            HStack(spacing: Design.Spacing.sm) {
+                // eBay sold listings
+                if card.ebaySearchQuery != nil {
+                    Button { showSealedEbay = true } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "cart.fill")
+                                .font(.system(size: 11))
+                            Text("eBay Sales")
+                                .font(Design.Fonts.mono(12))
+                        }
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Design.Spacing.sm)
+                        .background(
+                            RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                .fill(Design.Colors.bobaOrange.opacity(0.12))
+                                .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                    .strokeBorder(Design.Colors.bobaOrange.opacity(0.4), lineWidth: 1))
+                        )
+                    }
+                }
+
+                // Radish price guide
+                if card.radishUrl != nil {
+                    Button { showSealedRadish = true } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.system(size: 11))
+                            Text("Radish Guide")
+                                .font(Design.Fonts.mono(12))
+                        }
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Design.Spacing.sm)
+                        .background(
+                            RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                .fill(Design.Colors.bobaCyan.opacity(0.10))
+                                .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                    .strokeBorder(Design.Colors.bobaCyan.opacity(0.35), lineWidth: 1))
+                        )
+                    }
+                }
+            }
+        }
+        .padding(Design.Spacing.lg)
+    }
+
+    private var sealedEbayURL: URL? {
+        guard let query = card.ebaySearchQuery else { return nil }
+        var components = URLComponents(string: "https://www.ebay.com/sch/i.html")!
+        components.queryItems = [
+            URLQueryItem(name: "_nkw",        value: query),
+            URLQueryItem(name: "LH_Sold",     value: "1"),
+            URLQueryItem(name: "LH_Complete", value: "1"),
+            URLQueryItem(name: "_sacat",      value: "0"),
+        ]
+        return components.url
     }
 
     // MARK: - Sub-components

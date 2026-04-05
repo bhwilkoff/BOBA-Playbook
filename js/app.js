@@ -501,8 +501,9 @@
     el.setAttribute('tabindex', '0');
     el.setAttribute('aria-label', `${card.name}, ${card.element || 'No element'}, Power ${card.power}`);
 
-    const imgHtml = card.imageFile
-      ? `<img class="card-img" src="${escHtml(API.thumbUrl(card.imageFile))}"
+    const thumbSrc = API.cardThumbUrl(card);
+    const imgHtml = thumbSrc
+      ? `<img class="card-img" src="${escHtml(thumbSrc)}"
               alt="${escHtml(card.name)}" loading="lazy" decoding="async">`
       : `<div class="card-img-placeholder" aria-hidden="true">
            <span class="placeholder-brand">BOBA PB</span>
@@ -520,11 +521,15 @@
         ${ribbonHtml}
       </div>
       <div class="card-info">
-        <div class="card-number">${escHtml(card.cardNumber)}</div>
+        <div class="card-number">${escHtml(card.cardType === 'Sealed Product' ? card.set : card.cardNumber)}</div>
         <div class="card-name">${escHtml(card.name)}</div>
         <div class="card-meta">
-          <span class="element-badge" data-element="${escHtml(card.element || 'NONE')}">${escHtml(card.element || 'NONE')}</span>
-          <span class="card-power" aria-label="Power ${card.power}">P${escHtml(String(card.power))}</span>
+          ${card.cardType === 'Sealed Product'
+            ? `<span class="element-badge" data-element="SEALED">${escHtml(card.productType ? card.productType.replace(/-/g, ' ').toUpperCase() : 'SEALED')}</span>
+               ${card.msrp ? `<span class="card-power">$${card.msrp.toFixed(2)}</span>` : ''}`
+            : `<span class="element-badge" data-element="${escHtml(card.element || 'NONE')}">${escHtml(card.element || 'NONE')}</span>
+               <span class="card-power" aria-label="Power ${card.power}">P${escHtml(String(card.power))}</span>`
+          }
         </div>
       </div>
       <div class="card-element-bar" aria-hidden="true"></div>`;
@@ -728,7 +733,7 @@
   }
 
   function buildModalContent(card) {
-    const imgSrc = card.imageAvailable && card.imageFile ? API.fullUrl(card.imageFile) : null;
+    const imgSrc = card.imageFile ? API.cardFullUrl(card) : null;
     const treatmentClass = getTreatmentClass(card.treatment);
     const setClass = getSetClass(card.set);
     const element = card.element || 'NONE';
@@ -788,6 +793,73 @@
         <div class="stat-cell full">
           <div class="stat-label-sm">Ability</div>
           <div class="stat-val ability">${escHtml(card.playAbility)}</div>
+        </div>`;
+    }
+
+    // Sealed product modal — distinct layout
+    if (card.cardType === 'Sealed Product') {
+      const highlightsHtml = (card.highlights || []).map(h =>
+        `<li class="sealed-highlight">${escHtml(h)}</li>`
+      ).join('');
+      const ebayUrl = card.ebaySearchQuery
+        ? `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(card.ebaySearchQuery)}&LH_Complete=1&LH_Sold=1&_sacat=0`
+        : null;
+      const productTypeLabel = card.productType
+        ? card.productType.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        : 'Sealed Product';
+
+      return `
+        <div class="modal-layout tf-sealed" data-element="SEALED">
+          <div class="modal-art">${imgHtml}</div>
+          <div class="modal-details">
+            <div class="modal-badges">
+              <span class="element-badge element-badge-lg" data-element="SEALED">SEALED</span>
+              <span class="set-badge">${escHtml(card.set || 'Unknown')}</span>
+            </div>
+            <div>
+              <h2 class="modal-card-name" id="modal-card-name">${escHtml(card.name)}</h2>
+              <div class="modal-card-number">${escHtml(productTypeLabel)}</div>
+            </div>
+            <div class="modal-stats" aria-label="Product stats">
+              ${card.packsPerBox ? `<div class="stat-cell"><div class="stat-label-sm">Packs / Box</div><div class="stat-val">${card.packsPerBox}</div></div>` : ''}
+              ${card.cardsPerPack ? `<div class="stat-cell"><div class="stat-label-sm">Cards / Pack</div><div class="stat-val">${card.cardsPerPack}</div></div>` : ''}
+              ${card.totalCards ? `<div class="stat-cell"><div class="stat-label-sm">Total Cards</div><div class="stat-val">${card.totalCards}</div></div>` : ''}
+              ${card.msrp ? `<div class="stat-cell"><div class="stat-label-sm">MSRP</div><div class="stat-val">$${card.msrp.toFixed(2)}</div></div>` : ''}
+              ${card.upc ? `<div class="stat-cell full"><div class="stat-label-sm">UPC</div><div class="stat-val">${escHtml(card.upc)}</div></div>` : ''}
+            </div>
+            ${highlightsHtml ? `
+            <div class="sealed-highlights">
+              <h3 class="section-label">What's Inside</h3>
+              <ul class="sealed-highlights-list">${highlightsHtml}</ul>
+            </div>` : ''}
+            <div class="sealed-links">
+              ${ebayUrl ? `
+              <a href="${escHtml(ebayUrl)}" target="_blank" rel="noopener" class="btn-ebay-sealed">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" aria-hidden="true">
+                  <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2S15.9 22 17 22s2-.9 2-2-.9-2-2-2zm-9.4-5h9.1c.75 0 1.41-.41 1.75-1.03L21 7H5.21l-.94-2H1v2h2l3.6 8.59L5.25 17c-.16.28-.25.61-.25.95C5 19.1 5.9 20 7 20h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63z"/>
+                </svg>
+                eBay Sales
+              </a>` : ''}
+              ${card.radishUrl ? `
+              <a href="${escHtml(card.radishUrl)}" target="_blank" rel="noopener" class="btn-radish-sealed">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     width="14" height="14" aria-hidden="true">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+                  <polyline points="16 7 22 7 22 13"/>
+                </svg>
+                Radish Guide
+              </a>` : ''}
+            </div>
+            <div class="modal-collection-action">
+              <button class="btn-collection-add" data-action="add-to-collection">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     width="15" height="15" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+                Add to Collection
+              </button>
+            </div>
+          </div>
         </div>`;
     }
 

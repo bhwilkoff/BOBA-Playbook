@@ -70,7 +70,7 @@ final class CardStore {
                 return try JSONDecoder().decode([Card].self, from: data)
             }.value
 
-            let elementList = Array(Set(cards.map { $0.element }).filter { !$0.isEmpty }).sorted()
+            let elementList = Array(Set(cards.map { $0.element }).filter { !$0.isEmpty && $0 != "NONE" }).sorted()
             let setList     = Array(Set(cards.map { $0.set     }).filter { !$0.isEmpty }).sorted()
             let treatList   = Array(Set(cards.compactMap { $0.treatment }).filter { !$0.isEmpty }).sorted()
 

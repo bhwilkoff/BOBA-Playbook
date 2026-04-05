@@ -1,16 +1,16 @@
 import Foundation
 
 struct Card: Codable, Identifiable, Hashable, Sendable {
-    let bvId: Int?          // nullable in source data for some promo/variant cards
+    let bvId: Int?
     let cardNumber: String
     let name: String
-    let hero: String
+    let hero: String          // "" for sealed products
     let cardType: String
     let set: String
     let subSet: String?
     let variation: String?
     let treatment: String?
-    let element: String
+    let element: String       // "NONE" for sealed products
     let power: Int?
     let playCost: Int?
     let playAbility: String?
@@ -19,13 +19,62 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
     let imageFile: String?
     let imageSource: String?
     let imageAvailable: Bool
+    let radishUrl: String?
 
-    // Stable unique id: cardNumber + hero + treatment uniquely identifies each variant.
-    // bvId is NOT unique — multiple hero variants share the same bvId.
-    var id: String {
-        "\(cardNumber)-\(hero)-\(treatment ?? "")"
-    }
+    // Sealed product fields (nil for regular cards)
+    let sealedProductId: String?
+    let productType: String?
+    let packsPerBox: Int?
+    let cardsPerPack: Int?
+    let totalCards: Int?
+    let msrp: Double?
+    let upc: String?
+    let highlights: [String]?
+    let caseQuantity: Int?
+    let ebaySearchQuery: String?
+
+    var isSealed: Bool { cardType == "Sealed Product" }
+
+    // Stable unique id
+    var id: String { "\(cardNumber)-\(hero)-\(treatment ?? "")" }
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
     static func == (lhs: Card, rhs: Card) -> Bool { lhs.id == rhs.id }
+
+    // Custom decoder handles nullable hero/element/imageAvailable for sealed products
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        bvId               = try c.decodeIfPresent(Int.self,      forKey: .bvId)
+        cardNumber         = try c.decode(String.self,             forKey: .cardNumber)
+        name               = try c.decode(String.self,             forKey: .name)
+        hero               = try c.decodeIfPresent(String.self,    forKey: .hero)      ?? ""
+        cardType           = try c.decode(String.self,             forKey: .cardType)
+        set                = try c.decode(String.self,             forKey: .set)
+        subSet             = try c.decodeIfPresent(String.self,    forKey: .subSet)
+        variation          = try c.decodeIfPresent(String.self,    forKey: .variation)
+        treatment          = try c.decodeIfPresent(String.self,    forKey: .treatment)
+        element            = try c.decodeIfPresent(String.self,    forKey: .element)   ?? "NONE"
+        power              = try c.decodeIfPresent(Int.self,       forKey: .power)
+        playCost           = try c.decodeIfPresent(Int.self,       forKey: .playCost)
+        playAbility        = try c.decodeIfPresent(String.self,    forKey: .playAbility)
+        athleteInspiration = try c.decodeIfPresent(String.self,    forKey: .athleteInspiration)
+        isInspiredInk      = try c.decodeIfPresent(Bool.self,      forKey: .isInspiredInk) ?? false
+        let file           = try c.decodeIfPresent(String.self,    forKey: .imageFile)
+        imageFile          = file
+        imageSource        = try c.decodeIfPresent(String.self,    forKey: .imageSource)
+        // imageAvailable may be null (sealed); derive from imageFile presence as fallback
+        imageAvailable     = try c.decodeIfPresent(Bool.self,      forKey: .imageAvailable)
+                             ?? !(file?.isEmpty ?? true)
+        radishUrl          = try c.decodeIfPresent(String.self,    forKey: .radishUrl)
+        sealedProductId    = try c.decodeIfPresent(String.self,    forKey: .sealedProductId)
+        productType        = try c.decodeIfPresent(String.self,    forKey: .productType)
+        packsPerBox        = try c.decodeIfPresent(Int.self,       forKey: .packsPerBox)
+        cardsPerPack       = try c.decodeIfPresent(Int.self,       forKey: .cardsPerPack)
+        totalCards         = try c.decodeIfPresent(Int.self,       forKey: .totalCards)
+        msrp               = try c.decodeIfPresent(Double.self,    forKey: .msrp)
+        upc                = try c.decodeIfPresent(String.self,    forKey: .upc)
+        highlights         = try c.decodeIfPresent([String].self,  forKey: .highlights)
+        caseQuantity       = try c.decodeIfPresent(Int.self,       forKey: .caseQuantity)
+        ebaySearchQuery    = try c.decodeIfPresent(String.self,    forKey: .ebaySearchQuery)
+    }
 }

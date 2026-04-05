@@ -134,9 +134,10 @@
   /* ================================================================
      VIEW SYSTEM
   ================================================================ */
-  const viewIds = ['search', 'rules', 'collection', 'profile'];
+  const viewIds = ['search', 'scan', 'rules', 'collection', 'profile'];
   const navBtnIds = {
     search:     'nav-search-btn',
+    scan:       'nav-scan-btn',
     rules:      'nav-rules-btn',
     collection: 'nav-collection-btn',
     profile:    'nav-profile-btn',
@@ -155,6 +156,11 @@
       btn.setAttribute('aria-current', active ? 'page' : 'false');
     });
     closeSidebar();
+    if (name === 'scan') {
+      initScanView();
+    } else {
+      teardownScan();
+    }
     if (!fromHistory) {
       history.pushState({ view: name }, '', name === 'search' ? '?' : `?view=${name}`);
     }
@@ -168,6 +174,194 @@
   window.addEventListener('popstate', (e) => {
     showView(e.state?.view || 'search', true);
   });
+
+  /* ================================================================
+     SCAN VIEW
+  ================================================================ */
+  const WORKER_URL = 'https://boba-ebay-proxy.benwilkoff.workers.dev';
+  let scanStream = null;
+
+  function initScanView() {
+    const container = $('scan-container');
+    if (!container || container.dataset.initialized === '1') return;
+    container.dataset.initialized = '1';
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      renderScanUnavailable(container);
+      return;
+    }
+    renderScanCamera(container);
+  }
+
+  function teardownScan() {
+    if (scanStream) {
+      scanStream.getTracks().forEach(t => t.stop());
+      scanStream = null;
+    }
+    const container = $('scan-container');
+    if (container) {
+      container.innerHTML = '';
+      delete container.dataset.initialized;
+    }
+  }
+
+  function renderScanCamera(container) {
+    const isDesktop = window.innerWidth >= 1024;
+    const scanUrl = window.location.origin + window.location.pathname + '?view=scan';
+    const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(scanUrl)}&color=00F5FF&bgcolor=0D0D1A&qzone=1`;
+
+    container.innerHTML = `
+      <div class="scan-wrap">
+        <div class="scan-camera-area">
+          <div class="scan-video-wrap">
+            <video id="scan-video" class="scan-video" autoplay playsinline muted></video>
+            <div class="scan-guide-frame" aria-hidden="true"></div>
+          </div>
+          <p class="scan-status" id="scan-status" aria-live="polite">Starting camera…</p>
+          <button class="scan-capture-btn" id="scan-capture-btn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                 width="20" height="20" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"/>
+              <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>
+            </svg>
+            Capture Card
+          </button>
+          <canvas id="scan-canvas" style="display:none"></canvas>
+          <div class="scan-result" id="scan-result" hidden></div>
+        </div>
+        ${isDesktop ? `
+          <div class="scan-desktop-aside">
+            <p class="scan-aside-label">Scan on your phone for best results:</p>
+            <img class="scan-qr-img" src="${escHtml(qrSrc)}"
+                 alt="QR code — scan to open on mobile" width="180" height="180">
+            <p class="scan-aside-sub">Or download the <strong>iOS app</strong> for instant on-device scanning.</p>
+          </div>
+        ` : ''}
+      </div>
+    `;
+
+    startCamera();
+    $('scan-capture-btn').addEventListener('click', handleCapture);
+  }
+
+  async function startCamera() {
+    const statusEl = $('scan-status');
+    const captureBtn = $('scan-capture-btn');
+    try {
+      scanStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      const video = $('scan-video');
+      video.srcObject = scanStream;
+      await video.play();
+      captureBtn.disabled = false;
+      statusEl.textContent = 'Position card so the number is clearly visible, then tap Capture.';
+    } catch {
+      captureBtn.hidden = true;
+      statusEl.textContent = 'Camera access denied. Enable camera permissions and refresh.';
+    }
+  }
+
+  async function handleCapture() {
+    const captureBtn  = $('scan-capture-btn');
+    const statusEl    = $('scan-status');
+    const resultEl    = $('scan-result');
+    const video       = $('scan-video');
+    const canvas      = $('scan-canvas');
+
+    captureBtn.disabled = true;
+    statusEl.textContent = 'Scanning…';
+    resultEl.hidden = true;
+
+    // Resize frame to max 640px wide before encoding
+    const maxW = 640;
+    const scale = Math.min(1, maxW / (video.videoWidth || maxW));
+    canvas.width  = Math.round((video.videoWidth  || maxW) * scale);
+    canvas.height = Math.round((video.videoHeight || 480) * scale);
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+
+    try {
+      const res  = await fetch(`${WORKER_URL}/ocr`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64 })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { cardNumber, candidates } = await res.json();
+
+      if (cardNumber) {
+        const matchedVariants = cardsByNumber.get(String(cardNumber));
+        if (matchedVariants?.length) {
+          showScanMatch(resultEl, matchedVariants[0]);
+          statusEl.textContent = `Found: ${matchedVariants[0].name}`;
+        } else {
+          statusEl.textContent = `Detected #${cardNumber} — not found in catalog.`;
+          showScanRetry(resultEl);
+        }
+      } else {
+        statusEl.textContent = 'No card number detected. Ensure good lighting and try again.';
+        showScanRetry(resultEl);
+      }
+    } catch (err) {
+      statusEl.textContent = 'Scan failed. Check your connection and try again.';
+      showScanRetry(resultEl);
+      console.error('OCR error:', err);
+    }
+
+    captureBtn.disabled = false;
+  }
+
+  function showScanMatch(container, card) {
+    const imgSrc  = API.cardThumbUrl(card);
+    const element = card.element || 'NONE';
+    container.innerHTML = `
+      <div class="scan-result-card">
+        ${imgSrc ? `<img class="scan-result-img" src="${escHtml(imgSrc)}" alt="${escHtml(card.name)}">` : ''}
+        <div class="scan-result-info">
+          <span class="element-badge" data-element="${escHtml(element)}">${escHtml(element)}</span>
+          <div class="scan-result-name">${escHtml(card.name)}</div>
+          <div class="scan-result-num">#${escHtml(card.cardNumber)}</div>
+          <div class="scan-result-actions">
+            <button class="btn-primary scan-view-btn">View Card</button>
+            <button class="btn-ghost-sm scan-again-btn">Scan Again</button>
+          </div>
+        </div>
+      </div>
+    `;
+    container.hidden = false;
+    container.querySelector('.scan-view-btn').addEventListener('click', () => openModal(card));
+    container.querySelector('.scan-again-btn').addEventListener('click', resetScan);
+  }
+
+  function showScanRetry(container) {
+    container.innerHTML = `<button class="btn-ghost-sm scan-again-btn">Try Again</button>`;
+    container.hidden = false;
+    container.querySelector('.scan-again-btn').addEventListener('click', resetScan);
+  }
+
+  function resetScan() {
+    const resultEl = $('scan-result');
+    if (resultEl) resultEl.hidden = true;
+    const statusEl = $('scan-status');
+    if (statusEl) statusEl.textContent = 'Position card so the number is clearly visible, then tap Capture.';
+  }
+
+  function renderScanUnavailable(container) {
+    const scanUrl = window.location.origin + window.location.pathname + '?view=scan';
+    const qrSrc   = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(scanUrl)}&color=00F5FF&bgcolor=0D0D1A&qzone=1`;
+    container.innerHTML = `
+      <div class="view-inner">
+        <h2 class="view-heading">Scan</h2>
+        <p class="placeholder-text">Camera scanning isn't available in this browser.</p>
+        <p class="placeholder-text">For instant on-device scanning, use the <strong>BOBA Playbook iOS app</strong>.</p>
+        <div class="scan-qr-block">
+          <p class="scan-aside-label">Open on your phone:</p>
+          <img class="scan-qr-img" src="${escHtml(qrSrc)}" alt="QR code" width="180" height="180">
+        </div>
+      </div>
+    `;
+  }
 
   /* ================================================================
      DATA PREPARATION
@@ -718,6 +912,95 @@
     // Wire "Add to Collection" button
     modalContent.querySelector('[data-action="add-to-collection"]')
       ?.addEventListener('click', () => Collection.openAddSheet(card));
+
+    // Load live pricing (skip for sealed products — they have their own links)
+    if (card.cardType !== 'Sealed Product') loadPricing(card);
+  }
+
+  /* ================================================================
+     PRICING
+  ================================================================ */
+  function loadPricing(card) {
+    const section = $('modal-pricing');
+    if (!section) return;
+
+    let days = 30;
+
+    async function fetchAndRender() {
+      section.innerHTML = `
+        <div class="pricing-header">
+          <h3 class="section-label">Pricing</h3>
+          <div class="pricing-day-picker" role="group" aria-label="Time range">
+            <button class="day-btn${days === 7  ? ' active' : ''}" data-days="7">7d</button>
+            <button class="day-btn${days === 30 ? ' active' : ''}" data-days="30">30d</button>
+            <button class="day-btn${days === 90 ? ' active' : ''}" data-days="90">90d</button>
+          </div>
+        </div>
+        <div class="pricing-body">
+          <div class="pricing-loading">
+            <div class="loading-spinner-sm" aria-hidden="true"></div>
+            <span>Loading…</span>
+          </div>
+        </div>
+      `;
+      section.querySelectorAll('.day-btn').forEach(btn => {
+        btn.addEventListener('click', () => { days = parseInt(btn.dataset.days); fetchAndRender(); });
+      });
+
+      try {
+        const params = new URLSearchParams({
+          cardNumber: card.cardNumber,
+          hero:    card.hero    || '',
+          set:     card.set     || '',
+          element: card.element || '',
+          days:    String(days)
+        });
+        const res  = await fetch(`${WORKER_URL}?${params}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        renderPricingData(section, data, card);
+      } catch {
+        const body = section.querySelector('.pricing-body');
+        if (body) body.innerHTML = '<p class="pricing-error">Pricing unavailable</p>';
+      }
+    }
+
+    fetchAndRender();
+  }
+
+  function renderPricingData(section, data, card) {
+    const body = section.querySelector('.pricing-body');
+    if (!body) return;
+    const { low, average, high, saleCount } = data;
+    if (!saleCount) {
+      body.innerHTML = '<p class="pricing-none">No recent sales found.</p>';
+      return;
+    }
+    const fmt = n => n > 0 ? `$${n.toFixed(2)}` : '—';
+    const ebayQuery = `bo jackson battle arena ${card.hero || ''} ${card.set || ''}`.trim();
+    const ebayUrl   = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(ebayQuery)}&LH_Complete=1&LH_Sold=1`;
+    const radishUrl = card.radishUrl || '';
+    body.innerHTML = `
+      <div class="pricing-grid">
+        <div class="pricing-stat">
+          <span class="pricing-label">LOW</span>
+          <span class="pricing-val">${fmt(low)}</span>
+        </div>
+        <div class="pricing-stat pricing-stat-center">
+          <span class="pricing-label">AVG</span>
+          <span class="pricing-val pricing-val-avg">${fmt(average)}</span>
+        </div>
+        <div class="pricing-stat">
+          <span class="pricing-label">HIGH</span>
+          <span class="pricing-val">${fmt(high)}</span>
+        </div>
+      </div>
+      <p class="pricing-sale-count">${saleCount} sold listing${saleCount !== 1 ? 's' : ''}</p>
+      <div class="pricing-links">
+        <a href="${escHtml(ebayUrl)}" target="_blank" rel="noopener" class="btn-pricing-ebay">eBay Sold</a>
+        ${radishUrl ? `<a href="${escHtml(radishUrl)}" target="_blank" rel="noopener" class="btn-pricing-radish">Radish</a>` : ''}
+      </div>
+    `;
   }
 
   function closeModal() {
@@ -893,10 +1176,7 @@
               Add to Collection
             </button>
           </div>
-          <div class="pricing-section">
-            <h3 class="section-label">Pricing Comps</h3>
-            <p class="pricing-note">Radish &amp; eBay live pricing — coming in M3.</p>
-          </div>
+          <div class="pricing-section" id="modal-pricing"></div>
         </div>
       </div>`;
   }

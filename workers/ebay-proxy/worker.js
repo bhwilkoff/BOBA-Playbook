@@ -28,7 +28,7 @@ const EBAY_API = "https://svcs.ebay.com/services/search/FindingService/v1";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
@@ -60,13 +60,55 @@ const SET_YEAR = {
   "Big League Chew":         "2025",
 };
 
+async function handleOCR(request, env) {
+  if (!env.AI) return json({ error: 'AI binding not configured', cardNumber: null }, 500);
+
+  let body;
+  try { body = await request.json(); }
+  catch { return json({ error: 'Invalid JSON', cardNumber: null }, 400); }
+
+  const { image } = body ?? {};
+  if (!image || typeof image !== 'string') {
+    return json({ error: 'image field required (base64 JPEG)', cardNumber: null }, 400);
+  }
+
+  try {
+    const result = await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct', {
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${image}` } },
+          {
+            type: 'text',
+            text: 'This is a trading card. Find the card number printed on it. Card numbers look like: AL-123, GLBF-45, BF-208, RAD-12, BBF-3, or similar patterns of letters-hyphen-numbers. Return ONLY the card number, nothing else. If you cannot find one, return the word none.'
+          }
+        ]
+      }],
+      max_tokens: 32
+    });
+
+    const rawText = (result?.response ?? '').trim();
+    const CARD_NUM_RE = /([A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?)/g;
+    const candidates = [...rawText.matchAll(CARD_NUM_RE)].map(m => m[1]);
+
+    return json({ cardNumber: candidates[0] ?? null, candidates, rawText });
+  } catch (err) {
+    return json({ error: String(err), cardNumber: null, candidates: [] }, 500);
+  }
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: CORS });
     }
 
-    const { searchParams } = new URL(request.url);
+    const url = new URL(request.url);
+    if (request.method === "POST" && url.pathname.endsWith("/ocr")) {
+      return handleOCR(request, env);
+    }
+
+    const { searchParams } = url;
     const cardNumber = searchParams.get("cardNumber");
     const hero       = searchParams.get("hero")    || "";
     const set        = searchParams.get("set")     || "";

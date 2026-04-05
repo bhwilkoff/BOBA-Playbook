@@ -58,6 +58,13 @@
         </svg>
         <span>Search Cards</span>
       </button>
+      <button class="sidebar-nav-item" id="nav-scan-btn" data-view="scan">
+        <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        <span>Scan</span>
+      </button>
       <button class="sidebar-nav-item" id="nav-rules-btn" data-view="rules">
         <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
           <rect x="2" y="2" width="20" height="20" rx="4"/>
@@ -176,6 +183,11 @@
         <h2 class="view-heading">Play</h2>
         <p class="placeholder-text">Rulebook, per-card strategy tips, and deck builder — coming in M4.</p>
       </div>
+    </section>
+
+    <!-- SCAN VIEW — rendered by app.js -->
+    <section id="view-scan" class="view" hidden aria-label="Scan">
+      <div class="scan-container" id="scan-container"></div>
     </section>
 
     <!-- COLLECTION VIEW — rendered by collection.js -->

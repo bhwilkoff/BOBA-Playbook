@@ -73,6 +73,9 @@ async function handleOCR(request, env) {
   }
 
   const MODEL = '@cf/meta/llama-3.2-11b-vision-instruct';
+
+  // Mirror the iOS Vision pipeline: extract ALL text from the image, then
+  // run the card number regex on the raw transcript — same as VNRecognizeTextRequest → regex.
   const runParams = {
     messages: [{
       role: 'user',
@@ -80,18 +83,21 @@ async function handleOCR(request, env) {
         { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${image}` } },
         {
           type: 'text',
-          text: 'This is a trading card. Find the card number printed on it. Card numbers look like: AL-123, GLBF-45, BF-208, RAD-12, BBF-3, or similar patterns of letters-hyphen-numbers. Return ONLY the card number, nothing else. If you cannot find one, return the word none.'
+          text: 'Transcribe every piece of text you can see in this image. Include all letters, numbers, words, and codes exactly as printed. Return only the raw text, nothing else.'
         }
       ]
     }],
-    max_tokens: 32
+    max_tokens: 256
   };
 
   try {
     const result = await env.AI.run(MODEL, runParams);
-    const rawText = (result?.response ?? '').trim();
-    const CARD_NUM_RE = /([A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?)/g;
-    const candidates = [...rawText.matchAll(CARD_NUM_RE)].map(m => m[1]);
+    // Defensively coerce to string — Workers AI can return response as a non-string in edge cases
+    const rawText = String(result?.response ?? result?.description ?? result ?? '').trim();
+
+    // Same regex as iOS ScanStore: #?([A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?)
+    const CARD_NUM_RE = /[A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?/g;
+    const candidates = [...rawText.matchAll(CARD_NUM_RE)].map(m => m[0]);
 
     return json({ cardNumber: candidates[0] ?? null, candidates, rawText });
   } catch (err) {

@@ -87,7 +87,7 @@ const API = (() => {
   let _supa = null;
   function supa() {
     if (!_supa) _supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-      auth: { detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
+      auth: { detectSessionInUrl: false, persistSession: true, autoRefreshToken: true }
     });
     return _supa;
   }
@@ -187,6 +187,11 @@ const API = (() => {
         refresh_token: refreshToken,
       });
       if (error) throw new Error(error.message);
+    },
+    authRefreshSession: async (refreshToken) => {
+      const { data, error } = await supa().auth.refreshSession({ refresh_token: refreshToken });
+      if (error) throw new Error(error.message);
+      return data.session;
     },
     // Collection
     collectionFetch,

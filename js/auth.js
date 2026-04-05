@@ -215,25 +215,24 @@ const Auth = (() => {
   ================================================================ */
 
   async function init() {
-    // Restore session from QR code URL — tokens are embedded in the hash by
-    // generateScanQR() so that a logged-in desktop session transfers to mobile.
-    // We call setSession() explicitly rather than relying on detectSessionInUrl,
-    // because Supabase processes the hash asynchronously and can lose the race
-    // with showView() and other init work.
-    const hash = window.location.hash.slice(1);
-    if (hash) {
-      const p = new URLSearchParams(hash);
-      const at = p.get('access_token');
-      const rt = p.get('refresh_token');
-      if (at && rt) {
-        try {
-          await API.authSetSession(at, rt);
-        } catch (e) {
-          console.warn('[auth] Could not restore session from URL:', e);
-        }
-        // Remove tokens from the URL so they don't linger in browser history
-        history.replaceState(null, '', window.location.pathname + window.location.search);
+    // Restore session from QR code URL.
+    // The QR code embeds only the refresh token as a query param (?rt=...) —
+    // query params survive iOS Safari's QR URL handling; hash fragments do not.
+    // We use refreshSession() rather than setSession() so we only need the
+    // shorter refresh token (the JWT access token is ~600 chars and makes the
+    // QR code too dense to scan reliably).
+    const params = new URLSearchParams(window.location.search);
+    const rt = params.get('rt');
+    if (rt) {
+      try {
+        await API.authRefreshSession(rt);
+      } catch (e) {
+        console.warn('[auth] Could not restore session from URL:', e);
       }
+      // Remove rt from the URL so it doesn't linger in browser history
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('rt');
+      history.replaceState(null, '', cleanUrl.toString());
     }
 
     // Subscribe to Supabase auth state

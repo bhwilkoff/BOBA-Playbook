@@ -230,7 +230,7 @@
         ${isDesktop ? `
           <div class="scan-desktop-aside">
             <p class="scan-aside-label">Scan on your phone for best results:</p>
-            <div id="scan-qr-container" class="scan-qr-img" style="width:180px;height:180px;display:flex;align-items:center;justify-content:center;">
+            <div id="scan-qr-container" class="scan-qr-img" style="width:220px;height:220px;display:flex;align-items:center;justify-content:center;">
               <span style="font-size:0.75rem;color:var(--boba-text-muted)">Loading…</span>
             </div>
             <p class="scan-aside-sub" id="scan-qr-note"></p>
@@ -256,13 +256,13 @@
 
     if (Auth.isAuthenticated()) {
       const session = await API.authGetSession();
-      if (session?.access_token) {
-        // Embed tokens in the fragment — Supabase's detectSessionInUrl picks them up
-        // automatically on mobile page load. Fragment is never sent to any server.
-        scanUrl = `${base}#access_token=${session.access_token}` +
-                  `&refresh_token=${session.refresh_token}` +
-                  `&expires_in=${session.expires_in}` +
-                  `&token_type=bearer`;
+      if (session?.refresh_token) {
+        // Pass only the refresh token as a query param.
+        // Reasons: (a) iOS QR scanner strips URL fragments before opening Safari,
+        // so hash-based tokens are silently lost; (b) the JWT access token is
+        // ~600 chars and makes the QR code too dense — refresh tokens are ~60 chars.
+        // The refresh token rotates on use, so interception risk is minimal.
+        scanUrl = `${base}&rt=${encodeURIComponent(session.refresh_token)}`;
         sessionEmbedded = true;
       }
     }
@@ -282,11 +282,11 @@
     qrContainer.innerHTML = '';
     new window.QRCode(qrContainer, {
       text:           scanUrl,
-      width:          180,
-      height:         180,
+      width:          220,
+      height:         220,
       colorDark:      '#00F5FF',
       colorLight:     '#0D0D1A',
-      correctLevel:   window.QRCode.CorrectLevel.M,
+      correctLevel:   window.QRCode.CorrectLevel.L,
     });
 
     if (note) {

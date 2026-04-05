@@ -11,6 +11,7 @@ struct BOBAPlaybookApp: App {
     @State private var cardStore = CardStore()
     @State private var authManager = AuthManager()
     @State private var collectionStore = CollectionStore()
+    @State private var scanStore = ScanStore()
 
     init() {
         // Persist AsyncImage responses across sessions
@@ -30,6 +31,7 @@ struct BOBAPlaybookApp: App {
                 .environment(cardStore)
                 .environment(authManager)
                 .environment(collectionStore)
+                .environment(scanStore)
                 .preferredColorScheme(.dark)
                 .onOpenURL { url in
                     authManager.handleDeepLink(url)

@@ -1,0 +1,9 @@
+name            = "boba-ebay-proxy"
+main            = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Secrets (set via `wrangler secret put EBAY_APP_ID`)
+# EBAY_APP_ID = "BenWilko-BOBAPlay-PRD-24c5abbf0-7a77c68d"
+
+# After deploying, paste the worker URL into BOBAPlaybook/Config.swift:
+#   WorkerConfig.ebayProxyURL = "https://boba-ebay-proxy.<your-subdomain>.workers.dev"

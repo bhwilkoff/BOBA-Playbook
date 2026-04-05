@@ -1,7 +1,54 @@
 {
   "sets": {
+    "Griffey": {
+      "count": 9058,
+      "subSets": [
+        "2025 Release"
+      ],
+      "treatments": [
+        "80's Rad Battlefoil",
+        "Alpha Battlefoil",
+        "Base Set",
+        "Battlefoils",
+        "Billy Cameo Alt Arts",
+        "Blizzard Battlefoil",
+        "Blue Battlefoil",
+        "Blue Headlines Battlefoil",
+        "Bonus Plays",
+        "Bubble Gum Battlefoil",
+        "Chillin' Battlefoil",
+        "Colosseum Battlefoil",
+        "Fire Tracks Battlefoil",
+        "Grandma's Linoleum Battlefoil",
+        "Great Grandma Linoleum Battlefoil",
+        "Green Battlefoil",
+        "Grillin' Battlefoil",
+        "Headlines Battlefoil",
+        "Hot Dog",
+        "Icon Battlefoil",
+        "Inspired Ink Battlefoil",
+        "Inspired Ink Bubble Gum Battlefoil",
+        "Inspired Ink Metallic Battlefoil",
+        "Inspired Ink Superfoil",
+        "Logofoil",
+        "Miami Ice Battlefoil",
+        "Mixtape Battlefoil",
+        "Orange Battlefoil",
+        "Orange Headlines Battlefoil",
+        "Pink Battlefoil",
+        "Plays",
+        "Power Glove Battlefoil",
+        "Prize & Promos",
+        "Red Battlefoil",
+        "Red Headlines Battlefoil",
+        "SUPERFOIL",
+        "SideKicks",
+        "Silver Battlefoil",
+        "Slime Battlefoil"
+      ]
+    },
     "Alpha": {
-      "count": 11468,
+      "count": 8494,
       "subSets": [
         "2024 Release",
         "2025 Update",
@@ -59,50 +106,6 @@
         "Superfoil"
       ]
     },
-    "Griffey": {
-      "count": 6078,
-      "subSets": [
-        "2025 Release"
-      ],
-      "treatments": [
-        "80's Rad Battlefoil",
-        "Alpha Battlefoil",
-        "Base Set",
-        "Battlefoils",
-        "Billy Cameo Alt Arts",
-        "Blizzard Battlefoil",
-        "Blue Battlefoil",
-        "Bonus Plays",
-        "Bubble Gum Battlefoil",
-        "Chillin' Battlefoil",
-        "Colosseum Battlefoil",
-        "Fire Tracks Battlefoil",
-        "Grandma's Linoleum Battlefoil",
-        "Great Grandma Linoleum Battlefoil",
-        "Green Battlefoil",
-        "Grillin' Battlefoil",
-        "Hot Dog",
-        "Icon Battlefoil",
-        "Inspired Ink Battlefoil",
-        "Inspired Ink Bubble Gum Battlefoil",
-        "Inspired Ink Metallic Battlefoil",
-        "Inspired Ink Superfoil",
-        "Logofoil",
-        "Miami Ice Battlefoil",
-        "Mixtape Battlefoil",
-        "Orange Battlefoil",
-        "Orange Headlines Battlefoil",
-        "Pink Battlefoil",
-        "Plays",
-        "Power Glove Battlefoil",
-        "Prize & Promos",
-        "Red Battlefoil",
-        "SUPERFOIL",
-        "SideKicks",
-        "Silver Battlefoil",
-        "Slime Battlefoil"
-      ]
-    },
     "2024 National Show Starter Set": {
       "count": 124,
       "subSets": [
@@ -131,7 +134,7 @@
       ]
     },
     "Superfan Series": {
-      "count": 41,
+      "count": 35,
       "subSets": [
         "Sandstorm Edition"
       ],
@@ -139,8 +142,6 @@
         "Battlefoil",
         "Hot Dog",
         "Inspired Ink Battlefoil",
-        "Inspired Ink Bubble Gum Battlefoil",
-        "Inspired Ink Superfoil",
         "Paper & Battlefoil",
         "Plays"
       ]
@@ -610,7 +611,6 @@
     "Inspired Ink Superfoil": {
       "count": 134,
       "elements": [
-        "ALT",
         "SUPER"
       ],
       "sampleCardNumbers": [
@@ -741,6 +741,7 @@
     "Red Headlines Battlefoil": {
       "count": 120,
       "elements": [
+        "BRAWL",
         "FIRE"
       ],
       "sampleCardNumbers": [
@@ -963,40 +964,40 @@
     }
   },
   "elements": {
-    "STEEL": {
-      "count": 3399,
-      "rarity": "Common"
-    },
     "ICE": {
-      "count": 3243,
+      "count": 3237,
       "rarity": "Rare SP"
     },
     "FIRE": {
-      "count": 3152,
+      "count": 3219,
       "rarity": "Rare SP"
     },
+    "STEEL": {
+      "count": 2956,
+      "rarity": "Common"
+    },
     "GLOW": {
-      "count": 2581,
+      "count": 2680,
       "rarity": "Ultra Rare"
     },
     "HEX": {
-      "count": 2235,
+      "count": 2463,
       "rarity": "Elite"
     },
     "BRAWL": {
-      "count": 1564,
+      "count": 1618,
       "rarity": "Common"
     },
     "GUM": {
-      "count": 490,
+      "count": 491,
       "rarity": "Secret Rare"
     },
     "SUPER": {
-      "count": 453,
+      "count": 454,
       "rarity": "Unique 1/1"
     },
     "ALT": {
-      "count": 15,
+      "count": 14,
       "rarity": "Unknown"
     }
   },
@@ -8044,5 +8045,5 @@
     "Play": 300
   },
   "totalCards": 17793,
-  "totalWithImages": 15890
+  "totalWithImages": 15964
 }

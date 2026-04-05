@@ -243,6 +243,10 @@ struct CardDetailView: View {
                     }
                 }
             }
+
+            Divider().background(Design.Colors.glassBorder)
+
+            PricingSection(card: card)
         }
         .padding(Design.Spacing.lg)
     }

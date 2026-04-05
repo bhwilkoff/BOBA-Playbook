@@ -13,6 +13,11 @@ struct ContentView: View {
                     Label("Search", systemImage: "magnifyingglass")
                 }
 
+            ScanView()
+                .tabItem {
+                    Label("Scan", systemImage: "camera.viewfinder")
+                }
+
             PlaceholderView(
                 title: "Play",
                 icon: "bolt.square.fill",

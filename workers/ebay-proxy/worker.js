@@ -88,23 +88,7 @@ async function handleOCR(request, env) {
   };
 
   try {
-    let result;
-    try {
-      result = await env.AI.run(MODEL, runParams);
-    } catch (err) {
-      // Error 5016: Meta Llama license agreement required once per account.
-      // Automatically agree and retry.
-      if (String(err).includes('5016')) {
-        await env.AI.run(MODEL, {
-          messages: [{ role: 'user', content: 'agree' }],
-          max_tokens: 1
-        }).catch(() => {});
-        result = await env.AI.run(MODEL, runParams);
-      } else {
-        throw err;
-      }
-    }
-
+    const result = await env.AI.run(MODEL, runParams);
     const rawText = (result?.response ?? '').trim();
     const CARD_NUM_RE = /([A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?)/g;
     const candidates = [...rawText.matchAll(CARD_NUM_RE)].map(m => m[1]);

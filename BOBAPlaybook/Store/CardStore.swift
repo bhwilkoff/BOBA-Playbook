@@ -45,9 +45,9 @@ final class CardStore {
            let data  = try? Data(contentsOf: url),
            let cards = try? JSONDecoder().decode([Card].self, from: data) {
             displayCards  = cards
-            filteredCards = cards
             isLoading     = false
             isLoadingMore = true
+            applyFilters()   // honours the isLoadingMore sealed-product guard
         }
         // Phase 2: full catalog off main thread
         Task { await loadFullCatalog() }
@@ -126,10 +126,13 @@ final class CardStore {
                 if !match { return false }
             }
             return true
-        }.sorted {
-            let lImg = $0.imageFile != nil && !$0.imageFile!.isEmpty
-            let rImg = $1.imageFile != nil && !$1.imageFile!.isEmpty
-            return lImg && !rImg
+        }.sorted { a, b in
+            // Sealed products always follow regular cards in the grid.
+            if a.isSealed != b.isSealed { return !a.isSealed }
+            // Within each group, cards with images come before those without.
+            let aImg = a.imageFile != nil && !a.imageFile!.isEmpty
+            let bImg = b.imageFile != nil && !b.imageFile!.isEmpty
+            return aImg && !bImg
         }
     }
 

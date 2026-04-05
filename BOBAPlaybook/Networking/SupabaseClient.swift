@@ -59,6 +59,19 @@ final class SupabaseClient {
         return s
     }
 
+    @discardableResult
+    func refreshSession() async throws -> SupabaseSession {
+        guard let rt = session?.refreshToken else {
+            throw APIError.serverError(401, "No refresh token")
+        }
+        let body = ["refresh_token": rt]
+        let response: AuthResponse = try await postAuth(
+            path: "/auth/v1/token?grant_type=refresh_token", body: body)
+        let s = makeSession(from: response)
+        storeSession(s)
+        return s
+    }
+
     func signOut() async throws {
         guard session != nil else { return }
         try await voidPost(path: "/auth/v1/logout", authenticated: true)
@@ -146,12 +159,32 @@ final class SupabaseClient {
 
     private func executeArray<T: Decodable>(_ request: URLRequest) async throws -> [T] {
         let (data, response) = try await URLSession.shared.data(for: request)
+        if let http = response as? HTTPURLResponse, http.statusCode == 401 {
+            try await refreshSession()
+            var retried = request
+            if let token = accessToken {
+                retried.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            }
+            let (data2, response2) = try await URLSession.shared.data(for: retried)
+            try checkStatus(data: data2, response: response2)
+            return try makeDecoder().decode([T].self, from: data2)
+        }
         try checkStatus(data: data, response: response)
         return try makeDecoder().decode([T].self, from: data)
     }
 
     private func voidExecute(_ request: URLRequest) async throws {
         let (data, response) = try await URLSession.shared.data(for: request)
+        if let http = response as? HTTPURLResponse, http.statusCode == 401 {
+            try await refreshSession()
+            var retried = request
+            if let token = accessToken {
+                retried.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            }
+            let (data2, response2) = try await URLSession.shared.data(for: retried)
+            try checkStatus(data: data2, response: response2)
+            return
+        }
         try checkStatus(data: data, response: response)
     }
 

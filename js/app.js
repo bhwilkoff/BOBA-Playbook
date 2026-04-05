@@ -176,20 +176,16 @@
 
   function prepareData() {
     // Build cardsByNumber: string cardNumber → all Card variants (hero associations)
+    // Kept for the modal "hero variants" panel — not used to collapse displayCards.
     for (const card of cards) {
       const num = String(card.cardNumber);
       if (!cardsByNumber.has(num)) cardsByNumber.set(num, []);
       cardsByNumber.get(num).push(card);
     }
 
-    // Build displayCards: one entry per cardNumber.
-    // Prefer the variant that has an image available.
-    for (const variants of cardsByNumber.values()) {
-      const representative = variants.find(c => c.imageAvailable && c.imageFile) || variants[0];
-      displayCards.push(representative);
-    }
-
-    // Sort: cards with images first, no-image cards last.
+    // Every card is distinct (different imageFile per hero association).
+    // Show all cards; sort with images first.
+    displayCards.push(...cards);
     displayCards.sort((a, b) => {
       const aImg = !!(a.imageFile);
       const bImg = !!(b.imageFile);
@@ -248,38 +244,36 @@
       resultNums = resultNums === null ? s : intersect(resultNums, s);
     }
 
-    // Power range filter (applied after number filtering)
-    if (filters.powerMin !== null || filters.powerMax !== null) {
-      const powerSet = new Set();
-      if (resultNums === null) {
-        for (const card of displayCards) powerSet.add(String(card.cardNumber));
-      } else {
-        for (const num of resultNums) powerSet.add(num);
+    if (resultNums === null) {
+      // No search/filter applied — apply power filter directly against all cards if needed
+      if (filters.powerMin !== null || filters.powerMax !== null) {
+        return displayCards.filter(card => {
+          const p = Number(card.power);
+          const minOk = filters.powerMin === null || p >= filters.powerMin;
+          const maxOk = filters.powerMax === null || p <= filters.powerMax;
+          return minOk && maxOk;
+        });
       }
-      const filtered = new Set();
-      for (const num of powerSet) {
-        const variants = cardsByNumber.get(num);
-        if (!variants) continue;
-        const rep = variants.find(c => c.imageAvailable && c.imageFile) || variants[0];
-        const p = Number(rep.power);
-        const minOk = filters.powerMin === null || p >= filters.powerMin;
-        const maxOk = filters.powerMax === null || p <= filters.powerMax;
-        if (minOk && maxOk) filtered.add(num);
-      }
-      resultNums = filtered;
+      return displayCards;
     }
 
-    if (resultNums === null) return displayCards;
-
-    // Map card numbers → display cards
+    // Expand card numbers → all matching individual cards
     const results = [];
     for (const num of resultNums) {
-      const card = cardsByNumber.get(num)?.[0]; // representative card
-      if (card) {
-        const rep = cardsByNumber.get(num).find(c => c.imageAvailable && c.imageFile) || card;
-        results.push(rep);
-      }
+      const variants = cardsByNumber.get(num);
+      if (variants) results.push(...variants);
     }
+
+    // Power range filter applied per-card (cards sharing a number can have different power)
+    if (filters.powerMin !== null || filters.powerMax !== null) {
+      return results.filter(card => {
+        const p = Number(card.power);
+        const minOk = filters.powerMin === null || p >= filters.powerMin;
+        const maxOk = filters.powerMax === null || p <= filters.powerMax;
+        return minOk && maxOk;
+      });
+    }
+
     return results;
   }
 

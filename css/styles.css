@@ -2157,7 +2157,15 @@ main {
 
 .scan-qr-img {
   border-radius: 8px;
+  overflow: hidden;
   display: block;
+  flex-shrink: 0;
+}
+
+.scan-qr-img canvas,
+.scan-qr-img img {
+  display: block;
+  border-radius: 8px;
 }
 
 .scan-qr-block {
@@ -2319,4 +2327,109 @@ main {
   color: var(--boba-text-muted);
   font-family: var(--font-mono);
   padding: 0.5rem 0;
+}
+
+/* ── Scan candidates picker ───────────────────────────────────────────────── */
+
+.scan-candidates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 480px;
+}
+
+.scan-candidates-label {
+  font-size: 0.8rem;
+  color: var(--boba-text-muted);
+  text-align: center;
+  margin: 0;
+}
+
+.scan-candidates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scan-candidate-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: var(--boba-surface);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.scan-candidate-item:hover,
+.scan-candidate-item:focus-visible {
+  border-color: var(--boba-cyan);
+  background: rgba(0,245,255,0.06);
+  outline: none;
+}
+
+.scan-candidate-img {
+  width: 48px;
+  height: 67px;   /* ~5:7 card ratio */
+  object-fit: cover;
+  border-radius: 5px;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.05);
+}
+
+.scan-candidate-placeholder {
+  background: rgba(255,255,255,0.05);
+}
+
+.scan-candidate-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.scan-candidate-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--boba-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scan-candidate-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.scan-candidate-power {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--boba-text);
+}
+
+.scan-candidate-set {
+  font-size: 0.75rem;
+  color: var(--boba-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.scan-candidate-number {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--boba-text-muted);
 }

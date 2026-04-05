@@ -214,7 +214,28 @@ const Auth = (() => {
      INIT
   ================================================================ */
 
-  function init() {
+  async function init() {
+    // Restore session from QR code URL — tokens are embedded in the hash by
+    // generateScanQR() so that a logged-in desktop session transfers to mobile.
+    // We call setSession() explicitly rather than relying on detectSessionInUrl,
+    // because Supabase processes the hash asynchronously and can lose the race
+    // with showView() and other init work.
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      const p = new URLSearchParams(hash);
+      const at = p.get('access_token');
+      const rt = p.get('refresh_token');
+      if (at && rt) {
+        try {
+          await API.authSetSession(at, rt);
+        } catch (e) {
+          console.warn('[auth] Could not restore session from URL:', e);
+        }
+        // Remove tokens from the URL so they don't linger in browser history
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    }
+
     // Subscribe to Supabase auth state
     API.authOnStateChange((event, session) => {
       _session = session;

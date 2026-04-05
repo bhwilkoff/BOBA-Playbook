@@ -230,8 +230,9 @@
         ${isDesktop ? `
           <div class="scan-desktop-aside">
             <p class="scan-aside-label">Scan on your phone for best results:</p>
-            <canvas id="scan-qr-canvas" class="scan-qr-img" width="180" height="180"
-                    aria-label="QR code — scan to open on mobile"></canvas>
+            <div id="scan-qr-container" class="scan-qr-img" style="width:180px;height:180px;display:flex;align-items:center;justify-content:center;">
+              <span style="font-size:0.75rem;color:var(--boba-text-muted)">Loading…</span>
+            </div>
             <p class="scan-aside-sub" id="scan-qr-note"></p>
           </div>
         ` : ''}
@@ -245,9 +246,9 @@
   }
 
   async function generateScanQR() {
-    const canvas = $('scan-qr-canvas');
-    const note   = $('scan-qr-note');
-    if (!canvas) return;
+    const qrContainer = $('scan-qr-container');
+    const note        = $('scan-qr-note');
+    if (!qrContainer) return;
 
     const base = window.location.origin + window.location.pathname + '?view=scan';
     let scanUrl = base;
@@ -266,22 +267,26 @@
       }
     }
 
-    // Lazy-load the QRCode library (only on desktop scan view)
+    // Lazy-load qrcodejs — has a proper browser bundle unlike the 'qrcode' npm package
     if (!window.QRCode) {
       await new Promise((resolve, reject) => {
         const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
         s.onload = resolve;
         s.onerror = reject;
         document.head.appendChild(s);
       });
     }
 
-    await window.QRCode.toCanvas(canvas, scanUrl, {
-      width: 180,
-      margin: 1,
-      color: { dark: '#00F5FF', light: '#0D0D1A' },
-      errorCorrectionLevel: 'M',
+    // qrcodejs takes a container div and creates the canvas inside it
+    qrContainer.innerHTML = '';
+    new window.QRCode(qrContainer, {
+      text:           scanUrl,
+      width:          180,
+      height:         180,
+      colorDark:      '#00F5FF',
+      colorLight:     '#0D0D1A',
+      correctLevel:   window.QRCode.CorrectLevel.M,
     });
 
     if (note) {
@@ -350,17 +355,24 @@
       console.log('[scan] rawText:', rawText);
       console.log('[scan] cardNumber:', cardNumber);
 
-      // Primary: card number match (same as iOS primary path)
-      let matched = cardNumber
-        ? (cardsByNumber.get(String(cardNumber).toUpperCase()) ?? [])[0]
-        : null;
+      // Primary: card number match — exact, no ambiguity
+      const numberMatches = cardNumber
+        ? (cardsByNumber.get(String(cardNumber).toUpperCase()) ?? [])
+        : [];
 
-      // Fallback: hero name + power match (same as iOS secondary path)
-      if (!matched && rawText) matched = findCardByOCRText(rawText);
+      // Fallback: hero + power + element scoring, returns ranked candidates
+      const textCandidates = (!numberMatches.length && rawText)
+        ? findCardsByOCRText(rawText)
+        : [];
 
-      if (matched) {
-        showScanMatch(resultEl, matched);
-        statusEl.textContent = `Found: ${matched.name}`;
+      const candidates = numberMatches.length ? numberMatches : textCandidates;
+
+      if (candidates.length === 1) {
+        showScanMatch(resultEl, candidates[0]);
+        statusEl.textContent = `Found: ${candidates[0].name}`;
+      } else if (candidates.length > 1) {
+        showScanCandidates(resultEl, candidates);
+        statusEl.textContent = `${candidates.length} possible matches — select the right card.`;
       } else if (cardNumber) {
         statusEl.textContent = `Detected #${cardNumber} — not in catalog.`;
         showScanRetry(resultEl);
@@ -377,25 +389,110 @@
     captureBtn.disabled = false;
   }
 
-  // Mirrors iOS secondary match: hero name + power both agree.
-  // displayCards is the full loaded catalog (same data source as the search view).
-  function findCardByOCRText(rawText) {
-    const text = rawText.toLowerCase();
-    // Extract 2–3 digit integers (card powers are typically 60–200)
+  // Multi-facet OCR matching — mirrors iOS secondary path but returns ALL ranked candidates.
+  // Scores each card by how many facets agree with the transcribed text.
+  // Caller shows a picker when > 1 result.
+  const OCR_ELEMENTS = ['FIRE','ICE','HEX','STEEL','BRAWL','GLOW','GUM','SUPER'];
+  // Words in OCR text that hint at a set name
+  const OCR_SET_HINTS = [
+    { words: ['griffey'],               sets: ['Griffey'] },
+    { words: ['alpha blast'],           sets: ['Alpha Blast'] },
+    { words: ['alpha update'],          sets: ['Alpha Update'] },
+    { words: ['alpha'],                 sets: ['Alpha', 'Alpha Blast', 'Alpha Update'] },
+    { words: ['world champion'],        sets: ['World Champions 2024','World Champions 2025'] },
+    { words: ['big league'],            sets: ['Big League Chew'] },
+    { words: ['national'],              sets: ['National 24 Starter Set'] },
+    { words: ['battle trainer'],        sets: ['Battle Trainer Kit'] },
+  ];
+
+  function findCardsByOCRText(rawText) {
+    const text    = rawText.toLowerCase();
+    const textUp  = rawText.toUpperCase();
+
+    // 2–3 digit integers (powers run ~60–200)
     const nums = new Set(
       [...text.matchAll(/\b(\d{2,3})\b/g)].map(m => parseInt(m[1]))
     );
-    if (nums.size === 0) return null;
+    if (nums.size === 0) return [];
 
+    // Which elements appear in the OCR text?
+    const seenElements = new Set(OCR_ELEMENTS.filter(el => textUp.includes(el)));
+
+    // Which sets are hinted?
+    const hintedSets = new Set();
+    for (const hint of OCR_SET_HINTS) {
+      if (hint.words.some(w => text.includes(w))) hint.sets.forEach(s => hintedSets.add(s));
+    }
+
+    const scored = [];
     for (const card of displayCards) {
       if (!card.hero || card.power == null) continue;
-      // Require every word of the hero name (>2 chars) to appear in the OCR text
+
       const heroWords = card.hero.toLowerCase().split(/\s+/).filter(w => w.length > 2);
       if (!heroWords.length) continue;
-      const heroMatch = heroWords.every(w => text.includes(w));
-      if (heroMatch && nums.has(card.power)) return card;
+      if (!heroWords.every(w => text.includes(w))) continue;  // hero must match
+      if (!nums.has(card.power)) continue;                     // power must match
+
+      // Score additional facets — more agreement = higher confidence
+      let score = 0;
+      if (seenElements.size > 0) {
+        if (seenElements.has(card.element))  score += 3;  // element confirmed
+        else                                  score -= 1;  // different element mentioned
+      }
+      if (hintedSets.size > 0) {
+        if (hintedSets.has(card.set))  score += 2;
+        else                            score -= 1;
+      }
+      if (card.imageFile) score += 1;  // prefer cards with images for visual confirmation
+
+      scored.push({ card, score });
     }
-    return null;
+
+    if (!scored.length) return [];
+    scored.sort((a, b) => b.score - a.score);
+
+    // Cap at 12 to keep the picker usable
+    return scored.slice(0, 12).map(s => s.card);
+  }
+
+  function showScanCandidates(container, candidates) {
+    container.innerHTML = `
+      <div class="scan-candidates">
+        <p class="scan-candidates-label">Select the card you scanned:</p>
+        <div class="scan-candidates-list">
+          ${candidates.map((card, i) => {
+            const imgSrc  = API.cardThumbUrl(card);
+            const element = card.element || 'NONE';
+            const meta    = [card.set, card.treatment].filter(Boolean).join(' · ');
+            return `
+              <button class="scan-candidate-item" data-index="${i}"
+                      aria-label="${escHtml(card.name)}, ${element}, power ${card.power}">
+                ${imgSrc
+                  ? `<img class="scan-candidate-img" src="${escHtml(imgSrc)}" alt="" loading="lazy">`
+                  : `<div class="scan-candidate-img scan-candidate-placeholder"></div>`}
+                <div class="scan-candidate-info">
+                  <div class="scan-candidate-name">${escHtml(card.name)}</div>
+                  <div class="scan-candidate-meta">
+                    <span class="element-badge" data-element="${escHtml(element)}">${escHtml(element)}</span>
+                    <span class="scan-candidate-power">${card.power}</span>
+                    ${meta ? `<span class="scan-candidate-set">${escHtml(meta)}</span>` : ''}
+                  </div>
+                  <div class="scan-candidate-number">#${escHtml(card.cardNumber)}</div>
+                </div>
+              </button>`;
+          }).join('')}
+        </div>
+        <button class="btn-ghost-sm scan-again-btn" style="margin-top:.75rem">Scan Again</button>
+      </div>`;
+    container.hidden = false;
+    candidates.forEach((card, i) => {
+      container.querySelectorAll('.scan-candidate-item')[i]
+        .addEventListener('click', () => {
+          showScanMatch(container, card);
+          $('scan-status').textContent = `Found: ${card.name}`;
+        });
+    });
+    container.querySelector('.scan-again-btn').addEventListener('click', resetScan);
   }
 
   function showScanMatch(container, card) {

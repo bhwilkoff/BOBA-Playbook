@@ -1092,10 +1092,84 @@
   /* ================================================================
      PRICING
   ================================================================ */
+  // Treatment prefix → full name (mirrors iOS PricingSection.ebayTreatment)
+  const TREATMENT_MAP = {
+    GLBF: "Grandma's Linoleum Battlefoil",
+    BLBF: 'Blizzard Battlefoil',
+    RAD:  "80's Rad Battlefoil",
+    LOGO: 'Logo Battlefoil',
+    MIX:  'Mix Battlefoil',
+    BBF:  'Blizzard Battlefoil',
+    ABF:  'Alpha Battlefoil',
+    IBF:  'Ice Battlefoil',
+    SBF:  'Stained Glass Battlefoil',
+  };
+
+  // Set name → release year (mirrors iOS PricingSection.ebayYear)
+  const SET_YEAR_MAP = {
+    'Alpha':                   '2024',
+    'Alpha Blast':             '2025',
+    'Alpha Update':            '2025',
+    'Griffey':                 '2026',
+    'Battle Trainer Kit':      '2024',
+    'National 24 Starter Set': '2024',
+    'World Champions 2024':    '2024',
+    'World Champions 2025':    '2025',
+    'Promo Cards':             '2025',
+    'Big League Chew':         '2025',
+  };
+
+  // Set name → Radish slug (mirrors iOS PricingSection.radishURL setMap)
+  const SET_SLUG_MAP = {
+    'Alpha':                   ['2024', 'Alpha_Edition'],
+    'Alpha Blast':             ['2025', 'Alpha_Blast'],
+    'Alpha Update':            ['2025', 'Alpha_Update'],
+    'Griffey':                 ['2026', 'Griffey_Edition'],
+    'Battle Trainer Kit':      ['2024', 'Battle_Trainer_Kit'],
+    'National 24 Starter Set': ['2024', 'National_24_Starter_Set'],
+    'World Champions 2024':    ['2024', 'World_Champions'],
+    'World Champions 2025':    ['2025', 'World_Champions'],
+    'Promo Cards':             ['2025', 'Promo_Cards'],
+    'Big League Chew':         ['2025', 'Big_League_Chew'],
+  };
+
+  function buildEbayUrl(card) {
+    const prefix    = (card.cardNumber || '').split('-')[0].toUpperCase();
+    const treatment = TREATMENT_MAP[prefix] || 'Paper';
+    const year      = SET_YEAR_MAP[card.set] || '2024';
+    const element   = (card.element || '').toLowerCase().replace(/^\w/, c => c.toUpperCase());
+    const query     = [year, 'bo jackson battle arena', card.hero, treatment, element]
+      .filter(Boolean).join(' ');
+    const params = new URLSearchParams({
+      _nkw: query, LH_Sold: '1', LH_Complete: '1',
+      _sacat: '0', _from: 'R40', _trksid: 'm570.l1313', _osacat: '0',
+    });
+    return `https://www.ebay.com/sch/i.html?${params}`;
+  }
+
+  function buildRadishUrl(card) {
+    if (card.radishUrl) return card.radishUrl;
+    // Programmatic fallback — mirrors iOS PricingSection.radishURL
+    const prefixRemap = { LOGO: 'Logo', RAD: 'Rad', MIX: 'Mix' };
+    let cardNum = card.cardNumber || '';
+    for (const [ours, theirs] of Object.entries(prefixRemap)) {
+      if (cardNum.startsWith(ours + '-')) {
+        cardNum = theirs + cardNum.slice(ours.length);
+        break;
+      }
+    }
+    const [year, slug] = SET_SLUG_MAP[card.set] || ['2024', 'Alpha_Edition'];
+    const hero = encodeURIComponent(card.hero || '');
+    const num  = encodeURIComponent(cardNum);
+    return `https://radishpriceguide.com/boba/${year}/${slug}/${hero}/${num}`;
+  }
+
   function loadPricing(card) {
     const section = $('modal-pricing');
     if (!section) return;
 
+    const ebayUrl   = buildEbayUrl(card);
+    const radishUrl = buildRadishUrl(card);
     let days = 30;
 
     async function fetchAndRender() {
@@ -1114,6 +1188,10 @@
             <span>Loading…</span>
           </div>
         </div>
+        <div class="pricing-links">
+          <a href="${escHtml(ebayUrl)}" target="_blank" rel="noopener" class="btn-pricing-ebay">eBay Sales</a>
+          <a href="${escHtml(radishUrl)}" target="_blank" rel="noopener" class="btn-pricing-radish">Radish</a>
+        </div>
       `;
       section.querySelectorAll('.day-btn').forEach(btn => {
         btn.addEventListener('click', () => { days = parseInt(btn.dataset.days); fetchAndRender(); });
@@ -1130,7 +1208,7 @@
         const res  = await fetch(`${WORKER_URL}?${params}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        renderPricingData(section, data, card);
+        renderPricingData(section, data);
       } catch {
         const body = section.querySelector('.pricing-body');
         if (body) body.innerHTML = '<p class="pricing-error">Pricing unavailable</p>';
@@ -1140,7 +1218,7 @@
     fetchAndRender();
   }
 
-  function renderPricingData(section, data, card) {
+  function renderPricingData(section, data) {
     const body = section.querySelector('.pricing-body');
     if (!body) return;
     const { low, average, high, saleCount } = data;
@@ -1149,9 +1227,6 @@
       return;
     }
     const fmt = n => n > 0 ? `$${n.toFixed(2)}` : '—';
-    const ebayQuery = `bo jackson battle arena ${card.hero || ''} ${card.set || ''}`.trim();
-    const ebayUrl   = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(ebayQuery)}&LH_Complete=1&LH_Sold=1`;
-    const radishUrl = card.radishUrl || '';
     body.innerHTML = `
       <div class="pricing-grid">
         <div class="pricing-stat">
@@ -1168,10 +1243,6 @@
         </div>
       </div>
       <p class="pricing-sale-count">${saleCount} sold listing${saleCount !== 1 ? 's' : ''}</p>
-      <div class="pricing-links">
-        <a href="${escHtml(ebayUrl)}" target="_blank" rel="noopener" class="btn-pricing-ebay">eBay Sold</a>
-        ${radishUrl ? `<a href="${escHtml(radishUrl)}" target="_blank" rel="noopener" class="btn-pricing-radish">Radish</a>` : ''}
-      </div>
     `;
   }
 

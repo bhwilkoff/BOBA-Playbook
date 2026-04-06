@@ -389,6 +389,49 @@
     modeCards.forEach(card => {
       card.addEventListener('click', () => applyMode(card.dataset.mode));
     });
+
+    // Browse panel — navigate to Search with pre-applied filters
+    function browseToSearch(type, value) {
+      resetFilters();
+      if (type === 'element') {
+        setElementFilter(value);
+      } else if (type === 'query' && value) {
+        searchInput.value = value;
+        filters.query = value;
+        searchClear.hidden = false;
+      }
+      showView('search');
+      applyFilters();
+    }
+
+    // Attach to collection cards (top-level .browse-collection-card with button-like behavior)
+    document.querySelectorAll('[data-browse-type]').forEach(el => {
+      el.addEventListener('click', e => {
+        // Allow child buttons to fire independently; skip if click was on a child chip
+        if (e.target.closest('.browse-hero-chip') || e.target.closest('.browse-search-btn')) return;
+        const type  = el.dataset.browseType;
+        const value = el.dataset.browseValue || '';
+        if (type !== 'woba') browseToSearch(type, value);
+      });
+    });
+
+    // Explicit Browse buttons (arrows)
+    document.querySelectorAll('.browse-search-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const type  = btn.dataset.browseType  || btn.closest('[data-browse-type]')?.dataset.browseType  || 'query';
+        const value = btn.dataset.browseValue || btn.closest('[data-browse-type]')?.dataset.browseValue || '';
+        browseToSearch(type, value);
+      });
+    });
+
+    // WOBA hero chips
+    document.querySelectorAll('.browse-hero-chip').forEach(chip => {
+      chip.addEventListener('click', e => {
+        e.stopPropagation();
+        browseToSearch('query', chip.dataset.browseValue);
+      });
+    });
   }
 
   /* ================================================================
@@ -915,6 +958,10 @@
       const sealedDiff = Number(isSealed(a)) - Number(isSealed(b));
       if (sealedDiff) return sealedDiff;
 
+      // Cards with images always before image-pending, regardless of sort.
+      const aImg = !!a.imageFile, bImg = !!b.imageFile;
+      if (aImg !== bImg) return aImg ? -1 : 1;
+
       switch (filters.sortBy) {
         case 'name-asc':
           return heroName(a).localeCompare(heroName(b));
@@ -935,12 +982,9 @@
         case 'variation':
           return (a.variation || '').localeCompare(b.variation || '') ||
                  heroName(a).localeCompare(heroName(b));
-        default: {
-          // Images first, then alphabetical by hero/name.
-          const aImg = !!a.imageFile, bImg = !!b.imageFile;
-          if (aImg !== bImg) return aImg ? -1 : 1;
-          return heroName(a).localeCompare(heroName(b));
-        }
+        default:
+          // Default: card number ascending.
+          return String(a.cardNumber).localeCompare(String(b.cardNumber), undefined, { numeric: true });
       }
     });
   }

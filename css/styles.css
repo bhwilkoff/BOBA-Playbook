@@ -2791,7 +2791,13 @@ main {
   margin-bottom: var(--sp-5);
   border-bottom: 1px solid var(--boba-glass-border);
   padding-bottom: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  flex-wrap: nowrap;
 }
+.play-tabs::-webkit-scrollbar { display: none; }
+.play-tab { white-space: nowrap; }
 
 .play-tab {
   font-family: var(--font-mono);
@@ -3311,5 +3317,372 @@ main {
   font-family: var(--font-body);
   font-size: 0.88rem;
   color: var(--boba-text-2);
+  line-height: 1.5;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   BROWSE PANEL
+══════════════════════════════════════════════════════════════════ */
+
+.browse-section {
+  margin-bottom: var(--sp-7);
+}
+
+.browse-heading {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--boba-text-muted);
+  margin-bottom: var(--sp-4);
+}
+
+/* Collection cards */
+.browse-collection-card {
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 10px;
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-3);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.browse-collection-card:hover {
+  border-color: var(--boba-orange);
+}
+.browse-collection-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-2);
+}
+.browse-collection-name {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+.browse-collection-count {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--boba-text-muted);
+  background: var(--boba-glass);
+  border-radius: 10px;
+  padding: 1px 8px;
+}
+.browse-collection-desc {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--boba-text-2);
+  margin-bottom: var(--sp-3);
+  line-height: 1.55;
+}
+.browse-hero-names {
+  display: none; /* hidden — chips replace this */
+}
+.browse-woba-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+.browse-hero-chip {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid #FF69B450;
+  background: #FF69B415;
+  color: #FF69B4;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.browse-hero-chip:hover {
+  background: #FF69B430;
+  border-color: #FF69B4;
+}
+.browse-search-btn {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--boba-orange);
+  background: transparent;
+  color: var(--boba-orange);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.browse-search-btn:hover {
+  background: var(--boba-orange);
+  color: var(--boba-near-black);
+}
+
+/* Weapon type pills */
+.browse-element-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.browse-element-pill {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--el-color) 40%, transparent);
+  background: color-mix(in srgb, var(--el-color) 12%, transparent);
+  color: var(--el-color);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.browse-element-pill:hover {
+  background: color-mix(in srgb, var(--el-color) 25%, transparent);
+  border-color: var(--el-color);
+}
+
+/* Sport cards */
+.browse-sport-note {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--boba-text-muted);
+  margin-bottom: var(--sp-4);
+}
+.browse-sport-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+@media (max-width: 640px) {
+  .browse-sport-list { grid-template-columns: 1fr; }
+}
+.browse-sport-card {
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 10px;
+  padding: var(--sp-3) var(--sp-4);
+}
+.browse-sport-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--boba-text);
+  margin-bottom: var(--sp-1);
+}
+.browse-sport-athletes {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--boba-text-muted);
+  line-height: 1.55;
+  margin-bottom: var(--sp-3);
+}
+.browse-sport-card .browse-search-btn {
+  font-size: 0.75rem;
+  padding: 4px 12px;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   COLLECT PANEL
+══════════════════════════════════════════════════════════════════ */
+
+.collect-section {
+  margin-bottom: var(--sp-7);
+}
+.collect-heading {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--boba-text-muted);
+  margin-bottom: var(--sp-3);
+}
+.collect-intro {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--boba-text-2);
+  margin-bottom: var(--sp-4);
+  line-height: 1.55;
+}
+
+/* Rarity tier list */
+.rarity-tier-list {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--boba-glass-border);
+}
+.rarity-tier-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--boba-surface);
+  border-bottom: 1px solid var(--boba-glass-border);
+}
+.rarity-tier-row:last-child { border-bottom: none; }
+.rarity-tier-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  color: var(--tier-color);
+  background: color-mix(in srgb, var(--tier-color) 15%, transparent);
+}
+.rarity-tier-info {
+  flex: 1;
+  min-width: 0;
+}
+.rarity-tier-name {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--tier-color);
+}
+.rarity-tier-desc {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--boba-text-2);
+  margin-top: 2px;
+}
+.rarity-tier-badge {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--tier-color);
+  background: color-mix(in srgb, var(--tier-color) 12%, transparent);
+  border-radius: 10px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Treatment list */
+.collect-treatment-list {
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 10px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.collect-treatment-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+.collect-treatment-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--treat-color);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+.collect-treatment-name {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--treat-color);
+}
+.collect-treatment-desc {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: var(--boba-text-2);
+  margin-top: 2px;
+  line-height: 1.5;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TOURNAMENT PANEL
+══════════════════════════════════════════════════════════════════ */
+
+.tournament-section {
+  margin-bottom: var(--sp-7);
+}
+.tournament-heading {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--boba-text-muted);
+  margin-bottom: var(--sp-3);
+}
+
+/* Penalty details */
+.penalty-details {
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.penalty-summary {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--boba-text);
+  padding: var(--sp-4);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.15s;
+}
+.penalty-summary::-webkit-details-marker { display: none; }
+.penalty-summary::after {
+  content: '›';
+  font-size: 1.2rem;
+  color: var(--boba-orange);
+  transition: transform 0.18s;
+}
+.penalty-details[open] .penalty-summary::after {
+  transform: rotate(90deg);
+}
+.penalty-summary:hover { background: var(--boba-glass); }
+.penalty-list {
+  border-top: 1px solid var(--boba-glass-border);
+}
+.penalty-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--boba-surface);
+  border-bottom: 1px solid var(--boba-glass-border);
+}
+.penalty-row:last-child { border-bottom: none; }
+.penalty-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  color: var(--pen-color);
+  background: color-mix(in srgb, var(--pen-color) 15%, transparent);
+}
+.penalty-info { flex: 1; }
+.penalty-name {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--pen-color);
+}
+.penalty-desc {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: var(--boba-text-2);
+  margin-top: 2px;
   line-height: 1.5;
 }

@@ -1,21 +1,18 @@
 import SwiftUI
 
 /// Inline pricing card for card detail view.
-/// Shows eBay sold LOW / AVG / HIGH for a selectable time window,
-/// the most recent individual sales, and a "View on Radish Price Guide" deep link.
+/// Shows eBay active listing LOW / AVG / HIGH and a link to Radish Price Guide.
+/// Pricing data comes from the eBay Browse API (current active listings).
 struct PricingSection: View {
     let card: Card
 
-    @State private var selectedDays = 30
     @State private var result: PricingService.PricingResult?
     @State private var isLoading = false
     @State private var fetchError: String?
     @State private var showRadish = false
     @State private var showEbay = false
-    @State private var selectedSaleURL: URL?
-    @State private var showSaleSheet = false
-
-    private let dayOptions = [7, 30, 90]
+    @State private var selectedListingURL: URL?
+    @State private var showListingSheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.md) {
@@ -27,14 +24,10 @@ struct PricingSection: View {
                     .foregroundStyle(Design.Colors.textMuted)
                     .tracking(1.5)
                 Spacer()
-                Picker("Period", selection: $selectedDays) {
-                    ForEach(dayOptions, id: \.self) { d in
-                        Text("\(d)d").tag(d)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 130)
-                .colorMultiply(Design.Colors.bobaOrange)
+                Text("ACTIVE LISTINGS")
+                    .font(Design.Fonts.mono(8, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .tracking(1.2)
             }
 
             // Price grid / loading / error
@@ -60,13 +53,13 @@ struct PricingSection: View {
                             .fill(Design.Colors.surface2)
                     )
 
-                    Text("\(result.saleCount) sold on eBay · last \(selectedDays)d")
+                    Text("\(result.listingCount) active listings on eBay")
                         .font(Design.Fonts.mono(10))
                         .foregroundStyle(Design.Colors.textMuted)
 
-                    // Recent sales list
-                    if !result.recentSales.isEmpty {
-                        recentSalesList(result.recentSales)
+                    // Current listings
+                    if !result.recentListings.isEmpty {
+                        currentListingsList(result.recentListings)
                     }
 
                 } else if let err = fetchError {
@@ -80,7 +73,7 @@ struct PricingSection: View {
 
             // External links row
             HStack(spacing: Design.Spacing.sm) {
-                // eBay sold listings
+                // eBay listings
                 Button { showEbay = true } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "cart.fill")
@@ -120,39 +113,38 @@ struct PricingSection: View {
             }
         }
         .onAppear { fetch() }
-        .onChange(of: selectedDays) { fetch() }
         .sheet(isPresented: $showEbay) {
             SafariView(url: ebayURL)
         }
         .sheet(isPresented: $showRadish) {
             SafariView(url: radishURL)
         }
-        .sheet(isPresented: $showSaleSheet) {
-            if let url = selectedSaleURL {
+        .sheet(isPresented: $showListingSheet) {
+            if let url = selectedListingURL {
                 SafariView(url: url)
             }
         }
     }
 
-    // MARK: - Recent sales list
+    // MARK: - Active listings list
 
-    private func recentSalesList(_ sales: [PricingService.SaleItem]) -> some View {
+    private func currentListingsList(_ listings: [PricingService.ListingItem]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("RECENT SALES")
+            Text("CURRENT LISTINGS")
                 .font(Design.Fonts.mono(8, weight: .bold))
                 .foregroundStyle(Design.Colors.textMuted)
                 .tracking(1.5)
                 .padding(.bottom, Design.Spacing.xs)
 
             VStack(spacing: 1) {
-                ForEach(Array(sales.enumerated()), id: \.offset) { _, sale in
+                ForEach(Array(listings.enumerated()), id: \.offset) { _, listing in
                     Button {
-                        if let url = URL(string: sale.url), !sale.url.isEmpty {
-                            selectedSaleURL = url
-                            showSaleSheet = true
+                        if let url = URL(string: listing.url), !listing.url.isEmpty {
+                            selectedListingURL = url
+                            showListingSheet = true
                         }
                     } label: {
-                        saleRow(sale)
+                        listingRow(listing)
                     }
                     .buttonStyle(.plain)
                 }
@@ -165,26 +157,22 @@ struct PricingSection: View {
         }
     }
 
-    private func saleRow(_ sale: PricingService.SaleItem) -> some View {
+    private func listingRow(_ listing: PricingService.ListingItem) -> some View {
         HStack(spacing: Design.Spacing.sm) {
-            // Price
-            Text(sale.price, format: .currency(code: "USD"))
+            Text(listing.price, format: .currency(code: "USD"))
                 .font(Design.Fonts.mono(13, weight: .bold))
                 .foregroundStyle(Design.Colors.textPrimary)
                 .frame(width: 64, alignment: .leading)
 
-            // Title (truncated)
-            Text(sale.title)
+            Text(listing.title)
                 .font(Design.Fonts.mono(11))
                 .foregroundStyle(Design.Colors.textSecondary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Date
-            Text(relativeDate(sale.date))
-                .font(Design.Fonts.mono(10))
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 10))
                 .foregroundStyle(Design.Colors.textMuted)
-                .frame(width: 52, alignment: .trailing)
         }
         .padding(.horizontal, Design.Spacing.md)
         .padding(.vertical, Design.Spacing.sm)
@@ -207,33 +195,16 @@ struct PricingSection: View {
         .padding(.vertical, Design.Spacing.md)
     }
 
-    /// Converts an ISO 8601 date string to a short relative label ("2d ago", "3w ago", etc.)
-    private func relativeDate(_ iso: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let date = formatter.date(from: iso)
-            ?? ISO8601DateFormatter().date(from: iso)    // fallback without fractional seconds
-        guard let date else { return "" }
-        let diff = Date().timeIntervalSince(date)
-        if diff < 0 { return "" }
-        let days = Int(diff / 86400)
-        if days == 0 { return "today" }
-        if days < 7  { return "\(days)d ago" }
-        let weeks = days / 7
-        if weeks < 5  { return "\(weeks)w ago" }
-        let months = days / 30
-        return "\(months)mo ago"
-    }
-
     // MARK: - eBay URL
 
-    /// eBay sold/completed listings search using the Radish-validated query formula:
-    /// "{year} bo jackson battle arena {hero} {treatment} {element}"
-    ///
-    /// This matches how sellers actually list BOBA cards — by game name, hero, and
-    /// parallel treatment — rather than by card number, which sellers rarely include.
+    /// eBay completed/sold listings search.
+    /// Query: "bo jackson battle arena {hero} {cardNumber}"
+    /// Card number encodes treatment (e.g. "RAD-352"), which is more reliable than
+    /// full treatment names ("80's Rad Battlefoil") that sellers rarely write out.
     private var ebayURL: URL {
-        let query = ebaySearchQuery
+        let query = ["bo jackson battle arena", card.hero, card.cardNumber]
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
         var components = URLComponents(string: "https://www.ebay.com/sch/i.html")!
         components.queryItems = [
             URLQueryItem(name: "_nkw",        value: query),
@@ -245,46 +216,6 @@ struct PricingSection: View {
             URLQueryItem(name: "_osacat",     value: "0"),
         ]
         return components.url ?? URL(string: "https://www.ebay.com")!
-    }
-
-    /// "{year} bo jackson battle arena {hero} {treatment} {element}"
-    /// Shared between the eBay browser link and the pricing Worker API call.
-    private var ebaySearchQuery: String {
-        [ebayYear, "bo jackson battle arena", card.hero, ebayTreatment, card.element.capitalized]
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-    }
-
-    private var ebayTreatment: String {
-        let prefix = card.cardNumber.components(separatedBy: "-").first?.uppercased() ?? ""
-        let map: [String: String] = [
-            "GLBF": "Grandma's Linoleum Battlefoil",
-            "BLBF": "Blizzard Battlefoil",
-            "RAD":  "80's Rad Battlefoil",
-            "LOGO": "Logo Battlefoil",
-            "MIX":  "Mix Battlefoil",
-            "BBF":  "Blizzard Battlefoil",
-            "ABF":  "Alpha Battlefoil",
-            "IBF":  "Ice Battlefoil",
-            "SBF":  "Stained Glass Battlefoil",
-        ]
-        return map[prefix] ?? "Paper"
-    }
-
-    private var ebayYear: String {
-        let map: [String: String] = [
-            "Alpha":                   "2024",
-            "Alpha Blast":             "2025",
-            "Alpha Update":            "2025",
-            "Griffey":                 "2026",
-            "Battle Trainer Kit":      "2024",
-            "National 24 Starter Set": "2024",
-            "World Champions 2024":    "2024",
-            "World Champions 2025":    "2025",
-            "Promo Cards":             "2025",
-            "Big League Chew":         "2025",
-        ]
-        return map[card.set] ?? "2024"
     }
 
     // MARK: - Radish URL
@@ -347,10 +278,10 @@ struct PricingSection: View {
                     hero: card.hero,
                     set: card.set,
                     element: card.element,
-                    days: selectedDays
+                    days: 30
                 )
-            } catch PricingService.PricingError.noSales {
-                fetchError = "No eBay sales found in the last \(selectedDays) days."
+            } catch PricingService.PricingError.noListings {
+                fetchError = "No active eBay listings found."
             } catch PricingService.PricingError.notConfigured {
                 return
             } catch {

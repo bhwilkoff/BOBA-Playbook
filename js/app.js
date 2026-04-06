@@ -1136,33 +1136,6 @@
   /* ================================================================
      PRICING
   ================================================================ */
-  // Treatment prefix → full name (mirrors iOS PricingSection.ebayTreatment)
-  const TREATMENT_MAP = {
-    GLBF: "Grandma's Linoleum Battlefoil",
-    BLBF: 'Blizzard Battlefoil',
-    RAD:  "80's Rad Battlefoil",
-    LOGO: 'Logo Battlefoil',
-    MIX:  'Mix Battlefoil',
-    BBF:  'Blizzard Battlefoil',
-    ABF:  'Alpha Battlefoil',
-    IBF:  'Ice Battlefoil',
-    SBF:  'Stained Glass Battlefoil',
-  };
-
-  // Set name → release year (mirrors iOS PricingSection.ebayYear)
-  const SET_YEAR_MAP = {
-    'Alpha':                   '2024',
-    'Alpha Blast':             '2025',
-    'Alpha Update':            '2025',
-    'Griffey':                 '2026',
-    'Battle Trainer Kit':      '2024',
-    'National 24 Starter Set': '2024',
-    'World Champions 2024':    '2024',
-    'World Champions 2025':    '2025',
-    'Promo Cards':             '2025',
-    'Big League Chew':         '2025',
-  };
-
   // Set name → Radish slug (mirrors iOS PricingSection.radishURL setMap)
   const SET_SLUG_MAP = {
     'Alpha':                   ['2024', 'Alpha_Edition'],
@@ -1178,11 +1151,10 @@
   };
 
   function buildEbayUrl(card) {
-    const prefix    = (card.cardNumber || '').split('-')[0].toUpperCase();
-    const treatment = TREATMENT_MAP[prefix] || 'Paper';
-    const year      = SET_YEAR_MAP[card.set] || '2024';
-    const element   = (card.element || '').toLowerCase().replace(/^\w/, c => c.toUpperCase());
-    const query     = [year, 'bo jackson battle arena', card.hero, treatment, element]
+    // "bo jackson battle arena {hero} {cardNumber}" — card number encodes treatment
+    // (e.g. "RAD-352"), which is more reliable than full treatment names that
+    // sellers rarely write out. Mirrors iOS PricingSection and worker query formula.
+    const query  = ['bo jackson battle arena', card.hero, card.cardNumber]
       .filter(Boolean).join(' ');
     const params = new URLSearchParams({
       _nkw: query, LH_Sold: '1', LH_Complete: '1',
@@ -1265,9 +1237,9 @@
   function renderPricingData(section, data) {
     const body = section.querySelector('.pricing-body');
     if (!body) return;
-    const { low, average, high, saleCount } = data;
-    if (!saleCount) {
-      body.innerHTML = '<p class="pricing-none">No recent sales found.</p>';
+    const { low, average, high, listingCount } = data;
+    if (!listingCount) {
+      body.innerHTML = '<p class="pricing-none">No active eBay listings found.</p>';
       return;
     }
     const fmt = n => n > 0 ? `$${n.toFixed(2)}` : '—';
@@ -1286,7 +1258,7 @@
           <span class="pricing-val">${fmt(high)}</span>
         </div>
       </div>
-      <p class="pricing-sale-count">${saleCount} sold listing${saleCount !== 1 ? 's' : ''}</p>
+      <p class="pricing-sale-count">${listingCount} active listing${listingCount !== 1 ? 's' : ''} on eBay</p>
     `;
   }
 

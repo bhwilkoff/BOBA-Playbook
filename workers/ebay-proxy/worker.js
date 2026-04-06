@@ -1,110 +1,176 @@
 /**
  * BOBA Playbook — eBay Pricing Proxy
  *
- * Proxies eBay Finding API `findCompletedItems` for a given BOBA card,
- * calculates LOW / AVG / HIGH from sold listings, and caches results for 24 hours.
+ * Uses the eBay Browse API (v1) with OAuth client credentials.
+ * The old Finding API (svcs.ebay.com/services/search/FindingService/v1)
+ * was decommissioned February 5, 2025 — that's why all calls returned
+ * "Service call has exceeded the number of times the operation is allowed to be called."
+ *
+ * Auth: Client Credentials Grant (app token, no user login required).
+ *   Secrets required in Wrangler:
+ *     EBAY_APP_ID  — your production Client ID  (e.g. "BenWilko-BOBAPlay-PRD-...")
+ *     EBAY_CERT_ID — your production Client Secret / Cert ID
  *
  * Query parameters:
- *   cardNumber  — e.g. "BF-208" (used for cache key and as fallback)
- *   hero        — hero name, e.g. "Scary" (used in search query)
- *   set         — set name, e.g. "Griffey" (used to derive year)
- *   element     — element name, e.g. "Ice" (used in search query)
- *   days        — lookback window: 7, 30, or 90 (default 30)
+ *   cardNumber — e.g. "RAD-352"
+ *   hero       — hero name, e.g. "Brockness"
+ *   set        — set name (unused in query, kept for future)
+ *   element    — element name (unused in query, kept for future)
+ *   days       — lookback window hint 7/30/90 (kept for cache key; Browse API
+ *                returns current active listings so "days" doesn't filter)
  *
- * Search query formula (mirrors Radish's validated approach):
- *   "{year} bo jackson battle arena {hero} {treatment} {element}"
+ * Search strategy (two-stage):
+ *   Stage 1: "bo jackson battle arena {hero} {cardNumber}"
+ *     — card number encodes treatment; sellers almost always include it.
+ *   Stage 2: "bo jackson battle arena {hero}"
+ *     — broader fallback when stage 1 returns 0 results.
  *
  * Response JSON:
  *   {
- *     "low": 1.99, "average": 4.50, "high": 12.00, "saleCount": 14,
- *     "recentSales": [
- *       { "title": "...", "price": 4.50, "date": "2026-03-15T12:00:00Z", "url": "https://..." },
+ *     "low": 1.99, "average": 4.50, "high": 12.00, "listingCount": 14,
+ *     "recentListings": [
+ *       { "title": "...", "price": 4.50, "url": "https://..." },
  *       ...
  *     ]
  *   }
+ *
+ * Note: Browse API returns active (current) listings, not historical sold prices.
+ * For sold price history, eBay's Marketplace Insights API is required (needs
+ * special program approval from eBay developer support).
  */
 
-const EBAY_API = "https://svcs.ebay.com/services/search/FindingService/v1";
+const BROWSE_API  = "https://api.ebay.com/buy/browse/v1/item_summary/search";
+const TOKEN_URL   = "https://api.ebay.com/identity/v1/oauth2/token";
+const MARKETPLACE = "EBAY_US";
 
 const CORS = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":  "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-// Maps card number prefix → full treatment name used by eBay sellers.
-// "Paper" is the base (no prefix) — sellers include it explicitly.
-const TREATMENT_MAP = {
-  "GLBF": "Grandma's Linoleum Battlefoil",
-  "BLBF": "Blizzard Battlefoil",
-  "RAD":  "80's Rad Battlefoil",
-  "LOGO": "Logo Battlefoil",
-  "MIX":  "Mix Battlefoil",
-  "BBF":  "Blizzard Battlefoil",
-  "ABF":  "Alpha Battlefoil",
-  "IBF":  "Ice Battlefoil",
-  "SBF":  "Stained Glass Battlefoil",
-};
+// ── OAuth token management ────────────────────────────────────────────────────
 
-// Maps set name → release year for the search query.
-const SET_YEAR = {
-  "Alpha":                   "2024",
-  "Alpha Blast":             "2025",
-  "Alpha Update":            "2025",
-  "Griffey":                 "2026",
-  "Battle Trainer Kit":      "2024",
-  "National 24 Starter Set": "2024",
-  "World Champions 2024":    "2024",
-  "World Champions 2025":    "2025",
-  "Promo Cards":             "2025",
-  "Big League Chew":         "2025",
-};
+/**
+ * Returns a valid app-level OAuth Bearer token, fetching a fresh one when needed.
+ * Tokens are cached in the Workers Cache for (expires_in - 5 min).
+ */
+async function getAppToken(env, cache) {
+  const tokenCacheKey = new Request("https://boba-cache.internal/ebay-oauth/v1");
+  const cachedToken   = await cache.match(tokenCacheKey);
+  if (cachedToken) {
+    const { access_token } = await cachedToken.json();
+    return access_token;
+  }
+
+  // Client Credentials Grant: base64(clientId:clientSecret) in Authorization header
+  const credentials = btoa(`${env.EBAY_APP_ID}:${env.EBAY_CERT_ID}`);
+  const tokenRes = await fetch(TOKEN_URL, {
+    method:  "POST",
+    headers: {
+      "Content-Type":  "application/x-www-form-urlencoded",
+      "Authorization": `Basic ${credentials}`,
+    },
+    // scope must be URL-encoded in the body
+    body: "grant_type=client_credentials&scope=https%3A%2F%2Fapi.ebay.com%2Foauth%2Fapi_scope",
+  });
+
+  if (!tokenRes.ok) {
+    const txt = await tokenRes.text().catch(() => tokenRes.status);
+    throw new Error(`OAuth token error ${tokenRes.status}: ${txt}`);
+  }
+
+  const { access_token, expires_in } = await tokenRes.json();
+
+  // Cache for (expires_in - 5 minutes) so we never use an expired token
+  const cacheTTL = Math.max(60, (expires_in ?? 7200) - 300);
+  await cache.put(
+    tokenCacheKey,
+    new Response(JSON.stringify({ access_token }), {
+      headers: {
+        "Content-Type":  "application/json",
+        "Cache-Control": `public, max-age=${cacheTTL}`,
+      },
+    })
+  );
+
+  return access_token;
+}
+
+// ── Browse API search ─────────────────────────────────────────────────────────
+
+/**
+ * Searches eBay Browse API for active fixed-price listings matching `keywords`.
+ * Returns { items, error } where items is an array of itemSummary objects.
+ */
+async function searchListings(token, keywords) {
+  const params = new URLSearchParams({
+    q:      keywords,
+    filter: "buyingOptions:{FIXED_PRICE}",
+    limit:  "100",
+    sort:   "price",
+  });
+
+  const res = await fetch(`${BROWSE_API}?${params}`, {
+    headers: {
+      "Authorization":           `Bearer ${token}`,
+      "X-EBAY-C-MARKETPLACE-ID": MARKETPLACE,
+      "Accept":                  "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    let msg = `Browse API ${res.status}`;
+    try {
+      const err = await res.json();
+      msg = err?.errors?.[0]?.message ?? msg;
+    } catch { /* ignore parse error */ }
+    return { items: [], error: msg };
+  }
+
+  const data  = await res.json();
+  const items = data.itemSummaries ?? [];
+  return { items, error: null };
+}
+
+// ── OCR handler (unchanged) ───────────────────────────────────────────────────
 
 async function handleOCR(request, env) {
-  if (!env.AI) return json({ error: 'AI binding not configured', cardNumber: null }, 500);
+  if (!env.AI) return json({ error: "AI binding not configured", cardNumber: null }, 500);
 
   let body;
   try { body = await request.json(); }
-  catch { return json({ error: 'Invalid JSON', cardNumber: null }, 400); }
+  catch { return json({ error: "Invalid JSON", cardNumber: null }, 400); }
 
   const { image } = body ?? {};
-  if (!image || typeof image !== 'string') {
-    return json({ error: 'image field required (base64 JPEG)', cardNumber: null }, 400);
+  if (!image || typeof image !== "string") {
+    return json({ error: "image field required (base64 JPEG)", cardNumber: null }, 400);
   }
 
-  const MODEL = '@cf/meta/llama-3.2-11b-vision-instruct';
-
-  // Mirror the iOS Vision pipeline: extract ALL text from the image, then
-  // run the card number regex on the raw transcript — same as VNRecognizeTextRequest → regex.
+  const MODEL = "@cf/meta/llama-3.2-11b-vision-instruct";
   const runParams = {
     messages: [{
-      role: 'user',
+      role:    "user",
       content: [
-        { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${image}` } },
-        {
-          type: 'text',
-          text: 'Transcribe every piece of text you can see in this image. Include all letters, numbers, words, and codes exactly as printed. Return only the raw text, nothing else.'
-        }
-      ]
+        { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } },
+        { type: "text",      text: "Transcribe every piece of text you can see in this image. Include all letters, numbers, words, and codes exactly as printed. Return only the raw text, nothing else." },
+      ],
     }],
-    max_tokens: 256
+    max_tokens: 256,
   };
 
   try {
-    const result = await env.AI.run(MODEL, runParams);
-    // Defensively coerce to string — Workers AI can return response as a non-string in edge cases
-    const rawText = String(result?.response ?? result?.description ?? result ?? '').trim();
-
-    // Same pattern as iOS ScanStore: #?([A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?)
-    // Case-insensitive — AI transcription may mix case; normalise to uppercase for lookup.
+    const result  = await env.AI.run(MODEL, runParams);
+    const rawText = String(result?.response ?? result?.description ?? result ?? "").trim();
     const CARD_NUM_RE = /[A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?/gi;
-    const candidates = [...rawText.matchAll(CARD_NUM_RE)].map(m => m[0].toUpperCase());
-
+    const candidates  = [...rawText.matchAll(CARD_NUM_RE)].map(m => m[0].toUpperCase());
     return json({ cardNumber: candidates[0] ?? null, candidates, rawText });
   } catch (err) {
     return json({ error: String(err), cardNumber: null, candidates: [] }, 500);
   }
 }
+
+// ── Main handler ──────────────────────────────────────────────────────────────
 
 export default {
   async fetch(request, env) {
@@ -120,33 +186,21 @@ export default {
     const { searchParams } = url;
     const cardNumber = searchParams.get("cardNumber");
     const hero       = searchParams.get("hero")    || "";
-    const set        = searchParams.get("set")     || "";
-    const element    = searchParams.get("element") || "";
-    const days = Math.min(Math.max(parseInt(searchParams.get("days") ?? "30", 10), 1), 90);
+    const days       = Math.min(Math.max(parseInt(searchParams.get("days") ?? "30", 10), 1), 90);
 
     if (!cardNumber) {
       return json({ error: "cardNumber parameter required" }, 400);
     }
-    if (!env.EBAY_APP_ID) {
-      return json({ error: "EBAY_APP_ID secret not configured" }, 500);
+    if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) {
+      return json({ error: "EBAY_APP_ID and EBAY_CERT_ID secrets required" }, 500);
     }
 
-    // ── Build search query ────────────────────────────────────────────────────
-    // Formula: "{year} bo jackson battle arena {hero} {treatment} {element}"
-    // This mirrors how Radish and eBay sellers refer to cards — by game name,
-    // hero, and parallel treatment. Card numbers are rarely in eBay listings.
-    const prefix    = cardNumber.split("-")[0].toUpperCase();
-    const treatment = TREATMENT_MAP[prefix] || "Paper";
-    const year      = SET_YEAR[set]         || "2024";
-    const keywords  = [year, "bo jackson battle arena", hero, treatment, element]
-      .filter(Boolean).join(" ");
-
     // ── Cache ─────────────────────────────────────────────────────────────────
-    // Key includes hero so that two cards sharing a number (e.g. RAD-352 Brockness
-    // vs Spider) each get their own search results and cache entry.
-    // v2 prefix invalidates any old v1 caches that used the wrong "BOBA {number}" query.
-    const cache = caches.default;
-    const cacheURL = `https://boba-cache.internal/v2/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
+    // v4 prefix invalidates old caches from the decommissioned Finding API.
+    // Browse API returns current active listings, so cache for 6 hours
+    // (shorter than 24h because active listings change more frequently).
+    const cache    = caches.default;
+    const cacheURL = `https://boba-cache.internal/v4/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
     const cacheKey = new Request(cacheURL);
 
     const cached = await cache.match(cacheKey);
@@ -155,63 +209,42 @@ export default {
       return json(body, 200, { "X-Cache": "HIT" });
     }
 
-    // ── eBay Finding API ──────────────────────────────────────────────────────
-    // Round cutoff to midnight UTC so results are stable within a day.
-    const cutoff = new Date();
-    cutoff.setUTCHours(0, 0, 0, 0);
-    cutoff.setUTCDate(cutoff.getUTCDate() - days);
-    const cutoffStr = cutoff.toISOString();
-
-    // Build query string manually to keep parentheses unencoded.
-    // URLSearchParams percent-encodes ( and ) which some eBay API versions reject.
-    const qp = [
-      ["OPERATION-NAME",                 "findCompletedItems"],
-      ["SERVICE-VERSION",                "1.0.0"],
-      ["SECURITY-APPNAME",               env.EBAY_APP_ID],
-      ["RESPONSE-DATA-FORMAT",           "JSON"],
-      ["REST-PAYLOAD",                   ""],
-      ["keywords",                       keywords],
-      ["itemFilter(0).name",             "SoldItemsOnly"],
-      ["itemFilter(0).value",            "true"],
-      ["itemFilter(1).name",             "EndTimeFrom"],
-      ["itemFilter(1).value",            cutoffStr],
-      ["sortOrder",                      "EndTimeSoonest"],
-      ["paginationInput.entriesPerPage", "100"],
-    ];
-
-    const queryString = qp
-      .map(([k, v]) => `${encodeURIComponent(k).replace(/%28/g, "(").replace(/%29/g, ")")}=${encodeURIComponent(v)}`)
-      .join("&");
-
-    const ebayURL = `${EBAY_API}?${queryString}`;
-
-    const ebayRes  = await fetch(ebayURL);
-    const ebayData = await ebayRes.json();
-
-    // Surface eBay-level errors
-    if (!ebayRes.ok) {
-      const msg = ebayData?.errorMessage?.[0]?.error?.[0]?.message?.[0]
-               ?? ebayData?.findCompletedItemsResponse?.[0]?.errorMessage?.[0]?.error?.[0]?.message?.[0]
-               ?? `eBay HTTP ${ebayRes.status}`;
-      return json({ error: msg, saleCount: 0, low: 0, average: 0, high: 0, recentSales: [] }, 502);
+    // ── Fetch OAuth token ─────────────────────────────────────────────────────
+    let token;
+    try {
+      token = await getAppToken(env, cache);
+    } catch (err) {
+      return json({ error: String(err), listingCount: 0, low: 0, average: 0, high: 0, recentListings: [] }, 502);
     }
 
-    const ack = ebayData?.findCompletedItemsResponse?.[0]?.ack?.[0];
-    if (ack === "Failure") {
-      const msg = ebayData?.findCompletedItemsResponse?.[0]?.errorMessage?.[0]?.error?.[0]?.message?.[0]
-               ?? "eBay API failure";
-      return json({ error: msg, saleCount: 0, low: 0, average: 0, high: 0, recentSales: [] }, 502);
+    // ── Two-stage search ──────────────────────────────────────────────────────
+    // Stage 1: specific (hero + card number — most precise)
+    const keywordsSpecific = ["bo jackson battle arena", hero, cardNumber].filter(Boolean).join(" ");
+    let { items, error } = await searchListings(token, keywordsSpecific);
+
+    // Stage 2: broad fallback — if 0 results and no error, try hero only
+    if (items.length === 0 && !error && hero) {
+      const keywordsBroad = ["bo jackson battle arena", hero].filter(Boolean).join(" ");
+      const fallback = await searchListings(token, keywordsBroad);
+      if (!fallback.error) items = fallback.items;
     }
 
-    const items = ebayData?.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.item ?? [];
+    if (error) {
+      const errorBody = { error, listingCount: 0, low: 0, average: 0, high: 0, recentListings: [] };
+      // Cache errors for 5 minutes so a broken token/quota doesn't cascade
+      await cache.put(cacheKey, new Response(JSON.stringify(errorBody), {
+        headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=300" },
+      }));
+      return json(errorBody, 502);
+    }
 
-    // Aggregate prices
+    // ── Aggregate prices ──────────────────────────────────────────────────────
     const prices = items
-      .map(item => parseFloat(item?.sellingStatus?.[0]?.convertedCurrentPrice?.[0]?.__value__ ?? "0"))
+      .map(item => parseFloat(item?.price?.value ?? "0"))
       .filter(p => p > 0);
 
     if (prices.length === 0) {
-      return json({ low: 0, average: 0, high: 0, saleCount: 0, recentSales: [] });
+      return json({ low: 0, average: 0, high: 0, listingCount: 0, recentListings: [] });
     }
 
     prices.sort((a, b) => a - b);
@@ -219,32 +252,24 @@ export default {
     const high    = round2(prices[prices.length - 1]);
     const average = round2(prices.reduce((s, p) => s + p, 0) / prices.length);
 
-    // Recent sales — sorted by end time descending (most recent first), up to 10
-    const recentSales = items
-      .filter(item => parseFloat(item?.sellingStatus?.[0]?.convertedCurrentPrice?.[0]?.__value__ ?? "0") > 0)
-      .sort((a, b) => {
-        const tA = new Date(a?.listingInfo?.[0]?.endTime?.[0] ?? 0).getTime();
-        const tB = new Date(b?.listingInfo?.[0]?.endTime?.[0] ?? 0).getTime();
-        return tB - tA;
-      })
+    const recentListings = items
+      .filter(item => parseFloat(item?.price?.value ?? "0") > 0)
       .slice(0, 10)
       .map(item => ({
-        title: item?.title?.[0] ?? "",
-        price: round2(parseFloat(item?.sellingStatus?.[0]?.convertedCurrentPrice?.[0]?.__value__ ?? "0")),
-        date:  item?.listingInfo?.[0]?.endTime?.[0] ?? "",
-        url:   item?.viewItemURL?.[0] ?? "",
+        title: item?.title ?? "",
+        price: round2(parseFloat(item?.price?.value ?? "0")),
+        url:   item?.itemWebUrl ?? "",
       }));
 
-    const result = { low, average, high, saleCount: prices.length, recentSales };
+    const result = { low, average, high, listingCount: prices.length, recentListings };
 
-    // Cache for 24 hours
-    const responseToCache = new Response(JSON.stringify(result), {
+    // Cache for 6 hours
+    await cache.put(cacheKey, new Response(JSON.stringify(result), {
       headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=86400",
+        "Content-Type":  "application/json",
+        "Cache-Control": "public, max-age=21600",
       },
-    });
-    await cache.put(cacheKey, responseToCache);
+    }));
 
     return json(result, 200, { "X-Cache": "MISS" });
   },

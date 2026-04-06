@@ -64,15 +64,14 @@ const LOT_PATTERNS = [
  * Check eBay localizedAspects for structured card attributes.
  *
  * Returns:
- *   true  — definitive match (Card Number aspect matches our cardNumber)
- *   false — definitive mismatch (Card Number aspect present, non-numeric, and doesn't match)
+ *   true  — Card Number aspect is an exact (normalised) match
+ *   false — Card Number aspect has alphanumeric content that clearly
+ *           identifies a DIFFERENT card (e.g. "CBF-100" when we want "CBF-656")
  *   null  — no decisive aspects; fall through to title matching
  *
- * Note: sellers sometimes fill in Card Number as just the numeric portion
- * (e.g. "656" for "CBF-656"). We treat that as a match — it's the right
- * number, and the hero is already constrained by the search query. We only
- * hard-reject when the aspect contains alphanumeric content that clearly
- * identifies a DIFFERENT card.
+ * Numeric-only aspects (e.g. "656" filled in for "CBF-656") are AMBIGUOUS:
+ * any card numbered 656 in any set matches, so we return null and let
+ * title matching decide. We never hard-accept on ambiguous data.
  */
 function checkAspects(aspects, cardNumber, power) {
   if (!aspects || aspects.length === 0) return null;
@@ -82,25 +81,20 @@ function checkAspects(aspects, cardNumber, power) {
     if (name && value) map[name.toLowerCase()] = value;
   }
 
-  // "Card Number" is the most reliable identifier — sellers fill this in via
-  // eBay's trading card category form. If present, it's authoritative.
   const aspectCardNum =
     map["card number"] ?? map["card #"] ?? map["card no."] ?? map["number"];
   if (aspectCardNum !== undefined) {
     const normAspect = norm(aspectCardNum);
     const normCard   = norm(cardNumber);
-    // Exact match (normalised)
+    // Exact normalised match → definitive accept
     if (normAspect === normCard) return true;
-    // Numeric-only aspect (e.g. "656" for "CBF-656"):
-    // accept if it matches our card's numeric portion — don't reject.
-    const numOnly = cardNumber.replace(/\D/g, "");
-    if (numOnly && normAspect === numOnly) return true;
-    // Aspect has alphanumeric content that doesn't match → different card.
+    // Numeric-only aspect → too ambiguous; fall through to title matching
+    if (/^\d+$/.test(normAspect)) return null;
+    // Alphanumeric content that doesn't match → definitive reject
     return false;
   }
 
-  // Power level check: reject if the aspect disagrees with our power.
-  // Only apply when both sides are known; don't reject on missing power.
+  // Power level check: reject only when aspect explicitly disagrees
   if (power != null) {
     const aspectPowerRaw = map["power"] ?? map["power level"];
     if (aspectPowerRaw !== undefined) {
@@ -109,7 +103,7 @@ function checkAspects(aspects, cardNumber, power) {
     }
   }
 
-  return null; // no decisive aspects — fall through to title matching
+  return null;
 }
 
 /**
@@ -488,9 +482,9 @@ export default {
     if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) return json({ error: "EBAY_APP_ID and EBAY_CERT_ID secrets required" }, 500);
 
     // ── Cache ─────────────────────────────────────────────────────────────────
-    // v8: Radish as primary source, aspect false-negative fix, image verification.
+    // v9: fix checkAspects false-accept on numeric-only values; remove Browse broad fallback.
     const cache    = caches.default;
-    const cacheURL = `https://boba-cache.internal/v8/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
+    const cacheURL = `https://boba-cache.internal/v9/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
     const cacheKey = new Request(cacheURL);
     const cached   = await cache.match(cacheKey);
     if (cached) {
@@ -562,16 +556,14 @@ export default {
     }
 
     // ── Fall back to Browse (active listings) if sold returned 0 ─────────────
+    // Only use the specific query (hero + cardNumber + power) — no broad hero-only
+    // fallback. The broad fallback returned hundreds of irrelevant cards for the
+    // same hero, overwhelming the title/aspect filter with false positives.
     let activeItems = [];
     if (!useSold || soldItems.length === 0) {
       const { items, error } = await searchActive(token, keywordsSpecific);
       if (!error) {
-        // normaliseActive is async — uses image verification for low-confidence matches
         activeItems = await normaliseActive(items, cardNumber, hero, power, env);
-        if (activeItems.length === 0 && hero) {
-          const fb = await searchActive(token, keywordsBroad);
-          if (!fb.error) activeItems = await normaliseActive(fb.items, cardNumber, hero, power, env);
-        }
       } else {
         browseError = error;
       }

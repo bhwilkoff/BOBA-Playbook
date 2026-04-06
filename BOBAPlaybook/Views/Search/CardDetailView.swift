@@ -59,11 +59,10 @@ struct CardDetailView: View {
         return nil
     }
 
-    // Shareable web URL — opens card modal on the GitHub Pages web app.
-    // Falls back gracefully if the URL can't be constructed (unusual characters).
+    // Shareable web URL — opens card modal on the web app.
     private var cardShareURL: URL? {
         let encoded = card.cardNumber.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? card.cardNumber
-        return URL(string: "https://bhwilkoff.github.io/BOBA-Playbook/?card=\(encoded)")
+        return URL(string: "https://bobaplaybook.com/?card=\(encoded)")
     }
 
     private func prepareAndShare() async {

@@ -922,9 +922,10 @@ main {
   .modal-art { height: 52dvh; }
 }
 @media (min-width: 640px) {
-  /* flex-start: art panel sizes to the image, not the (potentially much taller)
-     details panel. sticky keeps the image in view while scrolling card stats. */
-  .modal-art { width: 260px; align-self: flex-start; position: sticky; top: 0; }
+  /* stretch: art panel fills the modal height so align-items: center can
+     vertically center the card image. max-height: 90dvh caps it at the
+     viewport so the panel never extends below what's visible when sticky. */
+  .modal-art { width: 260px; align-self: stretch; max-height: 90dvh; position: sticky; top: 0; }
 }
 
 /* Zoom hint — fades out once user zooms */
@@ -943,9 +944,8 @@ main {
 }
 .modal-art.zoomed::after { opacity: 0; }
 
-/* Card image: auto-sized so flex centering on .modal-art takes effect.
-   width/height auto means the image gets its natural size, constrained
-   by max-width/max-height, then centered by the parent's align-items: center. */
+/* Mobile: auto-sized so the 52dvh flex container's align-items: center
+   actually has something to center (image is smaller than the container). */
 .modal-card-img {
   display: block;
   width: auto; height: auto;
@@ -956,8 +956,10 @@ main {
   user-select: none;
   -webkit-user-drag: none;
 }
+/* Desktop: art panel stretches to modal height, so the image must fill it
+   (width/height 100%) and object-fit: contain scales + centers within. */
 @media (min-width: 640px) {
-  .modal-card-img { max-height: 90dvh; }
+  .modal-card-img { width: 100%; height: 100%; max-height: 90dvh; }
 }
 /* Placeholder fills the full art area */
 .modal-img-placeholder {

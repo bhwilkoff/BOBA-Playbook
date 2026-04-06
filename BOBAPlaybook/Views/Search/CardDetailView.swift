@@ -71,11 +71,16 @@ struct CardDetailView: View {
         isPreparingShare = true
         defer { isPreparingShare = false }
 
-        var items: [Any] = [shareURL]
+        // Include the URL as a text string, not a URL object. When sharing to
+        // Messages, UIActivityViewController can drop a URL object when combined
+        // with an image — but a string containing the URL appears in the message
+        // body alongside the image. Messages auto-detects and links the URL.
+        let shareText = "\(card.name) — BOBA Playbook\n\(shareURL.absoluteString)"
+        var items: [Any] = [shareText]
         if let imageURL = CDN.fullURL(for: card),
            let (data, _) = try? await URLSession.shared.data(from: imageURL),
            let image = UIImage(data: data) {
-            items = [image, shareURL]
+            items = [image, shareText]
         }
         shareItems = items
         showingShare = true

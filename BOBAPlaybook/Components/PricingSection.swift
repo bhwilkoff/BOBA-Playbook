@@ -192,7 +192,7 @@ struct PricingSection: View {
     /// Converts an ISO 8601 date string to a short relative label.
     private func relativeDate(_ iso: String) -> String? {
         guard !iso.isEmpty else { return nil }
-        var fmt = ISO8601DateFormatter()
+        let fmt = ISO8601DateFormatter()
         fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let date = fmt.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
         guard let date else { return nil }

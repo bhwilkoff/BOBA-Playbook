@@ -164,13 +164,99 @@
   // Tracks the active view for URL building (card URLs embed the view).
   let currentView = 'search';
 
-  function buildViewURL(view) {
-    return view === 'search' ? '?' : `?view=${view}`;
+  /* ----------------------------------------------------------------
+     URL BUILDING
+     Scheme:
+       ?                                   search, no filters
+       ?q=lebron&element=FIRE              search + filters
+       ?set=Alpha&treatment=Battlefoil     filter-only
+       ?view=collection                    non-search views
+       ?card=CBF-656&hero=BoJax            card open (search view, no filters)
+       ?q=lebron&card=1&hero=LeBoss        card open on top of a search
+       ?view=collection&card=1&hero=LeBoss card open from collection view
+  ---------------------------------------------------------------- */
+
+  // Serialize current filter state to a URLSearchParams (no card).
+  function buildSearchParams() {
+    const p = new URLSearchParams();
+    if (currentView !== 'search') p.set('view', currentView);
+    if (filters.query)            p.set('q', filters.query);
+    if (filters.element)          p.set('element', filters.element);
+    if (filters.set)              p.set('set', filters.set);
+    if (filters.treatment)        p.set('treatment', filters.treatment);
+    if (filters.hasImage)         p.set('has_image', '1');
+    if (filters.powerMin != null) p.set('power_min', String(filters.powerMin));
+    if (filters.powerMax != null) p.set('power_max', String(filters.powerMax));
+    return p;
   }
 
-  function buildCardURL(view, cardNumber) {
-    const encoded = encodeURIComponent(cardNumber);
-    return view === 'search' ? `?card=${encoded}` : `?view=${view}&card=${encoded}`;
+  function buildSearchURL() {
+    const str = buildSearchParams().toString();
+    return str ? `?${str}` : '?';
+  }
+
+  // Card URL: filter state + card identifier (cardNumber + hero).
+  function buildCardURL(card) {
+    const p = buildSearchParams();
+    p.set('card', String(card.cardNumber));
+    if (card.hero) p.set('hero', card.hero);
+    return `?${p.toString()}`;
+  }
+
+  // Apply URL params to filter state + sync all UI controls.
+  // Call applyFilters(true) after this to re-render without a second URL write.
+  function applyURLParams(params) {
+    filters.query     = params.get('q') || '';
+    filters.element   = params.get('element') || '';
+    filters.set       = params.get('set') || '';
+    filters.treatment = params.get('treatment') || '';
+    filters.hasImage  = params.get('has_image') === '1';
+    filters.powerMin  = params.has('power_min') ? Number(params.get('power_min')) : null;
+    filters.powerMax  = params.has('power_max') ? Number(params.get('power_max')) : null;
+
+    // Sync UI — only update elements that exist (catalog may not be loaded yet).
+    if (searchInput)   searchInput.value = filters.query;
+    if (searchClear)   searchClear.hidden = !filters.query;
+
+    elementFilters?.querySelectorAll('.element-pill').forEach(pill => {
+      const active = pill.dataset.element === filters.element;
+      pill.classList.toggle('active', active);
+      pill.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+
+    if (setFilter) setFilter.value = filters.set;
+    buildTreatmentFilter(filters.set);
+    if (treatmentFilter) treatmentFilter.value = filters.treatment;
+
+    hasImageToggle?.setAttribute('aria-pressed', String(filters.hasImage));
+
+    if (powerMinInput) powerMinInput.value = filters.powerMin ?? '';
+    if (powerMaxInput) powerMaxInput.value = filters.powerMax ?? '';
+
+    document.querySelectorAll('.power-preset').forEach(b => b.classList.remove('active'));
+    if (filters.powerMin == null && filters.powerMax == null) {
+      document.querySelector('.power-preset[data-min=""]')?.classList.add('active');
+    } else {
+      document.querySelectorAll('.power-preset').forEach(b => {
+        const pmin = b.dataset.min !== '' ? Number(b.dataset.min) : null;
+        const pmax = b.dataset.max !== '' ? Number(b.dataset.max) : null;
+        if (pmin === filters.powerMin && pmax === filters.powerMax) b.classList.add('active');
+      });
+    }
+  }
+
+  // Resolve a card from URL params (card + hero).
+  function cardFromURLParams(params) {
+    const num  = params.get('card');
+    const hero = params.get('hero');
+    if (!num || !displayCards.length) return null;
+    const numStr = String(num);
+    if (hero) {
+      return displayCards.find(c => String(c.cardNumber) === numStr && c.hero === hero)
+          ?? displayCards.find(c => String(c.cardNumber) === numStr);
+    }
+    const set = cardsByNumber?.get(numStr.toUpperCase()) || cardsByNumber?.get(numStr);
+    return set?.[0] ?? displayCards.find(c => String(c.cardNumber) === numStr);
   }
 
   function showView(name, fromHistory = false) {
@@ -196,7 +282,7 @@
       initPlayView();
     }
     if (!fromHistory) {
-      history.pushState({ view: name }, '', buildViewURL(name));
+      history.pushState({ view: name }, '', buildSearchURL());
     }
   }
 
@@ -205,18 +291,23 @@
     if (btn) btn.addEventListener('click', () => showView(view));
   });
 
-  window.addEventListener('popstate', (e) => {
-    const state = e.state || {};
-    if (state.card) {
-      // Restore a card modal — called from history navigation.
-      if (state.view) currentView = state.view;
-      const cardSet = cardsByNumber?.get(String(state.card).toUpperCase())
-                   || cardsByNumber?.get(String(state.card));
-      if (cardSet?.length) {
-        openModal(cardSet[0], -1, true); // true = fromHistory, skip pushState
-      }
+  window.addEventListener('popstate', () => {
+    const params = new URLSearchParams(window.location.search);
+    const urlView = params.get('view') || 'search';
+
+    // Always restore filter state from URL on any navigation.
+    if (displayCards.length) {
+      applyURLParams(params);
+      applyFilters(true); // skipURLSync — URL is already the target
+    }
+
+    if (params.has('card')) {
+      // Restore card modal — find by cardNumber + hero.
+      if (urlView !== currentView) currentView = urlView;
+      const card = cardFromURLParams(params);
+      if (card) openModal(card, -1, true);
     } else {
-      // No card in state — close modal if open and show the view.
+      // No card — close modal if open and show the correct view.
       if (!modalOverlay.hidden) {
         cleanupZoom();
         modalOverlay.hidden = true;
@@ -225,7 +316,7 @@
         currentModalIndex = -1;
         document.body.style.overflow = '';
       }
-      showView(state.view || 'search', true);
+      showView(urlView, true);
     }
   });
 
@@ -963,13 +1054,19 @@
      CARD GRID RENDERING
   ================================================================ */
 
-  function applyFilters() {
+  // skipURLSync: true when called from popstate/init — URL is already correct.
+  function applyFilters(skipURLSync = false) {
     filteredCards = computeResults();
     displayedCount = 0;
     cardGrid.innerHTML = '';
     renderNextPage();
     updateResultsCount();
     updateFilterBadge();
+    // Reflect filter state in URL so searches are bookmarkable/shareable.
+    // Use replaceState (not push) so filter typing doesn't flood browser history.
+    if (!skipURLSync && modalOverlay.hidden) {
+      history.replaceState({ view: currentView }, '', buildSearchURL());
+    }
   }
 
   function renderNextPage() {
@@ -1224,9 +1321,9 @@
     // fromHistory = true when called from popstate — URL is already correct.
     if (!fromHistory) {
       history.pushState(
-        { view: currentView, card: card.cardNumber },
+        { view: currentView, card: card.cardNumber, hero: card.hero },
         '',
-        buildCardURL(currentView, card.cardNumber)
+        buildCardURL(card)
       );
     }
 
@@ -1443,9 +1540,9 @@
     modalNavNext.hidden = true;
     currentModalIndex = -1;
     document.body.style.overflow = '';
-    // Replace the card URL with the plain view URL so the address bar is clean
-    // and the forward button doesn't re-open the closed card.
-    history.replaceState({ view: currentView }, '', buildViewURL(currentView));
+    // Replace URL with the current search/filter state (no card param) so the
+    // address bar stays accurate and forward doesn't re-open the closed card.
+    history.replaceState({ view: currentView }, '', buildSearchURL());
   }
 
   function buildVersionsSection(card) {
@@ -1714,6 +1811,10 @@
     const urlView = params.get('view');
     showView(viewIds.includes(urlView) ? urlView : 'search', true);
 
+    // Apply filter state from URL (search input, element, set, etc.) before load.
+    // UI controls may not be ready yet — applyURLParams guards against nulls.
+    applyURLParams(params);
+
     try {
       [cards, searchIndex, categories] = await Promise.all([
         API.loadCards(),
@@ -1736,25 +1837,24 @@
     loadingState.hidden = true;
     buildElementFilters();
     buildSetFilter();
-    buildTreatmentFilter('');
 
-    filteredCards = displayCards;
-    renderNextPage();
-    updateResultsCount();
+    // Re-apply URL params now that filter UI is fully built (element pills, dropdowns).
+    applyURLParams(params);
 
-    // Deep-link: ?card=CBF-656 opens the card modal directly.
-    // Must run after prepareData() so cardsByNumber is populated.
-    // Use replaceState so the initial URL stays in history exactly once.
-    const deepCard = params.get('card');
-    if (deepCard) {
-      const cardSet = cardsByNumber.get(deepCard.toUpperCase())
-                   || cardsByNumber.get(deepCard);
-      if (cardSet?.length) {
-        openModal(cardSet[0], -1, true); // fromHistory=true — URL already correct
+    // Initial render respects any URL filter state.
+    applyFilters(true); // skipURLSync — URL is already the source of truth
+
+    // Deep-link: ?card=CBF-656&hero=BoJax opens the card modal directly.
+    // fromHistory=true → openModal won't push a new state.
+    // replaceState normalizes the URL (in case cardNumber casing differs, etc.).
+    if (params.has('card')) {
+      const card = cardFromURLParams(params);
+      if (card) {
+        openModal(card, -1, true);
         history.replaceState(
-          { view: currentView, card: cardSet[0].cardNumber },
+          { view: currentView, card: card.cardNumber, hero: card.hero },
           '',
-          buildCardURL(currentView, cardSet[0].cardNumber)
+          buildCardURL(card)
         );
       }
     }

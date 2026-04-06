@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- This app does NOT engage in cross-app tracking -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+
+	<!-- No tracking domains -->
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<!--
+		Required Reason APIs used by this app:
+		- UserDefaults: NOT used (Keychain used instead for all persistence)
+		- File timestamps: NOT accessed directly
+		- Disk space APIs: NOT used
+		- System boot time: NOT used
+		- Active keyboards: NOT used
+	-->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array/>
+
+	<!--
+		Data collected by this app:
+		1. Email address — for account creation and sign-in (linked to identity, not for tracking)
+		2. Other user content — the user's card collection (cards owned, designations, estimated value)
+		   stored in Supabase and linked to the user's account.
+
+		This app does NOT collect:
+		- Location data
+		- Health or fitness data
+		- Financial info
+		- Contacts, messages, or browsing history
+		- Identifiers used for tracking (IDFA etc.)
+		- Camera frames — all on-device only, never uploaded
+	-->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeEmailAddress</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<!-- Card collection: which cards the user owns, designations, values -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

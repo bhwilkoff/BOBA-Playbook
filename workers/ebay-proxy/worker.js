@@ -272,7 +272,7 @@ export default {
     // ── Cache ─────────────────────────────────────────────────────────────────
     // v5 invalidates old caches. Sold results cached 6h, listed results 2h.
     const cache    = caches.default;
-    const cacheURL = `https://boba-cache.internal/v5/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
+    const cacheURL = `https://boba-cache.internal/v6/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
     const cacheKey = new Request(cacheURL);
     const cached   = await cache.match(cacheKey);
     if (cached) {
@@ -341,11 +341,19 @@ export default {
     }
 
     // ── Aggregate ─────────────────────────────────────────────────────────────
-    const prices = finalItems.map(i => i.price).sort((a, b) => a - b);
+    // Always sort by price for stats so LOW/HIGH are unambiguous.
+    const sorted  = [...finalItems].sort((a, b) => a.price - b.price);
+    const prices  = sorted.map(i => i.price);
     const low     = round2(prices[0]);
     const high    = round2(prices[prices.length - 1]);
     const average = round2(prices.reduce((s, p) => s + p, 0) / prices.length);
-    const items   = finalItems.slice(0, 10);
+
+    // For active listings: sample evenly across the price-sorted array so the
+    // visible list reflects the same distribution driving LOW/AVG/HIGH — not
+    // just the cheapest 10. For sold items: keep chronological order (most recent).
+    const items = priceType === "sold"
+      ? finalItems.slice(0, 10)
+      : sampleAcrossRange(sorted, 10);
 
     const result = { low, average, high, count: finalItems.length, priceType, items };
 
@@ -369,3 +377,16 @@ function json(body, status = 200, extra = {}) {
 }
 
 function round2(n) { return Math.round(n * 100) / 100; }
+
+/**
+ * Pick up to maxCount items evenly spaced across a price-sorted array.
+ * Ensures the returned list spans the full price range, so users can see
+ * what's driving the LOW/AVG/HIGH stats — not just the cheapest items.
+ */
+function sampleAcrossRange(sortedByPrice, maxCount = 10) {
+  if (sortedByPrice.length <= maxCount) return sortedByPrice;
+  const step = (sortedByPrice.length - 1) / (maxCount - 1);
+  return Array.from({ length: maxCount }, (_, i) =>
+    sortedByPrice[Math.round(i * step)]
+  );
+}

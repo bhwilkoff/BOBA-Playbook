@@ -33,6 +33,19 @@
     return d.innerHTML;
   }
 
+  function relativeDate(iso) {
+    if (!iso) return '';
+    const date = new Date(iso);
+    if (isNaN(date)) return '';
+    const days = Math.floor((Date.now() - date.getTime()) / 86400000);
+    if (days < 0)  return '';
+    if (days === 0) return 'today';
+    if (days < 7)  return `${days}d ago`;
+    const weeks = Math.floor(days / 7);
+    if (weeks < 5) return `${weeks}w ago`;
+    return `${Math.floor(days / 30)}mo ago`;
+  }
+
   /* ================================================================
      STATE
   ================================================================ */
@@ -1237,12 +1250,29 @@
   function renderPricingData(section, data) {
     const body = section.querySelector('.pricing-body');
     if (!body) return;
-    const { low, average, high, listingCount } = data;
-    if (!listingCount) {
-      body.innerHTML = '<p class="pricing-none">No active eBay listings found.</p>';
+    const { low, average, high, count, priceType, items = [] } = data;
+    if (!count) {
+      body.innerHTML = '<p class="pricing-none">No eBay listings found.</p>';
       return;
     }
-    const fmt = n => n > 0 ? `$${n.toFixed(2)}` : '—';
+    const isSold  = priceType === 'sold';
+    const typeStr = isSold ? 'sold' : 'active listing';
+    const fmt     = n => n > 0 ? `$${n.toFixed(2)}` : '—';
+
+    const itemsHtml = items.length === 0 ? '' : `
+      <div class="pricing-items">
+        <p class="pricing-items-label">${isSold ? 'RECENT SALES' : 'CURRENT LISTINGS'}</p>
+        ${items.map(item => {
+          const dateStr = isSold && item.date ? relativeDate(item.date) : '';
+          return `
+            <a href="${escHtml(item.url)}" target="_blank" rel="noopener" class="pricing-item-row">
+              <span class="pricing-item-price">${fmt(item.price)}</span>
+              <span class="pricing-item-title">${escHtml(item.title)}</span>
+              ${dateStr ? `<span class="pricing-item-date">${escHtml(dateStr)}</span>` : '<span class="pricing-item-arrow">↗</span>'}
+            </a>`;
+        }).join('')}
+      </div>`;
+
     body.innerHTML = `
       <div class="pricing-grid">
         <div class="pricing-stat">
@@ -1258,7 +1288,8 @@
           <span class="pricing-val">${fmt(high)}</span>
         </div>
       </div>
-      <p class="pricing-sale-count">${listingCount} active listing${listingCount !== 1 ? 's' : ''} on eBay</p>
+      <p class="pricing-sale-count">${count} ${typeStr}${count !== 1 ? 's' : ''}</p>
+      ${itemsHtml}
     `;
   }
 

@@ -1,33 +1,39 @@
 import SwiftUI
 
-/// Inline pricing card for card detail view.
-/// Shows eBay active listing LOW / AVG / HIGH and a link to Radish Price Guide.
-/// Pricing data comes from the eBay Browse API (current active listings).
+/// Inline pricing card shown in card detail views.
+/// Fetches sold item history (Marketplace Insights) or active listing prices
+/// (Browse API fallback) from the eBay proxy worker.
 struct PricingSection: View {
     let card: Card
 
+    @State private var selectedDays = 30
     @State private var result: PricingService.PricingResult?
     @State private var isLoading = false
     @State private var fetchError: String?
     @State private var showRadish = false
     @State private var showEbay = false
-    @State private var selectedListingURL: URL?
-    @State private var showListingSheet = false
+    @State private var selectedItemURL: IdentifiableURL?
+
+    private let dayOptions = [7, 30, 90]
 
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.md) {
 
-            // Header row
+            // Header row — label + day picker
             HStack {
                 Text("MARKET PRICING")
                     .font(Design.Fonts.mono(9, weight: .bold))
                     .foregroundStyle(Design.Colors.textMuted)
                     .tracking(1.5)
                 Spacer()
-                Text("ACTIVE LISTINGS")
-                    .font(Design.Fonts.mono(8, weight: .bold))
-                    .foregroundStyle(Design.Colors.textMuted)
-                    .tracking(1.2)
+                Picker("Period", selection: $selectedDays) {
+                    ForEach(dayOptions, id: \.self) { d in
+                        Text("\(d)d").tag(d)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 130)
+                .colorMultiply(Design.Colors.bobaOrange)
             }
 
             // Price grid / loading / error
@@ -39,27 +45,23 @@ struct PricingSection: View {
                     // LOW / AVG / HIGH
                     HStack(spacing: 0) {
                         priceCell(label: "LOW",  value: result.low)
-                        Divider()
-                            .frame(maxHeight: 48)
-                            .overlay(Design.Colors.glassBorder)
+                        Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
                         priceCell(label: "AVG",  value: result.average)
-                        Divider()
-                            .frame(maxHeight: 48)
-                            .overlay(Design.Colors.glassBorder)
+                        Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
                         priceCell(label: "HIGH", value: result.high)
                     }
-                    .background(
-                        RoundedRectangle(cornerRadius: Design.Radius.md)
-                            .fill(Design.Colors.surface2)
-                    )
+                    .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
 
-                    Text("\(result.listingCount) active listings on eBay")
+                    // Count + type label
+                    let typeLabel = result.isSold ? "sold" : "active listing"
+                    let plural    = result.count != 1 ? "s" : ""
+                    Text("\(result.count) \(typeLabel)\(plural) · last \(selectedDays)d")
                         .font(Design.Fonts.mono(10))
                         .foregroundStyle(Design.Colors.textMuted)
 
-                    // Current listings
-                    if !result.recentListings.isEmpty {
-                        currentListingsList(result.recentListings)
+                    // Individual items list
+                    if !result.items.isEmpty {
+                        itemsList(result.items, isSold: result.isSold)
                     }
 
                 } else if let err = fetchError {
@@ -71,15 +73,12 @@ struct PricingSection: View {
                 }
             }
 
-            // External links row
+            // External links
             HStack(spacing: Design.Spacing.sm) {
-                // eBay listings
                 Button { showEbay = true } label: {
                     HStack(spacing: 5) {
-                        Image(systemName: "cart.fill")
-                            .font(.system(size: 11))
-                        Text("eBay Sales")
-                            .font(Design.Fonts.mono(12))
+                        Image(systemName: "cart.fill").font(.system(size: 11))
+                        Text("eBay Sales").font(Design.Fonts.mono(12))
                     }
                     .foregroundStyle(Design.Colors.bobaOrange)
                     .frame(maxWidth: .infinity)
@@ -92,13 +91,10 @@ struct PricingSection: View {
                     )
                 }
 
-                // Radish price guide
                 Button { showRadish = true } label: {
                     HStack(spacing: 5) {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.system(size: 11))
-                        Text("Radish Guide")
-                            .font(Design.Fonts.mono(12))
+                        Image(systemName: "chart.line.uptrend.xyaxis").font(.system(size: 11))
+                        Text("Radish Guide").font(Design.Fonts.mono(12))
                     }
                     .foregroundStyle(Design.Colors.bobaCyan)
                     .frame(maxWidth: .infinity)
@@ -113,66 +109,64 @@ struct PricingSection: View {
             }
         }
         .onAppear { fetch() }
-        .sheet(isPresented: $showEbay) {
-            SafariView(url: ebayURL)
-        }
-        .sheet(isPresented: $showRadish) {
-            SafariView(url: radishURL)
-        }
-        .sheet(isPresented: $showListingSheet) {
-            if let url = selectedListingURL {
-                SafariView(url: url)
-            }
-        }
+        .onChange(of: selectedDays) { fetch() }
+        .sheet(isPresented: $showEbay)   { SafariView(url: ebayURL) }
+        .sheet(isPresented: $showRadish) { SafariView(url: radishURL) }
+        // sheet(item:) ensures the URL is set before the sheet is presented,
+        // fixing the blank-on-first-tap bug that sheet(isPresented:) caused.
+        .sheet(item: $selectedItemURL) { item in SafariView(url: item.url) }
     }
 
-    // MARK: - Active listings list
+    // MARK: - Items list
 
-    private func currentListingsList(_ listings: [PricingService.ListingItem]) -> some View {
+    private func itemsList(_ items: [PricingService.PricingItem], isSold: Bool) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("CURRENT LISTINGS")
+            Text(isSold ? "RECENT SALES" : "CURRENT LISTINGS")
                 .font(Design.Fonts.mono(8, weight: .bold))
                 .foregroundStyle(Design.Colors.textMuted)
                 .tracking(1.5)
                 .padding(.bottom, Design.Spacing.xs)
 
             VStack(spacing: 1) {
-                ForEach(Array(listings.enumerated()), id: \.offset) { _, listing in
+                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                     Button {
-                        if let url = URL(string: listing.url), !listing.url.isEmpty {
-                            selectedListingURL = url
-                            showListingSheet = true
+                        if let url = URL(string: item.url), !item.url.isEmpty {
+                            selectedItemURL = IdentifiableURL(url: url)
                         }
                     } label: {
-                        listingRow(listing)
+                        itemRow(item, isSold: isSold)
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .background(
-                RoundedRectangle(cornerRadius: Design.Radius.md)
-                    .fill(Design.Colors.surface2)
-            )
+            .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
             .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
         }
     }
 
-    private func listingRow(_ listing: PricingService.ListingItem) -> some View {
+    private func itemRow(_ item: PricingService.PricingItem, isSold: Bool) -> some View {
         HStack(spacing: Design.Spacing.sm) {
-            Text(listing.price, format: .currency(code: "USD"))
+            Text(item.price, format: .currency(code: "USD"))
                 .font(Design.Fonts.mono(13, weight: .bold))
                 .foregroundStyle(Design.Colors.textPrimary)
                 .frame(width: 64, alignment: .leading)
 
-            Text(listing.title)
+            Text(item.title)
                 .font(Design.Fonts.mono(11))
                 .foregroundStyle(Design.Colors.textSecondary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            Image(systemName: "arrow.up.right")
-                .font(.system(size: 10))
-                .foregroundStyle(Design.Colors.textMuted)
+            if isSold, let label = relativeDate(item.date) {
+                Text(label)
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .frame(width: 52, alignment: .trailing)
+            } else {
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
         }
         .padding(.horizontal, Design.Spacing.md)
         .padding(.vertical, Design.Spacing.sm)
@@ -195,16 +189,27 @@ struct PricingSection: View {
         .padding(.vertical, Design.Spacing.md)
     }
 
+    /// Converts an ISO 8601 date string to a short relative label.
+    private func relativeDate(_ iso: String) -> String? {
+        guard !iso.isEmpty else { return nil }
+        var fmt = ISO8601DateFormatter()
+        fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let date = fmt.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
+        guard let date else { return nil }
+        let days = Int(Date().timeIntervalSince(date) / 86400)
+        if days < 0  { return nil }
+        if days == 0 { return "today" }
+        if days < 7  { return "\(days)d ago" }
+        let weeks = days / 7
+        if weeks < 5 { return "\(weeks)w ago" }
+        return "\(days / 30)mo ago"
+    }
+
     // MARK: - eBay URL
 
-    /// eBay completed/sold listings search.
-    /// Query: "bo jackson battle arena {hero} {cardNumber}"
-    /// Card number encodes treatment (e.g. "RAD-352"), which is more reliable than
-    /// full treatment names ("80's Rad Battlefoil") that sellers rarely write out.
     private var ebayURL: URL {
         let query = ["bo jackson battle arena", card.hero, card.cardNumber]
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
+            .filter { !$0.isEmpty }.joined(separator: " ")
         var components = URLComponents(string: "https://www.ebay.com/sch/i.html")!
         components.queryItems = [
             URLQueryItem(name: "_nkw",        value: query),
@@ -220,32 +225,14 @@ struct PricingSection: View {
 
     // MARK: - Radish URL
 
-    /// Returns the Radish Price Guide URL for this card.
-    ///
-    /// Primary: use the pre-built `radishUrl` field from the card catalog.
-    /// This was constructed from Radish's own sitemap crawl, so it is always
-    /// correct — including edge cases like mixed-case prefixes (Rad-, Logo-, Mix-)
-    /// and multi-word hero names with spaces.
-    ///
-    /// Fallback: programmatic construction for the ~1.2% of cards that have
-    /// `radishUrl: null` (cards not listed on Radish, e.g. Billy/Alt/BBFA prefix).
-    /// These will land on the Radish homepage rather than a 404.
     private var radishURL: URL {
-        // Prefer pre-built URL from catalog
-        if let prebuilt = card.radishUrl, let url = URL(string: prebuilt) {
-            return url
-        }
+        if let prebuilt = card.radishUrl, let url = URL(string: prebuilt) { return url }
 
-        // Programmatic fallback — mirrors the RADISH_URL_SCHEMA.md logic
         let prefixMap = ["LOGO": "Logo", "RAD": "Rad", "MIX": "Mix"]
         var cardNum = card.cardNumber
         for (ours, theirs) in prefixMap {
-            if cardNum.hasPrefix(ours + "-") {
-                cardNum = theirs + cardNum.dropFirst(ours.count)
-                break
-            }
+            if cardNum.hasPrefix(ours + "-") { cardNum = theirs + cardNum.dropFirst(ours.count); break }
         }
-
         let setMap: [String: (year: String, slug: String)] = [
             "Alpha":                   ("2024", "Alpha_Edition"),
             "Alpha Blast":             ("2025", "Alpha_Blast"),
@@ -261,10 +248,11 @@ struct PricingSection: View {
         let (year, slug) = setMap[card.set] ?? ("2024", "Alpha_Edition")
         let hero = card.hero.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? card.hero
         let num  = cardNum.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? cardNum
-
         return URL(string: "https://radishpriceguide.com/boba/\(year)/\(slug)/\(hero)/\(num)")
             ?? URL(string: "https://radishpriceguide.com/boba")!
     }
+
+    // MARK: - Fetch
 
     private func fetch() {
         guard !WorkerConfig.ebayProxyURL.isEmpty else { return }
@@ -278,10 +266,10 @@ struct PricingSection: View {
                     hero: card.hero,
                     set: card.set,
                     element: card.element,
-                    days: 30
+                    days: selectedDays
                 )
-            } catch PricingService.PricingError.noListings {
-                fetchError = "No active eBay listings found."
+            } catch PricingService.PricingError.noData {
+                fetchError = "No eBay listings found for the last \(selectedDays) days."
             } catch PricingService.PricingError.notConfigured {
                 return
             } catch {
@@ -290,4 +278,13 @@ struct PricingSection: View {
             isLoading = false
         }
     }
+}
+
+// MARK: - IdentifiableURL
+
+/// Wrapper so URL can be used with sheet(item:), ensuring the URL is
+/// available before the sheet is presented (fixes blank-on-first-tap).
+private struct IdentifiableURL: Identifiable {
+    let id  = UUID()
+    let url: URL
 }

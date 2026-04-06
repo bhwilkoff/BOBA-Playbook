@@ -162,8 +162,10 @@ final class CardStore {
         }.sorted { a, b in
             // Sealed products always follow regular cards in the grid.
             if a.isSealed != b.isSealed { return !a.isSealed }
+            // Cards with images always before image-pending, regardless of sort.
             let aImg = a.imageFile != nil && !a.imageFile!.isEmpty
             let bImg = b.imageFile != nil && !b.imageFile!.isEmpty
+            if aImg != bImg { return aImg }
             switch sortOrder {
             case .nameAsc:
                 return a.hero.localizedCompare(b.hero) == .orderedAscending
@@ -184,9 +186,8 @@ final class CardStore {
                 return va != vb ? va.localizedCompare(vb) == .orderedAscending
                                 : a.hero.localizedCompare(b.hero) == .orderedAscending
             default:
-                // Images first, then alphabetical.
-                if aImg != bImg { return aImg }
-                return a.hero.localizedCompare(b.hero) == .orderedAscending
+                // Default: card number ascending.
+                return a.cardNumber.localizedStandardCompare(b.cardNumber) == .orderedAscending
             }
         }
     }

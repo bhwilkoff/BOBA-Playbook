@@ -192,12 +192,18 @@
       <div class="view-inner play-view">
         <h2 class="view-heading">Play</h2>
 
-        <!-- Top-level tab pills: Rules | Strategy -->
+        <!-- Top-level tab pills: Rules | Strategy | Browse | Collect | Tournament -->
         <div class="play-tabs" role="tablist" aria-label="Play sections">
           <button class="play-tab active" data-tab="rules" role="tab"
                   aria-selected="true" aria-controls="play-panel-rules" id="play-tab-rules">Rules</button>
           <button class="play-tab" data-tab="strategy" role="tab"
                   aria-selected="false" aria-controls="play-panel-strategy" id="play-tab-strategy">Strategy</button>
+          <button class="play-tab" data-tab="browse" role="tab"
+                  aria-selected="false" aria-controls="play-panel-browse" id="play-tab-browse">Browse</button>
+          <button class="play-tab" data-tab="collect" role="tab"
+                  aria-selected="false" aria-controls="play-panel-collect" id="play-tab-collect">Collect</button>
+          <button class="play-tab" data-tab="tournament" role="tab"
+                  aria-selected="false" aria-controls="play-panel-tournament" id="play-tab-tournament">Tournament</button>
         </div>
 
         <!-- ══ RULES PANEL ══════════════════════════════════════════ -->
@@ -622,6 +628,415 @@
           </section>
 
         </div><!-- /play-panel-strategy -->
+
+        <!-- ══ BROWSE PANEL ════════════════════════════════════════ -->
+        <div id="play-panel-browse" class="play-panel" hidden role="tabpanel" aria-labelledby="play-tab-browse">
+
+          <section class="browse-section">
+            <h3 class="browse-heading">FEATURED COLLECTIONS</h3>
+
+            <div class="browse-collection-card" data-browse-type="query" data-browse-value="BoJax">
+              <div class="browse-collection-header">
+                <span class="browse-collection-name" style="color:var(--boba-orange)">Bo Jackson</span>
+                <span class="browse-collection-count">147 cards</span>
+              </div>
+              <p class="browse-collection-desc">The man who inspired it all — every BoJax card across every set and treatment.</p>
+              <button class="browse-search-btn">Browse in Search →</button>
+            </div>
+
+            <div class="browse-collection-card" data-browse-type="woba">
+              <div class="browse-collection-header">
+                <span class="browse-collection-name" style="color:#FF69B4">Women of BOBA</span>
+                <span class="browse-collection-count">884 cards</span>
+              </div>
+              <p class="browse-collection-desc">Heroes inspired by 17 legendary female athletes across every sport.</p>
+              <div class="browse-hero-names">Search any hero name: AJax · Belladonna · Brandi · C.C. · Cameleon · Cheryl Bomb · Coopanova · Eraser · Halo · JPEG · Lady Magic · Leducky · PB Buckets · Pauldron · Peek-A-Boo · Ramponage · Swoopes</div>
+              <div class="browse-woba-chips" aria-label="WOBA hero names">
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="AJax">AJax</button>
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="Belladonna">Belladonna</button>
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="Brandi">Brandi</button>
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="Cameleon">Cameleon</button>
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="Cheryl Bomb">Cheryl Bomb</button>
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="Coopanova">Coopanova</button>
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="Eraser">Eraser</button>
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="Halo">Halo</button>
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="JPEG">JPEG</button>
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="Lady Magic">Lady Magic</button>
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="Leducky">Leducky</button>
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="PB Buckets">PB Buckets</button>
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="Pauldron">Pauldron</button>
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="Peek-A-Boo">Peek-A-Boo</button>
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="Ramponage">Ramponage</button>
+                <button class="browse-hero-chip" data-browse-type="query" data-browse-value="Swoopes">Swoopes</button>
+              </div>
+            </div>
+
+            <div class="browse-collection-card" data-browse-type="query" data-browse-value="The Kid">
+              <div class="browse-collection-header">
+                <span class="browse-collection-name" style="color:var(--boba-cyan)">Ken Griffey Jr.</span>
+                <span class="browse-collection-count">~76 cards</span>
+              </div>
+              <p class="browse-collection-desc">The Kid — one of baseball's most beloved players, hero name: The Kid.</p>
+              <button class="browse-search-btn">Browse in Search →</button>
+            </div>
+
+            <div class="browse-collection-card" data-browse-type="query" data-browse-value="Dr. J">
+              <div class="browse-collection-header">
+                <span class="browse-collection-name" style="color:#8B00FF">Dr. J</span>
+                <span class="browse-collection-count">70 cards</span>
+              </div>
+              <p class="browse-collection-desc">Julius Erving — the original aerial artist of basketball.</p>
+              <button class="browse-search-btn">Browse in Search →</button>
+            </div>
+
+          </section>
+
+          <section class="browse-section">
+            <h3 class="browse-heading">BY WEAPON TYPE</h3>
+            <div class="browse-element-pills">
+              <button class="browse-element-pill" data-browse-type="element" data-browse-value="FIRE"   style="--el-color:var(--el-FIRE)">FIRE</button>
+              <button class="browse-element-pill" data-browse-type="element" data-browse-value="ICE"    style="--el-color:var(--el-ICE)">ICE</button>
+              <button class="browse-element-pill" data-browse-type="element" data-browse-value="STEEL"  style="--el-color:var(--el-STEEL)">STEEL</button>
+              <button class="browse-element-pill" data-browse-type="element" data-browse-value="BRAWL"  style="--el-color:var(--el-BRAWL)">BRAWL</button>
+              <button class="browse-element-pill" data-browse-type="element" data-browse-value="GLOW"   style="--el-color:var(--el-GLOW)">GLOW</button>
+              <button class="browse-element-pill" data-browse-type="element" data-browse-value="HEX"    style="--el-color:var(--el-HEX)">HEX</button>
+              <button class="browse-element-pill" data-browse-type="element" data-browse-value="GUM"    style="--el-color:var(--el-GUM)">GUM</button>
+              <button class="browse-element-pill" data-browse-type="element" data-browse-value="SUPER"  style="--el-color:var(--el-SUPER)">SUPER</button>
+            </div>
+          </section>
+
+          <section class="browse-section">
+            <h3 class="browse-heading">BY SPORT</h3>
+            <p class="browse-sport-note">Click a sport to search by athlete inspiration. Use Search to filter further.</p>
+            <div class="browse-sport-list">
+
+              <div class="browse-sport-card">
+                <div class="browse-sport-name">Basketball</div>
+                <div class="browse-sport-athletes">LeBron James · Steph Curry · Cooper Flagg · Paige Bueckers · Giannis · Julius Erving · Magic Johnson · Caitlin Clark · Angel Reese · A'ja Wilson · Kawhi Leonard</div>
+                <button class="browse-search-btn" data-browse-type="query" data-browse-value="LeBron James">Browse Basketball →</button>
+              </div>
+
+              <div class="browse-sport-card">
+                <div class="browse-sport-name">Football</div>
+                <div class="browse-sport-athletes">Patrick Mahomes · Josh Allen · Lamar Jackson · Travis Kelce · Bo Jackson · Barry Sanders · Caleb Williams · Jordan Love · Aaron Rodgers · Travis Hunter</div>
+                <button class="browse-search-btn" data-browse-type="query" data-browse-value="Patrick Mahomes">Browse Football →</button>
+              </div>
+
+              <div class="browse-sport-card">
+                <div class="browse-sport-name">Baseball</div>
+                <div class="browse-sport-athletes">Ken Griffey Jr. · Shohei Ohtani · Aaron Judge · Mike Trout · Bo Jackson · Juan Soto · Fernando Tatis Jr. · Paul Skenes · Bobby Witt Jr.</div>
+                <button class="browse-search-btn" data-browse-type="query" data-browse-value="Shohei Ohtani">Browse Baseball →</button>
+              </div>
+
+              <div class="browse-sport-card">
+                <div class="browse-sport-name">Hockey</div>
+                <div class="browse-sport-athletes">Sidney Crosby · Alexander Ovechkin · Henrik Lundqvist</div>
+                <button class="browse-search-btn" data-browse-type="query" data-browse-value="Sidney Crosby">Browse Hockey →</button>
+              </div>
+
+              <div class="browse-sport-card">
+                <div class="browse-sport-name">Tennis</div>
+                <div class="browse-sport-athletes">Jessica Pegula · Paula Badosa</div>
+                <button class="browse-search-btn" data-browse-type="query" data-browse-value="Jessica Pegula">Browse Tennis →</button>
+              </div>
+
+              <div class="browse-sport-card">
+                <div class="browse-sport-name">Soccer</div>
+                <div class="browse-sport-athletes">Brandi Chastain · Christie Pearce Rampone · Jozy Altidore</div>
+                <button class="browse-search-btn" data-browse-type="query" data-browse-value="Brandi Chastain">Browse Soccer →</button>
+              </div>
+
+              <div class="browse-sport-card">
+                <div class="browse-sport-name">Golf</div>
+                <div class="browse-sport-athletes">Bryson DeChambeau · Jordan Spieth</div>
+                <button class="browse-search-btn" data-browse-type="query" data-browse-value="Bryson DeChambeau">Browse Golf →</button>
+              </div>
+
+            </div>
+          </section>
+
+        </div><!-- /play-panel-browse -->
+
+        <!-- ══ COLLECT PANEL ════════════════════════════════════════ -->
+        <div id="play-panel-collect" class="play-panel" hidden role="tabpanel" aria-labelledby="play-tab-collect">
+
+          <section class="collect-section">
+            <h3 class="collect-heading">RARITY TIERS</h3>
+            <p class="collect-intro">A single Hero can appear as a Base Set card AND as multiple foil treatments — each is a separate collectible.</p>
+            <div class="rarity-tier-list">
+              <div class="rarity-tier-row" style="--tier-color:var(--boba-text-muted)">
+                <div class="rarity-tier-num">1</div>
+                <div class="rarity-tier-info">
+                  <div class="rarity-tier-name">Base Set</div>
+                  <div class="rarity-tier-desc">Standard print — no foil treatment.</div>
+                </div>
+                <div class="rarity-tier-badge">Most common</div>
+              </div>
+              <div class="rarity-tier-row" style="--tier-color:#FFD700">
+                <div class="rarity-tier-num">2</div>
+                <div class="rarity-tier-info">
+                  <div class="rarity-tier-name">Battlefoil GLBF</div>
+                  <div class="rarity-tier-desc">Gold Leaf Battlefoil — gold foil accent.</div>
+                </div>
+                <div class="rarity-tier-badge">Common foil</div>
+              </div>
+              <div class="rarity-tier-row" style="--tier-color:#AAAAFF">
+                <div class="rarity-tier-num">3</div>
+                <div class="rarity-tier-info">
+                  <div class="rarity-tier-name">Battlefoil RAD</div>
+                  <div class="rarity-tier-desc">Radiant Battlefoil — shimmering holographic finish.</div>
+                </div>
+                <div class="rarity-tier-badge">Common foil</div>
+              </div>
+              <div class="rarity-tier-row" style="--tier-color:var(--boba-cyan)">
+                <div class="rarity-tier-num">4</div>
+                <div class="rarity-tier-info">
+                  <div class="rarity-tier-name">Color Battlefoil</div>
+                  <div class="rarity-tier-desc">Element-colored foil border — 9 elemental color variants.</div>
+                </div>
+                <div class="rarity-tier-badge">Mid-rarity</div>
+              </div>
+              <div class="rarity-tier-row" style="--tier-color:#FF00FF">
+                <div class="rarity-tier-num">5</div>
+                <div class="rarity-tier-info">
+                  <div class="rarity-tier-name">Superfoil</div>
+                  <div class="rarity-tier-desc">Full-card premium foil treatment.</div>
+                </div>
+                <div class="rarity-tier-badge">Premium</div>
+              </div>
+              <div class="rarity-tier-row" style="--tier-color:#FF69B4">
+                <div class="rarity-tier-num">6</div>
+                <div class="rarity-tier-info">
+                  <div class="rarity-tier-name">Inspired Ink</div>
+                  <div class="rarity-tier-desc">Autograph-style treatment with athlete tribute art.</div>
+                </div>
+                <div class="rarity-tier-badge">Premium</div>
+              </div>
+              <div class="rarity-tier-row" style="--tier-color:#8B00FF">
+                <div class="rarity-tier-num">7</div>
+                <div class="rarity-tier-info">
+                  <div class="rarity-tier-name">Kanjifoil</div>
+                  <div class="rarity-tier-desc">Japanese kanji script foil treatment.</div>
+                </div>
+                <div class="rarity-tier-badge">Chase</div>
+              </div>
+              <div class="rarity-tier-row" style="--tier-color:var(--boba-orange)">
+                <div class="rarity-tier-num">8</div>
+                <div class="rarity-tier-info">
+                  <div class="rarity-tier-name">Serialized</div>
+                  <div class="rarity-tier-desc">Numbered print run — /10, /25, /50.</div>
+                </div>
+                <div class="rarity-tier-badge">Chase</div>
+              </div>
+              <div class="rarity-tier-row" style="--tier-color:#FF4500">
+                <div class="rarity-tier-num">9</div>
+                <div class="rarity-tier-info">
+                  <div class="rarity-tier-name">Billy Cameo Alt Art</div>
+                  <div class="rarity-tier-desc">Alternate art featuring the iconic Billy mascot.</div>
+                </div>
+                <div class="rarity-tier-badge">Chase</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="collect-section">
+            <h3 class="collect-heading">VARIATIONS</h3>
+            <div class="rules-table-wrap">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Variation</th><th>Count</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>First Edition</td>
+                    <td>8,926 cards</td>
+                    <td>The original print run — the most numerous variation across all sets.</td>
+                  </tr>
+                  <tr>
+                    <td>2026 Edition</td>
+                    <td>880 cards</td>
+                    <td>Introduces three new treatments: Logofoil, Colosseum Battlefoil, Great Grandma Linoleum Battlefoil.</td>
+                  </tr>
+                  <tr>
+                    <td>Debut</td>
+                    <td>70 per hero</td>
+                    <td>Special debut cards for select heroes. Often serialized — highly collectible.</td>
+                  </tr>
+                  <tr>
+                    <td>Unmasked</td>
+                    <td>70 per hero</td>
+                    <td>Alternate art revealing the real-world athlete behind the hero character.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="collect-section">
+            <h3 class="collect-heading">NOTABLE TREATMENTS</h3>
+            <div class="collect-treatment-list">
+              <div class="collect-treatment-row" style="--treat-color:#FFD700">
+                <div class="collect-treatment-dot"></div>
+                <div>
+                  <div class="collect-treatment-name">Logofoil</div>
+                  <div class="collect-treatment-desc">2026 Edition exclusive — logo foil print.</div>
+                </div>
+              </div>
+              <div class="collect-treatment-row" style="--treat-color:var(--boba-cyan)">
+                <div class="collect-treatment-dot"></div>
+                <div>
+                  <div class="collect-treatment-name">Colosseum Battlefoil</div>
+                  <div class="collect-treatment-desc">2026 Edition — stadium-arena themed foil border.</div>
+                </div>
+              </div>
+              <div class="collect-treatment-row" style="--treat-color:#FF69B4">
+                <div class="collect-treatment-dot"></div>
+                <div>
+                  <div class="collect-treatment-name">Great Grandma Linoleum BF</div>
+                  <div class="collect-treatment-desc">2026 Edition — uniquely textured linoleum-style foil treatment.</div>
+                </div>
+              </div>
+              <div class="collect-treatment-row" style="--treat-color:#FFB347">
+                <div class="collect-treatment-dot"></div>
+                <div>
+                  <div class="collect-treatment-name">Hot Dog Treatment</div>
+                  <div class="collect-treatment-desc">Heroes printed on Hot Dog-style cards — iconic collector's items.</div>
+                </div>
+              </div>
+              <div class="collect-treatment-row" style="--treat-color:#FF00FF">
+                <div class="collect-treatment-dot"></div>
+                <div>
+                  <div class="collect-treatment-name">Superfoil</div>
+                  <div class="collect-treatment-desc">Full-card holographic — the most visually impactful treatment in the game.</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div><!-- /play-panel-collect -->
+
+        <!-- ══ TOURNAMENT PANEL ════════════════════════════════════ -->
+        <div id="play-panel-tournament" class="play-panel" hidden role="tabpanel" aria-labelledby="play-tab-tournament">
+
+          <section class="tournament-section">
+            <h3 class="tournament-heading">TOURNAMENT FORMATS</h3>
+            <div class="rules-table-wrap">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Format</th><th>Description</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="color:var(--boba-orange)">Rookie</td>
+                    <td>Hero Deck only. Pure power comparison.</td>
+                    <td>New player friendly</td>
+                  </tr>
+                  <tr>
+                    <td style="color:#FFD700">Substitution</td>
+                    <td>Hero Deck + Hot Dog Deck. Add hand management.</td>
+                    <td>Intermediate</td>
+                  </tr>
+                  <tr>
+                    <td style="color:var(--boba-cyan)">Playmaker</td>
+                    <td>Full game — Hero + Hot Dogs + Playbook.</td>
+                    <td>Tournament standard</td>
+                  </tr>
+                  <tr>
+                    <td style="color:#8B00FF">SPEC</td>
+                    <td>Playmaker variant: Hero Power capped at ≤160 per Hero.</td>
+                    <td>Sideboard of 45 Plays</td>
+                  </tr>
+                  <tr>
+                    <td style="color:var(--boba-text-muted)">Limited</td>
+                    <td>Minimum 40-card Hero Deck. For Draft and Sealed events.</td>
+                    <td>Draft / Sealed only</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="tournament-section">
+            <h3 class="tournament-heading">MATCH STRUCTURE</h3>
+            <div class="rules-table-wrap">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Level</th><th>Structure</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Game</td>
+                    <td>Best-of-7 Battles. First to 4 wins.</td>
+                    <td>3–3 after 7 → Sudden Death on final battle</td>
+                  </tr>
+                  <tr>
+                    <td>Casual</td>
+                    <td>Single game.</td>
+                    <td>Standard for casual play</td>
+                  </tr>
+                  <tr>
+                    <td>Competitive</td>
+                    <td>Best-of-3 games.</td>
+                    <td>Deck registration required</td>
+                  </tr>
+                  <tr>
+                    <td>Professional</td>
+                    <td>Best-of-5 games.</td>
+                    <td>Deck registration required</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="rules-section" style="margin-top:var(--sp-3);font-size:0.85rem;color:var(--boba-text-muted)">
+              <strong style="color:var(--boba-text)">Deck Registration</strong> — Required at Competitive and Professional REL. Register your exact 60/10/30 lists before Round 1.
+            </p>
+          </section>
+
+          <section class="tournament-section">
+            <h3 class="tournament-heading">PENALTY REFERENCE</h3>
+            <details class="penalty-details">
+              <summary class="penalty-summary">5 penalty levels — Caution through Disqualification</summary>
+              <div class="penalty-list">
+                <div class="penalty-row" style="--pen-color:var(--boba-text-muted)">
+                  <div class="penalty-num">1</div>
+                  <div class="penalty-info">
+                    <div class="penalty-name">Caution</div>
+                    <div class="penalty-desc">Verbal only — not recorded.</div>
+                  </div>
+                </div>
+                <div class="penalty-row" style="--pen-color:#FFD700">
+                  <div class="penalty-num">2</div>
+                  <div class="penalty-info">
+                    <div class="penalty-name">Warning</div>
+                    <div class="penalty-desc">Recorded. A second Warning for the same infraction upgrades to Game Loss.</div>
+                  </div>
+                </div>
+                <div class="penalty-row" style="--pen-color:var(--boba-orange)">
+                  <div class="penalty-num">3</div>
+                  <div class="penalty-info">
+                    <div class="penalty-name">Game Loss</div>
+                    <div class="penalty-desc">You lose the current game in the match.</div>
+                  </div>
+                </div>
+                <div class="penalty-row" style="--pen-color:#C0392B">
+                  <div class="penalty-num">4</div>
+                  <div class="penalty-info">
+                    <div class="penalty-name">Match Loss</div>
+                    <div class="penalty-desc">You lose the entire match.</div>
+                  </div>
+                </div>
+                <div class="penalty-row" style="--pen-color:#8B00FF">
+                  <div class="penalty-num">5</div>
+                  <div class="penalty-info">
+                    <div class="penalty-name">Disqualification</div>
+                    <div class="penalty-desc">Removed from the event. Reserved for cheating or gross misconduct.</div>
+                  </div>
+                </div>
+              </div>
+            </details>
+          </section>
+
+        </div><!-- /play-panel-tournament -->
 
       </div><!-- /play-view -->
     </section>

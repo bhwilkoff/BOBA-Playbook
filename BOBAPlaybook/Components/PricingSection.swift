@@ -266,6 +266,7 @@ struct PricingSection: View {
                     hero: card.hero,
                     set: card.set,
                     element: card.element,
+                    power: card.power,
                     days: selectedDays
                 )
             } catch PricingService.PricingError.noData {

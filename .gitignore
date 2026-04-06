@@ -50,3 +50,9 @@ node_modules/
 *.key
 *.p8
 credentials.json
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example

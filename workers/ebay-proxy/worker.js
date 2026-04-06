@@ -8,16 +8,15 @@
  *      Requires buy.marketplace.insights scope; falls back if 403/empty.
  *   2. Browse API — current active fixed-price listings (fallback)
  *
- * Exact-match filtering:
- *   - Alphanumeric card numbers (e.g. CBF-656, RAD-352): listing title must
- *     contain the card number (normalized). This removes generic lots and
- *     "pick your card" listings that match on hero name alone.
- *   - Numeric-only card numbers (e.g. 199): exclude obvious lot/bundle
- *     patterns, require hero name in title.
+ * Exact-match filtering (in order of reliability):
+ *   1. localizedAspects "Card Number" — definitive match/reject when seller fills it in
+ *   2. Title: alphanumeric card numbers (e.g. CBF-656, RAD-352) must appear with
+ *      word-boundary context (not embedded in another number)
+ *   3. Title: numeric-only card numbers require hero name; lot patterns excluded
  *
- * Search query: "bo jackson battle arena {hero} {cardNumber}"
- *   Card number encodes treatment (RAD-352 = Rad Battlefoil); using it
- *   directly is more reliable than full treatment names sellers rarely write.
+ * Search query: "bo jackson battle arena {hero} {cardNumber} {power}"
+ *   Card number encodes treatment (RAD-352 = Rad Battlefoil). Power level helps
+ *   eBay surface the right variant and lets us cross-check against aspect data.
  *
  * Response JSON:
  *   {
@@ -62,20 +61,58 @@ const LOT_PATTERNS = [
 ];
 
 /**
+ * Check eBay localizedAspects for structured card attributes.
+ *
+ * Returns:
+ *   true  — definitive match (Card Number aspect matches our cardNumber)
+ *   false — definitive mismatch (Card Number aspect present but doesn't match,
+ *            OR Power aspect present but doesn't match)
+ *   null  — no decisive aspects; fall through to title matching
+ */
+function checkAspects(aspects, cardNumber, power) {
+  if (!aspects || aspects.length === 0) return null;
+
+  const map = {};
+  for (const { name, value } of aspects) {
+    if (name && value) map[name.toLowerCase()] = value;
+  }
+
+  // "Card Number" is the most reliable identifier — sellers fill this in via
+  // eBay's trading card category form. If present, it's authoritative.
+  const aspectCardNum =
+    map["card number"] ?? map["card #"] ?? map["card no."] ?? map["number"];
+  if (aspectCardNum !== undefined) {
+    return norm(aspectCardNum) === norm(cardNumber);
+  }
+
+  // Power level check: reject if the aspect disagrees with our power.
+  // Only apply when both sides are known; don't reject on missing power.
+  if (power != null) {
+    const aspectPowerRaw = map["power"] ?? map["power level"];
+    if (aspectPowerRaw !== undefined) {
+      const aspectPower = parseInt(aspectPowerRaw, 10);
+      if (!isNaN(aspectPower) && aspectPower !== power) return false;
+    }
+  }
+
+  return null; // no decisive aspects — fall through to title matching
+}
+
+/**
  * Returns true if this listing is relevant to the specific card.
  *
- * Always excludes obvious lot/bundle listings (PICK YOUR CARD, etc.).
- *
- * For alphanumeric card numbers (e.g. CBF-656, RAD-352):
- *   - Match if the full normalized number is in the title ("cbf656"), OR
- *   - Match if the numeric portion alone ("656", "352") is in the title.
- *     Sellers often write "Brockness Rad Battlefoil #352" without the prefix.
- *     The hero is already baked into the search query so numeric part is specific enough.
- *
- * For numeric-only card numbers (e.g. "199"):
- *   - Exclude lots; require hero name in title.
+ * Priority order:
+ *   1. localizedAspects "Card Number" — definitive when present
+ *   2. Title match (alphanumeric card numbers): full normalized number OR
+ *      numeric portion with word-boundary context (not embedded in another number)
+ *   3. Title match (numeric-only card numbers): hero name required, lots excluded
  */
-function isExactMatch(title, cardNumber, hero) {
+function isExactMatch(title, aspects, cardNumber, hero, power) {
+  // ── Step 1: structured aspect check ──────────────────────────────────────
+  const aspectResult = checkAspects(aspects, cardNumber, power);
+  if (aspectResult !== null) return aspectResult;
+
+  // ── Step 2: title-based matching ──────────────────────────────────────────
   const titleNorm  = norm(title);
   const titleLower = title.toLowerCase();
   const isNumeric  = /^\d+$/.test(cardNumber);
@@ -87,12 +124,20 @@ function isExactMatch(title, cardNumber, hero) {
     // Pure numeric: require hero name (lots already excluded above)
     return titleNorm.includes(norm(hero));
   } else {
-    // Alphanumeric (CBF-656, RAD-352):
-    // 1. Full normalized match: "cbf656", "rad352", "cbf 656" etc.
+    // Alphanumeric (CBF-656, RAD-352, LOGO-203, etc.):
+    // 1. Full normalized match: "cbf656", "rad352" — most reliable
     if (titleNorm.includes(norm(cardNumber))) return true;
-    // 2. Numeric portion only: "656", "352" — catches "Bojax CBF #656" or "Rad #352"
+
+    // 2. Numeric portion with word-boundary context.
+    //    "Rad #352" → passes; "power203" or "12034" → fails.
+    //    Use original title (not titleNorm) so we can check non-digit boundaries.
     const numPart = cardNumber.replace(/\D/g, "");
-    if (numPart && titleNorm.includes(numPart)) return true;
+    if (numPart) {
+      // Require the number to be preceded by a non-digit (or start) and followed
+      // by a non-digit (or end). This prevents "203" matching "2034" or "1203".
+      const re = new RegExp(`(?:^|\\D)0*${numPart}(?:\\D|$)`);
+      if (re.test(titleLower)) return true;
+    }
     return false;
   }
 }
@@ -201,9 +246,13 @@ async function searchActive(token, keywords) {
 
 // ── Normalise raw API items into a common shape ───────────────────────────────
 
-function normaliseSold(items, cardNumber, hero) {
+function normaliseSold(items, cardNumber, hero, power) {
   return items
-    .filter(item => isExactMatch(item.title ?? "", cardNumber, hero))
+    .filter(item => isExactMatch(
+      item.title ?? "",
+      item.localizedAspects ?? [],
+      cardNumber, hero, power
+    ))
     .map(item => ({
       title: item.title ?? "",
       price: parseFloat(item.lastSoldPrice?.value ?? "0"),
@@ -213,9 +262,13 @@ function normaliseSold(items, cardNumber, hero) {
     .filter(i => i.price > 0);
 }
 
-function normaliseActive(items, cardNumber, hero) {
+function normaliseActive(items, cardNumber, hero, power) {
   return items
-    .filter(item => isExactMatch(item.title ?? "", cardNumber, hero))
+    .filter(item => isExactMatch(
+      item.title ?? "",
+      item.localizedAspects ?? [],
+      cardNumber, hero, power
+    ))
     .map(item => ({
       title: item.title ?? "",
       price: parseFloat(item.price?.value ?? "0"),
@@ -264,15 +317,17 @@ export default {
     const { searchParams } = url;
     const cardNumber = searchParams.get("cardNumber");
     const hero       = searchParams.get("hero") || "";
+    const powerRaw   = searchParams.get("power");
+    const power      = powerRaw != null ? parseInt(powerRaw, 10) : null;
     const days       = Math.min(Math.max(parseInt(searchParams.get("days") ?? "30", 10), 1), 90);
 
     if (!cardNumber) return json({ error: "cardNumber parameter required" }, 400);
     if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) return json({ error: "EBAY_APP_ID and EBAY_CERT_ID secrets required" }, 500);
 
     // ── Cache ─────────────────────────────────────────────────────────────────
-    // v5 invalidates old caches. Sold results cached 6h, listed results 2h.
+    // v7 invalidates old caches (aspect-checking + power filtering added).
     const cache    = caches.default;
-    const cacheURL = `https://boba-cache.internal/v6/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
+    const cacheURL = `https://boba-cache.internal/v7/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
     const cacheKey = new Request(cacheURL);
     const cached   = await cache.match(cacheKey);
     if (cached) {
@@ -292,9 +347,12 @@ export default {
     const cutoffISO = cutoff.toISOString();
 
     // ── Search query ──────────────────────────────────────────────────────────
-    // Stage 1 (specific): hero + card number — card number gives precision
+    // Include power in the query: sellers often write "Maverick 135 RAD-203".
+    // Power helps eBay surface the right variant and helps us cross-check aspects.
+    // Stage 1 (specific): hero + card number + power
     // Stage 2 (broad): hero only — catches listings that omit the card number
-    const keywordsSpecific = ["bo jackson battle arena", hero, cardNumber].filter(Boolean).join(" ");
+    const powerStr        = power != null && !isNaN(power) ? String(power) : null;
+    const keywordsSpecific = ["bo jackson battle arena", hero, cardNumber, powerStr].filter(Boolean).join(" ");
     const keywordsBroad    = ["bo jackson battle arena", hero].filter(Boolean).join(" ");
 
     // ── Try Marketplace Insights (sold items) ─────────────────────────────────
@@ -305,11 +363,11 @@ export default {
     {
       const { items, error, noScope } = await searchSold(token, keywordsSpecific, cutoffISO);
       if (!noScope && !error) {
-        soldItems = normaliseSold(items, cardNumber, hero);
+        soldItems = normaliseSold(items, cardNumber, hero, power);
         // Broad fallback if specific query returned 0 exact matches
         if (soldItems.length === 0 && hero) {
           const fb = await searchSold(token, keywordsBroad, cutoffISO);
-          if (!fb.error) soldItems = normaliseSold(fb.items, cardNumber, hero);
+          if (!fb.error) soldItems = normaliseSold(fb.items, cardNumber, hero, power);
         }
         useSold = true;
       }
@@ -321,10 +379,10 @@ export default {
     if (!useSold || soldItems.length === 0) {
       const { items, error } = await searchActive(token, keywordsSpecific);
       if (!error) {
-        activeItems = normaliseActive(items, cardNumber, hero);
+        activeItems = normaliseActive(items, cardNumber, hero, power);
         if (activeItems.length === 0 && hero) {
           const fb = await searchActive(token, keywordsBroad);
-          if (!fb.error) activeItems = normaliseActive(fb.items, cardNumber, hero);
+          if (!fb.error) activeItems = normaliseActive(fb.items, cardNumber, hero, power);
         }
       } else {
         browseError = error;
@@ -357,7 +415,7 @@ export default {
 
     const result = { low, average, high, count: finalItems.length, priceType, items };
 
-    // Cache sold results 6h, active listing results 2h (listings change faster)
+    // Cache sold 6h, active listings 2h (listings change faster)
     const cacheTTL = priceType === "sold" ? 21600 : 7200;
     await cache.put(cacheKey, new Response(JSON.stringify(result), {
       headers: { "Content-Type": "application/json", "Cache-Control": `public, max-age=${cacheTTL}` },

@@ -4,10 +4,9 @@ actor PricingService {
     static let shared = PricingService()
     private init() {}
 
-    struct SaleItem: Decodable, Sendable {
+    struct ListingItem: Decodable, Sendable {
         let title: String
         let price: Decimal
-        let date: String   // ISO 8601 from eBay, e.g. "2026-03-15T12:00:00Z"
         let url: String
     }
 
@@ -15,18 +14,18 @@ actor PricingService {
         let low: Decimal
         let average: Decimal
         let high: Decimal
-        let saleCount: Int
-        let recentSales: [SaleItem]
+        let listingCount: Int
+        let recentListings: [ListingItem]
         let fetchedAt: Date
     }
 
     enum PricingError: LocalizedError {
         case notConfigured
-        case noSales
+        case noListings
         var errorDescription: String? {
             switch self {
             case .notConfigured: return "Pricing worker not configured."
-            case .noSales:       return "No recent eBay sales found."
+            case .noListings:    return "No active eBay listings found."
             }
         }
     }
@@ -63,15 +62,15 @@ actor PricingService {
         let (data, _) = try await URLSession.shared.data(from: url)
         let response  = try JSONDecoder().decode(PricingResponse.self, from: data)
 
-        guard response.saleCount > 0 else { throw PricingError.noSales }
+        guard response.listingCount > 0 else { throw PricingError.noListings }
 
         let result = PricingResult(
-            low:         response.low,
-            average:     response.average,
-            high:        response.high,
-            saleCount:   response.saleCount,
-            recentSales: response.recentSales,
-            fetchedAt:   Date()
+            low:             response.low,
+            average:         response.average,
+            high:            response.high,
+            listingCount:    response.listingCount,
+            recentListings:  response.recentListings,
+            fetchedAt:       Date()
         )
         cache[key] = result
         return result
@@ -83,7 +82,7 @@ actor PricingService {
         let low: Decimal
         let average: Decimal
         let high: Decimal
-        let saleCount: Int
-        let recentSales: [SaleItem]
+        let listingCount: Int
+        let recentListings: [ListingItem]
     }
 }

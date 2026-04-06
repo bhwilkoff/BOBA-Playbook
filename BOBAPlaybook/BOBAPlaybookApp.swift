@@ -36,14 +36,21 @@ struct BOBAPlaybookApp: App {
                 .environment(scanStore)
                 .preferredColorScheme(.dark)
                 .onOpenURL { url in
-                    // bobaplaybook://scan → jump straight to the Scan tab.
-                    // This is triggered by the QR code on the desktop web app,
-                    // bypassing the web auth that doesn't work in restricted web views.
-                    if url.scheme == "bobaplaybook", url.host == "scan" {
+                    guard url.scheme == "bobaplaybook" else { return }
+                    switch url.host {
+                    case "scan":
+                        // bobaplaybook://scan — QR code on web opens Scan tab directly.
                         selectedTab = 1
-                        return
+                    case "card":
+                        // bobaplaybook://card/CBF-656 — deep link to a specific card.
+                        let cardNumber = String(url.path.dropFirst())  // strip leading "/"
+                        if !cardNumber.isEmpty {
+                            selectedTab = 0  // switch to Search tab
+                            cardStore.pendingCardNumber = cardNumber.uppercased()
+                        }
+                    default:
+                        authManager.handleDeepLink(url)
                     }
-                    authManager.handleDeepLink(url)
                 }
         }
     }

@@ -49,6 +49,26 @@ struct SearchView: View {
         .sheet(item: $selectedCard) { card in
             CardDetailView(card: card)
         }
+        // Deep-link: bobaplaybook://card/{number} sets store.pendingCardNumber.
+        // Try to resolve it immediately (cards may already be loaded) and again
+        // when the full catalog finishes loading.
+        .onChange(of: store.pendingCardNumber) { _, cardNum in
+            tryPresentPendingCard()
+        }
+        .onChange(of: store.isLoadingMore) { _, _ in
+            tryPresentPendingCard()
+        }
+        .onAppear {
+            tryPresentPendingCard()
+        }
+    }
+
+    private func tryPresentPendingCard() {
+        guard let cardNum = store.pendingCardNumber,
+              !store.displayCards.isEmpty,
+              let card = store.displayCards.first(where: { $0.cardNumber == cardNum }) else { return }
+        selectedCard = card
+        store.pendingCardNumber = nil
     }
 
     // MARK: - Content

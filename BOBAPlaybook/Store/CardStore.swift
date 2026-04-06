@@ -34,6 +34,11 @@ final class CardStore {
         + (hasImageOnly ? 1 : 0)
     }
 
+    // MARK: - Deep link
+    // Set by the URL handler when a bobaplaybook://card/{number} URL opens the app.
+    // SearchView watches this and presents the card once displayCards is populated.
+    var pendingCardNumber: String? = nil
+
     // MARK: - Internal
     private var filterTask: Task<Void, Never>?
 

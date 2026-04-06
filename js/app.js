@@ -1181,6 +1181,23 @@
     modalContent.querySelector('[data-action="add-to-collection"]')
       ?.addEventListener('click', () => Collection.openAddSheet(card));
 
+    // Wire "Share" button — copies link to clipboard, falls back to Web Share API
+    modalContent.querySelector('[data-action="share-card"]')
+      ?.addEventListener('click', (e) => {
+        const encoded = encodeURIComponent(card.cardNumber);
+        const url = `${window.location.origin}${window.location.pathname}?card=${encoded}`;
+        if (navigator.share) {
+          navigator.share({ title: card.name, text: `${card.name} — BOBA Playbook`, url });
+        } else {
+          navigator.clipboard.writeText(url).then(() => {
+            const btn = e.currentTarget;
+            const original = btn.innerHTML;
+            btn.textContent = 'Link copied!';
+            setTimeout(() => { btn.innerHTML = original; }, 2000);
+          });
+        }
+      });
+
     // Load live pricing (skip for sealed products — they have their own links)
     if (card.cardType !== 'Sealed Product') loadPricing(card);
   }
@@ -1527,6 +1544,16 @@
               </svg>
               Add to Collection
             </button>
+            <button class="btn-share-card" data-action="share-card"
+                    title="Share this card" aria-label="Share card link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   width="15" height="15" aria-hidden="true">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                <polyline points="16 6 12 2 8 6"/>
+                <line x1="12" y1="2" x2="12" y2="15"/>
+              </svg>
+              Share
+            </button>
           </div>
           <div class="pricing-section" id="modal-pricing"></div>
         </div>
@@ -1584,6 +1611,15 @@
     filteredCards = displayCards;
     renderNextPage();
     updateResultsCount();
+
+    // Deep-link: ?card=CBF-656 opens the card modal directly.
+    // Must run after prepareData() so cardsByNumber is populated.
+    const deepCard = params.get('card');
+    if (deepCard) {
+      const cardSet = cardsByNumber.get(deepCard.toUpperCase())
+                   || cardsByNumber.get(deepCard);
+      if (cardSet?.length) openModal(cardSet[0]);
+    }
   }
 
   init();

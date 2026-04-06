@@ -37,6 +37,13 @@ struct CardDetailView: View {
         return nil
     }
 
+    // Shareable web URL — opens card modal on the GitHub Pages web app.
+    // Falls back gracefully if the URL can't be constructed (unusual characters).
+    private var cardShareURL: URL? {
+        let encoded = card.cardNumber.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? card.cardNumber
+        return URL(string: "https://bhwilkoff.github.io/BOBA-Playbook/?card=\(encoded)")
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -71,6 +78,14 @@ struct CardDetailView: View {
                         } else {
                             Image(systemName: "plus.circle")
                                 .foregroundStyle(Design.Colors.bobaOrange)
+                        }
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    if let shareURL = cardShareURL {
+                        ShareLink(item: shareURL) {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundStyle(Design.Colors.bobaCyan)
                         }
                     }
                 }

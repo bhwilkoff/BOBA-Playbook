@@ -152,26 +152,30 @@ struct ScanView: View {
     // MARK: - Top bar
 
     private var topBar: some View {
-        HStack(alignment: .center) {
+        ZStack(alignment: .center) {
             BOBAWordmark()
-            Spacer()
-            if scanStore.isMultiCardMode && scanStore.queueCount > 0 {
-                Button { showQueueView = true } label: {
-                    ZStack(alignment: .topTrailing) {
-                        Image(systemName: "tray.and.arrow.down.fill")
-                            .font(.system(size: 20))
-                            .foregroundStyle(.white)
-                        Text("\(scanStore.queueCount)")
-                            .font(.system(size: 10, weight: .black))
-                            .foregroundStyle(.white)
-                            .frame(minWidth: 16, minHeight: 16)
-                            .padding(2)
-                            .background(Design.Colors.bobaOrange)
-                            .clipShape(Circle())
-                            .offset(x: 8, y: -8)
+                .frame(maxWidth: .infinity)
+
+            HStack {
+                Spacer()
+                if scanStore.isMultiCardMode && scanStore.queueCount > 0 {
+                    Button { showQueueView = true } label: {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "tray.and.arrow.down.fill")
+                                .font(.system(size: 20))
+                                .foregroundStyle(.white)
+                            Text("\(scanStore.queueCount)")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundStyle(.white)
+                                .frame(minWidth: 16, minHeight: 16)
+                                .padding(2)
+                                .background(Design.Colors.bobaOrange)
+                                .clipShape(Circle())
+                                .offset(x: 8, y: -8)
+                        }
                     }
+                    .transition(.scale.combined(with: .opacity))
                 }
-                .transition(.scale.combined(with: .opacity))
             }
         }
         .padding(.horizontal, Design.Spacing.lg)

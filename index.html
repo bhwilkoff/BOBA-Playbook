@@ -203,8 +203,72 @@
         <!-- ══ RULES PANEL ══════════════════════════════════════════ -->
         <div id="play-panel-rules" class="play-panel" role="tabpanel" aria-labelledby="play-tab-rules">
 
+          <!-- Mode Overview Cards -->
+          <div class="mode-overview" aria-label="Game mode overview">
+            <button class="mode-card active" data-mode="rookie" aria-pressed="true">
+              <div class="mode-card-name">Rookie</div>
+              <div class="mode-card-components">
+                <span class="mode-component" style="--dot:#FF4D00">Hero Deck</span>
+              </div>
+              <div class="mode-card-desc">Pure power comparison</div>
+            </button>
+            <button class="mode-card" data-mode="substitution" aria-pressed="false">
+              <div class="mode-card-name">Substitution</div>
+              <div class="mode-card-components">
+                <span class="mode-component" style="--dot:#FF4D00">Hero Deck</span>
+                <span class="mode-component" style="--dot:#FFD700">Hot Dogs</span>
+              </div>
+              <div class="mode-card-desc">Add hand management</div>
+            </button>
+            <button class="mode-card" data-mode="playmaker" aria-pressed="false">
+              <div class="mode-card-name">Playmaker</div>
+              <div class="mode-card-components">
+                <span class="mode-component" style="--dot:#FF4D00">Hero Deck</span>
+                <span class="mode-component" style="--dot:#FFD700">Hot Dogs</span>
+                <span class="mode-component" style="--dot:#00F5FF">Playbook</span>
+              </div>
+              <div class="mode-card-desc">Full game · tournament</div>
+            </button>
+          </div>
+
+          <!-- Battle Flow Diagram -->
+          <div class="battle-flow" aria-label="Battle sequence diagram" data-mode="rookie">
+            <div class="battle-flow-label">BATTLE SEQUENCE</div>
+            <div class="battle-flow-steps">
+              <div class="battle-step" data-applies="rookie substitution playmaker">
+                <div class="battle-step-num">1</div>
+                <div class="battle-step-name">REVEAL</div>
+                <div class="battle-step-desc">Both flip Hero simultaneously</div>
+              </div>
+              <div class="battle-step-arrow" data-applies="substitution playmaker">›</div>
+              <div class="battle-step" data-applies="substitution playmaker">
+                <div class="battle-step-num">2</div>
+                <div class="battle-step-name">SUB</div>
+                <div class="battle-step-desc">Pay 2 Hot Dogs to swap</div>
+              </div>
+              <div class="battle-step-arrow" data-applies="playmaker">›</div>
+              <div class="battle-step" data-applies="playmaker">
+                <div class="battle-step-num">3</div>
+                <div class="battle-step-name">PLAYS</div>
+                <div class="battle-step-desc">Alternate Play cards</div>
+              </div>
+              <div class="battle-step-arrow" data-applies="rookie substitution playmaker">›</div>
+              <div class="battle-step resolve" data-applies="rookie substitution playmaker">
+                <div class="battle-step-num">4</div>
+                <div class="battle-step-name">RESOLVE</div>
+                <div class="battle-step-desc">Higher Power wins</div>
+              </div>
+            </div>
+            <div class="battle-flow-note" data-modes="substitution playmaker" hidden>
+              Ties → Sudden Death: reveal top of Hero Deck, higher Power wins. Repeat until broken.
+            </div>
+            <div class="battle-flow-note" data-modes="playmaker" hidden>
+              In Playmaker: if tied and one Hero is <strong>SUPER</strong> weapon type, SUPER wins automatically.
+            </div>
+          </div>
+
           <!-- Mode tabs: Rookie | Substitution | Playmaker -->
-          <div class="rules-mode-tabs" role="group" aria-label="Game mode">
+          <div class="rules-mode-tabs" role="group" aria-label="Game mode detail">
             <button class="rules-mode-btn active" data-mode="rookie">Rookie</button>
             <button class="rules-mode-btn" data-mode="substitution">Substitution</button>
             <button class="rules-mode-btn" data-mode="playmaker">Playmaker</button>
@@ -220,17 +284,17 @@
               <h3 class="rules-section-heading">Setup</h3>
               <ul class="rules-list">
                 <li>Each player shuffles their 60-card Hero Deck and places it face-down.</li>
-                <li>Each player places 7 Heroes face-down in a row — these are the 7 battle slots.</li>
-                <li>Flip a coin to determine first <strong>Honors</strong> — the right to act first.</li>
-                <li>Heroes are inspired by real athletes — always say "inspired by," never "is" or "based on."</li>
+                <li>Each player places 7 Heroes face-down in a row — these are the 7 Battle Slots.</li>
+                <li>Flip a coin to determine first <strong>Honors</strong> — the right to act first each battle.</li>
               </ul>
             </div>
             <div class="rules-section">
               <h3 class="rules-section-heading">Each Battle</h3>
               <ul class="rules-list">
                 <li>Both players simultaneously flip their Hero face-up.</li>
-                <li>The player with the higher Power wins the battle.</li>
+                <li>The player with the higher Power wins the battle and takes the point.</li>
                 <li><strong>Tie → Sudden Death:</strong> each player reveals the top card of their Hero Deck; higher Power wins. Repeat until resolved.</li>
+                <li>Honors passes to the winner of each battle.</li>
               </ul>
             </div>
           </div>
@@ -245,7 +309,7 @@
               <h3 class="rules-section-heading">Additional Setup</h3>
               <ul class="rules-list">
                 <li>After placing your 7 face-down Heroes, draw the rest of your Hero Deck into your hand.</li>
-                <li>Draw 10 Hot Dogs into your Hot Dog pile.</li>
+                <li>Draw all 10 Hot Dogs into your Hot Dog pile. The count is always public information.</li>
               </ul>
             </div>
             <div class="rules-section">
@@ -253,16 +317,16 @@
               <ul class="rules-list">
                 <li>After both Heroes are revealed, the Honors player decides first whether to substitute.</li>
                 <li><strong>Cost:</strong> 2 Hot Dogs — send the revealed Hero to the Discard Pile and play a Hero from hand face-up.</li>
-                <li>The other player then decides. Each player may substitute at most once per battle.</li>
+                <li>The opponent then sees the new Hero and may substitute in response. Each player may substitute at most once per battle.</li>
               </ul>
             </div>
             <div class="rules-section">
-              <h3 class="rules-section-heading">Honors</h3>
-              <p>Moves to the winner of each battle. Having Honors means you act first — and you see your opponent's substitution before deciding your own. Sometimes it's better to pass and save Hot Dogs.</p>
+              <h3 class="rules-section-heading">Honors &amp; Information</h3>
+              <p>Honors moves to the battle winner. Having Honors means you substitute first — you reveal your intention before your opponent does. Sometimes it is strategically better to pass, forcing your opponent to commit first.</p>
             </div>
             <div class="rules-section">
               <h3 class="rules-section-heading">Resource Note</h3>
-              <p>You only have 10 Hot Dogs for the entire game. Save substitutions for battles where the power gap is meaningful.</p>
+              <p>You only have 10 Hot Dogs for the entire game. At 2 per substitution, that's a maximum of 5. Save them for battles where the power gap is meaningful.</p>
             </div>
           </div>
 
@@ -276,28 +340,27 @@
               <h3 class="rules-section-heading">Additional Setup</h3>
               <ul class="rules-list">
                 <li>Shuffle your Playbook. Draw 5 Plays as your starting hand.</li>
-                <li>Draw 1 Play at the start of each subsequent battle.</li>
+                <li>Draw 1 Play at the start of each battle.</li>
               </ul>
             </div>
             <div class="rules-section">
               <h3 class="rules-section-heading">Play Window</h3>
               <ul class="rules-list">
-                <li>After the Substitution Window, the Honors player may play Play cards.</li>
+                <li>After the Substitution Window closes, the Honors player may play Play cards.</li>
                 <li>Pay the Hot Dog cost shown on the card and resolve its effect.</li>
-                <li>Players alternate playing Plays until both pass.</li>
+                <li>Players alternate playing Plays until both players pass consecutively.</li>
               </ul>
             </div>
             <div class="rules-section">
               <h3 class="rules-section-heading">Super Weapon Tiebreaker</h3>
-              <p>In Playmaker mode only — if a battle ends in a tie and one Hero has the <strong>Super</strong> weapon type, that Hero wins automatically (no Sudden Death needed).</p>
+              <p>In Playmaker mode only — if a battle ends in a tie and one Hero has the <strong>Super</strong> weapon type, that Hero wins automatically. No Sudden Death needed.</p>
             </div>
             <div class="rules-section">
-              <h3 class="rules-section-heading">Tournament Note</h3>
-              <p>Playmaker is the competitive and tournament-standard format.</p>
-            </div>
-            <div class="rules-section">
-              <h3 class="rules-section-heading">SPEC Format</h3>
-              <p>A special tournament variant where no Hero in the deck may have a base Power above 160. Players may build a sideboard of up to 45 Plays to swap between games in a match.</p>
+              <h3 class="rules-section-heading">Tournament Formats</h3>
+              <ul class="rules-list">
+                <li><strong>Standard Playmaker</strong> — the competitive and tournament-standard format.</li>
+                <li><strong>SPEC Format</strong> — Hero Deck capped at ≤160 total Power; sideboard of up to 45 Plays; players may swap Plays between games in a match.</li>
+              </ul>
             </div>
           </div>
 
@@ -322,7 +385,7 @@
                   <tr>
                     <td>Hot Dog Deck</td>
                     <td>Exactly 10</td>
-                    <td>Duplicates allowed; all Hot Dogs function identically</td>
+                    <td>Duplicates allowed</td>
                   </tr>
                   <tr>
                     <td>Playbook</td>
@@ -346,10 +409,10 @@
               <li><span class="zone-label">Hero Deck</span><span class="zone-desc">Your 60-card draw pile</span></li>
               <li><span class="zone-label">Battle Slots</span><span class="zone-desc">7 face-down slots placed at game start</span></li>
               <li><span class="zone-label">Hand</span><span class="zone-desc">Private — drawn Heroes and Play cards</span></li>
-              <li><span class="zone-label">Active Battle</span><span class="zone-desc">The Hero currently in the current battle</span></li>
+              <li><span class="zone-label">Active Battle</span><span class="zone-desc">The Hero currently in the active battle</span></li>
               <li><span class="zone-label">Discard Pile</span><span class="zone-desc">Public — defeated and substituted Heroes</span></li>
               <li><span class="zone-label">Playbook</span><span class="zone-desc">Your 30-card Play deck</span></li>
-              <li><span class="zone-label">Hot Dog Pile</span><span class="zone-desc">Count is public information</span></li>
+              <li><span class="zone-label">Hot Dog Pile</span><span class="zone-desc">Count is always public information</span></li>
               <li><span class="zone-label">Hot Dog Discard</span><span class="zone-desc">Spent Hot Dogs</span></li>
               <li><span class="zone-label">Abyss</span><span class="zone-desc">Removed permanently — cannot be retrieved</span></li>
             </ul>
@@ -363,7 +426,10 @@
           <div class="strategy-accordion">
 
             <details>
-              <summary>Power Curve Management</summary>
+              <summary>
+                <span class="strategy-summary-title">Power Curve Management</span>
+                <span class="strategy-summary-sub">Spread your deck across power bands; position slots strategically</span>
+              </summary>
               <div class="strategy-detail">
                 <p>The 6-per-power-value rule forces you to spread across multiple power levels. Build with intention:</p>
                 <ul>
@@ -376,68 +442,111 @@
             </details>
 
             <details>
-              <summary>Weapon Synergy</summary>
+              <summary>
+                <span class="strategy-summary-title">Weapon Synergy</span>
+                <span class="strategy-summary-sub">Build around 1–2 weapon types; many Plays reward consistency</span>
+              </summary>
               <div class="strategy-detail">
                 <p>Many Plays reward weapon-type consistency. Build around 1–2 primary weapon types:</p>
-                <ul>
-                  <li><strong>Fire:</strong> Fire Boost, Fire Crew, Flame Wall, Burning Fever, Eternal Flame, Smitty</li>
-                  <li><strong>Ice:</strong> Ice Boost, Ice Crew, Icy Shield, Frozen Resolve, Frozen Lineup, Unbreakable Ice</li>
-                  <li><strong>Steel:</strong> Steel Boost, Steel Crew, Steel Defense, Steel Shield, Chrome Will, Steel Cage</li>
-                  <li><strong>Mixed:</strong> Use weapon-agnostic and opponent-targeting Plays — maximum flexibility, but no synergy stack as powerful as a focused build</li>
-                </ul>
+                <div class="weapon-synergy-grid">
+                  <div class="weapon-row" data-el="FIRE">
+                    <span class="weapon-label">FIRE</span>
+                    <span>Fire Boost · Fire Crew · Flame Wall · Burning Fever · Eternal Flame · Smitty</span>
+                  </div>
+                  <div class="weapon-row" data-el="ICE">
+                    <span class="weapon-label">ICE</span>
+                    <span>Ice Boost · Ice Crew · Icy Shield · Frozen Resolve · Frozen Lineup · Unbreakable Ice</span>
+                  </div>
+                  <div class="weapon-row" data-el="STEEL">
+                    <span class="weapon-label">STEEL</span>
+                    <span>Steel Boost · Steel Crew · Steel Defense · Steel Shield · Chrome Will · Steel Cage</span>
+                  </div>
+                  <div class="weapon-row" data-el="NONE">
+                    <span class="weapon-label">MIXED</span>
+                    <span>Weapon Mixer · Weapon Tangle · Brothers In Arms · Edge Rush — maximum flexibility, no synergy stack</span>
+                  </div>
+                </div>
               </div>
             </details>
 
             <details>
-              <summary>Substitution Strategy</summary>
+              <summary>
+                <span class="strategy-summary-title">Substitution Strategy</span>
+                <span class="strategy-summary-sub">10 Hot Dogs total — spend them where it counts</span>
+              </summary>
               <div class="strategy-detail">
                 <p>You only have 10 Hot Dogs for the entire game — shared between substitutions (2 each) and Play cards. Don't substitute reflexively.</p>
                 <ul>
-                  <li>Substitute when the power gap is large enough to justify the cost</li>
-                  <li>Watch your opponent's Hot Dog count — at 0, they can neither substitute nor play cards</li>
+                  <li>Substitute only when the power gap justifies the cost</li>
+                  <li>Watch your opponent's Hot Dog count — at 0 they cannot substitute or play paid cards</li>
                   <li>Save substitutions for battles 5–7, which are often the most decisive</li>
-                  <li>Having Honors means you substitute first and reveal information; sometimes it's strategically better to pass</li>
+                  <li>Having Honors means you substitute first; sometimes it's better to pass and respond after seeing their choice</li>
                 </ul>
               </div>
             </details>
 
             <details>
-              <summary>Play Card Types</summary>
+              <summary>
+                <span class="strategy-summary-title">Play Card Types</span>
+                <span class="strategy-summary-sub">Tempo · Value · Disruption · Economy · Game-changer</span>
+              </summary>
               <div class="strategy-detail">
-                <ul>
-                  <li><strong>Tempo:</strong> Immediate power boosts. Example: <em>Buff Up 15</em> (+15 for 2 Hot Dogs). Straightforward but costly.</li>
-                  <li><strong>Value:</strong> Ongoing effects. Example: <em>Fire Boost</em> (+10 to all Fire Heroes rest of game). Higher long-term return.</li>
-                  <li><strong>Disruption:</strong> Deny opponent options. Example: <em>Full Court Press</em> (opponent can't play this battle), <em>Bench Blocker</em> (-20 power + no substitution).</li>
-                  <li><strong>Economy:</strong> Recover Hot Dogs. Example: <em>Trash Bandit</em> (recover Hot Dogs free), <em>Victory Dinner</em> (recover 3 on a win). Sustain your resource engine.</li>
-                  <li><strong>Game-changers:</strong> <em>Edge Rush</em> (5 cost — set your power to 5 above opponent's current), <em>Deadline Deal</em> (3 cost — swap powers with opponent), <em>By Any Means Necessary</em> (6 cost — search and play any Play card for free).</li>
-                </ul>
+                <div class="play-type-grid">
+                  <div class="play-type-row">
+                    <span class="play-type-name">Tempo</span>
+                    <span class="play-type-desc">Immediate power boosts. <em>Buff Up 15</em> (+15 for 2 Hot Dogs). Straightforward but costly.</span>
+                  </div>
+                  <div class="play-type-row">
+                    <span class="play-type-name">Value</span>
+                    <span class="play-type-desc">Ongoing effects. <em>Fire Boost</em> (+10 to all Fire Heroes rest of game). Higher long-term return.</span>
+                  </div>
+                  <div class="play-type-row">
+                    <span class="play-type-name">Disruption</span>
+                    <span class="play-type-desc">Deny opponent options. <em>Full Court Press</em> (can't play this battle), <em>Bench Blocker</em> (-20 + no sub).</span>
+                  </div>
+                  <div class="play-type-row">
+                    <span class="play-type-name">Economy</span>
+                    <span class="play-type-desc">Recover Hot Dogs. <em>Trash Bandit</em> (free recovery), <em>Victory Dinner</em> (+3 on win). Sustain your engine.</span>
+                  </div>
+                  <div class="play-type-row highlight">
+                    <span class="play-type-name">Game-changer</span>
+                    <span class="play-type-desc"><em>Edge Rush</em> (5 — set power 5 above opponent's current) · <em>Deadline Deal</em> (3 — swap powers) · <em>By Any Means Necessary</em> (6 — search + play any Play free).</span>
+                  </div>
+                </div>
               </div>
             </details>
 
             <details>
-              <summary>Resource Management</summary>
+              <summary>
+                <span class="strategy-summary-title">Resource Management</span>
+                <span class="strategy-summary-sub">Plays and Hot Dogs are finite — track both carefully</span>
+              </summary>
               <div class="strategy-detail">
-                <p>You start with 5 Plays in hand and draw 1 per battle (7 total draws across a full 7-battle game).</p>
+                <p>You start with 5 Plays in hand and draw 1 per battle (7 total draws across a full game).</p>
                 <ul>
                   <li>Hot Dogs fuel both substitutions and Plays — don't exhaust them on early battles</li>
-                  <li>Free (0-cost) Plays are disproportionately valuable</li>
-                  <li>Track the opponent's Hot Dog count openly; knowing they're depleted changes every decision</li>
+                  <li>Free (0-cost) Plays are disproportionately valuable; they preserve Hot Dogs while adding power</li>
+                  <li>Track the opponent's Hot Dog count openly — at 0, they cannot act in the Sub or Play window</li>
+                  <li>Always count your opponent's remaining Plays: they start at 30, and spent Plays are visible</li>
                 </ul>
               </div>
             </details>
 
           </div><!-- /strategy-accordion -->
 
-          <div class="rules-section">
-            <h3 class="rules-section-heading">Archetype Templates</h3>
+          <section class="strategy-section">
+            <h3 class="strategy-section-heading">Archetype Templates</h3>
             <div class="archetype-grid">
 
               <div class="archetype-card" data-element="FIRE">
-                <div class="archetype-name">Fire Aggro</div>
-                <p class="archetype-tagline">Stack Fire synergies early; lock opponents with Flame Wall and Torched.</p>
+                <div class="archetype-header">
+                  <div class="archetype-dot" style="background:var(--el-FIRE)"></div>
+                  <div class="archetype-name">Fire Aggro</div>
+                </div>
+                <p class="archetype-tagline">Stack Fire synergies early; lock opponents with Flame Wall.</p>
                 <div class="archetype-key-plays">
                   <span class="archetype-label">Key Plays</span>
-                  Fire Boost · Fire Crew · Flame Wall · Burning Fever · Eternal Flame · Smitty
+                  <div class="archetype-plays-list">Fire Boost · Fire Crew · Flame Wall · Burning Fever · Eternal Flame · Smitty</div>
                 </div>
                 <div class="archetype-weakness">
                   <span class="archetype-label">Weakness</span>
@@ -446,11 +555,14 @@
               </div>
 
               <div class="archetype-card" data-element="ICE">
-                <div class="archetype-name">Ice Control</div>
-                <p class="archetype-tagline">Deny substitutions; protect your Heroes.</p>
+                <div class="archetype-header">
+                  <div class="archetype-dot" style="background:var(--el-ICE)"></div>
+                  <div class="archetype-name">Ice Control</div>
+                </div>
+                <p class="archetype-tagline">Deny substitutions; protect your Heroes behind layers of ice.</p>
                 <div class="archetype-key-plays">
                   <span class="archetype-label">Key Plays</span>
-                  Ice Boost · Ice Crew · Icy Shield · Frozen Resolve · Frozen Lineup · Unbreakable Ice
+                  <div class="archetype-plays-list">Ice Boost · Ice Crew · Icy Shield · Frozen Resolve · Frozen Lineup · Unbreakable Ice</div>
                 </div>
                 <div class="archetype-weakness">
                   <span class="archetype-label">Weakness</span>
@@ -459,11 +571,14 @@
               </div>
 
               <div class="archetype-card" data-element="STEEL">
-                <div class="archetype-name">Steel Wall</div>
+                <div class="archetype-header">
+                  <div class="archetype-dot" style="background:var(--el-STEEL)"></div>
+                  <div class="archetype-name">Steel Wall</div>
+                </div>
                 <p class="archetype-tagline">Layer Steel protections to make Heroes nearly invulnerable.</p>
                 <div class="archetype-key-plays">
                   <span class="archetype-label">Key Plays</span>
-                  Steel Boost · Steel Crew · Steel Defense · Steel Shield · Chrome Will · Steel Cage
+                  <div class="archetype-plays-list">Steel Boost · Steel Crew · Steel Defense · Steel Shield · Chrome Will · Steel Cage</div>
                 </div>
                 <div class="archetype-weakness">
                   <span class="archetype-label">Weakness</span>
@@ -472,33 +587,39 @@
               </div>
 
               <div class="archetype-card" data-element="NONE">
-                <div class="archetype-name">Mixed Toolbox</div>
-                <p class="archetype-tagline">Adapt to any opponent; use weapon diversity for Weapon Mixer bonus.</p>
+                <div class="archetype-header">
+                  <div class="archetype-dot" style="background:var(--el-NONE)"></div>
+                  <div class="archetype-name">Mixed Toolbox</div>
+                </div>
+                <p class="archetype-tagline">Adapt to any opponent; maximum flexibility, no single weakness.</p>
                 <div class="archetype-key-plays">
                   <span class="archetype-label">Key Plays</span>
-                  Weapon Mixer · Weapon Tangle · Brothers In Arms · Different Leagues · Edge Rush
+                  <div class="archetype-plays-list">Weapon Mixer · Weapon Tangle · Brothers In Arms · Different Leagues · Edge Rush</div>
                 </div>
                 <div class="archetype-weakness">
                   <span class="archetype-label">Weakness</span>
-                  No single synergy stack as powerful as a focused build
+                  No single synergy as powerful as a focused build
                 </div>
               </div>
 
               <div class="archetype-card" data-element="GLOW">
-                <div class="archetype-name">Economy/Attrition</div>
-                <p class="archetype-tagline">Recover Hot Dogs faster than opponent; drain their supply.</p>
+                <div class="archetype-header">
+                  <div class="archetype-dot" style="background:var(--el-GLOW)"></div>
+                  <div class="archetype-name">Economy / Attrition</div>
+                </div>
+                <p class="archetype-tagline">Recover Hot Dogs faster than your opponent can spend them.</p>
                 <div class="archetype-key-plays">
                   <span class="archetype-label">Key Plays</span>
-                  Trash Bandit · Victory Dinner · Make Up Meal · Too Full To Fight · Bun Shortage · Mutually Assured Dogstruction
+                  <div class="archetype-plays-list">Trash Bandit · Victory Dinner · Make Up Meal · Too Full To Fight · Bun Shortage · Mutually Assured Dogstruction</div>
                 </div>
                 <div class="archetype-weakness">
                   <span class="archetype-label">Weakness</span>
-                  Less direct power boosting
+                  Loses quickly to fast aggro when Hot Dog recovery stalls
                 </div>
               </div>
 
             </div><!-- /archetype-grid -->
-          </div>
+          </section>
 
         </div><!-- /play-panel-strategy -->
 

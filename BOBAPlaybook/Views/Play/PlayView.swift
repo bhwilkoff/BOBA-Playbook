@@ -31,8 +31,13 @@ struct PlayView: View {
                 }
             }
             .background(Design.Colors.nearBlack)
-            .navigationTitle("Play")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    BOBAWordmark()
+                }
+            }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
@@ -87,7 +92,10 @@ private struct RulesView: View {
                 .padding(.vertical, Design.Spacing.md)
 
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: Design.Spacing.xl) {
+                VStack(alignment: .leading, spacing: Design.Spacing.xl) {
+                    ModeOverviewCards(selectedMode: selectedMode)
+                    BattleFlowDiagram(mode: selectedMode)
+
                     switch selectedMode {
                     case .rookie:
                         RookieRulesContent()
@@ -100,6 +108,7 @@ private struct RulesView: View {
                     CardZonesSection()
                     DeckbuildingSection()
                 }
+                .id(selectedMode)
                 .padding(Design.Spacing.lg)
                 .padding(.bottom, Design.Spacing.xxl)
             }
@@ -150,9 +159,9 @@ private struct RulesSectionHeader: View {
     let title: String
     var body: some View {
         Text(title.uppercased())
-            .font(Design.Fonts.mono(9, weight: .bold))
+            .font(Design.Fonts.mono(12, weight: .bold))
             .foregroundStyle(Design.Colors.textMuted)
-            .tracking(2)
+            .tracking(1.5)
             .padding(.bottom, Design.Spacing.xs)
     }
 }
@@ -171,16 +180,16 @@ private struct RuleCard: View {
             ForEach(lines) { line in
                 HStack(alignment: .top, spacing: Design.Spacing.sm) {
                     Text("·")
-                        .font(Design.Fonts.mono(13))
+                        .font(Design.Fonts.mono(15))
                         .foregroundStyle(Design.Colors.bobaOrange)
                     VStack(alignment: .leading, spacing: 2) {
                         if let label = line.label {
                             Text(label)
-                                .font(Design.Fonts.mono(13, weight: .bold))
+                                .font(Design.Fonts.mono(15, weight: .bold))
                                 .foregroundStyle(Design.Colors.textPrimary)
                         }
                         Text(line.body)
-                            .font(Design.Fonts.mono(13))
+                            .font(Design.Fonts.mono(14))
                             .foregroundStyle(Design.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -195,6 +204,163 @@ private struct RuleCard: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: Design.Radius.md)
                         .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)
+                )
+        )
+    }
+}
+
+// MARK: - Mode Overview Cards
+
+private struct ModeOverviewCards: View {
+    let selectedMode: GameMode
+
+    private struct ModeInfo: Identifiable {
+        let id: GameMode
+        let components: [(name: String, color: Color)]
+        let description: String
+    }
+
+    private let modes: [ModeInfo] = [
+        ModeInfo(id: .rookie,       components: [("Hero Deck", Design.Colors.bobaOrange)],                                                                      description: "Pure power comparison"),
+        ModeInfo(id: .substitution, components: [("Hero Deck", Design.Colors.bobaOrange), ("Hot Dogs", .yellow)],                                               description: "Add hand management"),
+        ModeInfo(id: .playmaker,    components: [("Hero Deck", Design.Colors.bobaOrange), ("Hot Dogs", .yellow), ("Playbook", Design.Colors.bobaCyan)],          description: "Full game · tournament")
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            Text("GAME MODES")
+                .font(Design.Fonts.mono(12, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+                .tracking(1.5)
+
+            HStack(spacing: Design.Spacing.sm) {
+                ForEach(modes) { entry in
+                    let active = entry.id == selectedMode
+                    VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+                        Text(entry.id.rawValue.uppercased())
+                            .font(Design.Fonts.mono(11, weight: .bold))
+                            .foregroundStyle(active ? Design.Colors.bobaCyan : Design.Colors.textMuted)
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(entry.components, id: \.name) { comp in
+                                HStack(spacing: 5) {
+                                    Circle()
+                                        .fill(comp.color)
+                                        .frame(width: 6, height: 6)
+                                    Text(comp.name)
+                                        .font(Design.Fonts.mono(11))
+                                        .foregroundStyle(active ? Design.Colors.textSecondary : Design.Colors.textMuted)
+                                }
+                            }
+                        }
+                        Text(entry.description)
+                            .font(Design.Fonts.mono(10))
+                            .foregroundStyle(active ? Design.Colors.textMuted : Design.Colors.textMuted.opacity(0.5))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(Design.Spacing.sm)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: Design.Radius.sm)
+                            .fill(active ? Design.Colors.bobaCyan.opacity(0.08) : Design.Colors.glass)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                    .strokeBorder(
+                                        active ? Design.Colors.bobaCyan.opacity(0.5) : Design.Colors.glassBorder,
+                                        lineWidth: active ? 1.5 : 1
+                                    )
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Battle Flow Diagram
+
+private struct BattleFlowDiagram: View {
+    let mode: GameMode
+
+    private struct Phase: Identifiable {
+        let id = UUID()
+        let number: String
+        let label: String
+        let detail: String
+        let color: Color
+        let appliesTo: Set<GameMode>
+    }
+
+    private let phases: [Phase] = [
+        Phase(number: "1", label: "REVEAL",  detail: "Both flip Hero",           color: Design.Colors.bobaOrange, appliesTo: [.rookie, .substitution, .playmaker]),
+        Phase(number: "2", label: "SUB",     detail: "Pay 2 Hot Dogs to swap",   color: .yellow,                  appliesTo: [.substitution, .playmaker]),
+        Phase(number: "3", label: "PLAYS",   detail: "Alternate Play cards",     color: Design.Colors.bobaCyan,   appliesTo: [.playmaker]),
+        Phase(number: "4", label: "RESOLVE", detail: "Higher Power wins",        color: Color(hex: "4CAF50"),     appliesTo: [.rookie, .substitution, .playmaker])
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            Text("BATTLE SEQUENCE")
+                .font(Design.Fonts.mono(12, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+                .tracking(1.5)
+
+            HStack(alignment: .top, spacing: 0) {
+                ForEach(Array(phases.enumerated()), id: \.1.id) { idx, phase in
+                    let active = phase.appliesTo.contains(mode)
+                    VStack(spacing: 6) {
+                        ZStack {
+                            Circle()
+                                .fill(active ? phase.color : Design.Colors.glass)
+                                .frame(width: 36, height: 36)
+                                .shadow(color: active ? phase.color.opacity(0.5) : .clear, radius: 6)
+                            Text(phase.number)
+                                .font(Design.Fonts.display(15))
+                                .foregroundStyle(active ? .white : Design.Colors.textMuted)
+                        }
+                        Text(phase.label)
+                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .foregroundStyle(active ? phase.color : Design.Colors.textMuted)
+                            .tracking(0.5)
+                        Text(phase.detail)
+                            .font(Design.Fonts.mono(10))
+                            .foregroundStyle(active ? Design.Colors.textSecondary : Design.Colors.textMuted.opacity(0.4))
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .opacity(active ? 1 : 0.4)
+
+                    if idx < phases.count - 1 {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaOrange.opacity(0.4))
+                            .padding(.top, 12)
+                    }
+                }
+            }
+            .padding(.vertical, Design.Spacing.sm)
+
+            if mode == .substitution || mode == .playmaker {
+                HStack(spacing: Design.Spacing.xs) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Design.Colors.bobaCyan.opacity(0.7))
+                    Text(mode == .playmaker
+                        ? "Ties go to Sudden Death — unless one Hero is SUPER weapon type (SUPER wins)."
+                        : "Ties go to Sudden Death: each player reveals top of Hero Deck, higher Power wins.")
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(Design.Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: Design.Radius.md)
+                .fill(Design.Colors.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Design.Radius.md)
+                        .strokeBorder(Design.Colors.bobaOrange.opacity(0.2), lineWidth: 1)
                 )
         )
     }
@@ -376,11 +542,11 @@ private struct CardZonesSection: View {
                 ForEach(zones, id: \.name) { zone in
                     HStack(alignment: .top, spacing: Design.Spacing.md) {
                         Text(zone.name)
-                            .font(Design.Fonts.mono(12, weight: .bold))
+                            .font(Design.Fonts.mono(14, weight: .bold))
                             .foregroundStyle(Design.Colors.bobaCyan)
-                            .frame(width: 110, alignment: .leading)
+                            .frame(width: 120, alignment: .leading)
                         Text(zone.description)
-                            .font(Design.Fonts.mono(12))
+                            .font(Design.Fonts.mono(13))
                             .foregroundStyle(Design.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -452,12 +618,12 @@ private struct StrategyDisclosure<Content: View>: View {
                 }
             } label: {
                 HStack {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text(title)
-                            .font(Design.Fonts.display(15))
+                            .font(Design.Fonts.display(17))
                             .foregroundStyle(Design.Colors.textPrimary)
                         Text(subtitle)
-                            .font(Design.Fonts.mono(11))
+                            .font(Design.Fonts.mono(12))
                             .foregroundStyle(Design.Colors.textMuted)
                             .lineLimit(1)
                     }
@@ -495,7 +661,7 @@ private struct StrategyBody: View {
     let text: String
     var body: some View {
         Text(text)
-            .font(Design.Fonts.mono(13))
+            .font(Design.Fonts.mono(14))
             .foregroundStyle(Design.Colors.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -508,10 +674,10 @@ private struct StrategyBullet: View {
     var body: some View {
         HStack(alignment: .top, spacing: Design.Spacing.sm) {
             Text("·")
-                .font(Design.Fonts.mono(13))
+                .font(Design.Fonts.mono(15))
                 .foregroundStyle(accent)
             Text(text)
-                .font(Design.Fonts.mono(13))
+                .font(Design.Fonts.mono(14))
                 .foregroundStyle(Design.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -523,16 +689,16 @@ private struct StrategyKeyPlays: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.xs) {
             Text("KEY PLAYS")
-                .font(Design.Fonts.mono(9, weight: .bold))
+                .font(Design.Fonts.mono(11, weight: .bold))
                 .foregroundStyle(Design.Colors.textMuted)
                 .tracking(1.5)
             FlowLayout(spacing: Design.Spacing.xs) {
                 ForEach(plays, id: \.self) { play in
                     Text(play)
-                        .font(Design.Fonts.mono(11))
+                        .font(Design.Fonts.mono(13))
                         .foregroundStyle(Design.Colors.bobaCyan)
                         .padding(.horizontal, Design.Spacing.sm)
-                        .padding(.vertical, 3)
+                        .padding(.vertical, 4)
                         .background(
                             Capsule()
                                 .fill(Design.Colors.bobaCyan.opacity(0.12))
@@ -631,15 +797,15 @@ private struct PlayCardTypesSection: View {
             subtitle: "Tempo · Value · Disruption · Economy · Game-changer"
         ) {
             ForEach(types, id: \.name) { type_ in
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(type_.name)
-                        .font(Design.Fonts.mono(13, weight: .bold))
+                        .font(Design.Fonts.mono(15, weight: .bold))
                         .foregroundStyle(Design.Colors.bobaOrange)
                     Text(type_.description)
-                        .font(Design.Fonts.mono(13))
+                        .font(Design.Fonts.mono(14))
                         .foregroundStyle(Design.Colors.textSecondary)
                     Text(type_.examples)
-                        .font(Design.Fonts.mono(12))
+                        .font(Design.Fonts.mono(13))
                         .foregroundStyle(Design.Colors.textMuted)
                         .italic()
                 }
@@ -718,7 +884,7 @@ private struct ArchetypesSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.sm) {
             Text("ARCHETYPES")
-                .font(Design.Fonts.mono(9, weight: .bold))
+                .font(Design.Fonts.mono(12, weight: .bold))
                 .foregroundStyle(Design.Colors.textMuted)
                 .tracking(2)
                 .padding(.bottom, Design.Spacing.xs)
@@ -761,14 +927,14 @@ private struct ArchetypeCard: View {
                         .frame(width: 10, height: 10)
                         .shadow(color: accentColor.opacity(0.6), radius: 4)
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text(archetype.name)
-                            .font(Design.Fonts.display(15))
+                            .font(Design.Fonts.display(17))
                             .foregroundStyle(Design.Colors.textPrimary)
                         Text(archetype.tagline)
-                            .font(Design.Fonts.mono(11))
+                            .font(Design.Fonts.mono(12))
                             .foregroundStyle(Design.Colors.textMuted)
-                            .lineLimit(1)
+                            .lineLimit(2)
                     }
 
                     Spacer()
@@ -790,22 +956,22 @@ private struct ArchetypeCard: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text("STRATEGY")
-                            .font(Design.Fonts.mono(9, weight: .bold))
+                            .font(Design.Fonts.mono(11, weight: .bold))
                             .foregroundStyle(Design.Colors.textMuted)
                             .tracking(1.5)
                         Text(archetype.strategy)
-                            .font(Design.Fonts.mono(13))
+                            .font(Design.Fonts.mono(14))
                             .foregroundStyle(Design.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text("WEAKNESS")
-                            .font(Design.Fonts.mono(9, weight: .bold))
+                            .font(Design.Fonts.mono(11, weight: .bold))
                             .foregroundStyle(Design.Colors.textMuted)
                             .tracking(1.5)
                         Text(archetype.weakness)
-                            .font(Design.Fonts.mono(13))
+                            .font(Design.Fonts.mono(14))
                             .foregroundStyle(Color(hex: "C0392B").opacity(0.9))
                             .fixedSize(horizontal: false, vertical: true)
                     }

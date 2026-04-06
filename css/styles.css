@@ -867,22 +867,37 @@ main {
 }
 .modal-close:hover { color: var(--boba-text); background: var(--boba-glass-hover); }
 
+/* Nav buttons are direct children of the overlay (position: fixed, inset: 0)
+   so they can be placed outside the modal rectangle on wide screens. */
 .modal-nav {
-  position: absolute; top: 50%; transform: translateY(-50%);
+  position: absolute;
+  /* Mobile: bottom-sheet modal is ~82dvh → starts ~18dvh from top.
+     Art panel is 52dvh → its center is at ~18 + 26 = 44dvh from viewport top.
+     Portrait card never fills the full art width, so buttons land in the
+     black letterbox areas on either side of the card image. */
+  top: 44dvh; transform: translateY(-50%);
   display: flex; align-items: center; justify-content: center;
   width: 36px; height: 36px;
-  background: rgba(0,0,0,0.55); border: 1px solid var(--boba-glass-border);
-  border-radius: 50%; color: var(--boba-text-muted); z-index: 10;
+  background: rgba(0,0,0,0.65); border: 1px solid var(--boba-glass-border);
+  border-radius: 50%; color: var(--boba-text-muted); z-index: 2;
   transition: color 0.15s, background 0.15s;
 }
 .modal-nav:hover { color: var(--boba-text); background: var(--boba-glass-hover); }
 .modal-nav-prev { left: var(--sp-2); }
 .modal-nav-next { right: var(--sp-2); }
-/* On small screens push nav buttons above the modal card */
-@media (max-width: 639px) {
-  .modal-nav { top: auto; bottom: var(--sp-3); transform: none; }
+
+@media (min-width: 640px) {
+  /* Centered modal — vertically center buttons in the viewport */
+  .modal-nav { top: 50%; transform: translateY(-50%); }
   .modal-nav-prev { left: var(--sp-3); }
   .modal-nav-next { right: var(--sp-3); }
+}
+@media (min-width: 960px) {
+  /* Wide enough for buttons to sit entirely outside the 800px modal.
+     Modal occupies [50% − 400px, 50% + 400px]; buttons are 36px wide.
+     Place outer edge ~12px beyond the modal edge. */
+  .modal-nav-prev { left: calc(50% - 430px); }
+  .modal-nav-next { right: calc(50% - 430px); }
 }
 
 /* ---- Modal Layout ---- */
@@ -901,7 +916,7 @@ main {
   touch-action: none; /* we handle all touch ourselves */
 }
 @media (max-width: 639px) {
-  /* Explicit height so height:100% on the image resolves correctly */
+  /* Explicit height gives the flex container a constrained box for centering */
   .modal-art { height: 52dvh; }
 }
 @media (min-width: 640px) {
@@ -926,11 +941,14 @@ main {
 }
 .modal-art.zoomed::after { opacity: 0; }
 
-.modal-card-img,
-.modal-img-placeholder {
+/* Card image: auto-sized so flex centering on .modal-art takes effect.
+   width/height auto means the image gets its natural size, constrained
+   by max-width/max-height, then centered by the parent's align-items: center. */
+.modal-card-img {
   display: block;
+  width: auto; height: auto;
   max-width: 100%; max-height: 100%;
-  object-fit: contain; width: 100%; height: 100%;
+  object-fit: contain;
   transform-origin: center center;
   will-change: transform;
   user-select: none;
@@ -938,6 +956,14 @@ main {
 }
 @media (min-width: 640px) {
   .modal-card-img { max-height: 90dvh; }
+}
+/* Placeholder fills the full art area */
+.modal-img-placeholder {
+  display: block;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 /* Cursor states during zoom */
@@ -1422,6 +1448,54 @@ main {
 .btn-share-card:hover {
   background: rgba(0,245,255,0.08);
   border-color: rgba(0,245,255,0.3);
+}
+
+/* ---- Other Versions ---- */
+.other-versions {
+  border-top: 1px solid var(--boba-glass-border);
+  padding-top: var(--sp-4);
+}
+.other-versions-label {
+  font-family: var(--font-mono); font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--boba-text-muted);
+  margin-bottom: var(--sp-3);
+}
+.versions-scroll {
+  display: flex; gap: var(--sp-3);
+  overflow-x: auto; padding-bottom: var(--sp-2);
+  scrollbar-width: none;
+}
+.versions-scroll::-webkit-scrollbar { display: none; }
+.version-tile {
+  flex-shrink: 0; width: 72px;
+  display: flex; flex-direction: column; align-items: center; gap: var(--sp-1);
+  cursor: pointer; background: none; border: none; padding: 0;
+  text-align: center;
+}
+.version-tile:hover .version-thumb { border-color: var(--boba-cyan); }
+.version-thumb {
+  width: 72px; height: 96px;
+  object-fit: contain;
+  border-radius: 4px;
+  border: 1px solid var(--boba-glass-border);
+  background: var(--boba-surface);
+  display: block;
+}
+.version-thumb-placeholder {
+  width: 72px; height: 96px;
+  border-radius: 4px;
+  border: 1px solid var(--boba-glass-border);
+  background: var(--boba-surface);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 0.5rem;
+  color: var(--boba-text-muted);
+}
+.version-label {
+  font-family: var(--font-mono); font-size: 0.58rem;
+  color: var(--boba-text-muted); line-height: 1.2;
+  max-width: 72px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
 }
 
 /* ================================================================

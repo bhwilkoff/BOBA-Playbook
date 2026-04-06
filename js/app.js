@@ -161,7 +161,20 @@
     profile:    'nav-profile-btn',
   };
 
+  // Tracks the active view for URL building (card URLs embed the view).
+  let currentView = 'search';
+
+  function buildViewURL(view) {
+    return view === 'search' ? '?' : `?view=${view}`;
+  }
+
+  function buildCardURL(view, cardNumber) {
+    const encoded = encodeURIComponent(cardNumber);
+    return view === 'search' ? `?card=${encoded}` : `?view=${view}&card=${encoded}`;
+  }
+
   function showView(name, fromHistory = false) {
+    currentView = name;
     viewIds.forEach(id => {
       const el = $(`view-${id}`);
       if (el) el.hidden = id !== name;
@@ -183,7 +196,7 @@
       initPlayView();
     }
     if (!fromHistory) {
-      history.pushState({ view: name }, '', name === 'search' ? '?' : `?view=${name}`);
+      history.pushState({ view: name }, '', buildViewURL(name));
     }
   }
 
@@ -193,7 +206,27 @@
   });
 
   window.addEventListener('popstate', (e) => {
-    showView(e.state?.view || 'search', true);
+    const state = e.state || {};
+    if (state.card) {
+      // Restore a card modal — called from history navigation.
+      if (state.view) currentView = state.view;
+      const cardSet = cardsByNumber?.get(String(state.card).toUpperCase())
+                   || cardsByNumber?.get(String(state.card));
+      if (cardSet?.length) {
+        openModal(cardSet[0], -1, true); // true = fromHistory, skip pushState
+      }
+    } else {
+      // No card in state — close modal if open and show the view.
+      if (!modalOverlay.hidden) {
+        cleanupZoom();
+        modalOverlay.hidden = true;
+        modalNavPrev.hidden = true;
+        modalNavNext.hidden = true;
+        currentModalIndex = -1;
+        document.body.style.overflow = '';
+      }
+      showView(state.view || 'search', true);
+    }
   });
 
   /* ================================================================
@@ -1175,7 +1208,7 @@
     if (_zoomAbort) { _zoomAbort.abort(); _zoomAbort = null; }
   }
 
-  function openModal(card, index = -1) {
+  function openModal(card, index = -1, fromHistory = false) {
     modalContent.innerHTML = buildModalContent(card);
     modalOverlay.hidden = false;
     document.body.style.overflow = 'hidden';
@@ -1187,15 +1220,24 @@
     modalNavPrev.hidden = currentModalIndex <= 0;
     modalNavNext.hidden = currentModalIndex < 0 || currentModalIndex >= filteredCards.length - 1;
 
+    // Push URL state so back/forward navigate between viewed cards.
+    // fromHistory = true when called from popstate — URL is already correct.
+    if (!fromHistory) {
+      history.pushState(
+        { view: currentView, card: card.cardNumber },
+        '',
+        buildCardURL(currentView, card.cardNumber)
+      );
+    }
+
     // Wire "Add to Collection" button
     modalContent.querySelector('[data-action="add-to-collection"]')
       ?.addEventListener('click', () => Collection.openAddSheet(card));
 
-    // Wire "Share" button — copies link to clipboard, falls back to Web Share API
+    // Wire "Share" button — URL is already correct in the address bar.
     modalContent.querySelector('[data-action="share-card"]')
       ?.addEventListener('click', (e) => {
-        const encoded = encodeURIComponent(card.cardNumber);
-        const url = `${window.location.origin}${window.location.pathname}?card=${encoded}`;
+        const url = window.location.href;
         if (navigator.share) {
           navigator.share({ title: card.name, text: `${card.name} — BOBA Playbook`, url });
         } else {
@@ -1401,6 +1443,9 @@
     modalNavNext.hidden = true;
     currentModalIndex = -1;
     document.body.style.overflow = '';
+    // Replace the card URL with the plain view URL so the address bar is clean
+    // and the forward button doesn't re-open the closed card.
+    history.replaceState({ view: currentView }, '', buildViewURL(currentView));
   }
 
   function buildVersionsSection(card) {
@@ -1699,11 +1744,19 @@
 
     // Deep-link: ?card=CBF-656 opens the card modal directly.
     // Must run after prepareData() so cardsByNumber is populated.
+    // Use replaceState so the initial URL stays in history exactly once.
     const deepCard = params.get('card');
     if (deepCard) {
       const cardSet = cardsByNumber.get(deepCard.toUpperCase())
                    || cardsByNumber.get(deepCard);
-      if (cardSet?.length) openModal(cardSet[0]);
+      if (cardSet?.length) {
+        openModal(cardSet[0], -1, true); // fromHistory=true — URL already correct
+        history.replaceState(
+          { view: currentView, card: cardSet[0].cardNumber },
+          '',
+          buildCardURL(currentView, cardSet[0].cardNumber)
+        );
+      }
     }
   }
 

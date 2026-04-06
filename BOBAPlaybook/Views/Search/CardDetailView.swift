@@ -70,18 +70,18 @@ struct CardDetailView: View {
         isPreparingShare = true
         defer { isPreparingShare = false }
 
-        // Include the URL as a text string, not a URL object. When sharing to
-        // Messages, UIActivityViewController can drop a URL object when combined
-        // with an image — but a string containing the URL appears in the message
-        // body alongside the image. Messages auto-detects and links the URL.
-        let shareText = "\(card.name) — BOBA Playbook\n\(shareURL.absoluteString)"
-        var items: [Any] = [shareText]
+        // Fetch card image for sharing.
+        var image: UIImage? = nil
         if let imageURL = CDN.fullURL(for: card),
-           let (data, _) = try? await URLSession.shared.data(from: imageURL),
-           let image = UIImage(data: data) {
-            items = [image, shareText]
+           let (data, _) = try? await URLSession.shared.data(from: imageURL) {
+            image = UIImage(data: data)
         }
-        shareItems = items
+
+        // CardShareItemSource returns different data per activity type:
+        // - Messages (.message): text string so URL appears in message body
+        // - Notes, Mail, AirDrop, etc.: URL object so apps embed a tappable link
+        let source = CardShareItemSource(card: card, url: shareURL, image: image)
+        shareItems = image != nil ? [image!, source] : [source]
         showingShare = true
     }
 
@@ -161,11 +161,7 @@ struct CardDetailView: View {
                         }
                         .disabled(navIndex <= 0)
                     }
-                    ToolbarItem(placement: .bottomBar) {
-                        Text("\(navIndex + 1) / \(navigationCards.count)")
-                            .font(Design.Fonts.mono(12))
-                            .foregroundStyle(Design.Colors.textMuted)
-                    }
+                    ToolbarItem(placement: .bottomBar) { Spacer() }
                     ToolbarItem(placement: .bottomBar) {
                         Button {
                             navigateCard(by: +1)
@@ -679,4 +675,44 @@ struct ActivityShareSheet: UIViewControllerRepresentable {
         UIActivityViewController(activityItems: items, applicationActivities: nil)
     }
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+// MARK: - Per-app share item source
+// Notes and similar apps handle URL objects as tappable embedded links.
+// Messages requires a plain String so the URL appears in the message body.
+final class CardShareItemSource: NSObject, UIActivityItemSource {
+    private let card: Card
+    private let url: URL
+    private let image: UIImage?
+
+    init(card: Card, url: URL, image: UIImage?) {
+        self.card = card
+        self.url = url
+        self.image = image
+    }
+
+    // Placeholder tells the system what kind of item this is (URL).
+    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        return url
+    }
+
+    func activityViewController(
+        _ activityViewController: UIActivityViewController,
+        itemForActivityType activityType: UIActivity.ActivityType?
+    ) -> Any? {
+        // Messages needs a String — URL objects get dropped when paired with an image.
+        if activityType == .message {
+            return "\(card.name) — BOBA Playbook\n\(url.absoluteString)"
+        }
+        // Notes, Mail, AirDrop, Copy, etc. all handle URL objects correctly.
+        return url
+    }
+
+    // Subject line for Mail and Notes.
+    func activityViewController(
+        _ activityViewController: UIActivityViewController,
+        subjectForActivityType activityType: UIActivity.ActivityType?
+    ) -> String {
+        return "\(card.name) — BOBA Playbook"
+    }
 }

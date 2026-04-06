@@ -12,6 +12,21 @@ struct FilterSheetView: View {
         NavigationStack {
             List {
 
+                // MARK: Sort
+                Section {
+                    Picker("Sort", selection: $store.sortOrder) {
+                        ForEach(CardSortOrder.allCases) { order in
+                            Text(order.label).tag(order)
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+                    .font(Design.Fonts.mono(14))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                } header: {
+                    sectionHeader("Sort Order")
+                }
+                .listRowBackground(Design.Colors.surface2)
+
                 // MARK: Elements
                 Section {
                     elementGrid

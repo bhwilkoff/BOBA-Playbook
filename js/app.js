@@ -1233,7 +1233,8 @@
           set:     card.set     || '',
           element: card.element || '',
           days:    String(days),
-          ...(card.power != null ? { power: String(card.power) } : {}),
+          ...(card.power    != null ? { power:     String(card.power) }  : {}),
+          ...(card.radishUrl       ? { radishUrl:  card.radishUrl }       : {}),
         });
         const res  = await fetch(`${WORKER_URL}?${params}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

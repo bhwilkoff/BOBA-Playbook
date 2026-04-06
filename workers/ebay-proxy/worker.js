@@ -65,9 +65,14 @@ const LOT_PATTERNS = [
  *
  * Returns:
  *   true  — definitive match (Card Number aspect matches our cardNumber)
- *   false — definitive mismatch (Card Number aspect present but doesn't match,
- *            OR Power aspect present but doesn't match)
+ *   false — definitive mismatch (Card Number aspect present, non-numeric, and doesn't match)
  *   null  — no decisive aspects; fall through to title matching
+ *
+ * Note: sellers sometimes fill in Card Number as just the numeric portion
+ * (e.g. "656" for "CBF-656"). We treat that as a match — it's the right
+ * number, and the hero is already constrained by the search query. We only
+ * hard-reject when the aspect contains alphanumeric content that clearly
+ * identifies a DIFFERENT card.
  */
 function checkAspects(aspects, cardNumber, power) {
   if (!aspects || aspects.length === 0) return null;
@@ -82,7 +87,16 @@ function checkAspects(aspects, cardNumber, power) {
   const aspectCardNum =
     map["card number"] ?? map["card #"] ?? map["card no."] ?? map["number"];
   if (aspectCardNum !== undefined) {
-    return norm(aspectCardNum) === norm(cardNumber);
+    const normAspect = norm(aspectCardNum);
+    const normCard   = norm(cardNumber);
+    // Exact match (normalised)
+    if (normAspect === normCard) return true;
+    // Numeric-only aspect (e.g. "656" for "CBF-656"):
+    // accept if it matches our card's numeric portion — don't reject.
+    const numOnly = cardNumber.replace(/\D/g, "");
+    if (numOnly && normAspect === numOnly) return true;
+    // Aspect has alphanumeric content that doesn't match → different card.
+    return false;
   }
 
   // Power level check: reject if the aspect disagrees with our power.
@@ -139,6 +153,95 @@ function isExactMatch(title, aspects, cardNumber, hero, power) {
       if (re.test(titleLower)) return true;
     }
     return false;
+  }
+}
+
+// ── Radish Price Guide data source ────────────────────────────────────────────
+
+/**
+ * Fetches pre-validated sold data from Radish Price Guide.
+ * Radish embeds all sales in __NEXT_DATA__ — no separate API call needed.
+ * Their allSales array has already matched each eBay sale to the specific card,
+ * so accuracy is far higher than our own eBay title/aspect filtering.
+ *
+ * Returns an array of normalised items, or null on failure.
+ */
+async function fetchRadishSales(radishUrl, days) {
+  try {
+    const res = await fetch(radishUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "Accept":     "text/html,application/xhtml+xml",
+      },
+    });
+    if (!res.ok) return null;
+
+    const html  = await res.text();
+    const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">([^<]+)<\/script>/);
+    if (!match) return null;
+
+    const nextData = JSON.parse(match[1]);
+    const allSales = nextData?.props?.pageProps?.allSales;
+    if (!Array.isArray(allSales) || allSales.length === 0) return null;
+
+    const cutoff = new Date();
+    cutoff.setUTCDate(cutoff.getUTCDate() - days);
+
+    return allSales
+      .filter(s => !s.hide && s.sold_date && new Date(s.sold_date) >= cutoff)
+      .map(s => ({
+        title: s.title ?? s.card_name ?? "",
+        price: parseFloat(s.price ?? "0"),
+        date:  s.sold_date ?? "",
+        url:   s.link ?? "",
+      }))
+      .filter(i => i.price > 0 && i.title);
+  } catch {
+    return null;
+  }
+}
+
+// ── AI image verification ─────────────────────────────────────────────────────
+
+/**
+ * Uses the Cloudflare Workers AI vision model to read the card number from
+ * an eBay listing image, then checks if it matches the expected card number.
+ *
+ * Returns:
+ *   true  — image confirms this is the right card
+ *   false — image shows a different card number (definitive mismatch)
+ *   null  — image unreadable / AI uncertain / timeout (don't reject)
+ */
+async function verifyCardImage(imageUrl, cardNumber, env) {
+  if (!env.AI || !imageUrl) return null;
+  const numPart = cardNumber.replace(/\D/g, "");
+  try {
+    const imgRes = await fetch(imageUrl, { signal: AbortSignal.timeout(5000) });
+    if (!imgRes.ok) return null;
+    const buf    = await imgRes.arrayBuffer();
+    const bytes  = new Uint8Array(buf);
+    let binary   = "";
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    const base64 = btoa(binary);
+
+    const result = await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
+      messages: [{
+        role:    "user",
+        content: [
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64}` } },
+          { type: "text", text: "Look at this trading card image. What card number is printed on it? Card numbers look like CBF-656 or RAD-203 or just a number like 203. Reply with ONLY the card number you can read clearly, or 'unknown' if you cannot see one." },
+        ],
+      }],
+      max_tokens: 16,
+    });
+
+    const text = String(result?.response ?? "").trim().toUpperCase().replace(/[^A-Z0-9-]/g, "");
+    if (!text || text === "UNKNOWN") return null;
+
+    // Accept if AI saw the full card number or just its numeric portion
+    return norm(text) === norm(cardNumber) || text === numPart;
+  } catch {
+    return null; // timeout or model error — don't reject
   }
 }
 
@@ -262,20 +365,79 @@ function normaliseSold(items, cardNumber, hero, power) {
     .filter(i => i.price > 0);
 }
 
-function normaliseActive(items, cardNumber, hero, power) {
-  return items
-    .filter(item => isExactMatch(
-      item.title ?? "",
-      item.localizedAspects ?? [],
-      cardNumber, hero, power
-    ))
-    .map(item => ({
-      title: item.title ?? "",
-      price: parseFloat(item.price?.value ?? "0"),
-      date:  "",   // Browse API doesn't return a sale date
-      url:   item.itemWebUrl ?? "",
-    }))
-    .filter(i => i.price > 0);
+/**
+ * Normalise Browse API items with two-phase matching:
+ *   Phase 1 — title + aspect filtering with confidence tracking
+ *   Phase 2 — AI image verification for low-confidence matches (max 3, parallel)
+ *
+ * "Low confidence" = matched only on numeric portion of card number (no aspects,
+ * no full card number in title). Image check can reject these but never force-reject
+ * an unreadable image — null AI result = keep the listing.
+ */
+async function normaliseActive(items, cardNumber, hero, power, env) {
+  // Phase 1: filter with confidence
+  const candidates = [];
+  for (const item of items) {
+    const title    = item.title ?? "";
+    const aspects  = item.localizedAspects ?? [];
+    const imageUrl = item.image?.imageUrl ?? "";
+    const price    = parseFloat(item.price?.value ?? "0");
+    if (price <= 0) continue;
+
+    const aspectResult = checkAspects(aspects, cardNumber, power);
+    let match = false, confidence = "low";
+
+    if (aspectResult !== null) {
+      match      = aspectResult;
+      confidence = "high";
+    } else {
+      const titleNorm  = norm(title);
+      const titleLower = title.toLowerCase();
+      const isNumeric  = /^\d+$/.test(cardNumber);
+
+      if (LOT_PATTERNS.some(p => titleLower.includes(p))) {
+        match = false;
+      } else if (isNumeric) {
+        match      = titleNorm.includes(norm(hero));
+        confidence = "medium";
+      } else {
+        if (titleNorm.includes(norm(cardNumber))) {
+          match = true; confidence = "high";
+        } else {
+          const numPart = cardNumber.replace(/\D/g, "");
+          if (numPart) {
+            const re = new RegExp(`(?:^|\\D)0*${numPart}(?:\\D|$)`);
+            if (re.test(titleLower)) { match = true; confidence = "low"; }
+          }
+        }
+      }
+    }
+
+    if (match) candidates.push({ item, confidence, imageUrl, price });
+  }
+
+  // Phase 2: image-verify low-confidence matches (parallel, max 3)
+  const lowConf = candidates.filter(c => c.confidence === "low").slice(0, 3);
+  let rejectedUrls = new Set();
+  if (lowConf.length > 0 && env?.AI) {
+    const checks = await Promise.all(
+      lowConf.map(c => verifyCardImage(c.imageUrl, cardNumber, env))
+    );
+    rejectedUrls = new Set(
+      lowConf
+        .filter((_, i) => checks[i] === false)   // false = definitive mismatch
+        .map(c => c.item.itemWebUrl ?? "")
+    );
+  }
+
+  return candidates
+    .filter(c => !rejectedUrls.has(c.item.itemWebUrl ?? ""))
+    .map(c => ({
+      title: c.item.title ?? "",
+      price: c.price,
+      date:  "",
+      url:   c.item.itemWebUrl ?? "",
+    }));
 }
 
 // ── OCR handler (unchanged) ───────────────────────────────────────────────────
@@ -320,14 +482,15 @@ export default {
     const powerRaw   = searchParams.get("power");
     const power      = powerRaw != null ? parseInt(powerRaw, 10) : null;
     const days       = Math.min(Math.max(parseInt(searchParams.get("days") ?? "30", 10), 1), 90);
+    const radishUrl  = searchParams.get("radishUrl") || "";
 
     if (!cardNumber) return json({ error: "cardNumber parameter required" }, 400);
     if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) return json({ error: "EBAY_APP_ID and EBAY_CERT_ID secrets required" }, 500);
 
     // ── Cache ─────────────────────────────────────────────────────────────────
-    // v7 invalidates old caches (aspect-checking + power filtering added).
+    // v8: Radish as primary source, aspect false-negative fix, image verification.
     const cache    = caches.default;
-    const cacheURL = `https://boba-cache.internal/v7/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
+    const cacheURL = `https://boba-cache.internal/v8/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
     const cacheKey = new Request(cacheURL);
     const cached   = await cache.match(cacheKey);
     if (cached) {
@@ -335,7 +498,32 @@ export default {
       return json(body, 200, { "X-Cache": "HIT" });
     }
 
-    // ── OAuth token ───────────────────────────────────────────────────────────
+    // ── Try Radish Price Guide first (highest accuracy) ───────────────────────
+    // Radish has already matched each eBay sale to the specific card — no title
+    // parsing needed. When available, this is far more reliable than eBay APIs.
+    if (radishUrl) {
+      const radishItems = await fetchRadishSales(radishUrl, days);
+      if (radishItems && radishItems.length > 0) {
+        const sorted  = [...radishItems].sort((a, b) => a.price - b.price);
+        const prices  = sorted.map(i => i.price);
+        const result  = {
+          low:       round2(prices[0]),
+          average:   round2(prices.reduce((s, p) => s + p, 0) / prices.length),
+          high:      round2(prices[prices.length - 1]),
+          count:     radishItems.length,
+          priceType: "sold",
+          // Return most recent 10 (already sorted newest-first by fetchRadishSales)
+          items:     radishItems.slice(0, 10),
+        };
+        const cacheTTL = 21600; // 6h
+        await cache.put(cacheKey, new Response(JSON.stringify(result), {
+          headers: { "Content-Type": "application/json", "Cache-Control": `public, max-age=${cacheTTL}` },
+        }));
+        return json(result, 200, { "X-Cache": "MISS", "X-Source": "radish" });
+      }
+    }
+
+    // ── OAuth token (needed for eBay APIs) ────────────────────────────────────
     let token;
     try { token = await getAppToken(env, cache); }
     catch (err) { return json({ error: String(err), count: 0, low: 0, average: 0, high: 0, priceType: "sold", items: [] }, 502); }
@@ -348,10 +536,9 @@ export default {
 
     // ── Search query ──────────────────────────────────────────────────────────
     // Include power in the query: sellers often write "Maverick 135 RAD-203".
-    // Power helps eBay surface the right variant and helps us cross-check aspects.
     // Stage 1 (specific): hero + card number + power
     // Stage 2 (broad): hero only — catches listings that omit the card number
-    const powerStr        = power != null && !isNaN(power) ? String(power) : null;
+    const powerStr         = power != null && !isNaN(power) ? String(power) : null;
     const keywordsSpecific = ["bo jackson battle arena", hero, cardNumber, powerStr].filter(Boolean).join(" ");
     const keywordsBroad    = ["bo jackson battle arena", hero].filter(Boolean).join(" ");
 
@@ -379,10 +566,11 @@ export default {
     if (!useSold || soldItems.length === 0) {
       const { items, error } = await searchActive(token, keywordsSpecific);
       if (!error) {
-        activeItems = normaliseActive(items, cardNumber, hero, power);
+        // normaliseActive is async — uses image verification for low-confidence matches
+        activeItems = await normaliseActive(items, cardNumber, hero, power, env);
         if (activeItems.length === 0 && hero) {
           const fb = await searchActive(token, keywordsBroad);
-          if (!fb.error) activeItems = normaliseActive(fb.items, cardNumber, hero, power);
+          if (!fb.error) activeItems = await normaliseActive(fb.items, cardNumber, hero, power, env);
         }
       } else {
         browseError = error;

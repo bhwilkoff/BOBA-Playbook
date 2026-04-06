@@ -351,18 +351,43 @@
       });
     });
 
-    // Mode buttons inside the Rules panel: Rookie / Substitution / Playmaker
+    // Mode switching — syncs mode-card overview buttons, rules-mode-btn tabs,
+    // rules-content visibility, and the battle-flow diagram data-mode attribute.
     const modeBtns    = document.querySelectorAll('.rules-mode-btn');
+    const modeCards   = document.querySelectorAll('.mode-card');
     const modeContent = document.querySelectorAll('.rules-content');
+    const battleFlow  = document.querySelector('.battle-flow');
+    const flowNotes   = battleFlow ? battleFlow.querySelectorAll('.battle-flow-note') : [];
+
+    function applyMode(mode) {
+      modeBtns.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+      modeCards.forEach(c => {
+        const active = c.dataset.mode === mode;
+        c.classList.toggle('active', active);
+        c.setAttribute('aria-pressed', String(active));
+      });
+      modeContent.forEach(el => {
+        el.hidden = el.id !== `rules-${mode}`;
+      });
+      if (battleFlow) {
+        battleFlow.dataset.mode = mode;
+      }
+      // Show only notes relevant to the current mode
+      flowNotes.forEach(note => {
+        const modes = (note.dataset.modes || '').split(' ');
+        note.hidden = !modes.includes(mode);
+      });
+    }
+
+    // Default state — hide notes that don't apply to rookie
+    applyMode('rookie');
 
     modeBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const mode = btn.dataset.mode;
-        modeBtns.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-        modeContent.forEach(el => {
-          el.hidden = el.id !== `rules-${mode}`;
-        });
-      });
+      btn.addEventListener('click', () => applyMode(btn.dataset.mode));
+    });
+
+    modeCards.forEach(card => {
+      card.addEventListener('click', () => applyMode(card.dataset.mode));
     });
   }
 

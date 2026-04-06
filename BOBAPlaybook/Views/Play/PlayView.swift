@@ -210,11 +210,13 @@ private struct RulesView: View {
                     CardZonesSection()
                     DeckbuildingSection()
                 }
-                .id(selectedMode)
+                .frame(maxWidth: .infinity)
                 .padding(Design.Spacing.lg)
                 .padding(.bottom, Design.Spacing.xxl)
             }
+            .id(selectedMode)
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func modeCallout(for mode: GameMode) -> some View {
@@ -380,15 +382,8 @@ private struct SubstitutionScenario: View {
                 Spacer()
             }
 
-            HStack(spacing: Design.Spacing.sm) {
-                Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(.yellow)
-                Text("Player B pays 2 Hot Dogs  ·  Removes D-Hop  ·  Plays LeBoss from hand")
-                    .font(Design.Fonts.mono(12)).foregroundStyle(.yellow)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(Design.Spacing.sm)
-            .background(RoundedRectangle(cornerRadius: Design.Radius.sm).fill(Color.yellow.opacity(0.08))
-                .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm).strokeBorder(Color.yellow.opacity(0.3), lineWidth: 1)))
+            resultBanner(icon: "arrow.triangle.2.circlepath", color: .yellow,
+                         text: "Player B substitutes — Pays 2 Hot Dogs · Removes D-Hop · Plays LeBoss from hand")
 
             phaseLabel("④ RESOLVE")
             HStack(alignment: .bottom) {
@@ -506,7 +501,9 @@ private func scenarioHeader(_ title: String, sub: String) -> some View {
     VStack(alignment: .leading, spacing: 3) {
         Text(title).font(Design.Fonts.mono(11, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
         Text(sub).font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
 }
 
 private var vsLabel: some View {
@@ -566,6 +563,7 @@ private struct RuleCard: View {
                         Text(line.body).font(Design.Fonts.mono(14)).foregroundStyle(Design.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
@@ -671,16 +669,16 @@ private struct CardZonesSection: View {
             RulesSectionHeader(title: "Card Zones Reference")
             VStack(spacing: 1) {
                 ForEach(zones, id: \.0) { zone in
-                    HStack(alignment: .top, spacing: Design.Spacing.md) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text(zone.0)
                             .font(Design.Fonts.mono(13, weight: .bold))
                             .foregroundStyle(Design.Colors.bobaCyan)
-                            .frame(width: 120, alignment: .leading)
                         Text(zone.1)
                             .font(Design.Fonts.mono(13))
                             .foregroundStyle(Design.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, Design.Spacing.md).padding(.vertical, Design.Spacing.sm)
                     .background(Design.Colors.surface)
                 }
@@ -920,29 +918,29 @@ private struct ArchetypesSection: View {
     private let archetypes: [Archetype] = [
         Archetype(name: "Fire Aggro",          element: "FIRE",
                   tagline: "Stack Fire synergies early; lock opponents with Flame Wall",
-                  keyPlays: ["Fire Boost","Fire Crew","Flame Wall","Burning Fever","Eternal Flame","Smitty"],
                   strategy: "Establish Fire Boost and Fire Crew for a persistent +10 power bump on every FIRE Hero. Flame Wall prevents the opponent from neutralizing your type advantage. Close games with Burning Fever and Eternal Flame. Requires a deep FIRE Hero roster.",
-                  weakness: "Fire Extinguisher · Fire Hose · Only Ice"),
+                  weakness: "Fire Extinguisher · Fire Hose · Only Ice",
+                  keyPlays: ["Fire Boost","Fire Crew","Flame Wall","Burning Fever","Eternal Flame","Smitty"]),
         Archetype(name: "Ice Control",         element: "ICE",
                   tagline: "Deny substitutions; protect key Heroes behind layers of ice",
-                  keyPlays: ["Ice Boost","Ice Crew","Icy Shield","Frozen Resolve","Frozen Lineup","Unbreakable Ice"],
                   strategy: "Icy Shield and Unbreakable Ice make Heroes impossible to substitute against. Frozen Lineup locks opponent Heroes in place. ICE Control wins through attrition — be patient, preserve Hot Dogs, and outlast your opponent over 7 battles.",
-                  weakness: "Ice Pick · Icevantage · Frost-Hardened"),
+                  weakness: "Ice Pick · Icevantage · Frost-Hardened",
+                  keyPlays: ["Ice Boost","Ice Crew","Icy Shield","Frozen Resolve","Frozen Lineup","Unbreakable Ice"]),
         Archetype(name: "Steel Wall",          element: "STEEL",
                   tagline: "Layer Steel protections until your Heroes are nearly invulnerable",
-                  keyPlays: ["Steel Boost","Steel Crew","Steel Defense","Steel Shield","Chrome Will","Steel Cage"],
                   strategy: "Stack Steel Defense, Shield, and Chrome Will until opponents can't remove your Heroes effectively. Steel Cage prevents removal entirely. Mid-range STEEL Heroes become formidable threats with enough protection stacked.",
-                  weakness: "Stain-Less-Steel · Rusted Edge · Molten Steel"),
+                  weakness: "Stain-Less-Steel · Rusted Edge · Molten Steel",
+                  keyPlays: ["Steel Boost","Steel Crew","Steel Defense","Steel Shield","Chrome Will","Steel Cage"]),
         Archetype(name: "Mixed Toolbox",       element: "NONE",
                   tagline: "Maximum flexibility — adapt to any opponent in real time",
-                  keyPlays: ["Weapon Mixer","Weapon Tangle","Brothers In Arms","Different Leagues","Edge Rush"],
                   strategy: "Weapon-agnostic Plays adapt to any matchup. Edge Rush and Deadline Deal let you react to any power level. Brothers In Arms rewards diverse Hero rosters. No weakness to weapon-specific hate, but also no dominant synergy engine.",
-                  weakness: "No single synergy as powerful as a focused build"),
+                  weakness: "No single synergy as powerful as a focused build",
+                  keyPlays: ["Weapon Mixer","Weapon Tangle","Brothers In Arms","Different Leagues","Edge Rush"]),
         Archetype(name: "Economy / Attrition", element: "NONE",
                   tagline: "Recover Hot Dogs faster than your opponent can spend them",
-                  keyPlays: ["Trash Bandit","Victory Dinner","Make Up Meal","Too Full To Fight","Bun Shortage","Mutually Assured Dogstruction"],
                   strategy: "Continuously refresh your Hot Dog supply while draining your opponent's. Bun Shortage limits their recovery. Mutually Assured Dogstruction resets both piles — play it when you're already low to equalize. Win in the late game when they're resource-starved.",
-                  weakness: "Loses quickly to fast aggro when recovery stalls"),
+                  weakness: "Loses quickly to fast aggro when recovery stalls",
+                  keyPlays: ["Trash Bandit","Victory Dinner","Make Up Meal","Too Full To Fight","Bun Shortage","Mutually Assured Dogstruction"]),
     ]
 
     var body: some View {
@@ -1032,27 +1030,27 @@ private struct BrowseView: View {
     @State private var selectedCard: Card? = nil
 
     private let featuredLists: [ListFilter] = [
-        ListFilter(id: "woba", name: "Women of BOBA", count: "884 cards",
+        ListFilter(id: "woba", name: "Women of BOBA",
                    description: "Heroes inspired by 17 legendary female athletes across every sport.",
-                   color: Color(hex: "FF69B4")) { card in
+                   count: "884 cards", color: Color(hex: "FF69B4")) { card in
             let heroes: Set<String> = ["AJax","Belladonna","Brandi","C.C.","Cameleon","Cheryl Bomb",
                                        "Coopanova","Eraser","Halo","JPEG","Lady Magic","Leducky",
                                        "PB Buckets","Pauldron","Peek-A-Boo","Ramponage","Swoopes"]
             return heroes.contains(card.hero)
         },
-        ListFilter(id: "bojax", name: "Bo Jackson", count: "147 cards",
+        ListFilter(id: "bojax", name: "Bo Jackson",
                    description: "The man who inspired it all — every BoJax card across every set and treatment.",
-                   color: Design.Colors.bobaOrange) { card in
+                   count: "147 cards", color: Design.Colors.bobaOrange) { card in
             card.athleteInspiration == "Bo Jackson" || card.hero == "BoJax" || card.hero == "Bojax"
         },
-        ListFilter(id: "kid", name: "Ken Griffey Jr.", count: "~76 cards",
+        ListFilter(id: "kid", name: "Ken Griffey Jr.",
                    description: "The Kid — one of baseball's most beloved players.",
-                   color: Design.Colors.bobaCyan) { card in
+                   count: "~76 cards", color: Design.Colors.bobaCyan) { card in
             card.athleteInspiration == "Ken Griffey Jr." || card.hero == "The Kid"
         },
-        ListFilter(id: "drj", name: "Dr. J", count: "70 cards",
+        ListFilter(id: "drj", name: "Dr. J",
                    description: "Julius Erving — the original aerial artist of basketball.",
-                   color: Color(hex: "8B00FF")) { card in
+                   count: "70 cards", color: Color(hex: "8B00FF")) { card in
             card.athleteInspiration == "Julius Erving" || card.hero == "Dr. J"
         },
     ]

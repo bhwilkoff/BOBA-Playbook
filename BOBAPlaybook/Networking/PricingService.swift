@@ -4,35 +4,37 @@ actor PricingService {
     static let shared = PricingService()
     private init() {}
 
-    struct ListingItem: Decodable, Sendable {
+    struct PricingItem: Decodable, Sendable {
         let title: String
         let price: Decimal
-        let url: String
+        let date:  String   // ISO 8601 for sold items; empty string for active listings
+        let url:   String
     }
 
     struct PricingResult: Sendable {
-        let low: Decimal
-        let average: Decimal
-        let high: Decimal
-        let listingCount: Int
-        let recentListings: [ListingItem]
+        let low:       Decimal
+        let average:   Decimal
+        let high:      Decimal
+        let count:     Int
+        let priceType: String   // "sold" | "listed"
+        let items:     [PricingItem]
         let fetchedAt: Date
+
+        var isSold: Bool { priceType == "sold" }
     }
 
     enum PricingError: LocalizedError {
         case notConfigured
-        case noListings
+        case noData
         var errorDescription: String? {
             switch self {
             case .notConfigured: return "Pricing worker not configured."
-            case .noListings:    return "No active eBay listings found."
+            case .noData:        return "No eBay listings found."
             }
         }
     }
 
-    // In-memory cache: key = "hero_cardNumber_days"
-    // Keyed on hero+cardNumber so two cards sharing a card number (e.g. RAD-352
-    // Brockness vs Spider) each get their own search results.
+    // In-memory cache keyed on "hero_cardNumber_days"
     private var cache: [String: PricingResult] = [:]
     private let cacheLifetime: TimeInterval = 3600  // 1 hour
 
@@ -62,15 +64,16 @@ actor PricingService {
         let (data, _) = try await URLSession.shared.data(from: url)
         let response  = try JSONDecoder().decode(PricingResponse.self, from: data)
 
-        guard response.listingCount > 0 else { throw PricingError.noListings }
+        guard response.count > 0 else { throw PricingError.noData }
 
         let result = PricingResult(
-            low:             response.low,
-            average:         response.average,
-            high:            response.high,
-            listingCount:    response.listingCount,
-            recentListings:  response.recentListings,
-            fetchedAt:       Date()
+            low:       response.low,
+            average:   response.average,
+            high:      response.high,
+            count:     response.count,
+            priceType: response.priceType,
+            items:     response.items,
+            fetchedAt: Date()
         )
         cache[key] = result
         return result
@@ -79,10 +82,11 @@ actor PricingService {
     // MARK: - Private response model
 
     private struct PricingResponse: Decodable {
-        let low: Decimal
-        let average: Decimal
-        let high: Decimal
-        let listingCount: Int
-        let recentListings: [ListingItem]
+        let low:       Decimal
+        let average:   Decimal
+        let high:      Decimal
+        let count:     Int
+        let priceType: String
+        let items:     [PricingItem]
     }
 }

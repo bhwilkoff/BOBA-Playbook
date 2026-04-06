@@ -209,67 +209,41 @@
         <!-- ══ RULES PANEL ══════════════════════════════════════════ -->
         <div id="play-panel-rules" class="play-panel" role="tabpanel" aria-labelledby="play-tab-rules">
 
-          <!-- Mode Overview Cards -->
-          <div class="mode-overview" aria-label="Game mode overview">
-            <button class="mode-card active" data-mode="rookie" aria-pressed="true">
-              <div class="mode-card-name">Rookie</div>
-              <div class="mode-card-components">
-                <span class="mode-component" style="--dot:#FF4D00">Hero Deck</span>
-              </div>
-              <div class="mode-card-desc">Pure power comparison</div>
-            </button>
-            <button class="mode-card" data-mode="substitution" aria-pressed="false">
-              <div class="mode-card-name">Substitution</div>
-              <div class="mode-card-components">
-                <span class="mode-component" style="--dot:#FF4D00">Hero Deck</span>
-                <span class="mode-component" style="--dot:#FFD700">Hot Dogs</span>
-              </div>
-              <div class="mode-card-desc">Add hand management</div>
-            </button>
-            <button class="mode-card" data-mode="playmaker" aria-pressed="false">
-              <div class="mode-card-name">Playmaker</div>
-              <div class="mode-card-components">
-                <span class="mode-component" style="--dot:#FF4D00">Hero Deck</span>
-                <span class="mode-component" style="--dot:#FFD700">Hot Dogs</span>
-                <span class="mode-component" style="--dot:#00F5FF">Playbook</span>
-              </div>
-              <div class="mode-card-desc">Full game · tournament</div>
-            </button>
-          </div>
-
-          <!-- Battle Flow Diagram -->
-          <div class="battle-flow" aria-label="Battle sequence diagram" data-mode="rookie">
-            <div class="battle-flow-label">BATTLE SEQUENCE</div>
+          <!-- Battle Flow Diagram — static, all phases always shown -->
+          <div class="battle-flow" aria-label="Battle sequence — all phases">
+            <div class="battle-flow-label">EACH BATTLE — ALL PHASES</div>
             <div class="battle-flow-steps">
-              <div class="battle-step" data-applies="rookie substitution playmaker">
-                <div class="battle-step-num">1</div>
-                <div class="battle-step-name">REVEAL</div>
-                <div class="battle-step-desc">Both flip Hero simultaneously</div>
+              <div class="battle-step">
+                <div class="battle-step-num" style="background:var(--boba-orange)">1</div>
+                <div class="battle-step-name" style="color:var(--boba-orange)">REVEAL</div>
+                <div class="battle-step-desc">Flip Hero face-up</div>
+                <span class="battle-step-mode" style="color:var(--boba-orange);background:rgba(255,77,0,0.12);border-color:rgba(255,77,0,0.3)">All modes</span>
               </div>
-              <div class="battle-step-arrow" data-applies="substitution playmaker">›</div>
-              <div class="battle-step" data-applies="substitution playmaker">
-                <div class="battle-step-num">2</div>
-                <div class="battle-step-name">SUB</div>
+              <div class="battle-step-arrow">›</div>
+              <div class="battle-step">
+                <div class="battle-step-num" style="background:#FFD700;color:#080810">2</div>
+                <div class="battle-step-name" style="color:#FFD700">SUB</div>
                 <div class="battle-step-desc">Pay 2 Hot Dogs to swap</div>
+                <span class="battle-step-mode" style="color:#FFD700;background:rgba(255,215,0,0.12);border-color:rgba(255,215,0,0.3)">Sub +</span>
               </div>
-              <div class="battle-step-arrow" data-applies="playmaker">›</div>
-              <div class="battle-step" data-applies="playmaker">
-                <div class="battle-step-num">3</div>
-                <div class="battle-step-name">PLAYS</div>
+              <div class="battle-step-arrow">›</div>
+              <div class="battle-step">
+                <div class="battle-step-num" style="background:var(--boba-cyan);color:#080810">3</div>
+                <div class="battle-step-name" style="color:var(--boba-cyan)">PLAYS</div>
                 <div class="battle-step-desc">Alternate Play cards</div>
+                <span class="battle-step-mode" style="color:var(--boba-cyan);background:rgba(0,245,255,0.12);border-color:rgba(0,245,255,0.3)">PM only</span>
               </div>
-              <div class="battle-step-arrow" data-applies="rookie substitution playmaker">›</div>
-              <div class="battle-step resolve" data-applies="rookie substitution playmaker">
-                <div class="battle-step-num">4</div>
-                <div class="battle-step-name">RESOLVE</div>
+              <div class="battle-step-arrow">›</div>
+              <div class="battle-step resolve">
+                <div class="battle-step-num" style="background:#4CAF50">4</div>
+                <div class="battle-step-name" style="color:#4CAF50">RESOLVE</div>
                 <div class="battle-step-desc">Higher Power wins</div>
+                <span class="battle-step-mode" style="color:#4CAF50;background:rgba(76,175,80,0.12);border-color:rgba(76,175,80,0.3)">All modes</span>
               </div>
             </div>
-            <div class="battle-flow-note" data-modes="substitution playmaker" hidden>
-              Ties → Sudden Death: reveal top of Hero Deck, higher Power wins. Repeat until broken.
-            </div>
-            <div class="battle-flow-note" data-modes="playmaker" hidden>
-              In Playmaker: if tied and one Hero is <strong>SUPER</strong> weapon type, SUPER wins automatically.
+            <div class="battle-flow-honors">
+              <span class="battle-flow-honors-star">★</span>
+              Honors (right to act first) passes to the battle winner. Coin flip decides Honors for Battle 1.
             </div>
           </div>
 

@@ -6,8 +6,11 @@ import SwiftUI
 struct ProfileView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(CollectionStore.self) private var collection
+    @Environment(CardStore.self) private var cardStore
     @State private var showingSignIn = false
     @State private var showingSignOutConfirm = false
+    @State private var isRecalculating = false
+    @State private var recalculateProgress: (current: Int, total: Int)? = nil
 
     var body: some View {
         NavigationStack {
@@ -140,6 +143,54 @@ struct ProfileView: View {
                     label: "Total Paid",
                     value: formatCurrency(collection.totalPurchaseValue)
                 )
+                // Estimated market value row
+                HStack {
+                    Label("Est. Market Value", systemImage: "chart.line.uptrend.xyaxis")
+                        .font(Design.Fonts.mono(14))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                    Spacer()
+                    if collection.totalEstimatedValue > 0 {
+                        Text(formatCurrency(collection.totalEstimatedValue))
+                            .font(Design.Fonts.mono(14, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                    } else {
+                        Text("—")
+                            .font(Design.Fonts.mono(14))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
+                }
+            }
+            .listRowBackground(Design.Colors.surface)
+
+            // Collection value recalculate
+            Section {
+                if isRecalculating, let progress = recalculateProgress {
+                    HStack(spacing: Design.Spacing.sm) {
+                        ProgressView()
+                            .tint(Design.Colors.bobaOrange)
+                            .scaleEffect(0.85)
+                        Text("Updating \(progress.current) of \(progress.total) cards…")
+                            .font(Design.Fonts.mono(13))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
+                } else {
+                    Button {
+                        isRecalculating = true
+                        recalculateProgress = (0, 0)
+                        Task {
+                            await collection.recalculateAllValues(cardStore: cardStore) { current, total in
+                                recalculateProgress = (current, total)
+                            }
+                            isRecalculating = false
+                            recalculateProgress = nil
+                        }
+                    } label: {
+                        Label("Recalculate Collection Value", systemImage: "arrow.clockwise")
+                            .font(Design.Fonts.mono(14))
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                    }
+                    .disabled(isRecalculating)
+                }
             }
             .listRowBackground(Design.Colors.surface)
 

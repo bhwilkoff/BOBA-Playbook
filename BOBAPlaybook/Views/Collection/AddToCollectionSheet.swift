@@ -25,6 +25,10 @@ struct AddToCollectionSheet: View {
     @State private var isSaving = false
     @State private var saveError: String?
 
+    // Live market pricing fetched on appear
+    @State private var marketAverage: Decimal? = nil
+    @State private var isFetchingPrice = false
+
     // Pre-existing wishlist entry for this card
     private var existingWishlistEntry: UserCard? {
         collection.userCards.first {
@@ -54,6 +58,26 @@ struct AddToCollectionSheet: View {
                     .listRowBackground(Design.Colors.surface)
 
                     Section("PRICING") {
+                        // Market average (read-only, fetched from worker on appear)
+                        HStack {
+                            Text("Market Avg")
+                                .font(Design.Fonts.mono(14))
+                                .foregroundStyle(Design.Colors.textPrimary)
+                            Spacer()
+                            if isFetchingPrice {
+                                ProgressView()
+                                    .scaleEffect(0.75)
+                                    .tint(Design.Colors.bobaOrange)
+                            } else if let avg = marketAverage {
+                                Text(avg, format: .currency(code: "USD"))
+                                    .font(Design.Fonts.mono(14, weight: .bold))
+                                    .foregroundStyle(Design.Colors.bobaOrange)
+                            } else {
+                                Text("—")
+                                    .font(Design.Fonts.mono(14))
+                                    .foregroundStyle(Design.Colors.textMuted)
+                            }
+                        }
                         priceRow(label: "Purchase Price", text: $purchasePriceText)
                         if designation == .for_sale {
                             priceRow(label: "Asking Price", text: $askingPriceText)
@@ -109,6 +133,22 @@ struct AddToCollectionSheet: View {
             // Default to "personal" but if only wishlist exists, start there
             if existingWishlistEntry != nil, collection.entries(for: card.cardNumber).isEmpty {
                 designation = existingWishlistEntry?.designation ?? .personal
+            }
+            // Fetch current market price in background
+            Task {
+                isFetchingPrice = true
+                if let pricing = try? await PricingService.shared.pricing(
+                    for: card.cardNumber,
+                    hero: card.hero,
+                    set: card.set,
+                    element: card.element,
+                    power: card.power,
+                    radishUrl: card.radishUrl,
+                    days: 30
+                ) {
+                    marketAverage = pricing.average
+                }
+                isFetchingPrice = false
             }
         }
     }
@@ -239,6 +279,7 @@ struct AddToCollectionSheet: View {
         let askingPrice   = Decimal(string: askingPriceText)
         let serial        = Int(serialNumber)
 
+        let now = Date()
         let new = NewUserCard(
             cardNumber:     card.cardNumber,
             designation:    designation,
@@ -248,6 +289,8 @@ struct AddToCollectionSheet: View {
             gradingCompany: gradingCompany.isEmpty ? nil : gradingCompany,
             purchasePrice:  purchasePrice,
             askingPrice:    askingPrice,
+            estimatedValue: marketAverage,
+            lastPriceCheck: marketAverage != nil ? now : nil,
             notes:          notes.isEmpty ? nil : notes
         )
 

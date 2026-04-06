@@ -99,7 +99,77 @@ final class CollectionStore {
             .reduce(0, +)
     }
 
+    /// Sum of estimated_value for all owned entries. Each copy counts separately,
+    /// so owning 3 copies of a $10 card contributes $30.
+    var totalEstimatedValue: Decimal {
+        userCards
+            .filter { $0.designation.isOwned }
+            .compactMap { $0.estimatedValue }
+            .reduce(0, +)
+    }
+
+    /// How many owned card numbers have an estimated_value recorded.
+    var valuedCardCount: Int {
+        userCards.filter { $0.designation.isOwned && $0.estimatedValue != nil }.count
+    }
+
+    // MARK: - Pricing refresh
+
+    /// Updates estimated_value + last_price_check for every entry of `cardNumber`
+    /// only when the price data is stale (nil or older than 24 hours).
+    func refreshPricingIfNeeded(for cardNumber: String, card: Card) async {
+        guard needsPriceRefresh(cardNumber) else { return }
+        await fetchAndStorePricing(for: cardNumber, card: card)
+    }
+
+    /// Force-refreshes estimated_value for every owned unique card number.
+    /// Calls `progress(current, total)` after each card so the UI can show progress.
+    func recalculateAllValues(cardStore: CardStore, progress: @escaping @MainActor (Int, Int) -> Void) async {
+        let ownedNumbers = Array(Set(
+            userCards.filter { $0.designation.isOwned }.map { $0.cardNumber }
+        ))
+        let total = ownedNumbers.count
+        for (index, cardNumber) in ownedNumbers.enumerated() {
+            await MainActor.run { progress(index + 1, total) }
+            guard let card = cardStore.displayCards.first(where: { $0.cardNumber == cardNumber }) else { continue }
+            await fetchAndStorePricing(for: cardNumber, card: card)
+            // Light throttle so we don't flood the worker
+            try? await Task.sleep(nanoseconds: 400_000_000)
+        }
+        await MainActor.run { progress(total, total) }
+    }
+
     // MARK: - Private
+
+    private func needsPriceRefresh(_ cardNumber: String) -> Bool {
+        let latest = entries(for: cardNumber).compactMap { $0.lastPriceCheck }.max()
+        guard let latest else { return true }
+        return Date().timeIntervalSince(latest) > 86400  // 24 hours
+    }
+
+    private func fetchAndStorePricing(for cardNumber: String, card: Card) async {
+        guard !WorkerConfig.ebayProxyURL.isEmpty else { return }
+        do {
+            let pricing = try await PricingService.shared.pricing(
+                for: card.cardNumber,
+                hero: card.hero,
+                set: card.set,
+                element: card.element,
+                power: card.power,
+                radishUrl: card.radishUrl,
+                days: 30
+            )
+            let fields = UpdateUserCard(
+                estimatedValue: pricing.average,
+                lastPriceCheck: Date()
+            )
+            for entry in entries(for: cardNumber) {
+                try await updateCard(id: entry.id, fields: fields)
+            }
+        } catch {
+            // Silent — stale or missing price is acceptable
+        }
+    }
 
     private func apply(_ updated: UserCard) {
         if let idx = userCards.firstIndex(where: { $0.id == updated.id }) {

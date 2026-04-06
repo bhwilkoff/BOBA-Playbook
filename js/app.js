@@ -94,6 +94,11 @@
   const modalOverlay  = $('card-modal-overlay');
   const modalContent  = $('modal-content');
   const modalCloseBtn = $('modal-close-btn');
+  const modalNavPrev  = $('modal-nav-prev');
+  const modalNavNext  = $('modal-nav-next');
+
+  // Index into filteredCards for the currently open modal (-1 = no modal or card not in list)
+  let currentModalIndex = -1;
 
   const sidebarToggle  = $('sidebar-toggle');
   const sidebar        = $('channels-sidebar');
@@ -938,7 +943,7 @@
     const end = Math.min(displayedCount + PAGE_SIZE, filteredCards.length);
     const fragment = document.createDocumentFragment();
     for (let i = displayedCount; i < end; i++) {
-      fragment.appendChild(buildCardElement(filteredCards[i]));
+      fragment.appendChild(buildCardElement(filteredCards[i], i));
     }
     cardGrid.appendChild(fragment);
     displayedCount = end;
@@ -948,7 +953,7 @@
     emptyState.hidden = !isEmpty;
   }
 
-  function buildCardElement(card) {
+  function buildCardElement(card, index) {
     const treatmentClass = getTreatmentClass(card.treatment);
     const el = document.createElement('article');
     el.className = `card-item ${treatmentClass}`;
@@ -990,9 +995,9 @@
       </div>
       <div class="card-element-bar" aria-hidden="true"></div>`;
 
-    el.addEventListener('click', () => openModal(card));
+    el.addEventListener('click', () => openModal(card, index));
     el.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(card); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(card, index); }
     });
     return el;
   }
@@ -1170,12 +1175,17 @@
     if (_zoomAbort) { _zoomAbort.abort(); _zoomAbort = null; }
   }
 
-  function openModal(card) {
+  function openModal(card, index = -1) {
     modalContent.innerHTML = buildModalContent(card);
     modalOverlay.hidden = false;
     document.body.style.overflow = 'hidden';
     modalCloseBtn.focus();
     initZoom();
+
+    // Track position in filteredCards for prev/next navigation
+    currentModalIndex = index >= 0 ? index : filteredCards.findIndex(c => c.cardNumber === card.cardNumber && c.hero === card.hero);
+    modalNavPrev.hidden = currentModalIndex <= 0;
+    modalNavNext.hidden = currentModalIndex < 0 || currentModalIndex >= filteredCards.length - 1;
 
     // Wire "Add to Collection" button
     modalContent.querySelector('[data-action="add-to-collection"]')
@@ -1560,11 +1570,38 @@
       </div>`;
   }
 
+  function navigateModal(dir) {
+    const next = currentModalIndex + dir;
+    if (next < 0 || next >= filteredCards.length) return;
+    openModal(filteredCards[next], next);
+  }
+
+  modalNavPrev.addEventListener('click', () => navigateModal(-1));
+  modalNavNext.addEventListener('click', () => navigateModal(+1));
+
   modalCloseBtn.addEventListener('click', closeModal);
   modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !modalOverlay.hidden) closeModal();
+    if (modalOverlay.hidden) return;
+    if (e.key === 'Escape') { closeModal(); return; }
+    if (e.key === 'ArrowLeft')  { navigateModal(-1); return; }
+    if (e.key === 'ArrowRight') { navigateModal(+1); return; }
   });
+
+  // Touch swipe navigation inside the modal
+  let _touchStartX = 0, _touchStartY = 0;
+  modalOverlay.addEventListener('touchstart', (e) => {
+    _touchStartX = e.touches[0].clientX;
+    _touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  modalOverlay.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - _touchStartX;
+    const dy = e.changedTouches[0].clientY - _touchStartY;
+    // Only navigate on clearly horizontal swipes (dx > 60px, more horizontal than vertical)
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      navigateModal(dx < 0 ? +1 : -1);
+    }
+  }, { passive: true });
 
   // Fired by collection detail when a variation tile is tapped
   document.addEventListener('open-card-by-number', ({ detail: { cardNumber } }) => {

@@ -1,11 +1,35 @@
 import SwiftUI
 
 struct CardDetailView: View {
-    let card: Card
+    // The card passed on init; navigation within the sheet updates `card` via state.
+    private let initialCard: Card
+    // Optional list of cards to swipe through (e.g. the current search results).
+    // Empty = no prev/next navigation shown.
+    var navigationCards: [Card] = []
+
     @Environment(\.dismiss) private var dismiss
     @Environment(AuthManager.self) private var auth
     @Environment(CollectionStore.self) private var collection
     @Environment(CardStore.self) private var cardStore
+
+    // The card currently being displayed — may change via prev/next navigation.
+    @State private var card: Card
+
+    // Zoom state (reset on card change)
+    @State private var scale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @GestureState private var dragDelta: CGSize = .zero
+    @GestureState private var pinchDelta: CGFloat = 1.0
+    @State private var showingAddSheet = false
+    @State private var showingSignIn = false
+    @State private var showSealedEbay = false
+    @State private var showSealedRadish = false
+
+    init(card: Card, navigationCards: [Card] = []) {
+        self.initialCard = card
+        self.navigationCards = navigationCards
+        _card = State(initialValue: card)
+    }
 
     // Other card_numbers with the same hero (same pattern as CollectionCardDetailView)
     private var variations: [Card] {
@@ -19,17 +43,12 @@ struct CardDetailView: View {
             }
     }
 
-    // Zoom state
-    @State private var scale: CGFloat = 1.0
-    @State private var offset: CGSize = .zero
-    @GestureState private var dragDelta: CGSize = .zero
-    @GestureState private var pinchDelta: CGFloat = 1.0
-    @State private var showingAddSheet = false
-    @State private var showingSignIn = false
-    @State private var showSealedEbay = false
-    @State private var showSealedRadish = false
-
     private var effectiveScale: CGFloat { (scale * pinchDelta).clamped(to: 1...6) }
+
+    // Index of the current card in the navigation list (-1 if not navigable)
+    private var navIndex: Int {
+        navigationCards.firstIndex { $0.cardNumber == card.cardNumber && $0.hero == card.hero } ?? -1
+    }
 
     private var collectionStatusIcon: String? {
         if collection.isOwned(card.cardNumber) { return "checkmark.circle.fill" }
@@ -42,6 +61,16 @@ struct CardDetailView: View {
     private var cardShareURL: URL? {
         let encoded = card.cardNumber.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? card.cardNumber
         return URL(string: "https://bhwilkoff.github.io/BOBA-Playbook/?card=\(encoded)")
+    }
+
+    private func navigateCard(by offset: Int) {
+        let i = navIndex + offset
+        guard i >= 0, i < navigationCards.count else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            card = navigationCards[i]
+            scale = 1.0
+            self.offset = .zero
+        }
     }
 
     var body: some View {
@@ -89,9 +118,39 @@ struct CardDetailView: View {
                         }
                     }
                 }
+                // Prev/Next navigation in the bottom toolbar — only when navigation list is available
+                if navIndex >= 0 {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button {
+                            navigateCard(by: -1)
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(navIndex > 0 ? Design.Colors.bobaOrange : Design.Colors.textMuted)
+                        }
+                        .disabled(navIndex <= 0)
+                    }
+                    ToolbarItem(placement: .bottomBar) {
+                        Text("\(navIndex + 1) / \(navigationCards.count)")
+                            .font(Design.Fonts.mono(12))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
+                    ToolbarItem(placement: .bottomBar) {
+                        Button {
+                            navigateCard(by: +1)
+                        } label: {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(navIndex < navigationCards.count - 1 ? Design.Colors.bobaOrange : Design.Colors.textMuted)
+                        }
+                        .disabled(navIndex >= navigationCards.count - 1)
+                    }
+                }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(.regularMaterial, for: .bottomBar)
+            .toolbarBackground(navIndex >= 0 ? .visible : .hidden, for: .bottomBar)
             .sheet(isPresented: $showingAddSheet) {
                 AddToCollectionSheet(card: card)
             }

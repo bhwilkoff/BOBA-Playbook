@@ -625,11 +625,17 @@
   function computeResults() {
     let resultNums = null; // null = "all cards"
 
+    // Hero names matched by text tokens — used to filter variants on expansion.
+    // Only populated when a token is determined to be a hero-name search.
+    const heroQueryFilter = new Set();
+
     // Text search
-    const q = filters.query.trim().toLowerCase();
+    // Normalize dashes to spaces so card numbers like "CBF-656" tokenize correctly.
+    const q = filters.query.trim().toLowerCase().replace(/-/g, ' ');
     if (q) {
       const tokens = q.split(/\s+/).filter(Boolean);
       for (const token of tokens) {
+        // Collect tokenIndex prefix matches
         const matches = new Set();
         for (const key in searchIndex.tokenIndex) {
           if (key.startsWith(token)) {
@@ -638,6 +644,31 @@
             }
           }
         }
+
+        // Hero-name detection: if this token primarily resolves to hero names
+        // (byHero prefix matches cover ≥60% of tokenIndex matches), treat it as
+        // a hero search and restrict results to those hero cards.  This prevents
+        // multi-hero association cards from showing under the wrong hero.
+        // Tokens where byHero coverage is low (e.g. "fire" → element term) are
+        // left alone so element-style text searches still work normally.
+        if (token.length >= 3 && matches.size > 0) {
+          const matchingHeroes = [];
+          const heroCardSet = new Set();
+          for (const hero of Object.keys(searchIndex.byHero)) {
+            if (hero.toLowerCase().startsWith(token)) {
+              matchingHeroes.push(hero);
+              for (const num of searchIndex.byHero[hero]) {
+                heroCardSet.add(String(num));
+              }
+            }
+          }
+          if (matchingHeroes.length > 0 && heroCardSet.size >= matches.size * 0.6) {
+            for (const hero of matchingHeroes) heroQueryFilter.add(hero);
+            resultNums = resultNums === null ? heroCardSet : intersect(resultNums, heroCardSet);
+            continue;
+          }
+        }
+
         resultNums = resultNums === null ? matches : intersect(resultNums, matches);
       }
       if (resultNums !== null && resultNums.size === 0) return [];
@@ -680,11 +711,19 @@
       return displayCards;
     }
 
-    // Expand card numbers → all matching individual cards
+    // Expand card numbers → matching individual cards.
+    // When a hero search was detected, only include the variant(s) that match the
+    // searched hero so multi-hero cards don't appear under the wrong hero.
     const results = [];
     for (const num of resultNums) {
       const variants = cardsByNumber.get(num);
-      if (variants) results.push(...variants);
+      if (!variants) continue;
+      if (heroQueryFilter.size > 0) {
+        const heroVariants = variants.filter(v => heroQueryFilter.has(v.hero));
+        results.push(...heroVariants);
+      } else {
+        results.push(...variants);
+      }
     }
 
     // Power range filter applied per-card (cards sharing a number can have different power)
@@ -1150,17 +1189,38 @@
      PRICING
   ================================================================ */
   // Set name → Radish slug (mirrors iOS PricingSection.radishURL setMap)
+  // Includes all set name variants found in cards.json (short names, full names, slug forms)
   const SET_SLUG_MAP = {
-    'Alpha':                   ['2024', 'Alpha_Edition'],
-    'Alpha Blast':             ['2025', 'Alpha_Blast'],
-    'Alpha Update':            ['2025', 'Alpha_Update'],
-    'Griffey':                 ['2026', 'Griffey_Edition'],
-    'Battle Trainer Kit':      ['2024', 'Battle_Trainer_Kit'],
-    'National 24 Starter Set': ['2024', 'National_24_Starter_Set'],
-    'World Champions 2024':    ['2024', 'World_Champions'],
-    'World Champions 2025':    ['2025', 'World_Champions'],
-    'Promo Cards':             ['2025', 'Promo_Cards'],
-    'Big League Chew':         ['2025', 'Big_League_Chew'],
+    // Alpha Edition variants
+    'Alpha':                         ['2024', 'Alpha_Edition'],
+    'Alpha Edition':                 ['2024', 'Alpha_Edition'],
+    'alpha-edition':                 ['2024', 'Alpha_Edition'],
+    // Alpha Update variants
+    'Alpha Update':                  ['2025', 'Alpha_Update'],
+    'alpha-update':                  ['2025', 'Alpha_Update'],
+    'Alpha Blast':                   ['2025', 'Alpha_Blast'],
+    // Griffey Edition variants
+    'Griffey':                       ['2026', 'Griffey_Edition'],
+    'Griffey Edition':               ['2026', 'Griffey_Edition'],
+    'griffey-edition':               ['2026', 'Griffey_Edition'],
+    // National Show Starter Set variants
+    '2024 National Show Starter Set': ['2024', 'National_24_Starter_Set'],
+    "National '24":                  ['2024', 'National_24_Starter_Set'],
+    'National 24 Starter Set':       ['2024', 'National_24_Starter_Set'],
+    // World Champions variants
+    'World Champions':               ['2024', 'World_Champions'],
+    'world-champions':               ['2024', 'World_Champions'],
+    'World Champions 2024':          ['2024', 'World_Champions'],
+    'World Champions 2025':          ['2025', 'World_Champions'],
+    // Other sets
+    'Battle Trainer Kit':            ['2024', 'Battle_Trainer_Kit'],
+    'Superfan Series':               ['2024', 'Alpha_Edition'],
+    'Tecmo Bowl Edition':            ['2025', 'Tecmo_Bowl'],
+    'tecmo-bowl':                    ['2025', 'Tecmo_Bowl'],
+    'Promo Cards':                   ['2025', 'Promo_Cards'],
+    'Big League Chew':               ['2025', 'Big_League_Chew'],
+    'big-league-chew':               ['2025', 'Big_League_Chew'],
+    'sandstorm':                     ['2025', 'Sandstorm'],
   };
 
   function buildEbayUrl(card) {

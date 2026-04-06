@@ -233,17 +233,38 @@ struct PricingSection: View {
         for (ours, theirs) in prefixMap {
             if cardNum.hasPrefix(ours + "-") { cardNum = theirs + cardNum.dropFirst(ours.count); break }
         }
+        // Includes all set name variants found in cards.json (short names, full names, slug forms)
         let setMap: [String: (year: String, slug: String)] = [
-            "Alpha":                   ("2024", "Alpha_Edition"),
-            "Alpha Blast":             ("2025", "Alpha_Blast"),
-            "Alpha Update":            ("2025", "Alpha_Update"),
-            "Griffey":                 ("2026", "Griffey_Edition"),
-            "Battle Trainer Kit":      ("2024", "Battle_Trainer_Kit"),
-            "National 24 Starter Set": ("2024", "National_24_Starter_Set"),
-            "World Champions 2024":    ("2024", "World_Champions"),
-            "World Champions 2025":    ("2025", "World_Champions"),
-            "Promo Cards":             ("2025", "Promo_Cards"),
-            "Big League Chew":         ("2025", "Big_League_Chew"),
+            // Alpha Edition variants
+            "Alpha":                          ("2024", "Alpha_Edition"),
+            "Alpha Edition":                  ("2024", "Alpha_Edition"),
+            "alpha-edition":                  ("2024", "Alpha_Edition"),
+            // Alpha Update variants
+            "Alpha Update":                   ("2025", "Alpha_Update"),
+            "alpha-update":                   ("2025", "Alpha_Update"),
+            "Alpha Blast":                    ("2025", "Alpha_Blast"),
+            // Griffey Edition variants
+            "Griffey":                        ("2026", "Griffey_Edition"),
+            "Griffey Edition":                ("2026", "Griffey_Edition"),
+            "griffey-edition":                ("2026", "Griffey_Edition"),
+            // National Show Starter Set variants
+            "2024 National Show Starter Set": ("2024", "National_24_Starter_Set"),
+            "National '24":                   ("2024", "National_24_Starter_Set"),
+            "National 24 Starter Set":        ("2024", "National_24_Starter_Set"),
+            // World Champions variants
+            "World Champions":                ("2024", "World_Champions"),
+            "world-champions":                ("2024", "World_Champions"),
+            "World Champions 2024":           ("2024", "World_Champions"),
+            "World Champions 2025":           ("2025", "World_Champions"),
+            // Other sets
+            "Battle Trainer Kit":             ("2024", "Battle_Trainer_Kit"),
+            "Superfan Series":                ("2024", "Alpha_Edition"),
+            "Tecmo Bowl Edition":             ("2025", "Tecmo_Bowl"),
+            "tecmo-bowl":                     ("2025", "Tecmo_Bowl"),
+            "Promo Cards":                    ("2025", "Promo_Cards"),
+            "Big League Chew":                ("2025", "Big_League_Chew"),
+            "big-league-chew":                ("2025", "Big_League_Chew"),
+            "sandstorm":                      ("2025", "Sandstorm"),
         ]
         let (year, slug) = setMap[card.set] ?? ("2024", "Alpha_Edition")
         let hero = card.hero.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? card.hero

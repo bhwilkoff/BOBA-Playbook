@@ -5,6 +5,19 @@ struct CardDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AuthManager.self) private var auth
     @Environment(CollectionStore.self) private var collection
+    @Environment(CardStore.self) private var cardStore
+
+    // Other card_numbers with the same hero (same pattern as CollectionCardDetailView)
+    private var variations: [Card] {
+        cardStore.displayCards
+            .filter { $0.hero == card.hero && $0.cardNumber != card.cardNumber }
+            .sorted {
+                let lImg = $0.imageFile != nil && !$0.imageFile!.isEmpty
+                let rImg = $1.imageFile != nil && !$1.imageFile!.isEmpty
+                if lImg != rImg { return lImg }
+                return ($0.set, $0.treatment ?? "") < ($1.set, $1.treatment ?? "")
+            }
+    }
 
     // Zoom state
     @State private var scale: CGFloat = 1.0
@@ -274,8 +287,50 @@ struct CardDetailView: View {
             Divider().background(Design.Colors.glassBorder)
 
             PricingSection(card: card)
+
+            if !variations.isEmpty {
+                variationsSection
+            }
         }
         .padding(Design.Spacing.lg)
+    }
+
+    // MARK: - Other Versions section
+
+    private var variationsSection: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.md) {
+            Text("OTHER VERSIONS (\(variations.count))")
+                .font(Design.Fonts.mono(9, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+                .tracking(1.5)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Design.Spacing.md) {
+                    ForEach(variations, id: \.cardNumber) { variant in
+                        NavigationLink(destination: CardDetailView(card: variant)) {
+                            VStack(spacing: Design.Spacing.xs) {
+                                CardImageView(card: variant, size: .thumb)
+                                    .frame(width: 80, height: 112)
+                                    .clipShape(RoundedRectangle(cornerRadius: Design.Radius.sm))
+
+                                Text(variant.treatment ?? variant.set)
+                                    .font(Design.Fonts.mono(9))
+                                    .foregroundStyle(Design.Colors.textMuted)
+                                    .lineLimit(1)
+                                    .frame(width: 80)
+
+                                let owned = collection.isOwned(variant.cardNumber)
+                                let wanted = collection.isWanted(variant.cardNumber)
+                                if owned || wanted {
+                                    Image(systemName: owned ? "checkmark.circle.fill" : "star.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(owned ? .green : Design.Colors.bobaOrange)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Sealed product info panel

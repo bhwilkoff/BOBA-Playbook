@@ -43,6 +43,7 @@ actor PricingService {
                  set: String,
                  element: String,
                  power: Int?,
+                 radishUrl: String?,
                  days: Int) async throws -> PricingResult {
         let key = "\(hero)_\(cardNumber)_\(days)"
         if let cached = cache[key], Date().timeIntervalSince(cached.fetchedAt) < cacheLifetime {
@@ -60,7 +61,8 @@ actor PricingService {
             URLQueryItem(name: "element",    value: element),
             URLQueryItem(name: "days",       value: "\(days)"),
         ]
-        if let power { queryItems.append(URLQueryItem(name: "power", value: "\(power)")) }
+        if let power     { queryItems.append(URLQueryItem(name: "power",     value: "\(power)")) }
+        if let radishUrl { queryItems.append(URLQueryItem(name: "radishUrl", value: radishUrl)) }
         components?.queryItems = queryItems
         guard let url = components?.url else { throw PricingError.notConfigured }
 

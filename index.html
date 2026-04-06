@@ -282,6 +282,47 @@
 
           <!-- ROOKIE -->
           <div id="rules-rookie" class="rules-content">
+            <div class="rules-callout" style="border-left-color:var(--boba-orange);background:rgba(255,77,0,0.07)">
+              <span class="rules-callout-label" style="color:var(--boba-orange)">Rookie Mode</span>
+              <span class="rules-callout-detail">Hero Deck (60 cards) · Pure power comparison · No substitutions · No Play cards</span>
+            </div>
+
+            <div class="battle-scenario">
+              <div class="scenario-header">
+                <div class="scenario-title">Example Battle</div>
+                <div class="scenario-sub">Both players flip their Hero — higher Power wins</div>
+              </div>
+              <div class="scenario-cards">
+                <div class="mini-card win">
+                  <div class="mini-card-img">
+                    <img src="https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/2_Showtime_Ice_P135.webp" alt="Showtime" loading="lazy">
+                  </div>
+                  <div class="mini-card-name">Showtime</div>
+                  <div class="mini-card-stats">
+                    <span class="mini-card-el" style="color:var(--el-ICE)">ICE</span>
+                    <span class="mini-card-sep">·</span>
+                    <span class="mini-card-power win-power">135</span>
+                  </div>
+                </div>
+                <div class="scenario-vs">VS</div>
+                <div class="mini-card lose">
+                  <div class="mini-card-img">
+                    <img src="https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/96_Kettle-Bell_ICE_P110.webp" alt="Kettle-Bell" loading="lazy">
+                  </div>
+                  <div class="mini-card-name">Kettle-Bell</div>
+                  <div class="mini-card-stats">
+                    <span class="mini-card-el" style="color:var(--el-ICE)">ICE</span>
+                    <span class="mini-card-sep">·</span>
+                    <span class="mini-card-power lose-power">110</span>
+                  </div>
+                </div>
+              </div>
+              <div class="scenario-result win">
+                <svg class="scenario-result-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Showtime wins — 135 &gt; 110. Honors passes to the Showtime player for the next battle.
+              </div>
+            </div>
+
             <div class="rules-section">
               <h3 class="rules-section-heading">Goal</h3>
               <p>Best-of-7 Battles. Higher Power wins each Battle. First player to win 4 Battles wins the game. A game can end as early as Battle 4 (4–0 sweep).</p>
@@ -309,8 +350,78 @@
           <div id="rules-substitution" class="rules-content" hidden>
             <div class="rules-callout">
               <span class="rules-callout-label">Substitution adds:</span>
-              <span class="rules-callout-detail">Hot Dog Deck (10 cards)</span>
+              <span class="rules-callout-detail">Hero Deck (60) · Hot Dog Deck (10 cards)</span>
             </div>
+
+            <div class="battle-scenario">
+              <div class="scenario-header">
+                <div class="scenario-title">Example Battle</div>
+                <div class="scenario-sub">Player B is badly outmatched — a substitution turns the tide</div>
+              </div>
+
+              <div class="scenario-phase">① Reveal</div>
+              <div class="scenario-cards">
+                <div class="mini-card">
+                  <div class="mini-card-img">
+                    <img src="https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/6_Matata_Steel_P130.webp" alt="Matata" loading="lazy">
+                  </div>
+                  <div class="mini-card-name">Matata</div>
+                  <div class="mini-card-stats">
+                    <span class="mini-card-el" style="color:var(--el-STEEL)">STEEL</span>
+                    <span class="mini-card-sep">·</span>
+                    <span class="mini-card-power">130</span>
+                  </div>
+                </div>
+                <div class="scenario-vs">VS</div>
+                <div class="mini-card lose">
+                  <div class="mini-card-img">
+                    <img src="https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/175_D-Hop_Steel_P85.webp" alt="D-Hop" loading="lazy">
+                  </div>
+                  <div class="mini-card-name">D-Hop</div>
+                  <div class="mini-card-stats">
+                    <span class="mini-card-el" style="color:var(--el-STEEL)">STEEL</span>
+                    <span class="mini-card-sep">·</span>
+                    <span class="mini-card-power lose-power">85</span>
+                  </div>
+                </div>
+              </div>
+              <div class="scenario-result sub">
+                <svg class="scenario-result-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFD700" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16"/></svg>
+                Player B substitutes — Pays 2 Hot Dogs · Removes D-Hop · Plays LeBoss from hand
+              </div>
+
+              <div class="scenario-phase">④ Resolve</div>
+              <div class="scenario-cards">
+                <div class="mini-card lose">
+                  <div class="mini-card-img">
+                    <img src="https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/6_Matata_Steel_P130.webp" alt="Matata" loading="lazy">
+                  </div>
+                  <div class="mini-card-name">Matata</div>
+                  <div class="mini-card-stats">
+                    <span class="mini-card-el" style="color:var(--el-STEEL)">STEEL</span>
+                    <span class="mini-card-sep">·</span>
+                    <span class="mini-card-power lose-power">130</span>
+                  </div>
+                </div>
+                <div class="scenario-vs">VS</div>
+                <div class="mini-card win">
+                  <div class="mini-card-img">
+                    <img src="https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/1_LeBoss_Fire_P135.webp" alt="LeBoss" loading="lazy">
+                  </div>
+                  <div class="mini-card-name">LeBoss</div>
+                  <div class="mini-card-stats">
+                    <span class="mini-card-el" style="color:var(--el-FIRE)">FIRE</span>
+                    <span class="mini-card-sep">·</span>
+                    <span class="mini-card-power win-power">135</span>
+                  </div>
+                </div>
+              </div>
+              <div class="scenario-result win">
+                <svg class="scenario-result-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                LeBoss wins — 135 &gt; 130. A sub flipped a 45-point deficit into a 5-point win at the cost of 2 Hot Dogs.
+              </div>
+            </div>
+
             <div class="rules-section">
               <h3 class="rules-section-heading">Additional Setup</h3>
               <ul class="rules-list">
@@ -338,10 +449,92 @@
 
           <!-- PLAYMAKER -->
           <div id="rules-playmaker" class="rules-content" hidden>
-            <div class="rules-callout">
-              <span class="rules-callout-label">Playmaker adds:</span>
-              <span class="rules-callout-detail">Playbook (30 unique Play cards)</span>
+            <div class="rules-callout" style="border-left-color:var(--boba-cyan);background:rgba(0,245,255,0.06)">
+              <span class="rules-callout-label" style="color:var(--boba-cyan)">Playmaker adds:</span>
+              <span class="rules-callout-detail">Hero Deck (60) · Hot Dog Deck (10) · Playbook (30 unique Play cards)</span>
             </div>
+
+            <div class="battle-scenario">
+              <div class="scenario-header">
+                <div class="scenario-title">Example Battle</div>
+                <div class="scenario-sub">Player A is losing — a Play card swings the battle</div>
+              </div>
+
+              <div class="scenario-phase">① Reveal</div>
+              <div class="scenario-cards">
+                <div class="mini-card lose">
+                  <div class="mini-card-img">
+                    <img src="https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/185_Crosbow_BRAWL_P120.webp" alt="Crosbow" loading="lazy">
+                  </div>
+                  <div class="mini-card-name">Crosbow</div>
+                  <div class="mini-card-stats">
+                    <span class="mini-card-el" style="color:var(--el-BRAWL)">BRAWL</span>
+                    <span class="mini-card-sep">·</span>
+                    <span class="mini-card-power lose-power">120</span>
+                  </div>
+                </div>
+                <div class="scenario-vs">VS</div>
+                <div class="mini-card win">
+                  <div class="mini-card-img">
+                    <img src="https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/24_Caliber_STEEL_P135.webp" alt="Caliber" loading="lazy">
+                  </div>
+                  <div class="mini-card-name">Caliber</div>
+                  <div class="mini-card-stats">
+                    <span class="mini-card-el" style="color:var(--el-STEEL)">STEEL</span>
+                    <span class="mini-card-sep">·</span>
+                    <span class="mini-card-power win-power">135</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="scenario-phase">③ Play Window — Player A plays a card</div>
+              <div class="scenario-play-card">
+                <div class="scenario-play-art">
+                  <span class="scenario-play-art-icon">⚡</span>
+                  <span class="scenario-play-art-label">PLAY</span>
+                </div>
+                <div class="scenario-play-details">
+                  <div class="scenario-play-name">Buff Up 20</div>
+                  <div class="scenario-play-cost">Cost: <strong>2 Hot Dogs</strong></div>
+                  <div class="scenario-play-effect">+20 Power to your Hero this battle.</div>
+                  <div class="scenario-play-calc">Crosbow: 120 + 20 = 140 effective power</div>
+                </div>
+              </div>
+
+              <div class="scenario-phase">④ Resolve</div>
+              <div class="scenario-cards">
+                <div class="mini-card win">
+                  <div class="mini-card-img">
+                    <img src="https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/185_Crosbow_BRAWL_P120.webp" alt="Crosbow" loading="lazy">
+                  </div>
+                  <div class="mini-card-name">Crosbow</div>
+                  <div class="mini-card-stats">
+                    <div class="scenario-power-updated">
+                      <span class="scenario-power-old">120</span>
+                      <span class="scenario-power-arrow">→</span>
+                      <span class="scenario-power-new">140</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="scenario-vs">VS</div>
+                <div class="mini-card lose">
+                  <div class="mini-card-img">
+                    <img src="https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/24_Caliber_STEEL_P135.webp" alt="Caliber" loading="lazy">
+                  </div>
+                  <div class="mini-card-name">Caliber</div>
+                  <div class="mini-card-stats">
+                    <span class="mini-card-el" style="color:var(--el-STEEL)">STEEL</span>
+                    <span class="mini-card-sep">·</span>
+                    <span class="mini-card-power lose-power">135</span>
+                  </div>
+                </div>
+              </div>
+              <div class="scenario-result play">
+                <svg class="scenario-result-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--boba-cyan)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Crosbow wins — 140 &gt; 135. A 2-Hot-Dog Play turned a 15-point deficit into a 5-point win.
+              </div>
+            </div>
+
             <div class="rules-section">
               <h3 class="rules-section-heading">Additional Setup</h3>
               <ul class="rules-list">
@@ -550,6 +743,7 @@
                   <div class="archetype-name">Fire Aggro</div>
                 </div>
                 <p class="archetype-tagline">Stack Fire synergies early; lock opponents with Flame Wall.</p>
+                <p class="archetype-strategy">Establish Fire Boost and Fire Crew for a persistent +10 power bump on every FIRE Hero. Flame Wall prevents the opponent from neutralizing your type advantage. Close games with Burning Fever and Eternal Flame. Requires a deep FIRE Hero roster.</p>
                 <div class="archetype-key-plays">
                   <span class="archetype-label">Key Plays</span>
                   <div class="archetype-plays-list">Fire Boost · Fire Crew · Flame Wall · Burning Fever · Eternal Flame · Smitty</div>
@@ -566,6 +760,7 @@
                   <div class="archetype-name">Ice Control</div>
                 </div>
                 <p class="archetype-tagline">Deny substitutions; protect your Heroes behind layers of ice.</p>
+                <p class="archetype-strategy">Icy Shield and Unbreakable Ice make Heroes impossible to substitute against. Frozen Lineup locks opponent Heroes in place. ICE Control wins through attrition — be patient, preserve Hot Dogs, and outlast your opponent over 7 battles.</p>
                 <div class="archetype-key-plays">
                   <span class="archetype-label">Key Plays</span>
                   <div class="archetype-plays-list">Ice Boost · Ice Crew · Icy Shield · Frozen Resolve · Frozen Lineup · Unbreakable Ice</div>
@@ -582,6 +777,7 @@
                   <div class="archetype-name">Steel Wall</div>
                 </div>
                 <p class="archetype-tagline">Layer Steel protections to make Heroes nearly invulnerable.</p>
+                <p class="archetype-strategy">Stack Steel Defense, Shield, and Chrome Will until opponents can't remove your Heroes effectively. Steel Cage prevents removal entirely. Mid-range STEEL Heroes become formidable threats with enough protection stacked.</p>
                 <div class="archetype-key-plays">
                   <span class="archetype-label">Key Plays</span>
                   <div class="archetype-plays-list">Steel Boost · Steel Crew · Steel Defense · Steel Shield · Chrome Will · Steel Cage</div>
@@ -598,6 +794,7 @@
                   <div class="archetype-name">Mixed Toolbox</div>
                 </div>
                 <p class="archetype-tagline">Adapt to any opponent; maximum flexibility, no single weakness.</p>
+                <p class="archetype-strategy">Weapon-agnostic Plays adapt to any matchup. Edge Rush and Deadline Deal let you react to any power level. Brothers In Arms rewards diverse Hero rosters. No weakness to weapon-specific hate, but also no dominant synergy engine.</p>
                 <div class="archetype-key-plays">
                   <span class="archetype-label">Key Plays</span>
                   <div class="archetype-plays-list">Weapon Mixer · Weapon Tangle · Brothers In Arms · Different Leagues · Edge Rush</div>
@@ -614,6 +811,7 @@
                   <div class="archetype-name">Economy / Attrition</div>
                 </div>
                 <p class="archetype-tagline">Recover Hot Dogs faster than your opponent can spend them.</p>
+                <p class="archetype-strategy">Continuously refresh your Hot Dog supply while draining your opponent's. Bun Shortage limits their recovery. Mutually Assured Dogstruction resets both piles — play it when you're already low to equalize. Win in the late game when they're resource-starved.</p>
                 <div class="archetype-key-plays">
                   <span class="archetype-label">Key Plays</span>
                   <div class="archetype-plays-list">Trash Bandit · Victory Dinner · Make Up Meal · Too Full To Fight · Bun Shortage · Mutually Assured Dogstruction</div>

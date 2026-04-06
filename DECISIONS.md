@@ -88,6 +88,16 @@ Generic deckbuilding advice, archetype templates (Fire Aggro, Ice Control, Steel
 
 **Consequences**: Supabase will need a `decks` table and `deck_cards` table (already scaffolded in `supabase_schema.sql` from M0). iOS will use the existing `SupabaseClient` pattern. Web will use the existing `API` wrapper in `js/api.js`. Unauthenticated users can browse templates but see a sign-in prompt if they try to save a custom deck.
 
+## 022 — SwiftUI ScrollView Horizontal Rubber Banding: VStack Must Have frame(maxWidth: .infinity)
+*2026-04-06*
+Any `VStack` that is the direct parent of a `ScrollView` (or that contains a `ScrollView`) must have `.frame(maxWidth: .infinity)` applied to it, or the ScrollView will receive a variable proposed width based on its content rather than the available screen width. This causes horizontal rubber banding in vertical-only ScrollViews when different child content has different natural widths.
+
+**Root cause**: SwiftUI's VStack without an explicit frame sizes itself to the maximum of its children's natural (ideal) widths. When a ScrollView lives inside such a VStack, SwiftUI's layout engine derives the ScrollView's proposed width from the VStack's content-dependent natural width. Different content in different modes (e.g. Rookie mode content = 228pt natural width, Substitution mode content = 361pt) causes the ScrollView to receive different proposed widths per mode. GeometryReader diagnostics confirmed that static shared views (`StaticBattleFlowView`, `CardZonesSection`, `DeckbuildingSection`) reported different widths across modes even though their code is identical — proof that the proposed width was changing per mode, not the views themselves.
+
+**Fix**: Add `.frame(maxWidth: .infinity)` to the VStack that wraps the mode picker + ScrollView in `RulesView`. This forces the VStack to always fill the full available width from its parent (NavigationStack), giving the ScrollView a stable, constant proposed width regardless of which mode's content is displayed.
+
+**Rule**: Any `VStack` used as a top-level container for a tab/page view (where its children switch content via a `switch` statement or conditional) must have `.frame(maxWidth: .infinity)`. Without it, content-dependent width sizing causes inconsistent ScrollView layout.
+
 ## 020 — Web Layout: Body Flex Column, No viewport-fit=cover
 *2026-04-04*
 `body { height: 100dvh; display: flex; flex-direction: column; overflow: hidden }` with `main { flex: 1; overflow-y: auto; min-height: 0 }`. The body does not scroll — content scrolls inside `main`. The mobile header is the first flex item (`flex-shrink: 0; position: relative`).

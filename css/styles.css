@@ -2869,6 +2869,280 @@ main {
   margin-bottom: var(--sp-5);
 }
 
+/* ── Battle Scenarios ── */
+.battle-scenario {
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 10px;
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-4);
+}
+
+.scenario-header {
+  margin-bottom: var(--sp-3);
+}
+
+.scenario-title {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--boba-text-dim);
+  margin-bottom: 3px;
+}
+
+.scenario-sub {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--boba-text-2);
+  line-height: 1.4;
+}
+
+.scenario-phase {
+  font-family: var(--font-mono);
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--boba-text-dim);
+  margin-bottom: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+.scenario-cards {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--sp-5);
+  margin-bottom: var(--sp-3);
+}
+
+.scenario-vs {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  color: var(--boba-text-dim);
+  padding-bottom: 30px;
+}
+
+.mini-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 80px;
+}
+
+.mini-card-img {
+  width: 80px;
+  height: 112px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1.5px solid var(--boba-glass-border);
+}
+
+.mini-card.win .mini-card-img {
+  border: 2.5px solid #4CAF50;
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.45);
+}
+
+.mini-card.lose .mini-card-img {
+  border: 2.5px solid rgba(192, 57, 43, 0.8);
+}
+
+.mini-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mini-card-img-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  background: var(--boba-surface-2);
+}
+
+.mini-card-name {
+  font-family: var(--font-mono);
+  font-size: 0.63rem;
+  font-weight: 700;
+  color: var(--boba-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+  text-align: center;
+}
+
+.mini-card-stats {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.mini-card-el {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
+.mini-card-sep {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--boba-text-dim);
+}
+
+.mini-card-power {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--boba-text);
+}
+
+.mini-card-power.win-power  { color: #4CAF50; }
+.mini-card-power.lose-power { color: #C0392B; }
+
+.scenario-result {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--boba-text-2);
+  line-height: 1.5;
+  margin-top: var(--sp-2);
+}
+
+.scenario-result.win {
+  background: rgba(76, 175, 80, 0.07);
+  border: 1px solid rgba(76, 175, 80, 0.25);
+}
+
+.scenario-result.sub {
+  background: rgba(255, 215, 0, 0.07);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.scenario-result.play {
+  background: rgba(0, 245, 255, 0.06);
+  border: 1px solid rgba(0, 245, 255, 0.25);
+}
+
+.scenario-result-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.scenario-play-card {
+  display: flex;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  background: rgba(139, 0, 255, 0.06);
+  border: 1px solid rgba(139, 0, 255, 0.25);
+  border-radius: 8px;
+  margin-bottom: var(--sp-2);
+}
+
+.scenario-play-art {
+  width: 52px;
+  height: 72px;
+  border-radius: 6px;
+  background: rgba(139, 0, 255, 0.14);
+  border: 1.5px solid rgba(139, 0, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.scenario-play-art-icon {
+  font-size: 1rem;
+}
+
+.scenario-play-art-label {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 700;
+  color: #8B00FF;
+  letter-spacing: 0.08em;
+}
+
+.scenario-play-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.scenario-play-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: #8B00FF;
+}
+
+.scenario-play-cost {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--boba-text-dim);
+}
+
+.scenario-play-cost strong { color: #FFD700; }
+
+.scenario-play-effect {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--boba-text-2);
+  line-height: 1.4;
+}
+
+.scenario-play-calc {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--boba-cyan);
+}
+
+.scenario-power-updated {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.scenario-power-old {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  color: var(--boba-text-dim);
+  text-decoration: line-through;
+}
+
+.scenario-power-arrow {
+  font-size: 0.7rem;
+  color: var(--boba-cyan);
+}
+
+.scenario-power-new {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: #4CAF50;
+}
+
+/* ── Archetype strategy paragraph ── */
+.archetype-strategy {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--boba-text-2);
+  margin: 0;
+}
+
 /* ── Callout banner (Substitution / Playmaker "adds:") ── */
 .rules-callout {
   display: flex;

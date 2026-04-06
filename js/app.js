@@ -1208,6 +1208,16 @@
         }
       });
 
+    // Wire "Other Versions" tile clicks
+    modalContent.querySelectorAll('[data-version-card]').forEach(tile => {
+      tile.addEventListener('click', () => {
+        const num = tile.dataset.versionCard;
+        const vCard = displayCards.find(c => String(c.cardNumber) === num && c.hero === card.hero)
+          ?? displayCards.find(c => String(c.cardNumber) === num);
+        if (vCard) openModal(vCard);
+      });
+    });
+
     // Load live pricing (skip for sealed products — they have their own links)
     if (card.cardType !== 'Sealed Product') loadPricing(card);
   }
@@ -1388,6 +1398,38 @@
     document.body.style.overflow = '';
   }
 
+  function buildVersionsSection(card) {
+    // Skip for sealed products and for cards without a hero
+    if (card.cardType === 'Sealed Product' || !card.hero) return '';
+
+    const versions = displayCards.filter(c =>
+      c.hero === card.hero &&
+      String(c.cardNumber) !== String(card.cardNumber) &&
+      c.cardType !== 'Sealed Product'
+    );
+    if (versions.length === 0) return '';
+
+    const tilesHtml = versions.map(v => {
+      const thumbSrc = v.imageFile ? API.cardThumbUrl(v) : null;
+      const label = escHtml(v.treatment || v.set || v.cardNumber);
+      const thumb = thumbSrc
+        ? `<img class="version-thumb" src="${escHtml(thumbSrc)}" alt="${escHtml(v.name)}" loading="lazy">`
+        : `<div class="version-thumb-placeholder" aria-hidden="true">NO IMG</div>`;
+      return `
+        <button class="version-tile" data-version-card="${escHtml(String(v.cardNumber))}"
+                aria-label="${escHtml(v.name)} — ${label}">
+          ${thumb}
+          <span class="version-label">${label}</span>
+        </button>`;
+    }).join('');
+
+    return `
+      <div class="other-versions">
+        <p class="other-versions-label">Other Versions (${versions.length})</p>
+        <div class="versions-scroll">${tilesHtml}</div>
+      </div>`;
+  }
+
   function buildModalContent(card) {
     const imgSrc = card.imageFile ? API.cardFullUrl(card) : null;
     const treatmentClass = getTreatmentClass(card.treatment);
@@ -1566,6 +1608,7 @@
             </button>
           </div>
           <div class="pricing-section" id="modal-pricing"></div>
+          ${buildVersionsSection(card)}
         </div>
       </div>`;
   }

@@ -24,6 +24,9 @@ struct CardDetailView: View {
     @State private var showingSignIn = false
     @State private var showSealedEbay = false
     @State private var showSealedRadish = false
+    @State private var shareItems: [Any] = []
+    @State private var showingShare = false
+    @State private var isPreparingShare = false
 
     init(card: Card, navigationCards: [Card] = []) {
         self.initialCard = card
@@ -61,6 +64,21 @@ struct CardDetailView: View {
     private var cardShareURL: URL? {
         let encoded = card.cardNumber.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? card.cardNumber
         return URL(string: "https://bhwilkoff.github.io/BOBA-Playbook/?card=\(encoded)")
+    }
+
+    private func prepareAndShare() async {
+        guard let shareURL = cardShareURL else { return }
+        isPreparingShare = true
+        defer { isPreparingShare = false }
+
+        var items: [Any] = [shareURL]
+        if let imageURL = CDN.fullURL(for: card),
+           let (data, _) = try? await URLSession.shared.data(from: imageURL),
+           let image = UIImage(data: data) {
+            items = [image, shareURL]
+        }
+        shareItems = items
+        showingShare = true
     }
 
     private func navigateCard(by offset: Int) {
@@ -101,22 +119,31 @@ struct CardDetailView: View {
                         if auth.isAuthenticated { showingAddSheet = true }
                         else { showingSignIn = true }
                     } label: {
-                        if let icon = collectionStatusIcon {
-                            Image(systemName: icon)
-                                .foregroundStyle(collection.isOwned(card.cardNumber) ? .green : Design.Colors.bobaOrange)
-                        } else {
-                            Image(systemName: "plus.circle")
-                                .foregroundStyle(Design.Colors.bobaOrange)
-                        }
+                        Image(systemName: collectionStatusIcon ?? "plus.circle")
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundStyle(
+                                collectionStatusIcon != nil
+                                    ? (collection.isOwned(card.cardNumber) ? Color.green : Design.Colors.bobaOrange)
+                                    : Design.Colors.bobaOrange
+                            )
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    if let shareURL = cardShareURL {
-                        ShareLink(item: shareURL) {
+                    Button {
+                        Task { await prepareAndShare() }
+                    } label: {
+                        if isPreparingShare {
+                            ProgressView()
+                                .tint(Design.Colors.bobaCyan)
+                                .scaleEffect(0.8)
+                                .frame(width: 17, height: 17)
+                        } else {
                             Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 17, weight: .medium))
                                 .foregroundStyle(Design.Colors.bobaCyan)
                         }
                     }
+                    .disabled(isPreparingShare)
                 }
                 // Prev/Next navigation in the bottom toolbar — only when navigation list is available
                 if navIndex >= 0 {
@@ -156,6 +183,9 @@ struct CardDetailView: View {
             }
             .sheet(isPresented: $showingSignIn) {
                 SignInView()
+            }
+            .sheet(isPresented: $showingShare) {
+                ActivityShareSheet(items: shareItems)
             }
             .sheet(isPresented: $showSealedEbay) {
                 if let url = sealedEbayURL { SafariView(url: url) }
@@ -634,4 +664,15 @@ extension Comparable {
     func clamped(to range: ClosedRange<Self>) -> Self {
         min(max(self, range.lowerBound), range.upperBound)
     }
+}
+
+// MARK: - Activity sheet wrapper
+import UIKit
+
+struct ActivityShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

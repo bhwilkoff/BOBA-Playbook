@@ -1232,7 +1232,8 @@
           hero:    card.hero    || '',
           set:     card.set     || '',
           element: card.element || '',
-          days:    String(days)
+          days:    String(days),
+          ...(card.power != null ? { power: String(card.power) } : {}),
         });
         const res  = await fetch(`${WORKER_URL}?${params}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

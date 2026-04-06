@@ -42,6 +42,7 @@ actor PricingService {
                  hero: String,
                  set: String,
                  element: String,
+                 power: Int?,
                  days: Int) async throws -> PricingResult {
         let key = "\(hero)_\(cardNumber)_\(days)"
         if let cached = cache[key], Date().timeIntervalSince(cached.fetchedAt) < cacheLifetime {
@@ -52,13 +53,15 @@ actor PricingService {
         guard !base.isEmpty else { throw PricingError.notConfigured }
 
         var components = URLComponents(string: base)
-        components?.queryItems = [
+        var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "cardNumber", value: cardNumber),
             URLQueryItem(name: "hero",       value: hero),
             URLQueryItem(name: "set",        value: set),
             URLQueryItem(name: "element",    value: element),
             URLQueryItem(name: "days",       value: "\(days)"),
         ]
+        if let power { queryItems.append(URLQueryItem(name: "power", value: "\(power)")) }
+        components?.queryItems = queryItems
         guard let url = components?.url else { throw PricingError.notConfigured }
 
         let (data, _) = try await URLSession.shared.data(from: url)

@@ -1811,10 +1811,6 @@
     const urlView = params.get('view');
     showView(viewIds.includes(urlView) ? urlView : 'search', true);
 
-    // Apply filter state from URL (search input, element, set, etc.) before load.
-    // UI controls may not be ready yet — applyURLParams guards against nulls.
-    applyURLParams(params);
-
     try {
       [cards, searchIndex, categories] = await Promise.all([
         API.loadCards(),
@@ -1838,7 +1834,9 @@
     buildElementFilters();
     buildSetFilter();
 
-    // Re-apply URL params now that filter UI is fully built (element pills, dropdowns).
+    // Apply URL params now that filter UI is fully built (element pills, dropdowns,
+    // and categories are all available). This is the single source of truth for
+    // restoring filter state on load or popstate navigation.
     applyURLParams(params);
 
     // Initial render respects any URL filter state.

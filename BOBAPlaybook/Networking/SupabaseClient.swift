@@ -345,6 +345,8 @@ struct UpdateUserCard: Encodable {
     var gradingCompany: String?
     var purchasePrice: Decimal?
     var askingPrice: Decimal?
+    var estimatedValue: Decimal?
+    var lastPriceCheck: Date?
     var notes: String?
 
     enum CodingKeys: String, CodingKey {
@@ -354,6 +356,8 @@ struct UpdateUserCard: Encodable {
         case gradingCompany = "grading_company"
         case purchasePrice  = "purchase_price"
         case askingPrice    = "asking_price"
+        case estimatedValue = "estimated_value"
+        case lastPriceCheck = "last_price_check"
         case notes
     }
 }

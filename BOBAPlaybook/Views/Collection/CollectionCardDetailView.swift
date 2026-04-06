@@ -14,6 +14,7 @@ struct CollectionCardDetailView: View {
     @State private var editingEntry: UserCard?
     @State private var showingAddSheet = false
     @State private var deleteError: String?
+    @State private var isRefreshingPrice = false
 
     private var catalogCard: Card? {
         cardStore.displayCards.first { $0.cardNumber == cardNumber }
@@ -83,6 +84,13 @@ struct CollectionCardDetailView: View {
                 if let card = catalogCard {
                     EditCollectionEntrySheet(entry: entry, card: card)
                 }
+            }
+            .task {
+                // Silently refresh estimated_value when the view appears if data is stale.
+                guard let card = catalogCard else { return }
+                isRefreshingPrice = true
+                await collection.refreshPricingIfNeeded(for: cardNumber, card: card)
+                isRefreshingPrice = false
             }
         }
     }
@@ -193,16 +201,33 @@ struct CollectionCardDetailView: View {
 
             Spacer()
 
-            // Price
-            if let price = entry.purchasePrice {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(formatPrice(price))
-                        .font(Design.Fonts.mono(14, weight: .bold))
-                        .foregroundStyle(price == 0 ? Design.Colors.textMuted : Design.Colors.textPrimary)
-                    Text("PAID")
-                        .font(Design.Fonts.mono(8))
-                        .foregroundStyle(Design.Colors.textMuted)
-                        .tracking(1)
+            // Price columns: what was paid + current market estimate
+            HStack(spacing: Design.Spacing.md) {
+                if let price = entry.purchasePrice, price > 0 {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(formatPrice(price))
+                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                        Text("PAID")
+                            .font(Design.Fonts.mono(8))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .tracking(1)
+                    }
+                }
+                if let est = entry.estimatedValue, est > 0 {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(formatPrice(est))
+                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                        Text("MKT")
+                            .font(Design.Fonts.mono(8))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .tracking(1)
+                    }
+                } else if isRefreshingPrice {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                        .tint(Design.Colors.bobaOrange)
                 }
             }
 

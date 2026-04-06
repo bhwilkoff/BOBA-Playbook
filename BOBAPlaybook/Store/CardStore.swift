@@ -1,6 +1,32 @@
 import Foundation
 import Observation
 
+enum CardSortOrder: String, CaseIterable, Identifiable {
+    case `default`   = "default"
+    case nameAsc     = "name_asc"
+    case nameDesc    = "name_desc"
+    case powerDesc   = "power_desc"
+    case powerAsc    = "power_asc"
+    case numberAsc   = "number_asc"
+    case numberDesc  = "number_desc"
+    case variation   = "variation"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .default:   return "Default"
+        case .nameAsc:   return "Name A → Z"
+        case .nameDesc:  return "Name Z → A"
+        case .powerDesc: return "Power: High → Low"
+        case .powerAsc:  return "Power: Low → High"
+        case .numberAsc: return "Card # Ascending"
+        case .numberDesc: return "Card # Descending"
+        case .variation: return "Variation"
+        }
+    }
+}
+
 @Observable
 @MainActor
 final class CardStore {
@@ -25,6 +51,7 @@ final class CardStore {
     var powerMin: Int?              { didSet { scheduleFilter() } }
     var powerMax: Int?              { didSet { scheduleFilter() } }
     var hasImageOnly = false        { didSet { scheduleFilter() } }
+    var sortOrder: CardSortOrder = .default { didSet { scheduleFilter() } }
 
     var activeFilterCount: Int {
         (selectedElements.isEmpty ? 0 : 1)
@@ -32,6 +59,7 @@ final class CardStore {
         + (selectedTreatment == nil ? 0 : 1)
         + ((powerMin != nil || powerMax != nil) ? 1 : 0)
         + (hasImageOnly ? 1 : 0)
+        + (sortOrder != .default ? 1 : 0)
     }
 
     // MARK: - Deep link
@@ -134,10 +162,32 @@ final class CardStore {
         }.sorted { a, b in
             // Sealed products always follow regular cards in the grid.
             if a.isSealed != b.isSealed { return !a.isSealed }
-            // Within each group, cards with images come before those without.
             let aImg = a.imageFile != nil && !a.imageFile!.isEmpty
             let bImg = b.imageFile != nil && !b.imageFile!.isEmpty
-            return aImg && !bImg
+            switch sortOrder {
+            case .nameAsc:
+                return a.hero.localizedCompare(b.hero) == .orderedAscending
+            case .nameDesc:
+                return a.hero.localizedCompare(b.hero) == .orderedDescending
+            case .powerDesc:
+                let pa = a.power ?? 0, pb = b.power ?? 0
+                return pa != pb ? pa > pb : a.hero.localizedCompare(b.hero) == .orderedAscending
+            case .powerAsc:
+                let pa = a.power ?? 0, pb = b.power ?? 0
+                return pa != pb ? pa < pb : a.hero.localizedCompare(b.hero) == .orderedAscending
+            case .numberAsc:
+                return a.cardNumber.localizedStandardCompare(b.cardNumber) == .orderedAscending
+            case .numberDesc:
+                return a.cardNumber.localizedStandardCompare(b.cardNumber) == .orderedDescending
+            case .variation:
+                let va = a.variation ?? "", vb = b.variation ?? ""
+                return va != vb ? va.localizedCompare(vb) == .orderedAscending
+                                : a.hero.localizedCompare(b.hero) == .orderedAscending
+            default:
+                // Images first, then alphabetical.
+                if aImg != bImg { return aImg }
+                return a.hero.localizedCompare(b.hero) == .orderedAscending
+            }
         }
     }
 
@@ -150,5 +200,6 @@ final class CardStore {
         powerMin          = nil
         powerMax          = nil
         hasImageOnly      = false
+        sortOrder         = .default
     }
 }

@@ -68,6 +68,7 @@
     hasImage: false,
     powerMin: null,
     powerMax: null,
+    sortBy:   'default',
   };
 
   /* ================================================================
@@ -90,6 +91,7 @@
   const filterToggleBtn = $('filter-toggle-btn');
   const filterPanel     = $('filter-panel');
   const filterBadge     = $('filter-badge');
+  const sortBySelect    = $('sort-select');
 
   const modalOverlay  = $('card-modal-overlay');
   const modalContent  = $('modal-content');
@@ -179,14 +181,15 @@
   // Serialize current filter state to a URLSearchParams (no card).
   function buildSearchParams() {
     const p = new URLSearchParams();
-    if (currentView !== 'search') p.set('view', currentView);
-    if (filters.query)            p.set('q', filters.query);
-    if (filters.element)          p.set('element', filters.element);
-    if (filters.set)              p.set('set', filters.set);
-    if (filters.treatment)        p.set('treatment', filters.treatment);
-    if (filters.hasImage)         p.set('has_image', '1');
-    if (filters.powerMin != null) p.set('power_min', String(filters.powerMin));
-    if (filters.powerMax != null) p.set('power_max', String(filters.powerMax));
+    if (currentView !== 'search')          p.set('view', currentView);
+    if (filters.query)                     p.set('q', filters.query);
+    if (filters.element)                   p.set('element', filters.element);
+    if (filters.set)                       p.set('set', filters.set);
+    if (filters.treatment)                 p.set('treatment', filters.treatment);
+    if (filters.hasImage)                  p.set('has_image', '1');
+    if (filters.powerMin != null)          p.set('power_min', String(filters.powerMin));
+    if (filters.powerMax != null)          p.set('power_max', String(filters.powerMax));
+    if (filters.sortBy && filters.sortBy !== 'default') p.set('sort', filters.sortBy);
     return p;
   }
 
@@ -213,6 +216,8 @@
     filters.hasImage  = params.get('has_image') === '1';
     filters.powerMin  = params.has('power_min') ? Number(params.get('power_min')) : null;
     filters.powerMax  = params.has('power_max') ? Number(params.get('power_max')) : null;
+    filters.sortBy    = params.get('sort') || 'default';
+    if (sortBySelect) sortBySelect.value = filters.sortBy;
 
     // Sync UI — only update elements that exist (catalog may not be loaded yet).
     if (searchInput)   searchInput.value = filters.query;
@@ -873,6 +878,49 @@
   }
 
   /* ================================================================
+     SORT
+  ================================================================ */
+
+  function sortCards(arr) {
+    const heroName = c => (c.hero || c.name || '').toLowerCase();
+    const isSealed = c => c.cardType === 'Sealed Product';
+
+    return [...arr].sort((a, b) => {
+      // Sealed products always last, regardless of sort mode.
+      const sealedDiff = Number(isSealed(a)) - Number(isSealed(b));
+      if (sealedDiff) return sealedDiff;
+
+      switch (filters.sortBy) {
+        case 'name-asc':
+          return heroName(a).localeCompare(heroName(b));
+        case 'name-desc':
+          return heroName(b).localeCompare(heroName(a));
+        case 'power-desc': {
+          const d = Number(b.power) - Number(a.power);
+          return d || heroName(a).localeCompare(heroName(b));
+        }
+        case 'power-asc': {
+          const d = Number(a.power) - Number(b.power);
+          return d || heroName(a).localeCompare(heroName(b));
+        }
+        case 'number-asc':
+          return String(a.cardNumber).localeCompare(String(b.cardNumber), undefined, { numeric: true });
+        case 'number-desc':
+          return String(b.cardNumber).localeCompare(String(a.cardNumber), undefined, { numeric: true });
+        case 'variation':
+          return (a.variation || '').localeCompare(b.variation || '') ||
+                 heroName(a).localeCompare(heroName(b));
+        default: {
+          // Images first, then alphabetical by hero/name.
+          const aImg = !!a.imageFile, bImg = !!b.imageFile;
+          if (aImg !== bImg) return aImg ? -1 : 1;
+          return heroName(a).localeCompare(heroName(b));
+        }
+      }
+    });
+  }
+
+  /* ================================================================
      TREATMENT & SET CLASS HELPERS
   ================================================================ */
 
@@ -1037,6 +1085,7 @@
     filters.hasImage = false;
     filters.powerMin = null;
     filters.powerMax = null;
+    filters.sortBy = 'default';
     searchInput.value = '';
     searchClear.hidden = true;
     setFilter.value = '';
@@ -1044,11 +1093,17 @@
     hasImageToggle.setAttribute('aria-pressed', 'false');
     if (powerMinInput) powerMinInput.value = '';
     if (powerMaxInput) powerMaxInput.value = '';
+    if (sortBySelect) sortBySelect.value = 'default';
     document.querySelectorAll('.power-preset').forEach(b => b.classList.remove('active'));
     document.querySelector('.power-preset[data-min=""]')?.classList.add('active');
     setElementFilter('');
     updateFilterBadge();
   }
+
+  sortBySelect?.addEventListener('change', () => {
+    filters.sortBy = sortBySelect.value;
+    applyFilters();
+  });
 
   /* ================================================================
      CARD GRID RENDERING
@@ -1056,7 +1111,7 @@
 
   // skipURLSync: true when called from popstate/init — URL is already correct.
   function applyFilters(skipURLSync = false) {
-    filteredCards = computeResults();
+    filteredCards = sortCards(computeResults());
     displayedCount = 0;
     cardGrid.innerHTML = '';
     renderNextPage();

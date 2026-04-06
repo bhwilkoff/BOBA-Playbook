@@ -162,7 +162,7 @@ const Collection = (() => {
       ? `<img class="ccard-thumb" src="${esc(API.thumbUrl(imageFile))}"
               alt="${esc(cardName)}" loading="lazy" decoding="async">`
       : `<div class="ccard-thumb ccard-thumb-placeholder" data-element="${esc(element)}" aria-hidden="true">
-           <span>?</span>
+           <span class="placeholder-brand">BOBA<br>PB</span>
          </div>`;
 
     return `
@@ -355,7 +355,8 @@ const Collection = (() => {
       ? `<img class="cdetail-card-img" src="${esc(API.fullUrl(imageFile))}"
               alt="${esc(cardName)}" loading="lazy" decoding="async">`
       : `<div class="cdetail-card-img cdetail-card-img-placeholder" data-element="${esc(element)}">
-           <span>?</span>
+           <span class="placeholder-brand">BOBA PB</span>
+           <span class="placeholder-status">Image Pending</span>
          </div>`;
 
     const tfClass = _getTreatmentClass(treatment);

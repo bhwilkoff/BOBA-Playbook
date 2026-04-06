@@ -1395,6 +1395,11 @@
   function closeModal() {
     cleanupZoom();
     modalOverlay.hidden = true;
+    // Nav buttons are position: fixed (not children of the overlay), so hiding
+    // the overlay doesn't hide them — must do it explicitly.
+    modalNavPrev.hidden = true;
+    modalNavNext.hidden = true;
+    currentModalIndex = -1;
     document.body.style.overflow = '';
   }
 

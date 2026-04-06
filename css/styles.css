@@ -867,19 +867,20 @@ main {
 }
 .modal-close:hover { color: var(--boba-text); background: var(--boba-glass-hover); }
 
-/* Nav buttons are direct children of the overlay (position: fixed, inset: 0)
-   so they can be placed outside the modal rectangle on wide screens. */
+/* Nav buttons use position: fixed so they are always viewport-anchored
+   and never scroll with modal content (position: absolute inside an
+   overflow: auto ancestor can scroll on Safari). z-index: 501 places
+   them above the modal overlay (z-index: 500). */
 .modal-nav {
-  position: absolute;
-  /* Mobile: bottom-sheet modal is ~82dvh → starts ~18dvh from top.
-     Art panel is 52dvh → its center is at ~18 + 26 = 44dvh from viewport top.
-     Portrait card never fills the full art width, so buttons land in the
-     black letterbox areas on either side of the card image. */
+  position: fixed;
+  /* Mobile: bottom-sheet modal starts ~18dvh from top; art panel is 52dvh
+     → art center ≈ 44dvh. Portrait card never fills full width so buttons
+     land in the black letterbox areas beside the card image. */
   top: 44dvh; transform: translateY(-50%);
   display: flex; align-items: center; justify-content: center;
   width: 36px; height: 36px;
   background: rgba(0,0,0,0.65); border: 1px solid var(--boba-glass-border);
-  border-radius: 50%; color: var(--boba-text-muted); z-index: 2;
+  border-radius: 50%; color: var(--boba-text-muted); z-index: 501;
   transition: color 0.15s, background 0.15s;
 }
 .modal-nav:hover { color: var(--boba-text); background: var(--boba-glass-hover); }
@@ -892,12 +893,13 @@ main {
   .modal-nav-prev { left: var(--sp-3); }
   .modal-nav-next { right: var(--sp-3); }
 }
-@media (min-width: 960px) {
+@media (min-width: 896px) {
   /* Wide enough for buttons to sit entirely outside the 800px modal.
      Modal occupies [50% − 400px, 50% + 400px]; buttons are 36px wide.
-     Place outer edge ~12px beyond the modal edge. */
-  .modal-nav-prev { left: calc(50% - 430px); }
-  .modal-nav-next { right: calc(50% - 430px); }
+     Button right edge = 50% − 408px → button left: calc(50% − 444px).
+     Gives an 8px gap between button and modal edge. */
+  .modal-nav-prev { left: calc(50% - 444px); }
+  .modal-nav-next { right: calc(50% - 444px); }
 }
 
 /* ---- Modal Layout ---- */

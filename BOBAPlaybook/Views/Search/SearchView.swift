@@ -47,7 +47,7 @@ struct SearchView: View {
             FilterSheetView(store: store)
         }
         .sheet(item: $selectedCard) { card in
-            CardDetailView(card: card)
+            CardDetailView(card: card, navigationCards: store.filteredCards)
         }
         // Deep-link: bobaplaybook://card/{number} sets store.pendingCardNumber.
         // Try to resolve it immediately (cards may already be loaded) and again

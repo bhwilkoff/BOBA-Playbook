@@ -867,6 +867,24 @@ main {
 }
 .modal-close:hover { color: var(--boba-text); background: var(--boba-glass-hover); }
 
+.modal-nav {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  background: rgba(0,0,0,0.55); border: 1px solid var(--boba-glass-border);
+  border-radius: 50%; color: var(--boba-text-muted); z-index: 10;
+  transition: color 0.15s, background 0.15s;
+}
+.modal-nav:hover { color: var(--boba-text); background: var(--boba-glass-hover); }
+.modal-nav-prev { left: var(--sp-2); }
+.modal-nav-next { right: var(--sp-2); }
+/* On small screens push nav buttons above the modal card */
+@media (max-width: 639px) {
+  .modal-nav { top: auto; bottom: var(--sp-3); transform: none; }
+  .modal-nav-prev { left: var(--sp-3); }
+  .modal-nav-next { right: var(--sp-3); }
+}
+
 /* ---- Modal Layout ---- */
 .modal-layout {
   display: flex; flex-direction: column;

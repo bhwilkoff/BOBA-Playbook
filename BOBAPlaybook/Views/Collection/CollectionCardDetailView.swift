@@ -136,6 +136,19 @@ struct CollectionCardDetailView: View {
                                         .strokeBorder(Design.Colors.bobaOrange.opacity(0.4), lineWidth: 1))
                             )
                     }
+                    if card.rarityTier > 0 {
+                        Text(card.rarityLabel)
+                            .font(Design.Fonts.mono(11, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                            .padding(.horizontal, 8)
+                            .frame(height: 24)
+                            .background(
+                                RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                    .fill(Design.Colors.bobaCyan.opacity(0.10))
+                                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                        .strokeBorder(Design.Colors.bobaCyan.opacity(0.35), lineWidth: 1))
+                            )
+                    }
                 }
                 if let power = card.power {
                     Text("\(power) POWER")
@@ -352,6 +365,7 @@ struct EditCollectionEntrySheet: View {
     @State private var notes: String
     @State private var isSaving = false
     @State private var saveError: String?
+    @State private var showDeleteConfirmation = false
 
     init(entry: UserCard, card: Card) {
         self.entry = entry
@@ -409,6 +423,17 @@ struct EditCollectionEntrySheet: View {
                 }
                 .listRowBackground(Design.Colors.surface)
 
+                Section {
+                    Button(role: .destructive) {
+                        showDeleteConfirmation = true
+                    } label: {
+                        Text("Remove from Collection")
+                            .font(Design.Fonts.mono(14))
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                }
+                .listRowBackground(Design.Colors.surface)
+
                 if let err = saveError {
                     Section {
                         Text(err).font(Design.Fonts.mono(13)).foregroundStyle(.red)
@@ -440,6 +465,21 @@ struct EditCollectionEntrySheet: View {
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .confirmationDialog(
+                "Remove from Collection",
+                isPresented: $showDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Remove", role: .destructive) {
+                    Task {
+                        try? await collection.deleteCard(id: entry.id)
+                        dismiss()
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This will permanently remove this entry from your collection.")
+            }
         }
     }
 

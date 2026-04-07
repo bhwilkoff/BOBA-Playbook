@@ -207,13 +207,8 @@ struct ScanView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            // Mode toggle + hint
+            // Mode toggle
             HStack {
-                Text(scanStore.isMultiCardMode ? "Cards queue automatically" : "Tap card to view details")
-                    .font(Design.Fonts.mono(11))
-                    .foregroundStyle(.white.opacity(0.5))
-                    .padding(.leading, Design.Spacing.lg)
-
                 Spacer()
 
                 Button {

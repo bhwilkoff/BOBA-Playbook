@@ -720,6 +720,7 @@ private struct StrategyView: View {
                 ResourceManagementSection()
                 ArchetypesSection()
             }
+            .frame(maxWidth: .infinity)
             .padding(Design.Spacing.lg)
             .padding(.bottom, Design.Spacing.xxl)
         }
@@ -1379,8 +1380,10 @@ private struct TreatmentHighlightsSection: View {
                             Text(item.1).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(Design.Spacing.md)
             .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface)
                 .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1)))
@@ -1493,6 +1496,7 @@ private struct PenaltyReferenceSection: View {
                                 Text(p.2).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .padding(Design.Spacing.md).background(Design.Colors.surface2)
                     }

@@ -61,8 +61,12 @@ struct CardDetailView: View {
 
     // Shareable web URL — opens card modal on the web app.
     private var cardShareURL: URL? {
-        let encoded = card.cardNumber.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? card.cardNumber
-        return URL(string: "https://bobaplaybook.com/?card=\(encoded)")
+        var components = URLComponents(string: "https://bobaplaybook.com/")!
+        var items = [URLQueryItem(name: "card", value: card.cardNumber)]
+        if !card.hero.isEmpty { items.append(URLQueryItem(name: "hero", value: card.hero)) }
+        if let treatment = card.treatment { items.append(URLQueryItem(name: "treatment", value: treatment)) }
+        components.queryItems = items
+        return components.url
     }
 
     private func prepareAndShare() async {
@@ -329,6 +333,9 @@ struct CardDetailView: View {
                 statCell(label: "Element",  value: card.element, color: Design.Colors.element(card.element))
                 statCell(label: "Set",      value: card.set)
                 statCell(label: "Type",     value: card.cardType)
+                if !card.isSealed {
+                    statCell(label: "Rarity", value: card.rarityLabel)
+                }
                 if let sub = card.subSet {
                     statCell(label: "Sub-set", value: sub)
                 }

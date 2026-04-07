@@ -198,11 +198,12 @@
     return str ? `?${str}` : '?';
   }
 
-  // Card URL: filter state + card identifier (cardNumber + hero).
+  // Card URL: filter state + card identifier (cardNumber + hero + treatment).
   function buildCardURL(card) {
     const p = buildSearchParams();
     p.set('card', String(card.cardNumber));
     if (card.hero) p.set('hero', card.hero);
+    if (card.treatment) p.set('treatment', card.treatment);
     return `?${p.toString()}`;
   }
 
@@ -250,12 +251,18 @@
     }
   }
 
-  // Resolve a card from URL params (card + hero).
+  // Resolve a card from URL params (card + hero + treatment).
   function cardFromURLParams(params) {
-    const num  = params.get('card');
-    const hero = params.get('hero');
+    const num       = params.get('card');
+    const hero      = params.get('hero');
+    const treatment = params.get('treatment');
     if (!num || !displayCards.length) return null;
     const numStr = String(num);
+    if (hero && treatment) {
+      return displayCards.find(c => String(c.cardNumber) === numStr && c.hero === hero && c.treatment === treatment)
+          ?? displayCards.find(c => String(c.cardNumber) === numStr && c.hero === hero)
+          ?? displayCards.find(c => String(c.cardNumber) === numStr);
+    }
     if (hero) {
       return displayCards.find(c => String(c.cardNumber) === numStr && c.hero === hero)
           ?? displayCards.find(c => String(c.cardNumber) === numStr);
@@ -1679,6 +1686,16 @@
       </div>`;
   }
 
+  function getCardRarity(card) {
+    const t = (card.treatment || '').toLowerCase();
+    if (t.includes('kanji'))      return { label: 'Kanjifoil',    tier: 5 };
+    if (t.includes('superfoil') || card.isInspiredInk) return { label: card.isInspiredInk ? 'Inspired Ink' : 'Superfoil', tier: 4 };
+    if (t.includes('blizzard'))   return { label: 'Blizzard',     tier: 3 };
+    if (t.includes('battlefoil') || t.includes('logofoil')) return { label: t.includes('logofoil') ? 'Logofoil' : 'Battlefoil', tier: 2 };
+    if (t.includes('blast') || t.includes('paper')) return { label: t.includes('blast') ? 'Blast' : 'Paper', tier: 1 };
+    return { label: 'Base Set', tier: 0 };
+  }
+
   function buildModalContent(card) {
     const imgSrc = card.imageFile ? API.cardFullUrl(card) : null;
     const treatmentClass = getTreatmentClass(card.treatment);
@@ -1726,6 +1743,9 @@
     }
     if (card.playCost) {
       statDefs.push({ label: 'Play Cost', val: card.playCost, full: false });
+    }
+    if (card.cardType !== 'Sealed Product') {
+      statDefs.push({ label: 'Rarity', val: getCardRarity(card).label, full: false });
     }
 
     let statCells = statDefs.map(s =>

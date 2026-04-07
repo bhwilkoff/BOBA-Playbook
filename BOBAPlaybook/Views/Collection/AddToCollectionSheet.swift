@@ -15,7 +15,6 @@ struct AddToCollectionSheet: View {
     // Form state
     @State private var designation: UserCard.Designation = .personal
     @State private var condition = ""
-    @State private var serialNumber = ""
     @State private var grade = ""
     @State private var gradingCompany = ""
     @State private var purchasePriceText = ""
@@ -53,7 +52,6 @@ struct AddToCollectionSheet: View {
                     Section("CONDITION") {
                         conditionRow
                         gradingRows
-                        serialRow
                     }
                     .listRowBackground(Design.Colors.surface)
 
@@ -235,20 +233,6 @@ struct AddToCollectionSheet: View {
         }
     }
 
-    private var serialRow: some View {
-        HStack {
-            Text("Serial #")
-                .font(Design.Fonts.mono(14))
-                .foregroundStyle(Design.Colors.textPrimary)
-            Spacer()
-            TextField("e.g. 42", text: $serialNumber)
-                .font(Design.Fonts.mono(14))
-                .foregroundStyle(Design.Colors.textSecondary)
-                .multilineTextAlignment(.trailing)
-                .keyboardType(.numberPad)
-        }
-    }
-
     private func priceRow(label: String, text: Binding<String>) -> some View {
         HStack {
             Text(label)
@@ -277,14 +261,13 @@ struct AddToCollectionSheet: View {
 
         let purchasePrice = Decimal(string: purchasePriceText.isEmpty ? "0" : purchasePriceText)
         let askingPrice   = Decimal(string: askingPriceText)
-        let serial        = Int(serialNumber)
 
         let now = Date()
         let new = NewUserCard(
             cardNumber:     card.cardNumber,
             designation:    designation,
             condition:      condition.isEmpty ? nil : condition,
-            serialNumber:   serial,
+            serialNumber:   nil,
             grade:          grade.isEmpty ? nil : grade,
             gradingCompany: gradingCompany.isEmpty ? nil : gradingCompany,
             purchasePrice:  purchasePrice,

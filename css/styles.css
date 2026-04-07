@@ -3733,6 +3733,44 @@ main {
 .weapon-row[data-el="STEEL"] .weapon-label { color: var(--el-STEEL); }
 .weapon-row[data-el="NONE"]  .weapon-label { color: var(--el-NONE); }
 
+/* ── Substitution strategy mini-cards ── */
+.strategy-mini-cards {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-3) 0;
+}
+
+.strategy-hotdog-border {
+  border-color: #4CAF50 !important;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+}
+
+.strategy-mini-cost {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.strategy-mini-cost-num {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: #4CAF50;
+  line-height: 1;
+}
+
+.strategy-mini-cost-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--boba-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 /* ── Play type grid ── */
 .play-type-grid {
   display: flex;
@@ -3747,6 +3785,82 @@ main {
   display: flex;
   flex-direction: column;
   gap: 3px;
+}
+
+.play-type-card-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+
+.play-type-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+/* Mini play card (styled placeholder — purple card back with cost) */
+.mini-play-card {
+  flex-shrink: 0;
+  width: 64px;
+  height: 90px;
+  border-radius: 7px;
+  background: linear-gradient(160deg, #2a0a4a 0%, #1a0535 100%);
+  border: 1.5px solid var(--boba-cyan);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px;
+  box-shadow: 0 0 8px rgba(0, 245, 255, 0.15);
+}
+
+.mini-play-card-cost {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--boba-cyan);
+  line-height: 1;
+}
+
+.mini-play-card-label {
+  font-family: var(--font-mono);
+  font-size: 0.45rem;
+  font-weight: 700;
+  color: var(--boba-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.mini-play-card-name {
+  font-family: var(--font-mono);
+  font-size: 0.45rem;
+  font-weight: 700;
+  color: var(--boba-text);
+  text-align: center;
+  margin-top: 2px;
+  line-height: 1.2;
+}
+
+.mini-play-card-free .mini-play-card-cost {
+  font-size: 0.9rem;
+  color: #4CAF50;
+}
+
+.mini-play-card-free {
+  border-color: #4CAF50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.15);
+}
+
+.mini-play-card-game-changer {
+  border-color: var(--boba-orange);
+  box-shadow: 0 0 8px rgba(255, 77, 0, 0.2);
+}
+
+.mini-play-card-game-changer .mini-play-card-cost {
+  color: var(--boba-orange);
 }
 
 .play-type-row.highlight {
@@ -3823,6 +3937,14 @@ main {
   margin-bottom: var(--sp-3);
   line-height: 1.55;
 }
+
+.browse-collection-preview {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  pointer-events: none; /* clicks bubble to parent card */
+}
+
 .browse-hero-names {
   display: none; /* hidden — chips replace this */
 }
@@ -3915,18 +4037,17 @@ main {
   font-family: var(--font-display);
   font-size: 1rem;
   color: var(--boba-text);
-  margin-bottom: var(--sp-1);
+  margin-bottom: var(--sp-2);
 }
 .browse-sport-athletes {
-  font-family: var(--font-body);
-  font-size: 0.8rem;
-  color: var(--boba-text-muted);
-  line-height: 1.55;
-  margin-bottom: var(--sp-3);
+  display: none; /* replaced by hero chips */
 }
 .browse-sport-card .browse-search-btn {
   font-size: 0.75rem;
   padding: 4px 12px;
+}
+.browse-sport-card .browse-woba-chips {
+  margin-bottom: 0;
 }
 
 /* ══════════════════════════════════════════════════════════════════

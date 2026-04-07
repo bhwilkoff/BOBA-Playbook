@@ -141,12 +141,12 @@ final class SupabaseClient {
     private func fetchTableCount(path: String) async throws -> Int {
         let url = try makeURL(path: path)
         var req = URLRequest(url: url)
-        req.httpMethod = "GET"
-        req.setValue("exact", forHTTPHeaderField: "Prefer")
+        req.httpMethod = "HEAD"
+        req.setValue("count=exact", forHTTPHeaderField: "Prefer")
         addHeaders(&req, authenticated: true)
         let (_, response) = try await URLSession.shared.data(for: req)
         let http = response as? HTTPURLResponse
-        // Content-Range: 0-9/42  → split on "/" → take last → parse as Int
+        // Content-Range: 0-9/42 or */42 → split on "/" → take last → parse as Int
         let countStr = http?.value(forHTTPHeaderField: "content-range")?
             .split(separator: "/").last.map(String.init) ?? "0"
         return Int(countStr) ?? 0

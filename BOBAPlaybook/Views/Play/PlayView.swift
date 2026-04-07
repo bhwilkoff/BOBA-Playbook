@@ -98,8 +98,13 @@ private struct MiniCardView: View {
     let element: String
     var outcome: CardOutcome = .neutral
     var width: CGFloat = 86
+    /// When set, replaces the element·power row with a custom label (e.g. "HOT DOG").
+    var subtitle: String? = nil
+    /// When set, overrides the border color (e.g. green for Hot Dog cards).
+    var borderOverride: Color? = nil
 
     private var borderColor: Color {
+        if let override = borderOverride { return override.opacity(0.7) }
         switch outcome {
         case .win:     return Color(hex: "4CAF50")
         case .lose:    return Color(hex: "C0392B").opacity(0.8)
@@ -138,16 +143,22 @@ private struct MiniCardView: View {
                     .font(Design.Fonts.mono(10, weight: .bold))
                     .foregroundStyle(Design.Colors.textPrimary)
                     .lineLimit(1).minimumScaleFactor(0.8)
-                HStack(spacing: 4) {
-                    Text(element)
+                if let sub = subtitle {
+                    Text(sub)
                         .font(Design.Fonts.mono(9, weight: .bold))
-                        .foregroundStyle(Design.Colors.element(element))
-                    Text("·")
-                        .font(Design.Fonts.mono(9))
                         .foregroundStyle(Design.Colors.textMuted)
-                    Text("\(power)")
-                        .font(Design.Fonts.display(18))
-                        .foregroundStyle(powerColor)
+                } else {
+                    HStack(spacing: 4) {
+                        Text(element)
+                            .font(Design.Fonts.mono(9, weight: .bold))
+                            .foregroundStyle(Design.Colors.element(element))
+                        Text("·")
+                            .font(Design.Fonts.mono(9))
+                            .foregroundStyle(Design.Colors.textMuted)
+                        Text("\(power)")
+                            .font(Design.Fonts.display(18))
+                            .foregroundStyle(powerColor)
+                    }
                 }
             }
         }
@@ -189,13 +200,20 @@ private struct MiniPlayCardView: View {
                     .foregroundStyle(Design.Colors.textPrimary)
                     .lineLimit(2).minimumScaleFactor(0.7)
                     .multilineTextAlignment(.center)
-                HStack(spacing: 3) {
-                    Text("COST")
-                        .font(Design.Fonts.mono(8, weight: .bold))
-                        .foregroundStyle(Design.Colors.textMuted)
-                    Text("\(cost)")
-                        .font(Design.Fonts.display(18))
-                        .foregroundStyle(Design.Colors.bobaCyan)
+                if cost == 0 {
+                    Text("FREE")
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(Color(hex: "4CAF50"))
+                } else {
+                    HStack(spacing: 3) {
+                        Text("\(cost)")
+                            .font(Design.Fonts.display(18))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                        Text("HOT DOGS")
+                            .font(Design.Fonts.mono(7, weight: .bold))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .fixedSize()
+                    }
                 }
             }
         }
@@ -877,8 +895,10 @@ private struct SubstitutionStrategySection: View {
         StrategyDisclosure(title: "Substitution Strategy",
                            subtitle: "10 Hot Dogs total — max 5 substitutions all game") {
             HStack(alignment: .top, spacing: Design.Spacing.md) {
-                MiniCardView(imageFile: "HD-1_Dirty-Water-Dan_HotDog.webp", hero: "Dirty Water Dan", power: 0, element: "NONE", width: 80)
-                MiniCardView(imageFile: "HD-2_Grillbert_HotDog.webp", hero: "Grillbert", power: 0, element: "NONE", width: 80)
+                MiniCardView(imageFile: "HD-1_Dirty-Water-Dan_HotDog.webp", hero: "Dirty Water Dan", power: 0, element: "NONE", width: 80,
+                             subtitle: "HOT DOG", borderOverride: Color(hex: "4CAF50"))
+                MiniCardView(imageFile: "HD-2_Grillbert_HotDog.webp", hero: "Grillbert", power: 0, element: "NONE", width: 80,
+                             subtitle: "HOT DOG", borderOverride: Color(hex: "4CAF50"))
                 VStack(alignment: .leading, spacing: 6) {
                     Text("10 total")
                         .font(Design.Fonts.mono(13, weight: .bold))

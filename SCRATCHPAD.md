@@ -3,7 +3,7 @@
 ## Current State
 
 - **Active milestone**: M4 — Play Mode (both platforms)
-- **Last session**: 2026-04-07 — Discord auth added (web + iOS, PKCE OAuth via ASWebAuthenticationSession). Card database + images synced from unified-cards pipeline: 17,838 cards, 18,277 full images + 18,529 thumbs on R2 (82.9% coverage). iOS display-cards.json now contains all 17,838 cards (previously 11,991 filtered subset).
+- **Last session**: 2026-04-07 — Image filenames corrected (eBay naming fix). Synced 17,739 cards; R2 reconciled to 15,065 full + 15,062 thumbs (deleted 3,854 + 3,849 orphaned old-style filenames). App version bumped to 1.1 (build 2). AppVersion.xcconfig wired into Xcode project. Alternate app icons migrated to modern .appiconset format with light/dark/tinted variants.
 - **Open questions**:
   - Rules/strategy content for Play Mode — source? (manual entry, PDF parse, structured JSON?)
   - Deck builder: local-only or save/share via Supabase?

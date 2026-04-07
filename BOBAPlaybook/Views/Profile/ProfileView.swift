@@ -205,6 +205,18 @@ struct ProfileView: View {
             }
             .listRowBackground(Design.Colors.surface)
 
+            // Settings
+            Section {
+                NavigationLink {
+                    SettingsView()
+                } label: {
+                    Label("Settings", systemImage: "gearshape.fill")
+                        .font(Design.Fonts.mono(14))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                }
+            }
+            .listRowBackground(Design.Colors.surface)
+
             // Mod tools
             if auth.isMod {
                 Section("MODERATION") {

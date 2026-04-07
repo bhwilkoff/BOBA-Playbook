@@ -43,6 +43,7 @@ struct PlayView: View {
                 case .tournament: TournamentView()
                 }
             }
+            .frame(maxWidth: .infinity)
             .background(Design.Colors.nearBlack)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)

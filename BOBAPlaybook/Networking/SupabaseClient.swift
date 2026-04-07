@@ -86,6 +86,108 @@ final class SupabaseClient {
         storeSession(session)
     }
 
+    // MARK: - User profile / roles
+
+    /// Fetches the current user's role from user_profiles. Returns "user" if no row exists yet.
+    func fetchUserRole() async throws -> String {
+        guard userId != nil else { throw APIError.serverError(401, "Not authenticated") }
+        let url = try makeURL(path: "/rest/v1/user_profiles?select=role&limit=1")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+        struct RoleRow: Decodable { let role: String }
+        let rows = try makeDecoder().decode([RoleRow].self, from: data)
+        return rows.first?.role ?? "user"
+    }
+
+    // MARK: - Admin methods
+
+    /// Fetches all user profiles. Only succeeds for admin accounts (RLS enforced).
+    func fetchAllUserProfiles() async throws -> [AdminUserProfile] {
+        let url = try makeURL(path: "/rest/v1/user_profiles?select=user_id,email,role,created_at&order=created_at.asc")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+        return try makeDecoder().decode([AdminUserProfile].self, from: data)
+    }
+
+    /// Updates a user's role. Only succeeds for admin accounts (RLS enforced).
+    func updateUserRole(userId: UUID, role: String) async throws {
+        let url = try makeURL(path: "/rest/v1/user_profiles?user_id=eq.\(userId.uuidString.lowercased())")
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        addHeaders(&request, authenticated: true)
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["role": role])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
+    /// Fetches aggregate counts for the admin dashboard.
+    func fetchAdminMetrics() async throws -> AdminMetrics {
+        let totalUsers         = (try? await fetchTableCount(path: "/rest/v1/user_profiles?select=user_id")) ?? 0
+        let pendingCorrections = (try? await fetchTableCount(path: "/rest/v1/card_corrections?select=id")) ?? 0
+        let pendingImages      = (try? await fetchTableCount(path: "/rest/v1/card_image_overrides?select=id")) ?? 0
+        return AdminMetrics(
+            totalUsers: totalUsers,
+            pendingCorrections: pendingCorrections,
+            pendingImageOverrides: pendingImages
+        )
+    }
+
+    private func fetchTableCount(path: String) async throws -> Int {
+        let url = try makeURL(path: path)
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.setValue("exact", forHTTPHeaderField: "Prefer")
+        addHeaders(&req, authenticated: true)
+        let (_, response) = try await URLSession.shared.data(for: req)
+        let http = response as? HTTPURLResponse
+        // Content-Range: 0-9/42  → split on "/" → take last → parse as Int
+        let countStr = http?.value(forHTTPHeaderField: "content-range")?
+            .split(separator: "/").last.map(String.init) ?? "0"
+        return Int(countStr) ?? 0
+    }
+
+    /// Submits a card correction. Only succeeds for moderator/admin accounts.
+    func submitCardCorrection(cardNumber: String, corrections: [String: String], notes: String?) async throws {
+        guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
+        let url = try makeURL(path: "/rest/v1/card_corrections")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        addHeaders(&request, authenticated: true)
+        let body: [String: Any] = [
+            "card_number":   cardNumber,
+            "corrections":   corrections,
+            "notes":         notes as Any,
+            "submitted_by":  uid.uuidString.lowercased()
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
+    /// Submits an image override (replace or remove). Only succeeds for moderator/admin accounts.
+    func submitImageOverride(cardNumber: String, action: String, storagePath: String?) async throws {
+        guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
+        let url = try makeURL(path: "/rest/v1/card_image_overrides")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        addHeaders(&request, authenticated: true)
+        var body: [String: Any] = [
+            "card_number":   cardNumber,
+            "action":        action,
+            "submitted_by":  uid.uuidString.lowercased()
+        ]
+        if let path = storagePath { body["storage_path"] = path }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
     // MARK: - user_cards CRUD
 
     func fetchUserCards() async throws -> [UserCard] {
@@ -104,7 +206,9 @@ final class SupabaseClient {
         addHeaders(&request, authenticated: true)
         request.setValue("return=representation", forHTTPHeaderField: "Prefer")
         // Inject user_id — required by Supabase RLS INSERT policy
-        var dict = (try JSONSerialization.jsonObject(with: JSONEncoder().encode(card))) as! [String: Any]
+        let insertEncoder = JSONEncoder()
+        insertEncoder.dateEncodingStrategy = .iso8601
+        var dict = (try JSONSerialization.jsonObject(with: insertEncoder.encode(card))) as! [String: Any]
         dict["user_id"] = uid.uuidString.lowercased()
         request.httpBody = try JSONSerialization.data(withJSONObject: dict)
         let results: [UserCard] = try await executeArray(request)
@@ -118,7 +222,9 @@ final class SupabaseClient {
         request.httpMethod = "PATCH"
         addHeaders(&request, authenticated: true)
         request.setValue("return=representation", forHTTPHeaderField: "Prefer")
-        request.httpBody = try JSONEncoder().encode(fields)
+        let updateEncoder = JSONEncoder()
+        updateEncoder.dateEncodingStrategy = .iso8601
+        request.httpBody = try updateEncoder.encode(fields)
         let results: [UserCard] = try await executeArray(request)
         guard let first = results.first else { throw APIError.invalidResponse }
         return first

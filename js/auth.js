@@ -165,7 +165,17 @@ const Auth = (() => {
     setLoading(true);
     try {
       if (_mode === 'signIn') {
-        await API.authSignIn(email, password);
+        const session = await API.authSignIn(email, password);
+        // Set session immediately — don't wait for onAuthStateChange — so that
+        // Auth.isAuthenticated() is true the moment the modal closes. This prevents
+        // the PWA / mobile Safari race where the SIGNED_IN event fires after close()
+        // and something renders the signed-out gate before the event arrives.
+        if (session) {
+          _session = session;
+          updateNavUI();
+          API.fetchUserRole().catch(() => {});
+          document.dispatchEvent(new CustomEvent('auth-change', { detail: { event: 'SIGNED_IN', session } }));
+        }
         close();
       } else {
         const result = await API.authSignUp(email, password);
@@ -173,6 +183,12 @@ const Auth = (() => {
           showInfo('Check your email to confirm your account, then sign in.');
           setLoading(false);
           return;
+        }
+        if (result.session) {
+          _session = result.session;
+          updateNavUI();
+          API.fetchUserRole().catch(() => {});
+          document.dispatchEvent(new CustomEvent('auth-change', { detail: { event: 'SIGNED_IN', session: result.session } }));
         }
         close();
       }
@@ -248,21 +264,39 @@ const Auth = (() => {
       history.replaceState(null, '', cleanUrl.toString());
     }
 
-    // Subscribe to Supabase auth state
+    // Subscribe to Supabase auth state.
+    // We handle each event type explicitly to avoid iOS Safari / PWA edge cases
+    // where TOKEN_REFRESHED or a stale INITIAL_SESSION fires with session=null
+    // and incorrectly clears a just-established session.
     API.authOnStateChange((event, session) => {
-      // Guard: if we just restored a session from the QR ?rt= param and
-      // Supabase fires INITIAL_SESSION with null (can happen when the client
-      // initializes before the refresh completes in its internal lock queue),
-      // don't overwrite the session we already set directly.
-      if (event === 'INITIAL_SESSION' && session === null && _session !== null) {
-        return;
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        if (!session) return; // Supabase guarantees session for these events; bail if missing
+        // Skip duplicate SIGNED_IN if handleSubmit already set the session (same user ID)
+        if (event === 'SIGNED_IN' && _session?.user?.id === session?.user?.id) return;
+        _session = session;
+        updateNavUI();
+        API.fetchUserRole().catch(() => {});
+        document.dispatchEvent(new CustomEvent('auth-change', { detail: { event, session } }));
+
+      } else if (event === 'SIGNED_OUT') {
+        _session = null;
+        updateNavUI();
+        document.dispatchEvent(new CustomEvent('auth-change', { detail: { event, session: null } }));
+
+      } else if (event === 'INITIAL_SESSION') {
+        if (session && !_session) {
+          // Valid session found in storage on page load (returning user)
+          _session = session;
+          updateNavUI();
+          API.fetchUserRole().catch(() => {});
+          document.dispatchEvent(new CustomEvent('auth-change', { detail: { event, session } }));
+        } else if (!session && !_session) {
+          // No session found — user is signed out; let views know so they render sign-in gates
+          document.dispatchEvent(new CustomEvent('auth-change', { detail: { event, session: null } }));
+        }
+        // If !session && _session !== null → session was already restored from ?rt= QR param;
+        // keep the existing session, do not broadcast (QR restore already broadcast on init).
       }
-      _session = session;
-      updateNavUI();
-      // Broadcast so collection.js and app.js can react
-      document.dispatchEvent(
-        new CustomEvent('auth-change', { detail: { event, session } })
-      );
     });
 
     // Close on overlay background click

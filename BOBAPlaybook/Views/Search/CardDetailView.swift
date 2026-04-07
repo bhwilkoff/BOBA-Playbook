@@ -27,6 +27,7 @@ struct CardDetailView: View {
     @State private var shareItems: [Any] = []
     @State private var showingShare = false
     @State private var isPreparingShare = false
+    @State private var showingModEdit = false
 
     init(card: Card, navigationCards: [Card] = []) {
         self.initialCard = card
@@ -136,6 +137,17 @@ struct CardDetailView: View {
                             )
                     }
                 }
+                if auth.isMod {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showingModEdit = true
+                        } label: {
+                            Image(systemName: "pencil.circle")
+                                .font(.system(size: 17, weight: .medium))
+                                .foregroundStyle(Design.Colors.bobaCyan)
+                        }
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         Task { await prepareAndShare() }
@@ -198,6 +210,9 @@ struct CardDetailView: View {
                 if let urlStr = card.radishUrl, let url = URL(string: urlStr) {
                     SafariView(url: url)
                 }
+            }
+            .sheet(isPresented: $showingModEdit) {
+                ModCardEditSheet(card: card)
             }
         }
     }
@@ -339,9 +354,7 @@ struct CardDetailView: View {
                 if let sub = card.subSet {
                     statCell(label: "Sub-set", value: sub)
                 }
-                if let playCost = card.playCost {
-                    statCell(label: "Play Cost", value: "\(playCost)")
-                }
+
             }
 
             // Play ability

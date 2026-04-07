@@ -83,7 +83,7 @@
   const elementFilters  = $('element-filters');
   const setFilter       = $('set-filter');
   const treatmentFilter = $('treatment-filter');
-  const hasImageToggle  = $('has-image-toggle');
+  const hasImageCheckbox = document.getElementById('has-image-checkbox');
   const loadSentinel    = $('load-sentinel');
   const clearFiltersBtn = $('clear-filters-btn');
   const powerMinInput  = $('power-min');
@@ -234,7 +234,7 @@
     buildTreatmentFilter(filters.set);
     if (treatmentFilter) treatmentFilter.value = filters.treatment;
 
-    hasImageToggle?.setAttribute('aria-pressed', String(filters.hasImage));
+    if (hasImageCheckbox) hasImageCheckbox.checked = filters.hasImage;
 
     if (powerMinInput) powerMinInput.value = filters.powerMin ?? '';
     if (powerMaxInput) powerMaxInput.value = filters.powerMax ?? '';
@@ -1088,9 +1088,8 @@
     applyFilters();
   });
 
-  hasImageToggle.addEventListener('click', () => {
-    filters.hasImage = !filters.hasImage;
-    hasImageToggle.setAttribute('aria-pressed', String(filters.hasImage));
+  hasImageCheckbox?.addEventListener('change', () => {
+    filters.hasImage = hasImageCheckbox.checked;
     applyFilters();
   });
 
@@ -1144,7 +1143,7 @@
     searchClear.hidden = true;
     setFilter.value = '';
     buildTreatmentFilter('');
-    hasImageToggle.setAttribute('aria-pressed', 'false');
+    if (hasImageCheckbox) hasImageCheckbox.checked = false;
     if (powerMinInput) powerMinInput.value = '';
     if (powerMaxInput) powerMaxInput.value = '';
     if (sortBySelect) sortBySelect.value = 'default';
@@ -1456,6 +1455,10 @@
         }
       });
 
+    // Wire "Mod: Edit Card Info" button
+    modalContent.querySelector('[data-action="mod-edit"]')
+      ?.addEventListener('click', () => openModEditPanel(card));
+
     // Wire "Other Versions" tile clicks
     modalContent.querySelectorAll('[data-version-card]').forEach(tile => {
       tile.addEventListener('click', () => {
@@ -1710,26 +1713,6 @@
            <span class="placeholder-status">Image Pending</span>
          </div>`;
 
-    // All hero/athlete associations for this card
-    const variants = cardsByNumber.get(String(card.cardNumber)) || [card];
-
-    let heroSection = '';
-    if (variants.length > 1) {
-      const heroCards = variants.map(v => `
-        <div class="hero-card">
-          <div>
-            <div class="hero-card-name">${escHtml(v.hero || '—')}</div>
-            ${v.athleteInspiration ? `<div class="hero-card-athlete">${escHtml(v.athleteInspiration)}</div>` : ''}
-          </div>
-        </div>`).join('');
-      heroSection = `
-        <div class="hero-associations">
-          <h3 class="section-label">Hero Associations</h3>
-          <p class="hero-association-note">This card works with ${variants.length} heroes — a BOBA game mechanic.</p>
-          <div class="hero-cards">${heroCards}</div>
-        </div>`;
-    }
-
     // Build stat cells — grid layout
     const statDefs = [
       { label: 'Set',       val: card.set,       full: false },
@@ -1737,13 +1720,6 @@
       { label: 'Type',      val: card.cardType,   full: false },
       { label: 'Variation', val: card.variation,  full: false },
     ].filter(s => s.val);
-
-    if (variants.length === 1 && card.athleteInspiration) {
-      statDefs.push({ label: 'Athlete', val: card.athleteInspiration, full: true });
-    }
-    if (card.playCost) {
-      statDefs.push({ label: 'Play Cost', val: card.playCost, full: false });
-    }
     if (card.cardType !== 'Sealed Product') {
       statDefs.push({ label: 'Rarity', val: getCardRarity(card).label, full: false });
     }
@@ -1856,7 +1832,6 @@
           <div class="modal-stats" aria-label="Card stats">
             ${statCells}
           </div>
-          ${heroSection}
           <div class="modal-collection-action">
             <button class="btn-collection-add" data-action="add-to-collection">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -1878,6 +1853,17 @@
           </div>
           <div class="pricing-section" id="modal-pricing"></div>
           ${buildVersionsSection(card)}
+          ${['moderator','admin'].includes(API.getCachedRole()) ? `
+          <div class="mod-edit-section">
+            <button class="btn-mod-edit" data-action="mod-edit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   width="13" height="13" aria-hidden="true">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Mod: Edit Card Info
+            </button>
+          </div>` : ''}
         </div>
       </div>`;
   }
@@ -1978,6 +1964,136 @@
         );
       }
     }
+  }
+
+  // ----------------------------------------------------------------
+  // Mod card edit panel
+  // ----------------------------------------------------------------
+
+  window.openModEditPanel = openModEditPanel;
+  function openModEditPanel(card) {
+    // Build a simple overlay dialog for info corrections + image upload
+    const existing = document.getElementById('mod-edit-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'mod-edit-overlay';
+    overlay.className = 'mod-edit-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Edit card info');
+
+    overlay.innerHTML = `
+      <div class="mod-edit-panel">
+        <div class="mod-edit-header">
+          <span class="mod-edit-title">Mod: ${escHtml(card.cardNumber)}</span>
+          <button class="mod-edit-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="mod-edit-body">
+          <p class="mod-edit-note">Fields that differ from current data will be submitted as corrections for admin review.</p>
+          <div class="mod-edit-fields">
+            ${modField('hero',        'Hero',        card.hero        ?? '')}
+            ${modField('element',     'Element',     card.element     ?? '')}
+            ${modField('variation',   'Variation',   card.variation   ?? '')}
+            ${modField('treatment',   'Treatment',   card.treatment   ?? '')}
+            ${modField('play_ability','Play Ability', card.playAbility ?? '')}
+          </div>
+          <div class="mod-edit-image-section">
+            <label class="mod-edit-label">Image Action</label>
+            <select class="mod-edit-select" id="mod-image-action">
+              <option value="none">No change</option>
+              <option value="replace">Upload replacement image</option>
+              <option value="remove">Flag for removal</option>
+            </select>
+            <div id="mod-image-upload-row" hidden>
+              <input type="file" id="mod-image-file" accept="image/*" class="mod-edit-file-input">
+            </div>
+          </div>
+          <div class="mod-edit-notes-section">
+            <label class="mod-edit-label" for="mod-notes">Notes (optional)</label>
+            <textarea class="mod-edit-textarea" id="mod-notes" rows="3"
+                      placeholder="Explain the correction…"></textarea>
+          </div>
+          <div id="mod-edit-status" class="mod-edit-status" hidden></div>
+        </div>
+        <div class="mod-edit-footer">
+          <button class="btn-ghost-sm" id="mod-cancel-btn">Cancel</button>
+          <button class="btn-primary mod-submit-btn" id="mod-submit-btn">Submit Correction</button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    // Toggle file input row
+    overlay.querySelector('#mod-image-action').addEventListener('change', e => {
+      overlay.querySelector('#mod-image-upload-row').hidden = e.target.value !== 'replace';
+    });
+
+    overlay.querySelector('.mod-edit-close').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('#mod-cancel-btn').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    overlay.querySelector('#mod-submit-btn').addEventListener('click', async () => {
+      const submitBtn = overlay.querySelector('#mod-submit-btn');
+      const statusEl  = overlay.querySelector('#mod-edit-status');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting…';
+
+      const origValues = {
+        hero:         card.hero        ?? '',
+        element:      card.element     ?? '',
+        variation:    card.variation   ?? '',
+        treatment:    card.treatment   ?? '',
+        play_ability: card.playAbility ?? '',
+      };
+
+      const corrections = {};
+      overlay.querySelectorAll('.mod-field-input').forEach(input => {
+        const key = input.dataset.field;
+        const val = input.value.trim();
+        if (val !== origValues[key]) corrections[key] = val;
+      });
+
+      const imageAction = overlay.querySelector('#mod-image-action').value;
+      const imageFile   = overlay.querySelector('#mod-image-file')?.files?.[0];
+      const notes       = overlay.querySelector('#mod-notes').value.trim() || null;
+
+      try {
+        if (Object.keys(corrections).length > 0) {
+          await API.submitCardCorrection(card.cardNumber, corrections, notes);
+        }
+        if (imageAction !== 'none') {
+          let storagePath = null;
+          if (imageAction === 'replace' && imageFile) {
+            storagePath = await API.uploadModImage(card.cardNumber, imageFile);
+          }
+          await API.submitImageOverride(card.cardNumber, imageAction, storagePath);
+        }
+        statusEl.hidden = false;
+        statusEl.className = 'mod-edit-status success';
+        statusEl.textContent = 'Correction submitted for review. Thank you!';
+        submitBtn.textContent = 'Submitted ✓';
+        setTimeout(() => overlay.remove(), 2000);
+      } catch (err) {
+        statusEl.hidden = false;
+        statusEl.className = 'mod-edit-status error';
+        statusEl.textContent = err.message || 'Submission failed.';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Correction';
+      }
+    });
+  }
+
+  function modField(key, label, currentValue) {
+    return `
+      <div class="mod-edit-row">
+        <label class="mod-edit-label" for="mod-field-${key}">${escHtml(label)}</label>
+        <input class="mod-edit-input mod-field-input"
+               id="mod-field-${key}"
+               data-field="${key}"
+               type="text"
+               value="${escHtml(currentValue)}">
+      </div>`;
   }
 
   init();

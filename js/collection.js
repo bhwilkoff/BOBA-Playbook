@@ -68,9 +68,12 @@ const Collection = (() => {
 
     const tabCount   = key => _cards.filter(c => c.designation === key).length;
     const ownedCards = _cards.filter(c => ['personal','for_sale','for_trade'].includes(c.designation));
-    const totalValue = _cards
+    const totalCostBasis = ownedCards
       .filter(c => c.purchase_price)
       .reduce((sum, c) => sum + Number(c.purchase_price), 0);
+    const totalEstimatedValue = ownedCards
+      .filter(c => c.estimated_value)
+      .reduce((sum, c) => sum + Number(c.estimated_value), 0);
     const uniqueNums = new Set(_cards.map(c => c.card_number)).size;
 
     const tabsHtml = DESIGNATIONS.map(d => `
@@ -98,9 +101,14 @@ const Collection = (() => {
               <span class="cstat-val">${uniqueNums}</span>
               <span class="cstat-label">Unique Cards</span>
             </div>
-            ${totalValue > 0 ? `
+            ${totalEstimatedValue > 0 ? `
             <div class="cstat">
-              <span class="cstat-val">$${totalValue.toFixed(2)}</span>
+              <span class="cstat-val">$${totalEstimatedValue.toFixed(2)}</span>
+              <span class="cstat-label">Est. Value</span>
+            </div>` : ''}
+            ${totalCostBasis > 0 ? `
+            <div class="cstat">
+              <span class="cstat-val">$${totalCostBasis.toFixed(2)}</span>
               <span class="cstat-label">Cost Basis</span>
             </div>` : ''}
           </div>
@@ -212,6 +220,7 @@ const Collection = (() => {
 
     const session = Auth.getSession();
     const email   = session?.user?.email || 'BOBA Player';
+    const role    = API.getCachedRole();
 
     // Unique card numbers per designation (mirrors iOS uniqueCardNumbers)
     const uniqueFor = key => new Set(_cards.filter(c => c.designation === key).map(c => c.card_number)).size;
@@ -220,12 +229,19 @@ const Collection = (() => {
     const forTradeCount  = uniqueFor('for_trade');
     const wantedCount    = uniqueFor('wanted');
     const grailsCount    = uniqueFor('grails');
-    const totalValue     = _cards
+    const ownedProfileCards = _cards.filter(c => ['personal','for_sale','for_trade'].includes(c.designation));
+    const totalValue     = ownedProfileCards
       .filter(c => c.purchase_price)
       .reduce((sum, c) => sum + Number(c.purchase_price), 0);
     const totalValueStr  = totalValue > 0
       ? '$' + totalValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
       : '—';
+    const estValue = ownedProfileCards
+      .filter(c => c.estimated_value)
+      .reduce((sum, c) => sum + Number(c.estimated_value), 0);
+    const estValueStr = estValue > 0
+      ? '$' + estValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+      : null;
 
     // SVG icons matching iOS SF Symbols
     const icons = {
@@ -257,7 +273,11 @@ const Collection = (() => {
           </div>
           <div class="profile-account-info">
             <div class="profile-account-email">${esc(email)}</div>
-            <div class="profile-account-role">Member</div>
+            <div class="profile-account-role">
+              ${role === 'admin' ? 'Admin' : role === 'moderator' ? 'Moderator' : 'Member'}
+              ${role === 'admin' ? '<span class="role-badge admin-badge">ADMIN</span>' :
+                role === 'moderator' ? '<span class="role-badge mod-badge">MOD</span>' : ''}
+            </div>
           </div>
         </div>
 
@@ -271,9 +291,34 @@ const Collection = (() => {
             ${statRow('star',   'Wanted',    wantedCount,    'icon-violet')}
             ${statRow('crown',  'Grails',    grailsCount,    'icon-gold')}
             <div class="profile-stat-divider"></div>
-            ${statRow('dollar', 'Total Paid', totalValueStr, 'icon-cyan')}
+            ${estValueStr ? statRow('dollar', 'Est. Market Value', estValueStr, 'icon-orange') : ''}
+            ${statRow('dollar', 'Cost Basis', totalValueStr, 'icon-cyan')}
           </div>
         </div>
+
+        ${['moderator','admin'].includes(role) ? `
+        <!-- Mod/Admin panel links -->
+        <div class="profile-section">
+          <div class="profile-section-label">Moderation</div>
+          <div class="profile-stat-list">
+            <button class="profile-mod-row" id="profile-mod-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   width="15" height="15" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <span>Open Mod Panel</span>
+            </button>
+            ${role === 'admin' ? `
+            <button class="profile-admin-row" id="profile-admin-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   width="15" height="15" aria-hidden="true">
+                <circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/>
+                <path d="M18 12l2 2 4-4" stroke-width="2.5"/>
+              </svg>
+              <span>Admin Panel</span>
+            </button>` : ''}
+          </div>
+        </div>` : ''}
 
         <!-- Sign out -->
         <div class="profile-section">
@@ -294,6 +339,191 @@ const Collection = (() => {
         if (!confirm('Sign out? Your collection data is saved and will sync back when you sign in again.')) return;
         await Auth.signOut();
       });
+
+    view.querySelector('#profile-mod-btn')
+      ?.addEventListener('click', () => openModSearchPanel());
+
+    view.querySelector('#profile-admin-btn')
+      ?.addEventListener('click', () => openAdminPanel());
+  }
+
+  function openModSearchPanel() {
+    const existing = document.getElementById('mod-panel-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'mod-panel-overlay';
+    overlay.className = 'mod-edit-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Mod Panel');
+
+    overlay.innerHTML = `
+      <div class="mod-edit-panel">
+        <div class="mod-edit-header">
+          <span class="mod-edit-title">Mod Panel</span>
+          <button class="mod-edit-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="mod-edit-body">
+          <p class="mod-edit-note">Search for a card to submit info corrections or flag image issues.</p>
+          <input class="mod-edit-input" id="mod-panel-search" type="text"
+                 placeholder="Card # or hero name…" autocomplete="off">
+          <div id="mod-panel-results" class="mod-panel-results"></div>
+        </div>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('.mod-edit-close').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    const searchInput = overlay.querySelector('#mod-panel-search');
+    const resultsEl   = overlay.querySelector('#mod-panel-results');
+
+    searchInput.addEventListener('input', async () => {
+      const q = searchInput.value.trim().toLowerCase();
+      if (!q) { resultsEl.innerHTML = ''; return; }
+      try {
+        const cards = await API.loadCards();
+        const results = cards.filter(c =>
+          String(c.cardNumber).toLowerCase().includes(q) ||
+          (c.hero ?? '').toLowerCase().includes(q)
+        ).slice(0, 15);
+
+        if (!results.length) {
+          resultsEl.innerHTML = `<p class="mod-edit-note">No cards found.</p>`;
+          return;
+        }
+        resultsEl.innerHTML = results.map(c => `
+          <button class="mod-result-row" data-card-num="${esc(String(c.cardNumber))}">
+            <span class="mod-result-hero">${esc(c.hero || c.cardNumber)}</span>
+            <span class="mod-result-num">${esc(c.cardNumber)}</span>
+          </button>`).join('');
+
+        resultsEl.querySelectorAll('.mod-result-row').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const num  = btn.dataset.cardNum;
+            const card = results.find(c => String(c.cardNumber) === num);
+            if (card) {
+              overlay.remove();
+              // Re-use the existing openModEditPanel from app.js
+              if (typeof openModEditPanel === 'function') {
+                openModEditPanel(card);
+              }
+            }
+          });
+        });
+      } catch {}
+    });
+
+    searchInput.focus();
+  }
+
+  /* ================================================================
+     ADMIN PANEL
+  ================================================================ */
+
+  async function openAdminPanel() {
+    const existing = document.getElementById('admin-panel-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'admin-panel-overlay';
+    overlay.className = 'mod-edit-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Admin Panel');
+
+    overlay.innerHTML = `
+      <div class="mod-edit-panel admin-panel">
+        <div class="mod-edit-header">
+          <span class="mod-edit-title">Admin Panel</span>
+          <button class="mod-edit-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="mod-edit-body admin-panel-body">
+          <div id="admin-metrics" class="admin-metrics-grid">
+            <div class="admin-metric-card"><div class="admin-metric-value" id="metric-users">…</div><div class="admin-metric-label">Total Users</div></div>
+            <div class="admin-metric-card"><div class="admin-metric-value" id="metric-corrections">…</div><div class="admin-metric-label">Card Corrections</div></div>
+            <div class="admin-metric-card"><div class="admin-metric-value" id="metric-images">…</div><div class="admin-metric-label">Image Overrides</div></div>
+          </div>
+          <div class="admin-section-label">USERS</div>
+          <div id="admin-user-list" class="admin-user-list">
+            <div class="admin-loading">Loading users…</div>
+          </div>
+        </div>
+      </div>`;
+
+    document.body.appendChild(overlay);
+    overlay.querySelector('.mod-edit-close').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    // Load data
+    await Promise.all([
+      loadAdminMetrics(overlay),
+      loadAdminUsers(overlay),
+    ]);
+  }
+
+  async function loadAdminMetrics(overlay) {
+    try {
+      const [usersResp, correctionsResp, imagesResp] = await Promise.all([
+        API.adminFetchCount('user_profiles'),
+        API.adminFetchCount('card_corrections'),
+        API.adminFetchCount('card_image_overrides'),
+      ]);
+      overlay.querySelector('#metric-users').textContent       = usersResp;
+      overlay.querySelector('#metric-corrections').textContent = correctionsResp;
+      overlay.querySelector('#metric-images').textContent      = imagesResp;
+    } catch (e) {
+      console.warn('[admin] metrics error', e);
+    }
+  }
+
+  async function loadAdminUsers(overlay) {
+    const listEl = overlay.querySelector('#admin-user-list');
+    try {
+      const users = await API.adminFetchUsers();
+      const currentUserId = Auth.getSession()?.user?.id;
+
+      if (!users.length) {
+        listEl.innerHTML = `<p class="mod-edit-note">No users found.</p>`;
+        return;
+      }
+
+      listEl.innerHTML = users.map(u => {
+        const isMe = u.user_id === currentUserId;
+        const roleClass = u.role === 'admin' ? 'badge-admin' : u.role === 'moderator' ? 'badge-mod' : 'badge-user';
+        return `
+          <div class="admin-user-row" data-uid="${esc(u.user_id)}">
+            <div class="admin-user-info">
+              <div class="admin-user-email">${esc(u.email || 'Unknown')}${isMe ? ' <span class="admin-you-badge">YOU</span>' : ''}</div>
+              <div class="admin-user-meta">${u.user_id.substring(0, 12)}… · Joined ${new Date(u.created_at).toLocaleDateString()}</div>
+            </div>
+            <div class="admin-user-role">
+              <span class="admin-role-badge ${roleClass}">${u.role.toUpperCase()}</span>
+              ${!isMe ? `<button class="admin-role-btn" data-uid="${esc(u.user_id)}" data-role="${esc(u.role)}">Change</button>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+
+      listEl.querySelectorAll('.admin-role-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const uid  = btn.dataset.uid;
+          const cur  = btn.dataset.role;
+          const next = cur === 'user' ? 'moderator' : cur === 'moderator' ? 'admin' : 'user';
+          const label = `${cur} → ${next}`;
+          if (!confirm(`Change role for this user: ${label}?`)) return;
+          try {
+            await API.adminUpdateRole(uid, next);
+            await loadAdminUsers(overlay);
+          } catch (e) {
+            alert('Role update failed: ' + e.message);
+          }
+        });
+      });
+    } catch (e) {
+      listEl.innerHTML = `<p class="mod-edit-note" style="color:var(--boba-orange)">Error: ${esc(e.message)}</p>`;
+    }
   }
 
   /* ================================================================

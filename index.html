@@ -125,9 +125,6 @@
 
         <div class="results-bar">
           <span class="results-count" id="search-count" aria-live="polite" aria-atomic="true"></span>
-          <button class="has-image-toggle" id="has-image-toggle" aria-pressed="false">
-            Has Image
-          </button>
         </div>
       </div>
 
@@ -151,6 +148,13 @@
               <option value="number-desc">Card # Descending</option>
               <option value="variation">Variation</option>
             </select>
+          </div>
+
+          <div class="filter-check-row">
+            <label class="filter-check-label" for="has-image-checkbox">
+              <input type="checkbox" id="has-image-checkbox" class="filter-checkbox">
+              Has Image Only
+            </label>
           </div>
 
           <div class="power-range-group" role="group" aria-label="Filter by power range">

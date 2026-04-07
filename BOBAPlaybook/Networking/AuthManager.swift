@@ -15,9 +15,13 @@ final class AuthManager {
     private(set) var isAuthenticated = false
     private(set) var userId: UUID?
     private(set) var email: String?
+    private(set) var role: String = "user"
     private(set) var isLoading = false
     private(set) var error: String?
     private(set) var confirmationEmailSent = false
+
+    var isMod: Bool { role == "moderator" || role == "admin" }
+    var isAdmin: Bool { role == "admin" }
 
     private let client = SupabaseClient.shared
 
@@ -27,6 +31,16 @@ final class AuthManager {
             isAuthenticated = true
             userId = session.userId
             email = session.email
+            Task { await fetchRole() }
+        }
+    }
+
+    func fetchRole() async {
+        guard isAuthenticated else { return }
+        do {
+            role = try await client.fetchUserRole()
+        } catch {
+            role = "user"
         }
     }
 
@@ -61,6 +75,7 @@ final class AuthManager {
             isAuthenticated = true
             userId = session.userId
             self.email = session.email
+            await fetchRole()
         } catch {
             self.error = error.localizedDescription
         }
@@ -78,6 +93,7 @@ final class AuthManager {
             isAuthenticated = true
             userId = session.userId
             self.email = session.email
+            await fetchRole()
         } catch {
             self.error = error.localizedDescription
         }

@@ -158,6 +158,95 @@ const API = (() => {
     return data;
   }
 
+  // ---- Mod / roles ----
+
+  let _userRole = null;
+
+  async function fetchUserRole() {
+    const { data, error } = await supa()
+      .from('user_profiles')
+      .select('role')
+      .limit(1)
+      .single();
+    if (error) {
+      _userRole = 'user';
+      return 'user';
+    }
+    _userRole = data?.role ?? 'user';
+    return _userRole;
+  }
+
+  function getCachedRole() {
+    return _userRole ?? 'user';
+  }
+
+  async function submitCardCorrection(cardNumber, corrections, notes) {
+    const { data: { session } } = await supa().auth.getSession();
+    if (!session) throw new Error('Not signed in');
+    const { error } = await supa()
+      .from('card_corrections')
+      .insert({
+        card_number:   cardNumber,
+        corrections,
+        notes:         notes || null,
+        submitted_by:  session.user.id,
+      });
+    if (error) throw new Error(error.message);
+  }
+
+  async function submitImageOverride(cardNumber, action, storagePath) {
+    const { data: { session } } = await supa().auth.getSession();
+    if (!session) throw new Error('Not signed in');
+    const payload = {
+      card_number:  cardNumber,
+      action,
+      submitted_by: session.user.id,
+    };
+    if (storagePath) payload.storage_path = storagePath;
+    const { error } = await supa().from('card_image_overrides').insert(payload);
+    if (error) throw new Error(error.message);
+  }
+
+  async function uploadModImage(cardNumber, file) {
+    const { data: { session } } = await supa().auth.getSession();
+    if (!session) throw new Error('Not signed in');
+    const ext  = file.name.split('.').pop() || 'jpg';
+    const path = `${session.user.id}/${cardNumber}-${Date.now()}.${ext}`;
+    const { error } = await supa().storage
+      .from('mod-card-images')
+      .upload(path, file, { contentType: file.type || 'image/jpeg' });
+    if (error) throw new Error(error.message);
+    return path;
+  }
+
+  // Admin-only: fetch row count for a table (uses Range header)
+  async function adminFetchCount(table) {
+    const { count, error } = await supa()
+      .from(table)
+      .select('*', { count: 'exact', head: true });
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  }
+
+  // Admin-only: fetch all user profiles
+  async function adminFetchUsers() {
+    const { data, error } = await supa()
+      .from('user_profiles')
+      .select('user_id, email, role, created_at')
+      .order('created_at', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  }
+
+  // Admin-only: update a user's role
+  async function adminUpdateRole(userId, role) {
+    const { error } = await supa()
+      .from('user_profiles')
+      .update({ role })
+      .eq('user_id', userId);
+    if (error) throw new Error(error.message);
+  }
+
   /* ----------------------------------------------------------------
      Exports
   ---------------------------------------------------------------- */
@@ -198,5 +287,15 @@ const API = (() => {
     collectionAdd,
     collectionDelete,
     collectionUpdate,
+    // Mod
+    fetchUserRole,
+    getCachedRole,
+    submitCardCorrection,
+    submitImageOverride,
+    uploadModImage,
+    // Admin
+    adminFetchCount,
+    adminFetchUsers,
+    adminUpdateRole,
   };
 })();

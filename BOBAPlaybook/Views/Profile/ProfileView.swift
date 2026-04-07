@@ -102,9 +102,20 @@ struct ProfileView: View {
                         Text(auth.email ?? "BOBA Player")
                             .font(Design.Fonts.display(16))
                             .foregroundStyle(Design.Colors.textPrimary)
-                        Text("Member")
-                            .font(Design.Fonts.mono(12))
-                            .foregroundStyle(Design.Colors.textMuted)
+                        HStack(spacing: Design.Spacing.xs) {
+                            Text(auth.isMod ? (auth.isAdmin ? "Admin" : "Moderator") : "Member")
+                                .font(Design.Fonts.mono(12))
+                                .foregroundStyle(Design.Colors.textMuted)
+                            if auth.isMod {
+                                Text(auth.isAdmin ? "ADMIN" : "MOD")
+                                    .font(Design.Fonts.mono(9, weight: .bold))
+                                    .foregroundStyle(Design.Colors.nearBlack)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background(auth.isAdmin ? Design.Colors.bobaOrange : Design.Colors.bobaCyan)
+                                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                            }
+                        }
                     }
                 }
                 .padding(.vertical, Design.Spacing.xs)
@@ -193,6 +204,29 @@ struct ProfileView: View {
                 }
             }
             .listRowBackground(Design.Colors.surface)
+
+            // Mod tools
+            if auth.isMod {
+                Section("MODERATION") {
+                    NavigationLink {
+                        ModPanelView()
+                    } label: {
+                        Label("Mod Panel", systemImage: "shield.lefthalf.filled")
+                            .font(Design.Fonts.mono(14))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                    }
+                    if auth.isAdmin {
+                        NavigationLink {
+                            AdminPanelView()
+                        } label: {
+                            Label("Admin Panel", systemImage: "person.badge.key.fill")
+                                .font(Design.Fonts.mono(14))
+                                .foregroundStyle(Design.Colors.bobaOrange)
+                        }
+                    }
+                }
+                .listRowBackground(Design.Colors.surface)
+            }
 
             // Sign out
             Section {

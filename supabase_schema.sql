@@ -52,6 +52,124 @@ CREATE POLICY "own deck rows" ON deck_cards
 CREATE POLICY "public decks" ON decks FOR SELECT USING (is_public = true);
 
 -- ============================================================
+-- Moderator / Admin roles
+-- ============================================================
+
+-- User profiles: one row per auth.users entry, stores role
+CREATE TABLE user_profiles (
+  user_id    uuid PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
+  email      text,
+  role       text NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'moderator', 'admin')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Every authenticated user can read their own profile
+CREATE POLICY "read own profile"
+  ON user_profiles FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Admins can read all profiles (for admin panel)
+CREATE POLICY "admins read all profiles"
+  ON user_profiles FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles up WHERE up.user_id = auth.uid() AND up.role = 'admin')
+  );
+
+-- Only admins can update roles
+CREATE POLICY "admins update profiles"
+  ON user_profiles FOR UPDATE
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles up WHERE up.user_id = auth.uid() AND up.role = 'admin')
+  );
+
+-- Auto-create a profile row on new signup via trigger (captures email)
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  INSERT INTO public.user_profiles (user_id, email)
+  VALUES (NEW.id, NEW.email)
+  ON CONFLICT (user_id) DO UPDATE SET email = EXCLUDED.email;
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- Card corrections: mods submit field-level fixes to static card data
+CREATE TABLE card_corrections (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  card_number  text NOT NULL,
+  corrections  jsonb NOT NULL,   -- e.g. {"hero": "BoJax", "element": "FIRE"}
+  notes        text,
+  submitted_by uuid NOT NULL REFERENCES auth.users ON DELETE SET NULL,
+  status       text NOT NULL DEFAULT 'pending'
+                 CHECK (status IN ('pending', 'approved', 'rejected')),
+  reviewed_by  uuid REFERENCES auth.users ON DELETE SET NULL,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE card_corrections ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "mods submit corrections"
+  ON card_corrections FOR INSERT
+  WITH CHECK (
+    submitted_by = auth.uid() AND
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('moderator', 'admin'))
+  );
+
+CREATE POLICY "mods read corrections"
+  ON card_corrections FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('moderator', 'admin'))
+  );
+
+CREATE POLICY "admins review corrections"
+  ON card_corrections FOR UPDATE
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role = 'admin')
+  );
+
+-- Card image overrides: mods can flag existing R2 images for removal
+-- or register an approved replacement (Supabase Storage path)
+CREATE TABLE card_image_overrides (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  card_number     text NOT NULL,
+  action          text NOT NULL CHECK (action IN ('replace', 'remove')),
+  storage_path    text,   -- Supabase Storage path (for 'replace' action)
+  submitted_by    uuid NOT NULL REFERENCES auth.users ON DELETE SET NULL,
+  status          text NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending', 'approved', 'rejected')),
+  reviewed_by     uuid REFERENCES auth.users ON DELETE SET NULL,
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE card_image_overrides ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "mods submit image overrides"
+  ON card_image_overrides FOR INSERT
+  WITH CHECK (
+    submitted_by = auth.uid() AND
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('moderator', 'admin'))
+  );
+
+CREATE POLICY "mods read image overrides"
+  ON card_image_overrides FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('moderator', 'admin'))
+  );
+
+CREATE POLICY "admins review image overrides"
+  ON card_image_overrides FOR UPDATE
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role = 'admin')
+  );
+
+-- ============================================================
 -- MIGRATION (run in Supabase SQL editor for existing projects)
 -- ============================================================
 -- ALTER TABLE user_cards DROP CONSTRAINT IF EXISTS user_cards_designation_check;

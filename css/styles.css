@@ -549,18 +549,44 @@ main {
   color: var(--boba-text-muted);
 }
 
-.has-image-toggle {
-  padding: 4px 12px;
-  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
-  letter-spacing: 0.04em; border-radius: 100px;
+.filter-check-row {
+  padding: 6px 0 2px;
+}
+.filter-check-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--boba-text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.filter-checkbox {
+  appearance: none;
+  width: 16px; height: 16px;
   border: 1px solid var(--boba-glass-border);
-  color: var(--boba-text-muted); background: var(--boba-glass);
+  border-radius: 4px;
+  background: var(--boba-glass);
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
   transition: all 0.15s;
 }
-.has-image-toggle:hover { color: var(--boba-text-2); border-color: rgba(255,255,255,0.25); }
-.has-image-toggle[aria-pressed="true"] {
-  background: var(--boba-cyan); border-color: transparent; color: #000;
-  box-shadow: 0 0 10px var(--boba-cyan-glow);
+.filter-checkbox:checked {
+  background: var(--boba-cyan);
+  border-color: var(--boba-cyan);
+}
+.filter-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px; top: 1px;
+  width: 5px; height: 9px;
+  border: 2px solid #000;
+  border-top: none; border-left: none;
+  transform: rotate(45deg);
 }
 
 /* ================================================================
@@ -1447,6 +1473,106 @@ main {
   border-color: rgba(0,245,255,0.3);
 }
 
+/* ---- Mod edit button (in modal) ---- */
+.mod-edit-section {
+  padding: var(--sp-2) 0 0;
+}
+.btn-mod-edit {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px;
+  background: rgba(0,245,255,0.07);
+  border: 1px solid rgba(0,245,255,0.25);
+  border-radius: 6px;
+  font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700;
+  color: var(--boba-cyan);
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-mod-edit:hover {
+  background: rgba(0,245,255,0.14);
+  border-color: rgba(0,245,255,0.45);
+}
+
+/* ---- Mod edit overlay / dialog ---- */
+.mod-edit-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--sp-4);
+}
+.mod-edit-panel {
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 12px;
+  width: 100%; max-width: 480px;
+  max-height: 85dvh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.mod-edit-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--boba-glass-border);
+}
+.mod-edit-title {
+  font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700;
+  color: var(--boba-cyan); letter-spacing: 0.04em;
+}
+.mod-edit-close {
+  font-size: 1.4rem; line-height: 1;
+  color: var(--boba-text-muted);
+  background: none; border: none; cursor: pointer;
+  padding: 0 4px;
+}
+.mod-edit-body {
+  overflow-y: auto; flex: 1;
+  padding: var(--sp-4) 18px;
+  display: flex; flex-direction: column; gap: var(--sp-3);
+}
+.mod-edit-note {
+  font-family: var(--font-mono); font-size: 0.72rem;
+  color: var(--boba-text-muted); margin: 0;
+}
+.mod-edit-fields {
+  display: flex; flex-direction: column; gap: 10px;
+}
+.mod-edit-row {
+  display: flex; align-items: center; gap: 10px;
+}
+.mod-edit-label {
+  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+  color: var(--boba-text-muted); letter-spacing: 0.04em;
+  min-width: 90px;
+}
+.mod-edit-input, .mod-edit-select, .mod-edit-textarea, .mod-edit-file-input {
+  flex: 1;
+  background: var(--boba-glass);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 6px;
+  color: var(--boba-text-1);
+  font-family: var(--font-mono); font-size: 0.82rem;
+  padding: 6px 10px;
+}
+.mod-edit-textarea { resize: vertical; min-height: 60px; }
+.mod-edit-image-section, .mod-edit-notes-section {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.mod-edit-status {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: var(--font-mono); font-size: 0.78rem;
+}
+.mod-edit-status.success { background: rgba(0,245,255,0.1); color: var(--boba-cyan); }
+.mod-edit-status.error   { background: rgba(255,60,60,0.1); color: #ff6060; }
+.mod-edit-footer {
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--boba-glass-border);
+}
+.mod-submit-btn {
+  font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700;
+  padding: 8px 18px;
+}
+
 /* ---- Other Versions ---- */
 .other-versions {
   border-top: 1px solid var(--boba-glass-border);
@@ -1742,9 +1868,17 @@ main {
 }
 
 .profile-account-role {
+  display: flex; align-items: center; gap: 6px;
   font-family: var(--font-mono); font-size: 0.7rem;
   color: var(--boba-text-muted); letter-spacing: 0.06em; text-transform: uppercase;
 }
+.role-badge {
+  font-family: var(--font-mono); font-size: 0.6rem; font-weight: 700;
+  padding: 2px 5px; border-radius: 3px;
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.mod-badge   { background: var(--boba-cyan);   color: #000; }
+.admin-badge { background: var(--boba-orange);  color: #000; }
 
 /* Section */
 .profile-section {
@@ -1812,6 +1946,115 @@ main {
   transition: background 0.15s;
 }
 .profile-signout-row:hover { background: rgba(248,113,113,0.06); }
+
+.profile-mod-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-mono); font-size: 0.82rem;
+  color: var(--boba-cyan);
+  transition: background 0.15s;
+}
+.profile-mod-row:hover { background: rgba(0,245,255,0.06); }
+
+.profile-admin-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-mono); font-size: 0.82rem;
+  color: var(--boba-orange);
+  transition: background 0.15s;
+}
+.profile-admin-row:hover { background: rgba(255,77,0,0.06); }
+
+/* Admin panel */
+.admin-panel { max-width: 560px; }
+.admin-panel-body { gap: var(--sp-4); }
+.admin-metrics-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-3);
+}
+.admin-metric-card {
+  background: var(--boba-glass);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 8px;
+  padding: var(--sp-3) var(--sp-2);
+  text-align: center;
+}
+.admin-metric-value {
+  font-family: var(--font-display); font-size: 1.8rem;
+  color: var(--boba-cyan);
+  line-height: 1;
+}
+.admin-metric-label {
+  font-family: var(--font-mono); font-size: 0.68rem;
+  color: var(--boba-text-muted); letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+.admin-section-label {
+  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+  color: var(--boba-text-muted); letter-spacing: 0.12em;
+}
+.admin-user-list { display: flex; flex-direction: column; gap: 6px; }
+.admin-loading { font-family: var(--font-mono); font-size: 0.8rem; color: var(--boba-text-muted); }
+.admin-user-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--boba-glass);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 8px;
+}
+.admin-user-info { min-width: 0; flex: 1; }
+.admin-user-email {
+  font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600;
+  color: var(--boba-text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.admin-user-meta {
+  font-family: var(--font-mono); font-size: 0.7rem;
+  color: var(--boba-text-muted); margin-top: 2px;
+}
+.admin-user-role { display: flex; align-items: center; gap: var(--sp-2); flex-shrink: 0; }
+.admin-role-badge {
+  font-family: var(--font-mono); font-size: 0.65rem; font-weight: 700;
+  padding: 2px 6px; border-radius: 4px;
+}
+.badge-admin   { background: var(--boba-orange); color: #000; }
+.badge-mod     { background: var(--boba-cyan);   color: #000; }
+.badge-user    { background: var(--boba-glass-border); color: var(--boba-text-muted); }
+.admin-role-btn {
+  font-family: var(--font-mono); font-size: 0.72rem;
+  color: var(--boba-cyan); background: none; border: 1px solid var(--boba-cyan);
+  border-radius: 4px; padding: 2px 7px; cursor: pointer;
+  transition: background 0.15s;
+}
+.admin-role-btn:hover { background: rgba(0,245,255,0.12); }
+.admin-you-badge {
+  font-family: var(--font-mono); font-size: 0.65rem; font-weight: 700;
+  background: var(--boba-orange); color: #000;
+  padding: 1px 5px; border-radius: 3px; margin-left: 5px;
+}
+
+/* Mod panel search results */
+.mod-panel-results {
+  display: flex; flex-direction: column; gap: 6px;
+  margin-top: 10px;
+}
+.mod-result-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--boba-glass);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 6px;
+  font-family: var(--font-mono); font-size: 0.82rem;
+  color: var(--boba-text-1);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.mod-result-row:hover { background: rgba(255,255,255,0.06); }
+.mod-result-hero { font-weight: 700; }
+.mod-result-num  { color: var(--boba-text-muted); font-size: 0.72rem; }
 
 /* ================================================================
    M2 — COLLECTION CARD DETAIL OVERLAY

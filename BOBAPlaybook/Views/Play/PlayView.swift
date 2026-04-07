@@ -156,6 +156,54 @@ private struct MiniCardView: View {
 }
 
 // ════════════════════════════════════════════════════════════════
+// MARK: - Mini Play Card View
+// ════════════════════════════════════════════════════════════════
+
+private struct MiniPlayCardView: View {
+    let imageFile: String
+    let name: String
+    let cost: Int
+    var width: CGFloat = 86
+
+    var body: some View {
+        VStack(spacing: 5) {
+            AsyncImage(url: CDN.thumb(for: imageFile)) { phase in
+                switch phase {
+                case .success(let img):
+                    img.resizable().aspectRatio(contentMode: .fill)
+                default:
+                    RoundedRectangle(cornerRadius: 8).fill(Design.Colors.glass)
+                        .overlay(Text(String(name.prefix(2)).uppercased())
+                            .font(Design.Fonts.display(22))
+                            .foregroundStyle(Design.Colors.bobaCyan))
+                }
+            }
+            .frame(width: width, height: width * 7 / 5)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Design.Colors.bobaCyan.opacity(0.5), lineWidth: 1.5))
+
+            VStack(spacing: 2) {
+                Text(name)
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                    .lineLimit(2).minimumScaleFactor(0.7)
+                    .multilineTextAlignment(.center)
+                HStack(spacing: 3) {
+                    Text("COST")
+                        .font(Design.Fonts.mono(8, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                    Text("\(cost)")
+                        .font(Design.Fonts.display(18))
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                }
+            }
+        }
+        .frame(width: width)
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
 // MARK: - Rules View
 // ════════════════════════════════════════════════════════════════
 
@@ -283,11 +331,13 @@ private struct StaticBattleFlowView: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+        VStack(alignment: .center, spacing: Design.Spacing.sm) {
             Text("EACH BATTLE — ALL PHASES")
                 .font(Design.Fonts.mono(12, weight: .bold))
                 .foregroundStyle(Design.Colors.textMuted)
                 .tracking(1.5)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, Design.Spacing.lg)
 
             HStack(alignment: .top, spacing: 0) {
                 ForEach(Array(phases.enumerated()), id: \.offset) { idx, phase in
@@ -826,10 +876,20 @@ private struct SubstitutionStrategySection: View {
     var body: some View {
         StrategyDisclosure(title: "Substitution Strategy",
                            subtitle: "10 Hot Dogs total — max 5 substitutions all game") {
-            HStack(spacing: 3) {
-                ForEach(0..<10, id: \.self) { _ in
-                    Text("🌭").font(.system(size: 20))
+            HStack(alignment: .top, spacing: Design.Spacing.md) {
+                MiniCardView(imageFile: "HD-1_Dirty-Water-Dan_HotDog.webp", hero: "Dirty Water Dan", power: 0, element: "NONE", width: 80)
+                MiniCardView(imageFile: "HD-2_Grillbert_HotDog.webp", hero: "Grillbert", power: 0, element: "NONE", width: 80)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("10 total")
+                        .font(Design.Fonts.mono(13, weight: .bold))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                    Text("Pay 2 to substitute a Hero.\nPay 0–6 to play Play cards.\nBoth draw from the same pool.")
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                .padding(.top, 4)
+                Spacer(minLength: 0)
             }
             .padding(.vertical, Design.Spacing.xs)
 
@@ -877,24 +937,50 @@ private struct WeaponSynergySection: View {
 // MARK: Play Card Types
 
 private struct PlayCardTypesSection: View {
-    private let types: [(name: String, desc: String, examples: String, color: Color)] = [
-        ("Tempo",        "Immediate one-time power boost.",                                         "Buff Up 15 (+15, 2 dogs), Buff Up 20 (+20, 2 dogs)",                                     Design.Colors.bobaOrange),
-        ("Value",        "Ongoing effect that compounds across battles.",                           "Fire Boost (+10 to all FIRE Heroes rest of game)",                                        Design.Colors.bobaCyan),
-        ("Disruption",   "Deny opponent options for a battle or permanently.",                      "Full Court Press (opponent can't play), Bench Blocker (-20 + no sub)",                    Color(hex: "8B00FF")),
-        ("Economy",      "Recover Hot Dogs — sustain your resource advantage.",                     "Trash Bandit (free recovery), Victory Dinner (+3 on win)",                                .yellow),
-        ("Game-changer", "High-cost, match-defining effects that can flip any battle.",             "Edge Rush (5 — set power 5 above opponent), By Any Means Necessary (6 — search + play any Play free)", Color(hex: "FF0090")),
+    private struct PlayType {
+        let name: String
+        let desc: String
+        let color: Color
+        let cardFile: String
+        let cardName: String
+        let cardCost: Int
+        let cardAbility: String
+    }
+    private let types: [PlayType] = [
+        PlayType(name: "Tempo",        desc: "Immediate one-time power boost.",                      color: Design.Colors.bobaOrange,
+                 cardFile: "PL-31_Buff-Up-15.webp",               cardName: "Buff Up 15",            cardCost: 2, cardAbility: "Your Hero gets +15 this Battle."),
+        PlayType(name: "Value",        desc: "Ongoing effect that compounds across battles.",        color: Design.Colors.bobaCyan,
+                 cardFile: "PL-23_2_For_20_Play.webp",            cardName: "Fire Boost",            cardCost: 2, cardAbility: "All FIRE Heroes get +10 for the rest of the game."),
+        PlayType(name: "Disruption",   desc: "Deny opponent options for a battle or permanently.",   color: Color(hex: "8B00FF"),
+                 cardFile: "PL-59_Bench_Blocker.webp",            cardName: "Bench Blocker",         cardCost: 3, cardAbility: "Opponent Hero –20. They cannot substitute next Battle."),
+        PlayType(name: "Economy",      desc: "Recover Hot Dogs — sustain your resource advantage.",  color: .yellow,
+                 cardFile: "PL-95_Last-Minute_Re-Org.webp",       cardName: "Trash Bandit",          cardCost: 0, cardAbility: "Recover 1 Hot Dog from your Discard Pile."),
+        PlayType(name: "Game-Changer", desc: "High-cost, match-defining effects that flip any battle.", color: Color(hex: "FF0090"),
+                 cardFile: "PL-27_By-Any-Means-Necessary.webp",   cardName: "By Any Means Necessary", cardCost: 6, cardAbility: "Search your Playbook and play any Play for free."),
     ]
     var body: some View {
         StrategyDisclosure(title: "Play Card Types",
                            subtitle: "Tempo · Value · Disruption · Economy · Game-changer") {
-            ForEach(types, id: \.name) { type_ in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(type_.name).font(Design.Fonts.mono(14, weight: .bold)).foregroundStyle(type_.color)
-                    Text(type_.desc).font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
-                    Text(type_.examples).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textMuted).italic()
-                        .fixedSize(horizontal: false, vertical: true)
+            ForEach(Array(types.enumerated()), id: \.offset) { _, type_ in
+                HStack(alignment: .top, spacing: Design.Spacing.sm) {
+                    MiniPlayCardView(imageFile: type_.cardFile, name: type_.cardName, cost: type_.cardCost, width: 80)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(type_.name)
+                            .font(Design.Fonts.mono(14, weight: .bold))
+                            .foregroundStyle(type_.color)
+                        Text(type_.desc)
+                            .font(Design.Fonts.mono(12))
+                            .foregroundStyle(Design.Colors.textSecondary)
+                        Text("\u{201C}\(type_.cardAbility)\u{201D}")
+                            .font(Design.Fonts.mono(11))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .italic()
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(Design.Spacing.sm).frame(maxWidth: .infinity, alignment: .leading)
+                .padding(Design.Spacing.sm)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: Design.Radius.sm).fill(type_.color.opacity(0.06))
                     .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm).strokeBorder(type_.color.opacity(0.2), lineWidth: 1)))
             }

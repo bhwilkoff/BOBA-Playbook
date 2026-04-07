@@ -1,5 +1,29 @@
 import Foundation
 
+// MARK: - Admin models
+
+struct AdminUserProfile: Codable, Identifiable {
+    let userId: UUID
+    let email: String?
+    let role: String
+    let createdAt: Date
+
+    var id: UUID { userId }
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case email
+        case role
+        case createdAt = "created_at"
+    }
+}
+
+struct AdminMetrics {
+    let totalUsers: Int
+    let pendingCorrections: Int
+    let pendingImageOverrides: Int
+}
+
 // MARK: - UserCard
 // One row = one physical copy of a card in the user's collection.
 // Multiple copies of the same card_number are grouped in the UI.

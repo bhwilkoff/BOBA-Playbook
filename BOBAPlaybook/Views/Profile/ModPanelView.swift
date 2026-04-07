@@ -1,0 +1,74 @@
+import SwiftUI
+
+// MARK: - ModPanelView
+// Entry point for moderator/admin tools. Accessible from ProfileView when isMod == true.
+
+struct ModPanelView: View {
+    @Environment(AuthManager.self) private var auth
+    @Environment(CardStore.self) private var cardStore
+    @State private var searchText = ""
+    @State private var selectedCard: Card?
+
+    var body: some View {
+        List {
+            Section {
+                Label("Logged in as \(auth.isAdmin ? "Admin" : "Moderator")", systemImage: "shield.lefthalf.filled")
+                    .font(Design.Fonts.mono(13))
+                    .foregroundStyle(auth.isAdmin ? Design.Colors.bobaOrange : Design.Colors.bobaCyan)
+            }
+            .listRowBackground(Design.Colors.surface)
+
+            Section("CARD INFO CORRECTIONS") {
+                Text("Search for a card below to submit a correction or flag an image issue.")
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .listRowBackground(Design.Colors.surface)
+
+            if !searchText.isEmpty {
+                let results = cardStore.displayCards.filter {
+                    $0.cardNumber.localizedCaseInsensitiveContains(searchText) ||
+                    $0.hero.localizedCaseInsensitiveContains(searchText)
+                }.prefix(20)
+
+                if results.isEmpty {
+                    Section {
+                        Text("No cards found for \"\(searchText)\"")
+                            .font(Design.Fonts.mono(13))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
+                    .listRowBackground(Design.Colors.surface)
+                } else {
+                    Section("RESULTS") {
+                        ForEach(Array(results), id: \.cardNumber) { card in
+                            Button {
+                                selectedCard = card
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(card.hero.isEmpty ? card.cardNumber : card.hero)
+                                        .font(Design.Fonts.display(14))
+                                        .foregroundStyle(Design.Colors.textPrimary)
+                                    Text(card.cardNumber)
+                                        .font(Design.Fonts.mono(11))
+                                        .foregroundStyle(Design.Colors.textMuted)
+                                }
+                            }
+                        }
+                    }
+                    .listRowBackground(Design.Colors.surface)
+                }
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(Design.Colors.nearBlack)
+        .navigationTitle("Mod Panel")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.regularMaterial, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .searchable(text: $searchText, prompt: "Search by card # or hero name")
+        .sheet(item: $selectedCard) { card in
+            ModCardEditSheet(card: card)
+        }
+    }
+}

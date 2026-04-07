@@ -90,8 +90,8 @@ final class SupabaseClient {
 
     /// Fetches the current user's role from user_profiles. Returns "user" if no row exists yet.
     func fetchUserRole() async throws -> String {
-        guard userId != nil else { throw APIError.serverError(401, "Not authenticated") }
-        let url = try makeURL(path: "/rest/v1/user_profiles?select=role&limit=1")
+        guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
+        let url = try makeURL(path: "/rest/v1/user_profiles?select=role&user_id=eq.\(uid.uuidString.lowercased())&limit=1")
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         addHeaders(&request, authenticated: true)

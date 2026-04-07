@@ -109,7 +109,7 @@ const Collection = (() => {
             ${totalCostBasis > 0 ? `
             <div class="cstat">
               <span class="cstat-val">$${totalCostBasis.toFixed(2)}</span>
-              <span class="cstat-label">Cost Basis</span>
+              <span class="cstat-label">Total Paid</span>
             </div>` : ''}
           </div>
         </div>
@@ -292,7 +292,7 @@ const Collection = (() => {
             ${statRow('crown',  'Grails',    grailsCount,    'icon-gold')}
             <div class="profile-stat-divider"></div>
             ${estValueStr ? statRow('dollar', 'Est. Market Value', estValueStr, 'icon-orange') : ''}
-            ${statRow('dollar', 'Cost Basis', totalValueStr, 'icon-cyan')}
+            ${statRow('dollar', 'Total Paid', totalValueStr, 'icon-cyan')}
           </div>
         </div>
 

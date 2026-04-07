@@ -95,22 +95,21 @@ struct AppIconOption: Identifiable {
     let label: String
     let iconName: String   // "default" or the CFBundleAlternateIcons key
     let color: Color
-    let previewImageName: String  // matches the .appiconset name in Assets.xcassets
 
-    // Asset catalog name for the preview imageset (not the appiconset)
+    // Loads from a *-Preview.imageset in Assets.xcassets (appiconsets aren't UIImage-accessible)
     var previewAssetName: String {
         iconName == "default" ? "AppIcon" : "\(iconName)-Preview"
     }
 
     static let all: [AppIconOption] = [
-        AppIconOption(id: "default", label: "Fire",  iconName: "default",      color: Design.Colors.bobaOrange, previewImageName: ""),
-        AppIconOption(id: "ice",     label: "Ice",   iconName: "AppIcon-Ice",   color: Color(hex: "#00BFFF"),    previewImageName: "AppIcon-Ice"),
-        AppIconOption(id: "hex",     label: "Hex",   iconName: "AppIcon-Hex",   color: Design.Colors.bobaViolet, previewImageName: "AppIcon-Hex"),
-        AppIconOption(id: "steel",   label: "Steel", iconName: "AppIcon-Steel", color: Color(hex: "#8A9BB0"),    previewImageName: "AppIcon-Steel"),
-        AppIconOption(id: "brawl",   label: "Brawl", iconName: "AppIcon-Brawl", color: Color(hex: "#C0392B"),    previewImageName: "AppIcon-Brawl"),
-        AppIconOption(id: "glow",    label: "Glow",  iconName: "AppIcon-Glow",  color: Color(hex: "#FFD700"),    previewImageName: "AppIcon-Glow"),
-        AppIconOption(id: "gum",     label: "Gum",   iconName: "AppIcon-Gum",   color: Color(hex: "#FF69B4"),    previewImageName: "AppIcon-Gum"),
-        AppIconOption(id: "super",   label: "Super", iconName: "AppIcon-Super", color: Color(hex: "#FF00FF"),    previewImageName: "AppIcon-Super"),
+        AppIconOption(id: "default", label: "Fire",  iconName: "default",      color: Design.Colors.bobaOrange),
+        AppIconOption(id: "ice",     label: "Ice",   iconName: "AppIcon-Ice",   color: Color(hex: "#00BFFF")),
+        AppIconOption(id: "hex",     label: "Hex",   iconName: "AppIcon-Hex",   color: Design.Colors.bobaViolet),
+        AppIconOption(id: "steel",   label: "Steel", iconName: "AppIcon-Steel", color: Color(hex: "#8A9BB0")),
+        AppIconOption(id: "brawl",   label: "Brawl", iconName: "AppIcon-Brawl", color: Color(hex: "#C0392B")),
+        AppIconOption(id: "glow",    label: "Glow",  iconName: "AppIcon-Glow",  color: Color(hex: "#FFD700")),
+        AppIconOption(id: "gum",     label: "Gum",   iconName: "AppIcon-Gum",   color: Color(hex: "#FF69B4")),
+        AppIconOption(id: "super",   label: "Super", iconName: "AppIcon-Super", color: Color(hex: "#FF00FF")),
     ]
 }
 

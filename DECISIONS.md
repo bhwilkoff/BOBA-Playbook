@@ -94,9 +94,13 @@ Any `VStack` that is the direct parent of a `ScrollView` (or that contains a `Sc
 
 **Root cause**: SwiftUI's VStack without an explicit frame sizes itself to the maximum of its children's natural (ideal) widths. When a ScrollView lives inside such a VStack, SwiftUI's layout engine derives the ScrollView's proposed width from the VStack's content-dependent natural width. Different content in different modes (e.g. Rookie mode content = 228pt natural width, Substitution mode content = 361pt) causes the ScrollView to receive different proposed widths per mode. GeometryReader diagnostics confirmed that static shared views (`StaticBattleFlowView`, `CardZonesSection`, `DeckbuildingSection`) reported different widths across modes even though their code is identical — proof that the proposed width was changing per mode, not the views themselves.
 
-**Fix**: Add `.frame(maxWidth: .infinity)` to the VStack that wraps the mode picker + ScrollView in `RulesView`. This forces the VStack to always fill the full available width from its parent (NavigationStack), giving the ScrollView a stable, constant proposed width regardless of which mode's content is displayed.
+**Fix**: Add `.frame(maxWidth: .infinity)` to the VStack that wraps the picker + switch. This forces the VStack to always fill the full available width, giving every child ScrollView a stable proposed width regardless of which content is shown.
 
-**Rule**: Any `VStack` used as a top-level container for a tab/page view (where its children switch content via a `switch` statement or conditional) must have `.frame(maxWidth: .infinity)`. Without it, content-dependent width sizing causes inconsistent ScrollView layout.
+**Rule**: Any `VStack` that (1) wraps a picker/tab-selector AND a `switch`/conditional body, OR (2) is the direct ancestor of a `ScrollView` and switches content, MUST have `.frame(maxWidth: .infinity)`. Apply it at the outermost VStack first — inner fixes are noise until the outer frame is constrained.
+
+**Known instances fixed**:
+- `RulesView` — VStack wrapping mode picker + per-mode ScrollViews (2026-04-06)
+- `PlayView` — VStack wrapping `PlaySectionPicker` + section `switch` (2026-04-06, required second pass because inner fixes were applied first in error)
 
 ## 020 — Web Layout: Body Flex Column, No viewport-fit=cover
 *2026-04-04*

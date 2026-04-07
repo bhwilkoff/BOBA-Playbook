@@ -87,7 +87,7 @@ const API = (() => {
   let _supa = null;
   function supa() {
     if (!_supa) _supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-      auth: { detectSessionInUrl: false, persistSession: true, autoRefreshToken: true }
+      auth: { detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
     });
     return _supa;
   }
@@ -163,10 +163,12 @@ const API = (() => {
   let _userRole = null;
 
   async function fetchUserRole() {
+    const { data: { user } } = await supa().auth.getUser();
+    if (!user) { _userRole = 'user'; return 'user'; }
     const { data, error } = await supa()
       .from('user_profiles')
       .select('role')
-      .limit(1)
+      .eq('user_id', user.id)
       .single();
     if (error) {
       _userRole = 'user';

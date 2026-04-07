@@ -753,9 +753,11 @@ private struct StrategyDisclosure<Content: View>: View {
             .buttonStyle(.plain)
             if isExpanded {
                 VStack(alignment: .leading, spacing: Design.Spacing.md) { content() }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, Design.Spacing.md).padding(.bottom, Design.Spacing.md)
             }
         }
+        .frame(maxWidth: .infinity)
         .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface)
             .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1)))
     }
@@ -807,6 +809,7 @@ private struct PowerCurveSection: View {
                     .frame(maxWidth: .infinity)
                 }
             }
+            .frame(maxWidth: .infinity)
             .padding(.vertical, Design.Spacing.xs)
 
             StrategyBullet(text: "Front-load strong Heroes to establish Honors momentum early.")

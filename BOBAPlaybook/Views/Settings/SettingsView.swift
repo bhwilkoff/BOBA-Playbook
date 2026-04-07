@@ -65,7 +65,7 @@ private struct IconOptionCell: View {
                     RoundedRectangle(cornerRadius: 16)
                         .fill(Color.black)
                         .frame(width: 60, height: 60)
-                    Image(uiImage: option.previewImage)
+                    Image(option.previewAssetName)
                         .resizable()
                         .frame(width: 60, height: 60)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -97,11 +97,9 @@ struct AppIconOption: Identifiable {
     let color: Color
     let previewImageName: String  // matches the .appiconset name in Assets.xcassets
 
-    var previewImage: UIImage {
-        if iconName == "default" {
-            return UIImage(named: "AppIcon") ?? UIImage()
-        }
-        return UIImage(named: previewImageName) ?? UIImage()
+    // Asset catalog name for the preview imageset (not the appiconset)
+    var previewAssetName: String {
+        iconName == "default" ? "AppIcon" : "\(iconName)-Preview"
     }
 
     static let all: [AppIconOption] = [

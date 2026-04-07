@@ -128,8 +128,8 @@ struct CardDetailView: View {
                         if auth.isAuthenticated { showingAddSheet = true }
                         else { showingSignIn = true }
                     } label: {
-                        Image(systemName: collectionStatusIcon ?? "plus.circle")
-                            .font(.system(size: 17, weight: .medium))
+                        Image(systemName: collectionStatusIcon ?? "plus.circle.fill")
+                            .font(.system(size: 20, weight: .medium))
                             .foregroundStyle(
                                 collectionStatusIcon != nil
                                     ? (collection.isOwned(card.cardNumber) ? Color.green : Design.Colors.bobaOrange)
@@ -142,8 +142,8 @@ struct CardDetailView: View {
                         Button {
                             showingModEdit = true
                         } label: {
-                            Image(systemName: "pencil.circle")
-                                .font(.system(size: 17, weight: .medium))
+                            Image(systemName: "pencil.circle.fill")
+                                .font(.system(size: 20, weight: .medium))
                                 .foregroundStyle(Design.Colors.bobaCyan)
                         }
                     }
@@ -156,10 +156,10 @@ struct CardDetailView: View {
                             ProgressView()
                                 .tint(Design.Colors.bobaCyan)
                                 .scaleEffect(0.8)
-                                .frame(width: 17, height: 17)
+                                .frame(width: 20, height: 20)
                         } else {
                             Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 17, weight: .medium))
+                                .font(.system(size: 20, weight: .medium))
                                 .foregroundStyle(Design.Colors.bobaCyan)
                         }
                     }

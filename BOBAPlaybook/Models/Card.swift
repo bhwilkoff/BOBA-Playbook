@@ -35,6 +35,28 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
 
     var isSealed: Bool { cardType == "Sealed Product" }
 
+    // Rarity derived from treatment field
+    var rarityTier: Int {
+        guard let t = treatment?.lowercased() else { return 0 }
+        if t.contains("kanji")        { return 5 }
+        if t.contains("superfoil") || isInspiredInk { return 4 }
+        if t.contains("blizzard")     { return 3 }
+        if t.contains("battlefoil") || t.contains("logofoil") { return 2 }
+        if t.contains("blast") || t.contains("paper") { return 1 }
+        return 0
+    }
+
+    var rarityLabel: String {
+        switch rarityTier {
+        case 5: return "Kanjifoil"
+        case 4: return isInspiredInk ? "Inspired Ink" : "Superfoil"
+        case 3: return "Blizzard"
+        case 2: return treatment?.lowercased().contains("logofoil") == true ? "Logofoil" : "Battlefoil"
+        case 1: return treatment?.lowercased().contains("blast") == true ? "Blast" : "Paper"
+        default: return "Base Set"
+        }
+    }
+
     // Stable unique id
     var id: String { "\(cardNumber)-\(hero)-\(treatment ?? "")" }
 

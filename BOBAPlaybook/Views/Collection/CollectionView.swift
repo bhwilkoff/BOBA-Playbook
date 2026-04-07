@@ -101,16 +101,18 @@ struct CollectionView: View {
     // MARK: - Value summary
 
     private var valueSummary: some View {
-        let total = collection.totalPurchaseValue
+        let estimated = collection.totalEstimatedValue
+        let purchased = collection.totalPurchaseValue
         return HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("PORTFOLIO VALUE")
+                Text(estimated > 0 ? "EST. MARKET VALUE" : "COST BASIS")
                     .font(Design.Fonts.mono(9, weight: .bold))
                     .foregroundStyle(Design.Colors.textMuted)
                     .tracking(1.5)
-                Text(total == 0 ? "—" : formatCurrency(total))
+                let displayValue = estimated > 0 ? estimated : purchased
+                Text(displayValue == 0 ? "—" : formatCurrency(displayValue))
                     .font(Design.Fonts.arena(28))
-                    .foregroundStyle(total == 0 ? Design.Colors.textMuted : Design.Colors.bobaOrange)
+                    .foregroundStyle(displayValue == 0 ? Design.Colors.textMuted : Design.Colors.bobaOrange)
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {

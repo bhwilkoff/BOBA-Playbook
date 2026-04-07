@@ -74,23 +74,13 @@ struct SearchView: View {
     // MARK: - Content
     private var contentView: some View {
         ScrollView {
-            // Results count + image toggle
-            HStack {
-                Text("\(store.filteredCards.count) cards")
-                    .font(Design.Fonts.mono(12))
-                    .foregroundStyle(Design.Colors.textMuted)
-                Spacer()
-                Toggle(isOn: Bindable(store).hasImageOnly) {
-                    Text("Has Image")
-                        .font(Design.Fonts.mono(12))
-                        .foregroundStyle(Design.Colors.textSecondary)
-                }
-                .toggleStyle(.button)
-                .tint(Design.Colors.bobaOrange)
-                .controlSize(.small)
-            }
-            .padding(.horizontal, Design.Spacing.lg)
-            .padding(.top, Design.Spacing.sm)
+            // Results count
+            Text("\(store.filteredCards.count) cards")
+                .font(Design.Fonts.mono(12))
+                .foregroundStyle(Design.Colors.textMuted)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Design.Spacing.lg)
+                .padding(.top, Design.Spacing.sm)
 
             // Only show partial-catalog notice when user is actively searching/filtering
             if store.isLoadingMore && (!store.searchText.isEmpty || store.activeFilterCount > 0) {

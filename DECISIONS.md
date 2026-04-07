@@ -102,6 +102,16 @@ Any `VStack` that is the direct parent of a `ScrollView` (or that contains a `Sc
 - `RulesView` — VStack wrapping mode picker + per-mode ScrollViews (2026-04-06)
 - `PlayView` — VStack wrapping `PlaySectionPicker` + section `switch` (2026-04-06, required second pass because inner fixes were applied first in error)
 
+## 023 — Mod Accounts: user_profiles + Supabase role system
+*2026-04-07*
+Moderator roles are managed via a `user_profiles` table in Supabase with a `role` column (`user` | `moderator` | `admin`). Profiles are auto-created on signup via a trigger. Role is never stored client-side permanently — fetched fresh after each sign-in and cached in-memory for the session.
+
+**Card corrections** go to a `card_corrections` table (jsonb `corrections` field). **Image overrides** go to `card_image_overrides`. Both require mod/admin role enforced by RLS. Admins review via Supabase dashboard or a future admin UI.
+
+**Rationale**: The card catalog is static JSON so corrections can't update it live. A corrections table decouples user-submitted fixes from the release cycle — admin can approve and batch-update cards.json periodically.
+
+**Consequences**: Roles must be assigned manually in the Supabase dashboard (`UPDATE user_profiles SET role = 'moderator' WHERE user_id = '...'`). The app fetches role post-auth but doesn't create the profile row itself — the signup trigger handles it. Photo uploads go to Supabase Storage bucket `mod-card-images`.
+
 ## 020 — Web Layout: Body Flex Column, No viewport-fit=cover
 *2026-04-04*
 `body { height: 100dvh; display: flex; flex-direction: column; overflow: hidden }` with `main { flex: 1; overflow-y: auto; min-height: 0 }`. The body does not scroll — content scrolls inside `main`. The mobile header is the first flex item (`flex-shrink: 0; position: relative`).

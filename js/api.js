@@ -82,7 +82,7 @@ const API = (() => {
      The anon key is public by design — protected by RLS policies.
   ---------------------------------------------------------------- */
   const SUPABASE_URL  = (window.ENV || {}).SUPABASE_URL  || 'https://pazkimtkwwwekuguxkff.supabase.co';
-  const SUPABASE_ANON = (window.ENV || {}).SUPABASE_ANON || 'sb_publishable_nAaO0c10a0dJaNRRYUFv7w_PmH1XjET';
+  const SUPABASE_ANON = (window.ENV || {}).SUPABASE_ANON || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhemtpbXRrd3d3ZWt1Z3V4a2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMzY4MTIsImV4cCI6MjA5MDgxMjgxMn0.8f-d_RT8ESxQR-QbYbfpp1MWqhQ7Tm5IKJJeivI-U9k';
 
   let _supa = null;
   function supa() {

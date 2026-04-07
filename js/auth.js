@@ -173,7 +173,7 @@ const Auth = (() => {
         if (session) {
           _session = session;
           updateNavUI();
-          API.fetchUserRole().catch(() => {});
+          await API.fetchUserRole().catch(() => {});
           document.dispatchEvent(new CustomEvent('auth-change', { detail: { event: 'SIGNED_IN', session } }));
         }
         close();
@@ -187,7 +187,7 @@ const Auth = (() => {
         if (result.session) {
           _session = result.session;
           updateNavUI();
-          API.fetchUserRole().catch(() => {});
+          await API.fetchUserRole().catch(() => {});
           document.dispatchEvent(new CustomEvent('auth-change', { detail: { event: 'SIGNED_IN', session: result.session } }));
         }
         close();
@@ -268,14 +268,14 @@ const Auth = (() => {
     // We handle each event type explicitly to avoid iOS Safari / PWA edge cases
     // where TOKEN_REFRESHED or a stale INITIAL_SESSION fires with session=null
     // and incorrectly clears a just-established session.
-    API.authOnStateChange((event, session) => {
+    API.authOnStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (!session) return; // Supabase guarantees session for these events; bail if missing
         // Skip duplicate SIGNED_IN if handleSubmit already set the session (same user ID)
         if (event === 'SIGNED_IN' && _session?.user?.id === session?.user?.id) return;
         _session = session;
         updateNavUI();
-        API.fetchUserRole().catch(() => {});
+        await API.fetchUserRole().catch(() => {});
         document.dispatchEvent(new CustomEvent('auth-change', { detail: { event, session } }));
 
       } else if (event === 'SIGNED_OUT') {
@@ -288,7 +288,7 @@ const Auth = (() => {
           // Valid session found in storage on page load (returning user)
           _session = session;
           updateNavUI();
-          API.fetchUserRole().catch(() => {});
+          await API.fetchUserRole().catch(() => {});
           document.dispatchEvent(new CustomEvent('auth-change', { detail: { event, session } }));
         } else if (!session && !_session) {
           // No session found — user is signed out; let views know so they render sign-in gates

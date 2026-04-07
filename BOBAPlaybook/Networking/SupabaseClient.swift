@@ -59,6 +59,15 @@ final class SupabaseClient {
         return s
     }
 
+    /// Exchange a PKCE authorization code for a session. Used by OAuth flows (e.g. Discord).
+    func exchangeOAuthCode(_ code: String, codeVerifier: String) async throws -> SupabaseSession {
+        let body: [String: String] = ["auth_code": code, "code_verifier": codeVerifier]
+        let response: AuthResponse = try await postAuth(path: "/auth/v1/token?grant_type=pkce", body: body)
+        let s = makeSession(from: response)
+        storeSession(s)
+        return s
+    }
+
     @discardableResult
     func refreshSession() async throws -> SupabaseSession {
         guard let rt = session?.refreshToken else {

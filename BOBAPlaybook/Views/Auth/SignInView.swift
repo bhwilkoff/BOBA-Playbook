@@ -23,6 +23,7 @@ struct SignInView: View {
                 VStack(spacing: Design.Spacing.xl) {
                     header
                     appleButton
+                    discordButton
                     divider
                     emailForm
                     if let err = auth.error {
@@ -99,6 +100,25 @@ struct SignInView: View {
         .signInWithAppleButtonStyle(.white)
         .frame(height: 50)
         .cornerRadius(Design.Radius.md)
+    }
+
+    private var discordButton: some View {
+        Button {
+            Task { await auth.signInWithDiscord() }
+        } label: {
+            HStack(spacing: 10) {
+                DiscordIconView()
+                    .frame(width: 20, height: 20)
+                Text(mode == .signIn ? "Sign in with Discord" : "Sign up with Discord")
+                    .font(Design.Fonts.mono(15, weight: .bold))
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(Color(red: 0.345, green: 0.396, blue: 0.949)) // #5865F2
+            .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+        }
+        .disabled(auth.isLoading)
     }
 
     private var divider: some View {
@@ -240,5 +260,45 @@ struct SignInView: View {
             return
         }
         Task { await auth.signUp(email: email, password: password) }
+    }
+}
+
+// MARK: - Discord icon (simplified geometric representation)
+
+private struct DiscordIconView: View {
+    private let blurple = Color(red: 0.345, green: 0.396, blue: 0.949)
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width, h = geo.size.height
+            ZStack(alignment: .center) {
+                // Main body — rounded rect slightly wider than tall
+                RoundedRectangle(cornerRadius: w * 0.22)
+                    .fill(.white)
+                    .frame(width: w * 0.88, height: h * 0.70)
+                    .offset(y: -h * 0.04)
+                // Left ear tab
+                Capsule()
+                    .fill(.white)
+                    .frame(width: w * 0.22, height: h * 0.34)
+                    .offset(x: -w * 0.28, y: h * 0.28)
+                // Right ear tab
+                Capsule()
+                    .fill(.white)
+                    .frame(width: w * 0.22, height: h * 0.34)
+                    .offset(x:  w * 0.28, y: h * 0.28)
+                // Left eye (blurple fills over white body, acting as cutout)
+                Ellipse()
+                    .fill(blurple)
+                    .frame(width: w * 0.20, height: h * 0.25)
+                    .offset(x: -w * 0.20, y: -h * 0.04)
+                // Right eye
+                Ellipse()
+                    .fill(blurple)
+                    .frame(width: w * 0.20, height: h * 0.25)
+                    .offset(x:  w * 0.20, y: -h * 0.04)
+            }
+            .frame(width: w, height: h)
+        }
     }
 }

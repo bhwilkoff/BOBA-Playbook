@@ -77,7 +77,15 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
         treatment          = try c.decodeIfPresent(String.self,    forKey: .treatment)
         element            = try c.decodeIfPresent(String.self,    forKey: .element)   ?? "NONE"
         power              = try c.decodeIfPresent(Int.self,       forKey: .power)
-        playCost           = try c.decodeIfPresent(Int.self,       forKey: .playCost)
+        // playCost is an Int for Play cards (0–6 Hot Dogs) but sealed products
+        // incorrectly store their MSRP price here as a Double. Decode flexibly.
+        if let intVal = try? c.decodeIfPresent(Int.self, forKey: .playCost) {
+            playCost = intVal
+        } else if let dblVal = try? c.decodeIfPresent(Double.self, forKey: .playCost) {
+            playCost = Int(dblVal)
+        } else {
+            playCost = nil
+        }
         playAbility        = try c.decodeIfPresent(String.self,    forKey: .playAbility)
         athleteInspiration = try c.decodeIfPresent(String.self,    forKey: .athleteInspiration)
         isInspiredInk      = try c.decodeIfPresent(Bool.self,      forKey: .isInspiredInk) ?? false

@@ -1,11 +1,13 @@
 import SwiftUI
 import AuthenticationServices
+import CryptoKit
 
 // MARK: - AuthManager
-// Manages auth state: Sign in with Apple + email/password.
+// Manages auth state: Sign in with Apple, Discord OAuth, or email/password.
 // Session is persisted in Keychain via SupabaseClient.
 // Sign in with Apple is driven by SignInWithAppleButton in SignInView —
 // the view extracts the idToken from the completion handler and calls signInWithApple(idToken:).
+// Discord uses ASWebAuthenticationSession with PKCE flow.
 
 @Observable
 @MainActor
@@ -24,6 +26,9 @@ final class AuthManager {
     var isAdmin: Bool { role == "admin" }
 
     private let client = SupabaseClient.shared
+
+    // Holds active ASWebAuthenticationSession to prevent deallocation during OAuth flow
+    nonisolated(unsafe) private var _oauthSession: ASWebAuthenticationSession?
 
     init() {
         // Restore session from Keychain
@@ -100,6 +105,107 @@ final class AuthManager {
         isLoading = false
     }
 
+    // MARK: - Sign in with Discord (OAuth + PKCE via ASWebAuthenticationSession)
+
+    func signInWithDiscord() async {
+        isLoading = true
+        error = nil
+        do {
+            let session = try await startOAuthFlow(provider: "discord")
+            client.setSession(session)
+            isAuthenticated = true
+            userId = session.userId
+            email  = session.email
+            await fetchRole()
+        } catch is CancellationError {
+            // User dismissed the auth sheet — not an error
+        } catch {
+            self.error = error.localizedDescription
+        }
+        _oauthSession = nil
+        isLoading = false
+    }
+
+    private func startOAuthFlow(provider: String) async throws -> SupabaseSession {
+        let codeVerifier  = makeCodeVerifier()
+        let codeChallenge = makeCodeChallenge(from: codeVerifier)
+        let redirectURI   = "bobaplaybook://oauth"
+
+        guard let encodedRedirect = redirectURI.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let authURL = URL(string:
+                "\(SupabaseConfig.projectURL)/auth/v1/authorize" +
+                "?provider=\(provider)" +
+                "&redirect_to=\(encodedRedirect)" +
+                "&code_challenge=\(codeChallenge)" +
+                "&code_challenge_method=S256")
+        else { throw APIError.invalidURL }
+
+        let callbackURL: URL = try await withCheckedThrowingContinuation { continuation in
+            let ws = ASWebAuthenticationSession(url: authURL, callbackURLScheme: "bobaplaybook") { url, err in
+                if let nsErr = err as? ASWebAuthenticationSessionError,
+                   nsErr.code == .canceledLogin {
+                    continuation.resume(throwing: CancellationError())
+                } else if let url {
+                    continuation.resume(returning: url)
+                } else {
+                    continuation.resume(throwing: err ?? APIError.invalidResponse)
+                }
+            }
+            ws.prefersEphemeralWebBrowserSession = false
+            ws.presentationContextProvider = OAuthContextProvider.shared
+            _oauthSession = ws
+            ws.start()
+        }
+
+        // Implicit flow: tokens arrive in the URL fragment
+        if let fragment = callbackURL.fragment {
+            var comps = URLComponents()
+            comps.query = fragment
+            let p = queryDict(comps.queryItems ?? [])
+            if let access = p["access_token"],
+               let refresh = p["refresh_token"],
+               let exp = p["expires_in"].flatMap(Int.init),
+               let (uid, addr) = decodeJWTPayload(access) {
+                return SupabaseSession(
+                    accessToken: access, refreshToken: refresh,
+                    userId: uid, email: addr,
+                    expiresAt: Date().addingTimeInterval(TimeInterval(exp)))
+            }
+        }
+
+        // PKCE flow: authorization code arrives as a query parameter
+        let qp = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false)?.queryItems
+        guard let code = qp?.first(where: { $0.name == "code" })?.value
+        else { throw APIError.invalidResponse }
+
+        return try await client.exchangeOAuthCode(code, codeVerifier: codeVerifier)
+    }
+
+    // MARK: - PKCE helpers
+
+    private func makeCodeVerifier() -> String {
+        var bytes = [UInt8](repeating: 0, count: 32)
+        _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
+        return Data(bytes).base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    private func makeCodeChallenge(from verifier: String) -> String {
+        Data(SHA256.hash(data: Data(verifier.utf8)))
+            .base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    private func queryDict(_ items: [URLQueryItem]) -> [String: String] {
+        Dictionary(uniqueKeysWithValues: items.compactMap { item in
+            item.value.map { (item.name, $0) }
+        })
+    }
+
     // MARK: - Sign out
 
     func signOut() async {
@@ -154,6 +260,8 @@ final class AuthManager {
         confirmationEmailSent = false
     }
 
+    // MARK: - JWT decode
+
     // Decode the JWT middle segment to extract sub (userId) and email without a network call
     private func decodeJWTPayload(_ jwt: String) -> (UUID, String?)? {
         let parts = jwt.components(separatedBy: ".")
@@ -167,5 +275,19 @@ final class AuthManager {
         guard let payload = try? JSONDecoder().decode(Payload.self, from: data),
               let userId  = UUID(uuidString: payload.sub) else { return nil }
         return (userId, payload.email)
+    }
+}
+
+// MARK: - OAuth presentation context
+
+/// Provides the presentation anchor for ASWebAuthenticationSession OAuth flows.
+private final class OAuthContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding, @unchecked Sendable {
+    static let shared = OAuthContextProvider()
+
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .compactMap { $0.keyWindow }
+            .first ?? ASPresentationAnchor()
     }
 }

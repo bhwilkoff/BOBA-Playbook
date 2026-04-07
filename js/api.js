@@ -112,6 +112,11 @@ const API = (() => {
     return supa().auth.signInWithOAuth({ provider: 'apple', options: { redirectTo } });
   }
 
+  function authSignInWithDiscord() {
+    const redirectTo = window.location.origin + window.location.pathname;
+    return supa().auth.signInWithOAuth({ provider: 'discord', options: { redirectTo } });
+  }
+
   async function authSignOut() {
     const { error } = await supa().auth.signOut();
     if (error) throw new Error(error.message);
@@ -266,6 +271,7 @@ const API = (() => {
     authSignUp,
     authSignIn,
     authSignInWithApple,
+    authSignInWithDiscord,
     authSignOut,
     authOnStateChange,
     authGetSession: async () => {

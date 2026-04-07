@@ -263,42 +263,14 @@ struct SignInView: View {
     }
 }
 
-// MARK: - Discord icon (simplified geometric representation)
+// MARK: - Discord icon (rendered from Assets.xcassets/discord-logo.imageset)
+// SVG asset with template rendering — tinted white by .foregroundStyle on the parent HStack.
 
 private struct DiscordIconView: View {
-    private let blurple = Color(red: 0.345, green: 0.396, blue: 0.949)
-
     var body: some View {
-        GeometryReader { geo in
-            let w = geo.size.width, h = geo.size.height
-            ZStack(alignment: .center) {
-                // Main body — rounded rect slightly wider than tall
-                RoundedRectangle(cornerRadius: w * 0.22)
-                    .fill(.white)
-                    .frame(width: w * 0.88, height: h * 0.70)
-                    .offset(y: -h * 0.04)
-                // Left ear tab
-                Capsule()
-                    .fill(.white)
-                    .frame(width: w * 0.22, height: h * 0.34)
-                    .offset(x: -w * 0.28, y: h * 0.28)
-                // Right ear tab
-                Capsule()
-                    .fill(.white)
-                    .frame(width: w * 0.22, height: h * 0.34)
-                    .offset(x:  w * 0.28, y: h * 0.28)
-                // Left eye (blurple fills over white body, acting as cutout)
-                Ellipse()
-                    .fill(blurple)
-                    .frame(width: w * 0.20, height: h * 0.25)
-                    .offset(x: -w * 0.20, y: -h * 0.04)
-                // Right eye
-                Ellipse()
-                    .fill(blurple)
-                    .frame(width: w * 0.20, height: h * 0.25)
-                    .offset(x:  w * 0.20, y: -h * 0.04)
-            }
-            .frame(width: w, height: h)
-        }
+        Image("discord-logo")
+            .resizable()
+            .renderingMode(.template)
+            .scaledToFit()
     }
 }

@@ -48,7 +48,7 @@
       ]
     },
     "Alpha": {
-      "count": 8494,
+      "count": 8395,
       "subSets": [
         "2024 Release",
         "2025 Update",
@@ -149,7 +149,7 @@
   },
   "treatments": {
     "Grandma's Linoleum Battlefoil": {
-      "count": 1676,
+      "count": 1675,
       "elements": [
         "BRAWL",
         "FIRE",
@@ -161,13 +161,13 @@
       "sampleCardNumbers": [
         "GLBF-1",
         "GLBF-1",
-        "GLBF-1",
+        "GLBF-10",
         "GLBF-10",
         "GLBF-10"
       ]
     },
     "80's Rad Battlefoil": {
-      "count": 1676,
+      "count": 1675,
       "elements": [
         "BRAWL",
         "FIRE",
@@ -179,7 +179,7 @@
       "sampleCardNumbers": [
         "RAD-1",
         "RAD-1",
-        "RAD-1",
+        "RAD-10",
         "RAD-10",
         "RAD-10"
       ]
@@ -203,7 +203,7 @@
       ]
     },
     "Mixtape Battlefoil": {
-      "count": 1296,
+      "count": 1295,
       "elements": [
         "BRAWL",
         "FIRE",
@@ -214,9 +214,9 @@
       ],
       "sampleCardNumbers": [
         "MIX-1",
-        "MIX-1",
         "MIX-10",
         "MIX-10",
+        "MIX-100",
         "MIX-100"
       ]
     },
@@ -412,53 +412,53 @@
       ]
     },
     "Blue Battlefoil": {
-      "count": 309,
+      "count": 308,
       "elements": [
         "ICE"
       ],
       "sampleCardNumbers": [
         "BBF-1",
         "BBF-1",
-        "BBF-1",
+        "BBF-10",
         "BBF-10",
         "BBF-10"
       ]
     },
     "Green Battlefoil": {
-      "count": 309,
+      "count": 308,
       "elements": [
         "GLOW"
       ],
       "sampleCardNumbers": [
         "GBF-1",
         "GBF-1",
-        "GBF-1",
+        "GBF-10",
         "GBF-10",
         "GBF-10"
       ]
     },
     "Orange Battlefoil": {
-      "count": 309,
+      "count": 308,
       "elements": [
         "FIRE"
       ],
       "sampleCardNumbers": [
         "OBF-1",
         "OBF-1",
-        "OBF-1",
+        "OBF-10",
         "OBF-10",
         "OBF-10"
       ]
     },
     "Pink Battlefoil": {
-      "count": 309,
+      "count": 308,
       "elements": [
         "HEX"
       ],
       "sampleCardNumbers": [
         "PBF-1",
         "PBF-1",
-        "PBF-1",
+        "PBF-10",
         "PBF-10",
         "PBF-10"
       ]
@@ -477,28 +477,28 @@
       ]
     },
     "Fire Tracks Battlefoil": {
-      "count": 233,
+      "count": 232,
       "elements": [
         "FIRE"
       ],
       "sampleCardNumbers": [
         "FT-1",
-        "FT-1",
         "FT-10",
         "FT-10",
+        "FT-100",
         "FT-100"
       ]
     },
     "Miami Ice Battlefoil": {
-      "count": 233,
+      "count": 232,
       "elements": [
         "ICE"
       ],
       "sampleCardNumbers": [
         "MI-1",
-        "MI-1",
         "MI-10",
         "MI-10",
+        "MI-100",
         "MI-100"
       ]
     },
@@ -593,23 +593,8 @@
         "HBF-10"
       ]
     },
-    "Hot Dog": {
-      "count": 149,
-      "elements": [
-        "FIRE",
-        "HEX",
-        "ICE"
-      ],
-      "sampleCardNumbers": [
-        "HD-1",
-        "HD-1",
-        "HD-1",
-        "HD-1",
-        "HD-10"
-      ]
-    },
     "Inspired Ink Superfoil": {
-      "count": 134,
+      "count": 133,
       "elements": [
         "SUPER"
       ],
@@ -780,6 +765,21 @@
         "S-03/100",
         "S-04/100",
         "S-05/100"
+      ]
+    },
+    "Hot Dog": {
+      "count": 60,
+      "elements": [
+        "FIRE",
+        "HEX",
+        "ICE"
+      ],
+      "sampleCardNumbers": [
+        "HD-1",
+        "HD-10",
+        "HD-11",
+        "HD-12",
+        "HD-13"
       ]
     },
     "Home Team Discount": {
@@ -965,11 +965,11 @@
   },
   "elements": {
     "ICE": {
-      "count": 3237,
+      "count": 3235,
       "rarity": "Rare SP"
     },
     "FIRE": {
-      "count": 3219,
+      "count": 3217,
       "rarity": "Rare SP"
     },
     "STEEL": {
@@ -977,11 +977,11 @@
       "rarity": "Common"
     },
     "GLOW": {
-      "count": 2680,
+      "count": 2679,
       "rarity": "Ultra Rare"
     },
     "HEX": {
-      "count": 2463,
+      "count": 2459,
       "rarity": "Elite"
     },
     "BRAWL": {
@@ -993,7 +993,7 @@
       "rarity": "Secret Rare"
     },
     "SUPER": {
-      "count": 454,
+      "count": 453,
       "rarity": "Unique 1/1"
     },
     "ALT": {
@@ -1815,12 +1815,11 @@
       ]
     },
     "BoJax": {
-      "count": 54,
+      "count": 45,
       "athletes": [
         "Bo Jackson"
       ],
       "cardNumbers": [
-        "BBF-1",
         "BBF-76",
         "BFA-1",
         "BGA-1",
@@ -1829,11 +1828,12 @@
         "BL-G77",
         "BL-O77",
         "BL-P77",
-        "BL-S77"
+        "BL-S77",
+        "GBF-76"
       ]
     },
     "Bojax": {
-      "count": 100,
+      "count": 99,
       "athletes": [
         "Bo Jackson"
       ],
@@ -8040,10 +8040,10 @@
     }
   },
   "cardTypes": {
-    "Hero": 17363,
-    "HotDog": 130,
+    "Hero": 17353,
+    "HotDog": 41,
     "Play": 300
   },
-  "totalCards": 17793,
-  "totalWithImages": 15964
+  "totalCards": 17694,
+  "totalWithImages": 14701
 }

@@ -28,7 +28,7 @@ final class AuthManager {
     private let client = SupabaseClient.shared
 
     // Holds active ASWebAuthenticationSession to prevent deallocation during OAuth flow
-    nonisolated(unsafe) private var _oauthSession: ASWebAuthenticationSession?
+    private var _oauthSession: ASWebAuthenticationSession?
 
     init() {
         // Restore session from Keychain
@@ -285,9 +285,9 @@ private final class OAuthContextProvider: NSObject, ASWebAuthenticationPresentat
     static let shared = OAuthContextProvider()
 
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .compactMap { $0.keyWindow }
-            .first ?? ASPresentationAnchor()
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        // This is only called while the app is foregrounded — a scene always exists
+        let scene = scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first!
+        return scene.keyWindow ?? UIWindow(windowScene: scene)
     }
 }

@@ -228,9 +228,10 @@ struct ProfileView: View {
                 .listRowBackground(Design.Colors.surface)
             }
 
-            // Sign out
+            // Sign out — .confirmationDialog is on the Section (not the Button) to anchor
+            // the iPad popover to this row without the dialog re-triggering the button tap.
             Section {
-                Button(role: .destructive) {
+                Button {
                     showingSignOutConfirm = true
                 } label: {
                     HStack {
@@ -242,17 +243,17 @@ struct ProfileView: View {
                 }
             }
             .listRowBackground(Design.Colors.surface)
+            .confirmationDialog("Sign out?", isPresented: $showingSignOutConfirm, titleVisibility: .visible) {
+                Button("Sign Out", role: .destructive) {
+                    Task { await auth.signOut() }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Your collection data is saved in the cloud and will sync back when you sign in again.")
+            }
         }
         .scrollContentBackground(.hidden)
         .background(Design.Colors.nearBlack)
-        .confirmationDialog("Sign out?", isPresented: $showingSignOutConfirm, titleVisibility: .visible) {
-            Button("Sign Out", role: .destructive) {
-                Task { await auth.signOut() }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Your collection data is saved in the cloud and will sync back when you sign in again.")
-        }
     }
 
     private func statRow(icon: String, label: String, value: String) -> some View {

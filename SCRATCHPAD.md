@@ -3,7 +3,7 @@
 ## Current State
 
 - **Active milestone**: M4 — Play Mode (both platforms)
-- **Last session**: 2026-04-05 — M3 web pricing links complete (correct eBay query formula, Radish fallback URL, always-visible buttons). QR code changed to `bobaplaybook://scan` deep link (web auth in restricted Safari was fundamentally broken). iOS sealed products ordering fixed (head cards first, sealed products hidden until full load).
+- **Last session**: 2026-04-07 — Discord auth added (web + iOS, PKCE OAuth via ASWebAuthenticationSession). Card database + images synced from unified-cards pipeline: 17,838 cards, 18,277 full images + 18,529 thumbs on R2 (82.9% coverage). iOS display-cards.json now contains all 17,838 cards (previously 11,991 filtered subset).
 - **Open questions**:
   - Rules/strategy content for Play Mode — source? (manual entry, PDF parse, structured JSON?)
   - Deck builder: local-only or save/share via Supabase?

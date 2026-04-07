@@ -17,5 +17,51 @@
 			</array>
 		</dict>
 	</array>
+	<key>CFBundleIcons</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconName</key>
+			<string>AppIcon</string>
+		</dict>
+		<key>CFBundleAlternateIcons</key>
+		<dict>
+			<key>AppIcon-Ice</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>AppIcon-Ice</string>
+			</dict>
+			<key>AppIcon-Hex</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>AppIcon-Hex</string>
+			</dict>
+			<key>AppIcon-Steel</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>AppIcon-Steel</string>
+			</dict>
+			<key>AppIcon-Brawl</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>AppIcon-Brawl</string>
+			</dict>
+			<key>AppIcon-Glow</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>AppIcon-Glow</string>
+			</dict>
+			<key>AppIcon-Gum</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>AppIcon-Gum</string>
+			</dict>
+			<key>AppIcon-Super</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>AppIcon-Super</string>
+			</dict>
+		</dict>
+	</dict>
 </dict>
 </plist>

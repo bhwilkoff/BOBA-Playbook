@@ -24,7 +24,7 @@ Every feature is built in service of human learning and growth — not to replac
 **Tagline:** "Search. Scan. Collect. Play."
 
 Companion app for the Bo Jackson Battle Arena (BOBA) trading card game:
-1. **Search** — Browse, search, filter 17,838 cards with images
+1. **Search** — Browse, search, filter 17,739 cards with images
 2. **Scan** — iOS camera identifies cards on-device via Vision OCR
 3. **Play** — Rules, per-card strategy, deck builder
 4. **Collection** — Portfolio tracker with designations, synced via Supabase
@@ -144,7 +144,7 @@ header { flex-shrink: 0; position: relative; }
 ## Data Architecture
 
 ### Card Catalog (Static JSON)
-- **Web:** `assets/data/cards.json` — 17,838 cards
+- **Web:** `assets/data/cards.json` — 17,739 cards
 - **iOS:** `BOBAPlaybook/display-cards.json` (~12k cards, 4.7MB) + `cards-head.json` (first 500, ~192KB for instant first frame)
 - **Filter data:** `assets/data/categories.json`
 - **Search index:** `assets/data/search-index.json`
@@ -160,7 +160,7 @@ header { flex-shrink: 0; position: relative; }
 ### Backend (Supabase — Auth & User Data Only)
 - Tables: `user_cards`, `decks`, `deck_cards` — see `supabase_schema.sql`
 - **Supabase Storage NOT used** — images are on R2 only
-- 17,838 total cards · 14,747 images on R2 · **82.9% coverage**
+- 17,739 total cards · 14,701 images on R2 · **82.9% coverage**
 
 ---
 

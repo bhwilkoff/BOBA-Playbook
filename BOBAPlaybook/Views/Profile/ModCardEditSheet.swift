@@ -8,6 +8,7 @@ import PhotosUI
 struct ModCardEditSheet: View {
     let card: Card
     @Environment(AuthManager.self) private var auth
+    @Environment(CardStore.self) private var cardStore
     @Environment(\.dismiss) private var dismiss
 
     // Correction fields — pre-filled from current card data
@@ -29,10 +30,20 @@ struct ModCardEditSheet: View {
     @State private var saveError: String?
     @State private var saveSuccess = false
 
-    enum ImageAction: String, CaseIterable {
-        case none    = "No change"
-        case replace = "Replace image"
-        case remove  = "Flag for removal"
+    enum ImageAction: CaseIterable {
+        case none, replace, remove
+
+        func label(isAdmin: Bool) -> String {
+            switch self {
+            case .none:    return "No change"
+            case .replace: return "Replace image"
+            case .remove:  return isAdmin ? "Remove image" : "Flag for removal"
+            }
+        }
+
+        var supabaseAction: String {
+            self == .replace ? "replace" : "remove"
+        }
     }
 
     init(card: Card) {
@@ -71,7 +82,7 @@ struct ModCardEditSheet: View {
                 Section("IMAGE") {
                     Picker("Image Action", selection: $imageAction) {
                         ForEach(ImageAction.allCases, id: \.self) { action in
-                            Text(action.rawValue).tag(action)
+                            Text(action.label(isAdmin: auth.role == "admin")).tag(action)
                         }
                     }
                     .font(Design.Fonts.mono(14))
@@ -94,7 +105,9 @@ struct ModCardEditSheet: View {
                     }
 
                     if imageAction == .remove {
-                        Text("This will flag the current image for admin review and removal.")
+                        Text(auth.role == "admin"
+                             ? "This will immediately remove the current image."
+                             : "This will flag the current image for admin review and removal.")
                             .font(Design.Fonts.mono(12))
                             .foregroundStyle(Design.Colors.textMuted)
                     }
@@ -129,9 +142,12 @@ struct ModCardEditSheet: View {
 
                 if saveSuccess {
                     Section {
-                        Label("Correction submitted for review.", systemImage: "checkmark.circle.fill")
-                            .font(Design.Fonts.mono(13))
-                            .foregroundStyle(Design.Colors.bobaCyan)
+                        Label(
+                            auth.role == "admin" ? "Changes saved." : "Correction submitted for review.",
+                            systemImage: "checkmark.circle.fill"
+                        )
+                        .font(Design.Fonts.mono(13))
+                        .foregroundStyle(Design.Colors.bobaCyan)
                     }
                     .listRowBackground(Design.Colors.surface)
                 }
@@ -152,7 +168,7 @@ struct ModCardEditSheet: View {
                     if isSaving {
                         ProgressView().tint(Design.Colors.bobaOrange)
                     } else {
-                        Button("Submit") { submit() }
+                        Button(auth.role == "admin" ? "Save" : "Submit") { submit() }
                             .font(Design.Fonts.mono(14, weight: .bold))
                             .foregroundStyle(Design.Colors.bobaOrange)
                             .disabled(correctionDict.isEmpty && imageAction == .none)
@@ -207,15 +223,21 @@ struct ModCardEditSheet: View {
         let notesText = notes.isEmpty ? nil : notes
         let action = imageAction
         let imageData = selectedImageData
+        let correctionStatus = auth.role == "admin" ? "approved" : "pending"
 
         Task {
             do {
                 // Submit info corrections if any fields changed
                 if !corrections.isEmpty {
                     try await SupabaseClient.shared.submitCardCorrection(
-                        cardNumber: card.cardNumber,
-                        corrections: corrections,
-                        notes: notesText
+                        cardNumber:    card.cardNumber,
+                        corrections:   corrections,
+                        notes:         notesText,
+                        status:        correctionStatus,
+                        cardHero:      card.hero,
+                        cardElement:   card.element,
+                        cardPower:     card.power,
+                        cardTreatment: card.treatment
                     )
                 }
 
@@ -227,11 +249,15 @@ struct ModCardEditSheet: View {
                     }
                     try await SupabaseClient.shared.submitImageOverride(
                         cardNumber: card.cardNumber,
-                        action: action.rawValue == "Replace image" ? "replace" : "remove",
+                        action: action.supabaseAction,
                         storagePath: storagePath
                     )
                 }
 
+                // Immediately hide the image locally if it was removed
+                if action == .remove {
+                    cardStore.hideImage(cardNumber: card.cardNumber)
+                }
                 saveSuccess = true
                 try? await Task.sleep(nanoseconds: 1_500_000_000)
                 dismiss()

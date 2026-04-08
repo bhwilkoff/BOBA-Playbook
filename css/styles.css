@@ -2048,6 +2048,47 @@ main {
   padding: 1px 5px; border-radius: 3px; margin-left: 5px;
 }
 
+/* Admin corrections review */
+.admin-correction-row {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--boba-glass);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 6px;
+}
+.admin-correction-card {
+  font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700;
+  color: var(--boba-cyan);
+}
+.admin-correction-fields {
+  font-family: var(--font-mono); font-size: 0.78rem; color: var(--boba-text-1);
+  margin-top: 2px;
+}
+.correction-field { margin-right: 8px; color: var(--boba-text-muted); }
+.correction-field strong { color: var(--boba-text-1); }
+.admin-correction-notes {
+  font-family: var(--font-mono); font-size: 0.75rem;
+  color: var(--boba-text-muted); font-style: italic; margin-top: 2px;
+}
+.admin-correction-actions {
+  display: flex; flex-direction: column; gap: 4px; flex-shrink: 0;
+}
+.admin-approve-btn, .admin-reject-btn {
+  font-family: var(--font-mono); font-size: 0.72rem;
+  border-radius: 4px; padding: 3px 10px; cursor: pointer;
+  border: 1px solid; transition: background 0.15s;
+}
+.admin-approve-btn {
+  background: none; color: #4ade80; border-color: #4ade80;
+}
+.admin-approve-btn:hover { background: rgba(74,222,128,0.15); }
+.admin-reject-btn {
+  background: none; color: var(--boba-orange); border-color: var(--boba-orange);
+}
+.admin-reject-btn:hover { background: rgba(255,77,0,0.15); }
+.admin-approve-btn:disabled, .admin-reject-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* Mod panel search results */
 .mod-panel-results {
   display: flex; flex-direction: column; gap: 6px;

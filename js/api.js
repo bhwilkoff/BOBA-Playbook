@@ -187,17 +187,21 @@ const API = (() => {
     return _userRole ?? 'user';
   }
 
-  async function submitCardCorrection(cardNumber, corrections, notes) {
+  async function submitCardCorrection(cardNumber, corrections, notes, status = 'pending', cardContext = {}) {
     const { data: { session } } = await supa().auth.getSession();
     if (!session) throw new Error('Not signed in');
-    const { error } = await supa()
-      .from('card_corrections')
-      .insert({
-        card_number:   cardNumber,
-        corrections,
-        notes:         notes || null,
-        submitted_by:  session.user.id,
-      });
+    const row = {
+      card_number:    cardNumber,
+      corrections,
+      notes:          notes || null,
+      submitted_by:   session.user.id,
+      status,
+      card_hero:      cardContext.hero      ?? null,
+      card_element:   cardContext.element   ?? null,
+      card_power:     cardContext.power     ?? null,
+      card_treatment: cardContext.treatment ?? null,
+    };
+    const { error } = await supa().from('card_corrections').insert(row);
     if (error) throw new Error(error.message);
   }
 
@@ -208,9 +212,13 @@ const API = (() => {
       card_number:  cardNumber,
       action,
       submitted_by: session.user.id,
+      status:       'pending',
     };
     if (storagePath) payload.storage_path = storagePath;
-    const { error } = await supa().from('card_image_overrides').insert(payload);
+    // upsert on card_number — repeated submissions update the row, not add duplicates
+    const { error } = await supa()
+      .from('card_image_overrides')
+      .upsert(payload, { onConflict: 'card_number' });
     if (error) throw new Error(error.message);
   }
 
@@ -235,6 +243,36 @@ const API = (() => {
     return count ?? 0;
   }
 
+  // Admin-only: fetch count of pending-only rows (for metrics that have a status column)
+  async function adminFetchPendingCount(table) {
+    const { count, error } = await supa()
+      .from(table)
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  }
+
+  // Admin-only: fetch pending image overrides (missing art queue)
+  async function adminFetchPendingImageOverrides() {
+    const { data, error } = await supa()
+      .from('card_image_overrides')
+      .select('id, card_number, action, status, submitted_by, created_at')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  }
+
+  // Admin-only: mark an image override as resolved
+  async function adminResolveImageOverride(id) {
+    const { error } = await supa()
+      .from('card_image_overrides')
+      .update({ status: 'resolved' })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
   // Admin-only: fetch all user profiles
   async function adminFetchUsers() {
     const { data, error } = await supa()
@@ -251,6 +289,35 @@ const API = (() => {
       .from('user_profiles')
       .update({ role })
       .eq('user_id', userId);
+    if (error) throw new Error(error.message);
+  }
+
+  // Admin-only: fetch pending corrections for review
+  async function adminFetchPendingCorrections() {
+    const { data, error } = await supa()
+      .from('card_corrections')
+      .select('id, card_number, corrections, notes, submitted_by, created_at, status')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  }
+
+  // Admin-only: approve a correction
+  async function adminApproveCorrection(id) {
+    const { error } = await supa()
+      .from('card_corrections')
+      .update({ status: 'approved' })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
+  // Admin-only: reject a correction
+  async function adminRejectCorrection(id) {
+    const { error } = await supa()
+      .from('card_corrections')
+      .update({ status: 'rejected' })
+      .eq('id', id);
     if (error) throw new Error(error.message);
   }
 
@@ -303,7 +370,13 @@ const API = (() => {
     uploadModImage,
     // Admin
     adminFetchCount,
+    adminFetchPendingCount,
     adminFetchUsers,
     adminUpdateRole,
+    adminFetchPendingCorrections,
+    adminApproveCorrection,
+    adminRejectCorrection,
+    adminFetchPendingImageOverrides,
+    adminResolveImageOverride,
   };
 })();

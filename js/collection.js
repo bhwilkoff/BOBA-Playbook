@@ -446,6 +446,14 @@ const Collection = (() => {
             <div class="admin-metric-card"><div class="admin-metric-value" id="metric-corrections">…</div><div class="admin-metric-label">Card Corrections</div></div>
             <div class="admin-metric-card"><div class="admin-metric-value" id="metric-images">…</div><div class="admin-metric-label">Image Overrides</div></div>
           </div>
+          <div class="admin-section-label">MISSING ART</div>
+          <div id="admin-images-list" class="admin-user-list">
+            <div class="admin-loading">Loading…</div>
+          </div>
+          <div class="admin-section-label">PENDING CORRECTIONS</div>
+          <div id="admin-corrections-list" class="admin-user-list">
+            <div class="admin-loading">Loading corrections…</div>
+          </div>
           <div class="admin-section-label">USERS</div>
           <div id="admin-user-list" class="admin-user-list">
             <div class="admin-loading">Loading users…</div>
@@ -460,6 +468,8 @@ const Collection = (() => {
     // Load data
     await Promise.all([
       loadAdminMetrics(overlay),
+      loadAdminImageOverrides(overlay),
+      loadAdminCorrections(overlay),
       loadAdminUsers(overlay),
     ]);
   }
@@ -468,14 +478,126 @@ const Collection = (() => {
     try {
       const [usersResp, correctionsResp, imagesResp] = await Promise.all([
         API.adminFetchCount('user_profiles'),
-        API.adminFetchCount('card_corrections'),
-        API.adminFetchCount('card_image_overrides'),
+        API.adminFetchPendingCount('card_corrections'),
+        API.adminFetchPendingCount('card_image_overrides'),
       ]);
       overlay.querySelector('#metric-users').textContent       = usersResp;
       overlay.querySelector('#metric-corrections').textContent = correctionsResp;
       overlay.querySelector('#metric-images').textContent      = imagesResp;
     } catch (e) {
       console.warn('[admin] metrics error', e);
+    }
+  }
+
+  async function loadAdminImageOverrides(overlay) {
+    const listEl = overlay.querySelector('#admin-images-list');
+    try {
+      const overrides = await API.adminFetchPendingImageOverrides();
+      if (!overrides.length) {
+        listEl.innerHTML = `<p class="mod-edit-note">No missing art — all images accounted for.</p>`;
+        return;
+      }
+      listEl.innerHTML = overrides.map(o => {
+        const date = new Date(o.created_at).toLocaleDateString();
+        return `
+          <div class="admin-correction-row" data-oid="${esc(o.id)}">
+            <div class="admin-correction-info">
+              <div class="admin-correction-card">${esc(o.card_number)}</div>
+              <div class="admin-correction-fields">
+                <span class="correction-field">action: <strong>${esc(o.action)}</strong></span>
+              </div>
+              <div class="admin-user-meta">${date}</div>
+            </div>
+            <div class="admin-correction-actions">
+              <button class="admin-approve-btn" data-oid="${esc(o.id)}">Resolved</button>
+            </div>
+          </div>`;
+      }).join('');
+
+      listEl.querySelectorAll('.admin-approve-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          try {
+            await API.adminResolveImageOverride(Number(btn.dataset.oid));
+            btn.closest('.admin-correction-row').remove();
+            if (!listEl.querySelector('.admin-correction-row')) {
+              listEl.innerHTML = `<p class="mod-edit-note">No missing art — all images accounted for.</p>`;
+            }
+            // Refresh metrics count
+            loadAdminMetrics(overlay);
+          } catch (e) {
+            alert('Failed to resolve: ' + e.message);
+            btn.disabled = false;
+          }
+        });
+      });
+    } catch (e) {
+      listEl.innerHTML = `<p class="mod-edit-note" style="color:var(--boba-orange)">Error: ${esc(e.message)}</p>`;
+    }
+  }
+
+  async function loadAdminCorrections(overlay) {
+    const listEl = overlay.querySelector('#admin-corrections-list');
+    try {
+      const corrections = await API.adminFetchPendingCorrections();
+      if (!corrections.length) {
+        listEl.innerHTML = `<p class="mod-edit-note">No pending corrections.</p>`;
+        return;
+      }
+      listEl.innerHTML = corrections.map(c => {
+        const fields = Object.entries(c.corrections || {})
+          .map(([k, v]) => `<span class="correction-field">${esc(k)}: <strong>${esc(v)}</strong></span>`)
+          .join(' · ');
+        const date = new Date(c.created_at).toLocaleDateString();
+        return `
+          <div class="admin-correction-row" data-cid="${esc(c.id)}">
+            <div class="admin-correction-info">
+              <div class="admin-correction-card">${esc(c.card_number)}</div>
+              <div class="admin-correction-fields">${fields}</div>
+              ${c.notes ? `<div class="admin-correction-notes">"${esc(c.notes)}"</div>` : ''}
+              <div class="admin-user-meta">${date} · ${c.submitted_by.substring(0, 12)}…</div>
+            </div>
+            <div class="admin-correction-actions">
+              <button class="admin-approve-btn" data-cid="${esc(c.id)}">Approve</button>
+              <button class="admin-reject-btn" data-cid="${esc(c.id)}">Reject</button>
+            </div>
+          </div>`;
+      }).join('');
+
+      listEl.querySelectorAll('.admin-approve-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          try {
+            await API.adminApproveCorrection(btn.dataset.cid);
+            btn.closest('.admin-correction-row').remove();
+            if (!listEl.querySelector('.admin-correction-row')) {
+              listEl.innerHTML = `<p class="mod-edit-note">No pending corrections.</p>`;
+            }
+          } catch (e) {
+            alert('Approve failed: ' + e.message);
+            btn.disabled = false;
+          }
+        });
+      });
+
+      listEl.querySelectorAll('.admin-reject-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Reject this correction?')) return;
+          btn.disabled = true;
+          try {
+            await API.adminRejectCorrection(btn.dataset.cid);
+            btn.closest('.admin-correction-row').remove();
+            if (!listEl.querySelector('.admin-correction-row')) {
+              listEl.innerHTML = `<p class="mod-edit-note">No pending corrections.</p>`;
+            }
+          } catch (e) {
+            alert('Reject failed: ' + e.message);
+            btn.disabled = false;
+          }
+        });
+      });
+    } catch (e) {
+      listEl.innerHTML = `<p class="mod-edit-note" style="color:var(--boba-orange)">Error: ${esc(e.message)}</p>`;
     }
   }
 

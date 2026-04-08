@@ -98,16 +98,16 @@ final class SupabaseClient {
     // MARK: - User profile / roles
 
     /// Fetches the current user's role from user_profiles. Returns "user" if no row exists yet.
+    /// Uses executeArray so a stale/expired access token is automatically refreshed via the
+    /// stored refresh token — prevents the role from silently dropping to "user" on cold launch.
     func fetchUserRole() async throws -> String {
         guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
         let url = try makeURL(path: "/rest/v1/user_profiles?select=role&user_id=eq.\(uid.uuidString.lowercased())&limit=1")
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         addHeaders(&request, authenticated: true)
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try checkStatus(data: data, response: response)
         struct RoleRow: Decodable { let role: String }
-        let rows = try makeDecoder().decode([RoleRow].self, from: data)
+        let rows: [RoleRow] = try await executeArray(request)
         return rows.first?.role ?? "user"
     }
 
@@ -138,8 +138,8 @@ final class SupabaseClient {
     /// Fetches aggregate counts for the admin dashboard.
     func fetchAdminMetrics() async throws -> AdminMetrics {
         let totalUsers         = (try? await fetchTableCount(path: "/rest/v1/user_profiles?select=user_id")) ?? 0
-        let pendingCorrections = (try? await fetchTableCount(path: "/rest/v1/card_corrections?select=id")) ?? 0
-        let pendingImages      = (try? await fetchTableCount(path: "/rest/v1/card_image_overrides?select=id")) ?? 0
+        let pendingCorrections = (try? await fetchTableCount(path: "/rest/v1/card_corrections?status=eq.pending&select=id")) ?? 0
+        let pendingImages      = (try? await fetchTableCount(path: "/rest/v1/card_image_overrides?status=eq.pending&select=id")) ?? 0
         return AdminMetrics(
             totalUsers: totalUsers,
             pendingCorrections: pendingCorrections,
@@ -162,37 +162,172 @@ final class SupabaseClient {
     }
 
     /// Submits a card correction. Only succeeds for moderator/admin accounts.
-    func submitCardCorrection(cardNumber: String, corrections: [String: String], notes: String?) async throws {
+    /// Pass status "approved" for admin direct-saves; defaults to "pending" for mod review.
+    /// card_hero/element/power/treatment are stored as context to uniquely identify the card
+    /// in the apply_corrections.py pipeline (card_number alone is not always unique).
+    func submitCardCorrection(
+        cardNumber:   String,
+        corrections:  [String: String],
+        notes:        String?,
+        status:       String = "pending",
+        cardHero:     String,
+        cardElement:  String,
+        cardPower:    Int?,
+        cardTreatment: String?
+    ) async throws {
         guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
         let url = try makeURL(path: "/rest/v1/card_corrections")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         addHeaders(&request, authenticated: true)
-        let body: [String: Any] = [
-            "card_number":   cardNumber,
-            "corrections":   corrections,
-            "notes":         notes as Any,
-            "submitted_by":  uid.uuidString.lowercased()
+        var body: [String: Any] = [
+            "card_number":    cardNumber,
+            "corrections":    corrections,
+            "notes":          notes as Any,
+            "submitted_by":   uid.uuidString.lowercased(),
+            "status":         status,
+            "card_hero":      cardHero,
+            "card_element":   cardElement,
         ]
+        if let power = cardPower     { body["card_power"]     = power }
+        if let treat = cardTreatment { body["card_treatment"]  = treat }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkStatus(data: data, response: response)
     }
 
+    // MARK: - Admin: corrections review
+
+    struct PendingCorrection: Identifiable, Decodable {
+        let id: Int
+        let cardNumber: String
+        let corrections: [String: String]
+        let notes: String?
+        let submittedBy: String
+        let createdAt: Date
+        let status: String
+
+        enum CodingKeys: String, CodingKey {
+            case id, corrections, notes, status
+            case cardNumber  = "card_number"
+            case submittedBy = "submitted_by"
+            case createdAt   = "created_at"
+        }
+    }
+
+    func fetchPendingCorrections() async throws -> [PendingCorrection] {
+        let url = try makeURL(path: "/rest/v1/card_corrections?status=eq.pending&order=created_at.asc&select=id,card_number,corrections,notes,submitted_by,created_at,status")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+        return try makeDecoder().decode([PendingCorrection].self, from: data)
+    }
+
+    func fetchRecentCorrections(limit: Int = 10) async throws -> [PendingCorrection] {
+        guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
+        let path = "/rest/v1/card_corrections?submitted_by=eq.\(uid.uuidString.lowercased())&order=created_at.desc&limit=\(limit)&select=id,card_number,corrections,notes,submitted_by,created_at,status"
+        let url = try makeURL(path: path)
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+        return try makeDecoder().decode([PendingCorrection].self, from: data)
+    }
+
+    func approveCorrection(id: Int) async throws {
+        let url = try makeURL(path: "/rest/v1/card_corrections?id=eq.\(id)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        addHeaders(&request, authenticated: true)
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["status": "approved"])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
+    func rejectCorrection(id: Int) async throws {
+        let url = try makeURL(path: "/rest/v1/card_corrections?id=eq.\(id)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        addHeaders(&request, authenticated: true)
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["status": "rejected"])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
+    /// Returns card numbers that have an active image removal override.
+    func fetchImageRemovals() async throws -> [String] {
+        let url = try makeURL(path: "/rest/v1/card_image_overrides?action=eq.remove&status=eq.pending&select=card_number")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+        struct Row: Decodable {
+            let cardNumber: String
+            enum CodingKeys: String, CodingKey { case cardNumber = "card_number" }
+        }
+        return try makeDecoder().decode([Row].self, from: data).map(\.cardNumber)
+    }
+
     /// Submits an image override (replace or remove). Only succeeds for moderator/admin accounts.
+    /// Uses upsert on card_number so repeated submissions update the existing row, not add duplicates.
     func submitImageOverride(cardNumber: String, action: String, storagePath: String?) async throws {
         guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
         let url = try makeURL(path: "/rest/v1/card_image_overrides")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         addHeaders(&request, authenticated: true)
+        // resolution=merge-duplicates: ON CONFLICT (card_number) DO UPDATE
+        request.setValue("resolution=merge-duplicates", forHTTPHeaderField: "Prefer")
         var body: [String: Any] = [
             "card_number":   cardNumber,
             "action":        action,
-            "submitted_by":  uid.uuidString.lowercased()
+            "submitted_by":  uid.uuidString.lowercased(),
+            "status":        "pending"
         ]
         if let path = storagePath { body["storage_path"] = path }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
+    // MARK: - Admin: image override management
+
+    struct ImageOverride: Identifiable, Decodable {
+        let id: Int
+        let cardNumber: String
+        let action: String
+        let status: String
+        let submittedBy: String
+        let createdAt: Date
+
+        enum CodingKeys: String, CodingKey {
+            case id, action, status
+            case cardNumber  = "card_number"
+            case submittedBy = "submitted_by"
+            case createdAt   = "created_at"
+        }
+    }
+
+    func fetchPendingImageOverrides() async throws -> [ImageOverride] {
+        let url = try makeURL(path: "/rest/v1/card_image_overrides?status=eq.pending&order=created_at.asc&select=id,card_number,action,status,submitted_by,created_at")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+        return try makeDecoder().decode([ImageOverride].self, from: data)
+    }
+
+    func resolveImageOverride(id: Int) async throws {
+        let url = try makeURL(path: "/rest/v1/card_image_overrides?id=eq.\(id)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        addHeaders(&request, authenticated: true)
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["status": "resolved"])
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkStatus(data: data, response: response)
     }

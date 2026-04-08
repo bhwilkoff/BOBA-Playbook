@@ -62,6 +62,28 @@ final class CardStore {
         + (sortOrder != .default ? 1 : 0)
     }
 
+    // MARK: - Image removal overrides
+    // Card numbers whose images have been removed via the mod/admin panel.
+    // Populated from card_image_overrides table on sign-in; updated immediately
+    // when an admin submits a remove in ModCardEditSheet.
+    private(set) var hiddenImageCardNumbers: Set<String> = []
+
+    func isImageHidden(_ cardNumber: String) -> Bool {
+        hiddenImageCardNumbers.contains(cardNumber)
+    }
+
+    /// Called from ModCardEditSheet immediately after a remove is submitted.
+    func hideImage(cardNumber: String) {
+        hiddenImageCardNumbers.insert(cardNumber)
+    }
+
+    /// Fetches all "remove" image overrides from Supabase and updates the hidden set.
+    /// Safe to call with no auth — silently no-ops if unauthenticated or request fails.
+    func loadImageRemovals() async {
+        guard let removals = try? await SupabaseClient.shared.fetchImageRemovals() else { return }
+        hiddenImageCardNumbers = Set(removals)
+    }
+
     // MARK: - Deep link
     // Set by the URL handler when a bobaplaybook://card/{number} URL opens the app.
     // SearchView watches this and presents the card once displayCards is populated.
@@ -156,6 +178,9 @@ final class CardStore {
                     || card.cardNumber.lowercased().contains(search)
                     || card.hero.lowercased().contains(search)
                     || (card.athleteInspiration?.lowercased().contains(search) == true)
+                    || card.element.lowercased().contains(search)
+                    || (card.treatment?.lowercased().contains(search) == true)
+                    || card.set.lowercased().contains(search)
                 if !match { return false }
             }
             return true

@@ -247,42 +247,51 @@ const Auth = (() => {
   }
 
   /* ================================================================
+     TOKEN HELPERS
+  ================================================================ */
+
+  // Returns true if the session's access token expires within windowMs (default 15 min).
+  // Supabase v2 provides expires_at (Unix seconds) directly on the session object.
+  function sessionExpiresSoon(session, windowMs = 15 * 60 * 1000) {
+    if (!session?.expires_at) return false;
+    return (session.expires_at * 1000) - Date.now() < windowMs;
+  }
+
+  /* ================================================================
      INIT
   ================================================================ */
 
   async function init() {
-    // Restore session from QR code URL.
-    // The QR code embeds only the refresh token as a query param (?rt=...) —
-    // query params survive iOS Safari's QR URL handling; hash fragments do not.
-    // We use refreshSession() rather than setSession() so we only need the
-    // shorter refresh token (the JWT access token is ~600 chars and makes the
-    // QR code too dense to scan reliably).
-    const params = new URLSearchParams(window.location.search);
-    const rt = params.get('rt');
-    if (rt) {
-      try {
-        const session = await API.authRefreshSession(rt);
-        if (session) {
-          _session = session;
-          updateNavUI();
-        }
-      } catch (e) {
-        console.warn('[auth] Could not restore session from URL:', e);
+    // ── 1. Eager session restore ──────────────────────────────────────────────
+    // authGetSession() reads from Supabase's in-memory state (populated from
+    // localStorage during createClient) before the async INITIAL_SESSION event
+    // fires. Setting _session here means Auth.isAuthenticated() returns true on
+    // the first frame, preventing the signed-out flash on every page reload.
+    const savedSession = await API.authGetSession();
+    if (savedSession) {
+      _session = savedSession;
+      updateNavUI();
+      await API.fetchUserRole().catch(() => {});
+      document.dispatchEvent(new CustomEvent('auth-change', {
+        detail: { event: 'INITIAL_SESSION', session: savedSession }
+      }));
+
+      // Proactively refresh if the restored token is close to expiry (or stale).
+      // Supabase's autoRefreshToken handles the scheduled refresh, but it won't
+      // fire if the app was closed and reopened with an expired-but-refreshable token.
+      if (sessionExpiresSoon(savedSession)) {
+        API.authRefreshSession(savedSession.refresh_token).catch(() => {});
       }
-      // Remove rt from the URL so it doesn't linger in browser history
-      const cleanUrl = new URL(window.location.href);
-      cleanUrl.searchParams.delete('rt');
-      history.replaceState(null, '', cleanUrl.toString());
     }
 
-    // Subscribe to Supabase auth state.
+    // ── 2. Supabase auth state subscription ──────────────────────────────────
     // We handle each event type explicitly to avoid iOS Safari / PWA edge cases
     // where TOKEN_REFRESHED or a stale INITIAL_SESSION fires with session=null
     // and incorrectly clears a just-established session.
     API.authOnStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (!session) return; // Supabase guarantees session for these events; bail if missing
-        // Skip duplicate SIGNED_IN if handleSubmit already set the session (same user ID)
+        // Skip duplicate SIGNED_IN if handleSubmit or eager restore already set same user
         if (event === 'SIGNED_IN' && _session?.user?.id === session?.user?.id) return;
         _session = session;
         updateNavUI();
@@ -295,25 +304,37 @@ const Auth = (() => {
         document.dispatchEvent(new CustomEvent('auth-change', { detail: { event, session: null } }));
 
       } else if (event === 'INITIAL_SESSION') {
-        if (session && !_session) {
-          // Valid session found in storage on page load (returning user)
+        if (session && session.user?.id !== _session?.user?.id) {
+          // Different user than what we eagerly restored (e.g. Supabase returned a
+          // freshly-refreshed session with a new access token for a different account).
           _session = session;
           updateNavUI();
           await API.fetchUserRole().catch(() => {});
           document.dispatchEvent(new CustomEvent('auth-change', { detail: { event, session } }));
         } else if (!session && !_session) {
-          // No session found — user is signed out; let views know so they render sign-in gates
+          // No stored session at all — user is signed out; render sign-in gates.
           document.dispatchEvent(new CustomEvent('auth-change', { detail: { event, session: null } }));
         }
-        // If !session && _session !== null → session was already restored from ?rt= QR param;
-        // keep the existing session, do not broadcast (QR restore already broadcast on init).
+        // Else: same user already broadcast via eager restore above — no-op.
       }
     });
 
-    // Close on overlay background click
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    // ── 3. Proactive token refresh on tab focus ───────────────────────────────
+    // When the user returns to a backgrounded tab, the token may be expired or
+    // close to expiry. Refresh silently here so the next API call doesn't fail.
+    // If the refresh token itself is expired, Supabase fires SIGNED_OUT and the
+    // auth-change listener above clears the session gracefully.
+    document.addEventListener('visibilitychange', async () => {
+      if (document.hidden || !_session) return;
+      if (sessionExpiresSoon(_session)) {
+        try {
+          await API.authRefreshSession(_session.refresh_token);
+        } catch { /* SIGNED_OUT event will handle auth failure */ }
+      }
+    });
 
-    // Close on Escape
+    // ── 4. Modal UI event handlers ────────────────────────────────────────────
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && !overlay.hidden) close();
     });

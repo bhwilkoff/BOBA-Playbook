@@ -60,17 +60,28 @@ struct AdminPanelView: View {
                                     Text(override.cardNumber)
                                         .font(Design.Fonts.mono(13, weight: .bold))
                                         .foregroundStyle(Design.Colors.bobaCyan)
+                                    Text(override.action.uppercased())
+                                        .font(Design.Fonts.mono(9, weight: .bold))
+                                        .foregroundStyle(Design.Colors.textMuted)
                                     Text(override.createdAt, style: .date)
                                         .font(Design.Fonts.mono(10))
                                         .foregroundStyle(Design.Colors.textMuted)
                                 }
                                 Spacer()
-                                Button("Resolved") {
-                                    Task { await resolveImageOverride(id: override.id) }
+                                HStack(spacing: 12) {
+                                    Button("Approve") {
+                                        Task { await approveImageOverride(id: override.id) }
+                                    }
+                                    .font(Design.Fonts.mono(12, weight: .bold))
+                                    .foregroundStyle(Color.green)
+                                    .buttonStyle(.plain)
+                                    Button("Reject") {
+                                        Task { await rejectImageOverride(id: override.id) }
+                                    }
+                                    .font(Design.Fonts.mono(12, weight: .bold))
+                                    .foregroundStyle(Design.Colors.bobaOrange)
+                                    .buttonStyle(.plain)
                                 }
-                                .font(Design.Fonts.mono(12, weight: .bold))
-                                .foregroundStyle(Color.green)
-                                .buttonStyle(.plain)
                             }
                             .padding(.vertical, Design.Spacing.xs)
                         }
@@ -191,12 +202,21 @@ struct AdminPanelView: View {
         }
     }
 
-    private func resolveImageOverride(id: Int) async {
+    private func approveImageOverride(id: Int) async {
         do {
-            try await SupabaseClient.shared.resolveImageOverride(id: id)
+            try await SupabaseClient.shared.approveImageOverride(id: id)
             missingArt.removeAll { $0.id == id }
         } catch {
-            errorMessage = "Failed to resolve: \(error.localizedDescription)"
+            errorMessage = "Failed to approve: \(error.localizedDescription)"
+        }
+    }
+
+    private func rejectImageOverride(id: Int) async {
+        do {
+            try await SupabaseClient.shared.rejectImageOverride(id: id)
+            missingArt.removeAll { $0.id == id }
+        } catch {
+            errorMessage = "Failed to reject: \(error.localizedDescription)"
         }
     }
 

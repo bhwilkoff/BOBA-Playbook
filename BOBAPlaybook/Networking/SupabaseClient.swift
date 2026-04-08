@@ -323,12 +323,22 @@ final class SupabaseClient {
         return try makeDecoder().decode([ImageOverride].self, from: data)
     }
 
-    func resolveImageOverride(id: Int) async throws {
+    func approveImageOverride(id: Int) async throws {
         let url = try makeURL(path: "/rest/v1/card_image_overrides?id=eq.\(id)")
         var request = URLRequest(url: url)
         request.httpMethod = "PATCH"
         addHeaders(&request, authenticated: true)
-        request.httpBody = try JSONSerialization.data(withJSONObject: ["status": "resolved"])
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["status": "approved"])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
+    func rejectImageOverride(id: Int) async throws {
+        let url = try makeURL(path: "/rest/v1/card_image_overrides?id=eq.\(id)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        addHeaders(&request, authenticated: true)
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["status": "rejected"])
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkStatus(data: data, response: response)
     }
@@ -465,7 +475,17 @@ final class SupabaseClient {
 
     private func makeDecoder() -> JSONDecoder {
         let d = JSONDecoder()
-        d.dateDecodingStrategy = .iso8601
+        // Supabase returns timestamps with fractional seconds (e.g. "2026-04-07T16:15:37.481611+00:00")
+        // from database-generated columns. Swift's built-in .iso8601 strategy rejects fractional seconds,
+        // so we use a custom decoder that tries fractional first, then falls back to whole seconds.
+        d.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let str = try container.decode(String.self)
+            if let date = ISO8601DateFormatter.withFractionalSeconds.date(from: str) { return date }
+            if let date = ISO8601DateFormatter.withoutFractionalSeconds.date(from: str) { return date }
+            throw DecodingError.dataCorruptedError(in: container,
+                debugDescription: "Cannot parse date: \(str)")
+        }
         return d
     }
 
@@ -625,4 +645,22 @@ enum APIError: LocalizedError {
         case .serverError(_, let msg):  return msg
         }
     }
+}
+
+// MARK: - ISO8601DateFormatter helpers
+
+private extension ISO8601DateFormatter {
+    /// Handles Supabase database timestamps: "2026-04-07T16:15:37.481611+00:00"
+    static let withFractionalSeconds: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    /// Handles app-written timestamps: "2026-04-07T16:15:37Z"
+    static let withoutFractionalSeconds: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
 }

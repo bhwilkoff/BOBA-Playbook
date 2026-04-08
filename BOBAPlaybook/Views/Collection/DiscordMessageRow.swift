@@ -212,17 +212,10 @@ struct DiscordMarkdown: View {
     }
 
     private func parse(_ raw: String) -> AttributedString {
-        var s = raw
-        var result = AttributedString()
-
-        // Process in order: bold > italic > code > strikethrough
-        // This is a simplified parser — handles the most common cases
         do {
-            var attr = try AttributedString(markdown: discordToMarkdown(s),
-                                            options: .init(interpretedSyntax: .inlinesOnly))
-            return attr
+            return try AttributedString(markdown: discordToMarkdown(raw))
         } catch {
-            return AttributedString(s)
+            return AttributedString(raw)
         }
     }
 

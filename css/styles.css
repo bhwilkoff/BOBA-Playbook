@@ -1980,6 +1980,24 @@ main {
 }
 .profile-admin-row:hover { background: rgba(255,77,0,0.06); }
 
+/* Recalculate action row */
+.profile-action-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-mono); font-size: 0.82rem;
+  color: var(--boba-cyan);
+  transition: background 0.15s;
+}
+.profile-action-row:hover:not(:disabled) { background: rgba(0,245,255,0.06); }
+.profile-action-row:disabled { opacity: 0.5; cursor: not-allowed; }
+.profile-recalc-status {
+  padding: 0 var(--sp-4) var(--sp-3);
+  font-family: var(--font-mono); font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.profile-recalc-status.hidden { display: none; }
+
 /* Admin panel */
 .admin-panel { max-width: 560px; }
 .admin-panel-body { gap: var(--sp-4); }

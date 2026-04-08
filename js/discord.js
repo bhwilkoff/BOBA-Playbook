@@ -202,8 +202,15 @@ const Discord = (() => {
 
   async function loadInitialMessages() {
     if (!await _refreshIfNeeded()) return;
-    const res = await fetch(`${MESSAGES_URL}?channel=${CHANNEL_ID}&limit=50`);
-    if (!res.ok) return;
+    const res = await fetch(
+      `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages?limit=50`,
+      { headers: { Authorization: `Bearer ${_accessToken}` } }
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      console.error('[Discord] loadInitialMessages failed', res.status, body);
+      return;
+    }
     const fetched = await res.json();
     const valid = _filterValid(fetched).reverse();
     _messages  = valid;
@@ -217,8 +224,14 @@ const Discord = (() => {
   async function loadOlderMessages() {
     if (!_hasMore || !_oldestId) return;
     if (!await _refreshIfNeeded()) return;
-    const res = await fetch(`${MESSAGES_URL}?channel=${CHANNEL_ID}&before=${_oldestId}&limit=50`);
-    if (!res.ok) return;
+    const res = await fetch(
+      `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages?before=${_oldestId}&limit=50`,
+      { headers: { Authorization: `Bearer ${_accessToken}` } }
+    );
+    if (!res.ok) {
+      console.error('[Discord] loadOlderMessages failed', res.status);
+      return;
+    }
     const fetched = await res.json();
     const valid   = _filterValid(fetched).reverse();
     _messages  = [...valid, ..._messages];
@@ -230,7 +243,10 @@ const Discord = (() => {
 
   async function _pollNewMessages() {
     if (!_newestId || !await _refreshIfNeeded()) return;
-    const res = await fetch(`${MESSAGES_URL}?channel=${CHANNEL_ID}&after=${_newestId}&limit=50`);
+    const res = await fetch(
+      `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages?after=${_newestId}&limit=50`,
+      { headers: { Authorization: `Bearer ${_accessToken}` } }
+    );
     if (!res.ok) return;
     const fetched = await res.json();
     const newMsgs = _filterValid(fetched).sort((a, b) => a.id < b.id ? -1 : 1);

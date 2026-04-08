@@ -434,6 +434,45 @@ async function normaliseActive(items, cardNumber, hero, power, env) {
     }));
 }
 
+// ── Discord message proxy ─────────────────────────────────────────────────────
+
+/**
+ * GET /discord/messages?channel=...&limit=50&before=...&after=...
+ * Proxies channel message reads using a Bot token so the client never needs
+ * guild channel read permissions in its OAuth2 scope.
+ * Requires DISCORD_BOT_TOKEN worker secret.
+ */
+async function handleDiscordMessages(request, env) {
+  if (!env.DISCORD_BOT_TOKEN) {
+    return json({ error: "DISCORD_BOT_TOKEN not configured" }, 500);
+  }
+
+  const url = new URL(request.url);
+  const channelId = url.searchParams.get("channel") ?? "1306146115757936650";
+
+  const params = new URLSearchParams();
+  const limit  = url.searchParams.get("limit");
+  const before = url.searchParams.get("before");
+  const after  = url.searchParams.get("after");
+  if (limit)  params.set("limit",  limit);
+  if (before) params.set("before", before);
+  if (after)  params.set("after",  after);
+
+  const discordUrl = `https://discord.com/api/v10/channels/${channelId}/messages${params.toString() ? "?" + params : ""}`;
+
+  const res = await fetch(discordUrl, {
+    headers: { Authorization: `Bot ${env.DISCORD_BOT_TOKEN}` },
+  });
+
+  if (!res.ok) {
+    const err = await res.text().catch(() => String(res.status));
+    return json({ error: `Discord ${res.status}: ${err}` }, res.status >= 500 ? 502 : res.status);
+  }
+
+  const messages = await res.json();
+  return json(messages);
+}
+
 // ── Discord token refresh ─────────────────────────────────────────────────────
 
 /**
@@ -517,6 +556,7 @@ export default {
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname.endsWith("/ocr")) return handleOCR(request, env);
     if (request.method === "POST" && url.pathname.endsWith("/discord/refresh")) return handleDiscordRefresh(request, env);
+    if (request.method === "GET"  && url.pathname.endsWith("/discord/messages")) return handleDiscordMessages(request, env);
 
     const { searchParams } = url;
     const cardNumber = searchParams.get("cardNumber");

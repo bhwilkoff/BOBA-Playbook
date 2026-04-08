@@ -24,4 +24,5 @@ enum DiscordConfig {
     static let inviteCode  = "bobattlearena"
     static let redirectURI = "bobaplaybook://discord-callback"
     static let refreshURL  = WorkerConfig.ebayProxyURL + "/discord/refresh"
+    static let messagesURL = WorkerConfig.ebayProxyURL + "/discord/messages"
 }

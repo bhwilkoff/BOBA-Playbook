@@ -423,7 +423,8 @@
      SCAN VIEW
   ================================================================ */
   const WORKER_URL = 'https://boba-ebay-proxy.benwilkoff.workers.dev';
-  let scanStream = null;
+  let scanStream      = null;
+  let _scanQRInterval = null;  // regenerate QR every 30s to track refresh token rotation
 
   function initScanView() {
     const container = $('scan-container');
@@ -438,6 +439,10 @@
   }
 
   function teardownScan() {
+    if (_scanQRInterval) {
+      clearInterval(_scanQRInterval);
+      _scanQRInterval = null;
+    }
     if (scanStream) {
       scanStream.getTracks().forEach(t => t.stop());
       scanStream = null;
@@ -473,7 +478,7 @@
         </div>
         ${isDesktop ? `
           <div class="scan-desktop-aside">
-            <p class="scan-aside-label">Scan on your phone for best results:</p>
+            <p class="scan-aside-label">Scan on your phone:</p>
             <div id="scan-qr-container" class="scan-qr-img" style="width:220px;height:220px;display:flex;align-items:center;justify-content:center;">
               <span style="font-size:0.75rem;color:var(--boba-text-muted)">Loading…</span>
             </div>
@@ -486,7 +491,12 @@
     startCamera();
     $('scan-capture-btn').addEventListener('click', handleCapture);
 
-    if (isDesktop) generateScanQR().catch(() => {});
+    if (isDesktop) {
+      generateScanQR().catch(() => {});
+      // Regenerate every 30 s — Supabase rotates the refresh token on each
+      // auto-refresh cycle (~1 hr), so the QR must stay current.
+      _scanQRInterval = setInterval(() => generateScanQR().catch(() => {}), 30_000);
+    }
   }
 
   async function generateScanQR() {
@@ -494,13 +504,20 @@
     const note        = $('scan-qr-note');
     if (!qrContainer) return;
 
-    // Use the iOS app deep link as the QR target.
-    // The restricted web view opened by iOS QR scanners doesn't support
-    // Supabase auth (no localStorage persistence, sign-in causes a page
-    // reload). Opening the native app avoids the web auth problem entirely —
-    // the user is already authenticated in the iOS app.
-    // bobaplaybook://scan → ContentView sets selectedTab = 1 (Scan tab).
-    const scanUrl = 'bobaplaybook://scan';
+    // Build the QR target URL.
+    // If the user is signed in, embed their current refresh token so the
+    // scanned device gets authenticated automatically (?view=scan&rt=TOKEN).
+    // The refresh token is short (~60 chars) — well within QR capacity at L level.
+    // We regenerate every 30 s because Supabase rotates the refresh token on
+    // each auto-refresh cycle; the QR must always carry the current token.
+    // If the user isn't signed in, the QR still opens the scanner but they'll
+    // need to sign in manually on their phone.
+    const base    = window.location.origin + window.location.pathname;
+    const session = Auth.getSession();
+    const rt      = session?.refresh_token;
+    const scanUrl = rt
+      ? `${base}?view=scan&rt=${encodeURIComponent(rt)}`
+      : `${base}?view=scan`;
 
     // Lazy-load qrcodejs — has a proper browser bundle unlike the 'qrcode' npm package
     if (!window.QRCode) {
@@ -525,7 +542,9 @@
     });
 
     if (note) {
-      note.textContent = 'Scan with your iPhone to open the BOBA app.';
+      note.textContent = rt
+        ? 'Scan with any phone — you\'ll be signed in automatically.'
+        : 'Scan with any phone. Sign in on desktop first to carry over your session.';
     }
   }
 

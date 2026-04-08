@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Connecting Discord…</title>
+  <style>
+    body { margin: 0; background: #1e1f22; color: #fff; font-family: system-ui, sans-serif;
+           display: flex; align-items: center; justify-content: center; height: 100vh; }
+    p { font-size: 15px; opacity: 0.7; }
+  </style>
+</head>
+<body>
+  <p>Connecting your Discord account…</p>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const code   = params.get('code');
+    const state  = params.get('state');
+    const error  = params.get('error');
+
+    if (window.opener) {
+      window.opener.postMessage(
+        { type: 'discord_callback', code, state, error },
+        window.location.origin
+      );
+      window.close();
+    } else {
+      // Fallback: store in sessionStorage and redirect back
+      if (code) {
+        sessionStorage.setItem('discord_callback_code',  code);
+        sessionStorage.setItem('discord_callback_state', state);
+      }
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>

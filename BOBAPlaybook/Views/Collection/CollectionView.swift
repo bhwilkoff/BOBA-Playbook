@@ -11,7 +11,9 @@ struct CollectionView: View {
 
     @State private var selectedDesignation: UserCard.Designation = .personal
     @State private var selectedCard: CardNumberWrapper?
-    @State private var showingSignIn = false
+    @State private var showingSignIn    = false
+    @State private var showTradeRoom    = false
+    @State private var discord          = DiscordService()
 
     var body: some View {
         NavigationStack {
@@ -31,12 +33,18 @@ struct CollectionView: View {
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .overlay(alignment: .bottomTrailing) {
+                tradeRoomFAB
+            }
         }
         .sheet(isPresented: $showingSignIn) {
             SignInView()
         }
         .sheet(item: $selectedCard) { wrapper in
             CollectionCardDetailView(cardNumber: wrapper.id)
+        }
+        .fullScreenCover(isPresented: $showTradeRoom) {
+            TradeRoomSheet(discord: discord)
         }
         .task {
             if auth.isAuthenticated {
@@ -280,6 +288,39 @@ struct CollectionView: View {
                         .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)
                 )
         )
+    }
+
+    // MARK: - Trade Room FAB
+
+    private var tradeRoomFAB: some View {
+        Button {
+            showTradeRoom = true
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "bubble.left.and.bubble.right.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 56, height: 56)
+                    .background(Color(hex: "5865F2"))
+                    .clipShape(Circle())
+                    .shadow(color: .black.opacity(0.4), radius: 8, x: 0, y: 4)
+
+                // Unread badge
+                if discord.unreadCount > 0 {
+                    Text(discord.unreadCount > 99 ? "99+" : "\(discord.unreadCount)")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5)
+                        .frame(minWidth: 18, minHeight: 18)
+                        .background(Color(hex: "F23F43"))
+                        .clipShape(Capsule())
+                        .offset(x: 4, y: -4)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .padding(.trailing, 20)
+        .padding(.bottom, 24)
     }
 
     // MARK: - Helpers

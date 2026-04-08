@@ -434,6 +434,53 @@ async function normaliseActive(items, cardNumber, hero, power, env) {
     }));
 }
 
+// ── Discord token refresh ─────────────────────────────────────────────────────
+
+/**
+ * POST /discord/refresh
+ * Body: { refresh_token: "..." }
+ * Returns: { access_token, refresh_token, expires_in }
+ *
+ * Exchanges a Discord refresh token for a new access + refresh token pair.
+ * Requires DISCORD_CLIENT_SECRET worker secret. The client_id is public and
+ * hardcoded; the secret must never appear in client code.
+ */
+async function handleDiscordRefresh(request, env) {
+  if (!env.DISCORD_CLIENT_SECRET) {
+    return json({ error: "DISCORD_CLIENT_SECRET not configured" }, 500);
+  }
+  let body;
+  try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+
+  const { refresh_token } = body ?? {};
+  if (!refresh_token || typeof refresh_token !== "string") {
+    return json({ error: "refresh_token required" }, 400);
+  }
+
+  const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id:     "1491134218829304009",
+      client_secret: env.DISCORD_CLIENT_SECRET,
+      grant_type:    "refresh_token",
+      refresh_token,
+    }),
+  });
+
+  if (!tokenRes.ok) {
+    const err = await tokenRes.text().catch(() => String(tokenRes.status));
+    return json({ error: `Discord ${tokenRes.status}: ${err}` }, tokenRes.status >= 500 ? 502 : 400);
+  }
+
+  const tokens = await tokenRes.json();
+  return json({
+    access_token:  tokens.access_token,
+    refresh_token: tokens.refresh_token,
+    expires_in:    tokens.expires_in,
+  });
+}
+
 // ── OCR handler (unchanged) ───────────────────────────────────────────────────
 
 async function handleOCR(request, env) {
@@ -469,6 +516,7 @@ export default {
 
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname.endsWith("/ocr")) return handleOCR(request, env);
+    if (request.method === "POST" && url.pathname.endsWith("/discord/refresh")) return handleDiscordRefresh(request, env);
 
     const { searchParams } = url;
     const cardNumber = searchParams.get("cardNumber");

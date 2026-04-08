@@ -205,14 +205,14 @@ const API = (() => {
     if (error) throw new Error(error.message);
   }
 
-  async function submitImageOverride(cardNumber, action, storagePath) {
+  async function submitImageOverride(cardNumber, action, storagePath, status = 'pending') {
     const { data: { session } } = await supa().auth.getSession();
     if (!session) throw new Error('Not signed in');
     const payload = {
       card_number:  cardNumber,
       action,
       submitted_by: session.user.id,
-      status:       'pending',
+      status,
     };
     if (storagePath) payload.storage_path = storagePath;
     // upsert on card_number — repeated submissions update the row, not add duplicates
@@ -220,6 +220,18 @@ const API = (() => {
       .from('card_image_overrides')
       .upsert(payload, { onConflict: 'card_number' });
     if (error) throw new Error(error.message);
+  }
+
+  // Fetch card numbers that have an active image removal (pending or approved, not rejected).
+  // Called at startup — results are applied directly to the in-memory card objects.
+  async function loadActiveImageRemovals() {
+    const { data, error } = await supa()
+      .from('card_image_overrides')
+      .select('card_number')
+      .eq('action', 'remove')
+      .neq('status', 'rejected');
+    if (error) return new Set();
+    return new Set((data ?? []).map(r => String(r.card_number)));
   }
 
   async function uploadModImage(cardNumber, file) {
@@ -264,11 +276,20 @@ const API = (() => {
     return data ?? [];
   }
 
-  // Admin-only: mark an image override as resolved
-  async function adminResolveImageOverride(id) {
+  // Admin-only: approve an image removal (confirmed — stays hidden everywhere)
+  async function adminApproveImageOverride(id) {
     const { error } = await supa()
       .from('card_image_overrides')
-      .update({ status: 'resolved' })
+      .update({ status: 'approved' })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
+  // Admin-only: reject an image removal (image comes back)
+  async function adminRejectImageOverride(id) {
+    const { error } = await supa()
+      .from('card_image_overrides')
+      .update({ status: 'rejected' })
       .eq('id', id);
     if (error) throw new Error(error.message);
   }
@@ -377,6 +398,8 @@ const API = (() => {
     adminApproveCorrection,
     adminRejectCorrection,
     adminFetchPendingImageOverrides,
-    adminResolveImageOverride,
+    adminApproveImageOverride,
+    adminRejectImageOverride,
+    loadActiveImageRemovals,
   };
 })();

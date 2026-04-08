@@ -802,6 +802,17 @@
      Build lookup structures after cards.json loads.
   ================================================================ */
 
+  // Null out imageFile for any card whose number is in the removals set.
+  // This propagates automatically to all renderers since they check card.imageFile.
+  function applyImageRemovals(removedSet) {
+    if (!removedSet.size) return;
+    for (const card of cards) {
+      if (removedSet.has(String(card.cardNumber))) {
+        card.imageFile = null;
+      }
+    }
+  }
+
   function prepareData() {
     // Build cardsByNumber: string cardNumber → all Card variants (hero associations)
     // Kept for the modal "hero variants" panel — not used to collapse displayCards.
@@ -1958,6 +1969,16 @@
       displayCards.filter(c => c.hero === hero && String(c.cardNumber) !== String(excludeNum))
     );
 
+    // Apply active image removals from Supabase to the in-memory card data.
+    // Fire-and-forget: loads in background and re-renders once done so it
+    // doesn't delay the initial paint.
+    API.loadActiveImageRemovals().then(removed => {
+      if (removed.size) {
+        applyImageRemovals(removed);
+        applyFilters(true); // re-render grid with nulled imageFiles
+      }
+    });
+
     loadingState.hidden = true;
     buildElementFilters();
     buildSetFilter();
@@ -2095,7 +2116,12 @@
           if (imageAction === 'replace' && imageFile) {
             storagePath = await API.uploadModImage(card.cardNumber, imageFile);
           }
-          await API.submitImageOverride(card.cardNumber, imageAction, storagePath);
+          await API.submitImageOverride(card.cardNumber, imageAction, storagePath, correctionStatus);
+          // Apply the removal immediately to in-memory card objects so the grid
+          // reflects the change without a page reload.
+          if (imageAction === 'remove') {
+            applyImageRemovals(new Set([String(card.cardNumber)]));
+          }
         }
         statusEl.hidden = false;
         statusEl.className = 'mod-edit-status success';

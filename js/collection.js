@@ -587,7 +587,8 @@ const Collection = (() => {
               <div class="admin-user-meta">${date}</div>
             </div>
             <div class="admin-correction-actions">
-              <button class="admin-approve-btn" data-oid="${esc(o.id)}">Resolved</button>
+              <button class="admin-approve-btn" data-oid="${esc(o.id)}">Approve ✓</button>
+              <button class="admin-reject-btn" data-oid="${esc(o.id)}" style="background:rgba(242,63,67,0.15);color:#F23F43;border-color:rgba(242,63,67,0.3)">Reject ✗</button>
             </div>
           </div>`;
       }).join('');
@@ -596,15 +597,31 @@ const Collection = (() => {
         btn.addEventListener('click', async () => {
           btn.disabled = true;
           try {
-            await API.adminResolveImageOverride(Number(btn.dataset.oid));
+            await API.adminApproveImageOverride(Number(btn.dataset.oid));
             btn.closest('.admin-correction-row').remove();
             if (!listEl.querySelector('.admin-correction-row')) {
-              listEl.innerHTML = `<p class="mod-edit-note">No missing art — all images accounted for.</p>`;
+              listEl.innerHTML = `<p class="mod-edit-note">No pending image overrides.</p>`;
             }
-            // Refresh metrics count
             loadAdminMetrics(overlay);
           } catch (e) {
-            alert('Failed to resolve: ' + e.message);
+            alert('Failed to approve: ' + e.message);
+            btn.disabled = false;
+          }
+        });
+      });
+
+      listEl.querySelectorAll('.admin-reject-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          try {
+            await API.adminRejectImageOverride(Number(btn.dataset.oid));
+            btn.closest('.admin-correction-row').remove();
+            if (!listEl.querySelector('.admin-correction-row')) {
+              listEl.innerHTML = `<p class="mod-edit-note">No pending image overrides.</p>`;
+            }
+            loadAdminMetrics(overlay);
+          } catch (e) {
+            alert('Failed to reject: ' + e.message);
             btn.disabled = false;
           }
         });

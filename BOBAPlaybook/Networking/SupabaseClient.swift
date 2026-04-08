@@ -257,9 +257,9 @@ final class SupabaseClient {
         try checkStatus(data: data, response: response)
     }
 
-    /// Returns card numbers that have an active image removal override.
+    /// Returns card numbers that have an active image removal override (pending or approved, not rejected).
     func fetchImageRemovals() async throws -> [String] {
-        let url = try makeURL(path: "/rest/v1/card_image_overrides?action=eq.remove&status=eq.pending&select=card_number")
+        let url = try makeURL(path: "/rest/v1/card_image_overrides?action=eq.remove&status=neq.rejected&select=card_number")
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         addHeaders(&request, authenticated: true)
@@ -274,7 +274,8 @@ final class SupabaseClient {
 
     /// Submits an image override (replace or remove). Only succeeds for moderator/admin accounts.
     /// Uses upsert on card_number so repeated submissions update the existing row, not add duplicates.
-    func submitImageOverride(cardNumber: String, action: String, storagePath: String?) async throws {
+    /// Pass status="approved" for admin users so the removal is immediately active on all platforms.
+    func submitImageOverride(cardNumber: String, action: String, storagePath: String?, status: String = "pending") async throws {
         guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
         let url = try makeURL(path: "/rest/v1/card_image_overrides")
         var request = URLRequest(url: url)
@@ -286,7 +287,7 @@ final class SupabaseClient {
             "card_number":   cardNumber,
             "action":        action,
             "submitted_by":  uid.uuidString.lowercased(),
-            "status":        "pending"
+            "status":        status
         ]
         if let path = storagePath { body["storage_path"] = path }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)

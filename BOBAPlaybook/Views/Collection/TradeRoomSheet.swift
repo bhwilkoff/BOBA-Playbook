@@ -38,12 +38,7 @@ struct TradeRoomSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     if discord.isAuthorized, let user = discord.currentUser {
-                        HStack(spacing: 6) {
-                            DiscordAvatar(user: user, size: 22)
-                            Text(user.displayName)
-                                .font(.system(size: 13))
-                                .foregroundStyle(.white.opacity(0.7))
-                        }
+                        DiscordAvatar(user: user, size: 28)
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {

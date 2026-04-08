@@ -1912,9 +1912,10 @@
      INITIALIZATION
   ================================================================ */
   async function init() {
-    // Init auth + collection modules (must be before first render)
-    await Auth.init();
+    // Collection.init() must run before Auth.init() so its auth-change listener
+    // is registered before Auth.init()'s eager session restore dispatches the event.
     Collection.init();
+    await Auth.init();
 
     const params = new URLSearchParams(window.location.search);
     const urlView = params.get('view');

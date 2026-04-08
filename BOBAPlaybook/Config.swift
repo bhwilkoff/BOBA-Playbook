@@ -14,3 +14,14 @@ enum SupabaseConfig {
 enum WorkerConfig {
     static let ebayProxyURL = "https://boba-ebay-proxy.benwilkoff.workers.dev"
 }
+
+// MARK: - Discord — Trade Room
+// client_id is public. client_secret lives in the Cloudflare Worker only.
+enum DiscordConfig {
+    static let clientId    = "1491134218829304009"
+    static let channelId   = "1306146115757936650"
+    static let guildId     = "1305710603440095252"
+    static let inviteCode  = "bobattlearena"
+    static let redirectURI = "bobaplaybook://discord-callback"
+    static let refreshURL  = WorkerConfig.ebayProxyURL + "/discord/refresh"
+}

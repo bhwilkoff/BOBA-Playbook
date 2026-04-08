@@ -2,8 +2,8 @@
 
 ## Current State
 
-- **Active milestone**: M4 — Play Mode (both platforms)
-- **Last session**: 2026-04-07 — Image filenames corrected (eBay naming fix). Synced 17,739 cards; R2 reconciled to 15,065 full + 15,062 thumbs (deleted 3,854 + 3,849 orphaned old-style filenames). App version bumped to 1.1 (build 2). AppVersion.xcconfig wired into Xcode project. Alternate app icons migrated to modern .appiconset format with light/dark/tinted variants.
+- **Active milestone**: M5 — Discord Trading Channel (in progress)
+- **Last session**: 2026-04-08 — Discord Trade Room feature built (both platforms). iOS: DiscordModels, DiscordService (OAuth2 PKCE, polling, reactions), DiscordMessageRow, ReactionPickerView, TradeRoomSheet, CollectionView FAB. Web: js/discord.js (OAuth2 PKCE, polling, reactions), discord-callback.html, Discord UI in app.js, FAB + panel HTML/CSS in index.html/styles.css. Also: 157 power corrections applied to JSON; R2 deletions (HLA-3, RJA-1); web profile recalculate button + stat order fix.
 - **Open questions**:
   - Rules/strategy content for Play Mode — source? (manual entry, PDF parse, structured JSON?)
   - Deck builder: local-only or save/share via Supabase?
@@ -24,7 +24,7 @@
 | Scan Mode (camera OCR) | ❌ | ✅ | M3 iOS complete — iOS only by design |
 | Pricing comps (links) | ✅ | ✅ | M3 complete; Worker deploy still needed for live data |
 | Play Mode (rules + decks) | ⏳ | ⏳ | M4 — active |
-| Discord Trading Channel | ❌ | ❌ | M5 — future |
+| Discord Trading Channel | ⏳ | ⏳ | M5 — in progress; needs Worker deploy + Discord redirect URI |
 
 ---
 

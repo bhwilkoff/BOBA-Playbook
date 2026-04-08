@@ -2124,5 +2124,496 @@
       </div>`;
   }
 
+  // ----------------------------------------------------------------
+  // Discord Trade Room UI
+  // ----------------------------------------------------------------
+
+  (function initDiscordUI() {
+    const fab        = document.getElementById('discord-fab');
+    const badge      = document.getElementById('discord-fab-badge');
+    const panel      = document.getElementById('discord-panel');
+    const content    = document.getElementById('discord-content');
+    const userChip   = document.getElementById('discord-user-chip');
+    const closeBtn   = document.getElementById('discord-close-btn');
+    const emojiPicker = document.getElementById('discord-emoji-picker');
+
+    if (!fab || !panel || !content) return;
+
+    // ── Emoji data ────────────────────────────────────────────────
+    const EMOJI_CATS = [
+      { id: 'quick',      icon: '🕐', emoji: ['👍','❤️','🔥','😂','😮','😢','🎉','💯','🙏','👀','💪','✅'] },
+      { id: 'smileys',    icon: '😀', emoji: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','😊','😍','😘','😎','🥳','😏','😒','😢','😭','😤','😡','🤯','😳','😱','🤗','🤔','😶','🙄','😮','😲','🥱','😴','🤐','🤢','🤮','😷','🤕','🤑','😈','👿','👻','💀'] },
+      { id: 'people',     icon: '👋', emoji: ['👋','🤚','✋','👌','✌️','🤞','👈','👉','👆','👇','👍','👎','✊','👏','🙌','🙏','💪','👀','🗣️','👤'] },
+      { id: 'animals',    icon: '🐶', emoji: ['🐶','🐱','🐭','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐸','🐵','🐔','🐧','🦅','🦋','🐝','🐢','🦈','🐋','🦓','🐘','🦒','🦁','🐺'] },
+      { id: 'food',       icon: '🍕', emoji: ['🍕','🍔','🍟','🌭','🍿','🥗','🍜','🍣','🌮','🌯','🧁','🍰','🎂','🍩','🍪','🍫','🍬','🍭','🍦','☕','🍺','🍻','🥂','🍾'] },
+      { id: 'activities', icon: '⚽', emoji: ['⚽','🏀','🏈','⚾','🎾','🏐','🎱','🏓','🥊','🎮','🕹️','🎲','🎯','🎳','🏆','🥇','🥈','🥉','🎖️','🏅'] },
+      { id: 'objects',    icon: '💎', emoji: ['💎','💰','💵','💳','🔑','🔒','📱','💻','📷','🎵','🎶','📚','📖','✏️','📝','💡','🔦','💊','🔬','🔭','🪄','🎩','👑','💍'] },
+      { id: 'symbols',    icon: '❤️', emoji: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','💔','💕','💖','✨','⭐','🌟','🔥','💥','❄️','🌈','☀️','🌙','✅','❌','⭕','❗','❓','💯','🔄','⬆️','⬇️','⬅️','➡️'] },
+    ];
+
+    let _emojiCatId  = 'quick';
+    let _emojiTarget = null; // messageId
+    let _replyTo     = null; // {id, authorName}
+    let _atBottom    = true;
+    let _msgList     = null;
+
+    // ── Render loop ───────────────────────────────────────────────
+    Discord.setUpdateCallback(render);
+
+    function render() {
+      const state = Discord.getState();
+
+      // FAB visibility + badge
+      fab.hidden = false;
+      const uc = state.unreadCount;
+      if (uc > 0) {
+        badge.hidden = false;
+        badge.textContent = uc > 99 ? '99+' : String(uc);
+      } else {
+        badge.hidden = true;
+      }
+
+      // User chip in header
+      if (state.currentUser) {
+        const av = Discord.avatarUrl(state.currentUser, 44);
+        const dn = Discord.displayName(state.currentUser);
+        userChip.hidden = false;
+        userChip.innerHTML = av
+          ? `<img src="${escHtml(av)}" alt="${escHtml(dn)}"><span>${escHtml(dn)}</span>`
+          : `<span>${escHtml(dn)}</span>`;
+      } else {
+        userChip.hidden = true;
+        userChip.innerHTML = '';
+      }
+
+      // Content area
+      if (!state.isAuthorized) {
+        renderConnectView();
+      } else if (!state.isMember) {
+        renderInviteView();
+      } else {
+        renderChannelView(state);
+      }
+    }
+
+    // ── Connect view ───────────────────────────────────────────────
+    function renderConnectView() {
+      content.innerHTML = `
+        <div class="discord-gate">
+          <div class="discord-gate-icon">💬</div>
+          <h2>BOBA Trade Room</h2>
+          <p>Connect your Discord account to chat<br>with the BOBA community.</p>
+          <button class="discord-gate-btn blurple" id="dc-connect-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M20.317 4.492c-1.53-.69-3.17-1.2-4.885-1.49a.075.075 0 0 0-.079.036c-.21.369-.444.85-.608 1.23a18.566 18.566 0 0 0-5.487 0 12.36 12.36 0 0 0-.617-1.23A.077.077 0 0 0 8.562 3c-1.714.29-3.354.8-4.885 1.491a.07.07 0 0 0-.032.027C.533 9.093-.32 13.555.099 17.961a.08.08 0 0 0 .031.055 20.03 20.03 0 0 0 5.993 2.98.078.078 0 0 0 .084-.026c.462-.62.874-1.275 1.226-1.963a.076.076 0 0 0-.041-.106 13.201 13.201 0 0 1-1.872-.878.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.763 8.18 1.763 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.879.077.077 0 0 0-.041.107c.36.687.772 1.341 1.225 1.962a.077.077 0 0 0 .084.028 19.963 19.963 0 0 0 6.002-2.981.076.076 0 0 0 .032-.054c.5-5.094-.838-9.52-3.549-13.442a.06.06 0 0 0-.031-.028z"/></svg>
+            Connect Discord
+          </button>
+        </div>`;
+      document.getElementById('dc-connect-btn')?.addEventListener('click', async () => {
+        await Discord.authorize();
+        if (Discord.getState().isMember) {
+          await Discord.loadInitialMessages();
+          Discord.startPolling();
+          Discord.markRead();
+        }
+      });
+    }
+
+    // ── Invite view ───────────────────────────────────────────────
+    function renderInviteView() {
+      content.innerHTML = `
+        <div class="discord-gate">
+          <div class="discord-gate-icon">🎮</div>
+          <h2>Join the BOBA Discord</h2>
+          <p>You need to be a server member to<br>access the trade room.</p>
+          <a class="discord-gate-btn green"
+             href="https://discord.gg/${Discord.INVITE_CODE}"
+             target="_blank" rel="noopener noreferrer">
+            ↗ Join Server
+          </a>
+          <button class="discord-gate-secondary" id="dc-recheck-btn">I've joined — check again</button>
+          <button class="discord-gate-disconnect" id="dc-disc-btn">Use a different account</button>
+        </div>`;
+      document.getElementById('dc-recheck-btn')?.addEventListener('click', async () => {
+        await Discord.checkMembership();
+        if (Discord.getState().isMember) {
+          await Discord.loadInitialMessages();
+          Discord.startPolling();
+          Discord.markRead();
+        }
+      });
+      document.getElementById('dc-disc-btn')?.addEventListener('click', () => Discord.disconnect());
+    }
+
+    // ── Channel view ──────────────────────────────────────────────
+    function renderChannelView(state) {
+      // Build structure if not already present
+      if (!content.querySelector('.discord-msg-list')) {
+        content.innerHTML = `
+          <div class="discord-msg-list" id="dc-msg-list"></div>
+          <div class="discord-reply-indicator" id="dc-reply-indicator" hidden>
+            <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12" style="flex-shrink:0;color:#5865F2"><path d="M9.195 18.44c1.25.714 2.805-.189 2.805-1.629v-2.34c2.032.053 4.036.521 5.58 1.414 1.25.714 2.805-.189 2.805-1.629V8.5c0-1.44-1.555-2.343-2.805-1.629C15.78 7.864 13.887 8.333 12 8.425V6.128c0-1.44-1.555-2.343-2.805-1.629l-7.108 4.062c-1.26.72-1.26 2.536 0 3.256l7.108 4.062z"/></svg>
+            Replying to <span class="ri-name" id="dc-reply-name"></span>
+            <button class="ri-close" id="dc-reply-cancel">×</button>
+          </div>
+          <div class="discord-input-bar">
+            <textarea class="discord-input" id="dc-input" placeholder="Message #trade-room" rows="1"></textarea>
+            <button class="discord-send-btn" id="dc-send-btn" disabled>
+              <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="m3.478 2.405-1.142 5.143c-.32 1.44.793 2.73 2.257 2.73l3.405-.001L5.59 21.1c-.334 1.498 1.394 2.576 2.636 1.637L21.368 12.5c1.12-.835 1.003-2.536-.22-3.213L5.104 2.09c-1.27-.697-2.813.237-2.625 1.597l-.001.718z"/></svg>
+            </button>
+          </div>`;
+
+        _msgList = document.getElementById('dc-msg-list');
+
+        // Input events
+        const input   = document.getElementById('dc-input');
+        const sendBtn = document.getElementById('dc-send-btn');
+        input.addEventListener('input', () => {
+          sendBtn.disabled = !input.value.trim();
+          sendBtn.classList.toggle('active', !!input.value.trim());
+          // Auto-grow
+          input.style.height = 'auto';
+          input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+        });
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitMessage(); }
+        });
+        sendBtn.addEventListener('click', submitMessage);
+
+        // Reply cancel
+        document.getElementById('dc-reply-cancel')?.addEventListener('click', () => {
+          _replyTo = null;
+          document.getElementById('dc-reply-indicator').hidden = true;
+        });
+
+        // Scroll tracking
+        _msgList.addEventListener('scroll', () => {
+          const el = _msgList;
+          _atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+        });
+      } else {
+        _msgList = document.getElementById('dc-msg-list');
+      }
+
+      // Render messages
+      renderMessages(state.messages, state.hasMore);
+
+      // Scroll to bottom on first load or if already at bottom
+      if (_atBottom) {
+        requestAnimationFrame(() => {
+          if (_msgList) _msgList.scrollTop = _msgList.scrollHeight;
+        });
+      }
+    }
+
+    function renderMessages(messages, hasMore) {
+      if (!_msgList) return;
+      const prevScrollH = _msgList.scrollHeight;
+      const prevScrollT = _msgList.scrollTop;
+
+      _msgList.innerHTML = '';
+
+      // History header
+      if (hasMore) {
+        const btn = document.createElement('button');
+        btn.className = 'discord-load-more';
+        btn.textContent = 'Load older messages';
+        btn.addEventListener('click', async () => {
+          btn.textContent = 'Loading…';
+          btn.disabled = true;
+          await Discord.loadOlderMessages();
+          // Restore scroll position after prepend
+          if (_msgList) {
+            _msgList.scrollTop = _msgList.scrollHeight - prevScrollH + prevScrollT;
+          }
+        });
+        _msgList.appendChild(btn);
+      } else {
+        const div = document.createElement('div');
+        div.className = 'discord-beginning';
+        div.textContent = 'This is the beginning of #trade-room.';
+        _msgList.appendChild(div);
+      }
+
+      messages.forEach((msg, idx) => {
+        const prev    = idx > 0 ? messages[idx - 1] : null;
+        const compact = isCompact(msg, prev);
+        _msgList.appendChild(buildMessageEl(msg, compact));
+      });
+
+      // Bottom anchor
+      const anchor = document.createElement('div');
+      anchor.id = 'dc-bottom';
+      _msgList.appendChild(anchor);
+    }
+
+    // ── Message element builder ────────────────────────────────────
+    function buildMessageEl(msg, compact) {
+      const el    = document.createElement('div');
+      el.className = `discord-msg${compact ? ' compact' : ''}`;
+      el.dataset.msgId = msg.id;
+
+      const authorName = Discord.displayName(msg.author);
+      const avatarUrl  = Discord.avatarUrl(msg.author, 64);
+      const colorClass = authorColorClass(msg.author.id);
+
+      let html = '';
+
+      // Avatar column
+      if (compact) {
+        html += `<div class="discord-msg-avatar-spacer"></div>`;
+      } else {
+        html += `<div class="discord-msg-avatar">`;
+        html += avatarUrl
+          ? `<img src="${escHtml(avatarUrl)}" alt="${escHtml(authorName)}" loading="lazy">`
+          : `<div class="discord-avatar-fallback ${colorClass}">${escHtml(authorName.charAt(0).toUpperCase())}</div>`;
+        html += `</div>`;
+      }
+
+      html += `<div class="discord-msg-body">`;
+
+      // Reply bar
+      if (msg.type === 19 && msg.referenced_message) {
+        const ref = msg.referenced_message;
+        const refName = Discord.displayName(ref.author);
+        html += `<div class="discord-reply-bar">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10" style="flex-shrink:0;opacity:0.5"><path d="M9.195 18.44c1.25.714 2.805-.189 2.805-1.629v-2.34c2.032.053 4.036.521 5.58 1.414 1.25.714 2.805-.189 2.805-1.629V8.5c0-1.44-1.555-2.343-2.805-1.629C15.78 7.864 13.887 8.333 12 8.425V6.128c0-1.44-1.555-2.343-2.805-1.629l-7.108 4.062c-1.26.72-1.26 2.536 0 3.256l7.108 4.062z"/></svg>
+          <span class="reply-author ${authorColorClass(ref.author.id)}">${escHtml(refName)}</span>
+          <span>${escHtml(ref.content ? ref.content.slice(0, 80) : '[attachment]')}</span>
+        </div>`;
+      }
+
+      // Author + timestamp
+      if (!compact) {
+        const ts = msg.timestamp ? formatTs(new Date(msg.timestamp)) : '';
+        html += `<div class="discord-msg-meta">
+          <span class="discord-msg-author ${colorClass}">${escHtml(authorName)}</span>
+          <span class="discord-msg-ts">${escHtml(ts)}</span>
+        </div>`;
+      }
+
+      // Content
+      if (msg.content) {
+        html += `<div class="discord-msg-content">${renderMarkdown(msg.content)}</div>`;
+      }
+
+      // Attachments
+      if (Array.isArray(msg.attachments)) {
+        msg.attachments.forEach(att => {
+          const ct = att.content_type ?? '';
+          if (ct.startsWith('image/') || /\.(png|jpg|jpeg|gif|webp)$/i.test(att.filename)) {
+            html += `<div class="discord-attachment"><img src="${escHtml(att.proxy_url ?? att.url)}" alt="${escHtml(att.filename)}" loading="lazy"></div>`;
+          }
+        });
+      }
+
+      // Reactions
+      if (Array.isArray(msg.reactions) && msg.reactions.length) {
+        html += `<div class="discord-reactions">`;
+        msg.reactions.forEach(r => {
+          const disp  = r.emoji.name ?? r.emoji.id ?? '?';
+          const meClass = r.me ? ' me' : '';
+          html += `<button class="discord-reaction${meClass}" data-emoji="${escHtml(disp)}">
+            <span class="discord-reaction-emoji">${escHtml(disp)}</span>
+            <span class="discord-reaction-count">${r.count}</span>
+          </button>`;
+        });
+        html += `<button class="discord-add-reaction" title="Add reaction">☺</button>`;
+        html += `</div>`;
+      }
+
+      html += `</div>`;
+      el.innerHTML = html;
+
+      // Context menu — reply on long-press / right-click
+      el.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        setReply(msg);
+      });
+
+      // Reaction click handlers
+      el.querySelectorAll('.discord-reaction').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const emoji = btn.dataset.emoji;
+          if (btn.classList.contains('me')) Discord.removeReaction(msg.id, emoji);
+          else                               Discord.addReaction(msg.id, emoji);
+        });
+      });
+      el.querySelector('.discord-add-reaction')?.addEventListener('click', e => {
+        showEmojiPicker(msg.id, e.currentTarget);
+      });
+
+      return el;
+    }
+
+    // ── Send ──────────────────────────────────────────────────────
+    function submitMessage() {
+      const input = document.getElementById('dc-input');
+      if (!input) return;
+      const text = input.value.trim();
+      if (!text) return;
+      const replyId = _replyTo?.id ?? null;
+      input.value = '';
+      input.style.height = 'auto';
+      const sendBtn = document.getElementById('dc-send-btn');
+      if (sendBtn) { sendBtn.disabled = true; sendBtn.classList.remove('active'); }
+      _replyTo = null;
+      const ri = document.getElementById('dc-reply-indicator');
+      if (ri) ri.hidden = true;
+      _atBottom = true;
+      Discord.send(text, replyId);
+    }
+
+    // ── Reply ─────────────────────────────────────────────────────
+    function setReply(msg) {
+      _replyTo = { id: msg.id, authorName: Discord.displayName(msg.author) };
+      const ri   = document.getElementById('dc-reply-indicator');
+      const name = document.getElementById('dc-reply-name');
+      if (ri) ri.hidden = false;
+      if (name) name.textContent = _replyTo.authorName;
+      document.getElementById('dc-input')?.focus();
+    }
+
+    // ── Emoji picker ──────────────────────────────────────────────
+    function buildEmojiPicker() {
+      const cats = document.getElementById('dep-categories');
+      const grid = document.getElementById('dep-grid');
+      if (!cats || !grid) return;
+
+      // Category tabs
+      cats.innerHTML = EMOJI_CATS.map(c =>
+        `<button class="dep-cat-btn${c.id === _emojiCatId ? ' active' : ''}" data-cat="${c.id}" title="${c.id}">${c.icon}</button>`
+      ).join('');
+      cats.querySelectorAll('.dep-cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          _emojiCatId = btn.dataset.cat;
+          buildEmojiPicker();
+        });
+      });
+
+      // Search filter
+      const search = document.getElementById('dep-search');
+      const query  = search?.value.trim() ?? '';
+      const pool   = query
+        ? EMOJI_CATS.flatMap(c => c.emoji)
+        : (EMOJI_CATS.find(c => c.id === _emojiCatId)?.emoji ?? []);
+
+      grid.innerHTML = pool.map(e =>
+        `<button class="dep-emoji-btn" data-emoji="${e}">${e}</button>`
+      ).join('');
+      grid.querySelectorAll('.dep-emoji-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (_emojiTarget) Discord.addReaction(_emojiTarget, btn.dataset.emoji);
+          hideEmojiPicker();
+        });
+      });
+    }
+
+    function showEmojiPicker(msgId, anchor) {
+      _emojiTarget = msgId;
+      emojiPicker.hidden = false;
+      buildEmojiPicker();
+
+      // Position near the anchor
+      const rect = anchor.getBoundingClientRect();
+      const ph   = emojiPicker.offsetHeight || 360;
+      const pw   = emojiPicker.offsetWidth  || 320;
+      let top  = rect.top - ph - 8;
+      let left = rect.left - pw / 2;
+      if (top < 8) top = rect.bottom + 8;
+      left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+      emojiPicker.style.top  = top + 'px';
+      emojiPicker.style.left = left + 'px';
+
+      // Search input
+      const search = document.getElementById('dep-search');
+      if (search) {
+        search.value = '';
+        search.oninput = () => buildEmojiPicker();
+      }
+    }
+
+    function hideEmojiPicker() {
+      emojiPicker.hidden = true;
+      _emojiTarget = null;
+    }
+
+    // Close picker on outside click
+    document.addEventListener('click', e => {
+      if (!emojiPicker.hidden && !emojiPicker.contains(e.target)) hideEmojiPicker();
+    });
+
+    // ── Panel open / close ────────────────────────────────────────
+    fab.addEventListener('click', async () => {
+      panel.hidden = false;
+      Discord.markRead();
+      const state = Discord.getState();
+      if (state.isAuthorized && state.isMember && state.messages.length === 0) {
+        await Discord.loadInitialMessages();
+        Discord.startPolling();
+        Discord.markRead();
+      }
+      render();
+    });
+
+    closeBtn.addEventListener('click', () => {
+      panel.hidden = true;
+      Discord.stopPolling();
+      Discord.markRead();
+      hideEmojiPicker();
+    });
+
+    // Close panel on backdrop click
+    panel.addEventListener('click', e => {
+      if (e.target === panel) {
+        panel.hidden = true;
+        Discord.stopPolling();
+        Discord.markRead();
+      }
+    });
+
+    // ── Helpers ───────────────────────────────────────────────────
+    function authorColorClass(userId) {
+      const palette = ['dc-color-0','dc-color-1','dc-color-2','dc-color-3',
+                       'dc-color-4','dc-color-5','dc-color-6','dc-color-7','dc-color-8'];
+      // Simple hash
+      let hash = 0;
+      for (let i = 0; i < userId.length; i++) hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
+      return palette[hash % palette.length];
+    }
+
+    function isCompact(msg, prev) {
+      if (!prev) return false;
+      if (msg.author.id !== prev.author.id) return false;
+      const d1 = new Date(msg.timestamp);
+      const d2 = new Date(prev.timestamp);
+      return Math.abs(d1 - d2) < 7 * 60 * 1000;
+    }
+
+    function formatTs(date) {
+      const now  = new Date();
+      const sameDay = date.toDateString() === now.toDateString();
+      const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
+      const wasYesterday = date.toDateString() === yesterday.toDateString();
+      const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      if (sameDay)      return `Today at ${time}`;
+      if (wasYesterday) return `Yesterday at ${time}`;
+      return date.toLocaleDateString([], { month: '2-digit', day: '2-digit', year: 'numeric' });
+    }
+
+    function renderMarkdown(text) {
+      let s = escHtml(text);
+      s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      s = s.replace(/\*(.+?)\*/g,     '<em>$1</em>');
+      s = s.replace(/_(.+?)_/g,       '<em>$1</em>');
+      s = s.replace(/~~(.+?)~~/g,     '<del>$1</del>');
+      s = s.replace(/`(.+?)`/g,       '<code>$1</code>');
+      s = s.replace(/\|\|(.+?)\|\|/g, '▓▓▓');
+      return s;
+    }
+
+    // Start Discord (restore session if tokens exist)
+    Discord.init();
+  })();
+
   init();
 })();

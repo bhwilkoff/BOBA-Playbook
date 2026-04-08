@@ -361,6 +361,8 @@ const Discord = (() => {
   // ─── Init (called on page load) ─────────────────────────────────────────────
 
   async function init() {
+    // Always notify so the FAB renders (even when not yet authorized).
+    notify();
     if (!_accessToken) return;
     if (!await _refreshIfNeeded()) return;
     await _fetchCurrentUser();

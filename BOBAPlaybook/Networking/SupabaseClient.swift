@@ -199,7 +199,7 @@ final class SupabaseClient {
     // MARK: - Admin: corrections review
 
     struct PendingCorrection: Identifiable, Decodable {
-        let id: Int
+        let id: String   // uuid
         let cardNumber: String
         let corrections: [String: String]
         let notes: String?
@@ -237,7 +237,7 @@ final class SupabaseClient {
         return try makeDecoder().decode([PendingCorrection].self, from: data)
     }
 
-    func approveCorrection(id: Int) async throws {
+    func approveCorrection(id: String) async throws {
         let url = try makeURL(path: "/rest/v1/card_corrections?id=eq.\(id)")
         var request = URLRequest(url: url)
         request.httpMethod = "PATCH"
@@ -247,7 +247,7 @@ final class SupabaseClient {
         try checkStatus(data: data, response: response)
     }
 
-    func rejectCorrection(id: Int) async throws {
+    func rejectCorrection(id: String) async throws {
         let url = try makeURL(path: "/rest/v1/card_corrections?id=eq.\(id)")
         var request = URLRequest(url: url)
         request.httpMethod = "PATCH"
@@ -298,7 +298,7 @@ final class SupabaseClient {
     // MARK: - Admin: image override management
 
     struct ImageOverride: Identifiable, Decodable {
-        let id: Int
+        let id: String   // uuid
         let cardNumber: String
         let action: String
         let status: String
@@ -323,7 +323,7 @@ final class SupabaseClient {
         return try makeDecoder().decode([ImageOverride].self, from: data)
     }
 
-    func approveImageOverride(id: Int) async throws {
+    func approveImageOverride(id: String) async throws {
         let url = try makeURL(path: "/rest/v1/card_image_overrides?id=eq.\(id)")
         var request = URLRequest(url: url)
         request.httpMethod = "PATCH"
@@ -333,7 +333,7 @@ final class SupabaseClient {
         try checkStatus(data: data, response: response)
     }
 
-    func rejectImageOverride(id: Int) async throws {
+    func rejectImageOverride(id: String) async throws {
         let url = try makeURL(path: "/rest/v1/card_image_overrides?id=eq.\(id)")
         var request = URLRequest(url: url)
         request.httpMethod = "PATCH"

@@ -202,7 +202,7 @@ struct AdminPanelView: View {
         }
     }
 
-    private func approveImageOverride(id: Int) async {
+    private func approveImageOverride(id: String) async {
         do {
             try await SupabaseClient.shared.approveImageOverride(id: id)
             missingArt.removeAll { $0.id == id }
@@ -211,7 +211,7 @@ struct AdminPanelView: View {
         }
     }
 
-    private func rejectImageOverride(id: Int) async {
+    private func rejectImageOverride(id: String) async {
         do {
             try await SupabaseClient.shared.rejectImageOverride(id: id)
             missingArt.removeAll { $0.id == id }
@@ -220,7 +220,7 @@ struct AdminPanelView: View {
         }
     }
 
-    private func handleCorrection(id: Int, approve: Bool) async {
+    private func handleCorrection(id: String, approve: Bool) async {
         do {
             if approve {
                 try await SupabaseClient.shared.approveCorrection(id: id)

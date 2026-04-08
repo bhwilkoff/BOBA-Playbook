@@ -597,7 +597,7 @@ const Collection = (() => {
         btn.addEventListener('click', async () => {
           btn.disabled = true;
           try {
-            await API.adminApproveImageOverride(Number(btn.dataset.oid));
+            await API.adminApproveImageOverride(btn.dataset.oid);
             btn.closest('.admin-correction-row').remove();
             if (!listEl.querySelector('.admin-correction-row')) {
               listEl.innerHTML = `<p class="mod-edit-note">No pending image overrides.</p>`;
@@ -614,7 +614,7 @@ const Collection = (() => {
         btn.addEventListener('click', async () => {
           btn.disabled = true;
           try {
-            await API.adminRejectImageOverride(Number(btn.dataset.oid));
+            await API.adminRejectImageOverride(btn.dataset.oid);
             btn.closest('.admin-correction-row').remove();
             if (!listEl.querySelector('.admin-correction-row')) {
               listEl.innerHTML = `<p class="mod-edit-note">No pending image overrides.</p>`;

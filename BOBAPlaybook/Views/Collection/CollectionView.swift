@@ -33,18 +33,12 @@ struct CollectionView: View {
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .overlay(alignment: .bottomTrailing) {
-                tradeRoomFAB
-            }
         }
         .sheet(isPresented: $showingSignIn) {
             SignInView()
         }
         .sheet(item: $selectedCard) { wrapper in
             CollectionCardDetailView(cardNumber: wrapper.id)
-        }
-        .fullScreenCover(isPresented: $showTradeRoom) {
-            TradeRoomSheet(discord: discord)
         }
         .task {
             if auth.isAuthenticated {

@@ -239,27 +239,21 @@ final class DiscordService: NSObject {
     // MARK: - Messages
 
     func loadInitialMessages() async {
-        guard let token = accessToken, await refreshIfNeeded() else { return }
+        guard await refreshIfNeeded() else { return }
         isLoading = true
         defer { isLoading = false }
 
-        var comps = URLComponents(string: "https://discord.com/api/v10/channels/\(DiscordConfig.channelId)/messages")!
-        comps.queryItems = [.init(name: "limit", value: "50")]
-        var req = URLRequest(url: comps.url!)
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        var comps = URLComponents(string: DiscordConfig.messagesURL)!
+        comps.queryItems = [
+            .init(name: "channel", value: DiscordConfig.channelId),
+            .init(name: "limit",   value: "50"),
+        ]
+        let req = URLRequest(url: comps.url!)
 
-        guard let (data, resp) = try? await URLSession.shared.data(for: req) else { return }
-        let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
-        guard status == 200 else {
-            let body = String(data: data, encoding: .utf8) ?? ""
-            print("[Discord] loadInitialMessages failed \(status): \(body)")
-            errorMessage = "Failed to load messages (\(status))"
-            return
-        }
-        guard let fetched = try? JSONDecoder().decode([DiscordMessage].self, from: data) else {
-            print("[Discord] loadInitialMessages decode failed — raw: \(String(data: data, encoding: .utf8) ?? "")")
-            return
-        }
+        guard let (data, resp) = try? await URLSession.shared.data(for: req),
+              (resp as? HTTPURLResponse)?.statusCode == 200,
+              let fetched = try? JSONDecoder().decode([DiscordMessage].self, from: data)
+        else { return }
 
         let valid = fetched.filter { $0.isUserMessage }.reversed() as [DiscordMessage]
         messages      = valid
@@ -269,16 +263,16 @@ final class DiscordService: NSObject {
     }
 
     func loadOlderMessages() async {
-        guard let token = accessToken, let oldest = oldestId, hasMoreHistory,
+        guard let oldest = oldestId, hasMoreHistory,
               await refreshIfNeeded() else { return }
 
-        var comps = URLComponents(string: "https://discord.com/api/v10/channels/\(DiscordConfig.channelId)/messages")!
+        var comps = URLComponents(string: DiscordConfig.messagesURL)!
         comps.queryItems = [
-            .init(name: "before", value: oldest),
-            .init(name: "limit",  value: "50"),
+            .init(name: "channel", value: DiscordConfig.channelId),
+            .init(name: "before",  value: oldest),
+            .init(name: "limit",   value: "50"),
         ]
-        var req = URLRequest(url: comps.url!)
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let req = URLRequest(url: comps.url!)
 
         guard let (data, _) = try? await URLSession.shared.data(for: req),
               let fetched = try? JSONDecoder().decode([DiscordMessage].self, from: data)
@@ -309,16 +303,16 @@ final class DiscordService: NSObject {
     }
 
     private func pollNewMessages() async {
-        guard let token = accessToken, let newest = newestId else { return }
+        guard let newest = newestId else { return }
         guard await refreshIfNeeded() else { return }
 
-        var comps = URLComponents(string: "https://discord.com/api/v10/channels/\(DiscordConfig.channelId)/messages")!
+        var comps = URLComponents(string: DiscordConfig.messagesURL)!
         comps.queryItems = [
-            .init(name: "after", value: newest),
-            .init(name: "limit", value: "50"),
+            .init(name: "channel", value: DiscordConfig.channelId),
+            .init(name: "after",   value: newest),
+            .init(name: "limit",   value: "50"),
         ]
-        var req = URLRequest(url: comps.url!)
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let req = URLRequest(url: comps.url!)
 
         guard let (data, resp) = try? await URLSession.shared.data(for: req),
               (resp as? HTTPURLResponse)?.statusCode == 200,

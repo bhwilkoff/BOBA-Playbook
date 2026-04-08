@@ -12,6 +12,7 @@ const Discord = (() => {
   const INVITE_CODE  = 'bobattlearena';
   const REDIRECT_URI = 'https://bobaplaybook.com/discord-callback.html';
   const REFRESH_URL  = 'https://boba-ebay-proxy.benwilkoff.workers.dev/discord/refresh';
+  const MESSAGES_URL = 'https://boba-ebay-proxy.benwilkoff.workers.dev/discord/messages';
   const POLL_MS      = 2500;
 
   // ─── State ──────────────────────────────────────────────────────────────────
@@ -201,10 +202,7 @@ const Discord = (() => {
 
   async function loadInitialMessages() {
     if (!await _refreshIfNeeded()) return;
-    const res = await fetch(
-      `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages?limit=50`,
-      { headers: { Authorization: `Bearer ${_accessToken}` } }
-    );
+    const res = await fetch(`${MESSAGES_URL}?channel=${CHANNEL_ID}&limit=50`);
     if (!res.ok) return;
     const fetched = await res.json();
     const valid = _filterValid(fetched).reverse();
@@ -219,10 +217,7 @@ const Discord = (() => {
   async function loadOlderMessages() {
     if (!_hasMore || !_oldestId) return;
     if (!await _refreshIfNeeded()) return;
-    const res = await fetch(
-      `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages?before=${_oldestId}&limit=50`,
-      { headers: { Authorization: `Bearer ${_accessToken}` } }
-    );
+    const res = await fetch(`${MESSAGES_URL}?channel=${CHANNEL_ID}&before=${_oldestId}&limit=50`);
     if (!res.ok) return;
     const fetched = await res.json();
     const valid   = _filterValid(fetched).reverse();
@@ -235,10 +230,7 @@ const Discord = (() => {
 
   async function _pollNewMessages() {
     if (!_newestId || !await _refreshIfNeeded()) return;
-    const res = await fetch(
-      `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages?after=${_newestId}&limit=50`,
-      { headers: { Authorization: `Bearer ${_accessToken}` } }
-    );
+    const res = await fetch(`${MESSAGES_URL}?channel=${CHANNEL_ID}&after=${_newestId}&limit=50`);
     if (!res.ok) return;
     const fetched = await res.json();
     const newMsgs = _filterValid(fetched).sort((a, b) => a.id < b.id ? -1 : 1);

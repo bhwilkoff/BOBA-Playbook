@@ -239,15 +239,17 @@ final class DiscordService: NSObject {
     // MARK: - Messages
 
     func loadInitialMessages() async {
-        guard let token = accessToken, await refreshIfNeeded() else { return }
+        guard await refreshIfNeeded() else { return }
         isLoading = true
         defer { isLoading = false }
 
-        var comps = URLComponents(string: "https://discord.com/api/v10/channels/\(DiscordConfig.channelId)/messages")!
-        comps.queryItems = [.init(name: "limit", value: "50")]
+        var comps = URLComponents(string: DiscordConfig.messagesURL)!
+        comps.queryItems = [
+            .init(name: "channel", value: DiscordConfig.channelId),
+            .init(name: "limit",   value: "50"),
+        ]
 
-        var req = URLRequest(url: comps.url!)
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let req = URLRequest(url: comps.url!)
 
         guard let (data, resp) = try? await URLSession.shared.data(for: req),
               (resp as? HTTPURLResponse)?.statusCode == 200,
@@ -262,16 +264,16 @@ final class DiscordService: NSObject {
     }
 
     func loadOlderMessages() async {
-        guard let token = accessToken, let oldest = oldestId, hasMoreHistory,
+        guard let oldest = oldestId, hasMoreHistory,
               await refreshIfNeeded() else { return }
 
-        var comps = URLComponents(string: "https://discord.com/api/v10/channels/\(DiscordConfig.channelId)/messages")!
+        var comps = URLComponents(string: DiscordConfig.messagesURL)!
         comps.queryItems = [
-            .init(name: "before", value: oldest),
-            .init(name: "limit",  value: "50"),
+            .init(name: "channel", value: DiscordConfig.channelId),
+            .init(name: "before",  value: oldest),
+            .init(name: "limit",   value: "50"),
         ]
-        var req = URLRequest(url: comps.url!)
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let req = URLRequest(url: comps.url!)
 
         guard let (data, _) = try? await URLSession.shared.data(for: req),
               let fetched = try? JSONDecoder().decode([DiscordMessage].self, from: data)
@@ -302,16 +304,16 @@ final class DiscordService: NSObject {
     }
 
     private func pollNewMessages() async {
-        guard let token = accessToken, let newest = newestId else { return }
+        guard let newest = newestId else { return }
         guard await refreshIfNeeded() else { return }
 
-        var comps = URLComponents(string: "https://discord.com/api/v10/channels/\(DiscordConfig.channelId)/messages")!
+        var comps = URLComponents(string: DiscordConfig.messagesURL)!
         comps.queryItems = [
-            .init(name: "after", value: newest),
-            .init(name: "limit", value: "50"),
+            .init(name: "channel", value: DiscordConfig.channelId),
+            .init(name: "after",   value: newest),
+            .init(name: "limit",   value: "50"),
         ]
-        var req = URLRequest(url: comps.url!)
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let req = URLRequest(url: comps.url!)
 
         guard let (data, resp) = try? await URLSession.shared.data(for: req),
               (resp as? HTTPURLResponse)?.statusCode == 200,
@@ -436,14 +438,12 @@ final class DiscordService: NSObject {
 
 extension DiscordService: ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        let scene = UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first { $0.activationState == .foregroundActive }
-            ?? UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .first
-        return scene?.windows.first { $0.isKeyWindow }
-            ?? scene.flatMap { UIWindow(windowScene: $0) }
-            ?? UIWindow()
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        guard let scene = scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first else {
+            fatalError("No UIWindowScene available — app is not in a valid state for authentication")
+        }
+        return scene.windows.first(where: { $0.isKeyWindow })
+            ?? scene.windows.first
+            ?? UIWindow(windowScene: scene)
     }
 }

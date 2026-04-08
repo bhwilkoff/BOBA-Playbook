@@ -12,6 +12,7 @@ struct CardImageView: View {
 
     enum ImageSize { case thumb, full }
 
+    @Environment(CardStore.self) private var cardStore
     @State private var loadedImage: UIImage? = nil
     @State private var failed = false
 
@@ -21,7 +22,11 @@ struct CardImageView: View {
 
     var body: some View {
         Group {
-            if let image = loadedImage {
+            if cardStore.isImageHidden(card.cardNumber) {
+                placeholder
+            } else if let image = loadedImage ?? cachedImage {
+                // cachedImage is a synchronous NSCache lookup — no spinner flash
+                // when returning to a grid after navigating away.
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
@@ -38,6 +43,13 @@ struct CardImageView: View {
                 }
             }
         }
+    }
+
+    /// Synchronous NSCache hit — avoids showing the spinner when the image is
+    /// already in the process-level cache from a previous load this session.
+    private var cachedImage: UIImage? {
+        guard let u = url else { return nil }
+        return cardImageCache.object(forKey: u as NSURL)
     }
 
     private func loadImage(from url: URL) async {

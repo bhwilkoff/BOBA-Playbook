@@ -8,6 +8,9 @@ struct AdminPanelView: View {
     @Environment(AuthManager.self) private var auth
     @State private var users: [AdminUserProfile] = []
     @State private var metrics: AdminMetrics? = nil
+    @State private var pendingCorrections: [SupabaseClient.PendingCorrection] = []
+    @State private var recentCorrections: [SupabaseClient.PendingCorrection] = []
+    @State private var missingArt: [SupabaseClient.ImageOverride] = []
     @State private var isLoading = true
     @State private var errorMessage: String? = nil
     @State private var roleUpdateTarget: AdminUserProfile? = nil
@@ -40,6 +43,85 @@ struct AdminPanelView: View {
                         metricRow(icon: "person.3.fill",        label: "Total Users",              value: "\(m.totalUsers)",         color: Design.Colors.bobaCyan)
                         metricRow(icon: "pencil.circle.fill",   label: "Card Corrections",         value: "\(m.pendingCorrections)",  color: Design.Colors.bobaOrange)
                         metricRow(icon: "photo.badge.plus.fill",label: "Image Overrides",          value: "\(m.pendingImageOverrides)", color: Color(hex: "8B00FF"))
+                    }
+                    .listRowBackground(Design.Colors.surface)
+                }
+
+                // Missing art queue
+                Section("MISSING ART (\(missingArt.count))") {
+                    if missingArt.isEmpty {
+                        Text("No missing art — all images accounted for.")
+                            .font(Design.Fonts.mono(13))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    } else {
+                        ForEach(missingArt) { override in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(override.cardNumber)
+                                        .font(Design.Fonts.mono(13, weight: .bold))
+                                        .foregroundStyle(Design.Colors.bobaCyan)
+                                    Text(override.createdAt, style: .date)
+                                        .font(Design.Fonts.mono(10))
+                                        .foregroundStyle(Design.Colors.textMuted)
+                                }
+                                Spacer()
+                                Button("Resolved") {
+                                    Task { await resolveImageOverride(id: override.id) }
+                                }
+                                .font(Design.Fonts.mono(12, weight: .bold))
+                                .foregroundStyle(Color.green)
+                                .buttonStyle(.plain)
+                            }
+                            .padding(.vertical, Design.Spacing.xs)
+                        }
+                    }
+                }
+                .listRowBackground(Design.Colors.surface)
+
+                // Pending corrections
+                Section("PENDING CORRECTIONS (\(pendingCorrections.count))") {
+                    if pendingCorrections.isEmpty {
+                        Text("No pending corrections.")
+                            .font(Design.Fonts.mono(13))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    } else {
+                        ForEach(pendingCorrections) { correction in
+                            CorrectionReviewRow(correction: correction) { approved in
+                                Task { await handleCorrection(id: correction.id, approve: approved) }
+                            }
+                        }
+                    }
+                }
+                .listRowBackground(Design.Colors.surface)
+
+                // Recent activity — lets admins confirm their corrections saved
+                if !recentCorrections.isEmpty {
+                    Section("RECENT ACTIVITY (MY LAST \(recentCorrections.count))") {
+                        ForEach(recentCorrections) { c in
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack {
+                                    Text(c.cardNumber)
+                                        .font(Design.Fonts.mono(12, weight: .bold))
+                                        .foregroundStyle(Design.Colors.bobaCyan)
+                                    Spacer()
+                                    Text(c.status.uppercased())
+                                        .font(Design.Fonts.mono(9, weight: .bold))
+                                        .foregroundStyle(c.status == "approved" ? Color.green : c.status == "rejected" ? Design.Colors.bobaOrange : Design.Colors.textMuted)
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 2)
+                                        .overlay(RoundedRectangle(cornerRadius: 3).stroke(c.status == "approved" ? Color.green : c.status == "rejected" ? Design.Colors.bobaOrange : Design.Colors.textMuted, lineWidth: 1))
+                                }
+                                ForEach(c.corrections.sorted(by: { $0.key < $1.key }), id: \.key) { key, val in
+                                    Text("\(key): \(val)")
+                                        .font(Design.Fonts.mono(11))
+                                        .foregroundStyle(Design.Colors.textSecondary)
+                                }
+                                Text(c.createdAt, style: .relative)
+                                    .font(Design.Fonts.mono(10))
+                                    .foregroundStyle(Design.Colors.textMuted)
+                            }
+                            .padding(.vertical, Design.Spacing.xs)
+                        }
                     }
                     .listRowBackground(Design.Colors.surface)
                 }
@@ -84,10 +166,16 @@ struct AdminPanelView: View {
         isLoading = true
         errorMessage = nil
         do {
-            async let usersResult  = SupabaseClient.shared.fetchAllUserProfiles()
-            async let metricsResult = SupabaseClient.shared.fetchAdminMetrics()
-            users   = try await usersResult
-            metrics = try await metricsResult
+            async let usersResult       = SupabaseClient.shared.fetchAllUserProfiles()
+            async let metricsResult     = SupabaseClient.shared.fetchAdminMetrics()
+            async let correctionsResult = SupabaseClient.shared.fetchPendingCorrections()
+            async let recentResult      = SupabaseClient.shared.fetchRecentCorrections()
+            async let missingArtResult  = SupabaseClient.shared.fetchPendingImageOverrides()
+            users               = try await usersResult
+            metrics             = try await metricsResult
+            pendingCorrections  = try await correctionsResult
+            recentCorrections   = try await recentResult
+            missingArt          = try await missingArtResult
         } catch {
             errorMessage = "Failed to load: \(error.localizedDescription)"
         }
@@ -97,10 +185,32 @@ struct AdminPanelView: View {
     private func updateRole(user: AdminUserProfile, newRole: String) async {
         do {
             try await SupabaseClient.shared.updateUserRole(userId: user.userId, role: newRole)
-            // Refresh list after update
             await loadData()
         } catch {
             errorMessage = "Role update failed: \(error.localizedDescription)"
+        }
+    }
+
+    private func resolveImageOverride(id: Int) async {
+        do {
+            try await SupabaseClient.shared.resolveImageOverride(id: id)
+            missingArt.removeAll { $0.id == id }
+        } catch {
+            errorMessage = "Failed to resolve: \(error.localizedDescription)"
+        }
+    }
+
+    private func handleCorrection(id: Int, approve: Bool) async {
+        do {
+            if approve {
+                try await SupabaseClient.shared.approveCorrection(id: id)
+            } else {
+                try await SupabaseClient.shared.rejectCorrection(id: id)
+            }
+            pendingCorrections.removeAll { $0.id == id }
+            recentCorrections = (try? await SupabaseClient.shared.fetchRecentCorrections()) ?? recentCorrections
+        } catch {
+            errorMessage = "Failed: \(error.localizedDescription)"
         }
     }
 
@@ -189,5 +299,79 @@ private struct UserRoleRow: View {
             .padding(.vertical, 3)
             .background(badgeColor(role))
             .clipShape(RoundedRectangle(cornerRadius: 4))
+    }
+}
+
+// MARK: - CorrectionReviewRow
+
+private struct CorrectionReviewRow: View {
+    let correction: SupabaseClient.PendingCorrection
+    let onDecision: (Bool) -> Void  // true = approve, false = reject
+
+    @State private var isActing = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+            HStack {
+                Text(correction.cardNumber)
+                    .font(Design.Fonts.mono(13, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+                Spacer()
+                Text(correction.createdAt, style: .date)
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+
+            // Changed fields
+            ForEach(correction.corrections.sorted(by: { $0.key < $1.key }), id: \.key) { key, val in
+                HStack(spacing: 4) {
+                    Text(key + ":")
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textMuted)
+                    Text(val)
+                        .font(Design.Fonts.mono(11, weight: .bold))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                }
+            }
+
+            if let note = correction.notes, !note.isEmpty {
+                Text("\"\(note)\"")
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .italic()
+            }
+
+            HStack(spacing: Design.Spacing.sm) {
+                Spacer()
+                Button {
+                    isActing = true
+                    onDecision(false)
+                } label: {
+                    Text("Reject")
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Design.Colors.bobaOrange, lineWidth: 1))
+                }
+                .disabled(isActing)
+                .buttonStyle(.plain)
+
+                Button {
+                    isActing = true
+                    onDecision(true)
+                } label: {
+                    Text("Approve")
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(Color(hex: "4ade80"))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(hex: "4ade80"), lineWidth: 1))
+                }
+                .disabled(isActing)
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, Design.Spacing.xs)
     }
 }

@@ -1715,6 +1715,7 @@
 
     // Build stat cells — grid layout
     const statDefs = [
+      { label: 'Element',   val: card.element && card.element !== 'NONE' ? card.element : null, full: false },
       { label: 'Set',       val: card.set,       full: false },
       { label: 'Sub-Set',   val: card.subSet,     full: false },
       { label: 'Type',      val: card.cardType,   full: false },
@@ -1990,7 +1991,7 @@
           <button class="mod-edit-close" aria-label="Close">&times;</button>
         </div>
         <div class="mod-edit-body">
-          <p class="mod-edit-note">Fields that differ from current data will be submitted as corrections for admin review.</p>
+          <p class="mod-edit-note">${API.getCachedRole() === 'admin' ? 'Admin edits save immediately.' : 'Fields that differ from current data will be submitted as corrections for admin review.'}</p>
           <div class="mod-edit-fields">
             ${modField('hero',        'Hero',        card.hero        ?? '')}
             ${modField('element',     'Element',     card.element     ?? '')}
@@ -2018,7 +2019,7 @@
         </div>
         <div class="mod-edit-footer">
           <button class="btn-ghost-sm" id="mod-cancel-btn">Cancel</button>
-          <button class="btn-primary mod-submit-btn" id="mod-submit-btn">Submit Correction</button>
+          <button class="btn-primary mod-submit-btn" id="mod-submit-btn">${API.getCachedRole() === 'admin' ? 'Save Changes' : 'Submit Correction'}</button>
         </div>
       </div>`;
 
@@ -2058,9 +2059,17 @@
       const imageFile   = overlay.querySelector('#mod-image-file')?.files?.[0];
       const notes       = overlay.querySelector('#mod-notes').value.trim() || null;
 
+      const isAdmin = API.getCachedRole() === 'admin';
+      const correctionStatus = isAdmin ? 'approved' : 'pending';
+
       try {
         if (Object.keys(corrections).length > 0) {
-          await API.submitCardCorrection(card.cardNumber, corrections, notes);
+          await API.submitCardCorrection(card.cardNumber, corrections, notes, correctionStatus, {
+            hero:      card.hero      ?? null,
+            element:   card.element   ?? null,
+            power:     card.power     ?? null,
+            treatment: card.treatment ?? null,
+          });
         }
         if (imageAction !== 'none') {
           let storagePath = null;
@@ -2071,8 +2080,8 @@
         }
         statusEl.hidden = false;
         statusEl.className = 'mod-edit-status success';
-        statusEl.textContent = 'Correction submitted for review. Thank you!';
-        submitBtn.textContent = 'Submitted ✓';
+        statusEl.textContent = isAdmin ? 'Changes saved.' : 'Correction submitted for review. Thank you!';
+        submitBtn.textContent = 'Saved ✓';
         setTimeout(() => overlay.remove(), 2000);
       } catch (err) {
         statusEl.hidden = false;

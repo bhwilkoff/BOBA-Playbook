@@ -35,6 +35,20 @@ struct BOBAPlaybookApp: App {
                 .environment(collectionStore)
                 .environment(scanStore)
                 .preferredColorScheme(.dark)
+                .task(id: authManager.userId) {
+                    // Reload image removal overrides whenever auth state changes.
+                    // No-ops silently if unauthenticated or the request fails.
+                    if authManager.userId != nil {
+                        await cardStore.loadImageRemovals()
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                    // Re-fetch role when the app comes back to the foreground.
+                    // The access token may have expired while backgrounded; fetchRole uses
+                    // executeArray which auto-refreshes via the stored refresh token.
+                    guard authManager.isAuthenticated else { return }
+                    Task { await authManager.fetchRole() }
+                }
                 .onOpenURL { url in
                     guard url.scheme == "bobaplaybook" else { return }
                     switch url.host {

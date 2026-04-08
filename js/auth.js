@@ -262,25 +262,56 @@ const Auth = (() => {
   ================================================================ */
 
   async function init() {
+    // ── 0. QR code session transfer ───────────────────────────────────────────
+    // When an Android (or any non-iOS) user scans the QR code from the desktop
+    // Scan view, the URL contains ?rt=REFRESH_TOKEN. Exchange it for a fresh
+    // session so the user is authenticated on their mobile browser without any
+    // manual sign-in step.
+    const urlParams = new URLSearchParams(window.location.search);
+    const rtParam   = urlParams.get('rt');
+    if (rtParam) {
+      try {
+        const session = await API.authRefreshSession(rtParam);
+        if (session) {
+          _session = session;
+          updateNavUI();
+          await API.fetchUserRole().catch(() => {});
+          document.dispatchEvent(new CustomEvent('auth-change', {
+            detail: { event: 'SIGNED_IN', session }
+          }));
+        }
+      } catch (e) {
+        console.warn('[auth] Could not restore session from ?rt= param:', e);
+      }
+      // Remove ?rt= from the URL so it doesn't linger in history.
+      // ?view= is preserved — app.js reads it after Auth.init() completes.
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('rt');
+      history.replaceState(null, '', cleanUrl.toString());
+    }
+
     // ── 1. Eager session restore ──────────────────────────────────────────────
+    // Skip if we already established a session from the ?rt= QR param above.
     // authGetSession() reads from Supabase's in-memory state (populated from
     // localStorage during createClient) before the async INITIAL_SESSION event
     // fires. Setting _session here means Auth.isAuthenticated() returns true on
     // the first frame, preventing the signed-out flash on every page reload.
-    const savedSession = await API.authGetSession();
-    if (savedSession) {
-      _session = savedSession;
-      updateNavUI();
-      await API.fetchUserRole().catch(() => {});
-      document.dispatchEvent(new CustomEvent('auth-change', {
-        detail: { event: 'INITIAL_SESSION', session: savedSession }
-      }));
+    if (!_session) {
+      const savedSession = await API.authGetSession();
+      if (savedSession) {
+        _session = savedSession;
+        updateNavUI();
+        await API.fetchUserRole().catch(() => {});
+        document.dispatchEvent(new CustomEvent('auth-change', {
+          detail: { event: 'INITIAL_SESSION', session: savedSession }
+        }));
 
-      // Proactively refresh if the restored token is close to expiry (or stale).
-      // Supabase's autoRefreshToken handles the scheduled refresh, but it won't
-      // fire if the app was closed and reopened with an expired-but-refreshable token.
-      if (sessionExpiresSoon(savedSession)) {
-        API.authRefreshSession(savedSession.refresh_token).catch(() => {});
+        // Proactively refresh if the restored token is close to expiry (or stale).
+        // Supabase's autoRefreshToken handles the scheduled refresh, but it won't
+        // fire if the app was closed and reopened with an expired-but-refreshable token.
+        if (sessionExpiresSoon(savedSession)) {
+          API.authRefreshSession(savedSession.refresh_token).catch(() => {});
+        }
       }
     }
 

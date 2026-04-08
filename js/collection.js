@@ -101,15 +101,15 @@ const Collection = (() => {
               <span class="cstat-val">${uniqueNums}</span>
               <span class="cstat-label">Unique Cards</span>
             </div>
-            ${totalEstimatedValue > 0 ? `
-            <div class="cstat">
-              <span class="cstat-val">$${totalEstimatedValue.toFixed(2)}</span>
-              <span class="cstat-label">Est. Value</span>
-            </div>` : ''}
             ${totalCostBasis > 0 ? `
             <div class="cstat">
               <span class="cstat-val">$${totalCostBasis.toFixed(2)}</span>
               <span class="cstat-label">Total Paid</span>
+            </div>` : ''}
+            ${totalEstimatedValue > 0 ? `
+            <div class="cstat">
+              <span class="cstat-val">$${totalEstimatedValue.toFixed(2)}</span>
+              <span class="cstat-label">Est. Value</span>
             </div>` : ''}
           </div>
         </div>
@@ -250,7 +250,8 @@ const Collection = (() => {
       trade:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>`,
       star:     `<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
       crown:    `<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M2 20h20v2H2v-2zM4 18l4-8 4 4 4-7 4 11H4z"/></svg>`,
-      dollar:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M8 9.5C8 8.12 9.34 7 11 7h2c1.66 0 3 1.12 3 2.5S14.66 11 13 11h-2c-1.66 0-3 1.12-3 2.5S9.34 17 11 17h2c1.66 0 3-1.12 3-2.5"/></svg>`,
+      dollar:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M15 8.5C15 7.12 13.66 6 12 6h-1c-1.66 0-3 1.12-3 2.5S9.34 11 11 11h2c1.66 0 3 1.12 3 2.5S14.66 17 13 17h-1c-1.66 0-3-1.12-3-2.5"/></svg>`,
+      chart:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
     };
 
     const statRow = (iconKey, label, value, colorClass = '') => `
@@ -291,8 +292,23 @@ const Collection = (() => {
             ${statRow('star',   'Wanted',    wantedCount,    'icon-violet')}
             ${statRow('crown',  'Grails',    grailsCount,    'icon-gold')}
             <div class="profile-stat-divider"></div>
-            ${estValueStr ? statRow('dollar', 'Est. Market Value', estValueStr, 'icon-orange') : ''}
             ${statRow('dollar', 'Total Paid', totalValueStr, 'icon-cyan')}
+            ${estValueStr ? statRow('chart', 'Est. Market Value', estValueStr, 'icon-orange') : ''}
+          </div>
+        </div>
+
+        <!-- Recalculate collection value -->
+        <div class="profile-section">
+          <div class="profile-stat-list">
+            <button class="profile-action-row" id="profile-recalculate-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   width="15" height="15" aria-hidden="true">
+                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+              <span>Recalculate Collection Value</span>
+            </button>
+            <p class="profile-recalc-status hidden" id="profile-recalc-status"></p>
           </div>
         </div>
 
@@ -345,6 +361,68 @@ const Collection = (() => {
 
     view.querySelector('#profile-admin-btn')
       ?.addEventListener('click', () => openAdminPanel());
+
+    view.querySelector('#profile-recalculate-btn')
+      ?.addEventListener('click', () => recalculateValues(view));
+  }
+
+  const EBAY_WORKER_URL = 'https://boba-ebay-proxy.benwilkoff.workers.dev';
+
+  async function recalculateValues(view) {
+    const btn    = view.querySelector('#profile-recalculate-btn');
+    const status = view.querySelector('#profile-recalc-status');
+    if (!btn || !status) return;
+
+    const ownedCards = _cards.filter(c => ['personal','for_sale','for_trade'].includes(c.designation));
+    if (!ownedCards.length) {
+      status.textContent = 'No owned cards to price.';
+      status.classList.remove('hidden');
+      return;
+    }
+
+    btn.disabled = true;
+    status.classList.remove('hidden');
+    status.textContent = `Fetching prices… 0 / ${ownedCards.length}`;
+
+    let updated = 0;
+    for (let i = 0; i < ownedCards.length; i++) {
+      const entry = ownedCards[i];
+      const card  = _cardLookup ? _cardLookup(entry.card_number) : null;
+      if (!card) continue;
+
+      try {
+        const params = new URLSearchParams({
+          cardNumber: card.cardNumber,
+          hero:       card.hero       || '',
+          set:        card.set        || '',
+          element:    card.element    || '',
+          days:       '30',
+          ...(card.power    ? { power:     String(card.power)    } : {}),
+          ...(card.radishUrl ? { radishUrl: card.radishUrl       } : {}),
+        });
+        const res  = await fetch(`${EBAY_WORKER_URL}?${params}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const avg  = data?.average;
+        if (avg && avg > 0) {
+          await API.collectionUpdate(entry.id, { estimated_value: avg });
+          const local = _cards.find(c => c.id === entry.id);
+          if (local) local.estimated_value = avg;
+          updated++;
+        }
+      } catch (_) {
+        // skip cards that fail pricing — don't abort the whole run
+      }
+
+      status.textContent = `Fetching prices… ${i + 1} / ${ownedCards.length}`;
+      // Yield to keep the UI responsive
+      await new Promise(r => setTimeout(r, 50));
+    }
+
+    btn.disabled = false;
+    status.textContent = `Done — updated ${updated} of ${ownedCards.length} cards.`;
+    renderCollectionView();
+    renderProfileView();
   }
 
   function openModSearchPanel() {

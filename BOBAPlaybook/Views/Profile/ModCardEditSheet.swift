@@ -250,7 +250,8 @@ struct ModCardEditSheet: View {
                     try await SupabaseClient.shared.submitImageOverride(
                         cardNumber: card.cardNumber,
                         action: action.supabaseAction,
-                        storagePath: storagePath
+                        storagePath: storagePath,
+                        status: correctionStatus
                     )
                 }
 

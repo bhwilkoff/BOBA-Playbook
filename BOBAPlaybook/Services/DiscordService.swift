@@ -436,9 +436,14 @@ final class DiscordService: NSObject {
 
 extension DiscordService: ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        UIApplication.shared.connectedScenes
+        let scene = UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
-            .flatMap { $0.windows }
-            .first { $0.isKeyWindow } ?? UIWindow()
+            .first { $0.activationState == .foregroundActive }
+            ?? UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .first
+        return scene?.windows.first { $0.isKeyWindow }
+            ?? scene.flatMap { UIWindow(windowScene: $0) }
+            ?? UIWindow()
     }
 }

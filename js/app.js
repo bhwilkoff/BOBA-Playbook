@@ -482,7 +482,6 @@
             <div id="scan-qr-container" class="scan-qr-img" style="width:220px;height:220px;display:flex;align-items:center;justify-content:center;">
               <span style="font-size:0.75rem;color:var(--boba-text-muted)">Loading…</span>
             </div>
-            <p class="scan-aside-sub" id="scan-qr-note"></p>
           </div>
         ` : ''}
       </div>

@@ -907,12 +907,6 @@ const Collection = (() => {
                      placeholder="0.00" min="0" step="0.01"
                      value="${entry.purchase_price != null ? entry.purchase_price : ''}">
             </div>
-            <div class="form-field">
-              <label class="form-label" for="cedit-serial">SERIAL #</label>
-              <input class="form-input" type="text" id="cedit-serial"
-                     placeholder="e.g. 42/100"
-                     value="${esc(entry.serial_number || '')}">
-            </div>
           </div>
           <div class="form-field">
             <label class="form-label" for="cedit-notes">NOTES</label>
@@ -948,13 +942,11 @@ const Collection = (() => {
         btn.disabled = true; btn.textContent = 'Saving…';
 
         const priceVal  = document.getElementById('cedit-price')?.value;
-        const serialVal = document.getElementById('cedit-serial')?.value.trim();
 
         const fields = {
           designation:    document.getElementById('cedit-desig')?.value    || _editEntry.designation,
           condition:      document.getElementById('cedit-condition')?.value || null,
           purchase_price: priceVal ? Number(priceVal) : null,
-          serial_number:  serialVal || null,
           notes:          document.getElementById('cedit-notes')?.value.trim() || null,
         };
 
@@ -1039,11 +1031,6 @@ const Collection = (() => {
               <input class="form-input" type="number" id="add-price"
                      placeholder="0.00" min="0" step="0.01">
             </div>
-            <div class="form-field">
-              <label class="form-label" for="add-serial">SERIAL #</label>
-              <input class="form-input" type="text" id="add-serial"
-                     placeholder="e.g. 42/100">
-            </div>
           </div>
           <div class="form-field">
             <label class="form-label" for="add-notes">NOTES</label>
@@ -1080,14 +1067,12 @@ const Collection = (() => {
     btn.disabled = true; btn.textContent = 'Adding…';
 
     const priceVal  = document.getElementById('add-price')?.value;
-    const serialVal = document.getElementById('add-serial')?.value.trim();
 
     const card = {
       card_number:   String(_addCard.cardNumber),
       designation:   document.getElementById('add-desig')?.value      || 'personal',
       condition:     document.getElementById('add-condition')?.value   || null,
       purchase_price: priceVal ? Number(priceVal) : null,
-      serial_number:  serialVal || null,
       notes:          document.getElementById('add-notes')?.value.trim() || null,
     };
 

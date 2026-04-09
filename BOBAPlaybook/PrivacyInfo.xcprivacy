@@ -12,14 +12,25 @@
 
 	<!--
 		Required Reason APIs used by this app:
-		- UserDefaults: NOT used (Keychain used instead for all persistence)
+		- UserDefaults: YES — DiscordService stores token expiry and last-seen
+		  message ID in UserDefaults (non-sensitive, same-app use only).
+		  Reason CA92.1: accessing defaults of the calling app in the same process.
 		- File timestamps: NOT accessed directly
 		- Disk space APIs: NOT used
 		- System boot time: NOT used
 		- Active keyboards: NOT used
 	-->
 	<key>NSPrivacyAccessedAPITypes</key>
-	<array/>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
 
 	<!--
 		Data collected by this app:

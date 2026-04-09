@@ -10,7 +10,7 @@ struct CollectionView: View {
     @Environment(CardStore.self) private var cardStore
 
     @State private var selectedDesignation: UserCard.Designation = .personal
-    @State private var selectedCard: CardNumberWrapper?
+    @State private var selectedCard: BobaIdWrapper?
     @State private var showingSignIn    = false
     @State private var showTradeRoom    = false
     @State private var discord          = DiscordService()
@@ -38,7 +38,7 @@ struct CollectionView: View {
             SignInView()
         }
         .sheet(item: $selectedCard) { wrapper in
-            CollectionCardDetailView(cardNumber: wrapper.id)
+            CollectionCardDetailView(bobaId: wrapper.id)
         }
         .task {
             if auth.isAuthenticated {
@@ -138,7 +138,7 @@ struct CollectionView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Design.Spacing.sm) {
                 ForEach(UserCard.Designation.allCases) { d in
-                    let count = collection.uniqueCardNumbers(for: d).count
+                    let count = collection.uniqueBobaIds(for: d).count
                     Button {
                         selectedDesignation = d
                     } label: {
@@ -172,21 +172,21 @@ struct CollectionView: View {
     // MARK: - Card list
 
     private var cardList: some View {
-        let cardNumbers = collection.uniqueCardNumbers(for: selectedDesignation)
+        let identifiers = collection.uniqueBobaIds(for: selectedDesignation)
 
         return Group {
             if collection.isLoading {
                 ProgressView()
                     .tint(Design.Colors.bobaOrange)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if cardNumbers.isEmpty {
+            } else if identifiers.isEmpty {
                 emptyState
             } else {
                 ScrollView {
                     LazyVStack(spacing: Design.Spacing.sm) {
-                        ForEach(cardNumbers, id: \.self) { cardNumber in
-                            collectionRow(cardNumber: cardNumber)
-                                .onTapGesture { selectedCard = CardNumberWrapper(id: cardNumber) }
+                        ForEach(identifiers, id: \.self) { identifier in
+                            collectionRow(identifier: identifier)
+                                .onTapGesture { selectedCard = BobaIdWrapper(id: identifier) }
                         }
                     }
                     .padding(Design.Spacing.lg)
@@ -212,9 +212,12 @@ struct CollectionView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func collectionRow(cardNumber: String) -> some View {
-        let catalog = cardStore.displayCards.first { $0.cardNumber == cardNumber }
-        let copies = collection.entries(for: cardNumber).filter { $0.designation == selectedDesignation }
+    private func collectionRow(identifier: String) -> some View {
+        // identifier is a bobaId (e.g. "BOJ-123-BoJax-Base") for new entries,
+        // or a plain cardNumber for legacy entries without a bobaId stored.
+        let catalog = cardStore.displayCards.first { $0.id == identifier }
+                   ?? cardStore.displayCards.first { $0.cardNumber == identifier }
+        let copies = collection.entries(forBobaId: identifier).filter { $0.designation == selectedDesignation }
         let totalPaid = copies.compactMap { $0.purchasePrice }.reduce(Decimal(0), +)
 
         return HStack(spacing: Design.Spacing.md) {
@@ -230,7 +233,7 @@ struct CollectionView: View {
             }
 
             VStack(alignment: .leading, spacing: Design.Spacing.xs) {
-                Text(catalog?.name ?? cardNumber)
+                Text(catalog?.name ?? catalog?.cardNumber ?? identifier)
                     .font(Design.Fonts.display(15))
                     .foregroundStyle(Design.Colors.textPrimary)
                     .lineLimit(1)
@@ -240,7 +243,7 @@ struct CollectionView: View {
                             .font(Design.Fonts.mono(10, weight: .bold))
                             .foregroundStyle(Design.Colors.element(element))
                     }
-                    Text(cardNumber)
+                    Text(catalog?.cardNumber ?? identifier)
                         .font(Design.Fonts.mono(11))
                         .foregroundStyle(Design.Colors.textMuted)
                 }
@@ -327,9 +330,9 @@ struct CollectionView: View {
     }
 }
 
-// MARK: - CardNumberWrapper
-// Identifiable wrapper so we can use sheet(item:) with a String.
-private struct CardNumberWrapper: Identifiable {
+// MARK: - BobaIdWrapper
+// Identifiable wrapper so we can use sheet(item:) with a bobaId or legacy cardNumber string.
+private struct BobaIdWrapper: Identifiable {
     let id: String
 }
 

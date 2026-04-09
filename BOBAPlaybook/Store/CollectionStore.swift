@@ -61,9 +61,23 @@ final class CollectionStore {
     // MARK: - Derived queries
 
     /// All entries for a given card number, sorted by designation then acquired date.
+    /// Used internally for pricing (which is per card number, not per treatment).
     func entries(for cardNumber: String) -> [UserCard] {
         userCards
             .filter { $0.cardNumber == cardNumber }
+            .sorted {
+                if $0.designation == $1.designation {
+                    return $0.acquiredAt > $1.acquiredAt
+                }
+                return $0.designation.rawValue < $1.designation.rawValue
+            }
+    }
+
+    /// All entries for a given bobaId (exact card + treatment combo), sorted by designation then acquired date.
+    /// Falls back to cardNumber matching for legacy entries that have no bobaId stored.
+    func entries(forBobaId identifier: String) -> [UserCard] {
+        userCards
+            .filter { $0.bobaId == identifier || ($0.bobaId == nil && $0.cardNumber == identifier) }
             .sorted {
                 if $0.designation == $1.designation {
                     return $0.acquiredAt > $1.acquiredAt
@@ -77,9 +91,27 @@ final class CollectionStore {
         userCards.contains { $0.cardNumber == cardNumber && $0.designation.isOwned }
     }
 
+    /// Whether the user owns at least one copy of this exact card (bobaId match).
+    /// Falls back to cardNumber matching for legacy entries without a bobaId.
+    func isOwned(bobaId identifier: String) -> Bool {
+        userCards.contains {
+            ($0.bobaId == identifier || ($0.bobaId == nil && $0.cardNumber == identifier))
+            && $0.designation.isOwned
+        }
+    }
+
     /// Whether the card number is on any wishlist (wanted or grails).
     func isWanted(_ cardNumber: String) -> Bool {
         userCards.contains { $0.cardNumber == cardNumber && !$0.designation.isOwned }
+    }
+
+    /// Whether the exact card (bobaId) is on any wishlist.
+    /// Falls back to cardNumber matching for legacy entries without a bobaId.
+    func isWanted(bobaId identifier: String) -> Bool {
+        userCards.contains {
+            ($0.bobaId == identifier || ($0.bobaId == nil && $0.cardNumber == identifier))
+            && !$0.designation.isOwned
+        }
     }
 
     /// Unique card numbers grouped by designation (for collection list views).
@@ -88,6 +120,16 @@ final class CollectionStore {
             userCards
                 .filter { $0.designation == designation }
                 .map { $0.cardNumber }
+        )).sorted()
+    }
+
+    /// Unique card identifiers (bobaId when available, cardNumber for legacy entries)
+    /// grouped by designation. Each distinct card + treatment combo appears as its own row.
+    func uniqueBobaIds(for designation: UserCard.Designation) -> [String] {
+        Array(Set(
+            userCards
+                .filter { $0.designation == designation }
+                .map { $0.bobaId ?? $0.cardNumber }
         )).sorted()
     }
 

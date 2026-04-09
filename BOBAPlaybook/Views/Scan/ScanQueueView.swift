@@ -168,6 +168,7 @@ struct ScanQueueView: View {
         for queued in scanStore.queuedCards {
             let entry = NewUserCard(
                 cardNumber: queued.card.cardNumber,
+                bobaId: queued.card.id,
                 designation: .personal
             )
             do {

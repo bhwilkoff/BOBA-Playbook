@@ -98,7 +98,7 @@ struct AppIconOption: Identifiable {
 
     // Loads from a *-Preview.imageset in Assets.xcassets (appiconsets aren't UIImage-accessible)
     var previewAssetName: String {
-        iconName == "default" ? "AppIcon" : "\(iconName)-Preview"
+        iconName == "default" ? "AppIcon-Fire-Preview" : "\(iconName)-Preview"
     }
 
     static let all: [AppIconOption] = [

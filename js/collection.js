@@ -9,8 +9,9 @@ const Collection = (() => {
   let _cards         = [];
   let _activeTab     = 'personal';
   let _addCard       = null;  // card being added in the add sheet
-  let _cardLookup    = null;  // set by app.js after card catalog loads
-  let _variantLookup = null;  // set by app.js: (hero, excludeNum) => Card[]
+  let _cardLookup    = null;  // set by app.js after card catalog loads: cardNumber → Card
+  let _bobaIdLookup  = null;  // set by app.js after card catalog loads: bobaId → Card
+  let _variantLookup = null;  // set by app.js: (hero, excludeBobaId) => Card[]
 
   // Collection detail overlay state
   let _detailNum   = null;    // card_number currently shown in detail
@@ -74,7 +75,7 @@ const Collection = (() => {
     const totalEstimatedValue = ownedCards
       .filter(c => c.estimated_value)
       .reduce((sum, c) => sum + Number(c.estimated_value), 0);
-    const uniqueNums = new Set(_cards.map(c => c.card_number)).size;
+    const uniqueNums = new Set(_cards.map(c => c.boba_id || c.card_number)).size;
 
     const tabsHtml = DESIGNATIONS.map(d => `
       <button class="desig-tab${_activeTab === d.key ? ' active' : ''}"
@@ -161,7 +162,10 @@ const Collection = (() => {
 
   function buildCollectionCardHtml(entry) {
     const designLabel = DESIGNATIONS.find(d => d.key === entry.designation)?.label || entry.designation;
-    const catalogCard = _cardLookup ? _cardLookup(entry.card_number) : null;
+    // Prefer bobaId lookup for exact card matching; fall back to card_number for legacy rows
+    const catalogCard = (_bobaIdLookup && entry.boba_id)
+      ? _bobaIdLookup(entry.boba_id)
+      : (_cardLookup ? _cardLookup(entry.card_number) : null);
     const cardName    = catalogCard?.name || entry.card_number;
     const imageFile   = catalogCard?.imageFile;
     const element     = catalogCard?.element || 'NONE';
@@ -175,7 +179,7 @@ const Collection = (() => {
 
     return `
       <div class="collection-card-item" role="listitem" data-element="${esc(element)}"
-           data-detail-num="${esc(entry.card_number)}"
+           data-detail-num="${esc(entry.boba_id || entry.card_number)}"
            style="cursor:pointer" title="View detail"
            tabindex="0" aria-label="View ${esc(cardName)} detail">
         ${imgHtml}
@@ -222,8 +226,8 @@ const Collection = (() => {
     const email   = session?.user?.email || 'BOBA Player';
     const role    = API.getCachedRole();
 
-    // Unique card numbers per designation (mirrors iOS uniqueCardNumbers)
-    const uniqueFor = key => new Set(_cards.filter(c => c.designation === key).map(c => c.card_number)).size;
+    // Unique cards per designation — use bobaId when available for exact card identity
+    const uniqueFor = key => new Set(_cards.filter(c => c.designation === key).map(c => c.boba_id || c.card_number)).size;
     const personalCount  = uniqueFor('personal');
     const forSaleCount   = uniqueFor('for_sale');
     const forTradeCount  = uniqueFor('for_trade');
@@ -782,8 +786,9 @@ const Collection = (() => {
       return;
     }
 
-    const cardNum     = _detailNum;
-    const catalogCard = _cardLookup ? _cardLookup(cardNum) : null;
+    const cardNum     = _detailNum; // may be a bobaId (new) or card_number (legacy)
+    // Prefer bobaId lookup for exact card identity; fall back to card_number lookup for legacy
+    const catalogCard = (_bobaIdLookup ? _bobaIdLookup(cardNum) : null) ?? (_cardLookup ? _cardLookup(cardNum) : null);
     const cardName    = catalogCard?.name    || cardNum;
     const imageFile   = catalogCard?.imageFile;
     const element     = catalogCard?.element || 'NONE';
@@ -791,7 +796,10 @@ const Collection = (() => {
     const power       = catalogCard?.power;
     const hero        = catalogCard?.hero;
 
-    const myEntries = _cards.filter(c => c.card_number === cardNum);
+    // Match entries by bobaId first; fall back to card_number for legacy nil-bobaId rows
+    const myEntries = _cards.filter(c =>
+      c.boba_id === cardNum || (c.boba_id == null && c.card_number === cardNum)
+    );
 
     const variations = (hero && _variantLookup)
       ? _variantLookup(hero, cardNum)
@@ -813,7 +821,7 @@ const Collection = (() => {
         ${imgHtml}
         <div class="cdetail-card-info">
           <div class="cdetail-card-name">${esc(cardName)}</div>
-          <div class="cdetail-card-num">#${esc(cardNum)}</div>
+          <div class="cdetail-card-num">#${esc(catalogCard?.cardNumber || cardNum)}</div>
           <div class="cdetail-badges-row">
             <span class="element-badge" data-element="${esc(element)}">${esc(element)}</span>
             ${treatment ? `<span class="treatment-banner ${esc(tfClass)}">${esc(treatment)}</span>` : ''}
@@ -883,7 +891,9 @@ const Collection = (() => {
           _cards = _cards.filter(c => c.id !== id);
           renderCollectionView();
           renderProfileView();
-          const remaining = _cards.filter(c => c.card_number === cardNum);
+          const remaining = _cards.filter(c =>
+            c.boba_id === cardNum || (c.boba_id == null && c.card_number === cardNum)
+          );
           if (remaining.length === 0) closeCollectionDetail();
           else renderCollectionDetail();
         } catch (err) {
@@ -936,8 +946,16 @@ const Collection = (() => {
 
   function _buildVariationTileHtml(card) {
     const num     = String(card.cardNumber);
-    const owned   = _cards.some(c => c.card_number === num && ['personal','for_sale','for_trade'].includes(c.designation));
-    const wanted  = !owned && _cards.some(c => c.card_number === num && c.designation === 'wanted');
+    const bid     = String(card.bobaId || num);
+    // Match by bobaId first for exact card identity; fall back to card_number for legacy rows
+    const owned   = _cards.some(c =>
+      ['personal','for_sale','for_trade'].includes(c.designation) &&
+      (c.boba_id === bid || (c.boba_id == null && c.card_number === num))
+    );
+    const wanted  = !owned && _cards.some(c =>
+      c.designation === 'wanted' &&
+      (c.boba_id === bid || (c.boba_id == null && c.card_number === num))
+    );
     const imgHtml = card.imageFile
       ? `<img class="cdetail-var-img" src="${esc(API.thumbUrl(card.imageFile))}"
               alt="${esc(card.name)}" loading="lazy" decoding="async">`
@@ -1073,7 +1091,11 @@ const Collection = (() => {
     const overlay = document.getElementById('add-collection-overlay');
     const box     = document.getElementById('add-collection-box');
 
-    const existing = _cards.filter(c => c.card_number === String(card.cardNumber));
+    // Match existing entries by bobaId for exact card identity; fall back to card_number for legacy
+    const existing = _cards.filter(c =>
+      (card.bobaId && c.boba_id === String(card.bobaId)) ||
+      (c.boba_id == null && c.card_number === String(card.cardNumber))
+    );
     const existingHtml = existing.length > 0
       ? `<div class="add-existing-notice">
            Already in collection:
@@ -1164,9 +1186,10 @@ const Collection = (() => {
     const priceVal  = document.getElementById('add-price')?.value;
 
     const card = {
-      card_number:   String(_addCard.cardNumber),
-      designation:   document.getElementById('add-desig')?.value      || 'personal',
-      condition:     document.getElementById('add-condition')?.value   || null,
+      card_number:    String(_addCard.cardNumber),
+      boba_id:        _addCard.bobaId ? String(_addCard.bobaId) : undefined,
+      designation:    document.getElementById('add-desig')?.value      || 'personal',
+      condition:      document.getElementById('add-condition')?.value   || null,
       purchase_price: priceVal ? Number(priceVal) : null,
       notes:          document.getElementById('add-notes')?.value.trim() || null,
     };
@@ -1178,7 +1201,8 @@ const Collection = (() => {
       renderCollectionView();
       renderProfileView();
       // If collection detail is open for this card, refresh it with the new copy
-      if (_detailNum === String(_addCard.cardNumber)) renderCollectionDetail();
+      const addedId = _addCard.bobaId ? String(_addCard.bobaId) : String(_addCard.cardNumber);
+      if (_detailNum === addedId) renderCollectionDetail();
     } catch (err) {
       const errEl = document.getElementById('add-error');
       if (errEl) { errEl.textContent = err.message; errEl.hidden = false; }
@@ -1190,16 +1214,25 @@ const Collection = (() => {
      PUBLIC HELPERS — used by app.js card modal
   ================================================================ */
 
-  function isOwned(cardNumber) {
+  // Accept a card object (preferred) or a bobaId/cardNumber string (legacy).
+  // Matches by bobaId first for exact card identity; falls back to card_number for legacy rows.
+  function isOwned(cardOrId) {
+    const bobaId = cardOrId?.bobaId ?? null;
+    const cardNum = cardOrId?.cardNumber ?? String(cardOrId);
     return _cards.some(c =>
-      c.card_number === String(cardNumber) &&
-      ['personal','for_sale','for_trade'].includes(c.designation)
+      ['personal','for_sale','for_trade'].includes(c.designation) &&
+      (bobaId ? (c.boba_id === bobaId || (c.boba_id == null && c.card_number === cardNum))
+              : (c.card_number === cardNum))
     );
   }
 
-  function isWanted(cardNumber) {
+  function isWanted(cardOrId) {
+    const bobaId = cardOrId?.bobaId ?? null;
+    const cardNum = cardOrId?.cardNumber ?? String(cardOrId);
     return _cards.some(c =>
-      c.card_number === String(cardNumber) && c.designation === 'wanted'
+      c.designation === 'wanted' &&
+      (bobaId ? (c.boba_id === bobaId || (c.boba_id == null && c.card_number === cardNum))
+              : (c.card_number === cardNum))
     );
   }
 
@@ -1257,6 +1290,7 @@ const Collection = (() => {
     isOwned,
     isWanted,
     setCardLookup:    fn => { _cardLookup    = fn; },
+    setBobaIdLookup:  fn => { _bobaIdLookup  = fn; },
     setVariantLookup: fn => { _variantLookup = fn; },
   };
 })();

@@ -55,6 +55,7 @@
 
   // Built after load:
   let cardsByNumber = new Map();  // cardNumber (string) → Card[] (all hero associations)
+  let cardsByBobaId = new Map();  // bobaId (string) → Card — exact card identity
   let displayCards  = [];         // one Card per unique cardNumber (for the grid)
 
   let filteredCards  = [];
@@ -820,6 +821,12 @@
       const num = String(card.cardNumber);
       if (!cardsByNumber.has(num)) cardsByNumber.set(num, []);
       cardsByNumber.get(num).push(card);
+    }
+
+    // Build cardsByBobaId: bobaId → Card — used for exact card matching in Collection
+    cardsByBobaId.clear();
+    for (const card of cards) {
+      if (card.bobaId) cardsByBobaId.set(String(card.bobaId), card);
     }
 
     // Every card is distinct (different imageFile per hero association).
@@ -1965,8 +1972,9 @@
 
     prepareData();
     Collection.setCardLookup(num => cardsByNumber.get(String(num))?.[0]);
-    Collection.setVariantLookup((hero, excludeNum) =>
-      displayCards.filter(c => c.hero === hero && String(c.cardNumber) !== String(excludeNum))
+    Collection.setBobaIdLookup(id => cardsByBobaId.get(String(id)) ?? null);
+    Collection.setVariantLookup((hero, excludeBobaId) =>
+      displayCards.filter(c => c.hero === hero && String(c.bobaId) !== String(excludeBobaId))
     );
 
     // Apply active image removals from Supabase to the in-memory card data.
@@ -2105,6 +2113,7 @@
       try {
         if (Object.keys(corrections).length > 0) {
           await API.submitCardCorrection(card.cardNumber, corrections, notes, correctionStatus, {
+            bobaId:    card.bobaId    ?? null,
             hero:      card.hero      ?? null,
             element:   card.element   ?? null,
             power:     card.power     ?? null,
@@ -2116,7 +2125,7 @@
           if (imageAction === 'replace' && imageFile) {
             storagePath = await API.uploadModImage(card.cardNumber, imageFile);
           }
-          await API.submitImageOverride(card.cardNumber, imageAction, storagePath, correctionStatus);
+          await API.submitImageOverride(card.cardNumber, imageAction, storagePath, correctionStatus, card.bobaId ?? null);
           // Apply the removal immediately to in-memory card objects so the grid
           // reflects the change without a page reload.
           if (imageAction === 'remove') {

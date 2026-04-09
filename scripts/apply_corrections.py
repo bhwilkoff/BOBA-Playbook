@@ -60,8 +60,41 @@ FIELD_MAP = {
 
 UPPERCASE_FIELDS = {"element"}
 
+# ── Canonical bobaId ──────────────────────────────────────────────────────────
+# Mantra: **One Image per Card. One ID per Card.**
+# The formula is defined in scripts/boba_id.py (shared with the Cowork-side
+# research repo). Imported here so both sides can never drift.
+_THIS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(_THIS_DIR))
+try:
+    from boba_id import boba_id, build_boba_index  # type: ignore
+except ImportError:
+    # Inline fallback — keep EXACT formula in sync with scripts/boba_id.py
+    def boba_id(card: dict) -> str:
+        cn    = str(card.get("cardNumber") or "").strip()
+        hero  = str(card.get("hero") or card.get("name") or "").strip()
+        treat = str(card.get("treatment") or "").strip()
+        var   = str(card.get("variation") or "").strip()
+        return f"{cn}-{hero}-{treat}-{var}"
+
+    def build_boba_index(cards):
+        idx, dupes = {}, []
+        for i, c in enumerate(cards):
+            bid = boba_id(c)
+            if bid in idx:
+                dupes.append(bid)
+            else:
+                idx[bid] = (i, c)
+        if dupes:
+            print(f"⚠ {len(dupes)} duplicate bobaId(s) in catalog — first wins.")
+        return idx
+
 CARDS_JSON_CANDIDATES = [
+    # Primary (canonical master catalog maintained by Cowork)
     Path.home() / "Documents/Claude/Projects/Bo Jackson Battle Arena Research/unified-cards/data/cards.json",
+    Path.home() / "Documents/Bo Jackson Battle Arena Research/unified-cards/data/cards.json",
+    # Fallback (downstream bundle shipped with the web app)
+    Path(__file__).resolve().parent.parent / "assets" / "data" / "cards.json",
 ]
 
 
@@ -121,6 +154,14 @@ def main():
         cn = str(card.get("cardNumber", "")).strip()
         index.setdefault(cn, []).append((i, card))
 
+    # Build lookup: bobaId → (index, card) — the canonical unique identifier.
+    # Mantra: One Image per Card. One ID per Card.
+    boba_index = build_boba_index(cards)
+    if len(boba_index) != len(cards):
+        print(f"⚠ cards.json has {len(cards) - len(boba_index)} bobaId collision(s) "
+              "— data bug, investigate before trusting corrections.")
+        print()
+
     cards_modified = False
 
     # ═════════════════════════════════════════════════════════════════════════
@@ -134,7 +175,7 @@ def main():
         supabase_url, service_key,
         "/rest/v1/card_corrections"
         "?status=eq.approved"
-        "&select=id,card_number,corrections,notes,card_hero,card_element,card_power,card_treatment"
+        "&select=id,card_number,boba_id,corrections,notes,card_hero,card_element,card_power,card_treatment"
         "&order=created_at.asc"
     )
 
@@ -143,7 +184,7 @@ def main():
     else:
         print(f"Found {len(corrections)} approved correction(s).\n")
         applied_ids, change_log, skipped = apply_field_corrections(
-            corrections, cards, index, args.dry_run
+            corrections, cards, index, boba_index, args.dry_run
         )
         print_corrections_report(change_log, skipped, args.dry_run)
 
@@ -170,7 +211,7 @@ def main():
         supabase_url, service_key,
         "/rest/v1/card_image_overrides"
         "?status=eq.pending"
-        "&select=id,card_number,action"
+        "&select=id,card_number,boba_id,action"
         "&order=created_at.asc"
     )
 
@@ -183,22 +224,39 @@ def main():
 
         for ov in overrides:
             card_num = str(ov.get("card_number", "")).strip()
-            matches  = index.get(card_num, [])
-            has_art  = any(
-                bool(c.get("imageFile")) for _, c in matches
-            )
+            ov_bid   = (ov.get("boba_id") or "").strip()
+
+            # Prefer boba_id — exact single card. Fall back to cardNumber sweep
+            # (legacy behavior: treat ANY matching-cardNumber card with art as
+            # "restored", since older overrides don't carry hero/treatment).
+            if ov_bid:
+                match = boba_index.get(ov_bid)
+                if match:
+                    _, card = match
+                    has_art = bool(card.get("imageFile"))
+                    hero    = card.get("hero", "?")
+                else:
+                    has_art = False
+                    hero    = "? (boba_id not found)"
+                label = ov_bid
+            else:
+                matches = index.get(card_num, [])
+                has_art = any(bool(c.get("imageFile")) for _, c in matches)
+                hero    = matches[0][1].get("hero", "?") if matches else "?"
+                label   = card_num
+
             if has_art:
                 resolve_ids.append(ov["id"])
             else:
-                hero = matches[0][1].get("hero", "?") if matches else "?"
-                still_missing.append((card_num, hero))
+                still_missing.append((label, hero))
 
         if resolve_ids:
             verb = "Would resolve" if args.dry_run else "Resolved"
             print(f"  {verb} {len(resolve_ids)} override(s) — art is back in cards.json:")
             for ov in overrides:
                 if ov["id"] in resolve_ids:
-                    print(f"    {ov['card_number']}")
+                    label = (ov.get("boba_id") or ov.get("card_number") or "?").strip()
+                    print(f"    {label}")
             print()
             if not args.dry_run:
                 patch_supabase(
@@ -211,8 +269,8 @@ def main():
 
         if still_missing:
             print(f"  Still missing art for {len(still_missing)} card(s):")
-            for card_num, hero in still_missing:
-                print(f"    {card_num}  [{hero}]")
+            for label, hero in still_missing:
+                print(f"    {label}  [{hero}]")
             print()
             print("  To restore: add the image to unified-cards/images/, re-run")
             print("  your sync pipeline, then run this script again.\n")
@@ -249,7 +307,7 @@ def main():
 # Field corrections helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-def apply_field_corrections(corrections, cards, index, dry_run):
+def apply_field_corrections(corrections, cards, index, boba_index, dry_run):
     applied_ids = []
     skipped     = []
     change_log  = []
@@ -257,43 +315,58 @@ def apply_field_corrections(corrections, cards, index, dry_run):
     for corr in corrections:
         corr_id   = corr["id"]
         card_num  = str(corr.get("card_number", "")).strip()
+        corr_bid  = (corr.get("boba_id") or "").strip()
         fields    = corr.get("corrections") or {}
         notes     = (corr.get("notes") or "").strip()
         ctx_hero  = (corr.get("card_hero") or "").strip()
         ctx_treat = (corr.get("card_treatment") or "").strip()
 
-        if not card_num:
-            skipped.append((corr_id, "?", "Missing card_number"))
-            continue
         if not fields:
-            skipped.append((corr_id, card_num, "No fields to apply"))
+            skipped.append((corr_id, card_num or corr_bid or "?", "No fields to apply"))
             continue
 
-        matches = index.get(card_num, [])
-        if not matches:
-            skipped.append((corr_id, card_num, "card_number not found in JSON"))
-            continue
+        # ── PRIMARY LOOKUP: boba_id ────────────────────────────────────────────
+        # If the correction row carries a boba_id, it is authoritative — one
+        # exact match or nothing. This short-circuits all legacy disambiguation.
+        idx = card = None
+        if corr_bid:
+            match = boba_index.get(corr_bid)
+            if not match:
+                skipped.append((corr_id, corr_bid, "boba_id not found in JSON"))
+                continue
+            idx, card = match
+        else:
+            # ── FALLBACK: legacy card_number + hero + treatment disambiguation
+            if not card_num:
+                skipped.append((corr_id, "?", "Missing card_number (and no boba_id)"))
+                continue
 
-        if len(matches) > 1:
-            if ctx_hero:
-                hero_m = [(i, c) for i, c in matches if c.get("hero", "") == ctx_hero]
-                if len(hero_m) == 1:
-                    matches = hero_m
-                elif len(hero_m) > 1 and ctx_treat:
-                    treat_m = [(i, c) for i, c in hero_m
-                               if (c.get("treatment") or "") == ctx_treat]
-                    if len(treat_m) == 1:
-                        matches = treat_m
+            matches = index.get(card_num, [])
+            if not matches:
+                skipped.append((corr_id, card_num, "card_number not found in JSON"))
+                continue
 
-        if len(matches) > 1:
-            heroes = ", ".join(
-                f"{c.get('hero','?')} ({c.get('treatment','?')})" for _, c in matches
-            )
-            skipped.append((corr_id, card_num,
-                f"Ambiguous — {len(matches)} cards share this number ({heroes})"))
-            continue
+            if len(matches) > 1:
+                if ctx_hero:
+                    hero_m = [(i, c) for i, c in matches if c.get("hero", "") == ctx_hero]
+                    if len(hero_m) == 1:
+                        matches = hero_m
+                    elif len(hero_m) > 1 and ctx_treat:
+                        treat_m = [(i, c) for i, c in hero_m
+                                   if (c.get("treatment") or "") == ctx_treat]
+                        if len(treat_m) == 1:
+                            matches = treat_m
 
-        idx, card = matches[0]
+            if len(matches) > 1:
+                heroes = ", ".join(
+                    f"{c.get('hero','?')} ({c.get('treatment','?')})" for _, c in matches
+                )
+                skipped.append((corr_id, card_num,
+                    f"Ambiguous — {len(matches)} cards share this number ({heroes}). "
+                    f"Fix by populating boba_id on the correction row."))
+                continue
+
+            idx, card = matches[0]
         card_changes = []
         any_effective = False
 

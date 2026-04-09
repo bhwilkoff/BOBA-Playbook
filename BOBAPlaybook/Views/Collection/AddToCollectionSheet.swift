@@ -28,10 +28,11 @@ struct AddToCollectionSheet: View {
     @State private var marketAverage: Decimal? = nil
     @State private var isFetchingPrice = false
 
-    // Pre-existing wishlist entry for this card
+    // Pre-existing wishlist entry for this exact card (matched by bobaId, not just cardNumber)
     private var existingWishlistEntry: UserCard? {
         collection.userCards.first {
-            $0.cardNumber == card.cardNumber && !$0.designation.isOwned
+            ($0.bobaId == card.id || ($0.bobaId == nil && $0.cardNumber == card.cardNumber))
+            && !$0.designation.isOwned
         }
     }
 
@@ -129,7 +130,7 @@ struct AddToCollectionSheet: View {
         }
         .onAppear {
             // Default to "personal" but if only wishlist exists, start there
-            if existingWishlistEntry != nil, collection.entries(for: card.cardNumber).isEmpty {
+            if existingWishlistEntry != nil, collection.entries(forBobaId: card.id).isEmpty {
                 designation = existingWishlistEntry?.designation ?? .personal
             }
             // Fetch current market price in background
@@ -265,6 +266,7 @@ struct AddToCollectionSheet: View {
         let now = Date()
         let new = NewUserCard(
             cardNumber:     card.cardNumber,
+            bobaId:         card.id,
             designation:    designation,
             condition:      condition.isEmpty ? nil : condition,
             serialNumber:   nil,

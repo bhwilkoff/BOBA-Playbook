@@ -127,27 +127,27 @@ struct ProfileView: View {
                 statRow(
                     icon: "person.fill",
                     label: "Personal",
-                    value: "\(collection.uniqueCardNumbers(for: .personal).count)"
+                    value: "\(collection.uniqueBobaIds(for: .personal).count)"
                 )
                 statRow(
                     icon: "tag.fill",
                     label: "For Sale",
-                    value: "\(collection.uniqueCardNumbers(for: .for_sale).count)"
+                    value: "\(collection.uniqueBobaIds(for: .for_sale).count)"
                 )
                 statRow(
                     icon: "arrow.left.arrow.right",
                     label: "For Trade",
-                    value: "\(collection.uniqueCardNumbers(for: .for_trade).count)"
+                    value: "\(collection.uniqueBobaIds(for: .for_trade).count)"
                 )
                 statRow(
                     icon: "star.fill",
                     label: "Wanted",
-                    value: "\(collection.uniqueCardNumbers(for: .wanted).count)"
+                    value: "\(collection.uniqueBobaIds(for: .wanted).count)"
                 )
                 statRow(
                     icon: "crown.fill",
                     label: "Grails",
-                    value: "\(collection.uniqueCardNumbers(for: .grails).count)"
+                    value: "\(collection.uniqueBobaIds(for: .grails).count)"
                 )
                 statRow(
                     icon: "dollarsign.circle",

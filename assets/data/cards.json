@@ -2001,7 +2001,7 @@
   {
     "cardNumber": "19",
     "bvId": 4596,
-    "name": "McArmyKnife",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -2866,7 +2866,7 @@
   {
     "cardNumber": "27",
     "bvId": 1577,
-    "name": "C.C.",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -3409,7 +3409,7 @@
   {
     "cardNumber": "32",
     "bvId": 1939,
-    "name": "Cobra",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -4287,7 +4287,7 @@
   {
     "cardNumber": "40",
     "bvId": 1296,
-    "name": "Burner",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -4613,7 +4613,7 @@
   {
     "cardNumber": "43",
     "bvId": 630,
-    "name": "Big-Z",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -5157,7 +5157,7 @@
   {
     "cardNumber": "48",
     "bvId": 6810,
-    "name": "Thomstone",
+    "name": "Chiller",
     "hero": "Chiller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -6464,7 +6464,7 @@
   {
     "cardNumber": "60",
     "bvId": 5734,
-    "name": "Sarrtillery",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -8531,7 +8531,7 @@
   {
     "cardNumber": "79",
     "bvId": 4597,
-    "name": "McArmyKnife",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -9146,7 +9146,7 @@
   {
     "cardNumber": "85",
     "bvId": 1498,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -9255,7 +9255,7 @@
   {
     "cardNumber": "86",
     "bvId": 947,
-    "name": "Bomber",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -9364,7 +9364,7 @@
   {
     "cardNumber": "87",
     "bvId": 1500,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -9401,7 +9401,7 @@
   {
     "cardNumber": "87",
     "bvId": 1500,
-    "name": "Caroller",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -9946,7 +9946,7 @@
   {
     "cardNumber": "92",
     "bvId": 1615,
-    "name": "Cha-Ching",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -10817,7 +10817,7 @@
   {
     "cardNumber": "100",
     "bvId": 4880,
-    "name": "Mr. Irrelevant",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -11144,7 +11144,7 @@
   {
     "cardNumber": "103",
     "bvId": 631,
-    "name": "Big-Z",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -11688,7 +11688,7 @@
   {
     "cardNumber": "108",
     "bvId": 5037,
-    "name": "Ollie",
+    "name": "Chiller",
     "hero": "Chiller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -12989,7 +12989,7 @@
   {
     "cardNumber": "120",
     "bvId": 495,
-    "name": "Barreler",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -14362,7 +14362,7 @@
   {
     "cardNumber": "133",
     "bvId": 4731,
-    "name": "Merri-Go-Round",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -14475,7 +14475,7 @@
   {
     "cardNumber": "134",
     "bvId": 5963,
-    "name": "Shystep",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -14585,7 +14585,7 @@
   {
     "cardNumber": "135",
     "bvId": 5475,
-    "name": "Ram",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -14913,7 +14913,7 @@
   {
     "cardNumber": "139",
     "bvId": 4598,
-    "name": "McArmyKnife",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -15490,7 +15490,7 @@
   {
     "cardNumber": "147",
     "bvId": 3855,
-    "name": "Juice",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -15853,7 +15853,7 @@
   {
     "cardNumber": "152",
     "bvId": 6162,
-    "name": "Snowbear",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -16434,7 +16434,7 @@
   {
     "cardNumber": "160",
     "bvId": 4881,
-    "name": "Mr. Irrelevant",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -16653,7 +16653,7 @@
   {
     "cardNumber": "163",
     "bvId": 632,
-    "name": "Big-Z",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -17017,7 +17017,7 @@
   {
     "cardNumber": "168",
     "bvId": 6812,
-    "name": "Thomstone",
+    "name": "Chiller",
     "hero": "Chiller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -17886,7 +17886,7 @@
   {
     "cardNumber": "180",
     "bvId": 5736,
-    "name": "Sarrtillery",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -20113,7 +20113,7 @@
   {
     "cardNumber": "AAA-12",
     "bvId": 12056,
-    "name": "Game Time",
+    "name": "Ante-de-something A",
     "hero": "Ante-de-something A",
     "cardType": "Hero",
     "set": "Griffey",
@@ -22118,7 +22118,7 @@
   {
     "cardNumber": "ABF-46",
     "bvId": 9004,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -26902,7 +26902,7 @@
   {
     "cardNumber": "ABF-177",
     "bvId": 9005,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -31686,7 +31686,7 @@
   {
     "cardNumber": "ABF-308",
     "bvId": 9006,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -36470,7 +36470,7 @@
   {
     "cardNumber": "ABF-439",
     "bvId": 9007,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -41258,7 +41258,7 @@
   {
     "cardNumber": "ABF-570",
     "bvId": 9008,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -46046,7 +46046,7 @@
   {
     "cardNumber": "ABF-701",
     "bvId": 9009,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -50136,7 +50136,7 @@
   {
     "cardNumber": "BBF-1",
     "bvId": 821,
-    "name": "BoJax",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -50703,7 +50703,7 @@
   {
     "cardNumber": "BBF-6",
     "bvId": 220,
-    "name": "Allenwrench",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -51351,7 +51351,7 @@
   {
     "cardNumber": "BBF-12",
     "bvId": 1071,
-    "name": "Boshpit",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -54446,7 +54446,7 @@
   {
     "cardNumber": "BBF-41",
     "bvId": 1941,
-    "name": "Cobra",
+    "name": "Skeee",
     "hero": "Skeee",
     "cardType": "Hero",
     "set": "Alpha",
@@ -54522,7 +54522,7 @@
   {
     "cardNumber": "BBF-41",
     "bvId": 1941,
-    "name": "Cobra",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -55077,7 +55077,7 @@
   {
     "cardNumber": "BBF-46",
     "bvId": 4825,
-    "name": "Midas",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -55633,7 +55633,7 @@
   {
     "cardNumber": "BBF-51",
     "bvId": 3187,
-    "name": "Halo",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -57417,7 +57417,7 @@
   {
     "cardNumber": "BBF-67",
     "bvId": 2634,
-    "name": "Exterminaber",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -58273,7 +58273,7 @@
   {
     "cardNumber": "BBF-75",
     "bvId": 890,
-    "name": "Boltage",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -59468,7 +59468,7 @@
   {
     "cardNumber": "BBF-90",
     "bvId": 6813,
-    "name": "Thomstone",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -60061,7 +60061,7 @@
   {
     "cardNumber": "BBF-98",
     "bvId": 177,
-    "name": "Alien",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -70788,7 +70788,7 @@
   {
     "cardNumber": "BF-19",
     "bvId": 1347,
-    "name": "Burrocious",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -71653,7 +71653,7 @@
   {
     "cardNumber": "BF-27",
     "bvId": 3857,
-    "name": "Juice",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -72196,7 +72196,7 @@
   {
     "cardNumber": "BF-32",
     "bvId": 6164,
-    "name": "Snowbear",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -73065,7 +73065,7 @@
   {
     "cardNumber": "BF-40",
     "bvId": 1426,
-    "name": "Caliber",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -73391,7 +73391,7 @@
   {
     "cardNumber": "BF-43",
     "bvId": 634,
-    "name": "Big-Z",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -75250,7 +75250,7 @@
   {
     "cardNumber": "BF-60",
     "bvId": 2152,
-    "name": "Cruze-Control",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -77330,7 +77330,7 @@
   {
     "cardNumber": "BF-79",
     "bvId": 4601,
-    "name": "McArmyKnife",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -78208,7 +78208,7 @@
   {
     "cardNumber": "BF-87",
     "bvId": 3858,
-    "name": "Juice",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -78756,7 +78756,7 @@
   {
     "cardNumber": "BF-92",
     "bvId": 3696,
-    "name": "Jeesaw",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -79638,7 +79638,7 @@
   {
     "cardNumber": "BF-100",
     "bvId": 4884,
-    "name": "Mr. Irrelevant",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -79968,7 +79968,7 @@
   {
     "cardNumber": "BF-103",
     "bvId": 635,
-    "name": "Big-Z",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -81834,7 +81834,7 @@
   {
     "cardNumber": "BF-120",
     "bvId": 417,
-    "name": "Bandelero",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -83904,7 +83904,7 @@
   {
     "cardNumber": "BF-139",
     "bvId": 3735,
-    "name": "Jeeves",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -84085,7 +84085,7 @@
   {
     "cardNumber": "BF-141",
     "bvId": 1502,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -84194,7 +84194,7 @@
   {
     "cardNumber": "BF-142",
     "bvId": 1503,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -84303,7 +84303,7 @@
   {
     "cardNumber": "BF-143",
     "bvId": 1504,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -84412,7 +84412,7 @@
   {
     "cardNumber": "BF-144",
     "bvId": 1505,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -84521,7 +84521,7 @@
   {
     "cardNumber": "BF-145",
     "bvId": 1506,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -84774,7 +84774,7 @@
   {
     "cardNumber": "BF-147",
     "bvId": 2506,
-    "name": "Draco",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -85319,7 +85319,7 @@
   {
     "cardNumber": "BF-152",
     "bvId": 1619,
-    "name": "Cha-Ching",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -86192,7 +86192,7 @@
   {
     "cardNumber": "BF-160",
     "bvId": 4885,
-    "name": "Mr. Irrelevant",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -86519,7 +86519,7 @@
   {
     "cardNumber": "BF-163",
     "bvId": 636,
-    "name": "Big-Z",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -88363,7 +88363,7 @@
   {
     "cardNumber": "BF-180",
     "bvId": 5043,
-    "name": "Ollie",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -90423,7 +90423,7 @@
   {
     "cardNumber": "BF-199",
     "bvId": 500,
-    "name": "Barreler",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -91288,7 +91288,7 @@
   {
     "cardNumber": "BF-207",
     "bvId": 3612,
-    "name": "Javalanche",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -91831,7 +91831,7 @@
   {
     "cardNumber": "BF-212",
     "bvId": 696,
-    "name": "Bionic",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -92700,7 +92700,7 @@
   {
     "cardNumber": "BF-220",
     "bvId": 4886,
-    "name": "Mr. Irrelevant",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -92775,7 +92775,7 @@
   {
     "cardNumber": "BF-221",
     "bvId": 5133,
-    "name": "Pantera",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -92885,7 +92885,7 @@
   {
     "cardNumber": "BF-222",
     "bvId": 5593,
-    "name": "Rockstar",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -92995,7 +92995,7 @@
   {
     "cardNumber": "BF-223",
     "bvId": 637,
-    "name": "Big-Z",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -93033,7 +93033,7 @@
   {
     "cardNumber": "BF-223",
     "bvId": 637,
-    "name": "Big-Z",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -93107,7 +93107,7 @@
   {
     "cardNumber": "BF-224",
     "bvId": 1899,
-    "name": "Clutch",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -93217,7 +93217,7 @@
   {
     "cardNumber": "BF-225",
     "bvId": 5423,
-    "name": "PukaDot",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -94341,7 +94341,7 @@
   {
     "cardNumber": "BF-240",
     "bvId": 5741,
-    "name": "Sarrtillery",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -95717,7 +95717,7 @@
   {
     "cardNumber": "BF-259",
     "bvId": 4604,
-    "name": "McArmyKnife",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -96294,7 +96294,7 @@
   {
     "cardNumber": "BF-267",
     "bvId": 3861,
-    "name": "Juice",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -96657,7 +96657,7 @@
   {
     "cardNumber": "BF-272",
     "bvId": 6168,
-    "name": "Snowbear",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -97238,7 +97238,7 @@
   {
     "cardNumber": "BF-280",
     "bvId": 4887,
-    "name": "Mr. Irrelevant",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -97457,7 +97457,7 @@
   {
     "cardNumber": "BF-283",
     "bvId": 638,
-    "name": "Big-Z",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -98689,7 +98689,7 @@
   {
     "cardNumber": "BF-300",
     "bvId": 5742,
-    "name": "Sarrtillery",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -112185,7 +112185,7 @@
   {
     "cardNumber": "BFA-151",
     "bvId": 827,
-    "name": "BoJax",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -113784,7 +113784,7 @@
   {
     "cardNumber": "BGA-1",
     "bvId": 828,
-    "name": "BoJax",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -116479,7 +116479,7 @@
   {
     "cardNumber": "BGBF-1",
     "bvId": 5883,
-    "name": "Showtime",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -119005,7 +119005,7 @@
   {
     "cardNumber": "BGBF-24",
     "bvId": 418,
-    "name": "Bandelero",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -119522,7 +119522,7 @@
   {
     "cardNumber": "BGBF-29",
     "bvId": 955,
-    "name": "Bomber",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -119890,7 +119890,7 @@
   {
     "cardNumber": "BGBF-32",
     "bvId": 1716,
-    "name": "ChetMate",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -120076,7 +120076,7 @@
   {
     "cardNumber": "BGBF-34",
     "bvId": 4257,
-    "name": "Lieutenant",
+    "name": "Wild Beard",
     "hero": "Wild Beard",
     "cardType": "Hero",
     "set": "Alpha",
@@ -120445,7 +120445,7 @@
   {
     "cardNumber": "BGBF-37",
     "bvId": 4211,
-    "name": "Librarian",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -121295,7 +121295,7 @@
   {
     "cardNumber": "BGBF-45",
     "bvId": 5595,
-    "name": "Rockstar",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -121333,7 +121333,7 @@
   {
     "cardNumber": "BGBF-45",
     "bvId": 5595,
-    "name": "Rockstar",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -121556,7 +121556,7 @@
   {
     "cardNumber": "BGBF-48",
     "bvId": 5425,
-    "name": "PukaDot",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -124177,7 +124177,7 @@
   {
     "cardNumber": "BHBF-19",
     "bvId": 4606,
-    "name": "McArmyKnife",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -124786,7 +124786,7 @@
   {
     "cardNumber": "BHBF-27",
     "bvId": 3863,
-    "name": "Juice",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -125169,7 +125169,7 @@
   {
     "cardNumber": "BHBF-32",
     "bvId": 6170,
-    "name": "Snowbear",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -125782,7 +125782,7 @@
   {
     "cardNumber": "BHBF-40",
     "bvId": 4889,
-    "name": "Mr. Irrelevant",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -126013,7 +126013,7 @@
   {
     "cardNumber": "BHBF-43",
     "bvId": 640,
-    "name": "Big-Z",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -127313,7 +127313,7 @@
   {
     "cardNumber": "BHBF-60",
     "bvId": 5744,
-    "name": "Sarrtillery",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -166056,7 +166056,7 @@
   {
     "cardNumber": "BLBF-1",
     "bvId": 4136,
-    "name": "LeBoss",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -166600,7 +166600,7 @@
   {
     "cardNumber": "BLBF-6",
     "bvId": 4562,
-    "name": "Matata",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -167258,7 +167258,7 @@
   {
     "cardNumber": "BLBF-12",
     "bvId": 2941,
-    "name": "Gaveler",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -170470,7 +170470,7 @@
   {
     "cardNumber": "BLBF-41",
     "bvId": 1586,
-    "name": "C.C.",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -171022,7 +171022,7 @@
   {
     "cardNumber": "BLBF-46",
     "bvId": 2470,
-    "name": "Doublecheck",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -171576,7 +171576,7 @@
   {
     "cardNumber": "BLBF-51",
     "bvId": 459,
-    "name": "Barnacle",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -173365,7 +173365,7 @@
   {
     "cardNumber": "BLBF-67",
     "bvId": 1308,
-    "name": "Burner",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -175934,7 +175934,7 @@
   {
     "cardNumber": "BLBF-90",
     "bvId": 5272,
-    "name": "Phoenix",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -176827,7 +176827,7 @@
   {
     "cardNumber": "BLBF-98",
     "bvId": 3574,
-    "name": "Jambox",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -177390,7 +177390,7 @@
   {
     "cardNumber": "BLBF-103",
     "bvId": 643,
-    "name": "Big-Z",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -178286,7 +178286,7 @@
   {
     "cardNumber": "BLBF-111",
     "bvId": 460,
-    "name": "Barnacle",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -178620,7 +178620,7 @@
   {
     "cardNumber": "BLBF-114",
     "bvId": 3071,
-    "name": "Gravedigger",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -180522,7 +180522,7 @@
   {
     "cardNumber": "BLBF-131",
     "bvId": 3658,
-    "name": "Jaybird",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -180635,7 +180635,7 @@
   {
     "cardNumber": "BLBF-132",
     "bvId": 3779,
-    "name": "J-Jetts",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -181199,7 +181199,7 @@
   {
     "cardNumber": "BLBF-137",
     "bvId": 3740,
-    "name": "Jeeves",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -181604,7 +181604,7 @@
   {
     "cardNumber": "BLBF-141",
     "bvId": 1508,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -181715,7 +181715,7 @@
   {
     "cardNumber": "BLBF-142",
     "bvId": 1509,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -181827,7 +181827,7 @@
   {
     "cardNumber": "BLBF-143",
     "bvId": 1510,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -181865,7 +181865,7 @@
   {
     "cardNumber": "BLBF-143",
     "bvId": 1510,
-    "name": "Caroller",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -181939,7 +181939,7 @@
   {
     "cardNumber": "BLBF-144",
     "bvId": 1511,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -182053,7 +182053,7 @@
   {
     "cardNumber": "BLBF-145",
     "bvId": 1512,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -185082,7 +185082,7 @@
   {
     "cardNumber": "BLBF-172",
     "bvId": 4044,
-    "name": "Laviathan",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -185634,7 +185634,7 @@
   {
     "cardNumber": "BLBF-177",
     "bvId": 5047,
-    "name": "Ollie",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -186187,7 +186187,7 @@
   {
     "cardNumber": "BLBF-182",
     "bvId": 4694,
-    "name": "Merlomes",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -187964,7 +187964,7 @@
   {
     "cardNumber": "BLBF-198",
     "bvId": 506,
-    "name": "Barreler",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -190492,7 +190492,7 @@
   {
     "cardNumber": "BLBF-221",
     "bvId": 5141,
-    "name": "Pantera",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -190531,7 +190531,7 @@
   {
     "cardNumber": "BLBF-221",
     "bvId": 5141,
-    "name": "Pantera",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -190606,7 +190606,7 @@
   {
     "cardNumber": "BLBF-222",
     "bvId": 5601,
-    "name": "Rockstar",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -190719,7 +190719,7 @@
   {
     "cardNumber": "BLBF-223",
     "bvId": 645,
-    "name": "Big-Z",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -190832,7 +190832,7 @@
   {
     "cardNumber": "BLBF-224",
     "bvId": 1907,
-    "name": "Clutch",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -190945,7 +190945,7 @@
   {
     "cardNumber": "BLBF-225",
     "bvId": 5431,
-    "name": "PukaDot",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -191281,7 +191281,7 @@
   {
     "cardNumber": "BLBF-229",
     "bvId": 1118,
-    "name": "Botto",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -191654,7 +191654,7 @@
   {
     "cardNumber": "BLBF-234",
     "bvId": 3073,
-    "name": "Gravedigger",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -192248,7 +192248,7 @@
   {
     "cardNumber": "BLBF-242",
     "bvId": 4695,
-    "name": "Merlomes",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -192471,7 +192471,7 @@
   {
     "cardNumber": "BLBF-245",
     "bvId": 744,
-    "name": "Bison",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -193740,7 +193740,7 @@
   {
     "cardNumber": "BLBF-262",
     "bvId": 6222,
-    "name": "Spider",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -193815,7 +193815,7 @@
   {
     "cardNumber": "BLBF-263",
     "bvId": 2081,
-    "name": "Crews-Missle",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -194189,7 +194189,7 @@
   {
     "cardNumber": "BLBF-268",
     "bvId": 307,
-    "name": "Attak",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -194630,7 +194630,7 @@
   {
     "cardNumber": "BLBF-274",
     "bvId": 4218,
-    "name": "Librarian",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -196834,7 +196834,7 @@
   {
     "cardNumber": "BLBF-308",
     "bvId": 9013,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -201634,7 +201634,7 @@
   {
     "cardNumber": "BLBF-439",
     "bvId": 9014,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -206434,7 +206434,7 @@
   {
     "cardNumber": "BLBF-570",
     "bvId": 9015,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -211234,7 +211234,7 @@
   {
     "cardNumber": "BLBF-701",
     "bvId": 9016,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -219439,7 +219439,7 @@
   {
     "cardNumber": "CBF-46",
     "bvId": 9026,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -224239,7 +224239,7 @@
   {
     "cardNumber": "CBF-177",
     "bvId": 9027,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -229039,7 +229039,7 @@
   {
     "cardNumber": "CBF-308",
     "bvId": 9028,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -233839,7 +233839,7 @@
   {
     "cardNumber": "CBF-439",
     "bvId": 9029,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -238639,7 +238639,7 @@
   {
     "cardNumber": "CBF-570",
     "bvId": 9030,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -243439,7 +243439,7 @@
   {
     "cardNumber": "CBF-701",
     "bvId": 9031,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -248562,7 +248562,7 @@
   {
     "cardNumber": "CHILL-46",
     "bvId": 9032,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -257202,7 +257202,7 @@
   {
     "cardNumber": "FT-1",
     "bvId": 838,
-    "name": "BoJax",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -257557,7 +257557,7 @@
   {
     "cardNumber": "FT-6",
     "bvId": 4942,
-    "name": "Muggsy",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -257988,7 +257988,7 @@
   {
     "cardNumber": "FT-12",
     "bvId": 1394,
-    "name": "Bus",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -260100,7 +260100,7 @@
   {
     "cardNumber": "FT-41",
     "bvId": 6058,
-    "name": "Skee-Ball",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -260468,7 +260468,7 @@
   {
     "cardNumber": "FT-46",
     "bvId": 4844,
-    "name": "Midas",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -260837,7 +260837,7 @@
   {
     "cardNumber": "FT-51",
     "bvId": 3283,
-    "name": "Harpoon",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -262021,7 +262021,7 @@
   {
     "cardNumber": "FT-67",
     "bvId": 2653,
-    "name": "Exterminaber",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -263736,7 +263736,7 @@
   {
     "cardNumber": "FT-90",
     "bvId": 6832,
-    "name": "Thomstone",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -264329,7 +264329,7 @@
   {
     "cardNumber": "FT-98",
     "bvId": 196,
-    "name": "Alien",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -266399,7 +266399,7 @@
   {
     "cardNumber": "GBF-1",
     "bvId": 839,
-    "name": "BoJax",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -266966,7 +266966,7 @@
   {
     "cardNumber": "GBF-6",
     "bvId": 236,
-    "name": "Allenwrench",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -267614,7 +267614,7 @@
   {
     "cardNumber": "GBF-12",
     "bvId": 1087,
-    "name": "Boshpit",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -270784,7 +270784,7 @@
   {
     "cardNumber": "GBF-41",
     "bvId": 1959,
-    "name": "Cobra",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -271339,7 +271339,7 @@
   {
     "cardNumber": "GBF-46",
     "bvId": 4845,
-    "name": "Midas",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -271895,7 +271895,7 @@
   {
     "cardNumber": "GBF-51",
     "bvId": 3205,
-    "name": "Halo",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -273679,7 +273679,7 @@
   {
     "cardNumber": "GBF-67",
     "bvId": 2654,
-    "name": "Exterminaber",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -275730,7 +275730,7 @@
   {
     "cardNumber": "GBF-90",
     "bvId": 6833,
-    "name": "Thomstone",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -276323,7 +276323,7 @@
   {
     "cardNumber": "GBF-98",
     "bvId": 197,
-    "name": "Alien",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -279440,7 +279440,7 @@
   {
     "cardNumber": "GGL-46",
     "bvId": 9035,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -284501,7 +284501,7 @@
   {
     "cardNumber": "GGL-177",
     "bvId": 9036,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -289562,7 +289562,7 @@
   {
     "cardNumber": "GGL-308",
     "bvId": 9037,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -294623,7 +294623,7 @@
   {
     "cardNumber": "GGL-439",
     "bvId": 9038,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -299684,7 +299684,7 @@
   {
     "cardNumber": "GGL-570",
     "bvId": 9039,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -304745,7 +304745,7 @@
   {
     "cardNumber": "GGL-701",
     "bvId": 9040,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -308084,7 +308084,7 @@
   {
     "cardNumber": "GLBF-1",
     "bvId": 841,
-    "name": "BoJax",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -308665,7 +308665,7 @@
   {
     "cardNumber": "GLBF-6",
     "bvId": 4944,
-    "name": "Muggsy",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -309329,7 +309329,7 @@
   {
     "cardNumber": "GLBF-12",
     "bvId": 1396,
-    "name": "Bus",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -312592,7 +312592,7 @@
   {
     "cardNumber": "GLBF-41",
     "bvId": 270,
-    "name": "Amon-Ra",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -313155,7 +313155,7 @@
   {
     "cardNumber": "GLBF-46",
     "bvId": 4493,
-    "name": "Marino",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -313717,7 +313717,7 @@
   {
     "cardNumber": "GLBF-51",
     "bvId": 2392,
-    "name": "Donnie Baseball",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -315515,7 +315515,7 @@
   {
     "cardNumber": "GLBF-67",
     "bvId": 2718,
-    "name": "Flutie",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -318110,7 +318110,7 @@
   {
     "cardNumber": "GLBF-90",
     "bvId": 1814,
-    "name": "Chief",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -319011,7 +319011,7 @@
   {
     "cardNumber": "GLBF-98",
     "bvId": 2850,
-    "name": "Frostbite",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -319573,7 +319573,7 @@
   {
     "cardNumber": "GLBF-103",
     "bvId": 799,
-    "name": "Blockhale",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -320472,7 +320472,7 @@
   {
     "cardNumber": "GLBF-111",
     "bvId": 3997,
-    "name": "Lady Magic",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -320807,7 +320807,7 @@
   {
     "cardNumber": "GLBF-114",
     "bvId": 5114,
-    "name": "Palmer",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -322731,7 +322731,7 @@
   {
     "cardNumber": "GLBF-131",
     "bvId": 552,
-    "name": "Barry \"Cutback\" Sanders",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -322846,7 +322846,7 @@
   {
     "cardNumber": "GLBF-132",
     "bvId": 4358,
-    "name": "Line-Art",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -323414,7 +323414,7 @@
   {
     "cardNumber": "GLBF-137",
     "bvId": 3835,
-    "name": "Joey Jawz",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -324082,7 +324082,7 @@
   {
     "cardNumber": "GLBF-143",
     "bvId": 3003,
-    "name": "Goggles",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -327362,7 +327362,7 @@
   {
     "cardNumber": "GLBF-172",
     "bvId": 4496,
-    "name": "Marino",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -327927,7 +327927,7 @@
   {
     "cardNumber": "GLBF-177",
     "bvId": 5196,
-    "name": "Peek-A-Boo",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -328492,7 +328492,7 @@
   {
     "cardNumber": "GLBF-182",
     "bvId": 3443,
-    "name": "HowBout'em",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -330298,7 +330298,7 @@
   {
     "cardNumber": "GLBF-198",
     "bvId": 2483,
-    "name": "Doublecheck",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -332941,7 +332941,7 @@
   {
     "cardNumber": "GLBF-221",
     "bvId": 2050,
-    "name": "Cowboy",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -333857,7 +333857,7 @@
   {
     "cardNumber": "GLBF-229",
     "bvId": 4620,
-    "name": "McArmyKnife",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -334435,7 +334435,7 @@
   {
     "cardNumber": "GLBF-234",
     "bvId": 6679,
-    "name": "Tattoo",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -335350,7 +335350,7 @@
   {
     "cardNumber": "GLBF-242",
     "bvId": 3714,
-    "name": "Jeesaw",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -335693,7 +335693,7 @@
   {
     "cardNumber": "GLBF-245",
     "bvId": 88,
-    "name": "Aeronaut",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -337653,7 +337653,7 @@
   {
     "cardNumber": "GLBF-262",
     "bvId": 4054,
-    "name": "Laviathan",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -337768,7 +337768,7 @@
   {
     "cardNumber": "GLBF-263",
     "bvId": 1225,
-    "name": "Breeze",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -338341,7 +338341,7 @@
   {
     "cardNumber": "GLBF-268",
     "bvId": 433,
-    "name": "Bandelero",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -339026,7 +339026,7 @@
   {
     "cardNumber": "GLBF-274",
     "bvId": 4538,
-    "name": "Marverati",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -340927,7 +340927,7 @@
   {
     "cardNumber": "GLBF-291",
     "bvId": 1514,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -341042,7 +341042,7 @@
   {
     "cardNumber": "GLBF-292",
     "bvId": 1515,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -341156,7 +341156,7 @@
   {
     "cardNumber": "GLBF-293",
     "bvId": 1516,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -341270,7 +341270,7 @@
   {
     "cardNumber": "GLBF-294",
     "bvId": 1517,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -341387,7 +341387,7 @@
   {
     "cardNumber": "GLBF-295",
     "bvId": 1518,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -342336,7 +342336,7 @@
   {
     "cardNumber": "GLBF-303",
     "bvId": 912,
-    "name": "Boltage",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -342906,7 +342906,7 @@
   {
     "cardNumber": "GLBF-308",
     "bvId": 3586,
-    "name": "Jambox",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -343477,7 +343477,7 @@
   {
     "cardNumber": "GLBF-313",
     "bvId": 655,
-    "name": "Big-Z",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -345299,7 +345299,7 @@
   {
     "cardNumber": "GLBF-329",
     "bvId": 5060,
-    "name": "Ollie",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -347933,7 +347933,7 @@
   {
     "cardNumber": "GLBF-352",
     "bvId": 2207,
-    "name": "Cupid",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -348846,7 +348846,7 @@
   {
     "cardNumber": "GLBF-360",
     "bvId": 3633,
-    "name": "Javalanche",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -349419,7 +349419,7 @@
   {
     "cardNumber": "GLBF-365",
     "bvId": 90,
-    "name": "Aeronaut",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -350071,7 +350071,7 @@
   {
     "cardNumber": "GLBF-371",
     "bvId": 5152,
-    "name": "Pantera",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -350187,7 +350187,7 @@
   {
     "cardNumber": "GLBF-372",
     "bvId": 5612,
-    "name": "Rockstar",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -350303,7 +350303,7 @@
   {
     "cardNumber": "GLBF-373",
     "bvId": 656,
-    "name": "Big-Z",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -350343,7 +350343,7 @@
   {
     "cardNumber": "GLBF-373",
     "bvId": 656,
-    "name": "Big-Z",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -350420,7 +350420,7 @@
   {
     "cardNumber": "GLBF-374",
     "bvId": 1918,
-    "name": "Clutch",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -350536,7 +350536,7 @@
   {
     "cardNumber": "GLBF-375",
     "bvId": 5442,
-    "name": "PukaDot",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -350690,7 +350690,7 @@
   {
     "cardNumber": "GLBF-376",
     "bvId": 846,
-    "name": "BoJax",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -352142,7 +352142,7 @@
   {
     "cardNumber": "GLBF-393",
     "bvId": 1852,
-    "name": "Chosen",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -352219,7 +352219,7 @@
   {
     "cardNumber": "GLBF-394",
     "bvId": 4849,
-    "name": "Midas",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -352603,7 +352603,7 @@
   {
     "cardNumber": "GLBF-399",
     "bvId": 3288,
-    "name": "Harpoon",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -353059,7 +353059,7 @@
   {
     "cardNumber": "GLBF-405",
     "bvId": 5500,
-    "name": "Ram",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -355253,7 +355253,7 @@
   {
     "cardNumber": "GLBF-434",
     "bvId": 1919,
-    "name": "Clutch",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -355631,7 +355631,7 @@
   {
     "cardNumber": "GLBF-439",
     "bvId": 1130,
-    "name": "Botto",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -356009,7 +356009,7 @@
   {
     "cardNumber": "GLBF-444",
     "bvId": 3085,
-    "name": "Gravedigger",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -357223,7 +357223,7 @@
   {
     "cardNumber": "GLBF-460",
     "bvId": 4993,
-    "name": "Mustang",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -358982,7 +358982,7 @@
   {
     "cardNumber": "GLBF-483",
     "bvId": 915,
-    "name": "Boltage",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -359595,7 +359595,7 @@
   {
     "cardNumber": "GLBF-491",
     "bvId": 5154,
-    "name": "Pantera",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -359978,7 +359978,7 @@
   {
     "cardNumber": "GLBF-496",
     "bvId": 6280,
-    "name": "Sprinkler",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -360589,7 +360589,7 @@
   {
     "cardNumber": "GLBF-504",
     "bvId": 3086,
-    "name": "Gravedigger",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -360818,7 +360818,7 @@
   {
     "cardNumber": "GLBF-507",
     "bvId": 5352,
-    "name": "Portalize",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -363297,7 +363297,7 @@
   {
     "cardNumber": "GLBF-570",
     "bvId": 9045,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -368228,7 +368228,7 @@
   {
     "cardNumber": "GLBF-701",
     "bvId": 9046,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -373105,7 +373105,7 @@
   {
     "cardNumber": "GRILL-46",
     "bvId": 9047,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -378330,7 +378330,7 @@
   {
     "cardNumber": "HBF-19",
     "bvId": 3718,
-    "name": "Jeesaw",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -379223,7 +379223,7 @@
   {
     "cardNumber": "HBF-27",
     "bvId": 3882,
-    "name": "Juice",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -379410,7 +379410,7 @@
   {
     "cardNumber": "HBF-29",
     "bvId": 1519,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -379783,7 +379783,7 @@
   {
     "cardNumber": "HBF-32",
     "bvId": 6189,
-    "name": "Snowbear",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -379969,7 +379969,7 @@
   {
     "cardNumber": "HBF-34",
     "bvId": 4231,
-    "name": "Librarian",
+    "name": "Wild Beard",
     "hero": "Wild Beard",
     "cardType": "Hero",
     "set": "Alpha",
@@ -380678,7 +380678,7 @@
   {
     "cardNumber": "HBF-40",
     "bvId": 520,
-    "name": "Barreler",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -381013,7 +381013,7 @@
   {
     "cardNumber": "HBF-43",
     "bvId": 659,
-    "name": "Big-Z",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -381200,7 +381200,7 @@
   {
     "cardNumber": "HBF-45",
     "bvId": 5445,
-    "name": "PukaDot",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -382355,7 +382355,7 @@
   {
     "cardNumber": "HBF-60",
     "bvId": 5763,
-    "name": "Sarrtillery",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -408168,7 +408168,7 @@
   {
     "cardNumber": "LOGO-46",
     "bvId": 9048,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -412837,7 +412837,7 @@
   {
     "cardNumber": "LOGO-177",
     "bvId": 9049,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -417506,7 +417506,7 @@
   {
     "cardNumber": "LOGO-308",
     "bvId": 9050,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -422175,7 +422175,7 @@
   {
     "cardNumber": "LOGO-439",
     "bvId": 9051,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -426844,7 +426844,7 @@
   {
     "cardNumber": "LOGO-570",
     "bvId": 9052,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -431513,7 +431513,7 @@
   {
     "cardNumber": "LOGO-701",
     "bvId": 9053,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -437552,7 +437552,7 @@
   {
     "cardNumber": "MI-1",
     "bvId": 851,
-    "name": "BoJax",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -437907,7 +437907,7 @@
   {
     "cardNumber": "MI-6",
     "bvId": 4950,
-    "name": "Muggsy",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -438338,7 +438338,7 @@
   {
     "cardNumber": "MI-12",
     "bvId": 1402,
-    "name": "Bus",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -440450,7 +440450,7 @@
   {
     "cardNumber": "MI-41",
     "bvId": 6065,
-    "name": "Skee-Ball",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -440818,7 +440818,7 @@
   {
     "cardNumber": "MI-46",
     "bvId": 4852,
-    "name": "Midas",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -441187,7 +441187,7 @@
   {
     "cardNumber": "MI-51",
     "bvId": 3291,
-    "name": "Harpoon",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -442371,7 +442371,7 @@
   {
     "cardNumber": "MI-67",
     "bvId": 2661,
-    "name": "Exterminaber",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -444086,7 +444086,7 @@
   {
     "cardNumber": "MI-90",
     "bvId": 6840,
-    "name": "Thomstone",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -444679,7 +444679,7 @@
   {
     "cardNumber": "MI-98",
     "bvId": 204,
-    "name": "Alien",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -446083,7 +446083,7 @@
   {
     "cardNumber": "MIX-1",
     "bvId": 852,
-    "name": "BoJax",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -446438,7 +446438,7 @@
   {
     "cardNumber": "MIX-6",
     "bvId": 4951,
-    "name": "Muggsy",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -446869,7 +446869,7 @@
   {
     "cardNumber": "MIX-12",
     "bvId": 1403,
-    "name": "Bus",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -448981,7 +448981,7 @@
   {
     "cardNumber": "MIX-41",
     "bvId": 6066,
-    "name": "Skee-Ball",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -449344,7 +449344,7 @@
   {
     "cardNumber": "MIX-46",
     "bvId": 4500,
-    "name": "Marino",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -449710,7 +449710,7 @@
   {
     "cardNumber": "MIX-51",
     "bvId": 5200,
-    "name": "Peek-A-Boo",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -450877,7 +450877,7 @@
   {
     "cardNumber": "MIX-67",
     "bvId": 6453,
-    "name": "Sterling",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -452572,7 +452572,7 @@
   {
     "cardNumber": "MIX-90",
     "bvId": 4953,
-    "name": "Muggsy",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -453161,7 +453161,7 @@
   {
     "cardNumber": "MIX-98",
     "bvId": 3448,
-    "name": "HowBout'em",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -453528,7 +453528,7 @@
   {
     "cardNumber": "MIX-103",
     "bvId": 7715,
-    "name": "X.L.",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -454116,7 +454116,7 @@
   {
     "cardNumber": "MIX-111",
     "bvId": 4004,
-    "name": "Lady Magic",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -454337,7 +454337,7 @@
   {
     "cardNumber": "MIX-114",
     "bvId": 6113,
-    "name": "Slash",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -455593,7 +455593,7 @@
   {
     "cardNumber": "MIX-131",
     "bvId": 559,
-    "name": "Barry \"Cutback\" Sanders",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -455668,7 +455668,7 @@
   {
     "cardNumber": "MIX-132",
     "bvId": 4954,
-    "name": "Muggsy",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -456039,7 +456039,7 @@
   {
     "cardNumber": "MIX-137",
     "bvId": 3842,
-    "name": "Joey Jawz",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -456476,7 +456476,7 @@
   {
     "cardNumber": "MIX-143",
     "bvId": 3010,
-    "name": "Goggles",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -458588,7 +458588,7 @@
   {
     "cardNumber": "MIX-172",
     "bvId": 4503,
-    "name": "Marino",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -458953,7 +458953,7 @@
   {
     "cardNumber": "MIX-177",
     "bvId": 5203,
-    "name": "Peek-A-Boo",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -459318,7 +459318,7 @@
   {
     "cardNumber": "MIX-182",
     "bvId": 3450,
-    "name": "HowBout'em",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -460484,7 +460484,7 @@
   {
     "cardNumber": "MIX-198",
     "bvId": 6115,
-    "name": "Slash",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -462191,7 +462191,7 @@
   {
     "cardNumber": "MIX-221",
     "bvId": 3675,
-    "name": "Jaybird",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -462787,7 +462787,7 @@
   {
     "cardNumber": "MIX-229",
     "bvId": 4627,
-    "name": "McArmyKnife",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -463160,7 +463160,7 @@
   {
     "cardNumber": "MIX-234",
     "bvId": 7285,
-    "name": "Unibrow",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -463754,7 +463754,7 @@
   {
     "cardNumber": "MIX-242",
     "bvId": 6191,
-    "name": "Snowbear",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -463977,7 +463977,7 @@
   {
     "cardNumber": "MIX-245",
     "bvId": 95,
-    "name": "Aeronaut",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -465247,7 +465247,7 @@
   {
     "cardNumber": "MIX-262",
     "bvId": 4061,
-    "name": "Laviathan",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -465322,7 +465322,7 @@
   {
     "cardNumber": "MIX-263",
     "bvId": 1232,
-    "name": "Breeze",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -465695,7 +465695,7 @@
   {
     "cardNumber": "MIX-268",
     "bvId": 7150,
-    "name": "Torque",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -466136,7 +466136,7 @@
   {
     "cardNumber": "MIX-274",
     "bvId": 4854,
-    "name": "Midas",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -468272,7 +468272,7 @@
   {
     "cardNumber": "MIX-303",
     "bvId": 919,
-    "name": "Boltage",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -468640,7 +468640,7 @@
   {
     "cardNumber": "MIX-308",
     "bvId": 3593,
-    "name": "Jambox",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -469011,7 +469011,7 @@
   {
     "cardNumber": "MIX-313",
     "bvId": 662,
-    "name": "Big-Z",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -470193,7 +470193,7 @@
   {
     "cardNumber": "MIX-329",
     "bvId": 5564,
-    "name": "Risarcher",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -471907,7 +471907,7 @@
   {
     "cardNumber": "MIX-352",
     "bvId": 6239,
-    "name": "Spider",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -472500,7 +472500,7 @@
   {
     "cardNumber": "MIX-360",
     "bvId": 5292,
-    "name": "Phoenix",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -472873,7 +472873,7 @@
   {
     "cardNumber": "MIX-365",
     "bvId": 97,
-    "name": "Aeronaut",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -473471,7 +473471,7 @@
   {
     "cardNumber": "MIX-373",
     "bvId": 663,
-    "name": "Big-Z",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -473694,7 +473694,7 @@
   {
     "cardNumber": "MIX-376",
     "bvId": 6285,
-    "name": "Sprinkler",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -474960,7 +474960,7 @@
   {
     "cardNumber": "MIX-393",
     "bvId": 1859,
-    "name": "Chosen",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -475035,7 +475035,7 @@
   {
     "cardNumber": "MIX-394",
     "bvId": 4856,
-    "name": "Midas",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -475409,7 +475409,7 @@
   {
     "cardNumber": "MIX-399",
     "bvId": 3295,
-    "name": "Harpoon",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -475853,7 +475853,7 @@
   {
     "cardNumber": "MIX-405",
     "bvId": 5507,
-    "name": "Ram",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -477989,7 +477989,7 @@
   {
     "cardNumber": "MIX-434",
     "bvId": 1926,
-    "name": "Clutch",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -478357,7 +478357,7 @@
   {
     "cardNumber": "MIX-439",
     "bvId": 1137,
-    "name": "Botto",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -478725,7 +478725,7 @@
   {
     "cardNumber": "MIX-444",
     "bvId": 3092,
-    "name": "Gravedigger",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -479907,7 +479907,7 @@
   {
     "cardNumber": "MIX-460",
     "bvId": 5000,
-    "name": "Mustang",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -481620,7 +481620,7 @@
   {
     "cardNumber": "MIX-483",
     "bvId": 922,
-    "name": "Boltage",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -482217,7 +482217,7 @@
   {
     "cardNumber": "MIX-491",
     "bvId": 5161,
-    "name": "Pantera",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -482590,7 +482590,7 @@
   {
     "cardNumber": "MIX-496",
     "bvId": 6287,
-    "name": "Sprinkler",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -483185,7 +483185,7 @@
   {
     "cardNumber": "MIX-504",
     "bvId": 3093,
-    "name": "Gravedigger",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -483408,7 +483408,7 @@
   {
     "cardNumber": "MIX-507",
     "bvId": 5359,
-    "name": "Portalize",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -485821,7 +485821,7 @@
   {
     "cardNumber": "MIX-570",
     "bvId": 9059,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -490621,7 +490621,7 @@
   {
     "cardNumber": "MIX-701",
     "bvId": 9060,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -494131,7 +494131,7 @@
   {
     "cardNumber": "OBF-1",
     "bvId": 857,
-    "name": "BoJax",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -494698,7 +494698,7 @@
   {
     "cardNumber": "OBF-6",
     "bvId": 243,
-    "name": "Allenwrench",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -495346,7 +495346,7 @@
   {
     "cardNumber": "OBF-12",
     "bvId": 1094,
-    "name": "Boshpit",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -497635,7 +497635,7 @@
   {
     "cardNumber": "OBF-33",
     "bvId": 2958,
-    "name": "Gaveler",
+    "name": "Billhook",
     "hero": "Billhook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -498518,7 +498518,7 @@
   {
     "cardNumber": "OBF-41",
     "bvId": 1966,
-    "name": "Cobra",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -499073,7 +499073,7 @@
   {
     "cardNumber": "OBF-46",
     "bvId": 4858,
-    "name": "Midas",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -499629,7 +499629,7 @@
   {
     "cardNumber": "OBF-51",
     "bvId": 3212,
-    "name": "Halo",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -501413,7 +501413,7 @@
   {
     "cardNumber": "OBF-67",
     "bvId": 2667,
-    "name": "Exterminaber",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -503464,7 +503464,7 @@
   {
     "cardNumber": "OBF-90",
     "bvId": 6846,
-    "name": "Thomstone",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -504057,7 +504057,7 @@
   {
     "cardNumber": "OBF-98",
     "bvId": 210,
-    "name": "Alien",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -507766,7 +507766,7 @@
   {
     "cardNumber": "P-2",
     "bvId": 860,
-    "name": "BoJax",
+    "name": "The Kid",
     "hero": "The Kid",
     "cardType": "Hero",
     "set": "Alpha",
@@ -507805,7 +507805,7 @@
   {
     "cardNumber": "P-3",
     "bvId": 861,
-    "name": "BoJax",
+    "name": "The Kid",
     "hero": "The Kid",
     "cardType": "Hero",
     "set": "Alpha",
@@ -507844,7 +507844,7 @@
   {
     "cardNumber": "P-4",
     "bvId": 862,
-    "name": "BoJax",
+    "name": "The Kid",
     "hero": "The Kid",
     "cardType": "Hero",
     "set": "Alpha",
@@ -507883,7 +507883,7 @@
   {
     "cardNumber": "P-5",
     "bvId": 863,
-    "name": "BoJax",
+    "name": "The Kid",
     "hero": "The Kid",
     "cardType": "Hero",
     "set": "Alpha",
@@ -507922,7 +507922,7 @@
   {
     "cardNumber": "P-6",
     "bvId": 864,
-    "name": "BoJax",
+    "name": "The Kid",
     "hero": "The Kid",
     "cardType": "Hero",
     "set": "Alpha",
@@ -507961,7 +507961,7 @@
   {
     "cardNumber": "P-7",
     "bvId": 865,
-    "name": "BoJax",
+    "name": "The Kid",
     "hero": "The Kid",
     "cardType": "Hero",
     "set": "Alpha",
@@ -509052,7 +509052,7 @@
   {
     "cardNumber": "PBF-1",
     "bvId": 866,
-    "name": "BoJax",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -509619,7 +509619,7 @@
   {
     "cardNumber": "PBF-6",
     "bvId": 244,
-    "name": "Allenwrench",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -510267,7 +510267,7 @@
   {
     "cardNumber": "PBF-12",
     "bvId": 1095,
-    "name": "Boshpit",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -512556,7 +512556,7 @@
   {
     "cardNumber": "PBF-33",
     "bvId": 2959,
-    "name": "Gaveler",
+    "name": "Billhook",
     "hero": "Billhook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -513439,7 +513439,7 @@
   {
     "cardNumber": "PBF-41",
     "bvId": 1967,
-    "name": "Cobra",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -513994,7 +513994,7 @@
   {
     "cardNumber": "PBF-46",
     "bvId": 4859,
-    "name": "Midas",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -514550,7 +514550,7 @@
   {
     "cardNumber": "PBF-51",
     "bvId": 3213,
-    "name": "Halo",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -516334,7 +516334,7 @@
   {
     "cardNumber": "PBF-67",
     "bvId": 2668,
-    "name": "Exterminaber",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -518385,7 +518385,7 @@
   {
     "cardNumber": "PBF-90",
     "bvId": 6847,
-    "name": "Thomstone",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -518978,7 +518978,7 @@
   {
     "cardNumber": "PBF-98",
     "bvId": 211,
-    "name": "Alien",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -522379,7 +522379,7 @@
   {
     "cardNumber": "PG-46",
     "bvId": 9063,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -538582,7 +538582,7 @@
   {
     "cardNumber": "RAD-1",
     "bvId": 869,
-    "name": "BoJax",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -539147,7 +539147,7 @@
   {
     "cardNumber": "RAD-6",
     "bvId": 4958,
-    "name": "Muggsy",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -539793,7 +539793,7 @@
   {
     "cardNumber": "RAD-12",
     "bvId": 1410,
-    "name": "Bus",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -542086,7 +542086,7 @@
   {
     "cardNumber": "RAD-33",
     "bvId": 3969,
-    "name": "Kurse",
+    "name": "Billhook",
     "hero": "Billhook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -542970,7 +542970,7 @@
   {
     "cardNumber": "RAD-41",
     "bvId": 279,
-    "name": "Amon-Ra",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -543517,7 +543517,7 @@
   {
     "cardNumber": "RAD-46",
     "bvId": 4507,
-    "name": "Marino",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -544064,7 +544064,7 @@
   {
     "cardNumber": "RAD-51",
     "bvId": 2400,
-    "name": "Donnie Baseball",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -545814,7 +545814,7 @@
   {
     "cardNumber": "RAD-67",
     "bvId": 2726,
-    "name": "Flutie",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -548340,7 +548340,7 @@
   {
     "cardNumber": "RAD-90",
     "bvId": 1822,
-    "name": "Chief",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -549217,7 +549217,7 @@
   {
     "cardNumber": "RAD-98",
     "bvId": 2858,
-    "name": "Frostbite",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -549764,7 +549764,7 @@
   {
     "cardNumber": "RAD-103",
     "bvId": 807,
-    "name": "Blockhale",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -550639,7 +550639,7 @@
   {
     "cardNumber": "RAD-111",
     "bvId": 4011,
-    "name": "Lady Magic",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -550965,7 +550965,7 @@
   {
     "cardNumber": "RAD-114",
     "bvId": 5122,
-    "name": "Palmer",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -551148,7 +551148,7 @@
   {
     "cardNumber": "RAD-116",
     "bvId": 1026,
-    "name": "Bone",
+    "name": "Thighs Man",
     "hero": "Thighs Man",
     "cardType": "Hero",
     "set": "Alpha",
@@ -552839,7 +552839,7 @@
   {
     "cardNumber": "RAD-131",
     "bvId": 566,
-    "name": "Barry \"Cutback\" Sanders",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -552951,7 +552951,7 @@
   {
     "cardNumber": "RAD-132",
     "bvId": 4366,
-    "name": "Line-Art",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -553504,7 +553504,7 @@
   {
     "cardNumber": "RAD-137",
     "bvId": 3849,
-    "name": "Joey Jawz",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -554154,7 +554154,7 @@
   {
     "cardNumber": "RAD-143",
     "bvId": 3017,
-    "name": "Goggles",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -556466,7 +556466,7 @@
   {
     "cardNumber": "RAD-164",
     "bvId": 1287,
-    "name": "BuckShot",
+    "name": "Billhook",
     "hero": "Billhook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -557348,7 +557348,7 @@
   {
     "cardNumber": "RAD-172",
     "bvId": 4510,
-    "name": "Marino",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -557898,7 +557898,7 @@
   {
     "cardNumber": "RAD-177",
     "bvId": 5210,
-    "name": "Peek-A-Boo",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -558448,7 +558448,7 @@
   {
     "cardNumber": "RAD-182",
     "bvId": 3457,
-    "name": "HowBout'em",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -560206,7 +560206,7 @@
   {
     "cardNumber": "RAD-198",
     "bvId": 2491,
-    "name": "Doublecheck",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -562780,7 +562780,7 @@
   {
     "cardNumber": "RAD-221",
     "bvId": 2058,
-    "name": "Cowboy",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -563672,7 +563672,7 @@
   {
     "cardNumber": "RAD-229",
     "bvId": 4634,
-    "name": "McArmyKnife",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -564235,7 +564235,7 @@
   {
     "cardNumber": "RAD-234",
     "bvId": 6687,
-    "name": "Tattoo",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -565126,7 +565126,7 @@
   {
     "cardNumber": "RAD-242",
     "bvId": 3722,
-    "name": "Jeesaw",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -565460,7 +565460,7 @@
   {
     "cardNumber": "RAD-245",
     "bvId": 102,
-    "name": "Aeronaut",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -567369,7 +567369,7 @@
   {
     "cardNumber": "RAD-262",
     "bvId": 4068,
-    "name": "Laviathan",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -567481,7 +567481,7 @@
   {
     "cardNumber": "RAD-263",
     "bvId": 1239,
-    "name": "Breeze",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -568039,7 +568039,7 @@
   {
     "cardNumber": "RAD-268",
     "bvId": 441,
-    "name": "Bandelero",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -568706,7 +568706,7 @@
   {
     "cardNumber": "RAD-274",
     "bvId": 4546,
-    "name": "Marverati",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -571043,7 +571043,7 @@
   {
     "cardNumber": "RAD-295",
     "bvId": 1526,
-    "name": "Caroller",
+    "name": "Billhook",
     "hero": "Billhook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -571930,7 +571930,7 @@
   {
     "cardNumber": "RAD-303",
     "bvId": 926,
-    "name": "Boltage",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -572485,7 +572485,7 @@
   {
     "cardNumber": "RAD-308",
     "bvId": 3600,
-    "name": "Jambox",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -573041,7 +573041,7 @@
   {
     "cardNumber": "RAD-313",
     "bvId": 669,
-    "name": "Big-Z",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -574815,7 +574815,7 @@
   {
     "cardNumber": "RAD-329",
     "bvId": 5068,
-    "name": "Ollie",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -577384,7 +577384,7 @@
   {
     "cardNumber": "RAD-352",
     "bvId": 2215,
-    "name": "Cupid",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -578273,7 +578273,7 @@
   {
     "cardNumber": "RAD-360",
     "bvId": 3641,
-    "name": "Javalanche",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -578831,7 +578831,7 @@
   {
     "cardNumber": "RAD-365",
     "bvId": 104,
-    "name": "Aeronaut",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -579734,7 +579734,7 @@
   {
     "cardNumber": "RAD-373",
     "bvId": 670,
-    "name": "Big-Z",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -580074,7 +580074,7 @@
   {
     "cardNumber": "RAD-376",
     "bvId": 874,
-    "name": "BoJax",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -581488,7 +581488,7 @@
   {
     "cardNumber": "RAD-393",
     "bvId": 1866,
-    "name": "Chosen",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -581563,7 +581563,7 @@
   {
     "cardNumber": "RAD-394",
     "bvId": 4863,
-    "name": "Midas",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -581937,7 +581937,7 @@
   {
     "cardNumber": "RAD-399",
     "bvId": 3302,
-    "name": "Harpoon",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -582381,7 +582381,7 @@
   {
     "cardNumber": "RAD-405",
     "bvId": 5514,
-    "name": "Ram",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -583926,7 +583926,7 @@
   {
     "cardNumber": "RAD-426",
     "bvId": 5717,
-    "name": "Sabotage",
+    "name": "Billhook",
     "hero": "Billhook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -584518,7 +584518,7 @@
   {
     "cardNumber": "RAD-434",
     "bvId": 1933,
-    "name": "Clutch",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -584886,7 +584886,7 @@
   {
     "cardNumber": "RAD-439",
     "bvId": 1144,
-    "name": "Botto",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -585254,7 +585254,7 @@
   {
     "cardNumber": "RAD-444",
     "bvId": 3099,
-    "name": "Gravedigger",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -586436,7 +586436,7 @@
   {
     "cardNumber": "RAD-460",
     "bvId": 5007,
-    "name": "Mustang",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -588149,7 +588149,7 @@
   {
     "cardNumber": "RAD-483",
     "bvId": 929,
-    "name": "Boltage",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -588746,7 +588746,7 @@
   {
     "cardNumber": "RAD-491",
     "bvId": 5168,
-    "name": "Pantera",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -589119,7 +589119,7 @@
   {
     "cardNumber": "RAD-496",
     "bvId": 6294,
-    "name": "Sprinkler",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -589714,7 +589714,7 @@
   {
     "cardNumber": "RAD-504",
     "bvId": 3100,
-    "name": "Gravedigger",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -589937,7 +589937,7 @@
   {
     "cardNumber": "RAD-507",
     "bvId": 5366,
-    "name": "Portalize",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -592347,7 +592347,7 @@
   {
     "cardNumber": "RAD-570",
     "bvId": 9068,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -597144,7 +597144,7 @@
   {
     "cardNumber": "RAD-701",
     "bvId": 9069,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -601931,7 +601931,7 @@
   {
     "cardNumber": "RBF-46",
     "bvId": 9070,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -607149,7 +607149,7 @@
   {
     "cardNumber": "RHBF-19",
     "bvId": 4639,
-    "name": "McArmyKnife",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -607758,7 +607758,7 @@
   {
     "cardNumber": "RHBF-27",
     "bvId": 3896,
-    "name": "Juice",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -608141,7 +608141,7 @@
   {
     "cardNumber": "RHBF-32",
     "bvId": 6203,
-    "name": "Snowbear",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -608754,7 +608754,7 @@
   {
     "cardNumber": "RHBF-40",
     "bvId": 4922,
-    "name": "Mr. Irrelevant",
+    "name": "Camera",
     "hero": "Camera",
     "cardType": "Hero",
     "set": "Alpha",
@@ -608985,7 +608985,7 @@
   {
     "cardNumber": "RHBF-43",
     "bvId": 673,
-    "name": "Big-Z",
+    "name": "Canine",
     "hero": "Canine",
     "cardType": "Hero",
     "set": "Alpha",
@@ -610285,7 +610285,7 @@
   {
     "cardNumber": "RHBF-60",
     "bvId": 5777,
-    "name": "Sarrtillery",
+    "name": "Castler",
     "hero": "Castler",
     "cardType": "Hero",
     "set": "Alpha",
@@ -612125,7 +612125,7 @@
   {
     "cardNumber": "S-02/100",
     "bvId": 880,
-    "name": "BoJax",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "2024 National Show Starter Set",
@@ -616610,7 +616610,7 @@
   {
     "cardNumber": "SBF-1",
     "bvId": 4173,
-    "name": "LeBoss",
+    "name": "Bojax",
     "hero": "Bojax",
     "cardType": "Hero",
     "set": "Alpha",
@@ -617159,7 +617159,7 @@
   {
     "cardNumber": "SBF-6",
     "bvId": 5959,
-    "name": "Shrouded",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -617822,7 +617822,7 @@
   {
     "cardNumber": "SBF-12",
     "bvId": 2179,
-    "name": "Cruze-Control",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -620176,7 +620176,7 @@
   {
     "cardNumber": "SBF-33",
     "bvId": 931,
-    "name": "Boltage",
+    "name": "Billhook",
     "hero": "Billhook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -621075,7 +621075,7 @@
   {
     "cardNumber": "SBF-41",
     "bvId": 2219,
-    "name": "Cupid",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -621598,7 +621598,7 @@
   {
     "cardNumber": "SBF-46",
     "bvId": 6296,
-    "name": "Sprinkler",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -621972,7 +621972,7 @@
   {
     "cardNumber": "SBF-51",
     "bvId": 491,
-    "name": "Barnacle",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -625788,7 +625788,7 @@
   {
     "cardNumber": "SF-5",
     "bvId": 568,
-    "name": "Barry \"Cutback\" Sanders",
+    "name": "Burner",
     "hero": "Burner",
     "cardType": "Hero",
     "set": "Alpha",
@@ -626416,7 +626416,7 @@
   {
     "cardNumber": "SF-11",
     "bvId": 2405,
-    "name": "Donnie Baseball",
+    "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
     "cardType": "Hero",
     "set": "Alpha",
@@ -628642,7 +628642,7 @@
   {
     "cardNumber": "SF-32",
     "bvId": 1029,
-    "name": "Bone",
+    "name": "Billhook",
     "hero": "Billhook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -629498,7 +629498,7 @@
   {
     "cardNumber": "SF-40",
     "bvId": 2495,
-    "name": "Doublecheck",
+    "name": "Captain Hook",
     "hero": "Captain Hook",
     "cardType": "Hero",
     "set": "Alpha",
@@ -630040,7 +630040,7 @@
   {
     "cardNumber": "SF-45",
     "bvId": 1873,
-    "name": "Chosen",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Alpha",
@@ -630581,7 +630581,7 @@
   {
     "cardNumber": "SF-50",
     "bvId": 7116,
-    "name": "Tongue-Twister",
+    "name": "Boston Stongboy",
     "hero": "Boston Stongboy",
     "cardType": "Hero",
     "set": "Alpha",
@@ -631524,7 +631524,7 @@
   {
     "cardNumber": "SF-59",
     "bvId": 1528,
-    "name": "Caroller",
+    "name": "Carroller",
     "hero": "Carroller",
     "cardType": "Hero",
     "set": "Alpha",
@@ -632064,7 +632064,7 @@
   {
     "cardNumber": "SF-64",
     "bvId": 6251,
-    "name": "Spider",
+    "name": "Wild Beard",
     "hero": "Wild Beard",
     "cardType": "Hero",
     "set": "Alpha",
@@ -632317,7 +632317,7 @@
   {
     "cardNumber": "SF-66",
     "bvId": 5071,
-    "name": "Ollie",
+    "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
     "cardType": "Hero",
     "set": "Alpha",
@@ -633258,7 +633258,7 @@
   {
     "cardNumber": "SF-75",
     "bvId": 932,
-    "name": "Boltage",
+    "name": "Triple Threat",
     "hero": "Triple Threat",
     "cardType": "Hero",
     "set": "Alpha",
@@ -634347,7 +634347,7 @@
   {
     "cardNumber": "SF-89",
     "bvId": 2782,
-    "name": "Foxhole",
+    "name": "BrockNess",
     "hero": "BrockNess",
     "cardType": "Hero",
     "set": "Alpha",
@@ -634925,7 +634925,7 @@
   {
     "cardNumber": "SF-97",
     "bvId": 2354,
-    "name": "D-Hop",
+    "name": "Caliber",
     "hero": "Caliber",
     "cardType": "Hero",
     "set": "Alpha",
@@ -635288,7 +635288,7 @@
   {
     "cardNumber": "SF-102",
     "bvId": 5779,
-    "name": "Sarrtillery",
+    "name": "Brawn",
     "hero": "Brawn",
     "cardType": "Hero",
     "set": "Alpha",
@@ -641137,7 +641137,7 @@
   {
     "cardNumber": "SL-46",
     "bvId": 9073,
-    "name": "Bern Baby,Bern",
+    "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
     "cardType": "Hero",
     "set": "Griffey",
@@ -645305,7 +645305,7 @@
   {
     "cardNumber": "SSA-1",
     "bvId": 7727,
-    "name": "X.L.",
+    "name": "XL",
     "hero": "XL",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -645380,7 +645380,7 @@
   {
     "cardNumber": "SSA-2",
     "bvId": 7728,
-    "name": "X.L.",
+    "name": "XL",
     "hero": "XL",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -645457,7 +645457,7 @@
   {
     "cardNumber": "SSA-3",
     "bvId": 7729,
-    "name": "X.L.",
+    "name": "XL",
     "hero": "XL",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -645533,7 +645533,7 @@
   {
     "cardNumber": "SSA-4",
     "bvId": 7730,
-    "name": "X.L.",
+    "name": "XL",
     "hero": "XL",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -645609,7 +645609,7 @@
   {
     "cardNumber": "SSA-5",
     "bvId": 7731,
-    "name": "X.L.",
+    "name": "XL",
     "hero": "XL",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -645685,7 +645685,7 @@
   {
     "cardNumber": "SSA-6",
     "bvId": 7732,
-    "name": "X.L.",
+    "name": "XL",
     "hero": "XL",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -645871,7 +645871,7 @@
   {
     "cardNumber": "SSE-1",
     "bvId": 7733,
-    "name": "X.L.",
+    "name": "XL",
     "hero": "XL",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -645905,7 +645905,7 @@
   {
     "cardNumber": "SSE-2",
     "bvId": 5253,
-    "name": "Pet Dog",
+    "name": "Pet-Dog",
     "hero": "Pet-Dog",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -645972,7 +645972,7 @@
   {
     "cardNumber": "SSE-4",
     "bvId": 7734,
-    "name": "X.L.",
+    "name": "XL",
     "hero": "XL",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -646007,7 +646007,7 @@
   {
     "cardNumber": "SSE-5",
     "bvId": 5254,
-    "name": "Pet Dog",
+    "name": "Pet-Dog",
     "hero": "Pet-Dog",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -646076,7 +646076,7 @@
   {
     "cardNumber": "SSE-7",
     "bvId": 7735,
-    "name": "X.L.",
+    "name": "XL",
     "hero": "XL",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -646111,7 +646111,7 @@
   {
     "cardNumber": "SSE-8",
     "bvId": 5255,
-    "name": "Pet Dog",
+    "name": "Pet-Dog",
     "hero": "Pet-Dog",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -646180,7 +646180,7 @@
   {
     "cardNumber": "SSE-10",
     "bvId": 7736,
-    "name": "X.L.",
+    "name": "XL",
     "hero": "XL",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -646216,7 +646216,7 @@
   {
     "cardNumber": "SSE-11",
     "bvId": 5256,
-    "name": "Pet Dog",
+    "name": "Pet-Dog",
     "hero": "Pet-Dog",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -646287,7 +646287,7 @@
   {
     "cardNumber": "SSE-13",
     "bvId": 7737,
-    "name": "X.L.",
+    "name": "XL",
     "hero": "XL",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -646323,7 +646323,7 @@
   {
     "cardNumber": "SSE-14",
     "bvId": 5257,
-    "name": "Pet Dog",
+    "name": "Pet-Dog",
     "hero": "Pet-Dog",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -646394,7 +646394,7 @@
   {
     "cardNumber": "SSE-16",
     "bvId": 7738,
-    "name": "X.L.",
+    "name": "XL",
     "hero": "XL",
     "cardType": "Hero",
     "set": "Superfan Series",
@@ -646430,7 +646430,7 @@
   {
     "cardNumber": "SSE-17",
     "bvId": 5258,
-    "name": "Pet Dog",
+    "name": "Pet-Dog",
     "hero": "Pet-Dog",
     "cardType": "Hero",
     "set": "Superfan Series",

@@ -482,6 +482,7 @@ changes in both places in the same commit.
 
 <!-- Format: [date] [direction] description — what was done -->
 
+- **[2026-04-09] Cowork→CC** 458 hero-name corrections integrated — search-index.json rebuilt from card fields (10 stale BrockNess-as-McArmyKnife entries removed). SCRATCHPAD.md updated. Version bumped to 1.16/build 17. HANDOVER_2026-04-09.md cleaned up.
 - **[2026-04-09] Cowork→CC** v2 bobaId rollout integrated —
   `Card.swift` `id` updated to 4-field formula (+ variation), all 12 `user_cards`
   Supabase rows re-backfilled to v2 bobaIds, `supabase_schema.sql` comments + migration

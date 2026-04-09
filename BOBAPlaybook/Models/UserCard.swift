@@ -31,6 +31,10 @@ struct UserCard: Codable, Identifiable, Hashable {
     let id: UUID
     let userId: UUID
     let cardNumber: String
+    /// Composite identifier matching Card.id: "{cardNumber}-{hero}-{treatment??''}-{variation??''}".
+    /// Used for exact card matching so two cards with the same card number but
+    /// different treatments/editions are never confused.
+    let bobaId: String?
     var designation: Designation
     var condition: String?
     var serialNumber: Int?
@@ -87,6 +91,7 @@ struct UserCard: Codable, Identifiable, Hashable {
         case id
         case userId          = "user_id"
         case cardNumber      = "card_number"
+        case bobaId          = "boba_id"
         case designation
         case condition
         case serialNumber    = "serial_number"
@@ -104,6 +109,8 @@ struct UserCard: Codable, Identifiable, Hashable {
 // MARK: - New card payload (for POST to Supabase)
 struct NewUserCard: Encodable {
     let cardNumber: String
+    /// Composite identifier matching Card.id ("{cardNumber}-{hero}-{treatment??''}-{variation??''}"). Stored server-side for exact card matching.
+    let bobaId: String
     let designation: UserCard.Designation
     var condition: String?
     var serialNumber: Int?
@@ -117,6 +124,7 @@ struct NewUserCard: Encodable {
 
     enum CodingKeys: String, CodingKey {
         case cardNumber     = "card_number"
+        case bobaId         = "boba_id"
         case designation
         case condition
         case serialNumber   = "serial_number"

@@ -57,8 +57,8 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
         }
     }
 
-    // Stable unique id
-    var id: String { "\(cardNumber)-\(hero)-\(treatment ?? "")" }
+    // Stable unique id — v2 formula matches boba_id.py: "{cardNumber}-{hero}-{treatment??''}-{variation??''}"
+    var id: String { "\(cardNumber)-\(hero)-\(treatment ?? "")-\(variation ?? "")" }
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
     static func == (lhs: Card, rhs: Card) -> Bool { lhs.id == rhs.id }

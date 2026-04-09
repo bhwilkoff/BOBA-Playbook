@@ -55,8 +55,8 @@ struct CardDetailView: View {
     }
 
     private var collectionStatusIcon: String? {
-        if collection.isOwned(card.cardNumber) { return "checkmark.circle.fill" }
-        if collection.isWanted(card.cardNumber) { return "star.fill" }
+        if collection.isOwned(bobaId: card.id) { return "checkmark.circle.fill" }
+        if collection.isWanted(bobaId: card.id) { return "star.fill" }
         return nil
     }
 
@@ -132,7 +132,7 @@ struct CardDetailView: View {
                             .font(.system(size: 20, weight: .medium))
                             .foregroundStyle(
                                 collectionStatusIcon != nil
-                                    ? (collection.isOwned(card.cardNumber) ? Color.green : Design.Colors.bobaOrange)
+                                    ? (collection.isOwned(bobaId: card.id) ? Color.green : Design.Colors.bobaOrange)
                                     : Design.Colors.bobaOrange
                             )
                     }
@@ -442,8 +442,8 @@ struct CardDetailView: View {
                                     .lineLimit(1)
                                     .frame(width: 80)
 
-                                let owned = collection.isOwned(variant.cardNumber)
-                                let wanted = collection.isWanted(variant.cardNumber)
+                                let owned = collection.isOwned(bobaId: variant.id)
+                                let wanted = collection.isWanted(bobaId: variant.id)
                                 if owned || wanted {
                                     Image(systemName: owned ? "checkmark.circle.fill" : "star.fill")
                                         .font(.system(size: 12))

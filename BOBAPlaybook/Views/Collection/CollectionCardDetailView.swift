@@ -5,7 +5,8 @@ import SwiftUI
 // Also surfaces "variations" — other card_numbers with the same hero.
 
 struct CollectionCardDetailView: View {
-    let cardNumber: String
+    /// bobaId (e.g. "BOJ-123-BoJax-Base") for new entries, or a plain cardNumber for legacy entries.
+    let bobaId: String
 
     @Environment(CollectionStore.self) private var collection
     @Environment(CardStore.self) private var cardStore
@@ -17,18 +18,20 @@ struct CollectionCardDetailView: View {
     @State private var isRefreshingPrice = false
 
     private var catalogCard: Card? {
-        cardStore.displayCards.first { $0.cardNumber == cardNumber }
+        // Try exact bobaId match first, then fall back to cardNumber for legacy entries
+        cardStore.displayCards.first { $0.id == bobaId }
+        ?? cardStore.displayCards.first { $0.cardNumber == bobaId }
     }
 
     private var entries: [UserCard] {
-        collection.entries(for: cardNumber)
+        collection.entries(forBobaId: bobaId)
     }
 
     // Other card_numbers with the same hero (variations/other printings)
     private var variations: [Card] {
         guard let card = catalogCard else { return [] }
         return cardStore.displayCards
-            .filter { $0.hero == card.hero && $0.cardNumber != cardNumber }
+            .filter { $0.hero == card.hero && $0.id != bobaId }
             .sorted {
                 let lImg = $0.imageFile != nil && !$0.imageFile!.isEmpty
                 let rImg = $1.imageFile != nil && !$1.imageFile!.isEmpty
@@ -54,7 +57,7 @@ struct CollectionCardDetailView: View {
                 .padding(Design.Spacing.lg)
             }
             .background(Design.Colors.nearBlack)
-            .navigationTitle(catalogCard?.name ?? cardNumber)
+            .navigationTitle(catalogCard?.name ?? catalogCard?.cardNumber ?? bobaId)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -89,7 +92,7 @@ struct CollectionCardDetailView: View {
                 // Silently refresh estimated_value when the view appears if data is stale.
                 guard let card = catalogCard else { return }
                 isRefreshingPrice = true
-                await collection.refreshPricingIfNeeded(for: cardNumber, card: card)
+                await collection.refreshPricingIfNeeded(for: card.cardNumber, card: card)
                 isRefreshingPrice = false
             }
         }
@@ -308,8 +311,8 @@ struct CollectionCardDetailView: View {
                 .frame(width: 80)
 
             // Ownership indicator
-            let owned = collection.isOwned(card.cardNumber)
-            let wanted = collection.isWanted(card.cardNumber)
+            let owned = collection.isOwned(bobaId: card.id)
+            let wanted = collection.isWanted(bobaId: card.id)
             if owned || wanted {
                 Image(systemName: owned ? "checkmark.circle.fill" : "star.fill")
                     .font(.system(size: 12))

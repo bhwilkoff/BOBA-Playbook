@@ -6,6 +6,34 @@ Every feature is built in service of human learning and growth — not to replac
 
 ---
 
+## Project Mantra: One Image per Card. One ID per Card.
+
+Every unique card gets exactly one canonical identifier (`bobaId`) and
+exactly one canonical image (`imageFile`). No two cards share either.
+All scripts, tools, lookups, corrections, and UIs disambiguate by
+`bobaId` whenever possible — it is the primary key for the card catalog.
+
+**`bobaId` formula** (v2, 4-field, lives in `scripts/boba_id.py` — do
+not redefine inline anywhere):
+```python
+bobaId = f"{cardNumber}-{hero or name}-{treatment or ''}-{variation or ''}"
+```
+Sealed Products fall back to `name` when `hero` is absent. Trailing
+dashes are intentional and stable. Verified 17,739 unique bobaIds
+across 17,739 cards (zero collisions).
+
+`bobaId` is stored as a real field in every JSON bundle (master
+`unified-cards/data/cards.json` plus the 6 downstream bundles in
+`assets/data/` and `BOBAPlaybook/`). Read the field — do not recompute
+it at runtime unless the field is missing.
+
+The Supabase `card_corrections` and `card_image_overrides` tables carry
+a `boba_id` column and any new row written from either iOS or web MUST
+populate it. See `COWORK.md` for the full correction sync protocol
+between Claude Code and Cowork.
+
+---
+
 ## Debugging Philosophy
 
 **Do not iterate blindly on behavior you cannot observe.** When the root cause is unclear, instrument first — don't guess.

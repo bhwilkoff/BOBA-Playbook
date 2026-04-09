@@ -192,6 +192,7 @@ const API = (() => {
     if (!session) throw new Error('Not signed in');
     const row = {
       card_number:    cardNumber,
+      boba_id:        cardContext.bobaId    ?? null,
       corrections,
       notes:          notes || null,
       submitted_by:   session.user.id,
@@ -205,11 +206,12 @@ const API = (() => {
     if (error) throw new Error(error.message);
   }
 
-  async function submitImageOverride(cardNumber, action, storagePath, status = 'pending') {
+  async function submitImageOverride(cardNumber, action, storagePath, status = 'pending', bobaId = null) {
     const { data: { session } } = await supa().auth.getSession();
     if (!session) throw new Error('Not signed in');
     const payload = {
       card_number:  cardNumber,
+      boba_id:      bobaId ?? null,
       action,
       submitted_by: session.user.id,
       status,

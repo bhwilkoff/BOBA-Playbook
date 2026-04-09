@@ -231,6 +231,7 @@ struct CardDetailView: View {
             .frame(height: 420)
 
             CardImageView(card: card, size: .full)
+                .id(card.id)  // force view recreation on card change so loadedImage resets
                 .frame(maxWidth: .infinity)
                 .frame(height: 380)
                 .scaleEffect(effectiveScale)

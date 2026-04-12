@@ -110,6 +110,7 @@ struct CardGridItemView: View {
         let t = treatment.lowercased()
         if t.contains("blizzard")     { return (Color(hex: "00BFFF"), "BLIZZARD") }
         if t.contains("superfoil")    { return (Color(hex: "FFD700"), "SUPERFOIL") }
+        if t.contains("colosseum")    { return (Color(hex: "A0522D"), "COLOSSEUM") }
         if t.contains("battlefoil")   { return (Color(hex: "FF4D00"), "BATTLEFOIL") }
         if t.contains("inspired ink") { return (Color(hex: "8B00FF"), "INK") }
         if t.contains("logofoil")     { return (Color(hex: "C0C0C0"), "LOGOFOIL") }

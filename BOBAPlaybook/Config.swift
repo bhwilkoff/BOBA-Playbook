@@ -23,6 +23,8 @@ enum DiscordConfig {
     static let guildId     = "1305710603440095252"
     static let inviteCode  = "bobattlearena"
     static let redirectURI = "bobaplaybook://discord-callback"
+    // Initial code exchange — Worker adds client_secret (Discord requires it even for PKCE)
+    static let tokenURL    = WorkerConfig.ebayProxyURL + "/discord/token"
     static let refreshURL  = WorkerConfig.ebayProxyURL + "/discord/refresh"
     static let messagesURL = WorkerConfig.ebayProxyURL + "/discord/messages"
 }

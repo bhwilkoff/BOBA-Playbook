@@ -163,18 +163,17 @@ final class DiscordService: NSObject {
     }
 
     private func exchangeCode(_ code: String, verifier: String) async throws {
-        var req = URLRequest(url: URL(string: "https://discord.com/api/oauth2/token")!)
+        // Route through Worker — Discord requires client_secret even for PKCE flows
+        // on confidential clients. The secret lives in the Worker, never in client code.
+        var req = URLRequest(url: URL(string: DiscordConfig.tokenURL)!)
         req.httpMethod = "POST"
-        req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        var body = URLComponents()
-        body.queryItems = [
-            .init(name: "client_id",      value: DiscordConfig.clientId),
-            .init(name: "grant_type",     value: "authorization_code"),
-            .init(name: "code",           value: code),
-            .init(name: "redirect_uri",   value: DiscordConfig.redirectURI),
-            .init(name: "code_verifier",  value: verifier),
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let payload: [String: String] = [
+            "code":          code,
+            "code_verifier": verifier,
+            "redirect_uri":  DiscordConfig.redirectURI,
         ]
-        req.httpBody = body.query?.data(using: .utf8)
+        req.httpBody = try JSONEncoder().encode(payload)
         let (data, resp) = try await URLSession.shared.data(for: req)
         guard (resp as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
         let tokens = try JSONDecoder().decode(DiscordTokenResponse.self, from: data)

@@ -842,15 +842,11 @@
 
   /* ================================================================
      SEARCH LOGIC
-     search-index values are card NUMBERS (strings), not array positions.
+     search-index values are bobaId strings — one bobaId = one card.
   ================================================================ */
 
   function computeResults() {
-    let resultNums = null; // null = "all cards"
-
-    // Hero names matched by text tokens — used to filter variants on expansion.
-    // Only populated when a token is determined to be a hero-name search.
-    const heroQueryFilter = new Set();
+    let resultIds = null; // null = "all cards"; Set of bobaId strings when filtered
 
     // Text search
     // Normalize dashes to spaces so card numbers like "CBF-656" tokenize correctly.
@@ -858,70 +854,67 @@
     if (q) {
       const tokens = q.split(/\s+/).filter(Boolean);
       for (const token of tokens) {
-        // Collect tokenIndex prefix matches
+        // Collect tokenIndex prefix matches — values are now bobaIds
         const matches = new Set();
         for (const key in searchIndex.tokenIndex) {
           if (key.startsWith(token)) {
-            for (const cardNum of searchIndex.tokenIndex[key]) {
-              matches.add(String(cardNum));
+            for (const id of searchIndex.tokenIndex[key]) {
+              matches.add(String(id));
             }
           }
         }
 
         // Hero-name detection: if this token primarily resolves to hero names
-        // (byHero prefix matches cover ≥60% of tokenIndex matches), treat it as
-        // a hero search and restrict results to those hero cards.  This prevents
-        // multi-hero association cards from showing under the wrong hero.
-        // Tokens where byHero coverage is low (e.g. "fire" → element term) are
-        // left alone so element-style text searches still work normally.
+        // (byHero prefix matches cover ≥60% of tokenIndex matches), restrict
+        // results to those hero cards. byHero now maps hero→[bobaIds] so each
+        // id resolves to exactly the right card — no post-filter needed.
         if (token.length >= 3 && matches.size > 0) {
           const matchingHeroes = [];
-          const heroCardSet = new Set();
+          const heroIdSet = new Set();
           for (const hero of Object.keys(searchIndex.byHero)) {
             if (hero.toLowerCase().startsWith(token)) {
               matchingHeroes.push(hero);
-              for (const num of searchIndex.byHero[hero]) {
-                heroCardSet.add(String(num));
+              for (const id of searchIndex.byHero[hero]) {
+                heroIdSet.add(String(id));
               }
             }
           }
-          if (matchingHeroes.length > 0 && heroCardSet.size >= matches.size * 0.6) {
-            for (const hero of matchingHeroes) heroQueryFilter.add(hero);
-            resultNums = resultNums === null ? heroCardSet : intersect(resultNums, heroCardSet);
+          if (matchingHeroes.length > 0 && heroIdSet.size >= matches.size * 0.6) {
+            resultIds = resultIds === null ? heroIdSet : intersect(resultIds, heroIdSet);
             continue;
           }
         }
 
-        resultNums = resultNums === null ? matches : intersect(resultNums, matches);
+        resultIds = resultIds === null ? matches : intersect(resultIds, matches);
       }
-      if (resultNums !== null && resultNums.size === 0) return [];
+      if (resultIds !== null && resultIds.size === 0) return [];
     }
 
     // Element filter
     if (filters.element) {
       const s = new Set((searchIndex.byElement[filters.element] || []).map(String));
-      resultNums = resultNums === null ? s : intersect(resultNums, s);
+      resultIds = resultIds === null ? s : intersect(resultIds, s);
     }
 
     // Set filter
     if (filters.set) {
       const s = new Set((searchIndex.bySet[filters.set] || []).map(String));
-      resultNums = resultNums === null ? s : intersect(resultNums, s);
+      resultIds = resultIds === null ? s : intersect(resultIds, s);
     }
 
     // Treatment filter
     if (filters.treatment) {
       const s = new Set((searchIndex.byTreatment[filters.treatment] || []).map(String));
-      resultNums = resultNums === null ? s : intersect(resultNums, s);
+      resultIds = resultIds === null ? s : intersect(resultIds, s);
     }
 
     // Has image filter
     if (filters.hasImage) {
       const s = new Set((searchIndex.hasImage || []).map(String));
-      resultNums = resultNums === null ? s : intersect(resultNums, s);
+      resultIds = resultIds === null ? s : intersect(resultIds, s);
     }
 
-    if (resultNums === null) {
+    if (resultIds === null) {
       // No search/filter applied — apply power filter directly against all cards if needed
       if (filters.powerMin !== null || filters.powerMax !== null) {
         return displayCards.filter(card => {
@@ -934,19 +927,12 @@
       return displayCards;
     }
 
-    // Expand card numbers → matching individual cards.
-    // When a hero search was detected, only include the variant(s) that match the
-    // searched hero so multi-hero cards don't appear under the wrong hero.
+    // Expand bobaIds → individual cards. Each bobaId maps to exactly one card
+    // so no hero-variant filtering is needed — search contamination is impossible.
     const results = [];
-    for (const num of resultNums) {
-      const variants = cardsByNumber.get(num);
-      if (!variants) continue;
-      if (heroQueryFilter.size > 0) {
-        const heroVariants = variants.filter(v => heroQueryFilter.has(v.hero));
-        results.push(...heroVariants);
-      } else {
-        results.push(...variants);
-      }
+    for (const id of resultIds) {
+      const card = cardsByBobaId.get(id);
+      if (card) results.push(card);
     }
 
     // Power range filter applied per-card (cards sharing a number can have different power)
@@ -1019,6 +1005,7 @@
     const t = treatment.toLowerCase();
     if (t.includes('blizzard')) return 'tf-blizzard';
     if (t.includes('superfoil')) return 'tf-superfoil';
+    if (t.includes('colosseum')) return 'tf-colosseum';
     if (t.includes('battlefoil')) return 'tf-battlefoil';
     if (t.includes('inspired ink') || t.includes('inspired-ink')) return 'tf-inspired';
     if (t.includes('inspired')) return 'tf-inspired-m';
@@ -1027,6 +1014,16 @@
     if (t.includes('paper')) return 'tf-paper';
     if (t === 'base' || t === 'standard' || t === '') return 'tf-base';
     return 'tf-special';
+  }
+
+  // Returns a shortened display label for treatments that are too long for ribbons/filters.
+  // The raw treatment value is always used for data lookups and filter keys.
+  function displayTreatment(treatment) {
+    if (!treatment) return treatment;
+    const t = treatment.toLowerCase();
+    if (t.includes('colosseum')) return 'Colosseum';
+    if (t.includes('grandma') || t.includes('linoleum')) return 'Linoleum';
+    return treatment;
   }
 
   function getSetClass(set) {
@@ -1100,7 +1097,7 @@
     for (const t of all) {
       const opt = document.createElement('option');
       opt.value = t;
-      opt.textContent = t;
+      opt.textContent = displayTreatment(t);
       treatmentFilter.appendChild(opt);
     }
   }
@@ -1247,7 +1244,7 @@
 
     // Only show treatment ribbon for non-base treatments
     const ribbonHtml = (treatmentClass !== 'tf-base')
-      ? `<div class="card-treatment-ribbon" aria-hidden="true">${escHtml(card.treatment)}</div>`
+      ? `<div class="card-treatment-ribbon" aria-hidden="true">${escHtml(displayTreatment(card.treatment))}</div>`
       : '';
 
     el.innerHTML = `
@@ -1845,7 +1842,7 @@
 
     // Treatment banner (only for non-base)
     const treatmentBanner = (treatmentClass !== 'tf-base' && card.treatment)
-      ? `<span class="treatment-banner ${treatmentClass}">${escHtml(card.treatment)}</span>`
+      ? `<span class="treatment-banner ${treatmentClass}">${escHtml(displayTreatment(card.treatment))}</span>`
       : '';
 
     return `

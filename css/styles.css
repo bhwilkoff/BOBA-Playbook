@@ -718,6 +718,7 @@ main {
 }
 
 /* Treatment ribbon colors */
+.tf-colosseum    .card-treatment-ribbon { background: linear-gradient(90deg,#5C1A00,#A0522D); color: #FFD5B0; }
 .tf-battlefoil   .card-treatment-ribbon { background: linear-gradient(90deg,#8B6914,#C9A227); color: #000; }
 .tf-blizzard     .card-treatment-ribbon { background: linear-gradient(90deg,#004080,#00BFFF); color: #fff; }
 .tf-superfoil    .card-treatment-ribbon { background: linear-gradient(90deg,#ff006e,#8b00ff,#00f5ff); color: #fff; }
@@ -1058,6 +1059,8 @@ main {
   position: relative; overflow: hidden;
 }
 /* Treatment banner specific styles */
+.tf-colosseum    .treatment-banner,
+.treatment-banner.tf-colosseum  { background: linear-gradient(90deg,#2A0A00,#A0522D,#D4956A,#A0522D,#2A0A00); color: #FFE5CC; text-shadow: 0 1px 0 rgba(160,82,45,0.4); }
 .tf-battlefoil   .treatment-banner,
 .treatment-banner.tf-battlefoil { background: linear-gradient(90deg,#5C3D00,#C9A227,#F5D68F,#C9A227,#5C3D00); color: #1A0F00; text-shadow: 0 1px 0 rgba(255,220,100,0.4); }
 .tf-blizzard     .treatment-banner,

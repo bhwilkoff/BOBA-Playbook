@@ -11,8 +11,10 @@ const Discord = (() => {
   const GUILD_ID     = '1305710603440095252';
   const INVITE_CODE  = 'bobattlearena';
   const REDIRECT_URI = 'https://bobaplaybook.com/discord-callback.html';
-  const REFRESH_URL  = 'https://boba-ebay-proxy.benwilkoff.workers.dev/discord/refresh';
-  const MESSAGES_URL = 'https://boba-ebay-proxy.benwilkoff.workers.dev/discord/messages';
+  const WORKER_BASE  = 'https://boba-ebay-proxy.benwilkoff.workers.dev';
+  const TOKEN_URL    = WORKER_BASE + '/discord/token';
+  const REFRESH_URL  = WORKER_BASE + '/discord/refresh';
+  const MESSAGES_URL = WORKER_BASE + '/discord/messages';
   const POLL_MS      = 2500;
 
   // ─── State ──────────────────────────────────────────────────────────────────
@@ -91,7 +93,7 @@ const Discord = (() => {
     return new Promise((resolve) => {
       const handler = async (e) => {
         if (e.origin !== window.location.origin) return;
-        if (!e.data?.type === 'discord_callback') return;
+        if (e.data?.type !== 'discord_callback') return;
         window.removeEventListener('message', handler);
         popup?.close();
         const { code, state: retState } = e.data;
@@ -114,15 +116,15 @@ const Discord = (() => {
 
   async function _exchangeCode(code, verifier) {
     try {
-      const res = await fetch('https://discord.com/api/oauth2/token', {
+      // Route through Worker — Discord requires client_secret even for PKCE flows
+      // on confidential clients. The secret lives in the Worker, never in client code.
+      const res = await fetch(TOKEN_URL, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body:    new URLSearchParams({
-          client_id:     CLIENT_ID,
-          grant_type:    'authorization_code',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
           code,
-          redirect_uri:  REDIRECT_URI,
           code_verifier: verifier,
+          redirect_uri:  REDIRECT_URI,
         }),
       });
       if (!res.ok) return false;

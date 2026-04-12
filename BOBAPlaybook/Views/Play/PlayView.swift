@@ -970,11 +970,11 @@ private struct PlayCardTypesSection: View {
         PlayType(name: "Tempo",        desc: "Immediate one-time power boost.",                      color: Design.Colors.bobaOrange,
                  cardFile: "PL-31_Buff-Up-15.webp",               cardName: "Buff Up 15",            cardCost: 2, cardAbility: "Your Hero gets +15 this Battle."),
         PlayType(name: "Value",        desc: "Ongoing effect that compounds across battles.",        color: Design.Colors.bobaCyan,
-                 cardFile: "PL-23_2_For_20_Play.webp",            cardName: "Fire Boost",            cardCost: 2, cardAbility: "All FIRE Heroes get +10 for the rest of the game."),
+                 cardFile: "PL-23_Fire_Boost.webp",               cardName: "Fire Boost",            cardCost: 1, cardAbility: "All FIRE Heroes get +10 for the rest of the game."),
         PlayType(name: "Disruption",   desc: "Deny opponent options for a battle or permanently.",   color: Color(hex: "8B00FF"),
                  cardFile: "PL-59_Bench_Blocker.webp",            cardName: "Bench Blocker",         cardCost: 3, cardAbility: "Opponent Hero –20. They cannot substitute next Battle."),
         PlayType(name: "Economy",      desc: "Recover Hot Dogs — sustain your resource advantage.",  color: .yellow,
-                 cardFile: "PL-95_Last-Minute_Re-Org.webp",       cardName: "Trash Bandit",          cardCost: 0, cardAbility: "Recover 1 Hot Dog from your Discard Pile."),
+                 cardFile: "PL-95_Trash_Bandit.webp",             cardName: "Trash Bandit",          cardCost: 0, cardAbility: "Recover 1 Hot Dog from your Discard Pile."),
         PlayType(name: "Game-Changer", desc: "High-cost, match-defining effects that flip any battle.", color: Color(hex: "FF0090"),
                  cardFile: "PL-27_By-Any-Means-Necessary.webp",   cardName: "By Any Means Necessary", cardCost: 6, cardAbility: "Search your Playbook and play any Play for free."),
     ]
@@ -1410,38 +1410,41 @@ private struct CollectView: View {
 
 private struct RarityTierSection: View {
     private let tiers: [(Int, String, String, String, Color)] = [
-        (1, "Base Set",              "Standard print — no foil treatment.",                      "Most common",  Design.Colors.textMuted),
-        (2, "Battlefoil GLBF",       "Gold Leaf Battlefoil — gold foil accent.",                 "Common foil",  Color(hex: "FFD700")),
-        (3, "Battlefoil RAD",        "Radiant Battlefoil — shimmering holographic finish.",       "Common foil",  Color(hex: "AAAAFF")),
-        (4, "Color Battlefoil",      "Element-colored foil border — 9 elemental color variants.", "Mid-rarity",   Design.Colors.bobaCyan),
-        (5, "Superfoil",             "Full-card premium foil treatment.",                         "Premium",      Color(hex: "FF00FF")),
-        (6, "Inspired Ink",          "Autograph-style treatment with athlete tribute art.",        "Premium",      Color(hex: "FF69B4")),
-        (7, "Kanjifoil",             "Japanese kanji script foil treatment.",                     "Chase",        Color(hex: "8B00FF")),
-        (8, "Serialized",            "Numbered print run — /10, /25, /50.",                       "Chase",        Design.Colors.bobaOrange),
-        (9, "Billy Cameo Alt Art",   "Alternate art featuring the iconic Billy mascot.",           "Chase",        Color(hex: "FF4500")),
+        (1, "Base Set",              "No foil treatment. The most common card in any set — but hero scarcity varies widely. Your entry point for any collection.",             "Most common",  Design.Colors.textMuted),
+        (2, "Battlefoil GLBF",       "Gold Leaf Battlefoil with a gold foil accent on the card border. The most common foil treatment — a great first foil to chase.",        "Common foil",  Color(hex: "FFD700")),
+        (3, "Battlefoil RAD",        "Radiant Battlefoil with a shimmering holographic finish. Common foil alongside GLBF — both are frequent pulls from standard packs.",    "Common foil",  Color(hex: "AAAAFF")),
+        (4, "Color Battlefoil",      "Element-colored foil border matching the card's weapon type. 9 color variants (Fire, Ice, Steel, Brawl, Glow, Hex, Gum, Super, Alt). Harder to pull than GLBF/RAD.",    "Mid-rarity",   Design.Colors.bobaCyan),
+        (5, "Superfoil",             "Full-card holographic foil treatment covering the entire card face. Significantly rarer than any Battlefoil. The most visually striking card in most collections.",       "Premium",      Color(hex: "FF00FF")),
+        (6, "Inspired Ink",          "Autograph-style treatment featuring athlete tribute art. Named after the 'inspired by' athletes. Premium rarity — typically 1 per box or less.",                          "Premium",      Color(hex: "FF69B4")),
+        (7, "Kanjifoil",             "Japanese kanji script foil treatment. Chase rarity — rare enough that most collectors have never pulled one from a pack.",                                                 "Chase",        Color(hex: "8B00FF")),
+        (8, "Serialized",            "Each card is hand-stamped with its print number (/10, /25, /50). Hard-stop scarcity — the total supply is literally on the card. Highly prized by serious collectors.",   "Chase",        Design.Colors.bobaOrange),
+        (9, "Billy Cameo Alt Art",   "Alternate art featuring Billy, the iconic BOBA hot dog mascot. The rarest and most sought-after cards in the entire game.",                                               "Chase",        Color(hex: "FF4500")),
     ]
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.sm) {
             Text("RARITY TIERS")
                 .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
-            Text("A single Hero can appear as a Base Set card AND as multiple foil treatments — each is a separate collectible.")
+            Text("A single Hero can appear as a Base Set card AND as multiple foil treatments — each is a separate collectible with its own supply and market value.")
                 .font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true).padding(.bottom, Design.Spacing.xs)
             VStack(spacing: 1) {
                 ForEach(tiers, id: \.0) { tier in
-                    HStack(spacing: Design.Spacing.md) {
+                    HStack(alignment: .top, spacing: Design.Spacing.md) {
                         ZStack {
                             Circle().fill(tier.4.opacity(0.15)).frame(width: 28, height: 28)
                             Text("\(tier.0)").font(Design.Fonts.display(12)).foregroundStyle(tier.4)
                         }
+                        .padding(.top, 2)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(tier.1).font(Design.Fonts.mono(13, weight: .bold)).foregroundStyle(tier.4)
                             Text(tier.2).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         Spacer()
                         Text(tier.3).font(Design.Fonts.mono(10, weight: .bold)).foregroundStyle(tier.4.opacity(0.8))
                             .padding(.horizontal, 6).padding(.vertical, 3)
                             .background(Capsule().fill(tier.4.opacity(0.1)))
+                            .fixedSize()
                     }
                     .padding(.horizontal, Design.Spacing.md).padding(.vertical, Design.Spacing.sm)
                     .background(Design.Colors.surface)
@@ -1454,49 +1457,134 @@ private struct RarityTierSection: View {
 }
 
 private struct VariationSection: View {
-    private let variations: [(String, String, String)] = [
-        ("First Edition",  "8,926 cards", "The original print run — the most numerous variation across all sets."),
-        ("2026 Edition",   "880 cards",   "Introduces three new treatments: Logofoil, Colosseum Battlefoil, Great Grandma's Linoleum Battlefoil."),
-        ("Debut",          "70 per hero", "Special debut cards for select heroes. Often serialized — highly collectible."),
-        ("Unmasked",       "70 per hero", "Alternate art revealing the real-world athlete behind the hero character."),
-    ]
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.sm) {
             Text("VARIATIONS")
                 .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
-            RuleCard(lines: variations.map { v in .init(label: "\(v.0) (\(v.1))", body: v.2) })
+            Text("Variations are distinct print runs of the same card. The same hero in the same treatment can exist across multiple variations — each is separately collectible with its own scarcity and value.")
+                .font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true).padding(.bottom, Design.Spacing.xs)
+            VStack(spacing: Design.Spacing.sm) {
+                VariationDetailCard(
+                    name: "First Edition", count: "8,926 cards", color: Design.Colors.textSecondary,
+                    bullets: [
+                        "The original print run — the baseline for all sets",
+                        "Most widely available; the first cards released for every hero",
+                        "All treatments from Base Set through chase exist in First Edition",
+                        "Look for the First Edition stamp to confirm authenticity",
+                    ]
+                )
+                VariationDetailCard(
+                    name: "2026 Edition", count: "880 cards", color: Design.Colors.bobaCyan,
+                    bullets: [
+                        "Second print run of select Alpha and Griffey Edition cards",
+                        "Introduces three exclusive treatments: Logofoil, Colosseum Battlefoil, and Great Grandma's Linoleum Battlefoil — these treatments do not exist in First Edition",
+                        "Typically harder to find than equivalent First Edition cards",
+                        "Often features revised or updated card art",
+                    ]
+                )
+                VariationDetailCard(
+                    name: "Debut", count: "70 per hero", color: Design.Colors.bobaOrange,
+                    bullets: [
+                        "Each hero's official introduction card into the BOBA universe",
+                        "Only 70 printed per hero — meaningful scarcity even for common heroes",
+                        "Many Debut cards carry serial numbers, making individual copies uniquely identifiable",
+                        "The definitive collector piece for fans of any specific hero or athlete",
+                    ]
+                )
+                VariationDetailCard(
+                    name: "Unmasked", count: "70 per hero", color: Color(hex: "FF69B4"),
+                    bullets: [
+                        "Reveals the real-world athlete behind the hero mask",
+                        "Features athlete-focused art rather than the hero persona",
+                        "Only 70 printed per hero — as scarce as Debut variations",
+                        "Typically commands the highest value of any variation for a given hero",
+                        "The premier card for collectors building athlete-specific portfolios",
+                    ]
+                )
+            }
         }
+    }
+}
+
+private struct VariationDetailCard: View {
+    let name: String
+    let count: String
+    let color: Color
+    let bullets: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            HStack {
+                Text(name)
+                    .font(Design.Fonts.mono(14, weight: .bold))
+                    .foregroundStyle(color)
+                Spacer()
+                Text(count)
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(color.opacity(0.8))
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Capsule().fill(color.opacity(0.12)))
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(bullets, id: \.self) { bullet in
+                    HStack(alignment: .top, spacing: 6) {
+                        Text("·")
+                            .font(Design.Fonts.mono(13))
+                            .foregroundStyle(color.opacity(0.6))
+                        Text(bullet)
+                            .font(Design.Fonts.mono(12))
+                            .foregroundStyle(Design.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+        .padding(Design.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(color.opacity(0.05))
+            .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(color.opacity(0.2), lineWidth: 1)))
     }
 }
 
 private struct TreatmentHighlightsSection: View {
     private let highlights: [(String, String, Color)] = [
-        ("Logofoil",                  "2026 Edition exclusive — logo foil print.",                             Color(hex: "FFD700")),
-        ("Colosseum Battlefoil",      "2026 Edition — stadium-arena themed foil border.",                      Design.Colors.bobaCyan),
-        ("Great Grandma Linoleum BF", "2026 Edition — uniquely textured linoleum-style foil treatment.",        Color(hex: "FF69B4")),
-        ("Hot Dog Treatment",         "Heroes printed on Hot Dog-style cards — iconic collector's items.",       Color(hex: "FFB347")),
-        ("Superfoil",                 "Full-card holographic — the most visually impactful treatment in game.", Color(hex: "FF00FF")),
+        ("Logofoil",                       "2026 Edition exclusive — logo foil print. Not available in First Edition.",                                                   Color(hex: "FFD700")),
+        ("Colosseum Battlefoil",           "2026 Edition — stadium-arena themed foil border. One of three treatments introduced with the 2026 print run.",               Design.Colors.bobaCyan),
+        ("Great Grandma's Linoleum BF",    "2026 Edition — uniquely textured linoleum-style foil treatment. The most distinctive of the new 2026 treatments.",           Color(hex: "FF69B4")),
+        ("Hot Dog Treatment",              "Heroes printed on Hot Dog-style cards — a crossover rarity. Instantly recognizable and iconic collector items.",              Color(hex: "FFB347")),
+        ("Superfoil",                      "Full-card holographic foil. The most visually impactful treatment in the game and the goal of most new collectors.",          Color(hex: "FF00FF")),
+        ("Inspired Ink",                   "Athlete tribute art in an autograph-inspired style. Named after the real athletes who inspired each hero character.",          Color(hex: "FF69B4")),
+        ("Kanjifoil",                      "Japanese kanji script foil treatment. Rare enough to be a genuine chase card — many collectors actively seek these.",         Color(hex: "8B00FF")),
     ]
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.sm) {
             Text("NOTABLE TREATMENTS")
                 .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
-            VStack(alignment: .leading, spacing: Design.Spacing.md) {
-                ForEach(highlights, id: \.0) { item in
+            Text("Treatments apply across variations — a Superfoil First Edition and a Superfoil 2026 Edition are both Superfoils but are distinct collectibles.")
+                .font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true).padding(.bottom, Design.Spacing.xs)
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(highlights.enumerated()), id: \.offset) { idx, item in
                     HStack(alignment: .top, spacing: Design.Spacing.md) {
                         Circle().fill(item.2).frame(width: 8, height: 8).padding(.top, 5)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(item.0).font(Design.Fonts.mono(13, weight: .bold)).foregroundStyle(item.2)
                             Text(item.1).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Design.Spacing.md)
+                    .padding(.vertical, Design.Spacing.sm)
+                    .background(Design.Colors.surface)
+                    if idx < highlights.count - 1 {
+                        Divider().background(Design.Colors.glassBorder)
+                    }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(Design.Spacing.md)
-            .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface)
-                .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1)))
+            .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+            .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
         }
     }
 }

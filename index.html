@@ -66,7 +66,6 @@
         </svg>
         <span>Scan</span>
       </button>
-      <!-- Market Feed nav item hidden pending eBay Marketplace Insights API scope approval -->
       <button class="sidebar-nav-item" id="nav-rules-btn" data-view="rules">
         <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
           <rect x="2" y="2" width="20" height="20" rx="4"/>
@@ -1059,13 +1058,13 @@
 
           <section class="collect-section">
             <h3 class="collect-heading">RARITY TIERS</h3>
-            <p class="collect-intro">A single Hero can appear as a Base Set card AND as multiple foil treatments — each is a separate collectible.</p>
+            <p class="collect-intro">A single Hero can appear as a Base Set card AND as multiple foil treatments — each is a separate collectible with its own supply and market value.</p>
             <div class="rarity-tier-list">
               <div class="rarity-tier-row" style="--tier-color:var(--boba-text-muted)">
                 <div class="rarity-tier-num">1</div>
                 <div class="rarity-tier-info">
                   <div class="rarity-tier-name">Base Set</div>
-                  <div class="rarity-tier-desc">Standard print — no foil treatment.</div>
+                  <div class="rarity-tier-desc">No foil treatment. The most common card in any set — but hero scarcity varies. Your entry point for any collection.</div>
                 </div>
                 <div class="rarity-tier-badge">Most common</div>
               </div>
@@ -1073,7 +1072,7 @@
                 <div class="rarity-tier-num">2</div>
                 <div class="rarity-tier-info">
                   <div class="rarity-tier-name">Battlefoil GLBF</div>
-                  <div class="rarity-tier-desc">Gold Leaf Battlefoil — gold foil accent.</div>
+                  <div class="rarity-tier-desc">Gold Leaf Battlefoil with a gold foil accent on the border. The most common foil — a great first foil to chase.</div>
                 </div>
                 <div class="rarity-tier-badge">Common foil</div>
               </div>
@@ -1081,7 +1080,7 @@
                 <div class="rarity-tier-num">3</div>
                 <div class="rarity-tier-info">
                   <div class="rarity-tier-name">Battlefoil RAD</div>
-                  <div class="rarity-tier-desc">Radiant Battlefoil — shimmering holographic finish.</div>
+                  <div class="rarity-tier-desc">Radiant Battlefoil with a shimmering holographic finish. Common foil alongside GLBF — both are frequent pulls from standard packs.</div>
                 </div>
                 <div class="rarity-tier-badge">Common foil</div>
               </div>
@@ -1089,7 +1088,7 @@
                 <div class="rarity-tier-num">4</div>
                 <div class="rarity-tier-info">
                   <div class="rarity-tier-name">Color Battlefoil</div>
-                  <div class="rarity-tier-desc">Element-colored foil border — 9 elemental color variants.</div>
+                  <div class="rarity-tier-desc">Element-colored foil border in the card's weapon color. 9 variants (Fire, Ice, Steel, Brawl, Glow, Hex, Gum, Super, Alt). Harder to pull than GLBF/RAD.</div>
                 </div>
                 <div class="rarity-tier-badge">Mid-rarity</div>
               </div>
@@ -1097,7 +1096,7 @@
                 <div class="rarity-tier-num">5</div>
                 <div class="rarity-tier-info">
                   <div class="rarity-tier-name">Superfoil</div>
-                  <div class="rarity-tier-desc">Full-card premium foil treatment.</div>
+                  <div class="rarity-tier-desc">Full-card holographic foil covering the entire card face. Significantly rarer than any Battlefoil. The most visually striking card in most collections.</div>
                 </div>
                 <div class="rarity-tier-badge">Premium</div>
               </div>
@@ -1105,7 +1104,7 @@
                 <div class="rarity-tier-num">6</div>
                 <div class="rarity-tier-info">
                   <div class="rarity-tier-name">Inspired Ink</div>
-                  <div class="rarity-tier-desc">Autograph-style treatment with athlete tribute art.</div>
+                  <div class="rarity-tier-desc">Autograph-style treatment with athlete tribute art. Named after the 'inspired by' athletes. Premium rarity — typically 1 per box or less.</div>
                 </div>
                 <div class="rarity-tier-badge">Premium</div>
               </div>
@@ -1113,7 +1112,7 @@
                 <div class="rarity-tier-num">7</div>
                 <div class="rarity-tier-info">
                   <div class="rarity-tier-name">Kanjifoil</div>
-                  <div class="rarity-tier-desc">Japanese kanji script foil treatment.</div>
+                  <div class="rarity-tier-desc">Japanese kanji script foil treatment. Chase rarity — rare enough that most collectors have never pulled one from a pack.</div>
                 </div>
                 <div class="rarity-tier-badge">Chase</div>
               </div>
@@ -1121,7 +1120,7 @@
                 <div class="rarity-tier-num">8</div>
                 <div class="rarity-tier-info">
                   <div class="rarity-tier-name">Serialized</div>
-                  <div class="rarity-tier-desc">Numbered print run — /10, /25, /50.</div>
+                  <div class="rarity-tier-desc">Hand-stamped serial number (/10, /25, /50). Hard-stop scarcity — the total supply is literally on the card. Highly prized by serious collectors.</div>
                 </div>
                 <div class="rarity-tier-badge">Chase</div>
               </div>
@@ -1129,7 +1128,7 @@
                 <div class="rarity-tier-num">9</div>
                 <div class="rarity-tier-info">
                   <div class="rarity-tier-name">Billy Cameo Alt Art</div>
-                  <div class="rarity-tier-desc">Alternate art featuring the iconic Billy mascot.</div>
+                  <div class="rarity-tier-desc">Alternate art featuring Billy, the iconic BOBA hot dog mascot. The rarest and most sought-after cards in the entire game.</div>
                 </div>
                 <div class="rarity-tier-badge">Chase</div>
               </div>
@@ -1138,73 +1137,111 @@
 
           <section class="collect-section">
             <h3 class="collect-heading">VARIATIONS</h3>
-            <div class="rules-table-wrap">
-              <table class="rules-table">
-                <thead>
-                  <tr><th>Variation</th><th>Count</th><th>Notes</th></tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>First Edition</td>
-                    <td>8,926 cards</td>
-                    <td>The original print run — the most numerous variation across all sets.</td>
-                  </tr>
-                  <tr>
-                    <td>2026 Edition</td>
-                    <td>880 cards</td>
-                    <td>Introduces three new treatments: Logofoil, Colosseum Battlefoil, Great Grandma Linoleum Battlefoil.</td>
-                  </tr>
-                  <tr>
-                    <td>Debut</td>
-                    <td>70 per hero</td>
-                    <td>Special debut cards for select heroes. Often serialized — highly collectible.</td>
-                  </tr>
-                  <tr>
-                    <td>Unmasked</td>
-                    <td>70 per hero</td>
-                    <td>Alternate art revealing the real-world athlete behind the hero character.</td>
-                  </tr>
-                </tbody>
-              </table>
+            <p class="collect-intro">Variations mark distinct print runs. The same hero in the same treatment can exist across multiple variations — each is separately collectible with its own scarcity and market value.</p>
+            <div class="variation-card-list">
+              <div class="variation-card" style="--var-color:var(--boba-text-secondary)">
+                <div class="variation-card-header">
+                  <span class="variation-card-name">First Edition</span>
+                  <span class="variation-card-count">8,926 cards</span>
+                </div>
+                <ul class="variation-card-bullets">
+                  <li>The original print run — the baseline for all sets</li>
+                  <li>Most widely available; the first cards released for every hero</li>
+                  <li>All treatments from Base Set through chase exist in First Edition</li>
+                  <li>Look for the <em>First Edition</em> stamp on the card face to confirm</li>
+                </ul>
+              </div>
+              <div class="variation-card" style="--var-color:var(--boba-cyan)">
+                <div class="variation-card-header">
+                  <span class="variation-card-name">2026 Edition</span>
+                  <span class="variation-card-count">880 cards</span>
+                </div>
+                <ul class="variation-card-bullets">
+                  <li>Second print run of select Alpha and Griffey Edition cards</li>
+                  <li>Introduces three exclusive treatments not available in First Edition: <em>Logofoil</em>, <em>Colosseum Battlefoil</em>, and <em>Great Grandma's Linoleum Battlefoil</em></li>
+                  <li>Typically harder to find than equivalent First Edition cards</li>
+                  <li>Often features revised or updated card art</li>
+                </ul>
+              </div>
+              <div class="variation-card" style="--var-color:var(--boba-orange)">
+                <div class="variation-card-header">
+                  <span class="variation-card-name">Debut</span>
+                  <span class="variation-card-count">70 per hero</span>
+                </div>
+                <ul class="variation-card-bullets">
+                  <li>Each hero's official introduction card into the BOBA universe</li>
+                  <li>Only 70 printed per hero — meaningful scarcity even for common heroes</li>
+                  <li>Many Debut cards carry serial numbers, making individual copies uniquely identifiable</li>
+                  <li>The definitive collector piece for fans of any specific hero or athlete</li>
+                </ul>
+              </div>
+              <div class="variation-card" style="--var-color:#FF69B4">
+                <div class="variation-card-header">
+                  <span class="variation-card-name">Unmasked</span>
+                  <span class="variation-card-count">70 per hero</span>
+                </div>
+                <ul class="variation-card-bullets">
+                  <li>Reveals the real-world athlete behind the hero mask</li>
+                  <li>Features athlete-focused art rather than the hero persona</li>
+                  <li>Only 70 printed per hero — as scarce as Debut variations</li>
+                  <li>Typically commands the highest value of any variation for a given hero</li>
+                  <li>The premier card for collectors building athlete-specific portfolios</li>
+                </ul>
+              </div>
             </div>
           </section>
 
           <section class="collect-section">
             <h3 class="collect-heading">NOTABLE TREATMENTS</h3>
+            <p class="collect-intro">Treatments apply across variations — a Superfoil First Edition and a Superfoil 2026 Edition are both Superfoils but are distinct collectibles.</p>
             <div class="collect-treatment-list">
               <div class="collect-treatment-row" style="--treat-color:#FFD700">
                 <div class="collect-treatment-dot"></div>
                 <div>
                   <div class="collect-treatment-name">Logofoil</div>
-                  <div class="collect-treatment-desc">2026 Edition exclusive — logo foil print.</div>
+                  <div class="collect-treatment-desc">2026 Edition exclusive — logo foil print. Not available in any First Edition cards.</div>
                 </div>
               </div>
               <div class="collect-treatment-row" style="--treat-color:var(--boba-cyan)">
                 <div class="collect-treatment-dot"></div>
                 <div>
                   <div class="collect-treatment-name">Colosseum Battlefoil</div>
-                  <div class="collect-treatment-desc">2026 Edition — stadium-arena themed foil border.</div>
+                  <div class="collect-treatment-desc">2026 Edition — stadium-arena themed foil border. One of three treatments introduced with the 2026 print run.</div>
                 </div>
               </div>
               <div class="collect-treatment-row" style="--treat-color:#FF69B4">
                 <div class="collect-treatment-dot"></div>
                 <div>
-                  <div class="collect-treatment-name">Great Grandma Linoleum BF</div>
-                  <div class="collect-treatment-desc">2026 Edition — uniquely textured linoleum-style foil treatment.</div>
+                  <div class="collect-treatment-name">Great Grandma's Linoleum BF</div>
+                  <div class="collect-treatment-desc">2026 Edition — uniquely textured linoleum-style foil treatment. The most distinctive of the new 2026 treatments.</div>
                 </div>
               </div>
               <div class="collect-treatment-row" style="--treat-color:#FFB347">
                 <div class="collect-treatment-dot"></div>
                 <div>
                   <div class="collect-treatment-name">Hot Dog Treatment</div>
-                  <div class="collect-treatment-desc">Heroes printed on Hot Dog-style cards — iconic collector's items.</div>
+                  <div class="collect-treatment-desc">Heroes printed on Hot Dog-style cards — a crossover rarity. Instantly recognizable and iconic collector items.</div>
                 </div>
               </div>
               <div class="collect-treatment-row" style="--treat-color:#FF00FF">
                 <div class="collect-treatment-dot"></div>
                 <div>
                   <div class="collect-treatment-name">Superfoil</div>
-                  <div class="collect-treatment-desc">Full-card holographic — the most visually impactful treatment in the game.</div>
+                  <div class="collect-treatment-desc">Full-card holographic foil. The most visually impactful treatment in the game and the goal of most new collectors.</div>
+                </div>
+              </div>
+              <div class="collect-treatment-row" style="--treat-color:#FF69B4">
+                <div class="collect-treatment-dot"></div>
+                <div>
+                  <div class="collect-treatment-name">Inspired Ink</div>
+                  <div class="collect-treatment-desc">Athlete tribute art in an autograph-inspired style. Named after the real athletes who inspired each hero character.</div>
+                </div>
+              </div>
+              <div class="collect-treatment-row" style="--treat-color:#8B00FF">
+                <div class="collect-treatment-dot"></div>
+                <div>
+                  <div class="collect-treatment-name">Kanjifoil</div>
+                  <div class="collect-treatment-desc">Japanese kanji script foil treatment. Rare enough to be a genuine chase card — many collectors actively seek these.</div>
                 </div>
               </div>
             </div>
@@ -1343,7 +1380,7 @@
       <div class="scan-container" id="scan-container"></div>
     </section>
 
-    <!-- Market Feed view hidden pending eBay Marketplace Insights API scope approval -->
+
 
 <!-- COLLECTION VIEW — rendered by collection.js -->
     <section id="view-collection" class="view" hidden aria-label="My Collection"></section>

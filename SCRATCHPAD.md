@@ -2,8 +2,8 @@
 
 ## Current State
 
-- **Active milestone**: M3.5 — Pricing Enhancements (Feature A + B complete in code; Worker deploy pending)
-- **Last session**: 2026-04-12 — M3.5 Feature A (dual-section pricing) + Feature B (Market Feed) fully implemented. Worker updated with parallel Radish+token fetch, always-on Browse API for active listings, and cron-based `recent_sales` cron handler. Supabase `recent_sales` table created. iOS: `MarketFeedView.swift` + `RecentSale.swift` + `fetchRecentSales()` in `SupabaseClient`. Web: Market Feed sidebar view + `feedFetch()` in `api.js` + full feed render logic in `app.js`. ⚠️ Worker still needs deployment with 2 new secrets — see M3.5 below.
+- **Active milestone**: M3.5 ✅ COMPLETE — Feature A (dual-section pricing / Buy Now) shipped. Feature B (Market Feed) cleaned up and removed — deferred pending eBay API scope approval.
+- **Last session**: 2026-04-12/13 — M3.5 cleanup complete. Removed all Market Feed code (MarketFeedView.swift, RecentSale.swift, fetchRecentSales, feedFetch, CSS, HTML). Worker redeployed without cron trigger. Ready for M4.
 - **Open questions**:
   - Rules/strategy content for Play Mode — source? (manual entry, PDF parse, structured JSON?)
   - Deck builder: local-only or save/share via Supabase?
@@ -24,7 +24,7 @@
 | Scan Mode (camera OCR) | ❌ | ✅ | M3 iOS complete — iOS only by design |
 | Pricing comps (links) | ✅ | ✅ | M3 complete; Worker deploy still needed for live data |
 | Buy Now (active listings) | ✅ | ✅ | M3.5 Feature A — complete and deployed |
-| Market Feed (recent sales) | ⏳ | ⏳ | M3.5 Feature B — UI + cron built but hidden; blocked on eBay API scope approval |
+| Market Feed (recent sales) | ❌ | ❌ | Deferred — code removed. Research complete (SerpApi), revisit when eBay API scope approved. |
 | Play Mode (rules + decks) | ⏳ | ⏳ | M4 — active |
 | Discord Trading Channel | ⏳ | ⏳ | M5 — in progress; needs Worker deploy + Discord redirect URI |
 
@@ -75,20 +75,17 @@ Card data JSONs, R2 images (89.3% coverage), Supabase schema, GitHub Pages live,
 
 ---
 
-### M3.5 — Pricing Enhancements 🔄 FEATURE A COMPLETE · FEATURE B BLOCKED
+### M3.5 — Pricing Enhancements 🔄 FEATURE A COMPLETE · FEATURE B DEFERRED
 
 **Feature A: Dual-section pricing ("Buy Now" + sold history) ✅ Code complete**
 - Worker: parallel `Promise.allSettled([radishFetch, getAppToken])`, always calls Browse API for active listings, dual `sold`/`active` response shape, legacy fields preserved, cache bumped v9→v10
 - Web: `renderPricingData` handles new dual shape; "RECENT SALES" + "BUY NOW" sections with separate styling (`.pricing-section-active`)
 - iOS: `PricingSection.swift` view update still needed to display two sections (sold + active)
 
-**Feature B: Market Feed ⛔ HIDDEN — blocked on eBay API access**
-- All code is built: `recent_sales` Supabase table, Worker cron handler, `RecentSale.swift` model, `MarketFeedView.swift`, `fetchRecentSales()` in `SupabaseClient`, web feed view + `feedFetch()` in `api.js`
-- **Blocked by:** eBay Marketplace Insights API (`/buy/marketplace-insights/v1/item_sales/search`) requires `buy.marketplace.insights` OAuth scope — a Limited Release API gated for eBay business partners, not available to small community apps via self-service
-- eBay Finding API `findCompletedItems` is also access-control-blocked for our app key
-- UI is hidden on both platforms (nav item removed from web sidebar; feed button removed from iOS Search toolbar) until access is resolved
-- **To unblock:** Apply via eBay Application Growth Check at https://developer.ebay.com/grow/application-growth-check — request `buy.marketplace.insights` scope access. Approval is uncertain for community apps.
-- **Alternative considered and rejected:** Radish Price Guide has a `dynamic-sales-report` page with 35k sales, but using it makes the feature redundant (why use our app when you can just go to Radish?)
+**Feature B: Market Feed ❌ DEFERRED — Clean up existing code**
+- **Decision:** Market Feed is a "nice to have," not core. Deferred to a future milestone to focus on more pressing app needs.
+- **Cleanup needed:** All Market Feed code was built prematurely and should be removed. See COWORK.md `[2026-04-12] Feature B DEFERRED` entry for the full file-by-file cleanup list (iOS: delete `MarketFeedView.swift`, `RecentSale.swift`, remove `fetchRecentSales()` from SupabaseClient; Web: remove feed functions from app.js/api.js, hidden HTML/CSS; Worker: remove cron handler + feed functions, keep Feature A pricing).
+- **Research preserved:** Data source research is complete. SerpApi eBay Search API ($75/mo, confirmed `sold_date` field) is the recommended independent approach when we revisit. Full details: `BOBA_Sold_Data_Research.md` in Research folder.
 
 ---
 
@@ -230,3 +227,5 @@ Research Discord Activity SDK vs WebView feasibility before committing.
 **2026-04-12 (Claude Code)** — Set taxonomy integration. Updated web/iOS app code to use new collector-facing set names from Cowork's taxonomy overhaul. (1) `js/app.js` `OCR_SET_HINTS`: updated hardcoded set names used in scan-mode card matching — `'Griffey'` → `'Griffey Edition'`, `'Alpha'` → `'Alpha Edition'`, `'World Champions 2024'/'World Champions 2025'` → `'World Champions'`, `'National 24 Starter Set'` → `'National Starter Set'`. These must match `card.set` values exactly. (2) `js/app.js` `SET_SLUG_MAP`: added `'National Starter Set'` as canonical key for Radish URL generation. (3) `BOBAPlaybook/Components/PricingSection.swift` `setMap`: added `"National Starter Set"` as canonical key. Old name aliases retained in both maps for backward compat.
 
 **2026-04-12 (Claude Code)** — M3.5 Feature A + Feature B fully implemented. (1) **Feature A (dual pricing):** `workers/ebay-proxy/worker.js` rewritten to run Radish fetch + OAuth token in parallel (`Promise.allSettled`), always call Browse API for active listings regardless of Radish result, return dual `sold`/`active` response shape with legacy fields for backward compat, cache version bumped v9→v10. Web `renderPricingData` updated to render "RECENT SALES" + "BUY NOW" sections with distinct styling. (2) **Feature B (Market Feed):** Worker `scheduled` handler added with 30-min cron (wrangler.toml updated); `fetchRecentSales(env)` + `extractCardInfo(item)` + `extractItemId(id)` helpers upsert to Supabase `recent_sales`. Supabase migration applied: `recent_sales` table with `ebay_item_id` UNIQUE, indexes on `sold_date` + `card_number`, public RLS read policy. iOS: `RecentSale.swift` model, `SupabaseClient.fetchRecentSales()`, `MarketFeedView.swift` (full feed with pull-to-refresh, cursor pagination, card catalog matching, `CardImageView` / `AsyncImage` fallback, `CardDetailView` sheet, eBay link). `SearchView.swift` updated: `chart.line.uptrend.xyaxis` button in `.topBarLeading` opens Market Feed sheet (symmetric with filter button on `.topBarTrailing`). Web: Market Feed nav item + view section in `index.html`, styles in `css/styles.css`, `feedFetch()` in `api.js`, full `initFeedView()` + `renderFeedItem()` + pagination in `app.js`. ⚠️ Worker deploy still needed with `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` secrets — see M3.5 section for commands.
+
+**2026-04-12 (Cowork)** — Feature B (Market Feed) deferred. Decided Market Feed is "nice to have," not core — more pressing app needs take priority. All Feature B code (iOS: MarketFeedView.swift, RecentSale.swift, fetchRecentSales; Web: feed functions in app.js/api.js, hidden HTML/CSS; Worker: cron handler + feed functions) should be cleaned up/removed. Feature A (dual-section pricing / Buy Now) is unaffected and stays. Data source research complete and preserved: SerpApi eBay Search API ($75/mo) is the recommended independent approach when we revisit. Full research in `BOBA_Sold_Data_Research.md`.

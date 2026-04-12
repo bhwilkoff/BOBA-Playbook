@@ -348,23 +348,6 @@ final class SupabaseClient {
 
     // MARK: - user_cards CRUD
 
-    // MARK: - Market Feed (public — no auth required)
-
-    func fetchRecentSales(limit: Int = 20, before: Date? = nil) async throws -> [RecentSale] {
-        var path = "/rest/v1/recent_sales?order=sold_date.desc&limit=\(limit)"
-        if let before {
-            // ISO8601 cursor for pagination
-            let fmt = ISO8601DateFormatter()
-            fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            path += "&sold_date=lt.\(fmt.string(from: before))"
-        }
-        let url = try makeURL(path: path)
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        addHeaders(&request, authenticated: false)   // public RLS policy — anon key is enough
-        return try await executeArray(request)
-    }
-
     func fetchUserCards() async throws -> [UserCard] {
         let url = try makeURL(path: "/rest/v1/user_cards?select=*&order=acquired_at.desc")
         var request = URLRequest(url: url)

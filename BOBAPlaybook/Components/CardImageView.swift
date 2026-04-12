@@ -23,6 +23,14 @@ struct CardImageView: View {
         size == .thumb ? CDN.thumbURL(for: card) : CDN.fullURL(for: card)
     }
 
+    /// When loading the full image, check if the thumb is already in NSCache.
+    /// Showing it immediately eliminates the loading spinner for cards seen in the grid.
+    private var thumbImage: UIImage? {
+        guard size == .full,
+              let thumbURL = CDN.thumbURL(for: card) else { return nil }
+        return cardImageCache.object(forKey: thumbURL as NSURL)
+    }
+
     var body: some View {
         Group {
             if cardStore.isImageHidden(card.cardNumber) {
@@ -40,7 +48,13 @@ struct CardImageView: View {
                 // modifier stays in scope and can be restarted via loadID.
                 ZStack {
                     Design.Colors.surface2
-                    if loadFailed {
+                    if let thumb = thumbImage {
+                        // Thumb is already in NSCache from the grid — show it instantly
+                        // while the full-res image loads in the background.
+                        Image(uiImage: thumb)
+                            .resizable()
+                            .scaledToFit()
+                    } else if loadFailed {
                         placeholderContent
                     } else {
                         ProgressView()

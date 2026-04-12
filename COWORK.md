@@ -152,6 +152,39 @@ and we'll run the migration before you start submitting new corrections with `bo
 
 <!-- Cowork: add items here before handing off to Claude Code -->
 
+### [2026-04-12 ✅ DONE] Feature B (Market Feed) DEFERRED — Clean up existing code
+
+**Decision:** Market Feed is a "nice to have," not a core feature. It is deferred to a future milestone. There are more pressing needs in the app right now.
+
+**Research preserved:** The data source research is complete and ready when we revisit this. SerpApi eBay Search API ($75/mo, confirmed `sold_date` field) is the recommended independent approach. Full research: `BOBA_Sold_Data_Research.md` in the Bo Jackson Battle Arena Research folder.
+
+**ACTION REQUIRED — Claude Code should clean up all Market Feed code:**
+
+The following files contain Market Feed code that was built prematurely and should be removed to keep the codebase clean:
+
+**iOS (remove entirely):**
+- `BOBAPlaybook/Views/Search/MarketFeedView.swift` — delete this file
+- `BOBAPlaybook/Models/RecentSale.swift` — delete this file
+- `BOBAPlaybook/Networking/SupabaseClient.swift` — remove `fetchRecentSales()` method (~lines 353-366)
+- `SearchView.swift` — remove the Market Feed button (chart.line.uptrend icon) from `.topBarLeading` and its `.sheet` presentation
+
+**Web (remove entirely):**
+- `js/app.js` — remove `feedCursor`, `feedLoading`, `feedInitialized` state vars, `renderFeedItem()`, `bindFeedItemEvents()`, `loadFeedItems()`, `initFeedView()` functions
+- `js/api.js` — remove `feedFetch()` function (~lines 348-358)
+- `index.html` — remove the hidden Market Feed nav item and the hidden Market Feed view section
+- `css/styles.css` — remove all `.feed-*` CSS rules (~lines 2843-3094)
+
+**Worker (remove cron + feed functions, keep pricing):**
+- `workers/ebay-proxy/worker.js` — remove `fetchRecentSales()`, `extractCardInfo()`, `extractItemId()` functions and the `scheduled()` handler that calls them. Keep all per-card pricing code (Feature A) intact.
+- `workers/ebay-proxy/wrangler.toml` — remove the `[triggers] crons` section
+
+**Supabase:**
+- The `recent_sales` table can stay (empty, no cost) or be dropped — no urgency either way
+
+**Do NOT remove:** Feature A (dual-section pricing / "Buy Now" active listings) is independent and should stay.
+
+---
+
 ### [2026-04-12] Feature A: Always show active eBay listings ("Buy Now") alongside sold data ✅ DONE
 
 **Problem:** When Radish returns sold data for a card, the Worker returns immediately (line 640–657) and **never calls the eBay Browse API**. Users see "RECENT SALES" but cannot see or buy cards that are currently listed on eBay. The Browse API (active listings) only fires as a fallback when Radish is empty AND Marketplace Insights returns nothing (line 703). This means the most popular cards — the ones Radish tracks well — are exactly the ones where users can't see buyable listings.
@@ -290,171 +323,11 @@ Decode with fallback: try new shape (`sold`/`active` keys) first, fall back to l
 
 ---
 
-### [2026-04-12] Feature B: BOBA Recently Sold Feed (cron + Supabase) ✅ DONE
+### [2026-04-12] Feature B: BOBA Recently Sold Feed — ❌ DEFERRED (was marked DONE prematurely)
 
-**Problem:** There's no way to browse recent BOBA card sales across the market. Users have to look up cards one at a time. A "recently sold" feed would give collectors a pulse on what's moving, what prices are trending, and what's hot — and it makes the app sticky (reason to check daily).
+**Status:** Feature B (Market Feed) is deferred to a future milestone. The UI and backend code were built prematurely before the data source was secured. All Market Feed code should be **removed** per the cleanup instructions in the `[2026-04-12] Feature B DEFERRED` entry above.
 
-**Goal:** A feed view showing the latest sold BOBA items from eBay, updated automatically every 30 minutes, browsable on both web and iOS. Each feed item links to the specific eBay listing and (when matchable) to the card in our catalog.
-
-**Architecture: Scheduled Worker cron → Supabase table → app reads via REST**
-
-#### Step 1: Supabase table
-
-```sql
-CREATE TABLE recent_sales (
-  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  ebay_item_id text UNIQUE NOT NULL,        -- eBay item ID (dedup key)
-  title        text NOT NULL,               -- eBay listing title
-  price        numeric(10,2) NOT NULL,      -- Sale price USD
-  sold_date    timestamptz NOT NULL,         -- When item sold
-  image_url    text,                         -- eBay listing image
-  ebay_url     text NOT NULL,               -- Full eBay item URL
-  -- Card matching (nullable — not all sales will match our catalog)
-  boba_id      text,                         -- Matched bobaId from catalog
-  card_number  text,                         -- Extracted card number
-  hero         text,                         -- Extracted hero name
-  treatment    text,                         -- Extracted treatment
-  power        integer,                      -- Extracted power
-  -- Metadata
-  fetched_at   timestamptz DEFAULT now(),
-  created_at   timestamptz DEFAULT now()
-);
-
--- Index for feed queries (newest first, with pagination)
-CREATE INDEX idx_recent_sales_sold_date ON recent_sales (sold_date DESC);
--- Index for card-specific lookups
-CREATE INDEX idx_recent_sales_boba_id ON recent_sales (boba_id) WHERE boba_id IS NOT NULL;
--- Cleanup: auto-delete sales older than 90 days (optional, via pg_cron or app logic)
-
--- RLS: public read, no write from client
-ALTER TABLE recent_sales ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public read" ON recent_sales FOR SELECT USING (true);
--- Worker writes via service role key (bypasses RLS)
-```
-
-Add to `supabase_schema.sql` in the repo.
-
-#### Step 2: Worker cron endpoint
-
-Add a `scheduled` event handler to `workers/ebay-proxy/worker.js`:
-
-```javascript
-// In wrangler.toml, add:
-// [triggers]
-// crons = ["*/30 * * * *"]   # Every 30 minutes
-
-export default {
-  async fetch(request, env) { /* ... existing handler ... */ },
-
-  async scheduled(event, env, ctx) {
-    ctx.waitUntil(fetchRecentSales(env));
-  },
-};
-
-async function fetchRecentSales(env) {
-  const cache = caches.default;
-  const token = await getAppToken(env, cache);
-
-  // Broad query: all BOBA sold items in last 60 minutes
-  // (30-min cron with 60-min window ensures no gaps)
-  const cutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const keywords = "bo jackson battle arena";
-
-  // Marketplace Insights: up to 50 recent sold items
-  const { items: soldRaw, error } = await searchSold(token, keywords, cutoff);
-  if (error || !soldRaw?.length) return;
-
-  // Also try Browse API sold filter for broader coverage
-  // (Insights may miss some if scope not approved)
-
-  // For each item, attempt card matching:
-  const sales = soldRaw.map(item => {
-    const matched = matchToCard(item);  // Extract card number, hero, etc. from title/aspects
-    return {
-      ebay_item_id: item.itemId || extractItemId(item.url),
-      title: item.title,
-      price: item.price,
-      sold_date: item.date,
-      image_url: item.image || null,
-      ebay_url: item.url,
-      boba_id: matched?.bobaId || null,
-      card_number: matched?.cardNumber || null,
-      hero: matched?.hero || null,
-      treatment: matched?.treatment || null,
-      power: matched?.power || null,
-    };
-  });
-
-  // Upsert to Supabase (dedup on ebay_item_id)
-  const supabaseUrl = env.SUPABASE_URL;       // New Worker secret
-  const serviceKey  = env.SUPABASE_SERVICE_KEY; // New Worker secret
-  await fetch(`${supabaseUrl}/rest/v1/recent_sales`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': serviceKey,
-      'Authorization': `Bearer ${serviceKey}`,
-      'Prefer': 'resolution=merge-duplicates',  // Upsert on ebay_item_id
-    },
-    body: JSON.stringify(sales),
-  });
-}
-```
-
-**Card matching logic** (`matchToCard`): Reuse the existing `checkTitle()` and `checkAspects()` functions to extract card number and hero from the eBay listing. For `bobaId` resolution, the Worker would need a lightweight lookup — either:
-- (a) A static JSON map of `cardNumber+hero → bobaId` bundled with the Worker (small — ~200KB for 17,739 entries), or
-- (b) A Supabase query at match time (adds latency but always current), or
-- (c) Match on `card_number` + `hero` and let the app client resolve `bobaId` at display time.
-
-**Recommendation:** Option (c) is simplest — store `card_number` and `hero` in the table, let the app do the final `bobaId` lookup from its in-memory card catalog. Avoids bundling card data in the Worker.
-
-#### Step 3: New Worker secrets
-
-```bash
-wrangler secret put SUPABASE_URL        # e.g. https://xxx.supabase.co
-wrangler secret put SUPABASE_SERVICE_KEY  # service_role key (bypasses RLS)
-```
-
-#### Step 4: App — Feed View
-
-**iOS:**
-- New `FeedView` (or section within an existing tab — could live in Search or Play)
-- Fetches from Supabase REST: `GET /rest/v1/recent_sales?order=sold_date.desc&limit=50`
-- Each row shows: listing image (if available), title, price, relative date, and a "View on eBay" link
-- If `card_number` + `hero` match a card in the local catalog, show a mini card thumbnail and make the row tappable → navigates to `CardDetailView`
-- Pull-to-refresh calls the endpoint again
-- Consider a filter: "All Sales" / "Cards I'm Tracking" (matches against user's collection/wanted list)
-
-**Web:**
-- New sidebar nav item: "Market Feed" or "Recent Sales" (between Search Cards and Play)
-- Same Supabase REST query
-- Each item: image, title, price, date, eBay link
-- Matched cards show the catalog thumbnail and link to card modal
-- Infinite scroll or "Load More" pagination (50 at a time, ordered by `sold_date DESC`)
-
-#### Step 5: Cleanup cron (optional)
-
-Either a Supabase pg_cron job or a second Worker cron (daily) that deletes rows older than 90 days:
-
-```sql
-DELETE FROM recent_sales WHERE sold_date < now() - interval '90 days';
-```
-
-**Rate limit budget:** The cron makes 1 Marketplace Insights call every 30 min = 48 calls/day. Even with the per-card Browse calls from Feature A, total daily usage stays well under 10,000 (Insights) and 50,000 (Browse).
-
-**New wrangler.toml:**
-
-```toml
-name            = "boba-ebay-proxy"
-main            = "worker.js"
-compatibility_date = "2024-01-01"
-
-[ai]
-binding = "AI"
-
-[triggers]
-crons = ["*/30 * * * *"]
-```
+**When we revisit:** The data source research is complete. SerpApi eBay Search API ($75/mo) is the recommended independent approach. See `BOBA_Sold_Data_Research.md` in the Research folder. The Supabase `recent_sales` schema, the cron architecture, and the SerpApi integration plan are all documented there and can be re-implemented cleanly when the time comes.
 
 ---
 

@@ -269,18 +269,6 @@ struct CardDetailView: View {
                     }
                 }
 
-            // Zoom hint
-            if scale == 1 {
-                VStack {
-                    Spacer()
-                    Text("pinch or double-tap to zoom")
-                        .font(Design.Fonts.mono(9))
-                        .foregroundStyle(Design.Colors.textMuted)
-                        .padding(.bottom, 8)
-                }
-                .frame(height: 380)
-                .allowsHitTesting(false)
-            }
         }
     }
 

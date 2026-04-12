@@ -100,7 +100,7 @@ struct CollectionView: View {
                 await collection.loadCollection()
             }
 
-            tradeRoomFAB
+            // tradeRoomFAB — hidden until Discord bot is added to server
         }
         .sheet(isPresented: $showTradeRoom) {
             TradeRoomSheet(discord: discord)

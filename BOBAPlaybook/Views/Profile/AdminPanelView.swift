@@ -318,9 +318,7 @@ private struct UserRoleRow: View {
             // Stats row: joined · last seen
             HStack(spacing: Design.Spacing.sm) {
                 Label {
-                    Text("Joined ")
-                        .foregroundStyle(Design.Colors.textMuted)
-                    + Text(user.createdAt, format: .dateTime.month(.abbreviated).day().year())
+                    Text("Joined \(user.createdAt.formatted(.dateTime.month(.abbreviated).day().year()))")
                         .foregroundStyle(Design.Colors.textMuted)
                 } icon: {
                     Image(systemName: "person.badge.plus")
@@ -333,9 +331,7 @@ private struct UserRoleRow: View {
                         .font(Design.Fonts.mono(10))
                         .foregroundStyle(Design.Colors.textMuted)
                     Label {
-                        Text(last, style: .relative)
-                            .foregroundStyle(Design.Colors.textMuted)
-                        + Text(" ago")
+                        Text("\(last, style: .relative) ago")
                             .foregroundStyle(Design.Colors.textMuted)
                     } icon: {
                         Image(systemName: "clock")

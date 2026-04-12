@@ -2,12 +2,12 @@
 
 ## Current State
 
-- **Active milestone**: M3.5 ✅ COMPLETE — Feature A (dual-section pricing / Buy Now) shipped. Feature B (Market Feed) cleaned up and removed — deferred pending eBay API scope approval.
-- **Last session**: 2026-04-12/13 — M3.5 cleanup complete. Removed all Market Feed code (MarketFeedView.swift, RecentSale.swift, fetchRecentSales, feedFetch, CSS, HTML). Worker redeployed without cron trigger. Ready for M4.
+- **Active milestone**: M4 — Play Mode (M3.5 fully complete and deployed)
+- **Last session**: 2026-04-13 — Polish pass: fixed play card type examples in iOS Strategy tab, expanded Collect tab on both platforms (rarity tiers, variations, treatments), hid Discord FAB without removing code, sped up iOS card detail image load (thumb-as-placeholder from NSCache), removed zoom hint text on both platforms. Updated DECISIONS.md with values framing.
 - **Open questions**:
-  - Rules/strategy content for Play Mode — source? (manual entry, PDF parse, structured JSON?)
-  - Deck builder: local-only or save/share via Supabase?
-  - Archetype templates: curated by us, or user-created?
+  - Rules/strategy content for Play Mode — sourced from M4 guide; Play tab UI still needs implementation
+  - Deck builder: local templates done; user-created decks still need Supabase integration
+  - Discord M5: needs bot added to server before re-enabling the hidden FAB
 
 ---
 
@@ -22,11 +22,11 @@
 | Mobile Safari layout | ✅ | n/a | Body flex column, no viewport-fit=cover |
 | Collection Mode | ✅ | ✅ | M2 complete |
 | Scan Mode (camera OCR) | ❌ | ✅ | M3 iOS complete — iOS only by design |
-| Pricing comps (links) | ✅ | ✅ | M3 complete; Worker deploy still needed for live data |
-| Buy Now (active listings) | ✅ | ✅ | M3.5 Feature A — complete and deployed |
+| Pricing comps (links) | ✅ | ✅ | M3 complete |
+| Buy Now (active listings) | ✅ | ✅ | M3.5 complete — Worker deployed at boba-ebay-proxy.benwilkoff.workers.dev |
 | Market Feed (recent sales) | ❌ | ❌ | Deferred — code removed. Research complete (SerpApi), revisit when eBay API scope approved. |
 | Play Mode (rules + decks) | ⏳ | ⏳ | M4 — active |
-| Discord Trading Channel | ⏳ | ⏳ | M5 — in progress; needs Worker deploy + Discord redirect URI |
+| Discord Trading Channel | ⏳ | ⏳ | M5 — hidden (code intact); needs Discord bot added to server |
 
 ---
 
@@ -63,29 +63,23 @@ Card data JSONs, R2 images (89.3% coverage), Supabase schema, GitHub Pages live,
 
 **Pricing — Web:** Radish + eBay links added to card modal. Correct eBay query formula: `"{year} bo jackson battle arena {hero} {treatment} {element}"`. Radish URL uses `card.radishUrl` with programmatic fallback.
 
-**⚠️ Worker deploy still needed before live pricing data appears:**
-1. `cd workers/ebay-proxy`
-2. `npx wrangler secret put EBAY_APP_ID` → paste `BenWilko-BOBAPlay-PRD-24c5abbf0-7a77c68d`
-3. `npx wrangler deploy`
-4. Copy the Worker URL → paste into `BOBAPlaybook/Config.swift` → `WorkerConfig.ebayProxyURL`
-   Also update `const WORKER_URL` in `js/app.js`.
+**Worker:** Deployed at `boba-ebay-proxy.benwilkoff.workers.dev`. URL stored in `BOBAPlaybook/Config.swift` (`WorkerConfig.ebayProxyURL`) and `const WORKER_URL` in `js/app.js`.
 
 **Deferred from M3:**
 - Box lookup page (Hobby, Double Mega, Jumbo sealed product pricing)
 
 ---
 
-### M3.5 — Pricing Enhancements 🔄 FEATURE A COMPLETE · FEATURE B DEFERRED
+### M3.5 — Pricing Enhancements ✅ COMPLETE
 
-**Feature A: Dual-section pricing ("Buy Now" + sold history) ✅ Code complete**
-- Worker: parallel `Promise.allSettled([radishFetch, getAppToken])`, always calls Browse API for active listings, dual `sold`/`active` response shape, legacy fields preserved, cache bumped v9→v10
-- Web: `renderPricingData` handles new dual shape; "RECENT SALES" + "BUY NOW" sections with separate styling (`.pricing-section-active`)
-- iOS: `PricingSection.swift` view update still needed to display two sections (sold + active)
+**Feature A: Dual-section pricing ("Buy Now" + sold history) ✅**
+- Worker deployed: parallel Radish fetch + eBay OAuth, Browse API for active listings, dual `sold`/`active` response shape, cache v10
+- Web: "RECENT SALES" + "BUY NOW" sections with distinct styling
+- iOS: `PricingSection.swift` renders both sections
 
-**Feature B: Market Feed ❌ DEFERRED — Clean up existing code**
-- **Decision:** Market Feed is a "nice to have," not core. Deferred to a future milestone to focus on more pressing app needs.
-- **Cleanup needed:** All Market Feed code was built prematurely and should be removed. See COWORK.md `[2026-04-12] Feature B DEFERRED` entry for the full file-by-file cleanup list (iOS: delete `MarketFeedView.swift`, `RecentSale.swift`, remove `fetchRecentSales()` from SupabaseClient; Web: remove feed functions from app.js/api.js, hidden HTML/CSS; Worker: remove cron handler + feed functions, keep Feature A pricing).
-- **Research preserved:** Data source research is complete. SerpApi eBay Search API ($75/mo, confirmed `sold_date` field) is the recommended independent approach when we revisit. Full details: `BOBA_Sold_Data_Research.md` in Research folder.
+**Feature B: Market Feed ❌ DEFERRED + cleaned up**
+- All Market Feed code removed: `MarketFeedView.swift`, `RecentSale.swift`, `fetchRecentSales()`, feed HTML/CSS/JS, Worker cron handler
+- Research preserved: SerpApi eBay Search API ($75/mo) is recommended approach when we revisit. Full details: `BOBA_Sold_Data_Research.md`.
 
 ---
 
@@ -204,28 +198,24 @@ Research Discord Activity SDK vs WebView feasibility before committing.
 
 ## Session Log
 
-**2026-04-03** — M0 complete. Web M1 built: card grid, search, filters, modal, CDN images, PWA, branding. iOS M1 built: two-phase loading, filter sheet, zoom detail. Shared polish: XOXO icon, Play tab, collapsible web filters, imageAvailable bypass.
+**2026-04-03** — M0 complete. M1 complete on both platforms: card grid, search, filters, modal, CDN images, PWA, branding (web); two-phase loading, filter sheet, zoom detail (iOS). XOXO icon, Play tab, imageAvailable bypass.
 
-**2026-04-03** — iOS M2 complete: Supabase auth (email + Apple), CRUD, CollectionView, CollectionCardDetailView, value summary, ProfileView.
+**2026-04-03** — M2 complete on both platforms: Supabase auth (email + Apple), CRUD, CollectionView (designation tabs + value summary), CollectionCardDetailView, ProfileView.
 
-**2026-04-04** — Web mobile Safari fixes: header alignment, modal image layout (mobile height, desktop sticky art), profile padding (undefined CSS vars), non-sticky search header, hamburger toggle + iOS hover fix, Play icon SVG. Dynamic Island: removed `viewport-fit=cover`, changed to body flex-column + `main` as scroll container (Bsky Dreams pattern). IntersectionObserver updated to `root: main-content`.
+**2026-04-04** — Web mobile Safari layout fixed: body flex-column, no `viewport-fit=cover`, IntersectionObserver uses `main-content` root (Bsky Dreams pattern). M3 iOS Scan Mode complete: Vision OCR, 3-frame stability, multi/single toggle, Save All queue. Cloudflare Worker created.
 
-**2026-04-04** — M3 iOS Scan Mode complete: ScanStore, CardScanner (Vision OCR, 3-frame stability), CameraPreviewView, ScanDetectionChipView, ScanView (guide frame, multi/single toggle), ScanQueueView (Save All). Pricing iOS complete: PricingService (actor + 1hr cache), SafariView, PricingSection (LOW/AVG/HIGH, 7d/30d/90d, Radish link), CardDetailView updated. Cloudflare Worker created at workers/ebay-proxy/. ⚠️ Worker still needs deployment — see M3 section for steps.
+**2026-04-05** — M3 web pricing links complete: eBay query formula, Radish fallback, both buttons always visible. QR code changed to `bobaplaybook://scan` deep link. iOS sealed product ordering fixed.
 
-**2026-04-07** — Multi-bug fix session: (1) Mod account system added — `user_profiles` + `card_corrections` + `card_image_overrides` tables in Supabase schema; iOS `AuthManager` fetches role post-auth; `ModPanelView` + `ModCardEditSheet` added; web `api.js` exposes role/correction/image methods; `collection.js` profile view shows role badge + mod panel link. (2) iOS play cost removed from `CardDetailView`. (3) Web hero associations removed from card modal. (4) "Each battle - all phases" label centered + top padding. (5) Timestamp bug fixed — `addUserCard` and `updateUserCard` now use ISO8601-encoded `JSONEncoder`. (6) CollectionView "PORTFOLIO VALUE" now shows estimated market value when available, falls back to cost basis; web collection stats show separate "Est. Value" + "Cost Basis". (7) "Has image" dedicated button removed from both platforms; filter stays in filter sheet/panel.
+**2026-04-07** — Mod account system: `user_profiles` + `card_corrections` + `card_image_overrides` tables, role fetch post-auth, ModPanelView (iOS) + mod panel link (web). Multiple bug fixes: timestamp encoding, collection value display, filter panel cleanup.
 
-**2026-04-05** — M3 web pricing links complete: correct eBay query formula with treatment map + set year map, Radish fallback URL construction, both buttons always visible (not conditional on sale data). QR code changed from `?rt=TOKEN` web auth (broken in restricted Safari view) to `bobaplaybook://scan` deep link; iOS app added `onOpenURL` handler + `TabView(selection:)` binding to jump to Scan tab. iOS sealed product ordering fixed: `applyFilters()` now called in `init()` (was bypassing it), sealed-tier added to sort comparator. Starting M4 — Play Mode.
+**2026-04-11** — Bug fixes: `CardImageView` overhaul (`loadID` counter, `.onAppear` retry, cancellation no longer sets `failed`). Scan view stale image cleared on URL change. Discord FAB restored on both platforms.
 
-**2026-04-11** — Three bug fixes. (1) Discord auth restored on both platforms: web `fab.hidden = true` was hardcoded unconditionally in `app.js` `render()`; iOS `tradeRoomFAB` was defined but removed from view hierarchy with no `.sheet` wired — both restored in CollectionView.swift. (2) Scan view stale image: `CardImageView` `loadedImage` persisted across card changes; added `.onChange(of: url)` to clear it immediately. (3) Comprehensive `CardImageView` overhaul: cancellation no longer sets `failed`; `failed` moved inside the task branch; `loadID` counter forces retries without URL change; `.onAppear` resets and retries on every appearance (covers scroll-back-in and post-filter-change).
+**2026-04-11 (Cowork)** — Database quality: search-index.json migrated to bobaId keying — eliminates cross-hero contamination. `bv_name` removed from searchTokens. Step execution order fixed (sealed products before categories/search-index).
 
-**2026-04-11** — Database quality fixes from TestFlight beta feedback. (1) Search index migrated from cardNumber→bobaId keying in `reconcile_all.py` step9: all indexes (tokenIndex, byElement, bySet, byTreatment, byCardType, byHero, byPowerRange, hasImage) now store bobaIds — eliminates cross-hero search contamination (e.g. "Spider" returning BrockNess). (2) searchTokens builder fixed: removed `bv_name` from token sources so BV cross-reference data doesn't leak into wrong cards' tokens. (3) Step execution order fixed: steps 8/9/10 (categories, search-index, summary) now run AFTER step 12 (sealed products), so 8 sealed-product-only sets appear in categories.json. (4) categories.json and step8 migrated from cardNumber to bobaId in sample references. Web app `computeResults()` must be updated to resolve bobaIds instead of cardNumbers (detailed migration guide in COWORK.md). iOS unaffected — filters against in-memory array, doesn't use search-index.json. Colosseum Battlefoil confirmed as correct treatment name (786 cards); UX display enhancement noted for Claude Code.
+**2026-04-12 (Cowork)** — Set taxonomy overhaul: coarse "Alpha"/"Griffey" set names → 10 collector-facing names using Radish as primary source. Treatment normalization: 56→51 unique treatments. ~1,866 cards had bobaId changes. All JSON bundles regenerated.
 
-**2026-04-12 (Cowork)** — Set taxonomy overhaul + treatment normalization. (A) **Set taxonomy**: Replaced coarse "Alpha" (8,395) / "Griffey" (9,058) set names with collector-facing product names matching packaging and community usage. New `_resolve_set()` in `reconcile_all.py` uses 3-tier resolution: (1) Radish Price Guide set names as primary source (18,463 entries loaded from `radish_image_mapping.csv`), (2) BV `(set, sub_set)` → collector name mapping via `BV_SET_MAP`, (3) variation/card-number inference fallback. Also normalized duplicate set names: "World Champions" + "World Champions Series" → "World Champions"; "2024 National Show Starter Set" + "National '24" → "National Starter Set"; "Superfan Series" + "Sandstorm" → "Superfan Series". 17,587 of 17,739 cards had set values corrected. Final taxonomy: Griffey Edition (10,008), Alpha Update (3,792), Alpha Edition (2,294), Alpha Blast (1,356), National Starter Set (128), World Champions (94), Superfan Series (36), Promo Cards (26), Tecmo Bowl Edition (4), Big League Chew (1). (B) **Treatment normalization**: Added `TREATMENT_NORMALIZE` dictionary (11 mappings) and `_normalize_treatment()` function in `reconcile_all.py`. Fixed ALL CAPS Blast variants (SILVER BLAST→Silver Blast, etc.), merged duplicates (SUPERFOIL+Superfoil, Battlefoils→Battlefoil, SideKicks→Sidekicks, Hotdogs→Hot Dog), added missing punctuation (Great Grandma's Linoleum Battlefoil). Reduced 56→51 unique treatments. ~1,866 cards had bobaId changes due to treatment being part of the bobaId formula. All data files regenerated: cards.json, categories.json, search-index.json, display-cards.json, cards-head.json. Display bundles overwritten from source (not patched) because bobaId changes broke bobaId-based matching. Hybrid architecture plan .docx also generated for future scaling reference.
+**2026-04-12** — Discord PKCE auth fixed: added `/discord/token` Worker endpoint to proxy token exchange with `client_secret`. Admin panel user management: Supabase RPC `get_admin_user_stats()` (SECURITY DEFINER). Set taxonomy integrated into OCR_SET_HINTS and SET_SLUG_MAP.
 
-**2026-04-12 (Claude Code)** — Discord auth fully fixed + admin panel user management. (1) Discord Trade Room PKCE: both web (`js/discord.js`) and iOS (`DiscordService.swift`) called Discord's token endpoint directly without `client_secret` — confidential client requires it. Added `POST /discord/token` Worker endpoint proxying the exchange with `DISCORD_CLIENT_SECRET` Worker secret. (2) Discord Supabase OAuth: Supabase Dashboard had the old client secret (`39IwY...`); updated to current value (`2sA_Q...`) from Discord Developer Portal. (3) Admin panel user management: new Supabase RPC `get_admin_user_stats()` (SECURITY DEFINER) joins `auth.users` for last sign-in, display name, collection count, total value — admin-only enforced inside the function. Both platforms updated: web (`js/collection.js`, `js/api.js`) and iOS (`AdminPanelView.swift`, `SupabaseClient.swift`, `UserCard.swift`). (4) Hot dog image fix in Play tab substitution section: `HD-1` (Dirty Water Dan) has no CDN image; replaced with Frank (`HD-10_Frank_HotDog.webp`). (5) Fixed iOS 26 `Text` deprecation warnings in `AdminPanelView.swift`. ⚠️ Pending: update Supabase email confirmation template manually in Dashboard. ⚠️ Security: regenerate Discord client secret after confirming auth works end-to-end.
+**2026-04-12** — M3.5 complete: Feature A (dual-section pricing / Buy Now) deployed. Feature B (Market Feed) built then deferred — all code removed. Worker redeployed without cron trigger.
 
-**2026-04-12 (Claude Code)** — Set taxonomy integration. Updated web/iOS app code to use new collector-facing set names from Cowork's taxonomy overhaul. (1) `js/app.js` `OCR_SET_HINTS`: updated hardcoded set names used in scan-mode card matching — `'Griffey'` → `'Griffey Edition'`, `'Alpha'` → `'Alpha Edition'`, `'World Champions 2024'/'World Champions 2025'` → `'World Champions'`, `'National 24 Starter Set'` → `'National Starter Set'`. These must match `card.set` values exactly. (2) `js/app.js` `SET_SLUG_MAP`: added `'National Starter Set'` as canonical key for Radish URL generation. (3) `BOBAPlaybook/Components/PricingSection.swift` `setMap`: added `"National Starter Set"` as canonical key. Old name aliases retained in both maps for backward compat.
-
-**2026-04-12 (Claude Code)** — M3.5 Feature A + Feature B fully implemented. (1) **Feature A (dual pricing):** `workers/ebay-proxy/worker.js` rewritten to run Radish fetch + OAuth token in parallel (`Promise.allSettled`), always call Browse API for active listings regardless of Radish result, return dual `sold`/`active` response shape with legacy fields for backward compat, cache version bumped v9→v10. Web `renderPricingData` updated to render "RECENT SALES" + "BUY NOW" sections with distinct styling. (2) **Feature B (Market Feed):** Worker `scheduled` handler added with 30-min cron (wrangler.toml updated); `fetchRecentSales(env)` + `extractCardInfo(item)` + `extractItemId(id)` helpers upsert to Supabase `recent_sales`. Supabase migration applied: `recent_sales` table with `ebay_item_id` UNIQUE, indexes on `sold_date` + `card_number`, public RLS read policy. iOS: `RecentSale.swift` model, `SupabaseClient.fetchRecentSales()`, `MarketFeedView.swift` (full feed with pull-to-refresh, cursor pagination, card catalog matching, `CardImageView` / `AsyncImage` fallback, `CardDetailView` sheet, eBay link). `SearchView.swift` updated: `chart.line.uptrend.xyaxis` button in `.topBarLeading` opens Market Feed sheet (symmetric with filter button on `.topBarTrailing`). Web: Market Feed nav item + view section in `index.html`, styles in `css/styles.css`, `feedFetch()` in `api.js`, full `initFeedView()` + `renderFeedItem()` + pagination in `app.js`. ⚠️ Worker deploy still needed with `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` secrets — see M3.5 section for commands.
-
-**2026-04-12 (Cowork)** — Feature B (Market Feed) deferred. Decided Market Feed is "nice to have," not core — more pressing app needs take priority. All Feature B code (iOS: MarketFeedView.swift, RecentSale.swift, fetchRecentSales; Web: feed functions in app.js/api.js, hidden HTML/CSS; Worker: cron handler + feed functions) should be cleaned up/removed. Feature A (dual-section pricing / Buy Now) is unaffected and stays. Data source research complete and preserved: SerpApi eBay Search API ($75/mo) is the recommended independent approach when we revisit. Full research in `BOBA_Sold_Data_Research.md`.
+**2026-04-13** — M4 Play tab polish: fixed play card type examples (correct filenames/costs), expanded Collect tab on both platforms (rarity tiers, variations, treatments). Hid Discord FAB without removing code. iOS card detail image load: show cached thumb instantly while full-res loads. Removed zoom hint text on both platforms. Updated DECISIONS.md with values/principles framing.

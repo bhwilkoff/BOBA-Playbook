@@ -35,30 +35,37 @@ struct CardImageView: View {
         Group {
             if cardStore.isImageHidden(card.cardNumber) {
                 placeholder
-            } else if let image = loadedImage ?? cachedImage {
-                // Synchronous NSCache hit — no spinner flash when returning to a
-                // grid after navigating away, or when the same card reappears.
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
             } else if url == nil {
                 placeholder
             } else {
-                // Keep the task branch active regardless of loadFailed so the task
-                // modifier stays in scope and can be restarted via loadID.
+                let resolved = loadedImage ?? cachedImage
+                // Unified ZStack: thumb underlies the full image so the full res
+                // can crossfade in rather than snapping. The task modifier stays
+                // in scope regardless of load state so retries work correctly.
                 ZStack {
                     Design.Colors.surface2
-                    if let thumb = thumbImage {
-                        // Thumb is already in NSCache from the grid — show it instantly
-                        // while the full-res image loads in the background.
+                    // Thumb from NSCache — shown immediately while full image loads.
+                    // Hidden once the full image is ready (resolved != nil).
+                    if let thumb = thumbImage, resolved == nil {
                         Image(uiImage: thumb)
                             .resizable()
                             .scaledToFit()
-                    } else if loadFailed {
-                        placeholderContent
-                    } else {
+                    }
+                    // Full image fades in over the thumb.
+                    if let image = resolved {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .transition(.opacity)
+                    }
+                    // Spinner only when no thumb is available and nothing loaded yet.
+                    if resolved == nil && thumbImage == nil && !loadFailed {
                         ProgressView()
                             .tint(Design.Colors.textMuted)
+                    }
+                    // Failed state — only when nothing else to show.
+                    if loadFailed && resolved == nil {
+                        placeholderContent
                     }
                 }
                 .task(id: loadID) {
@@ -107,7 +114,9 @@ struct CardImageView: View {
             guard !Task.isCancelled else { return }
             if let image = UIImage(data: data) {
                 cardImageCache.setObject(image, forKey: key)
-                loadedImage = image
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    loadedImage = image
+                }
             } else {
                 loadFailed = true
             }

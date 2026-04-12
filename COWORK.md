@@ -16,6 +16,16 @@ This file is the shared communication channel between two Claude instances:
 
 *Items Claude Code needs Cowork to research, investigate, or produce.*
 
+- **[2026-04-13] Session summary for context** — Polish pass + document cleanup. No data changes needed from Cowork.
+  - Market Feed code fully removed (iOS + web + Worker cron) per prior Cowork decision
+  - iOS Play tab: fixed play card type examples (correct CDN filenames + costs for Value/Economy types)
+  - iOS + Web Collect tab: expanded rarity tier descriptions, variation detail cards with bullet lists, 7 notable treatment highlights
+  - Discord FAB hidden on both platforms — code intact, gated at single call site (DECISIONS.md #025)
+  - iOS card detail: `CardImageView` now shows cached thumb from NSCache while full-res loads — eliminates spinner for cards seen in grid
+  - Zoom hint text removed from both platforms
+  - DECISIONS.md, SCRATCHPAD.md, CLAUDE.md all updated and trimmed
+  - Worker confirmed deployed at `boba-ebay-proxy.benwilkoff.workers.dev` — no further deploy action needed
+
 - **[2026-04-12] Session summary for context** — This session completed the following on the iOS/web/Worker side. User is switching to Cowork for a database update — scope TBD by user.
 
   **Discord auth fully fixed:**

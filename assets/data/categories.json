@@ -12,7 +12,7 @@
         "80's Rad Battlefoil",
         "Alpha Battlefoil",
         "Base Set",
-        "Battlefoils",
+        "Battlefoil",
         "Billy Cameo Alt Arts",
         "Blaster Box",
         "Blizzard Battlefoil",
@@ -26,7 +26,7 @@
         "Double Mega Box",
         "Fire Tracks Battlefoil",
         "Grandma's Linoleum Battlefoil",
-        "Great Grandma Linoleum Battlefoil",
+        "Great Grandma's Linoleum Battlefoil",
         "Green Battlefoil",
         "Grillin' Battlefoil",
         "Headlines Battlefoil",
@@ -48,10 +48,10 @@
         "Power Glove Battlefoil",
         "Red Battlefoil",
         "Red Headlines Battlefoil",
-        "SUPERFOIL",
-        "SideKicks",
+        "Sidekicks",
         "Silver Battlefoil",
-        "Slime Battlefoil"
+        "Slime Battlefoil",
+        "Superfoil"
       ]
     },
     "Alpha Update": {
@@ -138,13 +138,13 @@
         "Blast"
       ],
       "treatments": [
-        "BLUE BLAST",
-        "BUBBLEGUM BLAST",
-        "GREEN BLAST",
+        "Blue Blast",
+        "Bubble Gum Blast",
+        "Green Blast",
         "Home Team Discount",
-        "ORANGE BLAST",
-        "PINK BLAST",
-        "SILVER BLAST"
+        "Orange Blast",
+        "Pink Blast",
+        "Silver Blast"
       ]
     },
     "National Starter Set": {
@@ -155,7 +155,7 @@
       ],
       "treatments": [
         "Battlefoil",
-        "Hotdogs",
+        "Hot Dog",
         "Inspired Ink Battlefoil",
         "Pack",
         "Paper",
@@ -300,6 +300,27 @@
         "MIX-100-J-Cam-Mixtape Battlefoil-First Edition"
       ]
     },
+    "Battlefoil": {
+      "count": 986,
+      "elements": [
+        "ALT",
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "GUM",
+        "HEX",
+        "ICE",
+        "STEEL",
+        "SUPER"
+      ],
+      "sampleBobaIds": [
+        "BF-1-LeBoss-Battlefoil-First Edition",
+        "BF-1-Maverick-Battlefoil-First Edition",
+        "BF-1-Showtime-Battlefoil-First Edition",
+        "BF-10-Dart-Board-Battlefoil-First Edition",
+        "BF-10-Matata-Battlefoil-First Edition"
+      ]
+    },
     "Alpha Battlefoil": {
       "count": 786,
       "elements": [
@@ -336,7 +357,7 @@
         "CBF-102-Tattoo-Colosseum Battlefoil-2026 Edition"
       ]
     },
-    "Great Grandma Linoleum Battlefoil": {
+    "Great Grandma's Linoleum Battlefoil": {
       "count": 786,
       "elements": [
         "BRAWL",
@@ -347,11 +368,11 @@
         "STEEL"
       ],
       "sampleBobaIds": [
-        "GGL-1-Bojax-Great Grandma Linoleum Battlefoil-2026 Founding Hero",
-        "GGL-10-Rocket-Great Grandma Linoleum Battlefoil-Roger Clemens Debut",
-        "GGL-100-J-Cam-Great Grandma Linoleum Battlefoil-First Edition",
-        "GGL-101-Generator-Great Grandma Linoleum Battlefoil-First Edition",
-        "GGL-102-Tattoo-Great Grandma Linoleum Battlefoil-2026 Edition"
+        "GGL-1-Bojax-Great Grandma's Linoleum Battlefoil-2026 Founding Hero",
+        "GGL-10-Rocket-Great Grandma's Linoleum Battlefoil-Roger Clemens Debut",
+        "GGL-100-J-Cam-Great Grandma's Linoleum Battlefoil-First Edition",
+        "GGL-101-Generator-Great Grandma's Linoleum Battlefoil-First Edition",
+        "GGL-102-Tattoo-Great Grandma's Linoleum Battlefoil-2026 Edition"
       ]
     },
     "Logofoil": {
@@ -392,26 +413,6 @@
         "ABA-5-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut"
       ]
     },
-    "Battlefoil": {
-      "count": 626,
-      "elements": [
-        "ALT",
-        "FIRE",
-        "GLOW",
-        "GUM",
-        "HEX",
-        "ICE",
-        "STEEL",
-        "SUPER"
-      ],
-      "sampleBobaIds": [
-        "BF-1-LeBoss-Battlefoil-First Edition",
-        "BF-1-Showtime-Battlefoil-First Edition",
-        "BF-10-Matata-Battlefoil-First Edition",
-        "BF-10-Mustang-Battlefoil-First Edition",
-        "BF-100-Mr. Irrelevant-Battlefoil-First Edition"
-      ]
-    },
     "Base Set": {
       "count": 555,
       "elements": [
@@ -439,7 +440,7 @@
         "BPL-13-Play Lockdown-Plays-First Edition"
       ]
     },
-    "SILVER BLAST": {
+    "Silver Blast": {
       "count": 391,
       "elements": [
         "FIRE",
@@ -448,11 +449,11 @@
         "STEEL"
       ],
       "sampleBobaIds": [
-        "BBFA-1-A.I.-SILVER BLAST-Allen Iverson Debut",
-        "BBFA-10-Boz-SILVER BLAST-Brian Bosworth Debut",
-        "BBFA-100-Spudnick-SILVER BLAST-Spudd Webb Debut",
-        "BBFA-101-The Ironman-SILVER BLAST-Cal Ripkin JR Debut",
-        "BBFA-102-Peek-A-Boo-SILVER BLAST-Picabo Street Debut"
+        "BBFA-1-A.I.-Silver Blast-Allen Iverson Debut",
+        "BBFA-10-Boz-Silver Blast-Brian Bosworth Debut",
+        "BBFA-100-Spudnick-Silver Blast-Spudd Webb Debut",
+        "BBFA-101-The Ironman-Silver Blast-Cal Ripkin JR Debut",
+        "BBFA-102-Peek-A-Boo-Silver Blast-Picabo Street Debut"
       ]
     },
     "Icon Battlefoil": {
@@ -471,24 +472,6 @@
         "IBF-100-Generator-Icon Battlefoil-First Edition",
         "IBF-101-Tattoo-Icon Battlefoil-2026 Edition",
         "IBF-102-Brawn-Icon Battlefoil-First Edition"
-      ]
-    },
-    "Battlefoils": {
-      "count": 360,
-      "elements": [
-        "BRAWL",
-        "FIRE",
-        "GLOW",
-        "HEX",
-        "ICE",
-        "STEEL"
-      ],
-      "sampleBobaIds": [
-        "BF-1-Maverick-Battlefoils-First Edition",
-        "BF-10-Dart-Board-Battlefoils-First Edition",
-        "BF-100-Camera-Battlefoils-First Edition",
-        "BF-101-Homestead-Battlefoils-First Edition",
-        "BF-102-Scary-Battlefoils-First Edition"
       ]
     },
     "Blue Battlefoil": {
@@ -543,6 +526,19 @@
         "PBF-10-Wizard-Pink Battlefoil-Ozzie Smith Debut"
       ]
     },
+    "Superfoil": {
+      "count": 308,
+      "elements": [
+        "SUPER"
+      ],
+      "sampleBobaIds": [
+        "SF-1-A.I.-Superfoil-Allen Iverson Debut",
+        "SF-1-BoJax-Superfoil-Founding Hero Alpha Update",
+        "SF-1-The Kid-Superfoil-Cover Hero",
+        "SF-10-Troy of Dallas-Superfoil-Troy Aikman Debut",
+        "SF-10-Waddler-Superfoil-Jaylen Waddle Debut"
+      ]
+    },
     "Silver Battlefoil": {
       "count": 236,
       "elements": [
@@ -582,82 +578,69 @@
         "MI-100-Torque-Miami Ice Battlefoil-First Edition"
       ]
     },
-    "PINK BLAST": {
+    "Pink Blast": {
       "count": 181,
       "elements": [
         "HEX"
       ],
       "sampleBobaIds": [
-        "BL-P1-Bojax-PINK BLAST-Founding Hero",
-        "BL-P10-Amon-Ra-PINK BLAST-Amon-Ra St. Brown Debut",
-        "BL-P100-Curaçao Kid-PINK BLAST-Anduw Jones Debut",
-        "BL-P101-Sterling-PINK BLAST-Sterling Sharpe Debut",
-        "BL-P102-Caveman-PINK BLAST-Johnny Damon Debut"
+        "BL-P1-Bojax-Pink Blast-Founding Hero",
+        "BL-P10-Amon-Ra-Pink Blast-Amon-Ra St. Brown Debut",
+        "BL-P100-Curaçao Kid-Pink Blast-Anduw Jones Debut",
+        "BL-P101-Sterling-Pink Blast-Sterling Sharpe Debut",
+        "BL-P102-Caveman-Pink Blast-Johnny Damon Debut"
       ]
     },
-    "BUBBLEGUM BLAST": {
+    "Bubble Gum Blast": {
       "count": 181,
       "elements": [
         "GUM"
       ],
       "sampleBobaIds": [
-        "BL-BG1-Bojax-BUBBLEGUM BLAST-Founding Hero",
-        "BL-BG10-Amon-Ra-BUBBLEGUM BLAST-Amon-Ra St. Brown Debut",
-        "BL-BG100-Curaçao Kid-BUBBLEGUM BLAST-Anduw Jones Debut",
-        "BL-BG101-Sterling-BUBBLEGUM BLAST-Sterling Sharpe Debut",
-        "BL-BG102-Caveman-BUBBLEGUM BLAST-Johnny Damon Debut"
+        "BL-BG1-Bojax-Bubble Gum Blast-Founding Hero",
+        "BL-BG10-Amon-Ra-Bubble Gum Blast-Amon-Ra St. Brown Debut",
+        "BL-BG100-Curaçao Kid-Bubble Gum Blast-Anduw Jones Debut",
+        "BL-BG101-Sterling-Bubble Gum Blast-Sterling Sharpe Debut",
+        "BL-BG102-Caveman-Bubble Gum Blast-Johnny Damon Debut"
       ]
     },
-    "GREEN BLAST": {
+    "Green Blast": {
       "count": 181,
       "elements": [
         "GLOW"
       ],
       "sampleBobaIds": [
-        "BL-G1-Bojax-GREEN BLAST-Founding Hero",
-        "BL-G10-Amon-Ra-GREEN BLAST-Amon-Ra St. Brown Debut",
-        "BL-G100-Curaçao Kid-GREEN BLAST-Anduw Jones Debut",
-        "BL-G101-Sterling-GREEN BLAST-Sterling Sharpe Debut",
-        "BL-G102-Caveman-GREEN BLAST-Johnny Damon Debut"
+        "BL-G1-Bojax-Green Blast-Founding Hero",
+        "BL-G10-Amon-Ra-Green Blast-Amon-Ra St. Brown Debut",
+        "BL-G100-Curaçao Kid-Green Blast-Anduw Jones Debut",
+        "BL-G101-Sterling-Green Blast-Sterling Sharpe Debut",
+        "BL-G102-Caveman-Green Blast-Johnny Damon Debut"
       ]
     },
-    "BLUE BLAST": {
+    "Blue Blast": {
       "count": 181,
       "elements": [
         "ICE"
       ],
       "sampleBobaIds": [
-        "BL-B1-Bojax-BLUE BLAST-Founding Hero",
-        "BL-B10-Amon-Ra-BLUE BLAST-Amon-Ra St. Brown Debut",
-        "BL-B100-Curaçao Kid-BLUE BLAST-Anduw Jones Debut",
-        "BL-B101-Sterling-BLUE BLAST-Sterling Sharpe Debut",
-        "BL-B102-Caveman-BLUE BLAST-Johnny Damon Debut"
+        "BL-B1-Bojax-Blue Blast-Founding Hero",
+        "BL-B10-Amon-Ra-Blue Blast-Amon-Ra St. Brown Debut",
+        "BL-B100-Curaçao Kid-Blue Blast-Anduw Jones Debut",
+        "BL-B101-Sterling-Blue Blast-Sterling Sharpe Debut",
+        "BL-B102-Caveman-Blue Blast-Johnny Damon Debut"
       ]
     },
-    "ORANGE BLAST": {
+    "Orange Blast": {
       "count": 181,
       "elements": [
         "FIRE"
       ],
       "sampleBobaIds": [
-        "BL-O1-Bojax-ORANGE BLAST-Founding Hero",
-        "BL-O10-Amon-Ra-ORANGE BLAST-Amon-Ra St. Brown Debut",
-        "BL-O100-Curaçao Kid-ORANGE BLAST-Anduw Jones Debut",
-        "BL-O101-Sterling-ORANGE BLAST-Sterling Sharpe Debut",
-        "BL-O102-Caveman-ORANGE BLAST-Johnny Damon Debut"
-      ]
-    },
-    "Superfoil": {
-      "count": 178,
-      "elements": [
-        "SUPER"
-      ],
-      "sampleBobaIds": [
-        "SF-1-A.I.-Superfoil-Allen Iverson Debut",
-        "SF-1-BoJax-Superfoil-Founding Hero Alpha Update",
-        "SF-10-Waddler-Superfoil-Jaylen Waddle Debut",
-        "SF-10-Wizard-Superfoil-Ozzie Smith Debut",
-        "SF-100-Torque-Superfoil-First Edition"
+        "BL-O1-Bojax-Orange Blast-Founding Hero",
+        "BL-O10-Amon-Ra-Orange Blast-Amon-Ra St. Brown Debut",
+        "BL-O100-Curaçao Kid-Orange Blast-Anduw Jones Debut",
+        "BL-O101-Sterling-Orange Blast-Sterling Sharpe Debut",
+        "BL-O102-Caveman-Orange Blast-Johnny Damon Debut"
       ]
     },
     "Headlines Battlefoil": {
@@ -751,19 +734,6 @@
         "SL-102-Tattoo-Slime Battlefoil-2026 Edition"
       ]
     },
-    "SUPERFOIL": {
-      "count": 130,
-      "elements": [
-        "SUPER"
-      ],
-      "sampleBobaIds": [
-        "SF-1-The Kid-SUPERFOIL-Cover Hero",
-        "SF-10-Troy of Dallas-SUPERFOIL-Troy Aikman Debut",
-        "SF-100-Generator-SUPERFOIL-First Edition",
-        "SF-101-Tattoo-SUPERFOIL-2026 Edition",
-        "SF-102-Brawn-SUPERFOIL-First Edition"
-      ]
-    },
     "Inspired Ink Metallic Battlefoil": {
       "count": 129,
       "elements": [
@@ -848,7 +818,7 @@
       ]
     },
     "Hot Dog": {
-      "count": 60,
+      "count": 70,
       "elements": [
         "FIRE",
         "HEX",
@@ -934,32 +904,11 @@
         "P-13-Bojax-Prize & Promos-PSA Magazine Baseball"
       ]
     },
-    "Case": {
-      "count": 16,
-      "elements": [],
-      "sampleBobaIds": [
-        "SEALED-alpha-battle-trainer-kit-case-Alpha Edition Battle Trainer Kit Case--Case",
-        "SEALED-alpha-blaster-case-Alpha Edition Blaster Case--Case",
-        "SEALED-alpha-collector-booster-case-Alpha Edition Collector Booster Case--Case",
-        "SEALED-alpha-hobby-case-Alpha Edition Hobby Case--Case",
-        "SEALED-alpha-jumbo-hobby-case-Alpha Edition Jumbo Hobby Case--Case"
-      ]
-    },
-    "Hotdogs": {
-      "count": 10,
-      "elements": [],
-      "sampleBobaIds": [
-        "S-100/100-Frank-Hotdogs-",
-        "S-91/100-Dirty Water Dan-Hotdogs-",
-        "S-92/100-Coney Carl-Hotdogs-",
-        "S-93/100-Wurst Wayne-Hotdogs-",
-        "S-94/100-Mustard Man-Hotdogs-"
-      ]
-    },
     "Sidekicks": {
-      "count": 9,
+      "count": 17,
       "elements": [
         "ALT",
+        "BRAWL",
         "FIRE",
         "GLOW",
         "GUM",
@@ -971,29 +920,20 @@
       "sampleBobaIds": [
         "ALTA-01-Billy the Kid-Sidekicks-Emilio Estevez (Co-Starring Bily)",
         "Alt-1-Billy the Kid-Sidekicks-Emilio Estevez (Co-Starring Bily)",
-        "SKA-10-Bombeezy-Sidekicks-Emilio Estevez Debut",
-        "SKA-12-Bombeezy-Sidekicks-Emilio Estevez Debut",
-        "SKA-14-Bombeezy-Sidekicks-Emilio Estevez Debut"
+        "FFA-1-Flavor Flav-Sidekicks-Flavor Flav Debut",
+        "FFA-2-Flavor Flav-Sidekicks-Flavor Flav Debut",
+        "FFA-3-Flavor Flav-Sidekicks-Flavor Flav Debut"
       ]
     },
-    "SideKicks": {
-      "count": 8,
-      "elements": [
-        "BRAWL",
-        "FIRE",
-        "GLOW",
-        "GUM",
-        "HEX",
-        "ICE",
-        "STEEL",
-        "SUPER"
-      ],
+    "Case": {
+      "count": 16,
+      "elements": [],
       "sampleBobaIds": [
-        "FFA-1-Flavor Flav-SideKicks-Flavor Flav Debut",
-        "FFA-2-Flavor Flav-SideKicks-Flavor Flav Debut",
-        "FFA-3-Flavor Flav-SideKicks-Flavor Flav Debut",
-        "FFA-4-Flavor Flav-SideKicks-Flavor Flav Debut",
-        "FFA-5-Flavor Flav-SideKicks-Flavor Flav Debut"
+        "SEALED-alpha-battle-trainer-kit-case-Alpha Edition Battle Trainer Kit Case--Case",
+        "SEALED-alpha-blaster-case-Alpha Edition Blaster Case--Case",
+        "SEALED-alpha-collector-booster-case-Alpha Edition Collector Booster Case--Case",
+        "SEALED-alpha-hobby-case-Alpha Edition Hobby Case--Case",
+        "SEALED-alpha-jumbo-hobby-case-Alpha Edition Jumbo Hobby Case--Case"
       ]
     },
     "Serialized Battlefoil": {
@@ -1257,9 +1197,9 @@
       ],
       "bobaIds": [
         "BBF-1-A.I.-Blue Battlefoil-Allen Iverson Debut",
-        "BBFA-1-A.I.-SILVER BLAST-Allen Iverson Debut",
-        "BBFA-2-A.I.-SILVER BLAST-Allen Iverson Debut",
-        "BBFA-3-A.I.-SILVER BLAST-Allen Iverson Debut",
+        "BBFA-1-A.I.-Silver Blast-Allen Iverson Debut",
+        "BBFA-2-A.I.-Silver Blast-Allen Iverson Debut",
+        "BBFA-3-A.I.-Silver Blast-Allen Iverson Debut",
         "BFA-1-A.I.-Inspired Ink Battlefoil-Allen Iverson Debut",
         "BFA-2-A.I.-Inspired Ink Battlefoil-Allen Iverson Debut",
         "BFA-3-A.I.-Inspired Ink Battlefoil-Allen Iverson Debut",
@@ -1276,12 +1216,12 @@
       "bobaIds": [
         "BBF-42-AJax-Blue Battlefoil-First Edition",
         "BGBF-3-AJax-Bubble Gum Battlefoil-First Edition",
-        "BL-B118-AJax-BLUE BLAST-First Edition",
-        "BL-BG118-AJax-BUBBLEGUM BLAST-First Edition",
-        "BL-G118-AJax-GREEN BLAST-First Edition",
-        "BL-O118-AJax-ORANGE BLAST-First Edition",
-        "BL-P118-AJax-PINK BLAST-First Edition",
-        "BL-S118-AJax-SILVER BLAST-First Edition",
+        "BL-B118-AJax-Blue Blast-First Edition",
+        "BL-BG118-AJax-Bubble Gum Blast-First Edition",
+        "BL-G118-AJax-Green Blast-First Edition",
+        "BL-O118-AJax-Orange Blast-First Edition",
+        "BL-P118-AJax-Pink Blast-First Edition",
+        "BL-S118-AJax-Silver Blast-First Edition",
         "FT-42-AJax-Fire Tracks Battlefoil-First Edition",
         "GBF-42-AJax-Green Battlefoil-First Edition"
       ]
@@ -1409,9 +1349,9 @@
       ],
       "bobaIds": [
         "BBF-6-Allenwrench-Blue Battlefoil-Marcus Allen Debut",
-        "BBFA-16-Allenwrench-SILVER BLAST-Marcus Allen Debut",
-        "BBFA-17-Allenwrench-SILVER BLAST-Marcus Allen Debut",
-        "BBFA-18-Allenwrench-SILVER BLAST-Marcus Allen Debut",
+        "BBFA-16-Allenwrench-Silver Blast-Marcus Allen Debut",
+        "BBFA-17-Allenwrench-Silver Blast-Marcus Allen Debut",
+        "BBFA-18-Allenwrench-Silver Blast-Marcus Allen Debut",
         "BFA-26-Allenwrench-Inspired Ink Battlefoil-Marcus Allen Debut",
         "BFA-27-Allenwrench-Inspired Ink Battlefoil-Marcus Allen Debut",
         "BFA-28-Allenwrench-Inspired Ink Battlefoil-Marcus Allen Debut",
@@ -1463,9 +1403,9 @@
       ],
       "bobaIds": [
         "BBF-9-Amon-Ra-Blue Battlefoil-Amon-Ra St. Brown Debut",
-        "BBFA-25-Amon-Ra-SILVER BLAST-Amon-Ra St. Brown Debut",
-        "BBFA-26-Amon-Ra-SILVER BLAST-Amon-Ra St. Brown Debut",
-        "BBFA-27-Amon-Ra-SILVER BLAST-Amon-Ra St. Brown Debut",
+        "BBFA-25-Amon-Ra-Silver Blast-Amon-Ra St. Brown Debut",
+        "BBFA-26-Amon-Ra-Silver Blast-Amon-Ra St. Brown Debut",
+        "BBFA-27-Amon-Ra-Silver Blast-Amon-Ra St. Brown Debut",
         "BFA-41-Amon-Ra-Inspired Ink Battlefoil-Amon-Ra St. Brown Debut",
         "BFA-42-Amon-Ra-Inspired Ink Battlefoil-Amon-Ra St. Brown Debut",
         "BFA-43-Amon-Ra-Inspired Ink Battlefoil-Amon-Ra St. Brown Debut",
@@ -1566,9 +1506,9 @@
       ],
       "bobaIds": [
         "BBF-26-Awesome Dawson-Blue Battlefoil-Andre Dawson Debut",
-        "BBFA-76-Awesome Dawson-SILVER BLAST-Andre Dawson Debut",
-        "BBFA-77-Awesome Dawson-SILVER BLAST-Andre Dawson Debut",
-        "BBFA-78-Awesome Dawson-SILVER BLAST-Andre Dawson Debut",
+        "BBFA-76-Awesome Dawson-Silver Blast-Andre Dawson Debut",
+        "BBFA-77-Awesome Dawson-Silver Blast-Andre Dawson Debut",
+        "BBFA-78-Awesome Dawson-Silver Blast-Andre Dawson Debut",
         "BFA-126-Awesome Dawson-Inspired Ink Battlefoil-Andre Dawson Debut",
         "BFA-127-Awesome Dawson-Inspired Ink Battlefoil-Andre Dawson Debut",
         "BFA-128-Awesome Dawson-Inspired Ink Battlefoil-Andre Dawson Debut",
@@ -1718,9 +1658,9 @@
       ],
       "bobaIds": [
         "BBF-5-Barry \"Cutback\" Sanders-Blue Battlefoil-Barry Sanders Debut",
-        "BBFA-137-Barry \"Cutback\" Sanders-SILVER BLAST-Barry Sanders Debut",
-        "BBFA-176-Barry \"Cutback\" Sanders-SILVER BLAST-Barry Sanders Debut",
-        "BBFA-98-Barry \"Cutback\" Sanders-SILVER BLAST-Barry Sanders Debut",
+        "BBFA-137-Barry \"Cutback\" Sanders-Silver Blast-Barry Sanders Debut",
+        "BBFA-176-Barry \"Cutback\" Sanders-Silver Blast-Barry Sanders Debut",
+        "BBFA-98-Barry \"Cutback\" Sanders-Silver Blast-Barry Sanders Debut",
         "BFA-119-Barry \"Cutback\" Sanders-Inspired Ink Battlefoil-Barry Sanders Debut",
         "BFA-157-Barry \"Cutback\" Sanders-Inspired Ink Battlefoil-Barry Sanders Debut",
         "BFA-43-Barry \"Cutback\" Sanders-Inspired Ink Battlefoil-Barry Sanders Debut",
@@ -1918,12 +1858,12 @@
         "Billy the Pug"
       ],
       "bobaIds": [
-        "Billy-23-Billy-PINK BLAST-First Edition",
-        "Billy-24-Billy-BUBBLEGUM BLAST-First Edition",
-        "Billy-25-Billy-GREEN BLAST-First Edition",
-        "Billy-26-Billy-BLUE BLAST-First Edition",
-        "Billy-27-Billy-ORANGE BLAST-First Edition",
-        "Billy-28-Billy-SILVER BLAST-First Edition"
+        "Billy-23-Billy-Pink Blast-First Edition",
+        "Billy-24-Billy-Bubble Gum Blast-First Edition",
+        "Billy-25-Billy-Green Blast-First Edition",
+        "Billy-26-Billy-Blue Blast-First Edition",
+        "Billy-27-Billy-Orange Blast-First Edition",
+        "Billy-28-Billy-Silver Blast-First Edition"
       ]
     },
     "Billy the Kid": {
@@ -1994,9 +1934,9 @@
       ],
       "bobaIds": [
         "BBF-21-Blockhale-Blue Battlefoil-Kevin McHale Debut",
-        "BBFA-61-Blockhale-SILVER BLAST-Kevin McHale Debut",
-        "BBFA-62-Blockhale-SILVER BLAST-Kevin McHale Debut",
-        "BBFA-63-Blockhale-SILVER BLAST-Kevin McHale Debut",
+        "BBFA-61-Blockhale-Silver Blast-Kevin McHale Debut",
+        "BBFA-62-Blockhale-Silver Blast-Kevin McHale Debut",
+        "BBFA-63-Blockhale-Silver Blast-Kevin McHale Debut",
         "BFA-101-Blockhale-Inspired Ink Battlefoil-Kevin McHale Debut",
         "BFA-102-Blockhale-Inspired Ink Battlefoil-Kevin McHale Debut",
         "BFA-103-Blockhale-Inspired Ink Battlefoil-Kevin McHale Debut",
@@ -2014,12 +1954,12 @@
         "BBF-76-BoJax-Blue Battlefoil-Founding Hero",
         "BFA-1-BoJax-Inspired Ink Battlefoil-Founding Hero Alpha Update",
         "BGA-1-BoJax-Inspired Ink Bubble Gum Battlefoil-Founding Hero Alpha Update",
-        "BL-B77-BoJax-BLUE BLAST-Founding Hero Alpha Update",
-        "BL-BG77-BoJax-BUBBLEGUM BLAST-Founding Hero Alpha Update",
-        "BL-G77-BoJax-GREEN BLAST-Founding Hero Alpha Update",
-        "BL-O77-BoJax-ORANGE BLAST-Founding Hero Alpha Update",
-        "BL-P77-BoJax-PINK BLAST-Founding Hero Alpha Update",
-        "BL-S77-BoJax-SILVER BLAST-Founding Hero Alpha Update",
+        "BL-B77-BoJax-Blue Blast-Founding Hero Alpha Update",
+        "BL-BG77-BoJax-Bubble Gum Blast-Founding Hero Alpha Update",
+        "BL-G77-BoJax-Green Blast-Founding Hero Alpha Update",
+        "BL-O77-BoJax-Orange Blast-Founding Hero Alpha Update",
+        "BL-P77-BoJax-Pink Blast-Founding Hero Alpha Update",
+        "BL-S77-BoJax-Silver Blast-Founding Hero Alpha Update",
         "GBF-76-BoJax-Green Battlefoil-Founding Hero"
       ]
     },
@@ -2036,9 +1976,9 @@
         "ABF-525-Bojax-Alpha Battlefoil-2026 Founding Hero",
         "ABF-656-Bojax-Alpha Battlefoil-2026 Founding Hero",
         "BBF-1-Bojax-Blue Battlefoil-2026 Founding Hero",
-        "BBFA-133-Bojax-SILVER BLAST-Founding Hero Alpha Update",
-        "BBFA-172-Bojax-SILVER BLAST-Founding Hero Alpha Update",
-        "BBFA-91-Bojax-SILVER BLAST-Founding Hero"
+        "BBFA-133-Bojax-Silver Blast-Founding Hero Alpha Update",
+        "BBFA-172-Bojax-Silver Blast-Founding Hero Alpha Update",
+        "BBFA-91-Bojax-Silver Blast-Founding Hero"
       ]
     },
     "Boltage": {
@@ -2066,12 +2006,12 @@
         "Emillio Estevez"
       ],
       "bobaIds": [
-        "BL-SK1-Bombeezy-PINK BLAST-Emillio Estevez Debut",
-        "BL-SK2-Bombeezy-BUBBLEGUM BLAST-Emillio Estevez Debut",
-        "BL-SK3-Bombeezy-GREEN BLAST-Emillio Estevez Debut",
-        "BL-SK4-Bombeezy-BLUE BLAST-Emillio Estevez Debut",
-        "BL-SK5-Bombeezy-ORANGE BLAST-Emillio Estevez Debut",
-        "BL-SK6-Bombeezy-SILVER BLAST-Emillio Estevez Debut",
+        "BL-SK1-Bombeezy-Pink Blast-Emillio Estevez Debut",
+        "BL-SK2-Bombeezy-Bubble Gum Blast-Emillio Estevez Debut",
+        "BL-SK3-Bombeezy-Green Blast-Emillio Estevez Debut",
+        "BL-SK4-Bombeezy-Blue Blast-Emillio Estevez Debut",
+        "BL-SK5-Bombeezy-Orange Blast-Emillio Estevez Debut",
+        "BL-SK6-Bombeezy-Silver Blast-Emillio Estevez Debut",
         "SKA-10-Bombeezy-Sidekicks-Emilio Estevez Debut",
         "SKA-12-Bombeezy-Sidekicks-Emilio Estevez Debut",
         "SKA-14-Bombeezy-Sidekicks-Emilio Estevez Debut",
@@ -2103,9 +2043,9 @@
       ],
       "bobaIds": [
         "BBF-32-Bone-Blue Battlefoil-Jay Buhner Debut",
-        "BBFA-125-Bone-SILVER BLAST-Jay Buhner Debut",
-        "BBFA-164-Bone-SILVER BLAST-Jay Buhner Debut",
-        "BBFA-203-Bone-SILVER BLAST-Jay Buhner Debut",
+        "BBFA-125-Bone-Silver Blast-Jay Buhner Debut",
+        "BBFA-164-Bone-Silver Blast-Jay Buhner Debut",
+        "BBFA-203-Bone-Silver Blast-Jay Buhner Debut",
         "BFA-108-Bone-Inspired Ink Battlefoil-Jay Buhner Debut",
         "BFA-146-Bone-Inspired Ink Battlefoil-Jay Buhner Debut",
         "BFA-184-Bone-Inspired Ink Battlefoil-Jay Buhner Debut",
@@ -2128,9 +2068,9 @@
       ],
       "bobaIds": [
         "BBF-22-Boom-Blue Battlefoil-Boomer Esiason Debut",
-        "BBFA-115-Boom-SILVER BLAST-Boomer Esiason Debut",
-        "BBFA-154-Boom-SILVER BLAST-Boomer Esiason Debut",
-        "BBFA-193-Boom-SILVER BLAST-Boomer Esiason Debut",
+        "BBFA-115-Boom-Silver Blast-Boomer Esiason Debut",
+        "BBFA-154-Boom-Silver Blast-Boomer Esiason Debut",
+        "BBFA-193-Boom-Silver Blast-Boomer Esiason Debut",
         "BFA-136-Boom-Inspired Ink Battlefoil-Boomer Esiason Debut",
         "BFA-174-Boom-Inspired Ink Battlefoil-Boomer Esiason Debut",
         "BFA-22-Boom-Inspired Ink Battlefoil-Boomer Esiason Debut",
@@ -2146,9 +2086,9 @@
       ],
       "bobaIds": [
         "BBF-12-Boshpit-Blue Battlefoil-Chris Bosh Debut",
-        "BBFA-34-Boshpit-SILVER BLAST-Chris Bosh Debut",
-        "BBFA-35-Boshpit-SILVER BLAST-Chris Bosh Debut",
-        "BBFA-36-Boshpit-SILVER BLAST-Chris Bosh Debut",
+        "BBFA-34-Boshpit-Silver Blast-Chris Bosh Debut",
+        "BBFA-35-Boshpit-Silver Blast-Chris Bosh Debut",
+        "BBFA-36-Boshpit-Silver Blast-Chris Bosh Debut",
         "BFA-56-Boshpit-Inspired Ink Battlefoil-Chris Bosh Debut",
         "BFA-57-Boshpit-Inspired Ink Battlefoil-Chris Bosh Debut",
         "BFA-58-Boshpit-Inspired Ink Battlefoil-Chris Bosh Debut",
@@ -2200,9 +2140,9 @@
       ],
       "bobaIds": [
         "BBF-4-Boz-Blue Battlefoil-Brian Bosworth Debut",
-        "BBFA-10-Boz-SILVER BLAST-Brian Bosworth Debut",
-        "BBFA-11-Boz-SILVER BLAST-Brian Bosworth Debut",
-        "BBFA-12-Boz-SILVER BLAST-Brian Bosworth Debut",
+        "BBFA-10-Boz-Silver Blast-Brian Bosworth Debut",
+        "BBFA-11-Boz-Silver Blast-Brian Bosworth Debut",
+        "BBFA-12-Boz-Silver Blast-Brian Bosworth Debut",
         "BFA-16-Boz-Inspired Ink Battlefoil-Brian Bosworth Debut",
         "BFA-17-Boz-Inspired Ink Battlefoil-Brian Bosworth Debut",
         "BFA-18-Boz-Inspired Ink Battlefoil-Brian Bosworth Debut",
@@ -2218,9 +2158,9 @@
         "Chastain"
       ],
       "bobaIds": [
-        "BBFA-7-Brandi-SILVER BLAST-Brandi Chastain Debut",
-        "BBFA-8-Brandi-SILVER BLAST-Brandi Chastain Debut",
-        "BBFA-9-Brandi-SILVER BLAST-Brandi Chastain Debut",
+        "BBFA-7-Brandi-Silver Blast-Brandi Chastain Debut",
+        "BBFA-8-Brandi-Silver Blast-Brandi Chastain Debut",
+        "BBFA-9-Brandi-Silver Blast-Brandi Chastain Debut",
         "BFA-11-Brandi-Inspired Ink Battlefoil-Brandi Chastain Debut",
         "BFA-12-Brandi-Inspired Ink Battlefoil-Brandi Chastain Debut",
         "BFA-13-Brandi-Inspired Ink Battlefoil-Brandi Chastain Debut",
@@ -2234,7 +2174,7 @@
       "count": 2,
       "athletes": [],
       "bobaIds": [
-        "S-97/100-Brat Wurst-Hotdogs-",
+        "S-97/100-Brat Wurst-Hot Dog-",
         "T-47/50-Brat Wurst-Hot Dog-"
       ]
     },
@@ -2320,9 +2260,9 @@
       ],
       "bobaIds": [
         "BBF-38-BuckShot-Blue Battlefoil-Buck Showalter Debut",
-        "BBFA-131-BuckShot-SILVER BLAST-Buck Showalter Debut",
-        "BBFA-170-BuckShot-SILVER BLAST-Buck Showalter Debut",
-        "BBFA-209-BuckShot-SILVER BLAST-Buck Showalter Debut",
+        "BBFA-131-BuckShot-Silver Blast-Buck Showalter Debut",
+        "BBFA-170-BuckShot-Silver Blast-Buck Showalter Debut",
+        "BBFA-209-BuckShot-Silver Blast-Buck Showalter Debut",
         "BFA-114-BuckShot-Inspired Ink Battlefoil-Buck Showalter Debut",
         "BFA-152-BuckShot-Inspired Ink Battlefoil-Buck Showalter Debut",
         "BFA-190-BuckShot-Inspired Ink Battlefoil-Buck Showalter Debut",
@@ -2395,9 +2335,9 @@
       ],
       "bobaIds": [
         "BBF-12-Bus-Blue Battlefoil-Jerome Bettis Debut",
-        "BBFA-105-Bus-SILVER BLAST-Jerome Bettis Debut",
-        "BBFA-144-Bus-SILVER BLAST-Jerome Bettis Debut",
-        "BBFA-183-Bus-SILVER BLAST-Jerome Bettis Debut",
+        "BBFA-105-Bus-Silver Blast-Jerome Bettis Debut",
+        "BBFA-144-Bus-Silver Blast-Jerome Bettis Debut",
+        "BBFA-183-Bus-Silver Blast-Jerome Bettis Debut",
         "BFA-12-Bus-Inspired Ink Battlefoil-Jerome Bettis Debut",
         "BFA-126-Bus-Inspired Ink Battlefoil-Jerome Bettis Debut",
         "BFA-164-Bus-Inspired Ink Battlefoil-Jerome Bettis Debut",
@@ -2450,12 +2390,12 @@
       "bobaIds": [
         "CJ-1-CJ Maddux-Battlefoil-First Edition",
         "CJ-2-CJ Maddux-Battlefoil-First Edition",
-        "CJ-23-CJ Maddux-PINK BLAST-First Edition",
-        "CJ-24-CJ Maddux-BUBBLEGUM BLAST-First Edition",
-        "CJ-25-CJ Maddux-GREEN BLAST-First Edition",
-        "CJ-26-CJ Maddux-BLUE BLAST-First Edition",
-        "CJ-27-CJ Maddux-ORANGE BLAST-First Edition",
-        "CJ-28-CJ Maddux-SILVER BLAST-First Edition",
+        "CJ-23-CJ Maddux-Pink Blast-First Edition",
+        "CJ-24-CJ Maddux-Bubble Gum Blast-First Edition",
+        "CJ-25-CJ Maddux-Green Blast-First Edition",
+        "CJ-26-CJ Maddux-Blue Blast-First Edition",
+        "CJ-27-CJ Maddux-Orange Blast-First Edition",
+        "CJ-28-CJ Maddux-Silver Blast-First Edition",
         "CJ-3-CJ Maddux-Battlefoil-First Edition",
         "CJ-4-CJ Maddux-Battlefoil-First Edition"
       ]
@@ -2499,9 +2439,9 @@
       ],
       "bobaIds": [
         "BBF-23-Cameleon-Blue Battlefoil-Cameron Brink Debut",
-        "BBFA-116-Cameleon-SILVER BLAST-Cameron Brink Debut",
-        "BBFA-155-Cameleon-SILVER BLAST-Cameron Brink Debut",
-        "BBFA-194-Cameleon-SILVER BLAST-Cameron Brink Debut",
+        "BBFA-116-Cameleon-Silver Blast-Cameron Brink Debut",
+        "BBFA-155-Cameleon-Silver Blast-Cameron Brink Debut",
+        "BBFA-194-Cameleon-Silver Blast-Cameron Brink Debut",
         "BFA-137-Cameleon-Inspired Ink Battlefoil-Cameron Brink Debut",
         "BFA-175-Cameleon-Inspired Ink Battlefoil-Cameron Brink Debut",
         "BFA-23-Cameleon-Inspired Ink Battlefoil-Cameron Brink Debut",
@@ -2607,9 +2547,9 @@
       ],
       "bobaIds": [
         "BBF-26-Caveman-Blue Battlefoil-Johnny Damon Debut",
-        "BBFA-119-Caveman-SILVER BLAST-Johnny Damon Debut",
-        "BBFA-158-Caveman-SILVER BLAST-Johnny Damon Debut",
-        "BBFA-197-Caveman-SILVER BLAST-Johnny Damon Debut",
+        "BBFA-119-Caveman-Silver Blast-Johnny Damon Debut",
+        "BBFA-158-Caveman-Silver Blast-Johnny Damon Debut",
+        "BBFA-197-Caveman-Silver Blast-Johnny Damon Debut",
         "BFA-102-Caveman-Inspired Ink Battlefoil-Johnny Damon Debut",
         "BFA-140-Caveman-Inspired Ink Battlefoil-Johnny Damon Debut",
         "BFA-178-Caveman-Inspired Ink Battlefoil-Johnny Damon Debut",
@@ -2704,9 +2644,9 @@
       ],
       "bobaIds": [
         "BBF-13-Chicken Man-Blue Battlefoil-Wade Boggs Debut",
-        "BBFA-106-Chicken Man-SILVER BLAST-Wade Boggs Debut",
-        "BBFA-145-Chicken Man-SILVER BLAST-Wade Boggs Debut",
-        "BBFA-184-Chicken Man-SILVER BLAST-Wade Boggs Debut",
+        "BBFA-106-Chicken Man-Silver Blast-Wade Boggs Debut",
+        "BBFA-145-Chicken Man-Silver Blast-Wade Boggs Debut",
+        "BBFA-184-Chicken Man-Silver Blast-Wade Boggs Debut",
         "BFA-127-Chicken Man-Inspired Ink Battlefoil-Wade Boggs Debut",
         "BFA-13-Chicken Man-Inspired Ink Battlefoil-Wade Boggs Debut",
         "BFA-165-Chicken Man-Inspired Ink Battlefoil-Wade Boggs Debut",
@@ -2722,9 +2662,9 @@
       ],
       "bobaIds": [
         "BBF-18-Chief-Blue Battlefoil-Robert Parish Debut",
-        "BBFA-52-Chief-SILVER BLAST-Robert Parish Debut",
-        "BBFA-53-Chief-SILVER BLAST-Robert Parish Debut",
-        "BBFA-54-Chief-SILVER BLAST-Robert Parish Debut",
+        "BBFA-52-Chief-Silver Blast-Robert Parish Debut",
+        "BBFA-53-Chief-Silver Blast-Robert Parish Debut",
+        "BBFA-54-Chief-Silver Blast-Robert Parish Debut",
         "BFA-86-Chief-Inspired Ink Battlefoil-Robert Parish Debut",
         "BFA-87-Chief-Inspired Ink Battlefoil-Robert Parish Debut",
         "BFA-88-Chief-Inspired Ink Battlefoil-Robert Parish Debut",
@@ -2855,7 +2795,7 @@
       "count": 2,
       "athletes": [],
       "bobaIds": [
-        "S-92/100-Coney Carl-Hotdogs-",
+        "S-92/100-Coney Carl-Hot Dog-",
         "T-42/50-Coney Carl-Hot Dog-"
       ]
     },
@@ -2873,9 +2813,9 @@
       ],
       "bobaIds": [
         "BBF-36-Coopanova-Blue Battlefoil-Cynthia Cooper Debut",
-        "BBFA-129-Coopanova-SILVER BLAST-Cynthia Cooper Debut",
-        "BBFA-168-Coopanova-SILVER BLAST-Cynthia Cooper Debut",
-        "BBFA-207-Coopanova-SILVER BLAST-Cynthia Cooper Debut",
+        "BBFA-129-Coopanova-Silver Blast-Cynthia Cooper Debut",
+        "BBFA-168-Coopanova-Silver Blast-Cynthia Cooper Debut",
+        "BBFA-207-Coopanova-Silver Blast-Cynthia Cooper Debut",
         "BFA-112-Coopanova-Inspired Ink Battlefoil-Cynthia Cooper Debut",
         "BFA-150-Coopanova-Inspired Ink Battlefoil-Cynthia Cooper Debut",
         "BFA-188-Coopanova-Inspired Ink Battlefoil-Cynthia Cooper Debut",
@@ -2988,9 +2928,9 @@
       ],
       "bobaIds": [
         "BBF-5-Cruschman-Blue Battlefoil-Adley Rutshman Debut",
-        "BBFA-13-Cruschman-SILVER BLAST-Adley Rutshman Debut",
-        "BBFA-14-Cruschman-SILVER BLAST-Adley Rutshman Debut",
-        "BBFA-15-Cruschman-SILVER BLAST-Adley Rutshman Debut",
+        "BBFA-13-Cruschman-Silver Blast-Adley Rutshman Debut",
+        "BBFA-14-Cruschman-Silver Blast-Adley Rutshman Debut",
+        "BBFA-15-Cruschman-Silver Blast-Adley Rutshman Debut",
         "BFA-21-Cruschman-Inspired Ink Battlefoil-Adley Rutshman Debut",
         "BFA-22-Cruschman-Inspired Ink Battlefoil-Adley Rutshman Debut",
         "BFA-23-Cruschman-Inspired Ink Battlefoil-Adley Rutshman Debut",
@@ -3068,9 +3008,9 @@
       ],
       "bobaIds": [
         "BBF-24-Curaçao Kid-Blue Battlefoil-Anduw Jones Debut",
-        "BBFA-117-Curaçao Kid-SILVER BLAST-Anduw Jones Debut",
-        "BBFA-156-Curaçao Kid-SILVER BLAST-Anduw Jones Debut",
-        "BBFA-195-Curaçao Kid-SILVER BLAST-Anduw Jones Debut",
+        "BBFA-117-Curaçao Kid-Silver Blast-Anduw Jones Debut",
+        "BBFA-156-Curaçao Kid-Silver Blast-Anduw Jones Debut",
+        "BBFA-195-Curaçao Kid-Silver Blast-Anduw Jones Debut",
         "BFA-100-Curaçao Kid-Inspired Ink Battlefoil-Anduw Jones Debut",
         "BFA-138-Curaçao Kid-Inspired Ink Battlefoil-Anduw Jones Debut",
         "BFA-176-Curaçao Kid-Inspired Ink Battlefoil-Anduw Jones Debut",
@@ -3200,9 +3140,9 @@
       ],
       "bobaIds": [
         "BBF-34-Deep Freeze-Blue Battlefoil-George Gervin Debut",
-        "BBFA-127-Deep Freeze-SILVER BLAST-George Gervin Debut",
-        "BBFA-166-Deep Freeze-SILVER BLAST-George Gervin Debut",
-        "BBFA-205-Deep Freeze-SILVER BLAST-George Gervin Debut",
+        "BBFA-127-Deep Freeze-Silver Blast-George Gervin Debut",
+        "BBFA-166-Deep Freeze-Silver Blast-George Gervin Debut",
+        "BBFA-205-Deep Freeze-Silver Blast-George Gervin Debut",
         "BFA-110-Deep Freeze-Inspired Ink Battlefoil-George Gervin Debut",
         "BFA-148-Deep Freeze-Inspired Ink Battlefoil-George Gervin Debut",
         "BFA-186-Deep Freeze-Inspired Ink Battlefoil-George Gervin Debut",
@@ -3251,7 +3191,7 @@
       "count": 2,
       "athletes": [],
       "bobaIds": [
-        "S-99/100-Dijon Don-Hotdogs-",
+        "S-99/100-Dijon Don-Hot Dog-",
         "T-49/50-Dijon Don-Hot Dog-"
       ]
     },
@@ -3259,7 +3199,7 @@
       "count": 2,
       "athletes": [],
       "bobaIds": [
-        "S-91/100-Dirty Water Dan-Hotdogs-",
+        "S-91/100-Dirty Water Dan-Hot Dog-",
         "T-41/50-Dirty Water Dan-Hot Dog-"
       ]
     },
@@ -3284,9 +3224,9 @@
       ],
       "bobaIds": [
         "BBF-11-Donnie Baseball-Blue Battlefoil-Don Mattingly Debut",
-        "BBFA-31-Donnie Baseball-SILVER BLAST-Don Mattingly Debut",
-        "BBFA-32-Donnie Baseball-SILVER BLAST-Don Mattingly Debut",
-        "BBFA-33-Donnie Baseball-SILVER BLAST-Don Mattingly Debut",
+        "BBFA-31-Donnie Baseball-Silver Blast-Don Mattingly Debut",
+        "BBFA-32-Donnie Baseball-Silver Blast-Don Mattingly Debut",
+        "BBFA-33-Donnie Baseball-Silver Blast-Don Mattingly Debut",
         "BFA-51-Donnie Baseball-Inspired Ink Battlefoil-Don Mattingly Debut",
         "BFA-52-Donnie Baseball-Inspired Ink Battlefoil-Don Mattingly Debut",
         "BFA-53-Donnie Baseball-Inspired Ink Battlefoil-Don Mattingly Debut",
@@ -3489,9 +3429,9 @@
       ],
       "bobaIds": [
         "BBF-3-Emmitt-164-Blue Battlefoil-Emmitt Smith Debut",
-        "BBFA-135-Emmitt-164-SILVER BLAST-Emmitt Smith Debut",
-        "BBFA-174-Emmitt-164-SILVER BLAST-Emmitt Smith Debut",
-        "BBFA-96-Emmitt-164-SILVER BLAST-Emmitt Smith Debut",
+        "BBFA-135-Emmitt-164-Silver Blast-Emmitt Smith Debut",
+        "BBFA-174-Emmitt-164-Silver Blast-Emmitt Smith Debut",
+        "BBFA-96-Emmitt-164-Silver Blast-Emmitt Smith Debut",
         "BFA-117-Emmitt-164-Inspired Ink Battlefoil-Emmitt Smith Debut",
         "BFA-155-Emmitt-164-Inspired Ink Battlefoil-Emmitt Smith Debut",
         "BFA-3-Emmitt-164-Inspired Ink Battlefoil-Emmitt Smith Debut",
@@ -3634,14 +3574,14 @@
         "Flavor Flav"
       ],
       "bobaIds": [
-        "FFA-1-Flavor Flav-SideKicks-Flavor Flav Debut",
-        "FFA-2-Flavor Flav-SideKicks-Flavor Flav Debut",
-        "FFA-3-Flavor Flav-SideKicks-Flavor Flav Debut",
-        "FFA-4-Flavor Flav-SideKicks-Flavor Flav Debut",
-        "FFA-5-Flavor Flav-SideKicks-Flavor Flav Debut",
-        "FFA-6-Flavor Flav-SideKicks-Flavor Flav Debut",
-        "FFA-7-Flavor Flav-SideKicks-Flavor Flav Debut",
-        "FFA-8-Flavor Flav-SideKicks-Flavor Flav Debut"
+        "FFA-1-Flavor Flav-Sidekicks-Flavor Flav Debut",
+        "FFA-2-Flavor Flav-Sidekicks-Flavor Flav Debut",
+        "FFA-3-Flavor Flav-Sidekicks-Flavor Flav Debut",
+        "FFA-4-Flavor Flav-Sidekicks-Flavor Flav Debut",
+        "FFA-5-Flavor Flav-Sidekicks-Flavor Flav Debut",
+        "FFA-6-Flavor Flav-Sidekicks-Flavor Flav Debut",
+        "FFA-7-Flavor Flav-Sidekicks-Flavor Flav Debut",
+        "FFA-8-Flavor Flav-Sidekicks-Flavor Flav Debut"
       ]
     },
     "Flutie": {
@@ -3651,9 +3591,9 @@
       ],
       "bobaIds": [
         "BBF-14-Flutie-Blue Battlefoil-Doug Flutie Debut",
-        "BBFA-40-Flutie-SILVER BLAST-Doug Flutie Debut",
-        "BBFA-41-Flutie-SILVER BLAST-Doug Flutie Debut",
-        "BBFA-42-Flutie-SILVER BLAST-Doug Flutie Debut",
+        "BBFA-40-Flutie-Silver Blast-Doug Flutie Debut",
+        "BBFA-41-Flutie-Silver Blast-Doug Flutie Debut",
+        "BBFA-42-Flutie-Silver Blast-Doug Flutie Debut",
         "BFA-66-Flutie-Inspired Ink Battlefoil-Doug Flutie Debut",
         "BFA-67-Flutie-Inspired Ink Battlefoil-Doug Flutie Debut",
         "BFA-68-Flutie-Inspired Ink Battlefoil-Doug Flutie Debut",
@@ -3716,7 +3656,7 @@
       "count": 2,
       "athletes": [],
       "bobaIds": [
-        "S-100/100-Frank-Hotdogs-",
+        "S-100/100-Frank-Hot Dog-",
         "T-50/50-Frank-Hot Dog-"
       ]
     },
@@ -3771,15 +3711,15 @@
         "Trae Young"
       ],
       "bobaIds": [
-        "BBFA-58-Frostebite-SILVER BLAST-Trae Young Debut",
-        "BBFA-59-Frostebite-SILVER BLAST-Trae Young Debut",
-        "BBFA-60-Frostebite-SILVER BLAST-Trae Young Debut",
-        "BL-B21-Frostebite-BLUE BLAST-Trae Young Debut",
-        "BL-BG21-Frostebite-BUBBLEGUM BLAST-Trae Young Debut",
-        "BL-G21-Frostebite-GREEN BLAST-Trae Young Debut",
-        "BL-O21-Frostebite-ORANGE BLAST-Trae Young Debut",
-        "BL-P21-Frostebite-PINK BLAST-Trae Young Debut",
-        "BL-S21-Frostebite-SILVER BLAST-Trae Young Debut"
+        "BBFA-58-Frostebite-Silver Blast-Trae Young Debut",
+        "BBFA-59-Frostebite-Silver Blast-Trae Young Debut",
+        "BBFA-60-Frostebite-Silver Blast-Trae Young Debut",
+        "BL-B21-Frostebite-Blue Blast-Trae Young Debut",
+        "BL-BG21-Frostebite-Bubble Gum Blast-Trae Young Debut",
+        "BL-G21-Frostebite-Green Blast-Trae Young Debut",
+        "BL-O21-Frostebite-Orange Blast-Trae Young Debut",
+        "BL-P21-Frostebite-Pink Blast-Trae Young Debut",
+        "BL-S21-Frostebite-Silver Blast-Trae Young Debut"
       ]
     },
     "Frozen Resolve": {
@@ -4058,9 +3998,9 @@
       ],
       "bobaIds": [
         "BBF-17-Goggles-Blue Battlefoil-Eric Dickerson Debut",
-        "BBFA-110-Goggles-SILVER BLAST-Eric Dickerson Debut",
-        "BBFA-149-Goggles-SILVER BLAST-Eric Dickerson Debut",
-        "BBFA-188-Goggles-SILVER BLAST-Eric Dickerson Debut",
+        "BBFA-110-Goggles-Silver Blast-Eric Dickerson Debut",
+        "BBFA-149-Goggles-Silver Blast-Eric Dickerson Debut",
+        "BBFA-188-Goggles-Silver Blast-Eric Dickerson Debut",
         "BFA-131-Goggles-Inspired Ink Battlefoil-Eric Dickerson Debut",
         "BFA-169-Goggles-Inspired Ink Battlefoil-Eric Dickerson Debut",
         "BFA-17-Goggles-Inspired Ink Battlefoil-Eric Dickerson Debut",
@@ -4120,9 +4060,9 @@
       ],
       "bobaIds": [
         "BBF-8-Grand-Ma-Ma-Blue Battlefoil-Larry Johnson Debut",
-        "BBFA-22-Grand-Ma-Ma-SILVER BLAST-Larry Johnson Debut",
-        "BBFA-23-Grand-Ma-Ma-SILVER BLAST-Larry Johnson Debut",
-        "BBFA-24-Grand-Ma-Ma-SILVER BLAST-Larry Johnson Debut",
+        "BBFA-22-Grand-Ma-Ma-Silver Blast-Larry Johnson Debut",
+        "BBFA-23-Grand-Ma-Ma-Silver Blast-Larry Johnson Debut",
+        "BBFA-24-Grand-Ma-Ma-Silver Blast-Larry Johnson Debut",
         "BFA-36-Grand-Ma-Ma-Inspired Ink Battlefoil-Larry Johnson Debut",
         "BFA-37-Grand-Ma-Ma-Inspired Ink Battlefoil-Larry Johnson Debut",
         "BFA-38-Grand-Ma-Ma-Inspired Ink Battlefoil-Larry Johnson Debut",
@@ -4163,9 +4103,9 @@
       ],
       "bobaIds": [
         "BBF-15-Green-Machine-Blue Battlefoil-Jalen Green Debut",
-        "BBFA-43-Green-Machine-SILVER BLAST-Jalen Green Debut",
-        "BBFA-44-Green-Machine-SILVER BLAST-Jalen Green Debut",
-        "BBFA-45-Green-Machine-SILVER BLAST-Jalen Green Debut",
+        "BBFA-43-Green-Machine-Silver Blast-Jalen Green Debut",
+        "BBFA-44-Green-Machine-Silver Blast-Jalen Green Debut",
+        "BBFA-45-Green-Machine-Silver Blast-Jalen Green Debut",
         "BFA-71-Green-Machine-Inspired Ink Battlefoil-Jalen Green Debut",
         "BFA-72-Green-Machine-Inspired Ink Battlefoil-Jalen Green Debut",
         "BFA-73-Green-Machine-Inspired Ink Battlefoil-Jalen Green Debut",
@@ -4185,7 +4125,7 @@
       "count": 2,
       "athletes": [],
       "bobaIds": [
-        "S-98/100-Grillbert-Hotdogs-",
+        "S-98/100-Grillbert-Hot Dog-",
         "T-48/50-Grillbert-Hot Dog-"
       ]
     },
@@ -4300,9 +4240,9 @@
       ],
       "bobaIds": [
         "BBF-37-Hard-Drive-Blue Battlefoil-Tim Hardaway Debut",
-        "BBFA-130-Hard-Drive-SILVER BLAST-Tim Hardaway Debut",
-        "BBFA-169-Hard-Drive-SILVER BLAST-Tim Hardaway Debut",
-        "BBFA-208-Hard-Drive-SILVER BLAST-Tim Hardaway Debut",
+        "BBFA-130-Hard-Drive-Silver Blast-Tim Hardaway Debut",
+        "BBFA-169-Hard-Drive-Silver Blast-Tim Hardaway Debut",
+        "BBFA-208-Hard-Drive-Silver Blast-Tim Hardaway Debut",
         "BFA-113-Hard-Drive-Inspired Ink Battlefoil-Tim Hardaway Debut",
         "BFA-151-Hard-Drive-Inspired Ink Battlefoil-Tim Hardaway Debut",
         "BFA-189-Hard-Drive-Inspired Ink Battlefoil-Tim Hardaway Debut",
@@ -4336,9 +4276,9 @@
       ],
       "bobaIds": [
         "BBF-39-Haymaker-Blue Battlefoil-Spencer Haywood Debut",
-        "BBFA-132-Haymaker-SILVER BLAST-Spencer Haywood Debut",
-        "BBFA-171-Haymaker-SILVER BLAST-Spencer Haywood Debut",
-        "BBFA-210-Haymaker-SILVER BLAST-Spencer Haywood Debut",
+        "BBFA-132-Haymaker-Silver Blast-Spencer Haywood Debut",
+        "BBFA-171-Haymaker-Silver Blast-Spencer Haywood Debut",
+        "BBFA-210-Haymaker-Silver Blast-Spencer Haywood Debut",
         "BFA-115-Haymaker-Inspired Ink Battlefoil-Spencer Haywood Debut",
         "BFA-153-Haymaker-Inspired Ink Battlefoil-Spencer Haywood Debut",
         "BFA-191-Haymaker-Inspired Ink Battlefoil-Spencer Haywood Debut",
@@ -4469,9 +4409,9 @@
       ],
       "bobaIds": [
         "BBF-28-Hoge-Ball-Blue Battlefoil-Merril Hoge Debut",
-        "BBFA-121-Hoge-Ball-SILVER BLAST-Merril Hoge Debut",
-        "BBFA-160-Hoge-Ball-SILVER BLAST-Merril Hoge Debut",
-        "BBFA-199-Hoge-Ball-SILVER BLAST-Merril Hoge Debut",
+        "BBFA-121-Hoge-Ball-Silver Blast-Merril Hoge Debut",
+        "BBFA-160-Hoge-Ball-Silver Blast-Merril Hoge Debut",
+        "BBFA-199-Hoge-Ball-Silver Blast-Merril Hoge Debut",
         "BFA-104-Hoge-Ball-Inspired Ink Battlefoil-Merril Hoge Debut",
         "BFA-142-Hoge-Ball-Inspired Ink Battlefoil-Merril Hoge Debut",
         "BFA-180-Hoge-Ball-Inspired Ink Battlefoil-Merril Hoge Debut",
@@ -4533,9 +4473,9 @@
       ],
       "bobaIds": [
         "BBF-14-HowBout'em-Blue Battlefoil-Jimmy Johnson Debut",
-        "BBFA-107-HowBout'em-SILVER BLAST-Jimmy Johnson Debut",
-        "BBFA-146-HowBout'em-SILVER BLAST-Jimmy Johnson Debut",
-        "BBFA-185-HowBout'em-SILVER BLAST-Jimmy Johnson Debut",
+        "BBFA-107-HowBout'em-Silver Blast-Jimmy Johnson Debut",
+        "BBFA-146-HowBout'em-Silver Blast-Jimmy Johnson Debut",
+        "BBFA-185-HowBout'em-Silver Blast-Jimmy Johnson Debut",
         "BFA-128-HowBout'em-Inspired Ink Battlefoil-Jimmy Johnson Debut",
         "BFA-14-HowBout'em-Inspired Ink Battlefoil-Jimmy Johnson Debut",
         "BFA-166-HowBout'em-Inspired Ink Battlefoil-Jimmy Johnson Debut",
@@ -4551,9 +4491,9 @@
       ],
       "bobaIds": [
         "BBF-16-Howietzer-Blue Battlefoil-Howie Long Debut",
-        "BBFA-109-Howietzer-SILVER BLAST-Howie Long Debut",
-        "BBFA-148-Howietzer-SILVER BLAST-Howie Long Debut",
-        "BBFA-187-Howietzer-SILVER BLAST-Howie Long Debut",
+        "BBFA-109-Howietzer-Silver Blast-Howie Long Debut",
+        "BBFA-148-Howietzer-Silver Blast-Howie Long Debut",
+        "BBFA-187-Howietzer-Silver Blast-Howie Long Debut",
         "BFA-130-Howietzer-Inspired Ink Battlefoil-Howie Long Debut",
         "BFA-16-Howietzer-Inspired Ink Battlefoil-Howie Long Debut",
         "BFA-168-Howietzer-Inspired Ink Battlefoil-Howie Long Debut",
@@ -4611,9 +4551,9 @@
       ],
       "bobaIds": [
         "BBF-29-InVinceable-Blue Battlefoil-Vince Young Debut",
-        "BBFA-122-InVinceable-SILVER BLAST-Vince Young Debut",
-        "BBFA-161-InVinceable-SILVER BLAST-Vince Young Debut",
-        "BBFA-200-InVinceable-SILVER BLAST-Vince Young Debut",
+        "BBFA-122-InVinceable-Silver Blast-Vince Young Debut",
+        "BBFA-161-InVinceable-Silver Blast-Vince Young Debut",
+        "BBFA-200-InVinceable-Silver Blast-Vince Young Debut",
         "BFA-105-InVinceable-Inspired Ink Battlefoil-Vince Young Debut",
         "BFA-143-InVinceable-Inspired Ink Battlefoil-Vince Young Debut",
         "BFA-181-InVinceable-Inspired Ink Battlefoil-Vince Young Debut",
@@ -4848,9 +4788,9 @@
       ],
       "bobaIds": [
         "BBF-11-Joey Jawz-Blue Battlefoil-Joey Chestnut Debut",
-        "BBFA-104-Joey Jawz-SILVER BLAST-Joey Chestnut Debut",
-        "BBFA-143-Joey Jawz-SILVER BLAST-Joey Chestnut Debut",
-        "BBFA-182-Joey Jawz-SILVER BLAST-Joey Chestnut Debut",
+        "BBFA-104-Joey Jawz-Silver Blast-Joey Chestnut Debut",
+        "BBFA-143-Joey Jawz-Silver Blast-Joey Chestnut Debut",
+        "BBFA-182-Joey Jawz-Silver Blast-Joey Chestnut Debut",
         "BFA-11-Joey Jawz-Inspired Ink Battlefoil-Joey Chestnut Debut",
         "BFA-125-Joey Jawz-Inspired Ink Battlefoil-Joey Chestnut Debut",
         "BFA-163-Joey Jawz-Inspired Ink Battlefoil-Joey Chestnut Debut",
@@ -4917,9 +4857,9 @@
       ],
       "bobaIds": [
         "BBF-16-KAT-Blue Battlefoil-Karl-Anthony Towns Debut",
-        "BBFA-46-KAT-SILVER BLAST-Karl-Anthony Towns Debut",
-        "BBFA-47-KAT-SILVER BLAST-Karl-Anthony Towns Debut",
-        "BBFA-48-KAT-SILVER BLAST-Karl-Anthony Towns Debut",
+        "BBFA-46-KAT-Silver Blast-Karl-Anthony Towns Debut",
+        "BBFA-47-KAT-Silver Blast-Karl-Anthony Towns Debut",
+        "BBFA-48-KAT-Silver Blast-Karl-Anthony Towns Debut",
         "BFA-76-KAT-Inspired Ink Battlefoil-Karl-Anthony Towns Debut",
         "BFA-77-KAT-Inspired Ink Battlefoil-Karl-Anthony Towns Debut",
         "BFA-78-KAT-Inspired Ink Battlefoil-Karl-Anthony Towns Debut",
@@ -5007,9 +4947,9 @@
       ],
       "bobaIds": [
         "BBF-33-Kurse-Blue Battlefoil-Jevon Kearse Debut",
-        "BBFA-126-Kurse-SILVER BLAST-Jevon Kearse Debut",
-        "BBFA-165-Kurse-SILVER BLAST-Jevon Kearse Debut",
-        "BBFA-204-Kurse-SILVER BLAST-Jevon Kearse Debut",
+        "BBFA-126-Kurse-Silver Blast-Jevon Kearse Debut",
+        "BBFA-165-Kurse-Silver Blast-Jevon Kearse Debut",
+        "BBFA-204-Kurse-Silver Blast-Jevon Kearse Debut",
         "BFA-109-Kurse-Inspired Ink Battlefoil-Jevon Kearse Debut",
         "BFA-147-Kurse-Inspired Ink Battlefoil-Jevon Kearse Debut",
         "BFA-185-Kurse-Inspired Ink Battlefoil-Jevon Kearse Debut",
@@ -5032,9 +4972,9 @@
       ],
       "bobaIds": [
         "BBF-27-Lady Magic-Blue Battlefoil-Nancy Lieberman Debut",
-        "BBFA-120-Lady Magic-SILVER BLAST-Nancy Lieberman Debut",
-        "BBFA-159-Lady Magic-SILVER BLAST-Nancy Lieberman Debut",
-        "BBFA-198-Lady Magic-SILVER BLAST-Nancy Lieberman Debut",
+        "BBFA-120-Lady Magic-Silver Blast-Nancy Lieberman Debut",
+        "BBFA-159-Lady Magic-Silver Blast-Nancy Lieberman Debut",
+        "BBFA-198-Lady Magic-Silver Blast-Nancy Lieberman Debut",
         "BFA-103-Lady Magic-Inspired Ink Battlefoil-Nancy Lieberman Debut",
         "BFA-141-Lady Magic-Inspired Ink Battlefoil-Nancy Lieberman Debut",
         "BFA-179-Lady Magic-Inspired Ink Battlefoil-Nancy Lieberman Debut",
@@ -5127,12 +5067,12 @@
       ],
       "bobaIds": [
         "BBF-3-Leducky-Blue Battlefoil-First Edition",
-        "BL-B4-Leducky-BLUE BLAST-Brandi Chastain Debut",
-        "BL-BG4-Leducky-BUBBLEGUM BLAST-Brandi Chastain Debut",
-        "BL-G4-Leducky-GREEN BLAST-Brandi Chastain Debut",
-        "BL-O4-Leducky-ORANGE BLAST-Brandi Chastain Debut",
-        "BL-P4-Leducky-PINK BLAST-Brandi Chastain Debut",
-        "BL-S4-Leducky-SILVER BLAST-Brandi Chastain Debut",
+        "BL-B4-Leducky-Blue Blast-Brandi Chastain Debut",
+        "BL-BG4-Leducky-Bubble Gum Blast-Brandi Chastain Debut",
+        "BL-G4-Leducky-Green Blast-Brandi Chastain Debut",
+        "BL-O4-Leducky-Orange Blast-Brandi Chastain Debut",
+        "BL-P4-Leducky-Pink Blast-Brandi Chastain Debut",
+        "BL-S4-Leducky-Silver Blast-Brandi Chastain Debut",
         "GBF-3-Leducky-Green Battlefoil-First Edition",
         "GLBF-11-Leducky-Grandma's Linoleum Battlefoil-First Edition",
         "GLBF-12-Leducky-Grandma's Linoleum Battlefoil-First Edition"
@@ -5206,9 +5146,9 @@
       ],
       "bobaIds": [
         "BBF-27-Line-Art-Blue Battlefoil-Matt Leinart Debut",
-        "BBFA-79-Line-Art-SILVER BLAST-Matt Leinart Debut",
-        "BBFA-80-Line-Art-SILVER BLAST-Matt Leinart Debut",
-        "BBFA-81-Line-Art-SILVER BLAST-Matt Leinart Debut",
+        "BBFA-79-Line-Art-Silver Blast-Matt Leinart Debut",
+        "BBFA-80-Line-Art-Silver Blast-Matt Leinart Debut",
+        "BBFA-81-Line-Art-Silver Blast-Matt Leinart Debut",
         "BFA-131-Line-Art-Inspired Ink Battlefoil-Matt Leinart Debut",
         "BFA-132-Line-Art-Inspired Ink Battlefoil-Matt Leinart Debut",
         "BFA-133-Line-Art-Inspired Ink Battlefoil-Matt Leinart Debut",
@@ -5378,9 +5318,9 @@
       ],
       "bobaIds": [
         "BBF-2-Magic-Blue Battlefoil-Magic Johnson Debut",
-        "BBFA-134-Magic-SILVER BLAST-Magic Johnson Debut",
-        "BBFA-173-Magic-SILVER BLAST-Magic Johnson Debut",
-        "BBFA-95-Magic-SILVER BLAST-Magic Johnson Debut",
+        "BBFA-134-Magic-Silver Blast-Magic Johnson Debut",
+        "BBFA-173-Magic-Silver Blast-Magic Johnson Debut",
+        "BBFA-95-Magic-Silver Blast-Magic Johnson Debut",
         "BFA-116-Magic-Inspired Ink Battlefoil-Magic Johnson Debut",
         "BFA-154-Magic-Inspired Ink Battlefoil-Magic Johnson Debut",
         "BFA-2-Magic-Inspired Ink Battlefoil-Magic Johnson Debut",
@@ -5410,9 +5350,9 @@
       ],
       "bobaIds": [
         "BBF-30-Man of Steal-Blue Battlefoil-Vince Coleman Debut",
-        "BBFA-88-Man of Steal-SILVER BLAST-Vince Coleman Debut",
-        "BBFA-89-Man of Steal-SILVER BLAST-Vince Coleman Debut",
-        "BBFA-90-Man of Steal-SILVER BLAST-Vince Coleman Debut",
+        "BBFA-88-Man of Steal-Silver Blast-Vince Coleman Debut",
+        "BBFA-89-Man of Steal-Silver Blast-Vince Coleman Debut",
+        "BBFA-90-Man of Steal-Silver Blast-Vince Coleman Debut",
         "BFA-146-Man of Steal-Inspired Ink Battlefoil-Vince Coleman Debut",
         "BFA-147-Man of Steal-Inspired Ink Battlefoil-Vince Coleman Debut",
         "BFA-148-Man of Steal-Inspired Ink Battlefoil-Vince Coleman Debut",
@@ -5428,9 +5368,9 @@
       ],
       "bobaIds": [
         "BBF-4-Marino-Blue Battlefoil-Dan Marino Debut",
-        "BBFA-136-Marino-SILVER BLAST-Dan Marino Debut",
-        "BBFA-175-Marino-SILVER BLAST-Dan Marino Debut",
-        "BBFA-97-Marino-SILVER BLAST-Dan Marino Debut",
+        "BBFA-136-Marino-Silver Blast-Dan Marino Debut",
+        "BBFA-175-Marino-Silver Blast-Dan Marino Debut",
+        "BBFA-97-Marino-Silver Blast-Dan Marino Debut",
         "BFA-118-Marino-Inspired Ink Battlefoil-Dan Marino Debut",
         "BFA-156-Marino-Inspired Ink Battlefoil-Dan Marino Debut",
         "BFA-4-Marino-Inspired Ink Battlefoil-Dan Marino Debut",
@@ -5555,9 +5495,9 @@
       ],
       "bobaIds": [
         "BBF-17-Mean-Joe-Blue Battlefoil-Joe Greene Debut",
-        "BBFA-49-Mean-Joe-SILVER BLAST-Joe Greene Debut",
-        "BBFA-50-Mean-Joe-SILVER BLAST-Joe Greene Debut",
-        "BBFA-51-Mean-Joe-SILVER BLAST-Joe Greene Debut",
+        "BBFA-49-Mean-Joe-Silver Blast-Joe Greene Debut",
+        "BBFA-50-Mean-Joe-Silver Blast-Joe Greene Debut",
+        "BBFA-51-Mean-Joe-Silver Blast-Joe Greene Debut",
         "BFA-81-Mean-Joe-Inspired Ink Battlefoil-Joe Greene Debut",
         "BFA-82-Mean-Joe-Inspired Ink Battlefoil-Joe Greene Debut",
         "BFA-83-Mean-Joe-Inspired Ink Battlefoil-Joe Greene Debut",
@@ -5720,9 +5660,9 @@
       ],
       "bobaIds": [
         "BBF-6-Muggsy-Blue Battlefoil-Muggsy Bogues Debut",
-        "BBFA-138-Muggsy-SILVER BLAST-Muggsy Bogues Debut",
-        "BBFA-177-Muggsy-SILVER BLAST-Muggsy Bogues Debut",
-        "BBFA-99-Muggsy-SILVER BLAST-Muggsy Bogues Debut",
+        "BBFA-138-Muggsy-Silver Blast-Muggsy Bogues Debut",
+        "BBFA-177-Muggsy-Silver Blast-Muggsy Bogues Debut",
+        "BBFA-99-Muggsy-Silver Blast-Muggsy Bogues Debut",
         "BFA-120-Muggsy-Inspired Ink Battlefoil-Muggsy Bogues Debut",
         "BFA-158-Muggsy-Inspired Ink Battlefoil-Muggsy Bogues Debut",
         "BFA-44-Muggsy-Inspired Ink Battlefoil-Muggsy Bogues Debut",
@@ -5771,7 +5711,7 @@
       "count": 2,
       "athletes": [],
       "bobaIds": [
-        "S-94/100-Mustard Man-Hotdogs-",
+        "S-94/100-Mustard Man-Hot Dog-",
         "T-44/50-Mustard Man-Hot Dog-"
       ]
     },
@@ -5943,9 +5883,9 @@
       ],
       "bobaIds": [
         "BBF-23-Palmer-Blue Battlefoil-Jim Palmer Debut",
-        "BBFA-67-Palmer-SILVER BLAST-Jim Palmer Debut",
-        "BBFA-68-Palmer-SILVER BLAST-Jim Palmer Debut",
-        "BBFA-69-Palmer-SILVER BLAST-Jim Palmer Debut",
+        "BBFA-67-Palmer-Silver Blast-Jim Palmer Debut",
+        "BBFA-68-Palmer-Silver Blast-Jim Palmer Debut",
+        "BBFA-69-Palmer-Silver Blast-Jim Palmer Debut",
         "BFA-111-Palmer-Inspired Ink Battlefoil-Jim Palmer Debut",
         "BFA-112-Palmer-Inspired Ink Battlefoil-Jim Palmer Debut",
         "BFA-113-Palmer-Inspired Ink Battlefoil-Jim Palmer Debut",
@@ -5997,9 +5937,9 @@
       ],
       "bobaIds": [
         "BBF-9-Peek-A-Boo-Blue Battlefoil-Picabo Street Debut",
-        "BBFA-102-Peek-A-Boo-SILVER BLAST-Picabo Street Debut",
-        "BBFA-141-Peek-A-Boo-SILVER BLAST-Picabo Street Debut",
-        "BBFA-180-Peek-A-Boo-SILVER BLAST-Picabo Street Debut",
+        "BBFA-102-Peek-A-Boo-Silver Blast-Picabo Street Debut",
+        "BBFA-141-Peek-A-Boo-Silver Blast-Picabo Street Debut",
+        "BBFA-180-Peek-A-Boo-Silver Blast-Picabo Street Debut",
         "BFA-123-Peek-A-Boo-Inspired Ink Battlefoil-Picabo Street Debut",
         "BFA-161-Peek-A-Boo-Inspired Ink Battlefoil-Picabo Street Debut",
         "BFA-47-Peek-A-Boo-Inspired Ink Battlefoil-Picabo Street Debut",
@@ -6058,9 +5998,9 @@
       ],
       "bobaIds": [
         "BBF-20-Pet Dog-Blue Battlefoil-Ethan Petry Debut",
-        "BBFA-113-Pet Dog-SILVER BLAST-Ethan Petry Debut",
-        "BBFA-152-Pet Dog-SILVER BLAST-Ethan Petry Debut",
-        "BBFA-191-Pet Dog-SILVER BLAST-Ethan Petry Debut",
+        "BBFA-113-Pet Dog-Silver Blast-Ethan Petry Debut",
+        "BBFA-152-Pet Dog-Silver Blast-Ethan Petry Debut",
+        "BBFA-191-Pet Dog-Silver Blast-Ethan Petry Debut",
         "BFA-134-Pet Dog-Inspired Ink Battlefoil-Ethan Petry Debut",
         "BFA-172-Pet Dog-Inspired Ink Battlefoil-Ethan Petry Debut",
         "BFA-20-Pet Dog-Inspired Ink Battlefoil-Ethan Petry Debut",
@@ -6121,7 +6061,7 @@
       "count": 2,
       "athletes": [],
       "bobaIds": [
-        "S-95/100-Pickle Pete-Hotdogs-",
+        "S-95/100-Pickle Pete-Hot Dog-",
         "T-45/50-Pickle Pete-Hot Dog-"
       ]
     },
@@ -6490,9 +6430,9 @@
       ],
       "bobaIds": [
         "BBF-25-Rodder-Blue Battlefoil-Rod Smith Debut",
-        "BBFA-73-Rodder-SILVER BLAST-Rod Smith Debut",
-        "BBFA-74-Rodder-SILVER BLAST-Rod Smith Debut",
-        "BBFA-75-Rodder-SILVER BLAST-Rod Smith Debut",
+        "BBFA-73-Rodder-Silver Blast-Rod Smith Debut",
+        "BBFA-74-Rodder-Silver Blast-Rod Smith Debut",
+        "BBFA-75-Rodder-Silver Blast-Rod Smith Debut",
         "BFA-121-Rodder-Inspired Ink Battlefoil-Rod Smith Debut",
         "BFA-122-Rodder-Inspired Ink Battlefoil-Rod Smith Debut",
         "BFA-123-Rodder-Inspired Ink Battlefoil-Rod Smith Debut",
@@ -6615,7 +6555,7 @@
       "count": 2,
       "athletes": [],
       "bobaIds": [
-        "S-96/100-Sammy Sausage-Hotdogs-",
+        "S-96/100-Sammy Sausage-Hot Dog-",
         "T-46/50-Sammy Sausage-Hot Dog-"
       ]
     },
@@ -6687,9 +6627,9 @@
       ],
       "bobaIds": [
         "BBF-15-Sea-Largent-Blue Battlefoil-Steve Largent Debut",
-        "BBFA-108-Sea-Largent-SILVER BLAST-Steve Largent Debut",
-        "BBFA-147-Sea-Largent-SILVER BLAST-Steve Largent Debut",
-        "BBFA-186-Sea-Largent-SILVER BLAST-Steve Largent Debut",
+        "BBFA-108-Sea-Largent-Silver Blast-Steve Largent Debut",
+        "BBFA-147-Sea-Largent-Silver Blast-Steve Largent Debut",
+        "BBFA-186-Sea-Largent-Silver Blast-Steve Largent Debut",
         "BFA-129-Sea-Largent-Inspired Ink Battlefoil-Steve Largent Debut",
         "BFA-15-Sea-Largent-Inspired Ink Battlefoil-Steve Largent Debut",
         "BFA-167-Sea-Largent-Inspired Ink Battlefoil-Steve Largent Debut",
@@ -6861,12 +6801,12 @@
       "bobaIds": [
         "BBF-41-Skeee-Blue Battlefoil-First Edition",
         "BGBF-2-Skeee-Bubble Gum Battlefoil-First Edition",
-        "BL-B117-Skeee-BLUE BLAST-First Edition",
-        "BL-BG117-Skeee-BUBBLEGUM BLAST-First Edition",
-        "BL-G117-Skeee-GREEN BLAST-First Edition",
-        "BL-O117-Skeee-ORANGE BLAST-First Edition",
-        "BL-P117-Skeee-PINK BLAST-First Edition",
-        "BL-S117-Skeee-SILVER BLAST-First Edition",
+        "BL-B117-Skeee-Blue Blast-First Edition",
+        "BL-BG117-Skeee-Bubble Gum Blast-First Edition",
+        "BL-G117-Skeee-Green Blast-First Edition",
+        "BL-O117-Skeee-Orange Blast-First Edition",
+        "BL-P117-Skeee-Pink Blast-First Edition",
+        "BL-S117-Skeee-Silver Blast-First Edition",
         "FT-41-Skeee-Fire Tracks Battlefoil-First Edition",
         "GBF-41-Skeee-Green Battlefoil-First Edition"
       ]
@@ -6896,9 +6836,9 @@
       ],
       "bobaIds": [
         "BBF-30-Slash-Blue Battlefoil-Kordell Stewart Debut",
-        "BBFA-123-Slash-SILVER BLAST-Kordell Stewart Debut",
-        "BBFA-162-Slash-SILVER BLAST-Kordell Stewart Debut",
-        "BBFA-201-Slash-SILVER BLAST-Kordell Stewart Debut",
+        "BBFA-123-Slash-Silver Blast-Kordell Stewart Debut",
+        "BBFA-162-Slash-Silver Blast-Kordell Stewart Debut",
+        "BBFA-201-Slash-Silver Blast-Kordell Stewart Debut",
         "BFA-106-Slash-Inspired Ink Battlefoil-Kordell Stewart Debut",
         "BFA-144-Slash-Inspired Ink Battlefoil-Kordell Stewart Debut",
         "BFA-182-Slash-Inspired Ink Battlefoil-Kordell Stewart Debut",
@@ -6921,9 +6861,9 @@
       ],
       "bobaIds": [
         "BBF-29-Smoke-Blue Battlefoil-Dave Stewart Debut",
-        "BBFA-85-Smoke-SILVER BLAST-Dave Stewart Debut",
-        "BBFA-86-Smoke-SILVER BLAST-Dave Stewart Debut",
-        "BBFA-87-Smoke-SILVER BLAST-Dave Stewart Debut",
+        "BBFA-85-Smoke-Silver Blast-Dave Stewart Debut",
+        "BBFA-86-Smoke-Silver Blast-Dave Stewart Debut",
+        "BBFA-87-Smoke-Silver Blast-Dave Stewart Debut",
         "BFA-141-Smoke-Inspired Ink Battlefoil-Dave Stewart Debut",
         "BFA-142-Smoke-Inspired Ink Battlefoil-Dave Stewart Debut",
         "BFA-143-Smoke-Inspired Ink Battlefoil-Dave Stewart Debut",
@@ -7020,9 +6960,9 @@
       ],
       "bobaIds": [
         "BBF-7-Spudnick-Blue Battlefoil-Spudd Webb Debut",
-        "BBFA-100-Spudnick-SILVER BLAST-Spudd Webb Debut",
-        "BBFA-139-Spudnick-SILVER BLAST-Spudd Webb Debut",
-        "BBFA-178-Spudnick-SILVER BLAST-Spudd Webb Debut",
+        "BBFA-100-Spudnick-Silver Blast-Spudd Webb Debut",
+        "BBFA-139-Spudnick-Silver Blast-Spudd Webb Debut",
+        "BBFA-178-Spudnick-Silver Blast-Spudd Webb Debut",
         "BFA-121-Spudnick-Inspired Ink Battlefoil-Spudd Webb Debut",
         "BFA-159-Spudnick-Inspired Ink Battlefoil-Spudd Webb Debut",
         "BFA-45-Spudnick-Inspired Ink Battlefoil-Spudd Webb Debut",
@@ -7045,9 +6985,9 @@
       ],
       "bobaIds": [
         "BBF-7-Star-Bach-Blue Battlefoil-Roger Staubach Debut",
-        "BBFA-19-Star-Bach-SILVER BLAST-Roger Staubach Debut",
-        "BBFA-20-Star-Bach-SILVER BLAST-Roger Staubach Debut",
-        "BBFA-21-Star-Bach-SILVER BLAST-Roger Staubach Debut",
+        "BBFA-19-Star-Bach-Silver Blast-Roger Staubach Debut",
+        "BBFA-20-Star-Bach-Silver Blast-Roger Staubach Debut",
+        "BBFA-21-Star-Bach-Silver Blast-Roger Staubach Debut",
         "BFA-31-Star-Bach-Inspired Ink Battlefoil-Roger Staubach Debut",
         "BFA-32-Star-Bach-Inspired Ink Battlefoil-Roger Staubach Debut",
         "BFA-33-Star-Bach-Inspired Ink Battlefoil-Roger Staubach Debut",
@@ -7070,9 +7010,9 @@
       ],
       "bobaIds": [
         "BBF-18-Steady Eddie-Blue Battlefoil-Eddie George Debut",
-        "BBFA-111-Steady Eddie-SILVER BLAST-Eddie George Debut",
-        "BBFA-150-Steady Eddie-SILVER BLAST-Eddie George Debut",
-        "BBFA-189-Steady Eddie-SILVER BLAST-Eddie George Debut",
+        "BBFA-111-Steady Eddie-Silver Blast-Eddie George Debut",
+        "BBFA-150-Steady Eddie-Silver Blast-Eddie George Debut",
+        "BBFA-189-Steady Eddie-Silver Blast-Eddie George Debut",
         "BFA-132-Steady Eddie-Inspired Ink Battlefoil-Eddie George Debut",
         "BFA-170-Steady Eddie-Inspired Ink Battlefoil-Eddie George Debut",
         "BFA-18-Steady Eddie-Inspired Ink Battlefoil-Eddie George Debut",
@@ -7109,9 +7049,9 @@
       ],
       "bobaIds": [
         "BBF-25-Sterling-Blue Battlefoil-Sterling Sharpe Debut",
-        "BBFA-118-Sterling-SILVER BLAST-Sterling Sharpe Debut",
-        "BBFA-157-Sterling-SILVER BLAST-Sterling Sharpe Debut",
-        "BBFA-196-Sterling-SILVER BLAST-Sterling Sharpe Debut",
+        "BBFA-118-Sterling-Silver Blast-Sterling Sharpe Debut",
+        "BBFA-157-Sterling-Silver Blast-Sterling Sharpe Debut",
+        "BBFA-196-Sterling-Silver Blast-Sterling Sharpe Debut",
         "BFA-101-Sterling-Inspired Ink Battlefoil-Sterling Sharpe Debut",
         "BFA-139-Sterling-Inspired Ink Battlefoil-Sterling Sharpe Debut",
         "BFA-177-Sterling-Inspired Ink Battlefoil-Sterling Sharpe Debut",
@@ -7230,9 +7170,9 @@
       ],
       "bobaIds": [
         "BBF-28-Swoopes-Blue Battlefoil-Sheryl Swoopes Debut",
-        "BBFA-82-Swoopes-SILVER BLAST-Sheryl Swoopes Debut",
-        "BBFA-83-Swoopes-SILVER BLAST-Sheryl Swoopes Debut",
-        "BBFA-84-Swoopes-SILVER BLAST-Sheryl Swoopes Debut",
+        "BBFA-82-Swoopes-Silver Blast-Sheryl Swoopes Debut",
+        "BBFA-83-Swoopes-Silver Blast-Sheryl Swoopes Debut",
+        "BBFA-84-Swoopes-Silver Blast-Sheryl Swoopes Debut",
         "BFA-136-Swoopes-Inspired Ink Battlefoil-Sheryl Swoopes Debut",
         "BFA-137-Swoopes-Inspired Ink Battlefoil-Sheryl Swoopes Debut",
         "BFA-138-Swoopes-Inspired Ink Battlefoil-Sheryl Swoopes Debut",
@@ -7338,9 +7278,9 @@
       ],
       "bobaIds": [
         "BBF-8-The Ironman-Blue Battlefoil-Cal Ripkin JR Debut",
-        "BBFA-101-The Ironman-SILVER BLAST-Cal Ripkin JR Debut",
-        "BBFA-140-The Ironman-SILVER BLAST-Cal Ripkin JR Debut",
-        "BBFA-179-The Ironman-SILVER BLAST-Cal Ripkin JR Debut",
+        "BBFA-101-The Ironman-Silver Blast-Cal Ripkin JR Debut",
+        "BBFA-140-The Ironman-Silver Blast-Cal Ripkin JR Debut",
+        "BBFA-179-The Ironman-Silver Blast-Cal Ripkin JR Debut",
         "BFA-122-The Ironman-Inspired Ink Battlefoil-Cal Ripkin JR Debut",
         "BFA-160-The Ironman-Inspired Ink Battlefoil-Cal Ripkin JR Debut",
         "BFA-46-The Ironman-Inspired Ink Battlefoil-Cal Ripkin JR Debut",
@@ -7406,9 +7346,9 @@
       ],
       "bobaIds": [
         "BBF-24-Thighs Man-Blue Battlefoil-Joe Theisman",
-        "BBFA-70-Thighs Man-SILVER BLAST-Joe Theisman",
-        "BBFA-71-Thighs Man-SILVER BLAST-Joe Theisman",
-        "BBFA-72-Thighs Man-SILVER BLAST-Joe Theisman",
+        "BBFA-70-Thighs Man-Silver Blast-Joe Theisman",
+        "BBFA-71-Thighs Man-Silver Blast-Joe Theisman",
+        "BBFA-72-Thighs Man-Silver Blast-Joe Theisman",
         "BFA-116-Thighs Man-Inspired Ink Battlefoil-Joe Theisman",
         "BFA-117-Thighs Man-Inspired Ink Battlefoil-Joe Theisman",
         "BFA-118-Thighs Man-Inspired Ink Battlefoil-Joe Theisman",
@@ -7460,9 +7400,9 @@
       ],
       "bobaIds": [
         "BBF-19-Thrill-Blue Battlefoil-Will Clark Debut",
-        "BBFA-55-Thrill-SILVER BLAST-Will Clark Debut",
-        "BBFA-56-Thrill-SILVER BLAST-Will Clark Debut",
-        "BBFA-57-Thrill-SILVER BLAST-Will Clark Debut",
+        "BBFA-55-Thrill-Silver Blast-Will Clark Debut",
+        "BBFA-56-Thrill-Silver Blast-Will Clark Debut",
+        "BBFA-57-Thrill-Silver Blast-Will Clark Debut",
         "BFA-91-Thrill-Inspired Ink Battlefoil-Will Clark Debut",
         "BFA-92-Thrill-Inspired Ink Battlefoil-Will Clark Debut",
         "BFA-93-Thrill-Inspired Ink Battlefoil-Will Clark Debut",
@@ -7478,9 +7418,9 @@
       ],
       "bobaIds": [
         "BBF-13-Thurmanator-Blue Battlefoil-Thuman Thomas Debut",
-        "BBFA-37-Thurmanator-SILVER BLAST-Thuman Thomas Debut",
-        "BBFA-38-Thurmanator-SILVER BLAST-Thuman Thomas Debut",
-        "BBFA-39-Thurmanator-SILVER BLAST-Thuman Thomas Debut",
+        "BBFA-37-Thurmanator-Silver Blast-Thuman Thomas Debut",
+        "BBFA-38-Thurmanator-Silver Blast-Thuman Thomas Debut",
+        "BBFA-39-Thurmanator-Silver Blast-Thuman Thomas Debut",
         "BFA-61-Thurmanator-Inspired Ink Battlefoil-Thuman Thomas Debut",
         "BFA-62-Thurmanator-Inspired Ink Battlefoil-Thuman Thomas Debut",
         "BFA-63-Thurmanator-Inspired Ink Battlefoil-Thuman Thomas Debut",
@@ -7514,9 +7454,9 @@
       ],
       "bobaIds": [
         "BBF-31-Tikoff-Blue Battlefoil-Fred Biletnikoff Debut",
-        "BBFA-124-Tikoff-SILVER BLAST-Fred Biletnikoff Debut",
-        "BBFA-163-Tikoff-SILVER BLAST-Fred Biletnikoff Debut",
-        "BBFA-202-Tikoff-SILVER BLAST-Fred Biletnikoff Debut",
+        "BBFA-124-Tikoff-Silver Blast-Fred Biletnikoff Debut",
+        "BBFA-163-Tikoff-Silver Blast-Fred Biletnikoff Debut",
+        "BBFA-202-Tikoff-Silver Blast-Fred Biletnikoff Debut",
         "BFA-107-Tikoff-Inspired Ink Battlefoil-Fred Biletnikoff Debut",
         "BFA-145-Tikoff-Inspired Ink Battlefoil-Fred Biletnikoff Debut",
         "BFA-183-Tikoff-Inspired Ink Battlefoil-Fred Biletnikoff Debut",
@@ -7550,9 +7490,9 @@
       ],
       "bobaIds": [
         "BBF-22-Timmy-Blue Battlefoil-Tim Brown Debut",
-        "BBFA-64-Timmy-SILVER BLAST-Tim Brown Debut",
-        "BBFA-65-Timmy-SILVER BLAST-Tim Brown Debut",
-        "BBFA-66-Timmy-SILVER BLAST-Tim Brown Debut",
+        "BBFA-64-Timmy-Silver Blast-Tim Brown Debut",
+        "BBFA-65-Timmy-Silver Blast-Tim Brown Debut",
+        "BBFA-66-Timmy-Silver Blast-Tim Brown Debut",
         "BFA-106-Timmy-Inspired Ink Battlefoil-Tim Brown Debut",
         "BFA-107-Timmy-Inspired Ink Battlefoil-Tim Brown Debut",
         "BFA-108-Timmy-Inspired Ink Battlefoil-Tim Brown Debut",
@@ -7825,9 +7765,9 @@
       ],
       "bobaIds": [
         "BBF-10-Waddler-Blue Battlefoil-Jaylen Waddle Debut",
-        "BBFA-28-Waddler-SILVER BLAST-Jaylen Waddle Debut",
-        "BBFA-29-Waddler-SILVER BLAST-Jaylen Waddle Debut",
-        "BBFA-30-Waddler-SILVER BLAST-Jaylen Waddle Debut",
+        "BBFA-28-Waddler-Silver Blast-Jaylen Waddle Debut",
+        "BBFA-29-Waddler-Silver Blast-Jaylen Waddle Debut",
+        "BBFA-30-Waddler-Silver Blast-Jaylen Waddle Debut",
         "BFA-46-Waddler-Inspired Ink Battlefoil-Jaylen Waddle Debut",
         "BFA-47-Waddler-Inspired Ink Battlefoil-Jaylen Waddle Debut",
         "BFA-48-Waddler-Inspired Ink Battlefoil-Jaylen Waddle Debut",
@@ -7941,12 +7881,12 @@
       "bobaIds": [
         "BBF-64-Wild Beard-Blue Battlefoil-First Edition",
         "BGBF-34-Wild Beard-Battlefoil-First Edition",
-        "BL-B65-Wild Beard-BLUE BLAST-First Edition",
-        "BL-BG65-Wild Beard-BUBBLEGUM BLAST-First Edition",
-        "BL-G65-Wild Beard-GREEN BLAST-First Edition",
-        "BL-O65-Wild Beard-ORANGE BLAST-First Edition",
-        "BL-P65-Wild Beard-PINK BLAST-First Edition",
-        "BL-S65-Wild Beard-SILVER BLAST-First Edition",
+        "BL-B65-Wild Beard-Blue Blast-First Edition",
+        "BL-BG65-Wild Beard-Bubble Gum Blast-First Edition",
+        "BL-G65-Wild Beard-Green Blast-First Edition",
+        "BL-O65-Wild Beard-Orange Blast-First Edition",
+        "BL-P65-Wild Beard-Pink Blast-First Edition",
+        "BL-S65-Wild Beard-Silver Blast-First Edition",
         "GBF-64-Wild Beard-Green Battlefoil-First Edition",
         "HBF-34-Wild Beard-Headlines Battlefoil-First Edittion"
       ]
@@ -8008,9 +7948,9 @@
       ],
       "bobaIds": [
         "BBF-21-Windmill-Blue Battlefoil-Dominique Wilkins Debut",
-        "BBFA-114-Windmill-SILVER BLAST-Dominique Wilkins Debut",
-        "BBFA-153-Windmill-SILVER BLAST-Dominique Wilkins Debut",
-        "BBFA-192-Windmill-SILVER BLAST-Dominique Wilkins Debut",
+        "BBFA-114-Windmill-Silver Blast-Dominique Wilkins Debut",
+        "BBFA-153-Windmill-Silver Blast-Dominique Wilkins Debut",
+        "BBFA-192-Windmill-Silver Blast-Dominique Wilkins Debut",
         "BFA-135-Windmill-Inspired Ink Battlefoil-Dominique Wilkins Debut",
         "BFA-173-Windmill-Inspired Ink Battlefoil-Dominique Wilkins Debut",
         "BFA-21-Windmill-Inspired Ink Battlefoil-Dominique Wilkins Debut",
@@ -8026,9 +7966,9 @@
       ],
       "bobaIds": [
         "BBF-10-Wizard-Blue Battlefoil-Ozzie Smith Debut",
-        "BBFA-103-Wizard-SILVER BLAST-Ozzie Smith Debut",
-        "BBFA-142-Wizard-SILVER BLAST-Ozzie Smith Debut",
-        "BBFA-181-Wizard-SILVER BLAST-Ozzie Smith Debut",
+        "BBFA-103-Wizard-Silver Blast-Ozzie Smith Debut",
+        "BBFA-142-Wizard-Silver Blast-Ozzie Smith Debut",
+        "BBFA-181-Wizard-Silver Blast-Ozzie Smith Debut",
         "BFA-10-Wizard-Inspired Ink Battlefoil-Ozzie Smith Debut",
         "BFA-124-Wizard-Inspired Ink Battlefoil-Ozzie Smith Debut",
         "BFA-162-Wizard-Inspired Ink Battlefoil-Ozzie Smith Debut",
@@ -8044,9 +7984,9 @@
       ],
       "bobaIds": [
         "BBF-35-Woody-Blue Battlefoil-Darren Woodson Debut",
-        "BBFA-128-Woody-SILVER BLAST-Darren Woodson Debut",
-        "BBFA-167-Woody-SILVER BLAST-Darren Woodson Debut",
-        "BBFA-206-Woody-SILVER BLAST-Darren Woodson Debut",
+        "BBFA-128-Woody-Silver Blast-Darren Woodson Debut",
+        "BBFA-167-Woody-Silver Blast-Darren Woodson Debut",
+        "BBFA-206-Woody-Silver Blast-Darren Woodson Debut",
         "BFA-111-Woody-Inspired Ink Battlefoil-Darren Woodson Debut",
         "BFA-149-Woody-Inspired Ink Battlefoil-Darren Woodson Debut",
         "BFA-187-Woody-Inspired Ink Battlefoil-Darren Woodson Debut",
@@ -8073,7 +8013,7 @@
       "count": 2,
       "athletes": [],
       "bobaIds": [
-        "S-93/100-Wurst Wayne-Hotdogs-",
+        "S-93/100-Wurst Wayne-Hot Dog-",
         "T-43/50-Wurst Wayne-Hot Dog-"
       ]
     },
@@ -8085,9 +8025,9 @@
       "bobaIds": [
         "ALT-4-X.L.-Billy Cameo Alt Arts-Huntin' W/CJ & Billy",
         "BBF-19-X.L.-Blue Battlefoil-Xavier Legette Alpha Update",
-        "BBFA-112-X.L.-SILVER BLAST-Xavier Legette Alpha Update",
-        "BBFA-151-X.L.-SILVER BLAST-Xavier Legette Alpha Update",
-        "BBFA-190-X.L.-SILVER BLAST-Xavier Legette Alpha Update",
+        "BBFA-112-X.L.-Silver Blast-Xavier Legette Alpha Update",
+        "BBFA-151-X.L.-Silver Blast-Xavier Legette Alpha Update",
+        "BBFA-190-X.L.-Silver Blast-Xavier Legette Alpha Update",
         "BFA-133-X.L.-Inspired Ink Battlefoil-Xavier Legette Alpha Update",
         "BFA-171-X.L.-Inspired Ink Battlefoil-Xavier Legette Alpha Update",
         "BFA-19-X.L.-Inspired Ink Battlefoil-Xavier Legette Alpha Update",
@@ -8145,9 +8085,9 @@
       ],
       "bobaIds": [
         "BBF-2-Young-Gunner-Blue Battlefoil-Steve Young Debut",
-        "BBFA-4-Young-Gunner-SILVER BLAST-Steve Young Debut",
-        "BBFA-5-Young-Gunner-SILVER BLAST-Steve Young Debut",
-        "BBFA-6-Young-Gunner-SILVER BLAST-Steve Young Debut",
+        "BBFA-4-Young-Gunner-Silver Blast-Steve Young Debut",
+        "BBFA-5-Young-Gunner-Silver Blast-Steve Young Debut",
+        "BBFA-6-Young-Gunner-Silver Blast-Steve Young Debut",
         "BFA-10-Young-Gunner-Inspired Ink Battlefoil-Steve Young Debut",
         "BFA-6-Young-Gunner-Inspired Ink Battlefoil-Steve Young Debut",
         "BFA-7-Young-Gunner-Inspired Ink Battlefoil-Steve Young Debut",

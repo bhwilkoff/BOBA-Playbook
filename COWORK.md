@@ -210,6 +210,66 @@ and we'll run the migration before you start submitting new corrections with `bo
 - Check `CardStore.swift` and filter logic for any hardcoded set name strings
 - `PlayView` curated lists may reference set names
 
+### [2026-04-12 ✅ DONE] Treatment normalization — all data files regenerated and deployed
+
+**Origin:** Treatments had ALL CAPS variants from the master database and duplicate/inconsistent names across sources. 56 unique treatments reduced to 51 after normalization. This was done in the same session as the set taxonomy overhaul above.
+
+**Root cause:** The BOBA Master Card Database stores some Blast treatments in ALL CAPS (e.g., "SILVER BLAST", "PINK BLAST"). the card source introduced variants like "Battlefoils" (plural) vs "Battlefoil" (singular), "SideKicks" (camelCase) vs "Sidekicks", and "Hotdogs" vs "Hot Dog". One treatment was missing punctuation ("Great Grandma Linoleum Battlefoil" → should be "Great Grandma's Linoleum Battlefoil").
+
+**What changed (Cowork side):**
+
+1. **New `TREATMENT_NORMALIZE` dictionary** in `reconcile_all.py` (11 mappings):
+
+| Old Treatment | New Treatment | Cards Affected |
+|---|---|---|
+| SILVER BLAST | Silver Blast | ~226 |
+| PINK BLAST | Pink Blast | ~226 |
+| BUBBLEGUM BLAST | Bubble Gum Blast | ~226 |
+| GREEN BLAST | Green Blast | ~226 |
+| BLUE BLAST | Blue Blast | ~226 |
+| ORANGE BLAST | Orange Blast | ~226 |
+| SUPERFOIL | Superfoil | ~102 (merged with existing 206) |
+| Battlefoils | Battlefoil | ~2 (merged with existing 984) |
+| SideKicks | Sidekicks | ~2 (merged with existing 15) |
+| Hotdogs | Hot Dog | ~4 (merged with existing 66) |
+| Great Grandma Linoleum Battlefoil | Great Grandma's Linoleum Battlefoil | ~400 |
+
+2. **New `_normalize_treatment()` function** applied during card build in step4. Called as: `"treatment": _normalize_treatment(treatment or bv_vars)`
+
+3. **Treatment count reduced:** 56 → 51 unique treatments (after normalization + 1 new from sealed)
+
+4. **⚠️ bobaIds changed for ~1,866 cards** — Treatment is a component of the bobaId formula (`{cardNumber}-{hero}-{treatment}-{variation}`). Every card whose treatment was renamed now has a different bobaId. Display bundles were rebuilt from source (not patched) because bobaId-based patching breaks when the matching key itself changes.
+
+5. **All data files regenerated and deployed** (same set as the taxonomy overhaul):
+   - `assets/data/cards.json` — 17,739 cards with normalized treatments
+   - `assets/data/categories.json` — 51 treatments (was 56)
+   - `assets/data/search-index.json` — rebuilt with new bobaIds
+   - `BOBAPlaybook/display-cards.json` — overwritten from source
+   - `BOBAPlaybook/cards-head.json` — overwritten from source
+   - `assets/data/display-cards.json` — overwritten from source
+
+**Impact on web/iOS:**
+
+- **Filter dropdowns** will show the normalized treatment names automatically (categories.json drives them)
+- **Any hardcoded treatment names** in the app need updating:
+  - "SILVER BLAST" → "Silver Blast" (and same pattern for all Blast variants)
+  - "SUPERFOIL" → "Superfoil"
+  - "Battlefoils" → "Battlefoil"
+  - "SideKicks" → "Sidekicks"
+  - "Hotdogs" → "Hot Dog"
+  - "Great Grandma Linoleum Battlefoil" → "Great Grandma's Linoleum Battlefoil"
+- **Collection data** in Supabase `user_cards` is unaffected (collections key on bobaId — but if any user had collected a card whose bobaId changed, the link would break; this is unlikely given current beta state)
+- **Search index** uses new bobaIds; the `computeResults()` migration from the [2026-04-11] entry still applies
+
+**Web-specific (js/app.js):**
+- Check `OCR_SET_HINTS` or any treatment-related hints for old ALL CAPS values
+- Check `SET_SLUG_MAP` and any treatment maps for old names
+- eBay query formula in card modal uses `treatment` field — new names will flow through automatically
+
+**iOS-specific:**
+- Check `PricingSection.swift` treatment maps for old names
+- Check any filter/display logic that matches on treatment strings
+
 ---
 
 ### [2026-04-11 ✅ DONE] CRITICAL: Search index + categories rebuilt — web/iOS app changes required

@@ -1456,7 +1456,7 @@ private struct RarityTierSection: View {
 private struct VariationSection: View {
     private let variations: [(String, String, String)] = [
         ("First Edition",  "8,926 cards", "The original print run — the most numerous variation across all sets."),
-        ("2026 Edition",   "880 cards",   "Introduces three new treatments: Logofoil, Colosseum Battlefoil, Great Grandma Linoleum Battlefoil."),
+        ("2026 Edition",   "880 cards",   "Introduces three new treatments: Logofoil, Colosseum Battlefoil, Great Grandma's Linoleum Battlefoil."),
         ("Debut",          "70 per hero", "Special debut cards for select heroes. Often serialized — highly collectible."),
         ("Unmasked",       "70 per hero", "Alternate art revealing the real-world athlete behind the hero character."),
     ]

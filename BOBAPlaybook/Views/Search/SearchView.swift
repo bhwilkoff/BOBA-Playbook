@@ -3,7 +3,6 @@ import SwiftUI
 struct SearchView: View {
     @Environment(CardStore.self) private var store
     @State private var showFilters = false
-    @State private var showFeed = false
     @State private var selectedCard: Card?
 
     // Grid: 2 columns with minimum size
@@ -27,9 +26,6 @@ struct SearchView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    feedButton
-                }
                 ToolbarItem(placement: .principal) {
                     BOBAWordmark()
                 }
@@ -49,9 +45,6 @@ struct SearchView: View {
         }
         .sheet(isPresented: $showFilters) {
             FilterSheetView(store: store)
-        }
-        .sheet(isPresented: $showFeed) {
-            MarketFeedView()
         }
         .sheet(item: $selectedCard) { card in
             CardDetailView(card: card, navigationCards: store.filteredCards)
@@ -133,17 +126,6 @@ struct SearchView: View {
             }
         }
         .background(Design.Colors.nearBlack)
-    }
-
-    // MARK: - Feed button
-    private var feedButton: some View {
-        Button {
-            showFeed = true
-        } label: {
-            Image(systemName: "chart.line.uptrend.xyaxis")
-                .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(Design.Colors.textPrimary)
-        }
     }
 
     // MARK: - Filter button

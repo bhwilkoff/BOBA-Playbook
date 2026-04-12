@@ -16,8 +16,6 @@ This file is the shared communication channel between two Claude instances:
 
 *Items Claude Code needs Cowork to research, investigate, or produce.*
 
-- **[2026-04-12] M3.5 complete — iOS `PricingSection` view update still needed** — Feature A and B are code-complete (Worker + web + iOS models/networking/views). One iOS UI piece remains: `PricingSection.swift` (the card detail pricing component) still renders a single section (LOW/AVG/HIGH). It needs to be updated to render two sections when the Worker response contains both `sold` and `active` keys — "RECENT SALES" section (existing style) + "BUY NOW" section (orange values). The Worker now returns both. No new networking or model work needed — the data is already decoded by `PricingService`. This is purely a SwiftUI view change in `BOBAPlaybook/Components/PricingSection.swift`.
-
 - **[2026-04-12] Session summary for context** — This session completed the following on the iOS/web/Worker side. User is switching to Cowork for a database update — scope TBD by user.
 
   **Discord auth fully fixed:**

@@ -603,7 +603,6 @@ export default {
     if (request.method === "POST" && url.pathname.endsWith("/discord/token"))   return handleDiscordToken(request, env);
     if (request.method === "POST" && url.pathname.endsWith("/discord/refresh")) return handleDiscordRefresh(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/discord/messages")) return handleDiscordMessages(request, env);
-
     const { searchParams } = url;
     const cardNumber = searchParams.get("cardNumber");
     const hero       = searchParams.get("hero") || "";
@@ -806,9 +805,16 @@ function extractItemId(itemId) {
 }
 
 /**
- * Fetch recent BOBA sold items from eBay and upsert to Supabase `recent_sales`.
- * Called by the 30-minute cron job. Requires SUPABASE_URL + SUPABASE_SERVICE_KEY
- * worker secrets in addition to EBAY_APP_ID + EBAY_CERT_ID.
+ * Fetch recent BOBA sold items from eBay Marketplace Insights and upsert to
+ * Supabase `recent_sales`.
+ *
+ * REQUIRES: `buy.marketplace.insights` OAuth scope approved in eBay Developer Portal.
+ * Until that scope is granted, `searchSold` returns 403 and this function is a no-op.
+ *
+ * To get scope approved:
+ *   1. Log in to https://developer.ebay.com → Hi [name] → Application Access Requests
+ *   2. Apply for "Buy APIs — Marketplace Insights"
+ *   3. Once approved, no code changes needed — the cron will start working automatically.
  */
 async function fetchRecentSales(env) {
   if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) return;
@@ -818,12 +824,14 @@ async function fetchRecentSales(env) {
   let token;
   try { token = await getAppToken(env, cache); } catch { return; }
 
-  // 60-minute lookback window (30-min cron + 60-min window = no gaps)
+  // 60-minute lookback window (30-min cron + buffer)
   const cutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { items, error } = await searchSold(token, "bo jackson battle arena", cutoff);
-  if (error || !items.length) return;
+  const { items, error, noScope } = await searchSold(token, "bo jackson battle arena", cutoff);
 
-  const sales = items.map(item => {
+  // noScope = 403: Marketplace Insights not yet approved — silent no-op until it is
+  if (noScope || error || !items.length) return;
+
+  const rows = items.map(item => {
     const matched = extractCardInfo(item);
     return {
       ebay_item_id: extractItemId(item.itemId ?? item.itemWebUrl ?? ""),
@@ -839,7 +847,7 @@ async function fetchRecentSales(env) {
     };
   }).filter(r => r.price > 0 && r.title && r.ebay_item_id);
 
-  if (!sales.length) return;
+  if (!rows.length) return;
 
   await fetch(`${env.SUPABASE_URL}/rest/v1/recent_sales`, {
     method: "POST",
@@ -849,7 +857,7 @@ async function fetchRecentSales(env) {
       "Authorization": `Bearer ${env.SUPABASE_SERVICE_KEY}`,
       "Prefer":        "resolution=merge-duplicates,return=minimal",
     },
-    body: JSON.stringify(sales),
+    body: JSON.stringify(rows),
   });
 }
 

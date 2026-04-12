@@ -247,7 +247,8 @@ struct PricingSection: View {
             "Griffey":                        ("2026", "Griffey_Edition"),
             "Griffey Edition":                ("2026", "Griffey_Edition"),
             "griffey-edition":                ("2026", "Griffey_Edition"),
-            // National Show Starter Set variants
+            // National Starter Set variants
+            "National Starter Set":           ("2024", "National_24_Starter_Set"),
             "2024 National Show Starter Set": ("2024", "National_24_Starter_Set"),
             "National '24":                   ("2024", "National_24_Starter_Set"),
             "National 24 Starter Set":        ("2024", "National_24_Starter_Set"),

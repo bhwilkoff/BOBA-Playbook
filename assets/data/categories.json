@@ -1,9 +1,12 @@
 {
   "sets": {
-    "Griffey": {
-      "count": 9058,
+    "Griffey Edition": {
+      "count": 10008,
       "subSets": [
-        "2025 Release"
+        "2024 Release",
+        "2025 Release",
+        "2025 Update",
+        "2026 Release"
       ],
       "treatments": [
         "80's Rad Battlefoil",
@@ -11,25 +14,30 @@
         "Base Set",
         "Battlefoils",
         "Billy Cameo Alt Arts",
+        "Blaster Box",
         "Blizzard Battlefoil",
         "Blue Battlefoil",
         "Blue Headlines Battlefoil",
         "Bonus Plays",
         "Bubble Gum Battlefoil",
+        "Case",
         "Chillin' Battlefoil",
         "Colosseum Battlefoil",
+        "Double Mega Box",
         "Fire Tracks Battlefoil",
         "Grandma's Linoleum Battlefoil",
         "Great Grandma Linoleum Battlefoil",
         "Green Battlefoil",
         "Grillin' Battlefoil",
         "Headlines Battlefoil",
+        "Hobby Box",
         "Hot Dog",
         "Icon Battlefoil",
         "Inspired Ink Battlefoil",
         "Inspired Ink Bubble Gum Battlefoil",
         "Inspired Ink Metallic Battlefoil",
         "Inspired Ink Superfoil",
+        "Jumbo Hobby Box",
         "Logofoil",
         "Miami Ice Battlefoil",
         "Mixtape Battlefoil",
@@ -38,7 +46,6 @@
         "Pink Battlefoil",
         "Plays",
         "Power Glove Battlefoil",
-        "Prize & Promos",
         "Red Battlefoil",
         "Red Headlines Battlefoil",
         "SUPERFOIL",
@@ -47,86 +54,127 @@
         "Slime Battlefoil"
       ]
     },
-    "Alpha": {
-      "count": 8395,
+    "Alpha Update": {
+      "count": 3792,
       "subSets": [
         "2024 Release",
-        "2025 Update",
-        "Blast",
-        "Day One Promo"
+        "2025 Release",
+        "2025 Update"
       ],
       "treatments": [
         "80's Rad Battlefoil",
-        "Alpha Battlefoil",
-        "BLUE BLAST",
-        "BUBBLEGUM BLAST",
         "Base Set",
         "Battlefoil",
-        "Battlefoils",
+        "Blaster Box",
         "Blizzard Battlefoil",
         "Blue Battlefoil",
         "Blue Headlines Battlefoil",
-        "Bonus Plays",
         "Bubble Gum Battlefoil",
-        "Chillin' Battlefoil",
-        "Colosseum Battlefoil",
+        "Case",
+        "Collector Booster Box",
         "Fire Tracks Battlefoil",
-        "GREEN BLAST",
         "Grandma's Linoleum Battlefoil",
-        "Great Grandma Linoleum Battlefoil",
         "Green Battlefoil",
-        "Grillin' Battlefoil",
         "Headlines Battlefoil",
-        "Home Team Discount",
+        "Hobby Box",
         "Hot Dog",
-        "Icon Battlefoil",
         "Inspired Ink Battlefoil",
         "Inspired Ink Bubble Gum Battlefoil",
         "Inspired Ink Metallic Battlefoil",
         "Inspired Ink Superfoil",
-        "Logofoil",
+        "Jumbo Hobby Box",
         "Miami Ice Battlefoil",
         "Mixtape Battlefoil",
-        "ORANGE BLAST",
         "Orange Battlefoil",
-        "Orange Headlines Battlefoil",
-        "PINK BLAST",
-        "Paper",
         "Pink Battlefoil",
         "Plays",
-        "Power Glove Battlefoil",
-        "Prize & Promos",
-        "Red Battlefoil",
         "Red Headlines Battlefoil",
-        "SILVER BLAST",
-        "SUPERFOIL",
         "Sidekicks",
         "Silver Battlefoil",
-        "Slime Battlefoil",
         "Superfoil"
       ]
     },
-    "2024 National Show Starter Set": {
-      "count": 124,
+    "Alpha Edition": {
+      "count": 2294,
       "subSets": [
+        "2024 Release",
+        "2025 Release",
+        "2025 Update"
+      ],
+      "treatments": [
+        "80's Rad Battlefoil",
+        "Base Set",
+        "Battle Trainer Kit",
+        "Battlefoil",
+        "Blast Box",
+        "Blaster Box",
+        "Blizzard Battlefoil",
+        "Blue Battlefoil",
+        "Bonus Plays",
+        "Bundle",
+        "Case",
+        "Collector Booster Box",
+        "Grandma's Linoleum Battlefoil",
+        "Green Battlefoil",
+        "Headlines Battlefoil",
+        "Hobby Box",
+        "Hot Dog",
+        "Inspired Ink Battlefoil",
+        "Inspired Ink Bubble Gum Battlefoil",
+        "Inspired Ink Metallic Battlefoil",
+        "Inspired Ink Superfoil",
+        "Jumbo Hobby Box",
+        "Orange Battlefoil",
+        "Paper",
+        "Pink Battlefoil",
+        "Plays",
+        "Silver Battlefoil",
+        "Superfoil"
+      ]
+    },
+    "Alpha Blast": {
+      "count": 1356,
+      "subSets": [
+        "Blast"
+      ],
+      "treatments": [
+        "BLUE BLAST",
+        "BUBBLEGUM BLAST",
+        "GREEN BLAST",
+        "Home Team Discount",
+        "ORANGE BLAST",
+        "PINK BLAST",
+        "SILVER BLAST"
+      ]
+    },
+    "National Starter Set": {
+      "count": 128,
+      "subSets": [
+        "2024 Release",
         "Release"
       ],
       "treatments": [
         "Battlefoil",
         "Hotdogs",
+        "Inspired Ink Battlefoil",
+        "Pack",
         "Paper",
         "Paper Serialized",
         "Plays",
-        "Serialized Battlefoil"
+        "Serialized Battlefoil",
+        "Starter Kit"
       ]
     },
     "World Champions": {
-      "count": 82,
+      "count": 94,
       "subSets": [
-        "2024 - LA Dodgers"
+        "2024 - LA Dodgers",
+        "2024 Release",
+        "2025 Release"
       ],
       "treatments": [
         "Battlefoil",
+        "Event Box",
         "Hot Dog",
         "Kanjifoil",
         "Paper & Battlefoil",
@@ -134,8 +182,9 @@
       ]
     },
     "Superfan Series": {
-      "count": 35,
+      "count": 36,
       "subSets": [
+        "2024 Release",
         "Sandstorm Edition"
       ],
       "treatments": [
@@ -143,60 +192,18 @@
         "Hot Dog",
         "Inspired Ink Battlefoil",
         "Paper & Battlefoil",
-        "Plays"
+        "Plays",
+        "Super Fan Box"
       ]
     },
-    "Alpha Edition": {
-      "count": 13,
+    "Promo Cards": {
+      "count": 26,
       "subSets": [
-        "2024 Release",
-        "2025 Release"
+        "2025 Release",
+        "Day One Promo"
       ],
       "treatments": [
-        "Battle Trainer Kit",
-        "Blast Box",
-        "Blaster Box",
-        "Bundle",
-        "Case",
-        "Collector Booster Box",
-        "Hobby Box",
-        "Jumbo Hobby Box"
-      ]
-    },
-    "Griffey Edition": {
-      "count": 9,
-      "subSets": [
-        "2026 Release"
-      ],
-      "treatments": [
-        "Blaster Box",
-        "Case",
-        "Double Mega Box",
-        "Hobby Box",
-        "Jumbo Hobby Box"
-      ]
-    },
-    "Alpha Update": {
-      "count": 8,
-      "subSets": [
-        "2025 Release"
-      ],
-      "treatments": [
-        "Blaster Box",
-        "Case",
-        "Collector Booster Box",
-        "Hobby Box",
-        "Jumbo Hobby Box"
-      ]
-    },
-    "World Champions Series": {
-      "count": 6,
-      "subSets": [
-        "2024 Release",
-        "2025 Release"
-      ],
-      "treatments": [
-        "Event Box"
+        "Prize & Promos"
       ]
     },
     "Tecmo Bowl Edition": {
@@ -208,25 +215,6 @@
         "Case",
         "Double Mega Box",
         "Hobby Box"
-      ]
-    },
-    "National '24": {
-      "count": 3,
-      "subSets": [
-        "2024 Release"
-      ],
-      "treatments": [
-        "Pack",
-        "Starter Kit"
-      ]
-    },
-    "Sandstorm": {
-      "count": 1,
-      "subSets": [
-        "2024 Release"
-      ],
-      "treatments": [
-        "Super Fan Box"
       ]
     },
     "Big League Chew": {

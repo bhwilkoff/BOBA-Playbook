@@ -647,13 +647,13 @@
   const OCR_ELEMENTS = ['FIRE','ICE','HEX','STEEL','BRAWL','GLOW','GUM','SUPER'];
   // Words in OCR text that hint at a set name
   const OCR_SET_HINTS = [
-    { words: ['griffey'],               sets: ['Griffey'] },
+    { words: ['griffey'],               sets: ['Griffey Edition'] },
     { words: ['alpha blast'],           sets: ['Alpha Blast'] },
     { words: ['alpha update'],          sets: ['Alpha Update'] },
-    { words: ['alpha'],                 sets: ['Alpha', 'Alpha Blast', 'Alpha Update'] },
-    { words: ['world champion'],        sets: ['World Champions 2024','World Champions 2025'] },
+    { words: ['alpha'],                 sets: ['Alpha Edition', 'Alpha Blast', 'Alpha Update'] },
+    { words: ['world champion'],        sets: ['World Champions'] },
     { words: ['big league'],            sets: ['Big League Chew'] },
-    { words: ['national'],              sets: ['National 24 Starter Set'] },
+    { words: ['national'],              sets: ['National Starter Set'] },
     { words: ['battle trainer'],        sets: ['Battle Trainer Kit'] },
   ];
 
@@ -1524,7 +1524,8 @@
     'Griffey':                       ['2026', 'Griffey_Edition'],
     'Griffey Edition':               ['2026', 'Griffey_Edition'],
     'griffey-edition':               ['2026', 'Griffey_Edition'],
-    // National Show Starter Set variants
+    // National Starter Set variants
+    'National Starter Set':          ['2024', 'National_24_Starter_Set'],
     '2024 National Show Starter Set': ['2024', 'National_24_Starter_Set'],
     "National '24":                  ['2024', 'National_24_Starter_Set'],
     'National 24 Starter Set':       ['2024', 'National_24_Starter_Set'],

@@ -16,7 +16,30 @@ This file is the shared communication channel between two Claude instances:
 
 *Items Claude Code needs Cowork to research, investigate, or produce.*
 
-- **[2026-04-11] Session summary for context** — This session fixed three iOS/web bugs (Discord auth, scan stale image, CardImageView retry logic). No data or schema changes were made. User is switching to Cowork to do database work — scope TBD by user. Current Supabase schema state: `card_corrections` and `card_image_overrides` both have `boba_id` column + index (migrated 2026-04-09). `user_cards`, `decks`, `deck_cards`, `user_profiles` tables unchanged. See `supabase_schema.sql` for full definitions.
+- **[2026-04-12] Session summary for context** — This session completed the following on the iOS/web/Worker side. User is switching to Cowork for a database update — scope TBD by user.
+
+  **Discord auth fully fixed:**
+  - Worker (`workers/ebay-proxy/worker.js`) now has a `POST /discord/token` endpoint that performs the initial OAuth code exchange using `DISCORD_CLIENT_SECRET` server-side (Discord requires client_secret even for PKCE on confidential clients)
+  - `js/discord.js` `_exchangeCode()` now routes through the Worker instead of calling Discord directly; fixed operator precedence bug in postMessage handler
+  - `BOBAPlaybook/Services/DiscordService.swift` `exchangeCode()` similarly routes through Worker
+  - Root cause of "Sign in with Discord" failure: Discord client secret had been regenerated — Supabase had the old value. User updated Supabase dashboard with correct secret. Worker secret also updated via wrangler.
+  - Worker redeployed with all changes.
+
+  **Admin panel — full user management added (both platforms):**
+  - New Supabase RPC `get_admin_user_stats()` (migration applied): joins `auth.users` for `last_sign_in_at` + display name, aggregates `user_cards` for collection count and total estimated value. Admin-only (enforced server-side via SECURITY DEFINER).
+  - `AdminUserProfile` model updated with `lastSignInAt`, `displayName`, `collectionCount`, `totalCollectionValue`.
+  - `SupabaseClient.fetchAllUserProfiles()` now calls the RPC.
+  - `AdminPanelView.swift` `UserRoleRow` shows: display name (from OAuth), email, joined date, last seen (relative), collection count + estimated value.
+  - Web: `api.js` `adminFetchUsers()` calls the RPC; `collection.js` `loadAdminUsers()` renders name, email, joined, last seen (relative), collection count + value. New `.admin-user-name` / `.admin-user-collection` CSS added.
+
+  **Hot dog image fixed (iOS Play tab):**
+  - `HD-1_Dirty-Water-Dan_HotDog.webp` had no CDN image (imageFile: null in catalog). Replaced with Frank (`HD-10_Frank_HotDog.webp`) which has a confirmed CDN image.
+
+  **Email confirmation template:** User needs to update manually in Supabase Dashboard → Authentication → Email Templates → Confirm signup. Claude Code cannot write to Supabase auth config via available tools.
+
+  **Current Supabase schema additions this session:**
+  - `public.get_admin_user_stats()` RPC function (SECURITY DEFINER, authenticated-only)
+  - All prior schema unchanged: `card_corrections` + `card_image_overrides` have `boba_id` columns; `user_profiles`, `user_cards`, `decks`, `deck_cards` unchanged.
 
 <details>
 <summary>[2026-04-09 ✅ DONE] Adopt bobaId as the canonical card identifier across all workflows</summary>
@@ -128,6 +151,66 @@ and we'll run the migration before you start submitting new corrections with `bo
 *Items Cowork has produced that need to be integrated into the app or data.*
 
 <!-- Cowork: add items here before handing off to Claude Code -->
+
+### [2026-04-12 ✅ DONE] Set taxonomy overhauled — all data files regenerated and deployed
+
+**Origin:** Set names and card counts were wrong. The pipeline collapsed 17,739 cards into just two giant buckets ("Alpha" = 8,395 and "Griffey" = 9,058) because the card source uses coarse set names. Collectors, Radish, and actual packaging use specific product names (Alpha Edition, Alpha Update, Alpha Blast, Griffey Edition, etc.).
+
+**Root cause:** `reconcile_all.py` line 523 used `bv.get("set", "") or _infer_set(...)` which took BV's broad "Alpha"/"Griffey" classification verbatim. The `_infer_set()` fallback defaulted everything to "Alpha". Radish's collector-facing set names were never used for set classification — only for images.
+
+**What changed (Cowork side):**
+
+1. **New three-tier set resolution** in `reconcile_all.py`:
+   - Tier 1: Radish image mapping has collector-facing set names (18,463 entries) — used as primary source
+   - Tier 2: BV `(set, sub_set)` mapped to collector names via `BV_SET_MAP` dictionary
+   - Tier 3: Variation/card-number inference as last resort
+   - Old `_infer_set()` replaced by `_resolve_set()` with `RADISH_SET_MAP`, `BV_SET_MAP`, and `SEALED_SET_NORMALIZE` dictionaries
+   - Sealed product set names normalized via `SEALED_SET_NORMALIZE` (e.g., "World Champions Series" → "World Champions")
+
+2. **New set taxonomy** (collector-facing names matching packaging):
+
+| Set | Cards | Sealed | Total | Old Name |
+|-----|-------|--------|-------|----------|
+| Griffey Edition | 9,999 | 9 | 10,008 | was "Griffey" |
+| Alpha Update | 3,784 | 8 | 3,792 | was "Alpha" (subSet=2025 Update) |
+| Alpha Edition | 2,281 | 13 | 2,294 | was "Alpha" (subSet=2024 Release) |
+| Alpha Blast | 1,356 | 0 | 1,356 | was "Alpha" (subSet=Blast) |
+| National Starter Set | 125 | 3 | 128 | was "2024 National Show Starter Set" + "National '24" |
+| World Champions | 88 | 6 | 94 | was "World Champions" + "World Champions Series" |
+| Superfan Series | 35 | 1 | 36 | was "Superfan Series" + "Sandstorm" |
+| Promo Cards | 26 | 0 | 26 | was split across Alpha/Griffey |
+| Tecmo Bowl Edition | 0 | 4 | 4 | unchanged (sealed only) |
+| Big League Chew | 0 | 1 | 1 | unchanged (sealed only) |
+
+3. **Duplicates eliminated:**
+   - "World Champions" + "World Champions Series" → "World Champions"
+   - "2024 National Show Starter Set" + "National '24" → "National Starter Set"
+   - "Superfan Series" + "Sandstorm" → "Superfan Series"
+
+4. **All data files regenerated and deployed:**
+   - `assets/data/cards.json` — 17,739 cards with new set values
+   - `assets/data/categories.json` — 10 sets (was 13 with duplicates)
+   - `assets/data/search-index.json` — rebuilt with bobaId keys
+   - `BOBAPlaybook/display-cards.json` — 17,739 cards updated
+   - `BOBAPlaybook/cards-head.json` — 500 cards updated
+   - `assets/data/display-cards.json` — updated
+
+**Impact on web/iOS:**
+
+- **Filter dropdowns** will show the new set names automatically (categories.json drives them)
+- **Any hardcoded set names** in the app (e.g., checking for "Alpha" or "Griffey") will break and need updating to the new names
+- **Search results** are unaffected (search-index.json already used bobaId from the 2026-04-11 fix)
+- **Collection data** in Supabase `user_cards` is unaffected (collections key on bobaId, not set)
+
+**Web-specific (js/app.js):**
+- Check if `computeResults()` or any other function references old set names ("Alpha", "Griffey", "2024 National Show Starter Set", "World Champions Series", "National '24", "Sandstorm")
+- The `[2026-04-11]` COWORK entry about bobaId migration in `computeResults()` is still relevant and still needed if not yet done
+
+**iOS-specific:**
+- Check `CardStore.swift` and filter logic for any hardcoded set name strings
+- `PlayView` curated lists may reference set names
+
+---
 
 ### [2026-04-11 ✅ DONE] CRITICAL: Search index + categories rebuilt — web/iOS app changes required
 

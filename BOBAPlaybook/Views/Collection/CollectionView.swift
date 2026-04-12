@@ -89,14 +89,21 @@ struct CollectionView: View {
     // MARK: - Authenticated state
 
     private var authenticatedView: some View {
-        VStack(spacing: 0) {
-            valueSummary
-            designationPicker
-            cardList
+        ZStack(alignment: .bottomTrailing) {
+            VStack(spacing: 0) {
+                valueSummary
+                designationPicker
+                cardList
+            }
+            .background(Design.Colors.nearBlack)
+            .refreshable {
+                await collection.loadCollection()
+            }
+
+            tradeRoomFAB
         }
-        .background(Design.Colors.nearBlack)
-        .refreshable {
-            await collection.loadCollection()
+        .sheet(isPresented: $showTradeRoom) {
+            TradeRoomSheet(discord: discord)
         }
     }
 

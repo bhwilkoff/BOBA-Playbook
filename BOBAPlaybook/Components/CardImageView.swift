@@ -14,7 +14,10 @@ struct CardImageView: View {
 
     @Environment(CardStore.self) private var cardStore
     @State private var loadedImage: UIImage? = nil
-    @State private var failed = false
+    @State private var loadFailed  = false
+    /// Incrementing this forces the `.task` to restart even when `url` is unchanged.
+    /// Used to retry after a transient failure or task cancellation.
+    @State private var loadID = 0
 
     private var url: URL? {
         size == .thumb ? CDN.thumbURL(for: card) : CDN.fullURL(for: card)
@@ -25,23 +28,47 @@ struct CardImageView: View {
             if cardStore.isImageHidden(card.cardNumber) {
                 placeholder
             } else if let image = loadedImage ?? cachedImage {
-                // cachedImage is a synchronous NSCache lookup — no spinner flash
-                // when returning to a grid after navigating away.
+                // Synchronous NSCache hit — no spinner flash when returning to a
+                // grid after navigating away, or when the same card reappears.
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
-            } else if failed || url == nil {
+            } else if url == nil {
                 placeholder
             } else {
+                // Keep the task branch active regardless of loadFailed so the task
+                // modifier stays in scope and can be restarted via loadID.
                 ZStack {
                     Design.Colors.surface2
-                    ProgressView()
-                        .tint(Design.Colors.textMuted)
+                    if loadFailed {
+                        placeholderContent
+                    } else {
+                        ProgressView()
+                            .tint(Design.Colors.textMuted)
+                    }
                 }
-                .task(id: url!) {
+                .task(id: loadID) {
                     await loadImage(from: url!)
                 }
             }
+        }
+        .onAppear {
+            // Retry every time the view enters the viewport.
+            // - After a failure: resets the failed flag and triggers a fresh download.
+            // - After a cancelled load (e.g. scrolled away mid-flight): restarts the task.
+            // NSCache makes re-hits instant so this is safe to call unconditionally
+            // when no image is in memory yet.
+            if loadFailed || (loadedImage == nil && cachedImage == nil) {
+                loadFailed = false
+                loadID    += 1
+            }
+        }
+        .onChange(of: url) { _, _ in
+            // Card changed on the same view instance (e.g. scan detection chip).
+            // Clear stale image immediately so the old card's image is never shown.
+            loadedImage = nil
+            loadFailed  = false
+            loadID     += 1
         }
     }
 
@@ -53,6 +80,7 @@ struct CardImageView: View {
     }
 
     private func loadImage(from url: URL) async {
+        // Check in-memory cache first (synchronous, no network needed).
         let key = url as NSURL
         if let cached = cardImageCache.object(forKey: key) {
             loadedImage = cached
@@ -62,22 +90,35 @@ struct CardImageView: View {
         request.cachePolicy = .returnCacheDataElseLoad
         do {
             let (data, _) = try await URLSession.shared.data(for: request)
+            guard !Task.isCancelled else { return }
             if let image = UIImage(data: data) {
                 cardImageCache.setObject(image, forKey: key)
                 loadedImage = image
             } else {
-                failed = true
+                loadFailed = true
             }
         } catch {
-            failed = true
+            // Do NOT mark as failed for task cancellation. Cancellation happens when
+            // the card scrolls out of view or a filter change reorders the grid.
+            // The view will retry via loadID when it next appears.
+            let cancelled = Task.isCancelled
+                || (error as? URLError)?.code == .cancelled
+                || error is CancellationError
+            if !cancelled {
+                loadFailed = true
+            }
         }
     }
 
     // MARK: - Branded placeholder
+
     private var placeholder: some View {
+        ZStack { placeholderContent }
+    }
+
+    private var placeholderContent: some View {
         ZStack {
             Design.Colors.surface2
-            // Element-tinted gradient overlay
             LinearGradient(
                 colors: [Design.Colors.element(card.element).opacity(0.18), .clear],
                 startPoint: .topLeading,

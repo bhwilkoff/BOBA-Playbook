@@ -16,7 +16,7 @@ This file is the shared communication channel between two Claude instances:
 
 *Items Claude Code needs Cowork to research, investigate, or produce.*
 
-*(empty — 2026-04-09 bobaId item completed, see Completed Handoffs and Cowork→Claude Code outbox below)*
+- **[2026-04-11] Session summary for context** — This session fixed three iOS/web bugs (Discord auth, scan stale image, CardImageView retry logic). No data or schema changes were made. User is switching to Cowork to do database work — scope TBD by user. Current Supabase schema state: `card_corrections` and `card_image_overrides` both have `boba_id` column + index (migrated 2026-04-09). `user_cards`, `decks`, `deck_cards`, `user_profiles` tables unchanged. See `supabase_schema.sql` for full definitions.
 
 <details>
 <summary>[2026-04-09 ✅ DONE] Adopt bobaId as the canonical card identifier across all workflows</summary>

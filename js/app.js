@@ -2198,8 +2198,7 @@
     function render() {
       const state = Discord.getState();
 
-      // FAB hidden until Discord bot is added to the BOBA server
-      fab.hidden = true;
+      fab.hidden = false;
       const uc = state.unreadCount;
       if (uc > 0) {
         badge.hidden = false;

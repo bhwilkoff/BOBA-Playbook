@@ -296,12 +296,9 @@ const API = (() => {
     if (error) throw new Error(error.message);
   }
 
-  // Admin-only: fetch all user profiles
+  // Admin-only: fetch full user stats (last sign-in, display name, collection count/value)
   async function adminFetchUsers() {
-    const { data, error } = await supa()
-      .from('user_profiles')
-      .select('user_id, email, role, created_at')
-      .order('created_at', { ascending: true });
+    const { data, error } = await supa().rpc('get_admin_user_stats');
     if (error) throw new Error(error.message);
     return data ?? [];
   }

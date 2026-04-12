@@ -42,28 +42,35 @@ struct PricingSection: View {
                     HStack { Spacer(); ProgressView().tint(Design.Colors.bobaOrange); Spacer() }
                         .frame(height: 64)
                 } else if let result {
-                    // LOW / AVG / HIGH
-                    HStack(spacing: 0) {
-                        priceCell(label: "LOW",  value: result.low)
-                        Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
-                        priceCell(label: "AVG",  value: result.average)
-                        Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
-                        priceCell(label: "HIGH", value: result.high)
+                    if result.sold != nil || result.active != nil {
+                        // Dual-section layout
+                        if let sold = result.sold {
+                            bucketView(sold, label: "RECENT SALES", isActive: false)
+                        }
+                        if let active = result.active {
+                            bucketView(active, label: "BUY NOW", isActive: true)
+                        }
+                    } else {
+                        // Legacy single-section layout
+                        HStack(spacing: 0) {
+                            priceCell(label: "LOW",  value: result.low,     isActive: false)
+                            Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
+                            priceCell(label: "AVG",  value: result.average, isActive: false)
+                            Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
+                            priceCell(label: "HIGH", value: result.high,    isActive: false)
+                        }
+                        .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
+
+                        let typeLabel = result.isSold ? "sold" : "active listing"
+                        let plural    = result.count != 1 ? "s" : ""
+                        Text("\(result.count) \(typeLabel)\(plural) · last \(selectedDays)d")
+                            .font(Design.Fonts.mono(10))
+                            .foregroundStyle(Design.Colors.textMuted)
+
+                        if !result.items.isEmpty {
+                            itemsList(result.items, isSold: result.isSold)
+                        }
                     }
-                    .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
-
-                    // Count + type label
-                    let typeLabel = result.isSold ? "sold" : "active listing"
-                    let plural    = result.count != 1 ? "s" : ""
-                    Text("\(result.count) \(typeLabel)\(plural) · last \(selectedDays)d")
-                        .font(Design.Fonts.mono(10))
-                        .foregroundStyle(Design.Colors.textMuted)
-
-                    // Individual items list
-                    if !result.items.isEmpty {
-                        itemsList(result.items, isSold: result.isSold)
-                    }
-
                 } else if let err = fetchError {
                     Text(err)
                         .font(Design.Fonts.mono(11))
@@ -175,7 +182,35 @@ struct PricingSection: View {
 
     // MARK: - Helpers
 
-    private func priceCell(label: String, value: Decimal) -> some View {
+    private func bucketView(_ bucket: PricingService.PricingBucket, label: String, isActive: Bool) -> some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+            Text(label)
+                .font(Design.Fonts.mono(8, weight: .bold))
+                .foregroundStyle(isActive ? Design.Colors.bobaOrange : Design.Colors.textMuted)
+                .tracking(1.5)
+
+            HStack(spacing: 0) {
+                priceCell(label: "LOW",  value: bucket.low,     isActive: isActive)
+                Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
+                priceCell(label: "AVG",  value: bucket.average, isActive: isActive)
+                Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
+                priceCell(label: "HIGH", value: bucket.high,    isActive: isActive)
+            }
+            .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
+
+            let typeLabel = isActive ? "listing" : "sold"
+            let plural    = bucket.count != 1 ? "s" : ""
+            Text("\(bucket.count) \(typeLabel)\(plural) · last \(selectedDays)d")
+                .font(Design.Fonts.mono(10))
+                .foregroundStyle(Design.Colors.textMuted)
+
+            if !bucket.items.isEmpty {
+                itemsList(bucket.items, isSold: !isActive)
+            }
+        }
+    }
+
+    private func priceCell(label: String, value: Decimal, isActive: Bool) -> some View {
         VStack(spacing: 4) {
             Text(label)
                 .font(Design.Fonts.mono(8, weight: .bold))
@@ -183,7 +218,7 @@ struct PricingSection: View {
                 .tracking(1.2)
             Text(value, format: .currency(code: "USD"))
                 .font(Design.Fonts.mono(16, weight: .bold))
-                .foregroundStyle(Design.Colors.textPrimary)
+                .foregroundStyle(isActive ? Design.Colors.bobaOrange : Design.Colors.textPrimary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, Design.Spacing.md)

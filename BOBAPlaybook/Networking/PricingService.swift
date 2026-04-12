@@ -11,7 +11,16 @@ actor PricingService {
         let url:   String
     }
 
+    struct PricingBucket: Decodable, Sendable {
+        let low:     Decimal
+        let average: Decimal
+        let high:    Decimal
+        let count:   Int
+        let items:   [PricingItem]
+    }
+
     struct PricingResult: Sendable {
+        // Legacy flat fields (always populated for backward compat)
         let low:       Decimal
         let average:   Decimal
         let high:      Decimal
@@ -19,6 +28,9 @@ actor PricingService {
         let priceType: String   // "sold" | "listed"
         let items:     [PricingItem]
         let fetchedAt: Date
+        // New dual-section fields (nil when Worker returns legacy shape)
+        let sold:      PricingBucket?
+        let active:    PricingBucket?
 
         var isSold: Bool { priceType == "sold" }
     }
@@ -69,7 +81,9 @@ actor PricingService {
         let (data, _) = try await URLSession.shared.data(from: url)
         let response  = try JSONDecoder().decode(PricingResponse.self, from: data)
 
-        guard response.count > 0 else { throw PricingError.noData }
+        // Accept the response if any section has data
+        let hasDualData = response.sold != nil || response.active != nil
+        guard response.count > 0 || hasDualData else { throw PricingError.noData }
 
         let result = PricingResult(
             low:       response.low,
@@ -78,7 +92,9 @@ actor PricingService {
             count:     response.count,
             priceType: response.priceType,
             items:     response.items,
-            fetchedAt: Date()
+            fetchedAt: Date(),
+            sold:      response.sold,
+            active:    response.active
         )
         cache[key] = result
         return result
@@ -87,11 +103,15 @@ actor PricingService {
     // MARK: - Private response model
 
     private struct PricingResponse: Decodable {
+        // Legacy flat fields (always present for backward compat)
         let low:       Decimal
         let average:   Decimal
         let high:      Decimal
         let count:     Int
         let priceType: String
         let items:     [PricingItem]
+        // New dual-section fields
+        let sold:      PricingBucket?
+        let active:    PricingBucket?
     }
 }

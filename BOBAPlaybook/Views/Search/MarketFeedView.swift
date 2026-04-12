@@ -33,15 +33,6 @@ struct MarketFeedView: View {
                     Button("Done") { dismiss() }
                         .foregroundStyle(Design.Colors.bobaCyan)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task { await loadFeed(replace: true) }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .foregroundStyle(isLoading ? Design.Colors.textMuted : Design.Colors.textPrimary)
-                    }
-                    .disabled(isLoading)
-                }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -161,7 +152,7 @@ struct MarketFeedView: View {
             Text("No recent sales yet")
                 .font(Design.Fonts.display(16))
                 .foregroundStyle(Design.Colors.textSecondary)
-            Text("The cron job runs every 30 minutes.\nCheck back soon.")
+            Text("Data updates every 30 minutes.\nCheck back soon.")
                 .font(Design.Fonts.mono(12))
                 .foregroundStyle(Design.Colors.textMuted)
                 .multilineTextAlignment(.center)

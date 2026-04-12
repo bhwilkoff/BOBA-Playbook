@@ -66,13 +66,7 @@
         </svg>
         <span>Scan</span>
       </button>
-      <button class="sidebar-nav-item" id="nav-feed-btn" data-view="market-feed">
-        <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-          <polyline points="16 7 22 7 22 13"/>
-        </svg>
-        <span>Market Feed</span>
-      </button>
+      <!-- Market Feed nav item hidden pending eBay Marketplace Insights API scope approval -->
       <button class="sidebar-nav-item" id="nav-rules-btn" data-view="rules">
         <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
           <rect x="2" y="2" width="20" height="20" rx="4"/>
@@ -1349,29 +1343,9 @@
       <div class="scan-container" id="scan-container"></div>
     </section>
 
-    <!-- MARKET FEED VIEW -->
-    <section id="view-market-feed" class="view" hidden aria-label="Market Feed">
-      <div class="feed-view-header">
-        <div class="feed-view-title-row">
-          <h2 class="feed-view-title">Market Feed</h2>
-          <button class="feed-refresh-btn" id="feed-refresh-btn" aria-label="Refresh feed">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
-              <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-            </svg>
-          </button>
-        </div>
-        <p class="feed-view-subtitle">Recently sold BOBA cards on eBay</p>
-        <p class="feed-last-updated" id="feed-last-updated"></p>
-      </div>
-      <div id="feed-list" class="feed-list"></div>
-      <div id="feed-load-more-wrap" class="feed-load-more-wrap" hidden>
-        <button class="btn-ghost-sm" id="feed-load-more-btn">Load More</button>
-      </div>
-    </section>
+    <!-- Market Feed view hidden pending eBay Marketplace Insights API scope approval -->
 
-    <!-- COLLECTION VIEW — rendered by collection.js -->
+<!-- COLLECTION VIEW — rendered by collection.js -->
     <section id="view-collection" class="view" hidden aria-label="My Collection"></section>
 
     <!-- PROFILE VIEW — rendered by collection.js -->

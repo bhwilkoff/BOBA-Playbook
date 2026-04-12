@@ -155,11 +155,10 @@
   /* ================================================================
      VIEW SYSTEM
   ================================================================ */
-  const viewIds = ['search', 'scan', 'market-feed', 'rules', 'collection', 'profile'];
+  const viewIds = ['search', 'scan', 'rules', 'collection', 'profile'];
   const navBtnIds = {
     search:        'nav-search-btn',
     scan:          'nav-scan-btn',
-    'market-feed': 'nav-feed-btn',
     rules:         'nav-rules-btn',
     collection:    'nav-collection-btn',
     profile:       'nav-profile-btn',
@@ -295,9 +294,7 @@
     if (name === 'rules') {
       initPlayView();
     }
-    if (name === 'market-feed') {
-      initFeedView();
-    }
+
     if (!fromHistory) {
       history.pushState({ view: name }, '', buildSearchURL());
     }
@@ -2118,9 +2115,6 @@
         if (loadMoreWrap) loadMoreWrap.hidden = !hasMore;
       }
 
-      // Update timestamp
-      const tsEl = $('feed-last-updated');
-      if (tsEl) tsEl.textContent = `Updated ${relativeDate(new Date().toISOString())}`;
     } catch (err) {
       if (replace) list.innerHTML = `<p class="feed-error">Couldn't load feed — ${escHtml(err.message)}</p>`;
     } finally {
@@ -2133,7 +2127,6 @@
       feedInitialized = true;
       loadFeedItems(true);
 
-      $('feed-refresh-btn')?.addEventListener('click', () => loadFeedItems(true));
       $('feed-load-more-btn')?.addEventListener('click', () => loadFeedItems(false));
     }
   }

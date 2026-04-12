@@ -221,6 +221,7 @@ header { flex-shrink: 0; position: relative; }
 | `BOBAPlaybook/cards-head.json` | First 500 cards for instant iOS load |
 | `supabase_schema.sql` | Supabase table definitions |
 | `docs/CARD_SCHEMA.md` | Full cards.json field documentation |
+| `workers/ebay-proxy/worker.js` | Cloudflare Worker: eBay Browse API + Radish pricing proxy (deployed: boba-ebay-proxy.benwilkoff.workers.dev) |
 | `DECISIONS.md` | Architecture decision log |
 | `SCRATCHPAD.md` | Feature parity tracker and milestone status |
 
@@ -240,6 +241,7 @@ header { flex-shrink: 0; position: relative; }
 - When uncertain between approaches, document in DECISIONS.md and choose simpler
 - Fix only the bug — don't refactor surrounding code
 - No feature additions beyond what's requested
+- **Feature gating**: when a feature is hidden (Discord FAB, etc.), keep all implementation code intact — gate only at the single UI entry point (see DECISIONS.md #025)
 
 ---
 

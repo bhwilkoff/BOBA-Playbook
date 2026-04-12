@@ -2826,6 +2826,277 @@ main {
   flex-shrink: 0;
 }
 
+/* ── Dual sold/active pricing sections ───────────────────────────────────── */
+.pricing-section + .pricing-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--boba-border);
+}
+
+/* "BUY NOW" section header uses orange to signal actionability */
+.pricing-section-active .pricing-items-label { color: var(--boba-orange); }
+.pricing-val-active { color: var(--boba-orange); }
+
+/* ================================================================
+   MARKET FEED VIEW
+================================================================ */
+.feed-view-header {
+  padding: 1.25rem var(--layout-pad, 1rem) 0.75rem;
+  border-bottom: 1px solid var(--boba-border);
+}
+
+.feed-view-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.feed-view-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 0.04em;
+  color: var(--boba-text);
+  margin: 0;
+}
+
+.feed-view-subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--boba-text-muted);
+  margin: 0.25rem 0 0;
+}
+
+.feed-last-updated {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--boba-text-muted);
+  margin: 0.15rem 0 0;
+  opacity: 0.7;
+}
+
+.feed-refresh-btn {
+  background: transparent;
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 8px;
+  color: var(--boba-text-muted);
+  padding: 0.4rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.feed-refresh-btn:hover { color: var(--boba-cyan); border-color: var(--boba-cyan); }
+
+.feed-list {
+  padding: 0.75rem var(--layout-pad, 1rem) 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ── Feed item ── */
+.feed-item {
+  display: flex;
+  gap: 0.75rem;
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-border);
+  border-radius: 12px;
+  padding: 0.75rem;
+  transition: border-color 0.15s;
+}
+
+.feed-item-matched { border-color: rgba(0,245,255,0.2); }
+.feed-item-matched:hover { border-color: rgba(0,245,255,0.45); }
+
+.feed-item-img-wrap {
+  flex-shrink: 0;
+  width: 72px;
+  height: 100px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--boba-near-black);
+  position: relative;
+  cursor: default;
+}
+
+.feed-item-matched .feed-item-img-wrap {
+  cursor: pointer;
+}
+
+.feed-item-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.feed-item-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.feed-item-thumb-placeholder .placeholder-brand {
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  color: var(--boba-text-muted);
+  opacity: 0.5;
+}
+
+.feed-item-element-dot {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+[data-element="FIRE"]  .feed-item-element-dot, .feed-item-element-dot[data-element="FIRE"]  { background: #FF4D00; }
+[data-element="ICE"]   .feed-item-element-dot, .feed-item-element-dot[data-element="ICE"]   { background: #00BFFF; }
+[data-element="HEX"]   .feed-item-element-dot, .feed-item-element-dot[data-element="HEX"]   { background: #8B00FF; }
+[data-element="STEEL"] .feed-item-element-dot, .feed-item-element-dot[data-element="STEEL"] { background: #8A9BB0; }
+[data-element="BRAWL"] .feed-item-element-dot, .feed-item-element-dot[data-element="BRAWL"] { background: #C0392B; }
+[data-element="GLOW"]  .feed-item-element-dot, .feed-item-element-dot[data-element="GLOW"]  { background: #FFD700; }
+[data-element="GUM"]   .feed-item-element-dot, .feed-item-element-dot[data-element="GUM"]   { background: #FF69B4; }
+[data-element="SUPER"] .feed-item-element-dot, .feed-item-element-dot[data-element="SUPER"] { background: #FF00FF; }
+
+.feed-item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.feed-item-top {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.feed-item-hero {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+  color: var(--boba-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.feed-item-power {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--boba-cyan);
+  flex-shrink: 0;
+}
+
+.feed-item-title {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--boba-text-muted);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  margin: 0;
+}
+
+.feed-item-meta {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--boba-cyan);
+  opacity: 0.7;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.feed-item-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.25rem;
+}
+
+.feed-item-date {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--boba-text-muted);
+  flex: 1;
+}
+
+.feed-ebay-link {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  text-decoration: none;
+  background: rgba(255,77,0,0.12);
+  border: 1px solid rgba(255,77,0,0.3);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.feed-ebay-link:hover { background: rgba(255,77,0,0.22); }
+
+.feed-item-price {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--boba-orange);
+}
+
+.btn-ghost-xs {
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border-radius: 5px;
+  border: 1px solid rgba(0,245,255,0.4);
+  color: var(--boba-cyan);
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.btn-ghost-xs:hover { background: rgba(0,245,255,0.08); }
+
+/* Feed loading / empty / error states */
+.feed-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--boba-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  padding: 1.5rem 0;
+  justify-content: center;
+}
+
+.feed-empty,
+.feed-error {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--boba-text-muted);
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.feed-error { color: var(--boba-orange); }
+
+.feed-load-more-wrap {
+  padding: 0 var(--layout-pad, 1rem) 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
 /* ── Scan candidates picker ───────────────────────────────────────────────── */
 
 .scan-candidates {

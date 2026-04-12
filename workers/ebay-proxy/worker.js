@@ -1,32 +1,26 @@
 /**
- * BOBA Playbook — eBay Pricing Proxy
+ * BOBA Playbook — eBay Pricing Proxy + Market Feed
  *
  * Auth: OAuth client credentials (EBAY_APP_ID + EBAY_CERT_ID).
  *
- * Two-API strategy:
- *   1. Marketplace Insights API — sold/completed item history (preferred)
- *      Requires buy.marketplace.insights scope; falls back if 403/empty.
- *   2. Browse API — current active fixed-price listings (fallback)
+ * Per-card pricing — two-source strategy (Feature A):
+ *   1. Radish Price Guide + eBay Browse API run in parallel → returns both
+ *      a "sold" section (Radish or Marketplace Insights) and an "active"
+ *      section (Browse API) in every response. Never early-returns on Radish
+ *      data — users can always see Buy Now listings.
+ *   2. Marketplace Insights API used for sold when no Radish URL available.
  *
- * Exact-match filtering (in order of reliability):
- *   1. localizedAspects "Card Number" — definitive match/reject when seller fills it in
- *   2. Title: alphanumeric card numbers (e.g. CBF-656, RAD-352) must appear with
- *      word-boundary context (not embedded in another number)
- *   3. Title: numeric-only card numbers require hero name; lot patterns excluded
+ * Market Feed cron (Feature B):
+ *   Runs every 30 minutes, searches for all recent BOBA sold items, matches
+ *   them to the card catalog by extracting card number + hero from titles,
+ *   and upserts them to the Supabase `recent_sales` table.
  *
- * Search query: "bo jackson battle arena {hero} {cardNumber} {power}"
- *   Card number encodes treatment (RAD-352 = Rad Battlefoil). Power level helps
- *   eBay surface the right variant and lets us cross-check against aspect data.
- *
- * Response JSON:
+ * Response JSON (per-card, v10):
  *   {
- *     "low": 1.99, "average": 4.50, "high": 12.00,
- *     "count": 3,
- *     "priceType": "sold",          // "sold" | "listed"
- *     "items": [
- *       { "title": "...", "price": 4.50, "date": "2026-03-15T12:00:00Z", "url": "..." },
- *       ...
- *     ]
+ *     "sold":   { "low", "average", "high", "count", "items" },  // may be absent
+ *     "active": { "low", "average", "high", "count", "items" },  // may be absent
+ *     // Legacy fields preserved for backward compat:
+ *     "low", "average", "high", "count", "priceType", "items"
  *   }
  */
 
@@ -622,9 +616,9 @@ export default {
     if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) return json({ error: "EBAY_APP_ID and EBAY_CERT_ID secrets required" }, 500);
 
     // ── Cache ─────────────────────────────────────────────────────────────────
-    // v9: fix checkAspects false-accept on numeric-only values; remove Browse broad fallback.
+    // v10: dual sold/active response; Radish + Browse always run in parallel.
     const cache    = caches.default;
-    const cacheURL = `https://boba-cache.internal/v9/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
+    const cacheURL = `https://boba-cache.internal/v10/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
     const cacheKey = new Request(cacheURL);
     const cached   = await cache.match(cacheKey);
     if (cached) {
@@ -632,35 +626,10 @@ export default {
       return json(body, 200, { "X-Cache": "HIT" });
     }
 
-    // ── Try Radish Price Guide first (highest accuracy) ───────────────────────
-    // Radish has already matched each eBay sale to the specific card — no title
-    // parsing needed. When available, this is far more reliable than eBay APIs.
-    if (radishUrl) {
-      const radishItems = await fetchRadishSales(radishUrl, days);
-      if (radishItems && radishItems.length > 0) {
-        const sorted  = [...radishItems].sort((a, b) => a.price - b.price);
-        const prices  = sorted.map(i => i.price);
-        const result  = {
-          low:       round2(prices[0]),
-          average:   round2(prices.reduce((s, p) => s + p, 0) / prices.length),
-          high:      round2(prices[prices.length - 1]),
-          count:     radishItems.length,
-          priceType: "sold",
-          // Return most recent 10 (already sorted newest-first by fetchRadishSales)
-          items:     radishItems.slice(0, 10),
-        };
-        const cacheTTL = 21600; // 6h
-        await cache.put(cacheKey, new Response(JSON.stringify(result), {
-          headers: { "Content-Type": "application/json", "Cache-Control": `public, max-age=${cacheTTL}` },
-        }));
-        return json(result, 200, { "X-Cache": "MISS", "X-Source": "radish" });
-      }
-    }
-
-    // ── OAuth token (needed for eBay APIs) ────────────────────────────────────
-    let token;
-    try { token = await getAppToken(env, cache); }
-    catch (err) { return json({ error: String(err), count: 0, low: 0, average: 0, high: 0, priceType: "sold", items: [] }, 502); }
+    // ── Search query ──────────────────────────────────────────────────────────
+    const powerStr         = power != null && !isNaN(power) ? String(power) : null;
+    const keywordsSpecific = ["bo jackson battle arena", hero, cardNumber, powerStr].filter(Boolean).join(" ");
+    const keywordsBroad    = ["bo jackson battle arena", hero].filter(Boolean).join(" ");
 
     // ── Cutoff date for sold search ───────────────────────────────────────────
     const cutoff = new Date();
@@ -668,82 +637,221 @@ export default {
     cutoff.setUTCDate(cutoff.getUTCDate() - days);
     const cutoffISO = cutoff.toISOString();
 
-    // ── Search query ──────────────────────────────────────────────────────────
-    // Include power in the query: sellers often write "Maverick 135 RAD-203".
-    // Stage 1 (specific): hero + card number + power
-    // Stage 2 (broad): hero only — catches listings that omit the card number
-    const powerStr         = power != null && !isNaN(power) ? String(power) : null;
-    const keywordsSpecific = ["bo jackson battle arena", hero, cardNumber, powerStr].filter(Boolean).join(" ");
-    const keywordsBroad    = ["bo jackson battle arena", hero].filter(Boolean).join(" ");
+    // ── Run Radish fetch + OAuth token in parallel ────────────────────────────
+    // Radish has pre-matched each eBay sale to the specific card — far more
+    // accurate than title/aspect filtering. The token is always needed for Browse.
+    const [radishResult, tokenResult] = await Promise.allSettled([
+      radishUrl ? fetchRadishSales(radishUrl, days) : Promise.resolve(null),
+      getAppToken(env, cache),
+    ]);
 
-    // ── Try Marketplace Insights (sold items) ─────────────────────────────────
-    let soldItems   = [];
-    let useSold     = false;
-    let browseError = null;
+    // ── Build sold section from Radish ────────────────────────────────────────
+    let soldSection  = null;
+    const radishItems = radishResult.status === "fulfilled" ? radishResult.value : null;
+    if (radishItems && radishItems.length > 0) {
+      const sorted = [...radishItems].sort((a, b) => a.price - b.price);
+      const prices = sorted.map(i => i.price);
+      soldSection = {
+        low:     round2(prices[0]),
+        average: round2(prices.reduce((s, p) => s + p, 0) / prices.length),
+        high:    round2(prices[prices.length - 1]),
+        count:   radishItems.length,
+        items:   radishItems.slice(0, 10),   // already newest-first from fetchRadishSales
+      };
+    }
 
-    {
-      const { items, error, noScope } = await searchSold(token, keywordsSpecific, cutoffISO);
-      if (!noScope && !error) {
-        soldItems = normaliseSold(items, cardNumber, hero, power);
-        // Broad fallback if specific query returned 0 exact matches
-        if (soldItems.length === 0 && hero) {
-          const fb = await searchSold(token, keywordsBroad, cutoffISO);
-          if (!fb.error) soldItems = normaliseSold(fb.items, cardNumber, hero, power);
+    // ── eBay API calls (require OAuth token) ──────────────────────────────────
+    let activeSection = null;
+    let browseError   = null;
+
+    if (tokenResult.status === "fulfilled") {
+      const token = tokenResult.value;
+
+      // If Radish had no data, try Marketplace Insights for sold history
+      if (!soldSection) {
+        const { items, error, noScope } = await searchSold(token, keywordsSpecific, cutoffISO);
+        if (!noScope && !error) {
+          let soldItems = normaliseSold(items, cardNumber, hero, power);
+          if (soldItems.length === 0 && hero) {
+            const fb = await searchSold(token, keywordsBroad, cutoffISO);
+            if (!fb.error) soldItems = normaliseSold(fb.items, cardNumber, hero, power);
+          }
+          if (soldItems.length > 0) {
+            const sorted = [...soldItems].sort((a, b) => a.price - b.price);
+            const prices = sorted.map(i => i.price);
+            soldSection = {
+              low:     round2(prices[0]),
+              average: round2(prices.reduce((s, p) => s + p, 0) / prices.length),
+              high:    round2(prices[prices.length - 1]),
+              count:   soldItems.length,
+              items:   soldItems.slice(0, 10),
+            };
+          }
         }
-        useSold = true;
       }
-      // noScope or error → silent fallback to Browse (don't surface Insights errors)
-    }
 
-    // ── Fall back to Browse (active listings) if sold returned 0 ─────────────
-    // Only use the specific query (hero + cardNumber + power) — no broad hero-only
-    // fallback. The broad fallback returned hundreds of irrelevant cards for the
-    // same hero, overwhelming the title/aspect filter with false positives.
-    let activeItems = [];
-    if (!useSold || soldItems.length === 0) {
-      const { items, error } = await searchActive(token, keywordsSpecific);
-      if (!error) {
-        activeItems = await normaliseActive(items, cardNumber, hero, power, env);
+      // Always fetch active (Browse API) — regardless of whether Radish had sold data.
+      // Users should always be able to see cards currently for sale.
+      const { items: activeRaw, error: activeErr } = await searchActive(token, keywordsSpecific);
+      if (!activeErr) {
+        const activeItems = await normaliseActive(activeRaw, cardNumber, hero, power, env);
+        if (activeItems.length > 0) {
+          const sorted = [...activeItems].sort((a, b) => a.price - b.price);
+          const prices = sorted.map(i => i.price);
+          activeSection = {
+            low:     round2(prices[0]),
+            average: round2(prices.reduce((s, p) => s + p, 0) / prices.length),
+            high:    round2(prices[prices.length - 1]),
+            count:   activeItems.length,
+            items:   sampleAcrossRange(sorted, 10),
+          };
+        }
       } else {
-        browseError = error;
+        browseError = activeErr;
+      }
+    } else {
+      // Token fetch failed — surface as error only if Radish also failed
+      if (!soldSection) {
+        return json({ error: String(tokenResult.reason), count: 0, low: 0, average: 0, high: 0, priceType: "sold", items: [] }, 502);
       }
     }
 
-    const finalItems = useSold && soldItems.length > 0 ? soldItems : activeItems;
-    const priceType  = useSold && soldItems.length > 0 ? "sold" : "listed";
-
-    if (finalItems.length === 0) {
-      // Only surface Browse errors — Insights errors are non-critical since Browse is the fallback
-      if (browseError) return json({ error: browseError, count: 0, low: 0, average: 0, high: 0, priceType, items: [] }, 502);
-      return json({ count: 0, low: 0, average: 0, high: 0, priceType, items: [] });
+    if (!soldSection && !activeSection) {
+      if (browseError) return json({ error: browseError, count: 0, low: 0, average: 0, high: 0, priceType: "sold", items: [] }, 502);
+      return json({ count: 0, low: 0, average: 0, high: 0, priceType: "sold", items: [] });
     }
 
-    // ── Aggregate ─────────────────────────────────────────────────────────────
-    // Always sort by price for stats so LOW/HIGH are unambiguous.
-    const sorted  = [...finalItems].sort((a, b) => a.price - b.price);
-    const prices  = sorted.map(i => i.price);
-    const low     = round2(prices[0]);
-    const high    = round2(prices[prices.length - 1]);
-    const average = round2(prices.reduce((s, p) => s + p, 0) / prices.length);
+    // ── Build response with dual sections + legacy fields ─────────────────────
+    // Legacy fields use sold data when available, else active — so old app
+    // versions continue working until they're updated to read sold/active keys.
+    const primary    = soldSection ?? activeSection;
+    const priceType  = soldSection ? "sold" : "listed";
+    const legacyItems = soldSection
+      ? soldSection.items
+      : sampleAcrossRange([...((activeSection?.items) ?? [])].sort((a, b) => a.price - b.price), 10);
 
-    // For active listings: sample evenly across the price-sorted array so the
-    // visible list reflects the same distribution driving LOW/AVG/HIGH — not
-    // just the cheapest 10. For sold items: keep chronological order (most recent).
-    const items = priceType === "sold"
-      ? finalItems.slice(0, 10)
-      : sampleAcrossRange(sorted, 10);
+    const result = {
+      ...(soldSection   ? { sold:   soldSection }   : {}),
+      ...(activeSection ? { active: activeSection } : {}),
+      // Legacy backward-compat fields
+      low:       primary?.low       ?? 0,
+      average:   primary?.average   ?? 0,
+      high:      primary?.high      ?? 0,
+      count:     primary?.count     ?? 0,
+      priceType,
+      items:     legacyItems,
+    };
 
-    const result = { low, average, high, count: finalItems.length, priceType, items };
-
-    // Cache sold 6h, active listings 2h (listings change faster)
-    const cacheTTL = priceType === "sold" ? 21600 : 7200;
+    // Cache 6h if we have sold data, 2h for active-only (listings change faster)
+    const cacheTTL = soldSection ? 21600 : 7200;
     await cache.put(cacheKey, new Response(JSON.stringify(result), {
       headers: { "Content-Type": "application/json", "Cache-Control": `public, max-age=${cacheTTL}` },
     }));
 
     return json(result, 200, { "X-Cache": "MISS" });
   },
+
+  // ── Cron: Market Feed ───────────────────────────────────────────────────────
+  // Runs every 30 minutes (wrangler.toml [triggers]).
+  // Searches eBay for all recent BOBA sold items, attempts card matching,
+  // and upserts rows to the Supabase `recent_sales` table.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(fetchRecentSales(env));
+  },
 };
+
+// ── Market Feed cron ──────────────────────────────────────────────────────────
+
+/**
+ * Extract card number and hero from an eBay item's title and aspects.
+ * Returns { cardNumber, hero, treatment, power } — all fields nullable.
+ * Used by fetchRecentSales to populate the recent_sales table.
+ */
+function extractCardInfo(item) {
+  const title   = item.title ?? "";
+  const aspects = item.localizedAspects ?? [];
+  const aspectMap = {};
+  for (const { name, value } of aspects) {
+    aspectMap[(name ?? "").toLowerCase()] = value ?? "";
+  }
+
+  // Structured aspects are most reliable
+  const aspectCardNum = aspectMap["card number"] || null;
+  const aspectHero    = aspectMap["character"] || aspectMap["hero"] || null;
+  const aspectTreat   = aspectMap["treatment"] || aspectMap["card type"] || null;
+
+  // Title regex: matches CBF-656, RAD-352, BGBF-38, LOGO-203, etc.
+  const CARD_RE   = /\b([A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?)\b/i;
+  const cardMatch = title.match(CARD_RE);
+  const cardNumber = (aspectCardNum || (cardMatch ? cardMatch[1].toUpperCase() : null));
+
+  // Power: standalone 2–3 digit number in hero power range (55–250)
+  const powerMatch = title.match(/\b((?:5[5-9]|[6-9]\d|1\d{2}|2[0-4]\d|250))\b/);
+  const power      = powerMatch ? parseInt(powerMatch[1], 10) : null;
+
+  return {
+    cardNumber,
+    hero:      aspectHero  || null,
+    treatment: aspectTreat || null,
+    power,
+  };
+}
+
+/** Extract eBay item ID from an itemId string or full URL. */
+function extractItemId(itemId) {
+  if (!itemId) return "";
+  const urlMatch = String(itemId).match(/\/itm\/(\d+)/);
+  if (urlMatch) return urlMatch[1];
+  return String(itemId).replace(/\D/g, "").slice(0, 20) || String(itemId);
+}
+
+/**
+ * Fetch recent BOBA sold items from eBay and upsert to Supabase `recent_sales`.
+ * Called by the 30-minute cron job. Requires SUPABASE_URL + SUPABASE_SERVICE_KEY
+ * worker secrets in addition to EBAY_APP_ID + EBAY_CERT_ID.
+ */
+async function fetchRecentSales(env) {
+  if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) return;
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return;
+
+  const cache = caches.default;
+  let token;
+  try { token = await getAppToken(env, cache); } catch { return; }
+
+  // 60-minute lookback window (30-min cron + 60-min window = no gaps)
+  const cutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { items, error } = await searchSold(token, "bo jackson battle arena", cutoff);
+  if (error || !items.length) return;
+
+  const sales = items.map(item => {
+    const matched = extractCardInfo(item);
+    return {
+      ebay_item_id: extractItemId(item.itemId ?? item.itemWebUrl ?? ""),
+      title:        item.title ?? "",
+      price:        parseFloat(item.lastSoldPrice?.value ?? "0"),
+      sold_date:    item.lastSoldDate ?? new Date().toISOString(),
+      image_url:    item.image?.imageUrl ?? null,
+      ebay_url:     item.itemWebUrl ?? "",
+      card_number:  matched.cardNumber,
+      hero:         matched.hero,
+      treatment:    matched.treatment,
+      power:        matched.power,
+    };
+  }).filter(r => r.price > 0 && r.title && r.ebay_item_id);
+
+  if (!sales.length) return;
+
+  await fetch(`${env.SUPABASE_URL}/rest/v1/recent_sales`, {
+    method: "POST",
+    headers: {
+      "Content-Type":  "application/json",
+      "apikey":        env.SUPABASE_SERVICE_KEY,
+      "Authorization": `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+      "Prefer":        "resolution=merge-duplicates,return=minimal",
+    },
+    body: JSON.stringify(sales),
+  });
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

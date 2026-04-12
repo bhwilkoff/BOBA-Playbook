@@ -341,6 +341,22 @@ const API = (() => {
     if (error) throw new Error(error.message);
   }
 
+  // ---- Market Feed ----
+
+  // Fetch recent sold items from the public recent_sales table.
+  // `before` is an ISO timestamp for cursor-based pagination.
+  async function feedFetch(limit = 30, before = null) {
+    let query = supa()
+      .from('recent_sales')
+      .select('*')
+      .order('sold_date', { ascending: false })
+      .limit(limit);
+    if (before) query = query.lt('sold_date', before);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  }
+
   /* ----------------------------------------------------------------
      Exports
   ---------------------------------------------------------------- */
@@ -400,5 +416,7 @@ const API = (() => {
     adminApproveImageOverride,
     adminRejectImageOverride,
     loadActiveImageRemovals,
+    // Market Feed
+    feedFetch,
   };
 })();

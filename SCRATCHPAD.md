@@ -2,8 +2,8 @@
 
 ## Current State
 
-- **Active milestone**: M5 — Discord Trading Channel (in progress)
-- **Last session**: 2026-04-12 — Set taxonomy overhaul + treatment normalization + Discord auth fixes + admin panel. (Cowork) Complete set taxonomy rewrite with collector-facing product names (10 sets) AND treatment normalization (56→51 unique treatments, fixed ALL CAPS Blast variants, merged duplicates). All data files regenerated. See COWORK.md [2026-04-12] entries for full details. (Claude Code) Discord auth fully fixed (both flows) + admin panel user management + set taxonomy integration into app code. ⚠️ Pending: update Supabase email confirmation template; regenerate Discord client secret; treatment normalization integration into app code (see COWORK.md).
+- **Active milestone**: M3.5 — Pricing Enhancements (Feature A + B complete in code; Worker deploy pending)
+- **Last session**: 2026-04-12 — M3.5 Feature A (dual-section pricing) + Feature B (Market Feed) fully implemented. Worker updated with parallel Radish+token fetch, always-on Browse API for active listings, and cron-based `recent_sales` cron handler. Supabase `recent_sales` table created. iOS: `MarketFeedView.swift` + `RecentSale.swift` + `fetchRecentSales()` in `SupabaseClient`. Web: Market Feed sidebar view + `feedFetch()` in `api.js` + full feed render logic in `app.js`. ⚠️ Worker still needs deployment with 2 new secrets — see M3.5 below.
 - **Open questions**:
   - Rules/strategy content for Play Mode — source? (manual entry, PDF parse, structured JSON?)
   - Deck builder: local-only or save/share via Supabase?
@@ -23,6 +23,8 @@
 | Collection Mode | ✅ | ✅ | M2 complete |
 | Scan Mode (camera OCR) | ❌ | ✅ | M3 iOS complete — iOS only by design |
 | Pricing comps (links) | ✅ | ✅ | M3 complete; Worker deploy still needed for live data |
+| Buy Now (active listings) | ✅ | ⏳ | M3.5 Feature A — Worker + web done; iOS PricingSection view update pending |
+| Market Feed (recent sales) | ✅ | ✅ | M3.5 Feature B — Worker cron + Supabase table + both platform views built; Worker deploy pending |
 | Play Mode (rules + decks) | ⏳ | ⏳ | M4 — active |
 | Discord Trading Channel | ⏳ | ⏳ | M5 — in progress; needs Worker deploy + Discord redirect URI |
 
@@ -70,6 +72,31 @@ Card data JSONs, R2 images (89.3% coverage), Supabase schema, GitHub Pages live,
 
 **Deferred from M3:**
 - Box lookup page (Hobby, Double Mega, Jumbo sealed product pricing)
+
+---
+
+### M3.5 — Pricing Enhancements 🔄 CODE COMPLETE — WORKER DEPLOY PENDING
+
+**Feature A: Dual-section pricing ("Buy Now" + sold history) ✅ Code complete**
+- Worker: parallel `Promise.allSettled([radishFetch, getAppToken])`, always calls Browse API for active listings, dual `sold`/`active` response shape, legacy fields preserved, cache bumped v9→v10
+- Web: `renderPricingData` handles new dual shape; "RECENT SALES" + "BUY NOW" sections with separate styling (`.pricing-section-active`)
+- iOS: `PricingSection.swift` view update still needed to display two sections (sold + active)
+
+**Feature B: Market Feed ✅ Code complete**
+- Worker: `scheduled` handler runs every 30 min; `fetchRecentSales(env)` searches eBay sold items, upserts to `recent_sales` table; `extractCardInfo()` parses card number + hero from eBay title/aspects
+- Supabase: `recent_sales` table created (migration applied); RLS public read; UNIQUE on `ebay_item_id`
+- iOS: `RecentSale.swift` model, `fetchRecentSales()` in `SupabaseClient`, `MarketFeedView.swift` (pull-to-refresh, pagination, card matching, `CardDetailView` sheet, eBay link)
+- iOS entry: `chart.line.uptrend.xyaxis` button in Search tab `.topBarLeading` toolbar (symmetric with filter button on right)
+- Web: Market Feed sidebar nav + view section; `feedFetch()` in `api.js`; full feed render with card matching in `app.js`
+
+**⚠️ Worker deploy required before either feature is live:**
+```
+cd workers/ebay-proxy
+npx wrangler secret put SUPABASE_URL        # your Supabase project URL
+npx wrangler secret put SUPABASE_SERVICE_KEY # service role key (not anon)
+npx wrangler deploy
+```
+After deploy, copy Worker URL → `BOBAPlaybook/Config.swift` `WorkerConfig.ebayProxyURL` + `const WORKER_URL` in `js/app.js` (if changed).
 
 ---
 
@@ -209,3 +236,5 @@ Research Discord Activity SDK vs WebView feasibility before committing.
 **2026-04-12 (Claude Code)** — Discord auth fully fixed + admin panel user management. (1) Discord Trade Room PKCE: both web (`js/discord.js`) and iOS (`DiscordService.swift`) called Discord's token endpoint directly without `client_secret` — confidential client requires it. Added `POST /discord/token` Worker endpoint proxying the exchange with `DISCORD_CLIENT_SECRET` Worker secret. (2) Discord Supabase OAuth: Supabase Dashboard had the old client secret (`39IwY...`); updated to current value (`2sA_Q...`) from Discord Developer Portal. (3) Admin panel user management: new Supabase RPC `get_admin_user_stats()` (SECURITY DEFINER) joins `auth.users` for last sign-in, display name, collection count, total value — admin-only enforced inside the function. Both platforms updated: web (`js/collection.js`, `js/api.js`) and iOS (`AdminPanelView.swift`, `SupabaseClient.swift`, `UserCard.swift`). (4) Hot dog image fix in Play tab substitution section: `HD-1` (Dirty Water Dan) has no CDN image; replaced with Frank (`HD-10_Frank_HotDog.webp`). (5) Fixed iOS 26 `Text` deprecation warnings in `AdminPanelView.swift`. ⚠️ Pending: update Supabase email confirmation template manually in Dashboard. ⚠️ Security: regenerate Discord client secret after confirming auth works end-to-end.
 
 **2026-04-12 (Claude Code)** — Set taxonomy integration. Updated web/iOS app code to use new collector-facing set names from Cowork's taxonomy overhaul. (1) `js/app.js` `OCR_SET_HINTS`: updated hardcoded set names used in scan-mode card matching — `'Griffey'` → `'Griffey Edition'`, `'Alpha'` → `'Alpha Edition'`, `'World Champions 2024'/'World Champions 2025'` → `'World Champions'`, `'National 24 Starter Set'` → `'National Starter Set'`. These must match `card.set` values exactly. (2) `js/app.js` `SET_SLUG_MAP`: added `'National Starter Set'` as canonical key for Radish URL generation. (3) `BOBAPlaybook/Components/PricingSection.swift` `setMap`: added `"National Starter Set"` as canonical key. Old name aliases retained in both maps for backward compat.
+
+**2026-04-12 (Claude Code)** — M3.5 Feature A + Feature B fully implemented. (1) **Feature A (dual pricing):** `workers/ebay-proxy/worker.js` rewritten to run Radish fetch + OAuth token in parallel (`Promise.allSettled`), always call Browse API for active listings regardless of Radish result, return dual `sold`/`active` response shape with legacy fields for backward compat, cache version bumped v9→v10. Web `renderPricingData` updated to render "RECENT SALES" + "BUY NOW" sections with distinct styling. (2) **Feature B (Market Feed):** Worker `scheduled` handler added with 30-min cron (wrangler.toml updated); `fetchRecentSales(env)` + `extractCardInfo(item)` + `extractItemId(id)` helpers upsert to Supabase `recent_sales`. Supabase migration applied: `recent_sales` table with `ebay_item_id` UNIQUE, indexes on `sold_date` + `card_number`, public RLS read policy. iOS: `RecentSale.swift` model, `SupabaseClient.fetchRecentSales()`, `MarketFeedView.swift` (full feed with pull-to-refresh, cursor pagination, card catalog matching, `CardImageView` / `AsyncImage` fallback, `CardDetailView` sheet, eBay link). `SearchView.swift` updated: `chart.line.uptrend.xyaxis` button in `.topBarLeading` opens Market Feed sheet (symmetric with filter button on `.topBarTrailing`). Web: Market Feed nav item + view section in `index.html`, styles in `css/styles.css`, `feedFetch()` in `api.js`, full `initFeedView()` + `renderFeedItem()` + pagination in `app.js`. ⚠️ Worker deploy still needed with `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` secrets — see M3.5 section for commands.

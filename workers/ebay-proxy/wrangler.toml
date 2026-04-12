@@ -2,11 +2,19 @@ name            = "boba-ebay-proxy"
 main            = "worker.js"
 compatibility_date = "2024-01-01"
 
-# Secrets (set via `wrangler secret put EBAY_APP_ID`)
-# EBAY_APP_ID = "BenWilko-BOBAPlay-PRD-24c5abbf0-7a77c68d"
+# Secrets (set via `wrangler secret put <NAME>`):
+#   EBAY_APP_ID         — BenWilko-BOBAPlay-PRD-24c5abbf0-7a77c68d
+#   EBAY_CERT_ID        — from eBay Developer dashboard
+#   DISCORD_CLIENT_SECRET
+#   DISCORD_BOT_TOKEN
+#   SUPABASE_URL        — https://pazkimtkwwwekuguxkff.supabase.co
+#   SUPABASE_SERVICE_KEY — service_role key from Supabase dashboard (bypasses RLS)
 
 # After deploying, paste the worker URL into BOBAPlaybook/Config.swift:
 #   WorkerConfig.ebayProxyURL = "https://boba-ebay-proxy.<your-subdomain>.workers.dev"
 
 [ai]
 binding = "AI"
+
+[triggers]
+crons = ["*/30 * * * *"]   # Market Feed: fetch recent BOBA eBay sales every 30 minutes

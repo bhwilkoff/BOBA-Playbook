@@ -155,13 +155,14 @@
   /* ================================================================
      VIEW SYSTEM
   ================================================================ */
-  const viewIds = ['search', 'scan', 'rules', 'collection', 'profile'];
+  const viewIds = ['search', 'scan', 'market-feed', 'rules', 'collection', 'profile'];
   const navBtnIds = {
-    search:     'nav-search-btn',
-    scan:       'nav-scan-btn',
-    rules:      'nav-rules-btn',
-    collection: 'nav-collection-btn',
-    profile:    'nav-profile-btn',
+    search:        'nav-search-btn',
+    scan:          'nav-scan-btn',
+    'market-feed': 'nav-feed-btn',
+    rules:         'nav-rules-btn',
+    collection:    'nav-collection-btn',
+    profile:       'nav-profile-btn',
   };
 
   // Tracks the active view for URL building (card URLs embed the view).
@@ -293,6 +294,9 @@
     }
     if (name === 'rules') {
       initPlayView();
+    }
+    if (name === 'market-feed') {
+      initFeedView();
     }
     if (!fromHistory) {
       history.pushState({ view: name }, '', buildSearchURL());
@@ -1631,9 +1635,61 @@
     fetchAndRender();
   }
 
+  function renderPricingSection(label, sectionData, isSold) {
+    const fmt = n => n > 0 ? `$${n.toFixed(2)}` : '—';
+    const { low, average, high, count, items = [] } = sectionData;
+    const typeStr = isSold ? 'sold' : 'active listing';
+
+    const itemsHtml = items.length === 0 ? '' : `
+      <div class="pricing-items">
+        ${items.map(item => {
+          const dateStr = isSold && item.date ? relativeDate(item.date) : '';
+          return `
+            <a href="${escHtml(item.url)}" target="_blank" rel="noopener" class="pricing-item-row">
+              <span class="pricing-item-price">${fmt(item.price)}</span>
+              <span class="pricing-item-title">${escHtml(item.title)}</span>
+              ${dateStr ? `<span class="pricing-item-date">${escHtml(dateStr)}</span>` : '<span class="pricing-item-arrow">↗</span>'}
+            </a>`;
+        }).join('')}
+      </div>`;
+
+    return `
+      <div class="pricing-section${isSold ? '' : ' pricing-section-active'}">
+        <p class="pricing-items-label">${label}</p>
+        <div class="pricing-grid">
+          <div class="pricing-stat">
+            <span class="pricing-label">LOW</span>
+            <span class="pricing-val">${fmt(low)}</span>
+          </div>
+          <div class="pricing-stat pricing-stat-center">
+            <span class="pricing-label">AVG</span>
+            <span class="pricing-val pricing-val-avg${isSold ? '' : ' pricing-val-active'}">${fmt(average)}</span>
+          </div>
+          <div class="pricing-stat">
+            <span class="pricing-label">HIGH</span>
+            <span class="pricing-val">${fmt(high)}</span>
+          </div>
+        </div>
+        <p class="pricing-sale-count">${count} ${typeStr}${count !== 1 ? 's' : ''}</p>
+        ${itemsHtml}
+      </div>`;
+  }
+
   function renderPricingData(section, data) {
     const body = section.querySelector('.pricing-body');
     if (!body) return;
+    const fmt = n => n > 0 ? `$${n.toFixed(2)}` : '—';
+
+    // New dual-section format
+    if (data.sold || data.active) {
+      const parts = [];
+      if (data.sold)   parts.push(renderPricingSection('RECENT SALES', data.sold, true));
+      if (data.active) parts.push(renderPricingSection('BUY NOW', data.active, false));
+      body.innerHTML = parts.join('');
+      return;
+    }
+
+    // Legacy format (old cached responses / old Worker versions)
     const { low, average, high, count, priceType, items = [] } = data;
     if (!count) {
       body.innerHTML = '<p class="pricing-none">No eBay listings found.</p>';
@@ -1641,11 +1697,9 @@
     }
     const isSold  = priceType === 'sold';
     const typeStr = isSold ? 'sold' : 'active listing';
-    const fmt     = n => n > 0 ? `$${n.toFixed(2)}` : '—';
 
     const itemsHtml = items.length === 0 ? '' : `
       <div class="pricing-items">
-        <p class="pricing-items-label">${isSold ? 'RECENT SALES' : 'CURRENT LISTINGS'}</p>
         ${items.map(item => {
           const dateStr = isSold && item.date ? relativeDate(item.date) : '';
           return `
@@ -1941,6 +1995,148 @@
     const cardSet = cardsByNumber.get(String(cardNumber));
     if (cardSet?.length) openModal(cardSet[0]);
   });
+
+  /* ================================================================
+     MARKET FEED
+  ================================================================ */
+
+  let feedCursor      = null;   // ISO timestamp for pagination
+  let feedLoading     = false;
+  let feedInitialized = false;
+
+  function renderFeedItem(sale) {
+    // Try to match sale to a card in the in-memory catalog
+    let card = null;
+    if (sale.card_number) {
+      const num = String(sale.card_number).toUpperCase();
+      const variants = cardsByNumber.get(num) ?? [];
+      if (sale.hero && variants.length > 1) {
+        const heroNorm = sale.hero.toLowerCase();
+        card = variants.find(c => (c.hero || '').toLowerCase() === heroNorm) ?? variants[0];
+      } else {
+        card = variants[0] ?? null;
+      }
+    }
+
+    const thumbSrc  = card ? API.cardThumbUrl(card) : null;
+    const imgHtml   = thumbSrc
+      ? `<img class="feed-item-thumb" src="${escHtml(thumbSrc)}" alt="${escHtml(card.hero || card.name || '')}" loading="lazy">`
+      : sale.image_url
+        ? `<img class="feed-item-thumb feed-item-thumb-ebay" src="${escHtml(sale.image_url)}" alt="" loading="lazy">`
+        : `<div class="feed-item-thumb feed-item-thumb-placeholder"><span class="placeholder-brand">BOBA</span></div>`;
+
+    const heroName  = card?.hero || sale.hero || '';
+    const treatment = card?.treatment || sale.treatment || '';
+    const set       = card?.set || '';
+    const element   = card?.element || 'NONE';
+    const power     = card?.power ?? sale.power ?? null;
+    const metaParts = [set, treatment].filter(Boolean);
+    const dateStr   = sale.sold_date ? relativeDate(sale.sold_date) : '';
+    const price     = sale.price > 0 ? `$${Number(sale.price).toFixed(2)}` : '';
+
+    return `
+      <div class="feed-item${card ? ' feed-item-matched' : ''}" data-boba-id="${escHtml(card?.bobaId || '')}">
+        <div class="feed-item-img-wrap"${card ? ` role="button" tabindex="0" aria-label="View ${escHtml(heroName)} card"` : ''}>
+          ${imgHtml}
+          ${element !== 'NONE' && card ? `<span class="feed-item-element-dot" data-element="${escHtml(element)}" title="${escHtml(element)}"></span>` : ''}
+        </div>
+        <div class="feed-item-body">
+          <div class="feed-item-top">
+            ${heroName ? `<span class="feed-item-hero">${escHtml(heroName)}</span>` : ''}
+            ${power != null ? `<span class="feed-item-power">${power}</span>` : ''}
+          </div>
+          <p class="feed-item-title">${escHtml(sale.title)}</p>
+          ${metaParts.length ? `<p class="feed-item-meta">${escHtml(metaParts.join(' · '))}</p>` : ''}
+          <div class="feed-item-footer">
+            <span class="feed-item-date">${escHtml(dateStr)}</span>
+            ${card ? `<button class="btn-ghost-xs feed-view-card-btn">View Card</button>` : ''}
+            <a href="${escHtml(sale.ebay_url)}" target="_blank" rel="noopener"
+               class="feed-ebay-link" aria-label="View on eBay">
+              <span class="feed-item-price">${escHtml(price)}</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function bindFeedItemEvents(container) {
+    container.querySelectorAll('.feed-item.feed-item-matched').forEach(el => {
+      const bobaId = el.dataset.bobaId;
+      if (!bobaId) return;
+      const card = cardsByBobaId.get(bobaId);
+      if (!card) return;
+
+      const openCard = () => openModal(card);
+      el.querySelector('.feed-item-img-wrap')?.addEventListener('click', openCard);
+      el.querySelector('.feed-view-card-btn')?.addEventListener('click', openCard);
+      el.querySelector('.feed-item-img-wrap')?.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCard(); }
+      });
+    });
+  }
+
+  async function loadFeedItems(replace = false) {
+    if (feedLoading) return;
+    feedLoading = true;
+
+    const list        = $('feed-list');
+    const loadMoreWrap = $('feed-load-more-wrap');
+    if (!list) { feedLoading = false; return; }
+
+    if (replace) {
+      feedCursor = null;
+      list.innerHTML = '<div class="feed-loading"><div class="loading-spinner-sm" aria-hidden="true"></div><span>Loading…</span></div>';
+      if (loadMoreWrap) loadMoreWrap.hidden = true;
+    }
+
+    try {
+      const PAGE = 20;
+      const items = await API.feedFetch(PAGE + 1, feedCursor);  // fetch one extra to know if there's more
+      const hasMore = items.length > PAGE;
+      const page    = hasMore ? items.slice(0, PAGE) : items;
+
+      if (replace) list.innerHTML = '';
+
+      if (page.length === 0 && replace) {
+        list.innerHTML = '<p class="feed-empty">No recent sales found — check back soon.</p>';
+        if (loadMoreWrap) loadMoreWrap.hidden = true;
+      } else {
+        const frag = document.createDocumentFragment();
+        const temp = document.createElement('div');
+        temp.innerHTML = page.map(renderFeedItem).join('');
+        while (temp.firstChild) frag.appendChild(temp.firstChild);
+        list.appendChild(frag);
+        bindFeedItemEvents(list);
+
+        // Update cursor to last item's sold_date for next page
+        if (page.length > 0) feedCursor = page[page.length - 1].sold_date;
+        if (loadMoreWrap) loadMoreWrap.hidden = !hasMore;
+      }
+
+      // Update timestamp
+      const tsEl = $('feed-last-updated');
+      if (tsEl) tsEl.textContent = `Updated ${relativeDate(new Date().toISOString())}`;
+    } catch (err) {
+      if (replace) list.innerHTML = `<p class="feed-error">Couldn't load feed — ${escHtml(err.message)}</p>`;
+    } finally {
+      feedLoading = false;
+    }
+  }
+
+  function initFeedView() {
+    if (!feedInitialized) {
+      feedInitialized = true;
+      loadFeedItems(true);
+
+      $('feed-refresh-btn')?.addEventListener('click', () => loadFeedItems(true));
+      $('feed-load-more-btn')?.addEventListener('click', () => loadFeedItems(false));
+    }
+  }
 
   /* ================================================================
      INITIALIZATION

@@ -16,6 +16,8 @@ This file is the shared communication channel between two Claude instances:
 
 *Items Claude Code needs Cowork to research, investigate, or produce.*
 
+- **[2026-04-12] M3.5 complete — iOS `PricingSection` view update still needed** — Feature A and B are code-complete (Worker + web + iOS models/networking/views). One iOS UI piece remains: `PricingSection.swift` (the card detail pricing component) still renders a single section (LOW/AVG/HIGH). It needs to be updated to render two sections when the Worker response contains both `sold` and `active` keys — "RECENT SALES" section (existing style) + "BUY NOW" section (orange values). The Worker now returns both. No new networking or model work needed — the data is already decoded by `PricingService`. This is purely a SwiftUI view change in `BOBAPlaybook/Components/PricingSection.swift`.
+
 - **[2026-04-12] Session summary for context** — This session completed the following on the iOS/web/Worker side. User is switching to Cowork for a database update — scope TBD by user.
 
   **Discord auth fully fixed:**
@@ -151,6 +153,312 @@ and we'll run the migration before you start submitting new corrections with `bo
 *Items Cowork has produced that need to be integrated into the app or data.*
 
 <!-- Cowork: add items here before handing off to Claude Code -->
+
+### [2026-04-12] Feature A: Always show active eBay listings ("Buy Now") alongside sold data ✅ DONE
+
+**Problem:** When Radish returns sold data for a card, the Worker returns immediately (line 640–657) and **never calls the eBay Browse API**. Users see "RECENT SALES" but cannot see or buy cards that are currently listed on eBay. The Browse API (active listings) only fires as a fallback when Radish is empty AND Marketplace Insights returns nothing (line 703). This means the most popular cards — the ones Radish tracks well — are exactly the ones where users can't see buyable listings.
+
+**Goal:** Every card detail view should show **both** a sold history section AND a current listings section (when available). Users should be able to tap through to buy a card on eBay directly from the app.
+
+**Required Worker changes (`workers/ebay-proxy/worker.js`):**
+
+1. **New response shape.** Replace the single `priceType` / `items` model with a dual-section response:
+
+```javascript
+// NEW response shape
+{
+  "sold": {
+    "low": 1.99, "average": 4.50, "high": 12.00,
+    "count": 3,
+    "items": [
+      { "title": "...", "price": 4.50, "date": "2026-03-15T12:00:00Z", "url": "..." }
+    ]
+  },
+  "active": {
+    "low": 2.99, "average": 6.00, "high": 15.00,
+    "count": 5,
+    "items": [
+      { "title": "...", "price": 2.99, "date": "", "url": "https://ebay.com/itm/..." }
+    ]
+  },
+  // Keep legacy fields for backward compat during rollout (remove later)
+  "low": 1.99, "average": 4.50, "high": 12.00,
+  "count": 3, "priceType": "sold", "items": [...]
+}
+```
+
+2. **Always call Browse API for active listings.** After Radish returns sold data (line 640–657), DO NOT return early. Instead, proceed to get an OAuth token and call `searchActive()`. The flow becomes:
+
+```
+Radish URL available?
+  ├─ YES → fetchRadishSales() → populate sold section
+  │        └─ getAppToken() → searchActive() → populate active section
+  └─ NO  → getAppToken()
+            ├─ searchSold() (Marketplace Insights) → populate sold section
+            └─ searchActive() (Browse API) → populate active section
+```
+
+**Optimization:** The Radish fetch and the OAuth token + Browse API call are independent — they can run in parallel with `Promise.all()` to avoid adding latency. Rough implementation:
+
+```javascript
+// Lines 638-658: replace the early-return block with:
+let soldSection = null;
+let activeSection = null;
+
+const [radishResult, tokenResult] = await Promise.allSettled([
+  radishUrl ? fetchRadishSales(radishUrl, days) : Promise.resolve(null),
+  getAppToken(env, cache),
+]);
+
+// Sold from Radish
+if (radishResult.status === 'fulfilled' && radishResult.value?.length > 0) {
+  const radishItems = radishResult.value;
+  const prices = [...radishItems].sort((a, b) => a.price - b.price).map(i => i.price);
+  soldSection = {
+    low: round2(prices[0]),
+    average: round2(prices.reduce((s, p) => s + p, 0) / prices.length),
+    high: round2(prices[prices.length - 1]),
+    count: radishItems.length,
+    items: radishItems.slice(0, 10),
+  };
+}
+
+// Active from eBay Browse API (always attempt if we got a token)
+if (tokenResult.status === 'fulfilled') {
+  const token = tokenResult.value;
+  // ... build keywordsSpecific as before ...
+  const { items, error } = await searchActive(token, keywordsSpecific);
+  if (!error && items.length > 0) {
+    const activeItems = await normaliseActive(items, cardNumber, hero, power, env);
+    if (activeItems.length > 0) {
+      const prices = [...activeItems].sort((a, b) => a.price - b.price).map(i => i.price);
+      activeSection = {
+        low: round2(prices[0]),
+        average: round2(prices.reduce((s, p) => s + p, 0) / prices.length),
+        high: round2(prices[prices.length - 1]),
+        count: activeItems.length,
+        items: sampleAcrossRange([...activeItems].sort((a, b) => a.price - b.price), 10),
+      };
+    }
+  }
+
+  // If no Radish sold data, try Marketplace Insights for sold
+  if (!soldSection) {
+    // ... existing Marketplace Insights logic (lines 684-696) ...
+  }
+}
+```
+
+3. **Cache key update.** Bump version in cache URL from `v9` to `v10` (line 627) so old single-section cached responses don't conflict.
+
+4. **Backward compat.** Keep legacy top-level `low/average/high/count/priceType/items` fields populated from whichever section has data (prefer sold). This lets old app versions continue working until they're updated.
+
+**Required iOS changes:**
+
+1. **`PricingService.swift`** — Add new response models:
+
+```swift
+struct PricingSection: Decodable, Sendable {
+    let low: Decimal
+    let average: Decimal
+    let high: Decimal
+    let count: Int
+    let items: [PricingItem]
+}
+
+struct PricingResult: Sendable {
+    let sold: PricingSection?
+    let active: PricingSection?
+    let fetchedAt: Date
+}
+```
+
+Decode with fallback: try new shape (`sold`/`active` keys) first, fall back to legacy shape for backward compat with cached responses.
+
+2. **`PricingSection.swift` (the View)** — Show two sections:
+   - **RECENT SALES** (if `result.sold` exists): LOW/AVG/HIGH grid + item list with dates
+   - **BUY NOW** (if `result.active` exists): separate LOW/AVG/HIGH grid + item list with external link arrows. Each item row should be tappable → opens eBay listing URL in SafariView.
+   - If only one section has data, show just that one (no empty state for the missing section).
+
+3. **Design note:** The "BUY NOW" section should feel actionable — consider using `bobaOrange` for the section header and item links. The existing "eBay Sales" button at the bottom could be renamed to "Search eBay" since specific listings are now shown inline.
+
+**Required Web changes (`js/app.js`):**
+
+1. **`fetchPricing()` response handling** (~line 1637): Parse new `sold` and `active` sections from response.
+2. **Pricing HTML** (~line 1648): Render two sections — "RECENT SALES" with date badges, "BUY NOW" with clickable listing links. Each listing in the BUY NOW section should be an `<a>` tag opening in a new tab.
+3. **Fallback**: If response has legacy shape (no `sold`/`active` keys), display as before.
+
+**Rate limit impact:** This adds one Browse API call per card view. Browse has a 50,000/day limit. Even at 1,000 card views/day (aggressive for beta), that's well within budget. The Radish fetch and Browse call run in parallel, so latency impact is minimal (~200ms for Browse vs ~500ms for Radish — Browse will usually resolve first).
+
+---
+
+### [2026-04-12] Feature B: BOBA Recently Sold Feed (cron + Supabase) ✅ DONE
+
+**Problem:** There's no way to browse recent BOBA card sales across the market. Users have to look up cards one at a time. A "recently sold" feed would give collectors a pulse on what's moving, what prices are trending, and what's hot — and it makes the app sticky (reason to check daily).
+
+**Goal:** A feed view showing the latest sold BOBA items from eBay, updated automatically every 30 minutes, browsable on both web and iOS. Each feed item links to the specific eBay listing and (when matchable) to the card in our catalog.
+
+**Architecture: Scheduled Worker cron → Supabase table → app reads via REST**
+
+#### Step 1: Supabase table
+
+```sql
+CREATE TABLE recent_sales (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ebay_item_id text UNIQUE NOT NULL,        -- eBay item ID (dedup key)
+  title        text NOT NULL,               -- eBay listing title
+  price        numeric(10,2) NOT NULL,      -- Sale price USD
+  sold_date    timestamptz NOT NULL,         -- When item sold
+  image_url    text,                         -- eBay listing image
+  ebay_url     text NOT NULL,               -- Full eBay item URL
+  -- Card matching (nullable — not all sales will match our catalog)
+  boba_id      text,                         -- Matched bobaId from catalog
+  card_number  text,                         -- Extracted card number
+  hero         text,                         -- Extracted hero name
+  treatment    text,                         -- Extracted treatment
+  power        integer,                      -- Extracted power
+  -- Metadata
+  fetched_at   timestamptz DEFAULT now(),
+  created_at   timestamptz DEFAULT now()
+);
+
+-- Index for feed queries (newest first, with pagination)
+CREATE INDEX idx_recent_sales_sold_date ON recent_sales (sold_date DESC);
+-- Index for card-specific lookups
+CREATE INDEX idx_recent_sales_boba_id ON recent_sales (boba_id) WHERE boba_id IS NOT NULL;
+-- Cleanup: auto-delete sales older than 90 days (optional, via pg_cron or app logic)
+
+-- RLS: public read, no write from client
+ALTER TABLE recent_sales ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read" ON recent_sales FOR SELECT USING (true);
+-- Worker writes via service role key (bypasses RLS)
+```
+
+Add to `supabase_schema.sql` in the repo.
+
+#### Step 2: Worker cron endpoint
+
+Add a `scheduled` event handler to `workers/ebay-proxy/worker.js`:
+
+```javascript
+// In wrangler.toml, add:
+// [triggers]
+// crons = ["*/30 * * * *"]   # Every 30 minutes
+
+export default {
+  async fetch(request, env) { /* ... existing handler ... */ },
+
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(fetchRecentSales(env));
+  },
+};
+
+async function fetchRecentSales(env) {
+  const cache = caches.default;
+  const token = await getAppToken(env, cache);
+
+  // Broad query: all BOBA sold items in last 60 minutes
+  // (30-min cron with 60-min window ensures no gaps)
+  const cutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const keywords = "bo jackson battle arena";
+
+  // Marketplace Insights: up to 50 recent sold items
+  const { items: soldRaw, error } = await searchSold(token, keywords, cutoff);
+  if (error || !soldRaw?.length) return;
+
+  // Also try Browse API sold filter for broader coverage
+  // (Insights may miss some if scope not approved)
+
+  // For each item, attempt card matching:
+  const sales = soldRaw.map(item => {
+    const matched = matchToCard(item);  // Extract card number, hero, etc. from title/aspects
+    return {
+      ebay_item_id: item.itemId || extractItemId(item.url),
+      title: item.title,
+      price: item.price,
+      sold_date: item.date,
+      image_url: item.image || null,
+      ebay_url: item.url,
+      boba_id: matched?.bobaId || null,
+      card_number: matched?.cardNumber || null,
+      hero: matched?.hero || null,
+      treatment: matched?.treatment || null,
+      power: matched?.power || null,
+    };
+  });
+
+  // Upsert to Supabase (dedup on ebay_item_id)
+  const supabaseUrl = env.SUPABASE_URL;       // New Worker secret
+  const serviceKey  = env.SUPABASE_SERVICE_KEY; // New Worker secret
+  await fetch(`${supabaseUrl}/rest/v1/recent_sales`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': serviceKey,
+      'Authorization': `Bearer ${serviceKey}`,
+      'Prefer': 'resolution=merge-duplicates',  // Upsert on ebay_item_id
+    },
+    body: JSON.stringify(sales),
+  });
+}
+```
+
+**Card matching logic** (`matchToCard`): Reuse the existing `checkTitle()` and `checkAspects()` functions to extract card number and hero from the eBay listing. For `bobaId` resolution, the Worker would need a lightweight lookup — either:
+- (a) A static JSON map of `cardNumber+hero → bobaId` bundled with the Worker (small — ~200KB for 17,739 entries), or
+- (b) A Supabase query at match time (adds latency but always current), or
+- (c) Match on `card_number` + `hero` and let the app client resolve `bobaId` at display time.
+
+**Recommendation:** Option (c) is simplest — store `card_number` and `hero` in the table, let the app do the final `bobaId` lookup from its in-memory card catalog. Avoids bundling card data in the Worker.
+
+#### Step 3: New Worker secrets
+
+```bash
+wrangler secret put SUPABASE_URL        # e.g. https://xxx.supabase.co
+wrangler secret put SUPABASE_SERVICE_KEY  # service_role key (bypasses RLS)
+```
+
+#### Step 4: App — Feed View
+
+**iOS:**
+- New `FeedView` (or section within an existing tab — could live in Search or Play)
+- Fetches from Supabase REST: `GET /rest/v1/recent_sales?order=sold_date.desc&limit=50`
+- Each row shows: listing image (if available), title, price, relative date, and a "View on eBay" link
+- If `card_number` + `hero` match a card in the local catalog, show a mini card thumbnail and make the row tappable → navigates to `CardDetailView`
+- Pull-to-refresh calls the endpoint again
+- Consider a filter: "All Sales" / "Cards I'm Tracking" (matches against user's collection/wanted list)
+
+**Web:**
+- New sidebar nav item: "Market Feed" or "Recent Sales" (between Search Cards and Play)
+- Same Supabase REST query
+- Each item: image, title, price, date, eBay link
+- Matched cards show the catalog thumbnail and link to card modal
+- Infinite scroll or "Load More" pagination (50 at a time, ordered by `sold_date DESC`)
+
+#### Step 5: Cleanup cron (optional)
+
+Either a Supabase pg_cron job or a second Worker cron (daily) that deletes rows older than 90 days:
+
+```sql
+DELETE FROM recent_sales WHERE sold_date < now() - interval '90 days';
+```
+
+**Rate limit budget:** The cron makes 1 Marketplace Insights call every 30 min = 48 calls/day. Even with the per-card Browse calls from Feature A, total daily usage stays well under 10,000 (Insights) and 50,000 (Browse).
+
+**New wrangler.toml:**
+
+```toml
+name            = "boba-ebay-proxy"
+main            = "worker.js"
+compatibility_date = "2024-01-01"
+
+[ai]
+binding = "AI"
+
+[triggers]
+crons = ["*/30 * * * *"]
+```
+
+---
 
 ### [2026-04-12 ✅ DONE] Set taxonomy overhauled — all data files regenerated and deployed
 

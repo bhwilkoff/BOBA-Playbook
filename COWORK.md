@@ -128,7 +128,112 @@ and we'll run the migration before you start submitting new corrections with `bo
 *Items Cowork has produced that need to be integrated into the app or data.*
 
 <!-- Cowork: add items here before handing off to Claude Code -->
-*(empty)*
+
+### [2026-04-11 ✅ DONE] CRITICAL: Search index + categories rebuilt — web/iOS app changes required
+
+**Origin:** TestFlight beta testers reported 3 issues:
+1. Colosseum cards showing as Battlefoils (UX, not data)
+2. Searching "Spider" returns BrockNess (search contamination)
+3. Multiple filters for single sets return nothing/sealed only
+
+**Root causes found and fixed on data side:**
+
+#### Fix A: search-index.json now keyed by bobaId (not cardNumber)
+
+**The bug:** `reconcile_all.py` step9 mapped tokens → `cardNumber`. When multiple heroes share a cardNumber (e.g. MIX-352 = Spider AND BrockNess), searching "spider" returned both. This affected 7+ cards for Spider alone, and likely hundreds across all shared-number heroes.
+
+**What changed:** `reconcile_all.py` step9 now maps all indexes (`tokenIndex`, `byElement`, `bySet`, `byTreatment`, `byCardType`, `byHero`, `byPowerRange`, `hasImage`) to `bobaId` strings instead of `cardNumber` strings. Each bobaId resolves to exactly one card — zero cross-hero contamination.
+
+**⚠️ BREAKING CHANGE for web app.** `computeResults()` in `js/app.js` currently resolves `resultNums` via `cardsByNumber.get(num)` (line ~942). After this change, the search index returns bobaIds, not cardNumbers. The resolution must switch to `cardsByBobaId.get(id)`.
+
+**Required changes in `js/app.js`:**
+
+1. **Line ~863-866** — tokenIndex iteration: `searchIndex.tokenIndex[key]` now returns bobaIds. Rename variable from `cardNum` to `id` for clarity.
+
+2. **Line ~880-884** — hero detection: `searchIndex.byHero[hero]` now returns bobaIds. The hero-coverage check and `heroCardSet` should collect bobaIds.
+
+3. **Line ~902-921** — filter resolution: `searchIndex.byElement/bySet/byTreatment/hasImage` all return bobaIds now.
+
+4. **Line ~940-949** — result expansion: THIS IS THE KEY CHANGE.
+   ```javascript
+   // OLD (cardNumber-based):
+   for (const num of resultNums) {
+     const variants = cardsByNumber.get(num);
+     ...
+   }
+   
+   // NEW (bobaId-based):
+   for (const id of resultNums) {
+     const card = cardsByBobaId.get(id);
+     if (!card) continue;
+     results.push(card);
+   }
+   ```
+   The `heroQueryFilter` logic can be removed entirely — bobaId resolution returns exactly the right hero, no filtering needed.
+
+5. **Line ~1974** — `Collection.setCardLookup`: if this uses search index results, ensure it handles bobaIds.
+
+6. **`categories.json`** — `sampleCardNumbers` field renamed to `sampleBobaIds` in both `treatments` and `heroes` sections. Update any code that reads these fields.
+
+**iOS app impact:**
+Verified: iOS does NOT use `search-index.json` or `categories.json`. `CardStore.applyFilters()` filters directly against the in-memory card array, and filter options are derived from the data itself. `CollectionStore` already prefers `bobaId` with `cardNumber` fallback (line 80). **No iOS code changes needed for Fix A or Fix B.** Fix C (Colosseum display) is the only iOS-relevant item.
+
+---
+
+#### Fix B: categories.json now includes sealed product sets
+
+**The bug:** `reconcile_all.py` ran step8 (categories) and step9 (search-index) BEFORE step12 (sealed products). So 8 sealed-product-only sets never appeared in categories.json: Alpha Edition (13), Griffey Edition (9), Alpha Update (8), World Champions Series (6), Tecmo Bowl Edition (4), National '24 (3), Sandstorm (1), Big League Chew (1).
+
+**What changed:** Step execution order moved: steps 8/9/10 now run AFTER step 12. All 13 sets will appear in categories.json on next `reconcile_all.py` run.
+
+**Web/iOS impact:** Filter dropdowns will automatically show the new sets — no code change needed unless the app hardcodes set names anywhere.
+
+---
+
+#### Fix C: Colosseum Battlefoil display (UX, not data)
+
+**The data is correct** — 786 cards with `treatment: "Colosseum Battlefoil"`, properly distinct from `"Battlefoil"` (626 cards). The treatment name includes "Battlefoil" because that's the official BOBA terminology.
+
+**UX request from user:** In the app UI, "Colosseum" should be visually distinct enough that users don't confuse it with base Battlefoils. Possible approaches:
+- Shorten display label to "Colosseum" in filter pills/dropdowns (treatment field stays "Colosseum Battlefoil")
+- Add a distinct color/icon for Colosseum treatment in treatment ribbons
+- Group "Battlefoil" variants under a collapsible section in the filter panel
+
+User says abbreviating to "Colosseum" is fine for display. Up to Claude Code how to implement.
+
+---
+
+#### Data note: 45 sealed products have null treatment (by design)
+
+All 45 null-treatment cards are Sealed Products (boxes, packs, cases). Their `variation` field serves the role treatment serves for Heroes. Step8 already falls back: `t = c.get("treatment") or c.get("variation") or "Unknown"`. No fix needed — just documenting so it's not flagged as a bug.
+
+#### Data note: sealed product set names don't match main sets
+
+Sealed products use edition-specific set names ("Alpha Edition", "Griffey Edition") that differ from the main card set names ("Alpha", "Griffey"). This is intentional for now but could be normalized in a future pass if users expect "Alpha" filter to include Alpha Edition boxes. Flagging for future UX discussion.
+
+---
+
+#### Fix D: searchTokens contamination from BV cross-reference
+
+**The bug:** `_build_search_tokens()` in step4 used `bv_name or hero` as a source field. When BV data matched by cardNumber returned a different hero name (e.g. cardNumber 64 = Spider in BV, but this card's hero is Wild Beard), the BV name leaked into the card's own `searchTokens` field. This meant even with bobaId indexing, Wild Beard cards had `"spider"` baked into their searchTokens.
+
+**What changed:** searchTokens builder now uses only `hero` (the card's own hero name), not `bv_name`. BV data is still used for image reconciliation and other fields — just not for search token generation.
+
+**Impact:** After running `reconcile_all.py`, all 17,739 cards will have clean searchTokens derived only from their own fields. Zero cross-hero leakage at either the token level or index level.
+
+#### Data note: 73 cards have stale `name` field (display only)
+
+73 Hero cards have `name != hero` where both are completely different names (not just casing). These are cards without images, so the existing name normalization (which verifies hero against imageFile) can't auto-fix them. Since `name` is used for display in the web/iOS grid, these cards show incorrect labels. Not a search issue (name isn't in searchTokens), but a cosmetic bug. Full list available on request. Examples: Wild Beard cards showing as "Spider", Skeee cards showing as "Cobra"/"Amon-Ra"/"Mean-Joe", Triple Threat cards showing as "Boltage"/"Pantera".
+
+**Files changed (Cowork side):**
+- `reconcile_all.py` — step9 uses bobaId values; step8 uses bobaId in samples; step execution reordered (8/9/10 after 12); searchTokens builder no longer uses bv_name
+
+**Files that need regeneration:** Run `python3 reconcile_all.py` from the research repo to regenerate `search-index.json` and `categories.json`, then copy to BOBA-Playbook `assets/data/`.
+
+**Files that need Claude Code changes:**
+- `js/app.js` — `computeResults()` must resolve bobaIds instead of cardNumbers (see detailed guidance above)
+- iOS `CardStore.swift` — check if it uses search-index.json; if so, same bobaId resolution needed
+- Colosseum display treatment — UX enhancement, approach at Claude Code's discretion
 
 <details>
 <summary>[2026-04-09 ✅ DONE] Mantra: One Image per Card. One ID per Card. — v2 4-field bobaId rolled out everywhere</summary>

@@ -473,6 +473,57 @@ async function handleDiscordMessages(request, env) {
   return json(messages);
 }
 
+// ── Discord initial token exchange ────────────────────────────────────────────
+
+/**
+ * POST /discord/token
+ * Body: { code, code_verifier, redirect_uri }
+ * Returns: { access_token, refresh_token, expires_in, token_type, scope }
+ *
+ * Exchanges a Discord authorization code for tokens. Requires DISCORD_CLIENT_SECRET
+ * because Discord's confidential client configuration requires the secret even for
+ * PKCE flows. The client must never send the secret — this Worker holds it.
+ */
+async function handleDiscordToken(request, env) {
+  if (!env.DISCORD_CLIENT_SECRET) {
+    return json({ error: "DISCORD_CLIENT_SECRET not configured" }, 500);
+  }
+  let body;
+  try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+
+  const { code, code_verifier, redirect_uri } = body ?? {};
+  if (!code || typeof code !== "string") return json({ error: "code required" }, 400);
+  if (!code_verifier || typeof code_verifier !== "string") return json({ error: "code_verifier required" }, 400);
+  if (!redirect_uri || typeof redirect_uri !== "string") return json({ error: "redirect_uri required" }, 400);
+
+  const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id:     "1491134218829304009",
+      client_secret: env.DISCORD_CLIENT_SECRET,
+      grant_type:    "authorization_code",
+      code,
+      redirect_uri,
+      code_verifier,
+    }),
+  });
+
+  if (!tokenRes.ok) {
+    const err = await tokenRes.text().catch(() => String(tokenRes.status));
+    return json({ error: `Discord ${tokenRes.status}: ${err}` }, tokenRes.status >= 500 ? 502 : 400);
+  }
+
+  const tokens = await tokenRes.json();
+  return json({
+    access_token:  tokens.access_token,
+    refresh_token: tokens.refresh_token,
+    expires_in:    tokens.expires_in,
+    token_type:    tokens.token_type,
+    scope:         tokens.scope,
+  });
+}
+
 // ── Discord token refresh ─────────────────────────────────────────────────────
 
 /**
@@ -555,6 +606,7 @@ export default {
 
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname.endsWith("/ocr")) return handleOCR(request, env);
+    if (request.method === "POST" && url.pathname.endsWith("/discord/token"))   return handleDiscordToken(request, env);
     if (request.method === "POST" && url.pathname.endsWith("/discord/refresh")) return handleDiscordRefresh(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/discord/messages")) return handleDiscordMessages(request, env);
 

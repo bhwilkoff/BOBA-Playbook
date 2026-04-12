@@ -895,7 +895,7 @@ private struct SubstitutionStrategySection: View {
         StrategyDisclosure(title: "Substitution Strategy",
                            subtitle: "10 Hot Dogs total — max 5 substitutions all game") {
             HStack(alignment: .top, spacing: Design.Spacing.md) {
-                MiniCardView(imageFile: "HD-1_Dirty-Water-Dan_HotDog.webp", hero: "Dirty Water Dan", power: 0, element: "NONE", width: 80,
+                MiniCardView(imageFile: "HD-10_Frank_HotDog.webp", hero: "Frank", power: 0, element: "NONE", width: 80,
                              subtitle: "HOT DOG", borderOverride: Color(hex: "4CAF50"))
                 MiniCardView(imageFile: "HD-2_Grillbert_HotDog.webp", hero: "Grillbert", power: 0, element: "NONE", width: 80,
                              subtitle: "HOT DOG", borderOverride: Color(hex: "4CAF50"))

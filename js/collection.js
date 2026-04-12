@@ -711,14 +711,30 @@ const Collection = (() => {
         return;
       }
 
+      // Update total users metric from actual results
+      const metricEl = overlay.querySelector('#metric-users');
+      if (metricEl) metricEl.textContent = users.length;
+
       listEl.innerHTML = users.map(u => {
-        const isMe = u.user_id === currentUserId;
+        const isMe      = u.user_id === currentUserId;
         const roleClass = u.role === 'admin' ? 'badge-admin' : u.role === 'moderator' ? 'badge-mod' : 'badge-user';
+        const joined    = new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const lastSeen  = u.last_sign_in_at
+          ? _relativeTime(new Date(u.last_sign_in_at))
+          : 'never';
+        const nameHtml  = u.display_name
+          ? `<div class="admin-user-name">${esc(u.display_name)}${isMe ? ' <span class="admin-you-badge">YOU</span>' : ''}</div>
+             <div class="admin-user-email">${esc(u.email || '')}</div>`
+          : `<div class="admin-user-email">${esc(u.email || 'Unknown')}${isMe ? ' <span class="admin-you-badge">YOU</span>' : ''}</div>`;
+        const valueStr  = u.total_collection_value > 0
+          ? ` · $${Math.round(u.total_collection_value).toLocaleString()} est.`
+          : '';
         return `
           <div class="admin-user-row" data-uid="${esc(u.user_id)}">
             <div class="admin-user-info">
-              <div class="admin-user-email">${esc(u.email || 'Unknown')}${isMe ? ' <span class="admin-you-badge">YOU</span>' : ''}</div>
-              <div class="admin-user-meta">${u.user_id.substring(0, 12)}… · Joined ${new Date(u.created_at).toLocaleDateString()}</div>
+              ${nameHtml}
+              <div class="admin-user-meta">Joined ${joined} · Last seen ${lastSeen}</div>
+              <div class="admin-user-collection">${u.collection_count} card${u.collection_count === 1 ? '' : 's'} in collection${valueStr}</div>
             </div>
             <div class="admin-user-role">
               <span class="admin-role-badge ${roleClass}">${u.role.toUpperCase()}</span>
@@ -729,11 +745,10 @@ const Collection = (() => {
 
       listEl.querySelectorAll('.admin-role-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
-          const uid  = btn.dataset.uid;
-          const cur  = btn.dataset.role;
-          const next = cur === 'user' ? 'moderator' : cur === 'moderator' ? 'admin' : 'user';
-          const label = `${cur} → ${next}`;
-          if (!confirm(`Change role for this user: ${label}?`)) return;
+          const uid   = btn.dataset.uid;
+          const cur   = btn.dataset.role;
+          const next  = cur === 'user' ? 'moderator' : cur === 'moderator' ? 'admin' : 'user';
+          if (!confirm(`Change role for this user: ${cur} → ${next}?`)) return;
           try {
             await API.adminUpdateRole(uid, next);
             await loadAdminUsers(overlay);
@@ -745,6 +760,18 @@ const Collection = (() => {
     } catch (e) {
       listEl.innerHTML = `<p class="mod-edit-note" style="color:var(--boba-orange)">Error: ${esc(e.message)}</p>`;
     }
+  }
+
+  function _relativeTime(date) {
+    const diff = Date.now() - date.getTime();
+    const mins  = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days  = Math.floor(diff / 86400000);
+    if (mins  <  2)  return 'just now';
+    if (mins  < 60)  return `${mins}m ago`;
+    if (hours < 24)  return `${hours}h ago`;
+    if (days  <  7)  return `${days}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
   /* ================================================================

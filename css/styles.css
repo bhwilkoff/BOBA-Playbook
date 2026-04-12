@@ -2031,22 +2031,31 @@ main {
 .admin-user-list { display: flex; flex-direction: column; gap: 6px; }
 .admin-loading { font-family: var(--font-mono); font-size: 0.8rem; color: var(--boba-text-muted); }
 .admin-user-row {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: flex-start; justify-content: space-between;
   gap: var(--sp-3);
-  padding: var(--sp-2) var(--sp-3);
+  padding: var(--sp-3);
   background: var(--boba-glass);
   border: 1px solid var(--boba-glass-border);
   border-radius: 8px;
 }
 .admin-user-info { min-width: 0; flex: 1; }
+.admin-user-name {
+  font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700;
+  color: var(--boba-text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .admin-user-email {
-  font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600;
+  font-family: var(--font-mono); font-size: 0.78rem; font-weight: 600;
   color: var(--boba-text-primary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .admin-user-meta {
   font-family: var(--font-mono); font-size: 0.7rem;
-  color: var(--boba-text-muted); margin-top: 2px;
+  color: var(--boba-text-muted); margin-top: 3px;
+}
+.admin-user-collection {
+  font-family: var(--font-mono); font-size: 0.72rem;
+  color: var(--boba-cyan); margin-top: 3px;
 }
 .admin-user-role { display: flex; align-items: center; gap: var(--sp-2); flex-shrink: 0; }
 .admin-role-badge {

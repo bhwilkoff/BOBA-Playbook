@@ -113,12 +113,15 @@ final class SupabaseClient {
 
     // MARK: - Admin methods
 
-    /// Fetches all user profiles. Only succeeds for admin accounts (RLS enforced).
+    /// Fetches full user stats via RPC. Admin-only (enforced server-side).
+    /// Includes last sign-in, display name, collection count and estimated value.
     func fetchAllUserProfiles() async throws -> [AdminUserProfile] {
-        let url = try makeURL(path: "/rest/v1/user_profiles?select=user_id,email,role,created_at&order=created_at.asc")
+        let url = try makeURL(path: "/rest/v1/rpc/get_admin_user_stats")
         var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        request.httpMethod = "POST"
+        request.httpBody = "{}".data(using: .utf8)
         addHeaders(&request, authenticated: true)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkStatus(data: data, response: response)
         return try makeDecoder().decode([AdminUserProfile].self, from: data)

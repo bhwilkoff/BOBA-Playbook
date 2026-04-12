@@ -7,14 +7,29 @@ struct AdminUserProfile: Codable, Identifiable {
     let email: String?
     let role: String
     let createdAt: Date
+    let lastSignInAt: Date?
+    let displayName: String?
+    let collectionCount: Int
+    let totalCollectionValue: Decimal
 
     var id: UUID { userId }
 
+    /// Best available label: display name → email prefix → UUID prefix
+    var label: String {
+        if let name = displayName, !name.isEmpty { return name }
+        if let e = email { return e }
+        return userId.uuidString.prefix(8) + "…"
+    }
+
     enum CodingKeys: String, CodingKey {
-        case userId = "user_id"
+        case userId               = "user_id"
         case email
         case role
-        case createdAt = "created_at"
+        case createdAt            = "created_at"
+        case lastSignInAt         = "last_sign_in_at"
+        case displayName          = "display_name"
+        case collectionCount      = "collection_count"
+        case totalCollectionValue = "total_collection_value"
     }
 }
 

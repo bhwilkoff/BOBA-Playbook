@@ -269,46 +269,105 @@ private struct UserRoleRow: View {
     }
 
     var body: some View {
-        HStack(spacing: Design.Spacing.sm) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(user.email ?? "Unknown")
-                    .font(Design.Fonts.mono(13, weight: .bold))
-                    .foregroundStyle(isCurrentUser ? Design.Colors.bobaOrange : Design.Colors.textPrimary)
-                    .lineLimit(1)
-                Text(user.userId.uuidString.prefix(12) + "…")
-                    .font(Design.Fonts.mono(10))
-                    .foregroundStyle(Design.Colors.textMuted)
-                Text(user.createdAt, style: .date)
-                    .font(Design.Fonts.mono(10))
-                    .foregroundStyle(Design.Colors.textMuted)
-            }
-            Spacer()
-
-            if isCurrentUser {
-                // Can't demote yourself
-                roleBadge(user.role)
-            } else {
-                Button {
-                    showPicker = true
-                } label: {
-                    HStack(spacing: 4) {
-                        roleBadge(user.role)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 10))
-                            .foregroundStyle(Design.Colors.textMuted)
+        VStack(alignment: .leading, spacing: 6) {
+            // Top row: name/email + role badge
+            HStack(alignment: .top, spacing: Design.Spacing.sm) {
+                VStack(alignment: .leading, spacing: 2) {
+                    // Display name (if available from OAuth) + email
+                    if let name = user.displayName, !name.isEmpty {
+                        Text(name)
+                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .foregroundStyle(isCurrentUser ? Design.Colors.bobaOrange : Design.Colors.textPrimary)
+                            .lineLimit(1)
+                        Text(user.email ?? "")
+                            .font(Design.Fonts.mono(11))
+                            .foregroundStyle(Design.Colors.textSecondary)
+                            .lineLimit(1)
+                    } else {
+                        Text(user.email ?? "Unknown")
+                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .foregroundStyle(isCurrentUser ? Design.Colors.bobaOrange : Design.Colors.textPrimary)
+                            .lineLimit(1)
                     }
                 }
-                .buttonStyle(.plain)
-                .confirmationDialog("Change role for \(user.email ?? "this user")",
-                                    isPresented: $showPicker, titleVisibility: .visible) {
-                    ForEach(allRoles.filter { $0 != user.role }, id: \.self) { role in
-                        Button(role.capitalized) { onRoleChange(role) }
+                Spacer()
+                if isCurrentUser {
+                    roleBadge(user.role)
+                } else {
+                    Button {
+                        showPicker = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            roleBadge(user.role)
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 10))
+                                .foregroundStyle(Design.Colors.textMuted)
+                        }
                     }
-                    Button("Cancel", role: .cancel) {}
+                    .buttonStyle(.plain)
+                    .confirmationDialog("Change role for \(user.email ?? "this user")",
+                                        isPresented: $showPicker, titleVisibility: .visible) {
+                        ForEach(allRoles.filter { $0 != user.role }, id: \.self) { role in
+                            Button(role.capitalized) { onRoleChange(role) }
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    }
+                }
+            }
+
+            // Stats row: joined · last seen
+            HStack(spacing: Design.Spacing.sm) {
+                Label {
+                    Text("Joined ")
+                        .foregroundStyle(Design.Colors.textMuted)
+                    + Text(user.createdAt, format: .dateTime.month(.abbreviated).day().year())
+                        .foregroundStyle(Design.Colors.textMuted)
+                } icon: {
+                    Image(systemName: "person.badge.plus")
+                        .foregroundStyle(Design.Colors.textMuted)
+                }
+                .font(Design.Fonts.mono(10))
+
+                if let last = user.lastSignInAt {
+                    Text("·")
+                        .font(Design.Fonts.mono(10))
+                        .foregroundStyle(Design.Colors.textMuted)
+                    Label {
+                        Text(last, style: .relative)
+                            .foregroundStyle(Design.Colors.textMuted)
+                        + Text(" ago")
+                            .foregroundStyle(Design.Colors.textMuted)
+                    } icon: {
+                        Image(systemName: "clock")
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
+                    .font(Design.Fonts.mono(10))
+                }
+            }
+
+            // Collection stats
+            HStack(spacing: Design.Spacing.sm) {
+                Image(systemName: "rectangle.stack.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+                Text("\(user.collectionCount) card\(user.collectionCount == 1 ? "" : "s")")
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+                if user.totalCollectionValue > 0 {
+                    Text("·")
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textMuted)
+                    Text(user.totalCollectionValue as NSDecimalNumber,
+                         formatter: Self.currencyFormatter)
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                    Text("est.")
+                        .font(Design.Fonts.mono(10))
+                        .foregroundStyle(Design.Colors.textMuted)
                 }
             }
         }
-        .padding(.vertical, Design.Spacing.xs)
+        .padding(.vertical, Design.Spacing.sm)
     }
 
     private func roleBadge(_ role: String) -> some View {
@@ -320,6 +379,14 @@ private struct UserRoleRow: View {
             .background(badgeColor(role))
             .clipShape(RoundedRectangle(cornerRadius: 4))
     }
+
+    private static let currencyFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        f.currencyCode = "USD"
+        f.maximumFractionDigits = 0
+        return f
+    }()
 }
 
 // MARK: - CorrectionReviewRow

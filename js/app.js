@@ -286,6 +286,11 @@
       btn.setAttribute('aria-current', active ? 'page' : 'false');
     });
     closeSidebar();
+    // Close any open play modals so sidebar navigation always works
+    const _dbModal = document.getElementById('deck-builder-modal');
+    const _pmModal = document.getElementById('practice-modal');
+    if (_dbModal && !_dbModal.hidden) _dbModal.hidden = true;
+    if (_pmModal && !_pmModal.hidden) _pmModal.hidden = true;
     if (name === 'scan') {
       initScanView();
     } else {

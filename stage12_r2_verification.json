@@ -1,0 +1,226 @@
+{
+  "timestamp": "2026-04-13T23:15:30Z",
+  "all_passed": true,
+  "checks": [
+    {
+      "type": "renamed",
+      "old_key": "full/MIX-255_DeKap_GLOW_P100.webp",
+      "new_key": "full/MIX-255-DeKap-Mixtape_Battlefoil-First_Edition.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/MIX-255-DeKap-Mixtape_Battlefoil-First_Edition.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "renamed",
+      "old_key": "full/BF-31_Taze_em_Hex_P180.webp",
+      "new_key": "full/BF-31-Taze_em-Battlefoil-First_Edition.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/BF-31-Taze_em-Battlefoil-First_Edition.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "renamed",
+      "old_key": "full/138_Bayou_Steel_P120.webp",
+      "new_key": "full/138-Bayou-Base_Set-First_Edition.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/138-Bayou-Base_Set-First_Edition.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "renamed",
+      "old_key": "full/RAD-24_Cura\u00e7ao_Kid_Hex_P180.webp",
+      "new_key": "full/RAD-24-Cura_ao_Kid-80_s_Rad_Battlefoil-Anduw_Jones_Debut.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/RAD-24-Cura_ao_Kid-80_s_Rad_Battlefoil-Anduw_Jones_Debut.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "renamed",
+      "old_key": "full/CBF-188_Ante-de-something_T_Glow_P150.webp",
+      "new_key": "full/CBF-188-Ante-de-something_T-Colosseum_Battlefoil-Thanasis_Antetokounmpo_Debut.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/CBF-188-Ante-de-something_T-Colosseum_Battlefoil-Thanasis_Antetokounmpo_Debut.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "renamed",
+      "old_key": "full/BLBF-480_King_Tuck_ICE_P125.webp",
+      "new_key": "full/BLBF-480-King_Tuck-Blizzard_Battlefoil-First_Edition.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/BLBF-480-King_Tuck-Blizzard_Battlefoil-First_Edition.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "renamed",
+      "old_key": "full/BLBF-217_Stitcher_Glow_P100.webp",
+      "new_key": "full/BLBF-217-Stitcher-Blizzard_Battlefoil-First_Edition.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/BLBF-217-Stitcher-Blizzard_Battlefoil-First_Edition.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "renamed",
+      "old_key": "full/BF-203_Cupid_Fire_P95.webp",
+      "new_key": "full/BF-203-Cupid-Battlefoil-First_Edition.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/BF-203-Cupid-Battlefoil-First_Edition.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "renamed",
+      "old_key": "full/PG-129_Action_Brawl_P75.webp",
+      "new_key": "full/PG-129-Action-Power_Glove_Battlefoil-2026_Edition.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/PG-129-Action-Power_Glove_Battlefoil-2026_Edition.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "renamed",
+      "old_key": "full/BBFA-14_Cruschman_FIRE_Auto.webp",
+      "new_key": "full/BBFA-14-Cruschman-Silver_Blast-Adley_Rutshman_Debut.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/BBFA-14-Cruschman-Silver_Blast-Adley_Rutshman_Debut.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded",
+      "filename": "S-89_100-Waiver_Wire_Pickup-Plays-Starter_Play.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/S-89_100-Waiver_Wire_Pickup-Plays-Starter_Play.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded",
+      "filename": "BF-94-Librarian-Battlefoil-First_Edition.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/BF-94-Librarian-Battlefoil-First_Edition.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded",
+      "filename": "SMA-5-Santa-Moss-Inspired_Ink_Battlefoil-Santana_Moss_Debut.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/SMA-5-Santa-Moss-Inspired_Ink_Battlefoil-Santana_Moss_Debut.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded",
+      "filename": "PL-46-Frozen_Flip-Plays-First_Edition.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/PL-46-Frozen_Flip-Plays-First_Edition.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded",
+      "filename": "BBFA-163-Tikoff-Silver_Blast-Fred_Biletnikoff_Debut.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/BBFA-163-Tikoff-Silver_Blast-Fred_Biletnikoff_Debut.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded",
+      "filename": "BBFA-159-Lady_Magic-Silver_Blast-Nancy_Lieberman_Debut.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/BBFA-159-Lady_Magic-Silver_Blast-Nancy_Lieberman_Debut.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded",
+      "filename": "BFA-115-Haymaker-Inspired_Ink_Battlefoil-Spencer_Haywood_Debut.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/BFA-115-Haymaker-Inspired_Ink_Battlefoil-Spencer_Haywood_Debut.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded",
+      "filename": "CPRA-7-Ramponage-Inspired_Ink_Battlefoil-Christie_Pearce_Rampone_Debut.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/CPRA-7-Ramponage-Inspired_Ink_Battlefoil-Christie_Pearce_Rampone_Debut.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded",
+      "filename": "EDLCA-7-Cruze_Control-Inspired_Ink_Battlefoil-Elly_De_La_Cruz_Unmasked.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/EDLCA-7-Cruze_Control-Inspired_Ink_Battlefoil-Elly_De_La_Cruz_Unmasked.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded",
+      "filename": "PL-9-Roll_Some_Plays-Plays-First_Edition.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/PL-9-Roll_Some_Plays-Plays-First_Edition.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded_thumb",
+      "filename": "S-89_100-Waiver_Wire_Pickup-Plays-Starter_Play.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/S-89_100-Waiver_Wire_Pickup-Plays-Starter_Play.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded_thumb",
+      "filename": "BF-94-Librarian-Battlefoil-First_Edition.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/BF-94-Librarian-Battlefoil-First_Edition.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded_thumb",
+      "filename": "SMA-5-Santa-Moss-Inspired_Ink_Battlefoil-Santana_Moss_Debut.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/SMA-5-Santa-Moss-Inspired_Ink_Battlefoil-Santana_Moss_Debut.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded_thumb",
+      "filename": "PL-46-Frozen_Flip-Plays-First_Edition.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/PL-46-Frozen_Flip-Plays-First_Edition.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded_thumb",
+      "filename": "BBFA-163-Tikoff-Silver_Blast-Fred_Biletnikoff_Debut.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/BBFA-163-Tikoff-Silver_Blast-Fred_Biletnikoff_Debut.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded_thumb",
+      "filename": "BBFA-159-Lady_Magic-Silver_Blast-Nancy_Lieberman_Debut.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/BBFA-159-Lady_Magic-Silver_Blast-Nancy_Lieberman_Debut.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded_thumb",
+      "filename": "BFA-115-Haymaker-Inspired_Ink_Battlefoil-Spencer_Haywood_Debut.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/BFA-115-Haymaker-Inspired_Ink_Battlefoil-Spencer_Haywood_Debut.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded_thumb",
+      "filename": "CPRA-7-Ramponage-Inspired_Ink_Battlefoil-Christie_Pearce_Rampone_Debut.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/CPRA-7-Ramponage-Inspired_Ink_Battlefoil-Christie_Pearce_Rampone_Debut.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded_thumb",
+      "filename": "EDLCA-7-Cruze_Control-Inspired_Ink_Battlefoil-Elly_De_La_Cruz_Unmasked.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/EDLCA-7-Cruze_Control-Inspired_Ink_Battlefoil-Elly_De_La_Cruz_Unmasked.webp",
+      "http": "200",
+      "ok": true
+    },
+    {
+      "type": "uploaded_thumb",
+      "filename": "PL-9-Roll_Some_Plays-Plays-First_Edition.webp",
+      "url": "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/PL-9-Roll_Some_Plays-Plays-First_Edition.webp",
+      "http": "200",
+      "ok": true
+    }
+  ]
+}

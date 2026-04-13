@@ -3,7 +3,7 @@
 ## Current State
 
 - **Active milestone**: M4 — Play Mode (M3.5 fully complete and deployed)
-- **Last session**: 2026-04-13 — Polish pass: fixed play card type examples in iOS Strategy tab, expanded Collect tab on both platforms (rarity tiers, variations, treatments), hid Discord FAB without removing code, sped up iOS card detail image load (thumb-as-placeholder from NSCache), removed zoom hint text on both platforms. Updated DECISIONS.md with values framing.
+- **Last session**: 2026-04-14 — Deck Builder + Practice Battle scaffolded on both platforms. iOS: DeckBuilderStore, PracticeStore, DeckBuilderView, PracticeSetupView, PracticeView (landscape playmat). Play tab toolbar: Deck Builder icon (left) + Practice icon (right) of wordmark. Web: floating FABs, deck builder modal (card browser, deck list, templates, validation, export), practice setup + playmat. supabase_schema.sql: migration comments for decks/deck_cards. SupabaseClient: saveDeck + fetchDecks methods. R2 image re-upload complete (35 pairs fixed). CardImageView: thumb crossfade to full-res working.
 - **Open questions**:
   - Rules/strategy content for Play Mode — sourced from M4 guide; Play tab UI still needs implementation
   - Deck builder: local templates done; user-created decks still need Supabase integration
@@ -25,7 +25,7 @@
 | Pricing comps (links) | ✅ | ✅ | M3 complete |
 | Buy Now (active listings) | ✅ | ✅ | M3.5 complete — Worker deployed at boba-ebay-proxy.benwilkoff.workers.dev |
 | Market Feed (recent sales) | ❌ | ❌ | Deferred — code removed. Research complete (SerpApi), revisit when eBay API scope approved. |
-| Play Mode (rules + decks) | ⏳ | ⏳ | M4 — active |
+| Play Mode (rules + decks) | ⏳ | ⏳ | M4 active — Deck Builder + Practice scaffolded; templates need real bobaIds; Supabase migration pending |
 | Discord Trading Channel | ⏳ | ⏳ | M5 — hidden (code intact); needs Discord bot added to server |
 
 ---
@@ -219,3 +219,7 @@ Research Discord Activity SDK vs WebView feasibility before committing.
 **2026-04-12** — M3.5 complete: Feature A (dual-section pricing / Buy Now) deployed. Feature B (Market Feed) built then deferred — all code removed. Worker redeployed without cron trigger.
 
 **2026-04-13** — M4 Play tab polish: fixed play card type examples (correct filenames/costs), expanded Collect tab on both platforms (rarity tiers, variations, treatments). Hid Discord FAB without removing code. iOS card detail image load: show cached thumb instantly while full-res loads. Removed zoom hint text on both platforms. Updated DECISIONS.md with values/principles framing.
+
+**2026-04-14** — M4 Play Mode: Deck Builder + Practice Battle implemented on both platforms. iOS: DeckBuilderStore + DeckBuilderView (card browser, grouped hero deck, play sections, validation, template gallery, export sheet), PracticeStore (game state machine, CPU AI), PracticeSetupView, PracticeView (landscape playmat, 7 battle columns, phase disclosure). PlayView toolbar: Deck Builder icon left, Practice icon right of wordmark. Web: floating FABs, deck builder modal (card browser with add/remove, deck list, 5 templates, validation errors, export), practice modal (mode select, deck choice, 7-column playmat, phase advance, match over screen). SupabaseClient: saveDeck + fetchDecks. supabase_schema.sql: M4 migration comments.
+
+**2026-04-13 (Cowork) — Image-content collision incident + guard.** User reported Caliber #24 displaying D-Harp's art. Investigation showed cards.json was correct; the bug was binary content on R2 (identical md5 on two different filenames). Md5 scan found 35 catalog-wide cross-card content collisions. 32 pairs auto-fixed locally by regenerating optimized+thumb from distinct source images. 3 pairs remain source-level duplicates needing art re-download (`BLBF-174 Highway to Helton / Shepherd`, `BLBF-95 D-Harp / Jeesaw`, `BLBF-120 Zephyr / Bandelero`). Added content-collision guard to `reconcile_all.py::step11_optimize_images` — writes `unified-cards/data/image_collisions.json` when md5s collide across distinct cards (DECISIONS.md #026). R2 re-upload of 70 fixed files pending user action (see `R2_REUPLOAD_MANIFEST.md` + `R2_REUPLOAD_LIST.txt` in research project).

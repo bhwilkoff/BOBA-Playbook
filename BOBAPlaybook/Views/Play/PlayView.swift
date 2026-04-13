@@ -27,6 +27,8 @@ private enum PlaySection: String, CaseIterable, Identifiable {
 struct PlayView: View {
     @Environment(CardStore.self) private var cardStore
     @State private var selectedSection: PlaySection = .rules
+    @State private var showDeckBuilder = false
+    @State private var showPractice = false
 
     var body: some View {
         NavigationStack {
@@ -48,10 +50,51 @@ struct PlayView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // Deck Builder icon — left of wordmark
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showDeckBuilder = true
+                    } label: {
+                        VStack(spacing: 1) {
+                            Image(systemName: "rectangle.stack.badge.plus")
+                                .font(.system(size: 16))
+                                .foregroundStyle(Design.Colors.bobaOrange)
+                            Text("DECKS")
+                                .font(Design.Fonts.mono(8, weight: .bold))
+                                .foregroundStyle(Design.Colors.bobaOrange)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+                // Wordmark — center
                 ToolbarItem(placement: .principal) { BOBAWordmark() }
+                // Practice Battle icon — right of wordmark
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showPractice = true
+                    } label: {
+                        VStack(spacing: 1) {
+                            Image(systemName: "gamecontroller.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(Design.Colors.bobaCyan)
+                            Text("PRACTICE")
+                                .font(Design.Fonts.mono(8, weight: .bold))
+                                .foregroundStyle(Design.Colors.bobaCyan)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+        }
+        .sheet(isPresented: $showDeckBuilder) {
+            DeckBuilderView()
+                .environment(cardStore)
+        }
+        .sheet(isPresented: $showPractice) {
+            PracticeSetupView()
+                .environment(cardStore)
         }
     }
 }

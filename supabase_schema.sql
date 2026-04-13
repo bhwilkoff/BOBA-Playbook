@@ -176,6 +176,24 @@ CREATE POLICY "admins review image overrides"
 -- ============================================================
 -- MIGRATION (run in Supabase SQL editor for existing projects)
 -- ============================================================
+--
+-- M4 Deck Builder migration (2026-04-13):
+-- ALTER TABLE decks ADD COLUMN IF NOT EXISTS format text DEFAULT 'playmaker'
+--   CHECK (format IN ('rookie','substitution','playmaker','spec','limited'));
+--
+-- -- Rebuild deck_cards with boba_id + card_type + sort_order
+-- -- (safe to run once — the old table had no real data yet)
+-- ALTER TABLE deck_cards ADD COLUMN IF NOT EXISTS boba_id text;
+-- ALTER TABLE deck_cards ADD COLUMN IF NOT EXISTS card_type text DEFAULT 'hero'
+--   CHECK (card_type IN ('hero','play','bonus_play','hot_dog','sideboard'));
+-- ALTER TABLE deck_cards ADD COLUMN IF NOT EXISTS sort_order integer DEFAULT 0;
+-- -- After backfill (if any) you can drop the old columns:
+-- -- ALTER TABLE deck_cards DROP COLUMN IF EXISTS card_number;
+-- -- ALTER TABLE deck_cards DROP COLUMN IF EXISTS quantity;
+-- -- ALTER TABLE deck_cards DROP CONSTRAINT IF EXISTS deck_cards_pkey;
+-- -- ALTER TABLE deck_cards ADD PRIMARY KEY (id);
+-- -- ALTER TABLE deck_cards ADD COLUMN IF NOT EXISTS id uuid DEFAULT gen_random_uuid();
+--
 -- ALTER TABLE user_cards DROP CONSTRAINT IF EXISTS user_cards_designation_check;
 -- ALTER TABLE user_cards ADD CONSTRAINT user_cards_designation_check
 --   CHECK (designation IN ('personal','for_sale','for_trade','wanted','grails'));

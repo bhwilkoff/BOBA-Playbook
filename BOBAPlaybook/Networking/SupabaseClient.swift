@@ -396,6 +396,85 @@ final class SupabaseClient {
         try await voidExecute(request)
     }
 
+    // MARK: - Deck CRUD
+
+    func fetchDecks() async throws -> [SavedDeck] {
+        let url = try makeURL(path: "/rest/v1/decks?select=id,name,format,created_at&order=created_at.desc")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        return try await executeArray(request)
+    }
+
+    func saveDeck(_ store: DeckBuilderStore) async throws {
+        guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+
+        if let existingId = store.currentDeckId {
+            // Update existing deck name + format
+            let url = try makeURL(path: "/rest/v1/decks?id=eq.\(existingId)")
+            var request = URLRequest(url: url)
+            request.httpMethod = "PATCH"
+            addHeaders(&request, authenticated: true)
+            let body = ["name": store.deckName, "format": store.format.supabaseValue]
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            try await voidExecute(request)
+            try await replaceDeckCards(deckId: existingId, store: store)
+        } else {
+            // Create new deck
+            let url = try makeURL(path: "/rest/v1/decks")
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            addHeaders(&request, authenticated: true)
+            request.setValue("return=representation", forHTTPHeaderField: "Prefer")
+            let body: [String: Any] = [
+                "user_id": uid.uuidString.lowercased(),
+                "name": store.deckName,
+                "format": store.format.supabaseValue
+            ]
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            struct DeckRow: Decodable { let id: UUID }
+            let rows: [DeckRow] = try await executeArray(request)
+            guard let deckId = rows.first?.id else { throw APIError.invalidResponse }
+            store.currentDeckId = deckId
+            try await replaceDeckCards(deckId: deckId, store: store)
+        }
+    }
+
+    private func replaceDeckCards(deckId: UUID, store: DeckBuilderStore) async throws {
+        // Delete existing cards
+        let deleteURL = try makeURL(path: "/rest/v1/deck_cards?deck_id=eq.\(deckId)")
+        var deleteRequest = URLRequest(url: deleteURL)
+        deleteRequest.httpMethod = "DELETE"
+        addHeaders(&deleteRequest, authenticated: true)
+        try await voidExecute(deleteRequest)
+
+        // Build new rows
+        var rows: [[String: Any]] = []
+        func append(_ card: Card, role: String, index: Int) {
+            rows.append([
+                "deck_id": deckId.uuidString.lowercased(),
+                "boba_id": card.id,
+                "card_type": role,
+                "sort_order": index
+            ])
+        }
+        for (i, c) in store.heroes.enumerated()     { append(c, role: "hero", index: i) }
+        for (i, c) in store.plays.enumerated()      { append(c, role: "play", index: i) }
+        for (i, c) in store.bonusPlays.enumerated() { append(c, role: "bonus_play", index: i) }
+        for (i, c) in store.hotDogs.enumerated()    { append(c, role: "hot_dog", index: i) }
+        for (i, c) in store.sideboard.enumerated()  { append(c, role: "sideboard", index: i) }
+
+        guard !rows.isEmpty else { return }
+        let insertURL = try makeURL(path: "/rest/v1/deck_cards")
+        var insertRequest = URLRequest(url: insertURL)
+        insertRequest.httpMethod = "POST"
+        addHeaders(&insertRequest, authenticated: true)
+        insertRequest.httpBody = try JSONSerialization.data(withJSONObject: rows)
+        try await voidExecute(insertRequest)
+    }
+
     // MARK: - HTTP helpers
 
     private func postAuth<Body: Encodable, Response: Decodable>(

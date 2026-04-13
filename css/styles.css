@@ -5040,7 +5040,7 @@ main {
   padding: 0.3rem 0.6rem;
 }
 .db-deck-name:focus { outline: none; border-color: rgba(255,77,0,0.5); }
-.db-clear-btn, .db-export-btn {
+.db-clear-btn, .db-export-btn, .db-save-btn, .db-load-btn {
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 6px;
@@ -5053,6 +5053,27 @@ main {
 }
 .db-clear-btn:hover { color: #ff6b55; background: rgba(192,57,43,0.15); border-color: rgba(192,57,43,0.3); }
 .db-export-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+.db-save-btn:hover { color: #4CAF50; background: rgba(76,175,80,0.1); border-color: rgba(76,175,80,0.3); }
+.db-load-btn:hover { color: #00F5FF; background: rgba(0,245,255,0.08); border-color: rgba(0,245,255,0.25); }
+.db-save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Saved decks dropdown panel */
+.db-saved-decks-panel {
+  background: rgba(13,13,26,0.98); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; padding: 0.5rem; margin-bottom: 0.5rem; max-height: 200px; overflow-y: auto;
+}
+.db-saved-decks-title { font-family: var(--font-mono, monospace); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.4); margin-bottom: 0.4rem; }
+.db-saved-decks-empty { font-family: var(--font-mono, monospace); font-size: 0.7rem; color: rgba(255,255,255,0.3); text-align: center; padding: 0.5rem; }
+.db-saved-deck-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.35rem 0.4rem; border-radius: 5px; transition: background 0.15s; }
+.db-saved-deck-row:hover { background: rgba(255,255,255,0.04); }
+.db-saved-deck-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.db-saved-deck-name { font-family: var(--font-mono, monospace); font-size: 0.75rem; font-weight: 700; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-saved-deck-meta { font-family: var(--font-mono, monospace); font-size: 0.55rem; color: rgba(255,255,255,0.35); }
+.db-saved-deck-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.db-saved-deck-load { font-family: var(--font-mono, monospace); font-size: 0.6rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(255,77,0,0.35); background: rgba(255,77,0,0.08); color: #FF4D00; cursor: pointer; transition: all 0.15s; }
+.db-saved-deck-load:hover { background: rgba(255,77,0,0.15); }
+.db-saved-deck-delete { font-family: var(--font-mono, monospace); font-size: 0.65rem; padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: rgba(255,255,255,0.3); cursor: pointer; transition: all 0.15s; }
+.db-saved-deck-delete:hover { color: #ff6b55; border-color: rgba(192,57,43,0.3); }
 
 .db-section { display: flex; flex-direction: column; gap: 4px; }
 .db-section-title {
@@ -5258,8 +5279,9 @@ main {
 }
 .practice-playmat[hidden] { display: none; }
 
-/* Full-screen when playmat is active */
-#practice-modal.playmat-mode { padding: 0; align-items: stretch; justify-content: stretch; left: 0 !important; }
+/* Full-screen when playmat is active — on mobile fills viewport;
+   on desktop (sidebar visible) fills the content area right of sidebar */
+#practice-modal.playmat-mode { padding: 0; align-items: stretch; justify-content: stretch; }
 #practice-modal.playmat-mode .play-modal-inner {
   max-width: 100%; max-height: 100dvh; border-radius: 0; height: 100dvh; width: 100%;
 }
@@ -5275,6 +5297,8 @@ main {
   position: relative;
   background: #080810;
 }
+/* CRITICAL: hidden attribute must override display:flex!important */
+#practice-playmat.pm-root[hidden] { display: none !important; }
 
 /* TOP BAR */
 .pm-root .pm-top-bar {
@@ -5428,16 +5452,25 @@ main {
 .pm-root .pm-bench-label { font-family: var(--font-mono, monospace); font-size: 0.4rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.4); }
 .pm-root .pm-bench-cards { display: flex; gap: 4px; }
 .pm-root .pm-bench-card {
-  width: 46px; height: 62px; border-radius: 5px; border: 1.5px solid rgba(255,255,255,0.1);
+  width: 52px; height: 72px; border-radius: 5px; border: 1.5px solid rgba(255,255,255,0.1);
   background: rgba(255,255,255,0.03); display: flex; flex-direction: column;
   align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s;
-  position: relative; overflow: hidden;
+  position: relative; overflow: hidden; flex-shrink: 0;
 }
-.pm-root .pm-bench-card:hover { border-color: #00F5FF; background: rgba(0,245,255,0.04); transform: translateY(-2px); }
-.pm-root .pm-bench-card.selected { border-color: #00F5FF; background: rgba(0,245,255,0.08); box-shadow: 0 0 10px rgba(0,245,255,0.15); transform: translateY(-4px); }
-.pm-root .pm-bc-sub-power { font-family: var(--font-display, sans-serif); font-size: 1.1rem; color: #fff; line-height: 1; }
-.pm-root .pm-bc-sub-name { font-family: var(--font-mono, monospace); font-size: 0.35rem; font-weight: 700; text-transform: uppercase; color: rgba(255,255,255,0.7); max-width: 40px; text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.pm-root .pm-bc-sub-el { position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; border-radius: 50%; }
+.pm-root .pm-bench-card:hover { border-color: #00F5FF; transform: translateY(-2px); }
+.pm-root .pm-bench-card.selected { border-color: #00F5FF; box-shadow: 0 0 12px rgba(0,245,255,0.25); transform: translateY(-4px); }
+/* Card image fills the bench slot */
+.pm-root .pm-bc-sub-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
+.pm-root .pm-bc-sub-initials { font-family: var(--font-display, sans-serif); font-size: 1rem; color: rgba(255,255,255,0.3); }
+/* Overlay: element dot + power number at bottom */
+.pm-root .pm-bc-sub-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 60%, transparent);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 2px 4px; border-radius: 0 0 4px 4px;
+}
+.pm-root .pm-bc-sub-power { font-family: var(--font-display, sans-serif); font-size: 0.9rem; color: #fff; line-height: 1; text-shadow: 1px 1px 3px rgba(0,0,0,0.9); position: relative; z-index: 1; }
+.pm-root .pm-bc-sub-el { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; position: relative; z-index: 1; }
 
 /* Play hand */
 .pm-root .pm-hand-area { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
@@ -5603,7 +5636,7 @@ main {
   .pm-root .pm-bc-opp .pm-bc-power { font-size: 1.1rem; }
   .pm-root .pm-bc-player .pm-bc-power { font-size: 1.5rem; }
   .pm-root .pm-player-zone { padding: 4px 6px; gap: 4px; }
-  .pm-root .pm-bench-card { width: 38px; height: 52px; }
+  .pm-root .pm-bench-card { width: 42px; height: 58px; }
   .pm-root .pm-play-card { width: 58px; min-width: 58px; height: 48px; }
   .pm-root .pm-hd-pip { width: 13px; height: 13px; }
 }
@@ -5613,6 +5646,6 @@ main {
   .pm-root .pm-bc { max-width: 160px; }
   .pm-root .pm-bc-opp .pm-bc-power { font-size: 1.8rem; }
   .pm-root .pm-bc-player .pm-bc-power { font-size: 2.8rem; }
-  .pm-root .pm-bench-card { width: 56px; height: 76px; }
+  .pm-root .pm-bench-card { width: 64px; height: 88px; }
   .pm-root .pm-play-card { width: 90px; min-width: 90px; height: 72px; }
 }

@@ -1056,15 +1056,8 @@ function pmBuildPlaymatHTML() {
   const hdPips = Array.from({length: 10}, (_, i) =>
     `<div class="pm-hd-pip available" data-pip="${i}"></div>`).join('');
 
-  // Inline XOXO SVG
-  const xoxoSvg = `<svg width="24" height="24" viewBox="0 0 180 180" fill="none">
-    <g transform="translate(59,59)"><line x1="-20" y1="-20" x2="20" y2="20" stroke="#FF4D00" stroke-width="14" stroke-linecap="round"/><line x1="20" y1="-20" x2="-20" y2="20" stroke="#FF4D00" stroke-width="14" stroke-linecap="round"/></g>
-    <circle cx="121" cy="59" r="18" fill="none" stroke="#FF4D00" stroke-width="14"/>
-    <circle cx="59" cy="121" r="18" fill="none" stroke="#FF4D00" stroke-width="14"/>
-    <g transform="translate(121,121)"><line x1="-20" y1="-20" x2="20" y2="20" stroke="#FF4D00" stroke-width="14" stroke-linecap="round"/><line x1="20" y1="-20" x2="-20" y2="20" stroke="#FF4D00" stroke-width="14" stroke-linecap="round"/></g>
-  </svg>`;
-
-  const hdIcon = `<svg width="12" height="12" viewBox="0 0 24 24"><path d="M4 12c0-3 3-6 8-6s8 3 8 6-3 6-8 6-8-3-8-6z" fill="#4CAF50" stroke="#2E7D32" stroke-width="0.8"/><ellipse cx="12" cy="12" rx="6.5" ry="2.8" fill="#E53935"/><path d="M7 11.2q1.2 1.6 2.5 0t2.5 0 2.5 0" fill="none" stroke="#FFD600" stroke-width="1.2" stroke-linecap="round"/></svg>`;
+  const xoxoSvg = `<svg class="pm-icon pm-icon-lg" style="color:#FF4D00"><use href="#icon-xoxo"/></svg>`;
+  const hdIcon  = `<svg class="pm-icon"><use href="#icon-hotdog"/></svg>`;
 
   return `
   <!-- TOP BAR -->
@@ -1085,10 +1078,10 @@ function pmBuildPlaymatHTML() {
     </div>
     <div class="pm-top-logo">${xoxoSvg}</div>
     <div class="pm-phase-area">
-      <div class="pm-phase-indicator" id="pm-phase-label">REVEAL</div>
-      <div class="pm-honors-badge" id="pm-honors">★ YOU HAVE HONORS</div>
+      <div class="pm-phase-indicator" id="pm-phase-label"><svg class="pm-icon pm-phase-icon" id="pm-phase-icon"><use href="#icon-eye"/></svg>REVEAL</div>
+      <div class="pm-honors-badge" id="pm-honors"><svg class="pm-icon pm-icon-sm" style="color:#FFD700"><use href="#icon-star"/></svg> YOU HAVE HONORS</div>
     </div>
-    <button class="pm-top-exit" id="pm-exit-btn" aria-label="Exit practice">✕</button>
+    <button class="pm-top-exit" id="pm-exit-btn" aria-label="Exit practice"><svg class="pm-icon"><use href="#icon-x"/></svg></button>
   </div>
 
   <!-- PLAY AREA -->
@@ -1121,14 +1114,14 @@ function pmBuildPlaymatHTML() {
   <div class="pm-player-zone">
     <div class="pm-deck-stack">
       <div class="pm-deck-icon pm-hero-deck-icon">
-        <svg width="14" height="14" viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="18" stroke="rgba(192,57,43,0.8)" stroke-width="2.5" stroke-linecap="round"/><line x1="7" y1="7" x2="17" y2="7" stroke="rgba(192,57,43,0.8)" stroke-width="2.5" stroke-linecap="round"/><line x1="9" y1="20" x2="15" y2="20" stroke="rgba(192,57,43,0.8)" stroke-width="2.5" stroke-linecap="round"/></svg>
+        <svg class="pm-icon" style="color:rgba(192,57,43,0.9)"><use href="#icon-sword"/></svg>
         <span class="pm-di-count" id="pm-hero-deck-count">—</span>
       </div>
       <span class="pm-deck-label">Heroes</span>
     </div>
     <div class="pm-deck-stack pm-play-deck-stack">
       <div class="pm-deck-icon pm-play-deck-icon">
-        <svg width="12" height="12" viewBox="0 0 180 180" fill="none"><g transform="translate(59,59)"><line x1="-20" y1="-20" x2="20" y2="20" stroke="#8B00FF" stroke-width="18" stroke-linecap="round"/><line x1="20" y1="-20" x2="-20" y2="20" stroke="#8B00FF" stroke-width="18" stroke-linecap="round"/></g><circle cx="121" cy="59" r="16" fill="none" stroke="#8B00FF" stroke-width="18"/><circle cx="59" cy="121" r="16" fill="none" stroke="#8B00FF" stroke-width="18"/><g transform="translate(121,121)"><line x1="-20" y1="-20" x2="20" y2="20" stroke="#8B00FF" stroke-width="18" stroke-linecap="round"/><line x1="20" y1="-20" x2="-20" y2="20" stroke="#8B00FF" stroke-width="18" stroke-linecap="round"/></g></svg>
+        <svg class="pm-icon" style="color:#8B00FF"><use href="#icon-xoxo"/></svg>
         <span class="pm-di-count" id="pm-play-deck-count">—</span>
       </div>
       <span class="pm-deck-label">Plays</span>
@@ -1160,6 +1153,7 @@ function pmBuildPlaymatHTML() {
     <div class="pm-zone-divider"></div>
     <div class="pm-discard-stack">
       <div class="pm-deck-icon" style="border-style:dashed;background:transparent;opacity:0.4">
+        <svg class="pm-icon"><use href="#icon-discard"/></svg>
         <span class="pm-di-count" id="pm-discard-count">0</span>
       </div>
       <span class="pm-deck-label">Discard</span>
@@ -1203,15 +1197,26 @@ function pmSetRootClass() {
     resolution: 'NEXT →', cleanup: 'NEXT BATTLE →', over: 'PLAY AGAIN',
   };
 
+  const phaseIcons = {
+    reveal: 'icon-eye', sub: 'icon-bolt', play: 'icon-cards',
+    resolution: 'icon-scale', cleanup: 'icon-cycle', over: 'icon-trophy',
+  };
+
   const phaseEl = $('pm-phase-label');
-  if (phaseEl) phaseEl.textContent = phaseNames[PM.phase] || PM.phase.toUpperCase();
+  if (phaseEl) {
+    const iconId = phaseIcons[PM.phase] || 'icon-eye';
+    phaseEl.innerHTML = `<svg class="pm-icon pm-phase-icon"><use href="#${iconId}"/></svg>${phaseNames[PM.phase] || PM.phase.toUpperCase()}`;
+  }
 
   const doneBtn = $('pm-btn-done');
   if (doneBtn) doneBtn.textContent = btnLabels[PM.phase] || 'NEXT →';
 
   // Honors
   const honorsEl = $('pm-honors');
-  if (honorsEl) honorsEl.textContent = PM.honors === 'player' ? '★ YOU HAVE HONORS' : '★ CPU HAS HONORS';
+  if (honorsEl) {
+    const who = PM.honors === 'player' ? 'YOU HAVE HONORS' : 'CPU HAS HONORS';
+    honorsEl.innerHTML = `<svg class="pm-icon pm-icon-sm" style="color:#FFD700"><use href="#icon-star"/></svg> ${who}`;
+  }
 
   // Phase banner
   if (PM.phase !== 'over') {

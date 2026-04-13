@@ -1439,6 +1439,7 @@
                 <button class="db-btab" data-btype="play">Plays</button>
                 <button class="db-btab" data-btype="bonus">Bonus</button>
                 <button class="db-btab" data-btype="hotdog">Hot Dogs</button>
+                <button class="db-quick-add-toggle" id="db-quick-add-toggle" title="Quick-add mode: click cards to add instantly without preview">Quick-Add</button>
               </div>
               <input type="search" class="db-search" id="db-search" placeholder="Search cards..." aria-label="Search cards">
               <div class="db-grid" id="db-card-grid" role="list" aria-label="Available cards"></div>
@@ -1480,7 +1481,28 @@
               <!-- Export output -->
               <div class="db-export-out" id="db-export-out" hidden>
                 <textarea class="db-export-text" id="db-export-text" readonly aria-label="Deck list export"></textarea>
-                <button class="db-copy-btn" id="db-copy-btn">Copy to Clipboard</button>
+                <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+                  <button class="db-copy-btn" id="db-copy-btn">Copy Text</button>
+                  <button class="db-copy-btn" id="db-csv-btn">Download CSV</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Card detail popup for interactive mode -->
+        <div class="db-card-popup" id="db-card-popup" hidden role="dialog" aria-label="Card detail" aria-modal="true">
+          <div class="db-card-popup-inner" id="db-card-popup-inner">
+            <div class="db-popup-img-wrap">
+              <img class="db-popup-img" id="db-popup-img" alt="" src="">
+              <div class="db-popup-img-placeholder" id="db-popup-placeholder"></div>
+            </div>
+            <div class="db-popup-body">
+              <div class="db-popup-name" id="db-popup-name"></div>
+              <div class="db-popup-meta" id="db-popup-meta"></div>
+              <div class="db-popup-desc" id="db-popup-desc"></div>
+              <div class="db-popup-actions">
+                <button class="db-popup-add-btn" id="db-popup-add">Add to Deck</button>
+                <button class="db-popup-close-btn" id="db-popup-close">Close</button>
               </div>
             </div>
           </div>

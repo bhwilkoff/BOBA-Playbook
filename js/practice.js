@@ -441,14 +441,8 @@ function initDeckBuilder(allCards) {
     if (!card) return;
     DB.addCard(card);
     dbRender(allCards);
-    // Update add button state
-    const inDeck = DB.isInDeck(card);
-    const violates = DB.browserTab === 'hero' && DB.wouldHeroViolate(card);
-    const btn = $('db-popup-add');
-    if (btn) {
-      btn.disabled = inDeck || violates;
-      btn.textContent = inDeck ? 'In Deck' : violates ? 'Cannot Add' : 'Add to Deck';
-    }
+    // Close popup immediately after adding
+    dbHideCardPopup();
   });
 
   // Card popup — close
@@ -555,6 +549,136 @@ function initDeckBuilder(allCards) {
     a.download = `${DB.deckName.replace(/[^a-z0-9]/gi, '_')}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    const btn = $('db-csv-btn');
+    if (btn) { btn.textContent = 'Downloaded!'; setTimeout(() => { btn.textContent = 'Download CSV'; }, 2000); }
+  });
+
+  // Save deck
+  let DB_savedId = null; // track the Supabase deck id for the current deck
+
+  $('db-save-btn')?.addEventListener('click', async () => {
+    const session = await API.authGetSession();
+    if (!session) {
+      // Prompt sign-in
+      Auth?.open?.();
+      return;
+    }
+    const btn = $('db-save-btn');
+    if (btn) { btn.disabled = true; }
+    try {
+      const cards = [
+        ...DB.heroes.map(c => ({ bobaId: c.bobaId, cardType: 'hero' })),
+        ...DB.plays.map(c => ({ bobaId: c.bobaId, cardType: 'play' })),
+        ...DB.bonusPlays.map(c => ({ bobaId: c.bobaId, cardType: 'bonus_play' })),
+        ...DB.hotDogs.map(c => ({ bobaId: c.bobaId, cardType: 'hot_dog' })),
+      ];
+      DB_savedId = await API.deckSave(DB_savedId, DB.deckName, DB.format, cards);
+      if (btn) { btn.style.color = '#4CAF50'; setTimeout(() => { btn.style.color = ''; }, 2000); }
+    } catch (err) {
+      console.error('Deck save failed:', err);
+      alert('Could not save deck. Please try again.');
+    } finally {
+      if (btn) { btn.disabled = false; }
+    }
+  });
+
+  // Load saved decks
+  $('db-load-btn')?.addEventListener('click', async () => {
+    const panel = $('db-saved-decks-panel');
+    if (!panel) return;
+    if (!panel.hidden) { panel.hidden = true; return; }
+
+    const session = await API.authGetSession();
+    if (!session) {
+      Auth?.open?.();
+      return;
+    }
+
+    panel.hidden = false;
+    const list = $('db-saved-decks-list');
+    if (list) list.innerHTML = '<div class="db-saved-decks-empty">Loading…</div>';
+
+    try {
+      const decks = await API.deckList();
+      if (!decks.length) {
+        if (list) list.innerHTML = '<div class="db-saved-decks-empty">No saved decks yet.</div>';
+        return;
+      }
+      if (list) {
+        list.innerHTML = decks.map(d => `
+          <div class="db-saved-deck-row" data-deck-id="${d.id}">
+            <div class="db-saved-deck-info">
+              <span class="db-saved-deck-name">${d.name}</span>
+              <span class="db-saved-deck-meta">${(d.format || 'playmaker').toUpperCase()} · ${new Date(d.updated_at).toLocaleDateString()}</span>
+            </div>
+            <div class="db-saved-deck-actions">
+              <button class="db-saved-deck-load" data-deck-id="${d.id}" data-deck-name="${d.name}" data-deck-format="${d.format || 'playmaker'}">Load</button>
+              <button class="db-saved-deck-delete" data-deck-id="${d.id}" aria-label="Delete ${d.name}">✕</button>
+            </div>
+          </div>
+        `).join('');
+      }
+    } catch (err) {
+      console.error('Deck list failed:', err);
+      if (list) list.innerHTML = '<div class="db-saved-decks-empty">Could not load decks.</div>';
+    }
+  });
+
+  // Load a specific saved deck
+  $('db-saved-decks-list')?.addEventListener('click', async e => {
+    const loadBtn = e.target.closest('.db-saved-deck-load');
+    const delBtn  = e.target.closest('.db-saved-deck-delete');
+
+    if (loadBtn) {
+      const deckId = loadBtn.dataset.deckId;
+      const deckName = loadBtn.dataset.deckName;
+      const deckFormat = loadBtn.dataset.deckFormat;
+      try {
+        const rows = await API.deckLoad(deckId);
+        DB.clear();
+        DB.deckName = deckName;
+        DB.format   = deckFormat;
+        const nameEl = $('db-deck-name');
+        if (nameEl) nameEl.value = deckName;
+        // Set format button
+        document.querySelectorAll('#deck-builder-modal .db-format-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.format === deckFormat);
+        });
+        const byBobaId = {};
+        for (const c of allCards) { if (c.bobaId) byBobaId[c.bobaId] = c; }
+        for (const row of rows) {
+          const card = byBobaId[row.boba_id];
+          if (!card) continue;
+          if (row.card_type === 'hero')       DB.heroes.push(card);
+          else if (row.card_type === 'play')  DB.plays.push(card);
+          else if (row.card_type === 'bonus_play') DB.bonusPlays.push(card);
+          else if (row.card_type === 'hot_dog')    DB.hotDogs.push(card);
+        }
+        DB_savedId = deckId;
+        dbRender(allCards);
+        $('db-saved-decks-panel').hidden = true;
+      } catch (err) {
+        console.error('Deck load failed:', err);
+        alert('Could not load deck.');
+      }
+    }
+
+    if (delBtn) {
+      const deckId = delBtn.dataset.deckId;
+      if (!confirm('Delete this deck?')) return;
+      try {
+        await API.deckDelete(deckId);
+        delBtn.closest('.db-saved-deck-row')?.remove();
+        if (DB_savedId === deckId) DB_savedId = null;
+        const list = $('db-saved-decks-list');
+        if (list && !list.querySelector('.db-saved-deck-row')) {
+          list.innerHTML = '<div class="db-saved-decks-empty">No saved decks yet.</div>';
+        }
+      } catch (err) {
+        console.error('Deck delete failed:', err);
+        alert('Could not delete deck.');
+      }
+    }
   });
 }
 
@@ -817,18 +941,25 @@ const PM = {
       this.cpuSubstituted = true; return;
     }
     const b = this.battles[this.currentBattle];
-    const playerPow = (b.playerCard?.power || 0);
     const cpuPow    = (b.cpuCard?.power || 0);
-    // Sub only if losing by 20+ and there's a better bench card
-    if (playerPow - cpuPow > 20) {
-      const bestIdx = this.cpuBench.reduce((bi, c, i) =>
-        (c?.power || 0) > (this.cpuBench[bi]?.power || 0) ? i : bi, 0);
-      const bestCard = this.cpuBench[bestIdx];
-      if ((bestCard?.power || 0) > cpuPow) {
-        this.battles[this.currentBattle].cpuCard = bestCard;
-        this.cpuBench[bestIdx] = b.cpuCard;
-        this.cpuHD -= 2;
-      }
+    const playerPow = (b.playerCard?.power || 0);
+
+    // Find best bench card
+    const bestIdx = this.cpuBench.reduce((bi, c, i) =>
+      (c?.power || 0) > (this.cpuBench[bi]?.power || 0) ? i : bi, 0);
+    const bestCard = this.cpuBench[bestIdx];
+    const bestPow  = bestCard?.power || 0;
+
+    // Sub if:
+    //  - Losing by 10+ and bench has a better card (defensive), OR
+    //  - Bench card is 30+ stronger (opportunistic upgrade), ~30% chance
+    const defensiveSub    = playerPow - cpuPow >= 10 && bestPow > cpuPow;
+    const opportunisticSub = bestPow - cpuPow >= 30 && Math.random() < 0.30;
+
+    if (defensiveSub || opportunisticSub) {
+      this.battles[this.currentBattle].cpuCard = bestCard;
+      this.cpuBench[bestIdx] = b.cpuCard;
+      this.cpuHD -= 2;
     }
     this.cpuSubstituted = true;
   },
@@ -1201,10 +1332,16 @@ function pmUpdatePlayerZone() {
       const el    = card.element || '';
       const elCol = pmElementColor(el);
       const isSel = PM.selectedBenchIdx === idx;
-      return `<div class="pm-bench-card${isSel ? ' selected' : ''}" data-bench-idx="${idx}" title="${card.hero||card.name||''}">
-        <div class="pm-bc-sub-el" style="background:${elCol}"></div>
-        <span class="pm-bc-sub-power">${card.power||0}</span>
-        <span class="pm-bc-sub-name">${(card.hero||card.name||'').substring(0,6)}</span>
+      const imgUrl = card.imageFile ? thumbUrl(card.imageFile) : null;
+      const imgHtml = imgUrl
+        ? `<img class="pm-bc-sub-img" src="${imgUrl}" alt="" loading="lazy" onerror="this.style.display='none'">`
+        : `<span class="pm-bc-sub-initials">${(card.hero||card.name||'??').substring(0,2).toUpperCase()}</span>`;
+      return `<div class="pm-bench-card${isSel ? ' selected' : ''}" data-bench-idx="${idx}" title="${card.hero||card.name||''} (${el} ${card.power||0})">
+        ${imgHtml}
+        <div class="pm-bc-sub-overlay">
+          <div class="pm-bc-sub-el" style="background:${elCol}"></div>
+          <span class="pm-bc-sub-power">${card.power||0}</span>
+        </div>
       </div>`;
     }).join('');
   }

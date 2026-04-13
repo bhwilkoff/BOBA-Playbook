@@ -342,6 +342,90 @@ const API = (() => {
   }
 
   /* ----------------------------------------------------------------
+     Deck Builder — save / load / delete
+  ---------------------------------------------------------------- */
+
+  // Save a deck (insert or replace). Returns the saved deck id.
+  // cards: array of { bobaId, cardType } where cardType is 'hero'|'play'|'bonus_play'|'hot_dog'
+  async function deckSave(deckId, deckName, format, cards) {
+    const { data: { session } } = await supa().auth.getSession();
+    if (!session) throw new Error('Not signed in');
+
+    let id = deckId;
+    if (id) {
+      // Update existing deck metadata
+      const { error } = await supa()
+        .from('decks')
+        .update({ name: deckName, format, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('user_id', session.user.id);
+      if (error) throw new Error(error.message);
+    } else {
+      // Insert new deck
+      const { data, error } = await supa()
+        .from('decks')
+        .insert({ name: deckName, format, user_id: session.user.id })
+        .select('id')
+        .single();
+      if (error) throw new Error(error.message);
+      id = data.id;
+    }
+
+    // Replace all cards: delete then insert
+    const { error: delErr } = await supa().from('deck_cards').delete().eq('deck_id', id);
+    if (delErr) throw new Error(delErr.message);
+
+    if (cards.length > 0) {
+      const rows = cards.map((c, i) => ({
+        deck_id: id,
+        boba_id: c.bobaId,
+        card_type: c.cardType,
+        sort_order: i,
+      }));
+      const { error: insErr } = await supa().from('deck_cards').insert(rows);
+      if (insErr) throw new Error(insErr.message);
+    }
+
+    return id;
+  }
+
+  // List all decks for the signed-in user (metadata only, no cards)
+  async function deckList() {
+    const { data: { session } } = await supa().auth.getSession();
+    if (!session) return [];
+    const { data, error } = await supa()
+      .from('decks')
+      .select('id, name, format, updated_at')
+      .eq('user_id', session.user.id)
+      .order('updated_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  }
+
+  // Load a single deck's cards
+  async function deckLoad(deckId) {
+    const { data, error } = await supa()
+      .from('deck_cards')
+      .select('boba_id, card_type, sort_order')
+      .eq('deck_id', deckId)
+      .order('sort_order', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  }
+
+  // Delete a deck (and its cards via cascade)
+  async function deckDelete(deckId) {
+    const { data: { session } } = await supa().auth.getSession();
+    if (!session) throw new Error('Not signed in');
+    const { error } = await supa()
+      .from('decks')
+      .delete()
+      .eq('id', deckId)
+      .eq('user_id', session.user.id);
+    if (error) throw new Error(error.message);
+  }
+
+  /* ----------------------------------------------------------------
      Exports
   ---------------------------------------------------------------- */
   return {
@@ -400,5 +484,10 @@ const API = (() => {
     adminApproveImageOverride,
     adminRejectImageOverride,
     loadActiveImageRemovals,
+    // Deck Builder
+    deckSave,
+    deckList,
+    deckLoad,
+    deckDelete,
   };
 })();

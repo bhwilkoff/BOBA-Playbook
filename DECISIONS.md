@@ -140,4 +140,6 @@ A post-mortem scan found 35 such pairs catalog-wide. Without a guard, the next r
 
 **How to apply**: If `image_collisions.json` is ever written after a pipeline run, STOP — do not sync to R2 until every group is resolved. The file's `notes` field explains whether the fix is "delete bad outputs, re-run step 11" (tier-level collision) or "re-download the correct source art" (master-level collision). Sealed-product `_eBay` placeholders are whitelisted and will not trigger the guard.
 
+**Master-level fallback**: When a master-level collision cannot be resolved because the correct source art does not exist publicly (verified against Radish, BazookaVault, Cardeio, and any other known source), the card is reclassified into the missing-art queue instead: set `imageFile=null, imageSource=null, imageAvailable=false` in `cards.json`, regenerate `missing-cards.json` via `step5`, and let `ebay_missing_images.py` recover the art on its next run. First applied 2026-04-13 to the three Griffey Edition Blizzard Battlefoils (BLBF-95 D-Harp, BLBF-120 Zephyr, BLBF-174 Highway to Helton) — their correct art turned out to not exist on any surveyed CDN.
+
 **Principle**: Every invariant the app relies on should be enforced where it can be measured. "One Image per Card" lives in binary content, so the check has to run against binary content.

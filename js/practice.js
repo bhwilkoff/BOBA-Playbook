@@ -32,6 +32,7 @@ const DB = {
   bonusPlays: [],
   hotDogs: [],
   deckName: 'New Deck',
+  quickAdd: false,       // false = interactive popup mode (default); true = instant add
 
   // Format rules
   formats: {
@@ -175,6 +176,37 @@ const DB = {
       for (const c of this.hotDogs) lines.push(c.name || c.hero);
     }
     return lines.join('\n');
+  },
+
+  exportCSV() {
+    // CSV format compatible with deck-builder.bobattlearena.com
+    // Columns: Slot,Card#,Name,Cost,Ability,DBS
+    // Slots 1–30 = regular plays, B1–B15 = bonus plays
+    // Card# uses set prefix: A=Alpha Edition, U=Alpha Update, G=Griffey Edition
+    // HTD (hot dog) cards: HTD-N format
+    function csvCard(num) {
+      // cardNumber is already in the right format (A-001, G-002, etc.)
+      return `"${(num || '').replace(/"/g, '""')}"`;
+    }
+    function csvStr(s) { return `"${(s || '').replace(/"/g, '""')}"`; }
+
+    const rows = ['Slot,Card#,Name,Cost,Ability,DBS'];
+
+    this.plays.forEach((c, idx) => {
+      const slot = idx + 1;
+      const cost = c.playCost != null ? c.playCost : '';
+      const dbs  = c.dbs != null ? c.dbs : '';
+      rows.push(`${slot},${csvCard(c.cardNumber)},${csvStr(c.name)},${cost},${csvStr(c.description || '')},${dbs}`);
+    });
+
+    this.bonusPlays.forEach((c, idx) => {
+      const slot = `B${idx + 1}`;
+      const cost = c.playCost != null ? c.playCost : '';
+      const dbs  = c.dbs != null ? c.dbs : '';
+      rows.push(`${slot},${csvCard(c.cardNumber)},${csvStr(c.name)},${cost},${csvStr(c.description || '')},${dbs}`);
+    });
+
+    return rows.join('\r\n');
   },
 
   clear() {
@@ -377,15 +409,52 @@ function initDeckBuilder(allCards) {
     dbRenderGrid(allCards);
   });
 
-  // Card grid tap — add
+  // Quick-add toggle
+  $('db-quick-add-toggle')?.addEventListener('click', () => {
+    DB.quickAdd = !DB.quickAdd;
+    $('db-quick-add-toggle').classList.toggle('active', DB.quickAdd);
+  });
+
+  // Card grid tap — interactive (popup) by default; quick-add when toggled
   $('db-card-grid')?.addEventListener('click', e => {
     const cell = e.target.closest('.db-card-cell');
     if (!cell || cell.classList.contains('violates')) return;
     const bobaId = cell.dataset.bobaId;
     const card = allCards.find(c => c.bobaId === bobaId);
     if (!card) return;
+
+    if (DB.quickAdd) {
+      // Immediate add
+      DB.addCard(card);
+      dbRender(allCards);
+    } else {
+      // Show card detail popup
+      dbShowCardPopup(card, allCards);
+    }
+  });
+
+  // Card popup — add button
+  $('db-popup-add')?.addEventListener('click', () => {
+    const bobaId = $('db-card-popup')?.dataset.bobaId;
+    if (!bobaId) return;
+    const card = allCards.find(c => c.bobaId === bobaId);
+    if (!card) return;
     DB.addCard(card);
     dbRender(allCards);
+    // Update add button state
+    const inDeck = DB.isInDeck(card);
+    const violates = DB.browserTab === 'hero' && DB.wouldHeroViolate(card);
+    const btn = $('db-popup-add');
+    if (btn) {
+      btn.disabled = inDeck || violates;
+      btn.textContent = inDeck ? 'In Deck' : violates ? 'Cannot Add' : 'Add to Deck';
+    }
+  });
+
+  // Card popup — close
+  $('db-popup-close')?.addEventListener('click', dbHideCardPopup);
+  $('db-card-popup')?.addEventListener('click', e => {
+    if (e.target === $('db-card-popup')) dbHideCardPopup();
   });
 
   // Deck list remove buttons (event delegation)
@@ -472,125 +541,331 @@ function initDeckBuilder(allCards) {
     if (!textEl) return;
     navigator.clipboard.writeText(textEl.value).then(() => {
       const btn = $('db-copy-btn');
-      if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy to Clipboard'; }, 2000); }
+      if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy Text'; }, 2000); }
     });
+  });
+
+  // CSV download — compatible with deck-builder.bobattlearena.com
+  $('db-csv-btn')?.addEventListener('click', () => {
+    const csv = DB.exportCSV();
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `${DB.deckName.replace(/[^a-z0-9]/gi, '_')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   });
 }
 
+// ── Card popup helpers ───────────────────────────────────────────
+
+const CDN_FULL = 'https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev';
+function fullUrl(file) { return file ? `${CDN_FULL}/full/${file}` : null; }
+
+function dbShowCardPopup(card, allCards) {
+  const popup  = $('db-card-popup');
+  if (!popup) return;
+  popup.dataset.bobaId = card.bobaId || '';
+
+  // Image
+  const imgEl = $('db-popup-img');
+  const phEl  = $('db-popup-placeholder');
+  const fullSrc = card.imageFile ? fullUrl(card.imageFile) : null;
+  if (fullSrc && imgEl) {
+    imgEl.src = fullSrc;
+    imgEl.alt = card.hero || card.name || '';
+    imgEl.hidden = false;
+    imgEl.onerror = () => { imgEl.hidden = true; if (phEl) { phEl.textContent = (card.hero || card.name || '??').substring(0, 2).toUpperCase(); phEl.hidden = false; } };
+    if (phEl) phEl.hidden = true;
+  } else {
+    if (imgEl) imgEl.hidden = true;
+    if (phEl)  { phEl.textContent = (card.hero || card.name || '??').substring(0, 2).toUpperCase(); phEl.hidden = false; }
+  }
+
+  // Name
+  const nameEl = $('db-popup-name');
+  if (nameEl) nameEl.textContent = card.hero || card.name || '';
+
+  // Meta
+  const metaEl = $('db-popup-meta');
+  if (metaEl) {
+    const parts = [];
+    if (card.cardNumber)  parts.push(card.cardNumber);
+    if (card.element)     parts.push(card.element);
+    if (card.power != null && card.cardType === 'Hero') parts.push(`PWR ${card.power}`);
+    if (card.playCost != null) parts.push(card.playCost === 0 ? 'FREE' : `${card.playCost} HD`);
+    if (card.treatment)   parts.push(card.treatment);
+    if (card.variation)   parts.push(card.variation);
+    metaEl.textContent = parts.join(' · ');
+  }
+
+  // Description
+  const descEl = $('db-popup-desc');
+  if (descEl) descEl.textContent = card.description || '';
+
+  // Add button state
+  const addBtn = $('db-popup-add');
+  if (addBtn) {
+    const inDeck  = DB.isInDeck(card);
+    const violates = DB.browserTab === 'hero' && DB.wouldHeroViolate(card);
+    addBtn.disabled   = inDeck || violates;
+    addBtn.textContent = inDeck ? 'In Deck' : violates ? 'Cannot Add' : 'Add to Deck';
+  }
+
+  popup.hidden = false;
+}
+
+function dbHideCardPopup() {
+  const popup = $('db-card-popup');
+  if (popup) { popup.hidden = true; popup.dataset.bobaId = ''; }
+}
+
 // ════════════════════════════════════════════════════════════════
-// § Practice Battle
+// § Practice Battle — full interactive playmat (v3 design)
 // ════════════════════════════════════════════════════════════════
 
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function pmElementColor(el) {
+  const map = {
+    FIRE: '#FF4D00', ICE: '#00BFFF', HEX: '#8B00FF', STEEL: '#8A9BB0',
+    BRAWL: '#C0392B', GLOW: '#FFD700', GUM: '#FF69B4', SUPER: '#FF00FF',
+  };
+  return map[el] || '#666680';
+}
+
+// ── PM state object ──────────────────────────────────────────────
 const PM = {
-  mode: 'playmaker',
-  playerDeck: 'random',
-  battles: [],
+  mode: 'playmaker',         // 'rookie' | 'substitution' | 'playmaker'
+  battles: [],               // Array[7] of battle objects
   currentBattle: 0,
-  phase: 'reveal',          // reveal | sub | play | resolution | cleanup | over
+  phase: 'reveal',           // reveal | sub | play | resolution | cleanup | over
   playerScore: 0,
   cpuScore: 0,
-  playerHD: 10,
-  cpuHD: 10,
-  cpuPlays: 30,
-  playerSubstituted: false,
-  cpuSubstituted: false,
-  playerPassedPlays: false,
-  cpuPassedPlays: false,
+  honors: 'player',          // 'player' | 'cpu'
   matchOver: false,
-  matchWinner: null,        // 'player' | 'cpu' | null (tie)
-  allCards: [],
+  matchWinner: null,         // 'player' | 'cpu' | null
 
-  get slot() { return this.battles[this.currentBattle] || null; },
+  // Player resources
+  playerHD: 10,
+  playerBench: [],           // hero cards available to substitute in
+  playerPlayHand: [],        // current play cards in hand (max 5)
+  playerPlayDeck: [],        // remaining plays
+  playerDiscard: [],         // discarded plays
+  playerHeroDeckCount: 0,   // remaining heroes (for display)
+  playerSubstituted: false,
+  playerPassedPlays: false,
+
+  // CPU resources
+  cpuHD: 10,
+  cpuBench: [],
+  cpuPlayCount: 30,
+  cpuSubstituted: false,
+  cpuPassedPlays: false,
+
+  selectedBenchIdx: null,    // which bench card is tapped for sub
+  allCards: [],
+  _initialized: false,       // event listeners attached once
 
   startMatch(allCards) {
     this.allCards = allCards;
-    this.matchOver = false;
-    this.matchWinner = null;
-    this.playerScore = 0;
-    this.cpuScore = 0;
-    this.playerHD = 10;
-    this.cpuHD = 10;
-    this.cpuPlays = 30;
-    this.currentBattle = 0;
-    this.phase = 'reveal';
+    Object.assign(this, {
+      matchOver: false, matchWinner: null, playerScore: 0, cpuScore: 0,
+      honors: 'player', currentBattle: 0, phase: 'reveal',
+      playerHD: 10, cpuHD: 10, cpuPlayCount: 30,
+      playerSubstituted: false, cpuSubstituted: false,
+      playerPassedPlays: false, cpuPassedPlays: false,
+      selectedBenchIdx: null,
+    });
 
+    // Build hero pool — prioritize cards with images
     const heroes = allCards.filter(c => c.cardType === 'Hero' && (c.power || 0) > 0);
-    // Prioritize cards that have images for a better visual experience
-    const heroesWithImg = heroes.filter(c => c.imageFile);
-    const heroesNoImg   = heroes.filter(c => !c.imageFile);
-    const playerPool = [...shuffle([...heroesWithImg]), ...shuffle([...heroesNoImg])];
-    const cpuPool    = [...shuffle([...heroesWithImg]), ...shuffle([...heroesNoImg])];
-    const playerHeroes = playerPool.slice(0, 7);
-    const cpuHeroes    = cpuPool.slice(0, 7);
+    const withImg = heroes.filter(c => c.imageFile);
+    const noImg   = heroes.filter(c => !c.imageFile);
+    const heroPool = [...shuffle([...withImg]), ...shuffle([...noImg])];
+
+    // 7 battle slots per side + 6 bench cards per side = 13 each
+    const playerCards = heroPool.slice(0, 13);
+    const cpuCards    = heroPool.slice(13, 26);
 
     this.battles = [];
     for (let i = 0; i < 7; i++) {
       this.battles.push({
         id: i,
-        playerCard: playerHeroes[i] || null,
-        cpuCard: cpuHeroes[i] || null,
-        playerPlays: [],
-        cpuPlays: [],
+        playerCard: playerCards[i] || null,
+        cpuCard:    cpuCards[i]    || null,
+        playerEffectPower: 0,
+        cpuEffectPower: 0,
+        playerPlaysPlayed: [],
         result: null,
         revealed: false,
       });
     }
-    this.battles[0].active = true;
+
+    // Bench = remaining 6 hero cards (indices 7-12)
+    this.playerBench = [...playerCards.slice(7)];
+    this.cpuBench    = [...cpuCards.slice(7)];
+
+    // Build play hand from play cards
+    const plays = allCards.filter(c => c.cardType === 'Play');
+    const shuffledPlays = shuffle([...plays]);
+    this.playerPlayHand = shuffledPlays.slice(0, 5);
+    this.playerPlayDeck = shuffledPlays.slice(5);
+    this.playerDiscard  = [];
+    this.playerHeroDeckCount = Math.max(0, heroPool.length - 26);
   },
 
   advance() {
     if (this.matchOver) return;
+    const b = this.battles[this.currentBattle];
+
     switch (this.phase) {
       case 'reveal':
-        this.battles[this.currentBattle].revealed = true;
+        b.revealed = true;
         if (this.mode === 'rookie') {
           this.resolve();
         } else {
           this.phase = 'sub';
           this.playerSubstituted = false;
           this.cpuSubstituted = false;
-          this.cpuSub();
+          this.selectedBenchIdx = null;
+          this.cpuDoSub();
         }
         break;
+
       case 'sub':
+        // Player done with subs — move to play or resolve
         if (this.mode === 'playmaker') {
           this.phase = 'play';
           this.playerPassedPlays = false;
           this.cpuPassedPlays = false;
+          // CPU plays a card or two
+          this.cpuDoPlay();
         } else {
           this.resolve();
         }
         break;
+
       case 'play':
-        this.resolve();
+        // Player passes on playing more cards
+        this.playerPassedPlays = true;
+        if (!this.cpuPassedPlays) {
+          // CPU gets one more chance to play after player passes
+          this.cpuDoPlay();
+        }
+        if (this.playerPassedPlays && this.cpuPassedPlays) {
+          this.resolve();
+        }
         break;
+
       case 'resolution':
         this.phase = 'cleanup';
         break;
+
       case 'cleanup':
+        this.drawPlayCard();
         this.nextBattle();
+        break;
+
+      case 'over':
+        this.startMatch(this.allCards);
         break;
     }
   },
 
-  cpuSub() {
-    if (this.mode === 'rookie' || this.cpuSubstituted) return;
+  playerSub(benchIdx) {
+    if (this.phase !== 'sub' || this.playerSubstituted) return false;
+    if (this.playerHD < 2) return false;
+    if (benchIdx < 0 || benchIdx >= this.playerBench.length) return false;
+
+    const benchCard   = this.playerBench[benchIdx];
+    const activeCard  = this.battles[this.currentBattle].playerCard;
+    this.battles[this.currentBattle].playerCard = benchCard;
+    this.playerBench[benchIdx] = activeCard;
+    this.playerHD -= 2;
+    this.playerSubstituted = true;
+    this.selectedBenchIdx = null;
+    return true;
+  },
+
+  playerPlayCard(handIdx) {
+    if (this.phase !== 'play') return false;
+    if (handIdx < 0 || handIdx >= this.playerPlayHand.length) return false;
+    const card = this.playerPlayHand[handIdx];
+    const cost = card.playCost || 0;
+    if (this.playerHD < cost) return false;
+
+    this.playerHD -= cost;
+    // Simplified effect: playing a card gives a power bonus this battle
+    const b = this.battles[this.currentBattle];
+    b.playerEffectPower = (b.playerEffectPower || 0) + (cost * 6 + 5);
+    b.playerPlaysPlayed.push(card);
+    this.playerPlayHand.splice(handIdx, 1);
+    this.playerDiscard.push(card);
+    return true;
+  },
+
+  cpuDoSub() {
+    if (this.cpuSubstituted || this.cpuBench.length === 0 || this.cpuHD < 2) {
+      this.cpuSubstituted = true; return;
+    }
+    const b = this.battles[this.currentBattle];
+    const playerPow = (b.playerCard?.power || 0);
+    const cpuPow    = (b.cpuCard?.power || 0);
+    // Sub only if losing by 20+ and there's a better bench card
+    if (playerPow - cpuPow > 20) {
+      const bestIdx = this.cpuBench.reduce((bi, c, i) =>
+        (c?.power || 0) > (this.cpuBench[bi]?.power || 0) ? i : bi, 0);
+      const bestCard = this.cpuBench[bestIdx];
+      if ((bestCard?.power || 0) > cpuPow) {
+        this.battles[this.currentBattle].cpuCard = bestCard;
+        this.cpuBench[bestIdx] = b.cpuCard;
+        this.cpuHD -= 2;
+      }
+    }
     this.cpuSubstituted = true;
-    // Easy AI: 50% chance to "substitute" conceptually (no bench to swap in web version)
+  },
+
+  cpuDoPlay() {
+    if (this.cpuPassedPlays) return;
+    const b = this.battles[this.currentBattle];
+    const numPlays = Math.random() < 0.4 ? 1 : 0;
+    for (let i = 0; i < numPlays; i++) {
+      if (this.cpuHD < 1 || this.cpuPlayCount <= 0) break;
+      const cost = Math.min(Math.floor(Math.random() * 3) + 1, this.cpuHD);
+      this.cpuHD -= cost;
+      this.cpuPlayCount--;
+      b.cpuEffectPower = (b.cpuEffectPower || 0) + (cost * 6 + 5);
+    }
+    this.cpuPassedPlays = true;
   },
 
   resolve() {
-    const slot = this.battles[this.currentBattle];
-    const pp = (slot.playerCard?.power || 0);
-    const cp = (slot.cpuCard?.power || 0);
-    if (pp > cp) { slot.result = 'win';  this.playerScore++; }
-    else if (cp > pp) { slot.result = 'lose'; this.cpuScore++; }
-    else {
-      const playerSuper = slot.playerCard?.element === 'SUPER';
-      const cpuSuper    = slot.cpuCard?.element === 'SUPER';
-      if (playerSuper && !cpuSuper) { slot.result = 'win'; this.playerScore++; }
-      else if (cpuSuper && !playerSuper) { slot.result = 'lose'; this.cpuScore++; }
-      else { slot.result = 'tie'; }
+    const b = this.battles[this.currentBattle];
+    const playerPow = (b.playerCard?.power || 0) + (b.playerEffectPower || 0);
+    const cpuPow    = (b.cpuCard?.power    || 0) + (b.cpuEffectPower    || 0);
+
+    if (playerPow > cpuPow) {
+      b.result = 'win';  this.playerScore++; this.honors = 'player';
+    } else if (cpuPow > playerPow) {
+      b.result = 'lose'; this.cpuScore++;    this.honors = 'cpu';
+    } else {
+      const pSuper = b.playerCard?.element === 'SUPER';
+      const cSuper = b.cpuCard?.element    === 'SUPER';
+      if (pSuper && !cSuper) {
+        b.result = 'win';  this.playerScore++; this.honors = 'player';
+      } else if (cSuper && !pSuper) {
+        b.result = 'lose'; this.cpuScore++;    this.honors = 'cpu';
+      } else {
+        b.result = 'tie';
+      }
     }
     this.phase = 'resolution';
     this.checkOver();
@@ -602,133 +877,471 @@ const PM = {
   },
 
   nextBattle() {
-    this.battles[this.currentBattle].active = false;
+    if (this.matchOver) return;
     const next = this.currentBattle + 1;
-    if (next >= 7 || this.matchOver) {
+    if (next >= 7) {
       this.matchOver = true;
       if (this.playerScore > this.cpuScore) this.matchWinner = 'player';
       else if (this.cpuScore > this.playerScore) this.matchWinner = 'cpu';
+      else this.matchWinner = null;
       this.phase = 'over';
       return;
     }
     this.currentBattle = next;
-    this.battles[this.currentBattle].active = true;
+    this.phase = 'reveal';
     this.playerSubstituted = false;
     this.cpuSubstituted = false;
     this.playerPassedPlays = false;
     this.cpuPassedPlays = false;
-    this.phase = 'reveal';
+    this.selectedBenchIdx = null;
+  },
+
+  drawPlayCard() {
+    if (this.mode !== 'playmaker') return;
+    if (this.playerPlayDeck.length === 0 && this.playerDiscard.length > 0) {
+      this.playerPlayDeck = shuffle([...this.playerDiscard]);
+      this.playerDiscard = [];
+    }
+    if (this.playerPlayDeck.length > 0) {
+      this.playerPlayHand.push(this.playerPlayDeck.shift());
+    }
   },
 };
 
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+// ── DOM helpers ──────────────────────────────────────────────────
+
+function pmBuildPlaymatHTML() {
+  const cols = Array.from({length: 7}, (_, i) => `
+    <div class="pm-bc pending" data-battle="${i}">
+      <span class="pm-bc-number">B${i + 1}</span>
+      <div class="pm-bc-opp"></div>
+      <div class="pm-bc-vs"><span>·</span></div>
+      <div class="pm-bc-player"></div>
+    </div>`).join('');
+
+  const scorePips = Array.from({length: 7}, (_, i) =>
+    `<div class="pm-score-pip" data-pip="${i}">${i + 1}</div>`).join('');
+
+  const hdPips = Array.from({length: 10}, (_, i) =>
+    `<div class="pm-hd-pip available" data-pip="${i}"></div>`).join('');
+
+  // Inline XOXO SVG
+  const xoxoSvg = `<svg width="24" height="24" viewBox="0 0 180 180" fill="none">
+    <g transform="translate(59,59)"><line x1="-20" y1="-20" x2="20" y2="20" stroke="#FF4D00" stroke-width="14" stroke-linecap="round"/><line x1="20" y1="-20" x2="-20" y2="20" stroke="#FF4D00" stroke-width="14" stroke-linecap="round"/></g>
+    <circle cx="121" cy="59" r="18" fill="none" stroke="#FF4D00" stroke-width="14"/>
+    <circle cx="59" cy="121" r="18" fill="none" stroke="#FF4D00" stroke-width="14"/>
+    <g transform="translate(121,121)"><line x1="-20" y1="-20" x2="20" y2="20" stroke="#FF4D00" stroke-width="14" stroke-linecap="round"/><line x1="20" y1="-20" x2="-20" y2="20" stroke="#FF4D00" stroke-width="14" stroke-linecap="round"/></g>
+  </svg>`;
+
+  const hdIcon = `<svg width="12" height="12" viewBox="0 0 24 24"><path d="M4 12c0-3 3-6 8-6s8 3 8 6-3 6-8 6-8-3-8-6z" fill="#4CAF50" stroke="#2E7D32" stroke-width="0.8"/><ellipse cx="12" cy="12" rx="6.5" ry="2.8" fill="#E53935"/><path d="M7 11.2q1.2 1.6 2.5 0t2.5 0 2.5 0" fill="none" stroke="#FFD600" stroke-width="1.2" stroke-linecap="round"/></svg>`;
+
+  return `
+  <!-- TOP BAR -->
+  <div class="pm-top-bar">
+    <div class="pm-mode-tabs">
+      <button class="pm-mode-tab" data-mode="rookie">Rookie</button>
+      <button class="pm-mode-tab" data-mode="substitution">Sub</button>
+      <button class="pm-mode-tab active" data-mode="playmaker">Playmaker</button>
+    </div>
+    <div class="pm-scoreboard">
+      <span class="pm-score-label">Battle</span>
+      <div class="pm-score-pips">${scorePips}</div>
+      <div class="pm-score-totals">
+        <span class="pm-score-you" id="pm-score-you">0</span>
+        <span class="pm-score-dash">—</span>
+        <span class="pm-score-opp-val" id="pm-score-opp">0</span>
+      </div>
+    </div>
+    <div class="pm-top-logo">${xoxoSvg}</div>
+    <div class="pm-phase-area">
+      <div class="pm-phase-indicator" id="pm-phase-label">REVEAL</div>
+      <div class="pm-honors-badge" id="pm-honors">★ YOU HAVE HONORS</div>
+    </div>
+    <button class="pm-top-exit" id="pm-exit-btn" aria-label="Exit practice">✕</button>
+  </div>
+
+  <!-- PLAY AREA -->
+  <div class="pm-play-area">
+    <div class="pm-opponent-zone">
+      <span class="pm-opp-section-label">OPP</span>
+      <div class="pm-opp-bench-area">
+        <span class="pm-opp-sub-label">Bench</span>
+        <div id="pm-opp-bench" style="display:flex;gap:3px"></div>
+      </div>
+      <div class="pm-opp-plays-area">
+        <span class="pm-opp-sub-label">Plays</span>
+        <div class="pm-resource-chip">
+          <span class="pm-rc-val" id="pm-opp-plays-val">30</span>
+          <span class="pm-rc-label">left</span>
+        </div>
+      </div>
+      <div class="pm-opp-resources">
+        <div class="pm-resource-chip">
+          ${hdIcon}
+          <span class="pm-rc-val" id="pm-opp-hd">10</span>
+          <span class="pm-rc-label">HD</span>
+        </div>
+      </div>
+    </div>
+    <div class="pm-arena-zone">${cols}</div>
+  </div>
+
+  <!-- PLAYER ZONE -->
+  <div class="pm-player-zone">
+    <div class="pm-deck-stack">
+      <div class="pm-deck-icon pm-hero-deck-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="18" stroke="rgba(192,57,43,0.8)" stroke-width="2.5" stroke-linecap="round"/><line x1="7" y1="7" x2="17" y2="7" stroke="rgba(192,57,43,0.8)" stroke-width="2.5" stroke-linecap="round"/><line x1="9" y1="20" x2="15" y2="20" stroke="rgba(192,57,43,0.8)" stroke-width="2.5" stroke-linecap="round"/></svg>
+        <span class="pm-di-count" id="pm-hero-deck-count">—</span>
+      </div>
+      <span class="pm-deck-label">Heroes</span>
+    </div>
+    <div class="pm-deck-stack pm-play-deck-stack">
+      <div class="pm-deck-icon pm-play-deck-icon">
+        <svg width="12" height="12" viewBox="0 0 180 180" fill="none"><g transform="translate(59,59)"><line x1="-20" y1="-20" x2="20" y2="20" stroke="#8B00FF" stroke-width="18" stroke-linecap="round"/><line x1="20" y1="-20" x2="-20" y2="20" stroke="#8B00FF" stroke-width="18" stroke-linecap="round"/></g><circle cx="121" cy="59" r="16" fill="none" stroke="#8B00FF" stroke-width="18"/><circle cx="59" cy="121" r="16" fill="none" stroke="#8B00FF" stroke-width="18"/><g transform="translate(121,121)"><line x1="-20" y1="-20" x2="20" y2="20" stroke="#8B00FF" stroke-width="18" stroke-linecap="round"/><line x1="20" y1="-20" x2="-20" y2="20" stroke="#8B00FF" stroke-width="18" stroke-linecap="round"/></g></svg>
+        <span class="pm-di-count" id="pm-play-deck-count">—</span>
+      </div>
+      <span class="pm-deck-label">Plays</span>
+    </div>
+    <div class="pm-deck-stack pm-hd-deck-stack">
+      <div class="pm-deck-icon pm-hd-deck-icon">${hdIcon}<span class="pm-di-count">10</span></div>
+      <span class="pm-deck-label">Hot Dogs</span>
+    </div>
+    <div class="pm-zone-divider"></div>
+    <div class="pm-bench-area">
+      <span class="pm-bench-label">Bench — Tap to Sub</span>
+      <div class="pm-bench-cards" id="pm-bench-cards"></div>
+    </div>
+    <div class="pm-zone-divider pm-divider-bench"></div>
+    <div class="pm-hand-area">
+      <span class="pm-hand-label">Plays — Tap to Play</span>
+      <div class="pm-hand-cards" id="pm-hand-cards"></div>
+    </div>
+    <div class="pm-zone-divider pm-divider-hand"></div>
+    <div class="pm-hd-area">
+      <span class="pm-hd-label">${hdIcon} <span class="pm-hd-count-display" id="pm-hd-count">10</span>/10</span>
+      <div class="pm-hd-pips" id="pm-hd-pips">${hdPips}</div>
+    </div>
+    <div class="pm-zone-divider"></div>
+    <div class="pm-action-area">
+      <button class="pm-btn-sub" id="pm-btn-sub" disabled>SUB<br><span style="font-size:0.35rem;opacity:0.7">2 HD</span></button>
+      <button class="pm-btn-done" id="pm-btn-done">REVEAL →</button>
+    </div>
+    <div class="pm-zone-divider"></div>
+    <div class="pm-discard-stack">
+      <div class="pm-deck-icon" style="border-style:dashed;background:transparent;opacity:0.4">
+        <span class="pm-di-count" id="pm-discard-count">0</span>
+      </div>
+      <span class="pm-deck-label">Discard</span>
+    </div>
+  </div>
+
+  <!-- Phase transition banner -->
+  <div class="pm-phase-banner" id="pm-phase-banner"></div>
+
+  <!-- Match over overlay -->
+  <div class="pm-match-over-overlay" id="pm-match-over" hidden>
+    <div class="pm-result-title" id="pm-result-title">VICTORY!</div>
+    <div class="pm-result-score" id="pm-result-score">0 — 0</div>
+    <div class="pm-result-btns">
+      <button class="pm-result-btn" id="pm-restart">PLAY AGAIN</button>
+      <button class="pm-result-btn secondary" id="pm-exit-match">EXIT</button>
+    </div>
+  </div>`;
+}
+
+// ── Update functions (target DOM directly — no full re-render) ───
+
+function pmSetRootClass() {
+  const root = $('practice-playmat');
+  if (!root) return;
+  root.className = root.className.replace(/\b(?:mode|phase)-\S+/g, '').trim();
+  root.classList.add('pm-root', `mode-${PM.mode}`, `phase-${PM.phase}`);
+
+  // Update mode tabs
+  root.querySelectorAll('.pm-mode-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === PM.mode);
+  });
+
+  // Phase label
+  const phaseNames = {
+    reveal: 'REVEAL', sub: 'SUB WINDOW', play: 'PLAY WINDOW',
+    resolution: 'RESOLUTION', cleanup: 'CLEANUP', over: 'MATCH OVER',
+  };
+  const btnLabels = {
+    reveal: 'REVEAL CARDS →', sub: 'DONE WITH SUBS →', play: 'DONE PLAYING →',
+    resolution: 'NEXT →', cleanup: 'NEXT BATTLE →', over: 'PLAY AGAIN',
+  };
+
+  const phaseEl = $('pm-phase-label');
+  if (phaseEl) phaseEl.textContent = phaseNames[PM.phase] || PM.phase.toUpperCase();
+
+  const doneBtn = $('pm-btn-done');
+  if (doneBtn) doneBtn.textContent = btnLabels[PM.phase] || 'NEXT →';
+
+  // Honors
+  const honorsEl = $('pm-honors');
+  if (honorsEl) honorsEl.textContent = PM.honors === 'player' ? '★ YOU HAVE HONORS' : '★ CPU HAS HONORS';
+
+  // Phase banner
+  if (PM.phase !== 'over') {
+    const banner = $('pm-phase-banner');
+    if (banner) {
+      banner.textContent = phaseNames[PM.phase] || PM.phase.toUpperCase();
+      banner.classList.add('visible');
+      setTimeout(() => banner.classList.remove('visible'), 900);
+    }
   }
-  return arr;
 }
 
-function pmPhaseLabel() {
-  const map = { reveal: 'REVEAL', sub: 'SUBSTITUTION', play: 'PLAY WINDOW', resolution: 'RESOLUTION', cleanup: 'CLEANUP', over: 'MATCH OVER' };
-  return map[PM.phase] || PM.phase.toUpperCase();
+function pmUpdateScoreboard() {
+  const youEl = $('pm-score-you');
+  const oppEl = $('pm-score-opp');
+  if (youEl) youEl.textContent = PM.playerScore;
+  if (oppEl) oppEl.textContent = PM.cpuScore;
+
+  document.querySelectorAll('#practice-playmat .pm-score-pip').forEach((pip, idx) => {
+    pip.className = 'pm-score-pip';
+    const b = PM.battles[idx];
+    if (!b) return;
+    if (b.result === 'win')  pip.classList.add('you-won');
+    else if (b.result === 'lose') pip.classList.add('opp-won');
+    else if (idx === PM.currentBattle && !PM.matchOver) pip.classList.add('current');
+    pip.textContent = idx + 1;
+  });
 }
 
-function pmNextLabel() {
-  const map = { reveal: 'REVEAL', sub: 'DONE SUBS', play: 'DONE PLAYS', resolution: 'NEXT', cleanup: 'NEXT BATTLE', over: 'RESTART' };
-  return map[PM.phase] || 'NEXT';
+function pmRenderBattleSlotContent(slot, card, revealed, isOpp, battle) {
+  if (!card) {
+    slot.innerHTML = `<span class="pm-bc-power" style="color:rgba(255,255,255,0.2)">—</span>`;
+    return;
+  }
+  if (isOpp && !revealed) {
+    slot.innerHTML = `<svg width="22" height="30" viewBox="0 0 20 28" fill="none" aria-hidden="true"><rect x="1" y="1" width="18" height="26" rx="3" stroke="rgba(192,57,43,0.45)" stroke-width="1.5"/><line x1="10" y1="4" x2="10" y2="18" stroke="rgba(192,57,43,0.35)" stroke-width="1.2"/><line x1="4" y1="11" x2="16" y2="11" stroke="rgba(192,57,43,0.35)" stroke-width="1.2"/></svg>`;
+    return;
+  }
+  const eff     = battle ? (isOpp ? (battle.cpuEffectPower||0) : (battle.playerEffectPower||0)) : 0;
+  const basePow = card.power || 0;
+  const effPow  = basePow + eff;
+  const imgUrl  = card.imageFile ? thumbUrl(card.imageFile) : null;
+  const imgHtml = imgUrl ? `<img class="pm-slot-img" src="${imgUrl}" alt="${card.hero||card.name}" loading="lazy" onerror="this.style.display='none'">` : '';
+  const bonusHtml = eff > 0 ? `<span class="pm-bc-bonus" style="color:${isOpp?'#8B00FF':'#00F5FF'}">+${eff}</span>` : '';
+  slot.innerHTML = `${imgHtml}<span class="pm-bc-name">${(card.hero||card.name||'').substring(0,8)}</span><span class="pm-bc-power">${effPow}</span>${bonusHtml}`;
+  if (card.element) {
+    const bar = document.createElement('div');
+    bar.className = 'pm-bc-element';
+    bar.style.background = pmElementColor(card.element);
+    slot.appendChild(bar);
+  }
 }
 
-function pmRenderPlaymat() {
-  const mat = $('practice-playmat');
-  if (!mat) return;
+function pmUpdateBattleCols() {
+  for (let idx = 0; idx < 7; idx++) {
+    const col = document.querySelector(`#practice-playmat .pm-bc[data-battle="${idx}"]`);
+    if (!col) continue;
+    const b = PM.battles[idx];
+    if (!b) continue;
 
-  const slot = PM.slot;
-  const battleCols = PM.battles.map((b, i) => {
-    const pCard = b.playerCard;
-    const cCard = b.cpuCard;
-    const isActive = i === PM.currentBattle && !PM.matchOver;
-    const isPending = b.result === null && !isActive;
-    const vsLabel = b.result === 'win' ? 'WIN' : b.result === 'lose' ? 'LOSS' : b.result === 'tie' ? 'TIE' : 'VS';
-    const vsClass = b.result === 'win' ? 'win' : b.result === 'lose' ? 'lose' : '';
+    const isActive  = idx === PM.currentBattle && !PM.matchOver;
+    const isDone    = b.result !== null;
+    const isPending = !isDone && !isActive;
 
-    function heroSlotHtml(card, revealed, isOpp) {
-      if (!card) return `<div class="pm-hero-slot${isOpp ? ' opp' : ''}"><span class="pm-hero-power">—</span></div>`;
-      if (isOpp && !revealed) {
-        return `<div class="pm-hero-slot opp" title="Facedown">
-          <svg width="20" height="28" viewBox="0 0 20 28" fill="none" aria-hidden="true"><rect x="1" y="1" width="18" height="26" rx="3" stroke="rgba(192,57,43,0.5)" stroke-width="1.5"/><line x1="10" y1="4" x2="10" y2="18" stroke="rgba(192,57,43,0.4)" stroke-width="1.2"/><line x1="4" y1="11" x2="16" y2="11" stroke="rgba(192,57,43,0.4)" stroke-width="1.2"/></svg>
-        </div>`;
-      }
-      const img = card.imageFile ? `<img class="pm-hero-img" src="${thumbUrl(card.imageFile)}" alt="${card.hero || card.name}" loading="lazy" onerror="this.style.display='none'">` : '';
-      return `<div class="pm-hero-slot${isOpp ? ' opp' : ''}">
-        ${img}
-        <div class="pm-hero-name">${card.hero || card.name || ''}</div>
-        <div class="pm-hero-power">${card.power || 0}</div>
-      </div>`;
+    col.className = 'pm-bc' +
+      (isActive  ? ' active'  : '') +
+      (isDone ? (b.result === 'win' ? ' won' : b.result === 'lose' ? ' lost' : ' tied') : '') +
+      (isPending ? ' pending' : '');
+
+    // VS bar
+    const vsBar = col.querySelector('.pm-bc-vs');
+    if (vsBar) {
+      vsBar.className = 'pm-bc-vs' + (b.result === 'win' ? ' win' : b.result === 'lose' ? ' lose' : b.result === 'tie' ? ' tied' : '');
+      const s = vsBar.querySelector('span');
+      if (s) s.textContent = b.result === 'win' ? 'WIN' : b.result === 'lose' ? 'LOSS' : b.result === 'tie' ? 'TIE' : isActive ? 'VS' : '·';
     }
 
-    return `<div class="pm-battle-col${isActive ? ' active' : ''}${isPending ? ' pending' : ''}" data-battle="${i}">
-      <div class="pm-battle-label">B${i + 1}</div>
-      ${heroSlotHtml(cCard, b.revealed, true)}
-      <div class="pm-vs-bar ${vsClass}">${vsLabel}</div>
-      ${heroSlotHtml(pCard, true, false)}
-    </div>`;
-  }).join('');
+    // Opponent slot
+    const oppSlot = col.querySelector('.pm-bc-opp');
+    if (oppSlot) pmRenderBattleSlotContent(oppSlot, b.cpuCard, b.revealed || isDone, true, b);
 
-  const matchOverHtml = PM.matchOver ? `
-    <div class="pm-match-over">
-      <div class="pm-result-title ${PM.matchWinner === 'player' ? 'win' : PM.matchWinner === 'cpu' ? 'lose' : 'tie'}">
-        ${PM.matchWinner === 'player' ? 'VICTORY!' : PM.matchWinner === 'cpu' ? 'DEFEAT' : 'SUDDEN DEATH'}
-      </div>
-      <div class="pm-result-score">${PM.playerScore} — ${PM.cpuScore}</div>
-      <div class="pm-result-btns">
-        <button class="pm-result-btn" id="pm-restart">PLAY AGAIN</button>
-        <button class="pm-result-btn secondary" id="pm-exit">EXIT</button>
-      </div>
-    </div>
-  ` : '';
-
-  const hdHtml = PM.mode !== 'rookie'
-    ? `<span class="pm-hd-count">HD: ${PM.playerHD}/10</span>` : '';
-
-  mat.innerHTML = `
-    <div class="pm-topbar">
-      <div class="pm-score">
-        <span class="pm-score-player">${PM.playerScore}</span>
-        <span style="color:rgba(255,255,255,0.3);font-size:1rem">—</span>
-        <span class="pm-score-cpu">${PM.cpuScore}</span>
-      </div>
-      <div class="pm-phase">${pmPhaseLabel()}</div>
-      <button class="pm-exit" id="pm-exit-btn" aria-label="Exit practice">&times;</button>
-    </div>
-    <div class="pm-battles" style="position:relative">${battleCols}${matchOverHtml}</div>
-    <div class="pm-player-zone">
-      ${hdHtml}
-      <button class="pm-action-btn" id="pm-advance">${pmNextLabel()}</button>
-    </div>
-  `;
-
-  mat.querySelector('#pm-advance')?.addEventListener('click', () => {
-    PM.advance();
-    pmRenderPlaymat();
-  });
-  mat.querySelector('#pm-exit-btn')?.addEventListener('click', () => {
-    pmExitPlaymat();
-  });
-  mat.querySelector('#pm-restart')?.addEventListener('click', () => {
-    PM.startMatch(PM.allCards);
-    pmRenderPlaymat();
-  });
-  mat.querySelector('#pm-exit')?.addEventListener('click', () => {
-    pmExitPlaymat();
-  });
+    // Player slot
+    const playerSlot = col.querySelector('.pm-bc-player');
+    if (playerSlot) pmRenderBattleSlotContent(playerSlot, b.playerCard, true, false, b);
+  }
 }
 
+function pmUpdateOpponentZone() {
+  // Opponent bench count (show card back shapes)
+  const oppBench = $('pm-opp-bench');
+  if (oppBench) {
+    oppBench.innerHTML = PM.cpuBench.map(() =>
+      `<div class="pm-opp-card"></div>`
+    ).join('');
+  }
+  const oppHD = $('pm-opp-hd');
+  if (oppHD) oppHD.textContent = PM.cpuHD;
+  const oppPlays = $('pm-opp-plays-val');
+  if (oppPlays) oppPlays.textContent = PM.cpuPlayCount;
+}
+
+function pmUpdatePlayerZone() {
+  // HD count and pips
+  const hdCount = $('pm-hd-count');
+  if (hdCount) hdCount.textContent = PM.playerHD;
+  const pipsEl = $('pm-hd-pips');
+  if (pipsEl) {
+    pipsEl.querySelectorAll('.pm-hd-pip').forEach((pip, i) => {
+      pip.className = 'pm-hd-pip ' + (i < PM.playerHD ? 'available' : 'spent');
+    });
+  }
+
+  // Bench cards
+  const benchEl = $('pm-bench-cards');
+  if (benchEl) {
+    benchEl.innerHTML = PM.playerBench.map((card, idx) => {
+      if (!card) return '';
+      const el    = card.element || '';
+      const elCol = pmElementColor(el);
+      const isSel = PM.selectedBenchIdx === idx;
+      return `<div class="pm-bench-card${isSel ? ' selected' : ''}" data-bench-idx="${idx}" title="${card.hero||card.name||''}">
+        <div class="pm-bc-sub-el" style="background:${elCol}"></div>
+        <span class="pm-bc-sub-power">${card.power||0}</span>
+        <span class="pm-bc-sub-name">${(card.hero||card.name||'').substring(0,6)}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Play hand
+  const handEl = $('pm-hand-cards');
+  if (handEl) {
+    handEl.innerHTML = PM.playerPlayHand.map((card, idx) => {
+      const cost     = card.playCost || 0;
+      const canAfford = PM.playerHD >= cost;
+      const name     = (card.name || '').substring(0, 16);
+      const desc     = (card.description || '').substring(0, 90);
+      return `<div class="pm-play-card${!canAfford ? ' cannot-afford' : ''}" data-hand-idx="${idx}" title="${card.name||''}">
+        <div class="pm-pc-header">
+          <span class="pm-pc-name">${name}</span>
+          <span class="pm-pc-cost">${cost > 0 ? cost + 'HD' : 'FREE'}</span>
+        </div>
+        <div class="pm-pc-effect">${desc || '—'}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Deck counts
+  const hdEl  = $('pm-hero-deck-count');
+  const plEl  = $('pm-play-deck-count');
+  const discEl = $('pm-discard-count');
+  if (hdEl)  hdEl.textContent  = PM.playerHeroDeckCount;
+  if (plEl)  plEl.textContent  = PM.playerPlayDeck.length;
+  if (discEl) discEl.textContent = PM.playerDiscard.length;
+
+  // Sub button — enabled only when a bench card is selected and conditions met
+  const subBtn = $('pm-btn-sub');
+  if (subBtn) {
+    const canSub = PM.phase === 'sub' && !PM.playerSubstituted && PM.playerHD >= 2 && PM.selectedBenchIdx !== null;
+    subBtn.disabled = !canSub;
+  }
+}
+
+function pmUpdateMatchOverlay() {
+  const overlay = $('pm-match-over');
+  if (!overlay) return;
+  if (PM.phase === 'over') {
+    overlay.hidden = false;
+    const title = $('pm-result-title');
+    const score = $('pm-result-score');
+    if (title) {
+      title.className = `pm-result-title ${PM.matchWinner === 'player' ? 'win' : PM.matchWinner === 'cpu' ? 'lose' : 'tie'}`;
+      title.textContent = PM.matchWinner === 'player' ? 'VICTORY!' : PM.matchWinner === 'cpu' ? 'DEFEAT' : 'SUDDEN DEATH';
+    }
+    if (score) score.textContent = `${PM.playerScore} — ${PM.cpuScore}`;
+  } else {
+    overlay.hidden = true;
+  }
+}
+
+function pmUpdateAll() {
+  pmSetRootClass();
+  pmUpdateScoreboard();
+  pmUpdateBattleCols();
+  pmUpdateOpponentZone();
+  pmUpdatePlayerZone();
+  pmUpdateMatchOverlay();
+}
+
+// ── Init (event listeners attached once per session) ────────────
+
 function pmExitPlaymat() {
-  const setup = $('practice-setup');
-  const mat = $('practice-playmat');
+  const modal  = $('practice-modal');
+  const setup  = $('practice-setup');
+  const mat    = $('practice-playmat');
+  if (modal) modal.classList.remove('playmat-mode');
   if (setup) setup.hidden = false;
-  if (mat) mat.hidden = true;
+  if (mat)   mat.hidden = true;
+  const header = modal?.querySelector('.play-modal-header');
+  if (header) header.hidden = false;
+}
+
+function pmInitPlaymat() {
+  if (PM._initialized) return;
+  PM._initialized = true;
+
+  // HD pips — manual tracking (click to spend/recover)
+  $('pm-hd-pips')?.addEventListener('click', e => {
+    const pip = e.target.closest('.pm-hd-pip');
+    if (!pip) return;
+    const i = parseInt(pip.dataset.pip);
+    // If clicking an available pip, spend down to that index; if spent, recover up to include it
+    PM.playerHD = i < PM.playerHD ? i : i + 1;
+    PM.playerHD = Math.max(0, Math.min(10, PM.playerHD));
+    pmUpdatePlayerZone();
+  });
+
+  // Bench card tap → select for substitution
+  $('pm-bench-cards')?.addEventListener('click', e => {
+    const card = e.target.closest('.pm-bench-card');
+    if (!card) return;
+    if (PM.phase !== 'sub' || PM.playerSubstituted) return;
+    const idx = parseInt(card.dataset.benchIdx);
+    PM.selectedBenchIdx = PM.selectedBenchIdx === idx ? null : idx;
+    pmUpdatePlayerZone();
+  });
+
+  // Substitute button — confirmed sub
+  $('pm-btn-sub')?.addEventListener('click', () => {
+    if (PM.selectedBenchIdx === null) return;
+    if (PM.playerSub(PM.selectedBenchIdx)) pmUpdateAll();
+  });
+
+  // Play card click — play it immediately (if affordable)
+  $('pm-hand-cards')?.addEventListener('click', e => {
+    const card = e.target.closest('.pm-play-card');
+    if (!card || PM.phase !== 'play') return;
+    const idx = parseInt(card.dataset.handIdx);
+    if (PM.playerPlayCard(idx)) pmUpdateAll();
+  });
+
+  // Done / advance button
+  $('pm-btn-done')?.addEventListener('click', () => {
+    PM.advance();
+    pmUpdateAll();
+  });
+
+  // Mode tabs inside playmat
+  document.querySelectorAll('#practice-playmat .pm-mode-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      PM.mode = btn.dataset.mode;
+      pmSetRootClass();
+    });
+  });
+
+  // Exit / restart buttons
+  $('pm-exit-btn')?.addEventListener('click', pmExitPlaymat);
+  $('pm-exit-match')?.addEventListener('click', pmExitPlaymat);
+  $('pm-restart')?.addEventListener('click', () => {
+    PM.startMatch(PM.allCards);
+    pmUpdateAll();
+  });
 }
 
 function initPractice(allCards) {
@@ -737,15 +1350,16 @@ function initPractice(allCards) {
 
   $('btn-open-practice')?.addEventListener('click', () => {
     modal.hidden = false;
-    const setup = $('practice-setup');
-    const mat = $('practice-playmat');
-    if (setup) setup.hidden = false;
-    if (mat) mat.hidden = true;
+    $('practice-setup').hidden = false;
+    $('practice-playmat').hidden = true;
+    modal.classList.remove('playmat-mode');
+    const hdr = modal.querySelector('.play-modal-header');
+    if (hdr) hdr.hidden = false;
   });
   $('btn-close-practice')?.addEventListener('click', () => { modal.hidden = true; });
   modal.addEventListener('click', e => { if (e.target === modal) modal.hidden = true; });
 
-  // Mode selection
+  // Mode radio
   modal.querySelectorAll('input[name="practice-mode"]').forEach(radio => {
     radio.addEventListener('change', e => { PM.mode = e.target.value; });
   });
@@ -755,20 +1369,32 @@ function initPractice(allCards) {
     btn.addEventListener('click', () => {
       $('practice-player-deck').querySelectorAll('.practice-deck-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      PM.playerDeck = btn.dataset.deck;
     });
   });
 
   // Start
   $('btn-start-practice')?.addEventListener('click', () => {
-    const modeEl = modal.querySelector('input[name="practice-mode"]:checked');
-    PM.mode = modeEl ? modeEl.value : 'playmaker';
+    const checked = modal.querySelector('input[name="practice-mode"]:checked');
+    PM.mode = checked ? checked.value : 'playmaker';
+
+    // Build playmat HTML once
+    const mat = $('practice-playmat');
+    if (mat && !PM._initialized) {
+      mat.innerHTML = pmBuildPlaymatHTML();
+    }
+
     PM.startMatch(allCards);
 
+    // Switch to playmat view
     const setup = $('practice-setup');
-    const mat = $('practice-playmat');
+    const hdr   = modal.querySelector('.play-modal-header');
     if (setup) setup.hidden = true;
-    if (mat) { mat.hidden = false; pmRenderPlaymat(); }
+    if (hdr)   hdr.hidden = true;
+    if (mat)   mat.hidden = false;
+    modal.classList.add('playmat-mode');
+
+    pmInitPlaymat();
+    pmUpdateAll();
   });
 }
 

@@ -39,33 +39,34 @@ struct CardImageView: View {
                 placeholder
             } else {
                 let resolved = loadedImage ?? cachedImage
-                // Unified ZStack: thumb underlies the full image so the full res
-                // can crossfade in rather than snapping. The task modifier stays
-                // in scope regardless of load state so retries work correctly.
                 ZStack {
-                    Design.Colors.surface2
-                    // Thumb from NSCache — shown immediately while full image loads.
-                    // Hidden once the full image is ready (resolved != nil).
-                    if let thumb = thumbImage, resolved == nil {
+                    // surface2 only when there is genuinely nothing to display —
+                    // when either image is present, the artPanel gradient shows through.
+                    if resolved == nil && thumbImage == nil {
+                        Design.Colors.surface2
+                    }
+                    // Thumb stays as the base layer while the full image loads.
+                    // It is never removed — the full image simply fades in on top of it.
+                    if let thumb = thumbImage {
                         Image(uiImage: thumb)
                             .resizable()
                             .scaledToFit()
                     }
-                    // Full image fades in over the thumb.
+                    // Full image fades in over the thumb once it arrives.
                     if let image = resolved {
                         Image(uiImage: image)
                             .resizable()
                             .scaledToFit()
                             .transition(.opacity)
                     }
-                    // Spinner only when no thumb is available and nothing loaded yet.
-                    if resolved == nil && thumbImage == nil && !loadFailed {
-                        ProgressView()
-                            .tint(Design.Colors.textMuted)
-                    }
-                    // Failed state — only when nothing else to show.
-                    if loadFailed && resolved == nil {
-                        placeholderContent
+                    // Spinner/failure only when there is nothing else to show.
+                    if resolved == nil && thumbImage == nil {
+                        if loadFailed {
+                            placeholderContent
+                        } else {
+                            ProgressView()
+                                .tint(Design.Colors.textMuted)
+                        }
                     }
                 }
                 .task(id: loadID) {

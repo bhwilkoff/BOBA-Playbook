@@ -129,3 +129,15 @@ When a feature is built but blocked on external dependencies (e.g., Discord trad
 **Why**: Building ahead of infrastructure is sometimes unavoidable. Half-deleting code creates a worse problem — the feature is harder to re-enable and the codebase is in an ambiguous state. A single `if featureEnabled { ... }` flag at the call site is the right level of intervention. When the dependency arrives, re-enabling should be one-line.
 
 **Applied to**: Discord FAB in `CollectionView.swift` (commented call site, full implementation intact). Web Discord `fab.hidden = true` in the render loop.
+
+## 026 — Image-Byte Collision Guard in Pipeline
+*2026-04-13*
+`reconcile_all.py::step11_optimize_images` ends with an md5-uniqueness check over every catalog-referenced file across `images/`, `images-optimized/`, and `thumbs/`. Any group of files that resolve to different `(cardNumber, hero)` keys but share identical bytes is flagged to `unified-cards/data/image_collisions.json`, with a per-tier remediation hint.
+
+**Why**: The bobaId scheme enforces "One ID per Card" at the catalog layer, but nothing was enforcing "One Image per Card" at the CDN-payload layer. On 2026-04-13 we discovered Caliber card #24 was showing D-Harp's art in the app — not because cards.json was wrong, but because an earlier run of the image optimizer had silently overwritten Caliber's optimized webp with D-Harp's bytes. Catalog-layer validation couldn't catch it; only md5 comparison of the actual outputs can.
+
+A post-mortem scan found 35 such pairs catalog-wide. Without a guard, the next rebuild could easily regress: a single bad source image, a race in the PIL worker pool, or a caching bug in a future script can cause the same silent overwrite.
+
+**How to apply**: If `image_collisions.json` is ever written after a pipeline run, STOP — do not sync to R2 until every group is resolved. The file's `notes` field explains whether the fix is "delete bad outputs, re-run step 11" (tier-level collision) or "re-download the correct source art" (master-level collision). Sealed-product `_eBay` placeholders are whitelisted and will not trigger the guard.
+
+**Principle**: Every invariant the app relies on should be enforced where it can be measured. "One Image per Card" lives in binary content, so the check has to run against binary content.

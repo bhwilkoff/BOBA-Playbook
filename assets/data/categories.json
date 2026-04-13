@@ -1133,63 +1133,6 @@
     }
   },
   "heroes": {
-    "1-4-1 Hero": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "S-61/100-1-4-1 Hero-Plays-Starter Play"
-      ]
-    },
-    "1-4-1 Play": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-16-1-4-1 Play-Home Team Discount-",
-        "S-62/100-1-4-1 Play-Plays-Starter Play"
-      ]
-    },
-    "3 Weapon Streak": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-6-3 Weapon Streak-Bonus Plays-First Edition"
-      ]
-    },
-    "3rd Time Charm": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-4-3rd Time Charm-Home Team Discount-"
-      ]
-    },
-    "5 Weapon Streak": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-7-5 Weapon Streak-Bonus Plays-First Edition"
-      ]
-    },
-    "50/50 Plays on Sale": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "LA-26-50/50 Plays on Sale-Plays-World Champion Debut"
-      ]
-    },
-    "A Game Of War": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-18-A Game Of War-Bonus Plays-First Edition"
-      ]
-    },
-    "A Hard Bargain": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-17-A Hard Bargain-Plays-First Edition"
-      ]
-    },
     "A.I.": {
       "count": 32,
       "athletes": [
@@ -1242,14 +1185,6 @@
         "ABF-129-Action-Alpha Battlefoil-2026 Edition",
         "ABF-260-Action-Alpha Battlefoil-2026 Edition",
         "ABF-391-Action-Alpha Battlefoil-2026 Edition"
-      ]
-    },
-    "Adding Depth": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-17-Adding Depth-Home Team Discount-",
-        "S-63/100-Adding Depth-Plays-Starter Play"
       ]
     },
     "Aeronaut": {
@@ -1517,13 +1452,6 @@
         "BGA-27-Awesome Dawson-Inspired Ink Battlefoil-Andre Dawson Debut"
       ]
     },
-    "Back-Up Magic": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "PHI-40-Back-Up Magic-Plays-World Champions Debut"
-      ]
-    },
     "Bags": {
       "count": 70,
       "athletes": [
@@ -1741,13 +1669,6 @@
         "BLBF-35-Bells-Blizzard Battlefoil-George Bell Debut"
       ]
     },
-    "Bench Lock": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-22-Bench Lock-Bonus Plays-First Edition"
-      ]
-    },
     "Bern Baby, Bern": {
       "count": 70,
       "athletes": [
@@ -1764,13 +1685,6 @@
         "BLBF-177-Bern Baby, Bern-Blizzard Battlefoil-Bernie Williams Debut",
         "BLBF-308-Bern Baby, Bern-Blizzard Battlefoil-Bernie Williams Debut",
         "BLBF-439-Bern Baby, Bern-Blizzard Battlefoil-Bernie Williams Debut"
-      ]
-    },
-    "Big Free Agent Pick-Up": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "PHI-33-Big Free Agent Pick-Up-Plays-World Champions Debut"
       ]
     },
     "Big Geo": {
@@ -1807,13 +1721,6 @@
         "BLBF-14-Big Papi-Blizzard Battlefoil-David Ortiz Debut",
         "BLBF-145-Big Papi-Blizzard Battlefoil-David Ortiz Debut",
         "BLBF-276-Big Papi-Blizzard Battlefoil-David Ortiz Debut"
-      ]
-    },
-    "Big Spender Bonus": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-19-Big Spender Bonus-Bonus Plays-First Edition"
       ]
     },
     "Big-Z": {
@@ -1911,20 +1818,6 @@
         "BF-5-Bison-Battlefoil-First Edition",
         "BF-65-Bison-Battlefoil-First Edition",
         "BGBF-8-Bison-Bubble Gum Battlefoil-First Edition"
-      ]
-    },
-    "Bleacher Dog": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "LA-19-Bleacher Dog-Hot Dog-World Champion Debut"
-      ]
-    },
-    "Blind Substitution": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-40-Blind Substitution-Home Team Discount-"
       ]
     },
     "Blockhale": {
@@ -2054,13 +1947,6 @@
         "BGA-32-Bone-Inspired Ink Bubble Gum Battlefoil-Jay Buhner Debut"
       ]
     },
-    "Bonus Recovery": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-3-Bonus Recovery-Bonus Plays-First Edition"
-      ]
-    },
     "Boom": {
       "count": 39,
       "athletes": [
@@ -2170,14 +2056,6 @@
         "MBFA-3-Brandi-Inspired Ink Metallic Battlefoil-Brandi Chastain Debut"
       ]
     },
-    "Brat Wurst": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-97/100-Brat Wurst-Hot Dog-",
-        "T-47/50-Brat Wurst-Hot Dog-"
-      ]
-    },
     "Braun": {
       "count": 6,
       "athletes": [
@@ -2246,13 +2124,6 @@
         "ABF-90-BrockNess-Alpha Battlefoil-First Edition"
       ]
     },
-    "Brothers In Arms": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-48-Brothers In Arms-Home Team Discount-"
-      ]
-    },
     "BuckShot": {
       "count": 39,
       "athletes": [
@@ -2271,20 +2142,6 @@
         "BGA-38-BuckShot-Inspired Ink Bubble Gum Battlefoil-Buck Showalter Debut"
       ]
     },
-    "Bull Market": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-24-Bull Market-Bonus Plays-First Edition"
-      ]
-    },
-    "Bundle Deal": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-17-Bundle Deal-Bonus Plays-First Edition"
-      ]
-    },
     "Burner": {
       "count": 107,
       "athletes": [
@@ -2301,13 +2158,6 @@
         "ABF-6-Burner-Alpha Battlefoil-Jalen Brunson Unmasked",
         "ABF-661-Burner-Alpha Battlefoil-Jalen Brunson Unmasked",
         "BBF-44-Burner-Blue Battlefoil-First Edition"
-      ]
-    },
-    "Burning Fever": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-45-Burning Fever-Home Team Discount-"
       ]
     },
     "Burrocious": {
@@ -2416,20 +2266,6 @@
         "ABF-229-Caliber-Alpha Battlefoil-2026 Edition",
         "ABF-360-Caliber-Alpha Battlefoil-2026 Edition",
         "ABF-491-Caliber-Alpha Battlefoil-2026 Edition"
-      ]
-    },
-    "Call it a Day": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-8-Call it a Day-Bonus Plays-First Edition"
-      ]
-    },
-    "Called Shot": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-4-Called Shot-Bonus Plays-First Edition"
       ]
     },
     "Cameleon": {
@@ -2576,13 +2412,6 @@
         "BGBF-31-Cha-Ching-Battlefoil-First Edition"
       ]
     },
-    "Cheap Draw": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-25-Cheap Draw-Bonus Plays-First Edition"
-      ]
-    },
     "Cheetah": {
       "count": 51,
       "athletes": [
@@ -2727,20 +2556,6 @@
         "ABF-759-Cicada-Alpha Battlefoil-First Edition"
       ]
     },
-    "Clean Slate": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-23-Clean Slate-Bonus Plays-First Edition"
-      ]
-    },
-    "Close It Out Ferris!": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "LA-25-Close It Out Ferris!-Plays-World Champion Debut"
-      ]
-    },
     "Clutch": {
       "count": 46,
       "athletes": [
@@ -2777,35 +2592,6 @@
         "BGBF-11-Cobra-Battlefoil-First Edition"
       ]
     },
-    "Cold Pressure": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-9-Cold Pressure-Plays-First Edition"
-      ]
-    },
-    "Competitive Disadvantage": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-7-Competitive Disadvantage-Bonus Plays-First Edition"
-      ]
-    },
-    "Coney Carl": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-92/100-Coney Carl-Hot Dog-",
-        "T-42/50-Coney Carl-Hot Dog-"
-      ]
-    },
-    "Contract Limitations": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-33-Contract Limitations-Home Team Discount-"
-      ]
-    },
     "Coopanova": {
       "count": 39,
       "athletes": [
@@ -2822,13 +2608,6 @@
         "BFA-36-Coopanova-Inspired Ink Battlefoil-Cynthia Cooper Debut",
         "BFA-74-Coopanova-Inspired Ink Battlefoil-Cynthia Cooper Debut",
         "BGA-36-Coopanova-Inspired Ink Bubble Gum Battlefoil-Cynthia Cooper Debut"
-      ]
-    },
-    "Copycat": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-1-Copycat-Plays-First Edition"
       ]
     },
     "Courthouse": {
@@ -2975,14 +2754,6 @@
         "BGBF-12-Cruze-Control-Battlefoil-First Edition"
       ]
     },
-    "Crystal Ball": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-64/100-Crystal Ball-Plays-Starter Play",
-        "T-31/50-Crystal Ball-Plays-Trainer Play"
-      ]
-    },
     "Cupid": {
       "count": 119,
       "athletes": [
@@ -3017,20 +2788,6 @@
         "BFA-24-Curaçao Kid-Inspired Ink Battlefoil-Anduw Jones Debut",
         "BFA-62-Curaçao Kid-Inspired Ink Battlefoil-Anduw Jones Debut",
         "BGA-24-Curaçao Kid-Inspired Ink Bubble Gum Battlefoil-Anduw Jones Debut"
-      ]
-    },
-    "Cursed Coin": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-49-Cursed Coin-Home Team Discount-"
-      ]
-    },
-    "Curveball": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-11-Curveball-Home Team Discount-"
       ]
     },
     "D-Harp": {
@@ -3187,36 +2944,6 @@
         "ABF-75-Dijon-Alpha Battlefoil-First Edition"
       ]
     },
-    "Dijon Don": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-99/100-Dijon Don-Hot Dog-",
-        "T-49/50-Dijon Don-Hot Dog-"
-      ]
-    },
-    "Dirty Water Dan": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-91/100-Dirty Water Dan-Hot Dog-",
-        "T-41/50-Dirty Water Dan-Hot Dog-"
-      ]
-    },
-    "Dog Gone Inflation": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "S-65/100-Dog Gone Inflation-Plays-Starter Play"
-      ]
-    },
-    "Don't Call it a Comeback": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "S-66/100-Don't Call it a Comeback-Plays-Starter Play"
-      ]
-    },
     "Donnie Baseball": {
       "count": 32,
       "athletes": [
@@ -3251,14 +2978,6 @@
         "BF-67-Donny Buckets-Battlefoil-First Edition",
         "BF-7-Donny Buckets-Battlefoil-First Edition",
         "BGBF-10-Donny Buckets-Bubble Gum Battlefoil-First Edition"
-      ]
-    },
-    "Double or Nothin": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-67/100-Double or Nothin-Plays-Starter Play",
-        "T-32/50-Double or Nothin-Plays-Trainer Play"
       ]
     },
     "Doublecheck": {
@@ -3315,20 +3034,6 @@
         "BGBF-30-Draco-Battlefoil-First Edition"
       ]
     },
-    "Drop The Giant": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-22-Drop The Giant-Plays-First Edition"
-      ]
-    },
-    "Drought": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-2-Drought-Bonus Plays-First Edition"
-      ]
-    },
     "Dumper": {
       "count": 82,
       "athletes": [
@@ -3345,13 +3050,6 @@
         "ABF-606-Dumper-Alpha Battlefoil-First Edition",
         "ABF-737-Dumper-Alpha Battlefoil-First Edition",
         "ABF-82-Dumper-Alpha Battlefoil-First Edition"
-      ]
-    },
-    "Dumpster Battle": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-10-Dumpster Battle-Bonus Plays-First Edition"
       ]
     },
     "Dunker": {
@@ -3406,20 +3104,6 @@
         "BF-109-Eagle-Eye-Battlefoil-First Edition",
         "BF-110-Eagle-Eye-Battlefoil-First Edition",
         "BGBF-22-Eagle-Eye-Battlefoil-First Edition"
-      ]
-    },
-    "Easy Choice": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-25-Easy Choice-Home Team Discount-"
-      ]
-    },
-    "Elite Secondary": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "PHI-39-Elite Secondary-Plays-World Champions Debut"
       ]
     },
     "Emmitt-164": {
@@ -3494,27 +3178,6 @@
         "BGBF-28-Exterminaber-Bubble Gum Battlefoil-First Edition"
       ]
     },
-    "Fair Trade": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-12-Fair Trade-Bonus Plays-First Edition"
-      ]
-    },
-    "Fairweather Fan": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "SSE-25-Fairweather Fan-Plays-Sandstorm Edition"
-      ]
-    },
-    "Find a Way Doc!": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "LA-24-Find a Way Doc!-Plays-World Champion Debut"
-      ]
-    },
     "Fingers": {
       "count": 70,
       "athletes": [
@@ -3531,34 +3194,6 @@
         "BLBF-157-Fingers-Blizzard Battlefoil-Rollie Fingers Debut",
         "BLBF-26-Fingers-Blizzard Battlefoil-Rollie Fingers Debut",
         "BLBF-288-Fingers-Blizzard Battlefoil-Rollie Fingers Debut"
-      ]
-    },
-    "Fire Comeback": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-60-Fire Comeback-Home Team Discount-"
-      ]
-    },
-    "Fire Crew": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-39-Fire Crew-Home Team Discount-"
-      ]
-    },
-    "Fire Extinguisher": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-50-Fire Extinguisher-Home Team Discount-"
-      ]
-    },
-    "Flame Wall": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-8-Flame Wall-Home Team Discount-"
       ]
     },
     "Flav": {
@@ -3602,20 +3237,6 @@
         "BGA-15-Flutie-Inspired Ink Battlefoil-Doug Flutie Debut"
       ]
     },
-    "Forced Retreat": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-44-Forced Retreat-Home Team Discount-"
-      ]
-    },
-    "Forced Substitution": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-47-Forced Substitution-Home Team Discount-"
-      ]
-    },
     "Forcefield": {
       "count": 82,
       "athletes": [
@@ -3652,14 +3273,6 @@
         "BGBF-50-Foxhole-Bubble Gum Battlefoil-First Edition"
       ]
     },
-    "Frank": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-100/100-Frank-Hot Dog-",
-        "T-50/50-Frank-Hot Dog-"
-      ]
-    },
     "Freakshow": {
       "count": 124,
       "athletes": [
@@ -3678,13 +3291,6 @@
         "ABF-528-Freakshow-Alpha Battlefoil-Giannis Antetokounmpo Unmasked",
         "ABF-659-Freakshow-Alpha Battlefoil-Giannis Antetokounmpo Unmasked",
         "BBF-4-Freakshow-Blue Battlefoil-Giannis Antetokounmpo Unmasked"
-      ]
-    },
-    "Frost-Hardened": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-41-Frost-Hardened-Home Team Discount-"
       ]
     },
     "Frostbite": {
@@ -3722,13 +3328,6 @@
         "BL-S21-Frostebite-Silver Blast-Trae Young Debut"
       ]
     },
-    "Frozen Resolve": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-46-Frozen Resolve-Home Team Discount-"
-      ]
-    },
     "Fungi": {
       "count": 119,
       "athletes": [
@@ -3745,13 +3344,6 @@
         "ABF-222-Fungi-Alpha Battlefoil-2026 Edition",
         "ABF-353-Fungi-Alpha Battlefoil-2026 Edition",
         "ABF-484-Fungi-Alpha Battlefoil-2026 Edition"
-      ]
-    },
-    "GLOW Draw Play": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-15-GLOW Draw Play-Bonus Plays-First Edition"
       ]
     },
     "Gambler": {
@@ -3772,13 +3364,6 @@
         "T-06/50-Gambler-Paper-Trainer"
       ]
     },
-    "Game 5 Comeback": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "LA-21-Game 5 Comeback-Plays-World Champion Debut"
-      ]
-    },
     "Game Over": {
       "count": 70,
       "athletes": [
@@ -3795,13 +3380,6 @@
         "BLBF-193-Game Over-Blizzard Battlefoil-Éric Gagné Debut",
         "BLBF-324-Game Over-Blizzard Battlefoil-Éric Gagné Debut",
         "BLBF-455-Game Over-Blizzard Battlefoil-Éric Gagné Debut"
-      ]
-    },
-    "Game Sealing Interception": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "PHI-32-Game Sealing Interception-Plays-World Champions Debut"
       ]
     },
     "Game Time": {
@@ -3858,15 +3436,6 @@
         "BLBF-289-Gator-Blizzard Battlefoil-Steve Spurrier Debut"
       ]
     },
-    "Gavel of Justice": {
-      "count": 3,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-1-Gavel of Justice-Home Team Discount-",
-        "S-68/100-Gavel of Justice-Plays-Starter Play",
-        "T-33/50-Gavel of Justice-Plays-Trainer Play"
-      ]
-    },
     "Gaveler": {
       "count": 119,
       "athletes": [
@@ -3901,20 +3470,6 @@
         "ABF-494-Generator-Alpha Battlefoil-First Edition",
         "ABF-625-Generator-Alpha Battlefoil-First Edition",
         "ABF-756-Generator-Alpha Battlefoil-First Edition"
-      ]
-    },
-    "Genius GM": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "PHI-36-Genius GM-Plays-World Champions Debut"
-      ]
-    },
-    "Ghost Dog": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-4-Ghost Dog-Plays-First Edition"
       ]
     },
     "Gigante": {
@@ -3966,13 +3521,6 @@
         "ABF-89-Gladiator-Alpha Battlefoil-First Edition"
       ]
     },
-    "Glow-Up": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-11-Glow-Up-Plays-First Edition"
-      ]
-    },
     "Go-Cart": {
       "count": 82,
       "athletes": [
@@ -4007,14 +3555,6 @@
         "BFA-55-Goggles-Inspired Ink Battlefoil-Eric Dickerson Debut",
         "BFA-93-Goggles-Inspired Ink Battlefoil-Eric Dickerson Debut",
         "BGA-17-Goggles-Inspired Ink Bubble Gum Battlefoil-Eric Dickerson Debut"
-      ]
-    },
-    "Going Back to Back": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-24-Going Back to Back-Home Team Discount-",
-        "SSE-20-Going Back to Back-Plays-Sandstorm Edition"
       ]
     },
     "Golden Bullet": {
@@ -4089,13 +3629,6 @@
         "BGBF-57-Gravedigger-Bubble Gum Battlefoil-First Edition"
       ]
     },
-    "Great Draft Picks": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "PHI-37-Great Draft Picks-Plays-World Champions Debut"
-      ]
-    },
     "Green-Machine": {
       "count": 32,
       "athletes": [
@@ -4114,21 +3647,6 @@
         "BGA-16-Green-Machine-Inspired Ink Battlefoil-Jalen Green Debut"
       ]
     },
-    "Grilladelphia": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "PHI-31-Grilladelphia-Hot Dog-World Champions Debut"
-      ]
-    },
-    "Grillbert": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-98/100-Grillbert-Hot Dog-",
-        "T-48/50-Grillbert-Hot Dog-"
-      ]
-    },
     "Grin": {
       "count": 37,
       "athletes": [
@@ -4145,20 +3663,6 @@
         "BF-189-Grin-Battlefoil-First Edition",
         "BF-190-Grin-Battlefoil-First Edition",
         "BGBF-38-Grin-Battlefoil-First Edition"
-      ]
-    },
-    "Gum Draw": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-22-Gum Draw-Bonus Plays-First Edition"
-      ]
-    },
-    "Gum Draw Play": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-16-Gum Draw Play-Bonus Plays-First Edition"
       ]
     },
     "Gunner": {
@@ -4287,41 +3791,11 @@
         "BGA-39-Haymaker-Inspired Ink Bubble Gum Battlefoil-Spencer Haywood Debut"
       ]
     },
-    "Head Start": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-11-Head Start-Bonus Plays-First Edition"
-      ]
-    },
-    "Heads I Win, Tails You Lose": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-2-Heads I Win, Tails You Lose-Home Team Discount-"
-      ]
-    },
-    "Heads-Up!": {
-      "count": 3,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-14-Heads-Up!-Home Team Discount-",
-        "S-69/100-Heads-Up!-Plays-Starter Play",
-        "T-34/50-Heads-Up!-Plays-Trainer Play"
-      ]
-    },
     "Hello Boys!": {
       "count": 1,
       "athletes": [],
       "bobaIds": [
         "ALT-1-Hello Boys!-Billy Cameo Alt Arts-Randy Quaid (Co-Starring Billy)"
-      ]
-    },
-    "Hero's Resolve": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-10-Hero's Resolve-Bonus Plays-First Edition"
       ]
     },
     "Herro": {
@@ -4340,27 +3814,6 @@
         "BLBF-176-Herro-Blizzard Battlefoil-Tyler Herro Debut",
         "BLBF-307-Herro-Blizzard Battlefoil-Tyler Herro Debut",
         "BLBF-438-Herro-Blizzard Battlefoil-Tyler Herro Debut"
-      ]
-    },
-    "Hex Draw": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-21-Hex Draw-Bonus Plays-First Edition"
-      ]
-    },
-    "Hex Draw Play": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-14-Hex Draw Play-Bonus Plays-First Edition"
-      ]
-    },
-    "High Turnover": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-24-High Turnover-Plays-First Edition"
       ]
     },
     "Highway to Helton": {
@@ -4395,13 +3848,6 @@
         "SSE-9-Hitstick-Paper & Battlefoil-Sandstorm Edition"
       ]
     },
-    "Hitting the Gym": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "SSE-24-Hitting the Gym-Plays-Sandstorm Edition"
-      ]
-    },
     "Hoge-Ball": {
       "count": 39,
       "athletes": [
@@ -4420,13 +3866,6 @@
         "BGA-28-Hoge-Ball-Inspired Ink Bubble Gum Battlefoil-Merril Hoge Debut"
       ]
     },
-    "Hollow Bat": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-34-Hollow Bat-Home Team Discount-"
-      ]
-    },
     "Homestead": {
       "count": 82,
       "athletes": [
@@ -4443,27 +3882,6 @@
         "ABF-505-Homestead-Alpha Battlefoil-First Edition",
         "ABF-636-Homestead-Alpha Battlefoil-First Edition",
         "ABF-767-Homestead-Alpha Battlefoil-First Edition"
-      ]
-    },
-    "Honorable": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-17-Honorable-Bonus Plays-First Edition"
-      ]
-    },
-    "Hot Dog Stock Exchange": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-15-Hot Dog Stock Exchange-Plays-First Edition"
-      ]
-    },
-    "Hot Dog Thief": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-1-Hot Dog Thief-Bonus Plays-First Edition"
       ]
     },
     "HowBout'em": {
@@ -4502,48 +3920,6 @@
         "BGA-16-Howietzer-Inspired Ink Bubble Gum Battlefoil-Howie Long Debut"
       ]
     },
-    "Hungry Demands": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-19-Hungry Demands-Plays-First Edition"
-      ]
-    },
-    "Ice Climber": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-54-Ice Climber-Home Team Discount-"
-      ]
-    },
-    "Ice Crew": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-37-Ice Crew-Home Team Discount-"
-      ]
-    },
-    "Ice Pick": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-51-Ice Pick-Home Team Discount-"
-      ]
-    },
-    "Icy Comeback": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-59-Icy Comeback-Home Team Discount-"
-      ]
-    },
-    "Icy Shield": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-9-Icy Shield-Home Team Discount-"
-      ]
-    },
     "InVinceable": {
       "count": 39,
       "athletes": [
@@ -4560,27 +3936,6 @@
         "BFA-29-InVinceable-Inspired Ink Battlefoil-Vince Young Debut",
         "BFA-67-InVinceable-Inspired Ink Battlefoil-Vince Young Debut",
         "BGA-29-InVinceable-Inspired Ink Bubble Gum Battlefoil-Vince Young Debut"
-      ]
-    },
-    "Incendiary Dog": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-5-Incendiary Dog-Plays-First Edition"
-      ]
-    },
-    "Indestructible": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-23-Indestructible-Home Team Discount-"
-      ]
-    },
-    "Instant Refund": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-4-Instant Refund-Bonus Plays-First Edition"
       ]
     },
     "J-Cam": {
@@ -4842,14 +4197,6 @@
         "BGBF-30-Juice-Bubble Gum Battlefoil-First Edition"
       ]
     },
-    "Jump Ball": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-70/100-Jump Ball-Plays-Starter Play",
-        "T-35/50-Jump Ball-Plays-Trainer Play"
-      ]
-    },
     "KAT": {
       "count": 32,
       "athletes": [
@@ -4958,13 +4305,6 @@
         "BGA-33-Kurse-Inspired Ink Bubble Gum Battlefoil-Jevon Kearse Debut"
       ]
     },
-    "LAD vs NYY": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "LA-22-LAD vs NYY-Plays-World Champion Debut"
-      ]
-    },
     "Lady Magic": {
       "count": 39,
       "athletes": [
@@ -4981,28 +4321,6 @@
         "BFA-27-Lady Magic-Inspired Ink Battlefoil-Nancy Lieberman Debut",
         "BFA-65-Lady Magic-Inspired Ink Battlefoil-Nancy Lieberman Debut",
         "BGA-27-Lady Magic-Inspired Ink Bubble Gum Battlefoil-Nancy Lieberman Debut"
-      ]
-    },
-    "Last-Minute Re-Org": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-56-Last-Minute Re-Org-Home Team Discount-"
-      ]
-    },
-    "Late Game Lockdown": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-18-Late Game Lockdown-Home Team Discount-",
-        "S-71/100-Late Game Lockdown-Plays-Starter Play"
-      ]
-    },
-    "Late-Game Magic": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "S-72/100-Late-Game Magic-Plays-Starter Play"
       ]
     },
     "Laviathan": {
@@ -5114,13 +4432,6 @@
         "BGBF-34-Lieutenant-Bubble Gum Battlefoil-First Edition"
       ]
     },
-    "Lifting The Weightroom": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "PHI-35-Lifting The Weightroom-Plays-World Champions Debut"
-      ]
-    },
     "Lightningrod": {
       "count": 46,
       "athletes": [
@@ -5157,71 +4468,6 @@
         "BGA-28-Line-Art-Inspired Ink Battlefoil-Matt Leinart Debut"
       ]
     },
-    "Lineup Randomizer": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-12-Lineup Randomizer-Plays-First Edition"
-      ]
-    },
-    "Loan Sharked": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-12-Loan Sharked-Home Team Discount-",
-        "S-73/100-Loan Sharked-Plays-Starter Play"
-      ]
-    },
-    "Locked Playbook": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-21-Locked Playbook-Bonus Plays-First Edition"
-      ]
-    },
-    "Lose And Discard": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-8-Lose And Discard-Bonus Plays-First Edition"
-      ]
-    },
-    "Lost Plays": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-35-Lost Plays-Home Team Discount-"
-      ]
-    },
-    "Low Turnover": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-23-Low Turnover-Plays-First Edition"
-      ]
-    },
-    "Lucky 7": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "S-74/100-Lucky 7-Plays-Starter Play"
-      ]
-    },
-    "Lucky Bounce": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-75/100-Lucky Bounce-Plays-Starter Play",
-        "T-37/50-Lucky Bounce-Plays-Trainer Play"
-      ]
-    },
-    "Lucky Seven": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "T-36/50-Lucky Seven-Plays-Trainer Play"
-      ]
-    },
     "Lumber": {
       "count": 82,
       "athletes": [
@@ -5240,20 +4486,6 @@
         "ABF-776-Lumber-Alpha Battlefoil-First Edition"
       ]
     },
-    "Lunch Break": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-7-Lunch Break-Plays-First Edition"
-      ]
-    },
-    "Lunch Table": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-25-Lunch Table-Plays-First Edition"
-      ]
-    },
     "MVFREE": {
       "count": 6,
       "athletes": [
@@ -5266,13 +4498,6 @@
         "LA-16-MVFREE-Paper & Battlefoil-World Champion Debut",
         "LA-4-MVFREE-Paper & Battlefoil-World Champion Debut",
         "LA-7-MVFREE-Paper & Battlefoil-World Champion Debut"
-      ]
-    },
-    "MVFree Subs": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "LA-23-MVFree Subs-Plays-World Champion Debut"
       ]
     },
     "Macho": {
@@ -5327,20 +4552,6 @@
         "BFA-40-Magic-Inspired Ink Battlefoil-Magic Johnson Debut",
         "BFA-78-Magic-Inspired Ink Battlefoil-Magic Johnson Debut",
         "BGA-2-Magic-Inspired Ink Bubble Gum Battlefoil-Magic Johnson Debut"
-      ]
-    },
-    "Make It, Take It": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-29-Make It, Take It-Home Team Discount-"
-      ]
-    },
-    "Make it, Take it": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "SSE-26-Make it, Take it-Plays-Sandstorm Edition"
       ]
     },
     "Man of Steal": {
@@ -5506,13 +4717,6 @@
         "BGA-18-Mean-Joe-Inspired Ink Battlefoil-Joe Greene Debut"
       ]
     },
-    "Member Bounce": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-1-Member Bounce-Bonus Plays-First Edition"
-      ]
-    },
     "Merlomes": {
       "count": 54,
       "athletes": [
@@ -5583,20 +4787,6 @@
         "BF-4-Midas-Battlefoil-First Edition",
         "BF-64-Midas-Battlefoil-First Edition",
         "BGBF-7-Midas-Bubble Gum Battlefoil-First Edition"
-      ]
-    },
-    "Missed The Kerveball": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "LA-29-Missed The Kerveball-Plays-World Champion Debut"
-      ]
-    },
-    "Molten Steel": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-43-Molten Steel-Home Team Discount-"
       ]
     },
     "Mr. Clean": {
@@ -5707,35 +4897,6 @@
         "BGBF-13-Mustang-Bubble Gum Battlefoil-First Edition"
       ]
     },
-    "Mustard Man": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-94/100-Mustard Man-Hot Dog-",
-        "T-44/50-Mustard Man-Hot Dog-"
-      ]
-    },
-    "My Idol": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-2-My Idol-Plays-First Edition"
-      ]
-    },
-    "Nasty Or Nada": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-42-Nasty Or Nada-Home Team Discount-"
-      ]
-    },
-    "New Playbook": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "SSE-29-New Playbook-Plays-Sandstorm Edition"
-      ]
-    },
     "Nice Game Pretty Boy": {
       "count": 70,
       "athletes": [
@@ -5754,14 +4915,6 @@
         "BLBF-275-Nice Game Pretty Boy-Blizzard Battlefoil-Keith Hernández Debut"
       ]
     },
-    "No Huddle": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-76/100-No Huddle-Plays-Starter Play",
-        "T-38/50-No Huddle-Plays-Trainer Play"
-      ]
-    },
     "Ollie": {
       "count": 37,
       "athletes": [
@@ -5778,48 +4931,6 @@
         "BF-179-Ollie-Battlefoil-First Edition",
         "BF-180-Ollie-Battlefoil-First Edition",
         "BGBF-36-Ollie-Battlefoil-First Edition"
-      ]
-    },
-    "One-And-One": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-36-One-And-One-Home Team Discount-"
-      ]
-    },
-    "Only Fire": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-5-Only Fire-Home Team Discount-"
-      ]
-    },
-    "Only Ice": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-6-Only Ice-Home Team Discount-"
-      ]
-    },
-    "Only Steel": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-7-Only Steel-Home Team Discount-"
-      ]
-    },
-    "Only Upside": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-3-Only Upside-Home Team Discount-"
-      ]
-    },
-    "Over Under": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-57-Over Under-Home Team Discount-"
       ]
     },
     "Ozzmosis": {
@@ -5966,13 +5077,6 @@
         "BLBF-278-Peppers-Blizzard Battlefoil-Julius Peppers Debut"
       ]
     },
-    "Perfect Playcalling": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "PHI-41-Perfect Playcalling-Plays-World Champions Debut"
-      ]
-    },
     "Perkolator": {
       "count": 70,
       "athletes": [
@@ -6050,57 +5154,6 @@
         "BGBF-33-Phoenix-Bubble Gum Battlefoil-First Edition"
       ]
     },
-    "Pick on Someone Your Own Size": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "SSE-27-Pick on Someone Your Own Size-Plays-Sandstorm Edition"
-      ]
-    },
-    "Pickle Pete": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-95/100-Pickle Pete-Hot Dog-",
-        "T-45/50-Pickle Pete-Hot Dog-"
-      ]
-    },
-    "Pinch HItter": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-78/100-Pinch HItter-Plays-Starter Play",
-        "T-40/50-Pinch HItter-Plays-Trainer Play"
-      ]
-    },
-    "Play Lockdown": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-13-Play Lockdown-Plays-First Edition"
-      ]
-    },
-    "Play Pluck": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-15-Play Pluck-Bonus Plays-First Edition"
-      ]
-    },
-    "Play Reset": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-23-Play Reset-Bonus Plays-First Edition"
-      ]
-    },
-    "Plays Or Dogs?": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-5-Plays Or Dogs?-Bonus Plays-First Edition"
-      ]
-    },
     "Portalize": {
       "count": 46,
       "athletes": [
@@ -6117,28 +5170,6 @@
         "BF-297-Portalize-Battlefoil-First Edition",
         "BF-57-Portalize-Battlefoil-First Edition",
         "BGBF-60-Portalize-Bubble Gum Battlefoil-First Edition"
-      ]
-    },
-    "Power Drain": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-9-Power Drain-Bonus Plays-First Edition"
-      ]
-    },
-    "Pre-Game Spy": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-18-Pre-Game Spy-Plays-First Edition"
-      ]
-    },
-    "Prevent D": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-19-Prevent D-Home Team Discount-",
-        "S-79/100-Prevent D-Plays-Starter Play"
       ]
     },
     "Processor": {
@@ -6195,34 +5226,6 @@
         "BGBF-48-PukaDot-Bubble Gum Battlefoil-First Edition"
       ]
     },
-    "Pulling The Plug": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-26-Pulling The Plug-Home Team Discount-"
-      ]
-    },
-    "Pulling the Plug": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "S-80/100-Pulling the Plug-Plays-Starter Play"
-      ]
-    },
-    "QB Sneak": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-30-QB Sneak-Home Team Discount-"
-      ]
-    },
-    "Radiant Comeback": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-58-Radiant Comeback-Home Team Discount-"
-      ]
-    },
     "Rainestorm": {
       "count": 70,
       "athletes": [
@@ -6239,14 +5242,6 @@
         "BLBF-167-Rainestorm-Blizzard Battlefoil-Tim Raines Debut",
         "BLBF-298-Rainestorm-Blizzard Battlefoil-Tim Raines Debut",
         "BLBF-36-Rainestorm-Blizzard Battlefoil-Tim Raines Debut"
-      ]
-    },
-    "Rally Cap": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-27-Rally Cap-Home Team Discount-",
-        "S-81/100-Rally Cap-Plays-Starter Play"
       ]
     },
     "Ram": {
@@ -6285,42 +5280,6 @@
         "BLBF-287-Ramponage-Blizzard Battlefoil-Christie Pearce Rampone Debut"
       ]
     },
-    "Random Bench Ejection": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "S-82/100-Random Bench Ejection-Plays-Starter Play"
-      ]
-    },
-    "Rebuild": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-20-Rebuild-Home Team Discount-",
-        "S-83/100-Rebuild-Plays-Starter Play"
-      ]
-    },
-    "Recycle": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-32-Recycle-Home Team Discount-"
-      ]
-    },
-    "Restricted List": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-20-Restricted List-Bonus Plays-First Edition"
-      ]
-    },
-    "Return from the Depths": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-11-Return from the Depths-Bonus Plays-First Edition"
-      ]
-    },
     "Risarcher": {
       "count": 46,
       "athletes": [
@@ -6339,28 +5298,6 @@
         "BGBF-62-Risarcher-Bubble Gum Battlefoil-First Edition"
       ]
     },
-    "Risk Taker": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "SSE-23-Risk Taker-Plays-Sandstorm Edition"
-      ]
-    },
-    "Risky Recovery": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-24-Risky Recovery-Bonus Plays-First Edition"
-      ]
-    },
-    "Rob Peter Pay Paul": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-28-Rob Peter Pay Paul-Home Team Discount-",
-        "S-84/100-Rob Peter Pay Paul-Plays-Starter Play"
-      ]
-    },
     "Robin Hood": {
       "count": 70,
       "athletes": [
@@ -6377,14 +5314,6 @@
         "BLBF-184-Robin Hood-Blizzard Battlefoil-Robin Yount Debut",
         "BLBF-315-Robin Hood-Blizzard Battlefoil-Robin Yount Debut",
         "BLBF-446-Robin Hood-Blizzard Battlefoil-Robin Yount Debut"
-      ]
-    },
-    "Robin Who": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-77/100-Robin Who-Plays-Starter Play",
-        "T-39/50-Robin Who-Plays-Trainer Play"
       ]
     },
     "Rocket": {
@@ -6441,20 +5370,6 @@
         "BGA-26-Rodder-Inspired Ink Battlefoil-Rod Smith Debut"
       ]
     },
-    "Roll And Hope": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-20-Roll And Hope-Plays-First Edition"
-      ]
-    },
-    "Roller Dogs": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-5-Roller Dogs-Bonus Plays-First Edition"
-      ]
-    },
     "Rollin'": {
       "count": 70,
       "athletes": [
@@ -6491,20 +5406,6 @@
         "ABF-765-Rook-Alpha Battlefoil-First Edition"
       ]
     },
-    "Roster Cuts": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-53-Roster Cuts-Home Team Discount-"
-      ]
-    },
-    "Rotten Dogs": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-9-Rotten Dogs-Bonus Plays-First Edition"
-      ]
-    },
     "SaQuads": {
       "count": 6,
       "athletes": [
@@ -6535,28 +5436,6 @@
         "BF-36-Sabotage-Battlefoil-First Edition",
         "BF-96-Sabotage-Battlefoil-First Edition",
         "BGBF-39-Sabotage-Bubble Gum Battlefoil-First Edition"
-      ]
-    },
-    "Sacrifice it All to Win": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-19-Sacrifice it All to Win-Bonus Plays-First Edition"
-      ]
-    },
-    "Sacrificed Heroes": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-18-Sacrificed Heroes-Bonus Plays-First Edition"
-      ]
-    },
-    "Sammy Sausage": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-96/100-Sammy Sausage-Hot Dog-",
-        "T-46/50-Sammy Sausage-Hot Dog-"
       ]
     },
     "Santa-Moss": {
@@ -6613,13 +5492,6 @@
         "ABF-768-Scary-Alpha Battlefoil-First Edition"
       ]
     },
-    "Scorching Pressure": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-8-Scorching Pressure-Plays-First Edition"
-      ]
-    },
     "Sea-Largent": {
       "count": 39,
       "athletes": [
@@ -6663,13 +5535,6 @@
         "ALT-5-Sensei-Billy Cameo Alt Arts-Billy BOBA KAI"
       ]
     },
-    "Series MVP Award": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "LA-20-Series MVP Award-Plays-World Champion Debut"
-      ]
-    },
     "Shells": {
       "count": 70,
       "athletes": [
@@ -6706,14 +5571,6 @@
         "BGBF-35-Shepherd-Battlefoil-First Edition"
       ]
     },
-    "Shooters Shoot": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-13-Shooters Shoot-Home Team Discount-",
-        "S-85/100-Shooters Shoot-Plays-Starter Play"
-      ]
-    },
     "Showtime": {
       "count": 50,
       "athletes": [
@@ -6730,13 +5587,6 @@
         "BF-4-Showtime-Battlefoil-First Edition",
         "BF-5-Showtime-Battlefoil-First Edition",
         "BGBF-1-Showtime-Battlefoil-First Edition"
-      ]
-    },
-    "Showtime's Elbow Guard": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "LA-28-Showtime's Elbow Guard-Plays-World Champion Debut"
       ]
     },
     "Shrouded": {
@@ -6847,13 +5697,6 @@
         "BGA-30-Slash-Inspired Ink Bubble Gum Battlefoil-Kordell Stewart Debut"
       ]
     },
-    "Smitty": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-55-Smitty-Home Team Discount-"
-      ]
-    },
     "Smoke": {
       "count": 32,
       "athletes": [
@@ -6906,15 +5749,6 @@
         "BF-32-Snowbear-Battlefoil-First Edition",
         "BF-92-Snowbear-Battlefoil-First Edition",
         "BGBF-35-Snowbear-Bubble Gum Battlefoil-First Edition"
-      ]
-    },
-    "Southpaw Sizzler": {
-      "count": 3,
-      "athletes": [],
-      "bobaIds": [
-        "PHI-48-Southpaw Sizzler-Hot Dog-World Champions Debut",
-        "PHI-49-Southpaw Sizzler-Hot Dog-World Champions Debut",
-        "PHI-50-Southpaw Sizzler-Hot Dog-World Champions Debut"
       ]
     },
     "Spider": {
@@ -6971,13 +5805,6 @@
         "BGA-7-Spudnick-Inspired Ink Bubble Gum Battlefoil-Spudd Webb Debut"
       ]
     },
-    "Stain-Less-Steel": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-52-Stain-Less-Steel-Home Team Discount-"
-      ]
-    },
     "Star-Bach": {
       "count": 32,
       "athletes": [
@@ -6996,13 +5823,6 @@
         "BGA-8-Star-Bach-Inspired Ink Battlefoil-Roger Staubach Debut"
       ]
     },
-    "State Fair Dog": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "SSE-19-State Fair Dog-Hot Dog-"
-      ]
-    },
     "Steady Eddie": {
       "count": 39,
       "athletes": [
@@ -7019,27 +5839,6 @@
         "BFA-56-Steady Eddie-Inspired Ink Battlefoil-Eddie George Debut",
         "BFA-94-Steady Eddie-Inspired Ink Battlefoil-Eddie George Debut",
         "BGA-18-Steady Eddie-Inspired Ink Bubble Gum Battlefoil-Eddie George Debut"
-      ]
-    },
-    "Steel Crew": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-38-Steel Crew-Home Team Discount-"
-      ]
-    },
-    "Steel Defense": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-10-Steel Defense-Home Team Discount-"
-      ]
-    },
-    "Steel Pressure": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-10-Steel Pressure-Plays-First Edition"
       ]
     },
     "Sterling": {
@@ -7078,41 +5877,6 @@
         "BGBF-44-Stitcher-Battlefoil-First Edition"
       ]
     },
-    "Storm The Field": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-13-Storm The Field-Bonus Plays-First Edition"
-      ]
-    },
-    "Strength in Numbers": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-13-Strength in Numbers-Bonus Plays-First Edition"
-      ]
-    },
-    "Student Loan": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-3-Student Loan-Plays-First Edition"
-      ]
-    },
-    "Sub And Power-Up": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-14-Sub And Power-Up-Bonus Plays-First Edition"
-      ]
-    },
-    "Super Draw": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-20-Super Draw-Bonus Plays-First Edition"
-      ]
-    },
     "Superbaby": {
       "count": 119,
       "athletes": [
@@ -7129,20 +5893,6 @@
         "ABF-115-Superbaby-Alpha Battlefoil-2026 Edition",
         "ABF-246-Superbaby-Alpha Battlefoil-2026 Edition",
         "ABF-377-Superbaby-Alpha Battlefoil-2026 Edition"
-      ]
-    },
-    "Surging Power": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-16-Surging Power-Bonus Plays-First Edition"
-      ]
-    },
-    "Sweet Relish": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-16-Sweet Relish-Plays-First Edition"
       ]
     },
     "Switchblade": {
@@ -7179,13 +5929,6 @@
         "BFA-139-Swoopes-Inspired Ink Battlefoil-Sheryl Swoopes Debut",
         "BFA-140-Swoopes-Inspired Ink Battlefoil-Sheryl Swoopes Debut",
         "BGA-29-Swoopes-Inspired Ink Battlefoil-Sheryl Swoopes Debut"
-      ]
-    },
-    "Taking Down The Dynasty": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "PHI-34-Taking Down The Dynasty-Plays-World Champions Debut"
       ]
     },
     "Tank": {
@@ -7243,34 +5986,6 @@
         "BGBF-7-Taze'em-Battlefoil-First Edition"
       ]
     },
-    "Tear a Page": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-12-Tear a Page-Bonus Plays-First Edition"
-      ]
-    },
-    "The 12th Man": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-2-The 12th Man-Bonus Plays-First Edition"
-      ]
-    },
-    "The Champion's Lasso": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "S-86/100-The Champion's Lasso-Plays-Starter Play"
-      ]
-    },
-    "The Heroes Favorite Hot Dogs": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-3-The Heroes Favorite Hot Dogs-Bonus Plays-First Edition"
-      ]
-    },
     "The Ironman": {
       "count": 39,
       "athletes": [
@@ -7307,13 +6022,6 @@
         "BLBF-264-The Kid-Blizzard Battlefoil-Cover Hero"
       ]
     },
-    "The Perfect Offense": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-14-The Perfect Offense-Plays-First Edition"
-      ]
-    },
     "The Red Baron": {
       "count": 70,
       "athletes": [
@@ -7330,13 +6038,6 @@
         "BLBF-168-The Red Baron-Blizzard Battlefoil-Rick Sutcliffe Debut",
         "BLBF-299-The Red Baron-Blizzard Battlefoil-Rick Sutcliffe Debut",
         "BLBF-37-The Red Baron-Blizzard Battlefoil-Rick Sutcliffe Debut"
-      ]
-    },
-    "The Walk Off Free-Slam": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "LA-27-The Walk Off Free-Slam-Plays-World Champion Debut"
       ]
     },
     "Thighs Man": {
@@ -7501,14 +6202,6 @@
         "BGA-23-Timmy-Inspired Ink Battlefoil-Tim Brown Debut"
       ]
     },
-    "To Fight Another Day": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-15-To Fight Another Day-Home Team Discount-",
-        "S-87/100-To Fight Another Day-Plays-Starter Play"
-      ]
-    },
     "Tommy G": {
       "count": 70,
       "athletes": [
@@ -7563,35 +6256,6 @@
         "BGBF-61-Torque-Bubble Gum Battlefoil-First Edition"
       ]
     },
-    "Tough Call": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-22-Tough Call-Home Team Discount-",
-        "S-88/100-Tough Call-Plays-Starter Play"
-      ]
-    },
-    "Transfer Portal": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-31-Transfer Portal-Home Team Discount-"
-      ]
-    },
-    "Transparency Clause": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-25-Transparency Clause-Bonus Plays-First Edition"
-      ]
-    },
-    "Trash Can": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "SSE-21-Trash Can-Plays-Sandstorm Edition"
-      ]
-    },
     "Triple Threat": {
       "count": 37,
       "athletes": [
@@ -7628,13 +6292,6 @@
         "BLBF-273-Troy of Dallas-Blizzard Battlefoil-Troy Aikman Debut"
       ]
     },
-    "Turn the Tide": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-21-Turn the Tide-Plays-First Edition"
-      ]
-    },
     "Turntable": {
       "count": 37,
       "athletes": [
@@ -7651,20 +6308,6 @@
         "BF-114-Turntable-Battlefoil-First Edition",
         "BF-115-Turntable-Battlefoil-First Edition",
         "BGBF-23-Turntable-Battlefoil-First Edition"
-      ]
-    },
-    "Tush Push": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "PHI-38-Tush Push-Plays-World Champions Debut"
-      ]
-    },
-    "Ultimatum Dog": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-6-Ultimatum Dog-Plays-First Edition"
       ]
     },
     "Unanimous Sandman": {
@@ -7774,13 +6417,6 @@
         "BFA-49-Waddler-Inspired Ink Battlefoil-Jaylen Waddle Debut",
         "BFA-50-Waddler-Inspired Ink Battlefoil-Jaylen Waddle Debut",
         "BGA-11-Waddler-Inspired Ink Battlefoil-Jaylen Waddle Debut"
-      ]
-    },
-    "Waiver Wire Pickup": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "S-89/100-Waiver Wire Pickup-Plays-Starter Play"
       ]
     },
     "Walk The Plank": {
@@ -7927,20 +6563,6 @@
         "BLBF-167-Wildbeard-Blizzard Battlefoil-First Edition"
       ]
     },
-    "Win or Weiners": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "BPL-6-Win or Weiners-Bonus Plays-First Edition"
-      ]
-    },
-    "Win the Toss": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "S-90/100-Win the Toss-Plays-Starter Play"
-      ]
-    },
     "Windmill": {
       "count": 40,
       "athletes": [
@@ -7993,28 +6615,6 @@
         "BFA-35-Woody-Inspired Ink Battlefoil-Darren Woodson Debut",
         "BFA-73-Woody-Inspired Ink Battlefoil-Darren Woodson Debut",
         "BGA-35-Woody-Inspired Ink Bubble Gum Battlefoil-Darren Woodson Debut"
-      ]
-    },
-    "Worth The Risk?": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "HTD-21-Worth The Risk?-Home Team Discount-"
-      ]
-    },
-    "Worth the Risk": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "SSE-22-Worth the Risk-Plays-Sandstorm Edition"
-      ]
-    },
-    "Wurst Wayne": {
-      "count": 2,
-      "athletes": [],
-      "bobaIds": [
-        "S-93/100-Wurst Wayne-Hot Dog-",
-        "T-43/50-Wurst Wayne-Hot Dog-"
       ]
     },
     "X.L.": {
@@ -8071,13 +6671,6 @@
         "BGBF-16-Yeti-Battlefoil-First Edition"
       ]
     },
-    "You Win Some, You Lose Some": {
-      "count": 1,
-      "athletes": [],
-      "bobaIds": [
-        "SSE-28-You Win Some, You Lose Some-Plays-Sandstorm Edition"
-      ]
-    },
     "Young-Gunner": {
       "count": 32,
       "athletes": [
@@ -8123,15 +6716,6 @@
         "LA-30-二百-Kanjifoil-Champions Kanji Variation"
       ]
     },
-    "怪獣焼き": {
-      "count": 3,
-      "athletes": [],
-      "bobaIds": [
-        "LA-36-怪獣焼き-Hot Dog-Kaiju Dog",
-        "LA-37-怪獣焼き-Hot Dog-Kaiju Dog",
-        "LA-38-怪獣焼き-Hot Dog-Kaiju Dog"
-      ]
-    },
     "百三十": {
       "count": 1,
       "athletes": [
@@ -8171,11 +6755,31 @@
     }
   },
   "cardTypes": {
-    "Hero": 17353,
-    "HotDog": 41,
-    "Play": 300,
+    "Hero": 17119,
+    "Play": 505,
+    "HotDog": 70,
     "Sealed Product": 45
   },
+  "dbsTiers": {
+    "Low": 248,
+    "Medium": 78,
+    "High": 15,
+    "Very High": 9
+  },
+  "hdCosts": {
+    "0": 131,
+    "1": 161,
+    "2": 135,
+    "3": 50,
+    "4": 19,
+    "5": 6,
+    "6": 3
+  },
+  "playSubtypes": {
+    "BonusPlay": 75,
+    "HTD": 60,
+    "Standard": 370
+  },
   "totalCards": 17739,
-  "totalWithImages": 14759
+  "totalWithImages": 14746
 }

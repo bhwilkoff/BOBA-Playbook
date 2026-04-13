@@ -839,6 +839,11 @@
       if (aImg !== bImg) return aImg ? -1 : 1;
       return 0;
     });
+
+    // Wire up Deck Builder + Practice once cards are loaded
+    if (typeof window.initPlayTools === 'function') {
+      window.initPlayTools(displayCards);
+    }
   }
 
   /* ================================================================

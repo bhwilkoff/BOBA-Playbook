@@ -4811,6 +4811,10 @@ main {
   padding: 1rem;
 }
 .play-modal[hidden] { display: none; }
+/* On desktop, offset modal so it doesn't overlap the sidebar */
+@media (min-width: 768px) {
+  .play-modal { left: var(--sidebar-w); }
+}
 
 .play-modal-inner {
   background: var(--color-surface, #0D0D1A);
@@ -5035,7 +5039,7 @@ main {
   padding: 0.3rem 0.6rem;
 }
 .db-deck-name:focus { outline: none; border-color: rgba(255,77,0,0.5); }
-.db-export-btn {
+.db-clear-btn, .db-export-btn {
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 6px;
@@ -5043,7 +5047,10 @@ main {
   cursor: pointer;
   padding: 0.3rem 0.5rem;
   transition: all 0.15s;
+  display: flex;
+  align-items: center;
 }
+.db-clear-btn:hover { color: #ff6b55; background: rgba(192,57,43,0.15); border-color: rgba(192,57,43,0.3); }
 .db-export-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
 
 .db-section { display: flex; flex-direction: column; gap: 4px; }
@@ -5108,17 +5115,29 @@ main {
 }
 .db-template-btn:hover { background: rgba(255,77,0,0.08); border-color: rgba(255,77,0,0.3); color: #FF4D00; }
 
+/* Validation error banner — shown prominently above the deck layout */
 .db-errors {
-  padding: 0.5rem;
-  background: rgba(192,57,43,0.1);
-  border: 1px solid rgba(192,57,43,0.3);
+  padding: 0.6rem 0.9rem;
+  background: rgba(192,57,43,0.18);
+  border: 1.5px solid rgba(192,57,43,0.5);
   border-radius: 8px;
+  margin: 0 0 0.5rem;
+}
+.db-errors-title {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #ff6b55;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.3rem;
+  text-transform: uppercase;
 }
 .db-error-item {
   font-family: var(--font-mono, monospace);
-  font-size: 0.65rem;
-  color: rgba(255,100,80,0.9);
-  padding: 2px 0;
+  font-size: 0.7rem;
+  color: rgba(255,150,120,0.95);
+  padding: 1px 0;
+  line-height: 1.4;
 }
 
 .db-export-out { display: flex; flex-direction: column; gap: 6px; }
@@ -5329,9 +5348,11 @@ main {
 .pm-hero-slot.player { border-color: rgba(255,77,0,0.2); }
 .pm-hero-img {
   width: 100%;
-  max-height: 70px;
-  object-fit: cover;
+  height: auto;
+  max-height: 90px;
+  object-fit: contain;
   border-radius: 4px;
+  display: block;
 }
 .pm-hero-name {
   font-family: var(--font-mono, monospace);

@@ -216,9 +216,10 @@ function dbRenderGrid(allCards) {
                  data-boba-id="${card.bobaId || ''}"
                  title="${label}">
       ${imgUrl
-        ? `<img class="db-card-img" src="${imgUrl}" alt="${label}" loading="lazy">`
-        : `<div class="db-card-img" style="display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:1.2rem;color:rgba(255,255,255,0.3)">${label.slice(0,2).toUpperCase()}</div>`
+        ? `<img class="db-card-img" src="${imgUrl}" alt="${label}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : ''
       }
+      <div class="db-card-img" style="display:${imgUrl ? 'none' : 'flex'};align-items:center;justify-content:center;font-family:var(--font-display);font-size:1.2rem;color:rgba(255,255,255,0.3)">${label.slice(0,2).toUpperCase()}</div>
       <div class="db-card-label">${label}</div>
       <div class="db-card-sub">${sub}</div>
     </div>`;
@@ -294,15 +295,18 @@ function dbRenderDeckList() {
     }
   }
 
-  // Validation errors
+  // Validation errors — shown as prominent banner above deck layout
   const errEl = $('db-errors');
   if (errEl) {
     if (errors.length === 0 || DB.heroes.length === 0) {
       errEl.hidden = true;
-      errEl.innerHTML = '';
+      // Reset to just the title
+      const title = errEl.querySelector('.db-errors-title');
+      if (title) { errEl.innerHTML = ''; errEl.appendChild(title); }
     } else {
       errEl.hidden = false;
-      errEl.innerHTML = errors.map(e => `<div class="db-error-item">⚠ ${e}</div>`).join('');
+      errEl.innerHTML = `<div class="db-errors-title">Fix to make deck legal:</div>` +
+        errors.map(e => `<div class="db-error-item">⚠ ${e}</div>`).join('');
     }
   }
 }
@@ -394,6 +398,14 @@ function initDeckBuilder(allCards) {
 
   // Deck name
   $('db-deck-name')?.addEventListener('input', e => { DB.deckName = e.target.value; });
+
+  // Clear deck
+  $('db-clear-btn')?.addEventListener('click', () => {
+    DB.clear();
+    const nameEl = $('db-deck-name');
+    if (nameEl) nameEl.value = 'New Deck';
+    dbRender(allCards);
+  });
 
   // Templates — load from pre-computed template-decks.json
   $('db-templates')?.addEventListener('click', e => {
@@ -503,8 +515,13 @@ const PM = {
     this.phase = 'reveal';
 
     const heroes = allCards.filter(c => c.cardType === 'Hero' && (c.power || 0) > 0);
-    const playerHeroes = shuffle([...heroes]).slice(0, 67);
-    const cpuHeroes    = shuffle([...heroes]).slice(0, 67);
+    // Prioritize cards that have images for a better visual experience
+    const heroesWithImg = heroes.filter(c => c.imageFile);
+    const heroesNoImg   = heroes.filter(c => !c.imageFile);
+    const playerPool = [...shuffle([...heroesWithImg]), ...shuffle([...heroesNoImg])];
+    const cpuPool    = [...shuffle([...heroesWithImg]), ...shuffle([...heroesNoImg])];
+    const playerHeroes = playerPool.slice(0, 7);
+    const cpuHeroes    = cpuPool.slice(0, 7);
 
     this.battles = [];
     for (let i = 0; i < 7; i++) {
@@ -642,7 +659,7 @@ function pmRenderPlaymat() {
           <svg width="20" height="28" viewBox="0 0 20 28" fill="none" aria-hidden="true"><rect x="1" y="1" width="18" height="26" rx="3" stroke="rgba(192,57,43,0.5)" stroke-width="1.5"/><line x1="10" y1="4" x2="10" y2="18" stroke="rgba(192,57,43,0.4)" stroke-width="1.2"/><line x1="4" y1="11" x2="16" y2="11" stroke="rgba(192,57,43,0.4)" stroke-width="1.2"/></svg>
         </div>`;
       }
-      const img = card.imageFile ? `<img class="pm-hero-img" src="${thumbUrl(card.imageFile)}" alt="${card.hero || card.name}" loading="lazy">` : '';
+      const img = card.imageFile ? `<img class="pm-hero-img" src="${thumbUrl(card.imageFile)}" alt="${card.hero || card.name}" loading="lazy" onerror="this.style.display='none'">` : '';
       return `<div class="pm-hero-slot${isOpp ? ' opp' : ''}">
         ${img}
         <div class="pm-hero-name">${card.hero || card.name || ''}</div>

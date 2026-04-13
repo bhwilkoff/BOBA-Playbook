@@ -3,9 +3,10 @@
 ## Current State
 
 - **Active milestone**: M4 — Play Mode (M3.5 fully complete and deployed)
-- **Last session**: 2026-04-14 — Deck Builder + Practice Battle deployed on both platforms (M4 launch). Web templates now load real bobaIds from template-decks.json. R2 image collision fix complete: 35 pairs confirmed in sync; 6 orphaned BLBF objects deleted from R2. Cowork handover fully reconciled.
+- **Last session**: 2026-04-16 — iOS practice mode upgraded: interactive HD pips (tap to spend/recover), bench card selection + explicit Substitute button (replaces immediate tap-to-sub), effect power display in battle columns (+N cyan label), play card power now uses (cost×6+5) formula matching web, drawPlayCard() actually draws from deck with reshuffle-on-empty, allCardsPool cached for Play Again, hero pool prefers cards with images, 6-card bench (matching web's 13-card pool = 7 battles + 6 bench).
 - **Open questions**:
-  - Deck builder: local templates done; user-created decks still need Supabase integration
+  - Deck builder Supabase save/load: user-created decks need Supabase integration (auth-gated)
+  - Strategy hints: deck evaluation panel in deck builder (pull from research docs)
   - Discord M5: needs bot added to server before re-enabling the hidden FAB
 
 ---

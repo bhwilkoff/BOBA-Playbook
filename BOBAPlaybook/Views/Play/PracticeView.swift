@@ -17,6 +17,7 @@ struct PracticeView: View {
     let store: PracticeStore
     @Environment(\.dismiss) private var dismiss
     @State private var showExitConfirm = false
+    @State private var selectedBenchIdx: Int? = nil
 
     var body: some View {
         GeometryReader { geo in
@@ -252,22 +253,42 @@ struct PracticeView: View {
 
                 // Bench
                 if store.mode.showBench {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text("YOUR BENCH").font(Design.Fonts.mono(8, weight: .bold)).foregroundStyle(Design.Colors.textMuted)
                         HStack(spacing: 4) {
                             ForEach(Array(store.playerBench.enumerated()), id: \.offset) { idx, card in
                                 Button {
-                                    guard store.phase == .sub else { return }
-                                    store.playerSubstitute(benchIndex: idx)
+                                    guard store.phase == .sub, !store.playerSubstituted else { return }
+                                    selectedBenchIdx = selectedBenchIdx == idx ? nil : idx
                                 } label: {
-                                    benchCard(card: card, active: store.phase == .sub && !store.playerSubstituted)
+                                    benchCard(card: card, active: store.phase == .sub && !store.playerSubstituted, selected: selectedBenchIdx == idx)
                                 }
                                 .buttonStyle(.plain)
+                                .disabled(store.phase != .sub || store.playerSubstituted)
                             }
+                        }
+                        if store.phase == .sub && !store.playerSubstituted {
+                            Button {
+                                if let idx = selectedBenchIdx {
+                                    store.playerSubstitute(benchIndex: idx)
+                                    selectedBenchIdx = nil
+                                }
+                            } label: {
+                                Text("SUBSTITUTE (2 HD)")
+                                    .font(Design.Fonts.mono(8, weight: .bold))
+                                    .foregroundStyle(selectedBenchIdx != nil && store.playerHotDogs >= 2 ? Design.Colors.nearBlack : Design.Colors.textMuted)
+                                    .padding(.horizontal, 8)
+                                    .frame(height: 22)
+                                    .background(RoundedRectangle(cornerRadius: 4)
+                                        .fill(selectedBenchIdx != nil && store.playerHotDogs >= 2 ? Design.Colors.bobaOrange : Design.Colors.glass))
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(selectedBenchIdx == nil || store.playerHotDogs < 2)
                         }
                     }
                     .padding(.horizontal, 4)
                     .opacity(store.phase == .sub ? 1 : 0.4)
+                    .onChange(of: store.phase) { _, _ in selectedBenchIdx = nil }
 
                     Divider().background(Design.Colors.glass).padding(.horizontal, 4)
                 }
@@ -353,7 +374,7 @@ struct PracticeView: View {
             .overlay(Image(systemName: "person.fill").foregroundStyle(Color(hex: "C0392B").opacity(0.8)))
     }
 
-    private func benchCard(card: Card, active: Bool) -> some View {
+    private func benchCard(card: Card, active: Bool, selected: Bool = false) -> some View {
         VStack(spacing: 2) {
             Group {
                 if let file = card.imageFile, !file.isEmpty {
@@ -367,11 +388,19 @@ struct PracticeView: View {
             }
             .frame(width: 36, height: 50)
             .clipShape(RoundedRectangle(cornerRadius: 4))
-            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(active ? Design.Colors.bobaOrange : Design.Colors.element(card.element).opacity(0.3), lineWidth: active ? 2 : 1))
+            .overlay(
+                RoundedRectangle(cornerRadius: 4).strokeBorder(
+                    selected ? Design.Colors.bobaCyan : (active ? Design.Colors.bobaOrange.opacity(0.5) : Design.Colors.element(card.element).opacity(0.3)),
+                    lineWidth: selected ? 2.5 : (active ? 1.5 : 1)
+                )
+            )
+            .overlay(
+                selected ? RoundedRectangle(cornerRadius: 4).fill(Design.Colors.bobaCyan.opacity(0.15)) : nil
+            )
 
             Text("\(card.power ?? 0)")
                 .font(Design.Fonts.display(12))
-                .foregroundStyle(Design.Colors.textPrimary)
+                .foregroundStyle(selected ? Design.Colors.bobaCyan : Design.Colors.textPrimary)
         }
     }
 
@@ -401,11 +430,20 @@ struct PracticeView: View {
     }
 
     private var hotDogPips: some View {
-        LazyVGrid(columns: [GridItem(.fixed(10)), GridItem(.fixed(10))], spacing: 3) {
+        LazyVGrid(columns: [GridItem(.fixed(14)), GridItem(.fixed(14)), GridItem(.fixed(14)), GridItem(.fixed(14)), GridItem(.fixed(14))], spacing: 3) {
             ForEach(0..<10, id: \.self) { i in
-                Circle()
-                    .fill(i < store.playerHotDogs ? Color(hex: "4CAF50") : Design.Colors.glass)
-                    .frame(width: 10, height: 10)
+                Button {
+                    // Tap pip i: if all pips 0..i are filled, tapping pip i removes it (spends to i)
+                    // If pip i is empty, tapping it fills up to i+1 (recovers)
+                    let newVal = i < store.playerHotDogs ? i : i + 1
+                    store.playerHotDogs = newVal
+                } label: {
+                    Circle()
+                        .fill(i < store.playerHotDogs ? Color(hex: "4CAF50") : Design.Colors.glass)
+                        .frame(width: 14, height: 14)
+                        .overlay(Circle().strokeBorder(Color(hex: "4CAF50").opacity(0.3), lineWidth: 0.5))
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -437,9 +475,10 @@ struct PracticeView: View {
 
                 HStack(spacing: Design.Spacing.lg) {
                     Button("PLAY AGAIN") {
-                        store.startMatch(allCards: [])  // uses cached deck
+                        store.startMatch(allCards: [])
                     }
                     .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
+                    // store.allCardsPool is reused inside startMatch when allCards is empty
 
                     Button("EXIT") { dismiss() }
                         .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.glass))
@@ -506,7 +545,7 @@ struct BattleColumnView: View {
                 // CPU hero (top half) — facedown until revealed
                 Group {
                     if slot.isRevealed, let card = slot.cpuCard {
-                        cardFace(card: card, width: cardW, height: heroH * 0.9, isOpponent: true)
+                        cardFace(card: card, width: cardW, height: heroH * 0.9, isOpponent: true, effectBonus: slot.cpuEffectPower)
                     } else {
                         facedownCard(width: cardW, height: heroH * 0.9, isOpponent: true)
                     }
@@ -519,7 +558,7 @@ struct BattleColumnView: View {
                 // Player hero (bottom half)
                 Group {
                     if let card = slot.playerCard {
-                        cardFace(card: card, width: cardW, height: heroH, isOpponent: false)
+                        cardFace(card: card, width: cardW, height: heroH, isOpponent: false, effectBonus: slot.playerEffectPower)
                     } else {
                         facedownCard(width: cardW, height: heroH, isOpponent: false)
                     }
@@ -550,7 +589,7 @@ struct BattleColumnView: View {
         }
     }
 
-    private func cardFace(card: Card, width: CGFloat, height: CGFloat, isOpponent: Bool) -> some View {
+    private func cardFace(card: Card, width: CGFloat, height: CGFloat, isOpponent: Bool, effectBonus: Int = 0) -> some View {
         ZStack {
             if let file = card.imageFile, !file.isEmpty {
                 AsyncImage(url: CDN.thumb(for: file)) { phase in
@@ -567,9 +606,16 @@ struct BattleColumnView: View {
         .frame(width: width, height: height)
         .clipShape(RoundedRectangle(cornerRadius: 5))
         .overlay(
-            VStack {
+            VStack(spacing: 0) {
                 Spacer()
-                Text("\(card.power ?? 0)")
+                if effectBonus > 0 {
+                    Text("+\(effectBonus)")
+                        .font(Design.Fonts.mono(8, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                        .padding(.horizontal, 3)
+                        .background(Capsule().fill(Color.black.opacity(0.7)))
+                }
+                Text("\(( card.power ?? 0) + effectBonus)")
                     .font(Design.Fonts.display(height > 60 ? 18 : 14))
                     .foregroundStyle(.white)
                     .shadow(color: .black, radius: 2)

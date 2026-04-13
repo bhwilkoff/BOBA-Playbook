@@ -65,6 +65,8 @@ struct BattleSlot: Identifiable {
     var cpuCard: Card?
     var playerPlayedCards: [Card] = []
     var cpuPlayedCards: [Card] = []
+    var playerEffectPower: Int = 0   // bonus from played play cards
+    var cpuEffectPower: Int = 0
     var playerFinalPower: Int = 0
     var cpuFinalPower: Int = 0
     var result: BattleResult?
@@ -112,8 +114,10 @@ final class PracticeStore {
 
     // MARK: - Player Resources
     var playerHeroDeck: [Card] = []     // shuffled, remaining
-    var playerBench: [Card] = []        // 4 cards
-    var playerHand: [Card] = []         // play cards
+    var playerBench: [Card] = []        // 6 bench cards (matching web: 13 total = 7 battles + 6 bench)
+    var playerHand: [Card] = []         // play cards in hand (5 max)
+    var playerPlayDeck: [Card] = []     // remaining play cards
+    var playerPlayDiscard: [Card] = []  // played/discarded play cards
     var playerHotDogs: Int = 10
     var playerHotDogDiscard: Int = 0
 
@@ -123,6 +127,9 @@ final class PracticeStore {
     var cpuHand: [Card] = []
     var cpuHotDogs: Int = 10
     var cpuPlaysRemaining: Int = 30
+
+    // MARK: - Cached card pool (for Play Again)
+    var allCardsPool: [Card] = []
 
     // MARK: - Phase-level state
     var playerSubstituted: Bool = false
@@ -146,45 +153,58 @@ final class PracticeStore {
     // MARK: - Setup / Start
 
     func startMatch(allCards: [Card]) {
-        // Build player deck
-        let heroCards = allCards.filter { $0.cardType == "Hero" && ($0.power ?? 0) > 0 }
-        let playCards = allCards.filter { $0.cardType == "Play" }
+        if !allCards.isEmpty { allCardsPool = allCards }
+        let pool = allCardsPool
 
-        playerHeroDeck = Array(heroCards.shuffled().prefix(60))
-        cpuHeroDeck = Array(heroCards.shuffled().prefix(60))
+        // Build hero pool — cards with images first for better visual experience
+        let heroes = pool.filter { $0.cardType == "Hero" && ($0.power ?? 0) > 0 }
+        let heroesWithImg = heroes.filter { !($0.imageFile ?? "").isEmpty }
+        let heroesNoImg   = heroes.filter {  ($0.imageFile ?? "").isEmpty }
+        let heroPool = heroesWithImg.shuffled() + heroesNoImg.shuffled()
 
-        if mode.showPlays {
-            playerHand = Array(playCards.shuffled().prefix(5))
-            cpuHand = Array(playCards.shuffled().prefix(5))
-        }
+        // Player: 7 battle + 6 bench = 13; CPU: next 13
+        let playerPool = Array(heroPool.prefix(13))
+        let cpuPool    = Array(heroPool.dropFirst(13).prefix(13))
 
         // Set up battles
-        battles = (0..<7).map { BattleSlot(id: $0) }
-
-        // Place heroes in all 7 battles
-        for i in 0..<7 {
-            if i < playerHeroDeck.count { battles[i].playerCard = playerHeroDeck[i] }
-            if i < cpuHeroDeck.count   { battles[i].cpuCard    = cpuHeroDeck[i] }
-        }
-        playerHeroDeck.removeFirst(min(7, playerHeroDeck.count))
-        cpuHeroDeck.removeFirst(min(7, cpuHeroDeck.count))
-
-        // Bench (Sub/Playmaker only)
-        if mode.showBench {
-            playerBench = Array(playerHeroDeck.prefix(4))
-            playerHeroDeck.removeFirst(min(4, playerHeroDeck.count))
-            cpuBench = Array(cpuHeroDeck.prefix(4))
-            cpuHeroDeck.removeFirst(min(4, cpuHeroDeck.count))
+        battles = (0..<7).map { i in
+            var slot = BattleSlot(id: i)
+            slot.playerCard = i < playerPool.count ? playerPool[i] : nil
+            slot.cpuCard    = i < cpuPool.count    ? cpuPool[i]    : nil
+            return slot
         }
 
-        // Reset scores
+        // Bench
+        playerBench = mode.showBench ? Array(playerPool.dropFirst(7)) : []
+        cpuBench    = mode.showBench ? Array(cpuPool.dropFirst(7))    : []
+
+        // Remaining hero decks (for future draw — unused in simplified mode)
+        playerHeroDeck = Array(heroPool.dropFirst(26))
+        cpuHeroDeck    = []
+
+        // Play cards
+        let plays = pool.filter { $0.cardType == "Play" }.shuffled()
+        if mode.showPlays {
+            playerHand       = Array(plays.prefix(5))
+            playerPlayDeck   = Array(plays.dropFirst(5))
+            playerPlayDiscard = []
+            cpuHand          = Array(plays.shuffled().prefix(5))
+        } else {
+            playerHand = []; playerPlayDeck = []; playerPlayDiscard = []
+            cpuHand = []
+        }
+
+        // Reset scores and state
         playerScore = 0; cpuScore = 0
         playerHotDogs = 10; cpuHotDogs = 10
+        cpuPlaysRemaining = 30
         honors = .player
         currentBattle = 0
         phase = .reveal
         matchOver = false
         matchWinner = nil
+        playerSubstituted = false; cpuSubstituted = false
+        playerPassedPlays = false; cpuPassedPlays = false
 
         battles[0].isActive = true
     }
@@ -269,7 +289,10 @@ final class PracticeStore {
 
         playerHand.removeFirst(where: { $0 == card })
         battles[currentBattle].playerPlayedCards.append(card)
+        // Simplified power bonus: (cost * 6 + 5) — matches web implementation
+        battles[currentBattle].playerEffectPower += cost * 6 + 5
         playerHotDogs -= cost
+        playerPlayDiscard.append(card)
     }
 
     func playerPassPlays() {
@@ -301,20 +324,30 @@ final class PracticeStore {
         guard mode == .playmaker, !cpuPassedPlays, !playerPassedPlays else {
             cpuPassedPlays = true; return
         }
-        // Easy AI: play a random affordable card
+        // Easy AI: play 0-1 cards ~40% of the time
         let affordable = cpuHand.filter { ($0.playCost ?? 0) <= cpuHotDogs }
-        if let card = affordable.randomElement(), Int.random(in: 0...1) == 1 {
+        if let card = affordable.randomElement(), Int.random(in: 0...9) < 4 {
             cpuHand.removeFirst(where: { $0 == card })
             battles[currentBattle].cpuPlayedCards.append(card)
-            cpuHotDogs -= card.playCost ?? 0
+            let cost = card.playCost ?? 0
+            battles[currentBattle].cpuEffectPower += cost * 6 + 5
+            cpuHotDogs -= cost
             cpuPlaysRemaining -= 1
-        } else {
-            cpuPassedPlays = true
         }
+        cpuPassedPlays = true
     }
 
     private func drawPlayCard() {
-        // In a real game, draw from playbook deck — simplified: noop for now
+        guard mode.showPlays else { return }
+        // Reshuffle discard into deck if deck is empty
+        if playerPlayDeck.isEmpty && !playerPlayDiscard.isEmpty {
+            playerPlayDeck = playerPlayDiscard.shuffled()
+            playerPlayDiscard = []
+        }
+        if let drawn = playerPlayDeck.first {
+            playerPlayDeck.removeFirst()
+            playerHand.append(drawn)
+        }
     }
 
     private func cpuDrawPlayCard() {
@@ -327,8 +360,8 @@ final class PracticeStore {
         guard battles.indices.contains(currentBattle) else { return }
         var slot = battles[currentBattle]
 
-        let playerPower = (slot.playerCard?.power ?? 0) + slot.playerPlayedCards.reduce(0) { $0 + ($1.power ?? 0) }
-        let cpuPower    = (slot.cpuCard?.power ?? 0)    + slot.cpuPlayedCards.reduce(0)    { $0 + ($1.power ?? 0) }
+        let playerPower = (slot.playerCard?.power ?? 0) + slot.playerEffectPower
+        let cpuPower    = (slot.cpuCard?.power ?? 0)    + slot.cpuEffectPower
 
         slot.playerFinalPower = playerPower
         slot.cpuFinalPower    = cpuPower
@@ -394,6 +427,7 @@ final class PracticeStore {
         playerHeroDeck = []; cpuHeroDeck = []
         playerBench = []; cpuBench = []
         playerHand = []; cpuHand = []
+        playerPlayDeck = []; playerPlayDiscard = []
         playerHotDogs = 10; cpuHotDogs = 10
         matchOver = false; matchWinner = nil
     }

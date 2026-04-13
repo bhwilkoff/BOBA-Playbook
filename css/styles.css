@@ -5287,6 +5287,15 @@ main {
 }
 #practice-modal.playmat-mode .play-modal-header { display: none; }
 
+/* ── Sprite icon utility ── */
+.pm-icon {
+  display: inline-block; vertical-align: middle;
+  width: 16px; height: 16px; flex-shrink: 0;
+}
+.pm-icon-lg { width: 22px; height: 22px; }
+.pm-icon-sm { width: 12px; height: 12px; }
+.pm-phase-icon { width: 14px; height: 14px; margin-right: 4px; }
+
 /* ================================================================
    PM ROOT — full playmat (namespaced from playmat-v3 design)
    ================================================================ */
@@ -5339,11 +5348,13 @@ main {
   font-family: var(--font-mono, monospace); font-size: 0.6rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.5px; color: #00F5FF;
   padding: 4px 8px; background: rgba(0,245,255,0.08); border: 1px solid rgba(0,245,255,0.2); border-radius: 4px;
+  display: flex; align-items: center; gap: 4px;
 }
 .pm-root .pm-honors-badge {
   font-family: var(--font-mono, monospace); font-size: 0.55rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 6px; border-radius: 3px;
   background: rgba(255,215,0,0.12); border: 1px solid rgba(255,215,0,0.25); color: #FFD700;
+  display: flex; align-items: center; gap: 3px;
 }
 .pm-root .pm-top-exit {
   flex-shrink: 0; background: none; border: none; color: rgba(255,255,255,0.3);

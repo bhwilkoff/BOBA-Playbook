@@ -74,7 +74,7 @@ struct PlayView: View {
                         showPractice = true
                     } label: {
                         VStack(spacing: 1) {
-                            Image(systemName: "swords")
+                            Image(systemName: "flag.2.crossed.fill")
                                 .font(.system(size: 14))
                                 .foregroundStyle(Design.Colors.bobaCyan)
                             Text("BATTLE")

@@ -20,15 +20,16 @@ final class PortraitWindowController: UIViewController {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    // Restrict to portrait on all iOS versions (works alongside UISupportedInterfaceOrientations
-    // declaring all four orientations to satisfy App Store validation).
-    override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .portrait }
+    // Delegates to OrientationManager so PracticeView can unlock landscape.
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        OrientationManager.shared.orientationMask
+    }
 
-    // iOS 26 replacement for UIRequiresFullScreen
+    // Never lock — let OrientationManager control the allowed set dynamically.
     @available(iOS 26.0, *)
-    override var prefersInterfaceOrientationLocked: Bool { true }
+    override var prefersInterfaceOrientationLocked: Bool { false }
 
-    // Forward orientation lock decisions to the SwiftUI hosting controller (iOS 26+)
+    // Forward orientation decisions to the SwiftUI hosting controller (iOS 26+)
     @available(iOS 26.0, *)
     override var childForInterfaceOrientationLock: UIViewController? { content }
 

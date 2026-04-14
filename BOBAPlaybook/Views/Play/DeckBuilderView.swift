@@ -16,6 +16,7 @@ struct DeckBuilderView: View {
     @Environment(CardStore.self) private var cardStore
     @State private var store = DeckBuilderStore()
     @State private var showTemplates = true
+    @State private var showTemplateSheet = false
     @State private var showDeckList = false
     @State private var showExport = false
     @State private var exportText = ""
@@ -61,9 +62,15 @@ struct DeckBuilderView: View {
                         .foregroundStyle(Design.Colors.textPrimary)
                 }
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Templates") { withAnimation { showTemplates = true } }
-                        .font(Design.Fonts.mono(13))
-                        .foregroundStyle(Design.Colors.bobaCyan)
+                    Button("Starter Decks") {
+                        if store.heroes.isEmpty && store.plays.isEmpty {
+                            withAnimation { showTemplates = true }
+                        } else {
+                            showTemplateSheet = true
+                        }
+                    }
+                    .font(Design.Fonts.mono(13))
+                    .foregroundStyle(Design.Colors.bobaCyan)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: Design.Spacing.sm) {
@@ -108,7 +115,7 @@ struct DeckBuilderView: View {
         .sheet(isPresented: $showExport) {
             ExportSheet(text: exportText, deckName: store.deckName)
         }
-        .sheet(isPresented: $showTemplates) {
+        .sheet(isPresented: $showTemplateSheet) {
             TemplateGallerySheet(store: store, cards: cardStore.displayCards)
         }
         .sheet(isPresented: $showSavedDecks) {

@@ -9,6 +9,8 @@
 - **Open questions**:
   - Strategy hints: deck evaluation panel in deck builder (pull from research docs)
   - Discord M5: needs bot added to server before re-enabling the hidden FAB
+  - **Web parity needed**: Rename "STARTER TEMPLATES"/"Archetype Templates" → "Starter Decks" in index.html + practice.js
+  - **Deferred iOS items**: Unified deck management sheet (Load/Save/Share → single interface), card browser scroll/tap fix + collapse button, game state persistence/resume, play card effects engine (full rules implementation)
 
 ---
 
@@ -242,3 +244,5 @@ Research Discord Activity SDK vs WebView feasibility before committing.
 **Verification**: research `cards.json` md5 = playbook `cards.json` md5 = `a6c4850c...` (byte-identical). `cards-slim.json` synced from playbook (da0829ec) back to research. `categories.json`, `search-index.json`, `missing-cards.json`, `sealed_products.json`, `BOBAPlaybook/display-cards.json`, `BOBAPlaybook/cards-head.json` all match across both repos. (Two stale copies in `assets/data/` — `display-cards.json` and `cards-head.json` — are iOS-variant files left over from a historical mis-copy; iOS reads from `BOBAPlaybook/` which does match, so they're harmless but worth cleaning up later.)
 
 **Next full `reconcile_all.py` run** will produce a catalog with 1,271 cards labeled `imageSource: "disk_claim"` (the new step4 claim label) vs today's `"stage1_claim"` (one-time migration label) — purely a cosmetic diff; the imageFile, imageAvailable, and bobaIdSlug values are identical.
+
+**2026-04-14** — iOS deck builder + practice battle fixes. (1) Fixed double template slide-up: separated inline gallery state from sheet presentation state. (2) Fixed Mixed Toolbox and Economy/Attrition starter deck hero violations — both now have 60 diverse heroes respecting max-6-per-hero and 1-per-variation rules. (3) Standardized "Starter Decks" naming (toolbar button). (4) Fixed Battle button icon: `"swords"` (invalid SF Symbol) → `"flag.2.crossed.fill"`. (5) Major practice battle layout overhaul: removed `.ignoresSafeArea(.all, edges: .horizontal)` (fixes Dynamic Island/corner bleed), replaced cramped 7-column HStack with scrollable 3-4 column arena using `containerRelativeFrame` + `scrollTargetBehavior(.viewAligned)`, replaced permanent 110px player zone + 60px opponent zone with compact 50px bottom toolbar and slide-up overlay panels for bench/plays (independently toggleable), panels auto-show during relevant phases. Cards ~3x larger than before. Extracted PracticeView into 6 focused files: PracticeTopBar, PracticeBottomToolbar, PracticeBenchPanel, PracticePlaysPanel, BattleColumnView. Portrait "ROTATE TO PLAY" now properly centered and playmat not rendered until landscape. CPU info moved to compact badge in top bar. Deferred to future: unified deck management UI, card browser scroll/tap fix, game persistence, play card effects engine.

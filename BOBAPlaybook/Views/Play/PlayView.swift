@@ -57,10 +57,10 @@ struct PlayView: View {
                     } label: {
                         VStack(spacing: 1) {
                             Image(systemName: "rectangle.stack.badge.plus")
-                                .font(.system(size: 16))
+                                .font(.system(size: 14))
                                 .foregroundStyle(Design.Colors.bobaOrange)
                             Text("DECKS")
-                                .font(Design.Fonts.mono(8, weight: .bold))
+                                .font(Design.Fonts.mono(7, weight: .bold))
                                 .foregroundStyle(Design.Colors.bobaOrange)
                         }
                     }
@@ -74,11 +74,11 @@ struct PlayView: View {
                         showPractice = true
                     } label: {
                         VStack(spacing: 1) {
-                            Image(systemName: "gamecontroller.fill")
-                                .font(.system(size: 16))
+                            Image(systemName: "swords")
+                                .font(.system(size: 14))
                                 .foregroundStyle(Design.Colors.bobaCyan)
-                            Text("PRACTICE")
-                                .font(Design.Fonts.mono(8, weight: .bold))
+                            Text("BATTLE")
+                                .font(Design.Fonts.mono(7, weight: .bold))
                                 .foregroundStyle(Design.Colors.bobaCyan)
                         }
                     }
@@ -461,11 +461,11 @@ private struct RookieBattleScenario: View {
 
             HStack(alignment: .bottom) {
                 Spacer()
-                MiniCardView(imageFile: "2_Showtime_Ice_P135.webp",       hero: "Showtime",   power: 135, element: "ICE",  outcome: .win)
+                MiniCardView(imageFile: "2-Showtime-Base_Set-First_Edition.webp",       hero: "Showtime",   power: 135, element: "ICE",  outcome: .win)
                 Spacer()
                 vsLabel
                 Spacer()
-                MiniCardView(imageFile: "96_Kettle-Bell_ICE_P110.webp",   hero: "Kettle-Bell", power: 110, element: "ICE", outcome: .lose)
+                MiniCardView(imageFile: "96-Kettle-Bell-Base_Set-First_Edition.webp",   hero: "Kettle-Bell", power: 110, element: "ICE", outcome: .lose)
                 Spacer()
             }
 
@@ -486,11 +486,11 @@ private struct SubstitutionScenario: View {
             phaseLabel("① REVEAL")
             HStack(alignment: .bottom) {
                 Spacer()
-                MiniCardView(imageFile: "6_Matata_Steel_P130.webp",    hero: "Matata", power: 130, element: "STEEL", outcome: .neutral)
+                MiniCardView(imageFile: "6-Matata-Base_Set-First_Edition.webp",    hero: "Matata", power: 130, element: "STEEL", outcome: .neutral)
                 Spacer()
                 vsLabel
                 Spacer()
-                MiniCardView(imageFile: "175_D-Hop_Steel_P85.webp",    hero: "D-Hop",  power: 85,  element: "STEEL", outcome: .lose)
+                MiniCardView(imageFile: "175-D-Hop-Base_Set-First_Edition.webp",    hero: "D-Hop",  power: 85,  element: "STEEL", outcome: .lose)
                 Spacer()
             }
 
@@ -500,11 +500,11 @@ private struct SubstitutionScenario: View {
             phaseLabel("④ RESOLVE")
             HStack(alignment: .bottom) {
                 Spacer()
-                MiniCardView(imageFile: "6_Matata_Steel_P130.webp",  hero: "Matata",  power: 130, element: "STEEL", outcome: .lose)
+                MiniCardView(imageFile: "6-Matata-Base_Set-First_Edition.webp",  hero: "Matata",  power: 130, element: "STEEL", outcome: .lose)
                 Spacer()
                 vsLabel
                 Spacer()
-                MiniCardView(imageFile: "1_LeBoss_Fire_P135.webp",   hero: "LeBoss",  power: 135, element: "FIRE",  outcome: .win)
+                MiniCardView(imageFile: "1-LeBoss-Base_Set-First_Edition.webp",   hero: "LeBoss",  power: 135, element: "FIRE",  outcome: .win)
                 Spacer()
             }
 
@@ -525,11 +525,11 @@ private struct PlaymakerScenario: View {
             phaseLabel("① REVEAL")
             HStack(alignment: .bottom) {
                 Spacer()
-                MiniCardView(imageFile: "185_Crosbow_BRAWL_P120.webp", hero: "Crosbow", power: 120, element: "BRAWL", outcome: .lose)
+                MiniCardView(imageFile: "185-Crosbow-Base_Set-First_Edition.webp", hero: "Crosbow", power: 120, element: "BRAWL", outcome: .lose)
                 Spacer()
                 vsLabel
                 Spacer()
-                MiniCardView(imageFile: "24_Caliber_STEEL_P135.webp",  hero: "Caliber", power: 135, element: "STEEL", outcome: .win)
+                MiniCardView(imageFile: "24-Caliber-Base_Set-First_Edition.webp",  hero: "Caliber", power: 135, element: "STEEL", outcome: .win)
                 Spacer()
             }
 
@@ -575,7 +575,7 @@ private struct PlaymakerScenario: View {
             HStack(alignment: .bottom) {
                 Spacer()
                 VStack(spacing: 5) {
-                    AsyncImage(url: CDN.thumb(for: "185_Crosbow_BRAWL_P120.webp")) { phase in
+                    AsyncImage(url: CDN.thumb(for: "185-Crosbow-Base_Set-First_Edition.webp")) { phase in
                         if case .success(let img) = phase { img.resizable().aspectRatio(contentMode: .fill) }
                         else { RoundedRectangle(cornerRadius: 8).fill(Design.Colors.glass) }
                     }
@@ -596,7 +596,7 @@ private struct PlaymakerScenario: View {
                 Spacer()
                 vsLabel
                 Spacer()
-                MiniCardView(imageFile: "24_Caliber_STEEL_P135.webp", hero: "Caliber", power: 135, element: "STEEL", outcome: .lose)
+                MiniCardView(imageFile: "24-Caliber-Base_Set-First_Edition.webp", hero: "Caliber", power: 135, element: "STEEL", outcome: .lose)
                 Spacer()
             }
 
@@ -898,9 +898,9 @@ private struct StrategyBullet: View {
 
 private struct PowerCurveSection: View {
     private let tiers: [(label: String, range: String, file: String, hero: String, power: Int, el: String, color: Color)] = [
-        ("LOW",  "85–115\nPosition wisely",  "175_D-Hop_Steel_P85.webp",      "D-Hop",   85,  "STEEL", Color(hex: "8A9BB0")),
-        ("MID",  "120–155\nConsistency",     "185_Crosbow_BRAWL_P120.webp",   "Crosbow", 120, "BRAWL", Color(hex: "C0392B")),
-        ("HIGH", "160+\nSave for clutch",    "1_LeBoss_Fire_P135.webp",       "LeBoss",  135, "FIRE",  Design.Colors.bobaOrange),
+        ("LOW",  "85–115\nPosition wisely",  "175-D-Hop-Base_Set-First_Edition.webp",      "D-Hop",   85,  "STEEL", Color(hex: "8A9BB0")),
+        ("MID",  "120–155\nConsistency",     "185-Crosbow-Base_Set-First_Edition.webp",   "Crosbow", 120, "BRAWL", Color(hex: "C0392B")),
+        ("HIGH", "160+\nSave for clutch",    "1-LeBoss-Base_Set-First_Edition.webp",       "LeBoss",  135, "FIRE",  Design.Colors.bobaOrange),
     ]
 
     var body: some View {

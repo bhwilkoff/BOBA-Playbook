@@ -35,7 +35,7 @@ struct PracticeSetupView: View {
 
                     // ── Start button ────────────────────────────────────────
                     Button {
-                        store.startMatch(allCards: cardStore.cards)
+                        store.startMatch(allCards: cardStore.displayCards)
                         showPlaymat = true
                     } label: {
                         HStack {

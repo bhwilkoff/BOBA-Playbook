@@ -287,24 +287,25 @@ struct CardDetailView: View {
     private var cardInfoPanel: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.lg) {
 
-            // Name + badges row
+            // Name + primary stat row
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: Design.Spacing.xs) {
-                    Text(card.name)
+                    Text(card.displayName)
                         .font(Design.Fonts.display(22))
                         .foregroundStyle(Design.Colors.textPrimary)
-                    if let variation = card.variation, !variation.isEmpty {
+                    if let variation = card.variation, !variation.isEmpty, variation != card.displayName {
                         Text(variation)
                             .font(Design.Fonts.mono(13))
                             .foregroundStyle(Design.Colors.textSecondary)
-                    } else if card.hero != card.name {
+                    } else if card.isHero, card.hero != card.name {
                         Text(card.hero)
                             .font(Design.Fonts.mono(13))
                             .foregroundStyle(Design.Colors.textSecondary)
                     }
                 }
                 Spacer()
-                if let power = card.power {
+                // Power — Hero cards only (power 0 on Play/HotDog is meaningless)
+                if card.isHero, let power = card.power, power > 0 {
                     VStack(spacing: 0) {
                         Text("\(power)")
                             .font(Design.Fonts.arena(36))
@@ -314,12 +315,28 @@ struct CardDetailView: View {
                             .foregroundStyle(Design.Colors.textMuted)
                             .tracking(1.5)
                     }
+                } else if card.isPlay, let cost = card.playCost {
+                    VStack(spacing: 0) {
+                        Text(cost == 0 ? "FREE" : "\(cost)")
+                            .font(Design.Fonts.arena(36))
+                            .foregroundStyle(cost == 0 ? Color(hex: "7ecb82") : Design.Colors.bobaCyan)
+                        Text(cost == 0 ? "COST" : "HOT DOG\(cost == 1 ? "" : "S")")
+                            .font(Design.Fonts.mono(9))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .tracking(1.5)
+                    }
                 }
             }
 
             // Badge row
             HStack(spacing: Design.Spacing.sm) {
-                elementBadge
+                if card.isHero {
+                    elementBadge
+                } else if card.isPlay {
+                    playTypeBadge
+                } else if card.isHotDog {
+                    hotDogBadge
+                }
                 if let treatment = card.treatment, !treatment.isEmpty {
                     treatmentBadge(treatment)
                 }
@@ -334,7 +351,13 @@ struct CardDetailView: View {
                 spacing: Design.Spacing.sm
             ) {
                 statCell(label: "Card #",   value: card.cardNumber)
-                statCell(label: "Element",  value: card.element, color: Design.Colors.element(card.element))
+                if card.isHero {
+                    statCell(label: "Element",  value: card.element, color: Design.Colors.element(card.element))
+                }
+                if card.isPlay, let cost = card.playCost {
+                    statCell(label: "Cost", value: cost == 0 ? "FREE" : "\(cost) Hot Dog\(cost == 1 ? "" : "s")",
+                             color: cost == 0 ? Color(hex: "7ecb82") : Design.Colors.bobaCyan)
+                }
                 statCell(label: "Set",      value: card.set)
                 statCell(label: "Type",     value: card.cardType)
                 if !card.isSealed {
@@ -616,6 +639,36 @@ struct CardDetailView: View {
                     .fill(Design.Colors.element(card.element).opacity(0.15))
                     .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
                         .strokeBorder(Design.Colors.element(card.element).opacity(0.45), lineWidth: 1))
+            )
+    }
+
+    private var playTypeBadge: some View {
+        let isBonus = card.isBonusPlay == true
+        let color = isBonus ? Design.Colors.bobaCyan : Design.Colors.bobaViolet
+        return Text(isBonus ? "BONUS PLAY" : "PLAY CARD")
+            .font(Design.Fonts.mono(10, weight: .bold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 10)
+            .frame(height: 28)
+            .background(
+                RoundedRectangle(cornerRadius: Design.Radius.sm)
+                    .fill(color.opacity(0.12))
+                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                        .strokeBorder(color.opacity(0.35), lineWidth: 1))
+            )
+    }
+
+    private var hotDogBadge: some View {
+        Text("HOT DOG")
+            .font(Design.Fonts.mono(10, weight: .bold))
+            .foregroundStyle(Color(hex: "7ecb82"))
+            .padding(.horizontal, 10)
+            .frame(height: 28)
+            .background(
+                RoundedRectangle(cornerRadius: Design.Radius.sm)
+                    .fill(Color(hex: "4CAF50").opacity(0.12))
+                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                        .strokeBorder(Color(hex: "4CAF50").opacity(0.35), lineWidth: 1))
             )
     }
 

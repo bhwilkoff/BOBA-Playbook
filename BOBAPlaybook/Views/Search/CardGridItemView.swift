@@ -12,7 +12,7 @@ struct CardGridItemView: View {
 
             // Bottom info strip
             VStack(alignment: .leading, spacing: 2) {
-                Text(card.name)
+                Text(card.displayName)
                     .font(Design.Fonts.display(11))
                     .foregroundStyle(Design.Colors.textPrimary)
                     .lineLimit(1)
@@ -37,9 +37,9 @@ struct CardGridItemView: View {
                                 .foregroundStyle(Design.Colors.textSecondary)
                         }
                     }
-                } else {
+                } else if card.isHero {
                     HStack(spacing: Design.Spacing.xs) {
-                        // Element pill
+                        // Element pill — Hero cards only
                         Text(card.element)
                             .font(Design.Fonts.mono(9, weight: .bold))
                             .foregroundStyle(Design.Colors.element(card.element))
@@ -51,12 +51,45 @@ struct CardGridItemView: View {
                                     .overlay(Capsule().strokeBorder(Design.Colors.element(card.element).opacity(0.4), lineWidth: 0.5))
                             )
                         Spacer()
-                        // Power
-                        if let power = card.power {
+                        if let power = card.power, power > 0 {
                             Text("\(power)")
                                 .font(Design.Fonts.mono(11, weight: .bold))
                                 .foregroundStyle(Design.Colors.element(card.element))
                         }
+                    }
+                } else if card.isPlay {
+                    HStack(spacing: Design.Spacing.xs) {
+                        // Play type badge
+                        Text(card.isBonusPlay == true ? "BONUS" : "PLAY")
+                            .font(Design.Fonts.mono(9, weight: .bold))
+                            .foregroundStyle(card.isBonusPlay == true ? Design.Colors.bobaCyan : Design.Colors.bobaViolet)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule()
+                                    .fill((card.isBonusPlay == true ? Design.Colors.bobaCyan : Design.Colors.bobaViolet).opacity(0.12))
+                                    .overlay(Capsule().strokeBorder((card.isBonusPlay == true ? Design.Colors.bobaCyan : Design.Colors.bobaViolet).opacity(0.3), lineWidth: 0.5))
+                            )
+                        Spacer()
+                        if let label = card.playCostLabel {
+                            Text(label)
+                                .font(Design.Fonts.mono(10, weight: .bold))
+                                .foregroundStyle(card.playCost == 0 ? Color(hex: "7ecb82") : Design.Colors.bobaCyan)
+                        }
+                    }
+                } else if card.isHotDog {
+                    HStack(spacing: Design.Spacing.xs) {
+                        Text("HOT DOG")
+                            .font(Design.Fonts.mono(9, weight: .bold))
+                            .foregroundStyle(Color(hex: "7ecb82"))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule()
+                                    .fill(Color(hex: "4CAF50").opacity(0.12))
+                                    .overlay(Capsule().strokeBorder(Color(hex: "4CAF50").opacity(0.3), lineWidth: 0.5))
+                            )
+                        Spacer()
                     }
                 }
             }

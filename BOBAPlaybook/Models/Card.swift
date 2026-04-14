@@ -13,6 +13,7 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
     let element: String       // "NONE" for sealed products
     let power: Int?
     let playCost: Int?
+    let isBonusPlay: Bool?
     let playAbility: String?
     let athleteInspiration: String?
     let isInspiredInk: Bool
@@ -33,7 +34,27 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
     let caseQuantity: Int?
     let ebaySearchQuery: String?
 
-    var isSealed: Bool { cardType == "Sealed Product" }
+    var isSealed:  Bool { cardType == "Sealed Product" }
+    var isHero:    Bool { cardType == "Hero" }
+    var isPlay:    Bool { cardType == "Play" }
+    var isHotDog:  Bool { cardType == "HotDog" }
+
+    /// Display name: for non-Hero cards whose name/hero is non-ASCII (e.g. Japanese "怪獣焼き"),
+    /// fall back to the variation field which holds the readable English name.
+    var displayName: String {
+        guard !isHero else { return name }
+        let raw = name
+        let hasNonASCII = raw.unicodeScalars.contains { $0.value > 127 }
+        if hasNonASCII, let v = variation, v.unicodeScalars.allSatisfy({ $0.value <= 127 }) {
+            return v
+        }
+        return raw
+    }
+
+    var playCostLabel: String? {
+        guard let cost = playCost else { return nil }
+        return cost == 0 ? "FREE" : "\(cost) HD"
+    }
 
     // Rarity derived from treatment field
     var rarityTier: Int {
@@ -86,6 +107,7 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
         } else {
             playCost = nil
         }
+        isBonusPlay        = try c.decodeIfPresent(Bool.self,       forKey: .isBonusPlay)
         playAbility        = try c.decodeIfPresent(String.self,    forKey: .playAbility)
         athleteInspiration = try c.decodeIfPresent(String.self,    forKey: .athleteInspiration)
         isInspiredInk      = try c.decodeIfPresent(Bool.self,      forKey: .isInspiredInk) ?? false

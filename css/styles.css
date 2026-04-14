@@ -774,6 +774,46 @@ main {
 .element-badge[data-element="ALT"]    { background: var(--el-ALT);    color: #000; }
 .element-badge[data-element="SEALED"] { background: var(--boba-orange); color: #fff; }
 
+/* Card-type badges for Play and Hot Dog cards */
+.card-type-badge {
+  display: inline-block; padding: 2px 7px;
+  border-radius: 4px;
+  font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.6;
+}
+.play-badge   { background: rgba(139,0,255,0.18); color: #b36bff; border: 1px solid rgba(139,0,255,0.3); }
+.bonus-badge  { background: rgba(0,245,255,0.12); color: #00c8d4; border: 1px solid rgba(0,245,255,0.25); }
+.hotdog-badge { background: rgba(76,175,80,0.15); color: #7ecb82; border: 1px solid rgba(76,175,80,0.3); }
+.play-cost {
+  font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700;
+  color: var(--boba-cyan);
+}
+.play-cost.free { color: #7ecb82; }
+/* Modal play-cost display (mirrors .modal-power-display) */
+.modal-cost-display {
+  display: flex; align-items: baseline; gap: 8px; margin: 2px 0;
+}
+.cost-label-txt {
+  font-family: var(--font-mono); font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.1em; color: var(--boba-text-3); text-transform: uppercase;
+}
+.cost-number {
+  font-family: var(--font-display); font-size: 2rem; font-weight: 700; line-height: 1;
+  color: var(--boba-cyan);
+}
+.cost-number.free { color: #7ecb82; }
+.cost-unit {
+  font-family: var(--font-mono); font-size: 0.75rem; color: var(--boba-text-3);
+}
+/* Hot Dog modal header */
+.modal-hotdog-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: 6px;
+  background: rgba(76,175,80,0.10); border: 1px solid rgba(76,175,80,0.25);
+  font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.08em; color: #7ecb82; text-transform: uppercase;
+}
+
 /* ================================================================
    MISSING IMAGE PLACEHOLDER
 ================================================================ */

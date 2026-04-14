@@ -369,24 +369,16 @@ function dbRender(allCards) {
 }
 
 function initDeckBuilder(allCards) {
-  const modal = $('deck-builder-modal');
-  if (!modal) return;
+  const view = $('view-decks');
+  if (!view) return;
 
   dbRenderTemplates();
   dbRender(allCards);
 
-  // Open / Close
-  $('btn-open-deck-builder')?.addEventListener('click', () => {
-    modal.hidden = false;
-    dbRender(allCards);
-  });
-  $('btn-close-deck-builder')?.addEventListener('click', () => { modal.hidden = true; });
-  modal.addEventListener('click', e => { if (e.target === modal) modal.hidden = true; });
-
   // Format pills
-  modal.querySelectorAll('.db-format-btn').forEach(btn => {
+  view.querySelectorAll('.db-format-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      modal.querySelectorAll('.db-format-btn').forEach(b => b.classList.remove('active'));
+      view.querySelectorAll('.db-format-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       DB.format = btn.dataset.format;
       dbRender(allCards);
@@ -394,9 +386,9 @@ function initDeckBuilder(allCards) {
   });
 
   // Browser tabs
-  modal.querySelectorAll('.db-btab').forEach(btn => {
+  view.querySelectorAll('.db-btab').forEach(btn => {
     btn.addEventListener('click', () => {
-      modal.querySelectorAll('.db-btab').forEach(b => b.classList.remove('active'));
+      view.querySelectorAll('.db-btab').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       DB.browserTab = btn.dataset.btype;
       dbRenderGrid(allCards);
@@ -452,7 +444,7 @@ function initDeckBuilder(allCards) {
   });
 
   // Deck list remove buttons (event delegation)
-  modal.addEventListener('click', e => {
+  view.addEventListener('click', e => {
     const btn = e.target.closest('.db-card-row-remove');
     if (!btn) return;
     DB.removeCard(btn.dataset.remove, btn.dataset.section);
@@ -484,7 +476,7 @@ function initDeckBuilder(allCards) {
       if (!tpl) return;
       DB.clear();
       DB.format = 'playmaker';
-      modal.querySelectorAll('.db-format-btn').forEach(b => b.classList.toggle('active', b.dataset.format === 'playmaker'));
+      view.querySelectorAll('.db-format-btn').forEach(b => b.classList.toggle('active', b.dataset.format === 'playmaker'));
       DB.deckName = meta.name;
       DB.heroes    = tpl.heroIds.map(id => byId[id]).filter(Boolean);
       DB.plays     = tpl.playIds.map(id => byId[id]).filter(Boolean);
@@ -641,7 +633,7 @@ function initDeckBuilder(allCards) {
         const nameEl = $('db-deck-name');
         if (nameEl) nameEl.value = deckName;
         // Set format button
-        document.querySelectorAll('#deck-builder-modal .db-format-btn').forEach(b => {
+        document.querySelectorAll('#view-decks .db-format-btn').forEach(b => {
           b.classList.toggle('active', b.dataset.format === deckFormat);
         });
         const byBobaId = {};
@@ -1078,7 +1070,7 @@ function pmBuildPlaymatHTML() {
     `<div class="pm-hd-pip available" data-pip="${i}"></div>`).join('');
 
   const xoxoSvg = `<svg class="pm-icon pm-icon-lg" style="color:#FF4D00"><use href="#icon-xoxo"/></svg>`;
-  const hdIcon  = `<svg class="pm-icon"><use href="#icon-hotdog"/></svg>`;
+  const hdIcon  = `<svg class="pm-icon" style="color:#4CAF50"><use href="#icon-hotdog"/></svg>`;
 
   return `
   <!-- TOP BAR -->
@@ -1452,14 +1444,12 @@ function pmUpdateAll() {
 // ── Init (event listeners attached once per session) ────────────
 
 function pmExitPlaymat() {
-  const modal  = $('practice-modal');
-  const setup  = $('practice-setup');
-  const mat    = $('practice-playmat');
-  if (modal) modal.classList.remove('playmat-mode');
+  const view  = $('view-practice');
+  const setup = $('practice-setup');
+  const mat   = $('practice-playmat');
+  if (view)  view.classList.remove('playmat-mode');
   if (setup) setup.hidden = false;
   if (mat)   mat.hidden = true;
-  const header = modal?.querySelector('.play-modal-header');
-  if (header) header.hidden = false;
 }
 
 // Show a popup for a play card so the user can read the effect before deciding to play
@@ -1569,22 +1559,11 @@ function pmInitPlaymat() {
 }
 
 function initPractice(allCards) {
-  const modal = $('practice-modal');
-  if (!modal) return;
-
-  $('btn-open-practice')?.addEventListener('click', () => {
-    modal.hidden = false;
-    $('practice-setup').hidden = false;
-    $('practice-playmat').hidden = true;
-    modal.classList.remove('playmat-mode');
-    const hdr = modal.querySelector('.play-modal-header');
-    if (hdr) hdr.hidden = false;
-  });
-  $('btn-close-practice')?.addEventListener('click', () => { modal.hidden = true; });
-  modal.addEventListener('click', e => { if (e.target === modal) modal.hidden = true; });
+  const view = $('view-practice');
+  if (!view) return;
 
   // Mode radio
-  modal.querySelectorAll('input[name="practice-mode"]').forEach(radio => {
+  view.querySelectorAll('input[name="practice-mode"]').forEach(radio => {
     radio.addEventListener('change', e => { PM.mode = e.target.value; });
   });
 
@@ -1598,7 +1577,7 @@ function initPractice(allCards) {
 
   // Start
   $('btn-start-practice')?.addEventListener('click', () => {
-    const checked = modal.querySelector('input[name="practice-mode"]:checked');
+    const checked = view.querySelector('input[name="practice-mode"]:checked');
     PM.mode = checked ? checked.value : 'playmaker';
 
     // Build playmat HTML once
@@ -1612,11 +1591,9 @@ function initPractice(allCards) {
 
     // Switch to playmat view
     const setup = $('practice-setup');
-    const hdr   = modal.querySelector('.play-modal-header');
     if (setup) setup.hidden = true;
-    if (hdr)   hdr.hidden = true;
     if (mat)   mat.hidden = false;
-    modal.classList.add('playmat-mode');
+    view.classList.add('playmat-mode');
 
     pmInitPlaymat();
     pmUpdateAll();

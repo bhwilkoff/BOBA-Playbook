@@ -757,6 +757,21 @@ function shuffle(arr) {
   return arr;
 }
 
+// Detect if a play card recovers hot dogs; returns number to restore (0 = no recovery)
+function pmDetectHDRecovery(card) {
+  const text = ((card.playAbility || '') + ' ' + (card.description || '')).toLowerCase();
+  if (!text.includes('hot dog') && !text.includes('hotdog')) return 0;
+  const m = text.match(/(?:return|recover|gain|get|add|take back|retrieve)\s+(\d+|one|two|three)\s+hot\s*dog/i);
+  if (m) {
+    const vals = { 'one': 1, 'two': 2, 'three': 3 };
+    const n = vals[m[1].toLowerCase()] ?? parseInt(m[1]);
+    return isNaN(n) ? 1 : n;
+  }
+  // Fallback: any text about returning/gaining hot dogs
+  if (/(?:return|recover|gain|take back|retrieve)\b/.test(text)) return 1;
+  return 0;
+}
+
 function pmElementColor(el) {
   const map = {
     FIRE: '#FF4D00', ICE: '#00BFFF', HEX: '#8B00FF', STEEL: '#8A9BB0',
@@ -841,9 +856,9 @@ const PM = {
     const plays = allCards.filter(c => c.cardType === 'Play');
     const shuffledPlays = shuffle([...plays]);
     this.playerPlayHand = shuffledPlays.slice(0, 5);
-    this.playerPlayDeck = shuffledPlays.slice(5);
+    this.playerPlayDeck = shuffledPlays.slice(5, 30); // 30-card playbook: 5 in hand + 25 in deck
     this.playerDiscard  = [];
-    this.playerHeroDeckCount = Math.max(0, heroPool.length - 26);
+    this.playerHeroDeckCount = 47; // 60-card hero deck minus 13 dealt (7 battles + 6 bench)
   },
 
   advance() {
@@ -927,10 +942,16 @@ const PM = {
     if (this.playerHD < cost) return false;
 
     this.playerHD -= cost;
-    // Simplified effect: playing a card gives a power bonus this battle
+    const hdRecovery = pmDetectHDRecovery(card);
     const b = this.battles[this.currentBattle];
-    b.playerEffectPower = (b.playerEffectPower || 0) + (cost * 6 + 5);
-    b.playerPlaysPlayed.push(card);
+    if (hdRecovery > 0) {
+      // Recovery play: restore hot dogs instead of power bonus
+      this.playerHD = Math.min(10, this.playerHD + hdRecovery);
+    } else if (b) {
+      // Tempo/boost play: give power bonus to current battle
+      b.playerEffectPower = (b.playerEffectPower || 0) + Math.max(5, cost * 6 + 5);
+    }
+    if (b) b.playerPlaysPlayed.push(card);
     this.playerPlayHand.splice(handIdx, 1);
     this.playerDiscard.push(card);
     return true;
@@ -1351,20 +1372,21 @@ function pmUpdatePlayerZone() {
     }).join('');
   }
 
-  // Play hand
+  // Play hand — tap to view popup, not immediate play
   const handEl = $('pm-hand-cards');
   if (handEl) {
     handEl.innerHTML = PM.playerPlayHand.map((card, idx) => {
-      const cost     = card.playCost || 0;
+      const cost      = card.playCost || 0;
       const canAfford = PM.playerHD >= cost;
-      const name     = (card.name || '').substring(0, 16);
-      const desc     = (card.description || '').substring(0, 90);
-      return `<div class="pm-play-card${!canAfford ? ' cannot-afford' : ''}" data-hand-idx="${idx}" title="${card.name||''}">
+      const name      = (card.name || '').substring(0, 14);
+      const imgUrl    = card.imageFile ? thumbUrl(card.imageFile) : null;
+      const imgHtml   = imgUrl ? `<img class="pm-pc-img" src="${imgUrl}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
+      return `<div class="pm-play-card${!canAfford ? ' cannot-afford' : ''}" data-hand-idx="${idx}" title="${card.name||''} — tap to view">
+        ${imgHtml}
         <div class="pm-pc-header">
           <span class="pm-pc-name">${name}</span>
           <span class="pm-pc-cost">${cost > 0 ? cost + 'HD' : 'FREE'}</span>
         </div>
-        <div class="pm-pc-effect">${desc || '—'}</div>
       </div>`;
     }).join('');
   }
@@ -1424,6 +1446,50 @@ function pmExitPlaymat() {
   if (header) header.hidden = false;
 }
 
+// Show a popup for a play card so the user can read the effect before deciding to play
+function pmShowPlayCardPopup(handIdx) {
+  const card = PM.playerPlayHand[handIdx];
+  if (!card) return;
+
+  // Remove any existing popup
+  document.getElementById('pm-play-popup')?.remove();
+
+  const cost       = card.playCost || 0;
+  const canAfford  = PM.playerHD >= cost;
+  const imgUrl     = card.imageFile ? thumbUrl(card.imageFile) : null;
+  const ability    = card.playAbility || card.description || '—';
+  const costLabel  = cost === 0 ? 'FREE' : `${cost} HD`;
+  const hdNote     = !canAfford ? ` <span style="color:#C0392B">(not enough HD)</span>` : '';
+
+  const popup = document.createElement('div');
+  popup.id = 'pm-play-popup';
+  popup.className = 'pm-play-popup';
+  popup.innerHTML = `
+    <div class="pm-play-popup-inner">
+      ${imgUrl ? `<img class="pm-play-popup-img" src="${imgUrl}" alt="${card.name||''}" onerror="this.style.display='none'">` : ''}
+      <div class="pm-play-popup-body">
+        <div class="pm-play-popup-name">${card.name || ''}</div>
+        <div class="pm-play-popup-cost">${costLabel}${hdNote}</div>
+        <div class="pm-play-popup-effect">${ability}</div>
+        <div class="pm-play-popup-actions">
+          <button class="pm-play-popup-cancel">Cancel</button>
+          <button class="pm-play-popup-play${!canAfford ? ' cannot-afford' : ''}"${!canAfford ? ' disabled' : ''}>
+            Play Card
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  popup.querySelector('.pm-play-popup-play').addEventListener('click', () => {
+    if (PM.playerPlayCard(handIdx)) { popup.remove(); pmUpdateAll(); }
+  });
+  popup.querySelector('.pm-play-popup-cancel').addEventListener('click', () => popup.remove());
+  popup.addEventListener('click', e => { if (e.target === popup) popup.remove(); });
+
+  const mat = $('practice-playmat');
+  if (mat) mat.appendChild(popup);
+}
+
 function pmInitPlaymat() {
   if (PM._initialized) return;
   PM._initialized = true;
@@ -1455,12 +1521,12 @@ function pmInitPlaymat() {
     if (PM.playerSub(PM.selectedBenchIdx)) pmUpdateAll();
   });
 
-  // Play card click — play it immediately (if affordable)
+  // Play card click — show detail popup first so user can read effect before playing
   $('pm-hand-cards')?.addEventListener('click', e => {
     const card = e.target.closest('.pm-play-card');
-    if (!card || PM.phase !== 'play') return;
+    if (!card) return;
     const idx = parseInt(card.dataset.handIdx);
-    if (PM.playerPlayCard(idx)) pmUpdateAll();
+    pmShowPlayCardPopup(idx);
   });
 
   // Done / advance button

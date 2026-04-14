@@ -21,6 +21,7 @@ struct PracticeView: View {
 
     var body: some View {
         GeometryReader { geo in
+            let portrait = geo.size.width < geo.size.height
             ZStack {
                 Design.Colors.nearBlack.ignoresSafeArea()
 
@@ -48,6 +49,26 @@ struct PracticeView: View {
                 // ── Phase Banner ─────────────────────────────────────────────
                 if store.phase == .reveal && !store.battles.isEmpty && !store.battles[store.currentBattle].isRevealed {
                     phaseBanner
+                }
+
+                // ── Portrait Orientation Prompt ───────────────────────────────
+                if portrait {
+                    ZStack {
+                        Color.black.opacity(0.93).ignoresSafeArea()
+                        VStack(spacing: Design.Spacing.xl) {
+                            Image(systemName: "rotate.right")
+                                .font(.system(size: 56))
+                                .foregroundStyle(Design.Colors.bobaOrange)
+                            Text("ROTATE TO PLAY")
+                                .font(Design.Fonts.display(28))
+                                .foregroundStyle(Design.Colors.textPrimary)
+                            Text("Practice Battle requires landscape orientation")
+                                .font(Design.Fonts.mono(13))
+                                .foregroundStyle(Design.Colors.textSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(Design.Spacing.xl)
+                    }
                 }
             }
         }

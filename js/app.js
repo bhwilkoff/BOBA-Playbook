@@ -1029,6 +1029,16 @@
 
   // Returns a shortened display label for treatments that are too long for ribbons/filters.
   // The raw treatment value is always used for data lookups and filter keys.
+  // For non-Hero cards whose name/hero contains non-ASCII (e.g. Japanese Kaiju Dog),
+  // fall back to the variation field which holds the readable English name.
+  function cardDisplayName(card) {
+    const raw = card.name || '';
+    if (card.cardType !== 'Hero' && /[^\x00-\x7F]/.test(raw) && card.variation && !/[^\x00-\x7F]/.test(card.variation)) {
+      return card.variation;
+    }
+    return raw;
+  }
+
   function displayTreatment(treatment) {
     if (!treatment) return treatment;
     const t = treatment.toLowerCase();
@@ -1265,11 +1275,16 @@
       </div>
       <div class="card-info">
         <div class="card-number">${escHtml(card.cardType === 'Sealed Product' ? card.set : card.cardNumber)}</div>
-        <div class="card-name">${escHtml(card.name)}</div>
+        <div class="card-name">${escHtml(cardDisplayName(card))}</div>
         <div class="card-meta">
           ${card.cardType === 'Sealed Product'
             ? `<span class="element-badge" data-element="SEALED">${escHtml(card.productType ? card.productType.replace(/-/g, ' ').toUpperCase() : 'SEALED')}</span>
                ${card.msrp ? `<span class="card-power">$${card.msrp.toFixed(2)}</span>` : ''}`
+            : card.cardType === 'Play'
+            ? `<span class="card-type-badge ${card.isBonusPlay ? 'bonus-badge' : 'play-badge'}">${card.isBonusPlay ? 'BONUS' : 'PLAY'}</span>
+               <span class="play-cost${card.playCost === 0 ? ' free' : ''}">${card.playCost === 0 ? 'FREE' : (card.playCost + ' HD')}</span>`
+            : card.cardType === 'HotDog'
+            ? `<span class="card-type-badge hotdog-badge">HOT DOG</span>`
             : `<span class="element-badge" data-element="${escHtml(card.element || 'NONE')}">${escHtml(card.element || 'NONE')}</span>
                <span class="card-power" aria-label="Power ${card.power}">P${escHtml(String(card.power))}</span>`
           }
@@ -1809,13 +1824,18 @@
          </div>`;
 
     // Build stat cells — grid layout
+    const isHero    = card.cardType === 'Hero';
+    const isPlay    = card.cardType === 'Play';
+    const isHotDog  = card.cardType === 'HotDog';
     const statDefs = [
-      { label: 'Element',   val: card.element && card.element !== 'NONE' ? card.element : null, full: false },
+      // Element only meaningful for Hero cards
+      isHero ? { label: 'Element', val: card.element && card.element !== 'NONE' ? card.element : null, full: false } : null,
+      isPlay ? { label: 'Cost',    val: card.playCost === 0 ? 'FREE' : `${card.playCost} Hot Dog${card.playCost !== 1 ? 's' : ''}`, full: false } : null,
       { label: 'Set',       val: card.set,       full: false },
       { label: 'Sub-Set',   val: card.subSet,     full: false },
       { label: 'Type',      val: card.cardType,   full: false },
       { label: 'Variation', val: card.variation,  full: false },
-    ].filter(s => s.val);
+    ].filter(s => s?.val);
     if (card.cardType !== 'Sealed Product') {
       statDefs.push({ label: 'Rarity', val: getCardRarity(card).label, full: false });
     }
@@ -1907,24 +1927,47 @@
       ? `<span class="treatment-banner ${treatmentClass}">${escHtml(displayTreatment(card.treatment))}</span>`
       : '';
 
+    // Badges and primary stat display differ by card type
+    const modalBadgesHtml = isHero
+      ? `<span class="element-badge element-badge-lg" data-element="${escHtml(element)}">${escHtml(element)}</span>
+         <span class="set-badge ${setClass}">${escHtml(card.set || 'Unknown')}</span>
+         ${treatmentBanner}`
+      : isPlay
+      ? `<span class="card-type-badge ${card.isBonusPlay ? 'bonus-badge' : 'play-badge'}" style="font-size:0.72rem;padding:4px 10px">${card.isBonusPlay ? 'BONUS PLAY' : 'PLAY CARD'}</span>
+         <span class="set-badge ${setClass}">${escHtml(card.set || 'Unknown')}</span>
+         ${treatmentBanner}`
+      : isHotDog
+      ? `<div class="modal-hotdog-header"><svg class="pm-icon" style="color:#7ecb82"><use href="#icon-hotdog"/></svg>HOT DOG CARD</div>
+         <span class="set-badge ${setClass}">${escHtml(card.set || 'Unknown')}</span>`
+      : `<span class="element-badge element-badge-lg" data-element="${escHtml(element)}">${escHtml(element)}</span>
+         <span class="set-badge ${setClass}">${escHtml(card.set || 'Unknown')}</span>
+         ${treatmentBanner}`;
+
+    const modalStatHtml = isHero
+      ? `<div class="modal-power-display">
+           <span class="power-label-txt">POWER</span>
+           <span class="power-number">${escHtml(String(card.power))}</span>
+         </div>`
+      : isPlay
+      ? `<div class="modal-cost-display">
+           <span class="cost-label-txt">COST</span>
+           <span class="cost-number${card.playCost === 0 ? ' free' : ''}">${card.playCost === 0 ? 'FREE' : card.playCost}</span>
+           ${card.playCost > 0 ? `<span class="cost-unit">Hot Dog${card.playCost !== 1 ? 's' : ''}</span>` : ''}
+         </div>`
+      : '';  // HotDog: no cost/power display
+
     return `
       <div class="modal-layout ${treatmentClass}" data-element="${escHtml(element)}">
         <div class="modal-art">${imgHtml}</div>
         <div class="modal-details">
           <div class="modal-badges">
-            <span class="element-badge element-badge-lg"
-                  data-element="${escHtml(element)}">${escHtml(element)}</span>
-            <span class="set-badge ${setClass}">${escHtml(card.set || 'Unknown')}</span>
-            ${treatmentBanner}
+            ${modalBadgesHtml}
           </div>
           <div>
-            <h2 class="modal-card-name" id="modal-card-name">${escHtml(card.name)}</h2>
+            <h2 class="modal-card-name" id="modal-card-name">${escHtml(cardDisplayName(card))}</h2>
             <div class="modal-card-number"># ${escHtml(card.cardNumber)}</div>
           </div>
-          <div class="modal-power-display">
-            <span class="power-label-txt">POWER</span>
-            <span class="power-number">${escHtml(String(card.power))}</span>
-          </div>
+          ${modalStatHtml}
           <div class="modal-stats" aria-label="Card stats">
             ${statCells}
           </div>

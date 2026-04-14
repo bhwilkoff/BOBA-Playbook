@@ -442,6 +442,19 @@ final class SupabaseClient {
         }
     }
 
+    func fetchDeckCards(deckId: UUID) async throws -> [(bobaId: String, cardType: String)] {
+        let url = try makeURL(path: "/rest/v1/deck_cards?deck_id=eq.\(deckId)&select=boba_id,card_type&order=sort_order.asc")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        struct Row: Decodable {
+            let bobaId: String
+            let cardType: String
+        }
+        let rows: [Row] = try await executeArray(request)
+        return rows.map { (bobaId: $0.bobaId, cardType: $0.cardType) }
+    }
+
     private func replaceDeckCards(deckId: UUID, store: DeckBuilderStore) async throws {
         // Delete existing cards
         let deleteURL = try makeURL(path: "/rest/v1/deck_cards?deck_id=eq.\(deckId)")

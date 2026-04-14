@@ -1462,24 +1462,33 @@ function pmShowPlayCardPopup(handIdx) {
 
   const cost       = card.playCost || 0;
   const canAfford  = PM.playerHD >= cost;
-  const imgUrl     = card.imageFile ? thumbUrl(card.imageFile) : null;
+  const imgUrl     = card.imageFile ? fullUrl(card.imageFile) : null;
   const ability    = card.playAbility || card.description || '—';
-  const costLabel  = cost === 0 ? 'FREE' : `${cost} HD`;
-  const hdNote     = !canAfford ? ` <span style="color:#C0392B">(not enough HD)</span>` : '';
+  const costLabel  = cost === 0 ? 'FREE' : `${cost} Hot Dog${cost !== 1 ? 's' : ''}`;
+  const affordClass = canAfford ? 'pm-play-popup-play' : 'pm-play-popup-play cannot-afford';
+  const element    = card.element || '';
 
   const popup = document.createElement('div');
   popup.id = 'pm-play-popup';
   popup.className = 'pm-play-popup';
   popup.innerHTML = `
     <div class="pm-play-popup-inner">
-      ${imgUrl ? `<img class="pm-play-popup-img" src="${imgUrl}" alt="${card.name||''}" onerror="this.style.display='none'">` : ''}
+      ${imgUrl ? `<div class="pm-play-popup-img-wrap"><img class="pm-play-popup-img" src="${imgUrl}" alt="${card.name||''}" onerror="this.parentElement.style.display='none'"></div>` : ''}
       <div class="pm-play-popup-body">
-        <div class="pm-play-popup-name">${card.name || ''}</div>
-        <div class="pm-play-popup-cost">${costLabel}${hdNote}</div>
+        <div class="pm-play-popup-header">
+          <div class="pm-play-popup-name">${card.name || ''}</div>
+          ${element ? `<div class="pm-play-popup-element" data-element="${element}">${element}</div>` : ''}
+        </div>
+        <div class="pm-play-popup-cost-row">
+          <span class="pm-play-popup-cost-pill${!canAfford ? ' cannot-afford' : ''}">${costLabel}</span>
+          ${!canAfford ? `<span class="pm-play-popup-afford-warn">Not enough Hot Dogs</span>` : ''}
+        </div>
+        <div class="pm-play-popup-divider"></div>
+        <div class="pm-play-popup-effect-label">EFFECT</div>
         <div class="pm-play-popup-effect">${ability}</div>
         <div class="pm-play-popup-actions">
           <button class="pm-play-popup-cancel">Cancel</button>
-          <button class="pm-play-popup-play${!canAfford ? ' cannot-afford' : ''}"${!canAfford ? ' disabled' : ''}>
+          <button class="${affordClass}"${!canAfford ? ' disabled' : ''}>
             Play Card
           </button>
         </div>

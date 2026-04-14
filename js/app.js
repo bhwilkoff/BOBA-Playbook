@@ -155,11 +155,13 @@
   /* ================================================================
      VIEW SYSTEM
   ================================================================ */
-  const viewIds = ['search', 'scan', 'rules', 'collection', 'profile'];
+  const viewIds = ['search', 'scan', 'rules', 'decks', 'practice', 'collection', 'profile'];
   const navBtnIds = {
     search:        'nav-search-btn',
     scan:          'nav-scan-btn',
     rules:         'nav-rules-btn',
+    decks:         'nav-decks-btn',
+    practice:      'nav-practice-btn',
     collection:    'nav-collection-btn',
     profile:       'nav-profile-btn',
   };
@@ -286,17 +288,12 @@
       btn.setAttribute('aria-current', active ? 'page' : 'false');
     });
     closeSidebar();
-    // Close any open play modals so sidebar navigation always works
-    const _dbModal = document.getElementById('deck-builder-modal');
-    const _pmModal = document.getElementById('practice-modal');
-    if (_dbModal && !_dbModal.hidden) _dbModal.hidden = true;
-    if (_pmModal && !_pmModal.hidden) _pmModal.hidden = true;
     if (name === 'scan') {
       initScanView();
     } else {
       teardownScan();
     }
-    if (name === 'rules') {
+    if (name === 'rules' || name === 'decks' || name === 'practice') {
       initPlayView();
     }
 
@@ -424,6 +421,10 @@
         browseToSearch('query', chip.dataset.browseValue);
       });
     });
+
+    // Play view launch buttons → navigate to full views
+    document.getElementById('btn-go-deck-builder')?.addEventListener('click', () => showView('decks'));
+    document.getElementById('btn-go-practice')?.addEventListener('click', () => showView('practice'));
   }
 
   /* ================================================================

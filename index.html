@@ -101,6 +101,27 @@
         </svg>
         <span>Play</span>
       </button>
+      <button class="sidebar-nav-item" id="nav-decks-btn" data-view="decks">
+        <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/>
+          <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/>
+          <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>
+        </svg>
+        <span>Deck Builder</span>
+      </button>
+      <button class="sidebar-nav-item" id="nav-practice-btn" data-view="practice">
+        <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/>
+          <line x1="13" x2="19" y1="19" y2="13"/>
+          <line x1="16" x2="20" y1="16" y2="20"/>
+          <line x1="19" x2="21" y1="21" y2="19"/>
+          <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/>
+          <line x1="5" x2="9" y1="14" y2="18"/>
+          <line x1="7" x2="4" y1="17" y2="20"/>
+          <line x1="3" x2="5" y1="19" y2="21"/>
+        </svg>
+        <span>Practice</span>
+      </button>
       <button class="sidebar-nav-item" id="nav-collection-btn" data-view="collection">
         <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="3" width="6" height="8" rx="1"/><rect x="9" y="3" width="6" height="8" rx="1"/><rect x="16" y="3" width="6" height="8" rx="1"/>
@@ -1403,21 +1424,17 @@
       </div><!-- /play-view -->
 
       <!-- Floating action buttons for Deck Builder and Practice -->
-      <div class="play-fabs" role="complementary" aria-label="Play tools">
-        <button class="play-fab play-fab-deck" id="btn-open-deck-builder"
-                aria-label="Open Deck Builder" title="Deck Builder">
-          <!-- Lucide "layers" icon -->
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <div class="play-launch-row">
+        <button class="play-launch-btn" id="btn-go-deck-builder">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/>
             <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/>
             <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>
           </svg>
-          <span>DECKS</span>
+          DECK BUILDER
         </button>
-        <button class="play-fab play-fab-practice" id="btn-open-practice"
-                aria-label="Open Practice Battle" title="Practice Battle">
-          <!-- Lucide "swords" icon -->
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <button class="play-launch-btn" id="btn-go-practice">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/>
             <line x1="13" x2="19" y1="19" y2="13"/>
             <line x1="16" x2="20" y1="16" y2="20"/>
@@ -1427,188 +1444,179 @@
             <line x1="7" x2="4" y1="17" y2="20"/>
             <line x1="3" x2="5" y1="19" y2="21"/>
           </svg>
-          <span>PRACTICE</span>
+          PRACTICE
         </button>
       </div>
     </section>
 
-    <!-- DECK BUILDER MODAL -->
-    <div id="deck-builder-modal" class="play-modal" hidden role="dialog" aria-label="Deck Builder" aria-modal="true">
-      <div class="play-modal-inner">
-        <div class="play-modal-header">
-          <h2 class="play-modal-title">DECK BUILDER</h2>
-          <button class="play-modal-close" id="btn-close-deck-builder" aria-label="Close deck builder">&times;</button>
+    <!-- DECK BUILDER VIEW -->
+    <section id="view-decks" class="view" hidden aria-label="Deck Builder">
+      <div class="view-tool-header">
+        <h2 class="view-tool-title">DECK BUILDER</h2>
+      </div>
+      <div class="deck-builder-body">
+        <!-- Format selector -->
+        <div class="db-formats" role="tablist" aria-label="Deck format">
+          <button class="db-format-btn active" data-format="playmaker" role="tab">Playmaker</button>
+          <button class="db-format-btn" data-format="substitution" role="tab">Substitution</button>
+          <button class="db-format-btn" data-format="rookie" role="tab">Rookie</button>
+          <button class="db-format-btn" data-format="limited" role="tab">Limited</button>
+          <button class="db-format-btn" data-format="spec" role="tab">SPEC</button>
         </div>
-        <div class="deck-builder-body">
-          <!-- Format selector -->
-          <div class="db-formats" role="tablist" aria-label="Deck format">
-            <button class="db-format-btn active" data-format="playmaker" role="tab">Playmaker</button>
-            <button class="db-format-btn" data-format="substitution" role="tab">Substitution</button>
-            <button class="db-format-btn" data-format="rookie" role="tab">Rookie</button>
-            <button class="db-format-btn" data-format="limited" role="tab">Limited</button>
-            <button class="db-format-btn" data-format="spec" role="tab">SPEC</button>
-          </div>
-          <!-- Stats bar -->
-          <div class="db-stats" id="db-stats-bar">
-            <span class="db-stat" id="db-stat-heroes">Heroes: 0/60</span>
-            <span class="db-stat" id="db-stat-plays">Plays: 0/30</span>
-            <span class="db-stat" id="db-stat-hotdogs">Hot Dogs: 0/10</span>
-            <span class="db-stat db-stat-legality" id="db-stat-legal">Build your deck</span>
-          </div>
-          <!-- Validation errors — shown above deck layout when deck is illegal -->
-          <div class="db-errors" id="db-errors" hidden>
-            <div class="db-errors-title">Fix to make deck legal:</div>
-          </div>
-          <div class="db-layout">
-            <!-- Card Browser -->
-            <div class="db-browser">
-              <div class="db-browser-tabs" role="tablist">
-                <button class="db-btab active" data-btype="hero">Heroes</button>
-                <button class="db-btab" data-btype="play">Plays</button>
-                <button class="db-btab" data-btype="bonus">Bonus</button>
-                <button class="db-btab" data-btype="hotdog">Hot Dogs</button>
-                <button class="db-quick-add-toggle" id="db-quick-add-toggle" title="Quick-add mode: click cards to add instantly without preview">Quick-Add</button>
-              </div>
-              <input type="search" class="db-search" id="db-search" placeholder="Search cards..." aria-label="Search cards">
-              <div class="db-grid" id="db-card-grid" role="list" aria-label="Available cards"></div>
-            </div>
-            <!-- Deck List -->
-            <div class="db-decklist">
-              <div class="db-decklist-header">
-                <input type="text" class="db-deck-name" id="db-deck-name" value="New Deck" aria-label="Deck name">
-                <button class="db-save-btn" id="db-save-btn" title="Save deck to your account (sign in required)" aria-label="Save deck">
-                  <!-- Lucide: save -->
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(76,175,80,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
-                    <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/>
-                    <path d="M7 3v4a1 1 0 0 0 1 1h7"/>
-                  </svg>
-                </button>
-                <button class="db-load-btn" id="db-load-btn" title="Load a saved deck" aria-label="Load saved deck">
-                  <!-- Lucide: folder-open -->
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(0,245,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>
-                  </svg>
-                </button>
-                <button class="db-clear-btn" id="db-clear-btn" title="Clear deck" aria-label="Clear deck">
-                  <!-- Lucide: trash-2 -->
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M10 11v6"/><path d="M14 11v6"/>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
-                    <path d="M3 6h18"/>
-                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                  </svg>
-                </button>
-                <button class="db-export-btn" id="db-export-btn" title="Export decklist">
-                  <!-- Lucide: download -->
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M12 15V3"/>
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <path d="m7 10 5 5 5-5"/>
-                  </svg>
-                </button>
-              </div>
-              <!-- Saved decks panel (shown when Load is clicked) -->
-              <div class="db-saved-decks-panel" id="db-saved-decks-panel" hidden>
-                <div class="db-saved-decks-title">SAVED DECKS</div>
-                <div class="db-saved-decks-list" id="db-saved-decks-list">
-                  <div class="db-saved-decks-empty">Loading…</div>
-                </div>
-              </div>
-              <div class="db-section" id="db-section-heroes">
-                <div class="db-section-title">HERO DECK (<span id="db-hero-count">0</span>/60)</div>
-                <div class="db-section-cards" id="db-heroes-list"></div>
-              </div>
-              <div class="db-section" id="db-section-plays">
-                <div class="db-section-title">PLAYS (<span id="db-play-count">0</span>/30)</div>
-                <div class="db-section-cards" id="db-plays-list"></div>
-              </div>
-              <div class="db-section db-section-hotdogs" id="db-section-hotdogs">
-                <div class="db-section-title">HOT DOGS (<span id="db-hd-count">0</span>/10)</div>
-                <div class="db-section-cards" id="db-hotdogs-list"></div>
-              </div>
-              <div class="db-section-templates">
-                <div class="db-section-title">STARTER TEMPLATES</div>
-                <div class="db-templates" id="db-templates"></div>
-              </div>
-              <!-- Export output -->
-              <div class="db-export-out" id="db-export-out" hidden>
-                <textarea class="db-export-text" id="db-export-text" readonly aria-label="Deck list export"></textarea>
-                <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
-                  <button class="db-copy-btn" id="db-copy-btn">Copy Text</button>
-                  <button class="db-copy-btn" id="db-csv-btn">Download CSV</button>
-                </div>
-              </div>
-            </div>
-          </div>
+        <!-- Stats bar -->
+        <div class="db-stats" id="db-stats-bar">
+          <span class="db-stat" id="db-stat-heroes">Heroes: 0/60</span>
+          <span class="db-stat" id="db-stat-plays">Plays: 0/30</span>
+          <span class="db-stat" id="db-stat-hotdogs">Hot Dogs: 0/10</span>
+          <span class="db-stat db-stat-legality" id="db-stat-legal">Build your deck</span>
         </div>
-        <!-- Card detail popup for interactive mode -->
-        <div class="db-card-popup" id="db-card-popup" hidden role="dialog" aria-label="Card detail" aria-modal="true">
-          <div class="db-card-popup-inner" id="db-card-popup-inner">
-            <div class="db-popup-img-wrap">
-              <img class="db-popup-img" id="db-popup-img" alt="" src="">
-              <div class="db-popup-img-placeholder" id="db-popup-placeholder"></div>
+        <!-- Validation errors — shown above deck layout when deck is illegal -->
+        <div class="db-errors" id="db-errors" hidden>
+          <div class="db-errors-title">Fix to make deck legal:</div>
+        </div>
+        <div class="db-layout">
+          <!-- Card Browser -->
+          <div class="db-browser">
+            <div class="db-browser-tabs" role="tablist">
+              <button class="db-btab active" data-btype="hero">Heroes</button>
+              <button class="db-btab" data-btype="play">Plays</button>
+              <button class="db-btab" data-btype="bonus">Bonus</button>
+              <button class="db-btab" data-btype="hotdog">Hot Dogs</button>
+              <button class="db-quick-add-toggle" id="db-quick-add-toggle" title="Quick-add mode: click cards to add instantly without preview">Quick-Add</button>
             </div>
-            <div class="db-popup-body">
-              <div class="db-popup-name" id="db-popup-name"></div>
-              <div class="db-popup-meta" id="db-popup-meta"></div>
-              <div class="db-popup-desc" id="db-popup-desc"></div>
-              <div class="db-popup-actions">
-                <button class="db-popup-add-btn" id="db-popup-add">Add to Deck</button>
-                <button class="db-popup-close-btn" id="db-popup-close">Close</button>
+            <input type="search" class="db-search" id="db-search" placeholder="Search cards..." aria-label="Search cards">
+            <div class="db-grid" id="db-card-grid" role="list" aria-label="Available cards"></div>
+          </div>
+          <!-- Deck List -->
+          <div class="db-decklist">
+            <div class="db-decklist-header">
+              <input type="text" class="db-deck-name" id="db-deck-name" value="New Deck" aria-label="Deck name">
+              <button class="db-save-btn" id="db-save-btn" title="Save deck to your account (sign in required)" aria-label="Save deck">
+                <!-- Lucide: save -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(76,175,80,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
+                  <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/>
+                  <path d="M7 3v4a1 1 0 0 0 1 1h7"/>
+                </svg>
+              </button>
+              <button class="db-load-btn" id="db-load-btn" title="Load a saved deck" aria-label="Load saved deck">
+                <!-- Lucide: folder-open -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(0,245,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>
+                </svg>
+              </button>
+              <button class="db-clear-btn" id="db-clear-btn" title="Clear deck" aria-label="Clear deck">
+                <!-- Lucide: trash-2 -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M10 11v6"/><path d="M14 11v6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                  <path d="M3 6h18"/>
+                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+              </button>
+              <button class="db-export-btn" id="db-export-btn" title="Export decklist">
+                <!-- Lucide: download -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 15V3"/>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <path d="m7 10 5 5 5-5"/>
+                </svg>
+              </button>
+            </div>
+            <!-- Saved decks panel (shown when Load is clicked) -->
+            <div class="db-saved-decks-panel" id="db-saved-decks-panel" hidden>
+              <div class="db-saved-decks-title">SAVED DECKS</div>
+              <div class="db-saved-decks-list" id="db-saved-decks-list">
+                <div class="db-saved-decks-empty">Loading…</div>
+              </div>
+            </div>
+            <div class="db-section" id="db-section-heroes">
+              <div class="db-section-title">HERO DECK (<span id="db-hero-count">0</span>/60)</div>
+              <div class="db-section-cards" id="db-heroes-list"></div>
+            </div>
+            <div class="db-section" id="db-section-plays">
+              <div class="db-section-title">PLAYS (<span id="db-play-count">0</span>/30)</div>
+              <div class="db-section-cards" id="db-plays-list"></div>
+            </div>
+            <div class="db-section db-section-hotdogs" id="db-section-hotdogs">
+              <div class="db-section-title">HOT DOGS (<span id="db-hd-count">0</span>/10)</div>
+              <div class="db-section-cards" id="db-hotdogs-list"></div>
+            </div>
+            <div class="db-section-templates">
+              <div class="db-section-title">STARTER TEMPLATES</div>
+              <div class="db-templates" id="db-templates"></div>
+            </div>
+            <!-- Export output -->
+            <div class="db-export-out" id="db-export-out" hidden>
+              <textarea class="db-export-text" id="db-export-text" readonly aria-label="Deck list export"></textarea>
+              <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+                <button class="db-copy-btn" id="db-copy-btn">Copy Text</button>
+                <button class="db-copy-btn" id="db-csv-btn">Download CSV</button>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+      <!-- Card detail popup for interactive mode -->
+      <div class="db-card-popup" id="db-card-popup" hidden role="dialog" aria-label="Card detail" aria-modal="true">
+        <div class="db-card-popup-inner" id="db-card-popup-inner">
+          <div class="db-popup-img-wrap">
+            <img class="db-popup-img" id="db-popup-img" alt="" src="">
+            <div class="db-popup-img-placeholder" id="db-popup-placeholder"></div>
+          </div>
+          <div class="db-popup-body">
+            <div class="db-popup-name" id="db-popup-name"></div>
+            <div class="db-popup-meta" id="db-popup-meta"></div>
+            <div class="db-popup-desc" id="db-popup-desc"></div>
+            <div class="db-popup-actions">
+              <button class="db-popup-add-btn" id="db-popup-add">Add to Deck</button>
+              <button class="db-popup-close-btn" id="db-popup-close">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <!-- PRACTICE MODAL -->
-    <div id="practice-modal" class="play-modal" hidden role="dialog" aria-label="Practice Battle" aria-modal="true">
-      <div class="play-modal-inner practice-modal-inner">
-        <div class="play-modal-header">
-          <h2 class="play-modal-title">PRACTICE BATTLE</h2>
-          <button class="play-modal-close" id="btn-close-practice" aria-label="Close practice">&times;</button>
+    <!-- PRACTICE VIEW -->
+    <section id="view-practice" class="view" hidden aria-label="Practice Battle">
+      <div id="practice-setup" class="practice-setup">
+        <!-- Mode selection -->
+        <div class="practice-section-label">GAME MODE</div>
+        <div class="practice-modes" role="radiogroup" aria-label="Game mode">
+          <label class="practice-mode-option">
+            <input type="radio" name="practice-mode" value="rookie">
+            <span class="practice-mode-card">
+              <span class="practice-mode-name">Rookie</span>
+              <span class="practice-mode-desc">Hero deck only — pure power comparison</span>
+            </span>
+          </label>
+          <label class="practice-mode-option">
+            <input type="radio" name="practice-mode" value="substitution">
+            <span class="practice-mode-card">
+              <span class="practice-mode-name">Substitution</span>
+              <span class="practice-mode-desc">Hero + Hot Dogs — swap heroes mid-battle</span>
+            </span>
+          </label>
+          <label class="practice-mode-option">
+            <input type="radio" name="practice-mode" value="playmaker" checked>
+            <span class="practice-mode-card">
+              <span class="practice-mode-name">Playmaker</span>
+              <span class="practice-mode-desc">Full game — subs + play cards (tournament standard)</span>
+            </span>
+          </label>
         </div>
-        <div id="practice-setup" class="practice-setup">
-          <!-- Mode selection -->
-          <div class="practice-section-label">GAME MODE</div>
-          <div class="practice-modes" role="radiogroup" aria-label="Game mode">
-            <label class="practice-mode-option">
-              <input type="radio" name="practice-mode" value="rookie">
-              <span class="practice-mode-card">
-                <span class="practice-mode-name">Rookie</span>
-                <span class="practice-mode-desc">Hero deck only — pure power comparison</span>
-              </span>
-            </label>
-            <label class="practice-mode-option">
-              <input type="radio" name="practice-mode" value="substitution">
-              <span class="practice-mode-card">
-                <span class="practice-mode-name">Substitution</span>
-                <span class="practice-mode-desc">Hero + Hot Dogs — swap heroes mid-battle</span>
-              </span>
-            </label>
-            <label class="practice-mode-option">
-              <input type="radio" name="practice-mode" value="playmaker" checked>
-              <span class="practice-mode-card">
-                <span class="practice-mode-name">Playmaker</span>
-                <span class="practice-mode-desc">Full game — subs + play cards (tournament standard)</span>
-              </span>
-            </label>
-          </div>
-          <div class="practice-section-label" style="margin-top:1.5rem">YOUR DECK</div>
-          <div class="practice-deck-choice" id="practice-player-deck">
-            <button class="practice-deck-btn active" data-deck="random">Random</button>
-            <button class="practice-deck-btn" data-deck="fire">Fire Aggro</button>
-            <button class="practice-deck-btn" data-deck="ice">Ice Control</button>
-            <button class="practice-deck-btn" data-deck="steel">Steel Wall</button>
-          </div>
-          <button class="practice-start-btn" id="btn-start-practice">START PRACTICE</button>
+        <div class="practice-section-label" style="margin-top:1.5rem">YOUR DECK</div>
+        <div class="practice-deck-choice" id="practice-player-deck">
+          <button class="practice-deck-btn active" data-deck="random">Random</button>
+          <button class="practice-deck-btn" data-deck="fire">Fire Aggro</button>
+          <button class="practice-deck-btn" data-deck="ice">Ice Control</button>
+          <button class="practice-deck-btn" data-deck="steel">Steel Wall</button>
         </div>
-        <!-- Playmat rendered here by practice.js -->
-        <div id="practice-playmat" class="practice-playmat" hidden></div>
+        <button class="practice-start-btn" id="btn-start-practice">START PRACTICE</button>
       </div>
-    </div>
+      <!-- Playmat rendered here by practice.js -->
+      <div id="practice-playmat" class="practice-playmat" hidden></div>
+    </section>
 
     <!-- SCAN VIEW — rendered by app.js -->
     <section id="view-scan" class="view" hidden aria-label="Scan">

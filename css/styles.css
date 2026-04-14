@@ -4786,116 +4786,67 @@ main {
 .dc-color-8 { color: #FAA61A; }
 
 /* ================================================================
-   PLAY FABS — Floating action buttons for Deck Builder + Practice
+   PLAY LAUNCH ROW — Inline launch buttons for Deck Builder + Practice
    ================================================================ */
 
-.play-fabs {
-  position: sticky;
-  bottom: 1.5rem;
+.play-launch-row {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 0 1.25rem;
-  pointer-events: none;
-  z-index: 50;
-  margin-top: -3rem;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem 0;
+  flex-wrap: wrap;
 }
-
-.play-fab {
-  pointer-events: all;
+.play-launch-btn {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 0.6rem 0.9rem;
-  border: none;
-  border-radius: 14px;
+  gap: 0.5rem;
+  background: rgba(255,77,0,0.12);
+  border: 1px solid rgba(255,77,0,0.35);
+  border-radius: 8px;
+  color: var(--boba-orange);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  padding: 0.65rem 1.1rem;
   cursor: pointer;
-  font-family: var(--font-mono, monospace);
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: background 0.15s, border-color 0.15s;
 }
-.play-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.6); }
-.play-fab:active { transform: translateY(0); }
-
-.play-fab-deck {
-  background: rgba(255,77,0,0.18);
-  border: 1.5px solid rgba(255,77,0,0.5);
-  color: #FF4D00;
+.play-launch-btn:hover {
+  background: rgba(255,77,0,0.2);
+  border-color: rgba(255,77,0,0.6);
 }
-.play-fab-deck:hover { background: rgba(255,77,0,0.28); }
-
-.play-fab-practice {
-  background: rgba(0,245,255,0.12);
-  border: 1.5px solid rgba(0,245,255,0.4);
-  color: #00F5FF;
-}
-.play-fab-practice:hover { background: rgba(0,245,255,0.2); }
-
-/* ================================================================
-   PLAY MODALS — Shared modal chrome for Deck Builder + Practice
-   ================================================================ */
-
-.play-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(8,8,16,0.85);
-  backdrop-filter: blur(8px);
-  padding: 1rem;
-}
-.play-modal[hidden] { display: none; }
-/* On desktop, offset modal so it doesn't overlap the sidebar */
-@media (min-width: 768px) {
-  .play-modal { left: var(--sidebar-w); }
-}
-
-.play-modal-inner {
-  background: var(--color-surface, #0D0D1A);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 16px;
-  width: 100%;
-  max-width: 900px;
-  max-height: 90dvh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-}
-
-.play-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
+.play-launch-btn svg {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
 }
-.play-modal-title {
-  font-size: 1.1rem;
-  font-family: var(--font-display, sans-serif);
-  color: var(--color-text, #fff);
+
+/* ── Deck Builder + Practice — full view headers ── */
+.view-tool-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.25rem 0.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+.view-tool-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  letter-spacing: 0.08em;
+  color: var(--boba-orange);
   margin: 0;
-  letter-spacing: 0.06em;
 }
-.play-modal-close {
-  background: none;
-  border: none;
-  color: rgba(255,255,255,0.4);
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-  line-height: 1;
-  transition: color 0.15s;
+
+#view-decks {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
-.play-modal-close:hover { color: #fff; }
+#view-decks .deck-builder-body {
+  flex: 1;
+  overflow: hidden;
+}
 
 /* ================================================================
    DECK BUILDER
@@ -5097,6 +5048,17 @@ main {
 .db-load-btn:hover { color: #00F5FF; background: rgba(0,245,255,0.08); border-color: rgba(0,245,255,0.25); }
 .db-save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* Override global "img, svg { display:block; max-width:100% }" for deck builder button icons.
+   Without this, SVGs in flex buttons collapse to 0 width because max-width:100% resolves
+   to 0 when the button has no explicit width. */
+.db-clear-btn svg, .db-export-btn svg, .db-save-btn svg, .db-load-btn svg {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
 /* Saved decks dropdown panel */
 .db-saved-decks-panel {
   background: rgba(13,13,26,0.98); border: 1px solid rgba(255,255,255,0.1);
@@ -5232,8 +5194,6 @@ main {
    PRACTICE SETUP
    ================================================================ */
 
-.practice-modal-inner { max-width: 600px; }
-
 .practice-setup { flex: 1; overflow-y: auto; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
 
 .practice-section-label {
@@ -5319,13 +5279,16 @@ main {
 }
 .practice-playmat[hidden] { display: none; }
 
-/* Full-screen when playmat is active — on mobile fills viewport;
-   on desktop (sidebar visible) fills the content area right of sidebar */
-#practice-modal.playmat-mode { padding: 0; align-items: stretch; justify-content: stretch; }
-#practice-modal.playmat-mode .play-modal-inner {
-  max-width: 100%; max-height: 100dvh; border-radius: 0; height: 100dvh; width: 100%;
+/* Practice view base layout */
+#view-practice {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
-#practice-modal.playmat-mode .play-modal-header { display: none; }
+
+/* Full-screen when playmat is active — practice-setup hides, playmat fills the view */
+#view-practice.playmat-mode { padding: 0; }
 
 /* ── Sprite icon utility ── */
 .pm-icon {

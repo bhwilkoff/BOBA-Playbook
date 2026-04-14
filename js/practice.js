@@ -1135,7 +1135,16 @@ function pmBuildPlaymatHTML() {
   <div class="pm-player-zone">
     <div class="pm-deck-stack">
       <div class="pm-deck-icon pm-hero-deck-icon">
-        <i data-lucide="swords" class="pm-icon" style="color:rgba(192,57,43,0.9)"></i>
+        <svg class="pm-icon" viewBox="0 0 24 24" fill="none" stroke="rgba(192,57,43,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/>
+          <line x1="13" x2="19" y1="19" y2="13"/>
+          <line x1="16" x2="20" y1="16" y2="20"/>
+          <line x1="19" x2="21" y1="21" y2="19"/>
+          <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/>
+          <line x1="5" x2="9" y1="14" y2="18"/>
+          <line x1="7" x2="4" y1="17" y2="20"/>
+          <line x1="3" x2="5" y1="19" y2="21"/>
+        </svg>
         <span class="pm-di-count" id="pm-hero-deck-count">—</span>
       </div>
       <span class="pm-deck-label">Heroes</span>
@@ -1275,7 +1284,12 @@ function pmRenderBattleSlotContent(slot, card, revealed, isOpp, battle) {
     return;
   }
   if (isOpp && !revealed) {
-    slot.innerHTML = `<svg width="22" height="30" viewBox="0 0 20 28" fill="none" aria-hidden="true"><rect x="1" y="1" width="18" height="26" rx="3" stroke="rgba(192,57,43,0.45)" stroke-width="1.5"/><line x1="10" y1="4" x2="10" y2="18" stroke="rgba(192,57,43,0.35)" stroke-width="1.2"/><line x1="4" y1="11" x2="16" y2="11" stroke="rgba(192,57,43,0.35)" stroke-width="1.2"/></svg>`;
+    // Card back: double-border design (classic TCG pattern, no crossing lines)
+    slot.innerHTML = `<svg width="22" height="30" viewBox="0 0 20 28" fill="none" aria-hidden="true">
+      <rect x="1" y="1" width="18" height="26" rx="3" fill="rgba(192,57,43,0.12)" stroke="rgba(192,57,43,0.5)" stroke-width="1.5"/>
+      <rect x="3.5" y="3.5" width="13" height="21" rx="1.5" stroke="rgba(192,57,43,0.28)" stroke-width="0.9"/>
+      <circle cx="10" cy="14" r="3.5" stroke="rgba(192,57,43,0.25)" stroke-width="0.9"/>
+    </svg>`;
     return;
   }
   const eff     = battle ? (isOpp ? (battle.cpuEffectPower||0) : (battle.playerEffectPower||0)) : 0;

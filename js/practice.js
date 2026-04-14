@@ -1099,10 +1099,10 @@ function pmBuildPlaymatHTML() {
     </div>
     <div class="pm-top-logo">${xoxoSvg}</div>
     <div class="pm-phase-area">
-      <div class="pm-phase-indicator" id="pm-phase-label"><svg class="pm-icon pm-phase-icon" id="pm-phase-icon"><use href="#icon-eye"/></svg>REVEAL</div>
-      <div class="pm-honors-badge" id="pm-honors"><svg class="pm-icon pm-icon-sm" style="color:#FFD700"><use href="#icon-star"/></svg> YOU HAVE HONORS</div>
+      <div class="pm-phase-indicator" id="pm-phase-label"><i data-lucide="eye" class="pm-icon pm-phase-icon" id="pm-phase-icon"></i>REVEAL</div>
+      <div class="pm-honors-badge" id="pm-honors"><i data-lucide="star" class="pm-icon pm-icon-sm" style="color:#FFD700"></i> YOU HAVE HONORS</div>
     </div>
-    <button class="pm-top-exit" id="pm-exit-btn" aria-label="Exit practice"><svg class="pm-icon"><use href="#icon-x"/></svg></button>
+    <button class="pm-top-exit" id="pm-exit-btn" aria-label="Exit practice"><i data-lucide="x" class="pm-icon"></i></button>
   </div>
 
   <!-- PLAY AREA -->
@@ -1135,7 +1135,7 @@ function pmBuildPlaymatHTML() {
   <div class="pm-player-zone">
     <div class="pm-deck-stack">
       <div class="pm-deck-icon pm-hero-deck-icon">
-        <svg class="pm-icon" style="color:rgba(192,57,43,0.9)"><use href="#icon-sword"/></svg>
+        <i data-lucide="swords" class="pm-icon" style="color:rgba(192,57,43,0.9)"></i>
         <span class="pm-di-count" id="pm-hero-deck-count">—</span>
       </div>
       <span class="pm-deck-label">Heroes</span>
@@ -1174,7 +1174,7 @@ function pmBuildPlaymatHTML() {
     <div class="pm-zone-divider"></div>
     <div class="pm-discard-stack">
       <div class="pm-deck-icon" style="border-style:dashed;background:transparent;opacity:0.4">
-        <svg class="pm-icon"><use href="#icon-discard"/></svg>
+        <i data-lucide="rotate-ccw" class="pm-icon" style="opacity:0.6"></i>
         <span class="pm-di-count" id="pm-discard-count">0</span>
       </div>
       <span class="pm-deck-label">Discard</span>
@@ -1219,14 +1219,15 @@ function pmSetRootClass() {
   };
 
   const phaseIcons = {
-    reveal: 'icon-eye', sub: 'icon-bolt', play: 'icon-cards',
-    resolution: 'icon-scale', cleanup: 'icon-cycle', over: 'icon-trophy',
+    reveal: 'eye', sub: 'zap', play: 'layers',
+    resolution: 'scale', cleanup: 'rotate-cw', over: 'trophy',
   };
 
   const phaseEl = $('pm-phase-label');
   if (phaseEl) {
-    const iconId = phaseIcons[PM.phase] || 'icon-eye';
-    phaseEl.innerHTML = `<svg class="pm-icon pm-phase-icon"><use href="#${iconId}"/></svg>${phaseNames[PM.phase] || PM.phase.toUpperCase()}`;
+    const iconName = phaseIcons[PM.phase] || 'eye';
+    phaseEl.innerHTML = `<i data-lucide="${iconName}" class="pm-icon pm-phase-icon"></i>${phaseNames[PM.phase] || PM.phase.toUpperCase()}`;
+    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [phaseEl] });
   }
 
   const doneBtn = $('pm-btn-done');
@@ -1236,7 +1237,8 @@ function pmSetRootClass() {
   const honorsEl = $('pm-honors');
   if (honorsEl) {
     const who = PM.honors === 'player' ? 'YOU HAVE HONORS' : 'CPU HAS HONORS';
-    honorsEl.innerHTML = `<svg class="pm-icon pm-icon-sm" style="color:#FFD700"><use href="#icon-star"/></svg> ${who}`;
+    honorsEl.innerHTML = `<i data-lucide="star" class="pm-icon pm-icon-sm" style="color:#FFD700"></i> ${who}`;
+    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [honorsEl] });
   }
 
   // Phase banner
@@ -1589,6 +1591,7 @@ function initPractice(allCards) {
     const mat = $('practice-playmat');
     if (mat && !PM._initialized) {
       mat.innerHTML = pmBuildPlaymatHTML();
+      if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [mat] });
     }
 
     PM.startMatch(allCards);

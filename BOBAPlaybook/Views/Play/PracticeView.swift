@@ -50,15 +50,17 @@ struct PracticeView: View {
                 if store.phase == .reveal && !store.battles.isEmpty && !store.battles[store.currentBattle].isRevealed {
                     phaseBanner
                 }
-
-                // ── Portrait Orientation Prompt ───────────────────────────────
+            }
+            // ── Portrait Orientation Prompt — overlaid on the full view ───────
+            .overlay {
                 if portrait {
                     ZStack {
                         Color.black.opacity(0.93).ignoresSafeArea()
                         VStack(spacing: Design.Spacing.xl) {
-                            Image(systemName: "rotate.right")
+                            Image(systemName: "iphone.gen3")
                                 .font(.system(size: 56))
                                 .foregroundStyle(Design.Colors.bobaOrange)
+                                .rotationEffect(.degrees(90))
                             Text("ROTATE TO PLAY")
                                 .font(Design.Fonts.display(28))
                                 .foregroundStyle(Design.Colors.textPrimary)
@@ -69,11 +71,13 @@ struct PracticeView: View {
                         }
                         .padding(Design.Spacing.xl)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
         }
-        .supportedInterfaceOrientations([.landscapeLeft, .landscapeRight])
         .ignoresSafeArea(.all, edges: .horizontal)
+        .onAppear { Task { @MainActor in OrientationManager.shared.lockLandscape() } }
+        .onDisappear { Task { @MainActor in OrientationManager.shared.lockPortrait() } }
         .alert("Exit Practice?", isPresented: $showExitConfirm) {
             Button("Exit", role: .destructive) { dismiss() }
             Button("Keep Playing", role: .cancel) {}

@@ -12,6 +12,14 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
     private var sceneObserver: Any?
 
+    // Pre-iOS-26 orientation gate: consult OrientationManager.
+    func application(
+        _ application: UIApplication,
+        supportedInterfaceOrientationsFor window: UIWindow?
+    ) -> UIInterfaceOrientationMask {
+        OrientationManager.shared.orientationMask
+    }
+
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil

@@ -268,23 +268,23 @@
             <div class="battle-flow-label">EACH BATTLE — ALL PHASES</div>
             <div class="battle-flow-steps">
               <div class="battle-step">
-                <div class="battle-step-num" style="background:var(--boba-orange)">1</div>
-                <div class="battle-step-name" style="color:var(--boba-orange)">REVEAL</div>
-                <div class="battle-step-desc">Flip Hero face-up</div>
-                <span class="battle-step-mode" style="color:var(--boba-orange);background:rgba(255,77,0,0.12);border-color:rgba(255,77,0,0.3)">All modes</span>
+                <div class="battle-step-num" style="background:#FFD700;color:#080810">1</div>
+                <div class="battle-step-name" style="color:#FFD700">SUB</div>
+                <div class="battle-step-desc">Pay 2 HD to swap (face-down)</div>
+                <span class="battle-step-mode" style="color:#FFD700;background:rgba(255,215,0,0.12);border-color:rgba(255,215,0,0.3)">Sub +</span>
               </div>
               <div class="battle-step-arrow">›</div>
               <div class="battle-step">
-                <div class="battle-step-num" style="background:#FFD700;color:#080810">2</div>
-                <div class="battle-step-name" style="color:#FFD700">SUB</div>
-                <div class="battle-step-desc">Pay 2 Hot Dogs to swap</div>
-                <span class="battle-step-mode" style="color:#FFD700;background:rgba(255,215,0,0.12);border-color:rgba(255,215,0,0.3)">Sub +</span>
+                <div class="battle-step-num" style="background:var(--boba-orange)">2</div>
+                <div class="battle-step-name" style="color:var(--boba-orange)">REVEAL</div>
+                <div class="battle-step-desc">Flip both Heroes face-up</div>
+                <span class="battle-step-mode" style="color:var(--boba-orange);background:rgba(255,77,0,0.12);border-color:rgba(255,77,0,0.3)">All modes</span>
               </div>
               <div class="battle-step-arrow">›</div>
               <div class="battle-step">
                 <div class="battle-step-num" style="background:var(--boba-cyan);color:#080810">3</div>
                 <div class="battle-step-name" style="color:var(--boba-cyan)">PLAYS</div>
-                <div class="battle-step-desc">Alternate Play cards</div>
+                <div class="battle-step-desc">Play cards from hand</div>
                 <span class="battle-step-mode" style="color:var(--boba-cyan);background:rgba(0,245,255,0.12);border-color:rgba(0,245,255,0.3)">PM only</span>
               </div>
               <div class="battle-step-arrow">›</div>
@@ -368,8 +368,9 @@
               <ul class="rules-list">
                 <li>Both players simultaneously flip their Hero face-up.</li>
                 <li>The player with the higher Power wins the battle and takes the point.</li>
-                <li><strong>Tie → Sudden Death:</strong> each player reveals the top card of their Hero Deck; higher Power wins. Repeat until resolved.</li>
-                <li>Honors passes to the winner of each battle.</li>
+                <li><strong>Tied battle:</strong> If both Heroes have equal Power, the battle is a draw — no trophy is awarded. Honors stays with the same player.</li>
+                <li><strong>Tied game → Sudden Death:</strong> If both players win the same number of battles after all 7, each reveals the top card of their Hero Deck. Higher Power wins. Repeat until broken.</li>
+                <li>Honors passes to the winner of each battle. On a draw, Honors stays the same.</li>
               </ul>
             </div>
           </div>
@@ -384,10 +385,10 @@
             <div class="battle-scenario">
               <div class="scenario-header">
                 <div class="scenario-title">Example Battle</div>
-                <div class="scenario-sub">Player B is badly outmatched — a substitution turns the tide</div>
+                <div class="scenario-sub">Player B has a weak Hero — a blind substitution before reveal turns the tide</div>
               </div>
 
-              <div class="scenario-phase">① Reveal</div>
+              <div class="scenario-phase">① Sub (cards face-down)</div>
               <div class="scenario-cards">
                 <div class="mini-card">
                   <div class="mini-card-img">
@@ -415,10 +416,10 @@
               </div>
               <div class="scenario-result sub">
                 <svg class="scenario-result-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFD700" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16"/></svg>
-                Player B substitutes — Pays 2 Hot Dogs · Removes D-Hop · Plays LeBoss from hand
+                Player B substitutes — Pays 2 Hot Dogs · Sends D-Hop to Discard · Places LeBoss face-down from Bench · Draws a new Hero to Bench
               </div>
 
-              <div class="scenario-phase">④ Resolve</div>
+              <div class="scenario-phase">② Reveal — both cards flipped</div>
               <div class="scenario-cards">
                 <div class="mini-card lose">
                   <div class="mini-card-img">
@@ -446,28 +447,28 @@
               </div>
               <div class="scenario-result win">
                 <svg class="scenario-result-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                LeBoss wins — 135 &gt; 130. A sub flipped a 45-point deficit into a 5-point win at the cost of 2 Hot Dogs.
+                LeBoss wins — 135 &gt; 130. A blind sub flipped a 45-point deficit into a 5-point win at the cost of 2 Hot Dogs.
               </div>
             </div>
 
             <div class="rules-section">
               <h3 class="rules-section-heading">Additional Setup</h3>
               <ul class="rules-list">
-                <li>After placing your 7 face-down Heroes, draw the rest of your Hero Deck into your hand.</li>
+                <li>After placing your 7 face-down Heroes, draw 4 additional Heroes from your Hero Deck and place them in your Bench (kept hidden from opponent).</li>
                 <li>Draw all 10 Hot Dogs into your Hot Dog pile. The count is always public information.</li>
               </ul>
             </div>
             <div class="rules-section">
-              <h3 class="rules-section-heading">Substitution Window</h3>
+              <h3 class="rules-section-heading">Substitution Phase</h3>
               <ul class="rules-list">
-                <li>After both Heroes are revealed, the Honors player decides first whether to substitute.</li>
-                <li><strong>Cost:</strong> 2 Hot Dogs — send the revealed Hero to the Discard Pile and play a Hero from hand face-up.</li>
-                <li>The opponent then sees the new Hero and may substitute in response. Each player may substitute at most once per battle.</li>
+                <li>Before Heroes are revealed — cards are still face-down. This is a blind decision.</li>
+                <li><strong>Cost:</strong> 2 Hot Dogs — send the face-down Hero to the Discard Pile. Place a Hero from your Bench face-down into the Battle Zone. Draw a new Hero from your Hero Deck to refill your Bench.</li>
+                <li>The Honors player decides first. The opponent then decides. Each player may substitute at most once per battle.</li>
               </ul>
             </div>
             <div class="rules-section">
               <h3 class="rules-section-heading">Honors &amp; Information</h3>
-              <p>Honors moves to the battle winner. Having Honors means you substitute first — you reveal your intention before your opponent does. Sometimes it is strategically better to pass, forcing your opponent to commit first.</p>
+              <p>Honors moves to the battle winner. Having Honors means you substitute first — your opponent sees whether you substituted before making their own decision. Sometimes it is strategically better to pass, forcing your opponent to commit first.</p>
             </div>
             <div class="rules-section">
               <h3 class="rules-section-heading">Resource Note</h3>
@@ -488,7 +489,7 @@
                 <div class="scenario-sub">Player A is losing — a Play card swings the battle</div>
               </div>
 
-              <div class="scenario-phase">① Reveal</div>
+              <div class="scenario-phase">② Reveal</div>
               <div class="scenario-cards">
                 <div class="mini-card lose">
                   <div class="mini-card-img">
@@ -566,16 +567,17 @@
             <div class="rules-section">
               <h3 class="rules-section-heading">Additional Setup</h3>
               <ul class="rules-list">
-                <li>Shuffle your Playbook. Draw 5 Plays as your starting hand.</li>
-                <li>Draw 1 Play at the start of each battle.</li>
+                <li>Shuffle your Playbook. Draw 4 Plays as your starting hand.</li>
+                <li>Draw 1 Play at the end of each battle (during cleanup).</li>
               </ul>
             </div>
             <div class="rules-section">
               <h3 class="rules-section-heading">Play Window</h3>
               <ul class="rules-list">
-                <li>After the Substitution Window closes, the Honors player may play Play cards.</li>
+                <li>After Heroes are revealed, the player with Honors may run one or more Plays, then passes.</li>
+                <li>The other player may then run one or more Plays, then passes.</li>
                 <li>Pay the Hot Dog cost shown on the card and resolve its effect.</li>
-                <li>Players alternate playing Plays until both players pass consecutively.</li>
+                <li>Each player gets only one opportunity per battle to run Plays. Once you pass, you cannot play more cards that battle.</li>
               </ul>
             </div>
             <div class="rules-section">
@@ -586,7 +588,7 @@
               <h3 class="rules-section-heading">Tournament Formats</h3>
               <ul class="rules-list">
                 <li><strong>Standard Playmaker</strong> — the competitive and tournament-standard format.</li>
-                <li><strong>SPEC Format</strong> — Hero Deck capped at ≤160 total Power; sideboard of up to 45 Plays; players may swap Plays between games in a match.</li>
+                <li><strong>SPEC Format</strong> — No single Hero may have Power above 160. Sideboard of up to 45 standard Plays + unlimited Bonus Plays. Players may swap Plays between matches, but NOT between games within a match.</li>
               </ul>
             </div>
           </div>
@@ -635,7 +637,7 @@
             <ul class="rules-zone-list">
               <li><span class="zone-label">Hero Deck</span><span class="zone-desc">Your 60-card draw pile</span></li>
               <li><span class="zone-label">Battle Slots</span><span class="zone-desc">7 face-down slots placed at game start</span></li>
-              <li><span class="zone-label">Hand</span><span class="zone-desc">Private — drawn Heroes and Play cards</span></li>
+              <li><span class="zone-label">Bench / Hand</span><span class="zone-desc">Private — 4 Heroes drawn for substitution and Play cards drawn from Playbook</span></li>
               <li><span class="zone-label">Active Battle</span><span class="zone-desc">The Hero currently in the active battle</span></li>
               <li><span class="zone-label">Discard Pile</span><span class="zone-desc">Public — defeated and substituted Heroes</span></li>
               <li><span class="zone-label">Playbook</span><span class="zone-desc">Your 30-card Play deck</span></li>
@@ -813,7 +815,7 @@
                 <span class="strategy-summary-sub">Plays and Hot Dogs are finite — track both carefully</span>
               </summary>
               <div class="strategy-detail">
-                <p>You start with 5 Plays in hand and draw 1 per battle (7 total draws across a full game).</p>
+                <p>You start with 4 Plays in hand and draw 1 at the end of each battle (up to 11 total across a full game).</p>
                 <ul>
                   <li>Hot Dogs fuel both substitutions and Plays — don't exhaust them on early battles</li>
                   <li>Free (0-cost) Plays are disproportionately valuable; they preserve Hot Dogs while adding power</li>
@@ -826,7 +828,7 @@
           </div><!-- /strategy-accordion -->
 
           <section class="strategy-section">
-            <h3 class="strategy-section-heading">Archetype Templates</h3>
+            <h3 class="strategy-section-heading">Starter Decks</h3>
             <div class="archetype-grid">
 
               <div class="archetype-card" data-element="FIRE">
@@ -1326,13 +1328,18 @@
                   </tr>
                   <tr>
                     <td style="color:#8B00FF">SPEC</td>
-                    <td>Playmaker variant: Hero Power capped at ≤160 per Hero.</td>
-                    <td>Sideboard of 45 Plays</td>
+                    <td>Playmaker variant: no Hero above 160 Power.</td>
+                    <td>Sideboard of 45+ Plays</td>
                   </tr>
                   <tr>
-                    <td style="color:var(--boba-text-muted)">Limited</td>
-                    <td>Minimum 40-card Hero Deck. For Draft and Sealed events.</td>
-                    <td>Draft / Sealed only</td>
+                    <td style="color:#8B00FF;opacity:0.7">Elite</td>
+                    <td>Playmaker variant: total deck power ≤ 8,250.</td>
+                    <td>Combined Power cap</td>
+                  </tr>
+                  <tr>
+                    <td style="color:var(--boba-text-muted)">Sealed</td>
+                    <td>Open a booster box. 40-card Hero Deck, 20 Plays.</td>
+                    <td>Limited format</td>
                   </tr>
                 </tbody>
               </table>
@@ -1353,25 +1360,25 @@
                     <td>3–3 after 7 → Sudden Death on final battle</td>
                   </tr>
                   <tr>
-                    <td>Casual</td>
-                    <td>Single game.</td>
-                    <td>Standard for casual play</td>
+                    <td>Match</td>
+                    <td>Generally one game per match.</td>
+                    <td>TO may announce a different number</td>
                   </tr>
                   <tr>
-                    <td>Competitive</td>
-                    <td>Best-of-3 games.</td>
-                    <td>Deck registration required</td>
+                    <td>Timed Rounds</td>
+                    <td>Current turn + one additional turn.</td>
+                    <td>No winner after extra turn → draw</td>
                   </tr>
                   <tr>
-                    <td>Professional</td>
-                    <td>Best-of-5 games.</td>
-                    <td>Deck registration required</td>
+                    <td>Elimination Tiebreaker</td>
+                    <td>1) Most games → 2) Most battles → 3) Top Hero Deck card</td>
+                    <td>Repeat Step 3 until broken</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <p class="rules-section" style="margin-top:var(--sp-3);font-size:0.85rem;color:var(--boba-text-muted)">
-              <strong style="color:var(--boba-text)">Deck Registration</strong> — Required at Competitive and Professional REL. Register your exact 60/10/30 lists before Round 1.
+              <strong style="color:var(--boba-text)">Deck Registration</strong> — Decklists are mandatory for all tournaments. Register your exact 60/10/30 lists before Round 1.
             </p>
           </section>
 
@@ -1460,8 +1467,9 @@
           <button class="db-format-btn active" data-format="playmaker" role="tab">Playmaker</button>
           <button class="db-format-btn" data-format="substitution" role="tab">Substitution</button>
           <button class="db-format-btn" data-format="rookie" role="tab">Rookie</button>
-          <button class="db-format-btn" data-format="limited" role="tab">Limited</button>
+          <button class="db-format-btn" data-format="sealed" role="tab">Sealed</button>
           <button class="db-format-btn" data-format="spec" role="tab">SPEC</button>
+          <button class="db-format-btn" data-format="elite" role="tab">Elite</button>
         </div>
         <!-- Stats bar -->
         <div class="db-stats" id="db-stats-bar">
@@ -1543,7 +1551,7 @@
               <div class="db-section-cards" id="db-hotdogs-list"></div>
             </div>
             <div class="db-section-templates">
-              <div class="db-section-title">STARTER TEMPLATES</div>
+              <div class="db-section-title">STARTER DECKS</div>
               <div class="db-templates" id="db-templates"></div>
             </div>
             <!-- Export output -->
@@ -1613,6 +1621,7 @@
           <button class="practice-deck-btn" data-deck="steel">Steel Wall</button>
         </div>
         <button class="practice-start-btn" id="btn-start-practice">START PRACTICE</button>
+        <button class="practice-start-btn practice-resume-btn" id="btn-resume-practice" hidden>RESUME MATCH</button>
       </div>
       <!-- Playmat rendered here by practice.js -->
       <div id="practice-playmat" class="practice-playmat" hidden></div>

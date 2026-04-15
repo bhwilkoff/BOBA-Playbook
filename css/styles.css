@@ -5271,6 +5271,12 @@ main {
   transition: opacity 0.15s;
 }
 .practice-start-btn:hover { opacity: 0.9; }
+.practice-resume-btn {
+  background: rgba(0,245,255,0.15); border: 1px solid rgba(0,245,255,0.4);
+  color: #00F5FF; margin-top: 0.5rem;
+}
+.practice-resume-btn:hover { background: rgba(0,245,255,0.25); }
+.practice-resume-btn[hidden] { display: none; }
 
 /* Playmat container */
 .practice-playmat {
@@ -5696,6 +5702,66 @@ main {
 }
 .pm-root .pm-result-btn:hover { background: rgba(255,77,0,0.35); }
 .pm-root .pm-result-btn.secondary { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.5); }
+
+/* CPU play overlay */
+.pm-cpu-overlay {
+  position: absolute; inset: 0; background: rgba(8,8,16,0.8); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center; z-index: 45;
+}
+.pm-cpu-overlay[hidden] { display: none; }
+.pm-cpu-overlay-inner {
+  background: var(--boba-surface, #0D0D1A); border: 1px solid rgba(139,0,255,0.4);
+  border-radius: 12px; padding: 1.25rem; max-width: 280px; width: 90%;
+  display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+}
+.pm-cpu-overlay-label {
+  font-family: var(--font-mono, monospace); font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.1em; color: #8B00FF; opacity: 0.8;
+}
+.pm-cpu-overlay-card {
+  width: 100%; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+}
+.pm-cpu-card-img { width: 140px; height: auto; border-radius: 6px; }
+.pm-cpu-card-name {
+  font-family: var(--font-display, sans-serif); font-size: 1rem; color: #fff;
+  text-align: center; letter-spacing: 0.04em;
+}
+.pm-cpu-card-cost {
+  font-family: var(--font-mono, monospace); font-size: 0.7rem; font-weight: 700;
+  color: #4CAF50; letter-spacing: 0.06em;
+}
+.pm-cpu-card-effect {
+  font-family: var(--font-mono, monospace); font-size: 0.6rem; color: rgba(255,255,255,0.6);
+  text-align: center; line-height: 1.4; max-height: 3.5em; overflow: hidden;
+}
+.pm-cpu-card-deltas {
+  display: flex; gap: 1rem; font-family: var(--font-mono, monospace); font-size: 0.75rem; font-weight: 700;
+}
+.pm-cpu-card-delta-opp { color: #8B00FF; }
+.pm-cpu-card-delta-you { color: #C0392B; }
+.pm-cpu-overlay-dismiss {
+  background: rgba(139,0,255,0.2); border: 1px solid rgba(139,0,255,0.4); border-radius: 8px;
+  color: #8B00FF; cursor: pointer; font-family: var(--font-mono, monospace); font-size: 0.75rem;
+  font-weight: 700; letter-spacing: 0.06em; padding: 0.4rem 1.5rem; transition: all 0.15s;
+}
+.pm-cpu-overlay-dismiss:hover { background: rgba(139,0,255,0.35); }
+
+/* CPU sub callout */
+.pm-cpu-sub-callout {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: rgba(8,8,16,0.85); border: 1px solid rgba(255,77,0,0.4); border-radius: 12px;
+  padding: 0.75rem 1.5rem; z-index: 40; animation: pmFadeInOut 2s ease-in-out forwards;
+}
+.pm-cpu-sub-callout[hidden] { display: none; }
+.pm-cpu-sub-inner { display: flex; align-items: center; gap: 0.5rem; }
+.pm-cpu-sub-icon { font-size: 1.2rem; }
+.pm-cpu-sub-text {
+  font-family: var(--font-mono, monospace); font-size: 0.75rem; font-weight: 700;
+  letter-spacing: 0.08em; color: #FF4D00;
+}
+@keyframes pmFadeInOut {
+  0% { opacity: 0; } 15% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; }
+}
 
 /* MODE VISIBILITY — hides sections irrelevant to game mode */
 .pm-root.mode-rookie .pm-bench-area,

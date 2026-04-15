@@ -3,7 +3,7 @@
 //  BOBAPlaybook
 //
 //  Compact bottom toolbar for practice battle: deck count, bench toggle,
-//  plays toggle, hot dog counter, and action button.
+//  plays toggle, hot dog counter, and phase-appropriate action buttons.
 //
 
 import SwiftUI
@@ -42,8 +42,8 @@ struct PracticeBottomToolbar: View {
 
             Spacer()
 
-            // Action button
-            actionButton
+            // Action buttons
+            actionButtons
                 .padding(.trailing, Design.Spacing.md)
         }
         .frame(height: 50)
@@ -55,7 +55,7 @@ struct PracticeBottomToolbar: View {
 
     private var heroStack: some View {
         VStack(spacing: 2) {
-            Image(systemName: "person.crop.rectangle.stack.fill")
+            Image(systemName: "figure.fencing")
                 .font(.system(size: 14))
                 .foregroundStyle(Color(hex: "C0392B").opacity(0.8))
             Text("\(store.playerHeroDeck.count)")
@@ -120,31 +120,104 @@ struct PracticeBottomToolbar: View {
         .frame(width: 60)
     }
 
-    // MARK: - Action Button
+    // MARK: - Action Buttons
 
-    private var actionButton: some View {
+    private var actionButtons: some View {
         Group {
-            if store.phase == .sub && !store.playerSubstituted {
-                Button("PASS SUBS", action: onAction)
-                    .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.textMuted))
-            } else if store.phase == .play && !store.playerPassedPlays {
-                Button("PASS PLAYS") { store.playerPassPlays() }
-                    .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaCyan))
-            } else {
-                Button(nextButtonLabel, action: onAction)
+            switch store.phase {
+            case .reveal:
+                if store.battles[store.currentBattle].isRevealed {
+                    // Cards already revealed — user sees matchup, press to enter play phase
+                    Button("PLAY PHASE →", action: onAction)
+                        .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaCyan))
+                } else {
+                    Button("REVEAL", action: onAction)
+                        .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
+                }
+
+            case .sub:
+                if store.mode.showBench {
+                    HStack(spacing: 6) {
+                        Button {
+                            // Open bench panel for player to choose subs
+                            // CPU sub happens automatically when advancing to reveal
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showBenchPanel = true
+                                showPlaysPanel = false
+                            }
+                        } label: {
+                            Text("CHOOSE SUBS")
+                                .font(Design.Fonts.mono(10, weight: .bold))
+                                .foregroundStyle(Design.Colors.nearBlack)
+                                .padding(.horizontal, 8)
+                                .frame(height: 36)
+                                .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.bobaOrange))
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            // Skip subs — don't substitute, advance to reveal
+                            onAction()
+                        } label: {
+                            Text("SKIP SUBS")
+                                .font(Design.Fonts.mono(10, weight: .bold))
+                                .foregroundStyle(Design.Colors.textSecondary)
+                                .padding(.horizontal, 8)
+                                .frame(height: 36)
+                                .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.glass))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } else {
+                    Button("NEXT", action: onAction)
+                        .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
+                }
+
+            case .play:
+                if store.mode.showPlays {
+                    HStack(spacing: 6) {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showPlaysPanel = true
+                                showBenchPanel = false
+                            }
+                        } label: {
+                            Text("CHOOSE PLAYS")
+                                .font(Design.Fonts.mono(10, weight: .bold))
+                                .foregroundStyle(Design.Colors.nearBlack)
+                                .padding(.horizontal, 8)
+                                .frame(height: 36)
+                                .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.bobaCyan))
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            store.playerPassPlays()
+                        } label: {
+                            Text("END TURN")
+                                .font(Design.Fonts.mono(10, weight: .bold))
+                                .foregroundStyle(Design.Colors.textSecondary)
+                                .padding(.horizontal, 8)
+                                .frame(height: 36)
+                                .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.glass))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } else {
+                    Button("NEXT", action: onAction)
+                        .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
+                }
+
+            case .resolution:
+                Button("NEXT", action: onAction)
+                    .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
+            case .cleanup:
+                Button("NEXT BATTLE", action: onAction)
+                    .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
+            case .matchOver:
+                Button("DONE", action: onAction)
                     .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
             }
-        }
-    }
-
-    private var nextButtonLabel: String {
-        switch store.phase {
-        case .reveal:     return "REVEAL"
-        case .sub:        return "DONE SUBS"
-        case .play:       return "DONE PLAYS"
-        case .resolution: return "NEXT"
-        case .cleanup:    return "NEXT BATTLE"
-        case .matchOver:  return "DONE"
         }
     }
 

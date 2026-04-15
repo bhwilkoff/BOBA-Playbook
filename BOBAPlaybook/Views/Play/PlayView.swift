@@ -338,7 +338,7 @@ private struct RulesView: View {
             desc = "Pure power comparison. No substitutions, no Play cards. Perfect for learning the basics."
             components = [("Hero Deck (60 cards)", Design.Colors.bobaOrange)]
         case .substitution:
-            desc = "Add hand management and resource decisions. Spend 2 Hot Dogs to substitute a revealed Hero."
+            desc = "Add hand management and resource decisions. Spend 2 Hot Dogs to substitute a Hero before cards are revealed."
             components = [("Hero Deck (60)", Design.Colors.bobaOrange), ("Hot Dog Deck (10)", .yellow)]
         case .playmaker:
             desc = "The full game. Tournament standard. Play cards add powerful effects before each battle resolves."
@@ -385,10 +385,10 @@ private struct StaticBattleFlowView: View {
         let modes: String; let color: Color
     }
     private let phases: [Phase] = [
-        Phase(number: "1", label: "REVEAL",  desc: "Flip Hero face-up",        modes: "All modes",  color: Design.Colors.bobaOrange),
-        Phase(number: "2", label: "SUB",     desc: "Pay 2 Hot Dogs to swap",   modes: "Sub +",      color: .yellow),
-        Phase(number: "3", label: "PLAYS",   desc: "Alternate Play cards",      modes: "PM only",    color: Design.Colors.bobaCyan),
-        Phase(number: "4", label: "RESOLVE", desc: "Higher Power wins",         modes: "All modes",  color: Color(hex: "4CAF50")),
+        Phase(number: "1", label: "SUB",     desc: "Pay 2 HD to swap (face-down)", modes: "Sub +",      color: .yellow),
+        Phase(number: "2", label: "REVEAL",  desc: "Flip both Heroes face-up",     modes: "All modes",  color: Design.Colors.bobaOrange),
+        Phase(number: "3", label: "PLAYS",   desc: "Play cards from hand",         modes: "PM only",    color: Design.Colors.bobaCyan),
+        Phase(number: "4", label: "RESOLVE", desc: "Higher Power wins",            modes: "All modes",  color: Color(hex: "4CAF50")),
     ]
 
     var body: some View {
@@ -481,9 +481,9 @@ private struct RookieBattleScenario: View {
 private struct SubstitutionScenario: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.md) {
-            scenarioHeader("EXAMPLE BATTLE", sub: "Player B is badly outmatched — a substitution turns the tide")
+            scenarioHeader("EXAMPLE BATTLE", sub: "Player B has a weak Hero — a blind substitution before reveal turns the tide")
 
-            phaseLabel("① REVEAL")
+            phaseLabel("① SUB (cards face-down)")
             HStack(alignment: .bottom) {
                 Spacer()
                 MiniCardView(imageFile: "6-Matata-Base_Set-First_Edition.webp",    hero: "Matata", power: 130, element: "STEEL", outcome: .neutral)
@@ -495,9 +495,9 @@ private struct SubstitutionScenario: View {
             }
 
             resultBanner(icon: "arrow.triangle.2.circlepath", color: .yellow,
-                         text: "Player B substitutes — Pays 2 Hot Dogs · Removes D-Hop · Plays LeBoss from hand")
+                         text: "Player B substitutes — Pays 2 Hot Dogs · Sends D-Hop to Discard · Places LeBoss face-down from Bench · Draws a new Hero to Bench")
 
-            phaseLabel("④ RESOLVE")
+            phaseLabel("② REVEAL — both cards flipped")
             HStack(alignment: .bottom) {
                 Spacer()
                 MiniCardView(imageFile: "6-Matata-Base_Set-First_Edition.webp",  hero: "Matata",  power: 130, element: "STEEL", outcome: .lose)
@@ -509,7 +509,7 @@ private struct SubstitutionScenario: View {
             }
 
             resultBanner(icon: "checkmark.circle.fill", color: Color(hex: "4CAF50"),
-                         text: "LeBoss wins — 135 > 130. A sub flipped a 45-point deficit into a 5-point win at the cost of 2 Hot Dogs.")
+                         text: "LeBoss wins — 135 > 130. A blind sub flipped a 45-point deficit into a 5-point win at the cost of 2 Hot Dogs.")
         }
         .padding(Design.Spacing.md)
         .background(scenarioBg)
@@ -522,7 +522,7 @@ private struct PlaymakerScenario: View {
         VStack(alignment: .leading, spacing: Design.Spacing.md) {
             scenarioHeader("EXAMPLE BATTLE", sub: "Player A is losing — a Play card swings the battle")
 
-            phaseLabel("① REVEAL")
+            phaseLabel("② REVEAL")
             HStack(alignment: .bottom) {
                 Spacer()
                 MiniCardView(imageFile: "185-Crosbow-Base_Set-First_Edition.webp", hero: "Crosbow", power: 120, element: "BRAWL", outcome: .lose)
@@ -702,8 +702,9 @@ private struct RookieRulesContent: View {
             RulesSectionHeader(title: "Winning")
             RuleCard(lines: [
                 .init(label: "Win condition",         body: "First player to win 4 of 7 Battles wins the game. A sweep can end in Battle 4 (4–0)."),
-                .init(label: "Tie → Sudden Death",    body: "Each player reveals the top card of their Hero Deck. Higher Power wins. Repeat until broken."),
-                .init(label: "Honors after a battle", body: "Passes to the winner of each battle."),
+                .init(label: "Tied battle",           body: "If both Heroes have equal Power, the battle is a draw — no trophy is awarded. Honors stays with the same player."),
+                .init(label: "Tied game → Sudden Death", body: "If both players win the same number of battles after all 7, each reveals the top card of their Hero Deck. Higher Power wins. Repeat until broken."),
+                .init(label: "Honors after a battle", body: "Passes to the winner of each battle. On a draw, Honors stays with the same player."),
             ])
         }
     }
@@ -714,13 +715,13 @@ private struct SubstitutionRulesContent: View {
         VStack(alignment: .leading, spacing: Design.Spacing.lg) {
             RulesSectionHeader(title: "Additional Setup")
             RuleCard(lines: [
-                .init(label: "Hand",         body: "After placing your 7 Battle Heroes, draw the remaining Hero Deck cards into your hand."),
+                .init(label: "Bench",        body: "After placing your 7 face-down Battle Heroes, draw 4 additional Heroes from your Hero Deck and place them in your Bench (kept hidden from opponent)."),
                 .init(label: "Hot Dog Pile", body: "All 10 Hot Dogs go into your Hot Dog pile. The count is always public information."),
             ])
-            RulesSectionHeader(title: "Substitution Window")
+            RulesSectionHeader(title: "Substitution Phase")
             RuleCard(lines: [
-                .init(label: "When",      body: "After both Heroes are revealed, before the winner is decided."),
-                .init(label: "Cost",      body: "Pay 2 Hot Dogs. Send revealed Hero to Discard; play a Hero from hand face-up."),
+                .init(label: "When",      body: "Before Heroes are revealed — cards are still face-down. This is a blind decision."),
+                .init(label: "Cost",      body: "Pay 2 Hot Dogs. Send the face-down Hero to the Discard Pile. Place a Hero from your Bench face-down into the Battle Zone. Draw a new Hero from your Hero Deck to refill your Bench."),
                 .init(label: "Order",     body: "Honors player decides first — your opponent sees whether you substituted before making their own decision."),
                 .init(label: "Limit",     body: "Each player may substitute at most once per battle."),
             ])
@@ -737,15 +738,16 @@ private struct PlaymakerRulesContent: View {
         VStack(alignment: .leading, spacing: Design.Spacing.lg) {
             RulesSectionHeader(title: "Additional Setup")
             RuleCard(lines: [
-                .init(label: "Playbook", body: "Shuffle your 30 unique Play cards. Draw 5 as your starting hand."),
-                .init(label: "Draw",     body: "Draw 1 Play at the start of each battle."),
+                .init(label: "Playbook", body: "Shuffle your 30 unique Play cards. Draw 4 as your starting hand."),
+                .init(label: "Draw",     body: "Draw 1 Play at the end of each battle (during cleanup)."),
             ])
             RulesSectionHeader(title: "Play Window")
             RuleCard(lines: [
-                .init(label: "When",        body: "After the Substitution Window closes, before the battle winner is decided."),
-                .init(label: "Who first",   body: "Honors player may play a Play card first."),
+                .init(label: "When",        body: "After Heroes are revealed, before the battle winner is decided."),
+                .init(label: "Who first",   body: "The player with Honors may run one or more Plays, then passes."),
+                .init(label: "Then",        body: "The other player may run one or more Plays, then passes."),
                 .init(label: "Cost",        body: "Pay the Hot Dog cost shown on the card and resolve its effect."),
-                .init(label: "Alternating", body: "Players alternate playing Plays until both pass consecutively."),
+                .init(label: "One opportunity", body: "Each player gets only one opportunity per battle to run Plays. Once you pass, you cannot play more cards that battle."),
             ])
             RulesSectionHeader(title: "Super Tiebreaker")
             RuleCard(lines: [
@@ -754,7 +756,7 @@ private struct PlaymakerRulesContent: View {
             RulesSectionHeader(title: "Formats")
             RuleCard(lines: [
                 .init(label: "Standard", body: "Playmaker is the competitive and tournament-standard format."),
-                .init(label: "SPEC",     body: "Hero Deck capped at ≤160 total Power; sideboard of up to 45 Plays that may be swapped between games in a match."),
+                .init(label: "SPEC",     body: "No single Hero may have Power above 160. Sideboard of up to 45 standard Plays + unlimited Bonus Plays. Players may swap Plays between matches, but NOT between games within a match."),
             ])
         }
     }
@@ -768,7 +770,7 @@ private struct CardZonesSection: View {
     private let zones: [(String, String)] = [
         ("Hero Deck",       "Your 60-card main deck — the source for battle Heroes"),
         ("Battle Slots",    "7 face-down positions; one Hero per slot revealed in sequence"),
-        ("Hand",            "Heroes drawn after setup (Substitution and Playmaker modes)"),
+        ("Bench / Hand",    "4 Heroes drawn after setup (for substitution) and Play cards drawn from Playbook"),
         ("Active Battle",   "The current face-up Hero in the active battle position"),
         ("Discard Pile",    "Face-up; always public information"),
         ("Playbook",        "Your 30-card Play deck (Playmaker only)"),
@@ -1057,7 +1059,7 @@ private struct ResourceManagementSection: View {
     var body: some View {
         StrategyDisclosure(title: "Resource Management",
                            subtitle: "Plays and Hot Dogs are finite — track both publicly") {
-            StrategyBody(text: "Start with 5 Plays in hand. Draw 1 per battle — 7 total across a full game. Your Playbook has 30 unique Plays; spent Plays are visible and countable.")
+            StrategyBody(text: "Start with 4 Plays in hand. Draw 1 at the end of each battle — up to 11 total across a full game. Your Playbook has 30 unique Plays; spent Plays are visible and countable.")
             StrategyBullet(text: "Hot Dogs fund both subs (2 each) and Plays — every paid Play is a potential sub foregone.")
             StrategyBullet(text: "Free (0-cost) Plays are disproportionately strong — they preserve Hot Dogs while adding power.")
             StrategyBullet(text: "At 0 Hot Dogs, a player cannot sub or play paid cards. This is the most exploitable position in the game.")
@@ -1655,8 +1657,9 @@ private struct FormatOverviewSection: View {
         ("Rookie",       "Hero Deck only. Pure power comparison.",                      "New player friendly",    Design.Colors.bobaOrange),
         ("Substitution", "Hero Deck + Hot Dog Deck. Add hand management.",               "Intermediate",           .yellow),
         ("Playmaker",    "Full game — Hero + Hot Dogs + Playbook.",                      "Tournament standard",    Design.Colors.bobaCyan),
-        ("SPEC",         "Playmaker variant: Hero Power capped at ≤160 per Hero.",       "Sideboard of 45 Plays",  Color(hex: "8B00FF")),
-        ("Limited",      "Minimum 40-card Hero Deck. For Draft and Sealed events.",       "Draft / Sealed only",    Design.Colors.textMuted),
+        ("SPEC",         "Playmaker variant: no Hero above 160 Power.",                 "Sideboard of 45+ Plays", Color(hex: "8B00FF")),
+        ("Elite",        "Playmaker variant: total deck power ≤ 8,250.",                 "Combined Power cap",     Color(hex: "8B00FF").opacity(0.7)),
+        ("Sealed",       "Open a booster box. 40-card Hero Deck, 20 Plays.",             "Limited format",         Design.Colors.textMuted),
     ]
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.sm) {
@@ -1688,10 +1691,10 @@ private struct MatchStructureSection: View {
                 .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
             RuleCard(lines: [
                 .init(label: "Game",              body: "Best-of-7 Battles. First to 4 wins. A 3–3 tie after all 7 triggers Sudden Death on the final battle."),
-                .init(label: "Casual Match",      body: "Single game — standard for casual play."),
-                .init(label: "Competitive Match", body: "Best-of-3 games."),
-                .init(label: "Professional",      body: "Best-of-5 games."),
-                .init(label: "Deck Registration", body: "Required at Competitive and Professional REL. Register your exact 60/10/30 lists before Round 1."),
+                .init(label: "Match",             body: "Generally one game per match. The Tournament Organizer may announce a different number of games before the tournament begins."),
+                .init(label: "Timed Rounds",      body: "If time expires mid-game, the current turn finishes plus one additional turn. If no winner, the game is a draw."),
+                .init(label: "Elimination Tiebreaker", body: "Step 1: most games won. Step 2: most battles won in the current game. Step 3: each player reveals the top card of their Hero Deck — higher Power wins. Repeat Step 3 until broken."),
+                .init(label: "Deck Registration",  body: "Decklists are mandatory for all tournaments. Register your exact 60/10/30 lists before Round 1."),
             ])
         }
     }

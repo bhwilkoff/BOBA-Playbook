@@ -36,11 +36,12 @@ const DB = {
 
   // Format rules
   formats: {
-    rookie:       { heroTarget: 60, needsHD: false, needsPlays: false, powerCap: null },
-    substitution: { heroTarget: 60, needsHD: true,  needsPlays: false, powerCap: null },
-    playmaker:    { heroTarget: 60, needsHD: true,  needsPlays: true,  powerCap: null },
-    spec:         { heroTarget: 60, needsHD: true,  needsPlays: true,  powerCap: 160  },
-    limited:      { heroTarget: 40, needsHD: true,  needsPlays: true,  powerCap: null },
+    rookie:       { heroTarget: 60, playsTarget: 30, needsHD: false, needsPlays: false, powerCap: null,  totalPowerCap: null  },
+    substitution: { heroTarget: 60, playsTarget: 30, needsHD: true,  needsPlays: false, powerCap: null,  totalPowerCap: null  },
+    playmaker:    { heroTarget: 60, playsTarget: 30, needsHD: true,  needsPlays: true,  powerCap: null,  totalPowerCap: null  },
+    spec:         { heroTarget: 60, playsTarget: 30, needsHD: true,  needsPlays: true,  powerCap: 160,   totalPowerCap: null  },
+    elite:        { heroTarget: 60, playsTarget: 30, needsHD: true,  needsPlays: true,  powerCap: null,  totalPowerCap: 8250  },
+    sealed:       { heroTarget: 40, playsTarget: 20, needsHD: true,  needsPlays: true,  powerCap: null,  totalPowerCap: null  },
   },
 
   get currentFormat() { return this.formats[this.format]; },
@@ -88,7 +89,7 @@ const DB = {
       this.heroes.push(card);
     } else if (tab === 'play') {
       if (this.plays.some(c => c.bobaId === card.bobaId)) return;
-      if (this.plays.length < 30) this.plays.push(card);
+      if (this.plays.length < (this.currentFormat.playsTarget || 30)) this.plays.push(card);
     } else if (tab === 'bonus') {
       if (this.bonusPlays.some(c => c.bobaId === card.bobaId)) return;
       this.bonusPlays.push(card);
@@ -139,9 +140,15 @@ const DB = {
     }
 
     if (fmt.needsPlays) {
-      const pd = 30 - this.plays.length;
-      if (pd > 0) errors.push(`Need ${pd} more plays (${this.plays.length}/30)`);
-      if (pd < 0) errors.push(`Too many plays (${this.plays.length}/30)`);
+      const pt = fmt.playsTarget || 30;
+      const pd = pt - this.plays.length;
+      if (pd > 0) errors.push(`Need ${pd} more plays (${this.plays.length}/${pt})`);
+      if (pd < 0) errors.push(`Too many plays (${this.plays.length}/${pt})`);
+    }
+
+    if (fmt.totalPowerCap) {
+      const total = this.heroes.reduce((s, c) => s + (c.power || 0), 0);
+      if (total > fmt.totalPowerCap) errors.push(`Total power ${total} exceeds ${fmt.totalPowerCap} cap`);
     }
 
     if (fmt.needsHD) {
@@ -162,7 +169,7 @@ const DB = {
     }
     if (this.plays.length) {
       lines.push('');
-      lines.push(`## Plays (${this.plays.length}/30)`);
+      lines.push(`## Plays (${this.plays.length}/${this.currentFormat.playsTarget || 30})`);
       for (const c of this.plays) lines.push(`${c.name} (${c.playCost ?? 0} HD)`);
     }
     if (this.bonusPlays.length) {
@@ -309,7 +316,7 @@ function dbRenderDeckList() {
   const lStat = $('db-stat-legal');
   if (hStat) hStat.textContent = `Heroes: ${DB.heroes.length}/${heroTarget}`;
   if (pStat) pStat.style.display = DB.currentFormat.needsPlays ? '' : 'none';
-  if (pStat) pStat.textContent = `Plays: ${DB.plays.length}/30`;
+  if (pStat) pStat.textContent = `Plays: ${DB.plays.length}/${DB.currentFormat.playsTarget || 30}`;
   if (hdStat) hdStat.style.display = DB.currentFormat.needsHD ? '' : 'none';
   if (hdStat) hdStat.textContent = `Hot Dogs: ${DB.hotDogs.length}/10`;
 
@@ -759,9 +766,229 @@ function pmDetectHDRecovery(card) {
     const n = vals[m[1].toLowerCase()] ?? parseInt(m[1]);
     return isNaN(n) ? 1 : n;
   }
-  // Fallback: any text about returning/gaining hot dogs
   if (/(?:return|recover|gain|take back|retrieve)\b/.test(text)) return 1;
   return 0;
+}
+
+// ── Play card effects engine (ported from iOS PracticeStore) ──────
+// Returns { playerDelta, cpuDelta } power changes
+function pmResolveEffect(card, playerCard, cpuCard) {
+  const ability = card.playAbility || '';
+  if (!ability) return pmFallbackEffect(card.playCost || 0);
+
+  // Numeric-only abilities (shorthand like "75", "100")
+  const numVal = parseInt(ability.trim());
+  if (!isNaN(numVal) && numVal > 0 && /^\d+$/.test(ability.trim())) return { playerDelta: numVal, cpuDelta: 0 };
+
+  const text = ability.toLowerCase();
+
+  // Power swap / set effects
+  if (text.includes('swap your hero\'s current power with your opponent') || text.includes('swap current power with your opponent')) {
+    const myPow = playerCard?.power || 0, theirPow = cpuCard?.power || 0;
+    return { playerDelta: theirPow - myPow, cpuDelta: myPow - theirPow };
+  }
+  if (text.includes('set your hero\'s power to 5 higher') || text.includes('set your hero\'s power to the same')) {
+    const theirPow = cpuCard?.power || 0, myPow = playerCard?.power || 0;
+    const target = text.includes('5 higher') ? theirPow + 5 : theirPow;
+    return { playerDelta: target - myPow, cpuDelta: 0 };
+  }
+  if (text.includes('same power as your opponent') || text.includes('same as your opponent')) {
+    return { playerDelta: (cpuCard?.power || 0) - (playerCard?.power || 0), cpuDelta: 0 };
+  }
+  if (text.includes('power is doubled')) return { playerDelta: playerCard?.power || 0, cpuDelta: 0 };
+
+  // Cancel effects
+  if (text.includes('cancel every play your opponent') || text.includes('cancel all plays')) return { playerDelta: 0, cpuDelta: 0 };
+
+  // Steal effects
+  if (text.includes('steal')) {
+    let m = text.match(/steal -(\d+).*\+(\d+)/);
+    if (m) return { playerDelta: parseInt(m[2]) || 5, cpuDelta: -(parseInt(m[1]) || 5) };
+    return { playerDelta: 5, cpuDelta: -5 };
+  }
+
+  // Coin flip
+  if (text.includes('flip a coin')) return pmResolveCoinFlip(text, playerCard);
+
+  // Dice roll
+  if (text.includes('roll a di') || text.includes('roll a die')) return pmResolveDiceRoll(text, playerCard, cpuCard);
+
+  // Simple "+N" to your hero
+  let m = text.match(/(?:your|this|give your|the) (?:hero|current hero|hero's power|active hero).*?(?:gets?|gains?|in the active battle.*?gets) \+(\d+)/);
+  if (m) {
+    const bonus = parseInt(m[1]) || 0;
+    const wm = text.match(/if your hero has (?:a |an )?(\w+) weapon/);
+    if (wm && playerCard?.element !== wm[1].toUpperCase()) return { playerDelta: 0, cpuDelta: 0 };
+    return { playerDelta: bonus, cpuDelta: 0 };
+  }
+
+  // "All your heroes get +N"
+  m = text.match(/all your heroes get \+(\d+)/);
+  if (m) return { playerDelta: parseInt(m[1]) || 10, cpuDelta: 0 };
+  m = text.match(/all your opponent's heroes get -(\d+)/);
+  if (m) return { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 10) };
+
+  // Opponent power reduction patterns
+  m = text.match(/opponent's hero(?:'s power)?.*?(?:gets?|loses?) -(\d+)/);
+  if (m) return { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 0) };
+  m = text.match(/lower.*?opponent.*?-(\d+)/);
+  if (m) return { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 0) };
+  m = text.match(/their hero gets -(\d+)/);
+  if (m) return { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 0) };
+  if (text.includes('opponent')) {
+    m = text.match(/give it -(\d+)/);
+    if (m) return { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 0) };
+  }
+
+  // Weapon-conditional boost
+  m = text.match(/if your hero has (?:a |an )?(\w+) weapon.*?\+(\d+)/);
+  if (m) return playerCard?.element === m[1].toUpperCase() ? { playerDelta: parseInt(m[2]) || 0, cpuDelta: 0 } : { playerDelta: 0, cpuDelta: 0 };
+  m = text.match(/all heroes with (\w+) weapons get \+(\d+)/);
+  if (m) return playerCard?.element === m[1].toUpperCase() ? { playerDelta: parseInt(m[2]) || 10, cpuDelta: 0 } : { playerDelta: 0, cpuDelta: 0 };
+  m = text.match(/opponent's hero has (?:a |an )?(\w+) weapon.*?-(\d+)/);
+  if (m) return cpuCard?.element === m[1].toUpperCase() ? { playerDelta: 0, cpuDelta: -(parseInt(m[2]) || 15) } : { playerDelta: 0, cpuDelta: 0 };
+
+  // Weapon type matching
+  if (text.includes('different weapon type') && text.includes('opponent')) {
+    const same = playerCard?.element === cpuCard?.element;
+    m = text.match(/\+(\d+)/);
+    if (m) { const b = parseInt(m[1]) || 10; return same ? { playerDelta: 0, cpuDelta: 0 } : { playerDelta: b, cpuDelta: 0 }; }
+  }
+
+  // Defensive / protection
+  if (text.includes("can't drop below") || text.includes("can't lose any more power")) {
+    const wm = text.match(/(\w+) weapon/);
+    if (wm && playerCard?.element === wm[1].toUpperCase()) return { playerDelta: 15, cpuDelta: 0 };
+    return { playerDelta: 0, cpuDelta: 0 };
+  }
+  if (text.includes("can't have its power reduced") || text.includes("can't be affected")) return { playerDelta: 10, cpuDelta: 0 };
+
+  // Conditional bonuses
+  if (text.includes('if this battle is tied')) { m = text.match(/\+(\d+)/); if (m) return { playerDelta: parseInt(m[1]) || 1, cpuDelta: 0 }; }
+  if (text.includes('lost the previous') || text.includes('lost the first') || text.includes('lost the 2 previous')) { m = text.match(/\+(\d+)/); if (m) return { playerDelta: parseInt(m[1]) || 15, cpuDelta: 0 }; }
+  if (text.includes('won the first battle') || text.includes('won the last battle') || text.includes('won 2 battles') || text.includes('won at least')) { m = text.match(/\+(\d+)/); if (m) return { playerDelta: parseInt(m[1]) || 10, cpuDelta: 0 }; }
+  if (text.includes('if you substituted this battle')) { m = text.match(/\+(\d+)/); if (m) return { playerDelta: parseInt(m[1]) || 10, cpuDelta: 0 }; }
+
+  // Hot dog conditional
+  if (text.includes('hot dog') && text.includes('left')) { m = text.match(/\+(\d+)/); if (m) return { playerDelta: parseInt(m[1]) || 10, cpuDelta: 0 }; }
+
+  // Draw effects with power component
+  if (text.includes('draw') && text.includes('play')) {
+    m = text.match(/\+(\d+)/);
+    if (m && (text.includes('your hero gets') || text.includes('hero gains'))) return { playerDelta: parseInt(m[1]) || 0, cpuDelta: 0 };
+    return { playerDelta: 0, cpuDelta: 0 };
+  }
+
+  // Discard-based power
+  if (text.includes('discard')) {
+    m = text.match(/opponent's hero gets -(\d+)/);
+    if (m) return { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 20) };
+    m = text.match(/\+(\d+).*every card discarded/);
+    if (m) return { playerDelta: (parseInt(m[1]) || 5) * 3, cpuDelta: 0 };
+    m = text.match(/your hero gets \+(\d+)/);
+    if (m) return { playerDelta: parseInt(m[1]) || 10, cpuDelta: 0 };
+    return { playerDelta: 0, cpuDelta: 0 };
+  }
+
+  // For the rest of the game
+  if (text.includes('for the rest of the game')) {
+    m = text.match(/\+(\d+)/);
+    if (m) return { playerDelta: parseInt(m[1]) || 5, cpuDelta: 0 };
+    m = text.match(/-(\d+)/);
+    if (m) return { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 5) };
+    return { playerDelta: 5, cpuDelta: 0 };
+  }
+
+  // Hot dog economy (no power change)
+  if (text.includes('recover') && text.includes('hot dog')) return { playerDelta: 0, cpuDelta: 0 };
+  if (text.includes('hot dog')) return { playerDelta: 0, cpuDelta: 0 };
+  if (text.includes('honors')) return { playerDelta: 0, cpuDelta: 0 };
+  if (text.includes('look at') || text.includes('reveal the top')) return { playerDelta: 0, cpuDelta: 0 };
+
+  // Last resort: find any +N or -N
+  m = text.match(/\+(\d+)/);
+  if (m) return { playerDelta: parseInt(m[1]) || 0, cpuDelta: 0 };
+  m = text.match(/-(\d+)/);
+  if (m) return text.includes('opponent') ? { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 0) } : { playerDelta: -(parseInt(m[1]) || 0), cpuDelta: 0 };
+
+  return pmFallbackEffect(card.playCost || 0);
+}
+
+function pmFallbackEffect(cost) { return { playerDelta: cost * 6 + 5, cpuDelta: 0 }; }
+
+function pmResolveCoinFlip(text, playerCard) {
+  let flipCount = 1;
+  const fcm = text.match(/flip a coin (\d+) times/);
+  if (fcm) flipCount = parseInt(fcm[1]) || 1;
+  let pd = 0, cd = 0;
+  for (let i = 0; i < flipCount; i++) {
+    const heads = Math.random() < 0.5;
+    if (heads) {
+      let m = text.match(/heads.*?\+(\d+)/); if (m) pd += parseInt(m[1]) || 0;
+      m = text.match(/heads.*?opponent.*?-(\d+)/); if (m) cd -= parseInt(m[1]) || 0;
+      if (pd === 0 && cd === 0) { m = text.match(/heads.*?hero gets \+(\d+)/); if (m) pd += parseInt(m[1]) || 0; }
+    } else {
+      let m = text.match(/tails.*?\+(\d+)/); if (m) pd += parseInt(m[1]) || 0;
+      m = text.match(/tails.*?opponent.*?-(\d+)/); if (m) cd -= parseInt(m[1]) || 0;
+      m = text.match(/tails.*?(?:your hero|hero) (?:gets|loses) -(\d+)/); if (m) pd -= parseInt(m[1]) || 0;
+    }
+  }
+  if (text.includes('power is doubled') && flipCount > 0) {
+    const allHeads = Array.from({length: flipCount}, () => Math.random() < 0.5).every(Boolean);
+    return allHeads ? { playerDelta: playerCard?.power || 0, cpuDelta: 0 } : { playerDelta: 0, cpuDelta: 0 };
+  }
+  if (pd === 0 && cd === 0) return Math.random() < 0.5 ? { playerDelta: 10, cpuDelta: 0 } : { playerDelta: 0, cpuDelta: 0 };
+  return { playerDelta: pd, cpuDelta: cd };
+}
+
+function pmResolveDiceRoll(text, playerCard, cpuCard) {
+  const roll = Math.floor(Math.random() * 6) + 1;
+  if (text.includes('+5x the number') || text.includes('+5x') || text.includes('5x the number')) return { playerDelta: 5 * roll, cpuDelta: 0 };
+  if (text.includes('-5x the number') || (text.includes('opponent') && text.includes('5x'))) return { playerDelta: 0, cpuDelta: -5 * roll };
+  if (text.includes('two times') && text.includes('add up to 7')) { const r2 = Math.floor(Math.random() * 6) + 1; return (roll + r2 === 7) ? { playerDelta: 100, cpuDelta: 0 } : { playerDelta: 0, cpuDelta: 0 }; }
+  if (text.includes('drops to 0') || text.includes('goes to 0')) {
+    let m = text.match(/\+(\d+)/); const bonus = m ? parseInt(m[1]) || 25 : 25;
+    if (text.includes('1 or 6')) return (roll === 1 || roll === 6) ? { playerDelta: -(playerCard?.power || 999), cpuDelta: 0 } : { playerDelta: bonus, cpuDelta: 0 };
+    if (text.includes('lands on a 1') || text.includes('lands on 1')) return roll === 1 ? { playerDelta: -(playerCard?.power || 999), cpuDelta: 0 } : { playerDelta: bonus, cpuDelta: 0 };
+  }
+  let m = text.match(/lands on (\d+) or (\d+).*?\+(\d+)/);
+  if (m) {
+    if (roll === parseInt(m[1]) || roll === parseInt(m[2])) return { playerDelta: parseInt(m[3]) || 40, cpuDelta: 0 };
+    const fb = text.match(/if not.*?\+(\d+)/);
+    return { playerDelta: fb ? parseInt(fb[1]) || 5 : 5, cpuDelta: 0 };
+  }
+  if (text.includes('3-6') || text.includes('4-6')) {
+    m = text.match(/\+(\d+)/); const bonus = m ? parseInt(m[1]) || 25 : 25;
+    const threshold = text.includes('4-6') ? 4 : 3;
+    if (roll >= threshold) return { playerDelta: bonus, cpuDelta: 0 };
+    m = text.match(/-(\d+)/); return m ? { playerDelta: -(parseInt(m[1]) || 0), cpuDelta: 0 } : { playerDelta: 0, cpuDelta: 0 };
+  }
+  if (text.includes('5 or 6')) { m = text.match(/\+(\d+)/); return roll >= 5 ? { playerDelta: parseInt(m?.[1]) || 50, cpuDelta: 0 } : { playerDelta: 0, cpuDelta: 0 }; }
+  if (text.includes('3 times') && text.includes('roll a 6')) { const rolls = [1,2,3].map(() => Math.floor(Math.random()*6)+1); return rolls.includes(6) ? { playerDelta: 30, cpuDelta: 0 } : { playerDelta: 0, cpuDelta: 0 }; }
+  if (text.includes('roll again')) {
+    let total = 0, r = roll;
+    while (r >= 4) { m = text.match(/-(\d+)/); total -= m ? parseInt(m[1]) || 15 : 15; r = Math.floor(Math.random()*6)+1; }
+    return { playerDelta: 0, cpuDelta: total };
+  }
+  if (text.includes('swap current power') && roll === 6) {
+    const myP = playerCard?.power || 0, thP = cpuCard?.power || 0;
+    return { playerDelta: thP - myP, cpuDelta: myP - thP };
+  }
+  if (text.includes('both players roll')) {
+    const cpuRoll = Math.floor(Math.random()*6)+1;
+    m = text.match(/\+(\d+)/); const bonus = m ? parseInt(m[1]) || 25 : 25;
+    if (roll > cpuRoll) return { playerDelta: bonus, cpuDelta: 0 };
+    return { playerDelta: 0, cpuDelta: 0 };
+  }
+  m = text.match(/\+(\d+)/);
+  if (m) return { playerDelta: parseInt(m[1]) || 10, cpuDelta: 0 };
+  return { playerDelta: 10, cpuDelta: 0 };
+}
+
+function pmEffectDescription(card) {
+  const ability = card.playAbility || '';
+  if (!ability) return `+${(card.playCost || 0) * 6 + 5} Power`;
+  return ability;
 }
 
 function pmElementColor(el) {
@@ -787,7 +1014,7 @@ const PM = {
   // Player resources
   playerHD: 10,
   playerBench: [],           // hero cards available to substitute in
-  playerPlayHand: [],        // current play cards in hand (max 5)
+  playerPlayHand: [],        // current play cards in hand (4 starting, draw 1/battle)
   playerPlayDeck: [],        // remaining plays
   playerDiscard: [],         // discarded plays
   playerHeroDeckCount: 0,   // remaining heroes (for display)
@@ -798,6 +1025,7 @@ const PM = {
   cpuHD: 10,
   cpuBench: [],
   cpuPlayCount: 30,
+  cpuPlayPool: [],             // actual play cards for CPU
   cpuSubstituted: false,
   cpuPassedPlays: false,
 
@@ -809,7 +1037,9 @@ const PM = {
     this.allCards = allCards;
     Object.assign(this, {
       matchOver: false, matchWinner: null, playerScore: 0, cpuScore: 0,
-      honors: 'player', currentBattle: 0, phase: 'reveal',
+      honors: 'player', currentBattle: 0,
+      // Per rules: Sub phase comes BEFORE reveal for non-rookie modes
+      phase: this.mode === 'rookie' ? 'reveal' : 'sub',
       playerHD: 10, cpuHD: 10, cpuPlayCount: 30,
       playerSubstituted: false, cpuSubstituted: false,
       playerPassedPlays: false, cpuPassedPlays: false,
@@ -822,9 +1052,9 @@ const PM = {
     const noImg   = heroes.filter(c => !c.imageFile);
     const heroPool = [...shuffle([...withImg]), ...shuffle([...noImg])];
 
-    // 7 battle slots per side + 6 bench cards per side = 13 each
-    const playerCards = heroPool.slice(0, 13);
-    const cpuCards    = heroPool.slice(13, 26);
+    // 7 battle slots per side + 4 bench cards per side = 11 each (per rules §4.2.1, §4.3.1)
+    const playerCards = heroPool.slice(0, 11);
+    const cpuCards    = heroPool.slice(11, 22);
 
     this.battles = [];
     for (let i = 0; i < 7; i++) {
@@ -840,17 +1070,22 @@ const PM = {
       });
     }
 
-    // Bench = remaining 6 hero cards (indices 7-12)
+    // Bench = remaining 4 hero cards (indices 7-10, per rules §4.2.1)
     this.playerBench = [...playerCards.slice(7)];
     this.cpuBench    = [...cpuCards.slice(7)];
 
     // Build play hand from play cards
     const plays = allCards.filter(c => c.cardType === 'Play');
     const shuffledPlays = shuffle([...plays]);
-    this.playerPlayHand = shuffledPlays.slice(0, 5);
-    this.playerPlayDeck = shuffledPlays.slice(5, 30); // 30-card playbook: 5 in hand + 25 in deck
+    this.playerPlayHand = shuffledPlays.slice(0, 4); // 4 starting hand per rules §4.3.1
+    this.playerPlayDeck = shuffledPlays.slice(4, 30); // 30-card playbook: 4 in hand + 26 in deck
     this.playerDiscard  = [];
-    this.playerHeroDeckCount = 47; // 60-card hero deck minus 13 dealt (7 battles + 6 bench)
+    this.playerHeroDeckCount = 49; // 60-card hero deck minus 11 dealt (7 battles + 4 bench)
+
+    // CPU gets its own 30-card play pool (separate shuffle)
+    const cpuPlays = shuffle([...plays]);
+    this.cpuPlayPool = cpuPlays.slice(0, 30);
+    this.cpuPlayQueue = [];
   },
 
   advance() {
@@ -858,29 +1093,35 @@ const PM = {
     const b = this.battles[this.currentBattle];
 
     switch (this.phase) {
-      case 'reveal':
-        b.revealed = true;
-        if (this.mode === 'rookie') {
-          this.resolve();
-        } else {
-          this.phase = 'sub';
-          this.playerSubstituted = false;
-          this.cpuSubstituted = false;
-          this.selectedBenchIdx = null;
-          this.cpuDoSub();
+      case 'sub':
+        // Per rules (§4.2.2, §4.3.2): Sub happens BEFORE reveal
+        // CPU makes blind sub decision (can't see player's card)
+        { const didSub = this.cpuDoSub();
+          this.phase = 'reveal';
+          // Show CPU sub callout after DOM update (deferred so pmUpdateAll runs first)
+          if (didSub) setTimeout(() => pmShowCpuSubCallout(true), 50);
         }
         break;
 
-      case 'sub':
-        // Player done with subs — move to play or resolve
-        if (this.mode === 'playmaker') {
+      case 'reveal':
+        if (!b.revealed) {
+          // Step 1: flip cards face-up so player can see the matchup
+          b.revealed = true;
+          if (this.mode === 'rookie' || this.mode === 'substitution') {
+            this.resolve();
+          }
+          // In playmaker, stay in reveal phase — user presses again to enter play
+        } else {
+          // Step 2: cards already revealed, enter play phase
           this.phase = 'play';
           this.playerPassedPlays = false;
           this.cpuPassedPlays = false;
-          // CPU plays a card or two
+          // CPU plays AFTER reveal, not simultaneously
           this.cpuDoPlay();
-        } else {
-          this.resolve();
+          // Show CPU plays as overlay after DOM update
+          if (this.cpuPlayQueue.length > 0) {
+            setTimeout(() => pmShowCpuPlayQueue(), 50);
+          }
         }
         break;
 
@@ -917,12 +1158,20 @@ const PM = {
     if (benchIdx < 0 || benchIdx >= this.playerBench.length) return false;
 
     const benchCard   = this.playerBench[benchIdx];
-    const activeCard  = this.battles[this.currentBattle].playerCard;
+    // Per rules: original hero goes to discard, not back to bench
     this.battles[this.currentBattle].playerCard = benchCard;
-    this.playerBench[benchIdx] = activeCard;
+    this.playerBench.splice(benchIdx, 1); // remove from bench
     this.playerHD -= 2;
+    // Draw a new hero from hero deck to refill bench (per rules §Glossary "Substitute")
+    if (this.playerHeroDeckCount > 0) {
+      // In practice mode we don't have full hero deck objects for CPU;
+      // for player, add a placeholder draw from remaining pool
+      this.playerHeroDeckCount--;
+    }
     this.playerSubstituted = true;
     this.selectedBenchIdx = null;
+    // Auto-advance to reveal phase after substituting (matches iOS)
+    this.advance();
     return true;
   },
 
@@ -940,8 +1189,10 @@ const PM = {
       // Recovery play: restore hot dogs instead of power bonus
       this.playerHD = Math.min(10, this.playerHD + hdRecovery);
     } else if (b) {
-      // Tempo/boost play: give power bonus to current battle
-      b.playerEffectPower = (b.playerEffectPower || 0) + Math.max(5, cost * 6 + 5);
+      // Use full effects engine instead of simple formula
+      const effect = pmResolveEffect(card, b.playerCard, b.cpuCard);
+      b.playerEffectPower = (b.playerEffectPower || 0) + (effect.playerDelta || 0);
+      b.cpuEffectPower = (b.cpuEffectPower || 0) + (effect.cpuDelta || 0);
     }
     if (b) b.playerPlaysPlayed.push(card);
     this.playerPlayHand.splice(handIdx, 1);
@@ -951,11 +1202,10 @@ const PM = {
 
   cpuDoSub() {
     if (this.cpuSubstituted || this.cpuBench.length === 0 || this.cpuHD < 2) {
-      this.cpuSubstituted = true; return;
+      this.cpuSubstituted = true; return false;
     }
     const b = this.battles[this.currentBattle];
-    const cpuPow    = (b.cpuCard?.power || 0);
-    const playerPow = (b.playerCard?.power || 0);
+    const cpuPow = (b.cpuCard?.power || 0);
 
     // Find best bench card
     const bestIdx = this.cpuBench.reduce((bi, c, i) =>
@@ -963,30 +1213,62 @@ const PM = {
     const bestCard = this.cpuBench[bestIdx];
     const bestPow  = bestCard?.power || 0;
 
-    // Sub if:
-    //  - Losing by 10+ and bench has a better card (defensive), OR
-    //  - Bench card is 30+ stronger (opportunistic upgrade), ~30% chance
-    const defensiveSub    = playerPow - cpuPow >= 10 && bestPow > cpuPow;
-    const opportunisticSub = bestPow - cpuPow >= 30 && Math.random() < 0.30;
+    // Per rules (§4.2.2): Subs happen BEFORE reveal — CPU can't see player's card.
+    // Blind decision: sub if current hero is weak (<120) and bench is better,
+    // or bench has a 30+ power upgrade
+    const weakHero = cpuPow < 120 && bestPow > cpuPow;
+    const opportunisticSub = bestPow - cpuPow >= 30;
 
-    if (defensiveSub || opportunisticSub) {
+    if (weakHero || opportunisticSub) {
+      // Per rules: original hero goes to discard, bench card replaces it
       this.battles[this.currentBattle].cpuCard = bestCard;
-      this.cpuBench[bestIdx] = b.cpuCard;
+      this.cpuBench.splice(bestIdx, 1); // remove from bench (original hero discarded)
       this.cpuHD -= 2;
+      this.cpuSubstituted = true;
+      return true;
     }
     this.cpuSubstituted = true;
+    return false;
   },
+
+  // CPU play cards queue — filled by cpuDoPlay, shown as overlay one by one
+  cpuPlayQueue: [],
 
   cpuDoPlay() {
     if (this.cpuPassedPlays) return;
     const b = this.battles[this.currentBattle];
-    const numPlays = Math.random() < 0.4 ? 1 : 0;
+    this.cpuPlayQueue = [];
+
+    // CPU plays 0-2 cards based on situation
+    const losing = (b.cpuCard?.power || 0) + (b.cpuEffectPower || 0) < (b.playerCard?.power || 0) + (b.playerEffectPower || 0);
+    const numPlays = losing ? (Math.random() < 0.6 ? 2 : 1) : (Math.random() < 0.4 ? 1 : 0);
+
     for (let i = 0; i < numPlays; i++) {
-      if (this.cpuHD < 1 || this.cpuPlayCount <= 0) break;
-      const cost = Math.min(Math.floor(Math.random() * 3) + 1, this.cpuHD);
+      if (this.cpuHD < 1 || this.cpuPlayCount <= 0 || this.cpuPlayPool.length === 0) break;
+      // Pick an affordable card from CPU's play pool
+      const affordable = this.cpuPlayPool.filter(c => (c.playCost || 0) <= this.cpuHD);
+      if (affordable.length === 0) break;
+      const card = affordable[Math.floor(Math.random() * affordable.length)];
+      const cost = card.playCost || 0;
+
       this.cpuHD -= cost;
       this.cpuPlayCount--;
-      b.cpuEffectPower = (b.cpuEffectPower || 0) + (cost * 6 + 5);
+      // Remove from pool
+      const poolIdx = this.cpuPlayPool.indexOf(card);
+      if (poolIdx >= 0) this.cpuPlayPool.splice(poolIdx, 1);
+
+      // Apply effect
+      const hdRecovery = pmDetectHDRecovery(card);
+      if (hdRecovery > 0) {
+        this.cpuHD = Math.min(10, this.cpuHD + hdRecovery);
+        this.cpuPlayQueue.push({ card, cost, effect: { playerDelta: 0, cpuDelta: 0 }, hdRecovery });
+      } else {
+        // For CPU, swap perspective: CPU is the "player" from the resolver's POV
+        const effect = pmResolveEffect(card, b.cpuCard, b.playerCard);
+        b.cpuEffectPower = (b.cpuEffectPower || 0) + (effect.playerDelta || 0);
+        b.playerEffectPower = (b.playerEffectPower || 0) + (effect.cpuDelta || 0);
+        this.cpuPlayQueue.push({ card, cost, effect });
+      }
     }
     this.cpuPassedPlays = true;
   },
@@ -1001,12 +1283,18 @@ const PM = {
     } else if (cpuPow > playerPow) {
       b.result = 'lose'; this.cpuScore++;    this.honors = 'cpu';
     } else {
-      const pSuper = b.playerCard?.element === 'SUPER';
-      const cSuper = b.cpuCard?.element    === 'SUPER';
-      if (pSuper && !cSuper) {
-        b.result = 'win';  this.playerScore++; this.honors = 'player';
-      } else if (cSuper && !pSuper) {
-        b.result = 'lose'; this.cpuScore++;    this.honors = 'cpu';
+      // Tie — SUPER weapon wins ONLY in Playmaker mode (§4.3.2 Super Tie Breaker)
+      // Rookie/Substitution: tied power = draw, no trophy (§4.1.2, §4.2.2)
+      if (this.mode === 'playmaker') {
+        const pSuper = b.playerCard?.element === 'SUPER';
+        const cSuper = b.cpuCard?.element    === 'SUPER';
+        if (pSuper && !cSuper) {
+          b.result = 'win';  this.playerScore++; this.honors = 'player';
+        } else if (cSuper && !pSuper) {
+          b.result = 'lose'; this.cpuScore++;    this.honors = 'cpu';
+        } else {
+          b.result = 'tie';
+        }
       } else {
         b.result = 'tie';
       }
@@ -1032,7 +1320,8 @@ const PM = {
       return;
     }
     this.currentBattle = next;
-    this.phase = 'reveal';
+    // Per rules: Sub phase comes before reveal for non-rookie
+    this.phase = this.mode === 'rookie' ? 'reveal' : 'sub';
     this.playerSubstituted = false;
     this.cpuSubstituted = false;
     this.playerPassedPlays = false;
@@ -1185,6 +1474,23 @@ function pmBuildPlaymatHTML() {
   <!-- Phase transition banner -->
   <div class="pm-phase-banner" id="pm-phase-banner"></div>
 
+  <!-- CPU play overlay — shows CPU plays one by one -->
+  <div class="pm-cpu-overlay" id="pm-cpu-overlay" hidden>
+    <div class="pm-cpu-overlay-inner">
+      <div class="pm-cpu-overlay-label">CPU PLAYS</div>
+      <div class="pm-cpu-overlay-card" id="pm-cpu-overlay-card"></div>
+      <button class="pm-cpu-overlay-dismiss" id="pm-cpu-overlay-dismiss">OK</button>
+    </div>
+  </div>
+
+  <!-- CPU sub callout -->
+  <div class="pm-cpu-sub-callout" id="pm-cpu-sub-callout" hidden>
+    <div class="pm-cpu-sub-inner">
+      <span class="pm-cpu-sub-icon">⚡</span>
+      <span class="pm-cpu-sub-text">CPU SUBSTITUTED</span>
+    </div>
+  </div>
+
   <!-- Match over overlay -->
   <div class="pm-match-over-overlay" id="pm-match-over" hidden>
     <div class="pm-result-title" id="pm-result-title">VICTORY!</div>
@@ -1211,11 +1517,14 @@ function pmSetRootClass() {
 
   // Phase label
   const phaseNames = {
-    reveal: 'REVEAL', sub: 'SUB WINDOW', play: 'PLAY WINDOW',
+    sub: 'SUBSTITUTION', reveal: 'REVEAL', play: 'PLAY WINDOW',
     resolution: 'RESOLUTION', cleanup: 'CLEANUP', over: 'MATCH OVER',
   };
+  // Dynamic button labels — reveal has two states like iOS
+  const b = PM.battles[PM.currentBattle];
+  const revealLabel = (b && b.revealed) ? 'PLAY PHASE →' : 'REVEAL →';
   const btnLabels = {
-    reveal: 'REVEAL CARDS →', sub: 'DONE WITH SUBS →', play: 'DONE PLAYING →',
+    sub: 'SKIP SUBS →', reveal: revealLabel, play: 'END TURN →',
     resolution: 'NEXT →', cleanup: 'NEXT BATTLE →', over: 'PLAY AGAIN',
   };
 
@@ -1248,7 +1557,7 @@ function pmSetRootClass() {
     if (banner) {
       banner.textContent = phaseNames[PM.phase] || PM.phase.toUpperCase();
       banner.classList.add('visible');
-      setTimeout(() => banner.classList.remove('visible'), 900);
+      setTimeout(() => banner.classList.remove('visible'), 2000);
     }
   }
 }
@@ -1439,6 +1748,9 @@ function pmUpdateAll() {
   pmUpdateOpponentZone();
   pmUpdatePlayerZone();
   pmUpdateMatchOverlay();
+  // Auto-save match state
+  if (!PM.matchOver) pmSaveMatch();
+  else pmClearSavedMatch();
 }
 
 // ── Init (event listeners attached once per session) ────────────
@@ -1450,6 +1762,9 @@ function pmExitPlaymat() {
   if (view)  view.classList.remove('playmat-mode');
   if (setup) setup.hidden = false;
   if (mat)   mat.hidden = true;
+  // Update resume button visibility
+  const resumeBtn = $('btn-resume-practice');
+  if (resumeBtn) resumeBtn.hidden = !pmLoadMatch();
 }
 
 // Show a popup for a play card so the user can read the effect before deciding to play
@@ -1505,6 +1820,164 @@ function pmShowPlayCardPopup(handIdx) {
   if (mat) mat.appendChild(popup);
 }
 
+// ── Match persistence (localStorage) ────────────────────────────
+const PM_SAVE_KEY = 'boba_practice_match';
+
+function pmSaveMatch() {
+  try {
+    const snap = {
+      mode: PM.mode, phase: PM.phase, currentBattle: PM.currentBattle,
+      playerScore: PM.playerScore, cpuScore: PM.cpuScore, honors: PM.honors,
+      matchOver: PM.matchOver, matchWinner: PM.matchWinner,
+      playerHD: PM.playerHD, cpuHD: PM.cpuHD, cpuPlayCount: PM.cpuPlayCount,
+      playerSubstituted: PM.playerSubstituted, cpuSubstituted: PM.cpuSubstituted,
+      playerPassedPlays: PM.playerPassedPlays, cpuPassedPlays: PM.cpuPassedPlays,
+      playerHeroDeckCount: PM.playerHeroDeckCount,
+      // Serialize card arrays by bobaId for compact storage
+      battles: PM.battles.map(b => ({
+        id: b.id, result: b.result, revealed: b.revealed,
+        playerEffectPower: b.playerEffectPower, cpuEffectPower: b.cpuEffectPower,
+        playerCardId: b.playerCard?.bobaId || null,
+        cpuCardId: b.cpuCard?.bobaId || null,
+        playerPlaysPlayed: (b.playerPlaysPlayed || []).map(c => c.bobaId || c.name),
+      })),
+      playerBenchIds: PM.playerBench.map(c => c?.bobaId),
+      cpuBenchIds: PM.cpuBench.map(c => c?.bobaId),
+      playerPlayHandIds: PM.playerPlayHand.map(c => c?.bobaId),
+      playerPlayDeckIds: PM.playerPlayDeck.map(c => c?.bobaId),
+      playerDiscardIds: PM.playerDiscard.map(c => c?.bobaId),
+      cpuPlayPoolIds: PM.cpuPlayPool.map(c => c?.bobaId),
+      savedAt: Date.now(),
+    };
+    localStorage.setItem(PM_SAVE_KEY, JSON.stringify(snap));
+  } catch (e) { /* ignore storage errors */ }
+}
+
+function pmLoadMatch() {
+  try {
+    const raw = localStorage.getItem(PM_SAVE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) { return null; }
+}
+
+function pmClearSavedMatch() {
+  localStorage.removeItem(PM_SAVE_KEY);
+}
+
+function pmRestoreMatch(snap, allCards) {
+  if (!snap || !allCards || !allCards.length) return false;
+  // Build lookup by bobaId
+  const byId = {};
+  allCards.forEach(c => { if (c.bobaId) byId[c.bobaId] = c; });
+  const findCard = id => id ? (byId[id] || null) : null;
+
+  PM.allCards = allCards;
+  PM.mode = snap.mode || 'playmaker';
+  PM.phase = snap.phase || 'reveal';
+  PM.currentBattle = snap.currentBattle || 0;
+  PM.playerScore = snap.playerScore || 0;
+  PM.cpuScore = snap.cpuScore || 0;
+  PM.honors = snap.honors || 'player';
+  PM.matchOver = snap.matchOver || false;
+  PM.matchWinner = snap.matchWinner || null;
+  PM.playerHD = snap.playerHD ?? 10;
+  PM.cpuHD = snap.cpuHD ?? 10;
+  PM.cpuPlayCount = snap.cpuPlayCount ?? 30;
+  PM.playerSubstituted = snap.playerSubstituted || false;
+  PM.cpuSubstituted = snap.cpuSubstituted || false;
+  PM.playerPassedPlays = snap.playerPassedPlays || false;
+  PM.cpuPassedPlays = snap.cpuPassedPlays || false;
+  PM.playerHeroDeckCount = snap.playerHeroDeckCount || 0;
+  PM.selectedBenchIdx = null;
+  PM.cpuPlayQueue = [];
+
+  PM.battles = (snap.battles || []).map(sb => ({
+    id: sb.id, result: sb.result, revealed: sb.revealed,
+    playerEffectPower: sb.playerEffectPower || 0,
+    cpuEffectPower: sb.cpuEffectPower || 0,
+    playerCard: findCard(sb.playerCardId),
+    cpuCard: findCard(sb.cpuCardId),
+    playerPlaysPlayed: (sb.playerPlaysPlayed || []).map(id => findCard(id)).filter(Boolean),
+  }));
+
+  PM.playerBench = (snap.playerBenchIds || []).map(findCard).filter(Boolean);
+  PM.cpuBench = (snap.cpuBenchIds || []).map(findCard).filter(Boolean);
+  PM.playerPlayHand = (snap.playerPlayHandIds || []).map(findCard).filter(Boolean);
+  PM.playerPlayDeck = (snap.playerPlayDeckIds || []).map(findCard).filter(Boolean);
+  PM.playerDiscard = (snap.playerDiscardIds || []).map(findCard).filter(Boolean);
+  PM.cpuPlayPool = (snap.cpuPlayPoolIds || []).map(findCard).filter(Boolean);
+
+  return true;
+}
+
+// Show CPU play cards one by one as dismissible overlays
+function pmShowCpuPlayQueue() {
+  if (!PM.cpuPlayQueue || PM.cpuPlayQueue.length === 0) return;
+  const overlay = $('pm-cpu-overlay');
+  if (!overlay) return;
+
+  let queueIdx = 0;
+
+  function showNext() {
+    if (queueIdx >= PM.cpuPlayQueue.length) {
+      overlay.hidden = true;
+      pmUpdateAll();
+      return;
+    }
+    const entry = PM.cpuPlayQueue[queueIdx];
+    const card = entry.card;
+    const cost = entry.cost;
+    const effect = entry.effect;
+    const imgUrl = card.imageFile ? fullUrl(card.imageFile) : null;
+    const ability = card.playAbility || '';
+    const costLabel = cost === 0 ? 'FREE' : `${cost} HD`;
+
+    let deltasHtml = '';
+    if (effect.playerDelta > 0) deltasHtml += `<span class="pm-cpu-card-delta-opp">CPU +${effect.playerDelta}</span>`;
+    if (effect.playerDelta < 0) deltasHtml += `<span class="pm-cpu-card-delta-opp">CPU ${effect.playerDelta}</span>`;
+    if (effect.cpuDelta < 0) deltasHtml += `<span class="pm-cpu-card-delta-you">YOU ${effect.cpuDelta}</span>`;
+    if (effect.cpuDelta > 0) deltasHtml += `<span class="pm-cpu-card-delta-you">YOU +${effect.cpuDelta}</span>`;
+    if (entry.hdRecovery > 0) deltasHtml += `<span class="pm-cpu-card-delta-opp">CPU +${entry.hdRecovery} HD</span>`;
+
+    const cardEl = $('pm-cpu-overlay-card');
+    if (cardEl) {
+      cardEl.innerHTML = `
+        ${imgUrl ? `<img class="pm-cpu-card-img" src="${imgUrl}" alt="${card.name||''}" onerror="this.style.display='none'">` : ''}
+        <div class="pm-cpu-card-name">${card.name || 'Play Card'}</div>
+        <div class="pm-cpu-card-cost">${costLabel}</div>
+        ${ability ? `<div class="pm-cpu-card-effect">${ability}</div>` : ''}
+        <div class="pm-cpu-card-deltas">${deltasHtml}</div>`;
+    }
+
+    overlay.hidden = false;
+    queueIdx++;
+  }
+
+  const dismissBtn = $('pm-cpu-overlay-dismiss');
+  // Remove old listener by replacing node
+  if (dismissBtn) {
+    const newBtn = dismissBtn.cloneNode(true);
+    dismissBtn.parentNode.replaceChild(newBtn, dismissBtn);
+    newBtn.addEventListener('click', showNext);
+  }
+
+  showNext();
+}
+
+// Show CPU sub callout (auto-dismiss)
+function pmShowCpuSubCallout(didSub) {
+  if (!didSub) return;
+  const callout = $('pm-cpu-sub-callout');
+  if (!callout) return;
+  callout.hidden = false;
+  // Re-trigger animation
+  callout.style.animation = 'none';
+  callout.offsetHeight; // force reflow
+  callout.style.animation = '';
+  setTimeout(() => { callout.hidden = true; }, 2000);
+}
+
 function pmInitPlaymat() {
   if (PM._initialized) return;
   PM._initialized = true;
@@ -1530,10 +2003,16 @@ function pmInitPlaymat() {
     pmUpdatePlayerZone();
   });
 
-  // Substitute button — confirmed sub
+  // Substitute button — confirmed sub (auto-advances via playerSub)
   $('pm-btn-sub')?.addEventListener('click', () => {
     if (PM.selectedBenchIdx === null) return;
     if (PM.playerSub(PM.selectedBenchIdx)) pmUpdateAll();
+  });
+
+  // CPU overlay dismiss (initial listener — gets replaced dynamically in pmShowCpuPlayQueue)
+  $('pm-cpu-overlay-dismiss')?.addEventListener('click', () => {
+    const overlay = $('pm-cpu-overlay');
+    if (overlay) overlay.hidden = true;
   });
 
   // Play card click — show detail popup first so user can read effect before playing
@@ -1570,6 +2049,33 @@ function pmInitPlaymat() {
 function initPractice(allCards) {
   const view = $('view-practice');
   if (!view) return;
+
+  // Show resume button if there's a saved match
+  const saved = pmLoadMatch();
+  const resumeBtn = $('btn-resume-practice');
+  if (resumeBtn) resumeBtn.hidden = !saved;
+
+  // Resume match
+  resumeBtn?.addEventListener('click', () => {
+    const snap = pmLoadMatch();
+    if (!snap) return;
+
+    const mat = $('practice-playmat');
+    if (mat && !PM._initialized) {
+      mat.innerHTML = pmBuildPlaymatHTML();
+      if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [mat] });
+    }
+
+    if (!pmRestoreMatch(snap, allCards)) return;
+
+    const setup = $('practice-setup');
+    if (setup) setup.hidden = true;
+    if (mat)   mat.hidden = false;
+    view.classList.add('playmat-mode');
+
+    pmInitPlaymat();
+    pmUpdateAll();
+  });
 
   // Mode radio
   view.querySelectorAll('input[name="practice-mode"]').forEach(radio => {

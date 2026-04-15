@@ -33,6 +33,27 @@ struct PracticeSetupView: View {
                     // ── Mode rules summary ──────────────────────────────────
                     modeRulesSummary
 
+                    // ── Resume button (if saved match exists) ────────────────
+                    if PracticeStore.hasSavedMatch {
+                        Button {
+                            if store.restoreMatch() {
+                                showPlaymat = true
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.counterclockwise")
+                                Text("RESUME MATCH")
+                                    .font(Design.Fonts.display(18))
+                            }
+                            .foregroundStyle(Design.Colors.nearBlack)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 54)
+                            .background(Design.Colors.bobaCyan)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                        .buttonStyle(.plain)
+                    }
+
                     // ── Start button ────────────────────────────────────────
                     Button {
                         store.startMatch(allCards: cardStore.displayCards)

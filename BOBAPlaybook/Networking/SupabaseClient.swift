@@ -442,6 +442,22 @@ final class SupabaseClient {
         }
     }
 
+    func deleteDeck(deckId: UUID) async throws {
+        // Delete deck_cards first (FK constraint)
+        let cardsURL = try makeURL(path: "/rest/v1/deck_cards?deck_id=eq.\(deckId)")
+        var cardsReq = URLRequest(url: cardsURL)
+        cardsReq.httpMethod = "DELETE"
+        addHeaders(&cardsReq, authenticated: true)
+        try await voidExecute(cardsReq)
+
+        // Delete the deck row
+        let deckURL = try makeURL(path: "/rest/v1/decks?id=eq.\(deckId)")
+        var deckReq = URLRequest(url: deckURL)
+        deckReq.httpMethod = "DELETE"
+        addHeaders(&deckReq, authenticated: true)
+        try await voidExecute(deckReq)
+    }
+
     func fetchDeckCards(deckId: UUID) async throws -> [(bobaId: String, cardType: String)] {
         let url = try makeURL(path: "/rest/v1/deck_cards?deck_id=eq.\(deckId)&select=boba_id,card_type&order=sort_order.asc")
         var request = URLRequest(url: url)

@@ -100,8 +100,8 @@ struct PracticeTopBar: View {
                             .foregroundStyle(Color(hex: "C0392B").opacity(0.7))
                     }
                     if store.mode.showHotDogs {
-                        Label("\(store.cpuHotDogs)", systemImage: "flame.fill")
-                            .font(Design.Fonts.mono(9))
+                        Text("\(store.cpuHotDogs) HD")
+                            .font(Design.Fonts.mono(9, weight: .bold))
                             .foregroundStyle(Color(hex: "4CAF50"))
                     }
                     if store.mode.showPlays {

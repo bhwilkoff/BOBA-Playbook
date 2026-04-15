@@ -16,28 +16,24 @@ struct DeckBuilderView: View {
     @Environment(CardStore.self) private var cardStore
     @State private var store = DeckBuilderStore()
     @State private var showTemplates = true
-    @State private var showTemplateSheet = false
+    @State private var showDeckManagement = false
     @State private var showDeckList = false
-    @State private var showExport = false
-    @State private var exportText = ""
     @State private var quickAdd = false
     @State private var selectedBrowserCard: Card? = nil
     @State private var elementFilter = ""
-    @State private var isSaving = false
-    @State private var saveMessage: String? = nil
-    @State private var showSavedDecks = false
-    @State private var savedDecks: [SavedDeck] = []
-    @State private var isLoadingDecks = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Format selector
-                formatPicker
-                    .padding(.horizontal, Design.Spacing.md)
-                    .padding(.vertical, Design.Spacing.sm)
-                    .background(Design.Colors.surface)
+                // Format picker + Stats bar
+                HStack {
+                    formatPicker
+                    Spacer()
+                }
+                .padding(.horizontal, Design.Spacing.md)
+                .padding(.vertical, Design.Spacing.sm)
+                .background(Design.Colors.surface)
 
                 // Stats bar
                 statsBar
@@ -56,90 +52,34 @@ struct DeckBuilderView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showDeckManagement = true
+                    } label: {
+                        Image(systemName: "line.3.horizontal.circle")
+                            .font(.system(size: 20))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                    }
+                }
                 ToolbarItem(placement: .principal) {
                     Text("DECK BUILDER")
                         .font(Design.Fonts.display(18))
                         .foregroundStyle(Design.Colors.textPrimary)
                 }
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Starter Decks") {
-                        if store.heroes.isEmpty && store.plays.isEmpty {
-                            withAnimation { showTemplates = true }
-                        } else {
-                            showTemplateSheet = true
-                        }
-                    }
-                    .font(Design.Fonts.mono(13))
-                    .foregroundStyle(Design.Colors.bobaCyan)
-                }
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: Design.Spacing.sm) {
-                        // Load saved decks
-                        Button {
-                            showSavedDecks = true
-                        } label: {
-                            Image(systemName: "tray.and.arrow.down")
-                                .foregroundStyle(Design.Colors.bobaCyan)
-                        }
-
-                        // Save deck
-                        Button {
-                            Task { await saveDeck() }
-                        } label: {
-                            if isSaving {
-                                ProgressView().tint(Design.Colors.bobaOrange)
-                            } else {
-                                Image(systemName: "icloud.and.arrow.up")
-                                    .foregroundStyle(saveMessage == "Saved!" ? Color(hex: "4CAF50") : Design.Colors.bobaOrange)
-                            }
-                        }
-
-                        // Export
-                        Button {
-                            exportText = store.deckListText
-                            showExport = true
-                        } label: {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                        .foregroundStyle(Design.Colors.textSecondary)
-
-                        Button("Done") { dismiss() }
-                            .font(Design.Fonts.mono(13, weight: .bold))
-                            .foregroundStyle(Design.Colors.bobaOrange)
-                    }
+                    Button("Done") { dismiss() }
+                        .font(Design.Fonts.mono(13, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
                 }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
-        .sheet(isPresented: $showExport) {
-            ExportSheet(text: exportText, deckName: store.deckName)
-        }
-        .sheet(isPresented: $showTemplateSheet) {
-            TemplateGallerySheet(store: store, cards: cardStore.displayCards)
-        }
-        .sheet(isPresented: $showSavedDecks) {
-            SavedDecksSheet(store: store, allCards: cardStore.displayCards, onDismiss: { showSavedDecks = false })
+        .sheet(isPresented: $showDeckManagement) {
+            DeckManagementSheet(store: store, cards: cardStore.displayCards)
         }
         .sheet(item: $selectedBrowserCard) { card in
             BrowserCardDetailSheet(card: card, store: store, tab: store.browserTab)
-        }
-    }
-
-    // MARK: - Save Deck
-
-    @MainActor
-    private func saveDeck() async {
-        guard !store.heroes.isEmpty else { return }
-        isSaving = true
-        saveMessage = nil
-        defer { isSaving = false }
-        do {
-            try await SupabaseClient.shared.saveDeck(store)
-            saveMessage = "Saved!"
-            Task { try? await Task.sleep(nanoseconds: 2_000_000_000); saveMessage = nil }
-        } catch {
-            saveMessage = "Failed"
         }
     }
 
@@ -422,90 +362,125 @@ struct DeckBuilderView: View {
             }
             return true
         }
-        // Sort: heroes by power desc, plays by cost asc
+        // Sort: cards with images first, then by power/cost
         switch store.browserTab {
         case .hero:
-            return cards.sorted { ($0.power ?? 0) > ($1.power ?? 0) }
+            return cards.sorted { a, b in
+                let aHasImg = !(a.imageFile ?? "").isEmpty
+                let bHasImg = !(b.imageFile ?? "").isEmpty
+                if aHasImg != bHasImg { return aHasImg }
+                return (a.power ?? 0) > (b.power ?? 0)
+            }
         case .play, .bonusPlay, .sideboard:
-            return cards.sorted { ($0.playCost ?? 0) < ($1.playCost ?? 0) }
+            return cards.sorted { a, b in
+                let aHasImg = !(a.imageFile ?? "").isEmpty
+                let bHasImg = !(b.imageFile ?? "").isEmpty
+                if aHasImg != bHasImg { return aHasImg }
+                return (a.playCost ?? 0) < (b.playCost ?? 0)
+            }
         default:
-            return cards
+            return cards.sorted { a, b in
+                let aHasImg = !(a.imageFile ?? "").isEmpty
+                let bHasImg = !(b.imageFile ?? "").isEmpty
+                return aHasImg && !bHasImg
+            }
         }
     }
 
     // MARK: - Deck Panel
 
     private var deckPanel: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                // Deck name
-                HStack {
-                    TextField("Deck name", text: $store.deckName)
-                        .font(Design.Fonts.display(18))
-                        .foregroundStyle(Design.Colors.textPrimary)
-                    Spacer()
-                    Button {
-                        withAnimation { showDeckList.toggle() }
-                    } label: {
-                        Image(systemName: showDeckList ? "chevron.up" : "chevron.down")
+        VStack(spacing: 0) {
+            // Deck header — always visible
+            HStack {
+                TextField("Deck name", text: $store.deckName)
+                    .font(Design.Fonts.display(18))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                Spacer()
+                // Card count summary when collapsed
+                if !showDeckList {
+                    Text("\(store.heroes.count)H")
+                        .font(Design.Fonts.mono(11, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                    if store.format.needsPlaybook {
+                        Text("\(store.plays.count)P")
+                            .font(Design.Fonts.mono(11, weight: .bold))
                             .foregroundStyle(Design.Colors.textMuted)
                     }
                 }
-                .padding(Design.Spacing.md)
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { showDeckList.toggle() }
+                } label: {
+                    Image(systemName: showDeckList ? "chevron.down" : "chevron.up")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                        .frame(width: 32, height: 32)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, Design.Spacing.md)
+            .padding(.vertical, Design.Spacing.sm)
+            .background(Design.Colors.surface)
+            .overlay(Divider().background(Design.Colors.glass), alignment: .top)
 
-                if showDeckList || !store.heroes.isEmpty || !store.plays.isEmpty {
-                    // Validation errors
-                    if !store.validationErrors.isEmpty {
-                        validationSection
-                    }
-                    // Hero Deck section
-                    DeckSection(title: "HERO DECK (\(store.heroes.count)/\(store.format.heroTarget))",
-                                isEmpty: store.heroes.isEmpty) {
-                        ForEach(groupedHeroes, id: \.power) { group in
-                            HStack {
-                                Text("PWR \(group.power)")
-                                    .font(Design.Fonts.mono(10, weight: .bold))
-                                    .foregroundStyle(Design.Colors.textMuted)
-                                Text("(\(group.cards.count)/6)")
-                                    .font(Design.Fonts.mono(10))
-                                    .foregroundStyle(group.cards.count > 6 ? Color(hex: "C0392B") : Design.Colors.textMuted)
-                                Spacer()
-                            }
-                            .padding(.horizontal, Design.Spacing.md)
-                            .padding(.top, Design.Spacing.xs)
-                            ForEach(group.cards) { card in
-                                DeckCardRow(card: card) { store.removeCard(card, role: .hero) }
+            // Expandable deck contents
+            if showDeckList {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Validation errors
+                        if !store.validationErrors.isEmpty {
+                            validationSection
+                        }
+                        // Hero Deck section
+                        DeckSection(title: "HERO DECK (\(store.heroes.count)/\(store.format.heroTarget))",
+                                    isEmpty: store.heroes.isEmpty) {
+                            ForEach(groupedHeroes, id: \.power) { group in
+                                HStack {
+                                    Text("PWR \(group.power)")
+                                        .font(Design.Fonts.mono(10, weight: .bold))
+                                        .foregroundStyle(Design.Colors.textMuted)
+                                    Text("(\(group.cards.count)/6)")
+                                        .font(Design.Fonts.mono(10))
+                                        .foregroundStyle(group.cards.count > 6 ? Color(hex: "C0392B") : Design.Colors.textMuted)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, Design.Spacing.md)
+                                .padding(.top, Design.Spacing.xs)
+                                ForEach(group.cards) { card in
+                                    DeckCardRow(card: card) { store.removeCard(card, role: .hero) }
+                                }
                             }
                         }
-                    }
-                    // Playbook
-                    if store.format.needsPlaybook {
-                        DeckSection(title: "PLAYS (\(store.plays.count)/30)", isEmpty: store.plays.isEmpty) {
-                            ForEach(store.plays) { card in
-                                DeckCardRow(card: card) { store.removeCard(card, role: .play) }
+                        // Playbook
+                        if store.format.needsPlaybook {
+                            DeckSection(title: "PLAYS (\(store.plays.count)/30)", isEmpty: store.plays.isEmpty) {
+                                ForEach(store.plays) { card in
+                                    DeckCardRow(card: card) { store.removeCard(card, role: .play) }
+                                }
+                            }
+                            if !store.bonusPlays.isEmpty {
+                                DeckSection(title: "BONUS PLAYS (\(store.bonusPlays.count))", isEmpty: false) {
+                                    ForEach(store.bonusPlays) { card in
+                                        DeckCardRow(card: card) { store.removeCard(card, role: .bonusPlay) }
+                                    }
+                                }
                             }
                         }
-                        if !store.bonusPlays.isEmpty {
-                            DeckSection(title: "BONUS PLAYS (\(store.bonusPlays.count))", isEmpty: false) {
-                                ForEach(store.bonusPlays) { card in
-                                    DeckCardRow(card: card) { store.removeCard(card, role: .bonusPlay) }
+                        // Hot Dogs
+                        if store.format.needsHotDogs {
+                            DeckSection(title: "HOT DOGS (\(store.hotDogs.count)/10)", isEmpty: store.hotDogs.isEmpty) {
+                                ForEach(store.hotDogs) { card in
+                                    DeckCardRow(card: card) { store.removeCard(card, role: .hotDog) }
                                 }
                             }
                         }
                     }
-                    // Hot Dogs
-                    if store.format.needsHotDogs {
-                        DeckSection(title: "HOT DOGS (\(store.hotDogs.count)/10)", isEmpty: store.hotDogs.isEmpty) {
-                            ForEach(store.hotDogs) { card in
-                                DeckCardRow(card: card) { store.removeCard(card, role: .hotDog) }
-                            }
-                        }
-                    }
                 }
+                .frame(minHeight: 200)
             }
         }
         .background(Design.Colors.surface.opacity(0.5))
-        .frame(minHeight: 200)
     }
 
     private var validationSection: some View {
@@ -554,14 +529,7 @@ private struct BrowserCardCell: View {
                 // Card image
                 Group {
                     if let file = card.imageFile, !file.isEmpty {
-                        AsyncImage(url: CDN.thumb(for: file)) { phase in
-                            switch phase {
-                            case .success(let img):
-                                img.resizable().aspectRatio(contentMode: .fill)
-                            default:
-                                RoundedRectangle(cornerRadius: 8).fill(Design.Colors.glass)
-                            }
-                        }
+                        CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
                     } else {
                         RoundedRectangle(cornerRadius: 8).fill(Design.Colors.glass)
                             .overlay(Text(String((card.hero.isEmpty ? card.name : card.hero).prefix(2)).uppercased())
@@ -622,19 +590,17 @@ private struct BrowserCardCell: View {
         .opacity(wouldViolate ? 0.5 : 1)
         .scaleEffect(pressed ? 0.96 : 1)
         .animation(.easeInOut(duration: 0.1), value: pressed)
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in pressed = true }
-                .onEnded { _ in
-                    pressed = false
-                    guard !wouldViolate else { return }
-                    if quickAdd {
-                        store.addCard(card, role: store.browserTab)
-                    } else {
-                        onSelect(card)
-                    }
-                }
-        )
+        .onTapGesture {
+            guard !wouldViolate else { return }
+            // Brief press feedback
+            pressed = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { pressed = false }
+            if quickAdd {
+                store.addCard(card, role: store.browserTab)
+            } else {
+                onSelect(card)
+            }
+        }
     }
 
     private var borderColor: Color {
@@ -704,10 +670,7 @@ private struct DeckCardRow: View {
             // Small thumb
             Group {
                 if let file = card.imageFile, !file.isEmpty {
-                    AsyncImage(url: CDN.thumb(for: file)) { phase in
-                        if case .success(let img) = phase { img.resizable().aspectRatio(contentMode: .fill) }
-                        else { RoundedRectangle(cornerRadius: 4).fill(Design.Colors.glass) }
-                    }
+                    CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
                 } else {
                     RoundedRectangle(cornerRadius: 4).fill(Design.Colors.glass)
                 }
@@ -825,86 +788,49 @@ private struct TemplateCard: View {
 }
 
 // ════════════════════════════════════════════════════════════════
-// MARK: - Template Gallery Sheet
+// MARK: - Unified Deck Management Sheet
 // ════════════════════════════════════════════════════════════════
 
-private struct TemplateGallerySheet: View {
+private struct DeckManagementSheet: View {
     let store: DeckBuilderStore
     let cards: [Card]
     @Environment(\.dismiss) private var dismiss
 
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: Design.Spacing.md) {
-                    ForEach(DeckTemplate.all) { template in
-                        TemplateCard(template: template) {
-                            store.loadTemplate(template, allCards: cards)
-                            dismiss()
-                        }
-                    }
+    enum Tab: String, CaseIterable { case save = "Save", load = "Load", share = "Share" }
+    @State private var tab: Tab = .load
 
-                    Button {
-                        store.clearDeck()
-                        dismiss()
-                    } label: {
-                        Text("Start from scratch")
-                            .font(Design.Fonts.mono(14))
-                            .foregroundStyle(Design.Colors.textSecondary)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(RoundedRectangle(cornerRadius: 12).stroke(Design.Colors.glass, lineWidth: 1))
-                    }
-                }
-                .padding(Design.Spacing.lg)
-            }
-            .background(Design.Colors.nearBlack)
-            .navigationTitle("Starter Decks")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundStyle(Design.Colors.textSecondary)
-                }
-            }
-            .toolbarBackground(.regularMaterial, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-        }
-    }
-}
+    // My Decks state
+    @State private var decks: [SavedDeck] = []
+    @State private var isLoadingList = true
+    @State private var loadError: String? = nil
+    @State private var isLoadingDeck = false
+    @State private var isSaving = false
+    @State private var saveMessage: String? = nil
 
-// ════════════════════════════════════════════════════════════════
-// MARK: - Export Sheet
-// ════════════════════════════════════════════════════════════════
-
-private struct ExportSheet: View {
-    let text: String
-    let deckName: String
-    @Environment(\.dismiss) private var dismiss
+    // Export state
     @State private var copied = false
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                Text(text)
-                    .font(Design.Fonts.mono(12))
-                    .foregroundStyle(Design.Colors.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(Design.Spacing.lg)
-                    .textSelection(.enabled)
+            VStack(spacing: 0) {
+                // Tab picker
+                Picker("", selection: $tab) {
+                    ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .padding(Design.Spacing.md)
+
+                // Tab content
+                switch tab {
+                case .save:  saveTab
+                case .load:  loadTab
+                case .share: shareTab
+                }
             }
             .background(Design.Colors.nearBlack)
-            .navigationTitle("Decklist — \(deckName)")
+            .navigationTitle("MANAGE DECKS")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(copied ? "Copied!" : "Copy") {
-                        UIPasteboard.general.string = text
-                        copied = true
-                        Task { try? await Task.sleep(nanoseconds: 2_000_000_000); copied = false }
-                    }
-                    .foregroundStyle(copied ? Color(hex: "4CAF50") : Design.Colors.bobaCyan)
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                         .foregroundStyle(Design.Colors.bobaOrange)
@@ -914,81 +840,202 @@ private struct ExportSheet: View {
             .toolbarBackground(.visible, for: .navigationBar)
         }
     }
-}
 
-// ════════════════════════════════════════════════════════════════
-// MARK: - Saved Decks Sheet
-// ════════════════════════════════════════════════════════════════
+    // MARK: - Save Tab
 
-private struct SavedDecksSheet: View {
-    let store: DeckBuilderStore
-    let allCards: [Card]
-    let onDismiss: () -> Void
-    @Environment(\.dismiss) private var dismiss
-    @State private var decks: [SavedDeck] = []
-    @State private var isLoading = true
-    @State private var loadError: String? = nil
-    @State private var isLoadingDeck = false
+    private var saveTab: some View {
+        VStack(spacing: Design.Spacing.lg) {
+            Spacer()
+            if store.heroes.isEmpty && store.plays.isEmpty {
+                ContentUnavailableView("No deck to save", systemImage: "tray", description: Text("Add cards to your deck first"))
+                    .frame(maxWidth: .infinity)
+            } else {
+                VStack(spacing: Design.Spacing.md) {
+                    VStack(spacing: 6) {
+                        Text("DECK NAME")
+                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .foregroundStyle(Design.Colors.textMuted)
+                        TextField("Untitled", text: Binding(
+                            get: { store.deckName },
+                            set: { store.deckName = $0 }
+                        ))
+                        .font(Design.Fonts.display(18))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Design.Spacing.md)
+                        .padding(.vertical, Design.Spacing.sm)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Design.Colors.surface))
+                        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+                        .padding(.horizontal, Design.Spacing.xl)
+                    }
 
-    var body: some View {
-        NavigationStack {
-            Group {
-                if isLoading {
-                    ProgressView("Loading saved decks…")
-                        .tint(Design.Colors.bobaCyan)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let err = loadError {
-                    ContentUnavailableView(err, systemImage: "wifi.slash")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if decks.isEmpty {
-                    ContentUnavailableView("No saved decks", systemImage: "tray", description: Text("Build a deck and tap the save icon"))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List {
-                        ForEach(decks) { deck in
-                            Button {
-                                Task { await loadDeck(deck) }
-                            } label: {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(deck.name)
-                                            .font(Design.Fonts.display(16))
-                                            .foregroundStyle(Design.Colors.textPrimary)
-                                        Text(deck.format.uppercased())
-                                            .font(Design.Fonts.mono(11))
-                                            .foregroundStyle(Design.Colors.textMuted)
+                    Text("\(store.heroes.count) Heroes · \(store.plays.count) Plays")
+                        .font(Design.Fonts.mono(12))
+                        .foregroundStyle(Design.Colors.textMuted)
+
+                    Button {
+                        Task { await saveDeck() }
+                    } label: {
+                        HStack {
+                            if isSaving {
+                                ProgressView().tint(.white)
+                            } else {
+                                Image(systemName: "icloud.and.arrow.up")
+                            }
+                            Text(saveMessage ?? "Save to Cloud")
+                                .font(Design.Fonts.mono(14, weight: .bold))
+                        }
+                        .foregroundStyle(saveMessage == "Saved!" ? Color(hex: "4CAF50") : Design.Colors.nearBlack)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(
+                            saveMessage == "Saved!" ? Color(hex: "4CAF50") : Design.Colors.bobaOrange))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, Design.Spacing.xl)
+                }
+            }
+            Spacer()
+        }
+    }
+
+    // MARK: - Load Tab
+
+    private var loadTab: some View {
+        ScrollView {
+            VStack(spacing: Design.Spacing.lg) {
+                // Starter Decks section
+                VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                    Text("STARTER DECKS")
+                        .font(Design.Fonts.mono(11, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .padding(.horizontal, Design.Spacing.lg)
+
+                    ForEach(DeckTemplate.all) { template in
+                        TemplateCard(template: template) {
+                            store.loadTemplate(template, allCards: cards)
+                            dismiss()
+                        }
+                        .padding(.horizontal, Design.Spacing.lg)
+                    }
+                }
+
+                Divider().background(Design.Colors.glass).padding(.horizontal, Design.Spacing.lg)
+
+                // Saved decks section
+                VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                    Text("SAVED DECKS")
+                        .font(Design.Fonts.mono(11, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .padding(.horizontal, Design.Spacing.lg)
+
+                    if isLoadingList {
+                        ProgressView("Loading saved decks…")
+                            .tint(Design.Colors.bobaCyan)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Design.Spacing.xl)
+                    } else if let err = loadError {
+                        Text(err)
+                            .font(Design.Fonts.mono(12))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .padding(.horizontal, Design.Spacing.lg)
+                    } else if decks.isEmpty {
+                        Text("No saved decks yet")
+                            .font(Design.Fonts.mono(12))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .padding(.horizontal, Design.Spacing.lg)
+                            .padding(.vertical, Design.Spacing.md)
+                    } else {
+                        List {
+                            ForEach(decks) { deck in
+                                Button {
+                                    Task { await loadDeck(deck) }
+                                } label: {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text(deck.name)
+                                                .font(Design.Fonts.display(16))
+                                                .foregroundStyle(Design.Colors.textPrimary)
+                                            Text(deck.format.uppercased())
+                                                .font(Design.Fonts.mono(11))
+                                                .foregroundStyle(Design.Colors.textMuted)
+                                        }
+                                        Spacer()
+                                        if isLoadingDeck {
+                                            ProgressView().tint(Design.Colors.bobaCyan)
+                                        } else {
+                                            Image(systemName: "chevron.right")
+                                                .foregroundStyle(Design.Colors.textMuted)
+                                        }
                                     }
-                                    Spacer()
-                                    if isLoadingDeck {
-                                        ProgressView().tint(Design.Colors.bobaCyan)
-                                    } else {
-                                        Image(systemName: "chevron.right")
-                                            .foregroundStyle(Design.Colors.textMuted)
+                                }
+                                .listRowBackground(Design.Colors.surface)
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        Task { await deleteDeck(deck) }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
                                     }
                                 }
                             }
-                            .buttonStyle(.plain)
-                            .listRowBackground(Design.Colors.surface)
                         }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                        .frame(minHeight: CGFloat(decks.count) * 60)
+                        .padding(.horizontal, Design.Spacing.sm)
                     }
-                    .listStyle(.plain)
-                    .background(Design.Colors.nearBlack)
                 }
-            }
-            .background(Design.Colors.nearBlack)
-            .navigationTitle("Saved Decks")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cancel") { dismiss() }
+
+                // Start from scratch
+                Button {
+                    store.clearDeck()
+                    dismiss()
+                } label: {
+                    Text("Start from scratch")
+                        .font(Design.Fonts.mono(14))
                         .foregroundStyle(Design.Colors.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 12).stroke(Design.Colors.glass, lineWidth: 1))
                 }
+                .padding(.horizontal, Design.Spacing.lg)
             }
-            .toolbarBackground(.regularMaterial, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            .padding(.vertical, Design.Spacing.md)
         }
         .task { await fetchDecks() }
     }
+
+    // MARK: - Share Tab
+
+    private var shareTab: some View {
+        VStack(spacing: 0) {
+            // Copy button
+            HStack {
+                Spacer()
+                Button(copied ? "Copied!" : "Copy to Clipboard") {
+                    UIPasteboard.general.string = store.deckListText
+                    copied = true
+                    Task { try? await Task.sleep(nanoseconds: 2_000_000_000); copied = false }
+                }
+                .font(Design.Fonts.mono(13, weight: .bold))
+                .foregroundStyle(copied ? Color(hex: "4CAF50") : Design.Colors.bobaCyan)
+                .padding(Design.Spacing.md)
+            }
+
+            Divider().background(Design.Colors.glass)
+
+            ScrollView {
+                Text(store.deckListText)
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(Design.Spacing.lg)
+                    .textSelection(.enabled)
+            }
+        }
+    }
+
+    // MARK: - Actions
 
     private func fetchDecks() async {
         do {
@@ -996,7 +1043,37 @@ private struct SavedDecksSheet: View {
         } catch {
             loadError = "Couldn't load decks"
         }
-        isLoading = false
+        isLoadingList = false
+    }
+
+    @MainActor
+    private func saveDeck() async {
+        guard !store.heroes.isEmpty else { return }
+        isSaving = true
+        saveMessage = nil
+        defer { isSaving = false }
+        do {
+            try await SupabaseClient.shared.saveDeck(store)
+            saveMessage = "Saved!"
+            // Refresh the list
+            await fetchDecks()
+            Task { try? await Task.sleep(nanoseconds: 2_000_000_000); saveMessage = nil }
+        } catch {
+            saveMessage = "Failed"
+        }
+    }
+
+    private func deleteDeck(_ deck: SavedDeck) async {
+        do {
+            try await SupabaseClient.shared.deleteDeck(deckId: deck.id)
+            decks.removeAll { $0.id == deck.id }
+            // If we just deleted the currently loaded deck, clear the reference
+            if store.currentDeckId == deck.id {
+                store.currentDeckId = nil
+            }
+        } catch {
+            // Silently fail — deck stays in list
+        }
     }
 
     private func loadDeck(_ deck: SavedDeck) async {
@@ -1004,7 +1081,7 @@ private struct SavedDecksSheet: View {
         defer { isLoadingDeck = false }
         do {
             let rows = try await SupabaseClient.shared.fetchDeckCards(deckId: deck.id)
-            let byId = Dictionary(uniqueKeysWithValues: allCards.map { ($0.id, $0) })
+            let byId = Dictionary(uniqueKeysWithValues: cards.map { ($0.id, $0) })
             store.clearDeck()
             store.deckName = deck.name
             store.currentDeckId = deck.id
@@ -1021,7 +1098,6 @@ private struct SavedDecksSheet: View {
                 store.addCard(card, role: role)
             }
             dismiss()
-            onDismiss()
         } catch {
             // Leave sheet open so user can retry
         }
@@ -1048,23 +1124,12 @@ private struct BrowserCardDetailSheet: View {
                     // Full card image
                     Group {
                         if let file = card.imageFile, !file.isEmpty {
-                            AsyncImage(url: CDN.full(for: file)) { phase in
-                                switch phase {
-                                case .success(let img):
-                                    img.resizable().aspectRatio(3/4, contentMode: .fit)
-                                case .empty, .failure:
-                                    AsyncImage(url: CDN.thumb(for: file)) { p in
-                                        if case .success(let img) = p { img.resizable().aspectRatio(3/4, contentMode: .fit) }
-                                        else { RoundedRectangle(cornerRadius: 12).fill(Design.Colors.glass).aspectRatio(3/4, contentMode: .fit) }
-                                    }
-                                @unknown default:
-                                    RoundedRectangle(cornerRadius: 12).fill(Design.Colors.glass).aspectRatio(3/4, contentMode: .fit)
-                                }
-                            }
+                            CachedAsyncCardImage(url: CDN.full(for: file), contentMode: .fit)
+                                .aspectRatio(3.0/4.0, contentMode: .fit)
                         } else {
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(Design.Colors.glass)
-                                .aspectRatio(3/4, contentMode: .fit)
+                                .aspectRatio(3.0/4.0, contentMode: .fit)
                                 .overlay(Text(card.hero.isEmpty ? card.name : card.hero)
                                     .font(Design.Fonts.display(24))
                                     .foregroundStyle(Design.Colors.element(card.element)))

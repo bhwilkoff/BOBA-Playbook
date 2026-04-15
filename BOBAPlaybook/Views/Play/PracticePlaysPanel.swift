@@ -3,7 +3,7 @@
 //  BOBAPlaybook
 //
 //  Slide-up overlay panel showing the player's play cards in hand.
-//  Larger cards with cost labels and play action.
+//  Tap a card to see details; use the PLAY button to play it.
 //
 
 import SwiftUI
@@ -11,6 +11,7 @@ import SwiftUI
 struct PracticePlaysPanel: View {
     let store: PracticeStore
     @Binding var isVisible: Bool
+    @State private var selectedCard: Card?
 
     var body: some View {
         VStack(spacing: Design.Spacing.sm) {
@@ -23,19 +24,6 @@ struct PracticePlaysPanel: View {
                     .font(Design.Fonts.mono(10))
                     .foregroundStyle(Design.Colors.textMuted)
                 Spacer()
-                if store.phase == .play && !store.playerPassedPlays {
-                    Button {
-                        store.playerPassPlays()
-                    } label: {
-                        Text("PASS PLAYS")
-                            .font(Design.Fonts.mono(10, weight: .bold))
-                            .foregroundStyle(Design.Colors.nearBlack)
-                            .padding(.horizontal, 12)
-                            .frame(height: 28)
-                            .background(RoundedRectangle(cornerRadius: 6).fill(Design.Colors.bobaCyan))
-                    }
-                    .buttonStyle(.plain)
-                }
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) { isVisible = false }
                 } label: {
@@ -56,35 +44,40 @@ struct PracticePlaysPanel: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(store.playerHand) { card in
-                            playCardLarge(card: card)
+                            playCardThumb(card: card)
                         }
                     }
                 }
             }
+
+            // Selected card detail — constrained height to prevent overflow
+            if let card = selectedCard {
+                cardDetail(card: card)
+                    .frame(maxHeight: 80)
+            }
         }
         .padding(Design.Spacing.md)
+        .frame(maxHeight: 240)
         .background(Design.Colors.surface.opacity(0.98))
         .overlay(Divider().background(Design.Colors.glass), alignment: .top)
     }
 
-    // MARK: - Large Play Card
+    // MARK: - Play Card Thumbnail
 
-    private func playCardLarge(card: Card) -> some View {
+    private func playCardThumb(card: Card) -> some View {
+        let isSelected = selectedCard == card
         let canAfford = (card.playCost ?? 0) <= store.playerHotDogs
-        let isPlayPhase = store.phase == .play
 
         return Button {
-            guard isPlayPhase, canAfford else { return }
-            store.playerPlayCard(card)
+            withAnimation(.easeInOut(duration: 0.15)) {
+                selectedCard = isSelected ? nil : card
+            }
         } label: {
             VStack(spacing: 4) {
                 ZStack(alignment: .bottom) {
                     Group {
                         if let file = card.imageFile, !file.isEmpty {
-                            AsyncImage(url: CDN.thumb(for: file)) { phase in
-                                if case .success(let img) = phase { img.resizable().aspectRatio(contentMode: .fill) }
-                                else { playPlaceholder(card: card) }
-                            }
+                            CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
                         } else {
                             playPlaceholder(card: card)
                         }
@@ -92,7 +85,7 @@ struct PracticePlaysPanel: View {
                     .frame(width: 72, height: 100)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                     .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(
-                        isPlayPhase && canAfford ? Design.Colors.bobaCyan : Design.Colors.glass, lineWidth: 2))
+                        isSelected ? Design.Colors.bobaCyan : Design.Colors.glass, lineWidth: isSelected ? 3 : 1))
 
                     // Cost badge
                     Text(card.playCost == 0 ? "FREE" : "\(card.playCost ?? 0) HD")
@@ -106,14 +99,60 @@ struct PracticePlaysPanel: View {
 
                 Text(card.name)
                     .font(Design.Fonts.mono(8, weight: .bold))
-                    .foregroundStyle(Design.Colors.textSecondary)
+                    .foregroundStyle(isSelected ? Design.Colors.bobaCyan : Design.Colors.textSecondary)
                     .lineLimit(1)
                     .frame(width: 72)
             }
-            .opacity(isPlayPhase && !canAfford ? 0.4 : 1)
+            .opacity(canAfford ? 1 : 0.4)
         }
         .buttonStyle(.plain)
-        .disabled(!isPlayPhase || !canAfford)
+    }
+
+    // MARK: - Card Detail
+
+    private func cardDetail(card: Card) -> some View {
+        let canAfford = (card.playCost ?? 0) <= store.playerHotDogs
+        let isPlayPhase = store.phase == .play
+
+        return HStack(spacing: Design.Spacing.sm) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(card.name)
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                    .lineLimit(1)
+
+                Text("Cost: \(card.playCost == 0 ? "FREE" : "\(card.playCost ?? 0) HD")")
+                    .font(Design.Fonts.mono(9))
+                    .foregroundStyle(canAfford ? Color(hex: "4CAF50") : Color(hex: "C0392B"))
+
+                Text(PracticeStore.effectDescription(for: card))
+                    .font(Design.Fonts.mono(9))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+                    .lineLimit(2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if isPlayPhase && !store.playerPassedPlays {
+                Button {
+                    guard canAfford else { return }
+                    store.playerPlayCard(card)
+                    selectedCard = nil
+                } label: {
+                    Text(canAfford ? "PLAY" : "CAN'T\nAFFORD")
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(canAfford ? Design.Colors.nearBlack : Design.Colors.textMuted)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 10)
+                        .frame(width: 70, height: 28)
+                        .background(RoundedRectangle(cornerRadius: 6)
+                            .fill(canAfford ? Design.Colors.bobaOrange : Design.Colors.glass))
+                }
+                .buttonStyle(.plain)
+                .disabled(!canAfford)
+            }
+        }
+        .padding(Design.Spacing.sm)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.glass))
     }
 
     private func playPlaceholder(card: Card) -> some View {

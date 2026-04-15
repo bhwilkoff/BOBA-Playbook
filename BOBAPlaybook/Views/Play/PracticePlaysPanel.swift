@@ -66,7 +66,8 @@ struct PracticePlaysPanel: View {
 
     private func playCardThumb(card: Card) -> some View {
         let isSelected = selectedCard == card
-        let canAfford = (card.playCost ?? 0) <= store.playerHotDogs
+        let effCost = store.effectiveCost(for: card, side: .player)
+        let canAfford = effCost <= store.playerHotDogs
 
         return Button {
             withAnimation(.easeInOut(duration: 0.15)) {
@@ -88,7 +89,7 @@ struct PracticePlaysPanel: View {
                         isSelected ? Design.Colors.bobaCyan : Design.Colors.glass, lineWidth: isSelected ? 3 : 1))
 
                     // Cost badge
-                    Text(card.playCost == 0 ? "FREE" : "\(card.playCost ?? 0) HD")
+                    Text(effCost == 0 ? "FREE" : "\(effCost) HD")
                         .font(Design.Fonts.mono(9, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 6)
@@ -111,10 +112,12 @@ struct PracticePlaysPanel: View {
     // MARK: - Card Detail
 
     private func cardDetail(card: Card) -> some View {
-        let canAfford = (card.playCost ?? 0) <= store.playerHotDogs
+        let effCost = store.effectiveCost(for: card, side: .player)
+        let canAfford = effCost <= store.playerHotDogs
         let canUse = PlayEffects.isPlayable(name: card.name, ctx: store.makeExecContext(self_: .player))
         let playable = canAfford && canUse
         let isPlayPhase = store.phase == .play
+        let partial = PlayEffects.entryHasUnknownOps(PlayEffects.entry(for: card.name))
 
         return HStack(spacing: Design.Spacing.sm) {
             VStack(alignment: .leading, spacing: 2) {
@@ -123,7 +126,7 @@ struct PracticePlaysPanel: View {
                     .foregroundStyle(Design.Colors.textPrimary)
                     .lineLimit(1)
 
-                Text("Cost: \(card.playCost == 0 ? "FREE" : "\(card.playCost ?? 0) HD")")
+                Text("Cost: \(effCost == 0 ? "FREE" : "\(effCost) HD")")
                     .font(Design.Fonts.mono(9))
                     .foregroundStyle(canAfford ? Color(hex: "4CAF50") : Color(hex: "C0392B"))
 
@@ -131,6 +134,13 @@ struct PracticePlaysPanel: View {
                     .font(Design.Fonts.mono(9))
                     .foregroundStyle(Design.Colors.bobaCyan)
                     .lineLimit(2)
+
+                if partial {
+                    Text("⚠ Some effects not yet simulated")
+                        .font(Design.Fonts.mono(8))
+                        .foregroundStyle(Color(hex: "FFD166"))
+                        .lineLimit(1)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 

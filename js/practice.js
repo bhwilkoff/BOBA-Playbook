@@ -801,6 +801,52 @@ function pmGetPlayEntry(card) {
   return PM_PLAY_EFFECTS[card.name] || null;
 }
 
+// Effective cost after applying and consuming any play_cost_delta mods for this side.
+// Single-use ('next_play_self') mods are consumed here; multi-battle ('this_and_next')
+// mods expire based on PM.currentBattle.
+function pmEffectiveCost(card, side /* 'player' | 'cpu' */) {
+  const nominal = card.playCost || 0;
+  if (!PM._playCostMods) PM._playCostMods = { player: [], cpu: [] };
+  const mods = PM._playCostMods[side] || [];
+  const currentBattle = (typeof PM.currentBattle === 'number') ? PM.currentBattle : 0;
+  let total = nominal;
+  const keep = [];
+  for (const m of mods) {
+    if (m.scope === 'this_and_next' && currentBattle > (m.installedAt + 1)) continue; // expired
+    total += (m.delta || 0);
+    if (m.scope === 'next_play_self') continue; // single-use
+    keep.push(m);
+  }
+  PM._playCostMods[side] = keep;
+  return Math.max(0, total);
+}
+
+// Returns true if this entry contains at least one op the executor doesn't implement yet.
+// Used by the UI to surface an "effect not fully simulated" honesty note.
+function pmEntryHasUnknownOps(entry) {
+  if (!entry) return false;
+  const known = new Set([
+    'power','power_set','power_swap','power_double','power_steal','power_cap_min',
+    'hd','hd_recover','draw','discard','coin_flip','dice_roll',
+    'protect_self','cancel_opponent_plays','cap_opponent_plays',
+    'block_sub','block_draw','block_hd_recover','block_plays',
+    'honors_set','substitute_free','variable_cost_bonus','add_previous_hero_delta','note',
+    'swap_hd_counts','play_cost_delta','shuffle_hand_into_deck','shuffle_from_discard_to_deck',
+    'discard_top','discard_hand_all','power_reset','add_top_hero_power_to_self','reclaim_used_play'
+  ]);
+  let found = false;
+  const walk = (s) => {
+    if (found || !s || typeof s !== 'object') return;
+    if (Array.isArray(s)) { s.forEach(walk); return; }
+    if (s.op && !known.has(s.op)) { found = true; return; }
+    ['then','else','options','effect','on_match','on_miss','heads','tails'].forEach(k => { if (s[k]) walk(s[k]); });
+    if (s.branches) s.branches.forEach(b => { if (b.then) walk(b.then); if (b.effect) walk(b.effect); });
+  };
+  (entry.effects || []).forEach(walk);
+  (entry.persistent || []).forEach(walk);
+  return found;
+}
+
 // Legality gate: returns true unless the entry declares an unmet `requires` condition.
 // Only hard-gated cards (Hot Dog Stock Exchange, etc.) set `requires`; everything else passes.
 function pmIsPlayable(card, self /* 'player' | 'cpu' */) {
@@ -1240,6 +1286,121 @@ function pmExecStep(step, ctx, out) {
     case 'note':
       // Intentionally no mechanical effect
       break;
+
+    // ── Tier A ops (simple state mutations) ────────────────────
+    case 'swap_hd_counts': {
+      // Swap self and opp HD counts; delta representation keeps runtime clamping correct
+      out.selfHDDelta += (ctx.oppHD - ctx.selfHD);
+      out.oppHDDelta  += (ctx.selfHD - ctx.oppHD);
+      out.hasEffect = true;
+      break;
+    }
+    case 'play_cost_delta': {
+      if (!PM._playCostMods) PM._playCostMods = { player: [], cpu: [] };
+      const targetSide = (step.target === 'opponent') ? ctx.opp : ctx.self;
+      PM._playCostMods[targetSide].push({
+        delta: step.delta || 0,
+        scope: step.scope || 'next_play_self',
+        installedAt: (typeof PM.currentBattle === 'number') ? PM.currentBattle : 0
+      });
+      out.hasEffect = true;
+      break;
+    }
+    case 'shuffle_hand_into_deck': {
+      // Player side only; CPU uses a unified pool with no hand/deck split
+      const targets = step.target === 'both' ? ['self','opponent'] : [step.target || 'self'];
+      for (const t of targets) {
+        const side = t === 'self' ? ctx.self : ctx.opp;
+        if (side === 'player' && (step.kind || 'play') === 'play') {
+          out.playsInHandBeforeShuffle = PM.playerPlayHand.length;
+          PM.playerPlayDeck.push(...PM.playerPlayHand);
+          PM.playerPlayDeck = shuffle(PM.playerPlayDeck);
+          PM.playerPlayHand = [];
+        }
+      }
+      out.hasEffect = true;
+      break;
+    }
+    case 'shuffle_from_discard_to_deck': {
+      // Player side, play kind only — move N (or all) from discard back into deck
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      if (side === 'player' && (step.kind || 'play') === 'play') {
+        const n = step.count || PM.playerDiscard.length;
+        const moved = PM.playerDiscard.splice(0, n);
+        PM.playerPlayDeck.push(...moved);
+        PM.playerPlayDeck = shuffle(PM.playerPlayDeck);
+      } else {
+        out.unknownOps.push(op + '(' + (step.kind||'play') + ',' + (side) + ')');
+      }
+      out.hasEffect = true;
+      break;
+    }
+    case 'discard_top': {
+      // Player side, play kind: pop N from top of playerPlayDeck into discard.
+      // Tracks mean cost of discarded plays so the `discarded_plays_cost_gte` metric reads correctly.
+      const n = step.count || 1;
+      const targets = step.target === 'both' ? ['self','opponent'] : [step.target || 'self'];
+      let discardedPlays = [];
+      for (const t of targets) {
+        const side = t === 'self' ? ctx.self : ctx.opp;
+        if (side === 'player' && (step.kind || 'play') === 'play') {
+          const dropped = PM.playerPlayDeck.splice(0, n);
+          PM.playerDiscard.push(...dropped);
+          discardedPlays.push(...dropped);
+        }
+      }
+      out._discardedPlays = (out._discardedPlays || []).concat(discardedPlays);
+      out.hasEffect = true;
+      break;
+    }
+    case 'discard_hand_all': {
+      // Count cards discarded for the `cards_discarded_by_this_play` metric
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      if (side === 'player') {
+        out.cardsDiscardedByThisPlay = (out.cardsDiscardedByThisPlay || 0) + PM.playerPlayHand.length;
+        PM.playerDiscard.push(...PM.playerPlayHand);
+        PM.playerPlayHand = [];
+      }
+      out.hasEffect = true;
+      break;
+    }
+    case 'power_reset': {
+      // Reset battle effect power to 0 (printed power is on the card itself)
+      const b = PM.battles[PM.currentBattle];
+      if (b) {
+        const targets = step.target === 'both' ? ['self','opponent'] : [step.target || 'self'];
+        for (const t of targets) {
+          const side = t === 'self' ? ctx.self : ctx.opp;
+          if (side === 'player') {
+            out.selfDelta -= (b.playerEffectPower || 0); // undo all prior modifiers for self
+          } else {
+            out.oppDelta -= (b.cpuEffectPower || 0);
+          }
+        }
+      }
+      out.hasEffect = true;
+      break;
+    }
+    case 'add_top_hero_power_to_self': {
+      // Peek top of hero deck; add its power to self delta (does not consume the card)
+      const deck = ctx.self === 'player' ? PM.playerHeroDeck : PM.cpuHeroDeck;
+      const top = deck && deck[0];
+      if (top) out.selfDelta += (top.power || 0);
+      out.hasEffect = true;
+      break;
+    }
+    case 'reclaim_used_play': {
+      // Player side only: pop N cards from discard back into hand
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      if (side === 'player') {
+        const n = step.count || 1;
+        const reclaimed = PM.playerDiscard.splice(Math.max(0, PM.playerDiscard.length - n), n);
+        PM.playerPlayHand.push(...reclaimed);
+      }
+      out.hasEffect = true;
+      break;
+    }
+
     default:
       // Unknown op — log once, skip silently
       out.unknownOps.push(op);
@@ -1706,7 +1867,7 @@ const PM = {
     if (this.phase !== 'play') return false;
     if (handIdx < 0 || handIdx >= this.playerPlayHand.length) return false;
     const card = this.playerPlayHand[handIdx];
-    const cost = card.playCost || 0;
+    const cost = pmEffectiveCost(card, 'player');
     if (this.playerHD < cost) return false;
     if (!pmIsPlayable(card, 'player')) return false;
 
@@ -1825,10 +1986,10 @@ const PM = {
       if (this.cpuHD < 1 || this.cpuPlayCount <= 0 || this.cpuPlayPool.length === 0) break;
       // Pick an affordable, legal card from CPU's play pool
       const affordable = this.cpuPlayPool.filter(c =>
-        (c.playCost || 0) <= this.cpuHD && pmIsPlayable(c, 'cpu'));
+        pmEffectiveCost(c, 'cpu') <= this.cpuHD && pmIsPlayable(c, 'cpu'));
       if (affordable.length === 0) break;
       const card = affordable[Math.floor(Math.random() * affordable.length)];
-      const cost = card.playCost || 0;
+      const cost = pmEffectiveCost(card, 'cpu');
 
       this.cpuHD -= cost;
       this.cpuPlayCount--;
@@ -2430,7 +2591,7 @@ function pmShowPlayCardPopup(handIdx) {
   // Remove any existing popup
   document.getElementById('pm-play-popup')?.remove();
 
-  const cost       = card.playCost || 0;
+  const cost       = pmEffectiveCost(card, 'player');
   const canAfford  = PM.playerHD >= cost;
   const canUse     = pmIsPlayable(card, 'player');
   const playable   = canAfford && canUse;
@@ -2439,6 +2600,8 @@ function pmShowPlayCardPopup(handIdx) {
   const costLabel  = cost === 0 ? 'FREE' : `${cost} Hot Dog${cost !== 1 ? 's' : ''}`;
   const affordClass = playable ? 'pm-play-popup-play' : 'pm-play-popup-play cannot-afford';
   const element    = card.element || '';
+  const entry     = pmGetPlayEntry(card);
+  const partial   = pmEntryHasUnknownOps(entry);
 
   const popup = document.createElement('div');
   popup.id = 'pm-play-popup';
@@ -2459,6 +2622,7 @@ function pmShowPlayCardPopup(handIdx) {
         <div class="pm-play-popup-divider"></div>
         <div class="pm-play-popup-effect-label">EFFECT</div>
         <div class="pm-play-popup-effect">${ability}</div>
+        ${partial ? `<div class="pm-play-popup-partial-note">⚠ Some effects not yet simulated</div>` : ''}
         <div class="pm-play-popup-actions">
           <button class="pm-play-popup-cancel">Cancel</button>
           <button class="${affordClass}"${!playable ? ' disabled' : ''}>

@@ -3,7 +3,8 @@
 ## Current State
 
 - **Active milestone**: M4 — Play Mode (M3.5 fully complete and deployed)
-- **Last session**: 2026-04-15 (Claude Code) — Structured `play-effects.json` executor wired on **both platforms**, replacing the fragile regex resolver. Web: ~400 LOC executor block in `js/practice.js` (pmLoadPlayEffects, pmEvalFormula/Metric/Condition, pmExecStep, pmExecStructured, plus PM.applyContinuousPersistents) — `PM.playerPlayCard` and `PM.cpuDoPlay` now try the structured path first and fall back to the regex resolver only when no entry exists or `hasEffect` is false. iOS: new `BOBAPlaybook/Store/PlayEffects.swift` (529 LOC, JSONSerialization-based executor mirroring JS), `PracticeStore.playerPlayCard`/`cpuPreparePlayTurn` wrap legacy `resolveEffect` with a structured-first path, persistents installed and applied at reveal. Validated against all 383 entries in node — 0 runtime errors; one defensive guard added for `PM.battles` access. CPU perspective handled by re-mapping `selfDelta`/`oppDelta` at the call site. Forward-compat preserved: unknown ops log to `unknownOps` and skip without aborting. Web swiftc-typecheck clean; `node -c js/practice.js` clean.
+- **Last session**: 2026-04-15 (Claude Code) — **Tier A executor ops shipped on both platforms + legality gate for hard-gated cards.** Added 9 ops to web (`js/practice.js`) and iOS (`BOBAPlaybook/Store/PlayEffects.swift`): `swap_hd_counts`, `play_cost_delta` (with scope-based consumption), `shuffle_hand_into_deck`, `shuffle_from_discard_to_deck`, `discard_top`, `discard_hand_all`, `power_reset`, `add_top_hero_power_to_self`, `reclaim_used_play`. Added `effectiveCost(card, side)` helper on both platforms that consumes single-use `next_play_self` mods on play. Added `entryHasUnknownOps(entry)` + honesty note in play-card popup (web: pill in `pmShowPlayCardPopup`; iOS: badge in `PracticePlaysPanel.cardDetail`) — surfaces "⚠ Some effects not yet simulated" for cards whose entry still contains unimplemented ops. Prior fix that landed earlier in the session: `requires` legality gate + 5 hard-gated entries (`Hot Dog Stock Exchange`, `2010's ERA`, `Fairweather Fan`, `Incendiary Dog`, `Surging Power`). Documented Tier B (15 ops) + Tier C (18 ops) remaining gaps in SCRATCHPAD.md "Unknown Ops Tiering" section below. `node -c js/practice.js` clean.
+- **Prior session**: 2026-04-15 (Claude Code) — Structured `play-effects.json` executor wired on **both platforms**, replacing the fragile regex resolver. Web: ~400 LOC executor block in `js/practice.js` (pmLoadPlayEffects, pmEvalFormula/Metric/Condition, pmExecStep, pmExecStructured, plus PM.applyContinuousPersistents) — `PM.playerPlayCard` and `PM.cpuDoPlay` now try the structured path first and fall back to the regex resolver only when no entry exists or `hasEffect` is false. iOS: new `BOBAPlaybook/Store/PlayEffects.swift` (529 LOC, JSONSerialization-based executor mirroring JS), `PracticeStore.playerPlayCard`/`cpuPreparePlayTurn` wrap legacy `resolveEffect` with a structured-first path, persistents installed and applied at reveal. Validated against all 383 entries in node — 0 runtime errors; one defensive guard added for `PM.battles` access. CPU perspective handled by re-mapping `selfDelta`/`oppDelta` at the call site. Forward-compat preserved: unknown ops log to `unknownOps` and skip without aborting. Web swiftc-typecheck clean; `node -c js/practice.js` clean.
 - **Prior session**: 2026-04-15 (Cowork v3 sync) — Claude Code completed v3 pass: **all new v2 vocabulary PROMOTED** into `PLAY_EFFECTS_SCHEMA.md` (runtime will implement Cowork's names; a few of Claude Code's earlier proposed names were renamed to Cowork's). User sourced the Lucky Seven ability text ("Roll a die two times; if sum is 7 → Hero +100; else discard 1 random Hero from hand"), Claude Code authored it into the bundles. Cowork then synced Lucky Seven into `V2_OVERRIDES` in `scripts/author_play_effects.py` and updated `build()` to honor spec-provided `cost`/`ability` when cards.json has them blank. Final state: **383/383 structured (100%), 0 note-only**. Web + iOS byte-identical at md5 `b36d7b49746f5da5f3427afd90ab8ed6`, 210,519 bytes. Regeneration is stable across reruns. Schema v2 is locked. Claude Code's next steps: runtime executor in `js/practice.js` + `PracticeStore.swift` (~250 LOC each) replacing the regex resolver, then `bobaId`-keyed expansion post-pass.
 - **Prior session**: 2026-04-15 (Cowork v2 pass) — `play-effects.json` bumped to **schemaVersion 2**; all 102 remaining `note`-only entries converted to structured ops. Coverage 382/383 structured (99.7%), 1 note-only: `Lucky Seven` (ability text blank in cards.json). Web + iOS bundles byte-identical, md5 `b641fe8920f63c6236301022da4db2a0`, 209,825 bytes. Authoring lives in a new `V2_OVERRIDES` dict at the bottom of `scripts/author_play_effects.py` that `PLAYS.update()`s over the v1 entries — fully reviewable diff. Introduced ~40 new ops / 6 condition types / 15 metrics in the process; all listed and dispositioned (promote/rename/fallback) for schema review in COWORK.md → "📥 Cowork → Claude Code" under "[2026-04-15 v2]".
 - **Prior session**: 2026-04-15 (Cowork v1 pass) — `play-effects.json` first authored for all 383 unique Play names (~187 KB, mirrored into web + iOS bundles, md5-matched). 69.2% entries carried structured ops; 30.8% shipped as `note` escape hatches for effects that needed runtime hooks not yet in the schema. Authoring source-of-truth: `scripts/author_play_effects.py` in the research project (reads cost + ability live from cards.json so output stays fresh). Full delivery notes + list of 4 new ops + 7 new condition types + 5 new persistent triggers flagged for schema review in COWORK.md under "📥 Cowork → Claude Code". Replaces the fragile regex resolver in `js/practice.js` + `PracticeStore.swift` with declarative data.
@@ -15,6 +16,70 @@
   - Discord M5: needs bot added to server before re-enabling the hidden FAB
   - **Web parity needed**: Rename "STARTER TEMPLATES"/"Archetype Templates" → "Starter Decks" in index.html + practice.js
   - **Deferred iOS items**: (all previously deferred items now implemented — see 2026-04-14 session log)
+  - **Play-effect unknown ops (Tier B + Tier C)**: see "Unknown Ops Tiering" section below — Tier A now runtime-wired; Tier B + C are remaining gaps that surface "⚠ Some effects not yet simulated" honesty notes at play time.
+
+---
+
+## Unknown Ops Tiering — Play Effect Executor Gap
+
+Cowork authored 383/383 structured entries in `play-effects.json`, but the runtime executor only implements a subset of the op vocabulary. Entries that reference unimplemented ops still execute (unknown ops log to `unknownOps` and are skipped forward-compat), but their effect is only partially simulated. The UI surfaces this with a `⚠ Some effects not yet simulated` pill so players aren't misled.
+
+**Current state (2026-04-15)**:
+- Tier A **SHIPPED**: 9 ops added (`swap_hd_counts`, `play_cost_delta`, `shuffle_hand_into_deck`, `shuffle_from_discard_to_deck`, `discard_top`, `discard_hand_all`, `power_reset`, `add_top_hero_power_to_self`, `reclaim_used_play`). Coverage: ~25 ops → ~34 ops, estimated ~88% of cards now fully simulated. Honesty note surfaces on remaining partial cards.
+- Tier B: ~15 ops, moderate complexity — requires small new UI or more context plumbing. **Target: one weekend session.**
+- Tier C: ~18 ops, high complexity — requires new UI systems (choice modals, reveal areas, opponent-hand preview) or deeper game-state tracking (per-source power modifier provenance).
+
+### Tier B — Moderate ops (~15, one weekend session)
+
+Each needs a small runtime addition but no new UI dialogs. Ship as a batch; several share plumbing.
+
+| Op | Example card | What's needed |
+|---|---|---|
+| `swap_active_with_hand` | ? | Swap active hero card with a chosen hero from hand; heuristic pick highest-power hero |
+| `swap_active_with_discard` | ? | Swap active with top-of-discard hero (optionally filtered by weapon) |
+| `swap_active_with_future_hero` | ? | Replace current battle's hero with next battle's hero — modifies `battles[currentBattle+1].playerCard` |
+| `reveal_top_hero_deck` | `Scouting Report` | Peek N cards from heroDeck; store on PracticeStore for UI display (web: toast; iOS: sheet) |
+| `mark_future_battle` | ? | Install a persistent with `scope: "next_battle"` or `"battle_N"`; persistent framework already handles scope |
+| `transform_to_hot_dog` | ? | Replace hero card in a slot with a hot-dog token (power 0) — affects resolution math |
+| `variable_cost_bonus` (expanded) | Already stubbed; needs `min_cost` facet for Big Spender Bonus | Honor `min_cost` when deciding how much HD to spend |
+| `mirror_power_effects_to_opponent` | ? | Copy all power deltas applied to self this battle onto opponent — requires tracking `battle.playerEffectPower` source list |
+| `flip_opponent_debuffs` | ? | Convert opponent's negative effect power into positive self power — reads `battles[current].cpuEffectPower` if < 0 |
+| `cancel_persistent` | `Pulling The Plug` | Remove installed persistent by id/name from `persistents[]` |
+| `compound_roll` | ? | Multi-stage dice roll: roll, then re-roll under a condition; extend `dice_roll` executor |
+| `shuffle_from_discard_to_deck` (hero kind) | ? | Tier A shipped the Play-kind version; Hero-kind needs `ctx.selfHeroDeck` plumbed as mutable |
+| Condition: `weapon_streak` | ? | Count consecutive revealed heroes of same weapon (walk `battles[0..currentBattle]`) |
+| Condition: `opponent_played_weapon_match` | ? | Match opponent's played Play cards' element to active hero weapon |
+| Condition: `next_hero_power_gt` / `next_hero_weapon_equals` | ? | Peek `heroDeck[0]` and compare |
+
+**Implementation note**: All persistable state (stored peeks, transformed heroes, mirrored deltas) must also make it into `MatchSnapshot` Codable so Resume Match doesn't corrupt mid-state. That's the easy-to-miss part.
+
+### Tier C — Complex ops (~18, multi-session)
+
+These need new UI affordances, deeper game-state tracking, or opponent-hand visibility changes that have downstream design implications.
+
+| Op / System | Example card | What's needed |
+|---|---|---|
+| Choice modal UI | Many `options`-typed entries | Right now the executor picks the best option heuristically. A proper implementation prompts the player with a choice dialog. Requires web modal + iOS `.confirmationDialog` with card art previews. |
+| Reveal-hand UI | ? | Player picks a specific card from own hand (e.g., "choose a Play to discard"). Needs a sheet that lists hand and filters by kind. |
+| Opponent-hand preview | ? | "Look at opponent's hand" — opens a privileged view of CPU hand. Design decision needed: do we show real data or spoiler-safe anonymized slots? |
+| Per-source power modifier provenance | `Ha! Gotcha`, `Copycat` | Track which play card applied which delta so other ops can nullify "only effects from X source." Requires extending `BattleSlot` to hold `[(source: Card, delta: Int)]` instead of a single `effectPower` int. |
+| `if/else` persistent payload form | `Dead Red` | Persistent framework needs to support conditional payloads triggered at resolution time (currently only the install step is conditional). |
+| Debuff interception | `Sweet Relish` | Intercept incoming negative power deltas and transform them. Requires ordering of effect resolution (currently all deltas apply in a single pass). |
+| Counterplay windows | ? | Some cards say "when opponent plays X, you may play Y" — requires a priority queue + opponent-turn pause for player response. Large UX change. |
+| Retroactive semantics | `Pulling The Plug` (cancel_persistent retroactive) | Unwind a persistent's already-applied effects. Needs action log with undo stubs. |
+| Hero-deck manipulation beyond peek | ? | Reorder top N hero-deck cards, insert into specific slot. Needs drag-reorder UI. |
+| Bonus Plays discovery | `By Any Means Necessary` | Search Playbook for a specific Play and play it free. Needs a filterable Playbook-search sheet. |
+| Multi-battle chain effects | ? | Effects that span multiple future battles conditionally; extends persistent scope language. |
+| Sudden Death special casing | Super weapon tiebreaker | Partially implemented in resolution; some Plays have "in Sudden Death, X" clauses — needs executor context flag. |
+
+**Architectural watch**: Tier C items that require **per-source power provenance** (Ha! Gotcha, Copycat, Sweet Relish) all share the same data-model change — expanding `playerEffectPower: Int` to `effectStack: [(sourceCardId, delta)]`. Do that refactor once and several Tier C cards become easy.
+
+### How to work through these
+
+1. Start with Tier B batch by batch (the peek/swap ops share plumbing; tackle together).
+2. Before coding, re-run the executor against all 383 entries and look at the actual `unknownOps` output to confirm which ops are most-hit — prioritize by card count affected, not by alphabetical order.
+3. Each Tier A/B/C op added should also remove itself from `pmEntryHasUnknownOps`/`PlayEffects.entryHasUnknownOps` known-op sets so the honesty note clears.
+4. Tier C is a design-first effort. Each new UI (choice modal, reveal area) needs a brand review (Design.Colors, typography) before shipping.
 
 ---
 

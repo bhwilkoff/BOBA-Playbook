@@ -44,6 +44,40 @@ enum PlayEffects {
               let req = e["requires"] as? [String: Any] else { return true }
         return PlayEffectExecutor.evalCondition(req, ctx: ctx)
     }
+
+    // Known ops the runtime executor implements. Used by entryHasUnknownOps to
+    // surface an "effect not fully simulated" honesty note in the UI.
+    private static let knownOps: Set<String> = [
+        "power","power_set","power_swap","power_double","power_steal","power_cap_min",
+        "hd","hd_recover","draw","discard","coin_flip","dice_roll",
+        "protect_self","cancel_opponent_plays","cap_opponent_plays",
+        "variable_cost_bonus","add_previous_hero_delta","note",
+        "swap_hd_counts","play_cost_delta","shuffle_hand_into_deck","shuffle_from_discard_to_deck",
+        "discard_top","discard_hand_all","power_reset","add_top_hero_power_to_self","reclaim_used_play"
+    ]
+
+    static func entryHasUnknownOps(_ entry: [String: Any]?) -> Bool {
+        guard let entry = entry else { return false }
+        var found = false
+        func walk(_ any: Any?) {
+            if found { return }
+            if let arr = any as? [Any] { for v in arr { walk(v) }; return }
+            guard let s = any as? [String: Any] else { return }
+            if let op = s["op"] as? String, !knownOps.contains(op) { found = true; return }
+            for k in ["then","else","options","choice","effect","on_match","on_miss","heads","tails"] {
+                if let v = s[k] { walk(v) }
+            }
+            if let branches = s["branches"] as? [[String: Any]] {
+                for b in branches {
+                    if let t = b["then"] { walk(t) }
+                    if let e = b["effect"] { walk(e) }
+                }
+            }
+        }
+        walk(entry["effects"])
+        walk(entry["persistent"])
+        return found
+    }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -78,6 +112,12 @@ struct PlayExecContext {
 // MARK: - Executor output
 // ════════════════════════════════════════════════════════════════
 
+struct CostModInstall {
+    let target: PlayExecContext.Side
+    let delta: Int
+    let scope: String  // "next_play_self" | "this_and_next"
+}
+
 struct PlayExecOut {
     var selfDelta: Int = 0
     var oppDelta: Int = 0
@@ -91,6 +131,14 @@ struct PlayExecOut {
     var hasEffect: Bool = false
     var hasPersistent: Bool = false
     var unknownOps: [String] = []
+
+    // Tier A intents — applied by PracticeStore after executor returns
+    var costModInstalls: [CostModInstall] = []
+    var shuffleHandIntoDeck: Bool = false
+    var shuffleDiscardToDeckCount: Int = 0   // -1 = all
+    var discardTopCount: Int = 0
+    var discardHandAll: Bool = false
+    var reclaimUsedPlayCount: Int = 0
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -242,6 +290,60 @@ enum PlayEffectExecutor {
 
         case "note":
             break
+
+        // ── Tier A ops (simple state mutations) ────────────────────
+        case "swap_hd_counts":
+            out.selfHDDelta += (ctx.oppHD - ctx.selfHD)
+            out.oppHDDelta  += (ctx.selfHD - ctx.oppHD)
+            out.hasEffect = true
+
+        case "play_cost_delta":
+            let targetIsOpp = (step["target"] as? String) == "opponent"
+            let target: PlayExecContext.Side = targetIsOpp ? ctx.opp : ctx.self_
+            let delta = (step["delta"] as? Int) ?? 0
+            let scope = (step["scope"] as? String) ?? "next_play_self"
+            out.costModInstalls.append(CostModInstall(target: target, delta: delta, scope: scope))
+            out.hasEffect = true
+
+        case "shuffle_hand_into_deck":
+            out.shuffleHandIntoDeck = true
+            out.hasEffect = true
+
+        case "shuffle_from_discard_to_deck":
+            let n = (step["count"] as? Int) ?? -1   // -1 means "all"
+            out.shuffleDiscardToDeckCount = n
+            out.hasEffect = true
+
+        case "discard_top":
+            out.discardTopCount += (step["count"] as? Int) ?? 1
+            out.hasEffect = true
+
+        case "discard_hand_all":
+            out.discardHandAll = true
+            out.hasEffect = true
+
+        case "power_reset":
+            if ctx.battles.indices.contains(ctx.battleIdx) {
+                let b = ctx.battles[ctx.battleIdx]
+                let selfEffect = ctx.self_ == .player ? b.playerEffectPower : b.cpuEffectPower
+                let oppEffect  = ctx.self_ == .player ? b.cpuEffectPower    : b.playerEffectPower
+                let t = step["target"] as? String
+                let both = t == "both"
+                let opp  = t == "opponent"
+                if both || !opp { out.selfDelta -= selfEffect }
+                if both || opp  { out.oppDelta  -= oppEffect }
+            }
+            out.hasEffect = true
+
+        case "add_top_hero_power_to_self":
+            if let top = ctx.selfHeroDeck.first {
+                out.selfDelta += top.power
+            }
+            out.hasEffect = true
+
+        case "reclaim_used_play":
+            out.reclaimUsedPlayCount += (step["count"] as? Int) ?? 1
+            out.hasEffect = true
 
         default:
             out.unknownOps.append(op)

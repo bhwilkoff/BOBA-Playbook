@@ -170,6 +170,81 @@ final class PracticeStore {
     }
     var persistents: [PersistentEffect] = []
 
+    // MARK: - Play-cost modifiers (from play_cost_delta op)
+    struct CostMod {
+        var delta: Int
+        var scope: String     // "next_play_self" | "this_and_next"
+        var installedAt: Int  // battle idx
+    }
+    var playerCostMods: [CostMod] = []
+    var cpuCostMods: [CostMod] = []
+
+    /// Effective play cost for `card` on `side`. Pass `consume: true` only when
+    /// actually playing the card — consumption removes single-use mods. Callers
+    /// that just want to display or evaluate affordability should leave it false.
+    func effectiveCost(for card: Card, side: PlayExecContext.Side, consume: Bool = false) -> Int {
+        let nominal = card.playCost ?? 0
+        let mods = side == .player ? playerCostMods : cpuCostMods
+        var total = nominal
+        var keep: [CostMod] = []
+        for m in mods {
+            if m.scope == "this_and_next" && currentBattle > m.installedAt + 1 { continue }
+            total += m.delta
+            if m.scope == "next_play_self" { continue }  // single-use
+            keep.append(m)
+        }
+        if consume {
+            if side == .player { playerCostMods = keep } else { cpuCostMods = keep }
+        }
+        return max(0, total)
+    }
+
+    /// Apply Tier A intents (hand/deck/discard mutations + cost mod installs)
+    /// left on the PlayExecOut by the structured executor.
+    fileprivate func applyTierAIntents(_ out: PlayExecOut) {
+        for inst in out.costModInstalls {
+            let cm = CostMod(delta: inst.delta, scope: inst.scope, installedAt: currentBattle)
+            if inst.target == .player { playerCostMods.append(cm) } else { cpuCostMods.append(cm) }
+        }
+        // Hand/deck/discard ops are player-only; CPU has no deck/discard state to mutate.
+        if out.shuffleHandIntoDeck {
+            playerPlayDeck.append(contentsOf: playerHand)
+            playerHand = []
+            playerPlayDeck.shuffle()
+        }
+        if out.shuffleDiscardToDeckCount != 0 {
+            let n = out.shuffleDiscardToDeckCount < 0
+                ? playerPlayDiscard.count
+                : min(out.shuffleDiscardToDeckCount, playerPlayDiscard.count)
+            if n > 0 {
+                let moved = Array(playerPlayDiscard.prefix(n))
+                playerPlayDiscard.removeFirst(n)
+                playerPlayDeck.append(contentsOf: moved)
+                playerPlayDeck.shuffle()
+            }
+        }
+        if out.discardTopCount > 0 {
+            let n = min(out.discardTopCount, playerPlayDeck.count)
+            if n > 0 {
+                let dropped = Array(playerPlayDeck.prefix(n))
+                playerPlayDeck.removeFirst(n)
+                playerPlayDiscard.append(contentsOf: dropped)
+            }
+        }
+        if out.discardHandAll {
+            playerPlayDiscard.append(contentsOf: playerHand)
+            playerHand = []
+        }
+        if out.reclaimUsedPlayCount > 0 {
+            let n = min(out.reclaimUsedPlayCount, playerPlayDiscard.count)
+            if n > 0 {
+                let reclaimed = Array(playerPlayDiscard.suffix(n))
+                playerPlayDiscard.removeLast(n)
+                playerHand.append(contentsOf: reclaimed)
+            }
+        }
+    }
+
     // MARK: - Computed
 
     var currentSlot: BattleSlot? {
@@ -212,6 +287,8 @@ final class PracticeStore {
         Self.deleteSavedMatch()
         PlayEffects.loadIfNeeded()
         persistents = []
+        playerCostMods = []
+        cpuCostMods = []
         if !allCards.isEmpty { allCardsPool = allCards }
         let pool = allCardsPool
 
@@ -419,11 +496,10 @@ final class PracticeStore {
     // MARK: - Play Card (Player)
 
     func playerPlayCard(_ card: Card) {
-        guard phase == .play,
-              let cost = card.playCost,
-              playerHotDogs >= cost,
-              playerHand.contains(card) else { return }
+        guard phase == .play, playerHand.contains(card) else { return }
+        guard effectiveCost(for: card, side: .player) <= playerHotDogs else { return }
         guard PlayEffects.isPlayable(name: card.name, ctx: makeExecContext(self_: .player)) else { return }
+        let cost = effectiveCost(for: card, side: .player, consume: true)
 
         lastEffectCallout = nil
         playerHand.removeFirst(where: { $0 == card })
@@ -455,6 +531,7 @@ final class PracticeStore {
                         persistents.append(PersistentEffect(owner: .player, spec: p, installedAt: currentBattle))
                     }
                 }
+                applyTierAIntents(out)
                 structuredHandled = true
             }
         }
@@ -642,14 +719,14 @@ final class PracticeStore {
         let cpuCtx = makeExecContext(self_: .cpu)
         while cardsPlayed < maxPlays && cpuPlaysRemaining > 0 {
             let affordable = cpuHand.filter {
-                ($0.playCost ?? 0) <= tempHotDogs &&
+                effectiveCost(for: $0, side: .cpu) <= tempHotDogs &&
                 PlayEffects.isPlayable(name: $0.name, ctx: cpuCtx)
             }
-            guard let card = affordable.min(by: { ($0.playCost ?? 0) < ($1.playCost ?? 0) }) else { break }
+            guard let card = affordable.min(by: { effectiveCost(for: $0, side: .cpu) < effectiveCost(for: $1, side: .cpu) }) else { break }
 
             cpuHand.removeFirst(where: { $0 == card })
             battles[currentBattle].cpuPlayedCards.append(card)
-            let cost = card.playCost ?? 0
+            let cost = effectiveCost(for: card, side: .cpu, consume: true)
 
             // Structured executor first (CPU perspective); fall back to regex resolver
             var cpuDelta = 0
@@ -671,6 +748,7 @@ final class PracticeStore {
                             persistents.append(PersistentEffect(owner: .cpu, spec: p, installedAt: currentBattle))
                         }
                     }
+                    applyTierAIntents(out)
                     structuredHandled = true
                 }
             }

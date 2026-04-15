@@ -296,9 +296,12 @@ final class PracticeStore {
             break
         }
 
-        // Auto-save after each phase transition
-        saveMatch()
-        if matchOver { Self.deleteSavedMatch() }
+        // Auto-save after each phase transition (but not if the match just ended)
+        if matchOver {
+            Self.deleteSavedMatch()
+        } else {
+            saveMatch()
+        }
     }
 
     /// Dismiss current CPU play callout and show next in queue

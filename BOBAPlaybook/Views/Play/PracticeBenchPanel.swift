@@ -75,14 +75,12 @@ struct PracticeBenchPanel: View {
 
     private func benchCardLarge(card: Card, selected: Bool) -> some View {
         let active = store.phase == .sub && !store.playerSubstituted
+        let canAfford = store.playerHotDogs >= 2
         return VStack(spacing: 4) {
             ZStack(alignment: .bottom) {
                 Group {
                     if let file = card.imageFile, !file.isEmpty {
-                        AsyncImage(url: CDN.thumb(for: file)) { phase in
-                            if case .success(let img) = phase { img.resizable().aspectRatio(contentMode: .fill) }
-                            else { cardPlaceholder(card: card) }
-                        }
+                        CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
                     } else {
                         cardPlaceholder(card: card)
                     }
@@ -112,6 +110,19 @@ struct PracticeBenchPanel: View {
                 .foregroundStyle(selected ? Design.Colors.bobaCyan : Design.Colors.textSecondary)
                 .lineLimit(1)
                 .frame(width: 72)
+        }
+        .opacity(active && !canAfford ? 0.35 : 1)
+        .overlay {
+            if active && !canAfford {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.black.opacity(0.3))
+                    .frame(width: 72, height: 100)
+                    .overlay(
+                        Text("2 HD")
+                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .foregroundStyle(Color(hex: "C0392B"))
+                    )
+            }
         }
     }
 

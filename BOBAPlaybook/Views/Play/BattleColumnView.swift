@@ -93,13 +93,7 @@ struct BattleColumnView: View {
     private func cardFace(card: Card, width: CGFloat, height: CGFloat, isOpponent: Bool, effectBonus: Int = 0) -> some View {
         ZStack(alignment: .bottom) {
             if let file = card.imageFile, !file.isEmpty {
-                AsyncImage(url: CDN.thumb(for: file)) { phase in
-                    if case .success(let img) = phase {
-                        img.resizable().aspectRatio(contentMode: .fill)
-                    } else {
-                        placeholderFace(card: card, isOpponent: isOpponent)
-                    }
-                }
+                CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
             } else {
                 placeholderFace(card: card, isOpponent: isOpponent)
             }
@@ -119,12 +113,12 @@ struct BattleColumnView: View {
                     .lineLimit(1)
 
                 HStack(spacing: 4) {
-                    if effectBonus > 0 {
-                        Text("+\(effectBonus)")
+                    if effectBonus != 0 {
+                        Text(effectBonus > 0 ? "+\(effectBonus)" : "\(effectBonus)")
                             .font(Design.Fonts.mono(10, weight: .bold))
-                            .foregroundStyle(Design.Colors.bobaCyan)
+                            .foregroundStyle(effectBonus > 0 ? Design.Colors.bobaCyan : Color(hex: "C0392B"))
                     }
-                    Text("\((card.power ?? 0) + effectBonus)")
+                    Text("\(max(0, (card.power ?? 0) + effectBonus))")
                         .font(Design.Fonts.display(height > 80 ? 24 : 20))
                         .foregroundStyle(.white)
                 }
@@ -132,7 +126,7 @@ struct BattleColumnView: View {
             }
             .padding(.bottom, 4)
         }
-        .frame(width: width, height: height)
+        .frame(maxWidth: width, maxHeight: height)
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
@@ -152,7 +146,7 @@ struct BattleColumnView: View {
         RoundedRectangle(cornerRadius: 8)
             .fill(isOpponent ? Color(hex: "C0392B").opacity(0.2) : Design.Colors.bobaOrange.opacity(0.15))
             .overlay(
-                Image(systemName: "person.fill")
+                Image(systemName: "shield.fill")
                     .font(.system(size: height * 0.2))
                     .foregroundStyle(isOpponent ? Color(hex: "C0392B").opacity(0.4) : Design.Colors.bobaOrange.opacity(0.4))
             )

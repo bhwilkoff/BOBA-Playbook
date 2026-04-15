@@ -20,6 +20,8 @@ struct PracticeView: View {
     @State private var selectedBenchIdx: Int? = nil
     @State private var showBenchPanel = false
     @State private var showPlaysPanel = false
+    @State private var isExiting = false
+    @State private var showPhaseBanner = true
 
     var body: some View {
         GeometryReader { geo in
@@ -29,7 +31,13 @@ struct PracticeView: View {
                 // Background fills behind notch/Dynamic Island
                 Design.Colors.nearBlack.ignoresSafeArea()
 
-                if portrait {
+                if isExiting && !portrait {
+                    // ── Exiting: show rotate-back prompt ────────────────────
+                    exitRotatePrompt
+                } else if isExiting && portrait {
+                    // Portrait achieved while exiting — dismiss
+                    Color.clear.onAppear { dismiss() }
+                } else if portrait {
                     // ── Portrait: show rotate prompt only ────────────────────
                     rotatePrompt
                 } else {
@@ -72,76 +80,107 @@ struct PracticeView: View {
                         }
                     }
 
+                    // ── CPU Sub Callout ──────────────────────────────────────
+                    if let callout = store.cpuSubCallout {
+                        cpuSubOverlay(callout)
+                    }
+
+                    // ── CPU Play Card Overlay (one at a time) ───────────────
+                    if let play = store.currentCpuPlay {
+                        cpuPlayOverlay(play)
+                    }
+
+                    // ── Effect Callout (coin flip / dice / power change) ────
+                    if let callout = store.lastEffectCallout {
+                        effectCalloutBanner(callout)
+                    }
+
                     // ── Match Over Overlay ───────────────────────────────────
                     if store.matchOver {
                         matchOverOverlay
                     }
 
-                    // ── Phase Banner ─────────────────────────────────────────
-                    if store.phase == .reveal && !store.battles.isEmpty && !store.battles[store.currentBattle].isRevealed {
-                        phaseBanner
+                    // ── Phase Banner (auto-dismiss after 2s) ────────────────
+                    if showPhaseBanner && !store.battles.isEmpty {
+                        if store.phase == .reveal && !store.battles[store.currentBattle].isRevealed {
+                            phaseBanner
+                        } else if store.phase == .sub && !store.battles[store.currentBattle].isRevealed {
+                            subPhaseBanner
+                        }
                     }
                 }
             }
         }
-        .onAppear { Task { @MainActor in OrientationManager.shared.lockLandscape() } }
+        .onAppear { Task { @MainActor in OrientationManager.shared.allowLandscape() } }
         .onDisappear { Task { @MainActor in OrientationManager.shared.lockPortrait() } }
         .alert("Exit Practice?", isPresented: $showExitConfirm) {
-            Button("Exit", role: .destructive) { dismiss() }
+            Button("Save & Exit") {
+                store.saveMatch()
+                isExiting = true
+            }
+            Button("Exit Without Saving", role: .destructive) {
+                PracticeStore.deleteSavedMatch()
+                isExiting = true
+            }
             Button("Keep Playing", role: .cancel) {}
         } message: {
-            Text("Your progress will be lost.")
+            Text("You can save your match and resume later.")
         }
-        // Auto-show bench during sub phase, plays during play phase
+        // Close panels when phase changes away from their relevant phase
         .onChange(of: store.phase) { _, newPhase in
             withAnimation(.easeInOut(duration: 0.2)) {
-                if newPhase == .sub && store.mode.showBench {
-                    showBenchPanel = true
-                    showPlaysPanel = false
-                } else if newPhase == .play && store.mode.showPlays {
-                    showPlaysPanel = true
-                    showBenchPanel = false
-                } else {
-                    showBenchPanel = false
-                    showPlaysPanel = false
-                }
+                if newPhase != .sub { showBenchPanel = false }
+                if newPhase != .play { showPlaysPanel = false }
+            }
+            // Show phase banner briefly on each phase change
+            withAnimation(.easeInOut(duration: 0.3)) { showPhaseBanner = true }
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(2))
+                withAnimation(.easeOut(duration: 0.5)) { showPhaseBanner = false }
             }
         }
-    }
-
-    // MARK: - Column Count
-
-    private func visibleColumnCount(for width: CGFloat) -> Int {
-        switch width {
-        case ..<480: return 3
-        case ..<700: return 4
-        default:     return 5
+        // Also auto-dismiss banner on battle change
+        .onChange(of: store.currentBattle) { _, _ in
+            withAnimation(.easeInOut(duration: 0.3)) { showPhaseBanner = true }
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(2))
+                withAnimation(.easeOut(duration: 0.5)) { showPhaseBanner = false }
+            }
         }
     }
 
     // MARK: - Arena View
 
     private func arenaView(geo: GeometryProxy) -> some View {
-        let count = visibleColumnCount(for: geo.size.width)
+        let activeWidth = geo.size.width * 0.82
+        let inactiveWidth: CGFloat = 90
 
         return ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 8) {
+                HStack(spacing: 8) {
                     ForEach(store.battles) { slot in
-                        BattleColumnView(
-                            slot: slot,
-                            isActive: slot.id == store.currentBattle,
-                            phase: store.phase,
-                            mode: store.mode
-                        )
-                        .containerRelativeFrame(.horizontal, count: count, span: 1, spacing: 8)
-                        .id(slot.id)
+                        if slot.id == store.currentBattle {
+                            ActiveBattleView(
+                                slot: slot,
+                                phase: store.phase,
+                                mode: store.mode
+                            )
+                            .frame(width: activeWidth)
+                            .id(slot.id)
+                        } else {
+                            BattleColumnView(
+                                slot: slot,
+                                isActive: false,
+                                phase: store.phase,
+                                mode: store.mode
+                            )
+                            .frame(width: inactiveWidth)
+                            .id(slot.id)
+                        }
                     }
                 }
-                .scrollTargetLayout()
+                .padding(.horizontal, 4)
             }
-            .scrollTargetBehavior(.viewAligned)
-            .safeAreaPadding(.horizontal, 4)
             .onChange(of: store.currentBattle) { _, newBattle in
                 withAnimation(.easeInOut(duration: 0.3)) {
                     proxy.scrollTo(newBattle, anchor: .center)
@@ -162,6 +201,25 @@ struct PracticeView: View {
                 .font(Design.Fonts.display(28))
                 .foregroundStyle(Design.Colors.textPrimary)
             Text("Practice Battle requires landscape orientation")
+                .font(Design.Fonts.mono(13))
+                .foregroundStyle(Design.Colors.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Exit Rotate Prompt
+
+    private var exitRotatePrompt: some View {
+        VStack(spacing: Design.Spacing.xl) {
+            Image(systemName: "iphone.gen3")
+                .font(.system(size: 56))
+                .foregroundStyle(Design.Colors.bobaCyan)
+                .rotationEffect(.degrees(0))
+            Text("ROTATE BACK")
+                .font(Design.Fonts.display(28))
+                .foregroundStyle(Design.Colors.textPrimary)
+            Text("Rotate your device to portrait to exit")
                 .font(Design.Fonts.mono(13))
                 .foregroundStyle(Design.Colors.textSecondary)
                 .multilineTextAlignment(.center)
@@ -207,7 +265,181 @@ struct PracticeView: View {
         }
     }
 
+    // MARK: - CPU Sub Overlay
+
+    private func cpuSubOverlay(_ callout: PracticeStore.ActionCallout) -> some View {
+        ZStack {
+            Color.black.opacity(0.5).ignoresSafeArea()
+            VStack(spacing: Design.Spacing.md) {
+                Image(systemName: callout.icon)
+                    .font(.system(size: 32))
+                    .foregroundStyle(Color(hex: callout.color))
+
+                Text("CPU SUBSTITUTION")
+                    .font(Design.Fonts.display(20))
+                    .foregroundStyle(Design.Colors.textPrimary)
+
+                Text(callout.message)
+                    .font(Design.Fonts.mono(13, weight: .bold))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .multilineTextAlignment(.center)
+
+                Button {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        store.dismissCpuSub()
+                    }
+                } label: {
+                    Text("OK")
+                        .font(Design.Fonts.mono(14, weight: .bold))
+                        .foregroundStyle(Design.Colors.nearBlack)
+                        .padding(.horizontal, 40)
+                        .frame(height: 40)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.bobaOrange))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(Design.Spacing.xl)
+            .background(RoundedRectangle(cornerRadius: 16).fill(Design.Colors.surface))
+            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color(hex: callout.color).opacity(0.4), lineWidth: 2))
+            .padding(.horizontal, 40)
+        }
+        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+    }
+
+    // MARK: - CPU Play Overlay (one at a time)
+
+    private func cpuPlayOverlay(_ play: PracticeStore.ActionCallout) -> some View {
+        ZStack {
+            Color.black.opacity(0.5).ignoresSafeArea()
+            VStack(spacing: Design.Spacing.md) {
+                Text("CPU PLAYS A CARD")
+                    .font(Design.Fonts.display(16))
+                    .foregroundStyle(Design.Colors.bobaViolet)
+
+                // Card image if available
+                if let card = play.card, let file = card.imageFile, !file.isEmpty {
+                    CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
+                        .aspectRatio(5.0/7.0, contentMode: .fit)
+                        .frame(maxHeight: 160)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Design.Colors.bobaViolet.opacity(0.5), lineWidth: 2))
+                }
+
+                // Card name and cost
+                if let card = play.card {
+                    Text(card.name)
+                        .font(Design.Fonts.mono(14, weight: .bold))
+                        .foregroundStyle(Design.Colors.textPrimary)
+
+                    Text("Cost: \(card.playCost ?? 0) Hot Dogs")
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textMuted)
+                }
+
+                // Effect description
+                VStack(spacing: 4) {
+                    if play.cpuDelta > 0 {
+                        Text("+\(play.cpuDelta) to CPU")
+                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .foregroundStyle(Color(hex: "C0392B"))
+                    }
+                    if play.cpuDelta < 0 {
+                        Text("\(play.cpuDelta) to CPU")
+                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .foregroundStyle(Color(hex: "4CAF50"))
+                    }
+                    if play.playerDelta < 0 {
+                        Text("\(play.playerDelta) to You")
+                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .foregroundStyle(Color(hex: "C0392B"))
+                    }
+                    if play.playerDelta > 0 {
+                        Text("+\(play.playerDelta) to You")
+                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .foregroundStyle(Color(hex: "4CAF50"))
+                    }
+                    if play.cpuDelta == 0 && play.playerDelta == 0 {
+                        Text("No power change")
+                            .font(Design.Fonts.mono(11))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
+                }
+
+                // Ability text
+                if let card = play.card, let ability = card.playAbility, !ability.isEmpty {
+                    Text(ability)
+                        .font(Design.Fonts.mono(10))
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                        .padding(.horizontal, Design.Spacing.md)
+                }
+
+                Button {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        store.dismissCpuPlay()
+                    }
+                } label: {
+                    Text(store.cpuPlayQueue.isEmpty ? "CONTINUE" : "NEXT CARD")
+                        .font(Design.Fonts.mono(14, weight: .bold))
+                        .foregroundStyle(Design.Colors.nearBlack)
+                        .padding(.horizontal, 40)
+                        .frame(height: 40)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.bobaViolet))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(Design.Spacing.xl)
+            .background(RoundedRectangle(cornerRadius: 16).fill(Design.Colors.surface))
+            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Design.Colors.bobaViolet.opacity(0.4), lineWidth: 2))
+            .padding(.horizontal, 40)
+        }
+        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+    }
+
+    // MARK: - Effect Callout
+
+    private func effectCalloutBanner(_ callout: PracticeStore.ActionCallout) -> some View {
+        VStack {
+            Spacer()
+            HStack(spacing: 8) {
+                Image(systemName: callout.icon)
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color(hex: callout.color))
+                Text(callout.message)
+                    .font(Design.Fonts.mono(12, weight: .bold))
+                    .foregroundStyle(Design.Colors.textPrimary)
+            }
+            .padding(Design.Spacing.md)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Design.Colors.surface.opacity(0.95)))
+            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color(hex: callout.color).opacity(0.4), lineWidth: 1))
+            .padding(.bottom, 80)
+            .transition(.scale(scale: 0.8).combined(with: .opacity))
+        }
+        .allowsHitTesting(false)
+    }
+
     // MARK: - Phase Banner
+
+    private var subPhaseBanner: some View {
+        VStack {
+            Spacer()
+            VStack(spacing: 4) {
+                Text("SUBSTITUTION")
+                    .font(Design.Fonts.display(28))
+                    .foregroundStyle(Design.Colors.bobaOrange)
+                Text("Choose subs before cards are revealed")
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textSecondary)
+            }
+            .padding(.horizontal, Design.Spacing.xl)
+            .padding(.vertical, Design.Spacing.lg)
+            .background(RoundedRectangle(cornerRadius: 16).fill(Design.Colors.surface.opacity(0.95)))
+            .transition(.opacity.combined(with: .scale(scale: 0.85)))
+            Spacer()
+        }
+        .allowsHitTesting(false)
+    }
 
     private var phaseBanner: some View {
         VStack {

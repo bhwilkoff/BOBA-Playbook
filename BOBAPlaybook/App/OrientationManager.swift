@@ -22,6 +22,16 @@ final class OrientationManager {
         applyOrientationChange()
     }
 
+    /// Allow landscape without forcing rotation — user rotates manually
+    func allowLandscape() {
+        orientationMask = .allButUpsideDown
+        // Only update supported orientations, don't force geometry change
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+            windowScene.windows.first?.rootViewController?
+                .setNeedsUpdateOfSupportedInterfaceOrientations()
+        }
+    }
+
     func lockPortrait() {
         orientationMask = .portrait
         applyOrientationChange()

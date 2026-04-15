@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// In-memory image cache shared across all CardImageView instances.
-private let cardImageCache = NSCache<NSURL, UIImage>()
+let cardImageCache = NSCache<NSURL, UIImage>()
 
 /// Async card image with a branded placeholder for cards without images.
 /// Uses NSCache + returnCacheDataElseLoad to survive view recreation and tab switches.

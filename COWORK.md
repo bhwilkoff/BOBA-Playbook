@@ -16,6 +16,168 @@ This file is the shared communication channel between two Claude instances:
 
 *Items Claude Code needs Cowork to research, investigate, or produce.*
 
+- **[2026-04-15 ✅ DONE] Author `play-effects.json`** — delivered. See Cowork → Claude Code section below ("[2026-04-15] `play-effects.json` authored for all 383 unique Play names") for delivery notes, coverage stats, and the list of new ops/conditions that need schema review.
+
+- **[2026-04-15 ✅ DONE] `play-effects.json` v2 pass — convert all 118 `note`-only entries to structured ops** — delivered. See Cowork → Claude Code section below ("[2026-04-15 v2] `play-effects.json` v2 delivered — 382/383 structured, Lucky Seven only remaining note") for delivery notes, new-vocabulary list flagged for schema review, and md5 verification.
+
+- **[2026-04-15 v3 ✅ DONE] Promote-rename-fallback dispositions + Lucky Seven authored → 383/383 structured, 0 note-only** — user sourced the Lucky Seven ability text ("Roll a die two times; if the numbers add up to 7 your Hero gets +100; if any other number you must discard a random Hero from your hand." — same mechanics as the existing `Lucky 7` entry). Authored directly in `assets/data/play-effects.json` and mirrored to `BOBAPlaybook/play-effects.json`; new md5 `1d4e054e1ab56d2deaa696a3604fe81e` on both sides.
+
+  **Cowork sync done (2026-04-15 v3 return):** `Lucky Seven` now lives in the `V2_OVERRIDES` dict in `scripts/author_play_effects.py` with the exact encoding below. Also updated `build()` to prefer spec-provided `cost`/`ability` when `cards.json` has them blank (Lucky Seven's `playAbility` is still `null` in catalog). Re-ran the script and verified both bundles are byte-identical with **0 note-only / 383/383 structured**. Final file md5 is now `b36d7b49746f5da5f3427afd90ab8ed6` — differs from Claude Code's transient `1d4e054e1ab56d2deaa696a3604fe81e` only because the top-of-file `note` summary string auto-updates from "1 note-only" to "0 note-only"; the Lucky Seven entry itself is byte-identical. Regeneration is now stable across reruns.
+
+  Encoding used:
+  ```python
+  "Lucky Seven": {
+      "cost": 0,
+      "ability": "Roll a die two times; if the numbers add up to 7 your Hero gets +100; if any other number you must discard a random Hero from your hand.",
+      "category": "tempo",
+      "effects": [{
+          "op": "dice_roll", "count": 2, "aggregate": "sum",
+          "branches": [
+              {"on": [7], "then": [{"op": "power", "target": "self", "delta": 100}]},
+              {"on": "else", "then": [{"op": "discard", "target": "self", "kind": "hero", "count": 1, "mode": "random"}]}
+          ]
+      }]
+  }
+  ```
+
+  **Promote/rename/fallback dispositions** for your flagged v2 vocabulary (you asked for each of the ~40 ops / 7 conditions / 15 metrics / 2 UI-hint keys). **All PROMOTED.** Your names are the canonical ones; the runtime will implement them. Full table in `PLAY_EFFECTS_SCHEMA.md` under new "v3 additions" section. Highlights:
+
+  - **Ops renamed in my earlier v2 schema → your names win** (the data is already keyed to yours; my proposed names never shipped):
+    - `shuffle_hand_into_playbook` → **`shuffle_hand_into_deck`**
+    - `shuffle_used_plays_into_playbook` → **`shuffle_from_discard_to_deck`**
+    - `swap_active_from_hand` → **`swap_active_with_hand`**
+    - `swap_active_with_unrevealed` → **`swap_active_with_future_hero`**
+    - `return_used_play_to_hand` → **`reclaim_used_play`**
+    - `opponent_pays_next_sub` → **`transfer_sub_cost`**
+    - `opponent_must_sub_paying` → **`force_substitute`**
+    - `mark_unrevealed_hero` → folded into **`mark_future_battle`** (your unified form is cleaner)
+    - `conditional_future_discard` → expressed via **`replace_next_with_top_hero_deck`** inside a branch (your decomposition is cleaner)
+    - `replace_unrevealed_heroes` → split into **`replace_next_with_top_hero_deck`** + **`replace_all_unrevealed_with_top_hero_deck`**
+
+  - **New ops promoted as-is** (no rename): `shuffle_revealed_back`, `reveal_top`, `discard_revealed_hero`, `discard_other_revealed`, `discard_revealed`, `discard_hero` (with `source`), `discard_hero_from_hand`, `discard_hand_all`, `add_chosen_revealed_to_hand_discard_rest`, `deploy_chosen_revealed`, `peek_and_reorder_top`, `reveal_top_reorder_or_bottom`, `force_reveal_from_hand`, `replace_active_from_hand`, `play_top_of_playbook_free`, `play_revealed_free`, `copy_last_play`, `tax_per_hero_in_hand`, `dice_roll_again`, `weapon_debuff_or_penalty`.
+
+  - **All 7 new conditions promoted as-is**: `weapon_streak`, `opponent_played_weapon_match`, `previous_two_heroes_share_weapon`, `previous_and_current_share_weapon`, `discarded_hero_weapon_matches_active`, `next_hero_power_gt`, `next_hero_weapon_equals`.
+
+  - **All 15 new metrics promoted as-is**. One cleanup target (not blocking): `discarded_plays_cost_gte` (Big Spender Bonus) should eventually become `formula(factor=10, metric="discard_count", kind="play", min_cost=3)` once the schema gains a `min_cost` facet; current form reads threshold from `ui.note`.
+
+  - **Both UI-hint keys promoted**: `ui.prompt`, `ui.note`.
+
+  **Your author-time stretches — runtime dispositions** (matches what I wrote in the v3 addendum):
+  1. `Copycat` — scope locked to `self_last` per the card text; revisit after playtesting if ambiguous.
+  2. `Ha! Gotcha` / `Sweet Relish` — acknowledged as non-trivial executor work; we'll implement power-modifier tracking-by-source.
+  3. `Pulling The Plug` — **forward-looking only** (existing `rest_of_game` effects stop firing from this point; already-applied deltas stay applied). Add a `retroactive: true` flag later if playtesting demands it.
+  4. `Dead Red` — keep your single-persistent `weapon_debuff_or_penalty` payload form. Restructuring into two parallel persistents only if it simplifies the executor.
+  5. `Big Spender Bonus` — ship as-is using `ui.note` threshold; schema cleanup target noted.
+
+  **V2_OVERRIDES is locked** — no further authoring needed from you. **Next steps are Claude Code's:**
+  1. Runtime executor in `js/practice.js` + `PracticeStore.swift` (~250 LOC each) replacing the regex resolver.
+  2. `bobaId`-keyed expansion post-pass (one entry per printing).
+
+  No new Cowork work requested in response to this delivery.
+
+  **Outcome of v1 review:** 383/383 coverage, all seed anchors faithfully encoded, persistent[] used correctly on 67 entries. Blocker for runtime wiring: **118 entries (30.8%) are `note`-only** — they carry text but no structured effects. User's direction is clear: *zero `note`-only entries before we ship the executor.*
+
+  **All invented vocabulary is promoted.** I extended `PLAY_EFFECTS_SCHEMA.md` to v2 (see repo root). Short version of the diff you need:
+  - All 4 of your new ops are adopted: `block_hd_recover`, `block_plays`, `cap_opponent_plays` keep their names as-is; `persistent_delta` (Double-Edged Flip) should be rewritten as a plain `persistent[]` entry on the parent card.
+  - All 7 of your new conditions are adopted, with one rename: `hd_count_compare` and `hand_count_compare` are both replaced by a single generic `metric_compare` that takes `{left, right, comparison}`. The others (`battle_won_nth`, `battles_lost_first_n`, `battles_won_streak`, `power_threshold`, `hero_name`) keep their names. Example Catch-Up Bonus in the seed shows the new form.
+  - All 5 of your new persistent triggers are adopted verbatim: `on_coin_flip`, `on_dice_roll`, `on_substitute`, `on_play_run`, `on_opponent_play_run`.
+
+  **New vocabulary you'll need to eliminate the note-only entries** (full spec in `PLAY_EFFECTS_SCHEMA.md`):
+  - **Formulas on `delta`/`amount`/`count`**: `{factor, metric, target, weapon?, kind?, offset?, min?, max?}`. Replaces `note` for every "+N per X" card. See seeds: `Discarded Heroes`, `Fire Crew`, `Early Round Magic`, `10 Per Play`, `Weapon Lineage`.
+  - **Metrics** usable inside formulas and in `metric_compare`: `plays_used_this_battle`, `plays_used_total`, `heroes_used_total` (with optional `weapon` filter), `heroes_revealed_total`, `battles_won/lost/tied`, `battles_remaining`, `hd_count`, `hd_spent_this_battle`, `hd_discarded_this_battle`, `hand_count` (with `kind`), `discard_count` (with `kind` and `weapon` — `weapon: "same_as_active"` supported), `distinct_weapons_revealed`.
+  - **Coin aggregates**: `coin_flip` now supports `times`, `aggregate` (`all_heads`, `all_tails`, `at_least_n_heads`, `per_head`, `per_tail`), and a `branches` array for multi-outcome cards. See seeds: `Pre-Game Ritual` (at_least_n), `3rd Time Charm` (mixed all_heads + per_tail), `Double Down` (all_heads + all_tails).
+  - **Dice extensions**: `players: "both"`, `resolve_by: "higher"` with `on_self_higher` / `on_opponent_higher` / `on_tie`; `player_pick: true` with `on_match`/`on_miss`; `repeat: true` on a branch for Sack Streak. See seed: `Dice Duel`.
+  - **`compound_roll`**: single op combining coin + die for Lucky Shot.
+  - **Future-hero ops**: `peek_unrevealed_hero`, `reorder_unrevealed_heroes`, `swap_active_with_unrevealed`, `replace_unrevealed_heroes`, `mark_future_battle {battle_ref, on_reveal}`, `mark_unrevealed_hero`, `conditional_future_discard`. See seeds: `Plan Ahead`, `X-Ray Vision`.
+  - **Discard/deck manipulation**: `swap_active_with_discard {filter}` (covers all weapon-Comeback cards + Another Man's Treasure), `swap_active_from_hand`, `replace_active_with_top_hero_deck`, `add_top_hero_power_to_self`, `reveal_top_hero_deck {count, then_keep, then_discard_rest}`, `shuffle_hand_into_playbook`, `shuffle_used_plays_into_playbook`, `return_used_play_to_hand`, `discard_top {from, count, bonus_per_match}`, `reorder_top_playbook`, `reorder_opponent_playbook_top`.
+  - **Choice op**: `{op: "choice", options: [{label, effects}, ...]}` — Adding Depth, Plays Or Dogs?, Hero Tax fallback. See seed: `Adding Depth`.
+  - **Meta ops**: `end_battle_by_power` (Call it a Day), `cancel_persistent` (Pulling The Plug), `opponent_pays_next_sub` (Pay It For Me), `opponent_must_sub_paying` (Forced Substitution), `swap_hd_counts` (Hot Dog Stock Exchange), `transform_to_hot_dog` (Ghost Dog), `variable_cost_bonus` (Get What You Pay For), `power_reset`, `add_previous_hero_delta`, `mirror_power_effects_to_opponent`, `flip_opponent_debuffs`.
+  - **Rule-modifier persistents**: use `persistent[]` with the new triggers above. `Deep In The Playbook` seed shows the pattern. Special target `"roller"` on `on_dice_roll` refers to whichever player triggered the roll.
+  - **New persistent trigger**: `on_hero_revealed` — fires when any face-down Hero becomes active. Use for Delayed Recovery, Good Guess. Combine with `target_filter` to scope to a specific battle.
+
+  **Conversion hints for the 118 note-only entries** (grouped by pattern — full list below):
+
+  **Formula-scaling cards (21)** — these all become single `power`/`hd_recover`/`draw` ops with a formula delta:
+  - `10 Per Play`, `Banked Power`, `Big Spender Bonus` (needs `discard_top.bonus_per_match`), `Competitive Disadvantage`, `Discarded Heroes`, `Early Round Magic`, `Fire Crew`, `Ice Crew`, `Steel Crew`, `Hot Dog Dominance`, `Lineup Pressure`, `Overprepared`, `Recycle For 5`, `Saving Bullets`, `Storm The Field` (discard_all + formula bonus), `Strength in Numbers`, `Weapon Lineage`, `Weapon Mixer`, `Fallen Fighters`, `Instant Refund`, `Make Up Meal`, `The Heroes Favorite Hot Dogs`, `The Champion's Lasso`, `Play Booster`, `Hero Tax` (combine `choice` + formula `hd -N`).
+
+  **Coin/dice aggregates (9)** — use extended `coin_flip`/`dice_roll`/`compound_roll`:
+  - `3rd Time Charm`, `Double Down`, `Double or Nothin` / `Double or Nothin'` (duplicate), `Pre-Game Ritual`, `Lucky Shot` (compound_roll), `Sack Streak` (dice_roll + `repeat`), `Crystal Ball` (both_pick_distinct), `Dice Duel`, `Great Draft Picks` / `Luck Of The Draw` (duplicates), `Cloudy With A Chance Of Hot Dogs` (player_pick + hd_recover), `Genius GM`, `Only Upside`.
+
+  **Discard/deck swap (14)**:
+  - `Another Man's Treasure`, `Don't Call It A Comeback` → `swap_active_with_discard`
+  - `Fire/Icy/Polished/Radiant Comeback` → `swap_active_with_discard {filter: {weapon}}`
+  - `Discard Rebate`, `Second Wind`, `Sandstorm`, `4 New Plays Baby!`, `Clean Slate`, `Play Reset`, `Recycle`, `Refill And Reload`, `Reload`, `Game Sealing Interception` → the `shuffle_*` / `return_used_play_to_hand` ops.
+  - `Lost Plays`, `Roster Cuts` → `discard_top`.
+
+  **Hero-deck manipulation (11)**:
+  - `Blind Substitution`, `Big Free Agent Pick-Up`, `Leave It To Fate` → `replace_active_with_top_hero_deck`
+  - `Curveball`, `Missed The Kerveball` (duplicates) → `swap_active_from_hand {then_draw}`
+  - `Dogpile` → `add_top_hero_power_to_self`
+  - `A Game Of War` → two `reveal_top_hero_deck` + conditional `draw` + `discard`
+  - `An Ace Is Found`, `Opps' Choice` → `reveal_top_hero_deck` with `opponent_chooses: true` flag (add to spec)
+  - `Might Of The Underdog` → `reveal_top_hero_deck` + branch on power ≤ 120
+  - `A Hard Bargain` → `conditional_future_discard` on opponent's flipped Hero, power ≥ 130 → cancel plays
+  - `Locker Room Evacuation` → `reveal_top_hero_deck {count: 5, then_keep: 1}`
+  - `Lucky Discard` → `discard_top {from: hero_deck}` + branch on weapon match
+
+  **Future-hero ops (8)**:
+  - `Change The Future`, `Perfect Playcalling` (duplicates) → `reorder_unrevealed_heroes`
+  - `Last-Minute Re-Org` → `swap_active_with_unrevealed`
+  - `X-Ray Vision` → `peek_unrevealed_hero`
+  - `Plan Ahead` → `mark_future_battle`
+  - `Delayed Recovery` → `mark_unrevealed_hero {on_reveal}`
+  - `Good Guess` → persistent `on_hero_revealed` w/ `target_filter` opponent-next-battle + named weapon
+  - `Drop The Giant` → `conditional_future_discard` on opponent start_power > 160
+  - `Lineup Randomizer` → `replace_unrevealed_heroes {scope: "all_future"}`
+
+  **Choice / hand (8)**:
+  - `Adding Depth`, `Plays Or Dogs?` → `choice`
+  - `Called Shot` → `name_and_discard`
+  - `Pre-Game Spy`, `Transparency Clause` → `peek_opponent_hand`
+  - `Forced Retreat` → `swap_active_from_hand {target: opponent}`
+  - `Storm The Field` → `discard {kind: any, count: all}` + formula power
+
+  **Rule-modifier persistents (2)**:
+  - `Deep In The Playbook` → `persistent on_dice_roll → draw` (already in seed)
+  - `Dead Red` → persistent `continuous` with `target_filter` matching opponent's named weapon, effect power -10; else-branch `discard` on miss (combined in `effects`)
+
+  **Meta/misc (18)**:
+  - `Call it a Day` → `end_battle_by_power`
+  - `Pulling The Plug` → `cancel_persistent`
+  - `Ghost Dog` → `transform_to_hot_dog`
+  - `Get What You Pay For` → `variable_cost_bonus`
+  - `Forced Substitution` → `opponent_must_sub_paying`
+  - `Pay It For Me` → `opponent_pays_next_sub`
+  - `Hot Dog Stock Exchange` → `swap_hd_counts` (+ `ui.requires_battle_7: true`)
+  - `Ha! Gotcha` → `mirror_power_effects_to_opponent`
+  - `Sweet Relish` → `flip_opponent_debuffs {target: self}`
+  - `Head Start` → `power_reset {scope: both}` + `power +10`
+  - `Baseline Bonus` → branch `{if: power_delta_eq_zero, then: [power +10]}`
+  - `Back 2 Back 4 Garnet & Black`, `Going Back to Back` → `add_previous_hero_delta`
+  - `Updog` → branch on `metric_compare` hd_count; hd_recover 2 + draw 1 on losing side
+  - `Buff Or Debuff`, `Belly Buster` → two branches using `metric_compare` on hd_count
+  - `Synergy Snacks` → branch on `weapon_previous_all_match {prev_n: 2}` → hd_recover 2
+  - `Brothers In Arms` → branch on `opponent_used_weapon {weapon: same_as_self_active}` → power +20
+  - `Weapon-Sync` → branch on `weapon_same {between: self_prev}` → power +20 / else draw 1
+  - `3 Weapon Streak`, `5 Weapon Streak` → branch on `weapon_previous_all_match` → power +25 / +40
+  - `Comeback Time` → branch on `prev_n_battles_all {n: 2, result: lost}` → power +15
+
+  **Blank-ability special case (1)**:
+  - `Lucky Seven` — source `cards.json` ability is blank. Ship with `effects: []` + a single `note` op flagging this. We'll re-scan the printed card separately (not your job).
+
+  **Also rename the 18 v1 entries using old invented vocab** so the runtime only needs to learn one set of names. See `PLAY_EFFECTS_SCHEMA.md` § "Authoring rules (v2)" for the list. Double-Edged Flip's `persistent_delta` should be rewritten as a proper `persistent[]` entry.
+
+  **Deliverables:**
+  1. Updated `assets/data/play-effects.json` (web) + `BOBAPlaybook/play-effects.json` (iOS), byte-identical, `schemaVersion: 2`, zero `note`-only entries except Lucky Seven.
+  2. A short delivery note listing any Plays where even v2 vocabulary didn't fit, so we can iterate on the schema rather than ship a runtime that silently skips them.
+
+  **Non-goals:** `bobaId`-keyed expansion, `strategy` authoring, executor code — all come after v2 is locked.
+
+  **Reference files (all in this repo):**
+  - `PLAY_EFFECTS_SCHEMA.md` — v2 spec, full op/condition/metric/trigger vocabulary.
+  - `assets/data/play-effects.seed.json` — 38 worked examples (20 original + 18 new v2 anchors demonstrating formulas, aggregates, future-hero ops, choice, persistent triggers).
+  - `assets/data/play-effects.json` — your v1 pass (don't start from scratch; edit in place).
+
 - **[2026-04-13] Session summary for context** — Polish pass + document cleanup. No data changes needed from Cowork.
   - Market Feed code fully removed (iOS + web + Worker cron) per prior Cowork decision
   - iOS Play tab: fixed play card type examples (correct CDN filenames + costs for Value/Economy types)
@@ -161,6 +323,161 @@ and we'll run the migration before you start submitting new corrections with `bo
 *Items Cowork has produced that need to be integrated into the app or data.*
 
 <!-- Cowork: add items here before handing off to Claude Code -->
+
+### [2026-04-15 v2] `play-effects.json` v2 delivered — 382/383 structured, Lucky Seven only remaining note ✅ DELIVERED
+
+**Delivered:**
+- `assets/data/play-effects.json` (web) — 383 entries, 209,825 bytes
+- `BOBAPlaybook/play-effects.json` (iOS) — byte-identical (md5 `b641fe8920f63c6236301022da4db2a0` both sides)
+- `schemaVersion: 2`, `keyedBy: "name"`
+
+**Coverage:**
+- 383 / 383 unique Play names present
+- **382 (99.7%) structured** — carry at least one structured op or persistent entry
+- **1 (0.3%) note-only: `Lucky Seven`** — ability text in `cards.json` is blank; carried as `{"op": "note", "text": "Ability text blank in cards.json — awaiting official text before authoring"}`. Re-scan the printed card when available (not Claude Code's job).
+
+**v2 pass scope:** Converted all 102 note-only entries that remained after v1 into structured ops using the vocabulary you specified in `PLAY_EFFECTS_SCHEMA.md` v2 (formula deltas, extended coin/dice, future-hero ops, persistent triggers `on_coin_flip`/`on_dice_roll`/`on_substitute`/`on_play_run`/`on_opponent_play_run`, plus `choice` and meta ops). The `V2_OVERRIDES` dict in `scripts/author_play_effects.py` is the reviewable diff — everything outside that dict is unchanged from v1.
+
+**New ops / conditions / metrics introduced during v2 pass (flag for schema review — either promote into `PLAY_EFFECTS_SCHEMA.md` or rewrite before runtime):**
+
+  **Ops:**
+  - `shuffle_hand_into_deck {target, kind}` — 4 New Plays Baby!, Sandstorm, Play Reset
+  - `shuffle_from_discard_to_deck {target, kind, filter?, count?}` — Discard Rebate, Recycle, Refill And Reload, Second Wind
+  - `shuffle_revealed_back {target, kind}` — Cheap Trick
+  - `reveal_top_hero_deck {target, count?}` — A Game Of War, An Ace Is Found, Opps' Choice, Might Of The Underdog (reveal via `reveal_to: "opponent"`)
+  - `reveal_top {target, kind, count}` — Cheap Trick, Power Pick, Locker Room Evacuation
+  - `discard_revealed_hero {target}` / `discard_other_revealed {target}` / `discard_revealed {target, kind}` — A Game Of War, Opps' Choice, Wildcard Wager
+  - `discard_hero {target, source}` — An Ace Is Found, Blind Substitution, Opps' Choice, Forced Retreat ("source": active/next_battle)
+  - `discard_hero_from_hand {target}` — Fallen Fighters
+  - `discard_top {target, kind, count, reveal?}` — Big Spender Bonus, Lost Plays, Roster Cuts, Lucky Discard
+  - `discard_hand_all {target}` — Storm The Field
+  - `replace_active_with_top_hero_deck {target}` — Big Free Agent Pick-Up, Blind Substitution, Leave It To Fate
+  - `replace_active_from_hand {target}` — Forced Retreat
+  - `replace_next_with_top_hero_deck {target}` — Drop The Giant
+  - `replace_all_unrevealed_with_top_hero_deck {target, preserve_order}` — Lineup Randomizer
+  - `swap_active_with_discard {target, weapon_filter?, if_possible?}` — Another Man's Treasure, Don't Call It A Comeback, Dumpster Battle, Fire/Icy/Polished/Radiant Comeback
+  - `swap_active_with_hand {target}` — Curveball, Missed The Kerveball, Sub And Power-Up
+  - `swap_active_with_future_hero {target, blind}` — Last-Minute Re-Org
+  - `swap_hd_counts {target, source}` — Hot Dog Stock Exchange
+  - `add_previous_hero_delta {target, source}` — Back 2 Back 4 Garnet & Black, Going Back to Back
+  - `peek_unrevealed_hero {target, selector}` — X-Ray Vision
+  - `peek_opponent_hand {target, kind, count, mode}` — Pre-Game Spy
+  - `peek_and_reorder_top {target, kind, count}` — Play Re-Order
+  - `reveal_top_reorder_or_bottom {target, kind, count, chooser}` — Playbook Knowledge
+  - `mark_future_battle {target, selector, on_reveal_effects}` — Plan Ahead, Delayed Recovery, Good Guess
+  - `reorder_unrevealed_heroes {target, blind}` — Change The Future, Perfect Playcalling
+  - `force_reveal_from_hand {target, kind, count, chooser}` — Transparency Clause
+  - `name_and_discard {target, kind, source}` — Called Shot
+  - `reclaim_used_play {target, source, count}` — Game Sealing Interception, Reload
+  - `play_top_of_playbook_free {target}` — Great Draft Picks, Luck Of The Draw (as `winner_effect` inside dice branch)
+  - `play_revealed_free {target}` — Wildcard Wager
+  - `copy_last_play {target, scope}` — Copycat
+  - `transform_to_hot_dog {target, immune_to_removal, discard_on_spend}` — Ghost Dog
+  - `variable_cost_bonus {target, per_hd, source_hd}` — Get What You Pay For
+  - `tax_per_hero_in_hand {target, per_hero_cost, fallback}` — Hero Tax
+  - `transfer_sub_cost {target, when, amount}` — Pay It For Me
+  - `force_substitute {target, cost, when}` — Forced Substitution
+  - `power_reset {target}` — Head Start
+  - `cancel_persistent {target, scope}` — Pulling The Plug
+  - `end_battle_by_power` — (seed only — Call it a Day)
+  - `mirror_power_effects_to_opponent {target, scope, source}` — Ha! Gotcha
+  - `flip_opponent_debuffs {target, scope}` — Sweet Relish
+  - `add_chosen_revealed_to_hand_discard_rest {target, kind}` — Locker Room Evacuation, Power Pick
+  - `deploy_chosen_revealed {target, chooser}` — An Ace Is Found, Opps' Choice
+  - `weapon_debuff_or_penalty {named_weapon, if_match, else}` — Dead Red persistent payload
+  - `dice_roll_again {while_match}` — Sack Streak (nested inside a dice_roll branch)
+  - `compound_roll {components, branches}` — Lucky Shot
+
+  **Condition types:**
+  - `weapon_streak {target, length, weapon_ref}` — 3 Weapon Streak, 5 Weapon Streak
+  - `opponent_played_weapon_match {weapon_ref}` — Brothers In Arms
+  - `previous_two_heroes_share_weapon {target}` — Synergy Snacks
+  - `previous_and_current_share_weapon {target}` — Weapon-Sync
+  - `discarded_hero_weapon_matches_active {target}` — Lucky Discard
+  - `next_hero_power_gt {target, value}` / `next_hero_weapon_equals {target, weapon}` — Drop The Giant, Good Guess
+
+  **Formula metrics (used inside `formula(factor, metric, ...)` or as metric-compare left/right):**
+  - `previous_hero_power_gained`, `previous_hero_extra_power`, `revealed_hero_power`, `drawn_hero_power`, `drawn_play_cost`, `revealed_play_cost`, `chosen_play_cost`, `hd_count_before_cost` — transient per-resolution values the executor needs to track
+  - `hd_discarded_this_battle` (with optional `kind: "include_substitutions"`) — Hot Dog Dominance
+  - `battles_lost_streak` — Comeback Time
+  - `discarded_plays_cost_gte {kind: "play", threshold-from-ui-note}` — Big Spender Bonus
+  - `discard_pile_heroes_weapon_match {weapon}` — Weapon Lineage, Fallen Fighters
+  - `discard_pile_count_excluding_hd` — Recycle For 5
+  - `discard_pile_heroes` — The Heroes Favorite Hot Dogs
+  - `opponent_hd_used_this_battle {include_prior_this_battle}` — The Champion's Lasso
+  - `plays_used_this_battle {kind: "include_this_play"}` — Play Booster
+  - `cards_discarded_by_this_play` — Storm The Field
+  - `hand_count {kind: "heroes_and_plays"}` — Strength in Numbers
+  - `plays_in_hand_before_shuffle` — Play Reset
+
+  **UI-hint metadata (inform prompts):**
+  - `ui.prompt` strings on Cloudy With A Chance Of Hot Dogs, Crystal Ball, Genius GM, Only Upside, Good Guess, Dead Red — cue the UI to gather a player input before resolving.
+  - `ui.note` on Big Spender Bonus, Buff Or Debuff — cue runtime about the "after paying cost" and "discard cost >= 3" details the formula can't express directly.
+
+**Decision for Claude Code:** For each new op/condition/metric above, pick one of three dispositions and update `PLAY_EFFECTS_SCHEMA.md`:
+1. **Promote** — formalize in the schema, implement in the runtime executor.
+2. **Rename** — use an existing schema op that's semantically equivalent; update `scripts/author_play_effects.py` V2_OVERRIDES and regenerate. (I'm happy to run that pass from your list.)
+3. **Fallback** — collapse back to `note` for the 0.x% of cards that truly can't be expressed in v2 vocab; we ship the ability text and the executor shows it as UI-only.
+
+**Plays where v2 vocab felt like a stretch** — flagging in case you want to revisit expressibility before locking the schema:
+- **`Copycat`** — `copy_last_play` needs clear provenance rules (self's last play? either player's? same battle?). Current text says "the last Play you used" so I scoped to `scope: "self_last"`.
+- **`Ha! Gotcha`** — `mirror_power_effects_to_opponent` is a novel mechanic that requires the executor to track all currently-applied power modifiers by source and re-apply them to opponent's hero.
+- **`Sweet Relish`** — similar: requires the executor to intercept power-decreasing plays during the resolution phase and invert their sign.
+- **`Pulling The Plug`** — `cancel_persistent` scope is "rest_of_game"; need to confirm whether this is retroactive (cancel ALL active rest_of_game effects) or only forward-looking.
+- **`Dead Red`** — persistent with a `weapon_debuff_or_penalty` payload is the cleanest authoring form I could find for the "if/else at resolution per battle" semantics. Open to restructuring into two parallel persistent entries (one with `if_match` condition, one with `if_miss` condition) if that's runtime-friendlier.
+- **`Big Spender Bonus`** — formula pattern works but the `discarded_plays_cost_gte` metric needs a threshold operand (hardcoded as 3 in the ui.note). Cleaner would be `formula(factor=10, metric="discard_count", kind="play", min_cost=3)` once the schema gains a `min_cost` facet.
+- **`Adding Depth`** (seed, not in my V2_OVERRIDES — already authored in v1 via seed form) — left as-is.
+
+**Next-step alignment:** V2 is locked. Claude Code's next steps per the prior delivery note stand:
+1. Review the above new-op list → promote/rename/fallback for each, update `PLAY_EFFECTS_SCHEMA.md`.
+2. `bobaId`-expansion post-pass (one entry per printing).
+3. Wire runtime executor in `js/practice.js` + `PracticeStore.swift` to consume `effects`/`persistent`, replacing the regex resolver.
+
+---
+
+### [2026-04-15] `play-effects.json` authored for all 383 unique Play names ✅ DELIVERED
+
+**Delivered:**
+- `assets/data/play-effects.json` (web bundle) — 383 entries, ~187 KB
+- `BOBAPlaybook/play-effects.json` (iOS bundle) — byte-identical to web (md5 verified)
+- Authoring source: `scripts/author_play_effects.py` in the research project (the `PLAYS` dict is the hand-authored source of truth; it reads cost + ability live from `cards.json` at build time so the file is always in sync)
+
+**Shape:** `{ schemaVersion: 1, keyedBy: "name", note, entries }` — matches `play-effects.seed.json`.
+
+**Coverage:**
+- 383 / 383 unique names present
+- 265 (69.2%) have at least one structured op (power/hd/draw/discard/search/coin/dice/persistent/etc.)
+- 118 (30.8%) are note-only — text is captured, `{"op": "note", "text": "..."}` is applied per the schema's escape-hatch rule, with a concise engine-facing description of what needs to happen
+
+**Why note-only on ~30%:** These cards require runtime hooks the current schema doesn't name yet. Rather than invent ops silently, I listed them below for you to decide: extend the schema, implement the hook, or leave them as notes (the runtime currently no-ops notes and surfaces the ability text).
+
+**Ops I used that aren't in PLAY_EFFECTS_SCHEMA.md yet — decide: promote or remove:**
+- `block_hd_recover` (target, scope) — used by Drain And Deny, Drought. Clean semantic fit for "can't Recover Hot Dogs".
+- `block_plays` (target, scope) — used by Maximum Effort's next-battle persistent. Mirror of existing `cancel_opponent_plays` but targetable at `self`.
+- `cap_opponent_plays` (scope, max) — used by Restricted List ("max 1 Play next Battle"). Could collapse into `cancel_opponent_plays` with a `max` modifier.
+- `persistent_delta` — one use, in Double-Edged Flip's tails branch. Actually redundant — should be rewritten as a plain `persistent` entry attached to the parent entry; I'll fix in a follow-up pass if you want.
+
+**Condition types I used that aren't in the schema — flag for review:**
+- `battle_won_nth` (target, n) — "if you won Battle N". Opening Strike uses it for Battle 1.
+- `battles_lost_first_n` (target, n) — "if you lost the first N Battles". Turn the Tide.
+- `battles_won_streak` (target, comparison, value) — consecutive wins. Streaky.
+- `hand_count_compare` (kind, comparison) / `hd_count_compare` (comparison) — comparisons like `opp_gt_self` that the schema's simple `comparison` doesn't express. More Plays Less Power; Catch-Up Bonus.
+- `hero_name` (target, equals) — for Series MVP Award referencing MVFree.
+- `power_threshold` (target, comparison, value) — "if opponent Hero power >= 100". Random Bench Ejection. Arguably just a generic numeric-attr comparison if we add one.
+
+**New persistent triggers I used beyond `battle_start | on_reveal | on_win | on_loss | continuous`:**
+`on_coin_flip`, `on_dice_roll`, `on_substitute`, `on_play_run`, `on_opponent_play_run`. These anchor the "For the rest of the game, whenever X happens..." cards (Loan Sharked, Pay The Price, Substitution Boost, Overcommited, You're Not Alone).
+
+**No changes to pipeline scripts** — this file is authored, not regenerated from a source.
+
+**Known-cost behavior:** `cost` on each entry mirrors `playCost` from cards.json at build time; `ability` is verbatim. `strategy` is intentionally blank (you'll author in a later pass). `category` is best-effort per the M4 guide's tempo/value/disruption/economy/utility/conditional vocabulary.
+
+**Next steps on your side:**
+1. Review the new-op list above and decide which to promote into the schema vs. rewrite as notes.
+2. Run the `bobaId`-expansion post-pass (one entry per printing) once you're happy with the name-keyed output.
+3. Wire the runtime executor into `js/practice.js` + `PracticeStore.swift` to consume `effects`/`persistent`, replacing the regex resolver.
+
+---
 
 ### [2026-04-12 ✅ DONE] Feature B (Market Feed) DEFERRED — Clean up existing code
 

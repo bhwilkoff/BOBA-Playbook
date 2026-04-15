@@ -119,7 +119,7 @@ struct PracticeSetupView: View {
     private func resolveSavedDeck(_ id: UUID) async -> PracticeStore.ResolvedDeck? {
         guard let rows = try? await SupabaseClient.shared.fetchDeckCards(deckId: id) else { return nil }
         var byId: [String: Card] = [:]
-        for c in cardStore.displayCards { byId[c.bobaId] = c }
+        for c in cardStore.displayCards { byId[c.id] = c }
         var r = PracticeStore.ResolvedDeck()
         for row in rows {
             guard let card = byId[row.bobaId] else { continue }

@@ -776,6 +776,481 @@ function pmDetectHDRecovery(card) {
   return 0;
 }
 
+// ── Structured effect executor (play-effects.json) ────────────────
+// Loads the effect database lazily and exposes pmExecStructured, which
+// consumes an entry's `effects[]` and returns {selfDelta, oppDelta,
+// selfHDDelta, oppHDDelta, description, handled}. Unknown ops are
+// skipped (forward-compat). Callers fall back to the regex resolver
+// (pmResolveEffect) when the card has no structured entry.
+
+let PM_PLAY_EFFECTS = null;
+let PM_PLAY_EFFECTS_PROMISE = null;
+
+function pmLoadPlayEffects() {
+  if (PM_PLAY_EFFECTS) return Promise.resolve(PM_PLAY_EFFECTS);
+  if (PM_PLAY_EFFECTS_PROMISE) return PM_PLAY_EFFECTS_PROMISE;
+  PM_PLAY_EFFECTS_PROMISE = fetch('assets/data/play-effects.json')
+    .then(r => r.json())
+    .then(data => { PM_PLAY_EFFECTS = data && data.entries ? data.entries : {}; return PM_PLAY_EFFECTS; })
+    .catch(() => { PM_PLAY_EFFECTS = {}; return PM_PLAY_EFFECTS; });
+  return PM_PLAY_EFFECTS_PROMISE;
+}
+
+function pmGetPlayEntry(card) {
+  if (!PM_PLAY_EFFECTS || !card || !card.name) return null;
+  return PM_PLAY_EFFECTS[card.name] || null;
+}
+
+// Build context. `self` is whichever side played this card.
+function pmMakeExecContext(self /* 'player' | 'cpu' */) {
+  const opp = self === 'player' ? 'cpu' : 'player';
+  const b = PM.battles[PM.currentBattle] || {};
+  const selfCard = self === 'player' ? b.playerCard : b.cpuCard;
+  const oppCard  = self === 'player' ? b.cpuCard    : b.playerCard;
+  const selfHD   = self === 'player' ? PM.playerHD  : PM.cpuHD;
+  const oppHD    = self === 'player' ? PM.cpuHD     : PM.playerHD;
+  const selfSubstituted = self === 'player' ? PM.playerSubstituted : PM.cpuSubstituted;
+  const selfHand = self === 'player' ? PM.playerPlayHand : PM.cpuPlayPool;
+  const selfDiscard = self === 'player' ? PM.playerDiscard : [];
+  const selfHeroDeck = self === 'player' ? PM.playerHeroDeck : PM.cpuHeroDeck;
+  const selfBench = self === 'player' ? PM.playerBench : PM.cpuBench;
+
+  // Battle history (closed battles only)
+  let selfWon = 0, selfLost = 0, selfTied = 0;
+  for (let i = 0; i < PM.currentBattle; i++) {
+    const r = PM.battles[i].result;
+    if (!r) continue;
+    const won = (self === 'player' && r === 'win') || (self === 'cpu' && r === 'lose');
+    const lost = (self === 'player' && r === 'lose') || (self === 'cpu' && r === 'win');
+    if (won) selfWon++; else if (lost) selfLost++; else if (r === 'tie') selfTied++;
+  }
+
+  // Plays used this battle (by side)
+  const playsUsedThisBattle = self === 'player'
+    ? (b.playerPlaysPlayed || []).length
+    : (b.cpuPlaysPlayed || b.cpuPlaysRan || []).length; // practice.js uses playerPlaysPlayed; CPU tracked differently
+
+  return {
+    self, opp, selfCard, oppCard, selfHD, oppHD, selfSubstituted,
+    selfHand, selfDiscard, selfHeroDeck, selfBench,
+    selfWon, selfLost, selfTied,
+    playsUsedThisBattle,
+    battleIdx: PM.currentBattle,
+    battlesRemaining: 7 - PM.currentBattle,
+    honors: PM.honors,
+  };
+}
+
+// Evaluate a formula or int delta. Returns an integer.
+function pmEvalFormula(val, ctx) {
+  if (typeof val === 'number') return val | 0;
+  if (val == null) return 0;
+  if (typeof val === 'object') {
+    if ('value' in val) return val.value | 0;
+    const factor = val.factor != null ? val.factor : 1;
+    const offset = val.offset || 0;
+    const m = pmEvalMetric(val.metric, val, ctx);
+    let result = factor * m + offset;
+    if (val.min != null) result = Math.max(val.min, result);
+    if (val.max != null) result = Math.min(val.max, result);
+    return result | 0;
+  }
+  return 0;
+}
+
+function pmEvalMetric(metric, args, ctx) {
+  if (!metric) return 0;
+  const target = (args && args.target) || 'self';
+  const bound = target === 'self' ? ctx : { // minimal opp context
+    selfWon: ctx.selfLost, selfLost: ctx.selfWon, selfTied: ctx.selfTied,
+    selfCard: ctx.oppCard, selfHD: ctx.oppHD, selfHand: [], selfDiscard: [],
+    playsUsedThisBattle: 0,
+  };
+  switch (metric) {
+    case 'plays_used_this_battle': return bound.playsUsedThisBattle || 0;
+    case 'plays_used_total': return 0; // not tracked
+    case 'heroes_used_total': {
+      const weapon = args.weapon;
+      const battles = (PM && Array.isArray(PM.battles)) ? PM.battles : [];
+      // count of revealed heroes for `target` up through current battle
+      let n = 0;
+      for (let i = 0; i <= ctx.battleIdx; i++) {
+        const b = battles[i]; if (!b) continue;
+        const card = target === 'self'
+          ? (ctx.self === 'player' ? b.playerCard : b.cpuCard)
+          : (ctx.self === 'player' ? b.cpuCard : b.playerCard);
+        if (!card) continue;
+        if (weapon && card.element !== weapon) continue;
+        n++;
+      }
+      return n;
+    }
+    case 'heroes_revealed_total': return ctx.battleIdx + 1;
+    case 'battles_won': return bound.selfWon || 0;
+    case 'battles_lost': return bound.selfLost || 0;
+    case 'battles_tied': return bound.selfTied || 0;
+    case 'battles_remaining': return ctx.battlesRemaining;
+    case 'hd_count': return bound.selfHD || 0;
+    case 'hand_count': return (bound.selfHand || []).length;
+    case 'discard_count': {
+      const kind = args.kind;
+      const pile = bound.selfDiscard || [];
+      if (!kind) return pile.length;
+      if (kind === 'hero') return pile.filter(c => c.cardType === 'Hero').length;
+      if (kind === 'play') return pile.filter(c => c.cardType === 'Play').length;
+      if (kind === 'hot_dog') return pile.filter(c => c.cardType === 'HotDog').length;
+      return pile.length;
+    }
+    default: return 0;
+  }
+}
+
+function pmEvalCondition(cond, ctx) {
+  if (!cond) return true;
+  const target = cond.target || 'self';
+  const selfView = target === 'self';
+  const card = selfView ? ctx.selfCard : ctx.oppCard;
+  switch (cond.type) {
+    case 'weapon':
+      return card && card.element === cond.weapon;
+    case 'weapon_same': {
+      if (cond.between === 'self_opp') return ctx.selfCard?.element === ctx.oppCard?.element;
+      return false; // self_prev variants not tracked
+    }
+    case 'weapon_different': {
+      if (cond.between === 'self_opp') return ctx.selfCard?.element !== ctx.oppCard?.element;
+      return false;
+    }
+    case 'hd_count': {
+      const v = selfView ? ctx.selfHD : ctx.oppHD;
+      return pmCmp(v, cond.comparison, cond.value);
+    }
+    case 'hand_count': {
+      const v = selfView ? (ctx.selfHand || []).length : 0;
+      return pmCmp(v, cond.comparison, cond.value);
+    }
+    case 'discard_count': {
+      const pile = selfView ? (ctx.selfDiscard || []) : [];
+      let v;
+      if (cond.kind === 'hero') v = pile.filter(c => c.cardType === 'Hero').length;
+      else if (cond.kind === 'play') v = pile.filter(c => c.cardType === 'Play').length;
+      else if (cond.kind === 'hot_dog') v = pile.filter(c => c.cardType === 'HotDog').length;
+      else v = pile.length;
+      return pmCmp(v, cond.comparison, cond.value);
+    }
+    case 'power_threshold': {
+      const p = (card?.power || 0);
+      return pmCmp(p, cond.comparison, cond.value);
+    }
+    case 'battle_num':
+      return pmCmp(ctx.battleIdx + 1, cond.comparison, cond.value);
+    case 'battles_won':
+      return pmCmp(selfView ? ctx.selfWon : ctx.selfLost, cond.comparison, cond.value);
+    case 'battles_lost':
+      return pmCmp(selfView ? ctx.selfLost : ctx.selfWon, cond.comparison, cond.value);
+    case 'battle_tied':
+      return (ctx.selfCard?.power || 0) + (PM.battles[ctx.battleIdx]?.playerEffectPower || 0) ===
+             (ctx.oppCard?.power || 0) + (PM.battles[ctx.battleIdx]?.cpuEffectPower || 0);
+    case 'battle_winning': {
+      const pp = (ctx.selfCard?.power || 0);
+      const cp = (ctx.oppCard?.power || 0);
+      return pp > cp;
+    }
+    case 'battle_losing': {
+      const pp = (ctx.selfCard?.power || 0);
+      const cp = (ctx.oppCard?.power || 0);
+      return pp < cp;
+    }
+    case 'prev_battle': {
+      if (ctx.battleIdx === 0) return false;
+      const r = PM.battles[ctx.battleIdx - 1]?.result;
+      const wantWon = cond.result === 'won';
+      const wantLost = cond.result === 'lost';
+      const wantTied = cond.result === 'tied';
+      const won = (ctx.self === 'player' && r === 'win') || (ctx.self === 'cpu' && r === 'lose');
+      const lost = (ctx.self === 'player' && r === 'lose') || (ctx.self === 'cpu' && r === 'win');
+      if (wantWon) return won;
+      if (wantLost) return lost;
+      if (wantTied) return r === 'tie';
+      return false;
+    }
+    case 'substituted_this_battle':
+      return selfView ? ctx.selfSubstituted : false;
+    case 'honors':
+      return ctx.honors === ctx.self;
+    case 'all':
+      return (cond.of || []).every(c => pmEvalCondition(c, ctx));
+    case 'any':
+      return (cond.of || []).some(c => pmEvalCondition(c, ctx));
+    case 'not':
+      return !pmEvalCondition(cond.cond, ctx);
+    default:
+      return false; // unknown condition fails closed; branch 'else' still runs
+  }
+}
+
+function pmCmp(v, comparison, target) {
+  switch (comparison) {
+    case 'gte': return v >= target;
+    case 'gt':  return v >  target;
+    case 'lte': return v <= target;
+    case 'lt':  return v <  target;
+    case 'eq':  return v === target;
+    case 'neq': return v !== target;
+    default:    return false;
+  }
+}
+
+// Execute a single step (op, branch, or choice). Mutates `out`.
+function pmExecStep(step, ctx, out) {
+  if (!step) return;
+  // Branch: { if, then, else }
+  if (step.if) {
+    const pass = pmEvalCondition(step.if, ctx);
+    const branch = pass ? step.then : step.else;
+    if (branch) for (const s of branch) pmExecStep(s, ctx, out);
+    return;
+  }
+  // Choice: { choice: [...], options: [...] } — pick option with highest estimated self power
+  if (step.choice || step.options) {
+    const opts = step.options || step.choice;
+    if (!opts || !opts.length) return;
+    let best = opts[0], bestScore = -Infinity;
+    for (const o of opts) {
+      const probe = { selfDelta: 0, oppDelta: 0, selfHDDelta: 0, oppHDDelta: 0, draws: 0, discards: 0, hasEffect: false, unknownOps: [] };
+      for (const s of (o.effects || [])) pmExecStep(s, ctx, probe);
+      const score = probe.selfDelta - probe.oppDelta + probe.selfHDDelta * 5;
+      if (score > bestScore) { best = o; bestScore = score; }
+    }
+    for (const s of (best.effects || [])) pmExecStep(s, ctx, out);
+    return;
+  }
+  const op = step.op;
+  if (!op) return;
+
+  switch (op) {
+    case 'power': {
+      const d = pmEvalFormula(step.delta, ctx);
+      if (step.target === 'opponent') out.oppDelta += d;
+      else out.selfDelta += d;
+      out.hasEffect = true;
+      break;
+    }
+    case 'power_set': {
+      const card = step.target === 'opponent' ? ctx.oppCard : ctx.selfCard;
+      const current = card?.power || 0;
+      let val = 0;
+      if (step.source && 'value' in step.source) val = step.source.value;
+      else if (step.source) {
+        const src = step.source.target === 'opponent' ? ctx.oppCard : ctx.selfCard;
+        val = src?.power || 0;
+      }
+      val += (step.offset || 0);
+      const delta = val - current;
+      if (step.target === 'opponent') out.oppDelta += delta;
+      else out.selfDelta += delta;
+      out.hasEffect = true;
+      break;
+    }
+    case 'power_swap': {
+      const myP = ctx.selfCard?.power || 0;
+      const thP = ctx.oppCard?.power || 0;
+      out.selfDelta += thP - myP;
+      out.oppDelta  += myP - thP;
+      out.hasEffect = true;
+      break;
+    }
+    case 'power_double': {
+      const card = step.target === 'opponent' ? ctx.oppCard : ctx.selfCard;
+      const bonus = card?.power || 0;
+      if (step.target === 'opponent') out.oppDelta += bonus;
+      else out.selfDelta += bonus;
+      out.hasEffect = true;
+      break;
+    }
+    case 'power_steal': {
+      const amt = pmEvalFormula(step.amount, ctx);
+      out.selfDelta += amt;
+      out.oppDelta  -= amt;
+      out.hasEffect = true;
+      break;
+    }
+    case 'power_cap_min': {
+      // approximate as small protective bonus
+      if (step.target !== 'opponent') out.selfDelta += 0; // pure floor — skip math, but record protection
+      out.protectSelf = true;
+      out.hasEffect = true;
+      break;
+    }
+    case 'hd': {
+      const d = pmEvalFormula(step.delta, ctx);
+      if (step.target === 'opponent') out.oppHDDelta += d;
+      else out.selfHDDelta += d;
+      out.hasEffect = true;
+      break;
+    }
+    case 'hd_recover': {
+      const amt = pmEvalFormula(step.amount, ctx);
+      if (step.target === 'opponent') out.oppHDDelta += amt;
+      else out.selfHDDelta += amt;
+      out.hasEffect = true;
+      break;
+    }
+    case 'draw': {
+      const n = pmEvalFormula(step.count, ctx);
+      if (step.kind === 'hero') out.heroDraws = (out.heroDraws || 0) + n;
+      else out.draws = (out.draws || 0) + n;
+      out.hasEffect = true;
+      break;
+    }
+    case 'discard': {
+      const n = step.count === 'all' ? 99 : pmEvalFormula(step.count, ctx);
+      out.discards = (out.discards || 0) + n;
+      out.hasEffect = true;
+      break;
+    }
+    case 'coin_flip': {
+      const times = step.times || 1;
+      const results = []; // true = heads
+      for (let i = 0; i < times; i++) results.push(Math.random() < 0.5);
+      const heads = results.filter(Boolean).length;
+      const tails = times - heads;
+      // Simple heads/tails branches
+      if (step.heads && heads > 0) for (let i = 0; i < heads; i++) for (const s of step.heads) pmExecStep(s, ctx, out);
+      if (step.tails && tails > 0) for (let i = 0; i < tails; i++) for (const s of step.tails) pmExecStep(s, ctx, out);
+      // Aggregate branches
+      if (step.branches) {
+        for (const br of step.branches) {
+          const ag = br.aggregate;
+          let fire = false, repeats = 1;
+          if (ag === 'all_heads') fire = heads === times;
+          else if (ag === 'all_tails') fire = tails === times;
+          else if (ag === 'at_least_n_heads') fire = heads >= (br.n || step.n || 1);
+          else if (ag === 'at_least_n_tails') fire = tails >= (br.n || step.n || 1);
+          else if (ag === 'exact_heads') fire = heads === (br.n || step.n || 0);
+          else if (ag === 'per_head') { fire = heads > 0; repeats = heads; }
+          else if (ag === 'per_tail') { fire = tails > 0; repeats = tails; }
+          else if (!ag && br.on) { fire = br.on.includes(heads) || br.on === 'else'; }
+          if (fire && br.then) for (let r = 0; r < repeats; r++) for (const s of br.then) pmExecStep(s, ctx, out);
+        }
+      }
+      // Aggregate on the op itself (then/else form)
+      if (step.aggregate && (step.then || step.else)) {
+        const ag = step.aggregate; let fire = false;
+        if (ag === 'all_heads') fire = heads === times;
+        else if (ag === 'all_tails') fire = tails === times;
+        else if (ag === 'at_least_n_heads') fire = heads >= (step.n || 1);
+        else if (ag === 'at_least_n_tails') fire = tails >= (step.n || 1);
+        else if (ag === 'exact_heads') fire = heads === (step.n || 0);
+        const branch = fire ? step.then : step.else;
+        if (branch) for (const s of branch) pmExecStep(s, ctx, out);
+      }
+      out.hasEffect = true;
+      break;
+    }
+    case 'dice_roll': {
+      const count = step.count || 1;
+      const rolls = [];
+      for (let i = 0; i < count; i++) rolls.push(Math.floor(Math.random() * 6) + 1);
+      const agg = step.aggregate || (count > 1 ? 'sum' : null);
+      const sum = rolls.reduce((a, b) => a + b, 0);
+      const matchValue = agg === 'sum' ? sum : rolls[0];
+      if (step.branches) {
+        let elseBranch = null, matched = false;
+        for (const br of step.branches) {
+          if (br.on === 'else') { elseBranch = br; continue; }
+          if (Array.isArray(br.on) && br.on.includes(matchValue)) {
+            matched = true;
+            if (br.then) for (const s of br.then) pmExecStep(s, ctx, out);
+          }
+        }
+        if (!matched && elseBranch && elseBranch.then) {
+          for (const s of elseBranch.then) pmExecStep(s, ctx, out);
+        }
+      }
+      if (step.on_match || step.on_miss) {
+        // player_pick form — CPU / automated pick: pick the face that maximizes power
+        const branch = Math.random() < 1 / 6 ? step.on_match : step.on_miss;
+        if (branch) for (const s of branch) pmExecStep(s, ctx, out);
+      }
+      out.hasEffect = true;
+      break;
+    }
+    case 'protect_self':
+      out.protectSelf = true;
+      out.hasEffect = true;
+      break;
+    case 'cancel_opponent_plays':
+    case 'cap_opponent_plays':
+      out.cancelOpp = true;
+      out.hasEffect = true;
+      break;
+    case 'block_sub':
+    case 'block_draw':
+    case 'block_hd_recover':
+    case 'block_plays':
+      // tracked as persistent — skip mechanical effect, note only
+      break;
+    case 'honors_set':
+      // record for next battle (applied in resolve())
+      if (step.target === 'self') PM._nextHonors = ctx.self;
+      else if (step.target === 'opponent') PM._nextHonors = ctx.opp;
+      out.hasEffect = true;
+      break;
+    case 'substitute_free':
+      PM._nextSubFree = PM._nextSubFree || {};
+      PM._nextSubFree[step.target === 'opponent' ? ctx.opp : ctx.self] = true;
+      out.hasEffect = true;
+      break;
+    case 'variable_cost_bonus': {
+      // Player chooses X extra HDs; self +factor*X. Auto-spend remaining HD up to reasonable cap.
+      const factor = step.factor || step.per_hd || 5;
+      const available = Math.max(0, ctx.selfHD);
+      const spend = Math.min(available, 3); // auto heuristic: spend up to 3
+      if (spend > 0) {
+        out.selfHDDelta -= spend;
+        out.selfDelta += factor * spend;
+      }
+      out.hasEffect = true;
+      break;
+    }
+    case 'add_previous_hero_delta': {
+      if (ctx.battleIdx > 0) {
+        const prev = PM.battles[ctx.battleIdx - 1];
+        const bonus = ctx.self === 'player' ? (prev.playerEffectPower || 0) : (prev.cpuEffectPower || 0);
+        if (step.target === 'opponent') out.oppDelta += bonus;
+        else out.selfDelta += bonus;
+      }
+      out.hasEffect = true;
+      break;
+    }
+    case 'note':
+      // Intentionally no mechanical effect
+      break;
+    default:
+      // Unknown op — log once, skip silently
+      out.unknownOps.push(op);
+      break;
+  }
+}
+
+// Execute an entry against a context. Returns computed deltas.
+function pmExecStructured(entry, ctx) {
+  const out = {
+    selfDelta: 0, oppDelta: 0, selfHDDelta: 0, oppHDDelta: 0,
+    draws: 0, heroDraws: 0, discards: 0,
+    protectSelf: false, cancelOpp: false,
+    hasEffect: false, unknownOps: []
+  };
+  if (!entry || !entry.effects) return out;
+  for (const step of entry.effects) pmExecStep(step, ctx, out);
+  // Flag persistent effects — applied to match state for future battles
+  if (entry.persistent && entry.persistent.length) {
+    out.hasPersistent = true;
+  }
+  return out;
+}
+
 // ── Play card effects engine (ported from iOS PracticeStore) ──────
 // Returns { playerDelta, cpuDelta } power changes
 function pmResolveEffect(card, playerCard, cpuCard) {
@@ -819,8 +1294,10 @@ function pmResolveEffect(card, playerCard, cpuCard) {
   // Dice roll
   if (text.includes('roll a di') || text.includes('roll a die')) return pmResolveDiceRoll(text, playerCard, cpuCard);
 
-  // Simple "+N" to your hero
-  let m = text.match(/(?:your|this|give your|the) (?:hero|current hero|hero's power|active hero).*?(?:gets?|gains?|in the active battle.*?gets) \+(\d+)/);
+  // Simple "+N" to your hero — accepts "gets/gains +N" OR bare "give your hero +N"
+  let m = text.match(/(?:your|this|give your|the) (?:hero|current hero|hero's power|active hero)(?:'s power)?.*?(?:gets?|gains?|in the active battle.*?gets) \+(\d+)/)
+       || text.match(/give your (?:hero|current hero|active hero)(?:'s power)? \+(\d+)/)
+       || text.match(/your hero \+(\d+)/);
   if (m) {
     const bonus = parseInt(m[1]) || 0;
     const wm = text.match(/if your hero has (?:a |an )?(\w+) weapon/);
@@ -882,18 +1359,21 @@ function pmResolveEffect(card, playerCard, cpuCard) {
   if (text.includes('draw') && text.includes('play')) {
     m = text.match(/\+(\d+)/);
     if (m && (text.includes('your hero gets') || text.includes('hero gains'))) return { playerDelta: parseInt(m[1]) || 0, cpuDelta: 0 };
+    // "your Hero loses -N" cost on a draw-based card
+    m = text.match(/your hero loses -(\d+)/);
+    if (m) return { playerDelta: -(parseInt(m[1]) || 0), cpuDelta: 0 };
     return { playerDelta: 0, cpuDelta: 0 };
   }
 
-  // Discard-based power
-  if (text.includes('discard')) {
+  // Discard-based power — only gate on actual discard *actions* (verbs), not "discard pile" as a location
+  if (/\bdiscard(?:ed|s|ing)?\b(?!\s+pile)/.test(text)) {
     m = text.match(/opponent's hero gets -(\d+)/);
     if (m) return { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 20) };
     m = text.match(/\+(\d+).*every card discarded/);
     if (m) return { playerDelta: (parseInt(m[1]) || 5) * 3, cpuDelta: 0 };
     m = text.match(/your hero gets \+(\d+)/);
     if (m) return { playerDelta: parseInt(m[1]) || 10, cpuDelta: 0 };
-    return { playerDelta: 0, cpuDelta: 0 };
+    // fall through so "+N" fallback can still resolve power changes on other discard-action cards
   }
 
   // For the rest of the game
@@ -1046,6 +1526,10 @@ const PM = {
   startMatch(allCards, opts = {}) {
     this.allCards = allCards;
     this._lastOpts = opts; // remember for Rematch / Play Again
+    pmLoadPlayEffects(); // fire-and-forget — ready by the time cards are played
+    this._persistents = []; // installed persistent effects (rest_of_game / next_battle, etc.)
+    this._nextHonors = null;
+    this._nextSubFree = null;
     Object.assign(this, {
       matchOver: false, matchWinner: null, playerScore: 0, cpuScore: 0,
       honors: 'player', currentBattle: 0,
@@ -1132,6 +1616,7 @@ const PM = {
         if (!b.revealed) {
           // Step 1: flip cards face-up so player can see the matchup
           b.revealed = true;
+          this.applyContinuousPersistents();
           if (this.mode === 'rookie' || this.mode === 'substitution') {
             this.resolve();
           }
@@ -1213,33 +1698,62 @@ const PM = {
 
     this.playerHD -= cost;
     this.lastEffectResult = null;
-    const hdRecovery = pmDetectHDRecovery(card);
     const b = this.battles[this.currentBattle];
+
+    // Structured executor first; fall back to regex resolver if no entry or no mechanical effect
+    let effect = { playerDelta: 0, cpuDelta: 0 };
+    let hdRecovery = 0;
+    const entry = pmGetPlayEntry(card);
+    let structuredHandled = false;
+    if (entry && entry.effects && entry.effects.length) {
+      const ctx = pmMakeExecContext('player');
+      const out = pmExecStructured(entry, ctx);
+      if (out.hasEffect) {
+        effect.playerDelta = out.selfDelta;
+        effect.cpuDelta = out.oppDelta;
+        if (out.selfHDDelta > 0) hdRecovery = out.selfHDDelta;
+        else if (out.selfHDDelta < 0) this.playerHD = Math.max(0, this.playerHD + out.selfHDDelta);
+        if (out.oppHDDelta) this.cpuHD = Math.max(0, Math.min(10, this.cpuHD + out.oppHDDelta));
+        structuredHandled = true;
+        // Queue persistent effects
+        if (out.hasPersistent && entry.persistent) {
+          for (const p of entry.persistent) {
+            this._persistents.push({ owner: 'player', spec: p, installedAt: this.currentBattle });
+          }
+        }
+      }
+    }
+    if (!structuredHandled) {
+      hdRecovery = pmDetectHDRecovery(card);
+      if (b) {
+        effect = pmResolveEffect(card, b.playerCard, b.cpuCard);
+      }
+    }
     if (hdRecovery > 0) {
       this.playerHD = Math.min(10, this.playerHD + hdRecovery);
-      this.lastEffectResult = { card, playerDelta: 0, cpuDelta: 0, description: `Recovered ${hdRecovery} Hot Dog${hdRecovery > 1 ? 's' : ''}` };
-    } else if (b) {
-      const effect = pmResolveEffect(card, b.playerCard, b.cpuCard);
+    }
+    if (b) {
       b.playerEffectPower = (b.playerEffectPower || 0) + (effect.playerDelta || 0);
       b.cpuEffectPower = (b.cpuEffectPower || 0) + (effect.cpuDelta || 0);
-      // Build description for the toast
-      const ability = (card.playAbility || '').toLowerCase();
-      let desc = '';
-      if (ability.includes('flip a coin')) {
-        const success = (effect.playerDelta > 0 || effect.cpuDelta < 0);
-        desc = `Coin flip: ${success ? 'Success!' : 'No effect'}`;
-      } else if (ability.includes('roll a di') || ability.includes('roll a die')) {
-        desc = 'Dice roll';
-      }
-      const parts = [];
-      if (effect.playerDelta > 0) parts.push(`+${effect.playerDelta} to you`);
-      if (effect.playerDelta < 0) parts.push(`${effect.playerDelta} to you`);
-      if (effect.cpuDelta < 0) parts.push(`${effect.cpuDelta} to opponent`);
-      if (effect.cpuDelta > 0) parts.push(`+${effect.cpuDelta} to opponent`);
-      if (parts.length) desc += (desc ? ': ' : '') + parts.join(', ');
-      if (!desc) desc = 'No power change';
-      this.lastEffectResult = { card, playerDelta: effect.playerDelta, cpuDelta: effect.cpuDelta, description: desc };
     }
+    // Build description for the toast (combines HD recovery + power delta when both apply)
+    const ability = (card.playAbility || '').toLowerCase();
+    let desc = '';
+    if (ability.includes('flip a coin')) {
+      const success = (effect.playerDelta > 0 || effect.cpuDelta < 0);
+      desc = `Coin flip: ${success ? 'Success!' : 'No effect'}`;
+    } else if (ability.includes('roll a di') || ability.includes('roll a die')) {
+      desc = 'Dice roll';
+    }
+    const parts = [];
+    if (effect.playerDelta > 0) parts.push(`+${effect.playerDelta} to you`);
+    if (effect.playerDelta < 0) parts.push(`${effect.playerDelta} to you`);
+    if (effect.cpuDelta < 0) parts.push(`${effect.cpuDelta} to opponent`);
+    if (effect.cpuDelta > 0) parts.push(`+${effect.cpuDelta} to opponent`);
+    if (hdRecovery > 0) parts.push(`+${hdRecovery} HD`);
+    if (parts.length) desc += (desc ? ': ' : '') + parts.join(', ');
+    if (!desc) desc = 'No power change';
+    this.lastEffectResult = { card, playerDelta: effect.playerDelta, cpuDelta: effect.cpuDelta, description: desc };
     if (b) b.playerPlaysPlayed.push(card);
     this.playerPlayHand.splice(handIdx, 1);
     this.playerDiscard.push(card);
@@ -1307,20 +1821,86 @@ const PM = {
       const poolIdx = this.cpuPlayPool.indexOf(card);
       if (poolIdx >= 0) this.cpuPlayPool.splice(poolIdx, 1);
 
-      // Apply effect
-      const hdRecovery = pmDetectHDRecovery(card);
-      if (hdRecovery > 0) {
-        this.cpuHD = Math.min(10, this.cpuHD + hdRecovery);
-        this.cpuPlayQueue.push({ card, cost, effect: { playerDelta: 0, cpuDelta: 0 }, hdRecovery });
-      } else {
-        // For CPU, swap perspective: CPU is the "player" from the resolver's POV
-        const effect = pmResolveEffect(card, b.cpuCard, b.playerCard);
-        b.cpuEffectPower = (b.cpuEffectPower || 0) + (effect.playerDelta || 0);
-        b.playerEffectPower = (b.playerEffectPower || 0) + (effect.cpuDelta || 0);
-        this.cpuPlayQueue.push({ card, cost, effect });
+      // Apply effect — structured executor first, regex fallback
+      let effect = { playerDelta: 0, cpuDelta: 0 };
+      let hdRecovery = 0;
+      let structuredHandled = false;
+      const entry = pmGetPlayEntry(card);
+      if (entry && entry.effects && entry.effects.length) {
+        const ctx = pmMakeExecContext('cpu');
+        const out = pmExecStructured(entry, ctx);
+        if (out.hasEffect) {
+          // Flip perspective back to queue's player/cpu convention
+          effect.playerDelta = out.oppDelta;
+          effect.cpuDelta = out.selfDelta;
+          if (out.selfHDDelta > 0) hdRecovery = out.selfHDDelta;
+          else if (out.selfHDDelta < 0) this.cpuHD = Math.max(0, this.cpuHD + out.selfHDDelta);
+          if (out.oppHDDelta) this.playerHD = Math.max(0, Math.min(10, this.playerHD + out.oppHDDelta));
+          structuredHandled = true;
+          if (out.hasPersistent && entry.persistent) {
+            for (const p of entry.persistent) {
+              this._persistents.push({ owner: 'cpu', spec: p, installedAt: this.currentBattle });
+            }
+          }
+        }
       }
+      if (!structuredHandled) {
+        hdRecovery = pmDetectHDRecovery(card);
+        if (hdRecovery > 0) {
+          // HD-only card
+        } else {
+          // For CPU, swap perspective: CPU is the "player" from the resolver's POV
+          const raw = pmResolveEffect(card, b.cpuCard, b.playerCard);
+          effect.cpuDelta = raw.playerDelta;
+          effect.playerDelta = raw.cpuDelta;
+        }
+      }
+      if (hdRecovery > 0) this.cpuHD = Math.min(10, this.cpuHD + hdRecovery);
+      b.cpuEffectPower = (b.cpuEffectPower || 0) + (effect.cpuDelta || 0);
+      b.playerEffectPower = (b.playerEffectPower || 0) + (effect.playerDelta || 0);
+      this.cpuPlayQueue.push({ card, cost, effect, hdRecovery: hdRecovery > 0 ? hdRecovery : undefined });
     }
     this.cpuPassedPlays = true;
+  },
+
+  // Apply continuous/battle-scoped persistents (Fire Boost, etc.) at reveal.
+  // Only `continuous` trigger with a `power` effect is resolved here —
+  // scoped persistents with other triggers are tracked but not yet executed.
+  applyContinuousPersistents() {
+    if (!this._persistents || !this._persistents.length) return;
+    const b = this.battles[this.currentBattle];
+    if (!b) return;
+    for (const inst of this._persistents) {
+      const scope = inst.spec.scope;
+      const trigger = inst.spec.trigger;
+      // Scope gating
+      const inScope = (() => {
+        if (scope === 'rest_of_game') return true;
+        if (scope === 'next_battle') return this.currentBattle === inst.installedAt + 1;
+        if (scope === 'next_2_battles') return this.currentBattle > inst.installedAt && this.currentBattle <= inst.installedAt + 2;
+        if (scope === 'battle_7') return this.currentBattle === 6;
+        if (scope === 'battles_4_7') return this.currentBattle >= 3;
+        if (scope === 'this_battle') return this.currentBattle === inst.installedAt;
+        return false;
+      })();
+      if (!inScope) continue;
+      if (trigger !== 'continuous' && trigger !== 'battle_start') continue;
+
+      const ctx = pmMakeExecContext(inst.owner);
+      const eff = inst.spec.effect;
+      if (!eff) continue;
+      const out = { selfDelta: 0, oppDelta: 0, selfHDDelta: 0, oppHDDelta: 0, draws: 0, discards: 0, hasEffect: false, unknownOps: [] };
+      pmExecStep(eff, ctx, out);
+      if (!out.hasEffect) continue;
+      // Apply to battle
+      if (inst.owner === 'player') {
+        b.playerEffectPower = (b.playerEffectPower || 0) + (out.selfDelta || 0);
+        b.cpuEffectPower    = (b.cpuEffectPower    || 0) + (out.oppDelta  || 0);
+      } else {
+        b.cpuEffectPower    = (b.cpuEffectPower    || 0) + (out.selfDelta || 0);
+        b.playerEffectPower = (b.playerEffectPower || 0) + (out.oppDelta  || 0);
+      }
+    }
   },
 
   resolve() {

@@ -801,6 +801,19 @@ function pmGetPlayEntry(card) {
   return PM_PLAY_EFFECTS[card.name] || null;
 }
 
+// Legality gate: returns true unless the entry declares an unmet `requires` condition.
+// Only hard-gated cards (Hot Dog Stock Exchange, etc.) set `requires`; everything else passes.
+function pmIsPlayable(card, self /* 'player' | 'cpu' */) {
+  const entry = pmGetPlayEntry(card);
+  if (!entry || !entry.requires) return true;
+  try {
+    const ctx = pmMakeExecContext(self);
+    return pmEvalCondition(entry.requires, ctx);
+  } catch (_) {
+    return true; // fail open on any evaluator error — don't block a legal play
+  }
+}
+
 // Build context. `self` is whichever side played this card.
 function pmMakeExecContext(self /* 'player' | 'cpu' */) {
   const opp = self === 'player' ? 'cpu' : 'player';
@@ -1695,6 +1708,7 @@ const PM = {
     const card = this.playerPlayHand[handIdx];
     const cost = card.playCost || 0;
     if (this.playerHD < cost) return false;
+    if (!pmIsPlayable(card, 'player')) return false;
 
     this.playerHD -= cost;
     this.lastEffectResult = null;
@@ -1809,8 +1823,9 @@ const PM = {
 
     for (let i = 0; i < numPlays; i++) {
       if (this.cpuHD < 1 || this.cpuPlayCount <= 0 || this.cpuPlayPool.length === 0) break;
-      // Pick an affordable card from CPU's play pool
-      const affordable = this.cpuPlayPool.filter(c => (c.playCost || 0) <= this.cpuHD);
+      // Pick an affordable, legal card from CPU's play pool
+      const affordable = this.cpuPlayPool.filter(c =>
+        (c.playCost || 0) <= this.cpuHD && pmIsPlayable(c, 'cpu'));
       if (affordable.length === 0) break;
       const card = affordable[Math.floor(Math.random() * affordable.length)];
       const cost = card.playCost || 0;
@@ -2417,10 +2432,12 @@ function pmShowPlayCardPopup(handIdx) {
 
   const cost       = card.playCost || 0;
   const canAfford  = PM.playerHD >= cost;
+  const canUse     = pmIsPlayable(card, 'player');
+  const playable   = canAfford && canUse;
   const imgUrl     = card.imageFile ? fullUrl(card.imageFile) : null;
   const ability    = card.playAbility || card.description || '—';
   const costLabel  = cost === 0 ? 'FREE' : `${cost} Hot Dog${cost !== 1 ? 's' : ''}`;
-  const affordClass = canAfford ? 'pm-play-popup-play' : 'pm-play-popup-play cannot-afford';
+  const affordClass = playable ? 'pm-play-popup-play' : 'pm-play-popup-play cannot-afford';
   const element    = card.element || '';
 
   const popup = document.createElement('div');
@@ -2437,13 +2454,14 @@ function pmShowPlayCardPopup(handIdx) {
         <div class="pm-play-popup-cost-row">
           <span class="pm-play-popup-cost-pill${!canAfford ? ' cannot-afford' : ''}">${costLabel}</span>
           ${!canAfford ? `<span class="pm-play-popup-afford-warn">Not enough Hot Dogs</span>` : ''}
+          ${canAfford && !canUse ? `<span class="pm-play-popup-afford-warn">Can't be played this Battle</span>` : ''}
         </div>
         <div class="pm-play-popup-divider"></div>
         <div class="pm-play-popup-effect-label">EFFECT</div>
         <div class="pm-play-popup-effect">${ability}</div>
         <div class="pm-play-popup-actions">
           <button class="pm-play-popup-cancel">Cancel</button>
-          <button class="${affordClass}"${!canAfford ? ' disabled' : ''}>
+          <button class="${affordClass}"${!playable ? ' disabled' : ''}>
             Play Card
           </button>
         </div>

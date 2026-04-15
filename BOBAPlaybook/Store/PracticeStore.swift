@@ -423,6 +423,7 @@ final class PracticeStore {
               let cost = card.playCost,
               playerHotDogs >= cost,
               playerHand.contains(card) else { return }
+        guard PlayEffects.isPlayable(name: card.name, ctx: makeExecContext(self_: .player)) else { return }
 
         lastEffectCallout = nil
         playerHand.removeFirst(where: { $0 == card })
@@ -638,8 +639,12 @@ final class PracticeStore {
         let maxPlays = Int.random(in: 1...3)
         var tempHotDogs = cpuHotDogs
 
+        let cpuCtx = makeExecContext(self_: .cpu)
         while cardsPlayed < maxPlays && cpuPlaysRemaining > 0 {
-            let affordable = cpuHand.filter { ($0.playCost ?? 0) <= tempHotDogs }
+            let affordable = cpuHand.filter {
+                ($0.playCost ?? 0) <= tempHotDogs &&
+                PlayEffects.isPlayable(name: $0.name, ctx: cpuCtx)
+            }
             guard let card = affordable.min(by: { ($0.playCost ?? 0) < ($1.playCost ?? 0) }) else { break }
 
             cpuHand.removeFirst(where: { $0 == card })

@@ -1533,7 +1533,10 @@
             </div>
             <!-- Saved decks panel (shown when Load is clicked) -->
             <div class="db-saved-decks-panel" id="db-saved-decks-panel" hidden>
-              <div class="db-saved-decks-title">SAVED DECKS</div>
+              <div class="db-saved-decks-header">
+                <div class="db-saved-decks-title">SAVED DECKS</div>
+                <button class="db-saved-decks-close" id="db-saved-decks-close" aria-label="Close saved decks">✕</button>
+              </div>
               <div class="db-saved-decks-list" id="db-saved-decks-list">
                 <div class="db-saved-decks-empty">Loading…</div>
               </div>
@@ -1614,12 +1617,29 @@
           </label>
         </div>
         <div class="practice-section-label" style="margin-top:1.5rem">YOUR DECK</div>
-        <div class="practice-deck-choice" id="practice-player-deck">
-          <button class="practice-deck-btn active" data-deck="random">Random</button>
-          <button class="practice-deck-btn" data-deck="fire">Fire Aggro</button>
-          <button class="practice-deck-btn" data-deck="ice">Ice Control</button>
-          <button class="practice-deck-btn" data-deck="steel">Steel Wall</button>
-        </div>
+        <select class="practice-deck-select" id="practice-player-select" aria-label="Your deck">
+          <option value="random">Random (from full card pool)</option>
+          <optgroup label="Starter Decks">
+            <option value="template:fire-aggro">Fire Aggro</option>
+            <option value="template:ice-control">Ice Control</option>
+            <option value="template:steel-wall">Steel Wall</option>
+            <option value="template:mixed-toolbox">Mixed Toolbox</option>
+            <option value="template:economy-attrition">Economy / Attrition</option>
+          </optgroup>
+          <optgroup label="Your Saved Decks" id="practice-player-saved"></optgroup>
+        </select>
+        <div class="practice-section-label" style="margin-top:1rem">OPPONENT DECK</div>
+        <select class="practice-deck-select" id="practice-cpu-select" aria-label="Opponent deck">
+          <option value="random">Random (from full card pool)</option>
+          <optgroup label="Starter Decks">
+            <option value="template:fire-aggro">Fire Aggro</option>
+            <option value="template:ice-control">Ice Control</option>
+            <option value="template:steel-wall">Steel Wall</option>
+            <option value="template:mixed-toolbox">Mixed Toolbox</option>
+            <option value="template:economy-attrition">Economy / Attrition</option>
+          </optgroup>
+          <optgroup label="Your Saved Decks" id="practice-cpu-saved"></optgroup>
+        </select>
         <button class="practice-start-btn" id="btn-start-practice">START PRACTICE</button>
         <button class="practice-start-btn practice-resume-btn" id="btn-resume-practice" hidden>RESUME MATCH</button>
       </div>

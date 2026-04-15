@@ -581,6 +581,12 @@ function initDeckBuilder(allCards) {
     }
   });
 
+  // Close saved-decks overlay
+  $('db-saved-decks-close')?.addEventListener('click', () => {
+    const panel = $('db-saved-decks-panel');
+    if (panel) panel.hidden = true;
+  });
+
   // Load saved decks
   $('db-load-btn')?.addEventListener('click', async () => {
     const panel = $('db-saved-decks-panel');
@@ -1037,8 +1043,9 @@ const PM = {
   _pendingCpuSub: false,     // flag: CPU sub callout should be queued after phase banner
   _pendingCpuPlays: false,   // flag: CPU play overlays should be queued after phase banner
 
-  startMatch(allCards) {
+  startMatch(allCards, opts = {}) {
     this.allCards = allCards;
+    this._lastOpts = opts; // remember for Rematch / Play Again
     Object.assign(this, {
       matchOver: false, matchWinner: null, playerScore: 0, cpuScore: 0,
       honors: 'player', currentBattle: 0,
@@ -1051,15 +1058,30 @@ const PM = {
     });
     pmNotifQueue.clear();
 
-    // Build hero pool — prioritize cards with images
-    const heroes = allCards.filter(c => c.cardType === 'Hero' && (c.power || 0) > 0);
-    const withImg = heroes.filter(c => c.imageFile);
-    const noImg   = heroes.filter(c => !c.imageFile);
-    const heroPool = [...shuffle([...withImg]), ...shuffle([...noImg])];
+    // Random hero pool — prioritize cards with images. Used for any side set to "random".
+    const allHeroes = allCards.filter(c => c.cardType === 'Hero' && (c.power || 0) > 0);
+    const withImg = allHeroes.filter(c => c.imageFile);
+    const noImg   = allHeroes.filter(c => !c.imageFile);
+    const randomHeroPool = [...shuffle([...withImg]), ...shuffle([...noImg])];
+    const allPlays = allCards.filter(c => c.cardType === 'Play');
 
-    // 7 battle slots per side + 4 bench cards per side = 11 each (per rules §4.2.1, §4.3.1)
-    const playerCards = heroPool.slice(0, 11);
-    const cpuCards    = heroPool.slice(11, 22);
+    // Build each side's 60-card hero deck + 30-card play deck.
+    // opts.playerDeck / opts.cpuDeck may be { heroes: [], plays: [], hotDogs: [] } or null for random.
+    const buildSide = (deckCards, randomOffset) => {
+      let heroes = deckCards?.heroes?.length ? shuffle([...deckCards.heroes]) : randomHeroPool.slice(randomOffset, randomOffset + 60);
+      // Heroes can be < 60 for partial decks — pad from random pool so we always have 11 + bench refill
+      if (heroes.length < 11) {
+        const fill = randomHeroPool.filter(c => !heroes.includes(c));
+        heroes = heroes.concat(fill.slice(0, 60 - heroes.length));
+      }
+      const plays = deckCards?.plays?.length ? shuffle([...deckCards.plays]) : shuffle([...allPlays]).slice(0, 30);
+      return { heroes, plays };
+    };
+    const playerSide = buildSide(opts.playerDeck, 0);
+    const cpuSide    = buildSide(opts.cpuDeck, 60);
+
+    const playerCards = playerSide.heroes.slice(0, 11);
+    const cpuCards    = cpuSide.heroes.slice(0, 11);
 
     this.battles = [];
     for (let i = 0; i < 7; i++) {
@@ -1075,25 +1097,16 @@ const PM = {
       });
     }
 
-    // Bench = remaining 4 hero cards (indices 7-10, per rules §4.2.1)
     this.playerBench = [...playerCards.slice(7)];
     this.cpuBench    = [...cpuCards.slice(7)];
+    this.playerHeroDeck = playerSide.heroes.slice(11, 60);
+    this.cpuHeroDeck    = cpuSide.heroes.slice(11, 60);
 
-    // Remaining hero deck — draw from these to refill bench after substitutions
-    // 60-card hero deck: 7 in battle + 4 on bench = 11 dealt, 49 remaining per side
-    this.playerHeroDeck = heroPool.slice(22, 22 + 49);
-    this.cpuHeroDeck    = heroPool.slice(71, 71 + 49);
-
-    // Build play hand from play cards
-    const plays = allCards.filter(c => c.cardType === 'Play');
-    const shuffledPlays = shuffle([...plays]);
-    this.playerPlayHand = shuffledPlays.slice(0, 4); // 4 starting hand per rules §4.3.1
-    this.playerPlayDeck = shuffledPlays.slice(4, 30); // 30-card playbook: 4 in hand + 26 in deck
+    this.playerPlayHand = playerSide.plays.slice(0, 4);
+    this.playerPlayDeck = playerSide.plays.slice(4, 30);
     this.playerDiscard  = [];
 
-    // CPU gets its own 30-card play pool (separate shuffle)
-    const cpuPlays = shuffle([...plays]);
-    this.cpuPlayPool = cpuPlays.slice(0, 30);
+    this.cpuPlayPool = cpuSide.plays.slice(0, 30);
     this.cpuPlayQueue = [];
   },
 
@@ -1129,10 +1142,12 @@ const PM = {
           this._showPhaseBanner = true;
           this.playerPassedPlays = false;
           this.cpuPassedPlays = false;
-          // CPU plays AFTER reveal, not simultaneously
-          this.cpuDoPlay();
-          // Flag for queueing after phase banner in pmSetRootClass
-          this._pendingCpuPlays = this.cpuPlayQueue.length > 0;
+          // Honors rule (§4.3.2): honors player acts first in the play window.
+          // CPU honors → CPU plays now, then player. Player honors → player plays first; CPU reacts on END TURN.
+          if (this.honors === 'cpu') {
+            this.cpuDoPlay();
+            this._pendingCpuPlays = this.cpuPlayQueue.length > 0;
+          }
         }
         break;
 
@@ -1140,8 +1155,9 @@ const PM = {
         // Player passes on playing more cards
         this.playerPassedPlays = true;
         if (!this.cpuPassedPlays) {
-          // CPU gets one more chance to play after player passes
+          // CPU hadn't played yet (player had honors and went first) — CPU reacts now
           this.cpuDoPlay();
+          this._pendingCpuPlays = this.cpuPlayQueue.length > 0;
         }
         if (this.playerPassedPlays && this.cpuPassedPlays) {
           this.resolve();
@@ -1151,15 +1167,16 @@ const PM = {
       case 'resolution':
         this.phase = 'cleanup';
         this._showPhaseBanner = true;
+        // Draw replacement play card on entering cleanup (matches iOS; visible to user before next battle)
+        this.drawPlayCard();
         break;
 
       case 'cleanup':
-        this.drawPlayCard();
         this.nextBattle();
         break;
 
       case 'over':
-        this.startMatch(this.allCards);
+        this.startMatch(this.allCards, this._lastOpts || {});
         break;
     }
   },
@@ -1586,20 +1603,20 @@ function pmSetRootClass() {
     if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [honorsEl] });
   }
 
-  // Phase banner + follow-up notifications — routed through queue to prevent overlaps
-  if (PM.phase !== 'over' && PM._showPhaseBanner) {
-    PM._showPhaseBanner = false;
-    pmQueuePhaseBanner(phaseNames[PM.phase] || PM.phase.toUpperCase(), 2000);
-  }
-  // CPU sub callout — queued after phase banner
+  // Follow-up notifications — CPU plays/subs go first so they are seen before the phase banner
+  // (especially important for the resolution flow: user should see CPU plays before the RESOLUTION banner).
   if (PM._pendingCpuSub) {
     PM._pendingCpuSub = false;
     pmQueueCpuSub();
   }
-  // CPU play overlays — queued after phase banner (and after CPU sub if both happen)
   if (PM._pendingCpuPlays) {
     PM._pendingCpuPlays = false;
     pmQueueCpuPlays();
+  }
+  // Phase banner — queued after any CPU overlays so the banner marks the transition cleanly
+  if (PM.phase !== 'over' && PM._showPhaseBanner) {
+    PM._showPhaseBanner = false;
+    pmQueuePhaseBanner(phaseNames[PM.phase] || PM.phase.toUpperCase(), 2000);
   }
 }
 
@@ -1806,6 +1823,8 @@ function pmExitPlaymat() {
   // Update resume button visibility
   const resumeBtn = $('btn-resume-practice');
   if (resumeBtn) resumeBtn.hidden = !pmLoadMatch();
+  // Refresh saved-deck options in case user created new decks since last setup view
+  pmPopulateSavedDeckOptions();
 }
 
 // Show a popup for a play card so the user can read the effect before deciding to play
@@ -2198,7 +2217,7 @@ function pmInitPlaymat() {
   $('pm-exit-btn')?.addEventListener('click', pmExitPlaymat);
   $('pm-exit-match')?.addEventListener('click', pmExitPlaymat);
   $('pm-restart')?.addEventListener('click', () => {
-    PM.startMatch(PM.allCards);
+    PM.startMatch(PM.allCards, PM._lastOpts || {});
     pmUpdateAll();
   });
 }
@@ -2239,18 +2258,30 @@ function initPractice(allCards) {
     radio.addEventListener('change', e => { PM.mode = e.target.value; });
   });
 
-  // Deck choice
-  $('practice-player-deck')?.querySelectorAll('.practice-deck-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      $('practice-player-deck').querySelectorAll('.practice-deck-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-  });
+  // Populate saved-deck optgroups (once, lazily when setup is first shown)
+  pmPopulateSavedDeckOptions();
 
   // Start
-  $('btn-start-practice')?.addEventListener('click', () => {
+  $('btn-start-practice')?.addEventListener('click', async () => {
     const checked = view.querySelector('input[name="practice-mode"]:checked');
     PM.mode = checked ? checked.value : 'playmaker';
+
+    const playerSpec = pmParseDeckSpec($('practice-player-select')?.value || 'random');
+    const cpuSpec    = pmParseDeckSpec($('practice-cpu-select')?.value    || 'random');
+
+    const startBtn = $('btn-start-practice');
+    if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'PREPARING…'; }
+    let playerDeck = null, cpuDeck = null;
+    try {
+      [playerDeck, cpuDeck] = await Promise.all([
+        pmResolveDeckSpec(playerSpec, allCards),
+        pmResolveDeckSpec(cpuSpec, allCards),
+      ]);
+    } catch (err) {
+      console.warn('Deck resolve failed; using random pools.', err);
+    } finally {
+      if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'START PRACTICE'; }
+    }
 
     // Build playmat HTML once
     const mat = $('practice-playmat');
@@ -2259,9 +2290,8 @@ function initPractice(allCards) {
       if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [mat] });
     }
 
-    PM.startMatch(allCards);
+    PM.startMatch(allCards, { playerDeck, cpuDeck });
 
-    // Switch to playmat view
     const setup = $('practice-setup');
     if (setup) setup.hidden = true;
     if (mat)   mat.hidden = false;
@@ -2270,6 +2300,85 @@ function initPractice(allCards) {
     pmInitPlaymat();
     pmUpdateAll();
   });
+}
+
+// ── Deck spec parsing / resolution for practice setup ──────────────
+
+function pmParseDeckSpec(value) {
+  if (!value || value === 'random') return { kind: 'random' };
+  if (value.startsWith('template:')) return { kind: 'template', key: value.slice('template:'.length) };
+  if (value.startsWith('saved:'))    return { kind: 'saved',    deckId: value.slice('saved:'.length) };
+  return { kind: 'random' };
+}
+
+async function pmResolveDeckSpec(spec, allCards) {
+  if (!spec || spec.kind === 'random') return null;
+  const byId = {};
+  for (const c of allCards) if (c.bobaId) byId[c.bobaId] = c;
+  const heroes = [], plays = [], hotDogs = [];
+
+  if (spec.kind === 'template') {
+    if (!dbTemplateData) {
+      try { dbTemplateData = await fetch('assets/data/template-decks.json').then(r => r.json()); }
+      catch { return null; }
+    }
+    const tpl = dbTemplateData[spec.key];
+    if (!tpl) return null;
+    for (const id of tpl.heroIds || [])      { const c = byId[id]; if (c) heroes.push(c); }
+    for (const id of tpl.playIds || [])      { const c = byId[id]; if (c) plays.push(c); }
+    for (const id of tpl.bonusPlayIds || []) { const c = byId[id]; if (c) plays.push(c); }
+    for (const id of tpl.hotDogIds || [])    { const c = byId[id]; if (c) hotDogs.push(c); }
+    return { heroes, plays, hotDogs };
+  }
+
+  if (spec.kind === 'saved') {
+    try {
+      const rows = await API.deckLoad(spec.deckId);
+      for (const row of rows) {
+        const card = byId[row.boba_id];
+        if (!card) continue;
+        if (row.card_type === 'hero') heroes.push(card);
+        else if (row.card_type === 'play' || row.card_type === 'bonus_play') plays.push(card);
+        else if (row.card_type === 'hot_dog') hotDogs.push(card);
+      }
+      return { heroes, plays, hotDogs };
+    } catch (err) {
+      console.warn('Saved deck load failed; falling back to random.', err);
+      return null;
+    }
+  }
+
+  return null;
+}
+
+async function pmPopulateSavedDeckOptions() {
+  const playerGroup = $('practice-player-saved');
+  const cpuGroup    = $('practice-cpu-saved');
+  if (!playerGroup && !cpuGroup) return;
+
+  let decks = [];
+  try {
+    const session = await API.authGetSession?.();
+    if (!session) {
+      // Hide groups when signed out
+      if (playerGroup) playerGroup.hidden = true;
+      if (cpuGroup)    cpuGroup.hidden    = true;
+      return;
+    }
+    decks = await API.deckList();
+  } catch { decks = []; }
+
+  if (!decks.length) {
+    if (playerGroup) playerGroup.hidden = true;
+    if (cpuGroup)    cpuGroup.hidden    = true;
+    return;
+  }
+
+  const html = decks.map(d =>
+    `<option value="saved:${d.id}">${(d.name || 'Untitled').replace(/</g, '&lt;')}</option>`
+  ).join('');
+  if (playerGroup) { playerGroup.hidden = false; playerGroup.innerHTML = html; }
+  if (cpuGroup)    { cpuGroup.hidden    = false; cpuGroup.innerHTML    = html; }
 }
 
 // ════════════════════════════════════════════════════════════════

@@ -5016,6 +5016,8 @@ main {
   padding: 0.75rem;
   gap: 0.75rem;
   min-width: 240px;
+  position: relative; /* anchor for saved-decks-panel overlay */
+  min-height: 0;      /* allow grid cell to clamp height and enable scroll */
 }
 .db-decklist-header {
   display: flex;
@@ -5062,15 +5064,22 @@ main {
   overflow: visible;
 }
 
-/* Saved decks dropdown panel */
+/* Saved decks overlay panel — fills entire decklist area when open so user sees all decks */
 .db-saved-decks-panel {
   background: rgba(13,13,26,0.98); border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem;
-  max-height: 250px; overflow-y: auto; overflow-x: hidden;
-  width: 100%; min-width: 240px; box-sizing: border-box;
+  border-radius: 8px; padding: 0.75rem;
+  position: absolute; inset: 0.5rem;
+  overflow-y: auto; overflow-x: hidden;
+  box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 0.5rem;
+  z-index: 5;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
 }
-.db-saved-decks-list { width: 100%; min-width: 0; }
-.db-saved-decks-title { font-family: var(--font-mono, monospace); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.4); margin-bottom: 0.4rem; }
+.db-saved-decks-list { width: 100%; min-width: 0; flex: 1; overflow-y: auto; }
+.db-saved-decks-header { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.db-saved-decks-title { font-family: var(--font-mono, monospace); font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.6); }
+.db-saved-decks-close { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.55); border-radius: 4px; width: 22px; height: 22px; cursor: pointer; font-size: 0.75rem; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.db-saved-decks-close:hover { background: rgba(255,255,255,0.08); color: #fff; }
 .db-saved-decks-empty { font-family: var(--font-mono, monospace); font-size: 0.7rem; color: rgba(255,255,255,0.3); text-align: center; padding: 0.5rem; }
 .db-saved-deck-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.35rem 0.4rem; border-radius: 5px; transition: background 0.15s; width: 100%; box-sizing: border-box; }
 .db-saved-deck-row:hover { background: rgba(255,255,255,0.04); }
@@ -5238,6 +5247,28 @@ main {
   font-size: 0.68rem;
   color: rgba(255,255,255,0.45);
 }
+
+.practice-deck-select {
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.9);
+  cursor: pointer;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.8rem;
+  padding: 0.55rem 0.75rem;
+  transition: border-color 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2300F5FF' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+.practice-deck-select:focus { outline: none; border-color: rgba(0,245,255,0.5); }
+.practice-deck-select optgroup { color: rgba(255,255,255,0.55); font-style: normal; font-weight: 700; }
+.practice-deck-select option { color: #fff; background: #0D0D1A; }
 
 .practice-deck-choice { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .practice-deck-btn {

@@ -3,7 +3,8 @@
 //  BOBAPlaybook
 //
 //  Slide-up overlay panel showing the player's hero bench.
-//  Larger cards (72x100) for legibility.
+//  Tap a card to see details; during the sub phase the SUBSTITUTE button
+//  swaps the selected bench hero into the active battle.
 //
 
 import SwiftUI
@@ -20,25 +21,10 @@ struct PracticeBenchPanel: View {
                 Text("YOUR BENCH")
                     .font(Design.Fonts.mono(12, weight: .bold))
                     .foregroundStyle(Design.Colors.textPrimary)
+                Text("(\(store.playerBench.count))")
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(Design.Colors.textMuted)
                 Spacer()
-                if store.phase == .sub && !store.playerSubstituted {
-                    Button {
-                        if let idx = selectedBenchIdx, store.playerHotDogs >= 2 {
-                            store.playerSubstitute(benchIndex: idx)
-                            selectedBenchIdx = nil
-                        }
-                    } label: {
-                        Text("SUBSTITUTE (2 HD)")
-                            .font(Design.Fonts.mono(10, weight: .bold))
-                            .foregroundStyle(selectedBenchIdx != nil && store.playerHotDogs >= 2 ? Design.Colors.nearBlack : Design.Colors.textMuted)
-                            .padding(.horizontal, 12)
-                            .frame(height: 28)
-                            .background(RoundedRectangle(cornerRadius: 6)
-                                .fill(selectedBenchIdx != nil && store.playerHotDogs >= 2 ? Design.Colors.bobaOrange : Design.Colors.glass))
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(selectedBenchIdx == nil || store.playerHotDogs < 2)
-                }
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) { isVisible = false }
                 } label: {
@@ -50,22 +36,36 @@ struct PracticeBenchPanel: View {
             }
 
             // Bench cards
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(Array(store.playerBench.enumerated()), id: \.offset) { idx, card in
-                        Button {
-                            guard store.phase == .sub, !store.playerSubstituted else { return }
-                            selectedBenchIdx = selectedBenchIdx == idx ? nil : idx
-                        } label: {
-                            benchCardLarge(card: card, selected: selectedBenchIdx == idx)
+            if store.playerBench.isEmpty {
+                Text("No heroes on bench")
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .padding(.vertical, Design.Spacing.md)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(Array(store.playerBench.enumerated()), id: \.offset) { idx, card in
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    selectedBenchIdx = selectedBenchIdx == idx ? nil : idx
+                                }
+                            } label: {
+                                benchCardLarge(card: card, selected: selectedBenchIdx == idx)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
-                        .disabled(store.phase != .sub || store.playerSubstituted)
                     }
                 }
             }
+
+            // Selected card detail — constrained height like the plays panel
+            if let idx = selectedBenchIdx, idx < store.playerBench.count {
+                cardDetail(card: store.playerBench[idx], idx: idx)
+                    .frame(maxHeight: 80)
+            }
         }
         .padding(Design.Spacing.md)
+        .frame(maxHeight: 240)
         .background(Design.Colors.surface.opacity(0.98))
         .overlay(Divider().background(Design.Colors.glass), alignment: .top)
         .onChange(of: store.phase) { _, _ in selectedBenchIdx = nil }
@@ -75,7 +75,6 @@ struct PracticeBenchPanel: View {
 
     private func benchCardLarge(card: Card, selected: Bool) -> some View {
         let active = store.phase == .sub && !store.playerSubstituted
-        let canAfford = store.playerHotDogs >= 2
         return VStack(spacing: 4) {
             ZStack(alignment: .bottom) {
                 Group {
@@ -111,19 +110,66 @@ struct PracticeBenchPanel: View {
                 .lineLimit(1)
                 .frame(width: 72)
         }
-        .opacity(active && !canAfford ? 0.35 : 1)
-        .overlay {
-            if active && !canAfford {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.black.opacity(0.3))
-                    .frame(width: 72, height: 100)
-                    .overlay(
-                        Text("2 HD")
-                            .font(Design.Fonts.mono(10, weight: .bold))
-                            .foregroundStyle(Color(hex: "C0392B"))
-                    )
+    }
+
+    // MARK: - Card Detail
+
+    private func cardDetail(card: Card, idx: Int) -> some View {
+        let canAfford = store.playerHotDogs >= 2
+        let isSubPhase = store.phase == .sub && !store.playerSubstituted
+
+        return HStack(spacing: Design.Spacing.sm) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(card.hero.isEmpty ? card.name : card.hero)
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                    .lineLimit(1)
+
+                HStack(spacing: 6) {
+                    Text("PW \(card.power ?? 0)")
+                        .font(Design.Fonts.mono(9, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                    Text(card.element)
+                        .font(Design.Fonts.mono(9, weight: .bold))
+                        .foregroundStyle(Design.Colors.element(card.element))
+                    if let t = card.treatment, !t.isEmpty {
+                        Text(t)
+                            .font(Design.Fonts.mono(9))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .lineLimit(1)
+                    }
+                }
+
+                if let athlete = card.athleteInspiration, !athlete.isEmpty {
+                    Text("Inspired by \(athlete)")
+                        .font(Design.Fonts.mono(9))
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if isSubPhase {
+                Button {
+                    guard canAfford else { return }
+                    store.playerSubstitute(benchIndex: idx)
+                    selectedBenchIdx = nil
+                } label: {
+                    Text(canAfford ? "SUB\n2 HD" : "NEED\n2 HD")
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(canAfford ? Design.Colors.nearBlack : Design.Colors.textMuted)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 10)
+                        .frame(width: 70, height: 40)
+                        .background(RoundedRectangle(cornerRadius: 6)
+                            .fill(canAfford ? Design.Colors.bobaOrange : Design.Colors.glass))
+                }
+                .buttonStyle(.plain)
+                .disabled(!canAfford)
             }
         }
+        .padding(Design.Spacing.sm)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.glass))
     }
 
     private func cardPlaceholder(card: Card) -> some View {

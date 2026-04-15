@@ -11,6 +11,9 @@ struct PracticeSetupView: View {
     @Environment(CardStore.self) private var cardStore
     @State private var store = PracticeStore()
     @State private var showPlaymat = false
+    @State private var savedDecks: [SavedDeck] = []
+    @State private var isLoadingSaved = false
+    @State private var isStarting = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -56,12 +59,15 @@ struct PracticeSetupView: View {
 
                     // ── Start button ────────────────────────────────────────
                     Button {
-                        store.startMatch(allCards: cardStore.displayCards)
-                        showPlaymat = true
+                        Task { await startPractice() }
                     } label: {
                         HStack {
-                            Image(systemName: "play.fill")
-                            Text("START PRACTICE")
+                            if isStarting {
+                                ProgressView().tint(Design.Colors.nearBlack)
+                            } else {
+                                Image(systemName: "play.fill")
+                            }
+                            Text(isStarting ? "PREPARING…" : "START PRACTICE")
                                 .font(Design.Fonts.display(18))
                         }
                         .foregroundStyle(Design.Colors.nearBlack)
@@ -71,6 +77,7 @@ struct PracticeSetupView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     .buttonStyle(.plain)
+                    .disabled(isStarting)
                     .padding(.bottom, Design.Spacing.xl)
                 }
                 .padding(.horizontal, Design.Spacing.lg)
@@ -92,10 +99,58 @@ struct PracticeSetupView: View {
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .task { await loadSavedDecks() }
         }
         .fullScreenCover(isPresented: $showPlaymat) {
             PracticeView(store: store)
         }
+    }
+
+    // MARK: - Saved decks
+
+    private func loadSavedDecks() async {
+        isLoadingSaved = true
+        defer { isLoadingSaved = false }
+        guard SupabaseClient.shared.isAuthenticated else { return }
+        do { savedDecks = try await SupabaseClient.shared.fetchDecks() }
+        catch { savedDecks = [] }
+    }
+
+    private func resolveSavedDeck(_ id: UUID) async -> PracticeStore.ResolvedDeck? {
+        guard let rows = try? await SupabaseClient.shared.fetchDeckCards(deckId: id) else { return nil }
+        var byId: [String: Card] = [:]
+        for c in cardStore.displayCards { byId[c.bobaId] = c }
+        var r = PracticeStore.ResolvedDeck()
+        for row in rows {
+            guard let card = byId[row.bobaId] else { continue }
+            switch row.cardType {
+            case "hero": r.heroes.append(card)
+            case "play", "bonus_play": r.plays.append(card)
+            case "hot_dog": r.hotDogs.append(card)
+            default: break
+            }
+        }
+        return r
+    }
+
+    private func startPractice() async {
+        isStarting = true
+        defer { isStarting = false }
+
+        // Resolve saved decks ahead of startMatch (templates resolve synchronously inside the store).
+        if case .saved(let id) = store.playerDeckSource {
+            store.playerResolvedDeck = await resolveSavedDeck(id)
+        } else {
+            store.playerResolvedDeck = nil
+        }
+        if case .saved(let id) = store.cpuDeckSource {
+            store.cpuResolvedDeck = await resolveSavedDeck(id)
+        } else {
+            store.cpuResolvedDeck = nil
+        }
+
+        store.startMatch(allCards: cardStore.displayCards)
+        showPlaymat = true
     }
 
     // MARK: - Section Header
@@ -180,6 +235,34 @@ struct PracticeSetupView: View {
                     if isPlayer { store.playerDeckSource = .template(template) }
                     else { store.cpuDeckSource = .template(template) }
                 }
+            }
+
+            // Saved decks (user-built)
+            if !savedDecks.isEmpty {
+                Text("YOUR SAVED DECKS")
+                    .font(Design.Fonts.mono(9, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 4)
+                ForEach(savedDecks, id: \.id) { deck in
+                    let isSelected = isPlayer
+                        ? store.playerDeckSource == .saved(deck.id)
+                        : store.cpuDeckSource == .saved(deck.id)
+                    deckSourceOption(
+                        title: deck.name,
+                        subtitle: "\(deck.format.uppercased()) · your saved deck",
+                        isSelected: isSelected,
+                        systemImage: "bookmark.fill"
+                    ) {
+                        if isPlayer { store.playerDeckSource = .saved(deck.id) }
+                        else { store.cpuDeckSource = .saved(deck.id) }
+                    }
+                }
+            } else if isLoadingSaved {
+                Text("Loading saved decks…")
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .padding(.top, 4)
             }
         }
     }

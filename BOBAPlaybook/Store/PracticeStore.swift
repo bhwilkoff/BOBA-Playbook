@@ -173,20 +173,69 @@ final class PracticeStore {
 
     // MARK: - Setup / Start
 
+    /// Resolved deck payload used when a side is set to a template or saved deck.
+    struct ResolvedDeck {
+        var heroes: [Card] = []
+        var plays: [Card] = []
+        var hotDogs: [Card] = []
+    }
+
+    /// Optional pre-resolved decks for each side. Views can pass these before calling
+    /// `startMatch` (e.g. PracticeSetupView fetches saved decks from Supabase).
+    var playerResolvedDeck: ResolvedDeck?
+    var cpuResolvedDeck: ResolvedDeck?
+
+    /// Resolve a DeckSource to card arrays against the given catalog. Templates are loaded
+    /// synchronously from the bundled JSON; .random and .saved return nil here — saved decks
+    /// must be resolved asynchronously by the caller.
+    static func resolveTemplateDeck(_ source: DeckSource, catalog: [Card]) -> ResolvedDeck? {
+        guard case .template(let template) = source else { return nil }
+        var byId: [String: Card] = [:]
+        for c in catalog { byId[c.bobaId] = c }
+        var r = ResolvedDeck()
+        for id in template.heroIds      { if let c = byId[id] { r.heroes.append(c) } }
+        for id in template.playIds      { if let c = byId[id] { r.plays.append(c) } }
+        for id in template.bonusPlayIds { if let c = byId[id] { r.plays.append(c) } }
+        for id in template.hotDogIds    { if let c = byId[id] { r.hotDogs.append(c) } }
+        return r
+    }
+
     func startMatch(allCards: [Card]) {
         Self.deleteSavedMatch()
         if !allCards.isEmpty { allCardsPool = allCards }
         let pool = allCardsPool
 
-        // Build hero pool — cards with images first for better visual experience
+        // Auto-resolve templates (synchronous) if not already resolved; saved decks must be
+        // pre-resolved by the view since Supabase fetch is async.
+        if playerResolvedDeck == nil, case .template = playerDeckSource {
+            playerResolvedDeck = Self.resolveTemplateDeck(playerDeckSource, catalog: pool)
+        }
+        if cpuResolvedDeck == nil, case .template = cpuDeckSource {
+            cpuResolvedDeck = Self.resolveTemplateDeck(cpuDeckSource, catalog: pool)
+        }
+
+        // Random hero pool (for any side set to random, and for padding partial decks)
         let heroes = pool.filter { $0.cardType == "Hero" && ($0.power ?? 0) > 0 }
         let heroesWithImg = heroes.filter { !($0.imageFile ?? "").isEmpty }
         let heroesNoImg   = heroes.filter {  ($0.imageFile ?? "").isEmpty }
-        let heroPool = heroesWithImg.shuffled() + heroesNoImg.shuffled()
+        let randomHeroPool = heroesWithImg.shuffled() + heroesNoImg.shuffled()
+        let allPlays = pool.filter { $0.cardType == "Play" }
 
-        // Player: 7 battle + 4 bench = 11; CPU: next 11
-        let playerPool = Array(heroPool.prefix(11))
-        let cpuPool    = Array(heroPool.dropFirst(11).prefix(11))
+        func buildSide(resolved: ResolvedDeck?, randomOffset: Int) -> (heroes: [Card], plays: [Card]) {
+            var sideHeroes = (resolved?.heroes.isEmpty == false) ? resolved!.heroes.shuffled() : Array(randomHeroPool.dropFirst(randomOffset).prefix(60))
+            if sideHeroes.count < 11 {
+                let fill = randomHeroPool.filter { !sideHeroes.contains($0) }
+                sideHeroes.append(contentsOf: fill.prefix(60 - sideHeroes.count))
+            }
+            let sidePlays = (resolved?.plays.isEmpty == false) ? resolved!.plays.shuffled() : Array(allPlays.shuffled().prefix(30))
+            return (sideHeroes, sidePlays)
+        }
+
+        let playerSide = buildSide(resolved: playerResolvedDeck, randomOffset: 0)
+        let cpuSide    = buildSide(resolved: cpuResolvedDeck,    randomOffset: 60)
+
+        let playerPool = Array(playerSide.heroes.prefix(11))
+        let cpuPool    = Array(cpuSide.heroes.prefix(11))
 
         // Set up battles
         battles = (0..<7).map { i in
@@ -201,16 +250,15 @@ final class PracticeStore {
         cpuBench    = mode.showBench ? Array(cpuPool.dropFirst(7))    : []
 
         // Remaining hero deck — simulate 60-card deck (60 - 11 dealt = 49 remaining)
-        playerHeroDeck = Array(heroPool.dropFirst(22).prefix(49))
-        cpuHeroDeck    = []
+        playerHeroDeck = Array(playerSide.heroes.dropFirst(11).prefix(49))
+        cpuHeroDeck    = Array(cpuSide.heroes.dropFirst(11).prefix(49))
 
         // Play cards (4 starting hand per rules — §4.3.1 "Each Player draws four Plays")
-        let plays = pool.filter { $0.cardType == "Play" }.shuffled()
         if mode.showPlays {
-            playerHand       = Array(plays.prefix(4))
-            playerPlayDeck   = Array(plays.dropFirst(4))
+            playerHand       = Array(playerSide.plays.prefix(4))
+            playerPlayDeck   = Array(playerSide.plays.dropFirst(4))
             playerPlayDiscard = []
-            cpuHand          = Array(plays.shuffled().prefix(4))
+            cpuHand          = Array(cpuSide.plays.prefix(4))
         } else {
             playerHand = []; playerPlayDeck = []; playerPlayDiscard = []
             cpuHand = []
@@ -269,7 +317,7 @@ final class PracticeStore {
                 if mode == .rookie || mode == .substitution {
                     // Rookie/Substitution: no play phase, resolve immediately
                     resolveCurrentBattle()
-                    phase = .resolution
+                    if !matchOver { phase = .resolution }
                 }
                 // Playmaker: stay in .reveal — user presses again to enter play phase
             } else {
@@ -481,7 +529,11 @@ final class PracticeStore {
     func playerPassPlays() {
         guard phase == .play else { return }
         playerPassedPlays = true
-        if cpuPassedPlays { phase = .resolution; resolveCurrentBattle() }
+        if cpuPassedPlays {
+            phase = .resolution
+            resolveCurrentBattle()
+            if matchOver { Self.deleteSavedMatch() } else { saveMatch() }
+        }
     }
 
     // MARK: - CPU AI
@@ -1212,6 +1264,11 @@ final class PracticeStore {
     }
 
     func saveMatch() {
+        // Never persist a completed match — starting again should start fresh.
+        guard !matchOver else {
+            Self.deleteSavedMatch()
+            return
+        }
         let snapshot = MatchSnapshot(
             mode: mode, battles: battles, currentBattle: currentBattle,
             phase: phase, playerScore: playerScore, cpuScore: cpuScore,

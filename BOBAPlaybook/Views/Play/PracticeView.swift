@@ -115,9 +115,11 @@ struct PracticeView: View {
         .onAppear { Task { @MainActor in OrientationManager.shared.allowLandscape() } }
         .onDisappear { Task { @MainActor in OrientationManager.shared.lockPortrait() } }
         .alert("Exit Practice?", isPresented: $showExitConfirm) {
-            Button("Save & Exit") {
-                store.saveMatch()
-                isExiting = true
+            if !store.matchOver {
+                Button("Save & Exit") {
+                    store.saveMatch()
+                    isExiting = true
+                }
             }
             Button("Exit Without Saving", role: .destructive) {
                 PracticeStore.deleteSavedMatch()
@@ -125,7 +127,9 @@ struct PracticeView: View {
             }
             Button("Keep Playing", role: .cancel) {}
         } message: {
-            Text("You can save your match and resume later.")
+            Text(store.matchOver
+                 ? "This match has ended. Starting again will begin a new one."
+                 : "You can save your match and resume later.")
         }
         // Auto-dismiss the initial phase banner (onChange doesn't fire for the initial value)
         .task {

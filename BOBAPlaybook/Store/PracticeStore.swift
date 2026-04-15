@@ -162,6 +162,14 @@ final class PracticeStore {
     var matchOver: Bool = false
     var matchWinner: Honors?
 
+    // MARK: - Persistent effects (play-effects.json `persistent[]`)
+    struct PersistentEffect {
+        let owner: PlayExecContext.Side
+        let spec: [String: Any]
+        let installedAt: Int   // battle index when installed
+    }
+    var persistents: [PersistentEffect] = []
+
     // MARK: - Computed
 
     var currentSlot: BattleSlot? {
@@ -191,7 +199,7 @@ final class PracticeStore {
     static func resolveTemplateDeck(_ source: DeckSource, catalog: [Card]) -> ResolvedDeck? {
         guard case .template(let template) = source else { return nil }
         var byId: [String: Card] = [:]
-        for c in catalog { byId[c.bobaId] = c }
+        for c in catalog { byId[c.id] = c }
         var r = ResolvedDeck()
         for id in template.heroIds      { if let c = byId[id] { r.heroes.append(c) } }
         for id in template.playIds      { if let c = byId[id] { r.plays.append(c) } }
@@ -202,6 +210,8 @@ final class PracticeStore {
 
     func startMatch(allCards: [Card]) {
         Self.deleteSavedMatch()
+        PlayEffects.loadIfNeeded()
+        persistents = []
         if !allCards.isEmpty { allCardsPool = allCards }
         let pool = allCardsPool
 
@@ -313,6 +323,7 @@ final class PracticeStore {
             if !battles[currentBattle].isRevealed {
                 // First press: flip both cards face-up
                 battles[currentBattle].isRevealed = true
+                applyContinuousPersistents()
                 // Stay in reveal phase so user can see the cards before plays begin
                 if mode == .rookie || mode == .substitution {
                     // Rookie/Substitution: no play phase, resolve immediately
@@ -418,12 +429,46 @@ final class PracticeStore {
         battles[currentBattle].playerPlayedCards.append(card)
 
         let ability = (card.playAbility ?? "").lowercased()
-        let (playerDelta, cpuDelta) = Self.resolveEffect(card: card, playerCard: battles[currentBattle].playerCard, cpuCard: battles[currentBattle].cpuCard)
+
+        // Structured executor first; fall back to regex resolver if no entry or no mechanical effect
+        var playerDelta = 0
+        var cpuDelta = 0
+        var structuredHandled = false
+        if let entry = PlayEffects.entry(for: card.name),
+           let effects = entry["effects"] as? [[String: Any]], !effects.isEmpty {
+            let ctx = makeExecContext(self_: .player)
+            let out = PlayEffectExecutor.run(entry: entry, ctx: ctx)
+            if out.hasEffect {
+                playerDelta = out.selfDelta
+                cpuDelta = out.oppDelta
+                if out.selfHDDelta > 0 {
+                    playerHotDogs = min(10, playerHotDogs + out.selfHDDelta)
+                } else if out.selfHDDelta < 0 {
+                    playerHotDogs = max(0, playerHotDogs + out.selfHDDelta)
+                }
+                if out.oppHDDelta != 0 {
+                    cpuHotDogs = max(0, min(10, cpuHotDogs + out.oppHDDelta))
+                }
+                if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
+                    for p in persistent {
+                        persistents.append(PersistentEffect(owner: .player, spec: p, installedAt: currentBattle))
+                    }
+                }
+                structuredHandled = true
+            }
+        }
+        if !structuredHandled {
+            let legacy = Self.resolveEffect(card: card, playerCard: battles[currentBattle].playerCard, cpuCard: battles[currentBattle].cpuCard)
+            playerDelta = legacy.0
+            cpuDelta = legacy.1
+        }
+
         battles[currentBattle].playerEffectPower += playerDelta
         battles[currentBattle].cpuEffectPower += cpuDelta
 
-        // Handle shuffle/draw effects
-        resolveDrawEffects(ability: ability)
+        // Handle shuffle/draw effects (legacy — still useful for cards where structured
+        // path didn't produce draws)
+        if !structuredHandled { resolveDrawEffects(ability: ability) }
 
         // Set effect callout for coin flips / dice rolls (auto-dismiss after delay)
         if ability.contains("flip a coin") {
@@ -601,8 +646,34 @@ final class PracticeStore {
             battles[currentBattle].cpuPlayedCards.append(card)
             let cost = card.playCost ?? 0
 
-            // CPU effects: swap player/cpu deltas since CPU is the one playing
-            let (cpuDelta, playerDelta) = Self.resolveEffect(card: card, playerCard: battles[currentBattle].cpuCard, cpuCard: battles[currentBattle].playerCard)
+            // Structured executor first (CPU perspective); fall back to regex resolver
+            var cpuDelta = 0
+            var playerDelta = 0
+            var structuredHandled = false
+            if let entry = PlayEffects.entry(for: card.name),
+               let effects = entry["effects"] as? [[String: Any]], !effects.isEmpty {
+                let ctx = makeExecContext(self_: .cpu)
+                let out = PlayEffectExecutor.run(entry: entry, ctx: ctx)
+                if out.hasEffect {
+                    // CPU's "self" is cpu; map out.selfDelta → cpuDelta, out.oppDelta → playerDelta
+                    cpuDelta = out.selfDelta
+                    playerDelta = out.oppDelta
+                    if out.selfHDDelta > 0 { cpuHotDogs = min(10, cpuHotDogs + out.selfHDDelta) }
+                    else if out.selfHDDelta < 0 { cpuHotDogs = max(0, cpuHotDogs + out.selfHDDelta) }
+                    if out.oppHDDelta != 0 { playerHotDogs = max(0, min(10, playerHotDogs + out.oppHDDelta)) }
+                    if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
+                        for p in persistent {
+                            persistents.append(PersistentEffect(owner: .cpu, spec: p, installedAt: currentBattle))
+                        }
+                    }
+                    structuredHandled = true
+                }
+            }
+            if !structuredHandled {
+                let legacy = Self.resolveEffect(card: card, playerCard: battles[currentBattle].cpuCard, cpuCard: battles[currentBattle].playerCard)
+                cpuDelta = legacy.0
+                playerDelta = legacy.1
+            }
 
             tempHotDogs -= cost
             cpuHotDogs -= cost
@@ -712,6 +783,88 @@ final class PracticeStore {
         playerPassedPlays = false; cpuPassedPlays = false
         // Per rules: Sub phase comes before reveal for non-rookie
         phase = mode == .rookie ? .reveal : .sub
+    }
+
+    // MARK: - Structured effect context
+
+    func makeExecContext(self_: PlayExecContext.Side) -> PlayExecContext {
+        let slot = battles.indices.contains(currentBattle) ? battles[currentBattle] : BattleSlot(id: 0)
+        let selfIsPlayer = self_ == .player
+        let selfCard = selfIsPlayer ? slot.playerCard : slot.cpuCard
+        let oppCard  = selfIsPlayer ? slot.cpuCard    : slot.playerCard
+        let selfHD   = selfIsPlayer ? playerHotDogs   : cpuHotDogs
+        let oppHD    = selfIsPlayer ? cpuHotDogs      : playerHotDogs
+        let selfSub  = selfIsPlayer ? playerSubstituted : cpuSubstituted
+        let selfHand = selfIsPlayer ? playerHand      : cpuHand
+        let selfDiscard = selfIsPlayer ? playerPlayDiscard : []
+        let selfHeroDeck = selfIsPlayer ? playerHeroDeck : cpuHeroDeck
+
+        // Count completed battles by result from this side's perspective
+        var won = 0, lost = 0, tied = 0
+        for i in 0..<currentBattle where battles.indices.contains(i) {
+            guard let r = battles[i].result else { continue }
+            let isWon = (selfIsPlayer && r == .win) || (!selfIsPlayer && r == .lose)
+            let isLost = (selfIsPlayer && r == .lose) || (!selfIsPlayer && r == .win)
+            if isWon { won += 1 }
+            else if isLost { lost += 1 }
+            else if r == .tie { tied += 1 }
+        }
+
+        let playsUsed = selfIsPlayer ? slot.playerPlayedCards.count : slot.cpuPlayedCards.count
+
+        return PlayExecContext(
+            self_: self_,
+            selfCard: selfCard, oppCard: oppCard,
+            selfHD: selfHD, oppHD: oppHD,
+            selfSubstituted: selfSub,
+            selfHand: selfHand,
+            selfDiscard: selfDiscard,
+            selfHeroDeck: selfHeroDeck,
+            selfWon: won, selfLost: lost, selfTied: tied,
+            playsUsedThisBattle: playsUsed,
+            battleIdx: currentBattle,
+            battlesRemaining: 7 - currentBattle,
+            honors: honors == .player ? "player" : "cpu",
+            battles: battles
+        )
+    }
+
+    /// Apply continuous/battle-start persistents (Fire Boost, etc.) at reveal.
+    func applyContinuousPersistents() {
+        guard battles.indices.contains(currentBattle) else { return }
+        var slot = battles[currentBattle]
+        for inst in persistents {
+            let scope = inst.spec["scope"] as? String
+            let trigger = inst.spec["trigger"] as? String
+            let inScope: Bool = {
+                switch scope {
+                case "rest_of_game":      return true
+                case "next_battle":       return currentBattle == inst.installedAt + 1
+                case "next_2_battles":    return currentBattle > inst.installedAt && currentBattle <= inst.installedAt + 2
+                case "battle_7":          return currentBattle == 6
+                case "battles_4_7":       return currentBattle >= 3
+                case "this_battle":       return currentBattle == inst.installedAt
+                default:                  return false
+                }
+            }()
+            guard inScope else { continue }
+            guard trigger == "continuous" || trigger == "battle_start" else { continue }
+            guard let eff = inst.spec["effect"] as? [String: Any] else { continue }
+
+            let ctx = makeExecContext(self_: inst.owner)
+            var out = PlayExecOut()
+            PlayEffectExecutor.execStep(eff, ctx: ctx, out: &out)
+            guard out.hasEffect else { continue }
+
+            if inst.owner == .player {
+                slot.playerEffectPower += out.selfDelta
+                slot.cpuEffectPower    += out.oppDelta
+            } else {
+                slot.cpuEffectPower    += out.selfDelta
+                slot.playerEffectPower += out.oppDelta
+            }
+        }
+        battles[currentBattle] = slot
     }
 
     // MARK: - Play Card Effect Resolver

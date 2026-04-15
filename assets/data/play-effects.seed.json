@@ -1,0 +1,514 @@
+{
+  "schemaVersion": 2,
+  "keyedBy": "name",
+  "note": "Hand-authored worked examples anchoring the schema in PLAY_EFFECTS_SCHEMA.md. v2 adds formula/metric scaling, coin/dice aggregates, future-hero manipulation, choice ops, and rule-modifier persistents — enough primitives that every Play card can be structured (no note-only entries).",
+  "entries": {
+    "Buff Up 15": {
+      "cost": 2,
+      "ability": "Your Hero gets +15.",
+      "category": "tempo",
+      "effects": [
+        { "op": "power", "target": "self", "delta": 15 }
+      ]
+    },
+
+    "Low Turnover": {
+      "cost": 1,
+      "ability": "If there are 0 Heroes in your Discard Pile, give your Hero +15.",
+      "category": "conditional",
+      "effects": [
+        {
+          "if": { "type": "discard_count", "target": "self", "kind": "hero", "comparison": "eq", "value": 0 },
+          "then": [{ "op": "power", "target": "self", "delta": 15 }]
+        }
+      ]
+    },
+
+    "Winners Win": {
+      "cost": 0,
+      "ability": "If you've won at least 2 Battles, your Hero gets +15.",
+      "category": "conditional",
+      "effects": [
+        {
+          "if": { "type": "battles_won", "target": "self", "comparison": "gte", "value": 2 },
+          "then": [{ "op": "power", "target": "self", "delta": 15 }]
+        }
+      ]
+    },
+
+    "Fire Boost": {
+      "cost": 2,
+      "ability": "For the rest of the game, all Heroes with Fire weapons get +10.",
+      "category": "value",
+      "effects": [],
+      "persistent": [
+        {
+          "scope": "rest_of_game",
+          "trigger": "continuous",
+          "effect": {
+            "if": { "type": "weapon", "target": "self", "weapon": "FIRE" },
+            "then": [{ "op": "power", "target": "self", "delta": 10 }]
+          }
+        }
+      ]
+    },
+
+    "Glow-Up": {
+      "cost": 0,
+      "ability": "If your Hero has a Glow weapon, it gets +20.",
+      "category": "conditional",
+      "effects": [
+        {
+          "if": { "type": "weapon", "target": "self", "weapon": "GLOW" },
+          "then": [{ "op": "power", "target": "self", "delta": 20 }]
+        }
+      ]
+    },
+
+    "Steel Cage": {
+      "cost": 0,
+      "ability": "If your Hero has a Steel weapon, your opponent can't Substitute next Battle.",
+      "category": "disruption",
+      "effects": [
+        {
+          "if": { "type": "weapon", "target": "self", "weapon": "STEEL" },
+          "then": [{ "op": "block_sub", "target": "opponent", "scope": "next_battle" }]
+        }
+      ]
+    },
+
+    "Flame Wall": {
+      "cost": 0,
+      "ability": "If your Hero has a Fire weapon, your opponent can't run any Plays this Battle.",
+      "category": "disruption",
+      "effects": [
+        {
+          "if": { "type": "weapon", "target": "self", "weapon": "FIRE" },
+          "then": [{ "op": "cancel_opponent_plays", "scope": "this_battle" }]
+        }
+      ]
+    },
+
+    "Edge Rush": {
+      "cost": 5,
+      "ability": "Set your Hero's Power to 5 higher than your opponent's current Power.",
+      "category": "tempo",
+      "effects": [
+        {
+          "op": "power_set",
+          "target": "self",
+          "source": { "target": "opponent", "attr": "current_power" },
+          "offset": 5
+        }
+      ]
+    },
+
+    "Deadline Deal": {
+      "cost": 3,
+      "ability": "Swap your Hero's current power with your opponent's current power in this Battle.",
+      "category": "tempo",
+      "effects": [
+        { "op": "power_swap", "scope": "current" }
+      ]
+    },
+
+    "Pick On Someone Your Own Size": {
+      "cost": 2,
+      "ability": "Your Hero now has the same power as your Opponent's Hero's current power.",
+      "category": "tempo",
+      "effects": [
+        {
+          "op": "power_set",
+          "target": "self",
+          "source": { "target": "opponent", "attr": "current_power" },
+          "offset": 0
+        }
+      ]
+    },
+
+    "Hot Dog Thief": {
+      "cost": 0,
+      "ability": "Your opponent loses 1 Hot Dog. You gain 1 Hot Dog.",
+      "category": "economy",
+      "effects": [
+        { "op": "hd", "target": "opponent", "delta": -1 },
+        { "op": "hd", "target": "self", "delta": 1 }
+      ]
+    },
+
+    "Heads I Win, Tails You Lose": {
+      "cost": 0,
+      "ability": "Flip a coin: If heads, your Hero gets +15. If tails, your opponent's Hero loses -5.",
+      "category": "tempo",
+      "effects": [
+        {
+          "op": "coin_flip",
+          "times": 1,
+          "heads": [{ "op": "power", "target": "self", "delta": 15 }],
+          "tails": [{ "op": "power", "target": "opponent", "delta": -5 }]
+        }
+      ]
+    },
+
+    "1/6 For 15": {
+      "cost": 1,
+      "ability": "Roll a dice, if it lands on 1, your Hero's Power goes to 0. Otherwise, your Hero gets +15.",
+      "category": "tempo",
+      "effects": [
+        {
+          "op": "dice_roll",
+          "count": 1,
+          "branches": [
+            { "on": [1],              "then": [{ "op": "power_set", "target": "self", "source": { "value": 0 } }] },
+            { "on": "else",           "then": [{ "op": "power", "target": "self", "delta": 15 }] }
+          ]
+        }
+      ]
+    },
+
+    "Lucky 7": {
+      "cost": 0,
+      "ability": "Roll a die two times; if the numbers add up to 7 your Hero gets +100; if any other number you must Discard a random Hero from your hand.",
+      "category": "tempo",
+      "effects": [
+        {
+          "op": "dice_roll",
+          "count": 2,
+          "aggregate": "sum",
+          "branches": [
+            { "on": [7],    "then": [{ "op": "power", "target": "self", "delta": 100 }] },
+            { "on": "else", "then": [{ "op": "discard", "target": "self", "kind": "hero", "count": 1, "mode": "random" }] }
+          ]
+        }
+      ]
+    },
+
+    "Lunch Table": {
+      "cost": 2,
+      "ability": "Give your Hero +20. All players get 2 Hot Dogs back from their Discard Pile at the start of next Battle.",
+      "category": "value",
+      "effects": [
+        { "op": "power", "target": "self", "delta": 20 }
+      ],
+      "persistent": [
+        {
+          "scope": "next_battle",
+          "trigger": "battle_start",
+          "effect": { "op": "hd_recover", "target": "self", "amount": 2, "from": "discard" }
+        },
+        {
+          "scope": "next_battle",
+          "trigger": "battle_start",
+          "effect": { "op": "hd_recover", "target": "opponent", "amount": 2, "from": "discard" }
+        }
+      ]
+    },
+
+    "The Perfect Offense": {
+      "cost": 6,
+      "ability": "Cancel every Play your opponent used this Battle.",
+      "category": "disruption",
+      "effects": [
+        { "op": "cancel_opponent_plays", "scope": "this_battle", "retroactive": true }
+      ]
+    },
+
+    "Showtime's Elbow Guard": {
+      "cost": 1,
+      "ability": "Your Hero in the active Battle cannot be affected by your opponent's Plays.",
+      "category": "disruption",
+      "effects": [
+        { "op": "protect_self", "scope": "this_battle" }
+      ]
+    },
+
+    "By Any Means Necessary": {
+      "cost": 6,
+      "ability": "Search your Playbook and run any play for free. (Then, re-shuffle your Playbook.)",
+      "category": "value",
+      "ui": { "player_choice": true },
+      "effects": [
+        {
+          "op": "search",
+          "target": "self",
+          "from": "playbook",
+          "filter": {},
+          "action": "play_free"
+        }
+      ]
+    },
+
+    "Rotten Dogs": {
+      "cost": 2,
+      "ability": "At the start of the next Battle, your opponent loses 2 Hot Dogs.",
+      "category": "economy",
+      "effects": [],
+      "persistent": [
+        {
+          "scope": "next_battle",
+          "trigger": "battle_start",
+          "effect": { "op": "hd", "target": "opponent", "delta": -2 }
+        }
+      ]
+    },
+
+    "Deep In The Playbook": {
+      "cost": 0,
+      "ability": "For the rest of the Game, whenever a Player rolls a dice, they get to draw a Play from their Playbook.",
+      "category": "utility",
+      "effects": [],
+      "persistent": [
+        {
+          "scope": "rest_of_game",
+          "trigger": "on_dice_roll",
+          "effect": { "op": "draw", "target": "roller", "kind": "play", "count": 1 }
+        }
+      ]
+    },
+
+    "Discarded Heroes": {
+      "cost": 1,
+      "ability": "Your Hero gets +10 for each Hero in your Discard Pile. (Ex: 3 Heroes = +30)",
+      "category": "value",
+      "effects": [
+        {
+          "op": "power",
+          "target": "self",
+          "delta": { "factor": 10, "metric": "discard_count", "target": "self", "kind": "hero" }
+        }
+      ]
+    },
+
+    "Fire Crew": {
+      "cost": 2,
+      "ability": "For every Hero with a Fire weapon you've used in all Battles so far, your Hero gets +10.",
+      "category": "value",
+      "effects": [
+        {
+          "op": "power",
+          "target": "self",
+          "delta": { "factor": 10, "metric": "heroes_used_total", "target": "self", "weapon": "FIRE" }
+        }
+      ]
+    },
+
+    "Early Round Magic": {
+      "cost": 1,
+      "ability": "Your Hero gets +5 for every Battle still remaining in the game. (Ex. You use this on Battle 3, there are 4 Battles left, your Hero gets +20.)",
+      "category": "tempo",
+      "effects": [
+        {
+          "op": "power",
+          "target": "self",
+          "delta": { "factor": 5, "metric": "battles_remaining" }
+        }
+      ]
+    },
+
+    "10 Per Play": {
+      "cost": 0,
+      "ability": "Your Hero gets +10 for every other Play you have used so far in this Battle.",
+      "category": "tempo",
+      "effects": [
+        {
+          "op": "power",
+          "target": "self",
+          "delta": { "factor": 10, "metric": "plays_used_this_battle", "target": "self", "offset": -1, "min": 0 }
+        }
+      ]
+    },
+
+    "Pre-Game Ritual": {
+      "cost": 0,
+      "ability": "Flip a coin 3 times; your Hero gets +15 if the coin lands on heads 2 or more times.",
+      "category": "tempo",
+      "effects": [
+        {
+          "op": "coin_flip",
+          "times": 3,
+          "aggregate": "at_least_n_heads",
+          "n": 2,
+          "then": [{ "op": "power", "target": "self", "delta": 15 }]
+        }
+      ]
+    },
+
+    "3rd Time Charm": {
+      "cost": 2,
+      "ability": "Flip a coin 3 times. If all 3 flips land on heads, your Hero's Power is doubled. Each time the coin lands on tails, draw a Play.",
+      "category": "tempo",
+      "effects": [
+        {
+          "op": "coin_flip",
+          "times": 3,
+          "branches": [
+            { "aggregate": "all_heads", "then": [{ "op": "power_double", "target": "self" }] },
+            { "aggregate": "per_tail",  "then": [{ "op": "draw", "target": "self", "kind": "play", "count": 1 }] }
+          ]
+        }
+      ]
+    },
+
+    "Double Down": {
+      "cost": 0,
+      "ability": "Flip a coin twice. If it lands on heads both times, your Hero gets +20. If both flips are tails, your Hero loses -40. (Nothing happens for any other result.)",
+      "category": "tempo",
+      "effects": [
+        {
+          "op": "coin_flip",
+          "times": 2,
+          "branches": [
+            { "aggregate": "all_heads", "then": [{ "op": "power", "target": "self", "delta": 20 }] },
+            { "aggregate": "all_tails", "then": [{ "op": "power", "target": "self", "delta": -40 }] }
+          ]
+        }
+      ]
+    },
+
+    "Dice Duel": {
+      "cost": 1,
+      "ability": "Both Players roll a dice. Whoever rolls a higher number gets +25. If tied, both get -10.",
+      "category": "tempo",
+      "effects": [
+        {
+          "op": "dice_roll",
+          "players": "both",
+          "resolve_by": "higher",
+          "on_self_higher": [{ "op": "power", "target": "self", "delta": 25 }],
+          "on_opponent_higher": [{ "op": "power", "target": "opponent", "delta": 25 }],
+          "on_tie": [
+            { "op": "power", "target": "self", "delta": -10 },
+            { "op": "power", "target": "opponent", "delta": -10 }
+          ]
+        }
+      ]
+    },
+
+    "Adding Depth": {
+      "cost": 1,
+      "ability": "Draw a card from either your Playbook or your Hero Deck.",
+      "category": "utility",
+      "ui": { "player_choice": true },
+      "effects": [
+        {
+          "op": "choice",
+          "target": "self",
+          "options": [
+            { "label": "Draw a Play",  "effects": [{ "op": "draw", "target": "self", "kind": "play",  "count": 1 }] },
+            { "label": "Draw a Hero",  "effects": [{ "op": "draw", "target": "self", "kind": "hero", "count": 1 }] }
+          ]
+        }
+      ]
+    },
+
+    "Plan Ahead": {
+      "cost": 1,
+      "ability": "Choose a future Battle. When your Hero in that Battle is revealed, it gets +35.",
+      "category": "value",
+      "ui": { "pick_future_battle": true },
+      "effects": [
+        {
+          "op": "mark_future_battle",
+          "battle_ref": "player_choice",
+          "on_reveal": [{ "op": "power", "target": "self", "delta": 35 }]
+        }
+      ]
+    },
+
+    "Fire Comeback": {
+      "cost": 1,
+      "ability": "Swap your Hero with a Fire weapon Hero in your Discard Pile.",
+      "category": "value",
+      "ui": { "pick_from_discard": { "weapon": "FIRE", "kind": "hero" } },
+      "effects": [
+        { "op": "swap_active_with_discard", "target": "self", "filter": { "weapon": "FIRE" } }
+      ]
+    },
+
+    "Call it a Day": {
+      "cost": 2,
+      "ability": "The Hero with the highest current Power wins this Battle now (or it's a tie). Both players draw a Play and move to the next Battle.",
+      "category": "disruption",
+      "effects": [
+        { "op": "end_battle_by_power" },
+        { "op": "draw", "target": "self",     "kind": "play", "count": 1 },
+        { "op": "draw", "target": "opponent", "kind": "play", "count": 1 }
+      ]
+    },
+
+    "Substitution Boost": {
+      "cost": 0,
+      "ability": "For the rest of the game, whenever you Substitute, your new Hero gets +10.",
+      "category": "value",
+      "effects": [],
+      "persistent": [
+        {
+          "scope": "rest_of_game",
+          "trigger": "on_substitute",
+          "target_filter": { "type": "any", "of": [] },
+          "effect": { "op": "power", "target": "self", "delta": 10 }
+        }
+      ]
+    },
+
+    "Weapon Lineage": {
+      "cost": 1,
+      "ability": "Your current Hero gets +10 for every Hero in your Discard Pile with the same weapon type.",
+      "category": "value",
+      "effects": [
+        {
+          "op": "power",
+          "target": "self",
+          "delta": { "factor": 10, "metric": "discard_count", "target": "self", "kind": "hero", "weapon": "same_as_active" }
+        }
+      ]
+    },
+
+    "Opening Strike": {
+      "cost": 0,
+      "ability": "If you won Battle 1, your Hero gets +10.",
+      "category": "conditional",
+      "effects": [
+        {
+          "if": { "type": "battle_won_nth", "target": "self", "n": 1 },
+          "then": [{ "op": "power", "target": "self", "delta": 10 }]
+        }
+      ]
+    },
+
+    "Catch-Up Bonus": {
+      "cost": 0,
+      "ability": "If your opponent has more Hot Dogs than you, your Hero gets +10.",
+      "category": "conditional",
+      "effects": [
+        {
+          "if": {
+            "type": "metric_compare",
+            "left":  { "metric": "hd_count", "target": "opponent" },
+            "right": { "metric": "hd_count", "target": "self" },
+            "comparison": "gt"
+          },
+          "then": [{ "op": "power", "target": "self", "delta": 10 }]
+        }
+      ]
+    },
+
+    "X-Ray Vision": {
+      "cost": 0,
+      "ability": "Look at your opponent's unrevealed Hero in the next Battle.",
+      "category": "utility",
+      "effects": [
+        { "op": "peek_unrevealed_hero", "target": "opponent", "which": "next" }
+      ]
+    },
+
+    "Lucky Seven": {
+      "cost": 0,
+      "ability": "",
+      "category": "utility",
+      "effects": [
+        { "op": "note", "text": "Ability text blank in cards.json — card ships as no-op until text is recovered. TODO: re-scan source print." }
+      ]
+    }
+  }
+}

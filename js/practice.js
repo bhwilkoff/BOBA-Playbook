@@ -1942,8 +1942,6 @@ const pmNotifQueue = {
   active: false,
   _timer: null,
 
-  /** Enqueue a notification. type: 'banner' | 'cpuSub' | 'cpuPlay'
-   *  duration: ms for auto-dismiss, or 0 for manually dismissed */
   push(entry) {
     this.queue.push(entry);
     if (!this.active) this._next();
@@ -1953,19 +1951,25 @@ const pmNotifQueue = {
   clear() {
     this.queue = [];
     if (this._timer) { clearTimeout(this._timer); this._timer = null; }
-    // Hide all notification elements immediately
+    this._hideAll();
+    this.active = false;
+  },
+
+  /** Hide every notification element */
+  _hideAll() {
     const banner = $('pm-phase-banner');
-    if (banner) banner.classList.remove('visible');
+    if (banner) { banner.classList.remove('visible'); banner.style.display = 'none'; }
     const overlay = $('pm-cpu-overlay');
     if (overlay) overlay.hidden = true;
     const callout = $('pm-cpu-sub-callout');
     if (callout) callout.hidden = true;
-    this.active = false;
   },
 
   _next() {
     if (this.queue.length === 0) { this.active = false; return; }
     this.active = true;
+    // Hide everything before showing the next notification
+    this._hideAll();
     const entry = this.queue.shift();
     entry.show(() => this._next());
   },
@@ -1978,11 +1982,17 @@ function pmQueuePhaseBanner(text, duration) {
       const banner = $('pm-phase-banner');
       if (!banner) { done(); return; }
       banner.textContent = text;
+      banner.style.display = ''; // restore from _hideAll
+      // Force reflow so opacity transition works after display change
+      banner.offsetHeight;
       banner.classList.add('visible');
       pmNotifQueue._timer = setTimeout(() => {
         banner.classList.remove('visible');
-        // Wait for fade-out transition (300ms) before showing next
-        pmNotifQueue._timer = setTimeout(done, 350);
+        // Wait for fade-out transition (300ms) then hide fully before next
+        pmNotifQueue._timer = setTimeout(() => {
+          banner.style.display = 'none';
+          done();
+        }, 350);
       }, duration || 2000);
     }
   });

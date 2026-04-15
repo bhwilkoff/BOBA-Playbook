@@ -1033,6 +1033,9 @@ const PM = {
   selectedBenchIdx: null,    // which bench card is tapped for sub
   allCards: [],
   _initialized: false,       // event listeners attached once
+  _showPhaseBanner: false,   // flag consumed by pmSetRootClass to queue a banner
+  _pendingCpuSub: false,     // flag: CPU sub callout should be queued after phase banner
+  _pendingCpuPlays: false,   // flag: CPU play overlays should be queued after phase banner
 
   startMatch(allCards) {
     this.allCards = allCards;
@@ -1044,8 +1047,9 @@ const PM = {
       playerHD: 10, cpuHD: 10, cpuPlayCount: 30,
       playerSubstituted: false, cpuSubstituted: false,
       playerPassedPlays: false, cpuPassedPlays: false,
-      selectedBenchIdx: null,
+      selectedBenchIdx: null, _showPhaseBanner: true,
     });
+    pmNotifQueue.clear();
 
     // Build hero pool — prioritize cards with images
     const heroes = allCards.filter(c => c.cardType === 'Hero' && (c.power || 0) > 0);
@@ -1097,14 +1101,17 @@ const PM = {
     if (this.matchOver) return;
     const b = this.battles[this.currentBattle];
 
+    // Clear any pending notifications before phase transition
+    pmNotifQueue.clear();
+
     switch (this.phase) {
       case 'sub':
         // Per rules (§4.2.2, §4.3.2): Sub happens BEFORE reveal
         // CPU makes blind sub decision (can't see player's card)
         { const didSub = this.cpuDoSub();
           this.phase = 'reveal';
-          // Show CPU sub callout after DOM update (deferred so pmUpdateAll runs first)
-          if (didSub) setTimeout(() => pmShowCpuSubCallout(true), 50);
+          this._showPhaseBanner = true;
+          this._pendingCpuSub = didSub; // queued after phase banner in pmSetRootClass
         }
         break;
 
@@ -1119,14 +1126,13 @@ const PM = {
         } else {
           // Step 2: cards already revealed, enter play phase
           this.phase = 'play';
+          this._showPhaseBanner = true;
           this.playerPassedPlays = false;
           this.cpuPassedPlays = false;
           // CPU plays AFTER reveal, not simultaneously
           this.cpuDoPlay();
-          // Show CPU plays as overlay after DOM update
-          if (this.cpuPlayQueue.length > 0) {
-            setTimeout(() => pmShowCpuPlayQueue(), 50);
-          }
+          // Flag for queueing after phase banner in pmSetRootClass
+          this._pendingCpuPlays = this.cpuPlayQueue.length > 0;
         }
         break;
 
@@ -1144,6 +1150,7 @@ const PM = {
 
       case 'resolution':
         this.phase = 'cleanup';
+        this._showPhaseBanner = true;
         break;
 
       case 'cleanup':
@@ -1307,6 +1314,7 @@ const PM = {
       }
     }
     this.phase = 'resolution';
+    this._showPhaseBanner = true;
     this.checkOver();
   },
 
@@ -1329,6 +1337,7 @@ const PM = {
     this.currentBattle = next;
     // Per rules: Sub phase comes before reveal for non-rookie
     this.phase = this.mode === 'rookie' ? 'reveal' : 'sub';
+    this._showPhaseBanner = true;
     this.playerSubstituted = false;
     this.cpuSubstituted = false;
     this.playerPassedPlays = false;
@@ -1558,14 +1567,20 @@ function pmSetRootClass() {
     if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [honorsEl] });
   }
 
-  // Phase banner
-  if (PM.phase !== 'over') {
-    const banner = $('pm-phase-banner');
-    if (banner) {
-      banner.textContent = phaseNames[PM.phase] || PM.phase.toUpperCase();
-      banner.classList.add('visible');
-      setTimeout(() => banner.classList.remove('visible'), 2000);
-    }
+  // Phase banner + follow-up notifications — routed through queue to prevent overlaps
+  if (PM.phase !== 'over' && PM._showPhaseBanner) {
+    PM._showPhaseBanner = false;
+    pmQueuePhaseBanner(phaseNames[PM.phase] || PM.phase.toUpperCase(), 2000);
+  }
+  // CPU sub callout — queued after phase banner
+  if (PM._pendingCpuSub) {
+    PM._pendingCpuSub = false;
+    pmQueueCpuSub();
+  }
+  // CPU play overlays — queued after phase banner (and after CPU sub if both happen)
+  if (PM._pendingCpuPlays) {
+    PM._pendingCpuPlays = false;
+    pmQueueCpuPlays();
   }
 }
 
@@ -1920,71 +1935,140 @@ function pmRestoreMatch(snap, allCards) {
   return true;
 }
 
-// Show CPU play cards one by one as dismissible overlays
-function pmShowCpuPlayQueue() {
+// ── Notification queue — serializes banners/overlays so they never overlap ──
+
+const pmNotifQueue = {
+  queue: [],
+  active: false,
+  _timer: null,
+
+  /** Enqueue a notification. type: 'banner' | 'cpuSub' | 'cpuPlay'
+   *  duration: ms for auto-dismiss, or 0 for manually dismissed */
+  push(entry) {
+    this.queue.push(entry);
+    if (!this.active) this._next();
+  },
+
+  /** Clear all pending notifications and hide the active one */
+  clear() {
+    this.queue = [];
+    if (this._timer) { clearTimeout(this._timer); this._timer = null; }
+    // Hide all notification elements immediately
+    const banner = $('pm-phase-banner');
+    if (banner) banner.classList.remove('visible');
+    const overlay = $('pm-cpu-overlay');
+    if (overlay) overlay.hidden = true;
+    const callout = $('pm-cpu-sub-callout');
+    if (callout) callout.hidden = true;
+    this.active = false;
+  },
+
+  _next() {
+    if (this.queue.length === 0) { this.active = false; return; }
+    this.active = true;
+    const entry = this.queue.shift();
+    entry.show(() => this._next());
+  },
+};
+
+/** Enqueue a phase banner (auto-dismiss after duration ms) */
+function pmQueuePhaseBanner(text, duration) {
+  pmNotifQueue.push({
+    show(done) {
+      const banner = $('pm-phase-banner');
+      if (!banner) { done(); return; }
+      banner.textContent = text;
+      banner.classList.add('visible');
+      pmNotifQueue._timer = setTimeout(() => {
+        banner.classList.remove('visible');
+        // Wait for fade-out transition (300ms) before showing next
+        pmNotifQueue._timer = setTimeout(done, 350);
+      }, duration || 2000);
+    }
+  });
+}
+
+/** Enqueue CPU sub callout (auto-dismiss) */
+function pmQueueCpuSub() {
+  pmNotifQueue.push({
+    show(done) {
+      const callout = $('pm-cpu-sub-callout');
+      if (!callout) { done(); return; }
+      callout.hidden = false;
+      callout.style.animation = 'none';
+      callout.offsetHeight;
+      callout.style.animation = '';
+      pmNotifQueue._timer = setTimeout(() => {
+        callout.hidden = true;
+        done();
+      }, 2000);
+    }
+  });
+}
+
+/** Enqueue CPU play cards (one by one, manually dismissed) */
+function pmQueueCpuPlays() {
   if (!PM.cpuPlayQueue || PM.cpuPlayQueue.length === 0) return;
+  // Each play card is its own queued notification
+  PM.cpuPlayQueue.forEach((entry, idx) => {
+    pmNotifQueue.push({
+      show(done) {
+        pmShowSingleCpuPlay(entry, done);
+      }
+    });
+  });
+}
+
+// Show a single CPU play card overlay; calls done() when user dismisses
+function pmShowSingleCpuPlay(entry, done) {
   const overlay = $('pm-cpu-overlay');
-  if (!overlay) return;
+  if (!overlay) { done(); return; }
 
-  let queueIdx = 0;
+  const card = entry.card;
+  const cost = entry.cost;
+  const effect = entry.effect;
+  const imgUrl = card.imageFile ? fullUrl(card.imageFile) : null;
+  const ability = card.playAbility || '';
+  const costLabel = cost === 0 ? 'FREE' : `${cost} HD`;
 
-  function showNext() {
-    if (queueIdx >= PM.cpuPlayQueue.length) {
-      overlay.hidden = true;
-      pmUpdateAll();
-      return;
-    }
-    const entry = PM.cpuPlayQueue[queueIdx];
-    const card = entry.card;
-    const cost = entry.cost;
-    const effect = entry.effect;
-    const imgUrl = card.imageFile ? fullUrl(card.imageFile) : null;
-    const ability = card.playAbility || '';
-    const costLabel = cost === 0 ? 'FREE' : `${cost} HD`;
+  let deltasHtml = '';
+  if (effect.playerDelta > 0) deltasHtml += `<span class="pm-cpu-card-delta-opp">CPU +${effect.playerDelta}</span>`;
+  if (effect.playerDelta < 0) deltasHtml += `<span class="pm-cpu-card-delta-opp">CPU ${effect.playerDelta}</span>`;
+  if (effect.cpuDelta < 0) deltasHtml += `<span class="pm-cpu-card-delta-you">YOU ${effect.cpuDelta}</span>`;
+  if (effect.cpuDelta > 0) deltasHtml += `<span class="pm-cpu-card-delta-you">YOU +${effect.cpuDelta}</span>`;
+  if (entry.hdRecovery > 0) deltasHtml += `<span class="pm-cpu-card-delta-opp">CPU +${entry.hdRecovery} HD</span>`;
 
-    let deltasHtml = '';
-    if (effect.playerDelta > 0) deltasHtml += `<span class="pm-cpu-card-delta-opp">CPU +${effect.playerDelta}</span>`;
-    if (effect.playerDelta < 0) deltasHtml += `<span class="pm-cpu-card-delta-opp">CPU ${effect.playerDelta}</span>`;
-    if (effect.cpuDelta < 0) deltasHtml += `<span class="pm-cpu-card-delta-you">YOU ${effect.cpuDelta}</span>`;
-    if (effect.cpuDelta > 0) deltasHtml += `<span class="pm-cpu-card-delta-you">YOU +${effect.cpuDelta}</span>`;
-    if (entry.hdRecovery > 0) deltasHtml += `<span class="pm-cpu-card-delta-opp">CPU +${entry.hdRecovery} HD</span>`;
-
-    const cardEl = $('pm-cpu-overlay-card');
-    if (cardEl) {
-      cardEl.innerHTML = `
-        ${imgUrl ? `<img class="pm-cpu-card-img" src="${imgUrl}" alt="${card.name||''}" onerror="this.style.display='none'">` : ''}
-        <div class="pm-cpu-card-name">${card.name || 'Play Card'}</div>
-        <div class="pm-cpu-card-cost">${costLabel}</div>
-        ${ability ? `<div class="pm-cpu-card-effect">${ability}</div>` : ''}
-        <div class="pm-cpu-card-deltas">${deltasHtml}</div>`;
-    }
-
-    overlay.hidden = false;
-    queueIdx++;
+  const cardEl = $('pm-cpu-overlay-card');
+  if (cardEl) {
+    cardEl.innerHTML = `
+      ${imgUrl ? `<img class="pm-cpu-card-img" src="${imgUrl}" alt="${card.name||''}" onerror="this.style.display='none'">` : ''}
+      <div class="pm-cpu-card-name">${card.name || 'Play Card'}</div>
+      <div class="pm-cpu-card-cost">${costLabel}</div>
+      ${ability ? `<div class="pm-cpu-card-effect">${ability}</div>` : ''}
+      <div class="pm-cpu-card-deltas">${deltasHtml}</div>`;
   }
 
+  overlay.hidden = false;
+
   const dismissBtn = $('pm-cpu-overlay-dismiss');
-  // Remove old listener by replacing node
   if (dismissBtn) {
     const newBtn = dismissBtn.cloneNode(true);
     dismissBtn.parentNode.replaceChild(newBtn, dismissBtn);
-    newBtn.addEventListener('click', showNext);
+    newBtn.addEventListener('click', () => {
+      overlay.hidden = true;
+      pmUpdateAll();
+      done();
+    });
   }
-
-  showNext();
 }
 
-// Show CPU sub callout (auto-dismiss)
+// Legacy wrappers — kept for any remaining direct calls, but route through queue
+function pmShowCpuPlayQueue() {
+  pmQueueCpuPlays();
+}
 function pmShowCpuSubCallout(didSub) {
   if (!didSub) return;
-  const callout = $('pm-cpu-sub-callout');
-  if (!callout) return;
-  callout.hidden = false;
-  // Re-trigger animation
-  callout.style.animation = 'none';
-  callout.offsetHeight; // force reflow
-  callout.style.animation = '';
-  setTimeout(() => { callout.hidden = true; }, 2000);
+  pmQueueCpuSub();
 }
 
 function pmInitPlaymat() {
@@ -2018,11 +2102,7 @@ function pmInitPlaymat() {
     if (PM.playerSub(PM.selectedBenchIdx)) pmUpdateAll();
   });
 
-  // CPU overlay dismiss (initial listener — gets replaced dynamically in pmShowCpuPlayQueue)
-  $('pm-cpu-overlay-dismiss')?.addEventListener('click', () => {
-    const overlay = $('pm-cpu-overlay');
-    if (overlay) overlay.hidden = true;
-  });
+  // CPU overlay dismiss — handled dynamically by pmShowSingleCpuPlay via the queue
 
   // Play card click — show detail popup first so user can read effect before playing
   $('pm-hand-cards')?.addEventListener('click', e => {

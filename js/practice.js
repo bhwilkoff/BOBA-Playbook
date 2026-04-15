@@ -1014,16 +1014,17 @@ const PM = {
   // Player resources
   playerHD: 10,
   playerBench: [],           // hero cards available to substitute in
+  playerHeroDeck: [],        // remaining hero cards to draw from for bench refill
   playerPlayHand: [],        // current play cards in hand (4 starting, draw 1/battle)
   playerPlayDeck: [],        // remaining plays
   playerDiscard: [],         // discarded plays
-  playerHeroDeckCount: 0,   // remaining heroes (for display)
   playerSubstituted: false,
   playerPassedPlays: false,
 
   // CPU resources
   cpuHD: 10,
   cpuBench: [],
+  cpuHeroDeck: [],             // remaining hero cards for CPU bench refill
   cpuPlayCount: 30,
   cpuPlayPool: [],             // actual play cards for CPU
   cpuSubstituted: false,
@@ -1074,13 +1075,17 @@ const PM = {
     this.playerBench = [...playerCards.slice(7)];
     this.cpuBench    = [...cpuCards.slice(7)];
 
+    // Remaining hero deck — draw from these to refill bench after substitutions
+    // 60-card hero deck: 7 in battle + 4 on bench = 11 dealt, 49 remaining per side
+    this.playerHeroDeck = heroPool.slice(22, 22 + 49);
+    this.cpuHeroDeck    = heroPool.slice(71, 71 + 49);
+
     // Build play hand from play cards
     const plays = allCards.filter(c => c.cardType === 'Play');
     const shuffledPlays = shuffle([...plays]);
     this.playerPlayHand = shuffledPlays.slice(0, 4); // 4 starting hand per rules §4.3.1
     this.playerPlayDeck = shuffledPlays.slice(4, 30); // 30-card playbook: 4 in hand + 26 in deck
     this.playerDiscard  = [];
-    this.playerHeroDeckCount = 49; // 60-card hero deck minus 11 dealt (7 battles + 4 bench)
 
     // CPU gets its own 30-card play pool (separate shuffle)
     const cpuPlays = shuffle([...plays]);
@@ -1163,10 +1168,8 @@ const PM = {
     this.playerBench.splice(benchIdx, 1); // remove from bench
     this.playerHD -= 2;
     // Draw a new hero from hero deck to refill bench (per rules §Glossary "Substitute")
-    if (this.playerHeroDeckCount > 0) {
-      // In practice mode we don't have full hero deck objects for CPU;
-      // for player, add a placeholder draw from remaining pool
-      this.playerHeroDeckCount--;
+    if (this.playerHeroDeck.length > 0) {
+      this.playerBench.push(this.playerHeroDeck.shift());
     }
     this.playerSubstituted = true;
     this.selectedBenchIdx = null;
@@ -1224,6 +1227,10 @@ const PM = {
       this.battles[this.currentBattle].cpuCard = bestCard;
       this.cpuBench.splice(bestIdx, 1); // remove from bench (original hero discarded)
       this.cpuHD -= 2;
+      // Draw a replacement hero from CPU's deck to refill bench
+      if (this.cpuHeroDeck.length > 0) {
+        this.cpuBench.push(this.cpuHeroDeck.shift());
+      }
       this.cpuSubstituted = true;
       return true;
     }
@@ -1712,7 +1719,7 @@ function pmUpdatePlayerZone() {
   const hdEl  = $('pm-hero-deck-count');
   const plEl  = $('pm-play-deck-count');
   const discEl = $('pm-discard-count');
-  if (hdEl)  hdEl.textContent  = PM.playerHeroDeckCount;
+  if (hdEl)  hdEl.textContent  = PM.playerHeroDeck.length;
   if (plEl)  plEl.textContent  = PM.playerPlayDeck.length;
   if (discEl) discEl.textContent = PM.playerDiscard.length;
 
@@ -1832,7 +1839,8 @@ function pmSaveMatch() {
       playerHD: PM.playerHD, cpuHD: PM.cpuHD, cpuPlayCount: PM.cpuPlayCount,
       playerSubstituted: PM.playerSubstituted, cpuSubstituted: PM.cpuSubstituted,
       playerPassedPlays: PM.playerPassedPlays, cpuPassedPlays: PM.cpuPassedPlays,
-      playerHeroDeckCount: PM.playerHeroDeckCount,
+      playerHeroDeckIds: PM.playerHeroDeck.map(c => c?.bobaId),
+      cpuHeroDeckIds: PM.cpuHeroDeck.map(c => c?.bobaId),
       // Serialize card arrays by bobaId for compact storage
       battles: PM.battles.map(b => ({
         id: b.id, result: b.result, revealed: b.revealed,
@@ -1888,7 +1896,8 @@ function pmRestoreMatch(snap, allCards) {
   PM.cpuSubstituted = snap.cpuSubstituted || false;
   PM.playerPassedPlays = snap.playerPassedPlays || false;
   PM.cpuPassedPlays = snap.cpuPassedPlays || false;
-  PM.playerHeroDeckCount = snap.playerHeroDeckCount || 0;
+  PM.playerHeroDeck = (snap.playerHeroDeckIds || []).map(findCard).filter(Boolean);
+  PM.cpuHeroDeck = (snap.cpuHeroDeckIds || []).map(findCard).filter(Boolean);
   PM.selectedBenchIdx = null;
   PM.cpuPlayQueue = [];
 

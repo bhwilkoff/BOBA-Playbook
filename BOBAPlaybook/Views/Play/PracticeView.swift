@@ -80,11 +80,6 @@ struct PracticeView: View {
                         }
                     }
 
-                    // ── CPU Sub Callout ──────────────────────────────────────
-                    if let callout = store.cpuSubCallout {
-                        cpuSubOverlay(callout)
-                    }
-
                     // ── CPU Play Card Overlay (one at a time) ───────────────
                     if let play = store.currentCpuPlay {
                         cpuPlayOverlay(play)
@@ -101,12 +96,18 @@ struct PracticeView: View {
                     }
 
                     // ── Phase Banner (auto-dismiss after 2s) ────────────────
-                    if showPhaseBanner && !store.battles.isEmpty {
+                    // Don't show phase banner while CPU sub callout is active
+                    if showPhaseBanner && !store.battles.isEmpty && store.cpuSubCallout == nil {
                         if store.phase == .reveal && !store.battles[store.currentBattle].isRevealed {
                             phaseBanner
                         } else if store.phase == .sub && !store.battles[store.currentBattle].isRevealed {
                             subPhaseBanner
                         }
+                    }
+
+                    // ── CPU Sub Callout (shown after phase banner clears) ───
+                    if let callout = store.cpuSubCallout {
+                        cpuSubOverlay(callout)
                     }
                 }
             }
@@ -125,6 +126,11 @@ struct PracticeView: View {
             Button("Keep Playing", role: .cancel) {}
         } message: {
             Text("You can save your match and resume later.")
+        }
+        // Auto-dismiss the initial phase banner (onChange doesn't fire for the initial value)
+        .task {
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation(.easeOut(duration: 0.5)) { showPhaseBanner = false }
         }
         // Close panels when phase changes away from their relevant phase
         .onChange(of: store.phase) { _, newPhase in

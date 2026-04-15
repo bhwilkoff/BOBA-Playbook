@@ -503,19 +503,25 @@ final class PracticeStore {
         let bigUpgrade = bestBenchPower >= currentPower + 30
 
         if weakHero || bigUpgrade {
-            let oldHero = battles[currentBattle].cpuCard
             let best = cpuBench[bestIdx]
             cpuBench.remove(at: bestIdx)
             battles[currentBattle].cpuCard = best
             cpuHotDogs -= 2
 
-            let oldName = oldHero.map { $0.hero.isEmpty ? $0.name : $0.hero } ?? "?"
-            let newName = best.hero.isEmpty ? best.name : best.hero
-            cpuSubCallout = ActionCallout(
-                message: "CPU substituted \(oldName) → \(newName) (PWR \(best.power ?? 0))",
+            // Sub happens before reveal — don't reveal original or new hero names
+            let pendingCallout = ActionCallout(
+                message: "CPU spent 2 Hot Dogs to substitute their hero",
                 icon: "arrow.triangle.2.circlepath",
                 color: "FF4D00"
             )
+            // Delay showing callout so it appears after the phase banner clears (~2.5s)
+            // Only show if still in reveal phase and cards haven't been flipped yet
+            let battleIdx = currentBattle
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(2.5))
+                guard phase == .reveal, !battles[battleIdx].isRevealed else { return }
+                cpuSubCallout = pendingCallout
+            }
         }
         cpuSubstituted = true
     }

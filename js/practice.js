@@ -1185,6 +1185,8 @@ const PM = {
     return true;
   },
 
+  lastEffectResult: null,    // { card, playerDelta, cpuDelta, description } — shown as toast
+
   playerPlayCard(handIdx) {
     if (this.phase !== 'play') return false;
     if (handIdx < 0 || handIdx >= this.playerPlayHand.length) return false;
@@ -1193,16 +1195,33 @@ const PM = {
     if (this.playerHD < cost) return false;
 
     this.playerHD -= cost;
+    this.lastEffectResult = null;
     const hdRecovery = pmDetectHDRecovery(card);
     const b = this.battles[this.currentBattle];
     if (hdRecovery > 0) {
-      // Recovery play: restore hot dogs instead of power bonus
       this.playerHD = Math.min(10, this.playerHD + hdRecovery);
+      this.lastEffectResult = { card, playerDelta: 0, cpuDelta: 0, description: `Recovered ${hdRecovery} Hot Dog${hdRecovery > 1 ? 's' : ''}` };
     } else if (b) {
-      // Use full effects engine instead of simple formula
       const effect = pmResolveEffect(card, b.playerCard, b.cpuCard);
       b.playerEffectPower = (b.playerEffectPower || 0) + (effect.playerDelta || 0);
       b.cpuEffectPower = (b.cpuEffectPower || 0) + (effect.cpuDelta || 0);
+      // Build description for the toast
+      const ability = (card.playAbility || '').toLowerCase();
+      let desc = '';
+      if (ability.includes('flip a coin')) {
+        const success = (effect.playerDelta > 0 || effect.cpuDelta < 0);
+        desc = `Coin flip: ${success ? 'Success!' : 'No effect'}`;
+      } else if (ability.includes('roll a di') || ability.includes('roll a die')) {
+        desc = 'Dice roll';
+      }
+      const parts = [];
+      if (effect.playerDelta > 0) parts.push(`+${effect.playerDelta} to you`);
+      if (effect.playerDelta < 0) parts.push(`${effect.playerDelta} to you`);
+      if (effect.cpuDelta < 0) parts.push(`${effect.cpuDelta} to opponent`);
+      if (effect.cpuDelta > 0) parts.push(`+${effect.cpuDelta} to opponent`);
+      if (parts.length) desc += (desc ? ': ' : '') + parts.join(', ');
+      if (!desc) desc = 'No power change';
+      this.lastEffectResult = { card, playerDelta: effect.playerDelta, cpuDelta: effect.cpuDelta, description: desc };
     }
     if (b) b.playerPlaysPlayed.push(card);
     this.playerPlayHand.splice(handIdx, 1);
@@ -1833,7 +1852,11 @@ function pmShowPlayCardPopup(handIdx) {
     </div>`;
 
   popup.querySelector('.pm-play-popup-play').addEventListener('click', () => {
-    if (PM.playerPlayCard(handIdx)) { popup.remove(); pmUpdateAll(); }
+    if (PM.playerPlayCard(handIdx)) {
+      popup.remove();
+      pmUpdateAll();
+      if (PM.lastEffectResult) pmShowEffectToast(PM.lastEffectResult);
+    }
   });
   popup.querySelector('.pm-play-popup-cancel').addEventListener('click', () => popup.remove());
   popup.addEventListener('click', e => { if (e.target === popup) popup.remove(); });
@@ -2027,6 +2050,41 @@ function pmQueueCpuPlays() {
       }
     });
   });
+}
+
+/** Show a brief toast with the effect result after playing a card */
+function pmShowEffectToast(result) {
+  // Remove any existing toast
+  document.getElementById('pm-effect-toast')?.remove();
+  const { card, playerDelta, cpuDelta, description } = result;
+  const name = card?.name || 'Play';
+  const isPositive = playerDelta > 0 || cpuDelta < 0;
+  const color = isPositive ? '#4CAF50' : (playerDelta < 0 || cpuDelta > 0) ? '#C0392B' : '#00F5FF';
+  const ability = (card?.playAbility || '').toLowerCase();
+  let icon = '✦';
+  if (ability.includes('flip a coin')) icon = '🪙';
+  else if (ability.includes('roll a di') || ability.includes('roll a die')) icon = '🎲';
+  else if (ability.includes('steal')) icon = '⚡';
+  else if (ability.includes('swap')) icon = '🔄';
+
+  const toast = document.createElement('div');
+  toast.id = 'pm-effect-toast';
+  toast.className = 'pm-effect-toast';
+  toast.innerHTML = `
+    <span class="pm-effect-toast-icon">${icon}</span>
+    <span class="pm-effect-toast-name" style="color:${color}">${name}</span>
+    <span class="pm-effect-toast-desc">${description}</span>`;
+
+  const mat = $('practice-playmat');
+  if (mat) mat.appendChild(toast);
+
+  // Force reflow then animate in
+  toast.offsetHeight;
+  toast.classList.add('visible');
+  setTimeout(() => {
+    toast.classList.remove('visible');
+    setTimeout(() => toast.remove(), 400);
+  }, 2500);
 }
 
 // Show a single CPU play card overlay; calls done() when user dismisses

@@ -337,7 +337,7 @@ enum PlayEffectExecutor {
 
         case "add_top_hero_power_to_self":
             if let top = ctx.selfHeroDeck.first {
-                out.selfDelta += top.power
+                out.selfDelta += top.power ?? 0
             }
             out.hasEffect = true
 

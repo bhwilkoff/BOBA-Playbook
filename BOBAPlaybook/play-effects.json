@@ -203,6 +203,7 @@
       "cost": 1,
       "ability": "Play this in Battle 5 or later, for every Battle you have won your active Hero gets +5.",
       "category": "conditional",
+      "requires": { "type": "battle_num", "comparison": "gte", "value": 5 },
       "effects": [
         {
           "if": {
@@ -2364,6 +2365,7 @@
       "cost": 1,
       "ability": "Play this in Battle 5 or later. Your Hero gets +5 for each Battle you’ve won.",
       "category": "conditional",
+      "requires": { "type": "battle_num", "comparison": "gte", "value": 5 },
       "effects": [
         {
           "if": {
@@ -3819,6 +3821,7 @@
       "cost": 1,
       "ability": "This must be played in Battle 7. Your opponent switches their number of unused Hot Dogs with you.",
       "category": "conditional",
+      "requires": { "type": "battle_num", "comparison": "eq", "value": 7 },
       "effects": [
         {
           "if": {
@@ -4139,6 +4142,7 @@
       "cost": 3,
       "ability": "This must be played on or after Battle 4. You and your opponent both lose 1 Hot Dog at the start of each Battle.",
       "category": "economy",
+      "requires": { "type": "battle_num", "comparison": "gte", "value": 4 },
       "effects": [],
       "persistent": [
         {
@@ -7545,6 +7549,13 @@
       "cost": 0,
       "ability": "This can only be played in Battle 5 or 6. Your Hero gets +20. If you lose this battle, Discard 2 Plays from your hand.",
       "category": "tempo",
+      "requires": {
+        "type": "all",
+        "of": [
+          { "type": "battle_num", "comparison": "gte", "value": 5 },
+          { "type": "battle_num", "comparison": "lte", "value": 6 }
+        ]
+      },
       "effects": [
         {
           "op": "power",

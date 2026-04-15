@@ -112,6 +112,8 @@ struct PracticePlaysPanel: View {
 
     private func cardDetail(card: Card) -> some View {
         let canAfford = (card.playCost ?? 0) <= store.playerHotDogs
+        let canUse = PlayEffects.isPlayable(name: card.name, ctx: store.makeExecContext(self_: .player))
+        let playable = canAfford && canUse
         let isPlayPhase = store.phase == .play
 
         return HStack(spacing: Design.Spacing.sm) {
@@ -133,22 +135,23 @@ struct PracticePlaysPanel: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             if isPlayPhase && !store.playerPassedPlays {
+                let label: String = !canAfford ? "CAN'T\nAFFORD" : (!canUse ? "NOT\nYET" : "PLAY")
                 Button {
-                    guard canAfford else { return }
+                    guard playable else { return }
                     store.playerPlayCard(card)
                     selectedCard = nil
                 } label: {
-                    Text(canAfford ? "PLAY" : "CAN'T\nAFFORD")
+                    Text(label)
                         .font(Design.Fonts.mono(10, weight: .bold))
-                        .foregroundStyle(canAfford ? Design.Colors.nearBlack : Design.Colors.textMuted)
+                        .foregroundStyle(playable ? Design.Colors.nearBlack : Design.Colors.textMuted)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 10)
                         .frame(width: 70, height: 28)
                         .background(RoundedRectangle(cornerRadius: 6)
-                            .fill(canAfford ? Design.Colors.bobaOrange : Design.Colors.glass))
+                            .fill(playable ? Design.Colors.bobaOrange : Design.Colors.glass))
                 }
                 .buttonStyle(.plain)
-                .disabled(!canAfford)
+                .disabled(!playable)
             }
         }
         .padding(Design.Spacing.sm)

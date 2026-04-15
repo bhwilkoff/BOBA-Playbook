@@ -36,6 +36,14 @@ enum PlayEffects {
         loadIfNeeded()
         return entries[name]
     }
+
+    // Legality gate: true unless the entry declares an unmet `requires` condition.
+    // Only hard-gated cards set `requires`; everything else passes.
+    static func isPlayable(name: String, ctx: PlayExecContext) -> Bool {
+        guard let e = entry(for: name),
+              let req = e["requires"] as? [String: Any] else { return true }
+        return PlayEffectExecutor.evalCondition(req, ctx: ctx)
+    }
 }
 
 // ════════════════════════════════════════════════════════════════

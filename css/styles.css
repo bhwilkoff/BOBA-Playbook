@@ -5749,6 +5749,25 @@ main {
 }
 .pm-cpu-overlay-dismiss:hover { background: rgba(139,0,255,0.35); }
 
+/* Effect result toast (shown after playing a card) */
+.pm-effect-toast {
+  position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%) translateY(10px);
+  background: rgba(8,8,16,0.92); border: 1px solid rgba(0,245,255,0.25); border-radius: 10px;
+  padding: 8px 16px; z-index: 35; pointer-events: none;
+  display: flex; align-items: center; gap: 8px;
+  opacity: 0; transition: opacity 0.3s, transform 0.3s;
+}
+.pm-effect-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+.pm-effect-toast-icon { font-size: 1.1rem; }
+.pm-effect-toast-name {
+  font-family: var(--font-mono, monospace); font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.04em; white-space: nowrap;
+}
+.pm-effect-toast-desc {
+  font-family: var(--font-mono, monospace); font-size: 0.65rem; color: rgba(255,255,255,0.7);
+  white-space: nowrap;
+}
+
 /* CPU sub callout */
 .pm-cpu-sub-callout {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);

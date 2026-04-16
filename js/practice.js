@@ -2598,9 +2598,11 @@ const PM = {
     PM._peekCallouts = [];
     PM._playCostMods = { player: [], cpu: [] };
     PM._endBattleImmediately = false;
+    // Per rules §4.3.1: starting player is determined randomly (coin flip).
+    const startHonors = Math.random() < 0.5 ? 'player' : 'cpu';
     Object.assign(this, {
       matchOver: false, matchWinner: null, playerScore: 0, cpuScore: 0,
-      honors: 'player', currentBattle: 0,
+      honors: startHonors, currentBattle: 0,
       // Per rules: Sub phase comes BEFORE reveal for non-rookie modes
       phase: this.mode === 'rookie' ? 'reveal' : 'sub',
       playerHD: 10, cpuHD: 10, cpuPlayCount: 30,

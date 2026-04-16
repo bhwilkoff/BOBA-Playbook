@@ -902,7 +902,8 @@ final class PracticeStore {
         playerScore = 0; cpuScore = 0
         playerHotDogs = 10; cpuHotDogs = 10
         cpuPlaysRemaining = 30
-        honors = .player
+        // Per rules §4.3.1: starting player is determined randomly (coin flip).
+        honors = Bool.random() ? .player : .cpu
         currentBattle = 0
         // Per rules: Sub phase comes BEFORE reveal (§4.2.2, §4.3.2)
         // Rookie has no sub phase, starts at reveal

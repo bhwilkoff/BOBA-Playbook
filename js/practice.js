@@ -826,20 +826,48 @@ function pmEffectiveCost(card, side /* 'player' | 'cpu' */) {
 function pmEntryHasUnknownOps(entry) {
   if (!entry) return false;
   const known = new Set([
+    // Power / HD
     'power','power_set','power_swap','power_double','power_steal','power_cap_min',
-    'hd','hd_recover','draw','discard','coin_flip','dice_roll',
+    'power_reset','add_previous_hero_delta','add_top_hero_power_to_self',
+    'hd','hd_recover','swap_hd_counts',
+    // Plays / hand / discard
+    'draw','discard','discard_top','discard_hand_all','shuffle_hand_into_deck',
+    'shuffle_from_discard_to_deck','reclaim_used_play','variable_cost_bonus',
+    // Randomness
+    'coin_flip','dice_roll','compound_roll','dice_roll_again',
+    // Legality / control
     'protect_self','cancel_opponent_plays','cap_opponent_plays',
-    'block_sub','block_draw','block_hd_recover','block_plays',
-    'honors_set','substitute_free','variable_cost_bonus','add_previous_hero_delta','note',
-    'swap_hd_counts','play_cost_delta','shuffle_hand_into_deck','shuffle_from_discard_to_deck',
-    'discard_top','discard_hand_all','power_reset','add_top_hero_power_to_self','reclaim_used_play'
+    'block_sub','block_plays','block_draw','block_hd_recover',
+    'honors_set','substitute_free','force_substitute',
+    'play_cost_delta','cancel_persistent','persistent_delta',
+    // Hero manipulation
+    'swap_active_with_hand','swap_active_with_discard','swap_active_with_future_hero',
+    'replace_active_with_top_hero_deck','replace_next_with_top_hero_deck',
+    'replace_all_unrevealed_with_top_hero_deck','replace_active_from_hand',
+    'discard_hero','discard_hero_from_hand','discard_revealed_hero',
+    'transform_to_hot_dog','mark_future_battle',
+    // Reveal / peek / search / copy
+    'reveal','reveal_top','reveal_top_hero_deck','peek_and_reorder_top',
+    'reveal_top_reorder_or_bottom','peek_opponent_hand','peek_unrevealed_hero',
+    'reorder_unrevealed_heroes','shuffle_revealed_back','force_reveal_from_hand',
+    'search','copy_last_play','play_revealed_free','play_top_of_playbook_free',
+    'discard_revealed','deploy_chosen_revealed','discard_other_revealed',
+    'add_chosen_revealed_to_hand_discard_rest','name_and_discard',
+    // Choice
+    'choice',
+    // Specials
+    'mirror_power_effects_to_opponent','flip_opponent_debuffs',
+    'tax_per_hero_in_hand','transfer_sub_cost','end_battle_by_power',
+    'weapon_debuff_or_penalty','note'
   ]);
   let found = false;
   const walk = (s) => {
     if (found || !s || typeof s !== 'object') return;
     if (Array.isArray(s)) { s.forEach(walk); return; }
     if (s.op && !known.has(s.op)) { found = true; return; }
-    ['then','else','options','effect','on_match','on_miss','heads','tails'].forEach(k => { if (s[k]) walk(s[k]); });
+    ['then','else','options','choice','effect','on_match','on_miss',
+     'heads','tails','if_match','on_reveal_effects','components',
+     'per_hero_cost','fallback'].forEach(k => { if (s[k]) walk(s[k]); });
     if (s.branches) s.branches.forEach(b => { if (b.then) walk(b.then); if (b.effect) walk(b.effect); });
   };
   (entry.effects || []).forEach(walk);
@@ -960,6 +988,68 @@ function pmEvalMetric(metric, args, ctx) {
       if (kind === 'hot_dog') return pile.filter(c => c.cardType === 'HotDog').length;
       return pile.length;
     }
+    case 'revealed_hero_power':
+    case 'current_power':
+    case 'starting_power':
+      return bound.selfCard?.power || 0;
+    case 'drawn_hero_power': {
+      const deck = ctx.selfHeroDeck || [];
+      return deck[0]?.power || 0;
+    }
+    case 'drawn_play_cost':
+    case 'revealed_play_cost':
+      return (bound.selfHand || [])[0]?.playCost || 0;
+    case 'chosen_play_cost': {
+      const hand = bound.selfHand || [];
+      return hand.reduce((m, c) => Math.max(m, c?.playCost || 0), 0);
+    }
+    case 'discard_pile_heroes': {
+      const pile = bound.selfDiscard || [];
+      return pile.filter(c => c.cardType === 'Hero').length;
+    }
+    case 'discard_pile_heroes_weapon_match': {
+      const pile = bound.selfDiscard || [];
+      const activeW = ctx.selfCard?.element;
+      return pile.filter(c => c.cardType === 'Hero' && c.element === activeW).length;
+    }
+    case 'discard_pile_count_excluding_hd': {
+      const pile = bound.selfDiscard || [];
+      return pile.filter(c => c.cardType !== 'HotDog').length;
+    }
+    case 'distinct_weapons_revealed': {
+      const weapons = new Set();
+      for (let i = 0; i <= ctx.battleIdx; i++) {
+        const b = PM.battles[i]; if (!b) continue;
+        if (b.playerCard?.element) weapons.add(b.playerCard.element);
+        if (b.cpuCard?.element)    weapons.add(b.cpuCard.element);
+      }
+      return weapons.size;
+    }
+    case 'battles_lost_streak': {
+      let streak = 0, i = ctx.battleIdx - 1;
+      while (i >= 0) {
+        const slot = PM.battles[i]; if (!slot) break;
+        const isLost = (ctx.self === 'player' && slot.result === 'lose') || (ctx.self === 'cpu' && slot.result === 'win');
+        if (isLost) { streak++; i--; } else break;
+      }
+      return streak;
+    }
+    case 'hd_count_before_cost':
+      return bound.selfHD || 0;
+    case 'hd_discarded_this_battle':
+      return Math.max(0, 10 - (bound.selfHD || 0));
+    case 'opponent_hd_used_this_battle':
+      return Math.max(0, 10 - (ctx.oppHD || 0));
+    case 'cards_discarded_by_this_play':
+      // set by discard_hand_all; read by "power" formulae within same execution
+      return 0;
+    case 'plays_in_hand_before_shuffle':
+      return (bound.selfHand || []).length;
+    case 'discarded_plays_cost_gte': {
+      const pile = bound.selfDiscard || [];
+      const minCost = args.min_cost || args.offset || 3;
+      return pile.filter(c => c.cardType === 'Play' && (c.playCost || 0) >= minCost).length;
+    }
     default: return 0;
   }
 }
@@ -1037,6 +1127,115 @@ function pmEvalCondition(cond, ctx) {
       return selfView ? ctx.selfSubstituted : false;
     case 'honors':
       return ctx.honors === ctx.self;
+    case 'hero_name': {
+      const want = cond.equals;
+      return (card?.name === want) || (card?.hero === want);
+    }
+    case 'metric_compare': {
+      const l = pmEvalFormula(cond.left, ctx);
+      const r = pmEvalFormula(cond.right, ctx);
+      return pmCmp(l, cond.comparison, r);
+    }
+    case 'plays_used':
+      return pmCmp(ctx.playsUsedThisBattle || 0, cond.comparison, cond.value);
+    case 'weapon_streak': {
+      const length = cond.length || 2;
+      const ref = cond.weapon_ref || 'current_hero';
+      let refWeapon = null;
+      if (ref === 'current_hero') refWeapon = selfView ? ctx.selfCard?.element : ctx.oppCard?.element;
+      if (!refWeapon) return false;
+      let matched = 0, i = ctx.battleIdx - 1;
+      while (i >= 0 && matched < length) {
+        const slot = PM.battles[i]; if (!slot) break;
+        const hero = selfView
+          ? (ctx.self === 'player' ? slot.playerCard : slot.cpuCard)
+          : (ctx.self === 'player' ? slot.cpuCard : slot.playerCard);
+        if (hero?.element === refWeapon) matched++; else break;
+        i--;
+      }
+      return matched >= length;
+    }
+    case 'previous_two_heroes_share_weapon': {
+      if (ctx.battleIdx < 2) return false;
+      const b1 = PM.battles[ctx.battleIdx - 1], b2 = PM.battles[ctx.battleIdx - 2];
+      const h1 = selfView ? (ctx.self === 'player' ? b1.playerCard : b1.cpuCard) : (ctx.self === 'player' ? b1.cpuCard : b1.playerCard);
+      const h2 = selfView ? (ctx.self === 'player' ? b2.playerCard : b2.cpuCard) : (ctx.self === 'player' ? b2.cpuCard : b2.playerCard);
+      return h1?.element && h1.element === h2?.element;
+    }
+    case 'previous_and_current_share_weapon': {
+      if (ctx.battleIdx < 1) return false;
+      const prev = PM.battles[ctx.battleIdx - 1];
+      const prevHero = selfView ? (ctx.self === 'player' ? prev.playerCard : prev.cpuCard) : (ctx.self === 'player' ? prev.cpuCard : prev.playerCard);
+      return ctx.selfCard?.element && ctx.selfCard.element === prevHero?.element;
+    }
+    case 'opponent_played_weapon_match': {
+      const ref = cond.weapon_ref || 'self_current_hero';
+      const refWeapon = ref === 'self_current_hero' ? ctx.selfCard?.element : null;
+      if (!refWeapon) return false;
+      const b = PM.battles[ctx.battleIdx]; if (!b) return false;
+      const oppPlays = ctx.self === 'player' ? (b.cpuPlaysPlayed || b.cpuPlaysRan || []) : (b.playerPlaysPlayed || []);
+      return oppPlays.some(p => p?.element === refWeapon);
+    }
+    case 'next_hero_power_gt': {
+      const side = target === 'opponent' ? ctx.opp : ctx.self;
+      const slot = PM.battles[ctx.battleIdx + 1]; if (!slot) return false;
+      const c = side === 'player' ? slot.playerCard : slot.cpuCard;
+      return (c?.power || 0) > (cond.value || 0);
+    }
+    case 'next_hero_weapon_equals': {
+      const side = target === 'opponent' ? ctx.opp : ctx.self;
+      const slot = PM.battles[ctx.battleIdx + 1]; if (!slot) return false;
+      const c = side === 'player' ? slot.playerCard : slot.cpuCard;
+      if (cond.weapon === 'player_named') return true;
+      return c?.element === cond.weapon;
+    }
+    case 'hd_count_compare': {
+      switch (cond.comparison) {
+        case 'opp_gt_self': return ctx.oppHD > ctx.selfHD;
+        case 'self_gt_opp': return ctx.selfHD > ctx.oppHD;
+        case 'opp_lt_self': return ctx.oppHD < ctx.selfHD;
+        case 'self_lt_opp': return ctx.selfHD < ctx.oppHD;
+        case 'eq': return ctx.selfHD === ctx.oppHD;
+        default: return false;
+      }
+    }
+    case 'hand_count_compare': {
+      const sc = (ctx.selfHand || []).length;
+      switch (cond.comparison) {
+        case 'opp_gt_self': return 0 > sc;
+        case 'self_gt_opp': return sc > 0;
+        default: return false;
+      }
+    }
+    case 'discarded_hero_weapon_matches_active': {
+      const pile = selfView ? (ctx.selfDiscard || []) : [];
+      const activeW = ctx.selfCard?.element;
+      return pile.some(c => c?.cardType === 'Hero' && c.element === activeW);
+    }
+    case 'battle_won_nth': {
+      const n = cond.n || 1;
+      const slot = PM.battles[n - 1]; if (!slot || !slot.result) return false;
+      return (ctx.self === 'player' && slot.result === 'win') || (ctx.self === 'cpu' && slot.result === 'lose');
+    }
+    case 'battles_won_streak': {
+      let streak = 0, i = ctx.battleIdx - 1;
+      while (i >= 0) {
+        const slot = PM.battles[i]; if (!slot) break;
+        const won = (ctx.self === 'player' && slot.result === 'win') || (ctx.self === 'cpu' && slot.result === 'lose');
+        if (won) { streak++; i--; } else break;
+      }
+      return pmCmp(streak, cond.comparison, cond.value);
+    }
+    case 'battles_lost_first_n': {
+      const n = cond.n || 1;
+      let lost = 0;
+      for (let i = 0; i < Math.min(n, ctx.battleIdx); i++) {
+        const slot = PM.battles[i]; if (!slot) break;
+        const isLost = (ctx.self === 'player' && slot.result === 'lose') || (ctx.self === 'cpu' && slot.result === 'win');
+        if (isLost) lost++;
+      }
+      return lost >= n;
+    }
     case 'all':
       return (cond.of || []).every(c => pmEvalCondition(c, ctx));
     case 'any':
@@ -1076,12 +1275,13 @@ function pmExecStep(step, ctx, out) {
     if (!opts || !opts.length) return;
     let best = opts[0], bestScore = -Infinity;
     for (const o of opts) {
-      const probe = { selfDelta: 0, oppDelta: 0, selfHDDelta: 0, oppHDDelta: 0, draws: 0, discards: 0, hasEffect: false, unknownOps: [] };
+      const probe = { selfDelta: 0, oppDelta: 0, selfHDDelta: 0, oppHDDelta: 0, draws: 0, discards: 0, hasEffect: false, unknownOps: [], notifications: [] };
       for (const s of (o.effects || [])) pmExecStep(s, ctx, probe);
       const score = probe.selfDelta - probe.oppDelta + probe.selfHDDelta * 5;
       if (score > bestScore) { best = o; bestScore = score; }
     }
     for (const s of (best.effects || [])) pmExecStep(s, ctx, out);
+    if (best.label) out.notifications.push(`Chose: ${best.label}`);
     return;
   }
   const op = step.op;
@@ -1247,20 +1447,43 @@ function pmExecStep(step, ctx, out) {
     case 'block_sub':
     case 'block_draw':
     case 'block_hd_recover':
-    case 'block_plays':
-      // tracked as persistent — skip mechanical effect, note only
-      break;
-    case 'honors_set':
-      // record for next battle (applied in resolve())
-      if (step.target === 'self') PM._nextHonors = ctx.self;
-      else if (step.target === 'opponent') PM._nextHonors = ctx.opp;
+    case 'block_plays': {
+      const targetSide = (step.target === 'opponent') ? ctx.opp : ctx.self;
+      const scope = step.scope || step.duration || 'this_battle';
+      PM._blocks = PM._blocks || { player: [], cpu: [] };
+      PM._blocks[targetSide].push({ kind: op, scope, installedAt: PM.currentBattle });
+      out.notifications.push(`${targetSide === ctx.self ? 'You' : 'Opponent'} blocked: ${op.replace(/_/g, ' ')}`);
       out.hasEffect = true;
       break;
-    case 'substitute_free':
-      PM._nextSubFree = PM._nextSubFree || {};
-      PM._nextSubFree[step.target === 'opponent' ? ctx.opp : ctx.self] = true;
+    }
+    case 'honors_set': {
+      const targetSide = (step.target === 'opponent') ? ctx.opp : ctx.self;
+      const scope = step.scope || 'next_battle';
+      PM._pendingHonors = { side: targetSide, scope, installedAt: PM.currentBattle };
+      out.notifications.push(`Honors → ${targetSide === 'player' ? 'Player' : 'CPU'} (${scope})`);
       out.hasEffect = true;
       break;
+    }
+    case 'substitute_free': {
+      const targetSide = (step.target === 'opponent') ? ctx.opp : ctx.self;
+      const scope = step.scope || 'next_battle';
+      PM._freeSub = PM._freeSub || {};
+      PM._freeSub[targetSide] = { scope, installedAt: PM.currentBattle };
+      out.notifications.push(`Free substitute (${scope})`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'force_substitute': {
+      const targetSide = (step.target === 'opponent') ? ctx.opp : ctx.self;
+      const cost = step.cost != null ? step.cost : 2;
+      // Force: deduct HD now, swap active with best bench immediately
+      if (targetSide === 'player') PM.playerHD = Math.max(0, PM.playerHD - cost);
+      else PM.cpuHD = Math.max(0, PM.cpuHD - cost);
+      pmIntentSwapActiveWithHand(targetSide);
+      out.notifications.push(`Forced substitute (${cost} HD)`);
+      out.hasEffect = true;
+      break;
+    }
     case 'variable_cost_bonus': {
       // Player chooses X extra HDs; self +factor*X. Auto-spend remaining HD up to reasonable cap.
       const factor = step.factor || step.per_hd || 5;
@@ -1322,15 +1545,31 @@ function pmExecStep(step, ctx, out) {
       break;
     }
     case 'shuffle_from_discard_to_deck': {
-      // Player side, play kind only — move N (or all) from discard back into deck
+      // Player side: move N (or all) from discard back into deck. Supports
+      // kind: "play" (default), "hero", or "all" (excluding hot_dog).
       const side = step.target === 'opponent' ? ctx.opp : ctx.self;
-      if (side === 'player' && (step.kind || 'play') === 'play') {
-        const n = step.count || PM.playerDiscard.length;
-        const moved = PM.playerDiscard.splice(0, n);
-        PM.playerPlayDeck.push(...moved);
+      if (side === 'player') {
+        const kind = step.kind || 'play';
+        let candidates;
+        if (kind === 'play') candidates = PM.playerDiscard.filter(c => c.cardType === 'Play');
+        else if (kind === 'hero') candidates = PM.playerDiscard.filter(c => c.cardType === 'Hero');
+        else if (kind === 'all') {
+          const excl = step.exclude_kind;
+          candidates = PM.playerDiscard.filter(c => {
+            if (excl === 'hot_dog' && c.cardType === 'HotDog') return false;
+            return true;
+          });
+        } else candidates = PM.playerDiscard.slice();
+        const n = step.count != null ? step.count : candidates.length;
+        const moving = candidates.slice(0, n);
+        PM.playerDiscard = PM.playerDiscard.filter(c => !moving.includes(c));
+        // Move heroes back to hero deck; plays to play deck
+        for (const c of moving) {
+          if (c.cardType === 'Hero') PM.playerHeroDeck.push(c);
+          else PM.playerPlayDeck.push(c);
+        }
         PM.playerPlayDeck = shuffle(PM.playerPlayDeck);
-      } else {
-        out.unknownOps.push(op + '(' + (step.kind||'play') + ',' + (side) + ')');
+        PM.playerHeroDeck = shuffle(PM.playerHeroDeck);
       }
       out.hasEffect = true;
       break;
@@ -1401,6 +1640,339 @@ function pmExecStep(step, ctx, out) {
       break;
     }
 
+    // ── Tier B: Hero manipulation ──────────────────────────────
+    case 'swap_active_with_hand': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      pmIntentSwapActiveWithHand(side);
+      out.notifications.push(`Swapped active hero with hand`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'swap_active_with_discard': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      pmIntentSwapActiveWithDiscard(side, step.weapon_filter || null);
+      out.notifications.push(`Swapped active with discard pile${step.weapon_filter ? ` (filter: ${step.weapon_filter})` : ''}`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'swap_active_with_future_hero': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      pmIntentSwapActiveWithFuture(side);
+      out.notifications.push(`Swapped active with next battle's hero`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'replace_active_with_top_hero_deck': {
+      const sides = step.target === 'both' ? [ctx.self, ctx.opp] : [step.target === 'opponent' ? ctx.opp : ctx.self];
+      for (const s of sides) pmIntentReplaceActiveWithTopDeck(s);
+      out.notifications.push(`Replaced active hero from top of deck`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'replace_next_with_top_hero_deck': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      pmIntentReplaceNextWithTopDeck(side);
+      out.notifications.push(`Replaced next battle's hero from top of deck`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'replace_all_unrevealed_with_top_hero_deck': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      pmIntentReplaceAllUnrevealedWithTopDeck(side);
+      out.notifications.push(`Replaced all unrevealed heroes from deck`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'replace_active_from_hand': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      pmIntentSwapActiveWithHand(side);
+      out.notifications.push(`Replaced active hero from bench`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'discard_hero': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      const src = step.source || 'active';
+      if (src === 'active') pmIntentDiscardActiveHero(side);
+      else pmIntentDiscardHeroFromHand(side);
+      out.notifications.push(src === 'active' ? `Discarded active hero` : `Discarded hero from hand`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'discard_hero_from_hand': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      pmIntentDiscardHeroFromHand(side);
+      out.notifications.push(`Discarded hero from hand`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'discard_revealed_hero':
+    case 'discard_revealed': {
+      out.notifications.push(op === 'discard_revealed_hero' ? `Discarded revealed hero` : `Discarded revealed play`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'transform_to_hot_dog': {
+      const tgt = step.target;
+      const side = tgt === 'opponent' ? ctx.opp : ctx.self;
+      pmIntentTransformToHotDog(side);
+      out.notifications.push(`Active hero transformed → Hot Dog`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'mark_future_battle': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      pmIntentMarkFutureBattle(side, step.on_reveal_effects || []);
+      out.notifications.push(`Marked a future battle`);
+      out.hasEffect = true;
+      break;
+    }
+
+    // ── Tier B/C: Reveal / peek / search / copy ────────────────
+    case 'reveal_top_hero_deck': {
+      const count = step.count || 1;
+      const sides = step.target === 'both' ? [ctx.self, ctx.opp] : [step.target === 'opponent' ? ctx.opp : ctx.self];
+      for (const s of sides) pmIntentPeekHeroDeck(s, count, ctx);
+      out.hasEffect = true;
+      break;
+    }
+    case 'peek_unrevealed_hero': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      const sel = step.selector || 'self_next_battle';
+      pmIntentPeekUnrevealedHero(side, sel, ctx);
+      out.hasEffect = true;
+      break;
+    }
+    case 'reorder_unrevealed_heroes': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      pmIntentReorderUnrevealedHeroes(side);
+      out.notifications.push(`Reordered unrevealed heroes`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'reveal': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      const kind = step.kind || 'hero';
+      const count = step.count || 1;
+      if (kind === 'hero') pmIntentRevealTopHeroes(side, count);
+      else pmIntentRevealTopPlays(side, count);
+      out.hasEffect = true;
+      break;
+    }
+    case 'reveal_top': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      const count = step.count || 1;
+      const kind = step.kind || 'play';
+      if (kind === 'play') pmIntentRevealTopPlays(side, count);
+      else pmIntentPeekHeroDeck(side, count, ctx);
+      out.hasEffect = true;
+      break;
+    }
+    case 'peek_and_reorder_top': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      const count = step.count || 3;
+      pmIntentRevealTopPlays(side, count);
+      out.notifications.push(`Peeked + reordered top ${count} plays`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'reveal_top_reorder_or_bottom': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      const count = step.count || 2;
+      pmIntentRevealTopPlays(side, count);
+      out.notifications.push(`Peeked opponent's top ${count} plays`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'shuffle_revealed_back':
+      out.notifications.push(`Shuffled revealed plays back into deck`);
+      out.hasEffect = true;
+      break;
+    case 'force_reveal_from_hand': {
+      const count = step.count || 1;
+      pmIntentPeekOpponentHand(ctx.self, count, 'chooser');
+      out.notifications.push(`Forced opponent to reveal ${count} play${count === 1 ? '' : 's'}`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'peek_opponent_hand': {
+      const count = step.count || 1;
+      const mode = step.mode || 'random';
+      pmIntentPeekOpponentHand(ctx.self, count, mode);
+      out.hasEffect = true;
+      break;
+    }
+    case 'search': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      const action = step.action || 'play_free';
+      pmIntentSearchPlaybook(side, step.filter || {}, action, ctx);
+      out.notifications.push(`Searched Playbook (${action})`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'copy_last_play': {
+      const side = step.target === 'opponent' ? ctx.opp : ctx.self;
+      pmIntentCopyLastPlay(side, ctx);
+      out.notifications.push(`Copied last play`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'play_revealed_free':
+    case 'play_top_of_playbook_free': {
+      pmIntentPlayTopOfPlaybookFree(ctx.self, ctx);
+      out.notifications.push(op === 'play_revealed_free' ? `Played revealed card free` : `Played top of Playbook free`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'discard_other_revealed':
+      out.notifications.push(`Discarded other revealed cards`);
+      out.hasEffect = true;
+      break;
+    case 'deploy_chosen_revealed':
+      out.notifications.push(`Deployed chosen revealed hero`);
+      out.hasEffect = true;
+      break;
+    case 'add_chosen_revealed_to_hand_discard_rest':
+      out.notifications.push(`Added chosen revealed hero to hand; discarded rest`);
+      out.hasEffect = true;
+      break;
+    case 'name_and_discard':
+      out.notifications.push(`Named a card — opponent discards if match`);
+      out.hasEffect = true;
+      break;
+
+    // ── Tier C: Complex specials ───────────────────────────────
+    case 'mirror_power_effects_to_opponent': {
+      const b = PM.battles[PM.currentBattle];
+      if (b) {
+        const selfEff = ctx.self === 'player' ? (b.playerEffectPower || 0) : (b.cpuEffectPower || 0);
+        out.oppDelta += selfEff;
+        out.notifications.push(`Mirrored ${selfEff} power to opponent`);
+      }
+      out.hasEffect = true;
+      break;
+    }
+    case 'flip_opponent_debuffs': {
+      const b = PM.battles[PM.currentBattle];
+      if (b) {
+        const selfEff = ctx.self === 'player' ? (b.playerEffectPower || 0) : (b.cpuEffectPower || 0);
+        if (selfEff < 0) {
+          out.selfDelta += (-selfEff * 2);
+          out.notifications.push(`Flipped ${selfEff} debuff → +${-selfEff} bonus`);
+        }
+      }
+      out.hasEffect = true;
+      break;
+    }
+    case 'cancel_persistent': {
+      const target = step.target || 'opponent';
+      const before = (PM._persistents || []).length;
+      if (target === 'self') {
+        PM._persistents = (PM._persistents || []).filter(p => p.owner !== ctx.self);
+      } else if (target === 'opponent') {
+        PM._persistents = (PM._persistents || []).filter(p => p.owner !== ctx.opp);
+      } else {
+        PM._persistents = [];
+      }
+      const removed = before - (PM._persistents || []).length;
+      if (removed > 0) out.notifications.push(`Canceled ${removed} persistent effect${removed === 1 ? '' : 's'}`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'persistent_delta': {
+      // Install persistent with the inner effect
+      PM._persistents = PM._persistents || [];
+      PM._persistents.push({ owner: ctx.self, spec: step, installedAt: PM.currentBattle });
+      out.hasEffect = true;
+      break;
+    }
+    case 'tax_per_hero_in_hand': {
+      const target = step.target === 'opponent' ? ctx.opp : ctx.self;
+      const perDelta = (step.per_hero_cost && step.per_hero_cost.delta) || 0;
+      const fallbackDiscards = (step.fallback && step.fallback.count) || 0;
+      pmIntentTaxPerHeroInHand(target, perDelta, fallbackDiscards);
+      out.hasEffect = true;
+      break;
+    }
+    case 'transfer_sub_cost': {
+      const target = step.target === 'opponent' ? ctx.opp : ctx.self;
+      const amount = step.amount || 2;
+      PM._subCostTransfer = PM._subCostTransfer || {};
+      PM._subCostTransfer[target] = { payer: ctx.self, amount };
+      out.notifications.push(`Paying next sub for ${target === 'player' ? 'player' : 'opponent'}`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'end_battle_by_power':
+      PM._endBattleImmediately = true;
+      out.notifications.push(`Battle ended immediately by current power`);
+      out.hasEffect = true;
+      break;
+    case 'weapon_debuff_or_penalty': {
+      // Auto-pick: match opponent's active weapon → apply if_match; else else
+      const oppW = ctx.oppCard?.element;
+      if (oppW && step.if_match) {
+        pmExecStep(step.if_match, ctx, out);
+        out.notifications.push(`Named weapon matched`);
+      } else if (step.else) {
+        pmExecStep(step.else, ctx, out);
+        out.notifications.push(`Named weapon missed — penalty`);
+      }
+      out.hasEffect = true;
+      break;
+    }
+    case 'compound_roll': {
+      const comps = step.components || [];
+      let coinHeads = null, dieVal = null;
+      for (const c of comps) {
+        if (c.op === 'coin_flip') coinHeads = Math.random() < 0.5;
+        else if (c.op === 'dice_roll') dieVal = Math.floor(Math.random() * 6) + 1;
+      }
+      let matched = false;
+      for (const br of (step.branches || [])) {
+        if (br.match === 'otherwise') continue;
+        if (typeof br.match === 'object' && br.match != null) {
+          let ok = true;
+          if (br.match.coin) {
+            const got = coinHeads ? 'heads' : 'tails';
+            if (got !== br.match.coin) ok = false;
+          }
+          if (Array.isArray(br.match.die_range) && dieVal != null) {
+            if (!(dieVal >= br.match.die_range[0] && dieVal <= br.match.die_range[1])) ok = false;
+          }
+          if (ok && br.effect) {
+            for (const s of br.effect) pmExecStep(s, ctx, out);
+            matched = true;
+            out.notifications.push(`Compound roll → branch matched`);
+            break;
+          }
+        }
+      }
+      if (!matched) {
+        for (const br of (step.branches || [])) {
+          if (br.match === 'otherwise' && br.effect) {
+            for (const s of br.effect) pmExecStep(s, ctx, out);
+            out.notifications.push(`Compound roll → otherwise`);
+            break;
+          }
+        }
+      }
+      out.hasEffect = true;
+      break;
+    }
+    case 'dice_roll_again': {
+      const whileMatch = step.while_match || [4,5,6];
+      let extra = 0;
+      while (extra < 10) {
+        const r = Math.floor(Math.random() * 6) + 1;
+        if (!whileMatch.includes(r)) break;
+        extra++;
+      }
+      if (extra > 0) out.notifications.push(`Re-rolled ${extra} extra time${extra === 1 ? '' : 's'}`);
+      out.hasEffect = true;
+      break;
+    }
+
     default:
       // Unknown op — log once, skip silently
       out.unknownOps.push(op);
@@ -1414,7 +1986,7 @@ function pmExecStructured(entry, ctx) {
     selfDelta: 0, oppDelta: 0, selfHDDelta: 0, oppHDDelta: 0,
     draws: 0, heroDraws: 0, discards: 0,
     protectSelf: false, cancelOpp: false,
-    hasEffect: false, unknownOps: []
+    hasEffect: false, unknownOps: [], notifications: []
   };
   if (!entry || !entry.effects) return out;
   for (const step of entry.effects) pmExecStep(step, ctx, out);
@@ -1423,6 +1995,280 @@ function pmExecStructured(entry, ctx) {
     out.hasPersistent = true;
   }
   return out;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Intent helpers — mutate PM state for Tier B/C ops
+// ══════════════════════════════════════════════════════════════════
+
+function pmIntentSwapActiveWithHand(side) {
+  const b = PM.battles[PM.currentBattle]; if (!b) return;
+  const bench = side === 'player' ? PM.playerBench : PM.cpuBench;
+  if (!bench.length) return;
+  let bestIdx = 0;
+  for (let i = 1; i < bench.length; i++) if ((bench[i]?.power || 0) > (bench[bestIdx]?.power || 0)) bestIdx = i;
+  const replacement = bench[bestIdx];
+  bench.splice(bestIdx, 1);
+  const current = side === 'player' ? b.playerCard : b.cpuCard;
+  if (side === 'player') { b.playerCard = replacement; if (current) PM.playerBench.push(current); }
+  else                   { b.cpuCard = replacement;    if (current) PM.cpuBench.push(current); }
+}
+
+function pmIntentSwapActiveWithDiscard(side, weaponFilter) {
+  if (side !== 'player') return; // CPU has no discard pile in this model
+  const pool = PM.playerDiscard.filter(c => c.cardType === 'Hero' && (!weaponFilter || c.element === weaponFilter));
+  if (!pool.length) return;
+  const best = pool.reduce((a, c) => (c.power || 0) > (a.power || 0) ? c : a, pool[0]);
+  const b = PM.battles[PM.currentBattle]; if (!b) return;
+  const current = b.playerCard;
+  b.playerCard = best;
+  PM.playerDiscard = PM.playerDiscard.filter(c => c !== best);
+  if (current) PM.playerDiscard.push(current);
+}
+
+function pmIntentSwapActiveWithFuture(side) {
+  const next = PM.battles[PM.currentBattle + 1]; const cur = PM.battles[PM.currentBattle];
+  if (!next || !cur) return;
+  if (side === 'player') { const t = cur.playerCard; cur.playerCard = next.playerCard; next.playerCard = t; }
+  else                   { const t = cur.cpuCard;    cur.cpuCard    = next.cpuCard;    next.cpuCard    = t; }
+}
+
+function pmIntentReplaceActiveWithTopDeck(side) {
+  const b = PM.battles[PM.currentBattle]; if (!b) return;
+  if (side === 'player') {
+    if (!PM.playerHeroDeck.length) return;
+    const old = b.playerCard;
+    b.playerCard = PM.playerHeroDeck.shift();
+    if (old) PM.playerDiscard.push(old);
+  } else {
+    if (!PM.cpuHeroDeck.length) return;
+    b.cpuCard = PM.cpuHeroDeck.shift();
+  }
+}
+
+function pmIntentReplaceNextWithTopDeck(side) {
+  const next = PM.battles[PM.currentBattle + 1]; if (!next) return;
+  if (side === 'player' && PM.playerHeroDeck.length) next.playerCard = PM.playerHeroDeck.shift();
+  else if (side === 'cpu' && PM.cpuHeroDeck.length)   next.cpuCard = PM.cpuHeroDeck.shift();
+}
+
+function pmIntentReplaceAllUnrevealedWithTopDeck(side) {
+  for (let i = PM.currentBattle + 1; i < PM.battles.length; i++) {
+    if (side === 'player') {
+      if (!PM.playerHeroDeck.length) break;
+      PM.battles[i].playerCard = PM.playerHeroDeck.shift();
+    } else {
+      if (!PM.cpuHeroDeck.length) break;
+      PM.battles[i].cpuCard = PM.cpuHeroDeck.shift();
+    }
+  }
+}
+
+function pmIntentDiscardActiveHero(side) {
+  const b = PM.battles[PM.currentBattle]; if (!b) return;
+  if (side === 'player') {
+    if (b.playerCard) PM.playerDiscard.push(b.playerCard);
+    b.playerCard = PM.playerHeroDeck.length ? PM.playerHeroDeck.shift() : null;
+  } else {
+    b.cpuCard = PM.cpuHeroDeck.length ? PM.cpuHeroDeck.shift() : null;
+  }
+}
+
+function pmIntentDiscardHeroFromHand(side) {
+  const bench = side === 'player' ? PM.playerBench : PM.cpuBench;
+  if (!bench.length) return;
+  let worstIdx = 0;
+  for (let i = 1; i < bench.length; i++) if ((bench[i]?.power || 0) < (bench[worstIdx]?.power || 0)) worstIdx = i;
+  const c = bench.splice(worstIdx, 1)[0];
+  if (side === 'player' && c) PM.playerDiscard.push(c);
+}
+
+function pmIntentTransformToHotDog(side) {
+  const b = PM.battles[PM.currentBattle]; if (!b) return;
+  if (side === 'player') {
+    b.playerTransformedToHotDog = true;
+    const cur = b.playerCard?.power || 0;
+    b.playerEffectPower = (b.playerEffectPower || 0) - cur;
+  } else {
+    b.cpuTransformedToHotDog = true;
+    const cur = b.cpuCard?.power || 0;
+    b.cpuEffectPower = (b.cpuEffectPower || 0) - cur;
+  }
+}
+
+function pmIntentMarkFutureBattle(side, onReveal) {
+  PM._markedBattles = PM._markedBattles || [];
+  const candidates = [];
+  for (let i = PM.currentBattle + 1; i < PM.battles.length; i++) {
+    if (!PM.battles[i].revealed) candidates.push(i);
+  }
+  if (!candidates.length) return;
+  const target = candidates[Math.floor(Math.random() * candidates.length)];
+  PM._markedBattles.push({ side, battleIdx: target, onReveal });
+}
+
+function pmIntentPeekHeroDeck(side, count, ctx) {
+  const deck = side === 'player' ? PM.playerHeroDeck : PM.cpuHeroDeck;
+  const names = deck.slice(0, count).map(c => c.name).join(', ');
+  if (!names) return;
+  const who = side === (ctx && ctx.self) ? `Your next hero${count === 1 ? '' : 'es'}` : `Opponent's next hero${count === 1 ? '' : 'es'}`;
+  PM._peekCallouts = PM._peekCallouts || [];
+  PM._peekCallouts.push(`${who}: ${names}`);
+}
+
+function pmIntentPeekUnrevealedHero(side, selector, ctx) {
+  const isOppNext = selector === 'opponent_next_battle' || /next/.test(selector);
+  const idx = PM.currentBattle + (isOppNext ? 1 : 0);
+  const slot = PM.battles[idx]; if (!slot) return;
+  const c = side === 'player' ? slot.playerCard : slot.cpuCard;
+  if (c) {
+    PM._peekCallouts = PM._peekCallouts || [];
+    PM._peekCallouts.push(`Peeked unrevealed hero: ${c.name}`);
+  }
+}
+
+function pmIntentReorderUnrevealedHeroes(side) {
+  const slots = [];
+  for (let i = PM.currentBattle + 1; i < PM.battles.length; i++) if (!PM.battles[i].revealed) slots.push(i);
+  const cards = slots.map(i => side === 'player' ? PM.battles[i].playerCard : PM.battles[i].cpuCard).filter(Boolean);
+  cards.sort((a, b) => (b.power || 0) - (a.power || 0));
+  slots.forEach((idx, i) => {
+    if (i >= cards.length) return;
+    if (side === 'player') PM.battles[idx].playerCard = cards[i];
+    else                   PM.battles[idx].cpuCard    = cards[i];
+  });
+}
+
+function pmIntentRevealTopPlays(side, count) {
+  const pool = side === 'player' ? PM.playerPlayDeck : PM.cpuPlayPool;
+  const names = pool.slice(0, count).map(c => c.name).join(', ');
+  if (!names) return;
+  PM._peekCallouts = PM._peekCallouts || [];
+  PM._peekCallouts.push(`Top plays: ${names}`);
+}
+
+function pmIntentRevealTopHeroes(side, count) {
+  const pool = side === 'player' ? PM.playerHeroDeck : PM.cpuHeroDeck;
+  const names = pool.slice(0, count).map(c => c.name).join(', ');
+  if (!names) return;
+  PM._peekCallouts = PM._peekCallouts || [];
+  PM._peekCallouts.push(`Top heroes: ${names}`);
+}
+
+function pmIntentPeekOpponentHand(side, count, mode) {
+  const pool = side === 'player' ? PM.cpuPlayPool : PM.playerPlayHand;
+  const selected = mode === 'random' ? [...pool].sort(() => Math.random() - 0.5).slice(0, count) : pool.slice(0, count);
+  const names = selected.map(c => c.name).join(', ');
+  if (names) {
+    PM._peekCallouts = PM._peekCallouts || [];
+    PM._peekCallouts.push(`Opponent's hand: ${names}`);
+  }
+}
+
+function pmIntentSearchPlaybook(side, filter, action, ctx) {
+  if (side !== 'player') return;
+  const pool = [...PM.playerPlayDeck, ...PM.playerPlayHand, ...PM.playerDiscard].filter(c => c.cardType === 'Play');
+  if (!pool.length) return;
+  const best = pool.reduce((a, c) => (c.playCost || 0) > (a.playCost || 0) ? c : a, pool[0]);
+  if (action === 'play_free' && best) {
+    const entry = pmGetPlayEntry(best);
+    if (entry) {
+      const inner = pmExecStructured(entry, ctx);
+      if (inner.hasEffect) {
+        const b = PM.battles[PM.currentBattle];
+        if (b) {
+          b.playerEffectPower = (b.playerEffectPower || 0) + (inner.selfDelta || 0);
+          b.cpuEffectPower    = (b.cpuEffectPower    || 0) + (inner.oppDelta  || 0);
+        }
+      }
+    }
+    PM._peekCallouts = PM._peekCallouts || [];
+    PM._peekCallouts.push(`Played ${best.name} free (Playbook search)`);
+  }
+}
+
+function pmIntentCopyLastPlay(side, ctx) {
+  let last = null;
+  for (let i = PM.currentBattle; i >= 0; i--) {
+    const b = PM.battles[i]; if (!b) continue;
+    const arr = side === 'player' ? b.playerPlaysPlayed : (b.cpuPlaysPlayed || b.cpuPlaysRan || []);
+    if (arr && arr.length) { last = arr[arr.length - 1]; break; }
+  }
+  if (!last) return;
+  const entry = pmGetPlayEntry(last);
+  if (!entry) return;
+  const inner = pmExecStructured(entry, ctx);
+  if (inner.hasEffect) {
+    const b = PM.battles[PM.currentBattle];
+    if (b) {
+      if (side === 'player') {
+        b.playerEffectPower = (b.playerEffectPower || 0) + (inner.selfDelta || 0);
+        b.cpuEffectPower    = (b.cpuEffectPower    || 0) + (inner.oppDelta  || 0);
+      } else {
+        b.cpuEffectPower    = (b.cpuEffectPower    || 0) + (inner.selfDelta || 0);
+        b.playerEffectPower = (b.playerEffectPower || 0) + (inner.oppDelta  || 0);
+      }
+    }
+  }
+}
+
+function pmIntentPlayTopOfPlaybookFree(side, ctx) {
+  if (side !== 'player') return;
+  const top = PM.playerPlayDeck[0];
+  if (!top) return;
+  const entry = pmGetPlayEntry(top);
+  if (!entry) return;
+  const inner = pmExecStructured(entry, ctx);
+  if (inner.hasEffect) {
+    const b = PM.battles[PM.currentBattle];
+    if (b) {
+      b.playerEffectPower = (b.playerEffectPower || 0) + (inner.selfDelta || 0);
+      b.cpuEffectPower    = (b.cpuEffectPower    || 0) + (inner.oppDelta  || 0);
+    }
+  }
+}
+
+function pmIntentTaxPerHeroInHand(target, perDelta, fallbackDiscards) {
+  const bench = target === 'player' ? PM.playerBench : PM.cpuBench;
+  const heroCount = bench.length;
+  const totalCost = Math.abs(perDelta) * heroCount;
+  const hd = target === 'player' ? PM.playerHD : PM.cpuHD;
+  if (hd >= totalCost) {
+    if (target === 'player') PM.playerHD = Math.max(0, PM.playerHD - totalCost);
+    else PM.cpuHD = Math.max(0, PM.cpuHD - totalCost);
+  } else {
+    if (target === 'player') {
+      const n = Math.min(fallbackDiscards, bench.length);
+      for (let i = 0; i < n; i++) PM.playerDiscard.push(bench.pop());
+    } else {
+      const n = Math.min(fallbackDiscards, bench.length);
+      for (let i = 0; i < n; i++) bench.pop();
+    }
+  }
+}
+
+// Returns true if `side` is currently blocked from `kind` action.
+function pmIsBlocked(side, kind) {
+  const blocks = (PM._blocks && PM._blocks[side]) || [];
+  return blocks.some(b => {
+    if (b.kind !== kind) return false;
+    if (b.scope === 'this_battle') return PM.currentBattle === b.installedAt;
+    if (b.scope === 'next_battle') return PM.currentBattle === b.installedAt + 1;
+    if (b.scope === 'rest_of_game') return true;
+    return PM.currentBattle >= b.installedAt;
+  });
+}
+
+// Purge expired blocks when moving battles
+function pmPurgeExpiredBlocks() {
+  if (!PM._blocks) return;
+  for (const side of ['player','cpu']) {
+    PM._blocks[side] = (PM._blocks[side] || []).filter(b => {
+      if (b.scope === 'this_battle') return PM.currentBattle <= b.installedAt;
+      if (b.scope === 'next_battle') return PM.currentBattle <= b.installedAt + 1;
+      return true;
+    });
+  }
 }
 
 // ── Play card effects engine (ported from iOS PracticeStore) ──────
@@ -1704,6 +2550,14 @@ const PM = {
     this._persistents = []; // installed persistent effects (rest_of_game / next_battle, etc.)
     this._nextHonors = null;
     this._nextSubFree = null;
+    PM._blocks = { player: [], cpu: [] };
+    PM._pendingHonors = null;
+    PM._freeSub = {};
+    PM._subCostTransfer = {};
+    PM._markedBattles = [];
+    PM._peekCallouts = [];
+    PM._playCostMods = { player: [], cpu: [] };
+    PM._endBattleImmediately = false;
     Object.assign(this, {
       matchOver: false, matchWinner: null, playerScore: 0, cpuScore: 0,
       honors: 'player', currentBattle: 0,
@@ -1750,8 +2604,11 @@ const PM = {
         playerEffectPower: 0,
         cpuEffectPower: 0,
         playerPlaysPlayed: [],
+        cpuPlaysPlayed: [],
         result: null,
         revealed: false,
+        playerTransformedToHotDog: false,
+        cpuTransformedToHotDog: false,
       });
     }
 
@@ -1842,14 +2699,27 @@ const PM = {
 
   playerSub(benchIdx) {
     if (this.phase !== 'sub' || this.playerSubstituted) return false;
-    if (this.playerHD < 2) return false;
+    if (pmIsBlocked('player', 'block_sub')) return false;
     if (benchIdx < 0 || benchIdx >= this.playerBench.length) return false;
 
-    const benchCard   = this.playerBench[benchIdx];
+    const freeSub = !!(PM._freeSub && PM._freeSub.player);
+    const transfer = PM._subCostTransfer && PM._subCostTransfer.player;
+    const cost = freeSub ? 0 : 2;
+    if (!transfer && this.playerHD < cost) return false;
+
+    const benchCard = this.playerBench[benchIdx];
     // Per rules: original hero goes to discard, not back to bench
     this.battles[this.currentBattle].playerCard = benchCard;
     this.playerBench.splice(benchIdx, 1); // remove from bench
-    this.playerHD -= 2;
+
+    if (transfer && transfer.payer === 'cpu') {
+      this.cpuHD = Math.max(0, this.cpuHD - cost);
+      delete PM._subCostTransfer.player;
+    } else {
+      this.playerHD -= cost;
+    }
+    if (freeSub) delete PM._freeSub.player;
+
     // Draw a new hero from hero deck to refill bench (per rules §Glossary "Substitute")
     if (this.playerHeroDeck.length > 0) {
       this.playerBench.push(this.playerHeroDeck.shift());
@@ -1865,6 +2735,7 @@ const PM = {
 
   playerPlayCard(handIdx) {
     if (this.phase !== 'play') return false;
+    if (pmIsBlocked('player', 'block_plays')) return false;
     if (handIdx < 0 || handIdx >= this.playerPlayHand.length) return false;
     const card = this.playerPlayHand[handIdx];
     const cost = pmEffectiveCost(card, 'player');
@@ -1878,6 +2749,7 @@ const PM = {
     // Structured executor first; fall back to regex resolver if no entry or no mechanical effect
     let effect = { playerDelta: 0, cpuDelta: 0 };
     let hdRecovery = 0;
+    let extraNotifs = [];
     const entry = pmGetPlayEntry(card);
     let structuredHandled = false;
     if (entry && entry.effects && entry.effects.length) {
@@ -1886,15 +2758,26 @@ const PM = {
       if (out.hasEffect) {
         effect.playerDelta = out.selfDelta;
         effect.cpuDelta = out.oppDelta;
-        if (out.selfHDDelta > 0) hdRecovery = out.selfHDDelta;
-        else if (out.selfHDDelta < 0) this.playerHD = Math.max(0, this.playerHD + out.selfHDDelta);
-        if (out.oppHDDelta) this.cpuHD = Math.max(0, Math.min(10, this.cpuHD + out.oppHDDelta));
+        if (out.selfHDDelta > 0) {
+          if (!pmIsBlocked('player', 'block_hd_recover')) hdRecovery = out.selfHDDelta;
+        } else if (out.selfHDDelta < 0) {
+          this.playerHD = Math.max(0, this.playerHD + out.selfHDDelta);
+        }
+        if (out.oppHDDelta > 0) {
+          if (!pmIsBlocked('cpu', 'block_hd_recover')) this.cpuHD = Math.min(10, this.cpuHD + out.oppHDDelta);
+        } else if (out.oppHDDelta < 0) {
+          this.cpuHD = Math.max(0, this.cpuHD + out.oppHDDelta);
+        }
         structuredHandled = true;
         // Queue persistent effects
         if (out.hasPersistent && entry.persistent) {
           for (const p of entry.persistent) {
             this._persistents.push({ owner: 'player', spec: p, installedAt: this.currentBattle });
           }
+        }
+        // Surface extra notifications from ops (peek, swap, choice label, etc.)
+        if (out.notifications && out.notifications.length) {
+          extraNotifs = extraNotifs.concat(out.notifications);
         }
       }
     }
@@ -1927,6 +2810,13 @@ const PM = {
     if (effect.cpuDelta > 0) parts.push(`+${effect.cpuDelta} to opponent`);
     if (hdRecovery > 0) parts.push(`+${hdRecovery} HD`);
     if (parts.length) desc += (desc ? ': ' : '') + parts.join(', ');
+    // Append any peek/swap/choice notifications from intents
+    if (extraNotifs.length) desc += (desc ? ' · ' : '') + extraNotifs.join(' · ');
+    const peeks = PM._peekCallouts || [];
+    if (peeks.length) {
+      desc += (desc ? ' · ' : '') + peeks.join(' · ');
+      PM._peekCallouts = [];
+    }
     if (!desc) desc = 'No power change';
     this.lastEffectResult = { card, playerDelta: effect.playerDelta, cpuDelta: effect.cpuDelta, description: desc };
     if (b) b.playerPlaysPlayed.push(card);
@@ -1936,7 +2826,16 @@ const PM = {
   },
 
   cpuDoSub() {
-    if (this.cpuSubstituted || this.cpuBench.length === 0 || this.cpuHD < 2) {
+    if (this.cpuSubstituted || this.cpuBench.length === 0) {
+      this.cpuSubstituted = true; return false;
+    }
+    if (pmIsBlocked('cpu', 'block_sub')) {
+      this.cpuSubstituted = true; return false;
+    }
+    const freeSub = !!(PM._freeSub && PM._freeSub.cpu);
+    const transfer = PM._subCostTransfer && PM._subCostTransfer.cpu;
+    const subCost = freeSub ? 0 : 2;
+    if (!transfer && this.cpuHD < subCost) {
       this.cpuSubstituted = true; return false;
     }
     const b = this.battles[this.currentBattle];
@@ -1958,7 +2857,13 @@ const PM = {
       // Per rules: original hero goes to discard, bench card replaces it
       this.battles[this.currentBattle].cpuCard = bestCard;
       this.cpuBench.splice(bestIdx, 1); // remove from bench (original hero discarded)
-      this.cpuHD -= 2;
+      if (transfer && transfer.payer === 'player') {
+        this.playerHD = Math.max(0, this.playerHD - subCost);
+        delete PM._subCostTransfer.cpu;
+      } else {
+        this.cpuHD -= subCost;
+      }
+      if (freeSub) delete PM._freeSub.cpu;
       // Draw a replacement hero from CPU's deck to refill bench
       if (this.cpuHeroDeck.length > 0) {
         this.cpuBench.push(this.cpuHeroDeck.shift());
@@ -1975,6 +2880,10 @@ const PM = {
 
   cpuDoPlay() {
     if (this.cpuPassedPlays) return;
+    if (pmIsBlocked('cpu', 'block_plays')) {
+      this.cpuPassedPlays = true;
+      return;
+    }
     const b = this.battles[this.currentBattle];
     this.cpuPlayQueue = [];
 
@@ -2009,10 +2918,21 @@ const PM = {
           // Flip perspective back to queue's player/cpu convention
           effect.playerDelta = out.oppDelta;
           effect.cpuDelta = out.selfDelta;
-          if (out.selfHDDelta > 0) hdRecovery = out.selfHDDelta;
-          else if (out.selfHDDelta < 0) this.cpuHD = Math.max(0, this.cpuHD + out.selfHDDelta);
-          if (out.oppHDDelta) this.playerHD = Math.max(0, Math.min(10, this.playerHD + out.oppHDDelta));
+          if (out.selfHDDelta > 0) {
+            if (!pmIsBlocked('cpu', 'block_hd_recover')) hdRecovery = out.selfHDDelta;
+          } else if (out.selfHDDelta < 0) {
+            this.cpuHD = Math.max(0, this.cpuHD + out.selfHDDelta);
+          }
+          if (out.oppHDDelta > 0) {
+            if (!pmIsBlocked('player', 'block_hd_recover')) this.playerHD = Math.min(10, this.playerHD + out.oppHDDelta);
+          } else if (out.oppHDDelta < 0) {
+            this.playerHD = Math.max(0, this.playerHD + out.oppHDDelta);
+          }
           structuredHandled = true;
+          // Surface peek/swap/choice notifications from CPU plays
+          if (out.notifications && out.notifications.length) {
+            PM._peekCallouts = (PM._peekCallouts || []).concat(out.notifications);
+          }
           if (out.hasPersistent && entry.persistent) {
             for (const p of entry.persistent) {
               this._persistents.push({ owner: 'cpu', spec: p, installedAt: this.currentBattle });
@@ -2034,7 +2954,11 @@ const PM = {
       if (hdRecovery > 0) this.cpuHD = Math.min(10, this.cpuHD + hdRecovery);
       b.cpuEffectPower = (b.cpuEffectPower || 0) + (effect.cpuDelta || 0);
       b.playerEffectPower = (b.playerEffectPower || 0) + (effect.playerDelta || 0);
-      this.cpuPlayQueue.push({ card, cost, effect, hdRecovery: hdRecovery > 0 ? hdRecovery : undefined });
+      // Track CPU plays on the battle slot (for copy_last_play, metrics, etc.)
+      b.cpuPlaysPlayed = b.cpuPlaysPlayed || [];
+      b.cpuPlaysPlayed.push(card);
+      const notifs = PM._peekCallouts && PM._peekCallouts.length ? PM._peekCallouts.splice(0) : [];
+      this.cpuPlayQueue.push({ card, cost, effect, hdRecovery: hdRecovery > 0 ? hdRecovery : undefined, notifications: notifs });
     }
     this.cpuPassedPlays = true;
   },
@@ -2081,8 +3005,10 @@ const PM = {
 
   resolve() {
     const b = this.battles[this.currentBattle];
-    const playerPow = (b.playerCard?.power || 0) + (b.playerEffectPower || 0);
-    const cpuPow    = (b.cpuCard?.power    || 0) + (b.cpuEffectPower    || 0);
+    const playerBase = b.playerTransformedToHotDog ? 0 : (b.playerCard?.power || 0);
+    const cpuBase    = b.cpuTransformedToHotDog    ? 0 : (b.cpuCard?.power    || 0);
+    const playerPow = playerBase + (b.playerEffectPower || 0);
+    const cpuPow    = cpuBase    + (b.cpuEffectPower    || 0);
 
     if (playerPow > cpuPow) {
       b.result = 'win';  this.playerScore++; this.honors = 'player';
@@ -2127,6 +3053,35 @@ const PM = {
       return;
     }
     this.currentBattle = next;
+    // Apply pending honors_set
+    if (PM._pendingHonors) {
+      this.honors = PM._pendingHonors.side;
+      if (PM._pendingHonors.scope === 'next_battle') PM._pendingHonors = null;
+    }
+    // Purge expired blocks
+    pmPurgeExpiredBlocks();
+    // Fire marked_battle on_reveal effects for this battle
+    const fires = (PM._markedBattles || []).filter(m => m.battleIdx === this.currentBattle);
+    for (const mark of fires) {
+      const ctx = pmMakeExecContext(mark.side);
+      const out = { selfDelta: 0, oppDelta: 0, selfHDDelta: 0, oppHDDelta: 0, draws: 0, discards: 0, hasEffect: false, unknownOps: [], notifications: [] };
+      for (const s of mark.onReveal) pmExecStep(s, ctx, out);
+      if (out.hasEffect) {
+        const b = PM.battles[this.currentBattle];
+        if (b) {
+          if (mark.side === 'player') {
+            b.playerEffectPower = (b.playerEffectPower || 0) + (out.selfDelta || 0);
+            b.cpuEffectPower    = (b.cpuEffectPower    || 0) + (out.oppDelta  || 0);
+          } else {
+            b.cpuEffectPower    = (b.cpuEffectPower    || 0) + (out.selfDelta || 0);
+            b.playerEffectPower = (b.playerEffectPower || 0) + (out.oppDelta  || 0);
+          }
+        }
+        PM._peekCallouts = (PM._peekCallouts || []).concat([`Marked battle triggered`]);
+      }
+    }
+    PM._markedBattles = (PM._markedBattles || []).filter(m => m.battleIdx !== this.currentBattle);
+
     // Per rules: Sub phase comes before reveal for non-rookie
     this.phase = this.mode === 'rookie' ? 'reveal' : 'sub';
     this._showPhaseBanner = true;
@@ -2139,6 +3094,7 @@ const PM = {
 
   drawPlayCard() {
     if (this.mode !== 'playmaker') return;
+    if (pmIsBlocked('player', 'block_draw')) return;
     if (this.playerPlayDeck.length === 0 && this.playerDiscard.length > 0) {
       this.playerPlayDeck = shuffle([...this.playerDiscard]);
       this.playerDiscard = [];
@@ -2887,6 +3843,11 @@ function pmShowSingleCpuPlay(entry, done) {
   if (effect.cpuDelta > 0) deltasHtml += `<span class="pm-cpu-card-delta-you">YOU +${effect.cpuDelta}</span>`;
   if (entry.hdRecovery > 0) deltasHtml += `<span class="pm-cpu-card-delta-opp">CPU +${entry.hdRecovery} HD</span>`;
 
+  const notifs = (entry.notifications || []);
+  const notifsHtml = notifs.length
+    ? `<div class="pm-cpu-card-notifs">${notifs.map(n => `<span>${n}</span>`).join('')}</div>`
+    : '';
+
   const cardEl = $('pm-cpu-overlay-card');
   if (cardEl) {
     cardEl.innerHTML = `
@@ -2894,7 +3855,8 @@ function pmShowSingleCpuPlay(entry, done) {
       <div class="pm-cpu-card-name">${card.name || 'Play Card'}</div>
       <div class="pm-cpu-card-cost">${costLabel}</div>
       ${ability ? `<div class="pm-cpu-card-effect">${ability}</div>` : ''}
-      <div class="pm-cpu-card-deltas">${deltasHtml}</div>`;
+      <div class="pm-cpu-card-deltas">${deltasHtml}</div>
+      ${notifsHtml}`;
   }
 
   overlay.hidden = false;

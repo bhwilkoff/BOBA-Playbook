@@ -5777,6 +5777,13 @@ main {
 .pm-cpu-card-deltas {
   display: flex; gap: 1rem; font-family: var(--font-mono, monospace); font-size: 0.75rem; font-weight: 700;
 }
+.pm-cpu-card-notifs {
+  display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.5rem; max-width: 280px;
+  font-family: var(--font-mono, monospace); font-size: 0.6rem; color: #FFD166;
+  background: rgba(255,209,102,0.08); border: 1px solid rgba(255,209,102,0.25);
+  border-radius: 6px; padding: 6px 10px; line-height: 1.35;
+}
+.pm-cpu-card-notifs span { display: block; }
 .pm-cpu-card-delta-opp { color: #8B00FF; }
 .pm-cpu-card-delta-you { color: #C0392B; }
 .pm-cpu-overlay-dismiss {

@@ -73,6 +73,8 @@ struct BattleSlot: Identifiable, Codable {
     var result: BattleResult?
     var isActive: Bool = false
     var isRevealed: Bool = false
+    var playerTransformedToHotDog: Bool = false   // active hero treated as Power 0 token
+    var cpuTransformedToHotDog: Bool = false
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -179,6 +181,55 @@ final class PracticeStore {
     var playerCostMods: [CostMod] = []
     var cpuCostMods: [CostMod] = []
 
+    // MARK: - Block flags (from block_sub/plays/draw/hd_recover ops)
+    struct BlockEntry { var kind: String; var scope: String; var installedAt: Int }
+    var playerBlocks: [BlockEntry] = []
+    var cpuBlocks: [BlockEntry] = []
+
+    // MARK: - Honors / free-sub / sub-cost-transfer queues
+    struct ScopedFlag { var scope: String; var installedAt: Int }
+    var playerPendingHonors: ScopedFlag? = nil
+    var cpuPendingHonors: ScopedFlag? = nil
+    var playerFreeSub: ScopedFlag? = nil
+    var cpuFreeSub: ScopedFlag? = nil
+    /// When set, the next substitute cost for this side is paid by the OTHER side's HD.
+    var playerSubCostTransferFrom: PlayExecContext.Side? = nil
+    var cpuSubCostTransferFrom: PlayExecContext.Side? = nil
+
+    // MARK: - Marked future battles (mark_future_battle op)
+    struct MarkedBattle { var side: PlayExecContext.Side; var battleIdx: Int; var onReveal: [[String: Any]] }
+    var markedBattles: [MarkedBattle] = []
+
+    // MARK: - Peeked info surfaced to UI
+    var peekedCards: [ActionCallout] = []   // queued peek notifications
+    var pendingPlayerNotes: [String] = []   // notes from last player play; folded into callout
+    var cpuLastPlayNotes: [String] = []     // notes from most recent CPU play (consumed by play queue builder)
+
+    /// Returns true if `side` has an active block of `kind` in scope right now.
+    func isBlocked(_ side: PlayExecContext.Side, kind: String) -> Bool {
+        let blocks = side == .player ? playerBlocks : cpuBlocks
+        for b in blocks where b.kind == kind {
+            switch b.scope {
+            case "this_battle":
+                if currentBattle == b.installedAt { return true }
+            case "next_battle":
+                if currentBattle == b.installedAt + 1 { return true }
+            case "rest_of_game":
+                return true
+            default:
+                if currentBattle >= b.installedAt { return true }
+            }
+        }
+        return false
+    }
+
+    private func purgeExpiredBlocks() {
+        playerBlocks.removeAll { $0.scope == "this_battle" && currentBattle > $0.installedAt }
+        playerBlocks.removeAll { $0.scope == "next_battle" && currentBattle > $0.installedAt + 1 }
+        cpuBlocks.removeAll    { $0.scope == "this_battle" && currentBattle > $0.installedAt }
+        cpuBlocks.removeAll    { $0.scope == "next_battle" && currentBattle > $0.installedAt + 1 }
+    }
+
     /// Effective play cost for `card` on `side`. Pass `consume: true` only when
     /// actually playing the card — consumption removes single-use mods. Callers
     /// that just want to display or evaluate affordability should leave it false.
@@ -199,31 +250,40 @@ final class PracticeStore {
         return max(0, total)
     }
 
-    /// Apply Tier A intents (hand/deck/discard mutations + cost mod installs)
-    /// left on the PlayExecOut by the structured executor.
-    fileprivate func applyTierAIntents(_ out: PlayExecOut) {
+    /// Apply all intents (cost mods + hand/deck/discard mutations + Tier B/C effects)
+    /// left on the PlayExecOut by the structured executor. Returns the list of
+    /// notification strings collected from intents (for UI surfacing).
+    @discardableResult
+    fileprivate func applyIntents(_ out: PlayExecOut, actingSide: PlayExecContext.Side) -> [String] {
+        var collected: [String] = []
+        // Tier A: cost mods
         for inst in out.costModInstalls {
             let cm = CostMod(delta: inst.delta, scope: inst.scope, installedAt: currentBattle)
             if inst.target == .player { playerCostMods.append(cm) } else { cpuCostMods.append(cm) }
         }
-        // Hand/deck/discard ops are player-only; CPU has no deck/discard state to mutate.
-        if out.shuffleHandIntoDeck {
+        // Tier A: player-only hand/deck/discard manipulations
+        if out.shuffleHandIntoDeck && actingSide == .player {
             playerPlayDeck.append(contentsOf: playerHand)
             playerHand = []
             playerPlayDeck.shuffle()
         }
-        if out.shuffleDiscardToDeckCount != 0 {
+        if out.shuffleDiscardToDeckCount != 0 && actingSide == .player {
             let n = out.shuffleDiscardToDeckCount < 0
                 ? playerPlayDiscard.count
                 : min(out.shuffleDiscardToDeckCount, playerPlayDiscard.count)
             if n > 0 {
                 let moved = Array(playerPlayDiscard.prefix(n))
                 playerPlayDiscard.removeFirst(n)
-                playerPlayDeck.append(contentsOf: moved)
+                // Route heroes back to hero deck; plays to play deck
+                for c in moved {
+                    if c.cardType == "Hero" { playerHeroDeck.append(c) }
+                    else { playerPlayDeck.append(c) }
+                }
                 playerPlayDeck.shuffle()
+                playerHeroDeck.shuffle()
             }
         }
-        if out.discardTopCount > 0 {
+        if out.discardTopCount > 0 && actingSide == .player {
             let n = min(out.discardTopCount, playerPlayDeck.count)
             if n > 0 {
                 let dropped = Array(playerPlayDeck.prefix(n))
@@ -231,17 +291,417 @@ final class PracticeStore {
                 playerPlayDiscard.append(contentsOf: dropped)
             }
         }
-        if out.discardHandAll {
+        if out.discardHandAll && actingSide == .player {
             playerPlayDiscard.append(contentsOf: playerHand)
             playerHand = []
         }
-        if out.reclaimUsedPlayCount > 0 {
+        if out.reclaimUsedPlayCount > 0 && actingSide == .player {
             let n = min(out.reclaimUsedPlayCount, playerPlayDiscard.count)
             if n > 0 {
                 let reclaimed = Array(playerPlayDiscard.suffix(n))
                 playerPlayDiscard.removeLast(n)
                 playerHand.append(contentsOf: reclaimed)
             }
+        }
+
+        // Tier B/C: handle each explicit intent
+        var intentCallouts: [ActionCallout] = []
+        for intent in out.intents {
+            applyIntent(intent, actingSide: actingSide, notifyInto: &intentCallouts)
+        }
+        for c in intentCallouts { collected.append(c.message) }
+
+        // Surface notifications
+        for msg in out.notifications { collected.append(msg) }
+        return collected
+    }
+
+    /// Handle a single PlayIntent. Mutates store state and may append callouts.
+    private func applyIntent(_ intent: PlayIntent, actingSide: PlayExecContext.Side, notifyInto callouts: inout [ActionCallout]) {
+        switch intent {
+        case .notify(let msg):
+            callouts.append(ActionCallout(message: msg, icon: "sparkles", color: "00F5FF"))
+
+        case .peekHeroDeck(let side, let count):
+            let deck = side == .player ? playerHeroDeck : cpuHeroDeck
+            let names = deck.prefix(count).map { $0.name }.joined(separator: ", ")
+            if !names.isEmpty {
+                let who = (side == actingSide) ? "Your next hero\(count == 1 ? "" : "es")" : "Opponent's next hero\(count == 1 ? "" : "es")"
+                callouts.append(ActionCallout(
+                    message: "\(who): \(names)",
+                    icon: "eye",
+                    color: "00F5FF"
+                ))
+            }
+
+        case .swapActiveWithHand(let side):
+            // Find strongest hero in the side's bench (closest proxy to "hero hand")
+            var bench = side == .player ? playerBench : cpuBench
+            guard !bench.isEmpty, battles.indices.contains(currentBattle) else { break }
+            let bestIdx = bench.indices.max(by: { (bench[$0].power ?? 0) < (bench[$1].power ?? 0) })!
+            let replacement = bench[bestIdx]
+            bench.remove(at: bestIdx)
+            let current: Card?
+            if side == .player {
+                current = battles[currentBattle].playerCard
+                battles[currentBattle].playerCard = replacement
+                if let current = current { bench.append(current) }
+                playerBench = bench
+            } else {
+                current = battles[currentBattle].cpuCard
+                battles[currentBattle].cpuCard = replacement
+                if let current = current { bench.append(current) }
+                cpuBench = bench
+            }
+            callouts.append(ActionCallout(
+                message: "Swapped active hero → \(replacement.name)",
+                icon: "arrow.triangle.2.circlepath",
+                color: "8B00FF"
+            ))
+
+        case .swapActiveWithDiscard(let side, let weaponFilter):
+            guard battles.indices.contains(currentBattle), side == .player else { break }
+            let pool = playerPlayDiscard.filter {
+                $0.cardType == "Hero" && (weaponFilter == nil || $0.element == weaponFilter)
+            }
+            guard let best = pool.max(by: { ($0.power ?? 0) < ($1.power ?? 0) }) else { break }
+            let current = battles[currentBattle].playerCard
+            battles[currentBattle].playerCard = best
+            playerPlayDiscard.removeAll { $0.id == best.id }
+            if let current = current { playerPlayDiscard.append(current) }
+            callouts.append(ActionCallout(
+                message: "Swapped active → \(best.name) (from discard)",
+                icon: "arrow.counterclockwise",
+                color: "8B00FF"
+            ))
+
+        case .swapActiveWithFutureHero(let side):
+            let nextIdx = currentBattle + 1
+            guard battles.indices.contains(currentBattle),
+                  battles.indices.contains(nextIdx) else { break }
+            if side == .player {
+                let a = battles[currentBattle].playerCard
+                let b = battles[nextIdx].playerCard
+                battles[currentBattle].playerCard = b
+                battles[nextIdx].playerCard = a
+            } else {
+                let a = battles[currentBattle].cpuCard
+                let b = battles[nextIdx].cpuCard
+                battles[currentBattle].cpuCard = b
+                battles[nextIdx].cpuCard = a
+            }
+            callouts.append(ActionCallout(
+                message: "Swapped active with next battle's hero",
+                icon: "arrow.left.arrow.right",
+                color: "8B00FF"
+            ))
+
+        case .replaceActiveWithTopDeck(let side):
+            guard battles.indices.contains(currentBattle) else { break }
+            if side == .player {
+                guard !playerHeroDeck.isEmpty else { break }
+                let old = battles[currentBattle].playerCard
+                battles[currentBattle].playerCard = playerHeroDeck.removeFirst()
+                if let old = old { playerPlayDiscard.append(old) }
+            } else {
+                guard !cpuHeroDeck.isEmpty else { break }
+                battles[currentBattle].cpuCard = cpuHeroDeck.removeFirst()
+            }
+            callouts.append(ActionCallout(
+                message: "Replaced active hero from top of deck",
+                icon: "rectangle.stack.fill.badge.person.crop",
+                color: "8B00FF"
+            ))
+
+        case .replaceNextWithTopDeck(let side):
+            let nextIdx = currentBattle + 1
+            guard battles.indices.contains(nextIdx) else { break }
+            if side == .player, !playerHeroDeck.isEmpty {
+                battles[nextIdx].playerCard = playerHeroDeck.removeFirst()
+            } else if side == .cpu, !cpuHeroDeck.isEmpty {
+                battles[nextIdx].cpuCard = cpuHeroDeck.removeFirst()
+            }
+
+        case .replaceAllUnrevealedWithTopDeck(let side):
+            let start = currentBattle + 1
+            for i in start..<battles.count {
+                if side == .player {
+                    guard !playerHeroDeck.isEmpty else { break }
+                    battles[i].playerCard = playerHeroDeck.removeFirst()
+                } else {
+                    guard !cpuHeroDeck.isEmpty else { break }
+                    battles[i].cpuCard = cpuHeroDeck.removeFirst()
+                }
+            }
+
+        case .replaceActiveFromHand(let side):
+            // Effective duplicate of swapActiveWithHand
+            applyIntent(.swapActiveWithHand(side: side), actingSide: actingSide, notifyInto: &callouts)
+
+        case .discardActiveHero(let side):
+            guard battles.indices.contains(currentBattle) else { break }
+            if side == .player {
+                if let c = battles[currentBattle].playerCard { playerPlayDiscard.append(c) }
+                // Replace with top of deck if available
+                battles[currentBattle].playerCard = playerHeroDeck.isEmpty ? nil : playerHeroDeck.removeFirst()
+            } else {
+                battles[currentBattle].cpuCard = cpuHeroDeck.isEmpty ? nil : cpuHeroDeck.removeFirst()
+            }
+
+        case .discardHeroFromHand(let side):
+            // "Hand" is bench for heroes
+            if side == .player {
+                if let idx = playerBench.indices.min(by: { (playerBench[$0].power ?? 0) < (playerBench[$1].power ?? 0) }) {
+                    let c = playerBench.remove(at: idx)
+                    playerPlayDiscard.append(c)
+                }
+            } else if !cpuBench.isEmpty {
+                cpuBench.remove(at: 0)
+            }
+
+        case .discardRevealedHero, .discardRevealedPlay:
+            break // visual only; no concrete state mutation
+
+        case .transformActiveToHotDog(let side):
+            guard battles.indices.contains(currentBattle) else { break }
+            if side == .player {
+                battles[currentBattle].playerTransformedToHotDog = true
+                let cur = battles[currentBattle].playerCard?.power ?? 0
+                battles[currentBattle].playerEffectPower -= cur
+            } else {
+                battles[currentBattle].cpuTransformedToHotDog = true
+                let cur = battles[currentBattle].cpuCard?.power ?? 0
+                battles[currentBattle].cpuEffectPower -= cur
+            }
+
+        case .markFutureBattle(let side, let onReveal):
+            // Target: random unrevealed future battle
+            let unrevealed = (currentBattle + 1..<battles.count).filter { !battles[$0].isRevealed }
+            guard let target = unrevealed.randomElement() else { break }
+            markedBattles.append(MarkedBattle(side: side, battleIdx: target, onReveal: onReveal))
+            callouts.append(ActionCallout(
+                message: "Marked Battle \(target + 1) — effect triggers on reveal",
+                icon: "flag.fill",
+                color: "FFD166"
+            ))
+
+        case .forceSubstitute(let target, let cost):
+            // Force `target` to sub on their next sub phase. Charge cost from target.
+            if target == .player {
+                playerHotDogs = max(0, playerHotDogs - cost)
+            } else {
+                cpuHotDogs = max(0, cpuHotDogs - cost)
+            }
+            // Swap target's active with best bench immediately (forced)
+            applyIntent(.swapActiveWithHand(side: target), actingSide: actingSide, notifyInto: &callouts)
+
+        case .mirrorPowerEffects:
+            break // already applied as delta inline in executor
+
+        case .flipOpponentDebuffs:
+            break // already applied inline
+
+        case .cancelPersistents(let target):
+            let before = persistents.count
+            switch target {
+            case "self":
+                persistents.removeAll { $0.owner == actingSide }
+            case "opponent":
+                persistents.removeAll { $0.owner != actingSide }
+            default: // "both"
+                persistents.removeAll()
+            }
+            let removed = before - persistents.count
+            if removed > 0 {
+                callouts.append(ActionCallout(
+                    message: "Canceled \(removed) persistent effect\(removed == 1 ? "" : "s")",
+                    icon: "bolt.slash.fill",
+                    color: "FF4D00"
+                ))
+            }
+
+        case .peekOpponentHand(let side, let count, let mode):
+            let pool: [Card] = side == .player ? cpuHand : playerHand
+            let selected: [Card]
+            if mode == "random" {
+                selected = Array(pool.shuffled().prefix(count))
+            } else {
+                selected = Array(pool.prefix(count))
+            }
+            let names = selected.map { $0.name }.joined(separator: ", ")
+            if !names.isEmpty {
+                callouts.append(ActionCallout(
+                    message: "Opponent's hand: \(names)",
+                    icon: "eye",
+                    color: "00F5FF"
+                ))
+            }
+
+        case .searchPlaybook(let side, _, let action):
+            // Play the best card available from the acting side's deck+hand+discard FREE
+            guard side == .player else { break }
+            let pool = playerPlayDeck + playerHand + playerPlayDiscard
+            guard let best = pool
+                .filter({ $0.cardType == "Play" })
+                .max(by: { ($0.playCost ?? 0) < ($1.playCost ?? 0) }) else { break }
+            if action == "play_free" {
+                // Execute the found play card without cost
+                if let entry = PlayEffects.entry(for: best.name) {
+                    let ctx = makeExecContext(self_: side)
+                    let innerOut = PlayEffectExecutor.run(entry: entry, ctx: ctx)
+                    if innerOut.hasEffect, battles.indices.contains(currentBattle) {
+                        if side == .player {
+                            battles[currentBattle].playerEffectPower += innerOut.selfDelta
+                            battles[currentBattle].cpuEffectPower += innerOut.oppDelta
+                        } else {
+                            battles[currentBattle].cpuEffectPower += innerOut.selfDelta
+                            battles[currentBattle].playerEffectPower += innerOut.oppDelta
+                        }
+                    }
+                }
+                callouts.append(ActionCallout(
+                    message: "Played \(best.name) free (Playbook search)",
+                    icon: "magnifyingglass",
+                    color: "00F5FF"
+                ))
+            }
+
+        case .copyLastPlay(let side):
+            // Find last play cast by this side in this or a previous battle
+            var lastPlay: Card? = nil
+            for i in stride(from: currentBattle, through: 0, by: -1) where battles.indices.contains(i) {
+                let plays = side == .player ? battles[i].playerPlayedCards : battles[i].cpuPlayedCards
+                if let p = plays.last { lastPlay = p; break }
+            }
+            guard let last = lastPlay else { break }
+            if let entry = PlayEffects.entry(for: last.name) {
+                let ctx = makeExecContext(self_: side)
+                let innerOut = PlayEffectExecutor.run(entry: entry, ctx: ctx)
+                if innerOut.hasEffect, battles.indices.contains(currentBattle) {
+                    if side == .player {
+                        battles[currentBattle].playerEffectPower += innerOut.selfDelta
+                        battles[currentBattle].cpuEffectPower += innerOut.oppDelta
+                    } else {
+                        battles[currentBattle].cpuEffectPower += innerOut.selfDelta
+                        battles[currentBattle].playerEffectPower += innerOut.oppDelta
+                    }
+                }
+            }
+            callouts.append(ActionCallout(
+                message: "Copied \(last.name)",
+                icon: "doc.on.doc.fill",
+                color: "00F5FF"
+            ))
+
+        case .taxPerHeroInHand(let target, let perHDCost, let fallbackDiscards):
+            let bench = target == .player ? playerBench : cpuBench
+            let heroCount = bench.count
+            let totalCost = abs(perHDCost) * heroCount
+            let targetHD = target == .player ? playerHotDogs : cpuHotDogs
+            if targetHD >= totalCost {
+                if target == .player { playerHotDogs -= totalCost } else { cpuHotDogs -= totalCost }
+                callouts.append(ActionCallout(
+                    message: "Tax: -\(totalCost) HD (\(heroCount) heroes × \(abs(perHDCost)))",
+                    icon: "dollarsign.circle.fill",
+                    color: "FF4D00"
+                ))
+            } else {
+                // Fallback: discard heroes
+                if target == .player {
+                    let n = min(fallbackDiscards, playerBench.count)
+                    for _ in 0..<n { playerPlayDiscard.append(playerBench.removeLast()) }
+                } else if target == .cpu {
+                    let n = min(fallbackDiscards, cpuBench.count)
+                    for _ in 0..<n { cpuBench.removeLast() }
+                }
+            }
+
+        case .transferSubCost(let target, _):
+            // Next time `target` subs, opponent's HD pays. Record flag.
+            if target == .player { playerSubCostTransferFrom = actingSide == .cpu ? .cpu : .cpu }
+            else { cpuSubCostTransferFrom = actingSide == .player ? .player : .player }
+
+        case .playRevealedFree, .playTopOfPlaybookFree:
+            // For free plays of revealed cards: simulate by drawing + playing best-from-deck
+            // as a zero-cost effect. Implemented as a simplified draw + best-of-1-power-delta.
+            guard actingSide == .player else { break }
+            let pool = playerPlayDeck.prefix(1)
+            if let card = pool.first, let entry = PlayEffects.entry(for: card.name) {
+                let ctx = makeExecContext(self_: actingSide)
+                let innerOut = PlayEffectExecutor.run(entry: entry, ctx: ctx)
+                if innerOut.hasEffect, battles.indices.contains(currentBattle) {
+                    battles[currentBattle].playerEffectPower += innerOut.selfDelta
+                    battles[currentBattle].cpuEffectPower += innerOut.oppDelta
+                }
+            }
+
+        case .peekUnrevealedHero(let side, let selector):
+            let deck = side == .player ? playerHeroDeck : cpuHeroDeck
+            let targetIdx = (selector == "opponent_next_battle" || selector.contains("next")) ? currentBattle + 1 : currentBattle
+            var name: String? = nil
+            if battles.indices.contains(targetIdx) {
+                name = side == .player ? battles[targetIdx].playerCard?.name : battles[targetIdx].cpuCard?.name
+            }
+            if name == nil { name = deck.first?.name }
+            if let name = name {
+                callouts.append(ActionCallout(
+                    message: "Peeked unrevealed hero: \(name)",
+                    icon: "eye",
+                    color: "00F5FF"
+                ))
+            }
+
+        case .reorderUnrevealedHeroes(let side):
+            // Re-sort unrevealed hero slots by power desc for side
+            let slots = (currentBattle + 1..<battles.count).filter { !battles[$0].isRevealed }
+            var cards: [Card] = slots.compactMap { side == .player ? battles[$0].playerCard : battles[$0].cpuCard }
+            cards.sort { ($0.power ?? 0) > ($1.power ?? 0) }
+            for (i, idx) in slots.enumerated() {
+                guard i < cards.count else { break }
+                if side == .player { battles[idx].playerCard = cards[i] } else { battles[idx].cpuCard = cards[i] }
+            }
+
+        case .revealTopPlays(let side, let count, _):
+            let pool = side == .player ? playerPlayDeck : []
+            let names = pool.prefix(count).map { $0.name }.joined(separator: ", ")
+            if !names.isEmpty {
+                callouts.append(ActionCallout(
+                    message: "Top plays: \(names)",
+                    icon: "eye",
+                    color: "00F5FF"
+                ))
+            }
+
+        case .revealTopHeroes(let side, let count, _):
+            let pool = side == .player ? playerHeroDeck : cpuHeroDeck
+            let names = pool.prefix(count).map { $0.name }.joined(separator: ", ")
+            if !names.isEmpty {
+                callouts.append(ActionCallout(
+                    message: "Top heroes: \(names)",
+                    icon: "eye",
+                    color: "00F5FF"
+                ))
+            }
+
+        case .installPersistent(let owner, let spec):
+            persistents.append(PersistentEffect(owner: owner, spec: spec, installedAt: currentBattle))
+
+        case .installBlock(let side, let kind, let scope):
+            let entry = BlockEntry(kind: kind, scope: scope, installedAt: currentBattle)
+            if side == .player { playerBlocks.append(entry) } else { cpuBlocks.append(entry) }
+
+        case .installHonors(let side, let scope):
+            let flag = ScopedFlag(scope: scope, installedAt: currentBattle)
+            if side == .player { playerPendingHonors = flag } else { cpuPendingHonors = flag }
+
+        case .installSubstituteFree(let side, let scope):
+            let flag = ScopedFlag(scope: scope, installedAt: currentBattle)
+            if side == .player { playerFreeSub = flag } else { cpuFreeSub = flag }
+
+        case .endBattleByPower:
+            // Trigger resolution immediately (best-effort — caller will still need to advance phase)
+            phase = .resolution
+            resolveCurrentBattle()
         }
     }
 
@@ -289,6 +749,18 @@ final class PracticeStore {
         persistents = []
         playerCostMods = []
         cpuCostMods = []
+        playerBlocks = []
+        cpuBlocks = []
+        playerPendingHonors = nil
+        cpuPendingHonors = nil
+        playerFreeSub = nil
+        cpuFreeSub = nil
+        playerSubCostTransferFrom = nil
+        cpuSubCostTransferFrom = nil
+        markedBattles = []
+        pendingPlayerNotes = []
+        cpuLastPlayNotes = []
+        peekedCards = []
         if !allCards.isEmpty { allCardsPool = allCards }
         let pool = allCardsPool
 
@@ -471,15 +943,27 @@ final class PracticeStore {
     func playerSubstitute(benchIndex: Int) {
         guard phase == .sub,
               !playerSubstituted,
-              playerHotDogs >= 2,
+              !isBlocked(.player, kind: "block_sub"),
               benchIndex < playerBench.count else { return }
+
+        // Sub cost is free if a free-sub flag is active or cost is being transferred to CPU
+        let freeSub = playerFreeSub != nil
+        let transferFrom = playerSubCostTransferFrom
+        let cost = freeSub ? 0 : 2
+        guard playerHotDogs >= cost || transferFrom != nil else { return }
 
         battles[currentBattle].playerCard = playerBench[benchIndex]
         // Original hero goes to discard (removed from bench)
         playerBench.remove(at: benchIndex)
 
-        playerHotDogs -= 2
-        playerHotDogDiscard += 2
+        if transferFrom == .cpu {
+            cpuHotDogs = max(0, cpuHotDogs - cost)
+            playerSubCostTransferFrom = nil
+        } else {
+            playerHotDogs -= cost
+            playerHotDogDiscard += cost
+        }
+        if freeSub { playerFreeSub = nil }
 
         // Draw a new hero from hero deck to replace the bench slot (per rules)
         if let drawn = playerHeroDeck.first {
@@ -497,6 +981,7 @@ final class PracticeStore {
 
     func playerPlayCard(_ card: Card) {
         guard phase == .play, playerHand.contains(card) else { return }
+        guard !isBlocked(.player, kind: "block_plays") else { return }
         guard effectiveCost(for: card, side: .player) <= playerHotDogs else { return }
         guard PlayEffects.isPlayable(name: card.name, ctx: makeExecContext(self_: .player)) else { return }
         let cost = effectiveCost(for: card, side: .player, consume: true)
@@ -519,19 +1004,29 @@ final class PracticeStore {
                 playerDelta = out.selfDelta
                 cpuDelta = out.oppDelta
                 if out.selfHDDelta > 0 {
-                    playerHotDogs = min(10, playerHotDogs + out.selfHDDelta)
+                    if !isBlocked(.player, kind: "block_hd_recover") {
+                        playerHotDogs = min(10, playerHotDogs + out.selfHDDelta)
+                    }
                 } else if out.selfHDDelta < 0 {
                     playerHotDogs = max(0, playerHotDogs + out.selfHDDelta)
                 }
-                if out.oppHDDelta != 0 {
-                    cpuHotDogs = max(0, min(10, cpuHotDogs + out.oppHDDelta))
+                if out.oppHDDelta > 0 {
+                    if !isBlocked(.cpu, kind: "block_hd_recover") {
+                        cpuHotDogs = min(10, cpuHotDogs + out.oppHDDelta)
+                    }
+                } else if out.oppHDDelta < 0 {
+                    cpuHotDogs = max(0, cpuHotDogs + out.oppHDDelta)
                 }
                 if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
                     for p in persistent {
                         persistents.append(PersistentEffect(owner: .player, spec: p, installedAt: currentBattle))
                     }
                 }
-                applyTierAIntents(out)
+                let notes = applyIntents(out, actingSide: .player)
+                // Accumulate notifications for later display
+                if !notes.isEmpty {
+                    pendingPlayerNotes = notes
+                }
                 structuredHandled = true
             }
         }
@@ -556,20 +1051,26 @@ final class PracticeStore {
         } else if ability.contains("roll a di") {
             lastEffectCallout = ActionCallout(message: "Dice roll: \(playerDelta > 0 ? "+\(playerDelta)" : "\(cpuDelta)") Power", icon: "dice.fill", color: playerDelta > 0 ? "4CAF50" : "C0392B")
             scheduleEffectDismiss()
-        } else if playerDelta != 0 || cpuDelta != 0 {
-            // Show power change callout for all effects
+        } else if playerDelta != 0 || cpuDelta != 0 || !pendingPlayerNotes.isEmpty {
+            // Show power change callout for all effects (and fold in intent notifications)
             var parts: [String] = []
             if playerDelta > 0 { parts.append("+\(playerDelta) to you") }
             if playerDelta < 0 { parts.append("\(playerDelta) to you") }
             if cpuDelta < 0 { parts.append("\(cpuDelta) to opponent") }
             if cpuDelta > 0 { parts.append("+\(cpuDelta) to opponent") }
+            var msg = "\(card.name)"
+            if !parts.isEmpty { msg += ": " + parts.joined(separator: ", ") }
+            if !pendingPlayerNotes.isEmpty {
+                msg += " · " + pendingPlayerNotes.joined(separator: " · ")
+            }
             lastEffectCallout = ActionCallout(
-                message: "\(card.name): \(parts.joined(separator: ", "))",
+                message: msg,
                 icon: "sparkles",
                 color: playerDelta > 0 ? "00F5FF" : "FF4D00"
             )
             scheduleEffectDismiss()
         }
+        pendingPlayerNotes = []
 
         playerHotDogs -= cost
         playerPlayDiscard.append(card)
@@ -663,7 +1164,14 @@ final class PracticeStore {
 
     private func cpuTakeSubstitutionTurn() {
         cpuSubCallout = nil
-        guard mode.showBench, !cpuSubstituted, cpuHotDogs >= 2, !cpuBench.isEmpty else {
+        guard mode.showBench, !cpuSubstituted, !isBlocked(.cpu, kind: "block_sub"),
+              !cpuBench.isEmpty else {
+            cpuSubstituted = true; return
+        }
+        let freeSub = cpuFreeSub != nil
+        let transferFrom = cpuSubCostTransferFrom
+        let effectiveCost = freeSub ? 0 : 2
+        guard cpuHotDogs >= effectiveCost || transferFrom != nil else {
             cpuSubstituted = true; return
         }
         let currentPower = battles[currentBattle].cpuCard?.power ?? 0
@@ -684,7 +1192,13 @@ final class PracticeStore {
             let best = cpuBench[bestIdx]
             cpuBench.remove(at: bestIdx)
             battles[currentBattle].cpuCard = best
-            cpuHotDogs -= 2
+            if transferFrom == .player {
+                playerHotDogs = max(0, playerHotDogs - effectiveCost)
+                cpuSubCostTransferFrom = nil
+            } else {
+                cpuHotDogs -= effectiveCost
+            }
+            if freeSub { cpuFreeSub = nil }
 
             // Sub happens before reveal — don't reveal original or new hero names
             let pendingCallout = ActionCallout(
@@ -709,6 +1223,9 @@ final class PracticeStore {
         cpuPlayQueue = []
         currentCpuPlay = nil
         guard mode == .playmaker else {
+            cpuPassedPlays = true; return
+        }
+        guard !isBlocked(.cpu, kind: "block_plays") else {
             cpuPassedPlays = true; return
         }
 
@@ -740,15 +1257,27 @@ final class PracticeStore {
                     // CPU's "self" is cpu; map out.selfDelta → cpuDelta, out.oppDelta → playerDelta
                     cpuDelta = out.selfDelta
                     playerDelta = out.oppDelta
-                    if out.selfHDDelta > 0 { cpuHotDogs = min(10, cpuHotDogs + out.selfHDDelta) }
-                    else if out.selfHDDelta < 0 { cpuHotDogs = max(0, cpuHotDogs + out.selfHDDelta) }
-                    if out.oppHDDelta != 0 { playerHotDogs = max(0, min(10, playerHotDogs + out.oppHDDelta)) }
+                    if out.selfHDDelta > 0 {
+                        if !isBlocked(.cpu, kind: "block_hd_recover") {
+                            cpuHotDogs = min(10, cpuHotDogs + out.selfHDDelta)
+                        }
+                    } else if out.selfHDDelta < 0 {
+                        cpuHotDogs = max(0, cpuHotDogs + out.selfHDDelta)
+                    }
+                    if out.oppHDDelta > 0 {
+                        if !isBlocked(.player, kind: "block_hd_recover") {
+                            playerHotDogs = min(10, playerHotDogs + out.oppHDDelta)
+                        }
+                    } else if out.oppHDDelta < 0 {
+                        playerHotDogs = max(0, playerHotDogs + out.oppHDDelta)
+                    }
                     if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
                         for p in persistent {
                             persistents.append(PersistentEffect(owner: .cpu, spec: p, installedAt: currentBattle))
                         }
                     }
-                    applyTierAIntents(out)
+                    let notes = applyIntents(out, actingSide: .cpu)
+                    cpuLastPlayNotes = notes
                     structuredHandled = true
                 }
             }
@@ -764,8 +1293,11 @@ final class PracticeStore {
             cardsPlayed += 1
 
             let desc = Self.effectDescription(for: card)
+            let notes = cpuLastPlayNotes
+            cpuLastPlayNotes = []
+            let notesSuffix = notes.isEmpty ? "" : " · " + notes.joined(separator: " · ")
             cpuPlayQueue.append(ActionCallout(
-                message: "CPU played \(card.name) (\(cost) HD) — \(desc)",
+                message: "CPU played \(card.name) (\(cost) HD) — \(desc)\(notesSuffix)",
                 icon: "rectangle.stack",
                 color: "8B00FF",
                 card: card,
@@ -784,6 +1316,7 @@ final class PracticeStore {
 
     private func drawPlayCard() {
         guard mode.showPlays else { return }
+        guard !isBlocked(.player, kind: "block_draw") else { return }
         // Reshuffle discard into deck if deck is empty
         if playerPlayDeck.isEmpty && !playerPlayDiscard.isEmpty {
             playerPlayDeck = playerPlayDiscard.shuffled()
@@ -805,8 +1338,11 @@ final class PracticeStore {
         guard battles.indices.contains(currentBattle) else { return }
         var slot = battles[currentBattle]
 
-        let playerPower = (slot.playerCard?.power ?? 0) + slot.playerEffectPower
-        let cpuPower    = (slot.cpuCard?.power ?? 0)    + slot.cpuEffectPower
+        // Transform-to-hot-dog: active hero's base power treated as 0
+        let playerBase = slot.playerTransformedToHotDog ? 0 : (slot.playerCard?.power ?? 0)
+        let cpuBase    = slot.cpuTransformedToHotDog    ? 0 : (slot.cpuCard?.power ?? 0)
+        let playerPower = playerBase + slot.playerEffectPower
+        let cpuPower    = cpuBase    + slot.cpuEffectPower
 
         slot.playerFinalPower = playerPower
         slot.cpuFinalPower    = cpuPower
@@ -864,6 +1400,41 @@ final class PracticeStore {
         battles[currentBattle].isActive = true
         playerSubstituted = false; cpuSubstituted = false
         playerPassedPlays = false; cpuPassedPlays = false
+
+        // Apply pending honors_set for this battle
+        if let h = playerPendingHonors {
+            honors = .player
+            if h.scope == "next_battle" { playerPendingHonors = nil }
+        } else if let h = cpuPendingHonors {
+            honors = .cpu
+            if h.scope == "next_battle" { cpuPendingHonors = nil }
+        }
+        // Purge expired blocks
+        purgeExpiredBlocks()
+
+        // Fire marked_battle on_reveal effects for this battle
+        let fires = markedBattles.filter { $0.battleIdx == currentBattle }
+        for mark in fires {
+            let ctx = makeExecContext(self_: mark.side)
+            var out = PlayExecOut()
+            for s in mark.onReveal { PlayEffectExecutor.execStep(s, ctx: ctx, out: &out) }
+            if out.hasEffect {
+                if mark.side == .player {
+                    battles[currentBattle].playerEffectPower += out.selfDelta
+                    battles[currentBattle].cpuEffectPower    += out.oppDelta
+                } else {
+                    battles[currentBattle].cpuEffectPower    += out.selfDelta
+                    battles[currentBattle].playerEffectPower += out.oppDelta
+                }
+                cpuCallouts.append(ActionCallout(
+                    message: "Marked battle triggered",
+                    icon: "flag.fill",
+                    color: "FFD166"
+                ))
+            }
+        }
+        markedBattles.removeAll { $0.battleIdx == currentBattle }
+
         // Per rules: Sub phase comes before reveal for non-rookie
         phase = mode == .rookie ? .reveal : .sub
     }

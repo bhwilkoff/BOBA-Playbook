@@ -3003,6 +3003,41 @@ const PM = {
     this.cpuPassedPlays = true;
   },
 
+  // Dry-run: compute the pending power delta that installed continuous/battle_start
+  // persistents will apply to an unrevealed battle for the given side.
+  // Returns 0 for already-revealed battles (their delta is already in effectPower).
+  previewPersistentPower(battleIdx, side /* 'player' | 'cpu' */) {
+    const b = this.battles[battleIdx];
+    if (!b || b.revealed) return 0;
+    let total = 0;
+    for (const inst of (this._persistents || [])) {
+      const scope = inst.spec && inst.spec.scope;
+      const trigger = inst.spec && inst.spec.trigger;
+      if (trigger !== 'continuous' && trigger !== 'battle_start') continue;
+      const inScope = (() => {
+        if (scope === 'rest_of_game') return true;
+        if (scope === 'next_battle') return battleIdx === inst.installedAt + 1;
+        if (scope === 'next_2_battles') return battleIdx > inst.installedAt && battleIdx <= inst.installedAt + 2;
+        if (scope === 'battle_7') return battleIdx === 6;
+        if (scope === 'battles_4_7') return battleIdx >= 3;
+        if (scope === 'this_battle') return battleIdx === inst.installedAt;
+        return false;
+      })();
+      if (!inScope || !inst.spec.effect) continue;
+      // Build a context rooted at the owner but pointing at the previewed battle.
+      const ctx = pmMakeExecContext(inst.owner);
+      ctx.battleIdx = battleIdx;
+      ctx.selfCard = inst.owner === 'player' ? b.playerCard : b.cpuCard;
+      ctx.oppCard  = inst.owner === 'player' ? b.cpuCard    : b.playerCard;
+      const out = { selfDelta: 0, oppDelta: 0, selfHDDelta: 0, oppHDDelta: 0, draws: 0, discards: 0, hasEffect: false, unknownOps: [], notifications: [] };
+      pmExecStep(inst.spec.effect, ctx, out);
+      if (!out.hasEffect) continue;
+      if (inst.owner === side) total += (out.selfDelta || 0);
+      else                     total += (out.oppDelta  || 0);
+    }
+    return total;
+  },
+
   // Apply continuous/battle-scoped persistents (Fire Boost, etc.) at reveal.
   // Only `continuous` trigger with a `power` effect is resolved here —
   // scoped persistents with other triggers are tracked but not yet executed.
@@ -3397,11 +3432,19 @@ function pmRenderBattleSlotContent(slot, card, revealed, isOpp, battle) {
   }
   if (isOpp && !revealed) {
     // Card back: double-border design (classic TCG pattern, no crossing lines)
+    let pendingHtml = '';
+    if (battle) {
+      const pending = PM.previewPersistentPower(battle.id, 'cpu');
+      if (pending !== 0) {
+        const color = pending > 0 ? '#C0392B' : '#00F5FF'; // CPU's +N is bad for you
+        pendingHtml = `<span class="pm-bc-pending" style="color:${color}">${pending > 0 ? '+' : ''}${pending}</span>`;
+      }
+    }
     slot.innerHTML = `<svg width="22" height="30" viewBox="0 0 20 28" fill="none" aria-hidden="true">
       <rect x="1" y="1" width="18" height="26" rx="3" fill="rgba(192,57,43,0.12)" stroke="rgba(192,57,43,0.5)" stroke-width="1.5"/>
       <rect x="3.5" y="3.5" width="13" height="21" rx="1.5" stroke="rgba(192,57,43,0.28)" stroke-width="0.9"/>
       <circle cx="10" cy="14" r="3.5" stroke="rgba(192,57,43,0.25)" stroke-width="0.9"/>
-    </svg>`;
+    </svg>${pendingHtml}`;
     return;
   }
   const eff     = battle ? (isOpp ? (battle.cpuEffectPower||0) : (battle.playerEffectPower||0)) : 0;
@@ -3409,8 +3452,23 @@ function pmRenderBattleSlotContent(slot, card, revealed, isOpp, battle) {
   const effPow  = basePow + eff;
   const imgUrl  = card.imageFile ? thumbUrl(card.imageFile) : null;
   const imgHtml = imgUrl ? `<img class="pm-slot-img" src="${imgUrl}" alt="${card.hero||card.name}" loading="lazy" onerror="this.style.display='none'">` : '';
-  const bonusHtml = eff > 0 ? `<span class="pm-bc-bonus" style="color:${isOpp?'#8B00FF':'#00F5FF'}">+${eff}</span>` : '';
-  slot.innerHTML = `${imgHtml}<span class="pm-bc-name">${(card.hero||card.name||'').substring(0,8)}</span><span class="pm-bc-power">${effPow}</span>${bonusHtml}`;
+  // Current applied bonus (shows +N or -N)
+  let bonusHtml = '';
+  if (eff !== 0) {
+    const col = eff > 0 ? (isOpp ? '#8B00FF' : '#00F5FF') : '#C0392B';
+    bonusHtml = `<span class="pm-bc-bonus" style="color:${col}">${eff > 0 ? '+' : ''}${eff}</span>`;
+  }
+  // Pending persistent preview (only if this battle isn't yet revealed)
+  let pendingHtml = '';
+  if (battle && !battle.revealed) {
+    const side = isOpp ? 'cpu' : 'player';
+    const pending = PM.previewPersistentPower(battle.id, side);
+    if (pending !== 0) {
+      const col = pending > 0 ? '#00F5FF' : '#C0392B';
+      pendingHtml = `<span class="pm-bc-pending" style="color:${col}">${pending > 0 ? '+' : ''}${pending}</span>`;
+    }
+  }
+  slot.innerHTML = `${imgHtml}<span class="pm-bc-name">${(card.hero||card.name||'').substring(0,8)}</span><span class="pm-bc-power">${effPow}</span>${bonusHtml}${pendingHtml}`;
   if (card.element) {
     const bar = document.createElement('div');
     bar.className = 'pm-bc-element';

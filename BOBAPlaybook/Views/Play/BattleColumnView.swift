@@ -13,6 +13,8 @@ struct BattleColumnView: View {
     let isActive: Bool
     let phase: BattlePhase
     let mode: PracticeMode
+    var pendingPlayerBonus: Int = 0
+    var pendingCpuBonus: Int = 0
 
     private var vsBarColor: Color {
         switch slot.result {
@@ -42,9 +44,9 @@ struct BattleColumnView: View {
                 // CPU hero (top half)
                 Group {
                     if slot.isRevealed, let card = slot.cpuCard {
-                        cardFace(card: card, width: cardW, height: heroH, isOpponent: true, effectBonus: slot.cpuEffectPower)
+                        cardFace(card: card, width: cardW, height: heroH, isOpponent: true, effectBonus: slot.cpuEffectPower, pendingBonus: 0)
                     } else {
-                        facedownCard(width: cardW, height: heroH, isOpponent: true)
+                        facedownCard(width: cardW, height: heroH, isOpponent: true, pendingBonus: pendingCpuBonus)
                     }
                 }
                 .frame(width: cardW, height: heroH)
@@ -55,9 +57,11 @@ struct BattleColumnView: View {
                 // Player hero (bottom half)
                 Group {
                     if let card = slot.playerCard {
-                        cardFace(card: card, width: cardW, height: heroH, isOpponent: false, effectBonus: slot.playerEffectPower)
+                        cardFace(card: card, width: cardW, height: heroH, isOpponent: false,
+                                 effectBonus: slot.playerEffectPower,
+                                 pendingBonus: slot.isRevealed ? 0 : pendingPlayerBonus)
                     } else {
-                        facedownCard(width: cardW, height: heroH, isOpponent: false)
+                        facedownCard(width: cardW, height: heroH, isOpponent: false, pendingBonus: pendingPlayerBonus)
                     }
                 }
                 .frame(width: cardW, height: heroH)
@@ -90,7 +94,7 @@ struct BattleColumnView: View {
 
     // MARK: - Card Face
 
-    private func cardFace(card: Card, width: CGFloat, height: CGFloat, isOpponent: Bool, effectBonus: Int = 0) -> some View {
+    private func cardFace(card: Card, width: CGFloat, height: CGFloat, isOpponent: Bool, effectBonus: Int = 0, pendingBonus: Int = 0) -> some View {
         ZStack(alignment: .bottom) {
             if let file = card.imageFile, !file.isEmpty {
                 CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
@@ -123,6 +127,17 @@ struct BattleColumnView: View {
                         .foregroundStyle(.white)
                 }
                 .shadow(color: .black, radius: 3)
+
+                // Pending persistent preview (dotted) — shown on unrevealed future battles
+                if pendingBonus != 0 {
+                    Text(pendingBonus > 0 ? "+\(pendingBonus) pending" : "\(pendingBonus) pending")
+                        .font(Design.Fonts.mono(8, weight: .bold))
+                        .foregroundStyle(pendingBonus > 0 ? Design.Colors.bobaCyan : Color(hex: "C0392B"))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(Capsule().stroke(style: StrokeStyle(lineWidth: 1, dash: [2,2]))
+                            .foregroundStyle(pendingBonus > 0 ? Design.Colors.bobaCyan.opacity(0.6) : Color(hex: "C0392B").opacity(0.6)))
+                }
             }
             .padding(.bottom, 4)
         }
@@ -142,13 +157,25 @@ struct BattleColumnView: View {
             )
     }
 
-    private func facedownCard(width: CGFloat, height: CGFloat, isOpponent: Bool) -> some View {
-        RoundedRectangle(cornerRadius: 8)
-            .fill(isOpponent ? Color(hex: "C0392B").opacity(0.2) : Design.Colors.bobaOrange.opacity(0.15))
-            .overlay(
-                Image(systemName: "shield.fill")
-                    .font(.system(size: height * 0.2))
-                    .foregroundStyle(isOpponent ? Color(hex: "C0392B").opacity(0.4) : Design.Colors.bobaOrange.opacity(0.4))
-            )
+    private func facedownCard(width: CGFloat, height: CGFloat, isOpponent: Bool, pendingBonus: Int = 0) -> some View {
+        ZStack(alignment: .bottom) {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(isOpponent ? Color(hex: "C0392B").opacity(0.2) : Design.Colors.bobaOrange.opacity(0.15))
+                .overlay(
+                    Image(systemName: "shield.fill")
+                        .font(.system(size: height * 0.2))
+                        .foregroundStyle(isOpponent ? Color(hex: "C0392B").opacity(0.4) : Design.Colors.bobaOrange.opacity(0.4))
+                )
+
+            if pendingBonus != 0 {
+                Text(pendingBonus > 0 ? "+\(pendingBonus) pending" : "\(pendingBonus) pending")
+                    .font(Design.Fonts.mono(8, weight: .bold))
+                    .foregroundStyle(pendingBonus > 0 ? Design.Colors.bobaCyan : Color(hex: "C0392B"))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Capsule().fill(Color.black.opacity(0.7)))
+                    .padding(.bottom, 4)
+            }
+        }
     }
 }

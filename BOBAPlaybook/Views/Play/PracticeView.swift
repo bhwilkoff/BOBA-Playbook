@@ -182,7 +182,9 @@ struct PracticeView: View {
                                 slot: slot,
                                 isActive: false,
                                 phase: store.phase,
-                                mode: store.mode
+                                mode: store.mode,
+                                pendingPlayerBonus: store.previewPersistentPower(for: slot.id, side: .player),
+                                pendingCpuBonus: store.previewPersistentPower(for: slot.id, side: .cpu)
                             )
                             .frame(width: inactiveWidth)
                             .id(slot.id)

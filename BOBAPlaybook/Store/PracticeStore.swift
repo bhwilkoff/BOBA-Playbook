@@ -957,10 +957,16 @@ final class PracticeStore {
                 // Playmaker: stay in .reveal — user presses again to enter play phase
             } else {
                 // Second press (Playmaker only): cards already revealed, move to play phase
+                // Per Comprehensive Rules Guide §4.3.2: honors player plays first.
+                // Each player has only ONE opportunity per battle to run Plays.
                 phase = .play
                 playerPassedPlays = false
                 cpuPassedPlays = false
-                cpuPreparePlayTurn()
+                if honors == .cpu {
+                    // CPU has honors — CPU plays first, then player reacts.
+                    cpuPreparePlayTurn()
+                }
+                // Player has honors — wait for player to play or press END TURN.
             }
 
         case .play:
@@ -1228,6 +1234,12 @@ final class PracticeStore {
     func playerPassPlays() {
         guard phase == .play else { return }
         playerPassedPlays = true
+        // If CPU hasn't had their turn yet (e.g., player had honors and is now
+        // passing), CPU takes their turn now. Per rules §4.3.2, each player
+        // has only one opportunity per battle to run Plays.
+        if !cpuPassedPlays {
+            cpuPreparePlayTurn()
+        }
         if cpuPassedPlays {
             phase = .resolution
             resolveCurrentBattle()
@@ -1556,6 +1568,44 @@ final class PracticeStore {
             honors: honors == .player ? "player" : "cpu",
             battles: battles
         )
+    }
+
+    /// Dry-run: compute the pending power delta that installed continuous/battle_start
+    /// persistents will apply to an unrevealed future battle for the given side.
+    /// Returns 0 for battles already revealed (the delta is already in playerEffectPower).
+    func previewPersistentPower(for battleIdx: Int, side: PlayExecContext.Side) -> Int {
+        guard battles.indices.contains(battleIdx) else { return 0 }
+        if battles[battleIdx].isRevealed { return 0 }
+        var total = 0
+        for inst in persistents {
+            let scope = inst.spec["scope"] as? String
+            let trigger = inst.spec["trigger"] as? String
+            guard trigger == "continuous" || trigger == "battle_start" else { continue }
+            let inScope: Bool = {
+                switch scope {
+                case "rest_of_game":   return true
+                case "next_battle":    return battleIdx == inst.installedAt + 1
+                case "next_2_battles": return battleIdx > inst.installedAt && battleIdx <= inst.installedAt + 2
+                case "battle_7":       return battleIdx == 6
+                case "battles_4_7":    return battleIdx >= 3
+                case "this_battle":    return battleIdx == inst.installedAt
+                default:               return false
+                }
+            }()
+            guard inScope, let eff = inst.spec["effect"] as? [String: Any] else { continue }
+            // Evaluate the effect with a context rooted at the owner; translate to the asked side.
+            var snapCtx = makeExecContext(self_: inst.owner)
+            snapCtx.battleIdx = battleIdx
+            snapCtx.selfCard = inst.owner == .player ? battles[battleIdx].playerCard : battles[battleIdx].cpuCard
+            snapCtx.oppCard  = inst.owner == .player ? battles[battleIdx].cpuCard    : battles[battleIdx].playerCard
+            var out = PlayExecOut()
+            PlayEffectExecutor.execStep(eff, ctx: snapCtx, out: &out)
+            guard out.hasEffect else { continue }
+            // Translate owner's self/opp deltas to the asked side's perspective.
+            if inst.owner == side { total += out.selfDelta }
+            else                  { total += out.oppDelta }
+        }
+        return total
     }
 
     /// Apply continuous/battle-start persistents (Fire Boost, etc.) at reveal.

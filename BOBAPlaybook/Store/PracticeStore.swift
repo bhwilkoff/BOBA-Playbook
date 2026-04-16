@@ -165,15 +165,30 @@ final class PracticeStore {
     var matchWinner: Honors?
 
     // MARK: - Persistent effects (play-effects.json `persistent[]`)
-    struct PersistentEffect {
+    final class PersistentEffect: Codable {
         let owner: PlayExecContext.Side
-        let spec: [String: Any]
         let installedAt: Int   // battle index when installed
+        /// Spec is [String: Any]; we carry it as JSON Data for Codable.
+        let specData: Data
+        var spec: [String: Any] {
+            (try? JSONSerialization.jsonObject(with: specData) as? [String: Any]) ?? [:]
+        }
+        /// Cumulative delta this persistent has applied to the CURRENT battle.
+        /// Used to rewind by `cancel_persistent` without touching past battles.
+        var appliedPlayerDelta: Int = 0
+        var appliedCpuDelta: Int = 0
+        var appliedAtBattle: Int = -1
+
+        init(owner: PlayExecContext.Side, spec: [String: Any], installedAt: Int) {
+            self.owner = owner
+            self.installedAt = installedAt
+            self.specData = (try? JSONSerialization.data(withJSONObject: spec)) ?? Data("{}".utf8)
+        }
     }
     var persistents: [PersistentEffect] = []
 
     // MARK: - Play-cost modifiers (from play_cost_delta op)
-    struct CostMod {
+    struct CostMod: Codable {
         var delta: Int
         var scope: String     // "next_play_self" | "this_and_next"
         var installedAt: Int  // battle idx
@@ -182,12 +197,12 @@ final class PracticeStore {
     var cpuCostMods: [CostMod] = []
 
     // MARK: - Block flags (from block_sub/plays/draw/hd_recover ops)
-    struct BlockEntry { var kind: String; var scope: String; var installedAt: Int }
+    struct BlockEntry: Codable { var kind: String; var scope: String; var installedAt: Int }
     var playerBlocks: [BlockEntry] = []
     var cpuBlocks: [BlockEntry] = []
 
     // MARK: - Honors / free-sub / sub-cost-transfer queues
-    struct ScopedFlag { var scope: String; var installedAt: Int }
+    struct ScopedFlag: Codable { var scope: String; var installedAt: Int }
     var playerPendingHonors: ScopedFlag? = nil
     var cpuPendingHonors: ScopedFlag? = nil
     var playerFreeSub: ScopedFlag? = nil
@@ -197,7 +212,21 @@ final class PracticeStore {
     var cpuSubCostTransferFrom: PlayExecContext.Side? = nil
 
     // MARK: - Marked future battles (mark_future_battle op)
-    struct MarkedBattle { var side: PlayExecContext.Side; var battleIdx: Int; var onReveal: [[String: Any]] }
+    /// `onReveal` holds a `[[String: Any]]` of effect steps. We serialize it as
+    /// JSON `Data` so `MatchSnapshot` can encode it.
+    struct MarkedBattle: Codable {
+        var side: PlayExecContext.Side
+        var battleIdx: Int
+        var onRevealData: Data  // JSONSerialization-encoded [[String: Any]]
+        var onReveal: [[String: Any]] {
+            (try? JSONSerialization.jsonObject(with: onRevealData) as? [[String: Any]]) ?? []
+        }
+        init(side: PlayExecContext.Side, battleIdx: Int, onReveal: [[String: Any]]) {
+            self.side = side
+            self.battleIdx = battleIdx
+            self.onRevealData = (try? JSONSerialization.data(withJSONObject: onReveal)) ?? Data("[]".utf8)
+        }
+    }
     var markedBattles: [MarkedBattle] = []
 
     // MARK: - Peeked info surfaced to UI
@@ -502,6 +531,23 @@ final class PracticeStore {
             break // already applied inline
 
         case .cancelPersistents(let target):
+            // Decide which persistents to cancel
+            let victims: [PersistentEffect] = {
+                switch target {
+                case "self":     return persistents.filter { $0.owner == actingSide }
+                case "opponent": return persistents.filter { $0.owner != actingSide }
+                default:         return persistents  // "both"
+                }
+            }()
+            // Rewind their deltas that already hit the CURRENT battle
+            if battles.indices.contains(currentBattle) {
+                var slot = battles[currentBattle]
+                for p in victims where p.appliedAtBattle == currentBattle {
+                    slot.playerEffectPower -= p.appliedPlayerDelta
+                    slot.cpuEffectPower    -= p.appliedCpuDelta
+                }
+                battles[currentBattle] = slot
+            }
             let before = persistents.count
             switch target {
             case "self":
@@ -514,7 +560,7 @@ final class PracticeStore {
             let removed = before - persistents.count
             if removed > 0 {
                 callouts.append(ActionCallout(
-                    message: "Canceled \(removed) persistent effect\(removed == 1 ? "" : "s")",
+                    message: "Canceled \(removed) persistent effect\(removed == 1 ? "" : "s") (rewound current battle)",
                     icon: "bolt.slash.fill",
                     color: "FF4D00"
                 ))
@@ -697,6 +743,35 @@ final class PracticeStore {
         case .installSubstituteFree(let side, let scope):
             let flag = ScopedFlag(scope: scope, installedAt: currentBattle)
             if side == .player { playerFreeSub = flag } else { cpuFreeSub = flag }
+
+        case .nameAndDiscard(let target):
+            // Auto-name: pick the highest-cost play in target's hand and discard it.
+            if target == .player {
+                guard !playerHand.isEmpty else {
+                    callouts.append(ActionCallout(message: "Named a card — your hand is empty", icon: "questionmark.circle", color: "666680"))
+                    break
+                }
+                let bestIdx = playerHand.indices.max(by: { (playerHand[$0].playCost ?? 0) < (playerHand[$1].playCost ?? 0) })!
+                let named = playerHand.remove(at: bestIdx)
+                playerPlayDiscard.append(named)
+                callouts.append(ActionCallout(
+                    message: "Named \(named.name) — you discarded it",
+                    icon: "exclamationmark.triangle.fill",
+                    color: "FF4D00"
+                ))
+            } else {
+                guard !cpuHand.isEmpty else {
+                    callouts.append(ActionCallout(message: "Named a card — opponent's hand is empty", icon: "questionmark.circle", color: "666680"))
+                    break
+                }
+                let bestIdx = cpuHand.indices.max(by: { (cpuHand[$0].playCost ?? 0) < (cpuHand[$1].playCost ?? 0) })!
+                let named = cpuHand.remove(at: bestIdx)
+                callouts.append(ActionCallout(
+                    message: "Named \(named.name) — opponent discarded it",
+                    icon: "exclamationmark.triangle.fill",
+                    color: "FF4D00"
+                ))
+            }
 
         case .endBattleByPower:
             // Trigger resolution immediately (best-effort — caller will still need to advance phase)
@@ -1510,13 +1585,24 @@ final class PracticeStore {
             PlayEffectExecutor.execStep(eff, ctx: ctx, out: &out)
             guard out.hasEffect else { continue }
 
+            // Translate self/opp deltas into player/cpu deltas for the slot
+            let playerDelta: Int
+            let cpuDelta: Int
             if inst.owner == .player {
-                slot.playerEffectPower += out.selfDelta
-                slot.cpuEffectPower    += out.oppDelta
+                playerDelta = out.selfDelta
+                cpuDelta = out.oppDelta
             } else {
-                slot.cpuEffectPower    += out.selfDelta
-                slot.playerEffectPower += out.oppDelta
+                cpuDelta = out.selfDelta
+                playerDelta = out.oppDelta
             }
+            slot.playerEffectPower += playerDelta
+            slot.cpuEffectPower    += cpuDelta
+
+            // Record applied deltas so cancel_persistent can rewind the
+            // current battle if it fires later.
+            inst.appliedAtBattle = currentBattle
+            inst.appliedPlayerDelta = playerDelta
+            inst.appliedCpuDelta = cpuDelta
         }
         battles[currentBattle] = slot
     }
@@ -2059,6 +2145,20 @@ final class PracticeStore {
         var cpuPassedPlays: Bool
         var matchOver: Bool
         var matchWinner: Honors?
+        // State added 2026-04-16 for full effect coverage. Each field is
+        // optional so we can still decode older saves; new saves always write them.
+        var playerCostMods: [CostMod]? = nil
+        var cpuCostMods: [CostMod]? = nil
+        var playerBlocks: [BlockEntry]? = nil
+        var cpuBlocks: [BlockEntry]? = nil
+        var playerPendingHonors: ScopedFlag? = nil
+        var cpuPendingHonors: ScopedFlag? = nil
+        var playerFreeSub: ScopedFlag? = nil
+        var cpuFreeSub: ScopedFlag? = nil
+        var playerSubCostTransferFrom: PlayExecContext.Side? = nil
+        var cpuSubCostTransferFrom: PlayExecContext.Side? = nil
+        var markedBattles: [MarkedBattle]? = nil
+        var persistents: [PersistentEffect]? = nil
     }
 
     private static var saveURL: URL {
@@ -2087,7 +2187,14 @@ final class PracticeStore {
             cpuPlaysRemaining: cpuPlaysRemaining, allCardsPool: allCardsPool,
             playerSubstituted: playerSubstituted, cpuSubstituted: cpuSubstituted,
             playerPassedPlays: playerPassedPlays, cpuPassedPlays: cpuPassedPlays,
-            matchOver: matchOver, matchWinner: matchWinner
+            matchOver: matchOver, matchWinner: matchWinner,
+            playerCostMods: playerCostMods, cpuCostMods: cpuCostMods,
+            playerBlocks: playerBlocks, cpuBlocks: cpuBlocks,
+            playerPendingHonors: playerPendingHonors, cpuPendingHonors: cpuPendingHonors,
+            playerFreeSub: playerFreeSub, cpuFreeSub: cpuFreeSub,
+            playerSubCostTransferFrom: playerSubCostTransferFrom,
+            cpuSubCostTransferFrom: cpuSubCostTransferFrom,
+            markedBattles: markedBattles, persistents: persistents
         )
         if let data = try? JSONEncoder().encode(snapshot) {
             try? data.write(to: Self.saveURL, options: .atomic)
@@ -2123,6 +2230,19 @@ final class PracticeStore {
         cpuPassedPlays = snapshot.cpuPassedPlays
         matchOver = snapshot.matchOver
         matchWinner = snapshot.matchWinner
+        // Effect-tracking state (all optional for back-compat with older saves)
+        playerCostMods = snapshot.playerCostMods ?? []
+        cpuCostMods = snapshot.cpuCostMods ?? []
+        playerBlocks = snapshot.playerBlocks ?? []
+        cpuBlocks = snapshot.cpuBlocks ?? []
+        playerPendingHonors = snapshot.playerPendingHonors
+        cpuPendingHonors = snapshot.cpuPendingHonors
+        playerFreeSub = snapshot.playerFreeSub
+        cpuFreeSub = snapshot.cpuFreeSub
+        playerSubCostTransferFrom = snapshot.playerSubCostTransferFrom
+        cpuSubCostTransferFrom = snapshot.cpuSubCostTransferFrom
+        markedBattles = snapshot.markedBattles ?? []
+        persistents = snapshot.persistents ?? []
         return true
     }
 

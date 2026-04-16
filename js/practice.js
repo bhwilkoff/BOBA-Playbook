@@ -1041,8 +1041,8 @@ function pmEvalMetric(metric, args, ctx) {
     case 'opponent_hd_used_this_battle':
       return Math.max(0, 10 - (ctx.oppHD || 0));
     case 'cards_discarded_by_this_play':
-      // set by discard_hand_all; read by "power" formulae within same execution
-      return 0;
+      // Set by discard/discard_hand_all during the same execution pass.
+      return ctx._discardedByThisPlay || 0;
     case 'plays_in_hand_before_shuffle':
       return (bound.selfHand || []).length;
     case 'discarded_plays_cost_gte': {
@@ -1365,6 +1365,8 @@ function pmExecStep(step, ctx, out) {
     case 'discard': {
       const n = step.count === 'all' ? 99 : pmEvalFormula(step.count, ctx);
       out.discards = (out.discards || 0) + n;
+      // Track for cards_discarded_by_this_play metric
+      ctx._discardedByThisPlay = (ctx._discardedByThisPlay || 0) + n;
       out.hasEffect = true;
       break;
     }
@@ -1589,6 +1591,7 @@ function pmExecStep(step, ctx, out) {
         }
       }
       out._discardedPlays = (out._discardedPlays || []).concat(discardedPlays);
+      ctx._discardedByThisPlay = (ctx._discardedByThisPlay || 0) + discardedPlays.length;
       out.hasEffect = true;
       break;
     }
@@ -1596,9 +1599,14 @@ function pmExecStep(step, ctx, out) {
       // Count cards discarded for the `cards_discarded_by_this_play` metric
       const side = step.target === 'opponent' ? ctx.opp : ctx.self;
       if (side === 'player') {
-        out.cardsDiscardedByThisPlay = (out.cardsDiscardedByThisPlay || 0) + PM.playerPlayHand.length;
+        const n = PM.playerPlayHand.length;
+        ctx._discardedByThisPlay = (ctx._discardedByThisPlay || 0) + n;
         PM.playerDiscard.push(...PM.playerPlayHand);
         PM.playerPlayHand = [];
+      } else {
+        const n = PM.cpuPlayPool.length;
+        ctx._discardedByThisPlay = (ctx._discardedByThisPlay || 0) + n;
+        PM.cpuPlayPool = [];
       }
       out.hasEffect = true;
       break;
@@ -1836,10 +1844,27 @@ function pmExecStep(step, ctx, out) {
       out.notifications.push(`Added chosen revealed hero to hand; discarded rest`);
       out.hasEffect = true;
       break;
-    case 'name_and_discard':
-      out.notifications.push(`Named a card — opponent discards if match`);
+    case 'name_and_discard': {
+      // Auto-name: pick the highest-cost play in opponent's hand. If they
+      // have it (always true when auto-named from their hand), discard it.
+      const target = (step.target === 'opponent') ? ctx.opp : ctx.self;
+      const oppHand = target === 'player' ? PM.playerPlayHand : PM.cpuPlayPool;
+      if (oppHand.length > 0) {
+        let bestIdx = 0;
+        for (let i = 1; i < oppHand.length; i++) {
+          if ((oppHand[i]?.playCost || 0) > (oppHand[bestIdx]?.playCost || 0)) bestIdx = i;
+        }
+        const named = oppHand[bestIdx];
+        oppHand.splice(bestIdx, 1);
+        if (target === 'player') PM.playerDiscard.push(named);
+        ctx._discardedByThisPlay = (ctx._discardedByThisPlay || 0) + 1;
+        out.notifications.push(`Named ${named.name} — ${target === 'player' ? 'you' : 'opponent'} discarded it`);
+      } else {
+        out.notifications.push(`Named a card — ${target === 'player' ? 'your' : "opponent's"} hand is empty`);
+      }
       out.hasEffect = true;
       break;
+    }
 
     // ── Tier C: Complex specials ───────────────────────────────
     case 'mirror_power_effects_to_opponent': {
@@ -1866,16 +1891,31 @@ function pmExecStep(step, ctx, out) {
     }
     case 'cancel_persistent': {
       const target = step.target || 'opponent';
+      // Identify victims first so we can rewind their applied deltas
+      let victims;
+      if (target === 'self') victims = (PM._persistents || []).filter(p => p.owner === ctx.self);
+      else if (target === 'opponent') victims = (PM._persistents || []).filter(p => p.owner !== ctx.self);
+      else victims = (PM._persistents || []).slice();
+      // Rewind any deltas already applied to the CURRENT battle
+      const b = PM.battles[PM.currentBattle];
+      if (b) {
+        for (const v of victims) {
+          if (v.appliedAtBattle === PM.currentBattle) {
+            b.playerEffectPower = (b.playerEffectPower || 0) - (v.appliedPlayerDelta || 0);
+            b.cpuEffectPower    = (b.cpuEffectPower    || 0) - (v.appliedCpuDelta    || 0);
+          }
+        }
+      }
       const before = (PM._persistents || []).length;
       if (target === 'self') {
         PM._persistents = (PM._persistents || []).filter(p => p.owner !== ctx.self);
       } else if (target === 'opponent') {
-        PM._persistents = (PM._persistents || []).filter(p => p.owner !== ctx.opp);
+        PM._persistents = (PM._persistents || []).filter(p => p.owner === ctx.self);
       } else {
         PM._persistents = [];
       }
       const removed = before - (PM._persistents || []).length;
-      if (removed > 0) out.notifications.push(`Canceled ${removed} persistent effect${removed === 1 ? '' : 's'}`);
+      if (removed > 0) out.notifications.push(`Canceled ${removed} persistent effect${removed === 1 ? '' : 's'} (rewound current battle)`);
       out.hasEffect = true;
       break;
     }
@@ -2989,17 +3029,18 @@ const PM = {
       const ctx = pmMakeExecContext(inst.owner);
       const eff = inst.spec.effect;
       if (!eff) continue;
-      const out = { selfDelta: 0, oppDelta: 0, selfHDDelta: 0, oppHDDelta: 0, draws: 0, discards: 0, hasEffect: false, unknownOps: [] };
+      const out = { selfDelta: 0, oppDelta: 0, selfHDDelta: 0, oppHDDelta: 0, draws: 0, discards: 0, hasEffect: false, unknownOps: [], notifications: [] };
       pmExecStep(eff, ctx, out);
       if (!out.hasEffect) continue;
-      // Apply to battle
-      if (inst.owner === 'player') {
-        b.playerEffectPower = (b.playerEffectPower || 0) + (out.selfDelta || 0);
-        b.cpuEffectPower    = (b.cpuEffectPower    || 0) + (out.oppDelta  || 0);
-      } else {
-        b.cpuEffectPower    = (b.cpuEffectPower    || 0) + (out.selfDelta || 0);
-        b.playerEffectPower = (b.playerEffectPower || 0) + (out.oppDelta  || 0);
-      }
+      // Translate self/opp deltas into player/cpu deltas for the slot
+      const playerDelta = inst.owner === 'player' ? (out.selfDelta || 0) : (out.oppDelta || 0);
+      const cpuDelta    = inst.owner === 'player' ? (out.oppDelta  || 0) : (out.selfDelta || 0);
+      b.playerEffectPower = (b.playerEffectPower || 0) + playerDelta;
+      b.cpuEffectPower    = (b.cpuEffectPower    || 0) + cpuDelta;
+      // Record for cancel_persistent retroactive rewind
+      inst.appliedAtBattle = this.currentBattle;
+      inst.appliedPlayerDelta = playerDelta;
+      inst.appliedCpuDelta = cpuDelta;
     }
   },
 

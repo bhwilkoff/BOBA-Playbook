@@ -324,6 +324,46 @@ and we'll run the migration before you start submitting new corrections with `bo
 
 <!-- Cowork: add items here before handing off to Claude Code -->
 
+### [2026-04-16] 225 new card images — R2 upload needed
+
+**What happened:** User reviewed all cards found via the Radish URL eBay sold-listings pipeline and approved 225 new images. Cowork ran `reconcile_all.py` to fold all 346 verified images in `ebay-verified/images/` into the catalog (225 new + 112 upgrades of cards that already had images from other sources + 9 skipped as ambiguous).
+
+**Coverage change:** 16,014 → **16,239** images (90.3% → **91.5%**).
+
+**What's delivered (already in this repo):**
+- `assets/data/cards.json` — updated with 225 new `imageFile` entries (all bobaId-slug format: `{bobaIdSlug}.webp`)
+- `assets/data/categories.json` — regenerated
+- `assets/data/search-index.json` — regenerated
+- `BOBAPlaybook/display-cards.json` — regenerated (17,694 cards)
+- `BOBAPlaybook/cards-head.json` — regenerated (500 cards)
+- `R2_UPLOAD_MANIFEST.json` — list of 225 new `imageFile` values to upload
+
+**What Claude Code needs to do:**
+
+1. **Upload 225 new images to R2** (two tiers each = 450 ops):
+   - Source files live in the **research project** at:
+     - `unified-cards/images-optimized/{imageFile}` → R2 `full/{imageFile}`
+     - `unified-cards/thumbs/{imageFile}` → R2 `thumbs/{imageFile}`
+   - All 225 files verified present in both tiers. Total: 17.3 MB optimized + 1.6 MB thumbs.
+   - Use `scripts/r2_upload.py` wrapper (enforces `--s3-no-check-bucket`).
+   - The manifest at `R2_UPLOAD_MANIFEST.json` has the exact filenames in `new_uploads[]`.
+   - 0 removals (`removed[]` is empty).
+
+2. **Commit the updated bundles** — `cards.json`, `categories.json`, `search-index.json`, `display-cards.json`, `cards-head.json` are already in place. Delete `R2_UPLOAD_MANIFEST.json` after upload (preserve in git history).
+
+3. **Spot-check** 5-10 new images via CDN URL after upload:
+   `https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/{imageFile}`
+
+**Collision note:** 1 pre-existing source-level collision detected (BGA-1 BoJax variants: `Inspired_Ink_Bubble_Gum_Battlefoil` vs `Inspired_Ink_Battlefoil`). Not caused by this batch. Not blocking.
+
+**9 skipped files** (ambiguous CN → multiple heroes, needs manual review):
+- `BF-100.jpg` through `BF-105.jpg` — 3 Battlefoil cards each, no hero in filename
+- `BFA-2_A_I_.webp`, `MBFA-1_A_I_.webp`, `SFA-2_A_I_.webp` — 2 cards each (A.I. vs another hero at same CN)
+
+These 9 remain in `ebay-verified/images/` for future manual reconciliation.
+
+---
+
 ### [2026-04-15 v2] `play-effects.json` v2 delivered — 382/383 structured, Lucky Seven only remaining note ✅ DELIVERED
 
 **Delivered:**

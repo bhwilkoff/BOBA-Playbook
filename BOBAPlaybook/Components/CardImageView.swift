@@ -1,7 +1,23 @@
 import SwiftUI
 
 /// In-memory image cache shared across all CardImageView instances.
-let cardImageCache = NSCache<NSURL, UIImage>()
+/// Explicit limits prevent iOS from aggressively purging during fast scrolls.
+let cardImageCache: NSCache<NSURL, UIImage> = {
+    let cache = NSCache<NSURL, UIImage>()
+    cache.countLimit = 600
+    cache.totalCostLimit = 60 * 1024 * 1024  // 60 MB
+    return cache
+}()
+
+/// Dedicated session for card images — limits concurrent connections to prevent
+/// queue saturation when hundreds of cells appear during fast scrolling.
+let cardImageSession: URLSession = {
+    let config = URLSessionConfiguration.default
+    config.httpMaximumConnectionsPerHost = 8
+    config.timeoutIntervalForRequest = 20
+    config.urlCache = URLCache.shared
+    return URLSession(configuration: config)
+}()
 
 /// Async card image with a branded placeholder for cards without images.
 /// Uses NSCache + returnCacheDataElseLoad to survive view recreation and tab switches.
@@ -108,13 +124,24 @@ struct CardImageView: View {
             loadedImage = cached
             return
         }
+        // Debounce: wait briefly before fetching so cells that scroll past quickly
+        // never start a network request. 150ms is short enough to feel instant for
+        // cards the user actually stops on, but long enough to skip flyby cells.
+        try? await Task.sleep(nanoseconds: 150_000_000)
+        guard !Task.isCancelled else { return }
+        // Re-check cache after debounce (another view may have loaded it)
+        if let cached = cardImageCache.object(forKey: key) {
+            loadedImage = cached
+            return
+        }
         var request = URLRequest(url: url)
         request.cachePolicy = .returnCacheDataElseLoad
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, _) = try await cardImageSession.data(for: request)
             guard !Task.isCancelled else { return }
             if let image = UIImage(data: data) {
-                cardImageCache.setObject(image, forKey: key)
+                let cost = data.count
+                cardImageCache.setObject(image, forKey: key, cost: cost)
                 withAnimation(.easeInOut(duration: 0.25)) {
                     loadedImage = image
                 }

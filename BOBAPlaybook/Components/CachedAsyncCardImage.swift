@@ -61,13 +61,20 @@ struct CachedAsyncCardImage: View {
             image = cached
             return
         }
+        // Debounce: skip cells that scroll past quickly (matches CardImageView)
+        try? await Task.sleep(nanoseconds: 150_000_000)
+        guard !Task.isCancelled else { return }
+        if let cached = cardImageCache.object(forKey: key) {
+            image = cached
+            return
+        }
         var request = URLRequest(url: url)
         request.cachePolicy = .returnCacheDataElseLoad
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, _) = try await cardImageSession.data(for: request)
             guard !Task.isCancelled else { return }
             if let loaded = UIImage(data: data) {
-                cardImageCache.setObject(loaded, forKey: key)
+                cardImageCache.setObject(loaded, forKey: key, cost: data.count)
                 image = loaded
             } else {
                 failed = true

@@ -237,7 +237,8 @@ struct ModCardEditSheet: View {
                         cardHero:      card.hero,
                         cardElement:   card.element,
                         cardPower:     card.power,
-                        cardTreatment: card.treatment
+                        cardTreatment: card.treatment,
+                        bobaId:        card.id
                     )
                 }
 
@@ -251,7 +252,8 @@ struct ModCardEditSheet: View {
                         cardNumber: card.cardNumber,
                         action: action.supabaseAction,
                         storagePath: storagePath,
-                        status: correctionStatus
+                        status: correctionStatus,
+                        bobaId: card.id
                     )
                 }
 

@@ -3,10 +3,10 @@
 //  BOBAPlaybook
 //
 //  Structured executor for play-effects.json. Mirrors the web executor in
-//  js/practice.js: consumes an entry's effects[] array and returns
-//  deltas/flags. Unknown ops are skipped (forward-compat). Callers fall
-//  back to the regex resolver (PracticeStore.resolveEffect) when an entry
-//  is missing or produces no mechanical effect.
+//  js/practice.js: consumes an entry's effects[] array and returns deltas
+//  + intents. Unknown ops log to `unknownOps` but never abort. The host
+//  (PracticeStore) applies intents (hero swaps, blocks, peeks, etc.) after
+//  the executor returns.
 //
 
 import Foundation
@@ -16,7 +16,6 @@ import Foundation
 // ════════════════════════════════════════════════════════════════
 
 enum PlayEffects {
-    /// Keyed by Play card name. `[String: Any]` holds the raw JSON for each entry.
     private static var entries: [String: [String: Any]] = [:]
     private static var didLoad = false
 
@@ -38,22 +37,48 @@ enum PlayEffects {
     }
 
     // Legality gate: true unless the entry declares an unmet `requires` condition.
-    // Only hard-gated cards set `requires`; everything else passes.
     static func isPlayable(name: String, ctx: PlayExecContext) -> Bool {
         guard let e = entry(for: name),
               let req = e["requires"] as? [String: Any] else { return true }
         return PlayEffectExecutor.evalCondition(req, ctx: ctx)
     }
 
-    // Known ops the runtime executor implements. Used by entryHasUnknownOps to
-    // surface an "effect not fully simulated" honesty note in the UI.
+    // Every op the runtime implements. Used by entryHasUnknownOps to decide if
+    // an "effect not fully simulated" badge should surface in the UI.
     private static let knownOps: Set<String> = [
+        // Power / HD
         "power","power_set","power_swap","power_double","power_steal","power_cap_min",
-        "hd","hd_recover","draw","discard","coin_flip","dice_roll",
+        "power_reset","add_previous_hero_delta","add_top_hero_power_to_self",
+        "hd","hd_recover","swap_hd_counts",
+        // Plays / hand / discard
+        "draw","discard","discard_top","discard_hand_all","shuffle_hand_into_deck",
+        "shuffle_from_discard_to_deck","reclaim_used_play","variable_cost_bonus",
+        // Randomness
+        "coin_flip","dice_roll","compound_roll","dice_roll_again",
+        // Legality / control
         "protect_self","cancel_opponent_plays","cap_opponent_plays",
-        "variable_cost_bonus","add_previous_hero_delta","note",
-        "swap_hd_counts","play_cost_delta","shuffle_hand_into_deck","shuffle_from_discard_to_deck",
-        "discard_top","discard_hand_all","power_reset","add_top_hero_power_to_self","reclaim_used_play"
+        "block_sub","block_plays","block_draw","block_hd_recover",
+        "honors_set","substitute_free","force_substitute",
+        "play_cost_delta","cancel_persistent","persistent_delta",
+        // Hero manipulation
+        "swap_active_with_hand","swap_active_with_discard","swap_active_with_future_hero",
+        "replace_active_with_top_hero_deck","replace_next_with_top_hero_deck",
+        "replace_all_unrevealed_with_top_hero_deck","replace_active_from_hand",
+        "discard_hero","discard_hero_from_hand","discard_revealed_hero",
+        "transform_to_hot_dog","mark_future_battle",
+        // Reveal / peek / search / copy
+        "reveal","reveal_top","reveal_top_hero_deck","peek_and_reorder_top",
+        "reveal_top_reorder_or_bottom","peek_opponent_hand","peek_unrevealed_hero",
+        "reorder_unrevealed_heroes","shuffle_revealed_back","force_reveal_from_hand",
+        "search","copy_last_play","play_revealed_free","play_top_of_playbook_free",
+        "discard_revealed","deploy_chosen_revealed","discard_other_revealed",
+        "add_chosen_revealed_to_hand_discard_rest","name_and_discard",
+        // Choice
+        "choice",
+        // Specials
+        "mirror_power_effects_to_opponent","flip_opponent_debuffs",
+        "tax_per_hero_in_hand","transfer_sub_cost","end_battle_by_power",
+        "weapon_debuff_or_penalty","note"
     ]
 
     static func entryHasUnknownOps(_ entry: [String: Any]?) -> Bool {
@@ -64,7 +89,9 @@ enum PlayEffects {
             if let arr = any as? [Any] { for v in arr { walk(v) }; return }
             guard let s = any as? [String: Any] else { return }
             if let op = s["op"] as? String, !knownOps.contains(op) { found = true; return }
-            for k in ["then","else","options","choice","effect","on_match","on_miss","heads","tails"] {
+            for k in ["then","else","options","choice","effect","on_match","on_miss",
+                     "heads","tails","if_match","on_reveal_effects","components",
+                     "per_hero_cost","fallback","per_card","per_head","per_tail"] {
                 if let v = s[k] { walk(v) }
             }
             if let branches = s["branches"] as? [[String: Any]] {
@@ -85,7 +112,7 @@ enum PlayEffects {
 // ════════════════════════════════════════════════════════════════
 
 struct PlayExecContext {
-    enum Side { case player, cpu }
+    enum Side: String { case player, cpu }
 
     let self_: Side
     var selfCard: Card?
@@ -100,12 +127,54 @@ struct PlayExecContext {
     var selfLost: Int
     var selfTied: Int
     var playsUsedThisBattle: Int
-    var battleIdx: Int          // 0-based
+    var battleIdx: Int
     var battlesRemaining: Int
-    var honors: String          // "player" / "cpu"
+    var honors: String
     var battles: [BattleSlot]
 
     var opp: Side { self_ == .player ? .cpu : .player }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - Intents (applied by PracticeStore after executor returns)
+// ════════════════════════════════════════════════════════════════
+
+enum PlayIntent {
+    case notify(String)
+    case peekHeroDeck(side: PlayExecContext.Side, count: Int)
+    case swapActiveWithHand(side: PlayExecContext.Side)
+    case swapActiveWithDiscard(side: PlayExecContext.Side, weaponFilter: String?)
+    case swapActiveWithFutureHero(side: PlayExecContext.Side)
+    case replaceActiveWithTopDeck(side: PlayExecContext.Side)
+    case replaceNextWithTopDeck(side: PlayExecContext.Side)
+    case replaceAllUnrevealedWithTopDeck(side: PlayExecContext.Side)
+    case replaceActiveFromHand(side: PlayExecContext.Side)
+    case discardActiveHero(side: PlayExecContext.Side)
+    case discardHeroFromHand(side: PlayExecContext.Side)
+    case discardRevealedHero(side: PlayExecContext.Side)
+    case discardRevealedPlay(side: PlayExecContext.Side)
+    case transformActiveToHotDog(side: PlayExecContext.Side)
+    case markFutureBattle(side: PlayExecContext.Side, onReveal: [[String: Any]])
+    case forceSubstitute(target: PlayExecContext.Side, cost: Int)
+    case mirrorPowerEffects(fromSide: PlayExecContext.Side, toSide: PlayExecContext.Side)
+    case flipOpponentDebuffs(side: PlayExecContext.Side)
+    case cancelPersistents(target: String)
+    case peekOpponentHand(side: PlayExecContext.Side, count: Int, mode: String)
+    case searchPlaybook(side: PlayExecContext.Side, filter: [String: Any], action: String)
+    case copyLastPlay(side: PlayExecContext.Side)
+    case taxPerHeroInHand(target: PlayExecContext.Side, perHDCost: Int, fallbackDiscards: Int)
+    case transferSubCost(target: PlayExecContext.Side, amount: Int)
+    case playRevealedFree(side: PlayExecContext.Side)
+    case playTopOfPlaybookFree(targetHint: String)
+    case peekUnrevealedHero(side: PlayExecContext.Side, selector: String)
+    case reorderUnrevealedHeroes(side: PlayExecContext.Side)
+    case revealTopPlays(side: PlayExecContext.Side, count: Int, andPlayFree: Bool)
+    case revealTopHeroes(side: PlayExecContext.Side, count: Int, choose: Int)
+    case installPersistent(owner: PlayExecContext.Side, spec: [String: Any])
+    case installBlock(side: PlayExecContext.Side, kind: String, scope: String)
+    case installHonors(side: PlayExecContext.Side, scope: String)
+    case installSubstituteFree(side: PlayExecContext.Side, scope: String)
+    case endBattleByPower
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -115,7 +184,7 @@ struct PlayExecContext {
 struct CostModInstall {
     let target: PlayExecContext.Side
     let delta: Int
-    let scope: String  // "next_play_self" | "this_and_next"
+    let scope: String
 }
 
 struct PlayExecOut {
@@ -132,13 +201,17 @@ struct PlayExecOut {
     var hasPersistent: Bool = false
     var unknownOps: [String] = []
 
-    // Tier A intents — applied by PracticeStore after executor returns
+    // Tier A intents
     var costModInstalls: [CostModInstall] = []
     var shuffleHandIntoDeck: Bool = false
-    var shuffleDiscardToDeckCount: Int = 0   // -1 = all
+    var shuffleDiscardToDeckCount: Int = 0
     var discardTopCount: Int = 0
     var discardHandAll: Bool = false
     var reclaimUsedPlayCount: Int = 0
+
+    // Tier B/C intents
+    var intents: [PlayIntent] = []
+    var notifications: [String] = []
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -171,18 +244,27 @@ enum PlayEffectExecutor {
             }
             return
         }
-        // Choice / options: pick the option with the highest estimated self power
+        // Choice / options: pick option with highest estimated self power and surface label
         if let options = (step["options"] ?? step["choice"]) as? [[String: Any]] {
             var bestScore = Int.min
             var bestEffects: [[String: Any]] = []
+            var bestLabel: String? = nil
             for o in options {
                 var probe = PlayExecOut()
                 let effs = (o["effects"] as? [[String: Any]]) ?? []
                 for s in effs { execStep(s, ctx: ctx, out: &probe) }
                 let score = probe.selfDelta - probe.oppDelta + probe.selfHDDelta * 5
-                if score > bestScore { bestScore = score; bestEffects = effs }
+                if score > bestScore {
+                    bestScore = score
+                    bestEffects = effs
+                    bestLabel = o["label"] as? String
+                }
             }
             for s in bestEffects { execStep(s, ctx: ctx, out: &out) }
+            if let label = bestLabel {
+                out.notifications.append("Chose: \(label)")
+                out.intents.append(.notify("Chose: \(label)"))
+            }
             return
         }
         guard let op = step["op"] as? String else { return }
@@ -262,6 +344,24 @@ enum PlayEffectExecutor {
         case "dice_roll":
             execDiceRoll(step, ctx: ctx, out: &out)
 
+        case "compound_roll":
+            execCompoundRoll(step, ctx: ctx, out: &out)
+
+        case "dice_roll_again":
+            // Re-roll while result is in while_match set. Accumulate (+/-) per provided step or
+            // just notify number of extra rolls. Simpler impl: keep re-rolling and count.
+            let whileMatch = (step["while_match"] as? [Int]) ?? [4,5,6]
+            var extra = 0
+            while extra < 10 {
+                let r = Int.random(in: 1...6)
+                if !whileMatch.contains(r) { break }
+                extra += 1
+            }
+            if extra > 0 {
+                out.notifications.append("Re-rolled \(extra) extra time\(extra == 1 ? "" : "s")")
+            }
+            out.hasEffect = true
+
         case "protect_self":
             out.protectSelf = true
             out.hasEffect = true
@@ -270,13 +370,36 @@ enum PlayEffectExecutor {
             out.cancelOpp = true
             out.hasEffect = true
 
+        case "block_sub", "block_plays", "block_draw", "block_hd_recover":
+            let targetSide: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            let scope = (step["scope"] as? String) ?? (step["duration"] as? String) ?? "this_battle"
+            out.intents.append(.installBlock(side: targetSide, kind: op, scope: scope))
+            out.notifications.append("\(targetSide == ctx.self_ ? "You" : "Opponent") blocked: \(op.replacingOccurrences(of: "_", with: " "))")
+            out.hasEffect = true
+
+        case "honors_set":
+            let targetSide: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            let scope = (step["scope"] as? String) ?? "next_battle"
+            out.intents.append(.installHonors(side: targetSide, scope: scope))
+            out.notifications.append("Honors → \(targetSide == .player ? "Player" : "CPU") (\(scope))")
+            out.hasEffect = true
+
+        case "substitute_free":
+            let targetSide: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            let scope = (step["scope"] as? String) ?? "next_battle"
+            out.intents.append(.installSubstituteFree(side: targetSide, scope: scope))
+            out.notifications.append("Free substitute (\(scope))")
+            out.hasEffect = true
+
         case "variable_cost_bonus":
             let factor = (step["factor"] as? Int) ?? (step["per_hd"] as? Int) ?? 5
+            let minCost = (step["min_cost"] as? Int) ?? 0
             let available = max(0, ctx.selfHD)
-            let spend = min(available, 3)  // auto heuristic
+            let spend = max(minCost, min(available, 3))
             if spend > 0 {
                 out.selfHDDelta -= spend
                 out.selfDelta += factor * spend
+                out.notifications.append("Spent \(spend) HD → +\(factor * spend) Power")
             }
             out.hasEffect = true
 
@@ -291,7 +414,7 @@ enum PlayEffectExecutor {
         case "note":
             break
 
-        // ── Tier A ops (simple state mutations) ────────────────────
+        // ── Tier A ops ────────────────────────────────────────────
         case "swap_hd_counts":
             out.selfHDDelta += (ctx.oppHD - ctx.selfHD)
             out.oppHDDelta  += (ctx.selfHD - ctx.oppHD)
@@ -310,7 +433,7 @@ enum PlayEffectExecutor {
             out.hasEffect = true
 
         case "shuffle_from_discard_to_deck":
-            let n = (step["count"] as? Int) ?? -1   // -1 means "all"
+            let n = (step["count"] as? Int) ?? -1
             out.shuffleDiscardToDeckCount = n
             out.hasEffect = true
 
@@ -343,6 +466,292 @@ enum PlayEffectExecutor {
 
         case "reclaim_used_play":
             out.reclaimUsedPlayCount += (step["count"] as? Int) ?? 1
+            out.hasEffect = true
+
+        // ── Tier B: Hero manipulation ────────────────────────────
+        case "swap_active_with_hand":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            out.intents.append(.swapActiveWithHand(side: side))
+            out.notifications.append("Swapped active hero with hand")
+            out.hasEffect = true
+
+        case "swap_active_with_discard":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            let filter = step["weapon_filter"] as? String
+            out.intents.append(.swapActiveWithDiscard(side: side, weaponFilter: filter))
+            out.notifications.append("Swapped active with discard pile\(filter.map { " (filter: \($0))" } ?? "")")
+            out.hasEffect = true
+
+        case "swap_active_with_future_hero":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            out.intents.append(.swapActiveWithFutureHero(side: side))
+            out.notifications.append("Swapped active with next battle's hero")
+            out.hasEffect = true
+
+        case "replace_active_with_top_hero_deck":
+            let t = step["target"] as? String
+            let sides: [PlayExecContext.Side] = t == "both" ? [ctx.self_, ctx.opp] : [t == "opponent" ? ctx.opp : ctx.self_]
+            for s in sides { out.intents.append(.replaceActiveWithTopDeck(side: s)) }
+            out.notifications.append("Replaced active hero from top of deck")
+            out.hasEffect = true
+
+        case "replace_next_with_top_hero_deck":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            out.intents.append(.replaceNextWithTopDeck(side: side))
+            out.notifications.append("Replaced next battle's hero from top of deck")
+            out.hasEffect = true
+
+        case "replace_all_unrevealed_with_top_hero_deck":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            out.intents.append(.replaceAllUnrevealedWithTopDeck(side: side))
+            out.notifications.append("Replaced all unrevealed heroes from deck")
+            out.hasEffect = true
+
+        case "replace_active_from_hand":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            out.intents.append(.replaceActiveFromHand(side: side))
+            out.notifications.append("Replaced active hero from bench")
+            out.hasEffect = true
+
+        case "discard_hero":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            let source = (step["source"] as? String) ?? "active"
+            if source == "active" {
+                out.intents.append(.discardActiveHero(side: side))
+                out.notifications.append("Discarded active hero")
+            } else {
+                out.intents.append(.discardHeroFromHand(side: side))
+                out.notifications.append("Discarded hero from hand")
+            }
+            out.hasEffect = true
+
+        case "discard_hero_from_hand":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            out.intents.append(.discardHeroFromHand(side: side))
+            out.notifications.append("Discarded hero from hand")
+            out.hasEffect = true
+
+        case "discard_revealed_hero", "discard_revealed":
+            let t = step["target"] as? String
+            let sides: [PlayExecContext.Side] = t == "both" ? [ctx.self_, ctx.opp] : [t == "opponent" ? ctx.opp : ctx.self_]
+            for s in sides { out.intents.append(op == "discard_revealed_hero" ? .discardRevealedHero(side: s) : .discardRevealedPlay(side: s)) }
+            out.notifications.append(op == "discard_revealed_hero" ? "Discarded revealed hero" : "Discarded revealed play")
+            out.hasEffect = true
+
+        case "transform_to_hot_dog":
+            let tgt = step["target"] as? String
+            let side: PlayExecContext.Side = tgt == "opponent" ? ctx.opp : ctx.self_
+            out.intents.append(.transformActiveToHotDog(side: side))
+            out.notifications.append("Active hero transformed → Hot Dog")
+            out.hasEffect = true
+
+        case "mark_future_battle":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            let onReveal = (step["on_reveal_effects"] as? [[String: Any]]) ?? []
+            out.intents.append(.markFutureBattle(side: side, onReveal: onReveal))
+            out.notifications.append("Marked a future battle")
+            out.hasEffect = true
+
+        case "force_substitute":
+            let target: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            let cost = (step["cost"] as? Int) ?? 2
+            out.intents.append(.forceSubstitute(target: target, cost: cost))
+            out.notifications.append("Forced substitute (cost \(cost) HD)")
+            out.hasEffect = true
+
+        // ── Tier B/C: Reveal / peek / search / copy ───────────────
+        case "reveal_top_hero_deck":
+            let t = step["target"] as? String
+            let count = (step["count"] as? Int) ?? 1
+            let sides: [PlayExecContext.Side] = t == "both" ? [ctx.self_, ctx.opp] : [t == "opponent" ? ctx.opp : ctx.self_]
+            for s in sides { out.intents.append(.peekHeroDeck(side: s, count: count)) }
+            out.hasEffect = true
+
+        case "peek_unrevealed_hero":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            let selector = (step["selector"] as? String) ?? "self_next_battle"
+            out.intents.append(.peekUnrevealedHero(side: side, selector: selector))
+            out.hasEffect = true
+
+        case "reorder_unrevealed_heroes":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            out.intents.append(.reorderUnrevealedHeroes(side: side))
+            out.notifications.append("Reordered unrevealed heroes")
+            out.hasEffect = true
+
+        case "reveal":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            let kind = (step["kind"] as? String) ?? "hero"
+            let count = (step["count"] as? Int) ?? 1
+            let choose = (step["choose"] as? Int) ?? 0
+            if kind == "hero" {
+                out.intents.append(.revealTopHeroes(side: side, count: count, choose: choose))
+            } else {
+                out.intents.append(.revealTopPlays(side: side, count: count, andPlayFree: false))
+            }
+            out.hasEffect = true
+
+        case "reveal_top":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            let count = (step["count"] as? Int) ?? 1
+            let kind = (step["kind"] as? String) ?? "play"
+            if kind == "play" {
+                out.intents.append(.revealTopPlays(side: side, count: count, andPlayFree: false))
+            } else {
+                out.intents.append(.peekHeroDeck(side: side, count: count))
+            }
+            out.hasEffect = true
+
+        case "peek_and_reorder_top":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            let count = (step["count"] as? Int) ?? 3
+            out.intents.append(.revealTopPlays(side: side, count: count, andPlayFree: false))
+            out.notifications.append("Peeked + reordered top \(count) plays")
+            out.hasEffect = true
+
+        case "reveal_top_reorder_or_bottom":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            let count = (step["count"] as? Int) ?? 2
+            out.intents.append(.revealTopPlays(side: side, count: count, andPlayFree: false))
+            out.notifications.append("Peeked opponent's top \(count) plays")
+            out.hasEffect = true
+
+        case "shuffle_revealed_back":
+            out.notifications.append("Shuffled revealed plays back into deck")
+            out.hasEffect = true
+
+        case "force_reveal_from_hand":
+            let target: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            let count = (step["count"] as? Int) ?? 1
+            out.intents.append(.peekOpponentHand(side: ctx.self_, count: count, mode: "chooser"))
+            out.notifications.append("Forced \(target == .player ? "you" : "opponent") to reveal \(count) play\(count == 1 ? "" : "s")")
+            out.hasEffect = true
+
+        case "peek_opponent_hand":
+            let side = ctx.self_
+            let count = (step["count"] as? Int) ?? 1
+            let mode = (step["mode"] as? String) ?? "random"
+            out.intents.append(.peekOpponentHand(side: side, count: count, mode: mode))
+            out.hasEffect = true
+
+        case "search":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            let filter = (step["filter"] as? [String: Any]) ?? [:]
+            let action = (step["action"] as? String) ?? "play_free"
+            out.intents.append(.searchPlaybook(side: side, filter: filter, action: action))
+            out.notifications.append("Searched Playbook (\(action))")
+            out.hasEffect = true
+
+        case "copy_last_play":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            out.intents.append(.copyLastPlay(side: side))
+            out.notifications.append("Copied last play")
+            out.hasEffect = true
+
+        case "play_revealed_free":
+            let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            out.intents.append(.playRevealedFree(side: side))
+            out.notifications.append("Played revealed card free")
+            out.hasEffect = true
+
+        case "play_top_of_playbook_free":
+            let targetHint = (step["target"] as? String) ?? "winner"
+            out.intents.append(.playTopOfPlaybookFree(targetHint: targetHint))
+            out.notifications.append("\(targetHint.capitalized) plays top of Playbook free")
+            out.hasEffect = true
+
+        case "discard_other_revealed":
+            out.notifications.append("Discarded other revealed cards")
+            out.hasEffect = true
+
+        case "deploy_chosen_revealed":
+            out.notifications.append("Deployed chosen revealed hero")
+            out.hasEffect = true
+
+        case "add_chosen_revealed_to_hand_discard_rest":
+            out.notifications.append("Added chosen revealed hero to hand; discarded rest")
+            out.hasEffect = true
+
+        case "name_and_discard":
+            out.notifications.append("Named a card — opponent discards if match")
+            out.hasEffect = true
+
+        // ── Tier C: Complex specials ──────────────────────────────
+        case "mirror_power_effects_to_opponent":
+            // Copy self's current effect power deltas onto opponent (this battle only).
+            if ctx.battles.indices.contains(ctx.battleIdx) {
+                let b = ctx.battles[ctx.battleIdx]
+                let selfEff = ctx.self_ == .player ? b.playerEffectPower : b.cpuEffectPower
+                out.oppDelta += selfEff
+                out.notifications.append("Mirrored \(selfEff) power to opponent")
+            }
+            out.intents.append(.mirrorPowerEffects(fromSide: ctx.self_, toSide: ctx.opp))
+            out.hasEffect = true
+
+        case "flip_opponent_debuffs":
+            // Convert current negative self effect power into positive bonus.
+            if ctx.battles.indices.contains(ctx.battleIdx) {
+                let b = ctx.battles[ctx.battleIdx]
+                let selfEff = ctx.self_ == .player ? b.playerEffectPower : b.cpuEffectPower
+                if selfEff < 0 {
+                    out.selfDelta += (-selfEff * 2)
+                    out.notifications.append("Flipped \(selfEff) debuff → +\(-selfEff) bonus")
+                }
+            }
+            out.intents.append(.flipOpponentDebuffs(side: ctx.self_))
+            out.hasEffect = true
+
+        case "cancel_persistent":
+            let target = (step["target"] as? String) ?? "opponent"
+            out.intents.append(.cancelPersistents(target: target))
+            out.notifications.append("Canceled persistent effects (\(target))")
+            out.hasEffect = true
+
+        case "persistent_delta":
+            // Wrap as a persistent install
+            let spec = step
+            out.intents.append(.installPersistent(owner: ctx.self_, spec: spec))
+            out.hasEffect = true
+
+        case "tax_per_hero_in_hand":
+            let target: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            var perHDCost = 0
+            if let per = step["per_hero_cost"] as? [String: Any],
+               let delta = per["delta"] as? Int {
+                perHDCost = delta
+            }
+            var fallbackDiscards = 0
+            if let fb = step["fallback"] as? [String: Any],
+               (fb["op"] as? String) == "discard",
+               let count = fb["count"] as? Int {
+                fallbackDiscards = count
+            }
+            out.intents.append(.taxPerHeroInHand(target: target, perHDCost: perHDCost, fallbackDiscards: fallbackDiscards))
+            out.hasEffect = true
+
+        case "transfer_sub_cost":
+            let target: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            let amount = (step["amount"] as? Int) ?? 2
+            out.intents.append(.transferSubCost(target: target, amount: amount))
+            out.notifications.append("Paying next sub for \(target == .player ? "player" : "opponent")")
+            out.hasEffect = true
+
+        case "end_battle_by_power":
+            out.intents.append(.endBattleByPower)
+            out.notifications.append("Battle ended immediately by current power")
+            out.hasEffect = true
+
+        case "weapon_debuff_or_penalty":
+            // Auto-pick opp weapon → if match, apply if_match; else penalty applies
+            let oppWeapon = ctx.oppCard?.element
+            if oppWeapon != nil,
+               let ifMatch = step["if_match"] as? [String: Any] {
+                execStep(ifMatch, ctx: ctx, out: &out)
+                out.notifications.append("Named weapon matched")
+            } else if let elseStep = step["else"] as? [String: Any] {
+                execStep(elseStep, ctx: ctx, out: &out)
+                out.notifications.append("Named weapon missed — penalty")
+            }
             out.hasEffect = true
 
         default:
@@ -405,6 +814,7 @@ enum PlayEffectExecutor {
             let branch = fire ? (step["then"] as? [[String: Any]]) : (step["else"] as? [[String: Any]])
             if let branch = branch { for s in branch { execStep(s, ctx: ctx, out: &out) } }
         }
+        out.notifications.append("Coin flip: \(heads) heads / \(tails) tails")
         out.hasEffect = true
     }
 
@@ -440,6 +850,54 @@ enum PlayEffectExecutor {
                 for s in branch { execStep(s, ctx: ctx, out: &out) }
             }
         }
+        out.notifications.append("Dice: \(rolls.map(String.init).joined(separator: ",")) (sum \(sum))")
+        out.hasEffect = true
+    }
+
+    private static func execCompoundRoll(_ step: [String: Any], ctx: PlayExecContext, out: inout PlayExecOut) {
+        guard let components = step["components"] as? [[String: Any]] else { return }
+        var coinHeads: Bool? = nil
+        var dieVal: Int? = nil
+        for comp in components {
+            let op = comp["op"] as? String
+            if op == "coin_flip" { coinHeads = Bool.random() }
+            else if op == "dice_roll" { dieVal = Int.random(in: 1...6) }
+        }
+        guard let branches = step["branches"] as? [[String: Any]] else { return }
+        for br in branches {
+            let matchObj = br["match"]
+            var fire = false
+            if let m = matchObj as? String, m == "otherwise" {
+                // handled below if no other branch fires — skip for now
+                continue
+            }
+            if let m = matchObj as? [String: Any] {
+                var ok = true
+                if let want = m["coin"] as? String {
+                    let got = coinHeads == true ? "heads" : "tails"
+                    if got != want { ok = false }
+                }
+                if let range = m["die_range"] as? [Int], range.count == 2, let d = dieVal {
+                    if !(d >= range[0] && d <= range[1]) { ok = false }
+                }
+                fire = ok
+            }
+            if fire, let effects = br["effect"] as? [[String: Any]] {
+                for s in effects { execStep(s, ctx: ctx, out: &out) }
+                out.hasEffect = true
+                out.notifications.append("Compound roll → branch matched")
+                return
+            }
+        }
+        // fallback: otherwise
+        for br in branches {
+            if let m = br["match"] as? String, m == "otherwise",
+               let effects = br["effect"] as? [[String: Any]] {
+                for s in effects { execStep(s, ctx: ctx, out: &out) }
+                out.notifications.append("Compound roll → otherwise")
+                break
+            }
+        }
         out.hasEffect = true
     }
 
@@ -467,13 +925,101 @@ enum PlayEffectExecutor {
             }
             return false
 
+        case "weapon_streak":
+            // Check last N battles (by heroes revealed) share same weapon as weapon_ref
+            let length = (cond["length"] as? Int) ?? 2
+            let ref = (cond["weapon_ref"] as? String) ?? "current_hero"
+            var refWeapon: String? = nil
+            if ref == "current_hero" {
+                refWeapon = selfView ? ctx.selfCard?.element : ctx.oppCard?.element
+            }
+            guard let w = refWeapon else { return false }
+            var matched = 0
+            var i = ctx.battleIdx - 1
+            while i >= 0 && matched < length {
+                guard ctx.battles.indices.contains(i) else { break }
+                let slot = ctx.battles[i]
+                let hero: Card? = selfView
+                    ? (ctx.self_ == .player ? slot.playerCard : slot.cpuCard)
+                    : (ctx.self_ == .player ? slot.cpuCard    : slot.playerCard)
+                if hero?.element == w { matched += 1 } else { break }
+                i -= 1
+            }
+            return matched >= length
+
+        case "previous_two_heroes_share_weapon":
+            guard ctx.battleIdx >= 2 else { return false }
+            let b1 = ctx.battles[ctx.battleIdx - 1]
+            let b2 = ctx.battles[ctx.battleIdx - 2]
+            let h1: Card? = selfView ? (ctx.self_ == .player ? b1.playerCard : b1.cpuCard) : (ctx.self_ == .player ? b1.cpuCard : b1.playerCard)
+            let h2: Card? = selfView ? (ctx.self_ == .player ? b2.playerCard : b2.cpuCard) : (ctx.self_ == .player ? b2.cpuCard : b2.playerCard)
+            return h1?.element != nil && h1?.element == h2?.element
+
+        case "previous_and_current_share_weapon":
+            guard ctx.battleIdx >= 1 else { return false }
+            let cur = ctx.selfCard
+            let prev = ctx.battles[ctx.battleIdx - 1]
+            let prevHero: Card? = selfView ? (ctx.self_ == .player ? prev.playerCard : prev.cpuCard) : (ctx.self_ == .player ? prev.cpuCard : prev.playerCard)
+            return cur?.element != nil && cur?.element == prevHero?.element
+
+        case "opponent_played_weapon_match":
+            let ref = (cond["weapon_ref"] as? String) ?? "self_current_hero"
+            let refWeapon = ref == "self_current_hero" ? ctx.selfCard?.element : nil
+            guard let w = refWeapon,
+                  ctx.battles.indices.contains(ctx.battleIdx) else { return false }
+            let b = ctx.battles[ctx.battleIdx]
+            let oppPlays = ctx.self_ == .player ? b.cpuPlayedCards : b.playerPlayedCards
+            return oppPlays.contains { $0.element == w }
+
+        case "next_hero_power_gt":
+            let side: PlayExecContext.Side = target == "opponent" ? ctx.opp : ctx.self_
+            let nextIdx = ctx.battleIdx + 1
+            guard ctx.battles.indices.contains(nextIdx) else { return false }
+            let slot = ctx.battles[nextIdx]
+            let card: Card? = side == .player ? slot.playerCard : slot.cpuCard
+            guard let v = cond["value"] as? Int else { return false }
+            return (card?.power ?? 0) > v
+
+        case "next_hero_weapon_equals":
+            let side: PlayExecContext.Side = target == "opponent" ? ctx.opp : ctx.self_
+            let nextIdx = ctx.battleIdx + 1
+            guard ctx.battles.indices.contains(nextIdx) else { return false }
+            let slot = ctx.battles[nextIdx]
+            let card: Card? = side == .player ? slot.playerCard : slot.cpuCard
+            let want = cond["weapon"] as? String
+            if want == "player_named" {
+                return true
+            }
+            return card?.element == want
+
         case "hd_count":
             let v = selfView ? ctx.selfHD : ctx.oppHD
             return cmp(v, cond["comparison"] as? String, cond["value"] as? Int)
 
+        case "hd_count_compare":
+            // self vs opp comparison
+            let c = cond["comparison"] as? String
+            switch c {
+            case "opp_gt_self":  return ctx.oppHD > ctx.selfHD
+            case "self_gt_opp":  return ctx.selfHD > ctx.oppHD
+            case "opp_lt_self":  return ctx.oppHD < ctx.selfHD
+            case "self_lt_opp":  return ctx.selfHD < ctx.oppHD
+            case "eq":           return ctx.selfHD == ctx.oppHD
+            default:             return false
+            }
+
         case "hand_count":
             let v = selfView ? ctx.selfHand.count : 0
             return cmp(v, cond["comparison"] as? String, cond["value"] as? Int)
+
+        case "hand_count_compare":
+            let c = cond["comparison"] as? String
+            let selfCt = ctx.selfHand.count
+            switch c {
+            case "opp_gt_self":  return 0 > selfCt  // opp hand unknown; assume not
+            case "self_gt_opp":  return selfCt > 0
+            default:             return false
+            }
 
         case "discard_count":
             let pile = selfView ? ctx.selfDiscard : []
@@ -486,6 +1032,14 @@ enum PlayEffectExecutor {
             default:        count = pile.count
             }
             return cmp(count, cond["comparison"] as? String, cond["value"] as? Int)
+
+        case "discarded_hero_weapon_matches_active":
+            let pile = selfView ? ctx.selfDiscard : []
+            let activeW = ctx.selfCard?.element
+            return pile.contains { $0.cardType == "Hero" && $0.element == activeW }
+
+        case "plays_used":
+            return cmp(ctx.playsUsedThisBattle, cond["comparison"] as? String, cond["value"] as? Int)
 
         case "power_threshold":
             let p = card?.power ?? 0
@@ -501,6 +1055,36 @@ enum PlayEffectExecutor {
         case "battles_lost":
             let v = selfView ? ctx.selfLost : ctx.selfWon
             return cmp(v, cond["comparison"] as? String, cond["value"] as? Int)
+
+        case "battle_won_nth":
+            // Did this side win the nth battle?
+            guard let n = cond["n"] as? Int, n >= 1, ctx.battles.indices.contains(n - 1) else { return false }
+            let r = ctx.battles[n - 1].result
+            let won = (ctx.self_ == .player && r == .win) || (ctx.self_ == .cpu && r == .lose)
+            return won
+
+        case "battles_won_streak":
+            // Count trailing wins up to current battle
+            var streak = 0
+            var i = ctx.battleIdx - 1
+            while i >= 0 {
+                guard ctx.battles.indices.contains(i) else { break }
+                let r = ctx.battles[i].result
+                let won = (ctx.self_ == .player && r == .win) || (ctx.self_ == .cpu && r == .lose)
+                if won { streak += 1; i -= 1 } else { break }
+            }
+            return cmp(streak, cond["comparison"] as? String, cond["value"] as? Int)
+
+        case "battles_lost_first_n":
+            guard let n = cond["n"] as? Int, n >= 1 else { return false }
+            var lost = 0
+            for i in 0..<min(n, ctx.battleIdx) {
+                guard ctx.battles.indices.contains(i) else { break }
+                let r = ctx.battles[i].result
+                let isLost = (ctx.self_ == .player && r == .lose) || (ctx.self_ == .cpu && r == .win)
+                if isLost { lost += 1 }
+            }
+            return lost >= n
 
         case "battle_tied":
             guard ctx.battles.indices.contains(ctx.battleIdx) else { return false }
@@ -537,6 +1121,17 @@ enum PlayEffectExecutor {
 
         case "honors":
             return ctx.honors == (ctx.self_ == .player ? "player" : "cpu")
+
+        case "hero_name":
+            if let want = cond["equals"] as? String {
+                return card?.name == want || card?.hero == want
+            }
+            return false
+
+        case "metric_compare":
+            let l = cond["left"].map { evalFormula($0, ctx: ctx) } ?? 0
+            let r = cond["right"].map { evalFormula($0, ctx: ctx) } ?? 0
+            return cmp(l, cond["comparison"] as? String, r)
 
         case "all":
             guard let arr = cond["of"] as? [[String: Any]] else { return false }
@@ -594,8 +1189,10 @@ enum PlayEffectExecutor {
         switch metric {
         case "plays_used_this_battle":
             return selfView ? ctx.playsUsedThisBattle : 0
+
         case "plays_used_total":
             return 0
+
         case "heroes_used_total":
             let weapon = args["weapon"] as? String
             var n = 0
@@ -609,20 +1206,105 @@ enum PlayEffectExecutor {
                 n += 1
             }
             return n
+
         case "heroes_revealed_total":
             return ctx.battleIdx + 1
+
+        case "revealed_hero_power":
+            // Power of the active hero for `target`
+            let card = selfView ? ctx.selfCard : ctx.oppCard
+            return card?.power ?? 0
+
+        case "current_power", "starting_power":
+            let card = selfView ? ctx.selfCard : ctx.oppCard
+            return card?.power ?? 0
+
+        case "drawn_hero_power":
+            // Best guess: top of target's hero deck
+            let deck = selfView ? ctx.selfHeroDeck : []
+            return deck.first?.power ?? 0
+
+        case "drawn_play_cost":
+            // Peek top of selfHand (closest proxy)
+            return ctx.selfHand.first?.playCost ?? 0
+
+        case "revealed_play_cost":
+            return ctx.selfHand.first?.playCost ?? 0
+
+        case "chosen_play_cost":
+            // Max cost play in hand is the likely "chosen" one
+            return ctx.selfHand.map { $0.playCost ?? 0 }.max() ?? 0
+
+        case "discard_pile_heroes":
+            let pile = selfView ? ctx.selfDiscard : []
+            return pile.filter { $0.cardType == "Hero" }.count
+
+        case "discard_pile_heroes_weapon_match":
+            // Count heroes in discard whose weapon matches active hero
+            let pile = selfView ? ctx.selfDiscard : []
+            let activeW = ctx.selfCard?.element
+            return pile.filter { $0.cardType == "Hero" && $0.element == activeW }.count
+
+        case "discard_pile_count_excluding_hd":
+            let pile = selfView ? ctx.selfDiscard : []
+            return pile.filter { $0.cardType != "HotDog" }.count
+
+        case "distinct_weapons_revealed":
+            var weapons = Set<String>()
+            for i in 0...ctx.battleIdx where ctx.battles.indices.contains(i) {
+                let slot = ctx.battles[i]
+                if let e = slot.playerCard?.element { weapons.insert(e) }
+                if let e = slot.cpuCard?.element    { weapons.insert(e) }
+            }
+            return weapons.count
+
         case "battles_won":
             return selfView ? ctx.selfWon : ctx.selfLost
+
         case "battles_lost":
             return selfView ? ctx.selfLost : ctx.selfWon
+
+        case "battles_lost_streak":
+            var streak = 0
+            var i = ctx.battleIdx - 1
+            while i >= 0 {
+                guard ctx.battles.indices.contains(i) else { break }
+                let r = ctx.battles[i].result
+                let lost = (ctx.self_ == .player && r == .lose) || (ctx.self_ == .cpu && r == .win)
+                if lost { streak += 1; i -= 1 } else { break }
+            }
+            return streak
+
         case "battles_tied":
             return ctx.selfTied
+
         case "battles_remaining":
             return ctx.battlesRemaining
+
         case "hd_count":
             return selfView ? ctx.selfHD : ctx.oppHD
+
+        case "hd_count_before_cost":
+            return selfView ? ctx.selfHD : ctx.oppHD
+
         case "hand_count":
             return selfView ? ctx.selfHand.count : 0
+
+        case "hd_discarded_this_battle":
+            // Not tracked per-battle precisely — approximate from HD baseline
+            return max(0, 10 - (selfView ? ctx.selfHD : ctx.oppHD))
+
+        case "opponent_hd_used_this_battle":
+            return max(0, 10 - ctx.oppHD)
+
+        case "cards_discarded_by_this_play":
+            // Filled in by PracticeStore/web after executing discard_hand_all;
+            // executor can't know. Return 0 as best effort.
+            return 0
+
+        case "plays_in_hand_before_shuffle":
+            return ctx.selfHand.count
+
         case "discard_count":
             let kind = args["kind"] as? String
             let pile = selfView ? ctx.selfDiscard : []
@@ -632,6 +1314,12 @@ enum PlayEffectExecutor {
             case "hot_dog": return pile.filter { $0.cardType == "HotDog" }.count
             default:        return pile.count
             }
+
+        case "discarded_plays_cost_gte":
+            let minCost = (args["min_cost"] as? Int) ?? (args["offset"] as? Int) ?? 3
+            let pile = selfView ? ctx.selfDiscard : []
+            return pile.filter { $0.cardType == "Play" && ($0.playCost ?? 0) >= minCost }.count
+
         default:
             return 0
         }

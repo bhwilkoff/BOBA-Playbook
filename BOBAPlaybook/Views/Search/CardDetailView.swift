@@ -49,9 +49,11 @@ struct CardDetailView: View {
 
     private var effectiveScale: CGFloat { (scale * pinchDelta).clamped(to: 1...6) }
 
-    // Index of the current card in the navigation list (-1 if not navigable)
+    // Index of the current card in the navigation list (-1 if not navigable).
+    // Uses `card.id` (the full bobaId) not just cardNumber+hero, since the same
+    // hero at the same card number can have multiple treatments/variations.
     private var navIndex: Int {
-        navigationCards.firstIndex { $0.cardNumber == card.cardNumber && $0.hero == card.hero } ?? -1
+        navigationCards.firstIndex { $0.id == card.id } ?? -1
     }
 
     private var collectionStatusIcon: String? {

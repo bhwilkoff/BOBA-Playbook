@@ -176,7 +176,8 @@ final class SupabaseClient {
         cardHero:     String,
         cardElement:  String,
         cardPower:    Int?,
-        cardTreatment: String?
+        cardTreatment: String?,
+        bobaId:       String? = nil
     ) async throws {
         guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
         let url = try makeURL(path: "/rest/v1/card_corrections")
@@ -194,6 +195,7 @@ final class SupabaseClient {
         ]
         if let power = cardPower     { body["card_power"]     = power }
         if let treat = cardTreatment { body["card_treatment"]  = treat }
+        if let id = bobaId           { body["boba_id"]         = id }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkStatus(data: data, response: response)
@@ -278,7 +280,7 @@ final class SupabaseClient {
     /// Submits an image override (replace or remove). Only succeeds for moderator/admin accounts.
     /// Uses upsert on card_number so repeated submissions update the existing row, not add duplicates.
     /// Pass status="approved" for admin users so the removal is immediately active on all platforms.
-    func submitImageOverride(cardNumber: String, action: String, storagePath: String?, status: String = "pending") async throws {
+    func submitImageOverride(cardNumber: String, action: String, storagePath: String?, status: String = "pending", bobaId: String? = nil) async throws {
         guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
         let url = try makeURL(path: "/rest/v1/card_image_overrides")
         var request = URLRequest(url: url)
@@ -293,6 +295,7 @@ final class SupabaseClient {
             "status":        status
         ]
         if let path = storagePath { body["storage_path"] = path }
+        if let id = bobaId        { body["boba_id"]      = id }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkStatus(data: data, response: response)

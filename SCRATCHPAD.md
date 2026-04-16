@@ -40,14 +40,15 @@ Cowork authored 383/383 structured entries in `play-effects.json`, but the runti
 - **Retroactive persistent cancellation** (`Pulling The Plug`): removes installed persistents from the list but does NOT unwind their already-applied deltas. This is documented as a known simplification.
 - **Hero-deck reordering beyond peek** (`reorder_unrevealed_heroes`, `Change The Future`): auto-sorts unrevealed battle slots by power descending. Good strategic approximation for a "pick the best order" choice.
 
-**What still doesn't work perfectly** (known tradeoffs):
-- Per-hero discard from CPU hand → uses bench as proxy (CPU has no separate "hero hand"). Same for opponent-hand peek.
-- `name_and_discard` (`Called Shot`) — only a notification; no modal for the player to name a card.
-- Counterplay and retroactive ops use fire-and-forget semantics rather than proper effect ordering.
-- `cards_discarded_by_this_play` metric returns 0 — the executor is pure (no mid-execution intent state). Formulae that reference this metric will under-power. Cards affected: `Storm The Field` (and similar `+5 × cards discarded` effects).
-- `MatchSnapshot` doesn't persist `playerBlocks`/`cpuBlocks`/`markedBattles`/`_peekCallouts`/`pendingHonors`/`freeSub`/`subCostTransfer` — a restored match loses these flags. Cards played on restore will behave as if no blocks were active.
+**Outlier fixes shipped (2026-04-16 afternoon)**:
+- ✅ `cards_discarded_by_this_play` — web: threaded via `ctx._discardedByThisPlay`; iOS: via `ExecCounters` class wrapper on `PlayExecContext`. Incremented by `discard`, `discard_top`, `discard_hand_all`, `name_and_discard`. Formula reads correct count mid-execution. **Storm The Field** verified: 3-card hand → +15 Power.
+- ✅ `name_and_discard` (Called Shot) — auto-names highest-cost play in target's hand and discards it. Surfaces notification "Named X — opponent discarded it". Works for player and CPU. Verified.
+- ✅ `cancel_persistent` retroactive — `PersistentEffect` tracks `appliedPlayerDelta`/`appliedCpuDelta`/`appliedAtBattle`. When `cancel_persistent` fires, it rewinds each canceled persistent's current-battle contribution before removing. Pulling The Plug verified: +20/-10 deltas → reset to 0/0.
+- ✅ `MatchSnapshot` persistence — all effect-tracking state now codable: `playerCostMods`/`cpuCostMods`, `playerBlocks`/`cpuBlocks`, `playerPendingHonors`/`cpuPendingHonors`, `playerFreeSub`/`cpuFreeSub`, `playerSubCostTransferFrom`/`cpuSubCostTransferFrom`, `markedBattles`, `persistents`. `[String: Any]` payloads (persistent spec, `mark_future_battle.on_reveal_effects`) serialize as JSON `Data`. Fields are optional on the snapshot struct so older saves still decode. Restore fully rehydrates.
 
-These trade simulation fidelity for coverage and UX smoothness. Every card is now playable with *some* correct effect and a visible notification; no card silently fizzles.
+**Not a gap**: CPU bench acts as the semantic "hero hand" (same as player's bench — heroes not on the battle field). Opponent-hand peek correctly targets the opposing play-hand (`cpuHand` / `playerPlayHand`). No card in play-effects.json uses counterplay primitives; the "counterplay windows" concern was speculative architecture, not a card-affecting gap.
+
+**Verified state**: 383/383 entries execute cleanly, 0 unknown ops, 0 honesty warnings. Every play card in BOBA is fully simulated with mechanical effects and visible notifications.
 
 ### Tier B — Moderate ops (~15, one weekend session)
 

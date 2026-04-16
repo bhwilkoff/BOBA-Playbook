@@ -111,8 +111,15 @@ enum PlayEffects {
 // MARK: - Executor context
 // ════════════════════════════════════════════════════════════════
 
+/// Mutable counters threaded through the executor via a reference-type wrapper
+/// so struct-copy semantics of PlayExecContext don't drop updates made by
+/// nested execStep calls.
+final class ExecCounters {
+    var cardsDiscardedByThisPlay: Int = 0
+}
+
 struct PlayExecContext {
-    enum Side: String { case player, cpu }
+    enum Side: String, Codable { case player, cpu }
 
     let self_: Side
     var selfCard: Card?
@@ -131,6 +138,7 @@ struct PlayExecContext {
     var battlesRemaining: Int
     var honors: String
     var battles: [BattleSlot]
+    var counters: ExecCounters = ExecCounters()
 
     var opp: Side { self_ == .player ? .cpu : .player }
 }
@@ -174,6 +182,7 @@ enum PlayIntent {
     case installBlock(side: PlayExecContext.Side, kind: String, scope: String)
     case installHonors(side: PlayExecContext.Side, scope: String)
     case installSubstituteFree(side: PlayExecContext.Side, scope: String)
+    case nameAndDiscard(target: PlayExecContext.Side)
     case endBattleByPower
 }
 
@@ -336,6 +345,7 @@ enum PlayEffectExecutor {
             let n: Int
             if (step["count"] as? String) == "all" { n = 99 } else { n = evalFormula(step["count"], ctx: ctx) }
             out.discards += n
+            ctx.counters.cardsDiscardedByThisPlay += n
             out.hasEffect = true
 
         case "coin_flip":
@@ -438,11 +448,16 @@ enum PlayEffectExecutor {
             out.hasEffect = true
 
         case "discard_top":
-            out.discardTopCount += (step["count"] as? Int) ?? 1
+            let n = (step["count"] as? Int) ?? 1
+            out.discardTopCount += n
+            ctx.counters.cardsDiscardedByThisPlay += n
             out.hasEffect = true
 
         case "discard_hand_all":
             out.discardHandAll = true
+            // Update counter now so any same-execution power formula referencing
+            // `cards_discarded_by_this_play` can read the correct value.
+            ctx.counters.cardsDiscardedByThisPlay += ctx.selfHand.count
             out.hasEffect = true
 
         case "power_reset":
@@ -673,7 +688,9 @@ enum PlayEffectExecutor {
             out.hasEffect = true
 
         case "name_and_discard":
-            out.notifications.append("Named a card — opponent discards if match")
+            let target: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
+            out.intents.append(.nameAndDiscard(target: target))
+            ctx.counters.cardsDiscardedByThisPlay += 1
             out.hasEffect = true
 
         // ── Tier C: Complex specials ──────────────────────────────
@@ -1298,9 +1315,7 @@ enum PlayEffectExecutor {
             return max(0, 10 - ctx.oppHD)
 
         case "cards_discarded_by_this_play":
-            // Filled in by PracticeStore/web after executing discard_hand_all;
-            // executor can't know. Return 0 as best effort.
-            return 0
+            return ctx.counters.cardsDiscardedByThisPlay
 
         case "plays_in_hand_before_shuffle":
             return ctx.selfHand.count

@@ -1,7 +1,7 @@
 {
   "sets": {
     "Griffey Edition": {
-      "count": 10008,
+      "count": 10017,
       "subSets": [
         "2024 Release",
         "2025 Release",
@@ -95,7 +95,7 @@
       ]
     },
     "Alpha Edition": {
-      "count": 2294,
+      "count": 2301,
       "subSets": [
         "2024 Release",
         "2025 Release",
@@ -165,6 +165,25 @@
         "Starter Kit"
       ]
     },
+    "Promo Cards": {
+      "count": 111,
+      "subSets": [
+        "2025 Release",
+        "CJ Maddux",
+        "Cyber",
+        "Day One Promo",
+        "Rookie Power Up",
+        "Sidekicks"
+      ],
+      "treatments": [
+        "80's Rad Battlefoil",
+        "Cyber",
+        "Grandma's Linoleum Battlefoil",
+        "Mixtape Battlefoil",
+        "Prize & Promos",
+        "Rookie Power Up"
+      ]
+    },
     "World Champions": {
       "count": 94,
       "subSets": [
@@ -179,18 +198,6 @@
         "Kanjifoil",
         "Paper & Battlefoil",
         "Plays"
-      ]
-    },
-    "Promo Cards": {
-      "count": 54,
-      "subSets": [
-        "2025 Release",
-        "Cyber",
-        "Day One Promo"
-      ],
-      "treatments": [
-        "Cyber",
-        "Prize & Promos"
       ]
     },
     "Superfan Series": {
@@ -208,6 +215,18 @@
         "Super Fan Box"
       ]
     },
+    "Big League Chew": {
+      "count": 16,
+      "subSets": [
+        "2025 Release"
+      ],
+      "treatments": [
+        "Blaster Box",
+        "Blue Raspberry",
+        "Grape",
+        "Sour Apple"
+      ]
+    },
     "Tecmo Bowl Edition": {
       "count": 4,
       "subSets": [
@@ -218,20 +237,11 @@
         "Double Mega Box",
         "Hobby Box"
       ]
-    },
-    "Big League Chew": {
-      "count": 1,
-      "subSets": [
-        "2025 Release"
-      ],
-      "treatments": [
-        "Blaster Box"
-      ]
     }
   },
   "treatments": {
     "Grandma's Linoleum Battlefoil": {
-      "count": 1675,
+      "count": 1690,
       "elements": [
         "BRAWL",
         "FIRE",
@@ -241,15 +251,15 @@
         "STEEL"
       ],
       "sampleBobaIds": [
-        "GLBF-1-A.I.-Grandma's Linoleum Battlefoil-Allen Iverson Debut",
-        "GLBF-1-Bojax-Grandma's Linoleum Battlefoil-2026 Founding Hero",
-        "GLBF-10-Rocket-Grandma's Linoleum Battlefoil-Roger Clemens Debut",
-        "GLBF-10-Wizard-Grandma's Linoleum Battlefoil-Ozzie Smith Debut",
-        "GLBF-10-Young-Gunner-Grandma's Linoleum Battlefoil-Steve Young Debut"
+        "CJ-10-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
+        "CJ-11-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
+        "CJ-12-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
+        "CJ-8-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
+        "CJ-9-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo"
       ]
     },
     "80's Rad Battlefoil": {
-      "count": 1675,
+      "count": 1690,
       "elements": [
         "BRAWL",
         "FIRE",
@@ -259,11 +269,11 @@
         "STEEL"
       ],
       "sampleBobaIds": [
-        "RAD-1-A.I.-80's Rad Battlefoil-Allen Iverson Debut",
-        "RAD-1-Bojax-80's Rad Battlefoil-2026 Founding Hero",
-        "RAD-10-Rocket-80's Rad Battlefoil-Roger Clemens Debut",
-        "RAD-10-Wizard-80's Rad Battlefoil-Ozzie Smith Debut",
-        "RAD-10-Young-Gunner-80's Rad Battlefoil-Steve Young Debut"
+        "CJ-13-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo",
+        "CJ-14-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo",
+        "CJ-15-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo",
+        "CJ-16-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo",
+        "CJ-17-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo"
       ]
     },
     "Blizzard Battlefoil": {
@@ -285,7 +295,7 @@
       ]
     },
     "Mixtape Battlefoil": {
-      "count": 1295,
+      "count": 1310,
       "elements": [
         "BRAWL",
         "FIRE",
@@ -295,15 +305,15 @@
         "STEEL"
       ],
       "sampleBobaIds": [
-        "MIX-1-Bojax-Mixtape Battlefoil-2026 Founding Hero",
-        "MIX-10-Rocket-Mixtape Battlefoil-Roger Clemens Debut",
-        "MIX-10-Wizard-Mixtape Battlefoil-Ozzie Smith Debut",
-        "MIX-100-Howietzer-Mixtape Battlefoil-Howie Long Debut",
-        "MIX-100-J-Cam-Mixtape Battlefoil-First Edition"
+        "CJ-18-CJ Maddux-Mixtape Battlefoil-2025 CJ Maddux Promo",
+        "CJ-19-CJ Maddux-Mixtape Battlefoil-2025 CJ Maddux Promo",
+        "CJ-20-CJ Maddux-Mixtape Battlefoil-2025 CJ Maddux Promo",
+        "CJ-21-CJ Maddux-Mixtape Battlefoil-2025 CJ Maddux Promo",
+        "CJ-22-CJ Maddux-Mixtape Battlefoil-2025 CJ Maddux Promo"
       ]
     },
     "Battlefoil": {
-      "count": 986,
+      "count": 992,
       "elements": [
         "ALT",
         "BRAWL",
@@ -396,7 +406,7 @@
       ]
     },
     "Inspired Ink Battlefoil": {
-      "count": 750,
+      "count": 756,
       "elements": [
         "ALT",
         "BRAWL",
@@ -476,6 +486,19 @@
         "IBF-102-Brawn-Icon Battlefoil-First Edition"
       ]
     },
+    "Superfoil": {
+      "count": 309,
+      "elements": [
+        "SUPER"
+      ],
+      "sampleBobaIds": [
+        "BILLY-1-Billy-Superfoil-First Edition",
+        "SF-1-A.I.-Superfoil-Allen Iverson Debut",
+        "SF-1-BoJax-Superfoil-Founding Hero Alpha Update",
+        "SF-1-The Kid-Superfoil-Cover Hero",
+        "SF-10-Troy of Dallas-Superfoil-Troy Aikman Debut"
+      ]
+    },
     "Blue Battlefoil": {
       "count": 308,
       "elements": [
@@ -526,19 +549,6 @@
         "PBF-10-Rocket-Pink Battlefoil-Roger Clemens Debut",
         "PBF-10-Waddler-Pink Battlefoil-Jaylen Waddle Debut",
         "PBF-10-Wizard-Pink Battlefoil-Ozzie Smith Debut"
-      ]
-    },
-    "Superfoil": {
-      "count": 308,
-      "elements": [
-        "SUPER"
-      ],
-      "sampleBobaIds": [
-        "SF-1-A.I.-Superfoil-Allen Iverson Debut",
-        "SF-1-BoJax-Superfoil-Founding Hero Alpha Update",
-        "SF-1-The Kid-Superfoil-Cover Hero",
-        "SF-10-Troy of Dallas-Superfoil-Troy Aikman Debut",
-        "SF-10-Waddler-Superfoil-Jaylen Waddle Debut"
       ]
     },
     "Silver Battlefoil": {
@@ -659,7 +669,7 @@
       ]
     },
     "Inspired Ink Superfoil": {
-      "count": 133,
+      "count": 134,
       "elements": [
         "SUPER"
       ],
@@ -737,7 +747,7 @@
       ]
     },
     "Inspired Ink Metallic Battlefoil": {
-      "count": 129,
+      "count": 130,
       "elements": [
         "STEEL"
       ],
@@ -790,7 +800,7 @@
       ]
     },
     "Inspired Ink Bubble Gum Battlefoil": {
-      "count": 101,
+      "count": 102,
       "elements": [
         "GUM",
         "HEX"
@@ -951,6 +961,19 @@
         "SEALED-alpha-jumbo-hobby-case-Alpha Edition Jumbo Hobby Case--Case"
       ]
     },
+    "Rookie Power Up": {
+      "count": 12,
+      "elements": [
+        "ALT"
+      ],
+      "sampleBobaIds": [
+        "RPU-1-Skeee-Rookie Power Up-2025 Rookie Power Up Promo",
+        "RPU-10-Caliber-Rookie Power Up-2025 Rookie Power Up Promo",
+        "RPU-11-Marverati-Rookie Power Up-2025 Rookie Power Up Promo",
+        "RPU-12-Merri-Go-Round-Rookie Power Up-2025 Rookie Power Up Promo",
+        "RPU-2-C.C.-Rookie Power Up-2025 Rookie Power Up Promo"
+      ]
+    },
     "Serialized Battlefoil": {
       "count": 7,
       "elements": [
@@ -1004,6 +1027,45 @@
         "ALT-3-Johnny Heckler-Billy Cameo Alt Arts-Randy Quaid (Co-Starring Billy)",
         "ALT-4-X.L.-Billy Cameo Alt Arts-Huntin' W/CJ & Billy",
         "ALT-5-Sensei-Billy Cameo Alt Arts-Billy BOBA KAI"
+      ]
+    },
+    "Grape": {
+      "count": 5,
+      "elements": [
+        "ALT"
+      ],
+      "sampleBobaIds": [
+        "BLC-1-BoJax-Grape-First Edition",
+        "BLC-15-Amon-Ra-Grape-First Edition",
+        "BLC-4-BoJax-Grape-First Edition",
+        "BLC-8-Magic-Grape-First Edition",
+        "BLC-9-Brandi-Grape-First Edition"
+      ]
+    },
+    "Sour Apple": {
+      "count": 5,
+      "elements": [
+        "ALT"
+      ],
+      "sampleBobaIds": [
+        "BLC-11-Boz-Sour Apple-First Edition",
+        "BLC-13-Marino-Sour Apple-First Edition",
+        "BLC-2-BoJax-Sour Apple-First Edition",
+        "BLC-5-BoJax-Sour Apple-First Edition",
+        "BLC-7-A.I.-Sour Apple-First Edition"
+      ]
+    },
+    "Blue Raspberry": {
+      "count": 5,
+      "elements": [
+        "ALT"
+      ],
+      "sampleBobaIds": [
+        "BLC-10-Young-Gunner-Blue Raspberry-First Edition",
+        "BLC-12-Emmitt-164-Blue Raspberry-First Edition",
+        "BLC-14-Barry \"Cutback\" Sanders-Blue Raspberry-First Edition",
+        "BLC-3-BoJax-Blue Raspberry-First Edition",
+        "BLC-6-BoJax-Blue Raspberry-First Edition"
       ]
     },
     "Blaster Box": {
@@ -1111,49 +1173,49 @@
   },
   "elements": {
     "ICE": {
-      "count": 3235,
+      "count": 3246,
       "rarity": "Rare SP"
     },
     "FIRE": {
-      "count": 3217,
+      "count": 3228,
       "rarity": "Rare SP"
     },
     "STEEL": {
-      "count": 2956,
+      "count": 2968,
       "rarity": "Common"
     },
     "GLOW": {
-      "count": 2679,
+      "count": 2690,
       "rarity": "Ultra Rare"
     },
     "HEX": {
-      "count": 2459,
+      "count": 2470,
       "rarity": "Elite"
     },
     "BRAWL": {
-      "count": 1618,
+      "count": 1619,
       "rarity": "Common"
     },
     "GUM": {
-      "count": 491,
+      "count": 493,
       "rarity": "Secret Rare"
     },
     "SUPER": {
-      "count": 453,
+      "count": 455,
       "rarity": "Unique 1/1"
+    },
+    "ALT": {
+      "count": 41,
+      "rarity": "Unknown"
     },
     "CYBER": {
       "count": 28,
-      "rarity": "Unknown"
-    },
-    "ALT": {
-      "count": 14,
       "rarity": "Unknown"
     }
   },
   "heroes": {
     "A.I.": {
-      "count": 32,
+      "count": 33,
       "athletes": [
         "Allen Iverson"
       ],
@@ -1351,7 +1413,7 @@
       ]
     },
     "Amon-Ra": {
-      "count": 33,
+      "count": 34,
       "athletes": [
         "Amon-Ra St. Brown"
       ],
@@ -1599,7 +1661,7 @@
       ]
     },
     "Barry \"Cutback\" Sanders": {
-      "count": 40,
+      "count": 41,
       "athletes": [
         "Barry Sanders"
       ],
@@ -1779,17 +1841,21 @@
       ]
     },
     "Billy": {
-      "count": 6,
+      "count": 13,
       "athletes": [
         "Billy the Pug"
       ],
       "bobaIds": [
+        "BILLY-1-Billy-Superfoil-First Edition",
+        "BILLY-2-Billy-Battlefoil-First Edition",
+        "BILLY-3-Billy-Battlefoil-First Edition",
+        "BILLY-4-Billy-Battlefoil-First Edition",
+        "BILLY-5-Billy-Battlefoil-First Edition",
+        "BILLY-6-Billy-Battlefoil-First Edition",
+        "BILLY-7-Billy-Battlefoil-First Edition",
         "Billy-23-Billy-Pink Blast-First Edition",
         "Billy-24-Billy-Bubble Gum Blast-First Edition",
-        "Billy-25-Billy-Green Blast-First Edition",
-        "Billy-26-Billy-Blue Blast-First Edition",
-        "Billy-27-Billy-Orange Blast-First Edition",
-        "Billy-28-Billy-Silver Blast-First Edition"
+        "Billy-25-Billy-Green Blast-First Edition"
       ]
     },
     "Billy the Kid": {
@@ -1858,7 +1924,7 @@
       ]
     },
     "BoJax": {
-      "count": 47,
+      "count": 53,
       "athletes": [
         "Bo Jackson"
       ],
@@ -1872,7 +1938,7 @@
         "BL-O77-BoJax-Orange Blast-Founding Hero Alpha Update",
         "BL-P77-BoJax-Pink Blast-Founding Hero Alpha Update",
         "BL-S77-BoJax-Silver Blast-Founding Hero Alpha Update",
-        "CYB-1-BoJax-Cyber-2025 Cyber Promo"
+        "BLC-1-BoJax-Grape-First Edition"
       ]
     },
     "Bojax": {
@@ -1912,7 +1978,7 @@
       ]
     },
     "Bombeezy": {
-      "count": 13,
+      "count": 28,
       "athletes": [
         "Emilio Estevez",
         "Emillio Estevez"
@@ -1924,10 +1990,10 @@
         "BL-SK4-Bombeezy-Blue Blast-Emillio Estevez Debut",
         "BL-SK5-Bombeezy-Orange Blast-Emillio Estevez Debut",
         "BL-SK6-Bombeezy-Silver Blast-Emillio Estevez Debut",
-        "SKA-10-Bombeezy-Sidekicks-Emilio Estevez Debut",
-        "SKA-12-Bombeezy-Sidekicks-Emilio Estevez Debut",
-        "SKA-14-Bombeezy-Sidekicks-Emilio Estevez Debut",
-        "SKA-2-Bombeezy-Sidekicks-Emilio Estevez Debut"
+        "SK-1-Bombeezy-Grandma's Linoleum Battlefoil-Emilio Estevez Debut",
+        "SK-10-Bombeezy-80's Rad Battlefoil-Emilio Estevez Debut",
+        "SK-11-Bombeezy-Mixtape Battlefoil-Emilio Estevez Debut",
+        "SK-12-Bombeezy-Mixtape Battlefoil-Emilio Estevez Debut"
       ]
     },
     "Bomber": {
@@ -2039,7 +2105,7 @@
       ]
     },
     "Boz": {
-      "count": 32,
+      "count": 33,
       "athletes": [
         "Brian Bosworth"
       ],
@@ -2057,7 +2123,7 @@
       ]
     },
     "Brandi": {
-      "count": 12,
+      "count": 13,
       "athletes": [
         "Brandi Chastain",
         "Chastain"
@@ -2072,7 +2138,7 @@
         "BFA-14-Brandi-Inspired Ink Battlefoil-Brandi Chastain Debut",
         "BFA-15-Brandi-Inspired Ink Battlefoil-Brandi Chastain Debut",
         "BGA-4-Brandi-Inspired Ink Battlefoil-Brandi Chastain Debut",
-        "CYB-4-Brandi-Cyber-2025 Cyber Promo"
+        "BLC-9-Brandi-Grape-First Edition"
       ]
     },
     "Braun": {
@@ -2234,7 +2300,7 @@
       ]
     },
     "C.C.": {
-      "count": 38,
+      "count": 39,
       "athletes": [
         "Caitlin Clark"
       ],
@@ -2252,25 +2318,25 @@
       ]
     },
     "CJ Maddux": {
-      "count": 13,
+      "count": 28,
       "athletes": [
         "CJ Maddux"
       ],
       "bobaIds": [
         "CJ-1-CJ Maddux-Battlefoil-First Edition",
-        "CJ-2-CJ Maddux-Battlefoil-First Edition",
-        "CJ-23-CJ Maddux-Pink Blast-First Edition",
-        "CJ-24-CJ Maddux-Bubble Gum Blast-First Edition",
-        "CJ-25-CJ Maddux-Green Blast-First Edition",
-        "CJ-26-CJ Maddux-Blue Blast-First Edition",
-        "CJ-27-CJ Maddux-Orange Blast-First Edition",
-        "CJ-28-CJ Maddux-Silver Blast-First Edition",
-        "CJ-3-CJ Maddux-Battlefoil-First Edition",
-        "CJ-4-CJ Maddux-Battlefoil-First Edition"
+        "CJ-10-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
+        "CJ-11-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
+        "CJ-12-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
+        "CJ-13-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo",
+        "CJ-14-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo",
+        "CJ-15-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo",
+        "CJ-16-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo",
+        "CJ-17-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo",
+        "CJ-18-CJ Maddux-Mixtape Battlefoil-2025 CJ Maddux Promo"
       ]
     },
     "Caliber": {
-      "count": 119,
+      "count": 120,
       "athletes": [
         "Caleb Williams"
       ],
@@ -3127,7 +3193,7 @@
       ]
     },
     "Emmitt-164": {
-      "count": 40,
+      "count": 41,
       "athletes": [
         "Emmitt Smith"
       ],
@@ -3181,7 +3247,7 @@
       ]
     },
     "Exterminaber": {
-      "count": 46,
+      "count": 47,
       "athletes": [
         "Malik Nabers"
       ],
@@ -3217,13 +3283,21 @@
       ]
     },
     "Flav": {
-      "count": 2,
+      "count": 17,
       "athletes": [
         "Flavor Flav"
       ],
       "bobaIds": [
         "ALT-2-Flav-Billy Cameo Alt Arts-Flavor Flav (Co-Starring Billy)",
-        "CYB-28-Flav-Cyber-2025 Cyber Promo"
+        "CYB-28-Flav-Cyber-2025 Cyber Promo",
+        "SK-1-Flav-Grandma's Linoleum Battlefoil-Flavor Flav Debut",
+        "SK-10-Flav-80's Rad Battlefoil-Flavor Flav Debut",
+        "SK-11-Flav-Mixtape Battlefoil-Flavor Flav Debut",
+        "SK-12-Flav-Mixtape Battlefoil-Flavor Flav Debut",
+        "SK-13-Flav-Mixtape Battlefoil-Flavor Flav Debut",
+        "SK-14-Flav-Mixtape Battlefoil-Flavor Flav Debut",
+        "SK-15-Flav-Mixtape Battlefoil-Flavor Flav Debut",
+        "SK-2-Flav-Grandma's Linoleum Battlefoil-Flavor Flav Debut"
       ]
     },
     "Flavor Flav": {
@@ -3725,7 +3799,7 @@
       ]
     },
     "Halo": {
-      "count": 37,
+      "count": 38,
       "athletes": [
         "Angel Reese"
       ],
@@ -4016,7 +4090,7 @@
       ]
     },
     "JPEG": {
-      "count": 61,
+      "count": 70,
       "athletes": [
         "Jessica Pegula"
       ],
@@ -4088,7 +4162,7 @@
       ]
     },
     "Jaybird": {
-      "count": 46,
+      "count": 47,
       "athletes": [
         "Jayden Daniels"
       ],
@@ -4561,7 +4635,7 @@
       ]
     },
     "Magic": {
-      "count": 40,
+      "count": 41,
       "athletes": [
         "Magic Johnson"
       ],
@@ -4597,7 +4671,7 @@
       ]
     },
     "Marino": {
-      "count": 40,
+      "count": 41,
       "athletes": [
         "Dan Marino"
       ],
@@ -4633,7 +4707,7 @@
       ]
     },
     "Marverati": {
-      "count": 37,
+      "count": 38,
       "athletes": [
         "Marvin Harrison Jr."
       ],
@@ -4760,7 +4834,7 @@
       ]
     },
     "Merri-Go-Round": {
-      "count": 46,
+      "count": 47,
       "athletes": [
         "Jackson Marrill"
       ],
@@ -5161,7 +5235,7 @@
       ]
     },
     "Phoenix": {
-      "count": 46,
+      "count": 47,
       "athletes": [
         "Bo Nix"
       ],
@@ -5614,7 +5688,7 @@
       ]
     },
     "Shrouded": {
-      "count": 37,
+      "count": 38,
       "athletes": [
         "CJ Stroud"
       ],
@@ -5668,7 +5742,7 @@
       ]
     },
     "Skeee": {
-      "count": 29,
+      "count": 30,
       "athletes": [
         "Paul Skenes"
       ],
@@ -6084,7 +6158,7 @@
       ]
     },
     "Thomstone": {
-      "count": 46,
+      "count": 47,
       "athletes": [
         "Brian Thomas Jr"
       ],
@@ -6390,7 +6464,7 @@
       ]
     },
     "Victory": {
-      "count": 120,
+      "count": 121,
       "athletes": [
         "Victor Wembanyama",
         "Victor Wembenyama"
@@ -6697,7 +6771,7 @@
       ]
     },
     "Young-Gunner": {
-      "count": 33,
+      "count": 34,
       "athletes": [
         "Steve Young"
       ],
@@ -6780,7 +6854,7 @@
     }
   },
   "cardTypes": {
-    "Hero": 17147,
+    "Hero": 17235,
     "Play": 505,
     "HotDog": 70,
     "Sealed Product": 45
@@ -6805,6 +6879,6 @@
     "HTD": 60,
     "Standard": 370
   },
-  "totalCards": 17767,
-  "totalWithImages": 16266
+  "totalCards": 17855,
+  "totalWithImages": 16285
 }

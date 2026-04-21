@@ -338,7 +338,15 @@ const Collection = (() => {
               <span>Admin Panel</span>
             </button>` : ''}
           </div>
-        </div>` : ''}
+        </div>` : `
+        <!-- Mod Access Request — only for non-mods -->
+        <div class="profile-section" id="profile-mod-request-section">
+          <div class="profile-section-label">Moderator Access</div>
+          <div class="profile-mod-request-body" id="profile-mod-request-body">
+            <!-- populated async based on pending status -->
+            <p class="profile-mod-request-loading">Checking status…</p>
+          </div>
+        </div>`}
 
         <!-- Sign out -->
         <div class="profile-section">
@@ -368,6 +376,131 @@ const Collection = (() => {
 
     view.querySelector('#profile-recalculate-btn')
       ?.addEventListener('click', () => recalculateValues(view));
+
+    // Async-populate mod access request block (only renders for non-mods)
+    if (!['moderator','admin'].includes(role)) {
+      renderModRequestBlock(view);
+    }
+  }
+
+  async function renderModRequestBlock(view) {
+    const body = view.querySelector('#profile-mod-request-body');
+    if (!body) return;
+    let pending = false;
+    try { pending = await API.hasPendingModRequest(); } catch (_) { /* offline-safe */ }
+    if (pending) {
+      body.innerHTML = `
+        <div class="profile-mod-request-pending">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div>
+            <div class="profile-mod-request-pending-title">Request pending</div>
+            <div class="profile-mod-request-pending-sub">An admin will review your request soon.</div>
+          </div>
+        </div>`;
+      return;
+    }
+    body.innerHTML = `
+      <p class="profile-mod-request-blurb">Become a moderator to help improve the catalog: upload images of cards from your own collection, fix wrong card data, and flag issues with existing images.</p>
+      <button class="profile-mod-request-btn" id="profile-mod-request-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             width="15" height="15" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <polyline points="9 12 11 14 15 10" stroke-width="2.5"/>
+        </svg>
+        <span>Request Mod Access</span>
+      </button>`;
+    view.querySelector('#profile-mod-request-btn')
+      ?.addEventListener('click', () => openModRequestModal(view));
+  }
+
+  function openModRequestModal(view) {
+    document.getElementById('mod-request-modal')?.remove();
+    const modal = document.createElement('div');
+    modal.id = 'mod-request-modal';
+    modal.className = 'mod-request-modal';
+    modal.innerHTML = `
+      <div class="mod-request-card" role="dialog" aria-modal="true" aria-labelledby="mod-request-title">
+        <div class="mod-request-header">
+          <div class="mod-request-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 width="28" height="28" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <polyline points="9 12 11 14 15 10" stroke-width="2.5"/>
+            </svg>
+          </div>
+          <h3 id="mod-request-title">Help improve the catalog</h3>
+          <p>Moderator access lets trusted collectors contribute directly to BOBA Playbook's card data and images.</p>
+        </div>
+
+        <div class="mod-request-features">
+          <div class="mod-request-features-label">WHAT YOU CAN DO AS A MOD</div>
+          <div class="mod-request-feature">
+            <strong>Upload card images</strong>
+            <span>Submit photos from your own collection, especially for cards still missing art.</span>
+          </div>
+          <div class="mod-request-feature">
+            <strong>Fix wrong card data</strong>
+            <span>Correct hero names, power values, abilities, or any field that's wrong in the app.</span>
+          </div>
+          <div class="mod-request-feature">
+            <strong>Flag image issues</strong>
+            <span>Request removal or replacement of card images that show the wrong art.</span>
+          </div>
+          <div class="mod-request-feature">
+            <strong>Review before shipping</strong>
+            <span>All changes go through admin review — no risk of accidental damage.</span>
+          </div>
+        </div>
+
+        <label class="mod-request-field">
+          <span class="mod-request-field-label">TELL ME A BIT ABOUT YOURSELF</span>
+          <span class="mod-request-field-hint">How long have you collected BOBA? Specific athletes, sets, or treatments you focus on? What's motivating you to help?</span>
+          <textarea id="mod-request-reason" rows="5" placeholder="A short note about your collecting background…"></textarea>
+          <span class="mod-request-counter" id="mod-request-counter">0/20 minimum</span>
+        </label>
+
+        <div class="mod-request-actions">
+          <button class="mod-request-cancel" type="button">Cancel</button>
+          <button class="mod-request-submit" type="button" disabled>Submit Request</button>
+        </div>
+        <p class="mod-request-error hidden" id="mod-request-error"></p>
+      </div>`;
+    document.body.appendChild(modal);
+
+    const MIN_LEN = 20;
+    const textarea = modal.querySelector('#mod-request-reason');
+    const counter  = modal.querySelector('#mod-request-counter');
+    const submit   = modal.querySelector('.mod-request-submit');
+    const err      = modal.querySelector('#mod-request-error');
+    const refreshCounter = () => {
+      const len = textarea.value.trim().length;
+      counter.textContent = `${len}/${MIN_LEN} minimum`;
+      counter.classList.toggle('met', len >= MIN_LEN);
+      submit.disabled = len < MIN_LEN;
+    };
+    textarea.addEventListener('input', refreshCounter);
+    refreshCounter();
+
+    const close = () => modal.remove();
+    modal.querySelector('.mod-request-cancel').addEventListener('click', close);
+    modal.addEventListener('click', e => { if (e.target === modal) close(); });
+
+    submit.addEventListener('click', async () => {
+      submit.disabled = true;
+      submit.textContent = 'Submitting…';
+      err.classList.add('hidden');
+      try {
+        await API.submitModRequest(textarea.value.trim());
+        close();
+        renderModRequestBlock(view);
+      } catch (e) {
+        err.textContent = e?.message || 'Failed to submit request.';
+        err.classList.remove('hidden');
+        submit.disabled = false;
+        submit.textContent = 'Submit Request';
+      }
+    });
   }
 
   const EBAY_WORKER_URL = 'https://boba-ebay-proxy.benwilkoff.workers.dev';
@@ -528,6 +661,10 @@ const Collection = (() => {
             <div class="admin-metric-card"><div class="admin-metric-value" id="metric-corrections">…</div><div class="admin-metric-label">Card Corrections</div></div>
             <div class="admin-metric-card"><div class="admin-metric-value" id="metric-images">…</div><div class="admin-metric-label">Image Overrides</div></div>
           </div>
+          <div class="admin-section-label">MOD REQUESTS</div>
+          <div id="admin-mod-requests-list" class="admin-user-list">
+            <div class="admin-loading">Loading mod requests…</div>
+          </div>
           <div class="admin-section-label">MISSING ART</div>
           <div id="admin-images-list" class="admin-user-list">
             <div class="admin-loading">Loading…</div>
@@ -550,10 +687,60 @@ const Collection = (() => {
     // Load data
     await Promise.all([
       loadAdminMetrics(overlay),
+      loadAdminModRequests(overlay),
       loadAdminImageOverrides(overlay),
       loadAdminCorrections(overlay),
       loadAdminUsers(overlay),
     ]);
+  }
+
+  async function loadAdminModRequests(overlay) {
+    const listEl = overlay.querySelector('#admin-mod-requests-list');
+    try {
+      const requests = await API.adminFetchPendingModRequests();
+      if (!requests.length) {
+        listEl.innerHTML = `<p class="mod-edit-note">No pending mod requests.</p>`;
+        return;
+      }
+      listEl.innerHTML = requests.map(r => {
+        const date = r.requested_at ? new Date(r.requested_at).toLocaleDateString() : '';
+        return `
+          <div class="admin-correction-row" data-uid="${esc(r.user_id)}">
+            <div class="admin-correction-info">
+              <div class="admin-correction-card">${esc(r.email || '(no email)')}</div>
+              <div class="admin-user-meta">${esc(date)}</div>
+              ${r.reason ? `<div class="admin-correction-notes">"${esc(r.reason)}"</div>` : ''}
+            </div>
+            <div class="admin-correction-actions">
+              <button class="admin-approve-btn" data-uid="${esc(r.user_id)}">Approve ✓</button>
+              <button class="admin-reject-btn"  data-uid="${esc(r.user_id)}" style="background:rgba(242,63,67,0.15);color:#F23F43;border-color:rgba(242,63,67,0.3)">Deny ✗</button>
+            </div>
+          </div>`;
+      }).join('');
+
+      const wire = (selector, approve) => {
+        listEl.querySelectorAll(selector).forEach(btn => {
+          btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            try {
+              await API.adminReviewModRequest(btn.dataset.uid, approve);
+              btn.closest('.admin-correction-row').remove();
+              if (!listEl.querySelector('.admin-correction-row')) {
+                listEl.innerHTML = `<p class="mod-edit-note">No pending mod requests.</p>`;
+              }
+              if (approve) loadAdminUsers(overlay); // promoted user now shows as moderator
+            } catch (e) {
+              alert('Failed: ' + e.message);
+              btn.disabled = false;
+            }
+          });
+        });
+      };
+      wire('.admin-approve-btn', true);
+      wire('.admin-reject-btn',  false);
+    } catch (e) {
+      listEl.innerHTML = `<p class="mod-edit-note" style="color:var(--boba-orange)">Error: ${esc(e.message)}</p>`;
+    }
   }
 
   async function loadAdminMetrics(overlay) {

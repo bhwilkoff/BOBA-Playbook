@@ -464,8 +464,32 @@ final class PracticeStore {
             }
 
         case .replaceActiveFromHand(let side):
-            // Effective duplicate of swapActiveWithHand
-            applyIntent(.swapActiveWithHand(side: side), actingSide: actingSide, notifyInto: &callouts)
+            // Used by cards that pair `discard_hero` + `replace_active_from_hand`
+            // (e.g. Forced Retreat). Current active holds a card just drawn from
+            // the hero deck by discard_hero's auto-refill; return it to the top
+            // of the deck so deck size stays intact.
+            guard battles.indices.contains(currentBattle) else { break }
+            var bench = side == .player ? playerBench : cpuBench
+            guard !bench.isEmpty else { break }
+            let bestIdx = bench.indices.max(by: { (bench[$0].power ?? 0) < (bench[$1].power ?? 0) })!
+            let replacement = bench[bestIdx]
+            bench.remove(at: bestIdx)
+            if side == .player {
+                if let current = battles[currentBattle].playerCard { playerHeroDeck.insert(current, at: 0) }
+                battles[currentBattle].playerCard = replacement
+                playerBench = bench
+            } else {
+                if let current = battles[currentBattle].cpuCard { cpuHeroDeck.insert(current, at: 0) }
+                battles[currentBattle].cpuCard = replacement
+                cpuBench = bench
+            }
+            let who = side == .player ? "Your" : "Opponent's"
+            callouts.append(ActionCallout(
+                message: "\(who) active → \(replacement.name) (from bench)",
+                icon: "arrow.triangle.swap",
+                color: "00F5FF",
+                card: replacement
+            ))
 
         case .discardActiveHero(let side):
             guard battles.indices.contains(currentBattle) else { break }
@@ -2143,12 +2167,17 @@ final class PracticeStore {
 
 
     /// Description of what a play card's effect will do (for UI display).
+    /// play-effects.json is authoritative: covers cards where cards.json has
+    /// playAbility=null (e.g. National Starter Set variants of Loan Sharked).
     static func effectDescription(for card: Card) -> String {
-        guard let ability = card.playAbility, !ability.isEmpty else {
-            let cost = card.playCost ?? 0
-            return "+\(cost * 6 + 5) Power"
+        if let ability = card.playAbility, !ability.isEmpty { return ability }
+        if let entry = PlayEffects.entry(for: card.name),
+           let ability = entry["ability"] as? String,
+           !ability.isEmpty {
+            return ability
         }
-        return ability
+        let cost = card.playCost ?? 0
+        return "+\(cost * 6 + 5) Power"
     }
 
     // MARK: - Reset

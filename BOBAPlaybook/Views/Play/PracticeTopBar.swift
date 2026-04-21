@@ -60,6 +60,7 @@ struct PracticeTopBar: View {
                 .font(Design.Fonts.display(22))
                 .foregroundStyle(Color(hex: "C0392B"))
         }
+        .tutorialTarget(.scoreboard)
     }
 
     private var battlePips: some View {

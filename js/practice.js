@@ -1693,8 +1693,8 @@ function pmExecStep(step, ctx, out) {
     }
     case 'replace_active_from_hand': {
       const side = step.target === 'opponent' ? ctx.opp : ctx.self;
-      pmIntentSwapActiveWithHand(side);
-      out.notifications.push(`Replaced active hero from bench`);
+      const msg = pmIntentReplaceActiveFromHand(side);
+      if (msg) out.notifications.push(msg);
       out.hasEffect = true;
       break;
     }
@@ -2052,6 +2052,26 @@ function pmIntentSwapActiveWithHand(side) {
   const current = side === 'player' ? b.playerCard : b.cpuCard;
   if (side === 'player') { b.playerCard = replacement; if (current) PM.playerBench.push(current); }
   else                   { b.cpuCard = replacement;    if (current) PM.cpuBench.push(current); }
+}
+
+// Distinct from swap — used by cards that pair `discard_hero` + `replace_active_from_hand`
+// (e.g. Forced Retreat). The current active slot holds a card just drawn from the hero
+// deck by discard_hero's auto-refill; returning it to the top of the deck keeps deck
+// integrity. Returns a human-readable notification with the hero names swapped.
+function pmIntentReplaceActiveFromHand(side) {
+  const b = PM.battles[PM.currentBattle]; if (!b) return null;
+  const bench = side === 'player' ? PM.playerBench : PM.cpuBench;
+  const deck  = side === 'player' ? PM.playerHeroDeck : PM.cpuHeroDeck;
+  if (!bench.length) return `No bench hero to replace with`;
+  let bestIdx = 0;
+  for (let i = 1; i < bench.length; i++) if ((bench[i]?.power || 0) > (bench[bestIdx]?.power || 0)) bestIdx = i;
+  const replacement = bench[bestIdx];
+  bench.splice(bestIdx, 1);
+  const current = side === 'player' ? b.playerCard : b.cpuCard;
+  if (current) deck.unshift(current); // return to top of deck, preserving deck size
+  if (side === 'player') b.playerCard = replacement; else b.cpuCard = replacement;
+  const who = side === 'player' ? 'Your' : "Opponent's";
+  return `${who} active → ${replacement.name} (from bench)`;
 }
 
 function pmIntentSwapActiveWithDiscard(side, weaponFilter) {
@@ -3653,11 +3673,13 @@ function pmShowPlayCardPopup(handIdx) {
   const canUse     = pmIsPlayable(card, 'player');
   const playable   = canAfford && canUse;
   const imgUrl     = card.imageFile ? fullUrl(card.imageFile) : null;
-  const ability    = card.playAbility || card.description || '—';
+  const entry     = pmGetPlayEntry(card);
+  // play-effects.json is authoritative for ability text (covers cards where
+  // cards.json has playAbility=null, e.g. National Starter Set variants).
+  const ability    = card.playAbility || entry?.ability || card.description || '—';
   const costLabel  = cost === 0 ? 'FREE' : `${cost} Hot Dog${cost !== 1 ? 's' : ''}`;
   const affordClass = playable ? 'pm-play-popup-play' : 'pm-play-popup-play cannot-afford';
   const element    = card.element || '';
-  const entry     = pmGetPlayEntry(card);
   const partial   = pmEntryHasUnknownOps(entry);
 
   const popup = document.createElement('div');
@@ -4124,7 +4146,174 @@ function initPractice(allCards) {
 
     pmInitPlaymat();
     pmUpdateAll();
+    pmMaybeShowTutorial();
   });
+}
+
+// ── First-run tutorial ─────────────────────────────────────────────
+// 5 ordered callouts spotlighting real playmat elements. No blur —
+// the content behind stays fully visible. A glowing ring traces the
+// target element; the tooltip card sits adjacent with an arrow.
+// Fires once per browser (localStorage['bp_practiceTutorialSeen_v1']).
+
+const PM_TUTORIAL_STEPS = [
+  { title: 'Battle Score',
+    message: "Your wins vs. the CPU's. First to 4 Battles wins the match. If it's 3–3 after Battle 7, Sudden Death decides the game.",
+    selector: '.pm-scoreboard',
+    placement: 'bottom' },
+  { title: 'The Active Battle',
+    message: "Your Hero faces the CPU's. Higher Power wins this Battle. If Power is tied, a Hero with a Super Weapon wins — otherwise the Battle is a draw (no trophy).",
+    selector: '.pm-bc[data-battle="0"]',
+    placement: 'right' },
+  { title: 'Your Bench',
+    message: "Before Heroes are revealed, the Honors player may spend 2 Hot Dogs to swap their face-down Hero for one from the Bench. One Sub per Battle.",
+    selector: '.pm-bench-area',
+    placement: 'top' },
+  { title: 'Your Plays',
+    message: "After Heroes reveal, the Honors player goes first. Play any number of Plays (paying Hot Dogs) or pass — each player gets one turn to play Plays per Battle.",
+    selector: '.pm-hand-area',
+    placement: 'top' },
+  { title: 'Advance the Battle',
+    message: "Each Battle runs: Substitute → Reveal → Play → Resolve. After the Battle, both players draw 1 Play and the winner takes Honors next. Tap here to advance.",
+    selector: '#pm-btn-done',
+    placement: 'top' }
+];
+
+function pmMaybeShowTutorial() {
+  try {
+    if (localStorage.getItem('bp_practiceTutorialSeen_v1')) return;
+  } catch (_) { /* private mode — show anyway */ }
+  pmShowTutorial(0);
+}
+
+function pmShowTutorial(stepIdx) {
+  document.getElementById('pm-tutorial')?.remove();
+
+  const step = PM_TUTORIAL_STEPS[stepIdx];
+  if (!step) return;
+  const isLast = stepIdx >= PM_TUTORIAL_STEPS.length - 1;
+  const total = PM_TUTORIAL_STEPS.length;
+
+  const target = document.querySelector(step.selector);
+  if (!target) {
+    // Target missing — skip gracefully
+    if (!isLast) return pmShowTutorial(stepIdx + 1);
+    try { localStorage.setItem('bp_practiceTutorialSeen_v1', '1'); } catch (_) {}
+    return;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'pm-tutorial';
+  overlay.className = 'pm-tutorial';
+
+  const dots = PM_TUTORIAL_STEPS.map((_, i) =>
+    `<span class="pm-tutorial-dot${i === stepIdx ? ' active' : ''}"></span>`
+  ).join('');
+
+  overlay.innerHTML = `
+    <div class="pm-tutorial-scrim" aria-hidden="true"></div>
+    <div class="pm-tutorial-ring" aria-hidden="true"></div>
+    <div class="pm-tutorial-card" role="dialog" aria-modal="true" aria-labelledby="pm-tutorial-title">
+      <div class="pm-tutorial-arrow" aria-hidden="true"></div>
+      <div class="pm-tutorial-head">
+        <span class="pm-tutorial-step">STEP ${stepIdx + 1} OF ${total}</span>
+        <button class="pm-tutorial-skip" type="button">SKIP</button>
+      </div>
+      <div class="pm-tutorial-title" id="pm-tutorial-title">${step.title}</div>
+      <div class="pm-tutorial-message">${step.message}</div>
+      <div class="pm-tutorial-dots">${dots}</div>
+      <button class="pm-tutorial-next" type="button">${isLast ? 'GOT IT' : 'NEXT'}</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const ring = overlay.querySelector('.pm-tutorial-ring');
+  const card = overlay.querySelector('.pm-tutorial-card');
+  const arrow = overlay.querySelector('.pm-tutorial-arrow');
+
+  const place = () => {
+    const r = target.getBoundingClientRect();
+    const pad = 6;
+    // Ring traces the target with padding
+    ring.style.top    = (r.top - pad) + 'px';
+    ring.style.left   = (r.left - pad) + 'px';
+    ring.style.width  = (r.width  + pad * 2) + 'px';
+    ring.style.height = (r.height + pad * 2) + 'px';
+
+    // Tooltip placement — adapt when requested side doesn't fit
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const cardW = Math.min(420, vw - 32);
+    card.style.width = cardW + 'px';
+    const cardRect = card.getBoundingClientRect();
+    const cardH = cardRect.height;
+
+    const gap = 18; // distance between ring and card
+    const spaceBelow = vh - r.bottom;
+    const spaceAbove = r.top;
+    const spaceRight = vw - r.right;
+    const spaceLeft  = r.left;
+
+    let placement = step.placement;
+    // Fallback if requested side doesn't have room
+    const needed = cardH + gap + 16;
+    if (placement === 'bottom' && spaceBelow < needed && spaceAbove > needed) placement = 'top';
+    if (placement === 'top'    && spaceAbove < needed && spaceBelow > needed) placement = 'bottom';
+    if (placement === 'right'  && spaceRight < cardW + gap + 16) placement = spaceBelow >= needed ? 'bottom' : 'top';
+    if (placement === 'left'   && spaceLeft  < cardW + gap + 16) placement = spaceBelow >= needed ? 'bottom' : 'top';
+
+    let cardTop, cardLeft, arrowTop, arrowLeft, arrowDir;
+    if (placement === 'bottom') {
+      cardTop  = r.bottom + gap;
+      cardLeft = Math.max(16, Math.min(vw - cardW - 16, r.left + r.width / 2 - cardW / 2));
+      arrowDir = 'up';
+      arrowTop = -7;
+      arrowLeft = (r.left + r.width / 2) - cardLeft - 7;
+    } else if (placement === 'top') {
+      cardTop  = r.top - gap - cardH;
+      cardLeft = Math.max(16, Math.min(vw - cardW - 16, r.left + r.width / 2 - cardW / 2));
+      arrowDir = 'down';
+      arrowTop = cardH - 7;
+      arrowLeft = (r.left + r.width / 2) - cardLeft - 7;
+    } else if (placement === 'right') {
+      cardLeft = r.right + gap;
+      cardTop  = Math.max(16, Math.min(vh - cardH - 16, r.top + r.height / 2 - cardH / 2));
+      arrowDir = 'left';
+      arrowLeft = -7;
+      arrowTop = (r.top + r.height / 2) - cardTop - 7;
+    } else { // left
+      cardLeft = r.left - gap - cardW;
+      cardTop  = Math.max(16, Math.min(vh - cardH - 16, r.top + r.height / 2 - cardH / 2));
+      arrowDir = 'right';
+      arrowLeft = cardW - 7;
+      arrowTop = (r.top + r.height / 2) - cardTop - 7;
+    }
+
+    // Clamp tooltip inside viewport
+    cardTop  = Math.max(12, Math.min(vh - cardH - 12, cardTop));
+    cardLeft = Math.max(12, Math.min(vw - cardW - 12, cardLeft));
+
+    card.style.top  = cardTop + 'px';
+    card.style.left = cardLeft + 'px';
+    card.setAttribute('data-arrow', arrowDir);
+    arrow.style.top  = arrowTop + 'px';
+    arrow.style.left = arrowLeft + 'px';
+  };
+  place();
+
+  const close = () => {
+    try { localStorage.setItem('bp_practiceTutorialSeen_v1', '1'); } catch (_) {}
+    window.removeEventListener('resize', place);
+    overlay.remove();
+  };
+  const advance = () => { isLast ? close() : pmShowTutorial(stepIdx + 1); };
+
+  overlay.querySelector('.pm-tutorial-next').addEventListener('click', advance);
+  overlay.querySelector('.pm-tutorial-skip').addEventListener('click', close);
+  overlay.querySelector('.pm-tutorial-scrim').addEventListener('click', advance);
+  window.addEventListener('resize', place);
+  // Re-place on the next frame once layout has settled (handles initial async renders)
+  requestAnimationFrame(place);
 }
 
 // ── Deck spec parsing / resolution for practice setup ──────────────

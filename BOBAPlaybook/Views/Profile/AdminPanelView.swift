@@ -11,6 +11,7 @@ struct AdminPanelView: View {
     @State private var pendingCorrections: [SupabaseClient.PendingCorrection] = []
     @State private var recentCorrections: [SupabaseClient.PendingCorrection] = []
     @State private var missingArt: [SupabaseClient.ImageOverride] = []
+    @State private var pendingModRequests: [SupabaseClient.PendingModRequest] = []
     @State private var isLoading = true
     @State private var errorMessage: String? = nil
     @State private var roleUpdateTarget: AdminUserProfile? = nil
@@ -46,6 +47,56 @@ struct AdminPanelView: View {
                     }
                     .listRowBackground(Design.Colors.surface)
                 }
+
+                // Mod access requests
+                Section("MOD REQUESTS (\(pendingModRequests.count))") {
+                    if pendingModRequests.isEmpty {
+                        Text("No pending mod requests.")
+                            .font(Design.Fonts.mono(13))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    } else {
+                        ForEach(pendingModRequests) { req in
+                            VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(req.email ?? "(no email)")
+                                            .font(Design.Fonts.mono(13, weight: .bold))
+                                            .foregroundStyle(Design.Colors.bobaCyan)
+                                        if let at = req.requested_at {
+                                            Text(at)
+                                                .font(Design.Fonts.mono(10))
+                                                .foregroundStyle(Design.Colors.textMuted)
+                                        }
+                                    }
+                                    Spacer()
+                                    HStack(spacing: 12) {
+                                        Button("Approve") {
+                                            Task { await reviewModRequest(userId: req.user_id, approve: true) }
+                                        }
+                                        .font(Design.Fonts.mono(12, weight: .bold))
+                                        .foregroundStyle(Color.green)
+                                        .buttonStyle(.plain)
+                                        Button("Deny") {
+                                            Task { await reviewModRequest(userId: req.user_id, approve: false) }
+                                        }
+                                        .font(Design.Fonts.mono(12, weight: .bold))
+                                        .foregroundStyle(Design.Colors.bobaOrange)
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                if let reason = req.reason, !reason.isEmpty {
+                                    Text(reason)
+                                        .font(Design.Fonts.mono(11))
+                                        .foregroundStyle(Design.Colors.textSecondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .padding(.top, 2)
+                                }
+                            }
+                            .padding(.vertical, Design.Spacing.xs)
+                        }
+                    }
+                }
+                .listRowBackground(Design.Colors.surface)
 
                 // Missing art queue
                 Section("MISSING ART (\(missingArt.count))") {
@@ -182,15 +233,28 @@ struct AdminPanelView: View {
             async let correctionsResult = SupabaseClient.shared.fetchPendingCorrections()
             async let recentResult      = SupabaseClient.shared.fetchRecentCorrections()
             async let missingArtResult  = SupabaseClient.shared.fetchPendingImageOverrides()
+            async let modReqResult      = SupabaseClient.shared.fetchPendingModRequests()
             users               = try await usersResult
             metrics             = try await metricsResult
             pendingCorrections  = try await correctionsResult
             recentCorrections   = try await recentResult
             missingArt          = try await missingArtResult
+            pendingModRequests  = (try? await modReqResult) ?? []
         } catch {
             errorMessage = "Failed to load: \(error.localizedDescription)"
         }
         isLoading = false
+    }
+
+    private func reviewModRequest(userId: UUID, approve: Bool) async {
+        do {
+            try await SupabaseClient.shared.reviewModRequest(userId: userId, approve: approve)
+            pendingModRequests.removeAll { $0.user_id == userId }
+            // Reload users so the newly-promoted user shows in the list with updated role
+            if approve { await loadData() }
+        } catch {
+            errorMessage = "Failed to review mod request: \(error.localizedDescription)"
+        }
     }
 
     private func updateRole(user: AdminUserProfile, newRole: String) async {

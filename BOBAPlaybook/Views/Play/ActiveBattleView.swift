@@ -15,6 +15,10 @@ struct ActiveBattleView: View {
     let mode: PracticeMode
 
     var body: some View {
+        activeBattleBody.tutorialTarget(.activeBattle)
+    }
+
+    private var activeBattleBody: some View {
         VStack(spacing: 6) {
             // Battle label
             Text("BATTLE \(slot.id + 1)")

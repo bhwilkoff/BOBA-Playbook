@@ -111,6 +111,73 @@ final class SupabaseClient {
         return rows.first?.role ?? "user"
     }
 
+    // MARK: - Mod promotion requests
+
+    /// Returns true if the current user has an outstanding mod-access request.
+    func hasPendingModRequest() async throws -> Bool {
+        guard let uid = userId else { return false }
+        let url = try makeURL(path: "/rest/v1/user_profiles?select=mod_request_at&user_id=eq.\(uid.uuidString.lowercased())&limit=1")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        struct Row: Decodable { let mod_request_at: String? }
+        let rows: [Row] = try await executeArray(request)
+        return rows.first?.mod_request_at != nil
+    }
+
+    /// Submits a mod-access request for the current user. Writes reason +
+    /// timestamp to their own row (self-update, allowed by RLS).
+    func submitModRequest(reason: String) async throws {
+        guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
+        let url = try makeURL(path: "/rest/v1/user_profiles?user_id=eq.\(uid.uuidString.lowercased())")
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        addHeaders(&request, authenticated: true)
+        let iso = ISO8601DateFormatter().string(from: Date())
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "mod_request_reason": reason,
+            "mod_request_at": iso
+        ])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
+    /// Admin-only: fetches all pending mod requests. Returns empty array for non-admins
+    /// (RPC raises, which executeArray catches → empty result).
+    struct PendingModRequest: Decodable, Identifiable {
+        let user_id: UUID
+        let email: String?
+        let reason: String?
+        let requested_at: String?
+        var id: UUID { user_id }
+    }
+    func fetchPendingModRequests() async throws -> [PendingModRequest] {
+        let url = try makeURL(path: "/rest/v1/rpc/get_pending_mod_requests")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = "{}".data(using: .utf8)
+        addHeaders(&request, authenticated: true)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+        return try makeDecoder().decode([PendingModRequest].self, from: data)
+    }
+
+    /// Admin-only: approve (promote to moderator) or deny (clear request) a pending mod request.
+    func reviewModRequest(userId: UUID, approve: Bool) async throws {
+        let url = try makeURL(path: "/rest/v1/rpc/review_mod_request")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        addHeaders(&request, authenticated: true)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "target_user_id": userId.uuidString.lowercased(),
+            "approve": approve
+        ])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
     // MARK: - Admin methods
 
     /// Fetches full user stats via RPC. Admin-only (enforced server-side).

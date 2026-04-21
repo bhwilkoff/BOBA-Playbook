@@ -5,7 +5,8 @@
 ## Current State
 
 - **Active milestone**: M4 — Play Mode (M3.5 fully complete and deployed)
-- **Last session**: 2026-04-16 (Cowork) — **225 new card images reconciled from eBay review.** User approved 225 new + 112 upgrades. Coverage: **16,014 → 16,239 (90.3% → 91.5%)**. Bundles regenerated; `R2_UPLOAD_MANIFEST.json` lists 225 new imageFile values (all bobaId-slug format) needing R2 upload (17.3 MB opt + 1.6 MB thumbs = 450 rclone ops). 9 ambiguous files skipped (BF-100→105, BFA-2/MBFA-1/SFA-2 A.I. variants). 1 pre-existing source collision (BGA-1 BoJax), not blocking. **Claude Code's next action: R2 upload + commit + spot-check.** See COWORK.md → "📥 Cowork → Claude Code" → "[2026-04-16]".
+- **Last session**: 2026-04-21 (Claude Code) — **2025 Cyber Promo set added.** Merged Cowork's `handoff-cyber/` payload: 28 new CYB-* hero records (17,739 → 17,767 cards), 27 BV images optimized + uploaded to R2 (54 objects, all 3 spot-checks HTTP 200), CYB-28 Flav queued to `missing-cards.json` for the eBay sourcer. Coverage 91.5% → **91.6%**. `byElement.CYBER` in `search-index.json` now has 28 bobaIds. Field labels follow BV/Radish precedent (`set="Promo Cards"`, `subSet="Cyber"`, `variation="2025 Cyber Promo"`, `treatment="Cyber"`, `element="CYBER"`). CYB-5 The Kid included per cross-source confirmation. Pipeline lives in `scripts/apply_cyber_handoff.py` (idempotent). iOS testers need a new TestFlight build; web users just refresh.
+- **Prior session**: 2026-04-16 (Cowork) — **225 new card images reconciled from eBay review.** User approved 225 new + 112 upgrades. Coverage: **16,014 → 16,239 (90.3% → 91.5%)**. Bundles regenerated; `R2_UPLOAD_MANIFEST.json` lists 225 new imageFile values (all bobaId-slug format) needing R2 upload (17.3 MB opt + 1.6 MB thumbs = 450 rclone ops). 9 ambiguous files skipped (BF-100→105, BFA-2/MBFA-1/SFA-2 A.I. variants). 1 pre-existing source collision (BGA-1 BoJax), not blocking. **Claude Code's next action: R2 upload + commit + spot-check.** See COWORK.md → "📥 Cowork → Claude Code" → "[2026-04-16]".
 - **Prior session**: 2026-04-16 (Claude Code) — Tier B + Tier C play-effect ops shipped on both platforms. **383/383 `play-effects.json` entries execute with 0 unknown ops, 0 runtime errors.** iOS `xcodebuild` → BUILD SUCCEEDED. Full op/condition/metric list and design tradeoffs in ARCHIVE.md.
 - **Open questions**:
   - Strategy hints: deck evaluation panel in deck builder (pull from research docs)
@@ -89,7 +90,7 @@ Sourced from official Quick Start Guide, Comprehensive Rules Guide v1, Penalty &
 - **Hot Dogs**: 10-card energy deck; also appears as `cardType: "Hot Dog"` OR hero with `treatment: "Hot Dog"/"Hotdogs"`
 
 #### Weapon Types (element field)
-FIRE, ICE, STEEL, BRAWL, GLOW, HEX, GUM, SUPER, ALT. CYBER listed in rules but 0 cards currently.
+FIRE, ICE, STEEL, BRAWL, GLOW, HEX, GUM, SUPER, ALT, CYBER (28 cards in the 2025 Cyber Promo set).
 - **Super** wins ties in Playmaker mode
 - Rarity: Brawl/Steel (common) → Fire/Ice (rare) → Glow (ultra rare) → Hex/Gum (secret rare) → Super (1/1)
 

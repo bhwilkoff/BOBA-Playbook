@@ -181,6 +181,18 @@
         "Plays"
       ]
     },
+    "Promo Cards": {
+      "count": 54,
+      "subSets": [
+        "2025 Release",
+        "Cyber",
+        "Day One Promo"
+      ],
+      "treatments": [
+        "Cyber",
+        "Prize & Promos"
+      ]
+    },
     "Superfan Series": {
       "count": 36,
       "subSets": [
@@ -194,16 +206,6 @@
         "Paper & Battlefoil",
         "Plays",
         "Super Fan Box"
-      ]
-    },
-    "Promo Cards": {
-      "count": 26,
-      "subSets": [
-        "2025 Release",
-        "Day One Promo"
-      ],
-      "treatments": [
-        "Prize & Promos"
       ]
     },
     "Tecmo Bowl Edition": {
@@ -884,6 +886,19 @@
         "LA-14-Showtime-Paper & Battlefoil-World Champion Debut"
       ]
     },
+    "Cyber": {
+      "count": 28,
+      "elements": [
+        "CYBER"
+      ],
+      "sampleBobaIds": [
+        "CYB-1-BoJax-Cyber-2025 Cyber Promo",
+        "CYB-10-Marino-Cyber-2025 Cyber Promo",
+        "CYB-11-Grand-Ma-Ma-Cyber-2025 Cyber Promo",
+        "CYB-12-C.C.-Cyber-2025 Cyber Promo",
+        "CYB-13-Emmitt-164-Cyber-2025 Cyber Promo"
+      ]
+    },
     "Prize & Promos": {
       "count": 26,
       "elements": [
@@ -1034,14 +1049,6 @@
         "SEALED-update-jumbo-hobby-box-Alpha Update Jumbo Hobby Box--Jumbo Hobby Box"
       ]
     },
-    "Pack": {
-      "count": 2,
-      "elements": [],
-      "sampleBobaIds": [
-        "SEALED-national24-gold-pack-National '24 Gold Pack--Pack",
-        "SEALED-national24-silver-pack-National '24 Silver Pack--Pack"
-      ]
-    },
     "Collector Booster Box": {
       "count": 2,
       "elements": [],
@@ -1058,11 +1065,12 @@
         "SEALED-tecmo-double-mega-box-Tecmo Bowl Edition Double-Mega Box--Double Mega Box"
       ]
     },
-    "Starter Kit": {
-      "count": 1,
+    "Pack": {
+      "count": 2,
       "elements": [],
       "sampleBobaIds": [
-        "SEALED-national24-starter-kit-National '24 Starter Kit--Starter Kit"
+        "SEALED-national24-gold-pack-National '24 Gold Pack--Pack",
+        "SEALED-national24-silver-pack-National '24 Silver Pack--Pack"
       ]
     },
     "Battle Trainer Kit": {
@@ -1072,6 +1080,13 @@
         "SEALED-alpha-battle-trainer-kit-Alpha Edition Battle Trainer Kit--Battle Trainer Kit"
       ]
     },
+    "Blast Box": {
+      "count": 1,
+      "elements": [],
+      "sampleBobaIds": [
+        "SEALED-alpha-blast-box-Alpha Blast Box--Blast Box"
+      ]
+    },
     "Bundle": {
       "count": 1,
       "elements": [],
@@ -1079,11 +1094,11 @@
         "SEALED-alpha-launch-day-bundle-Alpha Edition Launch Day Bundle--Bundle"
       ]
     },
-    "Blast Box": {
+    "Starter Kit": {
       "count": 1,
       "elements": [],
       "sampleBobaIds": [
-        "SEALED-alpha-blast-box-Alpha Blast Box--Blast Box"
+        "SEALED-national24-starter-kit-National '24 Starter Kit--Starter Kit"
       ]
     },
     "Super Fan Box": {
@@ -1126,6 +1141,10 @@
     "SUPER": {
       "count": 453,
       "rarity": "Unique 1/1"
+    },
+    "CYBER": {
+      "count": 28,
+      "rarity": "Unknown"
     },
     "ALT": {
       "count": 14,
@@ -1332,7 +1351,7 @@
       ]
     },
     "Amon-Ra": {
-      "count": 32,
+      "count": 33,
       "athletes": [
         "Amon-Ra St. Brown"
       ],
@@ -1580,7 +1599,7 @@
       ]
     },
     "Barry \"Cutback\" Sanders": {
-      "count": 39,
+      "count": 40,
       "athletes": [
         "Barry Sanders"
       ],
@@ -1839,7 +1858,7 @@
       ]
     },
     "BoJax": {
-      "count": 45,
+      "count": 47,
       "athletes": [
         "Bo Jackson"
       ],
@@ -1853,7 +1872,7 @@
         "BL-O77-BoJax-Orange Blast-Founding Hero Alpha Update",
         "BL-P77-BoJax-Pink Blast-Founding Hero Alpha Update",
         "BL-S77-BoJax-Silver Blast-Founding Hero Alpha Update",
-        "GBF-76-BoJax-Green Battlefoil-Founding Hero"
+        "CYB-1-BoJax-Cyber-2025 Cyber Promo"
       ]
     },
     "Bojax": {
@@ -2038,7 +2057,7 @@
       ]
     },
     "Brandi": {
-      "count": 11,
+      "count": 12,
       "athletes": [
         "Brandi Chastain",
         "Chastain"
@@ -2053,7 +2072,7 @@
         "BFA-14-Brandi-Inspired Ink Battlefoil-Brandi Chastain Debut",
         "BFA-15-Brandi-Inspired Ink Battlefoil-Brandi Chastain Debut",
         "BGA-4-Brandi-Inspired Ink Battlefoil-Brandi Chastain Debut",
-        "MBFA-3-Brandi-Inspired Ink Metallic Battlefoil-Brandi Chastain Debut"
+        "CYB-4-Brandi-Cyber-2025 Cyber Promo"
       ]
     },
     "Braun": {
@@ -2161,7 +2180,7 @@
       ]
     },
     "Burrocious": {
-      "count": 37,
+      "count": 38,
       "athletes": [
         "Joe Burrow"
       ],
@@ -2215,7 +2234,7 @@
       ]
     },
     "C.C.": {
-      "count": 37,
+      "count": 38,
       "athletes": [
         "Caitlin Clark"
       ],
@@ -2269,7 +2288,7 @@
       ]
     },
     "Cameleon": {
-      "count": 39,
+      "count": 40,
       "athletes": [
         "Cameron Brink"
       ],
@@ -2485,9 +2504,10 @@
       ]
     },
     "Chief": {
-      "count": 32,
+      "count": 33,
       "athletes": [
-        "Robert Parish"
+        "Robert Parish",
+        "Robert Parrish"
       ],
       "bobaIds": [
         "BBF-18-Chief-Blue Battlefoil-Robert Parish Debut",
@@ -2945,7 +2965,7 @@
       ]
     },
     "Donnie Baseball": {
-      "count": 32,
+      "count": 33,
       "athletes": [
         "Don Mattingly"
       ],
@@ -3107,7 +3127,7 @@
       ]
     },
     "Emmitt-164": {
-      "count": 39,
+      "count": 40,
       "athletes": [
         "Emmitt Smith"
       ],
@@ -3197,10 +3217,13 @@
       ]
     },
     "Flav": {
-      "count": 1,
-      "athletes": [],
+      "count": 2,
+      "athletes": [
+        "Flavor Flav"
+      ],
       "bobaIds": [
-        "ALT-2-Flav-Billy Cameo Alt Arts-Flavor Flav (Co-Starring Billy)"
+        "ALT-2-Flav-Billy Cameo Alt Arts-Flavor Flav (Co-Starring Billy)",
+        "CYB-28-Flav-Cyber-2025 Cyber Promo"
       ]
     },
     "Flavor Flav": {
@@ -3294,7 +3317,7 @@
       ]
     },
     "Frostbite": {
-      "count": 23,
+      "count": 24,
       "athletes": [
         "Trae Young"
       ],
@@ -3306,9 +3329,9 @@
         "BFA-98-Frostbite-Inspired Ink Battlefoil-Trae Young Debut",
         "BFA-99-Frostbite-Inspired Ink Battlefoil-Trae Young Debut",
         "BGA-21-Frostbite-Inspired Ink Battlefoil-Trae Young Debut",
+        "CYB-25-Frostbite-Cyber-2025 Cyber Promo",
         "GBF-20-Frostbite-Green Battlefoil-Trae Young Debut",
-        "GLBF-100-Frostbite-Grandma's Linoleum Battlefoil-Trae Young Debut",
-        "GLBF-96-Frostbite-Grandma's Linoleum Battlefoil-Trae Young Debut"
+        "GLBF-100-Frostbite-Grandma's Linoleum Battlefoil-Trae Young Debut"
       ]
     },
     "Frostebite": {
@@ -3437,7 +3460,7 @@
       ]
     },
     "Gaveler": {
-      "count": 119,
+      "count": 120,
       "athletes": [
         "Aaron Judge"
       ],
@@ -3594,7 +3617,7 @@
       ]
     },
     "Grand-Ma-Ma": {
-      "count": 32,
+      "count": 33,
       "athletes": [
         "Larry Johnson"
       ],
@@ -3630,7 +3653,7 @@
       ]
     },
     "Green-Machine": {
-      "count": 32,
+      "count": 33,
       "athletes": [
         "Jalen Green"
       ],
@@ -4360,8 +4383,9 @@
       ]
     },
     "LeBoss": {
-      "count": 53,
+      "count": 54,
       "athletes": [
+        "LeBron James",
         "Lebron James"
       ],
       "bobaIds": [
@@ -4537,7 +4561,7 @@
       ]
     },
     "Magic": {
-      "count": 39,
+      "count": 40,
       "athletes": [
         "Magic Johnson"
       ],
@@ -4573,7 +4597,7 @@
       ]
     },
     "Marino": {
-      "count": 39,
+      "count": 40,
       "athletes": [
         "Dan Marino"
       ],
@@ -4844,7 +4868,7 @@
       ]
     },
     "Muggsy": {
-      "count": 39,
+      "count": 40,
       "athletes": [
         "Muggsy Bogues"
       ],
@@ -5572,7 +5596,7 @@
       ]
     },
     "Showtime": {
-      "count": 50,
+      "count": 51,
       "athletes": [
         "Shohei Ohtani"
       ],
@@ -5932,7 +5956,7 @@
       ]
     },
     "Tank": {
-      "count": 66,
+      "count": 67,
       "athletes": [
         "Derrick Henry"
       ],
@@ -5987,8 +6011,9 @@
       ]
     },
     "The Ironman": {
-      "count": 39,
+      "count": 40,
       "athletes": [
+        "Cal Ripken Jr.",
         "Cal Ripkin JR"
       ],
       "bobaIds": [
@@ -6005,7 +6030,7 @@
       ]
     },
     "The Kid": {
-      "count": 76,
+      "count": 77,
       "athletes": [
         "Ken Griffey Jr."
       ],
@@ -6095,7 +6120,7 @@
       ]
     },
     "Thrill": {
-      "count": 32,
+      "count": 33,
       "athletes": [
         "Will Clark"
       ],
@@ -6365,7 +6390,7 @@
       ]
     },
     "Victory": {
-      "count": 119,
+      "count": 120,
       "athletes": [
         "Victor Wembanyama",
         "Victor Wembenyama"
@@ -6402,7 +6427,7 @@
       ]
     },
     "Waddler": {
-      "count": 32,
+      "count": 33,
       "athletes": [
         "Jaylen Waddle"
       ],
@@ -6672,7 +6697,7 @@
       ]
     },
     "Young-Gunner": {
-      "count": 32,
+      "count": 33,
       "athletes": [
         "Steve Young"
       ],
@@ -6755,7 +6780,7 @@
     }
   },
   "cardTypes": {
-    "Hero": 17119,
+    "Hero": 17147,
     "Play": 505,
     "HotDog": 70,
     "Sealed Product": 45
@@ -6780,6 +6805,6 @@
     "HTD": 60,
     "Standard": 370
   },
-  "totalCards": 17739,
-  "totalWithImages": 16239
+  "totalCards": 17767,
+  "totalWithImages": 16266
 }

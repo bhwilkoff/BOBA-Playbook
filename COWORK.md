@@ -324,6 +324,58 @@ and we'll run the migration before you start submitting new corrections with `bo
 
 <!-- Cowork: add items here before handing off to Claude Code -->
 
+### [2026-04-21] 6-prefix orphan sweep — 88 new cards across RPU / BILLY / JPA / BLC / SK / CJ ✅ DONE
+
+**Claude Code completion note (2026-04-21 pm):** All 88 records merged; catalog 17,767 → **17,855**. 19 BV images (RPU + BILLY) optimized and uploaded to R2 (38 objects, spot-checks 200 OK). 69 missing-image rows (JPA + BLC + SK + CJ-8..22) auto-queued to `missing-cards.json` — the eBay sourcer will see them on its next run. Questions decided: SK-6 weapon conflict kept as-authored (re-confirm once OCR has images); BLC kept as Heroes (they have hero names); CJ-8..22 `athleteInspiration` backfilled to `"CJ Maddux"` per user directive ("null is not the right approach for anything"). Remaining per-prefix flags answered with Cowork's BV/Radish defaults. New reusable pipeline lives at `scripts/apply_handoff_batch.py` (supersedes `apply_cyber_handoff.py`).
+
+**What happened:** After the Cyber Promo set merge earlier today (17,739 → 17,767), Cowork ran a deeper audit and surfaced 6 additional orphan subsets in the Radish + BazookaVault scrapes. All 6 are fully authored and packaged in the research project at `handoff-updates-2026-04-21/` (one folder per prefix), mirroring the `handoff-cyber/` structure.
+
+**What's in the batch:**
+
+| Prefix | New records | BV images on disk | Recovery path |
+|---|---:|---:|---|
+| RPU (Rookie Power Up 2025 NSCC) | 12 | 12 ✓ | BV claim+rename |
+| BILLY (Billy-the-Pug Alpha Edition) | 7 | 7 ✓ | BV claim+rename |
+| JPA (JPEG Inspired Ink Jessica Pegula) | 9 | 0 | Radish-detail + eBay direct |
+| BLC (Big League Chew 2025 flavors) | 15 | 0 | Radish-detail + eBay direct |
+| SK (Sidekicks — Flav + Bombeezy) | 30 | 0 | Radish-detail + eBay direct |
+| CJ (CJ Maddux 2025 Promo, CJ-8..22 only) | 15 | 0 | Radish-detail + eBay direct |
+| **TOTAL** | **88** | **19** | |
+
+**Catalog impact:** 17,767 → **17,855** after merge.
+
+**What's delivered (research-project paths):**
+
+```
+handoff-updates-2026-04-21/
+├── BATCH_SUMMARY.json
+├── rpu/{rpu_cards_proposed.json, rpu_image_claim_map.json, COWORK_RPU_HANDOFF.md}
+├── billy/{billy_cards_proposed.json, billy_image_claim_map.json, COWORK_BILLY_HANDOFF.md}
+├── jpa/{jpa_cards_proposed.json, jpa_missing_images_patch.json, COWORK_JPA_HANDOFF.md}
+├── blc/{blc_cards_proposed.json, blc_missing_images_patch.json, COWORK_BLC_HANDOFF.md}
+├── sk/{sk_cards_proposed.json, sk_missing_images_patch.json, COWORK_SK_HANDOFF.md}
+└── cj/{cj_cards_proposed.json, cj_missing_images_patch.json, COWORK_CJ_HANDOFF.md}
+```
+
+**Validation baked in:**
+- All 88 bobaIds are unique within the batch and do not collide with existing catalog
+- All `imageFile` values follow the `{bobaIdSlug}.webp` convention
+- The 19 BV disk files referenced in RPU + BILLY claim maps are all verified present on disk (`bv_disk_present=true`)
+- bobaId recomputation via `scripts/boba_id.py` is idempotent for all 88 records
+
+**What Claude Code needs to do (one pipeline per prefix, or one unified pass):**
+
+1. **Merge records** — append to `unified-cards/data/cards.json` via the snippet in each prefix's `COWORK_{PREFIX}_HANDOFF.md` Step 1 (standard `strip()` helper, skip existing bobaIds).
+2. **RPU + BILLY — image-claim rename** — copy BV disk files into `images/{target_imageFile}` per each `_image_claim_map.json`, then run `reconcile_all.py` step 11 (image optimizer → `images-optimized/` + `thumbs/`). md5 collision guard (DECISIONS #026) should stay green — these are content-unique.
+3. **JPA / BLC / SK / CJ — missing-image recovery** — all four patch files carry eBay listing IDs, thumbnail URLs, and Radish detail URLs. Recommended order: (a) Path A pull (re-scrape Radish `image_url` via `regen_radish_urls.py`-style HEAD-check) → (b) `ebay_direct_sourcer.py` for whatever remains.
+4. **R2 upload + bundle regen + spot-check** — same flow as the 2026-04-16 and Cyber Promo runs.
+
+**Per-prefix open questions for Ben** are documented as numbered flags at the bottom of each `COWORK_{PREFIX}_HANDOFF.md`. Most common: hero-spelling discrepancies (Skeee vs Skee-Ball, Marverati vs Marveratti), subSet naming (Sidekicks vs Sidekick-Flav-Debut), athleteInspiration conventions (`null` vs hero-as-athlete for CJ Maddux). One-line sed fixes in all cases.
+
+**Why RPU was originally dismissed as "Radish Pricing Update" and later recovered:** RPU *could* look like an infra-update abbreviation, but the Radish price-guide + BV scans + ~56 eBay sales (high comp $1,376 for RPU-1 SSP) all confirm it's a real 12-card NSCC National Sports Collectors Convention exclusive promo subset. Auto-memory updated accordingly.
+
+---
+
 ### [2026-04-16] 225 new card images — R2 upload needed
 
 **What happened:** User reviewed all cards found via the Radish URL eBay sold-listings pipeline and approved 225 new images. Cowork ran `reconcile_all.py` to fold all 346 verified images in `ebay-verified/images/` into the catalog (225 new + 112 upgrades of cards that already had images from other sources + 9 skipped as ambiguous).

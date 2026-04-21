@@ -22,6 +22,8 @@ struct PracticeView: View {
     @State private var showPlaysPanel = false
     @State private var isExiting = false
     @State private var showPhaseBanner = true
+    @AppStorage("bp_practiceTutorialSeen_v1") private var tutorialSeen = false
+    @State private var showTutorial = false
 
     var body: some View {
         GeometryReader { geo in
@@ -79,6 +81,26 @@ struct PracticeView: View {
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
                     }
+                    // First-run spotlight tutorial — reads targetFrames from
+                    // `.tutorialTarget(_:)` preferences on the subviews above.
+                    .overlayPreferenceValue(TutorialAnchorKey.self) { anchors in
+                        if showTutorial {
+                            GeometryReader { proxy in
+                                let frames: [TutorialTarget: CGRect] = anchors.reduce(into: [:]) { acc, pair in
+                                    acc[pair.key] = proxy[pair.value]
+                                }
+                                PracticeTutorialOverlay(
+                                    targetFrames: frames,
+                                    containerSize: proxy.size
+                                ) {
+                                    withAnimation(.easeOut(duration: 0.25)) {
+                                        tutorialSeen = true
+                                        showTutorial = false
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // ── CPU Play Card Overlay (one at a time) ───────────────
                     if let play = store.currentCpuPlay {
@@ -112,7 +134,18 @@ struct PracticeView: View {
                 }
             }
         }
-        .onAppear { Task { @MainActor in OrientationManager.shared.allowLandscape() } }
+        .onAppear {
+            Task { @MainActor in OrientationManager.shared.allowLandscape() }
+            // Delay showing the tutorial so `.tutorialTarget(_:)` anchors have
+            // a chance to propagate through the preference system before we
+            // try to render the spotlight ring.
+            if !tutorialSeen {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(400))
+                    showTutorial = true
+                }
+            }
+        }
         .onDisappear { Task { @MainActor in OrientationManager.shared.lockPortrait() } }
         .alert("Exit Practice?", isPresented: $showExitConfirm) {
             if !store.matchOver {

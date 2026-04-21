@@ -11,6 +11,7 @@ struct ProfileView: View {
     @State private var showingSignOutConfirm = false
     @State private var isRecalculating = false
     @State private var recalculateProgress: (current: Int, total: Int)? = nil
+    @State private var showingModRequestSheet = false
 
     var body: some View {
         NavigationStack {
@@ -33,6 +34,9 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showingSignIn) {
             SignInView()
+        }
+        .sheet(isPresented: $showingModRequestSheet) {
+            ModRequestSheet()
         }
         .overlay(alignment: .top) {
             if auth.confirmationEmailSent {
@@ -216,6 +220,42 @@ struct ProfileView: View {
                 }
             }
             .listRowBackground(Design.Colors.surface)
+
+            // Mod access request — shown to non-mods only
+            if !auth.isMod {
+                Section("MODERATOR ACCESS") {
+                    if auth.hasPendingModRequest {
+                        HStack(spacing: Design.Spacing.sm) {
+                            Image(systemName: "clock.fill")
+                                .foregroundStyle(Design.Colors.bobaCyan)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Request pending")
+                                    .font(Design.Fonts.mono(14, weight: .bold))
+                                    .foregroundStyle(Design.Colors.textPrimary)
+                                Text("An admin will review your request soon.")
+                                    .font(Design.Fonts.mono(11))
+                                    .foregroundStyle(Design.Colors.textMuted)
+                            }
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+                            Text("Become a moderator to help improve the catalog: upload images of cards from your own collection, fix wrong card data, and flag issues with existing images.")
+                                .font(Design.Fonts.mono(12))
+                                .foregroundStyle(Design.Colors.textMuted)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.vertical, 4)
+                            Button {
+                                showingModRequestSheet = true
+                            } label: {
+                                Label("Request Mod Access", systemImage: "shield.lefthalf.filled.badge.checkmark")
+                                    .font(Design.Fonts.mono(14, weight: .bold))
+                                    .foregroundStyle(Design.Colors.bobaCyan)
+                            }
+                        }
+                    }
+                }
+                .listRowBackground(Design.Colors.surface)
+            }
 
             // Mod tools
             if auth.isMod {

@@ -211,3 +211,64 @@ CREATE POLICY "admins review image overrides"
 -- ALTER TABLE card_image_overrides  ADD COLUMN IF NOT EXISTS boba_id text;
 -- CREATE INDEX IF NOT EXISTS idx_card_corrections_boba_id     ON card_corrections    (boba_id);
 -- CREATE INDEX IF NOT EXISTS idx_card_image_overrides_boba_id ON card_image_overrides (boba_id);
+
+-- ============================================================
+-- Mod promotion requests (2026-04-21)
+-- ------------------------------------------------------------
+-- Users can request moderator access from the Profile tab. Admins
+-- see pending requests in the Admin panel and either promote the
+-- user (role → moderator) or clear the request.
+-- ============================================================
+
+ALTER TABLE user_profiles
+  ADD COLUMN IF NOT EXISTS mod_request_reason text,
+  ADD COLUMN IF NOT EXISTS mod_request_at     timestamptz;
+
+-- Users can update their OWN mod request fields (but not role/email/etc).
+CREATE POLICY "users submit own mod request"
+  ON user_profiles FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- RPC for admins: list pending mod requests (email + reason + timestamp).
+-- SECURITY DEFINER + role-gated so regular users can't enumerate profiles.
+CREATE OR REPLACE FUNCTION get_pending_mod_requests()
+RETURNS TABLE (user_id uuid, email text, reason text, requested_at timestamptz)
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role = 'admin') THEN
+    RAISE EXCEPTION 'admin role required';
+  END IF;
+  RETURN QUERY
+    SELECT up.user_id, up.email, up.mod_request_reason, up.mod_request_at
+    FROM user_profiles up
+    WHERE up.mod_request_at IS NOT NULL AND up.role = 'user'
+    ORDER BY up.mod_request_at ASC;
+END;
+$$;
+
+-- RPC for admins: approve (promote to moderator + clear request) or
+-- deny (clear request only). Single function — pass approve=true/false.
+CREATE OR REPLACE FUNCTION review_mod_request(target_user_id uuid, approve boolean)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role = 'admin') THEN
+    RAISE EXCEPTION 'admin role required';
+  END IF;
+  IF approve THEN
+    UPDATE user_profiles
+      SET role = 'moderator',
+          mod_request_reason = NULL,
+          mod_request_at = NULL,
+          updated_at = now()
+      WHERE user_id = target_user_id;
+  ELSE
+    UPDATE user_profiles
+      SET mod_request_reason = NULL,
+          mod_request_at = NULL,
+          updated_at = now()
+      WHERE user_id = target_user_id;
+  END IF;
+END;
+$$;

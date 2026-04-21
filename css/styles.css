@@ -5943,3 +5943,395 @@ main {
   .pm-root .pm-bench-card { width: 64px; height: 88px; }
   .pm-root .pm-play-card { width: 90px; min-width: 90px; height: 72px; }
 }
+
+/* ─────────────────────────────────────────────────────────────────
+   Practice Battle — First-run Tutorial (Spotlight)
+   No blur; content behind stays visible. Glowing ring marks the
+   target; tooltip card sits adjacent with a directional arrow.
+   ─────────────────────────────────────────────────────────────── */
+.pm-tutorial {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;       /* children opt back in */
+  animation: pmTutorialFadeIn 0.2s ease;
+}
+@keyframes pmTutorialFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Faint scrim — blocks interaction without hiding content.
+   Opacity kept low so the playmat behind remains legible. */
+.pm-tutorial-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 8, 16, 0.32);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Glowing ring traces the target element */
+.pm-tutorial-ring {
+  position: fixed;
+  pointer-events: none;
+  border-radius: 10px;
+  border: 2px solid var(--boba-orange);
+  box-shadow:
+    0 0 0 4px rgba(255, 77, 0, 0.25),
+    0 0 24px 4px rgba(255, 77, 0, 0.55),
+    0 0 2px 1px rgba(255, 77, 0, 0.9) inset;
+  animation: pmTutorialRingPulse 1.6s ease-in-out infinite;
+  transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+}
+@keyframes pmTutorialRingPulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(255, 77, 0, 0.2),
+                         0 0 18px 4px rgba(255, 77, 0, 0.45),
+                         0 0 2px 1px rgba(255, 77, 0, 0.9) inset; }
+  50%      { box-shadow: 0 0 0 6px rgba(255, 77, 0, 0.32),
+                         0 0 32px 8px rgba(255, 77, 0, 0.7),
+                         0 0 2px 1px rgba(255, 77, 0, 1) inset; }
+}
+
+/* Tooltip card */
+.pm-tutorial-card {
+  position: fixed;
+  pointer-events: auto;
+  max-width: 420px;
+  background: var(--boba-surface);
+  border: 1px solid rgba(0, 245, 255, 0.35);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  animation: pmTutorialCardIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes pmTutorialCardIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Arrow — a rotated square pointing from card toward the ring */
+.pm-tutorial-arrow {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: var(--boba-surface);
+  border-top: 1px solid rgba(0, 245, 255, 0.35);
+  border-left: 1px solid rgba(0, 245, 255, 0.35);
+}
+.pm-tutorial-card[data-arrow="up"]    .pm-tutorial-arrow { transform: rotate(45deg); }
+.pm-tutorial-card[data-arrow="down"]  .pm-tutorial-arrow { transform: rotate(-135deg); }
+.pm-tutorial-card[data-arrow="left"]  .pm-tutorial-arrow { transform: rotate(-45deg); }
+.pm-tutorial-card[data-arrow="right"] .pm-tutorial-arrow { transform: rotate(135deg); }
+
+.pm-tutorial-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.pm-tutorial-step {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--boba-cyan);
+  background: rgba(0, 245, 255, 0.12);
+  padding: 3px 7px;
+  border-radius: 4px;
+}
+.pm-tutorial-skip {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--boba-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 3px 5px;
+  transition: color 0.15s;
+}
+.pm-tutorial-skip:hover { color: var(--boba-text-2); }
+
+.pm-tutorial-title {
+  font-family: 'Bebas Neue', 'Russo One', sans-serif;
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+  color: var(--boba-text);
+  margin-bottom: 8px;
+  text-align: left;
+}
+.pm-tutorial-message {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--boba-text-2);
+  margin-bottom: 14px;
+  text-align: left;
+}
+.pm-tutorial-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.pm-tutorial-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--boba-text-muted);
+  opacity: 0.4;
+  transition: all 0.2s;
+}
+.pm-tutorial-dot.active {
+  background: var(--boba-orange);
+  opacity: 1;
+  transform: scale(1.25);
+}
+.pm-tutorial-next {
+  display: block;
+  width: 100%;
+  padding: 10px 20px;
+  background: var(--boba-orange);
+  color: var(--boba-near-black);
+  font-family: 'Chakra Petch', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+}
+.pm-tutorial-next:hover { filter: brightness(1.1); }
+.pm-tutorial-next:active { transform: scale(0.98); }
+
+@media (max-width: 520px) {
+  .pm-tutorial-card { padding: 14px; max-width: calc(100vw - 24px); }
+  .pm-tutorial-title { font-size: 1.15rem; }
+  .pm-tutorial-message { font-size: 0.8rem; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Profile — Mod Access Request Block
+   ─────────────────────────────────────────────────────────────── */
+.profile-mod-request-body {
+  padding: 16px;
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 12px;
+}
+.profile-mod-request-loading {
+  margin: 0;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 12px;
+  color: var(--boba-text-muted);
+}
+.profile-mod-request-blurb {
+  margin: 0 0 12px 0;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--boba-text-2);
+}
+.profile-mod-request-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--boba-cyan);
+  background: rgba(0, 245, 255, 0.08);
+  border: 1px solid rgba(0, 245, 255, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.profile-mod-request-btn:hover {
+  background: rgba(0, 245, 255, 0.15);
+  border-color: rgba(0, 245, 255, 0.5);
+}
+.profile-mod-request-pending {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: var(--boba-cyan);
+}
+.profile-mod-request-pending-title {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--boba-text);
+  margin-bottom: 2px;
+}
+.profile-mod-request-pending-sub {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 11px;
+  color: var(--boba-text-muted);
+}
+
+/* Mod Access Request Modal */
+.mod-request-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(8, 8, 16, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+  animation: pmTutorialFadeIn 0.2s ease;
+}
+.mod-request-card {
+  width: 100%;
+  max-width: 480px;
+  background: var(--boba-surface);
+  border: 1px solid rgba(0, 245, 255, 0.3);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+.mod-request-header { margin-bottom: 20px; }
+.mod-request-icon { color: var(--boba-cyan); margin-bottom: 8px; }
+.mod-request-header h3 {
+  margin: 0 0 8px 0;
+  font-family: 'Bebas Neue', 'Russo One', sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.02em;
+  color: var(--boba-text);
+}
+.mod-request-header p {
+  margin: 0;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--boba-text-2);
+}
+.mod-request-features {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+.mod-request-features-label {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--boba-cyan);
+  margin-bottom: 12px;
+}
+.mod-request-feature {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+  border-top: 1px solid var(--boba-glass-border);
+}
+.mod-request-feature:first-of-type { border-top: none; padding-top: 0; }
+.mod-request-feature strong {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--boba-text);
+}
+.mod-request-feature span {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 11px;
+  color: var(--boba-text-muted);
+  line-height: 1.4;
+}
+.mod-request-field {
+  display: block;
+  margin-bottom: 16px;
+}
+.mod-request-field-label {
+  display: block;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--boba-cyan);
+  margin-bottom: 4px;
+}
+.mod-request-field-hint {
+  display: block;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 11px;
+  color: var(--boba-text-muted);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+.mod-request-field textarea {
+  display: block;
+  width: 100%;
+  min-height: 110px;
+  padding: 10px 12px;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--boba-text);
+  background: var(--boba-near-black);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 8px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.mod-request-field textarea:focus {
+  outline: none;
+  border-color: var(--boba-cyan);
+}
+.mod-request-counter {
+  display: block;
+  text-align: right;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 10px;
+  color: var(--boba-text-muted);
+  margin-top: 4px;
+}
+.mod-request-counter.met { color: var(--boba-cyan); }
+.mod-request-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.mod-request-cancel,
+.mod-request-submit {
+  padding: 10px 18px;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.mod-request-cancel {
+  background: transparent;
+  color: var(--boba-text-muted);
+  border: 1px solid var(--boba-glass-border);
+}
+.mod-request-cancel:hover { color: var(--boba-text-2); border-color: rgba(255,255,255,0.25); }
+.mod-request-submit {
+  background: var(--boba-orange);
+  color: var(--boba-near-black);
+  border: none;
+}
+.mod-request-submit:hover:not(:disabled) { filter: brightness(1.1); }
+.mod-request-submit:disabled {
+  background: var(--boba-text-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.mod-request-error {
+  margin-top: 12px;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 12px;
+  color: var(--boba-orange);
+}

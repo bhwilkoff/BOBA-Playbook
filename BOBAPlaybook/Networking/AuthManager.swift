@@ -18,12 +18,14 @@ final class AuthManager {
     private(set) var userId: UUID?
     private(set) var email: String?
     private(set) var role: String = "user"
+    private(set) var hasPendingModRequest = false
     private(set) var isLoading = false
     private(set) var error: String?
     private(set) var confirmationEmailSent = false
 
     var isMod: Bool { role == "moderator" || role == "admin" }
     var isAdmin: Bool { role == "admin" }
+    var canRequestMod: Bool { isAuthenticated && !isMod && !hasPendingModRequest }
 
     private let client = SupabaseClient.shared
 
@@ -46,6 +48,20 @@ final class AuthManager {
             role = try await client.fetchUserRole()
         } catch {
             role = "user"
+        }
+        // Refresh pending-request flag alongside role so the Profile UI
+        // reflects current state after sign-in and after admin review.
+        hasPendingModRequest = (try? await client.hasPendingModRequest()) ?? false
+    }
+
+    /// Submits a mod-access request with the given reason and refreshes pending state.
+    func submitModRequest(reason: String) async {
+        guard isAuthenticated else { return }
+        do {
+            try await client.submitModRequest(reason: reason)
+            hasPendingModRequest = true
+        } catch {
+            self.error = error.localizedDescription
         }
     }
 

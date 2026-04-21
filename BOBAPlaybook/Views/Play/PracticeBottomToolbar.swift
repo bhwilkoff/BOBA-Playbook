@@ -45,6 +45,7 @@ struct PracticeBottomToolbar: View {
             // Action buttons
             actionButtons
                 .padding(.trailing, Design.Spacing.md)
+                .tutorialTarget(.advance)
         }
         .frame(height: 50)
         .background(Design.Colors.surface.opacity(0.95))
@@ -83,6 +84,7 @@ struct PracticeBottomToolbar: View {
             .padding(.horizontal, 10)
         }
         .buttonStyle(.plain)
+        .tutorialTarget(.bench)
     }
 
     // MARK: - Plays Toggle
@@ -104,6 +106,7 @@ struct PracticeBottomToolbar: View {
             .padding(.horizontal, 10)
         }
         .buttonStyle(.plain)
+        .tutorialTarget(.plays)
     }
 
     // MARK: - Hot Dog Counter

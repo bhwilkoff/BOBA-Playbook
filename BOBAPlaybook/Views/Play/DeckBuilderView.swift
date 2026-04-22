@@ -952,7 +952,7 @@ private struct DeckManagementSheet: View {
     let cards: [Card]
     @Environment(\.dismiss) private var dismiss
 
-    enum Tab: String, CaseIterable { case save = "Save", load = "Load", share = "Share" }
+    enum Tab: String, CaseIterable { case save = "Save", load = "Load", share = "Import/Export" }
     @State private var tab: Tab = .load
 
     // My Decks state
@@ -965,6 +965,8 @@ private struct DeckManagementSheet: View {
 
     // Export state
     @State private var copied = false
+    @State private var showImportPicker = false
+    @State private var importBanner: String?
 
     var body: some View {
         NavigationStack {
@@ -1172,34 +1174,106 @@ private struct DeckManagementSheet: View {
         .task { await fetchDecks() }
     }
 
-    // MARK: - Share Tab
+    // MARK: - Share Tab — CSV import/export (matches deck-builder.bobattlearena.com)
 
     private var shareTab: some View {
         VStack(spacing: 0) {
-            // Copy button
-            HStack {
-                Spacer()
-                Button(copied ? "Copied!" : "Copy to Clipboard") {
-                    UIPasteboard.general.string = store.deckListText
+            // Action toolbar
+            HStack(spacing: Design.Spacing.sm) {
+                Button {
+                    UIPasteboard.general.string = store.deckListCSV
                     copied = true
                     Task { try? await Task.sleep(nanoseconds: 2_000_000_000); copied = false }
+                } label: {
+                    Label(copied ? "Copied!" : "Copy CSV", systemImage: "doc.on.doc")
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(copied ? Color(hex: "4CAF50") : Design.Colors.bobaCyan)
                 }
-                .font(Design.Fonts.mono(13, weight: .bold))
-                .foregroundStyle(copied ? Color(hex: "4CAF50") : Design.Colors.bobaCyan)
-                .padding(Design.Spacing.md)
+                Spacer()
+                ShareLink(item: csvExportURL(), preview: SharePreview(csvExportFilename())) {
+                    Label("Export .csv", systemImage: "square.and.arrow.up")
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                }
+                Button {
+                    showImportPicker = true
+                } label: {
+                    Label("Import .csv", systemImage: "square.and.arrow.down")
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                }
             }
+            .padding(Design.Spacing.md)
+
+            if let banner = importBanner {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color(hex: "4CAF50"))
+                    Text(banner)
+                        .font(Design.Fonts.mono(11, weight: .bold))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                }
+                .padding(.horizontal, Design.Spacing.md)
+                .padding(.bottom, Design.Spacing.sm)
+            }
+
+            Text("CSV format matches the official deckbuilder at deck-builder.bobattlearena.com. Playbook + Bonus Plays only — heroes + hot dogs stay in the builder.")
+                .font(Design.Fonts.mono(10))
+                .foregroundStyle(Design.Colors.textMuted)
+                .padding(.horizontal, Design.Spacing.md)
+                .padding(.bottom, Design.Spacing.sm)
+                .fixedSize(horizontal: false, vertical: true)
 
             Divider().background(Design.Colors.glass)
 
             ScrollView {
-                Text(store.deckListText)
-                    .font(Design.Fonts.mono(12))
+                Text(store.deckListCSV)
+                    .font(Design.Fonts.mono(11))
                     .foregroundStyle(Design.Colors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(Design.Spacing.lg)
                     .textSelection(.enabled)
             }
         }
+        .fileImporter(isPresented: $showImportPicker,
+                      allowedContentTypes: [.commaSeparatedText, .plainText],
+                      allowsMultipleSelection: false) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                let needsScope = url.startAccessingSecurityScopedResource()
+                defer { if needsScope { url.stopAccessingSecurityScopedResource() } }
+                guard let data = try? Data(contentsOf: url),
+                      let csv = String(data: data, encoding: .utf8) else {
+                    importBanner = "Couldn't read file"
+                    return
+                }
+                let res = store.importDeckCSV(csv, allCards: cards)
+                var msg = "Imported \(res.plays) plays + \(res.bonus) bonus"
+                if !res.unresolved.isEmpty {
+                    msg += " · \(res.unresolved.count) unresolved"
+                }
+                importBanner = msg
+                Task { try? await Task.sleep(nanoseconds: 3_500_000_000); importBanner = nil }
+            case .failure(let err):
+                importBanner = "Import failed: \(err.localizedDescription)"
+            }
+        }
+    }
+
+    private func csvExportFilename() -> String {
+        let safeName = store.deckName
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: " ", with: "-")
+        return "boba-deck-\(safeName).csv"
+    }
+
+    private func csvExportURL() -> URL {
+        let csv = store.deckListCSV
+        let dir = FileManager.default.temporaryDirectory
+        let url = dir.appendingPathComponent(csvExportFilename())
+        try? csv.write(to: url, atomically: true, encoding: .utf8)
+        return url
     }
 
     // MARK: - Actions

@@ -839,6 +839,155 @@ final class DeckBuilderStore {
         UserDefaults.standard.removeObject(forKey: Self.draftKey)
     }
 
+    // MARK: - CSV Import / Export
+    //
+    // Format mirrors deck-builder.bobattlearena.com (Playbook-only). Columns:
+    //   Slot,Card#,Name,Cost,Ability,DBS
+    // Slots 1–30 = main Playbook plays, B1–B15 = Bonus Plays. Card# uses a
+    // set prefix: "A - " Alpha Edition, "U - " Alpha Update, "G - " Griffey.
+    // Heroes + Hot Dogs live outside this format (use iOS builder UI / load
+    // a deck from cloud).
+
+    /// Set name → single-letter prefix used by the official deckbuilder's CSV.
+    private static let setPrefixMap: [String: String] = [
+        "Alpha Edition":   "A",
+        "Alpha Update":    "U",
+        "Griffey Edition": "G",
+    ]
+
+    /// Render the current Playbook + Bonus Plays as a CSV string.
+    var deckListCSV: String {
+        var rows: [String] = ["Slot,Card#,Name,Cost,Ability,DBS"]
+        for idx in 0..<30 {
+            if idx < plays.count {
+                rows.append(csvRow(slot: "\(idx+1)", card: plays[idx]))
+            } else {
+                rows.append("\(idx+1),,,,,")
+            }
+        }
+        for idx in 0..<15 {
+            let slot = "B\(idx+1)"
+            if idx < bonusPlays.count {
+                rows.append(csvRow(slot: slot, card: bonusPlays[idx]))
+            } else {
+                rows.append("\(slot),,,,,")
+            }
+        }
+        return rows.joined(separator: "\r\n")
+    }
+
+    private func csvRow(slot: String, card: Card) -> String {
+        let prefix = Self.setPrefixMap[card.set].map { "\($0) - " } ?? ""
+        let cardNum = "\(prefix)\(card.cardNumber)"
+        let cost = card.playCost.map { String($0) } ?? ""
+        let dbs  = card.dbs.map { String($0) } ?? ""
+        return "\(slot),\(csvEscape(cardNum)),\(csvEscape(card.name)),\(cost),\(csvEscape(card.playAbility ?? "")),\(dbs)"
+    }
+
+    private func csvEscape(_ s: String) -> String {
+        "\"\(s.replacingOccurrences(of: "\"", with: "\"\""))\""
+    }
+
+    /// Parse a deck CSV string and replace the current Playbook + Bonus Plays.
+    /// Returns (importedPlays, importedBonusPlays, unresolvedCardNumbers).
+    /// Heroes + Hot Dogs are NOT touched — coaches keep whatever they have.
+    @discardableResult
+    func importDeckCSV(_ csv: String, allCards: [Card]) -> (plays: Int, bonus: Int, unresolved: [String]) {
+        let setByPrefix = Dictionary(uniqueKeysWithValues: Self.setPrefixMap.map { ($0.value, $0.key) })
+        // Build (set, cardNumber) → Card lookup (plays only)
+        var lookup: [String: Card] = [:]
+        for c in allCards where c.isPlay {
+            lookup["\(c.set)|\(c.cardNumber)"] = c
+        }
+
+        var newPlays: [Card] = []
+        var newBonus: [Card] = []
+        var unresolved: [String] = []
+
+        let lines = csv.split(whereSeparator: { $0 == "\n" || $0 == "\r" })
+            .map { String($0) }
+            .filter { !$0.isEmpty }
+
+        var skippedHeader = false
+        for line in lines {
+            // Skip header once
+            if !skippedHeader && line.lowercased().hasPrefix("slot,") {
+                skippedHeader = true
+                continue
+            }
+            skippedHeader = true  // even if no header, don't skip subsequent rows
+            let fields = parseCSVLine(line)
+            guard fields.count >= 2 else { continue }
+            let slot = fields[0].trimmingCharacters(in: .whitespaces)
+            let cardNumRaw = fields[1].trimmingCharacters(in: .whitespaces)
+            if cardNumRaw.isEmpty { continue }  // blank slot
+
+            // Parse "A - PL-67" → set, cardNumber
+            let (setName, cardNum) = parseCSVCardNumber(cardNumRaw, setByPrefix: setByPrefix)
+            guard let sn = setName else {
+                unresolved.append(cardNumRaw)
+                continue
+            }
+            guard let card = lookup["\(sn)|\(cardNum)"] else {
+                unresolved.append(cardNumRaw)
+                continue
+            }
+            if slot.hasPrefix("B") { newBonus.append(card) }
+            else                   { newPlays.append(card) }
+        }
+
+        plays = newPlays
+        bonusPlays = newBonus
+        return (plays: newPlays.count, bonus: newBonus.count, unresolved: unresolved)
+    }
+
+    private func parseCSVCardNumber(_ raw: String, setByPrefix: [String: String]) -> (String?, String) {
+        // Accept "A - PL-67", "U - PL-1", bare "PL-67" (no prefix → no set resolution).
+        if let dash = raw.range(of: " - ") {
+            let prefix = String(raw[raw.startIndex..<dash.lowerBound]).trimmingCharacters(in: .whitespaces)
+            let num    = String(raw[dash.upperBound...]).trimmingCharacters(in: .whitespaces)
+            return (setByPrefix[prefix], num)
+        }
+        return (nil, raw)
+    }
+
+    /// Minimal RFC-4180 CSV line parser — handles quoted fields + escaped quotes.
+    private func parseCSVLine(_ line: String) -> [String] {
+        var out: [String] = []
+        var field = ""
+        var inQuotes = false
+        var i = line.startIndex
+        while i < line.endIndex {
+            let c = line[i]
+            if inQuotes {
+                if c == "\"" {
+                    let next = line.index(after: i)
+                    if next < line.endIndex && line[next] == "\"" {
+                        field.append("\"")
+                        i = line.index(after: next)
+                        continue
+                    } else {
+                        inQuotes = false
+                    }
+                } else {
+                    field.append(c)
+                }
+            } else {
+                if c == "," {
+                    out.append(field)
+                    field = ""
+                } else if c == "\"" {
+                    inQuotes = true
+                } else {
+                    field.append(c)
+                }
+            }
+            i = line.index(after: i)
+        }
+        out.append(field)
+        return out
+    }
+
     // MARK: - Supabase Save
 
     func saveDeck() async {

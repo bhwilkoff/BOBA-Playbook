@@ -6672,3 +6672,15 @@ body.db-rules-open { overflow: hidden; }
 @media (max-width: 520px) {
   .db-rules-panel { width: 100%; }
 }
+
+/* CSV import banner inside the deck builder export area */
+.db-import-banner {
+  margin-top: 0.5rem;
+  padding: 8px 10px;
+  background: rgba(76, 175, 80, 0.12);
+  border: 1px solid rgba(76, 175, 80, 0.4);
+  border-radius: 6px;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 12px;
+  color: var(--boba-text);
+}

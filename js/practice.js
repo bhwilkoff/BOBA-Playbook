@@ -486,6 +486,69 @@ const DB = {
     this.heroes = []; this.plays = []; this.bonusPlays = []; this.hotDogs = [];
     this.deckName = 'New Deck';
   },
+
+  // ── CSV import (Playbook-only, mirrors iOS importDeckCSV) ──────
+  // Accepts the same "A - PL-67" set-prefix format produced by
+  // exportCSV() + deck-builder.bobattlearena.com. Populates plays +
+  // bonusPlays by slot; leaves heroes + hot dogs untouched so the
+  // coach keeps whatever they have.
+  importCSV(csvText, allCards) {
+    const SET_BY_PREFIX = {
+      'A': 'Alpha Edition',
+      'U': 'Alpha Update',
+      'G': 'Griffey Edition',
+    };
+    const lookup = new Map();
+    for (const c of allCards) {
+      if (c.cardType === 'Play') lookup.set(`${c.set}|${c.cardNumber}`, c);
+    }
+
+    const lines = csvText.split(/\r?\n/).filter(Boolean);
+    const newPlays = [], newBonus = [], unresolved = [];
+    let skippedHeader = false;
+    for (const rawLine of lines) {
+      if (!skippedHeader && /^slot,/i.test(rawLine)) { skippedHeader = true; continue; }
+      skippedHeader = true;
+      const fields = this._parseCSVLine(rawLine);
+      if (fields.length < 2) continue;
+      const slot = (fields[0] || '').trim();
+      const cardNumRaw = (fields[1] || '').trim();
+      if (!cardNumRaw) continue;
+      const m = cardNumRaw.match(/^([A-Z])\s*-\s*(.+)$/);
+      if (!m) { unresolved.push(cardNumRaw); continue; }
+      const setName = SET_BY_PREFIX[m[1]];
+      if (!setName) { unresolved.push(cardNumRaw); continue; }
+      const card = lookup.get(`${setName}|${m[2]}`);
+      if (!card) { unresolved.push(cardNumRaw); continue; }
+      if (/^B/i.test(slot)) newBonus.push(card);
+      else                  newPlays.push(card);
+    }
+
+    this.plays = newPlays;
+    this.bonusPlays = newBonus;
+    return { plays: newPlays.length, bonus: newBonus.length, unresolved };
+  },
+
+  // RFC 4180-ish line parser — handles quoted fields + escaped quotes
+  _parseCSVLine(line) {
+    const out = [];
+    let field = '', inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (line[i + 1] === '"') { field += '"'; i++; }
+          else inQuotes = false;
+        } else field += c;
+      } else {
+        if (c === ',')      { out.push(field); field = ''; }
+        else if (c === '"') inQuotes = true;
+        else                field += c;
+      }
+    }
+    out.push(field);
+    return out;
+  },
 };
 
 // Card filters per browser tab
@@ -852,6 +915,38 @@ function initDeckBuilder(allCards) {
     URL.revokeObjectURL(url);
     const btn = $('db-csv-btn');
     if (btn) { btn.textContent = 'Downloaded!'; setTimeout(() => { btn.textContent = 'Download CSV'; }, 2000); }
+  });
+
+  // CSV import — same format as export. Replaces plays + bonusPlays.
+  $('db-import-btn')?.addEventListener('click', () => {
+    $('db-import-file')?.click();
+  });
+  $('db-import-file')?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const banner = $('db-import-banner');
+      try {
+        const result = DB.importCSV(String(reader.result || ''), allCards);
+        let msg = `Imported ${result.plays} plays + ${result.bonus} bonus`;
+        if (result.unresolved.length) msg += ` · ${result.unresolved.length} unresolved`;
+        if (banner) {
+          banner.textContent = msg;
+          banner.hidden = false;
+          setTimeout(() => { banner.hidden = true; }, 4000);
+        }
+        dbRender(allCards);
+      } catch (err) {
+        if (banner) {
+          banner.textContent = `Import failed: ${err.message || err}`;
+          banner.hidden = false;
+        }
+      }
+      // Reset the file input so selecting the same file again re-triggers change
+      e.target.value = '';
+    };
+    reader.readAsText(file);
   });
 
   // Save deck

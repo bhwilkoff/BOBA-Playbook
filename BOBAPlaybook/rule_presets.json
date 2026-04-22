@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 1,
+  "source": "2026 BoBA National Events DRAFT 1.0 (Game Rules/2026 BoBA National Events DRAFT - NOT FINAL.pdf)",
+  "_note": "Each preset maps a DeckFormat + overrides + optional specialRules. Coaches pick a preset (or author a custom one) and the deck builder enforces everything that's machine-verifiable. Rules with 'selfVerify: true' are informational only — the coach confirms compliance outside the app.",
+  "presets": [
+    {
+      "id": "apex_playmaker",
+      "name": "Apex Playmaker",
+      "division": "Apex",
+      "divisionPurse": 150000,
+      "pps": 2,
+      "format": "playmaker",
+      "description": "Full 7-battle Playmaker game with Apex hero-deck rules: no hero power cap, standard 6-per-power. 1,000 DBS budget.",
+      "overrides": {
+        "enforceDBS": true,
+        "dbsBudget": 1000,
+        "bonusPlaysEnabled": true,
+        "htdPlaysEnabled": true
+      },
+      "specialRules": []
+    },
+    {
+      "id": "apex_blitz",
+      "name": "Apex Blitz",
+      "division": "Apex",
+      "divisionPurse": 150000,
+      "pps": 1,
+      "format": "rookie",
+      "description": "Rookie Mode with Apex hero-deck rules — no Plays, no Hot Dogs. Pure hero-vs-hero power comparison.",
+      "overrides": {},
+      "specialRules": []
+    },
+    {
+      "id": "alphatrilogy_playmaker",
+      "name": "AlphaTrilogy Playmaker",
+      "division": "AlphaTrilogy",
+      "divisionPurse": 100000,
+      "pps": 2,
+      "format": "playmaker",
+      "description": "Same deck-building rules as Apex Playmaker; separate event.",
+      "overrides": {
+        "enforceDBS": true,
+        "dbsBudget": 1000,
+        "bonusPlaysEnabled": true,
+        "htdPlaysEnabled": true
+      },
+      "specialRules": []
+    },
+    {
+      "id": "alphatrilogy_blitz",
+      "name": "AlphaTrilogy Blitz",
+      "division": "AlphaTrilogy",
+      "divisionPurse": 100000,
+      "pps": 1,
+      "format": "rookie",
+      "description": "Rookie Mode with Apex hero-deck rules.",
+      "overrides": {},
+      "specialRules": []
+    },
+    {
+      "id": "open_spec_playmaker",
+      "name": "Spec Playmaker",
+      "division": "Open",
+      "divisionPurse": 40000,
+      "pps": 2,
+      "format": "spec",
+      "description": "Spec hero deck (all ≤160 power). 1,000 DBS. Bonus Plays OFF, HTD Plays OFF.",
+      "overrides": {
+        "enforceDBS": true,
+        "dbsBudget": 1000,
+        "bonusPlaysEnabled": false,
+        "htdPlaysEnabled": false
+      },
+      "specialRules": []
+    },
+    {
+      "id": "open_elite_playmaker",
+      "name": "Elite Playmaker",
+      "division": "Open",
+      "divisionPurse": 40000,
+      "pps": 3,
+      "format": "elite",
+      "description": "Elite hero deck (8,250 total-power cap, no Trainer cards). 1,000 DBS. Bonus Plays ON, HTD Plays ON.",
+      "overrides": {
+        "enforceDBS": true,
+        "dbsBudget": 1000,
+        "bonusPlaysEnabled": true,
+        "htdPlaysEnabled": true
+      },
+      "specialRules": [
+        { "kind": "bannedCardType", "type": "Trainer", "selfVerify": true,
+          "note": "Trainer cards are pre-built starter decks (Battle Trainer Kits). Not currently distinguished in the catalog — please self-verify." }
+      ]
+    },
+    {
+      "id": "open_specplus_rookie",
+      "name": "SPEC+ Rookie Double-Up",
+      "division": "Open",
+      "divisionPurse": 40000,
+      "pps": 3,
+      "format": "specPlus",
+      "description": "SPEC+ hero deck (up to 70 heroes with tiered 175-200 and 165/170 slots). Any in-rotation cards legal. Rookie-mode gameplay with Double-Up betting.",
+      "overrides": {},
+      "specialRules": []
+    },
+    {
+      "id": "blast_substitution_doubleup",
+      "name": "Blast Substitution Double-Up",
+      "division": "Blast",
+      "divisionPurse": 20000,
+      "pps": 1,
+      "format": "substitution",
+      "description": "All cards must be Blast treatment. 30-hero deck with max 3 per power. All 10 Hot Dogs must be Blast.",
+      "overrides": {
+        "perPowerLimit": 3,
+        "bonusPlaysEnabled": false,
+        "htdPlaysEnabled": false
+      },
+      "specialRules": [
+        { "kind": "overrideHeroCount", "value": 30 },
+        { "kind": "treatmentContains", "token": "Blast",
+          "scope": "all",
+          "note": "All heroes + hot dogs must have 'Blast' in treatment (Silver/Pink/Green/Blue/Orange/Bubble Gum Blast all qualify)." }
+      ]
+    },
+    {
+      "id": "blast_substitution_lowball_doubleup",
+      "name": "Blast Substitution Low Ball Double-Up",
+      "division": "Blast",
+      "divisionPurse": 20000,
+      "pps": 1,
+      "format": "substitution",
+      "description": "Same deck-building rules as Blast Substitution Double-Up; different match mechanic (lowest power wins).",
+      "overrides": {
+        "perPowerLimit": 3,
+        "bonusPlaysEnabled": false,
+        "htdPlaysEnabled": false
+      },
+      "specialRules": [
+        { "kind": "overrideHeroCount", "value": 30 },
+        { "kind": "treatmentContains", "token": "Blast", "scope": "all" }
+      ]
+    },
+    {
+      "id": "brawl_playmaker",
+      "name": "Brawl Playmaker",
+      "division": "Brawl",
+      "divisionPurse": 20000,
+      "pps": 1,
+      "format": "playmaker",
+      "description": "All heroes must have Brawl weapon. Standard 6-per-power. 1,000 DBS. Bonus Plays OFF, HTD Plays OFF. All 10 Hot Dogs must be the 'Brawler' character.",
+      "overrides": {
+        "enforceDBS": true,
+        "dbsBudget": 1000,
+        "bonusPlaysEnabled": false,
+        "htdPlaysEnabled": false
+      },
+      "specialRules": [
+        { "kind": "weaponRestriction", "allowed": ["BRAWL"] },
+        { "kind": "hotDogHero", "name": "Brawler" }
+      ]
+    },
+    {
+      "id": "brawl_rookie_doubleup",
+      "name": "Brawl Rookie Double-Up",
+      "division": "Brawl",
+      "divisionPurse": 20000,
+      "pps": 1,
+      "format": "rookie",
+      "description": "Rookie mode, all Brawl weapons, 6 per power.",
+      "overrides": {},
+      "specialRules": [
+        { "kind": "weaponRestriction", "allowed": ["BRAWL"] }
+      ]
+    },
+    {
+      "id": "power_glove_set_builder",
+      "name": "Power Glove Set Builder Bracket",
+      "division": "Power Glove",
+      "divisionPurse": 15000,
+      "pps": null,
+      "format": "playmaker",
+      "description": "Play with 60 of your Power Glove Inserts. Standard 6-per-power. Requires ownership of ≥120 unique Power Glove Inserts (self-verify).",
+      "overrides": {
+        "bonusPlaysEnabled": true,
+        "htdPlaysEnabled": true
+      },
+      "specialRules": [
+        { "kind": "treatmentContains", "token": "Power Glove Battlefoil", "scope": "heroes" },
+        { "kind": "weaponRestriction", "allowed": ["BRAWL"] },
+        { "kind": "ownershipProof", "description": "≥120 unique Power Glove Inserts (verify outside the app)", "count": 120, "selfVerify": true }
+      ]
+    },
+    {
+      "id": "tecmo_specplus_playmaker",
+      "name": "Tecmo Bowl SPEC+ Playmaker",
+      "division": "Tecmo Bowl",
+      "divisionPurse": 50000,
+      "pps": 1,
+      "format": "specPlus",
+      "description": "SPEC+ deck drawn exclusively from the Tecmo Bowl Set. 1,000 DBS. Bonus Plays ON (Tecmo only). HTD Plays N/A in Tecmo.",
+      "overrides": {
+        "enforceDBS": true,
+        "dbsBudget": 1000,
+        "bonusPlaysEnabled": true,
+        "htdPlaysEnabled": false
+      },
+      "specialRules": [
+        { "kind": "setRestriction", "allowed": ["Tecmo Bowl Edition"],
+          "note": "All cards must come from the Tecmo Bowl Set. Catalog currently carries only 4 Tecmo Bowl Edition cards — more coming in a future set ingest." }
+      ]
+    },
+    {
+      "id": "tecmo_specplus_rookie",
+      "name": "Tecmo Bowl SPEC+ Rookie Double-Up",
+      "division": "Tecmo Bowl",
+      "divisionPurse": 50000,
+      "pps": 1,
+      "format": "specPlus",
+      "description": "SPEC+ Rookie-mode deck drawn from the Tecmo Bowl Set.",
+      "overrides": {},
+      "specialRules": [
+        { "kind": "setRestriction", "allowed": ["Tecmo Bowl Edition"] }
+      ]
+    }
+  ],
+  "casualPresets": [
+    {
+      "id": "casual_playmaker_legacy",
+      "name": "Casual: 6-per-Hero Playmaker",
+      "division": "Casual",
+      "format": "playmaker",
+      "description": "Standard Playmaker with the retired 6-per-hero-name rule turned back on. For league play, home rules, or teaching new coaches.",
+      "overrides": {
+        "perHeroNameLimit": 6,
+        "enforceDBS": false,
+        "bonusPlaysEnabled": true,
+        "htdPlaysEnabled": true
+      },
+      "specialRules": []
+    },
+    {
+      "id": "casual_no_rules",
+      "name": "Casual: No Constraints",
+      "division": "Casual",
+      "format": "playmaker",
+      "description": "Build whatever — no DBS, no per-hero-name limit. For testing + sandbox play.",
+      "overrides": {
+        "disablePerPowerLimit": false,
+        "enforceDBS": false,
+        "bonusPlaysEnabled": true,
+        "htdPlaysEnabled": true
+      },
+      "specialRules": []
+    },
+    {
+      "id": "casual_rookie",
+      "name": "Casual: Rookie Mode",
+      "division": "Casual",
+      "format": "rookie",
+      "description": "Hero-only deck, no Plays, no Hot Dogs. Quickest way to learn the game.",
+      "overrides": {},
+      "specialRules": []
+    }
+  ]
+}

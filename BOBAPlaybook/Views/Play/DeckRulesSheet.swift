@@ -22,7 +22,9 @@ struct DeckRulesSheet: View {
     var body: some View {
         NavigationStack {
             List {
+                presetPickerSection
                 activeRulesSection
+                specialRulesSection
                 toggleableSection
                 footerNote
             }
@@ -42,6 +44,164 @@ struct DeckRulesSheet: View {
                     .disabled(!store.ruleOverrides.hasAnyUserOverride)
                 }
             }
+        }
+    }
+
+    // MARK: - Preset picker
+
+    private var presetPickerSection: some View {
+        Section {
+            // Nationals presets
+            DisclosureGroup {
+                ForEach(RulePresets.nationalsPresets) { preset in
+                    presetRow(preset)
+                }
+            } label: {
+                presetHeaderRow(
+                    title: "2026 Nationals Events",
+                    subtitle: "\(RulePresets.nationalsPresets.count) preset rule sets from the DRAFT PDF",
+                    accent: Design.Colors.bobaOrange
+                )
+            }
+
+            // Casual presets
+            DisclosureGroup {
+                ForEach(RulePresets.casualPresets) { preset in
+                    presetRow(preset)
+                }
+            } label: {
+                presetHeaderRow(
+                    title: "Casual Rule Sets",
+                    subtitle: "Home-rules + legacy presets",
+                    accent: Design.Colors.bobaCyan
+                )
+            }
+
+            // Custom-rule-set indicator — shown when the coach has modified
+            // overrides beyond the attached preset (or built with no preset).
+            if store.isCustomRuleSet {
+                HStack(spacing: Design.Spacing.sm) {
+                    Image(systemName: "slider.horizontal.3")
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Custom Rule Set")
+                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                        Text(store.activePresetID == nil
+                             ? "Building under format defaults — no preset attached."
+                             : "Based on '\(store.activePreset?.name ?? "?")' with your customizations.")
+                            .font(Design.Fonts.mono(11))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+        } header: {
+            Text("Rule Set")
+                .font(Design.Fonts.mono(11, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaCyan)
+        } footer: {
+            Text("Pick a preset to auto-configure the format + rules. Toggle anything below to create a custom rule set on top.")
+                .font(Design.Fonts.mono(11))
+                .foregroundStyle(Design.Colors.textMuted)
+        }
+        .listRowBackground(Design.Colors.surface)
+    }
+
+    private func presetHeaderRow(title: String, subtitle: String, accent: Color) -> some View {
+        HStack(spacing: Design.Spacing.sm) {
+            Image(systemName: "square.stack.3d.up.fill")
+                .foregroundStyle(accent)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(Design.Fonts.mono(13, weight: .bold))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                Text(subtitle)
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+        }
+    }
+
+    private func presetRow(_ preset: RulePreset) -> some View {
+        Button {
+            store.applyPreset(preset)
+        } label: {
+            HStack(alignment: .top, spacing: Design.Spacing.sm) {
+                Image(systemName: store.activePresetID == preset.id ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(store.activePresetID == preset.id ? Design.Colors.bobaOrange : Design.Colors.textMuted)
+                    .frame(width: 20)
+                    .padding(.top, 2)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text(preset.name)
+                            .font(Design.Fonts.mono(12, weight: .bold))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                        if let purse = preset.divisionPurse {
+                            Text("$\(purse/1000)k")
+                                .font(Design.Fonts.mono(9, weight: .bold))
+                                .foregroundStyle(Design.Colors.bobaCyan)
+                                .padding(.horizontal, 4).padding(.vertical, 1)
+                                .background(RoundedRectangle(cornerRadius: 3).fill(Design.Colors.bobaCyan.opacity(0.12)))
+                        }
+                    }
+                    Text(preset.description)
+                        .font(Design.Fonts.mono(10))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .padding(.vertical, 2)
+    }
+
+    // MARK: - Preset-driven special rules
+
+    @ViewBuilder
+    private var specialRulesSection: some View {
+        if let preset = store.activePreset, !preset.specialRules.isEmpty {
+            Section {
+                ForEach(preset.specialRules) { rule in
+                    HStack(spacing: Design.Spacing.sm) {
+                        Image(systemName: rule.isSelfVerify ? "person.fill.checkmark" : "scalemass")
+                            .font(.system(size: 14))
+                            .foregroundStyle(rule.isSelfVerify ? Design.Colors.bobaOrange : Design.Colors.bobaCyan)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(rule.label)
+                                .font(Design.Fonts.mono(13))
+                                .foregroundStyle(Design.Colors.textPrimary)
+                            if let note = rule.note {
+                                Text(note)
+                                    .font(Design.Fonts.mono(10))
+                                    .foregroundStyle(Design.Colors.textMuted)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        Spacer()
+                        if rule.isSelfVerify {
+                            Text("SELF-VERIFY")
+                                .font(Design.Fonts.mono(8, weight: .bold))
+                                .foregroundStyle(Design.Colors.bobaOrange)
+                                .padding(.horizontal, 4).padding(.vertical, 1)
+                                .background(RoundedRectangle(cornerRadius: 3).fill(Design.Colors.bobaOrange.opacity(0.15)))
+                        }
+                    }
+                }
+            } header: {
+                Text("Division-Specific Rules")
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+            } footer: {
+                Text("SELF-VERIFY rules can't be machine-checked against the current catalog — you confirm compliance yourself.")
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+            .listRowBackground(Design.Colors.surface)
         }
     }
 

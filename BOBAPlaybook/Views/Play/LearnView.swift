@@ -1076,8 +1076,26 @@ private struct Archetype: Identifiable {
 
 private struct ArchetypeCard: View {
     let archetype: Archetype
+    @Environment(CardStore.self) private var cardStore
     @State private var isExpanded = false
+    @State private var selectedCard: Card? = nil
     private var accent: Color { Design.Colors.element(archetype.element) }
+
+    /// Resolves each key-play name to an actual Play card so the archetype
+    /// can show art, not just text chips. Picks a Play with an imageFile
+    /// (First Edition Base if available) so no example is a blank square.
+    private var keyPlayCards: [Card] {
+        archetype.keyPlays.compactMap { name in
+            let candidates = cardStore.displayCards.filter { c in
+                c.name == name && c.isPlay && (c.imageFile?.isEmpty == false)
+            }
+            // Prefer First Edition Base Set for a clean-looking archetype
+            // thumbnail row; otherwise the first hit wins.
+            return candidates.first { $0.variation == "First Edition" && $0.treatment == "Plays" }
+                ?? candidates.first { $0.treatment == "Plays" }
+                ?? candidates.first
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1103,13 +1121,16 @@ private struct ArchetypeCard: View {
                     Divider().background(Design.Colors.glassBorder)
                     VStack(alignment: .leading, spacing: Design.Spacing.xs) {
                         Text("KEY PLAYS").font(Design.Fonts.mono(11, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
-                        FlowLayout(spacing: Design.Spacing.xs) {
-                            ForEach(archetype.keyPlays, id: \.self) { play in
-                                Text(play).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.bobaCyan)
-                                    .padding(.horizontal, 8).padding(.vertical, 4)
-                                    .background(Capsule().fill(Design.Colors.bobaCyan.opacity(0.1))
-                                        .overlay(Capsule().strokeBorder(Design.Colors.bobaCyan.opacity(0.3), lineWidth: 1)))
+                        Text("Tap any card to see its full detail.")
+                            .font(Design.Fonts.mono(11))
+                            .foregroundStyle(Design.Colors.textMuted)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(alignment: .top, spacing: Design.Spacing.sm) {
+                                ForEach(keyPlayCards) { card in
+                                    keyPlayThumbnail(card)
+                                }
                             }
+                            .padding(.vertical, 2)
                         }
                     }
                     VStack(alignment: .leading, spacing: 4) {
@@ -1128,6 +1149,29 @@ private struct ArchetypeCard: View {
         }
         .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface)
             .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(accent.opacity(0.25), lineWidth: 1)))
+        .sheet(item: $selectedCard) { card in
+            CardDetailView(card: card)
+        }
+    }
+
+    private func keyPlayThumbnail(_ card: Card) -> some View {
+        Button {
+            selectedCard = card
+        } label: {
+            VStack(spacing: 4) {
+                CardImageView(card: card, size: .thumb)
+                    .frame(width: 76, height: 106)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(accent.opacity(0.35), lineWidth: 1))
+                Text(card.name)
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .frame(width: 76)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -1371,20 +1415,20 @@ private struct BrowseCardCell: View {
     let card: Card; let onTap: () -> Void
     var body: some View {
         Button(action: onTap) {
+            // Use the shared CardImageView so the thumbnail benefits from
+            // the NSCache + URLCache already populated by the main grid.
+            // Previously this cell used a bare AsyncImage which rendered
+            // the fallback shape (and the power badge overlay) instantly
+            // while the card art faded in behind it — making the power
+            // and rect feel like they "pop up from below" ahead of the
+            // card art itself.
             ZStack(alignment: .bottomLeading) {
-                AsyncImage(url: CDN.thumbURL(for: card)) { phase in
-                    switch phase {
-                    case .success(let img): img.resizable().aspectRatio(5/7, contentMode: .fill)
-                    default:
-                        RoundedRectangle(cornerRadius: 8).fill(Design.Colors.glass)
-                            .overlay(Text(String(card.hero.prefix(2)).uppercased())
-                                .font(Design.Fonts.display(16)).foregroundStyle(Design.Colors.element(card.element)))
-                    }
-                }
-                .frame(maxWidth: .infinity).aspectRatio(5/7, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                CardImageView(card: card, size: .thumb)
+                    .aspectRatio(5/7, contentMode: .fit)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
 
-                if let power = card.power {
+                if let power = card.power, power > 0 {
                     Text("\(power)").font(Design.Fonts.display(12)).foregroundStyle(.white)
                         .padding(.horizontal, 5).padding(.vertical, 2)
                         .background(Design.Colors.element(card.element).opacity(0.85)).clipShape(Capsule())

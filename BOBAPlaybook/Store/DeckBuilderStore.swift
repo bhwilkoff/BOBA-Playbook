@@ -242,6 +242,41 @@ final class DeckBuilderStore {
     /// hero-deck format.
     var ruleOverrides: DeckRuleOverrides = DeckRuleOverrides()
 
+    /// Currently-selected rule preset. nil means the coach is building under
+    /// the raw `format` defaults without a named preset attached.
+    var activePresetID: String?
+    var activePreset: RulePreset? {
+        guard let id = activePresetID else { return nil }
+        return RulePresets.find(id: id)
+    }
+
+    /// Load a preset: overrides + format get pushed to the store so every
+    /// subsequent validation runs against the preset's rules. SpecialRules
+    /// flow through `activePreset?.specialRules` and are evaluated by the
+    /// validator (see extension below).
+    func applyPreset(_ preset: RulePreset) {
+        activePresetID = preset.id
+        format = preset.deckFormat
+        ruleOverrides = preset.ruleOverrides
+    }
+
+    /// Clear the active preset. Keeps the current format + overrides intact —
+    /// the coach has effectively turned the preset into a "custom" rule set.
+    func unlinkFromPreset() {
+        activePresetID = nil
+    }
+
+    /// True when the coach has modified the rule overrides so they diverge
+    /// from the active preset's baseline (or if no preset is attached and
+    /// any non-default override is set). Drives the "Custom Rule Set"
+    /// indicator in the UI.
+    var isCustomRuleSet: Bool {
+        if let preset = activePreset {
+            return ruleOverrides != preset.ruleOverrides
+        }
+        return ruleOverrides.hasAnyUserOverride
+    }
+
     /// Effective per-power limit after merging format default + user override.
     var effectivePerPowerLimit: Int? {
         if ruleOverrides.disablePerPowerLimit { return nil }
@@ -531,6 +566,66 @@ final class DeckBuilderStore {
             }
         }
 
+        // Preset-driven special rules (weapon restriction, treatment filter, etc.)
+        errors.append(contentsOf: specialRuleErrors)
+
+        return errors
+    }
+
+    /// Evaluate the current active preset's specialRules (if any) against the
+    /// deck. Self-verify rules surface as informational — the validator
+    /// doesn't block on them, but they still render in the rule-set UI.
+    private var specialRuleErrors: [DeckValidationError] {
+        guard let preset = activePreset else { return [] }
+        var errors: [DeckValidationError] = []
+        for rule in preset.specialRules {
+            if rule.isSelfVerify { continue }  // skip — handled in UI as informational
+            switch rule.kind {
+            case "weaponRestriction":
+                let allowed = Set(rule.allowed ?? [])
+                let bad = heroes.filter { !allowed.contains($0.element) }
+                if !bad.isEmpty {
+                    errors.append(.init(section: .hero, message: "\(bad.count) hero(es) outside allowed weapons: \(allowed.sorted().joined(separator: ", "))"))
+                }
+            case "treatmentContains":
+                let token = rule.token ?? ""
+                let scope = rule.scope ?? "heroes"
+                let offenders: [Card]
+                if scope == "all" {
+                    offenders = (heroes + hotDogs).filter { !( ($0.treatment ?? "").contains(token) ) }
+                } else {
+                    offenders = heroes.filter { !( ($0.treatment ?? "").contains(token) ) }
+                }
+                if !offenders.isEmpty {
+                    errors.append(.init(section: .hero, message: "\(offenders.count) card(s) missing '\(token)' treatment"))
+                }
+            case "hotDogHero":
+                let required = rule.name ?? ""
+                let bad = hotDogs.filter { $0.hero != required }
+                if !bad.isEmpty {
+                    errors.append(.init(section: .hotDog, message: "\(bad.count) hot dog(s) not '\(required)'"))
+                }
+            case "setRestriction":
+                let allowed = Set(rule.allowed ?? [])
+                let bad = (heroes + plays + bonusPlays + hotDogs).filter { !allowed.contains($0.set) }
+                if !bad.isEmpty {
+                    errors.append(.init(section: .hero, message: "\(bad.count) card(s) outside allowed set(s): \(allowed.sorted().joined(separator: ", "))"))
+                }
+            case "overrideHeroCount":
+                // Reported as "right count" via format.heroMinimum override;
+                // here we just check the deck actually matches this target.
+                if let target = rule.value, heroes.count != target {
+                    let diff = target - heroes.count
+                    if diff > 0 {
+                        errors.append(.init(section: .hero, message: "Division requires \(target) heroes (need \(diff) more)"))
+                    } else {
+                        errors.append(.init(section: .hero, message: "Division requires \(target) heroes (remove \(-diff))"))
+                    }
+                }
+            default:
+                break  // Other rule kinds are informational-only for now
+            }
+        }
         return errors
     }
 

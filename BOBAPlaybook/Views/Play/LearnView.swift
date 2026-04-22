@@ -898,14 +898,24 @@ private struct PowerCurveSection: View {
 // MARK: Substitution Strategy
 
 private struct SubstitutionStrategySection: View {
+    @Environment(CardStore.self) private var cardStore
+
+    /// Resolve a Hot Dog by name so art is pulled from the real catalog
+    /// entry instead of relying on hardcoded (and now stale) filenames.
+    private func hotDog(_ name: String) -> Card? {
+        cardStore.displayCards.first { $0.isHotDog && $0.name == name && $0.imageFile?.isEmpty == false }
+    }
+
     var body: some View {
         StrategyDisclosure(title: "Substitution Strategy",
                            subtitle: "10 Hot Dogs total — max 5 substitutions all game") {
             HStack(alignment: .top, spacing: Design.Spacing.md) {
-                MiniCardView(imageFile: "HD-10_Frank_HotDog.webp", hero: "Frank", power: 0, element: "NONE", width: 80,
-                             subtitle: "HOT DOG", borderOverride: Color(hex: "4CAF50"))
-                MiniCardView(imageFile: "HD-2_Grillbert_HotDog.webp", hero: "Grillbert", power: 0, element: "NONE", width: 80,
-                             subtitle: "HOT DOG", borderOverride: Color(hex: "4CAF50"))
+                if let frank = hotDog("Frank") {
+                    strategyThumbnail(card: frank, width: 80, accent: Color(hex: "4CAF50"))
+                }
+                if let grillbert = hotDog("Grillbert") {
+                    strategyThumbnail(card: grillbert, width: 80, accent: Color(hex: "4CAF50"))
+                }
                 VStack(alignment: .leading, spacing: 6) {
                     Text("10 total")
                         .font(Design.Fonts.mono(13, weight: .bold))
@@ -926,6 +936,56 @@ private struct SubstitutionStrategySection: View {
             StrategyBullet(text: "Honors means you act first. Sometimes passing forces your opponent to commit before you respond.")
             StrategyBullet(text: "Save subs for Battles 5–7. Early battles rarely decide games; late battles always do.")
         }
+    }
+}
+
+/// Small reusable thumbnail used by the Strategy sections — pulls art
+/// from the catalog via CardImageView (cache-aware), shows card name
+/// + a subtitle (HOT DOG / 2 HOT DOGS / FREE). Keeps the Strategy cards
+/// visually in sync with the real catalog so a hero / play rename
+/// doesn't silently break a hardcoded filename.
+private struct strategyThumbnail: View {
+    let card: Card
+    var width: CGFloat = 80
+    var accent: Color = .clear
+
+    var body: some View {
+        VStack(spacing: 5) {
+            CardImageView(card: card, size: .thumb)
+                .frame(width: width, height: width * 7 / 5)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(accent == .clear
+                                  ? Design.Colors.element(card.element).opacity(0.5)
+                                  : accent.opacity(0.7),
+                                  lineWidth: 1.5))
+            Text(card.hero.isEmpty ? card.name : card.hero)
+                .font(Design.Fonts.mono(10, weight: .bold))
+                .foregroundStyle(Design.Colors.textPrimary)
+                .lineLimit(1).minimumScaleFactor(0.8)
+            if card.isHotDog {
+                Text("HOT DOG")
+                    .font(Design.Fonts.mono(9, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+            } else if card.isPlay, let cost = card.playCost {
+                Text(cost == 0 ? "FREE" : "\(cost) HD")
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(cost == 0 ? Color(hex: "4CAF50") : Design.Colors.bobaCyan)
+            } else if card.isHero, let p = card.power {
+                HStack(spacing: 4) {
+                    Text(card.element)
+                        .font(Design.Fonts.mono(9, weight: .bold))
+                        .foregroundStyle(Design.Colors.element(card.element))
+                    Text("·")
+                        .font(Design.Fonts.mono(9))
+                        .foregroundStyle(Design.Colors.textMuted)
+                    Text("\(p)")
+                        .font(Design.Fonts.display(14))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                }
+            }
+        }
+        .frame(width: width)
     }
 }
 
@@ -964,33 +1024,46 @@ private struct WeaponSynergySection: View {
 // MARK: Play Card Types
 
 private struct PlayCardTypesSection: View {
+    @Environment(CardStore.self) private var cardStore
+
     private struct PlayType {
         let name: String
         let desc: String
         let color: Color
-        let cardFile: String
+        /// Resolved from the catalog by name — no more stale filenames.
         let cardName: String
-        let cardCost: Int
-        let cardAbility: String
     }
     private let types: [PlayType] = [
         PlayType(name: "Tempo",        desc: "Immediate one-time power boost.",                      color: Design.Colors.bobaOrange,
-                 cardFile: "PL-31_Buff-Up-15.webp",               cardName: "Buff Up 15",            cardCost: 2, cardAbility: "Your Hero gets +15 this Battle."),
+                 cardName: "Buff Up 15"),
         PlayType(name: "Value",        desc: "Ongoing effect that compounds across battles.",        color: Design.Colors.bobaCyan,
-                 cardFile: "PL-23_Fire_Boost.webp",               cardName: "Fire Boost",            cardCost: 1, cardAbility: "All FIRE Heroes get +10 for the rest of the game."),
+                 cardName: "Fire Boost"),
         PlayType(name: "Disruption",   desc: "Deny opponent options for a battle or permanently.",   color: Color(hex: "8B00FF"),
-                 cardFile: "PL-59_Bench_Blocker.webp",            cardName: "Bench Blocker",         cardCost: 3, cardAbility: "Opponent Hero –20. They cannot substitute next Battle."),
+                 cardName: "Bench Blocker"),
         PlayType(name: "Economy",      desc: "Recover Hot Dogs — sustain your resource advantage.",  color: .yellow,
-                 cardFile: "PL-95_Trash_Bandit.webp",             cardName: "Trash Bandit",          cardCost: 0, cardAbility: "Recover 1 Hot Dog from your Discard Pile."),
+                 cardName: "Trash Bandit"),
         PlayType(name: "Game-Changer", desc: "High-cost, match-defining effects that flip any battle.", color: Color(hex: "FF0090"),
-                 cardFile: "PL-27_By-Any-Means-Necessary.webp",   cardName: "By Any Means Necessary", cardCost: 6, cardAbility: "Search your Playbook and play any Play for free."),
+                 cardName: "By Any Means Necessary"),
     ]
+
+    private func play(_ name: String) -> Card? {
+        // Prefer First Edition Plays so the thumbnail is the canonical art.
+        let candidates = cardStore.displayCards.filter {
+            $0.isPlay && $0.name == name && $0.imageFile?.isEmpty == false
+        }
+        return candidates.first { $0.variation == "First Edition" && $0.treatment == "Plays" }
+            ?? candidates.first { $0.treatment == "Plays" }
+            ?? candidates.first
+    }
+
     var body: some View {
         StrategyDisclosure(title: "Play Card Types",
                            subtitle: "Tempo · Value · Disruption · Economy · Game-changer") {
             ForEach(Array(types.enumerated()), id: \.offset) { _, type_ in
                 HStack(alignment: .top, spacing: Design.Spacing.sm) {
-                    MiniPlayCardView(imageFile: type_.cardFile, name: type_.cardName, cost: type_.cardCost, width: 80)
+                    if let card = play(type_.cardName) {
+                        strategyThumbnail(card: card, width: 80, accent: type_.color)
+                    }
                     VStack(alignment: .leading, spacing: 4) {
                         Text(type_.name)
                             .font(Design.Fonts.mono(14, weight: .bold))
@@ -998,11 +1071,15 @@ private struct PlayCardTypesSection: View {
                         Text(type_.desc)
                             .font(Design.Fonts.mono(12))
                             .foregroundStyle(Design.Colors.textSecondary)
-                        Text("\u{201C}\(type_.cardAbility)\u{201D}")
-                            .font(Design.Fonts.mono(11))
-                            .foregroundStyle(Design.Colors.textMuted)
-                            .italic()
-                            .fixedSize(horizontal: false, vertical: true)
+                        // Pull the ability text live from the catalog so
+                        // card-text changes flow through automatically.
+                        if let card = play(type_.cardName), let ability = card.playAbility, !ability.isEmpty {
+                            Text("\u{201C}\(ability)\u{201D}")
+                                .font(Design.Fonts.mono(11))
+                                .foregroundStyle(Design.Colors.textMuted)
+                                .italic()
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

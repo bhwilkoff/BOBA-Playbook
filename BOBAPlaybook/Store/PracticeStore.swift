@@ -999,11 +999,18 @@ final class PracticeStore {
             resolveCurrentBattle()
 
         case .resolution:
-            phase = .cleanup
+            // Chain cleanup (draw play cards) and the next-battle move
+            // into one button press. The intermediate .cleanup pause
+            // was purely a second tap with no additional information —
+            // coaches already saw the resolution on the previous screen.
             drawPlayCard()
             cpuDrawPlayCard()
+            moveToNextBattle()
 
         case .cleanup:
+            // Kept for backwards compatibility with saved drafts that
+            // may have been persisted mid-cleanup. Normal flow skips
+            // straight through from .resolution to next battle.
             moveToNextBattle()
 
         case .matchOver:

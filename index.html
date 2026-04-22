@@ -270,7 +270,7 @@
               <div class="battle-step">
                 <div class="battle-step-num" style="background:#FFD700;color:#080810">1</div>
                 <div class="battle-step-name" style="color:#FFD700">SUB</div>
-                <div class="battle-step-desc">Pay 2 HD to swap (face-down)</div>
+                <div class="battle-step-desc">Pay 2 HD to substitute (face-down)</div>
                 <span class="battle-step-mode" style="color:#FFD700;background:rgba(255,215,0,0.12);border-color:rgba(255,215,0,0.3)">Sub +</span>
               </div>
               <div class="battle-step-arrow">›</div>
@@ -1107,9 +1107,67 @@
         <!-- ══ COLLECT PANEL ════════════════════════════════════════ -->
         <div id="play-panel-collect" class="play-panel" hidden role="tabpanel" aria-labelledby="play-tab-collect">
 
+          <!-- Rarity is tied to weapon type (element) — shown first so the
+               mental model is set before parallels/treatments appear. -->
           <section class="collect-section">
-            <h3 class="collect-heading">RARITY TIERS</h3>
-            <p class="collect-intro">A single Hero can appear as a Base Set card AND as multiple foil treatments — each is a separate collectible with its own supply and market value.</p>
+            <h3 class="collect-heading">RARITY BY WEAPON TYPE</h3>
+            <p class="collect-intro">In BOBA, a hero's rarity is tied to its weapon type. From most common to most rare:</p>
+            <div class="rarity-tier-list">
+              <div class="rarity-tier-row" style="--tier-color:#8A9BB0">
+                <div class="rarity-tier-num" style="background:#8A9BB0;color:#080810">⬢</div>
+                <div class="rarity-tier-info">
+                  <div class="rarity-tier-name">Steel</div>
+                  <div class="rarity-tier-desc">Entry-level weapon — the bulk of any collection.</div>
+                </div>
+                <div class="rarity-tier-badge">Most common</div>
+              </div>
+              <div class="rarity-tier-row" style="--tier-color:#00BFFF">
+                <div class="rarity-tier-num" style="background:#00BFFF;color:#080810">⬢</div>
+                <div class="rarity-tier-info">
+                  <div class="rarity-tier-name">Ice</div>
+                  <div class="rarity-tier-desc">Frequent pulls alongside Steel.</div>
+                </div>
+                <div class="rarity-tier-badge">Common</div>
+              </div>
+              <div class="rarity-tier-row" style="--tier-color:#FF4D00">
+                <div class="rarity-tier-num" style="background:#FF4D00;color:#080810">⬢</div>
+                <div class="rarity-tier-info">
+                  <div class="rarity-tier-name">Fire</div>
+                  <div class="rarity-tier-desc">Notably rarer than Steel/Ice.</div>
+                </div>
+                <div class="rarity-tier-badge">Rare</div>
+              </div>
+              <div class="rarity-tier-row" style="--tier-color:#FFD700">
+                <div class="rarity-tier-num" style="background:#FFD700;color:#080810">⬢</div>
+                <div class="rarity-tier-info">
+                  <div class="rarity-tier-name">Glow</div>
+                  <div class="rarity-tier-desc">A meaningful chase — often a box-topper.</div>
+                </div>
+                <div class="rarity-tier-badge">Ultra rare</div>
+              </div>
+              <div class="rarity-tier-row" style="--tier-color:#FF69B4">
+                <div class="rarity-tier-num" style="background:#FF69B4;color:#080810">⬢</div>
+                <div class="rarity-tier-info">
+                  <div class="rarity-tier-name">Gum</div>
+                  <div class="rarity-tier-desc">Chase-tier with very limited supply.</div>
+                </div>
+                <div class="rarity-tier-badge">Secret rare</div>
+              </div>
+              <div class="rarity-tier-row" style="--tier-color:#8B00FF">
+                <div class="rarity-tier-num" style="background:#8B00FF;color:#080810">⬢</div>
+                <div class="rarity-tier-info">
+                  <div class="rarity-tier-name">Hex</div>
+                  <div class="rarity-tier-desc">The apex weapon — the hardest pull in a standard product run.</div>
+                </div>
+                <div class="rarity-tier-badge">Rarest</div>
+              </div>
+            </div>
+            <p class="collect-intro" style="font-size:12px;color:var(--boba-text-muted);margin-top:8px">Brawl, Super, Alt, and Cyber sit outside this six-weapon spectrum — Super especially is tie-breaker-only and typically appears serialized.</p>
+          </section>
+
+          <section class="collect-section">
+            <h3 class="collect-heading">PARALLELS &amp; TREATMENTS</h3>
+            <p class="collect-intro">These are the different ways a given card can be printed — base, foils, autographs, serialized chase cards. They're print variants, not the card's rarity (that's the weapon type above).</p>
             <div class="rarity-tier-list">
               <div class="rarity-tier-row" style="--tier-color:var(--boba-text-muted)">
                 <div class="rarity-tier-num">1</div>
@@ -1122,16 +1180,16 @@
               <div class="rarity-tier-row" style="--tier-color:#FFD700">
                 <div class="rarity-tier-num">2</div>
                 <div class="rarity-tier-info">
-                  <div class="rarity-tier-name">Battlefoil GLBF</div>
-                  <div class="rarity-tier-desc">Gold Leaf Battlefoil with a gold foil accent on the border. The most common foil — a great first foil to chase.</div>
+                  <div class="rarity-tier-name">Grandma's Linoleum Battlefoil</div>
+                  <div class="rarity-tier-desc">GLBF — a linoleum-textured foil border. One of the most common foil treatments; community calls it Lino or Grandma. Great first foil to chase.</div>
                 </div>
                 <div class="rarity-tier-badge">Common foil</div>
               </div>
               <div class="rarity-tier-row" style="--tier-color:#AAAAFF">
                 <div class="rarity-tier-num">3</div>
                 <div class="rarity-tier-info">
-                  <div class="rarity-tier-name">Battlefoil RAD</div>
-                  <div class="rarity-tier-desc">Radiant Battlefoil with a shimmering holographic finish. Common foil alongside GLBF — both are frequent pulls from standard packs.</div>
+                  <div class="rarity-tier-name">80's Rad Battlefoil</div>
+                  <div class="rarity-tier-desc">RAD — retro 80's-inspired holographic finish. Common alongside GLBF; both are frequent pulls from standard packs.</div>
                 </div>
                 <div class="rarity-tier-badge">Common foil</div>
               </div>

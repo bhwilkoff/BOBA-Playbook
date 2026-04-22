@@ -345,7 +345,7 @@ private struct StaticBattleFlowView: View {
         let modes: String; let color: Color
     }
     private let phases: [Phase] = [
-        Phase(number: "1", label: "SUB",     desc: "Pay 2 HD to swap (face-down)", modes: "Sub +",      color: .yellow),
+        Phase(number: "1", label: "SUB",     desc: "Pay 2 HD to substitute (face-down)", modes: "Sub +", color: .yellow),
         Phase(number: "2", label: "REVEAL",  desc: "Flip both Heroes face-up",     modes: "All modes",  color: Design.Colors.bobaOrange),
         Phase(number: "3", label: "PLAYS",   desc: "Play cards from hand",         modes: "PM only",    color: Design.Colors.bobaCyan),
         Phase(number: "4", label: "RESOLVE", desc: "Higher Power wins",            modes: "All modes",  color: Color(hex: "4CAF50")),
@@ -1403,7 +1403,8 @@ private struct CollectView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Design.Spacing.xl) {
-                RarityTierSection()
+                WeaponRaritySection()
+                ParallelsAndTreatmentsSection()
                 VariationSection()
                 TreatmentHighlightsSection()
             }
@@ -1413,23 +1414,73 @@ private struct CollectView: View {
     }
 }
 
-private struct RarityTierSection: View {
-    private let tiers: [(Int, String, String, String, Color)] = [
-        (1, "Base Set",              "No foil treatment. The most common card in any set — but hero scarcity varies widely. Your entry point for any collection.",             "Most common",  Design.Colors.textMuted),
-        (2, "Battlefoil GLBF",       "Gold Leaf Battlefoil with a gold foil accent on the card border. The most common foil treatment — a great first foil to chase.",        "Common foil",  Color(hex: "FFD700")),
-        (3, "Battlefoil RAD",        "Radiant Battlefoil with a shimmering holographic finish. Common foil alongside GLBF — both are frequent pulls from standard packs.",    "Common foil",  Color(hex: "AAAAFF")),
-        (4, "Color Battlefoil",      "Element-colored foil border matching the card's weapon type. 9 color variants (Fire, Ice, Steel, Brawl, Glow, Hex, Gum, Super, Alt). Harder to pull than GLBF/RAD.",    "Mid-rarity",   Design.Colors.bobaCyan),
-        (5, "Superfoil",             "Full-card holographic foil treatment covering the entire card face. Significantly rarer than any Battlefoil. The most visually striking card in most collections.",       "Premium",      Color(hex: "FF00FF")),
-        (6, "Inspired Ink",          "Autograph-style treatment featuring athlete tribute art. Named after the 'inspired by' athletes. Premium rarity — typically 1 per box or less.",                          "Premium",      Color(hex: "FF69B4")),
-        (7, "Kanjifoil",             "Japanese kanji script foil treatment. Chase rarity — rare enough that most collectors have never pulled one from a pack.",                                                 "Chase",        Color(hex: "8B00FF")),
-        (8, "Serialized",            "Each card is hand-stamped with its print number (/10, /25, /50). Hard-stop scarcity — the total supply is literally on the card. Highly prized by serious collectors.",   "Chase",        Design.Colors.bobaOrange),
-        (9, "Billy Cameo Alt Art",   "Alternate art featuring Billy, the iconic BOBA hot dog mascot. The rarest and most sought-after cards in the entire game.",                                               "Chase",        Color(hex: "FF4500")),
+// Community vernacular distinguishes *rarity* (intrinsic to a hero, tied to
+// weapon type) from *parallels / treatments* (print variants of a given
+// card). The Collect page leads with rarity so the mental model is set
+// before the Parallels list appears.
+private struct WeaponRaritySection: View {
+    private let weapons: [(String, String, String, Color)] = [
+        ("Steel", "Most common",     "Entry-level weapon — the bulk of any collection.",                 Design.Colors.element("STEEL")),
+        ("Ice",   "Common",          "Frequent pulls alongside Steel.",                                  Design.Colors.element("ICE")),
+        ("Fire",  "Rare",            "Notably rarer than Steel/Ice.",                                    Design.Colors.element("FIRE")),
+        ("Glow",  "Ultra rare",      "A meaningful chase — often a box-topper.",                         Design.Colors.element("GLOW")),
+        ("Gum",   "Secret rare",     "Chase-tier with very limited supply.",                             Design.Colors.element("GUM")),
+        ("Hex",   "Rarest",          "The apex weapon — the hardest pull in a standard product run.",   Design.Colors.element("HEX")),
     ]
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-            Text("RARITY TIERS")
+            Text("RARITY BY WEAPON TYPE")
                 .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
-            Text("A single Hero can appear as a Base Set card AND as multiple foil treatments — each is a separate collectible with its own supply and market value.")
+            Text("In BOBA, a hero's rarity is tied to its weapon type. From most common to most rare:")
+                .font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true).padding(.bottom, Design.Spacing.xs)
+            VStack(spacing: 1) {
+                ForEach(weapons, id: \.0) { weapon in
+                    HStack(alignment: .center, spacing: Design.Spacing.md) {
+                        Circle().fill(weapon.3).frame(width: 14, height: 14)
+                            .shadow(color: weapon.3.opacity(0.55), radius: 3)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(weapon.0).font(Design.Fonts.mono(14, weight: .bold)).foregroundStyle(weapon.3)
+                            Text(weapon.2).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer()
+                        Text(weapon.1).font(Design.Fonts.mono(10, weight: .bold)).foregroundStyle(weapon.3.opacity(0.8))
+                            .padding(.horizontal, 6).padding(.vertical, 3)
+                            .background(Capsule().fill(weapon.3.opacity(0.12)))
+                            .fixedSize()
+                    }
+                    .padding(.horizontal, Design.Spacing.md).padding(.vertical, Design.Spacing.sm)
+                    .background(Design.Colors.surface)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+            .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+            Text("Brawl, Super, Alt, and Cyber sit outside this six-weapon spectrum — Super especially is tie-breaker-only and typically appears serialized.")
+                .font(Design.Fonts.mono(11)).foregroundStyle(Design.Colors.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, Design.Spacing.xs)
+        }
+    }
+}
+
+private struct ParallelsAndTreatmentsSection: View {
+    private let tiers: [(Int, String, String, String, Color)] = [
+        (1, "Base Set",                      "No foil treatment. The most common card in any set — but hero scarcity varies widely. Your entry point for any collection.",                                           "Most common",  Design.Colors.textMuted),
+        (2, "Grandma's Linoleum Battlefoil", "GLBF — a linoleum-textured foil border. One of the most common foil treatments; community calls it Lino or Grandma. Great first foil to chase.",                       "Common foil",  Color(hex: "FFD700")),
+        (3, "80's Rad Battlefoil",           "RAD — retro 80's-inspired holographic finish. Common alongside GLBF; both are frequent pulls from standard packs.",                                                   "Common foil",  Color(hex: "AAAAFF")),
+        (4, "Color Battlefoil",              "Element-colored foil border matching the card's weapon type. 9 color variants (Fire, Ice, Steel, Brawl, Glow, Hex, Gum, Super, Alt). Harder to pull than GLBF/RAD.",   "Mid-rarity",   Design.Colors.bobaCyan),
+        (5, "Superfoil",                     "Full-card holographic foil treatment covering the entire card face. Significantly rarer than any Battlefoil. The most visually striking card in most collections.",    "Premium",      Color(hex: "FF00FF")),
+        (6, "Inspired Ink",                  "Autograph-style treatment featuring athlete tribute art. Named after the 'inspired by' athletes. Premium rarity — typically 1 per box or less.",                       "Premium",      Color(hex: "FF69B4")),
+        (7, "Kanjifoil",                     "Japanese kanji script foil treatment. Chase rarity — rare enough that most collectors have never pulled one from a pack.",                                              "Chase",        Color(hex: "8B00FF")),
+        (8, "Serialized",                    "Each card is hand-stamped with its print number (/10, /25, /50). Hard-stop scarcity — the total supply is literally on the card. Highly prized by serious collectors.", "Chase",        Design.Colors.bobaOrange),
+        (9, "Billy Cameo Alt Art",           "Alternate art featuring Billy, the iconic BOBA hot dog mascot. The rarest and most sought-after cards in the entire game.",                                             "Chase",        Color(hex: "FF4500")),
+    ]
+    var body: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            Text("PARALLELS & TREATMENTS")
+                .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+            Text("These are the different ways a given card can be printed — base, foils, autographs, serialized chase cards. They're print variants, not the card's rarity (that's the weapon type above).")
                 .font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true).padding(.bottom, Design.Spacing.xs)
             VStack(spacing: 1) {

@@ -1006,7 +1006,7 @@ private struct DeckManagementSheet: View {
     @State private var decks: [SavedDeck] = []
     @State private var isLoadingList = true
     @State private var loadError: String? = nil
-    @State private var isLoadingDeck = false
+    @State private var busyDeckId: UUID? = nil
     @State private var isSaving = false
     @State private var saveMessage: String? = nil
 
@@ -1149,7 +1149,7 @@ private struct DeckManagementSheet: View {
                                             .foregroundStyle(Design.Colors.textMuted)
                                     }
                                     Spacer()
-                                    if isLoadingDeck {
+                                    if busyDeckId == deck.id {
                                         ProgressView().tint(Design.Colors.bobaCyan)
                                     } else {
                                         Image(systemName: "chevron.right")
@@ -1158,7 +1158,7 @@ private struct DeckManagementSheet: View {
                                 }
                                 .contentShape(Rectangle())
                                 .onTapGesture {
-                                    guard !isLoadingDeck else { return }
+                                    guard busyDeckId == nil else { return }
                                     Task { await loadDeck(deck) }
                                 }
                                 .listRowBackground(Design.Colors.surface)
@@ -1377,8 +1377,8 @@ private struct DeckManagementSheet: View {
     }
 
     private func loadDeck(_ deck: SavedDeck) async {
-        isLoadingDeck = true
-        defer { isLoadingDeck = false }
+        busyDeckId = deck.id
+        defer { busyDeckId = nil }
         do {
             let rows = try await SupabaseClient.shared.fetchDeckCards(deckId: deck.id)
             let byId = Dictionary(uniqueKeysWithValues: cards.map { ($0.id, $0) })
@@ -1411,7 +1411,7 @@ private struct DeckManagementSheet: View {
             dismiss()
         } catch {
             print("[DeckBuilder] loadDeck failed: \(error)")
-            saveMessage = "Couldn't load deck"
+            loadError = "Couldn't load deck — \(error.localizedDescription)"
         }
     }
 }

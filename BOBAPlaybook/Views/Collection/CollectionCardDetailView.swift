@@ -14,10 +14,10 @@ struct CollectionCardDetailView: View {
 
     @State private var editingEntry: UserCard?
     @State private var showingAddSheet = false
-    @State private var showingAddDialog = false
-    @State private var showingDeckBuilder = false
+    @State private var showingAddToDeck = false
     @State private var deleteError: String?
     @State private var isRefreshingPrice = false
+    @State private var addedToDeckName: String?
 
     private var catalogCard: Card? {
         // Try exact bobaId match first, then fall back to cardNumber for legacy entries
@@ -68,9 +68,24 @@ struct CollectionCardDetailView: View {
                         .foregroundStyle(Design.Colors.bobaOrange)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    if catalogCard != nil {
-                        Button {
-                            showingAddDialog = true
+                    if let card = catalogCard {
+                        // Menu drops from the Add button itself (replaces the
+                        // old iPad popover which anchored to the card art).
+                        Menu {
+                            Section("Add \(card.name)") {
+                                Button {
+                                    showingAddSheet = true
+                                } label: {
+                                    Label("To Collection", systemImage: "folder.badge.plus")
+                                }
+                                if card.isHero || card.isPlay || card.isHotDog {
+                                    Button {
+                                        showingAddToDeck = true
+                                    } label: {
+                                        Label("To Custom Deck", systemImage: "rectangle.stack.badge.plus")
+                                    }
+                                }
+                            }
                         } label: {
                             Image(systemName: "plus")
                                 .foregroundStyle(Design.Colors.bobaOrange)
@@ -85,22 +100,13 @@ struct CollectionCardDetailView: View {
                     AddToCollectionSheet(card: card)
                 }
             }
-            .sheet(isPresented: $showingDeckBuilder) {
+            .sheet(isPresented: $showingAddToDeck) {
                 if let card = catalogCard {
-                    DeckBuilderView(pendingCard: card)
-                        .environment(cardStore)
+                    AddToDeckSheet(card: card) { deckName in
+                        showAddedToDeckToast(deckName)
+                    }
+                    .environment(cardStore)
                 }
-            }
-            .confirmationDialog(catalogCard.map { "Add \($0.name)" } ?? "Add",
-                                isPresented: $showingAddDialog,
-                                titleVisibility: .visible) {
-                Button("To Collection") { showingAddSheet = true }
-                if let card = catalogCard, card.isHero || card.isPlay || card.isHotDog {
-                    Button("To Custom Deck") { showingDeckBuilder = true }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Where does this card go?")
             }
             .sheet(item: $editingEntry) { entry in
                 if let card = catalogCard {
@@ -114,6 +120,31 @@ struct CollectionCardDetailView: View {
                 await collection.refreshPricingIfNeeded(for: card.cardNumber, card: card)
                 isRefreshingPrice = false
             }
+            .overlay(alignment: .top) {
+                if let name = addedToDeckName {
+                    HStack(spacing: Design.Spacing.sm) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Color(hex: "4CAF50"))
+                        Text("Added to \(name)")
+                            .font(Design.Fonts.mono(12, weight: .bold))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                    }
+                    .padding(.horizontal, Design.Spacing.md)
+                    .padding(.vertical, Design.Spacing.sm)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface))
+                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(hex: "4CAF50").opacity(0.4), lineWidth: 1))
+                    .padding(.top, Design.Spacing.md)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+        }
+    }
+
+    private func showAddedToDeckToast(_ name: String) {
+        withAnimation(.easeOut(duration: 0.25)) { addedToDeckName = name }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation(.easeOut(duration: 0.3)) { addedToDeckName = nil }
         }
     }
 

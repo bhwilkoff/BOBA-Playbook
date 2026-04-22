@@ -533,9 +533,17 @@ final class SupabaseClient {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         addHeaders(&request, authenticated: true)
+        // Explicit CodingKeys: the project doesn't apply .convertFromSnakeCase
+        // globally, so without these the decoder silently throws keyNotFound
+        // and load-deck / resolve-saved-deck both fail before any state change
+        // lands in the UI (the spinner just spins and nothing appears).
         struct Row: Decodable {
             let bobaId: String
             let cardType: String
+            enum CodingKeys: String, CodingKey {
+                case bobaId = "boba_id"
+                case cardType = "card_type"
+            }
         }
         let rows: [Row] = try await executeArray(request)
         return rows.map { (bobaId: $0.bobaId, cardType: $0.cardType) }

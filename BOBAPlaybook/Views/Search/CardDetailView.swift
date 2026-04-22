@@ -21,9 +21,11 @@ struct CardDetailView: View {
     @GestureState private var dragDelta: CGSize = .zero
     @GestureState private var pinchDelta: CGFloat = 1.0
     @State private var showingAddSheet = false
-    @State private var showingAddDialog = false
-    @State private var showingDeckBuilder = false
+    @State private var showingAddToDeck = false
     @State private var showingSignIn = false
+    /// Non-nil while a "Added to {deck}" toast should be visible. Cleared
+    /// automatically after a short delay by the overlay's task.
+    @State private var addedToDeckName: String?
     @State private var showSealedEbay = false
     @State private var showSealedRadish = false
     @State private var shareItems: [Any] = []
@@ -128,17 +130,30 @@ struct CardDetailView: View {
                         .lineLimit(1)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        if auth.isAuthenticated { showingAddDialog = true }
-                        else { showingSignIn = true }
-                    } label: {
-                        Image(systemName: collectionStatusIcon ?? "plus.circle.fill")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundStyle(
-                                collectionStatusIcon != nil
-                                    ? (collection.isOwned(bobaId: card.id) ? Color.green : Design.Colors.bobaOrange)
-                                    : Design.Colors.bobaOrange
-                            )
+                    // Menu (not confirmationDialog) so the popup drops from the
+                    // Add button itself — on iPad the old dialog would anchor
+                    // to the card art, not the touch target.
+                    if auth.isAuthenticated {
+                        Menu {
+                            Section("Add \(card.name)") {
+                                Button {
+                                    showingAddSheet = true
+                                } label: {
+                                    Label("To Collection", systemImage: "folder.badge.plus")
+                                }
+                                if card.isHero || card.isPlay || card.isHotDog {
+                                    Button {
+                                        showingAddToDeck = true
+                                    } label: {
+                                        Label("To Custom Deck", systemImage: "rectangle.stack.badge.plus")
+                                    }
+                                }
+                            }
+                        } label: {
+                            addIconLabel
+                        }
+                    } else {
+                        Button { showingSignIn = true } label: { addIconLabel }
                     }
                 }
                 if auth.isMod {
@@ -201,22 +216,11 @@ struct CardDetailView: View {
             .sheet(isPresented: $showingAddSheet) {
                 AddToCollectionSheet(card: card)
             }
-            .sheet(isPresented: $showingDeckBuilder) {
-                DeckBuilderView(pendingCard: card)
-                    .environment(cardStore)
-            }
-            .confirmationDialog("Add \(card.name)",
-                                isPresented: $showingAddDialog,
-                                titleVisibility: .visible) {
-                Button("To Collection") { showingAddSheet = true }
-                // Only heroes / plays / hot dogs are deck-buildable. Sealed
-                // products go straight to the collection sheet.
-                if card.isHero || card.isPlay || card.isHotDog {
-                    Button("To Custom Deck") { showingDeckBuilder = true }
+            .sheet(isPresented: $showingAddToDeck) {
+                AddToDeckSheet(card: card) { deckName in
+                    showAddedToDeckToast(deckName)
                 }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Where does this card go?")
+                .environment(cardStore)
             }
             .sheet(isPresented: $showingSignIn) {
                 SignInView()
@@ -235,6 +239,43 @@ struct CardDetailView: View {
             .sheet(isPresented: $showingModEdit) {
                 ModCardEditSheet(card: card)
             }
+            // Confirmation toast for "Added to {deck}". Rendered inside the
+            // NavigationStack so it floats above the card art and info panel.
+            .overlay(alignment: .top) {
+                if let name = addedToDeckName {
+                    HStack(spacing: Design.Spacing.sm) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Color(hex: "4CAF50"))
+                        Text("Added to \(name)")
+                            .font(Design.Fonts.mono(12, weight: .bold))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                    }
+                    .padding(.horizontal, Design.Spacing.md)
+                    .padding(.vertical, Design.Spacing.sm)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface))
+                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(hex: "4CAF50").opacity(0.4), lineWidth: 1))
+                    .padding(.top, Design.Spacing.md)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+        }
+    }
+
+    private var addIconLabel: some View {
+        Image(systemName: collectionStatusIcon ?? "plus.circle.fill")
+            .font(.system(size: 20, weight: .medium))
+            .foregroundStyle(
+                collectionStatusIcon != nil
+                    ? (collection.isOwned(bobaId: card.id) ? Color.green : Design.Colors.bobaOrange)
+                    : Design.Colors.bobaOrange
+            )
+    }
+
+    private func showAddedToDeckToast(_ name: String) {
+        withAnimation(.easeOut(duration: 0.25)) { addedToDeckName = name }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation(.easeOut(duration: 0.3)) { addedToDeckName = nil }
         }
     }
 

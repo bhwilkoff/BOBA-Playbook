@@ -12,28 +12,118 @@ import Foundation
 // MARK: - Deck Format
 // ════════════════════════════════════════════════════════════════
 
+/// Hero deck rules for a game mode (per 2026 BoBA Nationals PDF).
+///
+/// Four "hero deck formats" from the PDF (Apex / Spec / Elite / SPEC+) compose
+/// with three game modes (Rookie / Substitution / Playmaker) to produce the
+/// division-specific rules used in the app. The raw values keep their legacy
+/// spellings so saved-deck rows in Supabase continue to decode.
 enum DeckFormat: String, CaseIterable, Identifiable, Codable {
     case rookie        = "Rookie"
     case substitution  = "Substitution"
-    case playmaker     = "Playmaker"
-    case spec          = "SPEC Playmaker"
+    case playmaker     = "Playmaker"          // = "Apex Playmaker" (Apex hero rules)
+    case spec          = "SPEC Playmaker"      // Spec hero rules
+    case elite         = "Elite Playmaker"     // 8,250 total power cap, Trainer-banned
+    case specPlus      = "SPEC+ Playmaker"     // Up to 70 heroes with tiered 175-200 limits
     case limited       = "Limited"
 
     var id: String { rawValue }
 
-    var heroTarget: Int { self == .limited ? 40 : 60 }
-    var heroMinimum: Int { self == .limited ? 40 : 60 }
+    /// What shows in the UI picker and stat bars.
+    var displayName: String {
+        switch self {
+        case .rookie:       return "Rookie"
+        case .substitution: return "Substitution"
+        case .playmaker:    return "Apex Playmaker"
+        case .spec:         return "Spec Playmaker"
+        case .elite:        return "Elite Playmaker"
+        case .specPlus:     return "SPEC+ Playmaker"
+        case .limited:      return "Limited"
+        }
+    }
+
+    // MARK: - Hero-deck shape
+
+    /// Minimum number of heroes required for a legal deck.
+    var heroMinimum: Int {
+        switch self {
+        case .limited:  return 40
+        case .specPlus: return 60  // 60 ≤160 floor; +10 optional higher slots
+        default:        return 60
+        }
+    }
+
+    /// Maximum heroes allowed. SPEC+ is the only format that goes above 60.
+    var heroMaximum: Int {
+        switch self {
+        case .limited:  return 40
+        case .specPlus: return 70
+        default:        return 60
+        }
+    }
+
+    /// Target count shown in the UI (same as minimum for most formats; SPEC+
+    /// shows minimum since the extra 10 are optional).
+    var heroTarget: Int { heroMinimum }
+
+    // MARK: - Game-mode shape
+
     var needsHotDogs: Bool { self != .rookie }
     var needsPlaybook: Bool { self != .rookie && self != .substitution }
-    var enforcesPowerCap: Bool { self == .spec }
-    // Per 2026 Nationals PDF: all Playmaker divisions (Apex/Spec/Elite/SPEC+)
-    // share the same 1,000 DBS budget. Today's model doesn't have Apex/Elite/SPEC+
-    // yet (see Phase 3 of COWORK_DBS_NATIONALS_AUDIT.md), so for now DBS is
-    // enforced on both `playmaker` and `spec`.
-    var enforcesDBS: Bool { self == .spec || self == .playmaker }
+
+    // MARK: - Power rules
+
+    /// Per-hero power ceiling. Spec = 160. SPEC+ base 60 heroes are 160; the
+    /// optional extras can be 165–200. Apex/Elite/Playmaker/Rookie/Sub: nil.
+    var heroPowerCap: Int? {
+        self == .spec ? 160 : nil
+    }
+
+    /// Only Elite enforces a total-power budget across all heroes (8,250).
+    var totalPowerCap: Int? {
+        self == .elite ? 8_250 : nil
+    }
+
+    /// Ceiling above which no hero is allowed, even in SPEC+. 200 for SPEC+, nil elsewhere.
+    var absoluteHeroPowerMax: Int? {
+        self == .specPlus ? 200 : nil
+    }
+
+    /// Default per-power-value limit. Standard is 6 across all formats (the
+    /// 2026 PDF only overrides this for the Blast division at 3; that
+    /// override lives on DeckDivision, not DeckFormat).
+    var perPowerDefaultLimit: Int { 6 }
+
+    /// SPEC+ "higher-power" tiered limits: max N of each power value in the
+    /// optional 10-slot overflow above 160. Empty for other formats.
+    var specPlusTieredLimits: [Int: Int] {
+        guard self == .specPlus else { return [:] }
+        return [
+            165: 2, 170: 2,
+            175: 1, 180: 1, 185: 1, 190: 1, 195: 1, 200: 1,
+        ]
+    }
+
+    // MARK: - Playbook rules
+
+    /// Apex/Spec/Elite/SPEC+/Limited all enforce 1,000 DBS. Rookie/Sub don't have Plays.
+    var enforcesDBS: Bool { needsPlaybook }
     var dbsBudget: Int { 1_000 }
-    var hasSideboard: Bool { self == .spec }
-    var powerCap: Int { 160 }
+
+    // MARK: - Banned types
+
+    /// Elite bans Trainer cards (the pre-built Battle Trainer Kit decks).
+    /// Catalog doesn't currently tag Trainer cards, so this is forward-looking.
+    var bannedCardTypes: Set<String> {
+        self == .elite ? ["Trainer"] : []
+    }
+
+    // MARK: - Back-compat convenience
+
+    /// True when any hero power cap applies (existing callers expect this).
+    var enforcesPowerCap: Bool { heroPowerCap != nil || absoluteHeroPowerMax != nil }
+    var powerCap: Int { heroPowerCap ?? absoluteHeroPowerMax ?? .max }
+    var hasSideboard: Bool { self == .spec || self == .specPlus }
 
     var supabaseValue: String {
         switch self {
@@ -41,6 +131,8 @@ enum DeckFormat: String, CaseIterable, Identifiable, Codable {
         case .substitution: return "substitution"
         case .playmaker:    return "playmaker"
         case .spec:         return "spec"
+        case .elite:        return "elite"
+        case .specPlus:     return "spec_plus"
         case .limited:      return "limited"
         }
     }
@@ -81,6 +173,57 @@ struct SavedDeck: Identifiable, Codable {
 }
 
 // ════════════════════════════════════════════════════════════════
+// MARK: - Optional Rule Overrides
+// ════════════════════════════════════════════════════════════════
+
+/// User-toggleable rules that overlay on top of a `DeckFormat`'s defaults.
+/// Lets a Coach build under a custom rule set — e.g. turn the retired
+/// "max 6 of same hero name" rule back on for casual play, or flip Bonus
+/// Plays / HTD Plays off to match a specific event configuration.
+///
+/// Every property here corresponds to one "rule chip" surfaced in the UI,
+/// so coaches can see at a glance exactly what they're building under.
+struct DeckRuleOverrides: Equatable, Codable {
+    /// Max copies of the same hero NAME (across variations). The 2026 BoBA
+    /// Nationals PDF retired this rule — "Unlimited Versions of a Hero Per
+    /// Deck" — but it remains available as an optional casual-play rule.
+    /// `nil` means no enforcement (current PDF default).
+    var perHeroNameLimit: Int? = nil
+
+    /// Override the default 6-per-power-value. Blast division uses 3.
+    /// `nil` defers to `DeckFormat.perPowerDefaultLimit`.
+    var perPowerLimit: Int? = nil
+
+    /// If true, validator flags the 6-per-power rule as disabled. Edge case
+    /// for casual "no rules" decks; mostly here for completeness.
+    var disablePerPowerLimit: Bool = false
+
+    /// Turn the Playmaker-division DBS budget (1,000) on/off. `nil` defers
+    /// to `DeckFormat.enforcesDBS`. Note: Rookie/Sub formats have no plays
+    /// so DBS is N/A regardless.
+    var enforceDBS: Bool? = nil
+    var dbsBudgetOverride: Int? = nil
+
+    /// Per-event toggles that materially affect deck-building. Per the 2026
+    /// PDF, some events turn these off (Spec Playmaker: Bonus OFF, HTD OFF;
+    /// Brawl Playmaker: Bonus OFF, HTD OFF; Tecmo Bowl: HTD N/A).
+    var bonusPlaysEnabled: Bool = true
+    var htdPlaysEnabled: Bool = true
+
+    /// Whether the validator was manually configured by the user vs. left
+    /// at the format's defaults. Purely informational for the UI chip list.
+    var hasAnyUserOverride: Bool {
+        perHeroNameLimit != nil
+            || perPowerLimit != nil
+            || disablePerPowerLimit
+            || enforceDBS != nil
+            || dbsBudgetOverride != nil
+            || !bonusPlaysEnabled
+            || !htdPlaysEnabled
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
 // MARK: - DeckBuilderStore
 // ════════════════════════════════════════════════════════════════
 
@@ -92,6 +235,100 @@ final class DeckBuilderStore {
     var deckName: String = "New Deck"
     var format: DeckFormat = .playmaker
     var currentDeckId: UUID?            // non-nil when editing a saved deck
+
+    /// Toggleable rules stacked on top of the format's defaults. Lets coaches
+    /// opt in to retired rules (e.g. legacy 6-per-hero) or flip off divisions'
+    /// default toggles (Bonus Plays, HTD Plays) while staying inside the same
+    /// hero-deck format.
+    var ruleOverrides: DeckRuleOverrides = DeckRuleOverrides()
+
+    /// Effective per-power limit after merging format default + user override.
+    var effectivePerPowerLimit: Int? {
+        if ruleOverrides.disablePerPowerLimit { return nil }
+        return ruleOverrides.perPowerLimit ?? format.perPowerDefaultLimit
+    }
+
+    /// Effective DBS enforcement flag.
+    var effectiveEnforceDBS: Bool {
+        ruleOverrides.enforceDBS ?? format.enforcesDBS
+    }
+
+    /// Effective DBS budget (only used when enforcement is on).
+    var effectiveDBSBudget: Int {
+        ruleOverrides.dbsBudgetOverride ?? format.dbsBudget
+    }
+
+    /// A human-readable description of every rule active for the current
+    /// deck. Shown in the UI so coaches see exactly what constraints they're
+    /// building under. Rules carry an `isOverride` flag so the UI can mark
+    /// which come from user toggles vs. the format's defaults.
+    struct RuleDescriptor: Identifiable {
+        let id = UUID()
+        let label: String
+        let isOverride: Bool  // true when the rule differs from the format default
+    }
+    var activeRules: [RuleDescriptor] {
+        var out: [RuleDescriptor] = []
+
+        // Hero count
+        if format.heroMinimum == format.heroMaximum {
+            out.append(.init(label: "\(format.heroMinimum) Heroes", isOverride: false))
+        } else {
+            out.append(.init(label: "\(format.heroMinimum)–\(format.heroMaximum) Heroes", isOverride: false))
+        }
+
+        // Per-power limit (default vs override)
+        if let limit = effectivePerPowerLimit {
+            let isOverride = ruleOverrides.perPowerLimit != nil && ruleOverrides.perPowerLimit != format.perPowerDefaultLimit
+            out.append(.init(label: "Max \(limit) per power value", isOverride: isOverride))
+        } else if ruleOverrides.disablePerPowerLimit {
+            out.append(.init(label: "No per-power limit", isOverride: true))
+        }
+
+        // Power caps
+        if let cap = format.heroPowerCap {
+            out.append(.init(label: "Heroes ≤ \(cap) power", isOverride: false))
+        }
+        if let total = format.totalPowerCap {
+            out.append(.init(label: "Total power ≤ \(total)", isOverride: false))
+        }
+        if let absMax = format.absoluteHeroPowerMax {
+            out.append(.init(label: "No heroes above \(absMax) power", isOverride: false))
+        }
+        if !format.specPlusTieredLimits.isEmpty {
+            out.append(.init(label: "SPEC+ tiered slots (1×175-200, 2×165/170)", isOverride: false))
+        }
+
+        // Optional 6-per-hero rule
+        if let limit = ruleOverrides.perHeroNameLimit {
+            out.append(.init(label: "Max \(limit) of same hero (optional)", isOverride: true))
+        }
+
+        // Banned types
+        if !format.bannedCardTypes.isEmpty {
+            out.append(.init(label: "No \(format.bannedCardTypes.sorted().joined(separator: ", ")) cards", isOverride: false))
+        }
+
+        // Playbook + DBS
+        if format.needsPlaybook {
+            if effectiveEnforceDBS {
+                let isOverride = ruleOverrides.enforceDBS == true && !format.enforcesDBS
+                    || ruleOverrides.dbsBudgetOverride != nil
+                out.append(.init(label: "\(effectiveDBSBudget) DBS budget", isOverride: isOverride))
+            } else if format.enforcesDBS && ruleOverrides.enforceDBS == false {
+                out.append(.init(label: "DBS enforcement OFF", isOverride: true))
+            }
+            out.append(.init(label: ruleOverrides.bonusPlaysEnabled ? "Bonus Plays ON" : "Bonus Plays OFF",
+                             isOverride: !ruleOverrides.bonusPlaysEnabled))
+            out.append(.init(label: ruleOverrides.htdPlaysEnabled ? "HTD Plays ON" : "HTD Plays OFF",
+                             isOverride: !ruleOverrides.htdPlaysEnabled))
+        }
+
+        // Unique-variation rule is always on (didn't get retired in 2026)
+        out.append(.init(label: "One-of per exact card", isOverride: false))
+
+        return out
+    }
 
     // MARK: - Deck Contents (ordered arrays of bobaIds)
     var heroes: [Card] = []
@@ -162,27 +399,70 @@ final class DeckBuilderStore {
     var validationErrors: [DeckValidationError] {
         var errors: [DeckValidationError] = []
 
-        // Hero count
+        // Hero count: must fall within [minimum, maximum] for the chosen format.
+        // For SPEC+ the range is [60, 70] (60 ≤160 base + up to 10 higher-power).
         if heroes.count < format.heroMinimum {
-            errors.append(.init(section: .hero, message: "Need \(format.heroTarget - heroes.count) more heroes (\(heroes.count)/\(format.heroTarget))"))
-        } else if heroes.count > format.heroTarget {
-            errors.append(.init(section: .hero, message: "Too many heroes (\(heroes.count)/\(format.heroTarget))"))
+            errors.append(.init(section: .hero, message: "Need \(format.heroMinimum - heroes.count) more heroes (\(heroes.count)/\(format.heroMinimum))"))
+        } else if heroes.count > format.heroMaximum {
+            let over = heroes.count - format.heroMaximum
+            errors.append(.init(section: .hero, message: "Too many heroes (\(heroes.count)/\(format.heroMaximum)) — remove \(over)"))
         }
 
-        // Power cap (SPEC only)
-        if format.enforcesPowerCap {
-            let overCap = heroes.filter { ($0.power ?? 0) > format.powerCap }
-            if !overCap.isEmpty {
-                errors.append(.init(section: .hero, message: "\(overCap.count) hero(es) over power cap \(format.powerCap)"))
+        // Per-hero power cap (Spec: 160; SPEC+: the 60-hero base must be ≤160)
+        if let cap = format.heroPowerCap {
+            let overBase: Int
+            if format == .specPlus {
+                // In SPEC+ the FIRST 60 heroes form the Spec base and must be ≤160;
+                // the remaining up-to-10 can go higher (subject to tiered limits below).
+                let sorted = heroes.sorted { ($0.power ?? 0) < ($1.power ?? 0) }
+                let base = sorted.prefix(60)
+                overBase = base.filter { ($0.power ?? 0) > cap }.count
+            } else {
+                overBase = heroes.filter { ($0.power ?? 0) > cap }.count
+            }
+            if overBase > 0 {
+                errors.append(.init(section: .hero, message: "\(overBase) hero(es) over power cap \(cap)"))
             }
         }
 
-        // Per-power-value limit (max 6)
-        for (power, count) in heroPowerValues where count > 6 {
-            errors.append(.init(section: .hero, message: "Power \(power): \(count)/6 — remove \(count - 6) card(s)"))
+        // Absolute hero power ceiling (SPEC+: no heroes above 200)
+        if let absMax = format.absoluteHeroPowerMax {
+            let over = heroes.filter { ($0.power ?? 0) > absMax }.count
+            if over > 0 {
+                errors.append(.init(section: .hero, message: "\(over) hero(es) above the \(absMax) ceiling"))
+            }
         }
 
-        // 4-attribute uniqueness (no two cards share hero+treatment+element+power)
+        // Elite: total-power budget across the whole hero deck
+        if let totalCap = format.totalPowerCap {
+            let total = heroes.reduce(0) { $0 + ($1.power ?? 0) }
+            if total > totalCap {
+                errors.append(.init(section: .hero, message: "Total power \(total)/\(totalCap) — over budget by \(total - totalCap)"))
+            }
+        }
+
+        // SPEC+ tiered per-power limits for the optional 10 higher-power slots
+        if !format.specPlusTieredLimits.isEmpty {
+            for (power, limit) in format.specPlusTieredLimits {
+                let count = heroPowerValues[power] ?? 0
+                if count > limit {
+                    errors.append(.init(section: .hero, message: "SPEC+ allows \(limit) hero(es) at power \(power); have \(count)"))
+                }
+            }
+        }
+
+        // Per-power-value limit. Default 6; Blast division uses 3. Users can
+        // also disable the rule entirely via ruleOverrides.disablePerPowerLimit.
+        let tieredPowers = Set(format.specPlusTieredLimits.keys)
+        if let perPowerLimit = effectivePerPowerLimit {
+            // Skip standard limit at SPEC+ tiered powers — stricter caps already applied.
+            for (power, count) in heroPowerValues where !tieredPowers.contains(power) && count > perPowerLimit {
+                errors.append(.init(section: .hero, message: "Power \(power): \(count)/\(perPowerLimit) — remove \(count - perPowerLimit) card(s)"))
+            }
+        }
+
+        // 4-attribute uniqueness: no two cards share hero+treatment+element+power
+        // (the "one of" exact-card rule that survived the 2026 PDF update).
         var seen: Set<String> = []
         for card in heroes {
             let key = "\(card.hero)|\(card.treatment ?? "")|\(card.element)|\(card.power ?? 0)"
@@ -191,12 +471,25 @@ final class DeckBuilderStore {
             }
             seen.insert(key)
         }
+        // The 2026 PDF retired the mandatory "max 6 of same hero name" rule
+        // ("Unlimited Versions of a Hero Per Deck"). It's still available as
+        // an opt-in rule via ruleOverrides.perHeroNameLimit for casual play
+        // or legacy-format decks.
+        if let limit = ruleOverrides.perHeroNameLimit {
+            var heroCounts: [String: Int] = [:]
+            for card in heroes { heroCounts[card.hero, default: 0] += 1 }
+            for (hero, count) in heroCounts where count > limit {
+                errors.append(.init(section: .hero, message: "\(hero): \(count)/\(limit) max (optional rule) — remove \(count - limit)"))
+            }
+        }
 
-        // Per-hero cap (max 6 of same hero name — official rules)
-        var heroCounts: [String: Int] = [:]
-        for card in heroes { heroCounts[card.hero, default: 0] += 1 }
-        for (hero, count) in heroCounts where count > 6 {
-            errors.append(.init(section: .hero, message: "\(hero): \(count)/6 max — remove \(count - 6)"))
+        // Banned card types (Elite: Trainer cards not legal)
+        if !format.bannedCardTypes.isEmpty {
+            let banned = heroes.filter { format.bannedCardTypes.contains($0.cardType) }
+            if !banned.isEmpty {
+                let typeList = Array(format.bannedCardTypes).joined(separator: ", ")
+                errors.append(.init(section: .hero, message: "\(banned.count) banned card(s): \(typeList) not legal in this format"))
+            }
         }
 
         // Plays
@@ -217,11 +510,14 @@ final class DeckBuilderStore {
             }
         }
 
-        // DBS budget (Playmaker divisions only)
-        if format.enforcesDBS && format.needsPlaybook && !plays.isEmpty {
-            let over = totalDBS - format.dbsBudget
+        // DBS budget (Playmaker divisions only). Enforcement + budget honor
+        // per-deck overrides so e.g. Spec Playmaker at 1,000 DBS can turn into
+        // a "Spec Unlimited" casual build by flipping enforceDBS off.
+        if effectiveEnforceDBS && format.needsPlaybook && !plays.isEmpty {
+            let budget = effectiveDBSBudget
+            let over = totalDBS - budget
             if over > 0 {
-                errors.append(.init(section: .play, message: "Playbook over DBS budget: \(totalDBS)/\(format.dbsBudget) — reduce by \(over)"))
+                errors.append(.init(section: .play, message: "Playbook over DBS budget: \(totalDBS)/\(budget) — reduce by \(over)"))
             }
         }
 
@@ -253,17 +549,59 @@ final class DeckBuilderStore {
     }
 
     /// True if adding this hero would violate a rule immediately.
+    ///
+    /// Checks per-hero power cap, absolute power ceiling, per-power limit
+    /// (including SPEC+ tiered 175-200/165-170 slots), exact-variation
+    /// uniqueness, and banned card types. The 2026 PDF retired the old
+    /// "max 6 of same hero name" rule — only the exact-card uniqueness
+    /// constraint survives.
     func heroWouldViolate(_ card: Card) -> Bool {
         guard let power = card.power else { return true }
-        // Power cap
-        if format.enforcesPowerCap && power > format.powerCap { return true }
-        // Variation already present
+
+        // Exact-variation uniqueness (the "one of" rule)
         if heroes.contains(card) { return true }
-        // Per-power limit
-        if (heroPowerValues[power] ?? 0) >= 6 { return true }
-        // Per-hero limit
-        let heroTotal = heroes.filter { $0.hero == card.hero }.count
-        if heroTotal >= 6 { return true }
+
+        // Banned card types
+        if format.bannedCardTypes.contains(card.cardType) { return true }
+
+        // Per-hero power cap (Spec: 160; SPEC+: only if adding into the base 60)
+        if let cap = format.heroPowerCap, power > cap {
+            if format == .specPlus {
+                // In SPEC+ the ≤160 heroes fill the base 60; over-160 goes to the
+                // tiered overflow slots. Only block if power > cap AND the tiered
+                // limit at this power is already exhausted (or power > absoluteMax).
+                let tieredLimit = format.specPlusTieredLimits[power]
+                if tieredLimit == nil { return true }            // e.g. power 162 — not on the ladder
+                if (heroPowerValues[power] ?? 0) >= (tieredLimit ?? 0) { return true }
+            } else {
+                return true
+            }
+        }
+
+        // Absolute ceiling
+        if let absMax = format.absoluteHeroPowerMax, power > absMax { return true }
+
+        // Elite: total-power budget would be exceeded by adding this card
+        if let totalCap = format.totalPowerCap {
+            let newTotal = heroes.reduce(0) { $0 + ($1.power ?? 0) } + power
+            if newTotal > totalCap { return true }
+        }
+
+        // Per-power-value limit (tiered powers already checked above for SPEC+)
+        let tieredPowers = Set(format.specPlusTieredLimits.keys)
+        if !tieredPowers.contains(power), let perPowerLimit = effectivePerPowerLimit {
+            if (heroPowerValues[power] ?? 0) >= perPowerLimit { return true }
+        }
+
+        // Optional 6-per-hero-name rule (retired by default; opt-in via ruleOverrides).
+        if let limit = ruleOverrides.perHeroNameLimit {
+            let sameName = heroes.filter { $0.hero == card.hero }.count
+            if sameName >= limit { return true }
+        }
+
+        // Hero-max check (Limited: 40, others: 60 or 70 for SPEC+)
+        if heroes.count >= format.heroMaximum { return true }
+
         return false
     }
 

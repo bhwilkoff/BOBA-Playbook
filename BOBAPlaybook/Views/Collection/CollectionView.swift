@@ -108,6 +108,12 @@ struct CollectionView: View {
     // MARK: - Authenticated state
 
     private var authenticatedView: some View {
+        // .refreshable intentionally does NOT go on this VStack — it would
+        // attach to the first ancestor scroll view (the horizontal
+        // designation pill row), bringing its vertical bounce back and
+        // firing the refresh on the wrong surface. Each inner ScrollView
+        // (cardList / rainbowList) attaches its own .refreshable so the
+        // pull-to-refresh gesture lives where the refresh actually shows.
         ZStack(alignment: .bottomTrailing) {
             VStack(spacing: 0) {
                 if isRecalculating, let p = recalcProgress {
@@ -128,9 +134,6 @@ struct CollectionView: View {
                 }
             }
             .background(Design.Colors.nearBlack)
-            .refreshable {
-                await collection.loadCollection()
-            }
 
             // tradeRoomFAB — hidden until Discord bot is added to server
         }
@@ -305,22 +308,32 @@ struct CollectionView: View {
     private var cardList: some View {
         let identifiers = collection.uniqueBobaIds(for: selectedDesignation)
 
+        // Always wrap in a vertical ScrollView so .refreshable has a
+        // valid attachment point, whether or not there are cards. Empty
+        // state still pulls to refresh so users can retry from a blank
+        // list without having to background-foreground the app.
         return Group {
             if collection.isLoading {
                 ProgressView()
                     .tint(Design.Colors.bobaOrange)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if identifiers.isEmpty {
-                emptyState
             } else {
                 ScrollView {
-                    LazyVStack(spacing: Design.Spacing.sm) {
-                        ForEach(identifiers, id: \.self) { identifier in
-                            collectionRow(identifier: identifier)
-                                .onTapGesture { selectedCard = BobaIdWrapper(id: identifier) }
+                    if identifiers.isEmpty {
+                        emptyState
+                            .frame(maxWidth: .infinity, minHeight: 300)
+                    } else {
+                        LazyVStack(spacing: Design.Spacing.sm) {
+                            ForEach(identifiers, id: \.self) { identifier in
+                                collectionRow(identifier: identifier)
+                                    .onTapGesture { selectedCard = BobaIdWrapper(id: identifier) }
+                            }
                         }
+                        .padding(Design.Spacing.lg)
                     }
-                    .padding(Design.Spacing.lg)
+                }
+                .refreshable {
+                    await collection.loadCollection()
                 }
             }
         }
@@ -398,10 +411,11 @@ struct CollectionView: View {
 
     private var rainbowList: some View {
         let rows = rainbowRows
-        return Group {
+        // Same pattern as cardList — always in a ScrollView so pull-to-
+        // refresh has a real scroll view to attach to.
+        return ScrollView {
             if rows.isEmpty {
                 VStack(spacing: Design.Spacing.md) {
-                    Spacer()
                     Image(systemName: "rainbow")
                         .font(.system(size: 36))
                         .foregroundStyle(Design.Colors.bobaCyan.opacity(0.6))
@@ -413,22 +427,23 @@ struct CollectionView: View {
                         .foregroundStyle(Design.Colors.textMuted)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, Design.Spacing.xl)
-                    Spacer()
                 }
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: 300)
+                .padding(.top, Design.Spacing.xl)
             } else {
-                ScrollView {
-                    LazyVStack(spacing: Design.Spacing.sm) {
-                        ForEach(rows) { row in
-                            rainbowRow(row)
-                                .onTapGesture {
-                                    selectedCard = BobaIdWrapper(id: row.coverCard.id)
-                                }
-                        }
+                LazyVStack(spacing: Design.Spacing.sm) {
+                    ForEach(rows) { row in
+                        rainbowRow(row)
+                            .onTapGesture {
+                                selectedCard = BobaIdWrapper(id: row.coverCard.id)
+                            }
                     }
-                    .padding(Design.Spacing.lg)
                 }
+                .padding(Design.Spacing.lg)
             }
+        }
+        .refreshable {
+            await collection.loadCollection()
         }
     }
 

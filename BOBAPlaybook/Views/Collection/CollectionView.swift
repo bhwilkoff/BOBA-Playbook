@@ -14,10 +14,20 @@ struct CollectionView: View {
     @State private var showingSignIn    = false
     @State private var showTradeRoom    = false
     @State private var discord          = DiscordService()
-    /// "Rainbow" mode replaces the designation list with a hero-grouped view
-    /// of owned-vs-existing treatments. Community primary collecting goal
-    /// per DISCORD_TERMINOLOGY.md §3.4.
-    @State private var isRainbowMode    = false
+    /// Top-level view mode. Rainbow is a collecting-progress lens across
+    /// all owned heroes — a different axis than the designation tabs,
+    /// which partition cards by intent (Personal / For Sale / Wanted).
+    /// Keeping these on separate toggles so coaches don't confuse "how I'm
+    /// using this card" with "how close am I to completing this hero."
+    @State private var viewMode: CollectionViewMode = .myCards
+    @State private var isRecalculating = false
+    @State private var recalcProgress: (current: Int, total: Int)? = nil
+
+    enum CollectionViewMode: String, CaseIterable, Identifiable {
+        case myCards = "My Cards"
+        case rainbow = "Rainbow Progress"
+        var id: String { rawValue }
+    }
 
     var body: some View {
         NavigationStack {
@@ -33,6 +43,11 @@ struct CollectionView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     BOBAWordmark()
+                }
+                if auth.isAuthenticated {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        collectionMenu
+                    }
                 }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
@@ -95,12 +110,21 @@ struct CollectionView: View {
     private var authenticatedView: some View {
         ZStack(alignment: .bottomTrailing) {
             VStack(spacing: 0) {
-                valueSummary
-                designationPicker
-                if isRainbowMode {
-                    rainbowList
-                } else {
+                if isRecalculating, let p = recalcProgress {
+                    recalcProgressBanner(current: p.current, total: p.total)
+                }
+                modePicker
+                    .padding(.horizontal, Design.Spacing.md)
+                    .padding(.vertical, Design.Spacing.sm)
+
+                switch viewMode {
+                case .myCards:
+                    valueSummary
+                    designationPicker
                     cardList
+                case .rainbow:
+                    rainbowIntro
+                    rainbowList
                 }
             }
             .background(Design.Colors.nearBlack)
@@ -113,6 +137,63 @@ struct CollectionView: View {
         .sheet(isPresented: $showTradeRoom) {
             TradeRoomSheet(discord: discord)
         }
+    }
+
+    // MARK: - Top-level view mode picker
+
+    private var modePicker: some View {
+        Picker("View", selection: $viewMode) {
+            ForEach(CollectionViewMode.allCases) { mode in
+                Text(mode.rawValue).tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+
+    // MARK: - Collection menu (toolbar)
+
+    private var collectionMenu: some View {
+        Menu {
+            Button {
+                Task { await recalculateAll() }
+            } label: {
+                Label(isRecalculating ? "Refreshing prices…" : "Refresh market values",
+                      systemImage: "arrow.clockwise")
+            }
+            .disabled(isRecalculating)
+        } label: {
+            if isRecalculating {
+                ProgressView().tint(Design.Colors.bobaOrange)
+            } else {
+                Image(systemName: "ellipsis.circle")
+                    .foregroundStyle(Design.Colors.bobaOrange)
+            }
+        }
+    }
+
+    private func recalcProgressBanner(current: Int, total: Int) -> some View {
+        HStack(spacing: Design.Spacing.sm) {
+            ProgressView().tint(Design.Colors.bobaOrange).scaleEffect(0.85)
+            Text(total == 0
+                 ? "Refreshing market values…"
+                 : "Updating \(current) of \(total) cards…")
+                .font(Design.Fonts.mono(11))
+                .foregroundStyle(Design.Colors.textSecondary)
+            Spacer()
+        }
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.xs)
+        .background(Design.Colors.surface)
+    }
+
+    private func recalculateAll() async {
+        isRecalculating = true
+        recalcProgress = (0, 0)
+        await collection.recalculateAllValues(cardStore: cardStore) { current, total in
+            recalcProgress = (current, total)
+        }
+        isRecalculating = false
+        recalcProgress = nil
     }
 
     // MARK: - Value summary
@@ -156,51 +237,60 @@ struct CollectionView: View {
                     let count = collection.uniqueBobaIds(for: d).count
                     Button {
                         selectedDesignation = d
-                        isRainbowMode = false
                     } label: {
                         HStack(spacing: Design.Spacing.xs) {
                             Image(systemName: d.icon)
                                 .font(.system(size: 11))
                             Text(d.displayName)
-                                .font(Design.Fonts.mono(12, weight: (!isRainbowMode && selectedDesignation == d) ? .bold : .regular))
+                                .font(Design.Fonts.mono(12, weight: selectedDesignation == d ? .bold : .regular))
                             if count > 0 {
                                 Text("\(count)")
                                     .font(Design.Fonts.mono(10))
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 1)
-                                    .background(Capsule().fill((!isRainbowMode && selectedDesignation == d) ? Design.Colors.nearBlack.opacity(0.3) : Design.Colors.glass))
+                                    .background(Capsule().fill(selectedDesignation == d ? Design.Colors.nearBlack.opacity(0.3) : Design.Colors.glass))
                             }
                         }
-                        .foregroundStyle((!isRainbowMode && selectedDesignation == d) ? Design.Colors.nearBlack : Design.Colors.textSecondary)
+                        .foregroundStyle(selectedDesignation == d ? Design.Colors.nearBlack : Design.Colors.textSecondary)
                         .padding(.horizontal, Design.Spacing.md)
                         .frame(height: 34)
-                        .background((!isRainbowMode && selectedDesignation == d) ? Design.Colors.bobaOrange : Design.Colors.glass)
+                        .background(selectedDesignation == d ? Design.Colors.bobaOrange : Design.Colors.glass)
                         .clipShape(Capsule())
                     }
-                }
-
-                // Rainbow mode — groups owned cards by hero and shows
-                // rainbow progress (owned vs. every treatment of that hero).
-                Button {
-                    isRainbowMode = true
-                } label: {
-                    HStack(spacing: Design.Spacing.xs) {
-                        Image(systemName: "rainbow")
-                            .font(.system(size: 11))
-                        Text("Rainbow")
-                            .font(Design.Fonts.mono(12, weight: isRainbowMode ? .bold : .regular))
-                    }
-                    .foregroundStyle(isRainbowMode ? Design.Colors.nearBlack : Design.Colors.textSecondary)
-                    .padding(.horizontal, Design.Spacing.md)
-                    .frame(height: 34)
-                    .background(isRainbowMode ? Design.Colors.bobaCyan : Design.Colors.glass)
-                    .clipShape(Capsule())
                 }
             }
             .padding(.horizontal, Design.Spacing.lg)
             .padding(.vertical, Design.Spacing.md)
         }
         .background(Design.Colors.surface)
+    }
+
+    // MARK: - Rainbow intro
+    // Short explainer shown at the top of the Rainbow view so coaches who
+    // haven't heard the term know what they're looking at and why. "Rainbow"
+    // is a community collecting goal, not a game mechanic — worth spelling
+    // out when someone first encounters the tab.
+    private var rainbowIntro: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+            HStack(spacing: 6) {
+                Image(systemName: "rainbow").font(.system(size: 16))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+                Text("What is a Rainbow?")
+                    .font(Design.Fonts.display(16))
+                    .foregroundStyle(Design.Colors.textPrimary)
+            }
+            Text("Community collecting goal — owning every treatment (Base + every foil + every autograph) of a single hero. If you own at least one card of a hero, that hero shows up here with progress toward a complete set.")
+                .font(Design.Fonts.mono(12))
+                .foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Sorted by percent complete. Tap a row to jump to the card.")
+                .font(Design.Fonts.mono(11))
+                .foregroundStyle(Design.Colors.textMuted)
+        }
+        .padding(Design.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Design.Colors.surface)
+        .overlay(alignment: .bottom) { Rectangle().fill(Design.Colors.glassBorder).frame(height: 1) }
     }
 
     // MARK: - Card list
@@ -414,18 +504,29 @@ struct CollectionView: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                if totalPaid > 0 {
-                    Text(formatCurrency(totalPaid))
-                        .font(Design.Fonts.mono(13, weight: .bold))
-                        .foregroundStyle(Design.Colors.textPrimary)
-                    Text("PAID")
-                        .font(Design.Fonts.mono(8))
-                        .foregroundStyle(Design.Colors.textMuted)
-                        .tracking(1)
+                // "PAID" only makes sense for owned designations. Wanted
+                // / Grails rows get a neutral "WANTED" tag instead so
+                // coaches don't read any purchase-price field on a
+                // wishlist entry as money actually spent.
+                if selectedDesignation.isOwned {
+                    if totalPaid > 0 {
+                        Text(formatCurrency(totalPaid))
+                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                        Text("PAID")
+                            .font(Design.Fonts.mono(8))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .tracking(1)
+                    } else {
+                        Text("$—")
+                            .font(Design.Fonts.mono(13))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
                 } else {
-                    Text("$—")
-                        .font(Design.Fonts.mono(13))
-                        .foregroundStyle(Design.Colors.textMuted)
+                    Text(selectedDesignation.displayName.uppercased())
+                        .font(Design.Fonts.mono(9, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                        .tracking(1)
                 }
             }
 

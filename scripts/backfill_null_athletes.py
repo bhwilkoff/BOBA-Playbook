@@ -114,7 +114,8 @@ def main():
             print(f"  {name}: {dst.stat().st_size:,} bytes")
 
     cards_app = json.loads((APP_DATA / "cards.json").read_text())
-    display = [c for c in cards_app if c.get("cardType") != "Sealed Product"]
+    # Sealed products stay in the iOS bundle (reversed 2026-04-22).
+    display = cards_app
     head = display[:500]
     (APP_IOS / "display-cards.json").write_text(
         json.dumps(display, separators=(", ", ": "), ensure_ascii=False))

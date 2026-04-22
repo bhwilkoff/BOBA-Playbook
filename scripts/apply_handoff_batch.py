@@ -202,7 +202,12 @@ def sync_to_app_repo() -> dict:
 
 def build_ios_bundles() -> dict:
     cards = json.loads((APP_DATA / "cards.json").read_text())
-    display = [c for c in cards if c.get("cardType") != "Sealed Product"]
+    # Include every cardType — sealed products are part of the catalog
+    # and the app is expected to render them alongside heroes/plays/
+    # hot dogs. (Earlier versions of the pipeline dropped Sealed Product
+    # from the iOS bundle; that was reversed 2026-04-22 after the Find
+    # tab's card-purpose filter surfaced them as missing.)
+    display = cards
     head = display[:500]
     d_path = APP_IOS / "display-cards.json"
     h_path = APP_IOS / "cards-head.json"

@@ -250,6 +250,13 @@ final class DeckBuilderStore {
     /// builder to auto-open the legality report. The observer clears it back
     /// to false after presenting the report.
     var pendingLegalityAudit: Bool = false
+    /// One-shot flag set after a CSV import lands cards. Observed by the
+    /// deck builder to drop the template splash and expand the deck list
+    /// so imported cards are visible when the management sheet dismisses.
+    /// Deliberately distinct from pendingLegalityAudit — we no longer
+    /// auto-open the legality report on import (coaches tap it if they
+    /// want it).
+    var pendingImportReveal: Bool = false
     var activePreset: RulePreset? {
         guard let id = activePresetID else { return nil }
         return RulePresets.find(id: id)
@@ -976,7 +983,15 @@ final class DeckBuilderStore {
 
         plays = newPlays
         bonusPlays = newBonus
-        print("[DeckBuilder] CSV import → plays=\(newPlays.count), bonus=\(newBonus.count), unresolved=\(unresolved.count), fallback=\(fallbackHits)")
+        // If the CSV brought any Plays with it and the current format has
+        // no Playbook (Rookie / Substitution), flip to Playmaker so the
+        // imported cards are actually visible. CSV exports almost always
+        // come from Playmaker-style deckbuilders — staying in Rookie
+        // silently hides everything that was just imported.
+        if (!newPlays.isEmpty || !newBonus.isEmpty) && !format.needsPlaybook {
+            format = .playmaker
+        }
+        print("[DeckBuilder] CSV import → plays=\(newPlays.count), bonus=\(newBonus.count), unresolved=\(unresolved.count), fallback=\(fallbackHits), format=\(format.rawValue)")
         if !unresolved.isEmpty {
             print("[DeckBuilder] CSV unresolved rows: \(unresolved.prefix(10))")
         }

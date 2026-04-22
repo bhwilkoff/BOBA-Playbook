@@ -212,9 +212,14 @@ struct PracticeBottomToolbar: View {
                 }
 
             case .resolution:
-                Button("NEXT", action: onAction)
+                // Single button now chains through cleanup to the next
+                // battle (see PracticeStore.advancePhase). Label reflects
+                // that — no more double-tap between battles.
+                Button("NEXT BATTLE", action: onAction)
                     .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
             case .cleanup:
+                // Only reachable from a mid-cleanup restore of an old
+                // saved draft. Keep a neutral label.
                 Button("NEXT BATTLE", action: onAction)
                     .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
             case .matchOver:

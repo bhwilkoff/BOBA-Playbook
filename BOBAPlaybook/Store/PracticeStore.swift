@@ -1028,6 +1028,15 @@ final class PracticeStore {
         if cpuPlayQueue.isEmpty {
             currentCpuPlay = nil
             cpuPassedPlays = true
+            // If the player has already passed, both sides are done with the
+            // play phase — resolve automatically. Without this, a player who
+            // had honors would have to press END TURN a second time after
+            // watching the CPU play out its cards.
+            if playerPassedPlays && phase == .play {
+                phase = .resolution
+                resolveCurrentBattle()
+                if matchOver { Self.deleteSavedMatch() } else { saveMatch() }
+            }
         } else {
             currentCpuPlay = cpuPlayQueue.removeFirst()
         }

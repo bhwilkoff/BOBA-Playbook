@@ -264,8 +264,10 @@ final class SupabaseClient {
         if let treat = cardTreatment { body["card_treatment"]  = treat }
         if let id = bobaId           { body["boba_id"]         = id }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try checkStatus(data: data, response: response)
+        // Route through voidExecute so an expired access token is
+        // auto-refreshed and the POST retried. Direct URLSession calls
+        // 401 silently and the mod's save looks broken.
+        try await voidExecute(request)
     }
 
     // MARK: - Admin: corrections review
@@ -364,8 +366,9 @@ final class SupabaseClient {
         if let path = storagePath { body["storage_path"] = path }
         if let id = bobaId        { body["boba_id"]      = id }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try checkStatus(data: data, response: response)
+        // Same as submitCardCorrection: go through voidExecute so a stale
+        // access token refreshes + retries instead of failing silently.
+        try await voidExecute(request)
     }
 
     // MARK: - Admin: image override management

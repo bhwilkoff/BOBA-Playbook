@@ -19,6 +19,7 @@ private enum PlaySection: String, CaseIterable, Identifiable {
     case strategy   = "Strategy"
     case browse     = "Browse"
     case collect    = "Collect"
+    case glossary   = "Glossary"
     case tournament = "Tournament"
     var id: String { rawValue }
 }
@@ -43,6 +44,7 @@ struct LearnView: View {
                 case .strategy:   StrategyView()
                 case .browse:     BrowseView()
                 case .collect:    CollectView()
+                case .glossary:   GlossaryView()
                 case .tournament: TournamentView()
                 }
             }
@@ -1392,6 +1394,150 @@ private struct BrowseCardCell: View {
             .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Design.Colors.element(card.element).opacity(0.3), lineWidth: 1))
         }
         .buttonStyle(.plain)
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - Glossary View (Game terms + Trading vocabulary)
+// ════════════════════════════════════════════════════════════════
+//
+// Content sourced from the 2026-04-22 Discord terminology handoff
+// (DISCORD_TERMINOLOGY.md §4.1 + §5). Two grouped lists: game-glossary
+// terms coaches ask about in-rules ("HTD", "DBS", "Honors", "Rainbow"),
+// and trading-room shorthand players use in the `For Sale`/`ISO` /
+// trade channels. Authored as inline Swift structs so the content
+// ships without an external JSON round-trip; promote to a JSON asset
+// later if the list keeps growing.
+
+private struct GlossaryView: View {
+    private struct Term: Identifiable {
+        let term: String
+        let definition: String
+        var id: String { term }
+    }
+
+    private let gameTerms: [Term] = [
+        .init(term: "Honors",      definition: "The right to act first in a battle — choose to substitute first, play first, and resolve first. After each battle, Honors passes to the battle winner."),
+        .init(term: "Sub / Substitute", definition: "Swap the revealed Hero for one from your hand by paying 2 Hot Dogs during the Substitution Window. Only the Honors player can decide whether to substitute first."),
+        .init(term: "HTD",         definition: "Home Team Discount — a treatment on 60 Play cards in the Alpha Blast set that reduces the Hot Dog cost by 1 when used by the Honors player. Often restricted in tournament formats; always check the event's rules."),
+        .init(term: "Bonus Play",  definition: "Card-number prefix BPL. Supplemental Plays (Alpha Update / Griffey / specialty sets) you can include beyond the 30-card Playbook. Some formats (Checklist, Tecmo) ban Bonus Plays entirely."),
+        .init(term: "Hot Dog",     definition: "The energy resource of the game. Pay Hot Dogs to substitute or play Plays. Your Hot Dog Deck has exactly 10 cards, and they also serve as Power 0 placeholders."),
+        .init(term: "DBS",         definition: "Deck Balancing System — each Play card has a DBS score (Low / Medium / High / Very High). Nationals-style formats cap a deck's total DBS at 1,000 across its 30 Plays. High-DBS plays are individually powerful but crowd out the rest of the deck."),
+        .init(term: "Playbook",    definition: "The 30 unique-named Plays you bring to the table. Draw 1 after each battle."),
+        .init(term: "Power",       definition: "A Hero's base number. Highest Power wins the battle unless modified by a Play. Ties go to Sudden Death unless one Hero's weapon is SUPER (auto-wins)."),
+        .init(term: "Spec / Spec+", definition: "Tournament formats that cap Hero Power. Spec: every Hero at a fixed power level. Spec+: heroes must meet a floor (usually 160+) with stacking limits and a sideboard of up to 45 Plays swappable between matches."),
+        .init(term: "Rainbow",     definition: "Community collecting goal — owning every treatment variation of a single hero (Base + all foils + autos). Tracked in the Collection tab's Rainbow view."),
+        .init(term: "Inspired by", definition: "Every Hero is inspired by a real-world athlete — never say a hero 'is' or 'represents' the athlete. This phrasing is community-canonical and reflects how the game was designed."),
+        .init(term: "Chillin' / Grillen", definition: "Chillin' is an active treatment name (Chillin' Battlefoil). In older Spec rules, players sometimes say 'chillin' for Ice and 'grillen' for Fire — those are legacy slang for the weapon elements. The current rules use Ice and Fire."),
+    ]
+
+    private let tradingTerms: [Term] = [
+        .init(term: "ISO",   definition: "In Search Of — you want to acquire this card. Posted with a hero name or card number."),
+        .init(term: "PC",    definition: "Personal Collect (or Personal Collection) — a card you're keeping and not trading/selling. Often paired with a hero name: 'Bo Jackson PC.'"),
+        .init(term: "OBO",   definition: "Or Best Offer — the listed price is negotiable."),
+        .init(term: "FS / F/S", definition: "For Sale — shorthand for a listing. Almost always followed by a price."),
+        .init(term: "WTB / WTS / WTT", definition: "Wants To Buy / Sell / Trade — explicit intent tags on a post."),
+        .init(term: "shipped", definition: "The listed price includes shipping. 'Raw $50 shipped' means no separate shipping fee."),
+        .init(term: "PWE",   definition: "Plain White Envelope — cheap, untracked shipping. Fine for low-value cards; risky for expensive ones."),
+        .init(term: "BMWT",  definition: "Bubble Mailer With Tracking — the safer default for anything above ~$20."),
+        .init(term: "G&S / F&F", definition: "PayPal Goods & Services (buyer-protected, has fees) vs. Friends & Family (no protection). Sellers asking for F&F are a scam signal."),
+        .init(term: "coin / coined", definition: "A photo of the card with the seller's handwritten username + current date (+ sometimes price). Community-enforced proof-of-possession; ask for one before sending funds for high-value trades."),
+        .init(term: "vouch", definition: "A community endorsement of a trader's trustworthiness. New traders often ask for vouches before a first deal."),
+        .init(term: "hit",   definition: "A valuable card pulled from a pack or box. 'Got a big hit in my Griffey box' = pulled something notable."),
+        .init(term: "break", definition: "A livestream-style pack or box opening where seats are sold and cards are distributed to buyers by hero, team, or random draw."),
+        .init(term: "breaker", definition: "The person running a break."),
+        .init(term: "rip",   definition: "Opening a pack or box — 'ripping.'"),
+        .init(term: "raw",   definition: "Ungraded. The opposite of PSA/BGS/CGC/TAG graded."),
+        .init(term: "graded", definition: "Encapsulated and scored by a third-party grader (PSA, BGS, CGC, TAG). 'PSA 10' is the top grade at PSA."),
+        .init(term: "TAG",   definition: "TAG Grading — an emerging alternative grader using laser-scored analysis. Ask your event organizer whether TAG slabs are accepted as proxies."),
+        .init(term: "comps", definition: "Comparable recent sales — used to sanity-check a price. The card detail view's pricing panel pulls comps from Radish + eBay."),
+        .init(term: "dumper", definition: "A card sold cheaply — often the lower-value hit in a break-day liquidation."),
+        .init(term: "banger", definition: "An impressive or high-value pull. Affectionate."),
+        .init(term: "scam / scammer", definition: "Don't engage, report to moderators, and check the vouch history before any trade with a new account."),
+    ]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Design.Spacing.xl) {
+                glossarySection(title: "GAME GLOSSARY",    blurb: "Terms you'll hear in rules discussions, deck building, and battle flow.", terms: gameTerms)
+                glossarySection(title: "TRADING GLOSSARY", blurb: "Community shorthand used in the Discord trade room, Whatnot streams, and eBay listings.", terms: tradingTerms)
+                donotUseSection
+            }
+            .padding(Design.Spacing.lg)
+            .padding(.bottom, Design.Spacing.xxl)
+        }
+    }
+
+    private func glossarySection(title: String, blurb: String, terms: [Term]) -> some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            Text(title)
+                .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+            Text(blurb)
+                .font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true).padding(.bottom, Design.Spacing.xs)
+            VStack(spacing: 1) {
+                ForEach(terms) { t in
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(t.term)
+                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                        Text(t.definition)
+                            .font(Design.Fonts.mono(12))
+                            .foregroundStyle(Design.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(Design.Spacing.md)
+                    .background(Design.Colors.surface)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+            .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+        }
+    }
+
+    // Explicit "do not use" list so the next author (human or AI) doesn't
+    // re-introduce hallucinated aliases flagged by the Discord audit.
+    private var donotUseSection: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            Text("DO NOT USE")
+                .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.bobaOrange).tracking(1.5)
+            Text("Terms that aren't community vernacular — they've appeared in earlier drafts or AI-generated copy but real players don't use them. Flag and replace on sight.")
+                .font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(spacing: 1) {
+                dontUseRow("Gold Leaf",       correctedTo: "Grandma's Linoleum Battlefoil (GLBF)")
+                dontUseRow("Radiant Battlefoil", correctedTo: "80's Rad Battlefoil (RAD)")
+                dontUseRow("Rarity Tiers",    correctedTo: "Parallels & Treatments (when describing foil print variants)")
+                dontUseRow("Initiative",      correctedTo: "Honors")
+                dontUseRow("First player",    correctedTo: "Honors")
+                dontUseRow("is based on",     correctedTo: "inspired by")
+                dontUseRow("represents",      correctedTo: "inspired by")
+            }
+            .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+            .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.bobaOrange.opacity(0.3), lineWidth: 1))
+        }
+    }
+
+    private func dontUseRow(_ bad: String, correctedTo good: String) -> some View {
+        HStack(alignment: .top, spacing: Design.Spacing.sm) {
+            Text(bad)
+                .font(Design.Fonts.mono(12, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaOrange)
+                .strikethrough()
+            Image(systemName: "arrow.right")
+                .font(.system(size: 10))
+                .foregroundStyle(Design.Colors.textMuted)
+                .padding(.top, 4)
+            Text(good)
+                .font(Design.Fonts.mono(12))
+                .foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.sm)
+        .background(Design.Colors.surface)
     }
 }
 

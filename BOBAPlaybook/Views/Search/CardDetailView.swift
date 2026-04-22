@@ -23,6 +23,7 @@ struct CardDetailView: View {
     @State private var showingAddSheet = false
     @State private var showingAddToDeck = false
     @State private var showingSignIn = false
+    @State private var showingDBSInfo = false
     /// Non-nil while a "Added to {deck}" toast should be visible. Cleared
     /// automatically after a short delay by the overlay's task.
     @State private var addedToDeckName: String?
@@ -239,6 +240,9 @@ struct CardDetailView: View {
             .sheet(isPresented: $showingModEdit) {
                 ModCardEditSheet(card: card)
             }
+            .sheet(isPresented: $showingDBSInfo) {
+                DBSInfoSheet()
+            }
             // Confirmation toast for "Added to {deck}". Rendered inside the
             // NavigationStack so it floats above the card art and info panel.
             .overlay(alignment: .top) {
@@ -419,6 +423,11 @@ struct CardDetailView: View {
                 if card.isPlay, let cost = card.playCost {
                     statCell(label: "Cost", value: cost == 0 ? "FREE" : "\(cost) Hot Dog\(cost == 1 ? "" : "s")",
                              color: cost == 0 ? Color(hex: "7ecb82") : Design.Colors.bobaCyan)
+                }
+                // DBS (Deck Balancing System) cell — Plays only. Tappable
+                // to open an info modal explaining the score and budget.
+                if card.isPlay, let dbs = card.dbs {
+                    dbsStatCell(dbs: dbs, tier: card.dbsTier)
                 }
                 statCell(label: "Set",      value: card.set)
                 statCell(label: "Type",     value: card.cardType)
@@ -780,6 +789,140 @@ struct CardDetailView: View {
             RoundedRectangle(cornerRadius: Design.Radius.sm)
                 .fill(Design.Colors.surface2)
         )
+    }
+
+    // DBS cell — same shape as statCell but tappable (opens explainer
+    // modal). Color-coded by tier so coaches can scan at a glance.
+    private func dbsStatCell(dbs: Int, tier: String?) -> some View {
+        Button {
+            showingDBSInfo = true
+        } label: {
+            HStack(alignment: .top, spacing: 4) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 4) {
+                        Text("DBS")
+                            .font(Design.Fonts.mono(8, weight: .bold))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .tracking(1.2)
+                        Image(systemName: "questionmark.circle")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                    }
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("\(dbs)")
+                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .foregroundStyle(dbsColor(for: tier))
+                        if let t = tier, !t.isEmpty {
+                            Text(t.uppercased())
+                                .font(Design.Fonts.mono(9, weight: .bold))
+                                .foregroundStyle(dbsColor(for: tier).opacity(0.85))
+                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .background(Capsule().fill(dbsColor(for: tier).opacity(0.15)))
+                        }
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(Design.Spacing.md)
+            .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: Design.Radius.sm)
+                    .fill(Design.Colors.surface2)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func dbsColor(for tier: String?) -> Color {
+        switch tier?.lowercased() {
+        case "low":       return Color(hex: "7ecb82")
+        case "medium":    return Design.Colors.bobaCyan
+        case "high":      return .yellow
+        case "very high": return Design.Colors.bobaOrange
+        default:          return Design.Colors.textSecondary
+        }
+    }
+}
+
+// MARK: - DBS Info Sheet
+// Presented from the DBS stat cell on Plays. Explains the scoring system
+// and its role in Nationals-style formats. Copy sourced from the
+// 2026-04-22 Discord terminology handoff §4.1.
+
+struct DBSInfoSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Design.Spacing.lg) {
+                    Text("What is DBS?")
+                        .font(Design.Fonts.display(22))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                    Text("The **Deck Balancing System** is a scoring system used in Nationals-style formats to keep high-powered plays from crowding out the rest of a deck.")
+                        .font(Design.Fonts.mono(14))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                    VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                        bullet("Every Play card has a DBS score.")
+                        bullet("Your deck's total DBS across all 30 Plays must be ≤ **1,000** in formats that enforce it.")
+                        bullet("High-DBS plays are individually powerful but force you to fill the rest of the deck with low-DBS plays to stay under budget.")
+                        bullet("Non-Nationals formats (Rookie, Substitution, Playmaker) ignore DBS entirely — it's only a constraint when a format opts in.")
+                    }
+                    Text("DBS tiers").font(Design.Fonts.display(16)).foregroundStyle(Design.Colors.textPrimary).padding(.top, Design.Spacing.sm)
+                    VStack(spacing: 1) {
+                        tierRow("Low",       "1–20",  Color(hex: "7ecb82"))
+                        tierRow("Medium",    "21–40", Design.Colors.bobaCyan)
+                        tierRow("High",      "41–60", .yellow)
+                        tierRow("Very High", "67+",   Design.Colors.bobaOrange)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+                    Text("The deck builder shows a running DBS total and warns you when you cross the budget — no mental math required.")
+                        .font(Design.Fonts.mono(12))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .padding(.top, Design.Spacing.xs)
+                }
+                .padding(Design.Spacing.lg)
+            }
+            .background(Design.Colors.nearBlack)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .font(Design.Fonts.mono(14, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                }
+            }
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+        }
+    }
+
+    private func bullet(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: Design.Spacing.xs) {
+            Text("•")
+                .font(Design.Fonts.mono(14, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaOrange)
+            Text(.init(text))
+                .font(Design.Fonts.mono(13))
+                .foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func tierRow(_ label: String, _ range: String, _ color: Color) -> some View {
+        HStack {
+            Text(label)
+                .font(Design.Fonts.mono(13, weight: .bold))
+                .foregroundStyle(color)
+            Spacer()
+            Text(range)
+                .font(Design.Fonts.mono(12))
+                .foregroundStyle(Design.Colors.textSecondary)
+        }
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.sm)
+        .background(Design.Colors.surface)
     }
 }
 

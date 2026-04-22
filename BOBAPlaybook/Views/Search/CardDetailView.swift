@@ -21,6 +21,8 @@ struct CardDetailView: View {
     @GestureState private var dragDelta: CGSize = .zero
     @GestureState private var pinchDelta: CGFloat = 1.0
     @State private var showingAddSheet = false
+    @State private var showingAddDialog = false
+    @State private var showingDeckBuilder = false
     @State private var showingSignIn = false
     @State private var showSealedEbay = false
     @State private var showSealedRadish = false
@@ -127,7 +129,7 @@ struct CardDetailView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        if auth.isAuthenticated { showingAddSheet = true }
+                        if auth.isAuthenticated { showingAddDialog = true }
                         else { showingSignIn = true }
                     } label: {
                         Image(systemName: collectionStatusIcon ?? "plus.circle.fill")
@@ -198,6 +200,23 @@ struct CardDetailView: View {
             .toolbarBackground(navIndex >= 0 ? .visible : .hidden, for: .bottomBar)
             .sheet(isPresented: $showingAddSheet) {
                 AddToCollectionSheet(card: card)
+            }
+            .sheet(isPresented: $showingDeckBuilder) {
+                DeckBuilderView(pendingCard: card)
+                    .environment(cardStore)
+            }
+            .confirmationDialog("Add \(card.name)",
+                                isPresented: $showingAddDialog,
+                                titleVisibility: .visible) {
+                Button("To Collection") { showingAddSheet = true }
+                // Only heroes / plays / hot dogs are deck-buildable. Sealed
+                // products go straight to the collection sheet.
+                if card.isHero || card.isPlay || card.isHotDog {
+                    Button("To Custom Deck") { showingDeckBuilder = true }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Where does this card go?")
             }
             .sheet(isPresented: $showingSignIn) {
                 SignInView()

@@ -13,6 +13,11 @@ import SwiftUI
 // ════════════════════════════════════════════════════════════════
 
 struct DeckBuilderView: View {
+    /// Optional card to add to the deck as soon as the builder opens —
+    /// lets the "Add to Custom Deck" flow from CardDetailView seed the
+    /// deck builder with the card the coach tapped.
+    let pendingCard: Card?
+
     @Environment(CardStore.self) private var cardStore
     @State private var store = DeckBuilderStore()
     @State private var showTemplates = true
@@ -21,6 +26,11 @@ struct DeckBuilderView: View {
     @State private var showRulesSheet = false
     @AppStorage("bp_deckBuilderTutorialSeen_v1") private var deckTutorialSeen = false
     @State private var showDeckTutorial = false
+    @State private var pendingCardAddedBanner: String?
+
+    init(pendingCard: Card? = nil) {
+        self.pendingCard = pendingCard
+    }
     @State private var quickAdd = false
     @State private var selectedBrowserCard: Card? = nil
     @State private var elementFilter = ""
@@ -129,6 +139,42 @@ struct DeckBuilderView: View {
             if store.heroes.isEmpty && store.plays.isEmpty && store.hotDogs.isEmpty {
                 let restored = store.restoreDraft(allCards: cardStore.displayCards)
                 if restored { showTemplates = false }
+            }
+            // "Add to Custom Deck" flow from CardDetailView: drop the tapped
+            // card into its appropriate role so the coach lands in the builder
+            // with their card already in the deck.
+            if let card = pendingCard {
+                let role: DeckCardRole = card.isHero ? .hero
+                                      : card.isHotDog ? .hotDog
+                                      : (card.isBonusPlay == true ? .bonusPlay : .play)
+                store.addCard(card, role: role)
+                showTemplates = false
+                withAnimation(.easeOut(duration: 0.25)) {
+                    pendingCardAddedBanner = "Added \(card.name) to your deck"
+                }
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(2))
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        pendingCardAddedBanner = nil
+                    }
+                }
+            }
+        }
+        .overlay(alignment: .top) {
+            if let msg = pendingCardAddedBanner {
+                HStack(spacing: Design.Spacing.sm) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color(hex: "4CAF50"))
+                    Text(msg)
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                }
+                .padding(.horizontal, Design.Spacing.md)
+                .padding(.vertical, Design.Spacing.sm)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(hex: "4CAF50").opacity(0.4), lineWidth: 1))
+                .padding(.top, 50)
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         // Fire the walkthrough AFTER the template splash dismisses — otherwise

@@ -283,6 +283,64 @@ struct CardDetailView: View {
         }
     }
 
+    // MARK: - Format eligibility pill row
+    // Single-line scroll of format pills, each color-coded by verdict.
+    // Hot-wired to `CardFormatEligibility` so rule changes propagate
+    // through the data model, not through re-authoring this view.
+    private var formatEligibilityRow: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+            Text("FORMAT LEGALITY")
+                .font(Design.Fonts.mono(9, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+                .tracking(1.5)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Design.Spacing.xs) {
+                    ForEach(CardFormatEligibility.surfaceFormats, id: \.self) { fmt in
+                        let v = CardFormatEligibility.verdict(card: card, format: fmt)
+                        formatPill(fmt: fmt, verdict: v)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func formatPill(fmt: DeckFormat, verdict: CardFormatEligibility.Verdict) -> some View {
+        let color = pillColor(verdict)
+        HStack(spacing: 5) {
+            Image(systemName: verdict.symbol)
+                .font(.system(size: 10, weight: .bold))
+            Text(shortFormatLabel(fmt))
+                .font(Design.Fonts.mono(11, weight: .bold))
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 9)
+        .frame(height: 26)
+        .background(Capsule().fill(color.opacity(0.12)))
+        .overlay(Capsule().strokeBorder(color.opacity(0.45), lineWidth: 1))
+    }
+
+    private func pillColor(_ v: CardFormatEligibility.Verdict) -> Color {
+        switch v {
+        case .legal:         return Color(hex: "4CAF50")
+        case .warning:       return Design.Colors.bobaOrange
+        case .banned:        return Color(hex: "E53935")
+        case .notApplicable: return Design.Colors.textMuted
+        }
+    }
+
+    private func shortFormatLabel(_ fmt: DeckFormat) -> String {
+        switch fmt {
+        case .playmaker: return "Apex"
+        case .spec:      return "Spec"
+        case .specPlus:  return "Spec+"
+        case .elite:     return "Elite"
+        case .limited:   return "Limited"
+        case .rookie:    return "Rookie"
+        case .substitution: return "Sub"
+        }
+    }
+
     // MARK: - Art panel
     private var artPanel: some View {
         ZStack {
@@ -438,6 +496,13 @@ struct CardDetailView: View {
                     statCell(label: "Sub-set", value: sub)
                 }
 
+            }
+
+            // Format-eligibility pills — the #1 rules question in the
+            // Discord corpus is "is this legal in {format}?". Skip for
+            // sealed (never deckable).
+            if !card.isSealed {
+                formatEligibilityRow
             }
 
             // Play ability

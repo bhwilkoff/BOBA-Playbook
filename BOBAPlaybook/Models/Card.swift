@@ -14,7 +14,10 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
     let power: Int?
     let playCost: Int?
     let isBonusPlay: Bool?
+    let isHTD: Bool?                  // Play cards only — marks "Home Team Discount" HTD variants
     let playAbility: String?
+    let dbs: Int?                     // Deck Balancing System score (Plays only, nil for Heroes/HotDogs/Sealed)
+    let dbsTier: String?              // "Low" | "Medium" | "High" | "Very High" (Plays only)
     let athleteInspiration: String?
     let isInspiredInk: Bool
     let imageFile: String?
@@ -108,7 +111,10 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
             playCost = nil
         }
         isBonusPlay        = try c.decodeIfPresent(Bool.self,       forKey: .isBonusPlay)
+        isHTD              = try c.decodeIfPresent(Bool.self,       forKey: .isHTD)
         playAbility        = try c.decodeIfPresent(String.self,    forKey: .playAbility)
+        dbs                = try c.decodeIfPresent(Int.self,       forKey: .dbs)
+        dbsTier            = try c.decodeIfPresent(String.self,    forKey: .dbsTier)
         athleteInspiration = try c.decodeIfPresent(String.self,    forKey: .athleteInspiration)
         isInspiredInk      = try c.decodeIfPresent(Bool.self,      forKey: .isInspiredInk) ?? false
         let file           = try c.decodeIfPresent(String.self,    forKey: .imageFile)

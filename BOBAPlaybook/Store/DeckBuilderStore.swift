@@ -26,7 +26,12 @@ enum DeckFormat: String, CaseIterable, Identifiable, Codable {
     var needsHotDogs: Bool { self != .rookie }
     var needsPlaybook: Bool { self != .rookie && self != .substitution }
     var enforcesPowerCap: Bool { self == .spec }
-    var enforcesDBS: Bool { self == .spec }
+    // Per 2026 Nationals PDF: all Playmaker divisions (Apex/Spec/Elite/SPEC+)
+    // share the same 1,000 DBS budget. Today's model doesn't have Apex/Elite/SPEC+
+    // yet (see Phase 3 of COWORK_DBS_NATIONALS_AUDIT.md), so for now DBS is
+    // enforced on both `playmaker` and `spec`.
+    var enforcesDBS: Bool { self == .spec || self == .playmaker }
+    var dbsBudget: Int { 1_000 }
     var hasSideboard: Bool { self == .spec }
     var powerCap: Int { 160 }
 
@@ -121,8 +126,24 @@ final class DeckBuilderStore {
     var heroPowerMin: Int? { heroes.compactMap { $0.power }.min() }
     var heroPowerMax: Int? { heroes.compactMap { $0.power }.max() }
 
-    // Note: dbs field not yet in Card model; returns 0 until field is added.
-    var totalDBS: Int { 0 }
+    /// Total DBS across the Playbook (main + bonus plays). Budget is 1,000
+    /// for all Playmaker divisions per the 2026 Nationals ruleset.
+    var totalDBS: Int {
+        var total = 0
+        for card in plays { total += (card.dbs ?? 0) }
+        for card in bonusPlays { total += (card.dbs ?? 0) }
+        return total
+    }
+
+    /// DBS-per-tier breakdown for the Playbook (main + bonus). Nil values skipped.
+    var dbsTierCounts: [String: Int] {
+        var buckets: [String: Int] = [:]
+        for c in plays + bonusPlays {
+            guard let t = c.dbsTier else { continue }
+            buckets[t, default: 0] += 1
+        }
+        return buckets
+    }
 
     var isHeroSectionComplete: Bool {
         heroes.count == format.heroTarget
@@ -193,6 +214,14 @@ final class DeckBuilderStore {
                     errors.append(.init(section: .play, message: "Duplicate play name: \(name)"))
                 }
                 playNames.insert(name)
+            }
+        }
+
+        // DBS budget (Playmaker divisions only)
+        if format.enforcesDBS && format.needsPlaybook && !plays.isEmpty {
+            let over = totalDBS - format.dbsBudget
+            if over > 0 {
+                errors.append(.init(section: .play, message: "Playbook over DBS budget: \(totalDBS)/\(format.dbsBudget) — reduce by \(over)"))
             }
         }
 

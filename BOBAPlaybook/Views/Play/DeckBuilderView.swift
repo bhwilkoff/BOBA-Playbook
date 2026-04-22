@@ -19,6 +19,8 @@ struct DeckBuilderView: View {
     @State private var showDeckManagement = false
     @State private var showDeckList = false
     @State private var showRulesSheet = false
+    @AppStorage("bp_deckBuilderTutorialSeen_v1") private var deckTutorialSeen = false
+    @State private var showDeckTutorial = false
     @State private var quickAdd = false
     @State private var selectedBrowserCard: Card? = nil
     @State private var elementFilter = ""
@@ -30,6 +32,7 @@ struct DeckBuilderView: View {
                 // Format picker + Stats bar
                 HStack {
                     formatPicker
+                        .deckBuilderTutorialTarget(.formatPicker)
                     Spacer()
                 }
                 .padding(.horizontal, Design.Spacing.md)
@@ -44,8 +47,8 @@ struct DeckBuilderView: View {
                     templateGallery
                 } else {
                     HSplitOrVStack {
-                        cardBrowser
-                        deckPanel
+                        cardBrowser.deckBuilderTutorialTarget(.browser)
+                        deckPanel.deckBuilderTutorialTarget(.deckList)
                     }
                 }
             }
@@ -61,6 +64,7 @@ struct DeckBuilderView: View {
                             .font(.system(size: 20))
                             .foregroundStyle(Design.Colors.bobaCyan)
                     }
+                    .deckBuilderTutorialTarget(.deckMenu)
                 }
                 ToolbarItem(placement: .principal) {
                     Text("DECK BUILDER")
@@ -81,6 +85,7 @@ struct DeckBuilderView: View {
                                                  : Design.Colors.bobaCyan)
                         }
                         .accessibilityLabel("Deck rules")
+                        .deckBuilderTutorialTarget(.rulesButton)
                         Button("Done") { dismiss() }
                             .font(Design.Fonts.mono(13, weight: .bold))
                             .foregroundStyle(Design.Colors.bobaOrange)
@@ -89,6 +94,24 @@ struct DeckBuilderView: View {
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+        }
+        .overlayPreferenceValue(DeckBuilderAnchorKey.self) { anchors in
+            if showDeckTutorial {
+                GeometryReader { proxy in
+                    let frames: [DeckBuilderTutorialTarget: CGRect] = anchors.reduce(into: [:]) { acc, pair in
+                        acc[pair.key] = proxy[pair.value]
+                    }
+                    DeckBuilderTutorialOverlay(
+                        targetFrames: frames,
+                        containerSize: proxy.size
+                    ) {
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            deckTutorialSeen = true
+                            showDeckTutorial = false
+                        }
+                    }
+                }
+            }
         }
         .sheet(isPresented: $showDeckManagement) {
             DeckManagementSheet(store: store, cards: cardStore.displayCards)
@@ -106,6 +129,16 @@ struct DeckBuilderView: View {
             if store.heroes.isEmpty && store.plays.isEmpty && store.hotDogs.isEmpty {
                 let restored = store.restoreDraft(allCards: cardStore.displayCards)
                 if restored { showTemplates = false }
+            }
+        }
+        // Fire the walkthrough AFTER the template splash dismisses — otherwise
+        // steps for the card browser + deck list have no anchors yet.
+        .onChange(of: showTemplates) { _, newValue in
+            if !newValue && !deckTutorialSeen {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(500))
+                    showDeckTutorial = true
+                }
             }
         }
         .onDisappear {

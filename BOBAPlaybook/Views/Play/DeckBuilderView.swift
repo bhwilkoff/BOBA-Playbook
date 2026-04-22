@@ -18,6 +18,7 @@ struct DeckBuilderView: View {
     @State private var showTemplates = true
     @State private var showDeckManagement = false
     @State private var showDeckList = false
+    @State private var showRulesSheet = false
     @State private var quickAdd = false
     @State private var selectedBrowserCard: Card? = nil
     @State private var elementFilter = ""
@@ -67,9 +68,23 @@ struct DeckBuilderView: View {
                         .foregroundStyle(Design.Colors.textPrimary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .font(Design.Fonts.mono(13, weight: .bold))
-                        .foregroundStyle(Design.Colors.bobaOrange)
+                    HStack(spacing: Design.Spacing.md) {
+                        Button {
+                            showRulesSheet = true
+                        } label: {
+                            Image(systemName: store.ruleOverrides.hasAnyUserOverride
+                                  ? "list.bullet.rectangle.fill"
+                                  : "list.bullet.rectangle")
+                                .font(.system(size: 18))
+                                .foregroundStyle(store.ruleOverrides.hasAnyUserOverride
+                                                 ? Design.Colors.bobaOrange
+                                                 : Design.Colors.bobaCyan)
+                        }
+                        .accessibilityLabel("Deck rules")
+                        Button("Done") { dismiss() }
+                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                    }
                 }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
@@ -77,6 +92,9 @@ struct DeckBuilderView: View {
         }
         .sheet(isPresented: $showDeckManagement) {
             DeckManagementSheet(store: store, cards: cardStore.displayCards)
+        }
+        .sheet(isPresented: $showRulesSheet) {
+            DeckRulesSheet(store: store)
         }
         .sheet(item: $selectedBrowserCard) { card in
             BrowserCardDetailSheet(card: card, store: store, tab: store.browserTab)
@@ -121,11 +139,11 @@ struct DeckBuilderView: View {
                     if !store.bonusPlays.isEmpty {
                         statChip(label: "BONUS", value: "+\(store.bonusPlays.count)", ok: true)
                     }
-                    if store.format.enforcesDBS {
+                    if store.effectiveEnforceDBS {
                         statChip(
                             label: "DBS",
-                            value: "\(store.totalDBS)/\(store.format.dbsBudget)",
-                            ok: store.totalDBS <= store.format.dbsBudget
+                            value: "\(store.totalDBS)/\(store.effectiveDBSBudget)",
+                            ok: store.totalDBS <= store.effectiveDBSBudget
                         )
                     }
                 }

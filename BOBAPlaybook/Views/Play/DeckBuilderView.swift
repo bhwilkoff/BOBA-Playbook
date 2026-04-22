@@ -217,21 +217,16 @@ struct DeckBuilderView: View {
                 }
             }
         }
-        // Auto-open the legality report after a successful CSV import. The
-        // DeckManagementSheet sets `pendingLegalityAudit = true` in its
-        // import handler and then dismisses itself; we observe the flag
-        // here and open the report on the next runloop tick. Also expand
-        // the deck list and hide the splash so the freshly imported cards
-        // are actually visible behind the report.
-        .onChange(of: store.pendingLegalityAudit) { _, newValue in
+        // After a successful CSV import, drop the template splash and
+        // expand the deck list so the newly imported cards are visible
+        // when the management sheet dismisses. We intentionally do NOT
+        // auto-open the legality report — coaches can tap the legality
+        // button in the toolbar when they want to see that verdict.
+        .onChange(of: store.pendingImportReveal) { _, newValue in
             if newValue {
                 showTemplates = false
                 showDeckList = true
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(350))
-                    showLegalityReport = true
-                    store.pendingLegalityAudit = false
-                }
+                store.pendingImportReveal = false
             }
         }
         .onDisappear {
@@ -1301,12 +1296,12 @@ private struct DeckManagementSheet: View {
                     msg += " · \(res.unresolved.count) unresolved"
                 }
                 importBanner = msg
-                // Flag the parent DeckBuilderView to auto-open the legality
-                // report once this sheet dismisses — tells the coach at a
-                // glance which events the imported deck qualifies for. The
-                // parent also expands its deck list so the imported cards
-                // are immediately visible behind the report.
-                store.pendingLegalityAudit = true
+                // Tell the parent to drop its template splash and expand
+                // the deck list so the imported cards are immediately
+                // visible when this sheet dismisses. The legality report
+                // does NOT auto-open here — coaches can tap the legality
+                // button in the builder toolbar when they want it.
+                store.pendingImportReveal = true
                 // Auto-dismiss this sheet so the coach lands back on the
                 // builder with their cards visible.
                 Task {

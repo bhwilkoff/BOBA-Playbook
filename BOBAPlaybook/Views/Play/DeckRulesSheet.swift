@@ -307,6 +307,13 @@ struct DeckRulesSheet: View {
                     }
                 }
                 .tint(Design.Colors.bobaOrange)
+
+                // Custom DBS budget — only meaningful when the budget is
+                // actually being enforced. Shows format's default (1,000)
+                // as placeholder; nil override = defer to format.
+                if store.effectiveEnforceDBS {
+                    dbsBudgetField
+                }
             }
         } header: {
             Text("Optional Rule Toggles")
@@ -314,6 +321,54 @@ struct DeckRulesSheet: View {
                 .foregroundStyle(Design.Colors.bobaCyan)
         }
         .listRowBackground(Design.Colors.surface)
+    }
+
+    // Custom DBS budget — surfaces `ruleOverrides.dbsBudgetOverride`.
+    // Segmented preset picker for the common event budgets, plus a
+    // free-form numeric field for custom coach-set budgets. The store
+    // already reads dbsBudgetOverride ?? format.dbsBudget when computing
+    // the effective cap, so no deckvalidator changes are needed.
+    private var dbsBudgetField: some View {
+        let defaultBudget = store.format.dbsBudget
+        let effective = store.ruleOverrides.dbsBudgetOverride ?? defaultBudget
+        let presets: [Int] = [500, 750, 1_000, 1_250, 1_500]
+        let presetBinding = Binding<Int>(
+            get: { store.ruleOverrides.dbsBudgetOverride ?? defaultBudget },
+            set: { new in
+                store.ruleOverrides.dbsBudgetOverride = (new == defaultBudget) ? nil : new
+            }
+        )
+        return VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+            HStack {
+                Text("DBS budget")
+                    .font(Design.Fonts.mono(13, weight: .bold))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                Spacer()
+                Text("\(effective)")
+                    .font(Design.Fonts.mono(13, weight: .bold))
+                    .foregroundStyle(store.ruleOverrides.dbsBudgetOverride == nil
+                                     ? Design.Colors.textMuted
+                                     : Design.Colors.bobaOrange)
+            }
+            Text("Default for \(store.format.displayName): \(defaultBudget). Override for house-rule events.")
+                .font(Design.Fonts.mono(11))
+                .foregroundStyle(Design.Colors.textMuted)
+            Picker("DBS budget", selection: presetBinding) {
+                ForEach(presets, id: \.self) { v in
+                    Text("\(v)").tag(v)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.top, 4)
+            if store.ruleOverrides.dbsBudgetOverride != nil {
+                Button("Reset to \(defaultBudget)") {
+                    store.ruleOverrides.dbsBudgetOverride = nil
+                }
+                .font(Design.Fonts.mono(11))
+                .foregroundStyle(Design.Colors.bobaCyan)
+                .padding(.top, 2)
+            }
+        }
     }
 
     private var perPowerPicker: some View {

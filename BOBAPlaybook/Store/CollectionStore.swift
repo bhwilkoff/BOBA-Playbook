@@ -205,7 +205,14 @@ final class CollectionStore {
                 estimatedValue: pricing.average,
                 lastPriceCheck: Date()
             )
-            for entry in entries(for: cardNumber) {
+            // Only stamp estimated_value on entries the user owns. Wanted
+            // / grails cards aren't in the collection yet — showing them
+            // a market value is fine at the card-detail level, but we
+            // don't want to persist per-entry pricing on wishlist rows
+            // that could later feel like they count toward collection
+            // value. The aggregates already filter by isOwned; this keeps
+            // the stored data consistent with the intent.
+            for entry in entries(for: cardNumber) where entry.designation.isOwned {
                 try await updateCard(id: entry.id, fields: fields)
             }
         } catch {

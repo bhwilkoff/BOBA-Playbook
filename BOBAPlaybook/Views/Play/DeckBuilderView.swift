@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers   // UTType.commaSeparatedText / .plainText for .fileImporter
 
 // ════════════════════════════════════════════════════════════════
 // MARK: - DeckBuilderView

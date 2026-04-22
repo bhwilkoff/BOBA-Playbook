@@ -3890,7 +3890,9 @@
     },
     "Hello Boys!": {
       "count": 1,
-      "athletes": [],
+      "athletes": [
+        "N/A"
+      ],
       "bobaIds": [
         "ALT-1-Hello Boys!-Billy Cameo Alt Arts-Randy Quaid (Co-Starring Billy)"
       ]
@@ -4253,7 +4255,9 @@
     },
     "Johnny Heckler": {
       "count": 1,
-      "athletes": [],
+      "athletes": [
+        "N/A"
+      ],
       "bobaIds": [
         "ALT-3-Johnny Heckler-Billy Cameo Alt Arts-Randy Quaid (Co-Starring Billy)"
       ]
@@ -5628,7 +5632,9 @@
     },
     "Sensei": {
       "count": 1,
-      "athletes": [],
+      "athletes": [
+        "N/A"
+      ],
       "bobaIds": [
         "ALT-5-Sensei-Billy Cameo Alt Arts-Billy BOBA KAI"
       ]

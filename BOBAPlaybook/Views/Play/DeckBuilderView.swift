@@ -18,6 +18,12 @@ struct DeckBuilderView: View {
     /// deck builder with the card the coach tapped.
     let pendingCard: Card?
 
+    /// True when the view is presented as a tab root (no sheet chrome).
+    /// Hides the Done button since there's nothing to dismiss; swaps the
+    /// centered "DECK BUILDER" for the BOBA wordmark so tab-level views
+    /// have a consistent header.
+    var isRootView: Bool = false
+
     @Environment(CardStore.self) private var cardStore
     @State private var store = DeckBuilderStore()
     @State private var showTemplates = true
@@ -29,8 +35,9 @@ struct DeckBuilderView: View {
     @State private var pendingCardAddedBanner: String?
     @State private var showLegalityReport = false
 
-    init(pendingCard: Card? = nil) {
+    init(pendingCard: Card? = nil, isRootView: Bool = false) {
         self.pendingCard = pendingCard
+        self.isRootView = isRootView
     }
     @State private var quickAdd = false
     @State private var selectedBrowserCard: Card? = nil
@@ -78,9 +85,13 @@ struct DeckBuilderView: View {
                     .deckBuilderTutorialTarget(.deckMenu)
                 }
                 ToolbarItem(placement: .principal) {
-                    Text("DECK BUILDER")
-                        .font(Design.Fonts.display(18))
-                        .foregroundStyle(Design.Colors.textPrimary)
+                    if isRootView {
+                        BOBAWordmark()
+                    } else {
+                        Text("DECK BUILDER")
+                            .font(Design.Fonts.display(18))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: Design.Spacing.md) {

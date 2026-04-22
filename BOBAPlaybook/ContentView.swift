@@ -9,25 +9,28 @@ struct ContentView: View {
     @Binding var selectedTab: Int
 
     var body: some View {
+        // Nav refactor: 5 tabs — Find, Learn, Play, Decks, Collection.
+        // Scan moved into the Find tab's search bar (right-edge button).
+        // Profile moved to a toolbar icon on the Find tab (left of wordmark).
         TabView(selection: $selectedTab) {
             SearchView()
-                .tabItem { Label("Search", systemImage: "magnifyingglass") }
+                .tabItem { Label("Find", systemImage: "magnifyingglass") }
                 .tag(0)
 
-            ScanView()
-                .tabItem { Label("Scan", systemImage: "camera.viewfinder") }
+            LearnView()
+                .tabItem { Label("Learn", systemImage: "book.pages.fill") }
                 .tag(1)
 
             PlayView()
                 .tabItem { Label("Play", systemImage: "bolt.square.fill") }
                 .tag(2)
 
-            CollectionView()
-                .tabItem { Label("Collection", systemImage: "square.grid.2x2") }
+            DecksView()
+                .tabItem { Label("Decks", systemImage: "rectangle.stack.badge.plus") }
                 .tag(3)
 
-            ProfileView()
-                .tabItem { Label("Profile", systemImage: "person") }
+            CollectionView()
+                .tabItem { Label("Collection", systemImage: "square.grid.2x2") }
                 .tag(4)
         }
         .tint(Design.Colors.bobaOrange)

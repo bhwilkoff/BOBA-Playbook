@@ -7,6 +7,7 @@ struct ProfileView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(CollectionStore.self) private var collection
     @Environment(CardStore.self) private var cardStore
+    @Environment(\.dismiss) private var dismiss
     @State private var showingSignIn = false
     @State private var showingSignOutConfirm = false
     @State private var isRecalculating = false
@@ -27,6 +28,13 @@ struct ProfileView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     BOBAWordmark()
+                }
+                // Presented as a sheet from the Find tab since the nav
+                // refactor — surface a Done button so coaches can close it.
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .font(Design.Fonts.mono(13, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
                 }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)

@@ -8,6 +8,10 @@
 import SwiftUI
 
 struct PracticeSetupView: View {
+    /// True when this view is presented as a tab root (no sheet chrome).
+    /// Hides the Cancel button since there's nothing to dismiss.
+    var isRootView: Bool = false
+
     @Environment(CardStore.self) private var cardStore
     @State private var store = PracticeStore()
     @State private var showPlaymat = false
@@ -88,13 +92,19 @@ struct PracticeSetupView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("PRACTICE BATTLE")
-                        .font(Design.Fonts.display(18))
-                        .foregroundStyle(Design.Colors.textPrimary)
+                    if isRootView {
+                        BOBAWordmark()
+                    } else {
+                        Text("PRACTICE BATTLE")
+                            .font(Design.Fonts.display(18))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                    }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundStyle(Design.Colors.textSecondary)
+                if !isRootView {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Cancel") { dismiss() }
+                            .foregroundStyle(Design.Colors.textSecondary)
+                    }
                 }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)

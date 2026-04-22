@@ -194,7 +194,12 @@ header { flex-shrink: 0; position: relative; }
 
 ## Navigation
 
-**iOS tabs:** Search · Scan · Play · Collection · Profile
+**iOS tabs:** Find · Learn · Play · Decks · Collection
+- **Find** — card search (formerly "Search"). Scan shortcut lives inside the search bar (right edge). Profile opens as a sheet from a toolbar icon (left of the BOBA wordmark).
+- **Learn** — rules, strategy, browse-by-athlete lists, collecting guide, tournament reference (formerly the main content of the Play tab).
+- **Play** — practice battle setup/playmat (formerly a toolbar button inside Play).
+- **Decks** — deck builder (formerly a toolbar button inside Play).
+- **Collection** — unchanged.
 
 **Web sidebar:** Search Cards · Play · My Collection · Profile
 

@@ -220,9 +220,13 @@ struct DeckBuilderView: View {
         // Auto-open the legality report after a successful CSV import. The
         // DeckManagementSheet sets `pendingLegalityAudit = true` in its
         // import handler and then dismisses itself; we observe the flag
-        // here and open the report on the next runloop tick.
+        // here and open the report on the next runloop tick. Also expand
+        // the deck list and hide the splash so the freshly imported cards
+        // are actually visible behind the report.
         .onChange(of: store.pendingLegalityAudit) { _, newValue in
             if newValue {
+                showTemplates = false
+                showDeckList = true
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(350))
                     showLegalityReport = true
@@ -1299,9 +1303,17 @@ private struct DeckManagementSheet: View {
                 importBanner = msg
                 // Flag the parent DeckBuilderView to auto-open the legality
                 // report once this sheet dismisses — tells the coach at a
-                // glance which events the imported deck qualifies for.
+                // glance which events the imported deck qualifies for. The
+                // parent also expands its deck list so the imported cards
+                // are immediately visible behind the report.
                 store.pendingLegalityAudit = true
-                Task { try? await Task.sleep(nanoseconds: 3_500_000_000); importBanner = nil }
+                // Auto-dismiss this sheet so the coach lands back on the
+                // builder with their cards visible.
+                Task {
+                    try? await Task.sleep(nanoseconds: 900_000_000)   // ~0.9s — long enough to read the banner
+                    importBanner = nil
+                    dismiss()
+                }
             case .failure(let err):
                 importBanner = "Import failed: \(err.localizedDescription)"
             }

@@ -34,18 +34,61 @@ const DB = {
   deckName: 'New Deck',
   quickAdd: false,       // false = interactive popup mode (default); true = instant add
 
-  // Format rules
+  // Active preset (matches iOS DeckBuilderStore.activePresetID).
+  // Null = building under raw format defaults without a named preset.
+  activePresetID: null,
+
+  // User-toggleable rules layered on top of the format's defaults.
+  // Mirrors iOS DeckRuleOverrides. Any non-default value here drives the
+  // "Custom Rule Set" indicator in the rules sheet.
+  ruleOverrides: {
+    perHeroNameLimit: null,      // null = unlimited (2026 PDF default). 6 = legacy rule.
+    perPowerLimit: null,         // null defers to format.perPowerDefault. Blast uses 3.
+    disablePerPowerLimit: false, // sandbox mode
+    enforceDBS: null,            // null defers to format.enforcesDBS
+    dbsBudgetOverride: null,     // null defers to format.dbsBudget
+    bonusPlaysEnabled: true,
+    htdPlaysEnabled: true,
+  },
+
+  // Format rules per the 2026 BoBA National Events DRAFT PDF. Each entry
+  // declares the hero-deck shape + playbook/hotdog needs + DBS behaviour.
+  // The `sealed` legacy entry is kept for back-compat with old saved decks.
   formats: {
-    rookie:       { heroTarget: 60, playsTarget: 30, needsHD: false, needsPlays: false, powerCap: null,  totalPowerCap: null  },
-    substitution: { heroTarget: 60, playsTarget: 30, needsHD: true,  needsPlays: false, powerCap: null,  totalPowerCap: null  },
-    playmaker:    { heroTarget: 60, playsTarget: 30, needsHD: true,  needsPlays: true,  powerCap: null,  totalPowerCap: null  },
-    spec:         { heroTarget: 60, playsTarget: 30, needsHD: true,  needsPlays: true,  powerCap: 160,   totalPowerCap: null  },
-    elite:        { heroTarget: 60, playsTarget: 30, needsHD: true,  needsPlays: true,  powerCap: null,  totalPowerCap: 8250  },
-    sealed:       { heroTarget: 40, playsTarget: 20, needsHD: true,  needsPlays: true,  powerCap: null,  totalPowerCap: null  },
+    rookie:       { heroMin: 60, heroMax: 60, playsTarget: 30, needsHD: false, needsPlays: false, powerCap: null, absMaxPower: null, totalPowerCap: null, specPlusTiers: null, perPowerDefault: 6, bannedCardTypes: [], enforcesDBS: false, dbsBudget: 1000 },
+    substitution: { heroMin: 60, heroMax: 60, playsTarget: 30, needsHD: true,  needsPlays: false, powerCap: null, absMaxPower: null, totalPowerCap: null, specPlusTiers: null, perPowerDefault: 6, bannedCardTypes: [], enforcesDBS: false, dbsBudget: 1000 },
+    playmaker:    { heroMin: 60, heroMax: 60, playsTarget: 30, needsHD: true,  needsPlays: true,  powerCap: null, absMaxPower: null, totalPowerCap: null, specPlusTiers: null, perPowerDefault: 6, bannedCardTypes: [], enforcesDBS: true,  dbsBudget: 1000 },
+    spec:         { heroMin: 60, heroMax: 60, playsTarget: 30, needsHD: true,  needsPlays: true,  powerCap: 160,  absMaxPower: null, totalPowerCap: null, specPlusTiers: null, perPowerDefault: 6, bannedCardTypes: [], enforcesDBS: true,  dbsBudget: 1000 },
+    elite:        { heroMin: 60, heroMax: 60, playsTarget: 30, needsHD: true,  needsPlays: true,  powerCap: null, absMaxPower: null, totalPowerCap: 8250, specPlusTiers: null, perPowerDefault: 6, bannedCardTypes: ['Trainer'], enforcesDBS: true, dbsBudget: 1000 },
+    specPlus:     { heroMin: 60, heroMax: 70, playsTarget: 30, needsHD: true,  needsPlays: true,  powerCap: 160,  absMaxPower: 200,
+                    totalPowerCap: null,
+                    specPlusTiers: { 165: 2, 170: 2, 175: 1, 180: 1, 185: 1, 190: 1, 195: 1, 200: 1 },
+                    perPowerDefault: 6, bannedCardTypes: [], enforcesDBS: true,  dbsBudget: 1000 },
+    sealed:       { heroMin: 40, heroMax: 40, playsTarget: 20, needsHD: true,  needsPlays: true,  powerCap: null, absMaxPower: null, totalPowerCap: null, specPlusTiers: null, perPowerDefault: 6, bannedCardTypes: [], enforcesDBS: false, dbsBudget: 1000 },
   },
 
   get currentFormat() { return this.formats[this.format]; },
   get allCards() { return this.heroes.concat(this.plays, this.bonusPlays, this.hotDogs); },
+
+  // ── Effective rule getters (merge format defaults with user overrides) ──
+  get effectivePerPowerLimit() {
+    if (this.ruleOverrides.disablePerPowerLimit) return null;
+    return this.ruleOverrides.perPowerLimit ?? this.currentFormat.perPowerDefault;
+  },
+  get effectiveEnforceDBS() {
+    return this.ruleOverrides.enforceDBS ?? this.currentFormat.enforcesDBS;
+  },
+  get effectiveDBSBudget() {
+    return this.ruleOverrides.dbsBudgetOverride ?? this.currentFormat.dbsBudget;
+  },
+
+  // ── DBS totals (Play + Bonus Play printings carry card.dbs + card.dbsTier) ──
+  get totalDBS() {
+    let t = 0;
+    for (const c of this.plays)      t += (c.dbs || 0);
+    for (const c of this.bonusPlays) t += (c.dbs || 0);
+    return t;
+  },
 
   isInDeck(card) {
     return this.heroes.some(c => c.bobaId === card.bobaId)
@@ -73,13 +116,88 @@ const DB = {
   },
 
   wouldHeroViolate(card) {
+    const fmt = this.currentFormat;
+    // Exact-variation uniqueness (the "one of" rule that survived 2026)
     if (this.heroes.some(c => c.bobaId === card.bobaId)) return true;
+    // Banned types (Elite: Trainer)
+    if (fmt.bannedCardTypes.includes(card.cardType)) return true;
     const pv = this.powerValueCounts();
-    if ((pv[card.power] || 0) >= 6) return true;
-    if (this.currentFormat.powerCap && card.power > this.currentFormat.powerCap) return true;
-    const nc = this.heroNameCounts();
-    if ((nc[card.hero || card.name] || 0) >= 6) return true;
+    const power = card.power || 0;
+    // Per-hero power cap (Spec: 160; SPEC+ if adding into the ≤160 base)
+    if (fmt.powerCap && power > fmt.powerCap) {
+      if (fmt.specPlusTiers) {
+        // SPEC+ tiered overflow slots accept 165-200 with per-power limits.
+        const limit = fmt.specPlusTiers[power];
+        if (limit == null) return true;
+        if ((pv[power] || 0) >= limit) return true;
+      } else {
+        return true;
+      }
+    }
+    // Absolute ceiling (SPEC+: 200)
+    if (fmt.absMaxPower && power > fmt.absMaxPower) return true;
+    // Elite: check total-power budget would not be exceeded
+    if (fmt.totalPowerCap) {
+      const current = this.heroes.reduce((s, c) => s + (c.power || 0), 0);
+      if (current + power > fmt.totalPowerCap) return true;
+    }
+    // Per-power limit (tiered powers already checked above for SPEC+)
+    const tieredPowers = fmt.specPlusTiers ? Object.keys(fmt.specPlusTiers).map(Number) : [];
+    const perPowerLimit = this.effectivePerPowerLimit;
+    if (perPowerLimit != null && !tieredPowers.includes(power)) {
+      if ((pv[power] || 0) >= perPowerLimit) return true;
+    }
+    // Optional 6-per-hero-name rule (retired by default; opt-in via ruleOverrides)
+    if (this.ruleOverrides.perHeroNameLimit != null) {
+      const nc = this.heroNameCounts();
+      if ((nc[card.hero || card.name] || 0) >= this.ruleOverrides.perHeroNameLimit) return true;
+    }
+    // Hero max
+    if (this.heroes.length >= fmt.heroMax) return true;
     return false;
+  },
+
+  // ── Preset application (mirrors iOS DeckBuilderStore.applyPreset) ──
+  applyPreset(preset) {
+    if (!preset) return;
+    this.activePresetID = preset.id;
+    this.format = preset.format || 'playmaker';
+    const o = preset.overrides || {};
+    this.ruleOverrides = {
+      perHeroNameLimit:    o.perHeroNameLimit    ?? null,
+      perPowerLimit:       o.perPowerLimit       ?? null,
+      disablePerPowerLimit: o.disablePerPowerLimit ?? false,
+      enforceDBS:          o.enforceDBS          ?? null,
+      dbsBudgetOverride:   o.dbsBudget           ?? null,
+      bonusPlaysEnabled:   o.bonusPlaysEnabled   ?? true,
+      htdPlaysEnabled:     o.htdPlaysEnabled     ?? true,
+    };
+  },
+  unlinkFromPreset() { this.activePresetID = null; },
+  get activePreset() {
+    if (!this.activePresetID || !RULE_PRESETS) return null;
+    return [...RULE_PRESETS.presets, ...RULE_PRESETS.casualPresets]
+             .find(p => p.id === this.activePresetID) || null;
+  },
+  get isCustomRuleSet() {
+    const preset = this.activePreset;
+    if (!preset) {
+      // No preset attached — any non-default override means custom.
+      const o = this.ruleOverrides;
+      return o.perHeroNameLimit != null || o.perPowerLimit != null || o.disablePerPowerLimit
+          || o.enforceDBS != null || o.dbsBudgetOverride != null
+          || o.bonusPlaysEnabled === false || o.htdPlaysEnabled === false;
+    }
+    // Preset attached — diff current overrides against preset's baseline.
+    const p = preset.overrides || {};
+    const o = this.ruleOverrides;
+    return (p.perHeroNameLimit ?? null)    !== o.perHeroNameLimit
+        || (p.perPowerLimit ?? null)       !== o.perPowerLimit
+        || (p.disablePerPowerLimit ?? false) !== o.disablePerPowerLimit
+        || (p.enforceDBS ?? null)          !== o.enforceDBS
+        || (p.dbsBudget ?? null)           !== o.dbsBudgetOverride
+        || (p.bonusPlaysEnabled ?? true)   !== o.bonusPlaysEnabled
+        || (p.htdPlaysEnabled ?? true)     !== o.htdPlaysEnabled;
   },
 
   addCard(card) {
@@ -117,21 +235,67 @@ const DB = {
   validate() {
     const fmt = this.currentFormat;
     const errors = [];
-    const diff = fmt.heroTarget - this.heroes.length;
-    if (diff > 0) errors.push(`Need ${diff} more heroes (${this.heroes.length}/${fmt.heroTarget})`);
-    if (diff < 0) errors.push(`Too many heroes (${this.heroes.length}/${fmt.heroTarget})`);
 
+    // Hero count: [heroMin, heroMax] (SPEC+ allows 60-70)
+    if (this.heroes.length < fmt.heroMin) {
+      const d = fmt.heroMin - this.heroes.length;
+      errors.push(`Need ${d} more heroes (${this.heroes.length}/${fmt.heroMin})`);
+    } else if (this.heroes.length > fmt.heroMax) {
+      errors.push(`Too many heroes (${this.heroes.length}/${fmt.heroMax})`);
+    }
+
+    // Per-hero power cap
     if (fmt.powerCap) {
-      const over = this.heroes.filter(c => (c.power || 0) > fmt.powerCap);
-      if (over.length) errors.push(`${over.length} hero(es) over power cap ${fmt.powerCap}`);
+      if (fmt.specPlusTiers) {
+        // SPEC+: the first 60 heroes (sorted by power asc) must be ≤160.
+        const sorted = [...this.heroes].sort((a, b) => (a.power || 0) - (b.power || 0));
+        const baseOver = sorted.slice(0, 60).filter(c => (c.power || 0) > fmt.powerCap).length;
+        if (baseOver > 0) errors.push(`${baseOver} base hero(es) over SPEC+ power cap ${fmt.powerCap}`);
+      } else {
+        const over = this.heroes.filter(c => (c.power || 0) > fmt.powerCap);
+        if (over.length) errors.push(`${over.length} hero(es) over power cap ${fmt.powerCap}`);
+      }
     }
 
+    // Absolute hero power ceiling (SPEC+: 200)
+    if (fmt.absMaxPower) {
+      const over = this.heroes.filter(c => (c.power || 0) > fmt.absMaxPower).length;
+      if (over > 0) errors.push(`${over} hero(es) above ${fmt.absMaxPower} ceiling`);
+    }
+
+    // Elite: total-power budget
+    if (fmt.totalPowerCap) {
+      const total = this.heroes.reduce((s, c) => s + (c.power || 0), 0);
+      if (total > fmt.totalPowerCap) {
+        errors.push(`Total power ${total}/${fmt.totalPowerCap} — over by ${total - fmt.totalPowerCap}`);
+      }
+    }
+
+    // SPEC+ tiered per-power limits
+    if (fmt.specPlusTiers) {
+      const pv = this.powerValueCounts();
+      for (const [powerStr, limit] of Object.entries(fmt.specPlusTiers)) {
+        const power = Number(powerStr);
+        const cnt = pv[power] || 0;
+        if (cnt > limit) errors.push(`SPEC+ allows ${limit} at power ${power}; have ${cnt}`);
+      }
+    }
+
+    // Per-power-value limit (default 6; Blast 3; skip SPEC+ tiered powers)
     const pv = this.powerValueCounts();
-    for (const [p, cnt] of Object.entries(pv)) {
-      if (cnt > 6) errors.push(`Power ${p}: ${cnt}/6 — remove ${cnt - 6}`);
+    const tieredPowers = fmt.specPlusTiers ? Object.keys(fmt.specPlusTiers).map(Number) : [];
+    const perPowerLimit = this.effectivePerPowerLimit;
+    if (perPowerLimit != null) {
+      for (const [powerStr, cnt] of Object.entries(pv)) {
+        const power = Number(powerStr);
+        if (tieredPowers.includes(power)) continue;
+        if (cnt > perPowerLimit) {
+          errors.push(`Power ${power}: ${cnt}/${perPowerLimit} — remove ${cnt - perPowerLimit}`);
+        }
+      }
     }
 
-    // Variation uniqueness
+    // Exact-variation uniqueness (the "one of" rule)
     const seen = new Set();
     for (const c of this.heroes) {
       const key = `${c.hero}|${c.treatment || ''}|${c.element}|${c.power}`;
@@ -139,6 +303,22 @@ const DB = {
       seen.add(key);
     }
 
+    // Optional 6-per-hero-name rule (retired by default; opt-in via ruleOverrides)
+    if (this.ruleOverrides.perHeroNameLimit != null) {
+      const limit = this.ruleOverrides.perHeroNameLimit;
+      const nc = this.heroNameCounts();
+      for (const [hero, cnt] of Object.entries(nc)) {
+        if (cnt > limit) errors.push(`${hero}: ${cnt}/${limit} max (optional rule) — remove ${cnt - limit}`);
+      }
+    }
+
+    // Banned card types (Elite: Trainer)
+    if (fmt.bannedCardTypes.length) {
+      const banned = this.heroes.filter(c => fmt.bannedCardTypes.includes(c.cardType));
+      if (banned.length) errors.push(`${banned.length} banned card(s): ${fmt.bannedCardTypes.join(', ')} not legal`);
+    }
+
+    // Plays
     if (fmt.needsPlays) {
       const pt = fmt.playsTarget || 30;
       const pd = pt - this.plays.length;
@@ -146,17 +326,103 @@ const DB = {
       if (pd < 0) errors.push(`Too many plays (${this.plays.length}/${pt})`);
     }
 
-    if (fmt.totalPowerCap) {
-      const total = this.heroes.reduce((s, c) => s + (c.power || 0), 0);
-      if (total > fmt.totalPowerCap) errors.push(`Total power ${total} exceeds ${fmt.totalPowerCap} cap`);
+    // DBS budget (Playmaker divisions only)
+    if (this.effectiveEnforceDBS && fmt.needsPlays && this.plays.length) {
+      const budget = this.effectiveDBSBudget;
+      const over = this.totalDBS - budget;
+      if (over > 0) errors.push(`Playbook over DBS budget: ${this.totalDBS}/${budget} — reduce by ${over}`);
     }
 
+    // Hot Dogs
     if (fmt.needsHD) {
       const hd = 10 - this.hotDogs.length;
       if (hd !== 0) errors.push(`Hot Dogs: ${this.hotDogs.length}/10`);
     }
 
+    // Preset-driven special rules (weapon/treatment/set/hotDogHero restrictions)
+    const preset = this.activePreset;
+    if (preset && preset.specialRules) {
+      for (const rule of preset.specialRules) {
+        if (rule.selfVerify) continue; // shown in UI as informational
+        if (rule.kind === 'weaponRestriction') {
+          const allowed = new Set(rule.allowed || []);
+          const bad = this.heroes.filter(c => !allowed.has(c.element));
+          if (bad.length) errors.push(`${bad.length} hero(es) outside allowed weapons: ${[...allowed].join(', ')}`);
+        } else if (rule.kind === 'treatmentContains') {
+          const token = rule.token || '';
+          const scope = rule.scope || 'heroes';
+          const pool = scope === 'all' ? this.heroes.concat(this.hotDogs) : this.heroes;
+          const bad = pool.filter(c => !((c.treatment || '').includes(token)));
+          if (bad.length) errors.push(`${bad.length} card(s) missing '${token}' treatment`);
+        } else if (rule.kind === 'hotDogHero') {
+          const bad = this.hotDogs.filter(c => c.hero !== rule.name);
+          if (bad.length) errors.push(`${bad.length} hot dog(s) not '${rule.name}'`);
+        } else if (rule.kind === 'setRestriction') {
+          const allowed = new Set(rule.allowed || []);
+          const bad = this.allCards.filter(c => !allowed.has(c.set));
+          if (bad.length) errors.push(`${bad.length} card(s) outside allowed set(s): ${[...allowed].join(', ')}`);
+        } else if (rule.kind === 'overrideHeroCount') {
+          const target = rule.value || 0;
+          if (this.heroes.length !== target) {
+            const d = target - this.heroes.length;
+            errors.push(d > 0 ? `Division requires ${target} heroes (need ${d} more)`
+                              : `Division requires ${target} heroes (remove ${-d})`);
+          }
+        }
+      }
+    }
+
     return errors;
+  },
+
+  // ── Active-rules descriptor list (mirrors iOS `activeRules`). Drives
+  // the rule-chip panel in the Deck Rules sheet. ──
+  get activeRules() {
+    const fmt = this.currentFormat;
+    const out = [];
+    // Hero count
+    if (fmt.heroMin === fmt.heroMax) {
+      out.push({ label: `${fmt.heroMin} Heroes`, isOverride: false });
+    } else {
+      out.push({ label: `${fmt.heroMin}–${fmt.heroMax} Heroes`, isOverride: false });
+    }
+    // Per-power limit
+    const perPowerLimit = this.effectivePerPowerLimit;
+    if (perPowerLimit != null) {
+      const isOverride = this.ruleOverrides.perPowerLimit != null && this.ruleOverrides.perPowerLimit !== fmt.perPowerDefault;
+      out.push({ label: `Max ${perPowerLimit} per power value`, isOverride });
+    } else if (this.ruleOverrides.disablePerPowerLimit) {
+      out.push({ label: `No per-power limit`, isOverride: true });
+    }
+    // Power caps
+    if (fmt.powerCap) out.push({ label: `Heroes ≤ ${fmt.powerCap} power`, isOverride: false });
+    if (fmt.totalPowerCap) out.push({ label: `Total power ≤ ${fmt.totalPowerCap}`, isOverride: false });
+    if (fmt.absMaxPower) out.push({ label: `No heroes above ${fmt.absMaxPower} power`, isOverride: false });
+    if (fmt.specPlusTiers) out.push({ label: `SPEC+ tiered slots (1×175-200, 2×165/170)`, isOverride: false });
+    // Optional 6-per-hero
+    if (this.ruleOverrides.perHeroNameLimit != null) {
+      out.push({ label: `Max ${this.ruleOverrides.perHeroNameLimit} of same hero (optional)`, isOverride: true });
+    }
+    // Banned types
+    if (fmt.bannedCardTypes.length) {
+      out.push({ label: `No ${fmt.bannedCardTypes.join(', ')} cards`, isOverride: false });
+    }
+    // DBS / bonus / HTD
+    if (fmt.needsPlays) {
+      if (this.effectiveEnforceDBS) {
+        const budgetOverridden = this.ruleOverrides.dbsBudgetOverride != null;
+        const enforceOverridden = this.ruleOverrides.enforceDBS === true && !fmt.enforcesDBS;
+        out.push({ label: `${this.effectiveDBSBudget} DBS budget`, isOverride: budgetOverridden || enforceOverridden });
+      } else if (fmt.enforcesDBS && this.ruleOverrides.enforceDBS === false) {
+        out.push({ label: `DBS enforcement OFF`, isOverride: true });
+      }
+      out.push({ label: this.ruleOverrides.bonusPlaysEnabled ? 'Bonus Plays ON' : 'Bonus Plays OFF',
+                 isOverride: !this.ruleOverrides.bonusPlaysEnabled });
+      out.push({ label: this.ruleOverrides.htdPlaysEnabled ? 'HTD Plays ON' : 'HTD Plays OFF',
+                 isOverride: !this.ruleOverrides.htdPlaysEnabled });
+    }
+    out.push({ label: `One-of per exact card`, isOverride: false });
+    return out;
   },
 
   exportText() {
@@ -309,16 +575,28 @@ function dbRenderDeckList() {
   }
 
   // Stats bar
-  const heroTarget = DB.currentFormat.heroTarget;
+  const fmt = DB.currentFormat;
+  const heroTargetLabel = fmt.heroMin === fmt.heroMax ? `${fmt.heroMin}` : `${fmt.heroMin}–${fmt.heroMax}`;
   const hStat = $('db-stat-heroes');
   const pStat = $('db-stat-plays');
   const hdStat = $('db-stat-hotdogs');
+  const dbsStat = $('db-stat-dbs');
   const lStat = $('db-stat-legal');
-  if (hStat) hStat.textContent = `Heroes: ${DB.heroes.length}/${heroTarget}`;
-  if (pStat) pStat.style.display = DB.currentFormat.needsPlays ? '' : 'none';
-  if (pStat) pStat.textContent = `Plays: ${DB.plays.length}/${DB.currentFormat.playsTarget || 30}`;
-  if (hdStat) hdStat.style.display = DB.currentFormat.needsHD ? '' : 'none';
+  if (hStat) hStat.textContent = `Heroes: ${DB.heroes.length}/${heroTargetLabel}`;
+  if (pStat) pStat.style.display = fmt.needsPlays ? '' : 'none';
+  if (pStat) pStat.textContent = `Plays: ${DB.plays.length}/${fmt.playsTarget || 30}`;
+  if (hdStat) hdStat.style.display = fmt.needsHD ? '' : 'none';
   if (hdStat) hdStat.textContent = `Hot Dogs: ${DB.hotDogs.length}/10`;
+  if (dbsStat) {
+    if (DB.effectiveEnforceDBS && fmt.needsPlays) {
+      dbsStat.style.display = '';
+      const over = DB.totalDBS > DB.effectiveDBSBudget;
+      dbsStat.textContent = `DBS: ${DB.totalDBS}/${DB.effectiveDBSBudget}`;
+      dbsStat.className = over ? 'db-stat db-stat-dbs over' : 'db-stat db-stat-dbs';
+    } else {
+      dbsStat.style.display = 'none';
+    }
+  }
 
   const errors = DB.validate();
   if (lStat) {
@@ -388,8 +666,32 @@ function initDeckBuilder(allCards) {
       view.querySelectorAll('.db-format-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       DB.format = btn.dataset.format;
+      // Switching format directly unlinks from any attached preset —
+      // user is explicitly overriding the preset's format.
+      if (DB.activePreset && DB.activePreset.format !== DB.format) {
+        DB.unlinkFromPreset();
+      }
       dbRender(allCards);
     });
+  });
+
+  // Rules button opens the preset + toggles modal
+  $('db-rules-btn')?.addEventListener('click', () => dbOpenRulesModal(allCards));
+  $('db-rules-close')?.addEventListener('click', () => dbCloseRulesModal());
+  $('db-rules-backdrop')?.addEventListener('click', () => dbCloseRulesModal());
+  $('db-rules-reset')?.addEventListener('click', () => {
+    // Reset to preset baseline if attached, else clear all overrides
+    if (DB.activePreset) {
+      DB.applyPreset(DB.activePreset);
+    } else {
+      DB.ruleOverrides = {
+        perHeroNameLimit: null, perPowerLimit: null, disablePerPowerLimit: false,
+        enforceDBS: null, dbsBudgetOverride: null,
+        bonusPlaysEnabled: true, htdPlaysEnabled: true,
+      };
+    }
+    dbRender(allCards);
+    dbRenderRulesSheet(allCards);
   });
 
   // Browser tabs
@@ -4399,7 +4701,205 @@ async function pmPopulateSavedDeckOptions() {
 // § Init — called from app.js after displayCards loaded
 // ════════════════════════════════════════════════════════════════
 
+// Catalog of rule presets (2026 Nationals events + casual baselines).
+// Loaded lazily from assets/data/rule_presets.json at first access.
+let RULE_PRESETS = null;
+async function loadRulePresets() {
+  if (RULE_PRESETS) return RULE_PRESETS;
+  try {
+    const resp = await fetch('assets/data/rule_presets.json');
+    if (resp.ok) RULE_PRESETS = await resp.json();
+  } catch (_) { /* offline — presets remain unavailable, picker shows a stub */ }
+  if (!RULE_PRESETS) RULE_PRESETS = { schemaVersion: 0, presets: [], casualPresets: [] };
+  return RULE_PRESETS;
+}
+
+// ── Deck Rules modal ──────────────────────────────────────────────
+async function dbOpenRulesModal(allCards) {
+  await loadRulePresets();
+  const modal = $('db-rules-modal');
+  if (!modal) return;
+  modal.hidden = false;
+  document.body.classList.add('db-rules-open');
+  dbRenderRulesSheet(allCards);
+}
+function dbCloseRulesModal() {
+  const modal = $('db-rules-modal');
+  if (!modal) return;
+  modal.hidden = true;
+  document.body.classList.remove('db-rules-open');
+}
+
+function dbRenderRulesSheet(allCards) {
+  const body = $('db-rules-body');
+  const resetBtn = $('db-rules-reset');
+  if (!body) return;
+
+  const nat = RULE_PRESETS?.presets || [];
+  const casual = RULE_PRESETS?.casualPresets || [];
+  const active = DB.activePreset;
+  const isCustom = DB.isCustomRuleSet;
+  if (resetBtn) resetBtn.disabled = !isCustom && !DB.activePresetID;
+
+  const activeRuleChip = r => `
+    <li class="dbr-rule${r.isOverride ? ' dbr-rule-override' : ''}">
+      <span class="dbr-rule-dot"></span>
+      <span class="dbr-rule-label">${esc(r.label)}</span>
+      ${r.isOverride ? '<span class="dbr-rule-pill">CUSTOM</span>' : ''}
+    </li>`;
+
+  const presetCard = p => {
+    const selected = DB.activePresetID === p.id;
+    const purse = p.divisionPurse ? `<span class="dbr-preset-purse">$${Math.round(p.divisionPurse/1000)}k</span>` : '';
+    return `
+      <button class="dbr-preset${selected ? ' dbr-preset-selected' : ''}" data-preset-id="${esc(p.id)}">
+        <span class="dbr-preset-check">${selected ? '●' : '○'}</span>
+        <span class="dbr-preset-body">
+          <span class="dbr-preset-title">${esc(p.name)} ${purse}</span>
+          <span class="dbr-preset-desc">${esc(p.description || '')}</span>
+        </span>
+      </button>`;
+  };
+
+  const specialRuleRow = r => {
+    const label = dbSpecialRuleLabel(r);
+    const pill = r.selfVerify ? '<span class="dbr-rule-pill dbr-rule-selfverify">SELF-VERIFY</span>' : '';
+    const note = r.note ? `<div class="dbr-rule-note">${esc(r.note)}</div>` : '';
+    return `<li class="dbr-special"><span class="dbr-rule-label">${esc(label)}</span>${pill}${note}</li>`;
+  };
+
+  const toggle = (id, on, title, desc) => `
+    <label class="dbr-toggle">
+      <input type="checkbox" id="${id}" ${on ? 'checked' : ''}>
+      <span class="dbr-toggle-body">
+        <span class="dbr-toggle-title">${esc(title)}</span>
+        <span class="dbr-toggle-desc">${esc(desc)}</span>
+      </span>
+    </label>`;
+
+  const needsPlays = DB.currentFormat.needsPlays;
+  const effPerPower = DB.effectivePerPowerLimit;
+
+  body.innerHTML = `
+    <div class="dbr-section">
+      <div class="dbr-section-label">Rule Set</div>
+      <details class="dbr-presets-group" open>
+        <summary><strong>2026 Nationals Events</strong> <span>${nat.length} presets from the DRAFT PDF</span></summary>
+        <div class="dbr-presets">${nat.map(presetCard).join('')}</div>
+      </details>
+      <details class="dbr-presets-group">
+        <summary><strong>Casual Rule Sets</strong> <span>Home-rules + legacy presets</span></summary>
+        <div class="dbr-presets">${casual.map(presetCard).join('')}</div>
+      </details>
+      ${isCustom ? `
+        <div class="dbr-custom-indicator">
+          <strong>Custom Rule Set</strong>
+          <span>${active ? `Based on "${esc(active.name)}" with your customizations.` : 'Building under format defaults — no preset attached.'}</span>
+        </div>` : ''}
+    </div>
+
+    <div class="dbr-section">
+      <div class="dbr-section-label">${esc(active ? active.name : DB.format)} — Active Rules</div>
+      <ul class="dbr-rules-list">${DB.activeRules.map(activeRuleChip).join('')}</ul>
+    </div>
+
+    ${active && active.specialRules && active.specialRules.length ? `
+      <div class="dbr-section">
+        <div class="dbr-section-label">Division-Specific Rules</div>
+        <ul class="dbr-rules-list">${active.specialRules.map(specialRuleRow).join('')}</ul>
+        <div class="dbr-section-foot">SELF-VERIFY rules can't be machine-checked against the catalog — you confirm compliance yourself.</div>
+      </div>` : ''}
+
+    <div class="dbr-section">
+      <div class="dbr-section-label">Optional Rule Toggles</div>
+      ${toggle('dbr-toggle-hero6', DB.ruleOverrides.perHeroNameLimit === 6,
+               'Max 6 of same hero (legacy)',
+               'Pre-2026 rule, retired in the Nationals PDF. Useful for casual / teaching play.')}
+      <div class="dbr-segmented">
+        <label class="dbr-segmented-label">Per-power-value limit</label>
+        <div class="dbr-segmented-options">
+          <button data-perpower="3"${effPerPower === 3 ? ' class="active"' : ''}>3 (Blast)</button>
+          <button data-perpower="6"${effPerPower === 6 ? ' class="active"' : ''}>6 (standard)</button>
+        </div>
+      </div>
+      ${needsPlays ? toggle('dbr-toggle-bonus', DB.ruleOverrides.bonusPlaysEnabled,
+               'Bonus Plays enabled',
+               'Off in Spec Playmaker / Brawl Playmaker per 2026 PDF; on elsewhere.') : ''}
+      ${needsPlays ? toggle('dbr-toggle-htd', DB.ruleOverrides.htdPlaysEnabled,
+               'HTD Plays enabled',
+               'Off in Spec Playmaker / Brawl Playmaker; N/A in Tecmo Bowl.') : ''}
+      ${needsPlays ? toggle('dbr-toggle-dbs', DB.effectiveEnforceDBS,
+               'DBS budget enforced',
+               '1,000 DBS cap for Playmaker divisions. Flip off for casual builds.') : ''}
+    </div>
+  `;
+
+  // Wire preset clicks
+  body.querySelectorAll('[data-preset-id]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pid = btn.dataset.presetId;
+      const preset = [...nat, ...casual].find(p => p.id === pid);
+      if (preset) {
+        DB.applyPreset(preset);
+        // Update the format pills to match
+        document.querySelectorAll('#view-decks .db-format-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.format === DB.format);
+        });
+        dbRender(allCards);
+        dbRenderRulesSheet(allCards);
+      }
+    });
+  });
+
+  // Wire toggles
+  body.querySelector('#dbr-toggle-hero6')?.addEventListener('change', e => {
+    DB.ruleOverrides.perHeroNameLimit = e.target.checked ? 6 : null;
+    dbRender(allCards); dbRenderRulesSheet(allCards);
+  });
+  body.querySelectorAll('[data-perpower]').forEach(b => {
+    b.addEventListener('click', () => {
+      const n = Number(b.dataset.perpower);
+      DB.ruleOverrides.perPowerLimit = (n === DB.currentFormat.perPowerDefault) ? null : n;
+      dbRender(allCards); dbRenderRulesSheet(allCards);
+    });
+  });
+  body.querySelector('#dbr-toggle-bonus')?.addEventListener('change', e => {
+    DB.ruleOverrides.bonusPlaysEnabled = e.target.checked;
+    dbRender(allCards); dbRenderRulesSheet(allCards);
+  });
+  body.querySelector('#dbr-toggle-htd')?.addEventListener('change', e => {
+    DB.ruleOverrides.htdPlaysEnabled = e.target.checked;
+    dbRender(allCards); dbRenderRulesSheet(allCards);
+  });
+  body.querySelector('#dbr-toggle-dbs')?.addEventListener('change', e => {
+    DB.ruleOverrides.enforceDBS = e.target.checked;
+    dbRender(allCards); dbRenderRulesSheet(allCards);
+  });
+}
+
+function dbSpecialRuleLabel(r) {
+  switch (r.kind) {
+    case 'weaponRestriction':    return `Weapons: ${(r.allowed || []).join(', ')}`;
+    case 'treatmentContains':    return `${r.scope === 'all' ? 'All cards' : 'Heroes'} must be ${r.token} treatment`;
+    case 'hotDogHero':           return `All Hot Dogs must be "${r.name}"`;
+    case 'setRestriction':       return `Set: ${(r.allowed || []).join(', ')}`;
+    case 'ownershipProof':       return `Ownership: ${r.description || (r.count + ' unique')}`;
+    case 'bannedCardType':       return `No ${r.type} cards`;
+    case 'overrideHeroCount':    return `Hero count: ${r.value}`;
+    case 'overridePerPowerLimit':return `Max ${r.value} per power`;
+    default:                     return r.kind;
+  }
+}
+
+// Minimal HTML-escape helper for rules-sheet text
+function esc(s) {
+  return String(s || '')
+    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
+
 function initPlayTools(allCards) {
+  loadRulePresets(); // fire-and-forget; presets appear once JSON arrives
   initDeckBuilder(allCards);
   initPractice(allCards);
 }

@@ -1464,18 +1464,26 @@
       <div class="deck-builder-body">
         <!-- Format selector -->
         <div class="db-formats" role="tablist" aria-label="Deck format">
-          <button class="db-format-btn active" data-format="playmaker" role="tab">Playmaker</button>
+          <button class="db-format-btn active" data-format="playmaker" role="tab">Apex Playmaker</button>
           <button class="db-format-btn" data-format="substitution" role="tab">Substitution</button>
           <button class="db-format-btn" data-format="rookie" role="tab">Rookie</button>
-          <button class="db-format-btn" data-format="sealed" role="tab">Sealed</button>
-          <button class="db-format-btn" data-format="spec" role="tab">SPEC</button>
+          <button class="db-format-btn" data-format="spec" role="tab">Spec</button>
           <button class="db-format-btn" data-format="elite" role="tab">Elite</button>
+          <button class="db-format-btn" data-format="specPlus" role="tab">SPEC+</button>
+          <button class="db-rules-btn" id="db-rules-btn" aria-label="Open deck rules">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+              <circle cx="7" cy="6" r="2" fill="currentColor"/><circle cx="13" cy="12" r="2" fill="currentColor"/><circle cx="17" cy="18" r="2" fill="currentColor"/>
+            </svg>
+            <span>Rules</span>
+          </button>
         </div>
         <!-- Stats bar -->
         <div class="db-stats" id="db-stats-bar">
           <span class="db-stat" id="db-stat-heroes">Heroes: 0/60</span>
           <span class="db-stat" id="db-stat-plays">Plays: 0/30</span>
           <span class="db-stat" id="db-stat-hotdogs">Hot Dogs: 0/10</span>
+          <span class="db-stat db-stat-dbs" id="db-stat-dbs" style="display:none">DBS: 0/1000</span>
           <span class="db-stat db-stat-legality" id="db-stat-legal">Build your deck</span>
         </div>
         <!-- Validation errors — shown above deck layout when deck is illegal -->
@@ -1568,6 +1576,23 @@
           </div>
         </div>
       </div>
+      <!-- Deck Rules modal — preset picker + rule-set toggles -->
+      <div class="db-rules-modal" id="db-rules-modal" hidden role="dialog" aria-modal="true" aria-labelledby="db-rules-title">
+        <div class="db-rules-backdrop" id="db-rules-backdrop"></div>
+        <div class="db-rules-panel">
+          <div class="db-rules-header">
+            <h3 id="db-rules-title">Deck Rules</h3>
+            <div class="db-rules-header-actions">
+              <button class="db-rules-reset" id="db-rules-reset" disabled>Reset</button>
+              <button class="db-rules-close" id="db-rules-close" aria-label="Close rules">✕</button>
+            </div>
+          </div>
+          <div class="db-rules-body" id="db-rules-body">
+            <!-- Populated by js/practice.js::dbRenderRulesSheet -->
+          </div>
+        </div>
+      </div>
+
       <!-- Card detail popup for interactive mode -->
       <div class="db-card-popup" id="db-card-popup" hidden role="dialog" aria-label="Card detail" aria-modal="true">
         <div class="db-card-popup-inner" id="db-card-popup-inner">

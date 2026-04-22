@@ -6335,3 +6335,340 @@ main {
   font-size: 12px;
   color: var(--boba-orange);
 }
+
+/* ─────────────────────────────────────────────────────────────────
+   Deck Builder — DBS stat + Rules button + Rules modal
+   (2026 Nationals PDF rule-set architecture — mirrors iOS DeckRulesSheet)
+   ─────────────────────────────────────────────────────────────── */
+
+.db-stat-dbs {
+  background: rgba(255, 77, 0, 0.08);
+  border-color: rgba(255, 77, 0, 0.35);
+  color: var(--boba-orange);
+}
+.db-stat-dbs.over {
+  background: rgba(217, 48, 32, 0.12);
+  border-color: rgba(217, 48, 32, 0.5);
+  color: #F23F43;
+}
+
+.db-rules-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--boba-cyan);
+  background: rgba(0, 245, 255, 0.08);
+  border: 1px solid rgba(0, 245, 255, 0.35);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.db-rules-btn:hover {
+  background: rgba(0, 245, 255, 0.16);
+  border-color: rgba(0, 245, 255, 0.55);
+}
+
+/* Modal */
+.db-rules-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+.db-rules-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 8, 16, 0.6);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.db-rules-panel {
+  position: relative;
+  width: min(480px, 100%);
+  background: var(--boba-surface);
+  border-left: 1px solid var(--boba-glass-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: dbrSlideIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes dbrSlideIn {
+  from { transform: translateX(16px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+.db-rules-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--boba-glass-border);
+  background: var(--boba-near-black);
+}
+.db-rules-header h3 {
+  margin: 0;
+  font-family: 'Bebas Neue', 'Russo One', sans-serif;
+  font-size: 1.3rem;
+  letter-spacing: 0.02em;
+  color: var(--boba-text);
+}
+.db-rules-header-actions { display: flex; gap: 10px; }
+.db-rules-reset, .db-rules-close {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--boba-text-muted);
+  background: transparent;
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.db-rules-reset:hover:not(:disabled),
+.db-rules-close:hover { color: var(--boba-text-2); border-color: rgba(255,255,255,0.25); }
+.db-rules-reset:disabled { opacity: 0.35; cursor: not-allowed; }
+.db-rules-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px 32px;
+}
+
+.dbr-section { margin-bottom: 24px; }
+.dbr-section-label {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--boba-cyan);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+.dbr-section-foot {
+  margin-top: 10px;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 11px;
+  color: var(--boba-text-muted);
+}
+
+.dbr-presets-group {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.dbr-presets-group summary {
+  cursor: pointer;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 12px;
+  color: var(--boba-text);
+}
+.dbr-presets-group summary strong { color: var(--boba-text); }
+.dbr-presets-group summary span { color: var(--boba-text-muted); font-size: 11px; margin-left: 8px; }
+.dbr-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+}
+.dbr-preset {
+  display: flex;
+  gap: 10px;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+  color: var(--boba-text);
+  transition: background 0.12s, border-color 0.12s;
+}
+.dbr-preset:hover { background: var(--boba-glass); }
+.dbr-preset-selected {
+  background: rgba(255, 77, 0, 0.08);
+  border-color: rgba(255, 77, 0, 0.4);
+}
+.dbr-preset-check {
+  color: var(--boba-orange);
+  font-size: 14px;
+  padding-top: 1px;
+  width: 14px;
+  flex-shrink: 0;
+}
+.dbr-preset-body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.dbr-preset-title {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--boba-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dbr-preset-purse {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--boba-cyan);
+  background: rgba(0,245,255,0.12);
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+.dbr-preset-desc {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 10px;
+  color: var(--boba-text-muted);
+  line-height: 1.4;
+}
+.dbr-custom-indicator {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 77, 0, 0.08);
+  border: 1px solid rgba(255, 77, 0, 0.35);
+  border-radius: 6px;
+}
+.dbr-custom-indicator strong {
+  display: block;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 12px;
+  color: var(--boba-orange);
+  margin-bottom: 3px;
+}
+.dbr-custom-indicator span {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 11px;
+  color: var(--boba-text-muted);
+}
+
+.dbr-rules-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dbr-rule, .dbr-special {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 5px;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 12px;
+  color: var(--boba-text);
+}
+.dbr-special { flex-wrap: wrap; }
+.dbr-rule-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--boba-cyan);
+}
+.dbr-rule-override .dbr-rule-dot { background: var(--boba-orange); }
+.dbr-rule-label { flex: 1; }
+.dbr-rule-pill {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--boba-orange);
+  background: rgba(255, 77, 0, 0.15);
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+.dbr-rule-selfverify {
+  color: var(--boba-orange);
+  background: rgba(255, 77, 0, 0.15);
+}
+.dbr-rule-note {
+  flex-basis: 100%;
+  font-size: 10px;
+  color: var(--boba-text-muted);
+  line-height: 1.4;
+  padding-left: 14px;
+}
+
+.dbr-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+.dbr-toggle input[type="checkbox"] {
+  margin-top: 3px;
+  accent-color: var(--boba-orange);
+}
+.dbr-toggle-body { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.dbr-toggle-title {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--boba-text);
+}
+.dbr-toggle-desc {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 10px;
+  color: var(--boba-text-muted);
+  line-height: 1.4;
+}
+
+.dbr-segmented {
+  padding: 10px 12px;
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 5px;
+  margin-bottom: 6px;
+}
+.dbr-segmented-label {
+  display: block;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--boba-text);
+  margin-bottom: 8px;
+}
+.dbr-segmented-options {
+  display: flex;
+  gap: 4px;
+  background: var(--boba-near-black);
+  border-radius: 5px;
+  padding: 3px;
+}
+.dbr-segmented-options button {
+  flex: 1;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 11px;
+  color: var(--boba-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  padding: 6px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.dbr-segmented-options button.active {
+  background: var(--boba-orange);
+  color: var(--boba-near-black);
+  font-weight: 700;
+}
+
+body.db-rules-open { overflow: hidden; }
+
+@media (max-width: 520px) {
+  .db-rules-panel { width: 100%; }
+}

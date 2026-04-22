@@ -27,6 +27,14 @@ struct FilterSheetView: View {
                 }
                 .listRowBackground(Design.Colors.surface2)
 
+                // MARK: Card Type
+                Section {
+                    cardPurposeRow
+                } header: {
+                    sectionHeader("Card Type")
+                }
+                .listRowBackground(Design.Colors.surface2)
+
                 // MARK: Elements
                 Section {
                     elementGrid
@@ -130,6 +138,33 @@ struct FilterSheetView: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+    }
+
+    // MARK: - Card purpose row (Heroes / Plays / Hot Dogs / Sealed)
+    //
+    // Moved into the filter sheet (2026-04-22) to live alongside the rest
+    // of the filters instead of as a separate chip row on SearchView.
+    private var cardPurposeRow: some View {
+        FlowLayout(spacing: Design.Spacing.sm) {
+            ForEach(CardPurpose.allCases) { purpose in
+                let selected = store.cardPurpose == purpose
+                Button {
+                    store.cardPurpose = purpose
+                } label: {
+                    Text(purpose.rawValue)
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(selected ? Design.Colors.nearBlack : Design.Colors.textSecondary)
+                        .padding(.horizontal, Design.Spacing.md)
+                        .padding(.vertical, Design.Spacing.xs + 2)
+                        .background(
+                            Capsule()
+                                .fill(selected ? Design.Colors.bobaOrange : Design.Colors.glass)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, Design.Spacing.xs)
     }
 
     // MARK: - Element grid

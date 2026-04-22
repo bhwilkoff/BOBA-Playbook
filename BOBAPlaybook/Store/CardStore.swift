@@ -73,6 +73,7 @@ final class CardStore {
         + ((powerMin != nil || powerMax != nil) ? 1 : 0)
         + (hasImageOnly ? 1 : 0)
         + (sortOrder != .default ? 1 : 0)
+        + (cardPurpose != .all ? 1 : 0)
     }
 
     // MARK: - Image removal overrides
@@ -310,5 +311,6 @@ final class CardStore {
         powerMax          = nil
         hasImageOnly      = false
         sortOrder         = .default
+        cardPurpose       = .all
     }
 }

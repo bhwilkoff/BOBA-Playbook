@@ -8,7 +8,7 @@ Applies Cowork's handoff-cyber/ payload:
   3. Optimizes those 27 files → images-optimized/ + thumbs/ (WebP, matches step 11 of reconcile_all.py).
   4. Delegates bundle regeneration to reconcile_all.py (--step 5, 6, 8, 9).
   5. Copies regenerated bundles from research into the BOBA-Playbook repo.
-  6. Builds BOBAPlaybook/display-cards.json (cards.json minus Sealed Product) and
+  6. Builds BOBAPlaybook/display-cards.json (full cards.json, including Sealed Product) and
      BOBAPlaybook/cards-head.json (first 500 of display).
 
 Run from the BOBA-Playbook repo root. Requires Pillow (already used by reconcile_all.py).
@@ -181,7 +181,8 @@ def sync_to_app_repo() -> dict:
 
 def build_ios_bundles() -> dict:
     cards = json.loads((APP_DATA / "cards.json").read_text())
-    display = [c for c in cards if c.get("cardType") != "Sealed Product"]
+    # Sealed products are part of the iOS bundle — reversed 2026-04-22.
+    display = cards
     # cards.json is already sorted; display preserves that order
     head = display[:500]
     d_path = APP_IOS / "display-cards.json"

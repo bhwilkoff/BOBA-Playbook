@@ -896,18 +896,32 @@ final class DeckBuilderStore {
     /// Parse a deck CSV string and replace the current Playbook + Bonus Plays.
     /// Returns (importedPlays, importedBonusPlays, unresolvedCardNumbers).
     /// Heroes + Hot Dogs are NOT touched — coaches keep whatever they have.
+    ///
+    /// Resolution order for each row:
+    ///   1. `{set}|{cardNumber}` lookup when the row has a known set prefix (A/U/G).
+    ///   2. Fallback to name-based lookup using the Name column — catches
+    ///      prefixes we haven't mapped yet and catches CSVs where the set
+    ///      prefix is missing. We match by first Play with that name that
+    ///      has the same (playCost, dbs) signature when available; otherwise
+    ///      the first Play with that name wins.
     @discardableResult
     func importDeckCSV(_ csv: String, allCards: [Card]) -> (plays: Int, bonus: Int, unresolved: [String]) {
         let setByPrefix = Dictionary(uniqueKeysWithValues: Self.setPrefixMap.map { ($0.value, $0.key) })
-        // Build (set, cardNumber) → Card lookup (plays only)
-        var lookup: [String: Card] = [:]
+
+        // Primary: (set, cardNumber) → Card  (exact match)
+        var bySetNum: [String: Card] = [:]
+        // Fallback: lowercased name → all Plays with that name
+        var byName: [String: [Card]] = [:]
         for c in allCards where c.isPlay {
-            lookup["\(c.set)|\(c.cardNumber)"] = c
+            bySetNum["\(c.set)|\(c.cardNumber)"] = c
+            let key = c.name.lowercased()
+            byName[key, default: []].append(c)
         }
 
         var newPlays: [Card] = []
         var newBonus: [Card] = []
         var unresolved: [String] = []
+        var fallbackHits = 0
 
         let lines = csv.split(whereSeparator: { $0 == "\n" || $0 == "\r" })
             .map { String($0) }
@@ -915,34 +929,57 @@ final class DeckBuilderStore {
 
         var skippedHeader = false
         for line in lines {
-            // Skip header once
             if !skippedHeader && line.lowercased().hasPrefix("slot,") {
                 skippedHeader = true
                 continue
             }
-            skippedHeader = true  // even if no header, don't skip subsequent rows
+            skippedHeader = true
             let fields = parseCSVLine(line)
             guard fields.count >= 2 else { continue }
             let slot = fields[0].trimmingCharacters(in: .whitespaces)
             let cardNumRaw = fields[1].trimmingCharacters(in: .whitespaces)
-            if cardNumRaw.isEmpty { continue }  // blank slot
+            if cardNumRaw.isEmpty { continue }
+            // Optional additional columns: Name, Cost, Ability, DBS
+            let nameFromRow = fields.count > 2 ? fields[2].trimmingCharacters(in: .whitespaces) : ""
+            let costFromRow = fields.count > 3 ? Int(fields[3].trimmingCharacters(in: .whitespaces)) : nil
+            let dbsFromRow  = fields.count > 5 ? Int(fields[5].trimmingCharacters(in: .whitespaces)) : nil
 
-            // Parse "A - PL-67" → set, cardNumber
+            // Primary path: set-prefixed card number
             let (setName, cardNum) = parseCSVCardNumber(cardNumRaw, setByPrefix: setByPrefix)
-            guard let sn = setName else {
-                unresolved.append(cardNumRaw)
+            if let sn = setName, let card = bySetNum["\(sn)|\(cardNum)"] {
+                if slot.hasPrefix("B") { newBonus.append(card) } else { newPlays.append(card) }
                 continue
             }
-            guard let card = lookup["\(sn)|\(cardNum)"] else {
-                unresolved.append(cardNumRaw)
+
+            // Fallback: resolve by Name. Picks the best match if multiple
+            // Plays share the name: prefer one whose playCost / dbs matches
+            // the CSV row; otherwise the first.
+            if !nameFromRow.isEmpty, let candidates = byName[nameFromRow.lowercased()], !candidates.isEmpty {
+                let best = candidates.first { c in
+                    (costFromRow == nil || c.playCost == costFromRow) &&
+                    (dbsFromRow  == nil || c.dbs      == dbsFromRow)
+                } ?? candidates.first!
+                if slot.hasPrefix("B") { newBonus.append(best) } else { newPlays.append(best) }
+                fallbackHits += 1
                 continue
             }
-            if slot.hasPrefix("B") { newBonus.append(card) }
-            else                   { newPlays.append(card) }
+
+            // Last resort: try bare cardNumber against any Play (first match wins)
+            if let card = allCards.first(where: { $0.isPlay && $0.cardNumber == cardNum }) {
+                if slot.hasPrefix("B") { newBonus.append(card) } else { newPlays.append(card) }
+                fallbackHits += 1
+                continue
+            }
+
+            unresolved.append(nameFromRow.isEmpty ? cardNumRaw : "\(cardNumRaw) (\(nameFromRow))")
         }
 
         plays = newPlays
         bonusPlays = newBonus
+        print("[DeckBuilder] CSV import → plays=\(newPlays.count), bonus=\(newBonus.count), unresolved=\(unresolved.count), fallback=\(fallbackHits)")
+        if !unresolved.isEmpty {
+            print("[DeckBuilder] CSV unresolved rows: \(unresolved.prefix(10))")
+        }
         return (plays: newPlays.count, bonus: newBonus.count, unresolved: unresolved)
     }
 

@@ -231,6 +231,11 @@ struct CollectionView: View {
     // MARK: - Designation picker
 
     private var designationPicker: some View {
+        // Fixed-height row (34pt pill + 12pt × 2 vertical padding = 58).
+        // Without this, the horizontal ScrollView inherits flexible
+        // height from its parent VStack and the pull-to-refresh bounce
+        // from the enclosing `.refreshable` scroll can tug the pill row
+        // up and down, making it feel like the pills scroll vertically.
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Design.Spacing.sm) {
                 ForEach(UserCard.Designation.allCases) { d in
@@ -262,6 +267,8 @@ struct CollectionView: View {
             .padding(.horizontal, Design.Spacing.lg)
             .padding(.vertical, Design.Spacing.md)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+        .frame(height: 58)
         .background(Design.Colors.surface)
     }
 

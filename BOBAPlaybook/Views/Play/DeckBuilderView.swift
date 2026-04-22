@@ -121,6 +121,13 @@ struct DeckBuilderView: View {
                     if !store.bonusPlays.isEmpty {
                         statChip(label: "BONUS", value: "+\(store.bonusPlays.count)", ok: true)
                     }
+                    if store.format.enforcesDBS {
+                        statChip(
+                            label: "DBS",
+                            value: "\(store.totalDBS)/\(store.format.dbsBudget)",
+                            ok: store.totalDBS <= store.format.dbsBudget
+                        )
+                    }
                 }
                 if store.format.needsHotDogs {
                     statChip(label: "HOT DOGS", value: "\(store.hotDogs.count)/10",

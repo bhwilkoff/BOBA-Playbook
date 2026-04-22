@@ -400,6 +400,64 @@ and we'll run the migration before you start submitting new corrections with `bo
 
 <!-- Cowork: add items here before handing off to Claude Code -->
 
+### [2026-04-22] DBS 100% coverage patch + 2026 Nationals compliance audit
+
+**TL;DR:** Cowork reviewed Claude Code's 2026-04-21 propagator work, identified a 3-name normalization gap that auto-heals after a small script fix, authored DBS values for the 30 genuinely-missing Plays via analog matching against the 411 rated cards in the live deckbuilder, and ran a full compliance audit against the 2026 Nationals PDF. Delivered as a single handoff folder with a patch JSON and an audit report.
+
+**Handoff folder:** `handoff-updates-2026-04-22/dbs/`
+- `dbs_upstream_patch.json` — 33 Play names × `{dbs, dbsTier, provenance, reason}`, split into `recovered_from_official_deckbuilder` (3 rows) and `authored_from_analogs` (30 rows). Every authored row cites the analog card(s) used, the HD-cost slope adjustment applied (~11 DBS per 1 HD cost delta), and whether the call is EXACT_ANALOG, CLOSE_ANALOG, ADJUSTED_ANALOG, or AUTHORED.
+- `COWORK_DBS_NATIONALS_AUDIT.md` — 5-part report: (1) audit of Claude Code's propagator, (2) the authored-DBS reasoning tables, (3) 6-gap compliance audit vs the 2026 Nationals PDF, (4) 5-step sequencing for Claude Code's next push, (5) 5 follow-up questions for Ben.
+
+**Fresh scrape** is at `dbs_scrape_2026-04-22/` in the research project (411 cards, 411/411 matched to catalog). Superfan Series and World Champions are confirmed still NOT in the live deckbuilder — that's why 30 names in the patch carry `authored_from_analogs` provenance rather than an official value.
+
+**Audit of Claude Code's propagator (`scripts/propagate_dbs.py`):** Logic is sound, but the canonical-value dict keys on exact Play `name`, which misses 3 names where the scraped deckbuilder has a rated entry but `cards.json` uses a slightly different string:
+- `Pinch HItter` (capital-I typo in catalog vs `Pinch Hitter` in scrape)
+- `Series MVP Award` (currently tagged as World Champions in catalog; scrape has a rated copy under LA Battlefoil)
+- `Double or Nothin` (apostrophe missing in one source)
+
+**Recommended fix:** add a lowercased+punct-stripped alias map to `propagate_dbs.py`'s canonical lookup, then re-run step 13. These 3 auto-heal to the scraped values (19, 1, 4 respectively) without touching `dbs_upstream_patch.json`. If the script fix isn't worth it, just merge those 3 rows from `recovered_from_official_deckbuilder` and they land the same place.
+
+**2026 Nationals PDF compliance — 6 data-model gaps** (full tables in the audit report):
+1. **iOS has no DBS field on `Card`** — `DeckBuilderStore.totalDBS` currently returns `0` as a stub. Surface `dbs` + `dbsTier` in the `Card` model, sum them in `totalDBS`, and enforce the 1,000 budget for any format that specifies one.
+2. **Missing formats** — iOS knows `rookie/substitution/playmaker/spec/limited`; PDF adds **Apex** (60 heroes, no power cap), **Elite** (60 heroes, 8,250 total power cap, no Trainer cards), and **SPEC+** (up to 70 heroes with graduated power tiers 175–200). Web has Elite partially modeled in `js/practice.js` but no DBS enforcement.
+3. **No `totalPowerCap` concept** — iOS only has a single `powerCap` (used for SPEC). Elite needs 8,250 total; SPEC+ needs graduated tiers. Recommended rename: `heroPowerCap` (per-hero) + `totalPowerCap` (deck sum).
+4. **No `bannedCardTypes` concept** — Elite bans Trainer cards. Currently there is no way to express "this format excludes a card type."
+5. **No division-level modeling** — the PDF describes 7 divisions (Apex $150k, AlphaTrilogy $100k, Open $40k, Blast $20k, Brawl $20k, Granny's Gum $20k, Power Glove $15k, Tecmo Bowl $50k). Several of these have unique constraints (Blast = 30 heroes max 3/power, Brawl = Brawl weapon only, Granny's Gum = specific treatments, Power Glove = ≥120 unique inserts).
+6. **No bonus/HTD Play toggle** — deckbuilders currently treat all Plays equivalently; the PDF distinguishes standard (30 slots) from Bonus Plays (beyond 30).
+
+**Recommended Swift data model** (full code in audit report):
+```swift
+struct DeckFormat {
+    let id: String
+    let heroCount: ClosedRange<Int>
+    let heroPowerCap: Int?
+    let totalPowerCap: Int?
+    let perPowerLimits: [Int: Int]?
+    let bannedCardTypes: Set<String>
+    let dbsBudget: Int
+    let bonusPlaysEnabled: Bool
+    let htdPlaysEnabled: Bool
+}
+```
+
+**Suggested sequencing for Claude Code:**
+1. Apply `dbs_upstream_patch.json` (`scripts/propagate_dbs.py` can merge; or a dedicated `apply_dbs_patch.py`). Either before or after fixing the 3-name normalization bug — the patch is a strict superset of what the fix would auto-heal.
+2. Surface `dbs` + `dbsTier` on iOS `Card` model + `DeckBuilderStore.totalDBS`.
+3. Refactor `FormatType` → data-driven `DeckFormat` struct (Swift) / object (JS). Back-fill existing 5 formats into the new shape.
+4. Add the 3 new formats (Apex, Elite, SPEC+) and the 7 divisions as `DeckFormat` records.
+5. (Follow-up) Madness format per PDF page 4: "no duplicate Plays by name across the Playbook OR hero deck" — needs a distinct deckbuilding engine pass, not just a new DeckFormat record.
+
+**5 follow-up questions for Ben** (in the audit report's Part 5):
+1. Trainer cards — how are they identified in `cards.json`? `cardType == "Trainer"` doesn't appear to exist yet; the PDF mentions them for Elite.
+2. Foil Hot Dogs — Elite text hints at restrictions; clarification needed.
+3. PDF authority — "DRAFT - NOT FINAL" on the cover. What happens if the final differs? Should Cowork version the patch against the PDF's eventual final?
+4. Blast division Plays/HD scaling — PDF describes 30 heroes but says nothing about Play count or Hot Dog deck adjustments.
+5. Power Glove division insert taxonomy — PDF says ≥120 unique inserts; need a definition of what counts as an "insert" in `cards.json` terms.
+
+**Why no data touched directly this session:** All changes are schema-level (new fields, new format definitions, executor logic) — the right hands for that are Claude Code's. Cowork's job is upstream data authoring + compliance review.
+
+---
+
 ### [2026-04-21] 6-prefix orphan sweep — 88 new cards across RPU / BILLY / JPA / BLC / SK / CJ ✅ DONE
 
 **Claude Code completion note (2026-04-21 pm):** All 88 records merged; catalog 17,767 → **17,855**. 19 BV images (RPU + BILLY) optimized and uploaded to R2 (38 objects, spot-checks 200 OK). 69 missing-image rows (JPA + BLC + SK + CJ-8..22) auto-queued to `missing-cards.json` — the eBay sourcer will see them on its next run. Questions decided: SK-6 weapon conflict kept as-authored (re-confirm once OCR has images); BLC kept as Heroes (they have hero names); CJ-8..22 `athleteInspiration` backfilled to `"CJ Maddux"` per user directive ("null is not the right approach for anything"). Remaining per-prefix flags answered with Cowork's BV/Radish defaults. New reusable pipeline lives at `scripts/apply_handoff_batch.py` (supersedes `apply_cyber_handoff.py`).

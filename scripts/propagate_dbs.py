@@ -13,11 +13,17 @@ same name. Refuses to propagate if two printings of the same name report
 DIFFERENT values (would be a real data bug, not a propagation gap). None
 were present at time of authoring.
 
+Keys are normalized (lowercased, punctuation stripped) before matching so
+catalog quirks like 'Pinch HItter' vs 'Pinch Hitter' or 'Double or Nothin'
+vs 'Double or Nothin'' collapse to the same bucket. The canonical display
+form is taken from the first tagged printing seen.
+
 Writes the research-project cards.json, runs reconcile_all.py step 5/6/8/9,
 and syncs the regenerated bundles into the BOBA-Playbook repo.
 """
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -31,34 +37,45 @@ R_CARDS  = R_DATA / "cards.json"
 APP_DATA = APP_REPO / "assets" / "data"
 APP_IOS  = APP_REPO / "BOBAPlaybook"
 
+def _norm_key(name: str) -> str:
+    """Normalized key for matching play names across catalog quirks.
+
+    Collapses case and strips non-alphanumerics so `Pinch HItter` and
+    `Pinch Hitter` hash the same, and `Double or Nothin'` matches
+    `Double or Nothin`.
+    """
+    return re.sub(r'[^a-z0-9]', '', (name or '').lower())
+
+
 def main():
     cards = json.loads(R_CARDS.read_text())
     plays = [c for c in cards if c.get("cardType") == "Play"]
 
-    # Canonical (dbs, dbsTier) per play name, plus conflict guard
+    # Canonical (dbs, dbsTier) per normalized play-name key, plus conflict guard.
+    # Keyed by the normalized form so spelling quirks don't miss the lookup.
     canonical_values: dict[str, set[tuple]] = defaultdict(set)
     for p in plays:
         if p.get("dbs") is not None:
-            canonical_values[p["name"]].add((p["dbs"], p.get("dbsTier")))
+            canonical_values[_norm_key(p["name"])].add((p["dbs"], p.get("dbsTier")))
 
-    conflicts = {n: v for n, v in canonical_values.items() if len(v) > 1}
+    conflicts = {k: v for k, v in canonical_values.items() if len(v) > 1}
     if conflicts:
         print("ABORT — internal DBS conflicts across printings:")
-        for n, v in conflicts.items():
-            print(f"  {n}: {v}")
+        for k, v in conflicts.items():
+            print(f"  {k}: {v}")
         sys.exit(2)
 
-    canonical = {n: next(iter(v)) for n, v in canonical_values.items()}
-    print(f"Play names with canonical DBS: {len(canonical)}")
+    canonical = {k: next(iter(v)) for k, v in canonical_values.items()}
+    print(f"Play names (normalized keys) with canonical DBS: {len(canonical)}")
 
-    # Propagate
+    # Propagate via normalized-key lookup
     before = sum(1 for p in plays if p.get("dbs") is None)
     filled = 0
     still_missing_names: set[str] = set()
     for c in cards:
         if c.get("cardType") != "Play": continue
         if c.get("dbs") is not None: continue
-        canon = canonical.get(c["name"])
+        canon = canonical.get(_norm_key(c["name"]))
         if canon:
             c["dbs"], c["dbsTier"] = canon
             filled += 1

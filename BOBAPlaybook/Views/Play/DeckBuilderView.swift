@@ -117,9 +117,15 @@ struct DeckBuilderView: View {
                         }
                         .accessibilityLabel("Deck rules")
                         .deckBuilderTutorialTarget(.rulesButton)
-                        Button("Done") { dismiss() }
-                            .font(Design.Fonts.mono(13, weight: .bold))
-                            .foregroundStyle(Design.Colors.bobaOrange)
+                        // Done button only when the builder is a presented
+                        // sheet (e.g. from "Add to Custom Deck"). As a top-
+                        // level tab, dismiss does nothing and the button is
+                        // just noise.
+                        if !isRootView {
+                            Button("Done") { dismiss() }
+                                .font(Design.Fonts.mono(13, weight: .bold))
+                                .foregroundStyle(Design.Colors.bobaOrange)
+                        }
                     }
                 }
             }

@@ -52,6 +52,7 @@
   let cards         = [];         // raw catalog (may have multi-hero dupes)
   let searchIndex   = null;
   let categories    = null;
+  let aliasIndex    = {};         // lowercase slang → [canonical, ...] (community shorthand)
 
   // Built after load:
   let cardsByNumber = new Map();  // cardNumber (string) → Card[] (all hero associations)
@@ -866,10 +867,15 @@
     if (q) {
       const tokens = q.split(/\s+/).filter(Boolean);
       for (const token of tokens) {
+        // Expand community aliases: if the user typed a known slang
+        // ("bojax", "obf", "lino", "blizzy"), we also match the
+        // canonical-form prefixes so they land real results.
+        const expansions = [token, ...((aliasIndex[token] || []).map(s => s.toLowerCase()))];
+
         // Collect tokenIndex prefix matches — values are now bobaIds
         const matches = new Set();
         for (const key in searchIndex.tokenIndex) {
-          if (key.startsWith(token)) {
+          if (expansions.some(exp => key.startsWith(exp))) {
             for (const id of searchIndex.tokenIndex[key]) {
               matches.add(String(id));
             }
@@ -2061,10 +2067,11 @@
     showView(viewIds.includes(urlView) ? urlView : 'search', true);
 
     try {
-      [cards, searchIndex, categories] = await Promise.all([
+      [cards, searchIndex, categories, aliasIndex] = await Promise.all([
         API.loadCards(),
         API.loadSearchIndex(),
         API.loadCategories(),
+        API.loadAliasIndex(),
       ]);
     } catch (err) {
       loadingState.innerHTML = `<p style="color:var(--boba-orange);font-family:var(--font-mono)">

@@ -76,6 +76,40 @@ const API = (() => {
     return _categories;
   }
 
+  // Community-alias files — load in parallel with catalog, merge into one
+  // lowercase lookup: slang → [canonical, ...]. Sourced from the Discord
+  // terminology handoff; missing files are a no-op (aliases only expand
+  // the search, never gate it).
+  let _aliasIndex = null;
+  async function loadAliasIndex() {
+    if (_aliasIndex) return _aliasIndex;
+    const safeFetch = async (path) => {
+      try {
+        const r = await fetch(path);
+        if (!r.ok) return null;
+        return await r.json();
+      } catch { return null; }
+    };
+    const [hero, treatment] = await Promise.all([
+      safeFetch('assets/data/hero_aliases.json'),
+      safeFetch('assets/data/treatment_aliases.json'),
+    ]);
+    const idx = {};
+    const absorb = (obj) => {
+      for (const canonical of Object.keys(obj || {})) {
+        for (const slang of (obj[canonical] || [])) {
+          const key = String(slang).toLowerCase();
+          (idx[key] ||= []).push(String(canonical).toLowerCase());
+        }
+      }
+    };
+    absorb(hero?.aliases);
+    absorb(treatment?.aliases);
+    absorb(treatment?.element_aliases);
+    _aliasIndex = idx;
+    return _aliasIndex;
+  }
+
   /* ----------------------------------------------------------------
      Supabase — M2: auth + user collections
      Fill in YOUR_SUPABASE_ANON_KEY from your .env.local file.
@@ -485,6 +519,7 @@ const API = (() => {
     loadCards,
     loadSearchIndex,
     loadCategories,
+    loadAliasIndex,
     // Auth
     authSignUp,
     authSignIn,

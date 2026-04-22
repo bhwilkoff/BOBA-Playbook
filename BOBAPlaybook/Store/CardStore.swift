@@ -97,10 +97,18 @@ final class CardStore {
     // MARK: - Internal
     private var filterTask: Task<Void, Never>?
 
+    // MARK: - Community aliases (DISCORD_TERMINOLOGY.md §2, §3)
+    // Flat lookup: lowercase alias → array of canonical lowercase strings
+    // that should also be matched when the user's search text equals the
+    // alias. Built once at init from the two bundled JSON files; read-only
+    // after that.
+    private var aliasIndex: [String: [String]] = [:]
+
     // MARK: - Init
     // Phase 1 runs synchronously here — before SwiftUI's first render pass.
     // 192 KB / 500 cards decodes in < 30 ms on device.
     init() {
+        aliasIndex = Self.loadAliasIndex()
         if let url   = Bundle.main.url(forResource: "cards-head", withExtension: "json"),
            let data  = try? Data(contentsOf: url),
            let cards = try? JSONDecoder().decode([Card].self, from: data) {
@@ -111,6 +119,50 @@ final class CardStore {
         }
         // Phase 2: full catalog off main thread
         Task { await loadFullCatalog() }
+    }
+
+    /// Parse the two alias JSON files into a flat lowercase lookup.
+    /// Silent fallback to empty if either file is missing — aliases only
+    /// expand the search; they don't gate it.
+    private static func loadAliasIndex() -> [String: [String]] {
+        struct AliasFile: Decodable {
+            let aliases: [String: [String]]?
+            let element_aliases: [String: [String]]?
+        }
+        var result: [String: [String]] = [:]
+        let files = ["hero_aliases", "treatment_aliases"]
+        for name in files {
+            guard let url = Bundle.main.url(forResource: name, withExtension: "json"),
+                  let data = try? Data(contentsOf: url),
+                  let file = try? JSONDecoder().decode(AliasFile.self, from: data) else { continue }
+            // Hero / treatment aliases: canonical name → [slang]. Invert
+            // to slang → [canonical] so a search-term lookup is O(1).
+            for (canonical, slangs) in (file.aliases ?? [:]) {
+                for slang in slangs {
+                    result[slang.lowercased(), default: []].append(canonical.lowercased())
+                }
+            }
+            // Element aliases (grillen → FIRE, chillen → ICE, etc.) live
+            // in the same dict — canonical is already UPPERCASE, matched
+            // against card.element below.
+            for (canonical, slangs) in (file.element_aliases ?? [:]) {
+                for slang in slangs {
+                    result[slang.lowercased(), default: []].append(canonical.lowercased())
+                }
+            }
+        }
+        return result
+    }
+
+    /// Returns the search term plus any canonical strings it aliases to.
+    /// All lowercase. Callers match each expansion against card fields
+    /// independently (OR match).
+    func expandedSearchTerms(_ term: String) -> [String] {
+        let lower = term.lowercased()
+        if let expansions = aliasIndex[lower] {
+            return [lower] + expansions
+        }
+        return [lower]
     }
 
     // MARK: - Full catalog load (background)
@@ -179,13 +231,18 @@ final class CardStore {
             if let min = pMin, let p = card.power, p < min           { return false }
             if let max = pMax, let p = card.power, p > max           { return false }
             if !search.isEmpty {
-                let match = card.name.lowercased().contains(search)
-                    || card.cardNumber.lowercased().contains(search)
-                    || card.hero.lowercased().contains(search)
-                    || (card.athleteInspiration?.lowercased().contains(search) == true)
-                    || card.element.lowercased().contains(search)
-                    || (card.treatment?.lowercased().contains(search) == true)
-                    || card.set.lowercased().contains(search)
+                // Try the raw term first, then any community-alias expansions
+                // so "bojax" hits BoJax, "obf" hits Orange Battlefoil, etc.
+                let terms = expandedSearchTerms(search)
+                let match = terms.contains { term in
+                    card.name.lowercased().contains(term)
+                        || card.cardNumber.lowercased().contains(term)
+                        || card.hero.lowercased().contains(term)
+                        || (card.athleteInspiration?.lowercased().contains(term) == true)
+                        || card.element.lowercased().contains(term)
+                        || (card.treatment?.lowercased().contains(term) == true)
+                        || card.set.lowercased().contains(term)
+                }
                 if !match { return false }
             }
             return true

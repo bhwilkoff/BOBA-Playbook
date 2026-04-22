@@ -1,0 +1,34 @@
+{
+  "_doc": "Community-used treatment aliases mapped to canonical catalog treatments. Keys = canonical treatment (matches `treatment` field in cards.json). Values = lowercase aliases accepted in the app's search. Sourced from DISCORD_TERMINOLOGY.md §3.",
+  "aliases": {
+    "80's Rad Battlefoil":                ["rad", "80s rad", "80s rad battlefoil", "eighties rad"],
+    "Blizzard Battlefoil":                ["blizzy", "blizzard", "blbf"],
+    "Grandma's Linoleum Battlefoil":      ["lino", "linoleum", "grandma", "glbf", "grandmas lino", "grandmas linoleum"],
+    "Great Grandma's Linoleum Battlefoil": ["great grandma", "ggl", "gglbf", "great grandmas linoleum"],
+    "Colosseum Battlefoil":               ["colosseum", "coliseum", "coloseum"],
+    "Orange Battlefoil":                  ["obf"],
+    "Blue Battlefoil":                    ["bbf"],
+    "Green Battlefoil":                   ["gbf"],
+    "Pink Battlefoil":                    ["pbf"],
+    "Silver Battlefoil":                  ["sbf"],
+    "Alpha Battlefoil":                   ["abf"],
+    "Mixtape Battlefoil":                 ["mbf", "mixtape"],
+    "Icon Battlefoil":                    ["ibf"],
+    "Inspired Ink Battlefoil":            ["inspired ink", "ii", "iib"],
+    "Inspired Ink Superfoil":             ["inspired ink super", "iis"],
+    "Chillin' Battlefoil":                ["chillin", "chilling", "chillin'"],
+    "Logofoil":                           ["logo", "logofoil"],
+    "Kanjifoil":                          ["kanji", "kanjifoil"],
+    "Superfoil":                          ["super foil", "superfoil", "sf"]
+  },
+  "_element_aliases_doc": "Legacy slang for weapon types. Consumer should match against the `element` field (UPPERCASE in catalog).",
+  "element_aliases": {
+    "FIRE": ["grillen", "grillin", "grillin'"],
+    "ICE":  ["chillin legacy", "chillen"]
+  },
+  "_filter_label_aliases_doc": "Community vocabulary for our existing filter categories. Not consumed by the search index — handled via the filter-label tooltip UX in §3.5(b).",
+  "filter_label_aliases": {
+    "treatment": ["parallel", "parallels", "treatment", "treatments"],
+    "element":   ["rarity", "weapon type"]
+  }
+}

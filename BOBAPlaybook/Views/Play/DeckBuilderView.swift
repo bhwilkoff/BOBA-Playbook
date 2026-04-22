@@ -191,23 +191,42 @@ struct DeckBuilderView: View {
                     .foregroundStyle(Design.Colors.textPrimary)
                     .padding(.top, Design.Spacing.lg)
 
+                // Build Custom Deck — top of the splash so coaches see it first
+                Button {
+                    store.clearDeck()
+                    showTemplates = false
+                } label: {
+                    HStack(spacing: Design.Spacing.md) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 26))
+                            .foregroundStyle(Design.Colors.nearBlack)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Build Custom Deck")
+                                .font(Design.Fonts.display(16))
+                                .foregroundStyle(Design.Colors.nearBlack)
+                            Text("Start from an empty deck and pick your own cards")
+                                .font(Design.Fonts.mono(11))
+                                .foregroundStyle(Design.Colors.nearBlack.opacity(0.7))
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(Design.Colors.nearBlack.opacity(0.7))
+                    }
+                    .padding(Design.Spacing.md)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Design.Colors.bobaOrange))
+                }
+                .buttonStyle(.plain)
+
+                Text("OR START FROM A TEMPLATE")
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .padding(.top, Design.Spacing.md)
+
                 ForEach(DeckTemplate.all) { template in
                     TemplateCard(template: template) {
                         store.loadTemplate(template, allCards: cardStore.displayCards)
                         showTemplates = false
                     }
-                }
-
-                Button {
-                    store.clearDeck()
-                    showTemplates = false
-                } label: {
-                    Text("Start from scratch")
-                        .font(Design.Fonts.mono(14))
-                        .foregroundStyle(Design.Colors.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(RoundedRectangle(cornerRadius: 12).stroke(Design.Colors.glass, lineWidth: 1))
                 }
             }
             .padding(.horizontal, Design.Spacing.lg)
@@ -417,32 +436,51 @@ struct DeckBuilderView: View {
     private var deckPanel: some View {
         VStack(spacing: 0) {
             // Deck header — always visible
-            HStack {
-                TextField("Deck name", text: $store.deckName)
-                    .font(Design.Fonts.display(18))
-                    .foregroundStyle(Design.Colors.textPrimary)
-                Spacer()
-                // Card count summary when collapsed
-                if !showDeckList {
-                    Text("\(store.heroes.count)H")
-                        .font(Design.Fonts.mono(11, weight: .bold))
+            VStack(spacing: 2) {
+                // Section label + collapsible toggle — makes deck name row context explicit
+                HStack {
+                    Text("CURRENT CARDS")
+                        .font(Design.Fonts.mono(10, weight: .bold))
                         .foregroundStyle(Design.Colors.textMuted)
-                    if store.format.needsPlaybook {
-                        Text("\(store.plays.count)P")
-                            .font(Design.Fonts.mono(11, weight: .bold))
+                    Spacer()
+                    // Card count summary when collapsed — written with words so
+                    // "0 Heroes · 0 Plays" doesn't read as "OH OP" at a glance.
+                    if !showDeckList {
+                        Text("\(store.heroes.count) Heroes")
+                            .font(Design.Fonts.mono(10))
                             .foregroundStyle(Design.Colors.textMuted)
+                        if store.format.needsPlaybook {
+                            Text("·")
+                                .font(Design.Fonts.mono(10))
+                                .foregroundStyle(Design.Colors.textMuted)
+                            Text("\(store.plays.count) Plays")
+                                .font(Design.Fonts.mono(10))
+                                .foregroundStyle(Design.Colors.textMuted)
+                        }
                     }
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { showDeckList.toggle() }
+                    } label: {
+                        Image(systemName: showDeckList ? "chevron.down" : "chevron.up")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                            .frame(width: 24, height: 24)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { showDeckList.toggle() }
-                } label: {
-                    Image(systemName: showDeckList ? "chevron.down" : "chevron.up")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(Design.Colors.bobaCyan)
-                        .frame(width: 32, height: 32)
-                        .contentShape(Rectangle())
+                // Deck name row with a pencil indicator so it's clearly editable
+                HStack(spacing: Design.Spacing.xs) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Design.Colors.textMuted)
+                    TextField("Deck name", text: $store.deckName)
+                        .font(Design.Fonts.display(18))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                    Spacer()
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Design.Colors.glass.opacity(0.3)))
             }
             .padding(.horizontal, Design.Spacing.md)
             .padding(.vertical, Design.Spacing.sm)
@@ -929,27 +967,9 @@ private struct DeckManagementSheet: View {
     private var loadTab: some View {
         ScrollView {
             VStack(spacing: Design.Spacing.lg) {
-                // Starter Decks section
+                // Saved Custom Decks section (top — coaches see their own work first)
                 VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-                    Text("STARTER DECKS")
-                        .font(Design.Fonts.mono(11, weight: .bold))
-                        .foregroundStyle(Design.Colors.textMuted)
-                        .padding(.horizontal, Design.Spacing.lg)
-
-                    ForEach(DeckTemplate.all) { template in
-                        TemplateCard(template: template) {
-                            store.loadTemplate(template, allCards: cards)
-                            dismiss()
-                        }
-                        .padding(.horizontal, Design.Spacing.lg)
-                    }
-                }
-
-                Divider().background(Design.Colors.glass).padding(.horizontal, Design.Spacing.lg)
-
-                // Saved decks section
-                VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-                    Text("SAVED DECKS")
+                    Text("SAVED CUSTOM DECKS")
                         .font(Design.Fonts.mono(11, weight: .bold))
                         .foregroundStyle(Design.Colors.textMuted)
                         .padding(.horizontal, Design.Spacing.lg)
@@ -971,28 +991,33 @@ private struct DeckManagementSheet: View {
                             .padding(.horizontal, Design.Spacing.lg)
                             .padding(.vertical, Design.Spacing.md)
                     } else {
+                        // Row-as-tap pattern: SwiftUI's List + Button can swallow taps when
+                        // `.listStyle(.plain)` + `.scrollContentBackground(.hidden)` are in play.
+                        // Use an explicit tap gesture with contentShape so the whole row is
+                        // the hit target. Swipe-to-delete still works.
                         List {
                             ForEach(decks) { deck in
-                                Button {
-                                    Task { await loadDeck(deck) }
-                                } label: {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 3) {
-                                            Text(deck.name)
-                                                .font(Design.Fonts.display(16))
-                                                .foregroundStyle(Design.Colors.textPrimary)
-                                            Text(deck.format.uppercased())
-                                                .font(Design.Fonts.mono(11))
-                                                .foregroundStyle(Design.Colors.textMuted)
-                                        }
-                                        Spacer()
-                                        if isLoadingDeck {
-                                            ProgressView().tint(Design.Colors.bobaCyan)
-                                        } else {
-                                            Image(systemName: "chevron.right")
-                                                .foregroundStyle(Design.Colors.textMuted)
-                                        }
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(deck.name)
+                                            .font(Design.Fonts.display(16))
+                                            .foregroundStyle(Design.Colors.textPrimary)
+                                        Text(deck.format.uppercased())
+                                            .font(Design.Fonts.mono(11))
+                                            .foregroundStyle(Design.Colors.textMuted)
                                     }
+                                    Spacer()
+                                    if isLoadingDeck {
+                                        ProgressView().tint(Design.Colors.bobaCyan)
+                                    } else {
+                                        Image(systemName: "chevron.right")
+                                            .foregroundStyle(Design.Colors.textMuted)
+                                    }
+                                }
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    guard !isLoadingDeck else { return }
+                                    Task { await loadDeck(deck) }
                                 }
                                 .listRowBackground(Design.Colors.surface)
                                 .swipeActions(edge: .trailing) {
@@ -1011,19 +1036,42 @@ private struct DeckManagementSheet: View {
                     }
                 }
 
-                // Start from scratch
+                // Build Custom Deck — prominent, primary action
                 Button {
                     store.clearDeck()
                     dismiss()
                 } label: {
-                    Text("Start from scratch")
-                        .font(Design.Fonts.mono(14))
-                        .foregroundStyle(Design.Colors.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(RoundedRectangle(cornerRadius: 12).stroke(Design.Colors.glass, lineWidth: 1))
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(Design.Colors.nearBlack)
+                        Text("Build Custom Deck")
+                            .font(Design.Fonts.mono(14, weight: .bold))
+                            .foregroundStyle(Design.Colors.nearBlack)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Design.Colors.bobaOrange))
                 }
+                .buttonStyle(.plain)
                 .padding(.horizontal, Design.Spacing.lg)
+
+                Divider().background(Design.Colors.glass).padding(.horizontal, Design.Spacing.lg)
+
+                // Starter Decks section (below — pre-built templates)
+                VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                    Text("STARTER DECKS")
+                        .font(Design.Fonts.mono(11, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .padding(.horizontal, Design.Spacing.lg)
+
+                    ForEach(DeckTemplate.all) { template in
+                        TemplateCard(template: template) {
+                            store.loadTemplate(template, allCards: cards)
+                            dismiss()
+                        }
+                        .padding(.horizontal, Design.Spacing.lg)
+                    }
+                }
             }
             .padding(.vertical, Design.Spacing.md)
         }
@@ -1107,9 +1155,15 @@ private struct DeckManagementSheet: View {
         do {
             let rows = try await SupabaseClient.shared.fetchDeckCards(deckId: deck.id)
             let byId = Dictionary(uniqueKeysWithValues: cards.map { ($0.id, $0) })
+            // Apply to the store
             store.clearDeck()
             store.deckName = deck.name
             store.currentDeckId = deck.id
+            // Format comes back as a Supabase slug — resolve to a DeckFormat case
+            if let f = DeckFormat.allCases.first(where: { $0.supabaseValue == deck.format }) {
+                store.format = f
+            }
+            var loaded = 0
             for row in rows {
                 guard let card = byId[row.bobaId] else { continue }
                 let role: DeckCardRole = switch row.cardType {
@@ -1121,10 +1175,16 @@ private struct DeckManagementSheet: View {
                     default:           .hero
                 }
                 store.addCard(card, role: role)
+                loaded += 1
             }
+            print("[DeckBuilder] loaded \(loaded)/\(rows.count) cards for deck '\(deck.name)'")
+            // Give SwiftUI a tick to settle state before dismissing, so the parent
+            // deck builder sees the updated store when the sheet closes.
+            await Task.yield()
             dismiss()
         } catch {
-            // Leave sheet open so user can retry
+            print("[DeckBuilder] loadDeck failed: \(error)")
+            saveMessage = "Couldn't load deck"
         }
     }
 }

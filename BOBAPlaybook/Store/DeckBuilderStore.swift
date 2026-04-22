@@ -245,6 +245,11 @@ final class DeckBuilderStore {
     /// Currently-selected rule preset. nil means the coach is building under
     /// the raw `format` defaults without a named preset attached.
     var activePresetID: String?
+
+    /// One-shot flag set after a successful CSV import; observed by the deck
+    /// builder to auto-open the legality report. The observer clears it back
+    /// to false after presenting the report.
+    var pendingLegalityAudit: Bool = false
     var activePreset: RulePreset? {
         guard let id = activePresetID else { return nil }
         return RulePresets.find(id: id)
@@ -949,6 +954,42 @@ final class DeckBuilderStore {
             return (setByPrefix[prefix], num)
         }
         return (nil, raw)
+    }
+
+    // MARK: - Legality audit (evaluate deck vs every preset)
+    //
+    // Drives the "Which events does my deck qualify for?" report. Snapshots
+    // current format + overrides + preset, applies each preset's rules in
+    // turn, collects validation errors, and restores state. All mutations
+    // are synchronous on the MainActor so SwiftUI never sees intermediate
+    // states — views only re-render after restoration.
+
+    struct LegalityReport: Identifiable {
+        let id = UUID()
+        let preset: RulePreset
+        let legal: Bool
+        let errors: [String]
+    }
+
+    func computeLegalityReport() -> [LegalityReport] {
+        let savedFormat = format
+        let savedOverrides = ruleOverrides
+        let savedPresetID = activePresetID
+
+        var results: [LegalityReport] = []
+        for preset in RulePresets.allPresets {
+            format = preset.deckFormat
+            ruleOverrides = preset.ruleOverrides
+            activePresetID = preset.id
+            let errors = validationErrors.map(\.message)
+            results.append(LegalityReport(preset: preset, legal: errors.isEmpty, errors: errors))
+        }
+
+        // Restore
+        format = savedFormat
+        ruleOverrides = savedOverrides
+        activePresetID = savedPresetID
+        return results
     }
 
     /// Minimal RFC-4180 CSV line parser — handles quoted fields + escaped quotes.

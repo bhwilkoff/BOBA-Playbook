@@ -27,6 +27,7 @@ struct DeckBuilderView: View {
     @AppStorage("bp_deckBuilderTutorialSeen_v1") private var deckTutorialSeen = false
     @State private var showDeckTutorial = false
     @State private var pendingCardAddedBanner: String?
+    @State private var showLegalityReport = false
 
     init(pendingCard: Card? = nil) {
         self.pendingCard = pendingCard
@@ -84,6 +85,14 @@ struct DeckBuilderView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: Design.Spacing.md) {
                         Button {
+                            showLegalityReport = true
+                        } label: {
+                            Image(systemName: "checkmark.seal")
+                                .font(.system(size: 18))
+                                .foregroundStyle(Design.Colors.bobaCyan)
+                        }
+                        .accessibilityLabel("Legality audit")
+                        Button {
                             showRulesSheet = true
                         } label: {
                             Image(systemName: store.ruleOverrides.hasAnyUserOverride
@@ -128,6 +137,9 @@ struct DeckBuilderView: View {
         }
         .sheet(isPresented: $showRulesSheet) {
             DeckRulesSheet(store: store)
+        }
+        .sheet(isPresented: $showLegalityReport) {
+            LegalityReportSheet(store: store)
         }
         .sheet(item: $selectedBrowserCard) { card in
             BrowserCardDetailSheet(card: card, store: store, tab: store.browserTab)
@@ -184,6 +196,19 @@ struct DeckBuilderView: View {
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(500))
                     showDeckTutorial = true
+                }
+            }
+        }
+        // Auto-open the legality report after a successful CSV import. The
+        // DeckManagementSheet sets `pendingLegalityAudit = true` in its
+        // import handler and then dismisses itself; we observe the flag
+        // here and open the report on the next runloop tick.
+        .onChange(of: store.pendingLegalityAudit) { _, newValue in
+            if newValue {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(350))
+                    showLegalityReport = true
+                    store.pendingLegalityAudit = false
                 }
             }
         }
@@ -1254,6 +1279,10 @@ private struct DeckManagementSheet: View {
                     msg += " · \(res.unresolved.count) unresolved"
                 }
                 importBanner = msg
+                // Flag the parent DeckBuilderView to auto-open the legality
+                // report once this sheet dismisses — tells the coach at a
+                // glance which events the imported deck qualifies for.
+                store.pendingLegalityAudit = true
                 Task { try? await Task.sleep(nanoseconds: 3_500_000_000); importBanner = nil }
             case .failure(let err):
                 importBanner = "Import failed: \(err.localizedDescription)"

@@ -25,6 +25,13 @@ struct SearchView: View {
                     .padding(.top, Design.Spacing.sm)
                     .padding(.bottom, Design.Spacing.xs)
 
+                // Card-purpose sub-tabs. Community (Discord handoff §8)
+                // treats Plays / Hot Dogs / Sealed as distinct categories;
+                // the default "All" keeps existing behavior unchanged.
+                purposeTabs
+                    .padding(.horizontal, Design.Spacing.md)
+                    .padding(.bottom, Design.Spacing.xs)
+
                 Group {
                     if store.isLoading {
                         loadingView
@@ -161,6 +168,31 @@ struct SearchView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Scan a card")
+        }
+    }
+
+    // Horizontal sub-tab row beneath the search bar. Scopes results to a
+    // single card purpose (Heroes / Plays / Hot Dogs / Sealed) or "All."
+    private var purposeTabs: some View {
+        @Bindable var store = store
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Design.Spacing.xs) {
+                ForEach(CardPurpose.allCases) { purpose in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            store.cardPurpose = purpose
+                        }
+                    } label: {
+                        Text(purpose.rawValue)
+                            .font(Design.Fonts.mono(12, weight: store.cardPurpose == purpose ? .bold : .regular))
+                            .foregroundStyle(store.cardPurpose == purpose ? Design.Colors.nearBlack : Design.Colors.textSecondary)
+                            .padding(.horizontal, Design.Spacing.md)
+                            .frame(height: 30)
+                            .background(Capsule().fill(store.cardPurpose == purpose ? Design.Colors.bobaOrange : Design.Colors.glass))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
     }
 

@@ -1,6 +1,18 @@
 import Foundation
 import Observation
 
+/// Sub-tab on the Find tab that scopes results by card purpose. The
+/// Discord corpus (§8) shows players think of Plays / Hot Dogs / Sealed
+/// as distinct categories, not as "cards mixed in with heroes."
+enum CardPurpose: String, CaseIterable, Identifiable {
+    case all      = "All"
+    case heroes   = "Heroes"
+    case plays    = "Plays"
+    case hotDogs  = "Hot Dogs"
+    case sealed   = "Sealed"
+    var id: String { rawValue }
+}
+
 enum CardSortOrder: String, CaseIterable, Identifiable {
     case `default`   = "default"
     case nameAsc     = "name_asc"
@@ -52,6 +64,7 @@ final class CardStore {
     var powerMax: Int?              { didSet { scheduleFilter() } }
     var hasImageOnly = false        { didSet { scheduleFilter() } }
     var sortOrder: CardSortOrder = .default { didSet { scheduleFilter() } }
+    var cardPurpose: CardPurpose = .all { didSet { scheduleFilter() } }
 
     var activeFilterCount: Int {
         (selectedElements.isEmpty ? 0 : 1)
@@ -222,8 +235,16 @@ final class CardStore {
         let pMax      = powerMax
         let imgOnly   = hasImageOnly
 
+        let purpose = cardPurpose
         filteredCards = displayCards.filter { card in
             if isLoadingMore && card.isSealed           { return false }
+            switch purpose {
+            case .all:     break
+            case .heroes:  if !card.isHero    { return false }
+            case .plays:   if !card.isPlay    { return false }
+            case .hotDogs: if !card.isHotDog  { return false }
+            case .sealed:  if !card.isSealed  { return false }
+            }
             if imgOnly && !card.imageAvailable          { return false }
             if !elements.isEmpty && !elements.contains(card.element) { return false }
             if let s = set,       !s.isEmpty, card.set      != s     { return false }

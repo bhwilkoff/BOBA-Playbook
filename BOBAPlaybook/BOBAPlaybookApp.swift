@@ -53,8 +53,12 @@ struct BOBAPlaybookApp: App {
                     guard url.scheme == "bobaplaybook" else { return }
                     switch url.host {
                     case "scan":
-                        // bobaplaybook://scan — QR code on web opens Scan tab directly.
-                        selectedTab = 1
+                        // bobaplaybook://scan — QR code on web opens the scanner
+                        // directly. Post-nav-refactor there's no Scan tab, so
+                        // we jump to Find (tab 0) and flag the scanner sheet
+                        // which SearchView is observing.
+                        selectedTab = 0
+                        cardStore.pendingScan = true
                     case "card":
                         // bobaplaybook://card/CBF-656 — deep link to a specific card.
                         let cardNumber = String(url.path.dropFirst())  // strip leading "/"

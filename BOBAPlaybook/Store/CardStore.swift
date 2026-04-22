@@ -89,6 +89,11 @@ final class CardStore {
     // SearchView watches this and presents the card once displayCards is populated.
     var pendingCardNumber: String? = nil
 
+    /// Set by the URL handler when a bobaplaybook://scan URL opens the app
+    /// (the QR code on the web version uses this to jump straight to scanning).
+    /// SearchView watches this and presents the ScanView sheet.
+    var pendingScan: Bool = false
+
     // MARK: - Internal
     private var filterTask: Task<Void, Never>?
 

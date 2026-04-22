@@ -4,6 +4,8 @@ struct SearchView: View {
     @Environment(CardStore.self) private var store
     @State private var showFilters = false
     @State private var selectedCard: Card?
+    @State private var showScan = false
+    @State private var showProfile = false
 
     // Grid: 2 columns with minimum size
     private let columns = [
@@ -14,28 +16,43 @@ struct SearchView: View {
     var body: some View {
         @Bindable var store = store
         NavigationStack {
-            Group {
-                if store.isLoading {
-                    loadingView
-                } else if let error = store.loadError {
-                    errorView(error)
-                } else {
-                    contentView
+            VStack(spacing: 0) {
+                // Custom search bar — typing area on the left, scan shortcut
+                // on the right. Replaces the old `.searchable` so we can pack
+                // a scan trigger into the same row per the nav-refactor ask.
+                searchBar
+                    .padding(.horizontal, Design.Spacing.md)
+                    .padding(.top, Design.Spacing.sm)
+                    .padding(.bottom, Design.Spacing.xs)
+
+                Group {
+                    if store.isLoading {
+                        loadingView
+                    } else if let error = store.loadError {
+                        errorView(error)
+                    } else {
+                        contentView
+                    }
                 }
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // Profile moved off the tab bar into the Find-tab header so
+                // the bottom bar stays focused on content modes.
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showProfile = true
+                    } label: {
+                        Image(systemName: "person.crop.circle")
+                            .font(.system(size: 22))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                    }
+                    .accessibilityLabel("Profile")
+                }
                 ToolbarItem(placement: .principal) {
                     BOBAWordmark()
                 }
-            }
-            .searchable(
-                text: $store.searchText,
-                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "Cards, heroes, numbers…"
-            )
-            .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     filterButton
                 }
@@ -45,6 +62,28 @@ struct SearchView: View {
         }
         .sheet(isPresented: $showFilters) {
             FilterSheetView(store: store)
+        }
+        // Scan as an immersive full-screen cover — camera needs the whole
+        // viewport. A floating Close button handles dismissal since ScanView
+        // has no nav bar of its own.
+        .fullScreenCover(isPresented: $showScan) {
+            ZStack(alignment: .topLeading) {
+                ScanView()
+                Button {
+                    showScan = false
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(Color.white.opacity(0.85))
+                        .shadow(color: .black.opacity(0.5), radius: 4)
+                        .padding(Design.Spacing.md)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Close scanner")
+            }
+        }
+        .sheet(isPresented: $showProfile) {
+            ProfileView()
         }
         .sheet(item: $selectedCard) { card in
             CardDetailView(card: card, navigationCards: store.filteredCards)
@@ -58,8 +97,70 @@ struct SearchView: View {
         .onChange(of: store.isLoadingMore) { _, _ in
             tryPresentPendingCard()
         }
+        // Deep-link: bobaplaybook://scan — present the scanner sheet.
+        .onChange(of: store.pendingScan) { _, pending in
+            if pending {
+                showScan = true
+                store.pendingScan = false
+            }
+        }
         .onAppear {
             tryPresentPendingCard()
+            if store.pendingScan {
+                showScan = true
+                store.pendingScan = false
+            }
+        }
+    }
+
+    // MARK: - Search Bar (typing + scan shortcut)
+
+    private var searchBar: some View {
+        @Bindable var store = store
+        return HStack(spacing: Design.Spacing.sm) {
+            // Typing area
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Design.Colors.textMuted)
+                TextField("Cards, heroes, numbers…", text: $store.searchText)
+                    .font(Design.Fonts.mono(14))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                if !store.searchText.isEmpty {
+                    Button {
+                        store.searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 36)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Design.Colors.glass))
+
+            // Scan shortcut — tapping here opens the scanner instead of the keyboard.
+            Button {
+                showScan = true
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "camera.viewfinder")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("SCAN")
+                        .font(Design.Fonts.mono(9, weight: .bold))
+                }
+                .foregroundStyle(Design.Colors.bobaOrange)
+                .padding(.horizontal, 10)
+                .frame(height: 36)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Design.Colors.bobaOrange.opacity(0.12)))
+                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Design.Colors.bobaOrange.opacity(0.4), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Scan a card")
         }
     }
 

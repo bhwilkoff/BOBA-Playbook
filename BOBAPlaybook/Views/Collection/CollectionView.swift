@@ -14,6 +14,10 @@ struct CollectionView: View {
     @State private var showingSignIn    = false
     @State private var showTradeRoom    = false
     @State private var discord          = DiscordService()
+    /// "Rainbow" mode replaces the designation list with a hero-grouped view
+    /// of owned-vs-existing treatments. Community primary collecting goal
+    /// per DISCORD_TERMINOLOGY.md §3.4.
+    @State private var isRainbowMode    = false
 
     var body: some View {
         NavigationStack {
@@ -93,7 +97,11 @@ struct CollectionView: View {
             VStack(spacing: 0) {
                 valueSummary
                 designationPicker
-                cardList
+                if isRainbowMode {
+                    rainbowList
+                } else {
+                    cardList
+                }
             }
             .background(Design.Colors.nearBlack)
             .refreshable {
@@ -148,26 +156,45 @@ struct CollectionView: View {
                     let count = collection.uniqueBobaIds(for: d).count
                     Button {
                         selectedDesignation = d
+                        isRainbowMode = false
                     } label: {
                         HStack(spacing: Design.Spacing.xs) {
                             Image(systemName: d.icon)
                                 .font(.system(size: 11))
                             Text(d.displayName)
-                                .font(Design.Fonts.mono(12, weight: selectedDesignation == d ? .bold : .regular))
+                                .font(Design.Fonts.mono(12, weight: (!isRainbowMode && selectedDesignation == d) ? .bold : .regular))
                             if count > 0 {
                                 Text("\(count)")
                                     .font(Design.Fonts.mono(10))
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 1)
-                                    .background(Capsule().fill(selectedDesignation == d ? Design.Colors.nearBlack.opacity(0.3) : Design.Colors.glass))
+                                    .background(Capsule().fill((!isRainbowMode && selectedDesignation == d) ? Design.Colors.nearBlack.opacity(0.3) : Design.Colors.glass))
                             }
                         }
-                        .foregroundStyle(selectedDesignation == d ? Design.Colors.nearBlack : Design.Colors.textSecondary)
+                        .foregroundStyle((!isRainbowMode && selectedDesignation == d) ? Design.Colors.nearBlack : Design.Colors.textSecondary)
                         .padding(.horizontal, Design.Spacing.md)
                         .frame(height: 34)
-                        .background(selectedDesignation == d ? Design.Colors.bobaOrange : Design.Colors.glass)
+                        .background((!isRainbowMode && selectedDesignation == d) ? Design.Colors.bobaOrange : Design.Colors.glass)
                         .clipShape(Capsule())
                     }
+                }
+
+                // Rainbow mode — groups owned cards by hero and shows
+                // rainbow progress (owned vs. every treatment of that hero).
+                Button {
+                    isRainbowMode = true
+                } label: {
+                    HStack(spacing: Design.Spacing.xs) {
+                        Image(systemName: "rainbow")
+                            .font(.system(size: 11))
+                        Text("Rainbow")
+                            .font(Design.Fonts.mono(12, weight: isRainbowMode ? .bold : .regular))
+                    }
+                    .foregroundStyle(isRainbowMode ? Design.Colors.nearBlack : Design.Colors.textSecondary)
+                    .padding(.horizontal, Design.Spacing.md)
+                    .frame(height: 34)
+                    .background(isRainbowMode ? Design.Colors.bobaCyan : Design.Colors.glass)
+                    .clipShape(Capsule())
                 }
             }
             .padding(.horizontal, Design.Spacing.lg)
@@ -217,6 +244,129 @@ struct CollectionView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Rainbow list
+    //
+    // For every hero the user owns at least one card of, show rainbow
+    // progress: owned treatments vs. every treatment that exists for
+    // that hero across all variations. Tap a row → open the card-number
+    // detail view for the first owned card of that hero (entry point
+    // into seeing variants). Missing-treatment jumps into Find are a
+    // P2 follow-up — the list itself already shows the gap.
+
+    private struct RainbowProgress: Identifiable {
+        let hero: String
+        let owned: Int
+        let total: Int
+        let coverCard: Card
+        var id: String { hero }
+        var percent: Double { total == 0 ? 0 : Double(owned) / Double(total) }
+    }
+
+    private var rainbowRows: [RainbowProgress] {
+        // Owned (any designation that counts as owned, e.g. .personal / .for_sale / .for_trade).
+        let ownedBobaIds: Set<String> = Set(
+            collection.userCards
+                .filter { $0.designation.isOwned }
+                .compactMap { $0.bobaId }
+        )
+        // Group every hero-card in the catalog by hero.
+        var byHero: [String: [Card]] = [:]
+        for c in cardStore.displayCards where c.isHero && !c.hero.isEmpty {
+            byHero[c.hero, default: []].append(c)
+        }
+        // Keep only heroes the user owns at least one printing of.
+        var rows: [RainbowProgress] = []
+        for (hero, cards) in byHero {
+            let owned = cards.filter { ownedBobaIds.contains($0.id) }
+            if owned.isEmpty { continue }
+            // Prefer an owned card with an image as the cover; fall back to
+            // the first card in the hero group.
+            let cover = owned.first { $0.imageFile?.isEmpty == false } ?? owned.first ?? cards.first!
+            rows.append(.init(
+                hero: hero,
+                owned: owned.count,
+                total: cards.count,
+                coverCard: cover
+            ))
+        }
+        // Almost-complete rainbows are the collector's primary signal —
+        // surface those first, then alphabetical.
+        return rows.sorted { lhs, rhs in
+            if lhs.percent != rhs.percent { return lhs.percent > rhs.percent }
+            return lhs.hero.localizedCompare(rhs.hero) == .orderedAscending
+        }
+    }
+
+    private var rainbowList: some View {
+        let rows = rainbowRows
+        return Group {
+            if rows.isEmpty {
+                VStack(spacing: Design.Spacing.md) {
+                    Spacer()
+                    Image(systemName: "rainbow")
+                        .font(.system(size: 36))
+                        .foregroundStyle(Design.Colors.bobaCyan.opacity(0.6))
+                    Text("No rainbows in progress yet")
+                        .font(Design.Fonts.display(16))
+                        .foregroundStyle(Design.Colors.textMuted)
+                    Text("Add any hero card to your collection — we'll show rainbow progress here.")
+                        .font(Design.Fonts.mono(13))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Design.Spacing.xl)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: Design.Spacing.sm) {
+                        ForEach(rows) { row in
+                            rainbowRow(row)
+                                .onTapGesture {
+                                    selectedCard = BobaIdWrapper(id: row.coverCard.id)
+                                }
+                        }
+                    }
+                    .padding(Design.Spacing.lg)
+                }
+            }
+        }
+    }
+
+    private func rainbowRow(_ row: RainbowProgress) -> some View {
+        HStack(spacing: Design.Spacing.md) {
+            CardImageView(card: row.coverCard, size: .thumb)
+                .frame(width: 44, height: 62)
+                .clipShape(RoundedRectangle(cornerRadius: Design.Radius.sm))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(row.hero)
+                    .font(Design.Fonts.display(16))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                // Segmented progress bar — each cell = one treatment.
+                // Filled = owned, dim = still needed.
+                HStack(spacing: 2) {
+                    ForEach(0..<row.total, id: \.self) { i in
+                        Rectangle()
+                            .fill(i < row.owned ? Design.Colors.bobaCyan : Design.Colors.glass)
+                            .frame(height: 4)
+                    }
+                }
+                .clipShape(Capsule())
+                Text("\(row.owned) of \(row.total) treatments")
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+            Spacer()
+            Text("\(Int((row.percent * 100).rounded()))%")
+                .font(Design.Fonts.mono(13, weight: .bold))
+                .foregroundStyle(row.percent == 1.0 ? Color(hex: "4CAF50") : Design.Colors.bobaCyan)
+        }
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.sm)
+        .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface))
+        .contentShape(Rectangle())
     }
 
     private func collectionRow(identifier: String) -> some View {

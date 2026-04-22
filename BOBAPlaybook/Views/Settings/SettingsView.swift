@@ -111,5 +111,14 @@ struct AppIconOption: Identifiable {
         AppIconOption(id: "gum",     label: "Gum",   iconName: "AppIcon-Gum",   color: Color(hex: "#FF69B4")),
         AppIconOption(id: "super",   label: "Super", iconName: "AppIcon-Super", color: Color(hex: "#FF00FF")),
     ]
+
+    /// Resolves the currently-selected icon's accent color. Used by any
+    /// accent UI that should mirror the user's chosen app-icon — e.g.
+    /// the Find-tab profile icon. Falls back to the default Fire color
+    /// if the stored name isn't found (e.g. after deleting an alt icon).
+    static func currentColor(for storedName: String) -> Color {
+        all.first(where: { $0.iconName == storedName })?.color
+            ?? all.first!.color
+    }
 }
 

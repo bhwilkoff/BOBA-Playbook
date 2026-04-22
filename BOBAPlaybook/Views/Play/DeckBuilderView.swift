@@ -99,6 +99,19 @@ struct DeckBuilderView: View {
         .sheet(item: $selectedBrowserCard) { card in
             BrowserCardDetailSheet(card: card, store: store, tab: store.browserTab)
         }
+        .onAppear {
+            // Auto-restore any in-progress deck. Silently loads the last draft
+            // so coaches can wander off (answer a call, check a card detail,
+            // etc.) and return without losing their work.
+            if store.heroes.isEmpty && store.plays.isEmpty && store.hotDogs.isEmpty {
+                let restored = store.restoreDraft(allCards: cardStore.displayCards)
+                if restored { showTemplates = false }
+            }
+        }
+        .onDisappear {
+            // Snapshot on the way out. No-op for empty decks.
+            store.saveDraft()
+        }
     }
 
     // MARK: - Format Picker
@@ -194,6 +207,7 @@ struct DeckBuilderView: View {
                 // Build Custom Deck — top of the splash so coaches see it first
                 Button {
                     store.clearDeck()
+                    store.discardDraft()
                     showTemplates = false
                 } label: {
                     HStack(spacing: Design.Spacing.md) {
@@ -1039,6 +1053,7 @@ private struct DeckManagementSheet: View {
                 // Build Custom Deck — prominent, primary action
                 Button {
                     store.clearDeck()
+                    store.discardDraft()
                     dismiss()
                 } label: {
                     HStack {

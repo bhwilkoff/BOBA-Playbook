@@ -754,6 +754,91 @@ final class DeckBuilderStore {
         hotDogs = template.hotDogIds.compactMap { byId[$0] }
     }
 
+    // MARK: - Draft persistence (local)
+    //
+    // Every time the deck builder disappears we snapshot the in-progress deck
+    // to UserDefaults. When the builder reappears we auto-restore silently,
+    // so coaches can wander off and come back without losing work. The draft
+    // is separate from Supabase saved decks — saving to cloud doesn't clear
+    // it, and loading a saved deck overwrites it.
+
+    struct DraftSnapshot: Codable {
+        let deckName: String
+        let format: String               // supabaseValue (slug)
+        let activePresetID: String?
+        let ruleOverrides: DeckRuleOverrides
+        let heroBobaIds: [String]
+        let playBobaIds: [String]
+        let bonusPlayBobaIds: [String]
+        let hotDogBobaIds: [String]
+        let sideboardBobaIds: [String]
+        let currentDeckId: UUID?
+        let savedAt: Date
+    }
+
+    private static let draftKey = "bp_deckDraft_v1"
+
+    /// True when a non-empty draft exists on disk — used to decide whether
+    /// the splash "Build Custom Deck" screen should show.
+    static func hasSavedDraft() -> Bool {
+        guard let data = UserDefaults.standard.data(forKey: draftKey),
+              let snap = try? JSONDecoder().decode(DraftSnapshot.self, from: data) else { return false }
+        return !snap.heroBobaIds.isEmpty || !snap.playBobaIds.isEmpty
+            || !snap.bonusPlayBobaIds.isEmpty || !snap.hotDogBobaIds.isEmpty
+    }
+
+    /// Serialize the current deck to UserDefaults. No-op for empty decks
+    /// (avoids "resuming" an empty deck on the next open).
+    func saveDraft() {
+        let empty = heroes.isEmpty && plays.isEmpty && bonusPlays.isEmpty && hotDogs.isEmpty
+        if empty {
+            discardDraft()
+            return
+        }
+        let snap = DraftSnapshot(
+            deckName: deckName,
+            format: format.supabaseValue,
+            activePresetID: activePresetID,
+            ruleOverrides: ruleOverrides,
+            heroBobaIds: heroes.map(\.id),
+            playBobaIds: plays.map(\.id),
+            bonusPlayBobaIds: bonusPlays.map(\.id),
+            hotDogBobaIds: hotDogs.map(\.id),
+            sideboardBobaIds: sideboard.map(\.id),
+            currentDeckId: currentDeckId,
+            savedAt: Date()
+        )
+        if let data = try? JSONEncoder().encode(snap) {
+            UserDefaults.standard.set(data, forKey: Self.draftKey)
+        }
+    }
+
+    /// Restore the last draft (if any). Returns true when a draft was
+    /// applied, so callers can decide whether to skip the splash screen.
+    @discardableResult
+    func restoreDraft(allCards: [Card]) -> Bool {
+        guard let data = UserDefaults.standard.data(forKey: Self.draftKey),
+              let snap = try? JSONDecoder().decode(DraftSnapshot.self, from: data) else { return false }
+        let byId = Dictionary(uniqueKeysWithValues: allCards.map { ($0.id, $0) })
+        deckName = snap.deckName
+        if let f = DeckFormat.allCases.first(where: { $0.supabaseValue == snap.format }) {
+            format = f
+        }
+        activePresetID = snap.activePresetID
+        ruleOverrides = snap.ruleOverrides
+        heroes = snap.heroBobaIds.compactMap { byId[$0] }
+        plays = snap.playBobaIds.compactMap { byId[$0] }
+        bonusPlays = snap.bonusPlayBobaIds.compactMap { byId[$0] }
+        hotDogs = snap.hotDogBobaIds.compactMap { byId[$0] }
+        sideboard = snap.sideboardBobaIds.compactMap { byId[$0] }
+        currentDeckId = snap.currentDeckId
+        return !heroes.isEmpty || !plays.isEmpty || !bonusPlays.isEmpty || !hotDogs.isEmpty
+    }
+
+    func discardDraft() {
+        UserDefaults.standard.removeObject(forKey: Self.draftKey)
+    }
+
     // MARK: - Supabase Save
 
     func saveDeck() async {

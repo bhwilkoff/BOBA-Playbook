@@ -6,6 +6,10 @@ struct SearchView: View {
     @State private var selectedCard: Card?
     @State private var showScan = false
     @State private var showProfile = false
+    /// Mirror of the Settings → App Icon choice. The profile icon's tint
+    /// follows this so the accent stays consistent with the user's chosen
+    /// icon color.
+    @AppStorage("selectedIconName") private var selectedIconName: String = "default"
 
     // Grid: 2 columns with minimum size
     private let columns = [
@@ -46,7 +50,7 @@ struct SearchView: View {
                     } label: {
                         Image(systemName: "person.crop.circle")
                             .font(.system(size: 22))
-                            .foregroundStyle(Design.Colors.bobaCyan)
+                            .foregroundStyle(AppIconOption.currentColor(for: selectedIconName))
                     }
                     .accessibilityLabel("Profile")
                 }

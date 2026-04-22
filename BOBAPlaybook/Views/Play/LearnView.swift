@@ -1754,7 +1754,12 @@ private struct TournamentView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Design.Spacing.xl) {
-                FormatOverviewSection()
+                ProTourIntroSection()
+                HeroDeckFormatsSection()
+                GameModesSection()
+                DoubleUpSection()
+                MadnessSection()
+                NationalsDivisionsSection()
                 MatchStructureSection()
                 PenaltyReferenceSection()
             }
@@ -1764,34 +1769,319 @@ private struct TournamentView: View {
     }
 }
 
-private struct FormatOverviewSection: View {
-    private let formats: [(String, String, String, Color)] = [
-        ("Rookie",       "Hero Deck only. Pure power comparison.",                      "New player friendly",    Design.Colors.bobaOrange),
-        ("Substitution", "Hero Deck + Hot Dog Deck. Add hand management.",               "Intermediate",           .yellow),
-        ("Playmaker",    "Full game — Hero + Hot Dogs + Playbook.",                      "Tournament standard",    Design.Colors.bobaCyan),
-        ("SPEC",         "Playmaker variant: no Hero above 160 Power.",                 "Sideboard of 45+ Plays", Color(hex: "8B00FF")),
-        ("Elite",        "Playmaker variant: total deck power ≤ 8,250.",                 "Combined Power cap",     Color(hex: "8B00FF").opacity(0.7)),
-        ("Sealed",       "Open a booster box. 40-card Hero Deck, 20 Plays.",             "Limited format",         Design.Colors.textMuted),
-    ]
+// Intro card for the 2026 Pro-Tour — announces the Coach concept, the
+// Nationals prize pool, and the community-culture framing from the
+// "Welcome to BoBA 2026" opening of the draft.
+private struct ProTourIntroSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-            Text("TOURNAMENT FORMATS")
+            Text("2026 PRO-TOUR")
+                .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+            VStack(alignment: .leading, spacing: Design.Spacing.md) {
+                Text("$500,000+ Prize Pool")
+                    .font(Design.Fonts.display(22))
+                    .foregroundStyle(Design.Colors.bobaOrange)
+                Text("The 2026 World Championships at The National offers an estimated $500,000+ in total prizing, with up to $375,000+ available as cash payouts. APEX events are free to enter.")
+                    .font(Design.Fonts.mono(13))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Divider().background(Design.Colors.glassBorder)
+                Text("You are a Coach.")
+                    .font(Design.Fonts.display(14)).foregroundStyle(Design.Colors.bobaCyan)
+                Text("As a Coach, you lead a squad of superheroes into battle. The Heroes bring the power; you bring the strategy. You decide the roster, call the Plays, and pick when to push or hold. Assistant Coaches are allowed in all events unless otherwise specified — a pairing to increase accessibility for younger Coaches or those with special needs.")
+                    .font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(Design.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface)
+                .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.bobaOrange.opacity(0.3), lineWidth: 1)))
+            Text("The draft is marked NOT YET FINALIZED — check the official rules PDF for the current published version before a tournament.")
+                .font(Design.Fonts.mono(10)).foregroundStyle(Design.Colors.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
+        }
+    }
+}
+
+// Hero-deck build rules. The 2026 draft confirms four canonical build
+// formats: Apex / Spec / Elite / SPEC+, with "max 6 per power" standard
+// across all of them. Heroes may now appear unlimited times per deck
+// (one-of still applies to an exact bobaId).
+private struct HeroDeckFormatsSection: View {
+    private let formats: [(name: String, cap: String, notes: String, color: Color)] = [
+        ("Apex",   "No power limit",                "Standard deck rules (max 6 Heroes per power). The open-power-cap division.",                                       Design.Colors.bobaOrange),
+        ("Spec",   "160 Power cap",                 "Every Hero ≤ 160 Power. Standard deck rules (max 6 per power).",                                                    Design.Colors.bobaCyan),
+        ("Elite",  "8,250 total power cap",         "Combined Power across all Heroes ≤ 8,250. Starter cards legal; Trainer cards NOT legal. Otherwise standard rules.", Color(hex: "8B00FF")),
+        ("SPEC+",  "Up to 70 Heroes (tiered)",      "60 Heroes ≤ 160 Power (a full Spec deck), plus up to 10 optional higher-power Heroes with these stacking limits:",  Color(hex: "FF00FF")),
+    ]
+
+    private let specPlusTiers: [(String, String)] = [
+        ("165 Power", "max 2 per deck"),
+        ("170 Power", "max 2 per deck"),
+        ("175 Power", "max 1 per deck"),
+        ("180 Power", "max 1 per deck"),
+        ("185 Power", "max 1 per deck"),
+        ("190 Power", "max 1 per deck"),
+        ("195 Power", "max 1 per deck"),
+        ("200 Power", "max 1 per deck"),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            Text("HERO DECK FORMATS")
                 .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
             VStack(spacing: 1) {
-                ForEach(formats, id: \.0) { fmt in
+                ForEach(formats, id: \.name) { fmt in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text(fmt.0).font(Design.Fonts.mono(14, weight: .bold)).foregroundStyle(fmt.3)
+                            Text(fmt.name).font(Design.Fonts.mono(14, weight: .bold)).foregroundStyle(fmt.color)
                             Spacer()
-                            Text(fmt.2).font(Design.Fonts.mono(11)).foregroundStyle(fmt.3.opacity(0.7))
+                            Text(fmt.cap).font(Design.Fonts.mono(11)).foregroundStyle(fmt.color.opacity(0.8))
                         }
-                        Text(fmt.1).font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
+                        Text(fmt.notes)
+                            .font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if fmt.name == "SPEC+" {
+                            VStack(alignment: .leading, spacing: 3) {
+                                ForEach(specPlusTiers, id: \.0) { tier in
+                                    HStack {
+                                        Text(tier.0).font(Design.Fonts.mono(11, weight: .bold)).foregroundStyle(fmt.color.opacity(0.85))
+                                        Text(tier.1).font(Design.Fonts.mono(11)).foregroundStyle(Design.Colors.textMuted)
+                                    }
+                                }
+                                Text("No Heroes above 200 Power. Heroes 165–200 are in the optional 10-slot overflow only.")
+                                    .font(Design.Fonts.mono(11))
+                                    .foregroundStyle(Design.Colors.textMuted)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .padding(.top, 2)
+                            }
+                            .padding(.top, 4)
+                        }
                     }
-                    .padding(Design.Spacing.md).background(Design.Colors.surface)
+                    .padding(Design.Spacing.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Design.Colors.surface)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
             .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+            Text("All Playmaker divisions are 1,000 DBS unless specified otherwise. Heroes can now appear unlimited times per deck (\"one-of\" still applies to an exact card).")
+                .font(Design.Fonts.mono(11)).foregroundStyle(Design.Colors.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, Design.Spacing.xs)
+        }
+    }
+}
+
+// Core three game modes. Rookie / Substitution / Playmaker apply across
+// every division — the Hero Deck Format sits on top of the game mode.
+private struct GameModesSection: View {
+    private let modes: [(String, String, Color)] = [
+        ("Rookie",       "Hero Deck only. Pure power comparison. At sanctioned events you must intentionally place Heroes one by one — no blind shuffle-and-place.", Design.Colors.bobaOrange),
+        ("Substitution", "Hero Deck + Hot Dog Deck. Substitute at the start of a Battle by paying 2 Hot Dogs.",                                                      .yellow),
+        ("Playmaker",    "The full game — Hero Deck + Hot Dog Deck + 30-card Playbook. The tournament standard.",                                                    Design.Colors.bobaCyan),
+    ]
+    var body: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            Text("GAME MODES")
+                .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+            VStack(spacing: 1) {
+                ForEach(modes, id: \.0) { m in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(m.0).font(Design.Fonts.mono(14, weight: .bold)).foregroundStyle(m.2)
+                        Text(m.1).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(Design.Spacing.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Design.Colors.surface)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+            .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+        }
+    }
+}
+
+// Double-Up is the 2026 add-on — a simple betting / bluffing mechanic
+// that can layer onto any game mode. Condensed from the draft's
+// "Laundry Phase Details" section.
+private struct DoubleUpSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            Text("DOUBLE-UP (OPTIONAL ADD-ON)")
+                .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+            VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                Text("Simple Press-and-Fold wagering layered onto any game mode. Adds the depth of a backgammon doubling cube to BoBA.")
+                    .font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                bullet("Each Game of 7 Battles starts worth 1 point. First Coach to 7 points wins the match-up.")
+                bullet("Each Coach gets one Press per Game — called after hands are dealt, or between Battles.")
+                bullet("Opponent responds: Accept the Press, Press back (if they haven't used theirs), or Fold and end the game.")
+                bullet("No Double-Up game ends in a tie — ties resolve by Top Deck (each Coach reveals the top of their Hero Deck until one wins).")
+                bullet("Between-battles Press-and-Fold is called the \"Laundry Phase.\"")
+            }
+            .padding(Design.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface)
+                .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.bobaCyan.opacity(0.25), lineWidth: 1)))
+        }
+    }
+
+    @ViewBuilder private func bullet(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Text("•").font(Design.Fonts.mono(13, weight: .bold)).foregroundStyle(Design.Colors.bobaCyan)
+            Text(text).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+// Team Play variants that show up across divisions. Three canonical forms
+// per the draft: Apex / AlphaTrilogy Madness (full-power), and HiLo
+// Madness (some players High Ball, others Low Ball).
+private struct MadnessSection: View {
+    private let variants: [(String, String, Color)] = [
+        ("Apex & AlphaTrilogy Madness",
+         "Head Coach runs a full Apex deck; teammates play Spec 160 decks that can unlock Apex cards by including 10-of-an-insert or 4 Foil Hot Dogs. Max-optimized teammate decks reach 70 Heroes with 6 Apex cards.",
+         Design.Colors.bobaOrange),
+        ("HiLo Madness",
+         "Team format where Head Coaches play \"High Ball\" (highest Power wins) while teammates play \"Low Ball\" (lowest Power wins). Used in Granny's Gum, Brawl, and Tecmo Bowl divisions.",
+         Design.Colors.bobaCyan),
+    ]
+    var body: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            Text("MADNESS (TEAM PLAY)")
+                .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+            Text("4-Coach team formats. Each Coach brings 4 of their favorite Foil Hot Dogs to display as team mascots at every match.")
+                .font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true).padding(.bottom, Design.Spacing.xs)
+            VStack(spacing: 1) {
+                ForEach(variants, id: \.0) { v in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(v.0).font(Design.Fonts.mono(13, weight: .bold)).foregroundStyle(v.2)
+                        Text(v.1).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(Design.Spacing.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Design.Colors.surface)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+            .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+        }
+    }
+}
+
+// 2026 World Championship divisions with prize pools. Event-level rules
+// (DBS, BP/HTD toggles, weapon restrictions) live on the division card —
+// transcribed from the 2026 National Events draft.
+private struct NationalsDivisionsSection: View {
+    private struct Division: Identifiable {
+        let id = UUID()
+        let name: String
+        let prize: String
+        let events: [String]     // event name + quick rules summary
+        let color: Color
+    }
+
+    private let divisions: [Division] = [
+        Division(name: "Apex",            prize: "$150,000 · free to enter",
+                 events: [
+                    "Apex Playmaker — 1,000 DBS · Bonus Plays ON · HTD Plays ON · Apex Deck Rules · needs Football Breaker Bojax /99 Auto",
+                    "Apex Blitz — Rookie Mode · Apex Deck Rules",
+                    "Apex Madness (team) — Apex Madness Deck Rules · 1× Football Breaker Bojax /99 Auto per team",
+                 ], color: Design.Colors.bobaOrange),
+        Division(name: "AlphaTrilogy",    prize: "$100,000",
+                 events: [
+                    "AlphaTrilogy Playmaker — 1,000 DBS · BP ON · HTD ON · Apex Deck Rules · needs Bat Breaker Bojax /99 Auto",
+                    "AlphaTrilogy Blitz — Rookie Mode · Apex Deck Rules",
+                    "AlphaTrilogy Madness (team) — Apex Madness Deck Rules · 1× Bat Breaker Bojax /99 Auto per team",
+                 ], color: Color(hex: "8B00FF")),
+        Division(name: "Tecmo Bowl",      prize: "$50,000",
+                 events: [
+                    "Tecmo Bowl SPEC+ Playmaker — ALL cards from Tecmo Bowl set · SPEC+ rules · 1,000 DBS · BP ON (Tecmo only) · HTD N/A",
+                    "SPEC+ Rookie Double-Up — SPEC+ rules · Tecmo Heroes only",
+                    "Tecmo Bowl HiLo Madness (team) — Tecmo Bowl set only · 4-player team",
+                 ], color: Color(hex: "FF00FF")),
+        Division(name: "Open",            prize: "up to $40,000",
+                 events: [
+                    "Spec Playmaker — in-rotation cards · 1,000 DBS · BP OFF · HTD OFF",
+                    "Elite Playmaker — in-rotation cards except Trainers · 1,000 DBS · BP ON · HTD ON",
+                    "SPEC+ Rookie Double-Up — SPEC+ rules · in-rotation cards",
+                    "Single-insert bonus: finish in the money with a mono-insert Hero Deck and your cash prize doubles.",
+                 ], color: Design.Colors.bobaCyan),
+        Division(name: "Blast",           prize: "$20,000",
+                 events: [
+                    "Blast Substitution Double-Up — all cards Blast · 30 Heroes · max 3 per power · all Hot Dogs Blast",
+                    "Blast Substitution Low Ball Double-Up — same rules, lowest Power wins",
+                 ], color: Color(hex: "FF4D00")),
+        Division(name: "Brawl",           prize: "$20,000",
+                 events: [
+                    "Brawl Playmaker — all Brawl weapons · 1,000 DBS · BP OFF · HTD OFF · all Hot Dogs must be \"Brawler\"",
+                    "Brawl Rookie Double-Up — all Brawl weapons · standard deck rules",
+                    "Brawl HiLo Madness (team) — all Brawl weapons · 6 per team, 4 play at a time",
+                 ], color: Color(hex: "C0392B")),
+        Division(name: "Granny's Gum",    prize: "$20,000",
+                 events: [
+                    "GG HiLo Madness (team) — all Heroes Grandma's Linoleum, Great Grandma's Linoleum, or Bubblegum · 6 per team, 4 at a time · min 10 of each legal insert type · no power cap",
+                 ], color: Color(hex: "FFD700")),
+        Division(name: "Power Glove",     prize: "$15,000",
+                 events: [
+                    "Power Glove Set Builder Bracket — verify ownership of 120+ unique Power Glove Inserts · everyone gets a promo card · full-set verification unlocks a $5,000 bonus",
+                 ], color: Design.Colors.textMuted),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            Text("2026 NATIONALS DIVISIONS")
+                .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+            Text("Each division's cash prize is split across its events by Prize Pool Share (PPS). You can enter every Madness event plus up to 1 solo event per division, scheduling permitting.")
+                .font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true).padding(.bottom, Design.Spacing.xs)
+            VStack(spacing: Design.Spacing.xs) {
+                ForEach(divisions) { d in DivisionCard(division: d) }
+            }
+        }
+    }
+
+    private struct DivisionCard: View {
+        let division: Division
+        @State private var isExpanded = false
+        var body: some View {
+            VStack(spacing: 0) {
+                Button { withAnimation(.easeInOut(duration: 0.18)) { isExpanded.toggle() } } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(division.name).font(Design.Fonts.display(16)).foregroundStyle(division.color)
+                            Text(division.prize).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textMuted)
+                        }
+                        Spacer()
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 12, weight: .semibold)).foregroundStyle(division.color)
+                    }
+                    .padding(Design.Spacing.md)
+                }
+                .buttonStyle(.plain)
+                if isExpanded {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(division.events, id: \.self) { event in
+                            HStack(alignment: .top, spacing: 6) {
+                                Text("›").font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(division.color.opacity(0.7))
+                                Text(event).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                    .padding(Design.Spacing.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Design.Colors.surface2)
+                }
+            }
+            .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface)
+                .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(division.color.opacity(0.25), lineWidth: 1)))
         }
     }
 }

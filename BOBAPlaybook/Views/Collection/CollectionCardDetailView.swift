@@ -14,6 +14,8 @@ struct CollectionCardDetailView: View {
 
     @State private var editingEntry: UserCard?
     @State private var showingAddSheet = false
+    @State private var showingAddDialog = false
+    @State private var showingDeckBuilder = false
     @State private var deleteError: String?
     @State private var isRefreshingPrice = false
 
@@ -68,7 +70,7 @@ struct CollectionCardDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     if catalogCard != nil {
                         Button {
-                            showingAddSheet = true
+                            showingAddDialog = true
                         } label: {
                             Image(systemName: "plus")
                                 .foregroundStyle(Design.Colors.bobaOrange)
@@ -82,6 +84,23 @@ struct CollectionCardDetailView: View {
                 if let card = catalogCard {
                     AddToCollectionSheet(card: card)
                 }
+            }
+            .sheet(isPresented: $showingDeckBuilder) {
+                if let card = catalogCard {
+                    DeckBuilderView(pendingCard: card)
+                        .environment(cardStore)
+                }
+            }
+            .confirmationDialog(catalogCard.map { "Add \($0.name)" } ?? "Add",
+                                isPresented: $showingAddDialog,
+                                titleVisibility: .visible) {
+                Button("To Collection") { showingAddSheet = true }
+                if let card = catalogCard, card.isHero || card.isPlay || card.isHotDog {
+                    Button("To Custom Deck") { showingDeckBuilder = true }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Where does this card go?")
             }
             .sheet(item: $editingEntry) { entry in
                 if let card = catalogCard {

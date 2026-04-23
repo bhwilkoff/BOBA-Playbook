@@ -2,7 +2,13 @@ import SwiftUI
 
 /// In-memory image cache shared across all CardImageView instances.
 /// Explicit limits prevent iOS from aggressively purging during fast scrolls.
-let cardImageCache: NSCache<NSURL, UIImage> = {
+///
+/// `nonisolated(unsafe)` because top-level `let`s default to MainActor
+/// isolation under Swift 6 strict concurrency, but NSCache is documented
+/// thread-safe — its operations may be invoked from any queue. The
+/// `unsafe` suffix tells the compiler we've vetted thread-safety
+/// ourselves.
+nonisolated(unsafe) let cardImageCache: NSCache<NSURL, UIImage> = {
     let cache = NSCache<NSURL, UIImage>()
     cache.countLimit = 600
     cache.totalCostLimit = 60 * 1024 * 1024  // 60 MB
@@ -11,7 +17,9 @@ let cardImageCache: NSCache<NSURL, UIImage> = {
 
 /// Dedicated session for card images — limits concurrent connections to prevent
 /// queue saturation when hundreds of cells appear during fast scrolling.
-let cardImageSession: URLSession = {
+/// Same MainActor-isolation escape as `cardImageCache`; URLSession is
+/// thread-safe by design.
+nonisolated(unsafe) let cardImageSession: URLSession = {
     let config = URLSessionConfiguration.default
     config.httpMaximumConnectionsPerHost = 8
     config.timeoutIntervalForRequest = 20

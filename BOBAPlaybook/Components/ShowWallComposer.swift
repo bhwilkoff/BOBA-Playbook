@@ -76,10 +76,14 @@ enum ShowWallComposer {
     /// back to a placeholder tile so the grid stays visually aligned.
     @MainActor
     private static func fetchThumbs(for cards: [Card]) async -> [UIImage?] {
-        await withTaskGroup(of: (Int, UIImage?).self) { group in
-            for (i, card) in cards.enumerated() {
+        // Resolve URLs on the main actor up front so the @Sendable
+        // group.addTask closure only captures Sendable scalars (Int, URL?)
+        // — Swift 6 strict concurrency rejects capturing the Card.
+        let urls: [URL?] = cards.map { CDN.thumbURL(for: $0) }
+        return await withTaskGroup(of: (Int, UIImage?).self) { group in
+            for (i, url) in urls.enumerated() {
                 group.addTask {
-                    guard let url = CDN.thumbURL(for: card) else { return (i, nil) }
+                    guard let url else { return (i, nil) }
                     if let cached = cardImageCache.object(forKey: url as NSURL) {
                         return (i, cached)
                     }

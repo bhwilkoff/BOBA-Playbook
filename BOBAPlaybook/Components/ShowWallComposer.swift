@@ -9,6 +9,20 @@ import UIKit
 // against a SwiftUI layout so the output inherits the app's styling
 // automatically — no separate Core Graphics composition.
 
+// MARK: - Wall options
+//
+// Options the streamer can toggle in the Wall Options sheet before
+// generating. Defaults match the previous unconfigurable behavior
+// so an "always tap Generate Wall" flow is unchanged.
+struct ShowWallOptions {
+    var includeBranding: Bool = true   // BOBA PLAYBOOK header tag
+    var includeTitle:    Bool = true   // Show name as the big header
+    var customText:      String = ""   // Replaces / adds to the title — see WallGrid
+    var includePrices:   Bool = false  // Per-tile price overlay
+
+    static let `default` = ShowWallOptions()
+}
+
 enum ShowWallComposer {
 
     /// Choose a column count that keeps each thumbnail readable without
@@ -29,14 +43,29 @@ enum ShowWallComposer {
     /// Produce a UIImage from the cards' CDN thumbnails. Runs on the
     /// main actor because ImageRenderer requires it. Returns nil if
     /// all image fetches fail (unlikely — thumbs are on R2).
+    ///
+    /// `prices` is optional — only consulted when `options.includePrices`
+    /// is true. Pass an empty dict if you don't have prices yet; the
+    /// composer falls back to "—" per tile.
     @MainActor
-    static func compose(cards: [Card], title: String) async -> UIImage? {
+    static func compose(
+        cards: [Card],
+        title: String,
+        options: ShowWallOptions = .default,
+        prices: [String: Decimal] = [:]
+    ) async -> UIImage? {
         guard !cards.isEmpty else { return nil }
 
         let images = await fetchThumbs(for: cards)
         let cols = columnCount(for: cards.count)
 
-        let content = WallGrid(title: title, columns: cols, pairs: zip(cards, images).map { ($0, $1) })
+        let content = WallGrid(
+            title: title,
+            columns: cols,
+            options: options,
+            pairs: zip(cards, images).map { ($0, $1) },
+            prices: prices
+        )
         let renderer = ImageRenderer(content: content)
         renderer.scale = 3.0
         renderer.isOpaque = true
@@ -80,25 +109,42 @@ enum ShowWallComposer {
 private struct WallGrid: View {
     let title: String
     let columns: Int
+    let options: ShowWallOptions
     let pairs: [(Card, UIImage?)]
+    let prices: [String: Decimal]
 
     /// Tile edge. Larger tiles look better shared at native phone
     /// resolution (ImageRenderer scale=3 multiplies this).
     private let tileWidth: CGFloat = 170
 
+    /// Resolved big-text line. Custom text wins; otherwise show name;
+    /// otherwise nothing. Driven by both options + non-empty checks.
+    private var resolvedTitle: String? {
+        let trimmed = options.customText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { return trimmed }
+        if options.includeTitle { return title }
+        return nil
+    }
+
+    /// Whether anything renders in the header slot — used to suppress
+    /// empty top padding when the streamer turned everything off.
+    private var hasHeader: Bool {
+        options.includeBranding || resolvedTitle != nil
+    }
+
     var body: some View {
         let gridCols = Array(repeating: GridItem(.fixed(tileWidth), spacing: 10), count: columns)
         VStack(spacing: 14) {
-            header
+            if hasHeader { header }
             LazyVGrid(columns: gridCols, spacing: 10) {
                 ForEach(Array(pairs.enumerated()), id: \.offset) { _, pair in
                     tile(for: pair.0, image: pair.1)
                 }
             }
             .padding(.horizontal, 18)
-            footer
+            if options.includeBranding { footer }
         }
-        .padding(.vertical, 22)
+        .padding(.vertical, hasHeader ? 22 : 14)
         .frame(width: CGFloat(columns) * (tileWidth + 10) + 36)
         .background(
             LinearGradient(
@@ -113,16 +159,22 @@ private struct WallGrid: View {
 
     private var header: some View {
         VStack(spacing: 2) {
-            Text("BOBA PLAYBOOK")
-                .font(Design.Fonts.mono(9, weight: .bold))
-                .tracking(2)
-                .foregroundStyle(Color(hex: "FF4D00"))
-            Text(title)
-                .font(Design.Fonts.display(22))
-                .foregroundStyle(.white)
-            Text("\(pairs.count) card\(pairs.count == 1 ? "" : "s")")
-                .font(Design.Fonts.mono(10))
-                .foregroundStyle(Color(hex: "A0A0C0"))
+            if options.includeBranding {
+                Text("BOBA PLAYBOOK")
+                    .font(Design.Fonts.mono(9, weight: .bold))
+                    .tracking(2)
+                    .foregroundStyle(Color(hex: "FF4D00"))
+            }
+            if let title = resolvedTitle {
+                Text(title)
+                    .font(Design.Fonts.display(22))
+                    .foregroundStyle(.white)
+            }
+            if options.includeBranding {
+                Text("\(pairs.count) card\(pairs.count == 1 ? "" : "s")")
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(Color(hex: "A0A0C0"))
+            }
         }
     }
 
@@ -134,7 +186,7 @@ private struct WallGrid: View {
     }
 
     private func tile(for card: Card, image: UIImage?) -> some View {
-        ZStack {
+        ZStack(alignment: .bottomLeading) {
             if let img = image {
                 Image(uiImage: img).resizable().scaledToFill()
             } else {
@@ -146,6 +198,15 @@ private struct WallGrid: View {
                             .foregroundStyle(Color(hex: "FF4D00"))
                     )
             }
+            // Optional price chip — only when the streamer asked for it.
+            if options.includePrices {
+                Text(formatPrice(prices[card.id] ?? 0))
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 5).padding(.vertical, 2)
+                    .background(Capsule().fill(Color.black.opacity(0.7)))
+                    .padding(5)
+            }
         }
         .frame(width: tileWidth, height: tileWidth * 7 / 5)
         .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -153,5 +214,27 @@ private struct WallGrid: View {
             RoundedRectangle(cornerRadius: 8)
                 .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
         )
+    }
+
+    private func formatPrice(_ value: Decimal) -> String {
+        if value <= 0 { return "—" }
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        f.currencyCode = "USD"
+        // Drop trailing zero cents on round numbers ($25 not $25.00)
+        // for tighter overlay text. Mirrors how prices read on Whatnot.
+        f.maximumFractionDigits = (value.rounded() == value) ? 0 : 2
+        return f.string(from: value as NSDecimalNumber) ?? "$\(value)"
+    }
+}
+
+extension Decimal {
+    /// Rounded-to-zero-fraction-digits comparison helper for the price
+    /// overlay's "drop trailing zeros" formatting decision.
+    fileprivate func rounded() -> Decimal {
+        var src = self
+        var out = Decimal()
+        NSDecimalRound(&out, &src, 0, .plain)
+        return out
     }
 }

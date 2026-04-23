@@ -216,7 +216,7 @@ struct ScanView: View {
                 modePill(for: .single, label: "SINGLE", icon: "rectangle.on.rectangle")
                 modePill(for: .multi,  label: "MULTI",  icon: "rectangle.stack.fill")
                 if auth.isStreamer {
-                    modePill(for: .show, label: "SHOW", icon: "tv.badge.wifi")
+                    modePill(for: .show, label: "SHOW", icon: "dot.radiowaves.up.forward")
                 }
             }
             .padding(.trailing, Design.Spacing.lg)

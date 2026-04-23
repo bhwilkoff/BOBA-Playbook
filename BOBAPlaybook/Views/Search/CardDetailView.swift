@@ -160,7 +160,7 @@ struct CardDetailView: View {
                                     Button {
                                         showingAddToShow = true
                                     } label: {
-                                        Label("To Show", systemImage: "tv.badge.wifi")
+                                        Label("To Show", systemImage: "dot.radiowaves.up.forward")
                                     }
                                 }
                             }

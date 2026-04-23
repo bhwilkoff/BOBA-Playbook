@@ -175,6 +175,14 @@
 
         <div class="results-bar">
           <span class="results-count" id="search-count" aria-live="polite" aria-atomic="true"></span>
+          <!-- Quick Add toggle — only rendered for signed-in users by
+               app.js. When active, tapping a grid card adds to the
+               user's Collection (as .personal) instead of opening the
+               modal. Mirrors the iOS Find-view pill. -->
+          <button class="quick-add-pill" id="quick-add-toggle" type="button" hidden aria-pressed="false">
+            <span class="quick-add-icon" aria-hidden="true">👁</span>
+            <span class="quick-add-label">Tap to View</span>
+          </button>
         </div>
       </div>
 

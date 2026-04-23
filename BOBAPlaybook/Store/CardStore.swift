@@ -350,10 +350,9 @@ final class CardStore {
            subSet.contains(term)                              { return true }
         if let variation = card.variation?.lowercased(),
            variation.contains(term)                           { return true }
-        if let tokens = card.searchTokens,
-           tokens.contains(where: { $0.lowercased().contains(term) }) {
-            return true
-        }
+        // (Card doesn't currently decode the catalog's pre-built
+        // searchTokens array. If/when we add that field to Card.swift
+        // the check goes here.)
         return false
     }
 }

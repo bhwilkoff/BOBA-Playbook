@@ -496,7 +496,7 @@ struct CardDetailView: View {
             ) {
                 statCell(label: "Card #",   value: card.cardNumber)
                 if card.isHero {
-                    statCell(label: "Element",  value: card.element, color: Design.Colors.element(card.element))
+                    statCell(label: "Weapon",   value: card.element, color: Design.Colors.element(card.element))
                 }
                 if card.isPlay, let cost = card.playCost {
                     statCell(label: "Cost", value: cost == 0 ? "FREE" : "\(cost) Hot Dog\(cost == 1 ? "" : "s")",

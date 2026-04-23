@@ -1018,9 +1018,12 @@ export default {
     if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) return json({ error: "EBAY_APP_ID and EBAY_CERT_ID secrets required" }, 500);
 
     // ── Cache ─────────────────────────────────────────────────────────────────
-    // v10: dual sold/active response; Radish + Browse always run in parallel.
+    // v11: enriched sold-comp matcher adds per-item matchConfidence /
+    // matchReasons + count_probable on the sold section. v10 cached
+    // responses don't have those fields, so bumping the key forces a
+    // fresh fetch on first access under the new Worker.
     const cache    = caches.default;
-    const cacheURL = `https://boba-cache.internal/v10/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
+    const cacheURL = `https://boba-cache.internal/v11/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
     const cacheKey = new Request(cacheURL);
     const cached   = await cache.match(cacheKey);
     if (cached) {

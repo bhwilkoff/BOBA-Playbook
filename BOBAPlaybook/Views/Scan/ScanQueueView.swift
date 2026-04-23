@@ -26,7 +26,10 @@ struct ScanQueueView: View {
                 }
             }
             .navigationTitle(scanStore.isShowMode ? "Show Queue" : "Scan Queue")
-            .navigationBarTitleDisplayMode(.large)
+            // Inline title — large-title transitions inside a sheet
+            // presented over the full-screen camera surface flash an
+            // empty material header on first frame.
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbarContent }
             .background(Design.Colors.nearBlack)
             .toolbarBackground(.regularMaterial, for: .navigationBar)
@@ -190,7 +193,9 @@ struct ScanQueueView: View {
                     if isSavingAll {
                         ProgressView().tint(.white).scaleEffect(0.8)
                     } else {
-                        Image(systemName: scanStore.isShowMode ? "tv.badge.wifi" : "tray.and.arrow.down.fill")
+                        // Broadcast icon for show mode — captures the
+                        // "going live" framing better than a TV silhouette.
+                        Image(systemName: scanStore.isShowMode ? "dot.radiowaves.up.forward" : "tray.and.arrow.down.fill")
                     }
                     Text(saveAllLabel)
                         .font(Design.Fonts.display(15))

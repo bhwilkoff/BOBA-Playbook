@@ -27,6 +27,8 @@ struct ShowDetailView: View {
     @State private var priceKey: String = ""
     @State private var isLoadingPrices = false
     @State private var selectedCardForDetail: Card?
+    @State private var showWallOptions = false
+    @State private var wallOptions = ShowWallOptions.default
     @State private var showWall = false
     @State private var wallImage: UIImage? = nil
     @State private var isGeneratingWall = false
@@ -127,6 +129,9 @@ struct ShowDetailView: View {
         }
         .sheet(item: $selectedCardForDetail) { card in
             CardDetailView(card: card)
+        }
+        .sheet(isPresented: $showWallOptions) {
+            wallOptionsSheet
         }
         .fullScreenCover(isPresented: $showWall) {
             wallViewer
@@ -278,7 +283,9 @@ struct ShowDetailView: View {
 
     private var generateWallButton: some View {
         Button {
-            Task { await generateWall() }
+            // Open the options sheet first — branding, title, custom
+            // text, and per-card prices are all togglable.
+            showWallOptions = true
         } label: {
             HStack(spacing: Design.Spacing.sm) {
                 if isGeneratingWall {
@@ -317,9 +324,15 @@ struct ShowDetailView: View {
                             .foregroundStyle(Design.Colors.bobaOrange)
                     }
                     ToolbarItem(placement: .topBarTrailing) {
-                        ShareLink(item: Image(uiImage: img),
-                                  preview: SharePreview("\(show.name) — \(resolved.count) cards",
-                                                        image: Image(uiImage: img))) {
+                        // Hand the bare UIImage to UIActivityViewController
+                        // (via ActivityShareSheet). Sharing as a UIImage
+                        // exposes "Save to Photos" — SwiftUI's
+                        // ShareLink(item: Image(uiImage:)) treats the
+                        // payload as a SwiftUI Image which iOS doesn't
+                        // route to the Photos library.
+                        Button {
+                            shareWall(img)
+                        } label: {
                             Image(systemName: "square.and.arrow.up")
                                 .foregroundStyle(Design.Colors.bobaCyan)
                         }
@@ -327,6 +340,115 @@ struct ShowDetailView: View {
                 }
             }
         }
+    }
+
+    /// Shows the system share sheet with both a JPEG file and the
+    /// UIImage payload. The JPEG file gives Whatnot / Discord / Files
+    /// / camera roll a real image with a sane filename; the UIImage
+    /// fallback ensures Save to Photos appears even when the JPEG
+    /// representation isn't requested by the activity.
+    private func shareWall(_ img: UIImage) {
+        var items: [Any] = [img]
+        if let jpeg = img.jpegData(compressionQuality: 0.92) {
+            let safe = show.name
+                .replacingOccurrences(of: "/", with: "-")
+                .replacingOccurrences(of: " ", with: "_")
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("BOBA_\(safe).jpg")
+            do {
+                try jpeg.write(to: url, options: .atomic)
+                items.insert(url, at: 0)   // file first → preview shows the image with a filename
+            } catch { /* fall back to UIImage-only */ }
+        }
+        // Reuse the existing ActivityShareSheet wrapper; presented via
+        // the topmost UIWindow scene because we're inside a SwiftUI
+        // fullScreenCover where attaching another `.sheet` would race.
+        let scene = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first(where: { $0.activationState == .foregroundActive })
+        if let root = scene?.windows.first(where: { $0.isKeyWindow })?.rootViewController?.bp_topMostPresented {
+            let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
+            // iPad — anchor to the trailing toolbar button area.
+            vc.popoverPresentationController?.sourceView = root.view
+            vc.popoverPresentationController?.sourceRect = CGRect(
+                x: root.view.bounds.maxX - 40, y: 40, width: 0, height: 0)
+            root.present(vc, animated: true)
+        }
+    }
+
+    // MARK: - Wall options
+
+    private var wallOptionsSheet: some View {
+        NavigationStack {
+            Form {
+                Section("LAYOUT") {
+                    Toggle("Include BOBA branding", isOn: $wallOptions.includeBranding)
+                    Toggle("Include show title", isOn: $wallOptions.includeTitle)
+                }
+                .listRowBackground(Design.Colors.surface)
+
+                Section {
+                    TextField("Custom text (optional)", text: $wallOptions.customText, axis: .vertical)
+                        .lineLimit(1...3)
+                        .font(Design.Fonts.mono(13))
+                } header: {
+                    Text("CUSTOM TEXT")
+                } footer: {
+                    Text("Replaces the show title in the header. Useful for chasers, give-away tags, or stream callouts.")
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textMuted)
+                }
+                .listRowBackground(Design.Colors.surface)
+
+                Section("PRICING") {
+                    Toggle("Show per-card prices", isOn: $wallOptions.includePrices)
+                    if wallOptions.includePrices {
+                        HStack {
+                            Text("Horizon").font(Design.Fonts.mono(13))
+                            Spacer()
+                            Text(horizon.shortLabel).font(Design.Fonts.mono(13, weight: .bold))
+                                .foregroundStyle(Design.Colors.bobaOrange)
+                        }
+                        Text("Prices come from the horizon picker on the show. Change the horizon back on the show before generating to use a different window.")
+                            .font(Design.Fonts.mono(11))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
+                }
+                .listRowBackground(Design.Colors.surface)
+
+                Section {
+                    Button {
+                        showWallOptions = false
+                        Task { await generateWall() }
+                    } label: {
+                        HStack {
+                            if isGeneratingWall {
+                                ProgressView().tint(Design.Colors.nearBlack)
+                            } else {
+                                Image(systemName: "photo.on.rectangle.angled")
+                            }
+                            Text(isGeneratingWall ? "Composing…" : "Generate")
+                                .font(Design.Fonts.mono(14, weight: .bold))
+                        }
+                        .foregroundStyle(Design.Colors.nearBlack)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                    }
+                    .listRowBackground(Design.Colors.bobaCyan)
+                    .disabled(isGeneratingWall)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(Design.Colors.nearBlack)
+            .navigationTitle("Wall Options")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { showWallOptions = false }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 
     // MARK: - Rename
@@ -421,7 +543,12 @@ struct ShowDetailView: View {
         defer { isGeneratingWall = false }
         let cards = resolved.map { $0.card }
         guard !cards.isEmpty else { return }
-        wallImage = await ShowWallComposer.compose(cards: cards, title: show.name)
+        wallImage = await ShowWallComposer.compose(
+            cards: cards,
+            title: show.name,
+            options: wallOptions,
+            prices: wallOptions.includePrices ? prices : [:]
+        )
         if wallImage != nil { showWall = true }
     }
 
@@ -430,5 +557,20 @@ struct ShowDetailView: View {
         f.numberStyle = .currency
         f.currencyCode = "USD"
         return f.string(from: value as NSDecimalNumber) ?? "$\(value)"
+    }
+}
+
+// MARK: - Top-most VC walker
+//
+// UIActivityViewController must be presented from the deepest-presented
+// view controller in the chain — otherwise iOS warns ("attempted to
+// present X on Y which is already presenting Z") and silently drops
+// the presentation. Used by shareWall above.
+
+private extension UIViewController {
+    var bp_topMostPresented: UIViewController {
+        var top = self
+        while let next = top.presentedViewController { top = next }
+        return top
     }
 }

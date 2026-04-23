@@ -22,11 +22,14 @@ struct CardDetailView: View {
     @GestureState private var pinchDelta: CGFloat = 1.0
     @State private var showingAddSheet = false
     @State private var showingAddToDeck = false
+    @State private var showingAddToShow = false
     @State private var showingSignIn = false
     @State private var showingDBSInfo = false
     /// Non-nil while a "Added to {deck}" toast should be visible. Cleared
     /// automatically after a short delay by the overlay's task.
     @State private var addedToDeckName: String?
+    /// Toast surface reused for the Show add flow — "Added to {show}".
+    @State private var addedToShowName: String?
     @State private var showSealedEbay = false
     @State private var showSealedRadish = false
     @State private var shareItems: [Any] = []
@@ -149,6 +152,17 @@ struct CardDetailView: View {
                                         Label("To Custom Deck", systemImage: "rectangle.stack.badge.plus")
                                     }
                                 }
+                                // Streamers get a third add destination: a
+                                // Whatnot/live-show prep list. Separate from
+                                // the collection because show cards don't
+                                // need to be in the user's collection.
+                                if auth.isStreamer {
+                                    Button {
+                                        showingAddToShow = true
+                                    } label: {
+                                        Label("To Show", systemImage: "tv.badge.wifi")
+                                    }
+                                }
                             }
                         } label: {
                             addIconLabel
@@ -223,6 +237,11 @@ struct CardDetailView: View {
                 }
                 .environment(cardStore)
             }
+            .sheet(isPresented: $showingAddToShow) {
+                AddToShowSheet(card: card) { showName in
+                    showAddedToShowToast(showName)
+                }
+            }
             .sheet(isPresented: $showingSignIn) {
                 SignInView()
             }
@@ -247,19 +266,9 @@ struct CardDetailView: View {
             // NavigationStack so it floats above the card art and info panel.
             .overlay(alignment: .top) {
                 if let name = addedToDeckName {
-                    HStack(spacing: Design.Spacing.sm) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(Color(hex: "4CAF50"))
-                        Text("Added to \(name)")
-                            .font(Design.Fonts.mono(12, weight: .bold))
-                            .foregroundStyle(Design.Colors.textPrimary)
-                    }
-                    .padding(.horizontal, Design.Spacing.md)
-                    .padding(.vertical, Design.Spacing.sm)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface))
-                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(hex: "4CAF50").opacity(0.4), lineWidth: 1))
-                    .padding(.top, Design.Spacing.md)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    confirmationToast(text: "Added to \(name)")
+                } else if let showName = addedToShowName {
+                    confirmationToast(text: "Added to \(showName)")
                 }
             }
         }
@@ -281,6 +290,30 @@ struct CardDetailView: View {
             try? await Task.sleep(for: .seconds(2))
             withAnimation(.easeOut(duration: 0.3)) { addedToDeckName = nil }
         }
+    }
+
+    private func showAddedToShowToast(_ name: String) {
+        withAnimation(.easeOut(duration: 0.25)) { addedToShowName = name }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation(.easeOut(duration: 0.3)) { addedToShowName = nil }
+        }
+    }
+
+    private func confirmationToast(text: String) -> some View {
+        HStack(spacing: Design.Spacing.sm) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(Color(hex: "4CAF50"))
+            Text(text)
+                .font(Design.Fonts.mono(12, weight: .bold))
+                .foregroundStyle(Design.Colors.textPrimary)
+        }
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.sm)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(hex: "4CAF50").opacity(0.4), lineWidth: 1))
+        .padding(.top, Design.Spacing.md)
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     // MARK: - Format restrictions block

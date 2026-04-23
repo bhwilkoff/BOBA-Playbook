@@ -62,7 +62,7 @@ struct ModCardEditSheet: View {
                 Section("CARD DETAILS") {
                     correctionField(label: "Card #", value: card.cardNumber, editable: false, binding: .constant(card.cardNumber))
                     correctionField(label: "Hero", value: card.hero.isEmpty ? "—" : card.hero, editable: true, binding: $hero)
-                    correctionField(label: "Element", value: card.element.isEmpty ? "—" : card.element, editable: true, binding: $element)
+                    correctionField(label: "Weapon", value: card.element.isEmpty ? "—" : card.element, editable: true, binding: $element)
                     correctionField(label: "Set", value: card.set.isEmpty ? "—" : card.set, editable: true, binding: $set)
                     correctionField(label: "Variation", value: card.variation ?? "—", editable: true, binding: $variation)
                     correctionField(label: "Treatment", value: card.treatment ?? "—", editable: true, binding: $treatment)

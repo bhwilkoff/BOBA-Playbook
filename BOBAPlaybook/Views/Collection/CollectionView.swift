@@ -25,8 +25,16 @@ struct CollectionView: View {
 
     enum CollectionViewMode: String, CaseIterable, Identifiable {
         case myCards = "My Cards"
-        case rainbow = "Rainbow Progress"
+        case rainbow = "Rainbow"
+        case shows   = "My Shows"
         var id: String { rawValue }
+    }
+
+    /// Modes visible to the current user. Streamers see all three;
+    /// everyone else sees My Cards + Rainbow. Keeps the picker clean
+    /// for non-streamers without gating elsewhere in the body.
+    private var availableModes: [CollectionViewMode] {
+        auth.isStreamer ? CollectionViewMode.allCases : [.myCards, .rainbow]
     }
 
     var body: some View {
@@ -131,6 +139,8 @@ struct CollectionView: View {
                 case .rainbow:
                     rainbowIntro
                     rainbowList
+                case .shows:
+                    ShowsListView()
                 }
             }
             .background(Design.Colors.nearBlack)
@@ -146,11 +156,17 @@ struct CollectionView: View {
 
     private var modePicker: some View {
         Picker("View", selection: $viewMode) {
-            ForEach(CollectionViewMode.allCases) { mode in
+            ForEach(availableModes) { mode in
                 Text(mode.rawValue).tag(mode)
             }
         }
         .pickerStyle(.segmented)
+        // Snap back to My Cards if the user loses streamer role while
+        // parked on the Shows tab — avoids a view displaying with no
+        // selected segment.
+        .onChange(of: auth.isStreamer) { _, newValue in
+            if !newValue && viewMode == .shows { viewMode = .myCards }
+        }
     }
 
     // MARK: - Collection menu (toolbar)

@@ -2,10 +2,19 @@ import SwiftUI
 
 struct SearchView: View {
     @Environment(CardStore.self) private var store
+    @Environment(CollectionStore.self) private var collection
+    @Environment(AuthManager.self) private var auth
     @State private var showFilters = false
     @State private var selectedCard: Card?
     @State private var showScan = false
     @State private var showProfile = false
+    /// When true, tapping a grid card adds it to the user's Collection
+    /// (as .personal) instead of opening the card detail sheet. Parallels
+    /// the deck builder's Quick Add toggle. Sits on a pill next to the
+    /// results count under the search bar.
+    @State private var quickAdd = false
+    @State private var quickAddToast: String? = nil
+    @State private var quickAddError: String? = nil
     /// Mirror of the Settings → App Icon choice. The profile icon's tint
     /// follows this so the accent stays consistent with the user's chosen
     /// icon color.
@@ -63,6 +72,31 @@ struct SearchView: View {
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .overlay(alignment: .top) {
+                if let toast = quickAddToast {
+                    HStack(spacing: Design.Spacing.sm) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Color(hex: "4CAF50"))
+                        Text(toast)
+                            .font(Design.Fonts.mono(12, weight: .bold))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                    }
+                    .padding(.horizontal, Design.Spacing.md)
+                    .padding(.vertical, Design.Spacing.sm)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface))
+                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(hex: "4CAF50").opacity(0.4), lineWidth: 1))
+                    .padding(.top, 56)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .alert("Couldn't add that card", isPresented: .init(
+                get: { quickAddError != nil },
+                set: { if !$0 { quickAddError = nil } }
+            )) {
+                Button("OK") { quickAddError = nil }
+            } message: {
+                Text(quickAddError ?? "")
+            }
         }
         .sheet(isPresented: $showFilters) {
             FilterSheetView(store: store)
@@ -114,6 +148,56 @@ struct SearchView: View {
                 showScan = true
                 store.pendingScan = false
             }
+        }
+    }
+
+    // MARK: - Quick Add toggle
+    //
+    // Mirror of the DeckBuilder pill. When on, tapping a grid card
+    // adds it to the user's Collection as .personal instead of opening
+    // the card-detail sheet. A small confirmation toast flashes at
+    // the top so the coach knows the add succeeded.
+    private var quickAddToggle: some View {
+        Button {
+            quickAdd.toggle()
+        } label: {
+            Label(
+                quickAdd ? "Quick Add" : "Tap to View",
+                systemImage: quickAdd ? "plus.circle.fill" : "eye.fill"
+            )
+            .font(Design.Fonts.mono(11, weight: .bold))
+            .foregroundStyle(quickAdd ? Design.Colors.bobaOrange : Design.Colors.textMuted)
+            .padding(.horizontal, Design.Spacing.sm)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(quickAdd ? Design.Colors.bobaOrange.opacity(0.15) : Design.Colors.glass)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Writes a fresh user_card row for this card at .personal
+    /// designation, then animates a confirmation toast. Collisions
+    /// (same bobaId already owned) are allowed — coaches often add
+    /// multiple copies of the same hero from a pull.
+    private func quickAddCard(_ card: Card) async {
+        do {
+            let entry = NewUserCard(
+                cardNumber: card.cardNumber,
+                bobaId: card.id,
+                designation: .personal
+            )
+            try await collection.addCard(entry)
+            withAnimation(.easeOut(duration: 0.25)) {
+                quickAddToast = "Added \(card.name)"
+            }
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1.5))
+                withAnimation(.easeOut(duration: 0.3)) { quickAddToast = nil }
+            }
+        } catch {
+            quickAddError = error.localizedDescription
         }
     }
 
@@ -179,13 +263,20 @@ struct SearchView: View {
     // MARK: - Content
     private var contentView: some View {
         ScrollView {
-            // Results count
-            Text("\(store.filteredCards.count) cards")
-                .font(Design.Fonts.mono(12))
-                .foregroundStyle(Design.Colors.textMuted)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, Design.Spacing.lg)
-                .padding(.top, Design.Spacing.sm)
+            // Results count + Quick Add toggle. Authenticated users get
+            // the toggle; anonymous users just see the count. Mirrors
+            // the deck builder's "Tap to View / Quick Add" pill pattern.
+            HStack {
+                Text("\(store.filteredCards.count) cards")
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textMuted)
+                Spacer()
+                if auth.isAuthenticated {
+                    quickAddToggle
+                }
+            }
+            .padding(.horizontal, Design.Spacing.lg)
+            .padding(.top, Design.Spacing.sm)
 
             // Only show partial-catalog notice when user is actively searching/filtering
             if store.isLoadingMore && (!store.searchText.isEmpty || store.activeFilterCount > 0) {
@@ -208,7 +299,13 @@ struct SearchView: View {
                     ForEach(store.filteredCards) { card in
                         CardGridItemView(card: card)
                             .aspectRatio(3/4, contentMode: .fit)
-                            .onTapGesture { selectedCard = card }
+                            .onTapGesture {
+                                if quickAdd {
+                                    Task { await quickAddCard(card) }
+                                } else {
+                                    selectedCard = card
+                                }
+                            }
                     }
                 }
                 .padding(.horizontal, Design.Spacing.lg)

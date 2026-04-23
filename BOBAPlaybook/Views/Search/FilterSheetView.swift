@@ -35,11 +35,26 @@ struct FilterSheetView: View {
                 }
                 .listRowBackground(Design.Colors.surface2)
 
-                // MARK: Elements
+                // MARK: Showcase — curated subsets (WOBA + sports for now;
+                // team / city / custom showcases planned).
+                Section {
+                    showcaseRow
+                } header: {
+                    sectionHeader("Showcase")
+                } footer: {
+                    Text("Curated subsets of the catalog. More showcases (teams, cities, custom) are planned.")
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textMuted)
+                }
+                .listRowBackground(Design.Colors.surface2)
+
+                // MARK: Weapons (renamed from Element 2026-04-23 — every
+                // community reference calls them weapons, not elements;
+                // the catalog field name `element` stays as-is).
                 Section {
                     elementGrid
                 } header: {
-                    sectionHeader("Element")
+                    sectionHeader("Weapon")
                 }
                 .listRowBackground(Design.Colors.surface2)
 
@@ -138,6 +153,35 @@ struct FilterSheetView: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+    }
+
+    // MARK: - Showcase row (WOBA / sport filters / future custom)
+    //
+    // Chip-style picker mirroring the card-purpose row but bound to
+    // store.selectedShowcaseId. Tap an active chip again to clear it,
+    // matching the behavior of the Learn > Browse tab's chips where
+    // these showcases originally lived.
+    private var showcaseRow: some View {
+        FlowLayout(spacing: Design.Spacing.sm) {
+            ForEach(Showcases.all) { showcase in
+                let selected = store.selectedShowcaseId == showcase.id
+                Button {
+                    store.selectedShowcaseId = selected ? nil : showcase.id
+                } label: {
+                    Text(showcase.name)
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(selected ? Design.Colors.nearBlack : Design.Colors.textSecondary)
+                        .padding(.horizontal, Design.Spacing.md)
+                        .padding(.vertical, Design.Spacing.xs + 2)
+                        .background(
+                            Capsule()
+                                .fill(selected ? Design.Colors.bobaCyan : Design.Colors.glass)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, Design.Spacing.xs)
     }
 
     // MARK: - Card purpose row (Heroes / Plays / Hot Dogs / Sealed)

@@ -274,22 +274,13 @@ final class CardStore {
             if let min = pMin, let p = card.power, p < min           { return false }
             if let max = pMax, let p = card.power, p > max           { return false }
             if !search.isEmpty && !isShowcaseSearch {
-                // Smart match. Each token (raw + alias expansions) is
-                // checked against every searchable surface on the card —
-                // hero name, card number, card name, athlete, element
-                // label, set, sub-set, treatment, and the catalog's
-                // pre-built searchTokens if present. One hit is enough.
+                // Smart match. Build the list of lowercased haystack
+                // strings once per card, then check each search term
+                // against it. Previously we OR'd ~10 optional-chained
+                // expressions in a single return; Swift 6's type-checker
+                // couldn't close that inference in reasonable time.
                 let match = searchTerms.contains { term in
-                    card.name.lowercased().contains(term)
-                        || card.cardNumber.lowercased().contains(term)
-                        || card.hero.lowercased().contains(term)
-                        || (card.athleteInspiration?.lowercased().contains(term) == true)
-                        || card.element.lowercased().contains(term)
-                        || (card.treatment?.lowercased().contains(term) == true)
-                        || card.set.lowercased().contains(term)
-                        || (card.subSet?.lowercased().contains(term) == true)
-                        || (card.variation?.lowercased().contains(term) == true)
-                        || (card.searchTokens?.contains { $0.lowercased().contains(term) } == true)
+                    cardMatchesSearchTerm(card, term: term)
                 }
                 if !match { return false }
             }
@@ -339,5 +330,30 @@ final class CardStore {
         sortOrder          = .default
         cardPurpose        = .all
         selectedShowcaseId = nil
+    }
+
+    /// Smart-search surface check. Kept out of `applyFilters`'s closure
+    /// because Swift 6's type-checker timed out trying to infer the
+    /// 10-way OR of optional-chained .contains calls in a single
+    /// expression.
+    private nonisolated func cardMatchesSearchTerm(_ card: Card, term: String) -> Bool {
+        if card.name.lowercased().contains(term)              { return true }
+        if card.cardNumber.lowercased().contains(term)        { return true }
+        if card.hero.lowercased().contains(term)              { return true }
+        if card.element.lowercased().contains(term)           { return true }
+        if card.set.lowercased().contains(term)               { return true }
+        if let athlete = card.athleteInspiration?.lowercased(),
+           athlete.contains(term)                             { return true }
+        if let treatment = card.treatment?.lowercased(),
+           treatment.contains(term)                           { return true }
+        if let subSet = card.subSet?.lowercased(),
+           subSet.contains(term)                              { return true }
+        if let variation = card.variation?.lowercased(),
+           variation.contains(term)                           { return true }
+        if let tokens = card.searchTokens,
+           tokens.contains(where: { $0.lowercased().contains(term) }) {
+            return true
+        }
+        return false
     }
 }

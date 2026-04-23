@@ -39,21 +39,28 @@ enum Showcases {
     /// Women of BOBA — every hero inspired by one of the 17 canonical
     /// women-in-sport athletes. Sourced from DISCORD_TERMINOLOGY.md §3
     /// + the roster posted to the trade channel.
-    static let woba = Showcase(
+    ///
+    /// `nonisolated` on every static here because Swift 6 infers
+    /// MainActor isolation on type-level statics in this module, and
+    /// the `Showcase.match` closure is `@Sendable` — capturing a
+    /// MainActor-isolated Set<String> inside a Sendable closure trips
+    /// the compiler. Set<String> is inherently Sendable (immutable
+    /// value type), so opting out of isolation is safe.
+    nonisolated static let wobaHeroes: Set<String> = [
+        "AJax", "Belladonna", "Brandi", "C.C.", "Cameleon", "Cheryl Bomb",
+        "Coopanova", "Eraser", "Halo", "JPEG", "Lady Magic", "Leducky",
+        "PB Buckets", "Pauldron", "Peek-A-Boo", "Ramponage", "Swoopes",
+    ]
+
+    nonisolated static let woba = Showcase(
         id: "woba",
         name: "WOMEN OF BOBA (WOBA)",
         searchTokens: ["woba", "women of boba", "women"],
         description: "Women of BOBA — heroes inspired by legendary female athletes across every sport.",
         countLabel: "884 cards"
     ) { card in
-        Self.wobaHeroes.contains(card.hero)
+        Showcases.wobaHeroes.contains(card.hero)
     }
-
-    static let wobaHeroes: Set<String> = [
-        "AJax", "Belladonna", "Brandi", "C.C.", "Cameleon", "Cheryl Bomb",
-        "Coopanova", "Eraser", "Halo", "JPEG", "Lady Magic", "Leducky",
-        "PB Buckets", "Pauldron", "Peek-A-Boo", "Ramponage", "Swoopes",
-    ]
 
     // MARK: - Sports
 
@@ -61,7 +68,7 @@ enum Showcases {
     /// permissive — catalog spelling variants (McCaffrey/McCaffery,
     /// Tatis/Tatís) are already normalized in cards.json but we keep
     /// both spellings here in case a rogue variant slips through.
-    static let sportAthletes: [(label: String, athletes: Set<String>)] = [
+    nonisolated static let sportAthletes: [(label: String, athletes: Set<String>)] = [
         ("Basketball", ["LeBron James","Lebron James","Steph Curry","Kevin Durant",
                         "Giannis Antetokounmpo","Giannis Anteokounmpo","Giannis Antetetokounmpo",
                         "Nikola Jokic","Luka Doncic","Cooper Flagg","Paige Bueckers",
@@ -91,7 +98,7 @@ enum Showcases {
     /// Materialized Showcase list for every sport above. Generated once
     /// and cached so the three consuming surfaces share the same
     /// instances.
-    static let sports: [Showcase] = sportAthletes.map { entry in
+    nonisolated static let sports: [Showcase] = sportAthletes.map { entry in
         let athletes = entry.athletes
         return Showcase(
             id: "sport_\(entry.label.lowercased())",
@@ -110,7 +117,7 @@ enum Showcases {
     /// All showcases visible as filter chips / searchable terms, in the
     /// order they should appear. New community or team-specific
     /// showcases (Cardinals, Red Sox, etc.) slot in here.
-    static let all: [Showcase] = [woba] + sports
+    nonisolated static let all: [Showcase] = [woba] + sports
 
     /// Look up a showcase by its id.
     static func byId(_ id: String) -> Showcase? {

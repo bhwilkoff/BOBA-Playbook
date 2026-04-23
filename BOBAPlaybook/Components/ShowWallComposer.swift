@@ -14,7 +14,11 @@ import UIKit
 // Options the streamer can toggle in the Wall Options sheet before
 // generating. Defaults match the previous unconfigurable behavior
 // so an "always tap Generate Wall" flow is unchanged.
-struct ShowWallOptions {
+//
+// Sendable so its `static let default` can be referenced from any
+// isolation context — without it, Swift 6 inferred MainActor isolation
+// from the file's SwiftUI imports and rejected the access.
+struct ShowWallOptions: Sendable {
     var includeBranding: Bool = true   // BOBA PLAYBOOK header tag
     var includeTitle:    Bool = true   // Show name as the big header
     var customText:      String = ""   // Replaces / adds to the title — see WallGrid

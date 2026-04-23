@@ -17,9 +17,9 @@ nonisolated(unsafe) let cardImageCache: NSCache<NSURL, UIImage> = {
 
 /// Dedicated session for card images — limits concurrent connections to prevent
 /// queue saturation when hundreds of cells appear during fast scrolling.
-/// Same MainActor-isolation escape as `cardImageCache`; URLSession is
-/// thread-safe by design.
-nonisolated(unsafe) let cardImageSession: URLSession = {
+/// `URLSession` is already `Sendable`, so a plain `let` is enough — no
+/// `nonisolated(unsafe)` needed.
+let cardImageSession: URLSession = {
     let config = URLSessionConfiguration.default
     config.httpMaximumConnectionsPerHost = 8
     config.timeoutIntervalForRequest = 20

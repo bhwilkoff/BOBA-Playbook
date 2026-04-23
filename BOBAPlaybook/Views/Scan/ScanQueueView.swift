@@ -294,15 +294,27 @@ struct ScanQueueView: View {
         defer { isLoadingShowPrices = false }
         await withTaskGroup(of: (String, Decimal).self) { group in
             for c in cards {
+                // Pre-extract Sendable scalars so the @Sendable
+                // group.addTask closure doesn't capture `c` (which
+                // SwiftUI views push through a MainActor-isolated
+                // capture and trip Swift 6 strict concurrency on).
+                let id        = c.id
+                let cardNum   = c.cardNumber
+                let hero      = c.hero
+                let set       = c.set
+                let element   = c.element
+                let power     = c.power
+                let radishUrl = c.resolvedRadishUrlString
+                let treatment = c.treatment
                 group.addTask {
                     do {
                         let p = try await PricingService.shared.pricing(
-                            for: c.cardNumber, hero: c.hero, set: c.set, element: c.element,
-                            power: c.power, radishUrl: c.resolvedRadishUrlString,
-                            days: 30, treatment: c.treatment
+                            for: cardNum, hero: hero, set: set, element: element,
+                            power: power, radishUrl: radishUrl,
+                            days: 30, treatment: treatment
                         )
-                        return (c.id, p.average)
-                    } catch { return (c.id, Decimal(0)) }
+                        return (id, p.average)
+                    } catch { return (id, Decimal(0)) }
                 }
             }
             var next: [String: Decimal] = [:]

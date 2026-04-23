@@ -511,23 +511,36 @@ struct ShowDetailView: View {
         isLoadingPrices = true
         defer { isLoadingPrices = false }
 
+        let days = horizon.days
         await withTaskGroup(of: (String, Decimal).self) { group in
             for c in cards {
+                // Same Swift-6 strict-concurrency dance as
+                // ScanQueueView.refreshShowPrices — pre-extract every
+                // value so the @Sendable group.addTask closure doesn't
+                // capture the MainActor-bound Card.
+                let id        = c.id
+                let cardNum   = c.cardNumber
+                let hero      = c.hero
+                let set       = c.set
+                let element   = c.element
+                let power     = c.power
+                let radishUrl = c.resolvedRadishUrlString
+                let treatment = c.treatment
                 group.addTask {
                     do {
                         let p = try await PricingService.shared.pricing(
-                            for: c.cardNumber,
-                            hero: c.hero,
-                            set: c.set,
-                            element: c.element,
-                            power: c.power,
-                            radishUrl: c.resolvedRadishUrlString,
-                            days: horizon.days,
-                            treatment: c.treatment
+                            for: cardNum,
+                            hero: hero,
+                            set: set,
+                            element: element,
+                            power: power,
+                            radishUrl: radishUrl,
+                            days: days,
+                            treatment: treatment
                         )
-                        return (c.id, p.average)
+                        return (id, p.average)
                     } catch {
-                        return (c.id, Decimal(0))
+                        return (id, Decimal(0))
                     }
                 }
             }

@@ -1497,10 +1497,30 @@ const Collection = (() => {
      PUBLIC API
   ================================================================ */
 
+  /* Quick Add — single-shot add used by the Find view's "Quick Add"
+     toggle. Writes a minimal row (card_number + boba_id + personal
+     designation) and keeps the in-memory _cards cache consistent so
+     the profile + collection views stay in sync without a re-fetch.
+     Throws on error; caller surfaces a toast. */
+  async function quickAdd(card) {
+    if (!card) throw new Error('No card');
+    const row = {
+      card_number: String(card.cardNumber),
+      boba_id:     card.bobaId ? String(card.bobaId) : undefined,
+      designation: 'personal',
+    };
+    const saved = await API.collectionAdd(row);
+    _cards.push(saved);
+    renderCollectionView();
+    renderProfileView();
+    return saved;
+  }
+
   return {
     init,
     load,
     openAddSheet,
+    quickAdd,
     isOwned,
     isWanted,
     setCardLookup:    fn => { _cardLookup    = fn; },

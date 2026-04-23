@@ -469,6 +469,63 @@ main {
   box-shadow: 0 0 12px rgba(from var(--pill-clr) r g b / 0.4);
 }
 
+/* Quick Add pill — sits in the results-bar next to the card count.
+   Flips between "Tap to View" (muted, default) and "Quick Add"
+   (orange, active). When active, tapping a grid card writes a
+   user_cards row instead of opening the modal. */
+.results-bar { display: flex; align-items: center; gap: 10px; }
+
+.quick-add-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px;
+  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.03em;
+  border-radius: 100px;
+  background: var(--boba-glass);
+  border: 1px solid var(--boba-glass-border);
+  color: var(--boba-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-left: auto;
+}
+.quick-add-pill:hover { color: var(--boba-text-2); border-color: rgba(255,255,255,0.25); }
+.quick-add-pill.active {
+  background: rgba(255,77,0,0.15);
+  border-color: rgba(255,77,0,0.5);
+  color: var(--boba-orange);
+}
+.quick-add-icon { font-size: 0.78rem; }
+
+/* Quick-add toast — brief success confirmation pinned to the bottom
+   of the viewport. Fade-out handled via .quick-add-toast--fadeout. */
+.quick-add-toast {
+  position: fixed;
+  left: 50%; bottom: 96px;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  background: var(--boba-surface, #0D0D1A);
+  border: 1px solid rgba(76, 175, 80, 0.6);
+  border-radius: 10px;
+  font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700;
+  color: #4CAF50;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.55);
+  z-index: 9999;
+  animation: quickAddIn 0.18s ease-out;
+  pointer-events: none;
+}
+.quick-add-toast--error {
+  border-color: rgba(192, 57, 43, 0.6);
+  color: #E05B4F;
+}
+.quick-add-toast--fadeout {
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+@keyframes quickAddIn {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to   { opacity: 1; transform: translateX(-50%); }
+}
+
 /* Showcase chips — WOBA + sport filters. Same pill shape as the weapon
    chips but tinted with bobaCyan so the two rows stay visually distinct. */
 .showcase-pill {

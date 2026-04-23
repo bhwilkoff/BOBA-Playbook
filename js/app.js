@@ -85,6 +85,12 @@
   const searchCount     = $('search-count');
   const elementFilters   = $('element-filters');
   const showcaseFilters  = $('showcase-filters');
+  const quickAddToggle   = $('quick-add-toggle');
+
+  /// Whether the Find-view "Quick Add" toggle is active. When true,
+  /// tapping a grid card adds it to the user's Collection instead of
+  /// opening the modal. Gated on auth at the pill visibility layer.
+  let quickAddMode = false;
   const setFilter       = $('set-filter');
   const treatmentFilter = $('treatment-filter');
   const hasImageCheckbox = document.getElementById('has-image-checkbox');
@@ -1253,6 +1259,68 @@
 
   clearFiltersBtn?.addEventListener('click', resetFilters);
 
+  // Quick Add — toggle click, and auth-change listener so the pill
+  // disappears on sign-out. Auth module dispatches 'auth-change' with
+  // detail.session set when signed in.
+  quickAddToggle?.addEventListener('click', () => setQuickAddMode(!quickAddMode));
+  document.addEventListener('auth-change', ({ detail }) => {
+    updateQuickAddVisibility(!!detail?.session);
+  });
+
+  /* ================================================================
+     QUICK ADD (Find view)
+  ================================================================ */
+
+  /// Flip the toggle label + styling. Pure cosmetics — the click
+  /// branch in buildCardElement reads quickAddMode directly.
+  function setQuickAddMode(on) {
+    quickAddMode = !!on;
+    if (!quickAddToggle) return;
+    quickAddToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+    quickAddToggle.classList.toggle('active', on);
+    const label = quickAddToggle.querySelector('.quick-add-label');
+    const icon  = quickAddToggle.querySelector('.quick-add-icon');
+    if (label) label.textContent = on ? 'Quick Add' : 'Tap to View';
+    if (icon)  icon.textContent  = on ? '+' : '👁';
+  }
+
+  /// Only authenticated users get the pill — Quick Add writes to
+  /// Supabase, so there's nothing useful to do signed out. Bound to
+  /// the 'auth-change' event the Auth module dispatches.
+  function updateQuickAddVisibility(isSignedIn) {
+    if (!quickAddToggle) return;
+    quickAddToggle.hidden = !isSignedIn;
+    if (!isSignedIn) setQuickAddMode(false);
+  }
+
+  /// Single-card add. Toast flashes briefly at the top; errors surface
+  /// via the same toast with an error tint.
+  async function quickAddCard(card) {
+    try {
+      await window.Collection.quickAdd(card);
+      showQuickAddToast(`Added ${card.name ?? card.hero}`, false);
+    } catch (err) {
+      showQuickAddToast(err?.message || 'Add failed', true);
+    }
+  }
+
+  let _quickAddToastTimer = null;
+  function showQuickAddToast(text, isError) {
+    const existing = document.getElementById('quick-add-toast');
+    if (existing) existing.remove();
+    if (_quickAddToastTimer) { clearTimeout(_quickAddToastTimer); _quickAddToastTimer = null; }
+
+    const toast = document.createElement('div');
+    toast.id = 'quick-add-toast';
+    toast.className = `quick-add-toast${isError ? ' quick-add-toast--error' : ''}`;
+    toast.textContent = (isError ? '⚠ ' : '✓ ') + text;
+    document.body.appendChild(toast);
+    _quickAddToastTimer = setTimeout(() => {
+      toast.classList.add('quick-add-toast--fadeout');
+      setTimeout(() => toast.remove(), 300);
+    }, 1500);
+  }
+
   function resetFilters() {
     filters.query = '';
     filters.element = '';
@@ -1367,9 +1435,19 @@
       </div>
       <div class="card-element-bar" aria-hidden="true"></div>`;
 
-    el.addEventListener('click', () => openModal(card, index));
+    // Click handler branches on the Quick Add toggle: normal mode opens
+    // the card modal, Quick Add writes a user_cards row and flashes a
+    // toast. Keyboard Enter / Space mirrors the click behavior.
+    const tapHandler = () => {
+      if (quickAddMode && window.Collection && typeof window.Collection.quickAdd === 'function') {
+        quickAddCard(card);
+      } else {
+        openModal(card, index);
+      }
+    };
+    el.addEventListener('click', tapHandler);
     el.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(card, index); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tapHandler(); }
     });
     return el;
   }

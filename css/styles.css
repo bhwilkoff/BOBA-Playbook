@@ -468,6 +468,28 @@ main {
   color: #000;
   box-shadow: 0 0 12px rgba(from var(--pill-clr) r g b / 0.4);
 }
+
+/* Showcase chips — WOBA + sport filters. Same pill shape as the weapon
+   chips but tinted with bobaCyan so the two rows stay visually distinct. */
+.showcase-pill {
+  display: inline-flex; align-items: center;
+  padding: 5px 10px;
+  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.04em;
+  border-radius: 100px;
+  background: var(--boba-glass);
+  border: 1px solid var(--boba-glass-border);
+  color: var(--boba-text-muted);
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.showcase-pill:hover { color: var(--boba-text-2); border-color: rgba(255,255,255,0.25); }
+.showcase-pill.active {
+  background: var(--boba-cyan);
+  border-color: transparent;
+  color: #000;
+  box-shadow: 0 0 12px rgba(0, 245, 255, 0.3);
+}
 .element-pill[data-element=""].active,
 .element-pill[data-element="HEX"].active,
 .element-pill[data-element="BRAWL"].active,

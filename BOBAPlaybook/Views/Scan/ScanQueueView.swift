@@ -60,41 +60,44 @@ struct ScanQueueView: View {
     // MARK: - Card list
 
     private var cardList: some View {
-        List {
-            // Header summary — in show mode, big running total of 30-day
-            // averages so the streamer sees the total pot as they scan.
-            if scanStore.isShowMode {
-                Section { showModeSummary }
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 0, leading: Design.Spacing.md, bottom: Design.Spacing.sm, trailing: Design.Spacing.md))
+        // Switched from List to ScrollView+LazyVStack so each row is a
+        // discrete rounded card with explicit horizontal padding +
+        // gaps between rows. List was rendering edge-to-edge rectangles
+        // with no separation, and the show-summary section couldn't
+        // span the full safe-area width because of the list-row chrome.
+        ScrollView {
+            LazyVStack(spacing: Design.Spacing.sm) {
+                if scanStore.isShowMode {
+                    showModeSummary
+                }
+                ForEach(scanStore.queuedCards) { queued in
+                    queueRow(queued)
+                }
             }
-
-            ForEach(scanStore.queuedCards) { queued in
-                queueRow(queued)
-                    .listRowBackground(Design.Colors.surface)
-            }
-            .onDelete { scanStore.removeFromQueue(at: $0) }
+            .padding(.horizontal, Design.Spacing.lg)
+            .padding(.top, Design.Spacing.sm)
+            .padding(.bottom, Design.Spacing.lg)
         }
-        .listStyle(.plain)
+        .background(Design.Colors.nearBlack)
         .safeAreaInset(edge: .bottom) {
             if auth.isAuthenticated {
                 saveAllButton
                     .padding(Design.Spacing.lg)
+                    .background(.regularMaterial)
             }
         }
     }
 
     private func queueRow(_ queued: ScanStore.QueuedCard) -> some View {
         HStack(spacing: Design.Spacing.md) {
-            // Tap thumb / name opens card detail; trailing trash deletes
-            // from queue without going through the destructive swipe.
+            // Tap thumb / name opens card detail.
             Button { selectedCard = queued.card } label: {
                 HStack(spacing: Design.Spacing.md) {
                     CardImageView(card: queued.card, size: .thumb)
                         .frame(width: 44, height: 60)
                         .clipShape(RoundedRectangle(cornerRadius: Design.Radius.sm))
 
-                    VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text(queued.card.name)
                             .font(Design.Fonts.display(15))
                             .foregroundStyle(Design.Colors.textPrimary)
@@ -108,19 +111,18 @@ struct ScanQueueView: View {
                                 .foregroundStyle(Design.Colors.element(queued.card.element))
                         }
                     }
-
-                    Spacer()
                 }
-                .padding(.vertical, Design.Spacing.xs)
             }
             .buttonStyle(.plain)
+
+            Spacer(minLength: 0)
 
             // Show-mode price (30d avg) lives at the trailing edge.
             if scanStore.isShowMode {
                 Text(formatCurrency(showPrices[queued.card.id] ?? 0))
                     .font(Design.Fonts.mono(13, weight: .bold))
                     .foregroundStyle(Design.Colors.bobaOrange)
-                    .frame(minWidth: 60, alignment: .trailing)
+                    .frame(minWidth: 56, alignment: .trailing)
             }
 
             // Quick-delete shortcut — per feature brief: the queue
@@ -133,15 +135,26 @@ struct ScanQueueView: View {
                 Image(systemName: "trash")
                     .font(.system(size: 14))
                     .foregroundStyle(Color(hex: "C0392B").opacity(0.8))
+                    .padding(8)
             }
             .buttonStyle(.plain)
         }
+        .padding(Design.Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: Design.Radius.md)
+                .fill(Design.Colors.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Design.Radius.md)
+                        .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)
+                )
+        )
     }
 
-    /// Header block shown above the card rows in Show Mode. Big total +
-    /// loading spinner while prices stream in. Used to be rendered inline
-    /// in saveAllButton; kept separate so the total sits at the top
-    /// where a streamer looks first.
+    /// Header block shown above the card rows in Show Mode. Same rounded-
+    /// card styling as the row pills below so the whole list reads as a
+    /// stack of consistent surfaces. The total spans the full LazyVStack
+    /// width — the previous version was wrapped in a List Section that
+    /// inset it inside the row chrome.
     private var showModeSummary: some View {
         let total = scanStore.queuedCards.reduce(Decimal(0)) { acc, q in
             acc + (showPrices[q.card.id] ?? 0)
@@ -162,7 +175,15 @@ struct ScanQueueView: View {
             }
         }
         .padding(Design.Spacing.md)
-        .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Design.Radius.md)
+                .fill(Design.Colors.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Design.Radius.md)
+                        .strokeBorder(Design.Colors.bobaOrange.opacity(0.3), lineWidth: 1)
+                )
+        )
     }
 
     // MARK: - Save all

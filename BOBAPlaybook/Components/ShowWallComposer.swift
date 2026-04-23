@@ -143,7 +143,9 @@ private struct WallGrid: View {
     }
 
     /// Whether anything renders in the header slot — used to suppress
-    /// empty top padding when the streamer turned everything off.
+    /// empty top padding when the streamer turned everything off. Card
+    /// count alone isn't enough to keep the header visible; if both
+    /// branding and title are off, we hide the slot entirely.
     private var hasHeader: Bool {
         options.includeBranding || resolvedTitle != nil
     }
@@ -174,7 +176,13 @@ private struct WallGrid: View {
     }
 
     private var header: some View {
-        VStack(spacing: 2) {
+        // VStack(spacing: 2) collapses to its single visible child when
+        // only one block renders, so a title-only configuration shows the
+        // show name in the same prominent position as the full branding
+        // block. Card count is treated as belonging to whatever's at the
+        // top of the wall — it shows when there's any header content,
+        // not only when branding is on.
+        VStack(spacing: 4) {
             if options.includeBranding {
                 Text("BOBA PLAYBOOK")
                     .font(Design.Fonts.mono(9, weight: .bold))
@@ -183,15 +191,17 @@ private struct WallGrid: View {
             }
             if let title = resolvedTitle {
                 Text(title)
-                    .font(Design.Fonts.display(22))
+                    .font(Design.Fonts.display(28))
                     .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
             }
-            if options.includeBranding {
-                Text("\(pairs.count) card\(pairs.count == 1 ? "" : "s")")
-                    .font(Design.Fonts.mono(10))
-                    .foregroundStyle(Color(hex: "A0A0C0"))
-            }
+            // Card count rides with the title, not the branding —
+            // streamers want it visible whenever they're naming the show.
+            Text("\(pairs.count) card\(pairs.count == 1 ? "" : "s")")
+                .font(Design.Fonts.mono(10))
+                .foregroundStyle(Color(hex: "A0A0C0"))
         }
+        .padding(.bottom, 4)
     }
 
     private var footer: some View {

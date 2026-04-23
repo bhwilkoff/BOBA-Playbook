@@ -382,7 +382,15 @@ struct ShowDetailView: View {
         NavigationStack {
             Form {
                 Section("LAYOUT") {
-                    Toggle("Include BOBA branding", isOn: $wallOptions.includeBranding)
+                    // "Disable Playbook Branding" reads more naturally to
+                    // a streamer than "Include …" — branding is on by
+                    // default, you toggle ON to remove it. Inverted
+                    // binding bridges the UI state to the underlying
+                    // includeBranding flag.
+                    Toggle("Disable Playbook Branding", isOn: Binding(
+                        get: { !wallOptions.includeBranding },
+                        set: { wallOptions.includeBranding = !$0 }
+                    ))
                     Toggle("Include show title", isOn: $wallOptions.includeTitle)
                 }
                 .listRowBackground(Design.Colors.surface)

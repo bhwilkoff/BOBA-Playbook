@@ -158,11 +158,20 @@ struct PricingSection: View {
                 .foregroundStyle(Design.Colors.textPrimary)
                 .frame(width: 64, alignment: .leading)
 
-            Text(item.title)
-                .font(Design.Fonts.mono(11))
-                .foregroundStyle(Design.Colors.textSecondary)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .lineLimit(1)
+                // "Probable match" amber pill + tooltip when the Worker's
+                // enriched matcher reports confidence below the confirmed
+                // threshold (0.70). Tap to reveal the reasons that drove
+                // the match decision. Per SOLD_COMP_MATCHER_HANDOFF.md §7.
+                if item.isProbableMatch {
+                    probableMatchBadge(reasons: item.matchReasons ?? [])
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             if isSold, let label = relativeDate(item.date) {
                 Text(label)
@@ -178,6 +187,47 @@ struct PricingSection: View {
         .padding(.horizontal, Design.Spacing.md)
         .padding(.vertical, Design.Spacing.sm)
         .background(Design.Colors.surface2)
+    }
+
+    private func probableMatchBadge(reasons: [String]) -> some View {
+        let amber = Color(hex: "E0A000")
+        let tooltip = humanizeReasons(reasons)
+        return HStack(spacing: 4) {
+            Image(systemName: "questionmark.circle.fill")
+                .font(.system(size: 8, weight: .bold))
+            Text("Probable match")
+                .font(Design.Fonts.mono(8, weight: .bold))
+                .tracking(0.5)
+        }
+        .foregroundStyle(amber)
+        .padding(.horizontal, 5).padding(.vertical, 2)
+        .background(Capsule().fill(amber.opacity(0.12))
+            .overlay(Capsule().strokeBorder(amber.opacity(0.45), lineWidth: 0.7)))
+        .help(tooltip)
+    }
+
+    private func humanizeReasons(_ reasons: [String]) -> String {
+        if reasons.isEmpty { return "Likely this card" }
+        let map: [String: String] = [
+            "card_number_exact":   "card number",
+            "card_number_partial": "partial card number",
+            "hero":                "hero name",
+            "power":               "power level",
+            "power_in_title":      "power in title",
+            "element":             "weapon type",
+            "treatment":           "treatment",
+            "manufacturer":        "BOBA manufacturer tag",
+            "year":                "release year",
+            "trusted_seller":      "trusted seller",
+            "price_in_range":      "typical price range",
+        ]
+        let positive = reasons
+            .filter { !$0.contains("penalty") && !$0.contains("outlier") && !$0.contains("mismatch") }
+            .compactMap { map[$0] }
+        if positive.isEmpty { return "Likely this card" }
+        let list = positive.count == 1 ? positive[0]
+                 : positive.dropLast().joined(separator: ", ") + " and " + positive.last!
+        return "Matched by \(list)."
     }
 
     // MARK: - Helpers
@@ -325,7 +375,8 @@ struct PricingSection: View {
                     element: card.element,
                     power: card.power,
                     radishUrl: card.radishUrl,
-                    days: selectedDays
+                    days: selectedDays,
+                    treatment: card.treatment
                 )
             } catch PricingService.PricingError.noData {
                 fetchError = "No eBay listings found for the last \(selectedDays) days."

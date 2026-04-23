@@ -1,0 +1,25 @@
+{
+  "_doc": "Treatment tokens consumed by the Worker's sold-comp matcher. Keep in sync with assets/data/treatment_aliases.json (same 'aliases' shape for easy porting). Canonical catalog treatment → lowercase tokens looked for in eBay titles + Parallel/Treatment/Features aspects. Sourced from DISCORD_TERMINOLOGY.md §3. DO NOT add 'gold leaf' as an alias — beta-tester correction in §3.5.",
+  "aliases": {
+    "Grandma's Linoleum Battlefoil":      ["lino", "linoleum", "grandma linoleum", "grandma's linoleum", "grandmas linoleum", "grandma", "glbf"],
+    "Great Grandma's Linoleum Battlefoil": ["great grandma", "great grandmas linoleum", "great grandma's linoleum", "great grandma linoleum", "ggl", "gglbf"],
+    "Colosseum Battlefoil":                ["colosseum", "coliseum", "coloseum"],
+    "80's Rad Battlefoil":                 ["rad", "80's rad", "80s rad", "80s rad battlefoil", "eighties rad"],
+    "Blizzard Battlefoil":                 ["blizzard", "blizzy", "blbf"],
+    "Mixtape Battlefoil":                  ["mixtape", "mbf"],
+    "Logofoil":                            ["logofoil", "logo foil", "logo"],
+    "Chillin' Battlefoil":                 ["chillin", "chillin'", "chilling"],
+    "Autograph":                           ["auto", "autograph", "signed", "sig", "auto'd"],
+    "Inspired Ink Battlefoil":             ["inspired ink", "ii", "iib"],
+    "Inspired Ink Superfoil":              ["inspired ink super", "iis"],
+    "Superfoil":                           ["superfoil", "super foil", "sf"],
+    "Kanjifoil":                           ["kanji", "kanjifoil", "kanji foil"],
+    "Orange Battlefoil":                   ["obf", "orange battlefoil"],
+    "Blue Battlefoil":                     ["bbf", "blue battlefoil"],
+    "Green Battlefoil":                    ["gbf", "green battlefoil"],
+    "Pink Battlefoil":                     ["pbf", "pink battlefoil"],
+    "Silver Battlefoil":                   ["sbf", "silver battlefoil"],
+    "Icon Battlefoil":                     ["ibf", "icon battlefoil"],
+    "Alpha Battlefoil":                    ["abf", "alpha battlefoil"]
+  }
+}

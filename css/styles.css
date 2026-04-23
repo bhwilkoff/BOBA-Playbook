@@ -2845,6 +2845,26 @@ main {
   text-align: right;
 }
 
+/* Probable-match (Worker enriched matcher — confidence 0.45–0.70).
+   Amber pill inlined after the listing title; hover title surfaces
+   the per-signal match reasons. */
+.sold-item-probable {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: #E0A000;
+  background: rgba(224, 160, 0, 0.12);
+  border: 1px solid rgba(224, 160, 0, 0.45);
+  vertical-align: middle;
+  cursor: help;
+}
+.sold-item--probable { opacity: 0.9; }
+.sold-item--probable:hover { opacity: 1; }
+
 .pricing-item-arrow {
   font-size: 0.75rem;
   color: var(--boba-text-muted);

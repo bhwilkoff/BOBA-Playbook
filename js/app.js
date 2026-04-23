@@ -1664,23 +1664,64 @@
     fetchAndRender();
   }
 
+  // Plain-English labels for the match-reason signals the Worker emits
+  // in item.matchReasons[]. Used in the "Probable match" tooltip.
+  const MATCH_REASON_LABELS = {
+    card_number_exact:   'card number',
+    card_number_partial: 'partial card number',
+    hero:                'hero name',
+    power:               'power level',
+    power_in_title:      'power in title',
+    element:             'weapon type',
+    treatment:           'treatment',
+    manufacturer:        'BOBA manufacturer tag',
+    year:                'release year',
+    trusted_seller:      'trusted seller',
+    price_in_range:      'typical price range',
+  };
+
+  function humanizeMatchReasons(reasons) {
+    if (!Array.isArray(reasons) || reasons.length === 0) return 'Likely this card';
+    const positive = reasons
+      .filter(r => !r.includes('penalty') && !r.includes('outlier') && !r.includes('mismatch'))
+      .map(r => MATCH_REASON_LABELS[r])
+      .filter(Boolean);
+    if (positive.length === 0) return 'Likely this card';
+    if (positive.length === 1) return `Matched by ${positive[0]}.`;
+    return `Matched by ${positive.slice(0, -1).join(', ')} and ${positive[positive.length - 1]}.`;
+  }
+
   function renderPricingSection(label, sectionData, isSold) {
     const fmt = n => n > 0 ? `$${n.toFixed(2)}` : '—';
-    const { low, average, high, count, items = [] } = sectionData;
+    const { low, average, high, count, count_probable = 0, items = [] } = sectionData;
     const typeStr = isSold ? 'sold' : 'active listing';
 
     const itemsHtml = items.length === 0 ? '' : `
       <div class="pricing-items">
         ${items.map(item => {
-          const dateStr = isSold && item.date ? relativeDate(item.date) : '';
+          const dateStr    = isSold && item.date ? relativeDate(item.date) : '';
+          // Probable-match badge: Worker's enriched matcher reports
+          // confidence < 0.70 on some sold listings. Render an amber
+          // pill that reveals the match reasons on hover / long-press.
+          const isProbable = typeof item.matchConfidence === 'number' && item.matchConfidence < 0.70;
+          const tooltip    = isProbable ? humanizeMatchReasons(item.matchReasons) : '';
+          const badge      = isProbable
+            ? `<span class="sold-item-probable" title="${escHtml(tooltip)}">Probable match</span>`
+            : '';
           return `
-            <a href="${escHtml(item.url)}" target="_blank" rel="noopener" class="pricing-item-row">
+            <a href="${escHtml(item.url)}" target="_blank" rel="noopener" class="pricing-item-row${isProbable ? ' sold-item--probable' : ''}">
               <span class="pricing-item-price">${fmt(item.price)}</span>
-              <span class="pricing-item-title">${escHtml(item.title)}</span>
+              <span class="pricing-item-title">${escHtml(item.title)}${badge}</span>
               ${dateStr ? `<span class="pricing-item-date">${escHtml(dateStr)}</span>` : '<span class="pricing-item-arrow">↗</span>'}
             </a>`;
         }).join('')}
       </div>`;
+
+    // Probable-count footnote — only shown when the Worker reported at
+    // least one badge-only match that isn't contributing to the totals.
+    const probableNote = (isSold && count_probable > 0)
+      ? ` · ${count_probable} probable`
+      : '';
 
     return `
       <div class="pricing-section${isSold ? '' : ' pricing-section-active'}">
@@ -1699,7 +1740,7 @@
             <span class="pricing-val">${fmt(high)}</span>
           </div>
         </div>
-        <p class="pricing-sale-count">${count} ${typeStr}${count !== 1 ? 's' : ''}</p>
+        <p class="pricing-sale-count">${count} ${typeStr}${count !== 1 ? 's' : ''}${probableNote}</p>
         ${itemsHtml}
       </div>`;
   }

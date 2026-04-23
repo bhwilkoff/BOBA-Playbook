@@ -1,0 +1,12 @@
+{
+  "_doc": "Hero name aliases consumed by the Worker's sold-comp matcher. Keep in sync with BOBAPlaybook/hero_aliases.json and assets/data/hero_aliases.json — all three currently share the same shape. Canonical hero → lowercase aliases accepted in eBay title matching. Sourced from DISCORD_TERMINOLOGY.md §2 + §17.",
+  "aliases": {
+    "BoJax": ["bojax", "bj", "bo jax"],
+    "Amon-Ra": ["amon ra", "amonra", "amon-ra"],
+    "J-Cam": ["j cam", "jcam", "j-cam"],
+    "All day": ["allday", "all day"],
+    "PB Buckets": ["peanut butter buckets", "peanut butter", "pb buckets"],
+    "D-Harp": ["d harp", "dharp", "d-harp"],
+    "The Kid": ["the kid", "kid griffey", "griffey jr", "griffey", "junior"]
+  }
+}

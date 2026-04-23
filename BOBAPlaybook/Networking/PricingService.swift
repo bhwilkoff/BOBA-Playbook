@@ -9,6 +9,33 @@ actor PricingService {
         let price: Decimal
         let date:  String   // ISO 8601 for sold items; empty string for active listings
         let url:   String
+        /// 0–1 score from the Worker's enriched matcher. Nil when the
+        /// Worker is running in legacy mode or on an older response
+        /// shape. UI treats >= 0.70 as confirmed, 0.45–0.70 as probable.
+        let matchConfidence: Double?
+        /// Signal names that contributed positively to matchConfidence.
+        /// e.g. ["card_number_exact", "hero", "trusted_seller"]. Used to
+        /// render the "Probable match" tooltip reasons.
+        let matchReasons: [String]?
+
+        enum CodingKeys: String, CodingKey {
+            case title, price, date, url, matchConfidence, matchReasons
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            title = try c.decode(String.self, forKey: .title)
+            price = try c.decode(Decimal.self, forKey: .price)
+            date  = try c.decodeIfPresent(String.self, forKey: .date) ?? ""
+            url   = try c.decodeIfPresent(String.self, forKey: .url)   ?? ""
+            matchConfidence = try c.decodeIfPresent(Double.self,   forKey: .matchConfidence)
+            matchReasons    = try c.decodeIfPresent([String].self, forKey: .matchReasons)
+        }
+
+        var isProbableMatch: Bool {
+            if let c = matchConfidence { return c < 0.70 }
+            return false
+        }
     }
 
     struct PricingBucket: Decodable, Sendable {
@@ -17,6 +44,15 @@ actor PricingService {
         let high:    Decimal
         let count:   Int
         let items:   [PricingItem]
+        /// Sold-only: count of probable (badge-only) matches returned
+        /// alongside the confirmed ones. Nil for active listings and
+        /// legacy responses.
+        let countProbable: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case low, average, high, count, items
+            case countProbable = "count_probable"
+        }
     }
 
     struct PricingResult: Sendable {
@@ -56,7 +92,8 @@ actor PricingService {
                  element: String,
                  power: Int?,
                  radishUrl: String?,
-                 days: Int) async throws -> PricingResult {
+                 days: Int,
+                 treatment: String? = nil) async throws -> PricingResult {
         let key = "\(hero)_\(cardNumber)_\(days)"
         if let cached = cache[key], Date().timeIntervalSince(cached.fetchedAt) < cacheLifetime {
             return cached
@@ -75,6 +112,11 @@ actor PricingService {
         ]
         if let power     { queryItems.append(URLQueryItem(name: "power",     value: "\(power)")) }
         if let radishUrl { queryItems.append(URLQueryItem(name: "radishUrl", value: radishUrl)) }
+        if let treatment, !treatment.isEmpty {
+            // Sent only so the Worker's enriched sold-comp scorer can
+            // credit treatment matches. No effect on legacy mode.
+            queryItems.append(URLQueryItem(name: "treatment", value: treatment))
+        }
         components?.queryItems = queryItems
         guard let url = components?.url else { throw PricingError.notConfigured }
 

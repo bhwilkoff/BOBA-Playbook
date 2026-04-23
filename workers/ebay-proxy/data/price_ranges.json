@@ -1,0 +1,4 @@
+{
+  "_doc": "P10/P50/P90 sold-price percentiles keyed by '{hero}|{treatment}'. Populated by scripts/build_price_ranges.py (to be added). Empty on first deploy — priceInRange() in the Worker no-ops (returns true) when a key isn't found. Rebuild cadence: weekly, or whenever catalog treatments change materially. Per SOLD_COMP_MATCHER_HANDOFF.md §6.4.",
+  "ranges": {}
+}

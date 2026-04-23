@@ -55,12 +55,16 @@ enum ShowWallComposer {
     /// `prices` is optional — only consulted when `options.includePrices`
     /// is true. Pass an empty dict if you don't have prices yet; the
     /// composer falls back to "—" per tile.
+    /// Caller must always pass `options` explicitly. Default parameter
+    /// values are evaluated at the call site's isolation, and Swift 6
+    /// flagged `= .default` here as a MainActor crossing — the actual
+    /// caller (ShowDetailView.generateWall) already supplies a value.
     @MainActor
     static func compose(
         cards: [Card],
         title: String,
-        options: ShowWallOptions = .default,
-        prices: [String: Decimal] = [:]
+        options: ShowWallOptions,
+        prices: [String: Decimal]
     ) async -> UIImage? {
         guard !cards.isEmpty else { return nil }
 

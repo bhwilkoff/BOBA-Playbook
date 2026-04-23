@@ -320,7 +320,6 @@ private struct UserRoleRow: View {
     let isCurrentUser: Bool
     let onRoleChange: (String) -> Void
 
-    @State private var showPicker = false
 
     // 'streamer' added 2026-04-23 — gates the Shows feature
     // (Whatnot prep / giveaways). Order matches the role hierarchy
@@ -334,6 +333,17 @@ private struct UserRoleRow: View {
         case "streamer":  return Color(hex: "FF00FF")  // magenta — keeps it distinct from mod/admin
         default:          return Design.Colors.textMuted
         }
+    }
+
+    /// Up/down arrow hint for the Menu items, so admins visually see
+    /// whether clicking a role is a promotion or a demotion relative
+    /// to the current state.
+    private func directionIcon(from current: String, to target: String) -> String {
+        guard let cur = allRoles.firstIndex(of: current),
+              let tgt = allRoles.firstIndex(of: target) else { return "circle" }
+        if tgt > cur { return "arrow.up" }
+        if tgt < cur { return "arrow.down" }
+        return "checkmark"
     }
 
     var body: some View {
@@ -362,8 +372,31 @@ private struct UserRoleRow: View {
                 if isCurrentUser {
                     roleBadge(user.role)
                 } else {
-                    Button {
-                        showPicker = true
+                    // Menu (not confirmationDialog) so admins can always
+                    // demote someone back to User — confirmationDialog
+                    // truncates on small screens and buried the User
+                    // option below the fold. Menu also shows the role
+                    // hierarchy explicitly with up/down arrows so
+                    // promote vs. demote is visually obvious.
+                    Menu {
+                        Section("Current role") {
+                            Button {} label: {
+                                Label(user.role.capitalized, systemImage: "checkmark")
+                            }
+                            .disabled(true)
+                        }
+                        Section("Change to") {
+                            ForEach(allRoles.filter { $0 != user.role }, id: \.self) { role in
+                                Button {
+                                    onRoleChange(role)
+                                } label: {
+                                    Label(
+                                        role.capitalized,
+                                        systemImage: directionIcon(from: user.role, to: role)
+                                    )
+                                }
+                            }
+                        }
                     } label: {
                         HStack(spacing: 4) {
                             roleBadge(user.role)
@@ -371,14 +404,6 @@ private struct UserRoleRow: View {
                                 .font(.system(size: 10))
                                 .foregroundStyle(Design.Colors.textMuted)
                         }
-                    }
-                    .buttonStyle(.plain)
-                    .confirmationDialog("Change role for \(user.email ?? "this user")",
-                                        isPresented: $showPicker, titleVisibility: .visible) {
-                        ForEach(allRoles.filter { $0 != user.role }, id: \.self) { role in
-                            Button(role.capitalized) { onRoleChange(role) }
-                        }
-                        Button("Cancel", role: .cancel) {}
                     }
                 }
             }

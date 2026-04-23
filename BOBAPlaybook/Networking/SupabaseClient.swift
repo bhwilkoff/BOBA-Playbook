@@ -585,6 +585,123 @@ final class SupabaseClient {
         try await voidExecute(insertRequest)
     }
 
+    // MARK: - Shows (Streamer feature)
+    //
+    // A streamer assembles a "show" — an arbitrary list of cards curated
+    // for a live broadcast. Cards in a show are distinct from cards in
+    // the collection; they don't contribute to collection value.
+    // Persisted in `shows` + `show_cards` (see supabase_schema.sql).
+
+    func fetchShows() async throws -> [Show] {
+        let url = try makeURL(path: "/rest/v1/shows?select=id,name,created_at,updated_at&order=updated_at.desc")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        return try await executeArray(request)
+    }
+
+    /// Creates an empty show and returns it. Caller typically follows
+    /// with `addCardsToShow` for the initial card batch.
+    func createShow(name: String) async throws -> Show {
+        guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
+        let url = try makeURL(path: "/rest/v1/shows")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        addHeaders(&request, authenticated: true)
+        request.setValue("return=representation", forHTTPHeaderField: "Prefer")
+        let body: [String: Any] = [
+            "user_id": uid.uuidString.lowercased(),
+            "name":    name,
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let rows: [Show] = try await executeArray(request)
+        guard let show = rows.first else { throw APIError.invalidResponse }
+        return show
+    }
+
+    /// Rename an existing show. Uses PATCH so other fields (created_at,
+    /// etc.) stay untouched; the updated_at trigger bumps that column.
+    func renameShow(id: UUID, name: String) async throws {
+        let url = try makeURL(path: "/rest/v1/shows?id=eq.\(id)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        addHeaders(&request, authenticated: true)
+        let body = ["name": name]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        try await voidExecute(request)
+    }
+
+    func deleteShow(id: UUID) async throws {
+        // show_cards cascade via FK; no need to delete them separately.
+        let url = try makeURL(path: "/rest/v1/shows?id=eq.\(id)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        addHeaders(&request, authenticated: true)
+        try await voidExecute(request)
+    }
+
+    /// All cards in a given show, ordered by the streamer's sort_order.
+    func fetchShowCards(showId: UUID) async throws -> [ShowCard] {
+        let url = try makeURL(path:
+            "/rest/v1/show_cards?show_id=eq.\(showId)&select=id,show_id,boba_id,sort_order,excluded_from_total,added_at&order=sort_order.asc")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        return try await executeArray(request)
+    }
+
+    /// Bulk-append cards to a show. Duplicate bobaIds are allowed (a
+    /// streamer might want two copies of the same card in a show for
+    /// different giveaway slots). sort_order starts from the current
+    /// tail so the inserted batch lands in append-order.
+    func addCardsToShow(showId: UUID, bobaIds: [String]) async throws {
+        guard !bobaIds.isEmpty else { return }
+        // Find the current max sort_order so appended rows land last.
+        let maxURL = try makeURL(path:
+            "/rest/v1/show_cards?show_id=eq.\(showId)&select=sort_order&order=sort_order.desc&limit=1")
+        var maxReq = URLRequest(url: maxURL)
+        maxReq.httpMethod = "GET"
+        addHeaders(&maxReq, authenticated: true)
+        struct SortRow: Decodable { let sortOrder: Int; enum CodingKeys: String, CodingKey { case sortOrder = "sort_order" } }
+        let existing: [SortRow] = (try? await executeArray(maxReq)) ?? []
+        let base = (existing.first?.sortOrder ?? -1) + 1
+
+        var rows: [[String: Any]] = []
+        for (i, bobaId) in bobaIds.enumerated() {
+            rows.append([
+                "show_id":    showId.uuidString.lowercased(),
+                "boba_id":    bobaId,
+                "sort_order": base + i,
+            ])
+        }
+        let insertURL = try makeURL(path: "/rest/v1/show_cards")
+        var insertReq = URLRequest(url: insertURL)
+        insertReq.httpMethod = "POST"
+        addHeaders(&insertReq, authenticated: true)
+        insertReq.httpBody = try JSONSerialization.data(withJSONObject: rows)
+        try await voidExecute(insertReq)
+    }
+
+    /// Flip the exclude-from-total flag for a single show_cards row.
+    /// Used by the check-marks UI on the show detail view.
+    func setShowCardExcluded(id: UUID, excluded: Bool) async throws {
+        let url = try makeURL(path: "/rest/v1/show_cards?id=eq.\(id)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        addHeaders(&request, authenticated: true)
+        let body: [String: Any] = ["excluded_from_total": excluded]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        try await voidExecute(request)
+    }
+
+    func deleteShowCard(id: UUID) async throws {
+        let url = try makeURL(path: "/rest/v1/show_cards?id=eq.\(id)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        addHeaders(&request, authenticated: true)
+        try await voidExecute(request)
+    }
+
     // MARK: - HTTP helpers
 
     private func postAuth<Body: Encodable, Response: Decodable>(

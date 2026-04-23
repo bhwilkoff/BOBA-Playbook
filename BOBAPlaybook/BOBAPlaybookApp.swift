@@ -13,6 +13,7 @@ struct BOBAPlaybookApp: App {
     @State private var authManager = AuthManager()
     @State private var collectionStore = CollectionStore()
     @State private var scanStore = ScanStore()
+    @State private var showsStore = ShowsStore()
     @State private var selectedTab = 0
 
     init() {
@@ -34,6 +35,7 @@ struct BOBAPlaybookApp: App {
                 .environment(authManager)
                 .environment(collectionStore)
                 .environment(scanStore)
+                .environment(showsStore)
                 .preferredColorScheme(.dark)
                 .task(id: authManager.userId) {
                     // Reload image removal overrides whenever auth state changes.

@@ -25,6 +25,13 @@ final class AuthManager {
 
     var isMod: Bool { role == "moderator" || role == "admin" }
     var isAdmin: Bool { role == "admin" }
+    /// Streamers get the Shows feature (Collection > My Shows, card-detail
+    /// "To Show" add option, Show Mode scanner). Admins are implicitly
+    /// streamers so the admin account can exercise the flow end-to-end
+    /// without promoting itself. Promotion UI (a request-role flow
+    /// analogous to mod-access) is not built yet — admins can set this
+    /// directly in user_profiles.role for now.
+    var isStreamer: Bool { role == "streamer" || role == "admin" }
     var canRequestMod: Bool { isAuthenticated && !isMod && !hasPendingModRequest }
 
     private let client = SupabaseClient.shared

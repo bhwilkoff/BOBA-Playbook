@@ -1,0 +1,15 @@
+{
+  "_doc": "Sellers known from the Discord Trade Room who reliably list BOBA cards. A title-match from one of these sellers gets a confidence_bonus applied in scoreSoldListing. `ebay_username` must be filled in by Ben before the row contributes (Discord handles ≠ eBay usernames). Rows with ebay_username:null are skipped at runtime. Seed list from SOLD_COMP_MATCHER_HANDOFF.md Appendix A.",
+  "sellers": [
+    { "ebay_username": null, "discord_handle": "bigubreaks",        "confidence_bonus": 0.10, "notes": "Named repeatedly in rainbow-acquisition thank-you messages" },
+    { "ebay_username": null, "discord_handle": "derbycityhobbies",  "confidence_bonus": 0.10, "notes": "Source in multiple rainbow-completion posts" },
+    { "ebay_username": null, "discord_handle": "bdub109",           "confidence_bonus": 0.10, "notes": "Active lister (Bdub Hub), cited as reliable" },
+    { "ebay_username": null, "discord_handle": "mlb2382.11",        "confidence_bonus": 0.05, "notes": "Active lister with detailed per-card pricing lists" },
+    { "ebay_username": null, "discord_handle": "jomarmarmar",       "confidence_bonus": 0.05, "notes": "Active trader; rainbow collector" },
+    { "ebay_username": null, "discord_handle": "skranzam",          "confidence_bonus": 0.05, "notes": "Active trader, vouch network" },
+    { "ebay_username": null, "discord_handle": "purpledawg67",      "confidence_bonus": 0.05, "notes": "Active PC collector, reliable" },
+    { "ebay_username": null, "discord_handle": "cursive138",        "confidence_bonus": 0.05, "notes": "Active TO + seller" },
+    { "ebay_username": null, "discord_handle": "bradkarma.",        "confidence_bonus": 0.05, "notes": "Rainbow-building visibility" },
+    { "ebay_username": null, "discord_handle": "flawlessgb",        "confidence_bonus": 0.05, "notes": "Frequent accurate posts" }
+  ]
+}

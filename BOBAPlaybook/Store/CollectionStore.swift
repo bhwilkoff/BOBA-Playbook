@@ -199,7 +199,8 @@ final class CollectionStore {
                 element: card.element,
                 power: card.power,
                 radishUrl: card.radishUrl,
-                days: 30
+                days: 30,
+                treatment: card.treatment
             )
             let fields = UpdateUserCard(
                 estimatedValue: pricing.average,

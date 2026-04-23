@@ -16,3 +16,11 @@ compatibility_date = "2024-01-01"
 [ai]
 binding = "AI"
 
+# Sold-comp matcher mode — "enriched" (default) uses the scoring-based
+# matcher introduced 2026-04-23; "legacy" is the previous binary
+# isExactMatch filter. Flip to "legacy" via the Cloudflare dashboard
+# Environment Variables panel (or `wrangler vars put MATCH_MODE legacy`)
+# for a fast rollback if the enriched matcher misbehaves.
+[vars]
+MATCH_MODE = "enriched"
+

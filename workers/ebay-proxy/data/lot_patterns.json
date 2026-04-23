@@ -1,0 +1,13 @@
+{
+  "_doc": "Substrings (lowercased) that signal a multi-card lot / pick-your-card listing. Promoted from worker.js so additions don't require code edits. Extended 2026-04-23 with Discord-corpus vernacular (pyc, mystery, combined shipping, etc.) per SOLD_COMP_MATCHER_HANDOFF.md §5.4.",
+  "patterns": [
+    "pick your", "you pick", "pick a card", "pick from", "singles pick",
+    "lot of", "bundle", "choose your", "your card", "buy 3", "buy 2",
+    "complete your set", "complete set", "your pick",
+    "pyc", "pick yc", "pyp", "pick your parallel",
+    "mixed lot", "mystery", "random", "mystery pack",
+    "assortment", "collection lot", "misc lot",
+    "choose any", "buy any", "build your set",
+    "combined shipping", "$1 shipping each additional"
+  ]
+}

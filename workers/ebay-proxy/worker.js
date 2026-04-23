@@ -24,10 +24,28 @@
  *   }
  */
 
+import HERO_ALIASES_FILE     from "./data/hero_aliases.json";
+import TREATMENT_TOKENS_FILE from "./data/treatment_tokens.json";
+import LOT_PATTERNS_FILE     from "./data/lot_patterns.json";
+import TRUSTED_SELLERS_FILE  from "./data/trusted_sellers.json";
+import PRICE_RANGES_FILE     from "./data/price_ranges.json";
+
+const HERO_ALIASES    = HERO_ALIASES_FILE.aliases ?? {};
+const TREATMENT_ALIAS = TREATMENT_TOKENS_FILE.aliases ?? {};
+const TRUSTED_SELLERS = TRUSTED_SELLERS_FILE.sellers ?? [];
+const PRICE_RANGES    = PRICE_RANGES_FILE.ranges ?? {};
+
 const INSIGHTS_API = "https://api.ebay.com/buy/marketplace-insights/v1/item_sales/search";
 const BROWSE_API   = "https://api.ebay.com/buy/browse/v1/item_summary/search";
 const TOKEN_URL    = "https://api.ebay.com/identity/v1/oauth2/token";
 const MARKETPLACE  = "EBAY_US";
+
+// Score thresholds — see SOLD_COMP_MATCHER_HANDOFF.md §4. A listing
+// scoring ≥ CONFIRMED contributes to low/avg/high. A listing in
+// [PROBABLE, CONFIRMED) is shown with a "probable" badge but excluded
+// from aggregates. Below PROBABLE, the listing is dropped entirely.
+const SCORE_CONFIRMED = 0.70;
+const SCORE_PROBABLE  = 0.45;
 
 // Base scope for Browse API. Marketplace Insights requires buy.marketplace.insights
 // but requesting it as a combined scope causes a 400 if not approved. Instead we
@@ -46,13 +64,11 @@ const CORS = {
 // Normalize to lowercase alphanumeric only for fuzzy title comparison
 const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-// These patterns appear in bulk/lot listings and should be excluded when
-// the specific card number is not confirmed to be in the title.
-const LOT_PATTERNS = [
-  "pick your", "you pick", "pick a card", "pick from", "singles pick",
-  "lot of", "bundle", "choose your", "your card", "buy 3", "buy 2",
-  "complete your set", "complete set", "your pick",
-];
+// Lot-listing substrings — pulled from ./data/lot_patterns.json so
+// additions don't require code edits. When a title contains any of
+// these, the sold-comp matcher applies a large negative score and the
+// active-match path rejects outright.
+const LOT_PATTERNS = LOT_PATTERNS_FILE.patterns ?? [];
 
 /**
  * Check eBay localizedAspects for structured card attributes.
@@ -98,6 +114,334 @@ function checkAspects(aspects, cardNumber, power) {
   }
 
   return null;
+}
+
+/**
+ * Richer signal extraction used by the sold-comp scorer. Returns an object
+ * capturing per-aspect hits without forcing a binary accept/reject — lets
+ * scoreSoldListing() sum the signals additively.
+ *
+ * Per SOLD_COMP_MATCHER_HANDOFF.md §5.1.
+ */
+function extractAspectSignals(aspects, card) {
+  const out = {
+    decisiveAccept: false,
+    decisiveReject: false,
+    cardNumberSignal: 0,    // 0 | 0.5 | 1
+    playerHit: false,
+    manufacturerHit: false,
+    yearHit: false,
+    treatmentHit: false,
+    powerHit: false,
+  };
+  if (!aspects || aspects.length === 0) return out;
+
+  const map = {};
+  for (const { name, value } of aspects) {
+    if (name && value) map[name.toLowerCase()] = String(value);
+  }
+
+  // Card number aspect — same logic as the original checkAspects but
+  // expressed as graded signal instead of tri-state.
+  const aspectCardNum =
+    map["card number"] ?? map["card #"] ?? map["card no."] ?? map["number"];
+  if (aspectCardNum !== undefined) {
+    const normAspect = norm(aspectCardNum);
+    const normCard   = norm(card.cardNumber);
+    if (normAspect === normCard) {
+      out.cardNumberSignal = 1;
+      out.decisiveAccept   = true;
+    } else if (/^\d+$/.test(normAspect)) {
+      // Numeric-only aspect — ambiguous; any card with that number in any
+      // set matches. Give a partial signal; scorer needs more evidence
+      // (hero, power, etc.) to tip into confirmed territory.
+      const numPart = String(card.cardNumber).replace(/\D/g, "");
+      if (numPart && normAspect === numPart) out.cardNumberSignal = 0.5;
+    } else {
+      // Alphanumeric content that doesn't match → hard reject.
+      out.decisiveReject = true;
+      return out;
+    }
+  }
+
+  // Power — exact-match signal. Disagreement is a hard reject.
+  if (card.power != null) {
+    const powerRaw = map["power"] ?? map["power level"];
+    if (powerRaw !== undefined) {
+      const aspectPower = parseInt(powerRaw, 10);
+      if (!isNaN(aspectPower)) {
+        if (aspectPower === card.power) out.powerHit = true;
+        else { out.decisiveReject = true; return out; }
+      }
+    }
+  }
+
+  // Player / Athlete — runs through hero alias expansion against the
+  // canonical hero name.
+  const playerRaw = map["player"] ?? map["athlete"] ?? map["subject"];
+  if (playerRaw && heroMatches(playerRaw, card.hero)) {
+    out.playerHit = true;
+  }
+
+  // Manufacturer / Brand — must explicitly mention BOBA.
+  const mfgRaw = map["manufacturer"] ?? map["brand"] ?? map["publisher"];
+  if (mfgRaw && /bo\s*jackson|BOBA|battle\s*arena/i.test(mfgRaw)) {
+    out.manufacturerHit = true;
+  }
+
+  // Year — set-year match. We accept any of the canonical year hints
+  // embedded in the catalog's `set` field (e.g. "Alpha Edition" → 2024,
+  // "Griffey Edition" → 2025, "2026 Edition" → 2026).
+  const yearRaw = map["year"] ?? map["season"] ?? map["release year"];
+  if (yearRaw) {
+    const aspectYear = parseInt(yearRaw, 10);
+    const expected   = expectedYearForSet(card.set);
+    if (!isNaN(aspectYear) && expected && aspectYear === expected) {
+      out.yearHit = true;
+    }
+  }
+
+  // Parallel / Treatment / Features — match against the catalog's
+  // treatment tokens. Any one of the candidate aspects hitting is enough.
+  const parallelRaw = map["parallel"] ?? map["treatment"] ?? map["variation"] ?? map["features"];
+  if (parallelRaw && treatmentMatches(parallelRaw, card.treatment)) {
+    out.treatmentHit = true;
+  }
+
+  return out;
+}
+
+// Map a set-name keyword to its canonical release year. Tolerant of
+// future sets — unknown sets return null and the year signal contributes
+// nothing.
+function expectedYearForSet(set) {
+  if (!set) return null;
+  const s = set.toLowerCase();
+  if (s.includes("2026")) return 2026;
+  if (s.includes("griffey")) return 2025;
+  if (s.includes("cyber")) return 2025;
+  if (s.includes("alpha")) return 2024;
+  // Fall back to any 4-digit year that looks like a release year.
+  const m = s.match(/20(2[0-9]|3[0-9])/);
+  return m ? parseInt(m[0], 10) : null;
+}
+
+/**
+ * Case-/punctuation-insensitive substring match that additionally
+ * accepts any known alias of the canonical hero name. Community spellings
+ * like "Bojax" / "BJ" for BoJax get recovered here.
+ *
+ * Per SOLD_COMP_MATCHER_HANDOFF.md §5.2.
+ */
+function heroMatches(haystack, canonicalHero) {
+  if (!haystack || !canonicalHero) return false;
+  const hayNorm = norm(haystack);
+  if (!hayNorm) return false;
+  if (hayNorm.includes(norm(canonicalHero))) return true;
+  const aliases = HERO_ALIASES[canonicalHero] ?? [];
+  for (const alias of aliases) {
+    const a = norm(alias);
+    if (a && hayNorm.includes(a)) return true;
+  }
+  return false;
+}
+
+/**
+ * Treatment / parallel match — checks if the title or a Parallel/Features
+ * aspect mentions the canonical treatment or any of its community tokens.
+ *
+ * Per SOLD_COMP_MATCHER_HANDOFF.md §5.2.
+ */
+function treatmentMatches(haystack, canonicalTreatment) {
+  if (!haystack || !canonicalTreatment) return false;
+  const hayNorm = norm(haystack);
+  if (!hayNorm) return false;
+  if (hayNorm.includes(norm(canonicalTreatment))) return true;
+  const tokens = TREATMENT_ALIAS[canonicalTreatment] ?? [];
+  for (const token of tokens) {
+    const t = norm(token);
+    if (t && hayNorm.includes(t)) return true;
+  }
+  return false;
+}
+
+/**
+ * Detects when a listing title mentions a DIFFERENT set name than the
+ * card's set. Strict mode (recommended): only fires when the title
+ * explicitly names a conflicting set (e.g. card is Alpha but title
+ * mentions "Griffey Edition").
+ *
+ * Per SOLD_COMP_MATCHER_HANDOFF.md §5.2 + §14 Q6.
+ */
+function wrongEditionInTitle(title, cardSet) {
+  if (!title || !cardSet) return false;
+  const hayNorm = norm(title);
+  const myYear  = expectedYearForSet(cardSet);
+  // Set-name → signature tokens. Add to this list when new sets launch.
+  const editions = [
+    { name: "alpha",     tokens: ["alphaedition", "alpha"],                     year: 2024 },
+    { name: "griffey",   tokens: ["griffeyedition", "griffey"],                 year: 2025 },
+    { name: "cyber",     tokens: ["cyberpromo", "cyber"],                       year: 2025 },
+    { name: "2026",      tokens: ["2026edition"],                                year: 2026 },
+  ];
+  // Find which edition the *card* belongs to.
+  const myEdition = editions.find(e => e.year === myYear || e.tokens.some(t => norm(cardSet).includes(t)));
+  if (!myEdition) return false;
+  // Does the title explicitly signal a different edition?
+  for (const e of editions) {
+    if (e.name === myEdition.name) continue;
+    if (e.tokens.some(t => hayNorm.includes(t))) return true;
+  }
+  return false;
+}
+
+/**
+ * Trusted-seller lookup. Worker-side list lives in
+ * ./data/trusted_sellers.json and is populated by Ben. Rows with
+ * ebay_username:null are ignored at runtime.
+ */
+function trustedSellerBonus(sellerUsername) {
+  if (!sellerUsername) return 0;
+  const u = String(sellerUsername).toLowerCase();
+  for (const row of TRUSTED_SELLERS) {
+    if (row.ebay_username && row.ebay_username.toLowerCase() === u) {
+      return Math.max(0, Math.min(0.2, Number(row.confidence_bonus) || 0));
+    }
+  }
+  return 0;
+}
+
+/**
+ * Price-range sanity check. Returns a small positive contribution when
+ * the listing's price falls inside a 3× IQR window around the historical
+ * median. No penalty when no ranges are known for this (hero, treatment)
+ * pair — we don't want an empty price_ranges.json file to silently reject
+ * every listing.
+ *
+ * Per SOLD_COMP_MATCHER_HANDOFF.md §5.2 + §6.4.
+ */
+function priceInRange(price, card) {
+  if (!price || price <= 0 || !card.hero) return 0;
+  const key  = `${card.hero}|${card.treatment ?? "Base"}`;
+  const band = PRICE_RANGES[key];
+  if (!band || band.n == null || band.n < 5) return 0;
+  const lo = band.p10 / 3;
+  const hi = band.p90 * 3;
+  return (price >= lo && price <= hi) ? 1 : -1;
+}
+
+/**
+ * Composite score for a single sold listing. Signals are additive;
+ * result clamped to [0, 1]. See SOLD_COMP_MATCHER_HANDOFF.md §4 for
+ * the full formula + weights.
+ */
+function scoreSoldListing(item, card) {
+  const title        = item.title ?? "";
+  const titleLower   = title.toLowerCase();
+  const price        = parseFloat(item.lastSoldPrice?.value ?? item.price?.value ?? "0");
+  const seller       = item.seller?.username ?? item.sellerUsername ?? null;
+  const aspects      = item.localizedAspects ?? [];
+
+  const asp = extractAspectSignals(aspects, card);
+  if (asp.decisiveReject) {
+    return { score: 0, reasons: ["aspect_mismatch"] };
+  }
+
+  const reasons = [];
+  let score = 0;
+
+  // Card-number signal — strongest when present.
+  let cardNumSignal = asp.cardNumberSignal;
+  if (cardNumSignal === 0) {
+    // Fall back to title-based card-number matching (same logic as the
+    // legacy isExactMatch for alphanumeric cards).
+    const titleNorm  = norm(title);
+    const isNumeric  = /^\d+$/.test(card.cardNumber);
+    if (!isNumeric) {
+      if (titleNorm.includes(norm(card.cardNumber))) {
+        cardNumSignal = 1;
+      } else {
+        const numPart = String(card.cardNumber).replace(/\D/g, "");
+        if (numPart) {
+          const re = new RegExp(`(?:^|\\D)0*${numPart}(?:\\D|$)`);
+          if (re.test(titleLower)) cardNumSignal = 0.5;
+        }
+      }
+    }
+  }
+  if (cardNumSignal > 0) {
+    score += 0.50 * cardNumSignal;
+    reasons.push(cardNumSignal >= 1 ? "card_number_exact" : "card_number_partial");
+  }
+
+  // Hero signal — canonical hero or alias in title / player aspect.
+  const heroHit = asp.playerHit || heroMatches(titleLower, card.hero);
+  if (heroHit) {
+    score += 0.20;
+    reasons.push("hero");
+  }
+
+  // Power signal (aspect-level).
+  if (asp.powerHit) {
+    score += 0.10;
+    reasons.push("power");
+  } else if (card.power != null && new RegExp(`\\b${card.power}\\b`).test(titleLower)) {
+    // Title mentions the power number — a weaker power signal.
+    score += 0.05;
+    reasons.push("power_in_title");
+  }
+
+  // Element signal.
+  if (card.element && card.element !== "NONE" && titleLower.includes(card.element.toLowerCase())) {
+    score += 0.05;
+    reasons.push("element");
+  }
+
+  // Treatment — aspect or title.
+  if (asp.treatmentHit || (card.treatment && treatmentMatches(titleLower, card.treatment))) {
+    score += 0.05;
+    reasons.push("treatment");
+  }
+
+  // Manufacturer aspect.
+  if (asp.manufacturerHit) {
+    score += 0.05;
+    reasons.push("manufacturer");
+  }
+
+  // Year aspect.
+  if (asp.yearHit) {
+    score += 0.05;
+    reasons.push("year");
+  }
+
+  // Trusted seller.
+  const sellerBonus = trustedSellerBonus(seller);
+  if (sellerBonus > 0) {
+    score += sellerBonus;
+    reasons.push("trusted_seller");
+  }
+
+  // Price-range sanity.
+  const pr = priceInRange(price, card);
+  if (pr > 0) { score += 0.05; reasons.push("price_in_range"); }
+  else if (pr < 0) { score -= 0.05; reasons.push("price_outlier"); }
+
+  // Lot penalty.
+  if (LOT_PATTERNS.some(p => titleLower.includes(p))) {
+    score -= 0.30;
+    reasons.push("lot_penalty");
+  }
+
+  // Wrong-edition penalty.
+  if (wrongEditionInTitle(title, card.set)) {
+    score -= 0.15;
+    reasons.push("wrong_edition_penalty");
+  }
+
+  // Clamp to [0, 1].
+  score = Math.max(0, Math.min(1, score));
+  return { score, reasons };
 }
 
 /**
@@ -337,7 +681,11 @@ async function searchActive(token, keywords) {
 
 // ── Normalise raw API items into a common shape ───────────────────────────────
 
-function normaliseSold(items, cardNumber, hero, power) {
+/**
+ * Legacy sold-comp normaliser — used when MATCH_MODE=legacy (feature
+ * flagged safety net during the enriched-matcher rollout, §10).
+ */
+function normaliseSoldLegacy(items, cardNumber, hero, power) {
   return items
     .filter(item => isExactMatch(
       item.title ?? "",
@@ -351,6 +699,61 @@ function normaliseSold(items, cardNumber, hero, power) {
       url:   item.itemWebUrl ?? "",
     }))
     .filter(i => i.price > 0);
+}
+
+/**
+ * Enriched sold-comp normaliser (MATCH_MODE=enriched, default). Each
+ * item is scored via scoreSoldListing and placed into one of three
+ * buckets:
+ *
+ *   score >= 0.70 → confirmed (counts toward low/avg/high)
+ *   0.45 ≤ score < 0.70 → probable (shown with badge, excluded from aggregates)
+ *   score < 0.45 → dropped
+ *
+ * Returns { confirmed, probable, counters } where counters is a small
+ * diagnostic object logged to Cloudflare tail for §9 success metrics.
+ *
+ * Per SOLD_COMP_MATCHER_HANDOFF.md §4 + §5.3 + §9.
+ */
+function normaliseSoldEnriched(items, card) {
+  const counters = {
+    scanned:         items.length,
+    confirmed:       0,
+    probable:        0,
+    rejected_lot:    0,
+    rejected_score:  0,
+  };
+  const confirmed = [];
+  const probable  = [];
+
+  for (const item of items) {
+    const price = parseFloat(item.lastSoldPrice?.value ?? "0");
+    if (price <= 0) continue;
+
+    const { score, reasons } = scoreSoldListing(item, card);
+    const enriched = {
+      title:            item.title ?? "",
+      price,
+      date:             item.lastSoldDate ?? "",
+      url:              item.itemWebUrl ?? "",
+      matchConfidence:  round2(score),
+      matchReasons:     reasons,
+    };
+
+    if (score >= SCORE_CONFIRMED) {
+      confirmed.push(enriched);
+      counters.confirmed++;
+    } else if (score >= SCORE_PROBABLE) {
+      probable.push(enriched);
+      counters.probable++;
+    } else if (reasons.includes("lot_penalty")) {
+      counters.rejected_lot++;
+    } else {
+      counters.rejected_score++;
+    }
+  }
+
+  return { confirmed, probable, counters };
 }
 
 /**
@@ -666,25 +1069,70 @@ export default {
     if (tokenResult.status === "fulfilled") {
       const token = tokenResult.value;
 
-      // If Radish had no data, try Marketplace Insights for sold history
+      // If Radish had no data, try Marketplace Insights for sold history.
+      // Per MATCH_MODE env flag: "enriched" (default) uses the new scorer;
+      // "legacy" falls back to the binary isExactMatch filter.
       if (!soldSection) {
         const { items, error, noScope } = await searchSold(token, keywordsSpecific, cutoffISO);
         if (!noScope && !error) {
-          let soldItems = normaliseSold(items, cardNumber, hero, power);
-          if (soldItems.length === 0 && hero) {
-            const fb = await searchSold(token, keywordsBroad, cutoffISO);
-            if (!fb.error) soldItems = normaliseSold(fb.items, cardNumber, hero, power);
-          }
-          if (soldItems.length > 0) {
-            const sorted = [...soldItems].sort((a, b) => a.price - b.price);
-            const prices = sorted.map(i => i.price);
-            soldSection = {
-              low:     round2(prices[0]),
-              average: round2(prices.reduce((s, p) => s + p, 0) / prices.length),
-              high:    round2(prices[prices.length - 1]),
-              count:   soldItems.length,
-              items:   soldItems.slice(0, 10),
+          const mode = (env.MATCH_MODE ?? "enriched").toLowerCase();
+
+          if (mode === "legacy") {
+            let soldItems = normaliseSoldLegacy(items, cardNumber, hero, power);
+            if (soldItems.length === 0 && hero) {
+              const fb = await searchSold(token, keywordsBroad, cutoffISO);
+              if (!fb.error) soldItems = normaliseSoldLegacy(fb.items, cardNumber, hero, power);
+            }
+            if (soldItems.length > 0) {
+              const sorted = [...soldItems].sort((a, b) => a.price - b.price);
+              const prices = sorted.map(i => i.price);
+              soldSection = {
+                low:     round2(prices[0]),
+                average: round2(prices.reduce((s, p) => s + p, 0) / prices.length),
+                high:    round2(prices[prices.length - 1]),
+                count:   soldItems.length,
+                items:   soldItems.slice(0, 10),
+              };
+            }
+          } else {
+            // Enriched path — score every candidate listing, keep probable
+            // + confirmed, aggregate on confirmed only.
+            const cardCtx = {
+              cardNumber, hero, power,
+              set:       searchParams.get("set")       || "",
+              element:   searchParams.get("element")   || "",
+              treatment: searchParams.get("treatment") || "",
             };
+            let batch = normaliseSoldEnriched(items, cardCtx);
+
+            // Broad-hero fallback when the narrow query turned up nothing.
+            if (batch.confirmed.length === 0 && batch.probable.length === 0 && hero) {
+              const fb = await searchSold(token, keywordsBroad, cutoffISO);
+              if (!fb.error) batch = normaliseSoldEnriched(fb.items, cardCtx);
+            }
+
+            // Cheap structured log — visible via `wrangler tail`. Success
+            // metrics doc in the handoff §9.
+            console.log("[sold_match]", JSON.stringify({ cardNumber, hero, ...batch.counters }));
+
+            const mergedForList = [...batch.confirmed, ...batch.probable]
+              .sort((a, b) => (b.matchConfidence ?? 0) - (a.matchConfidence ?? 0));
+
+            if (batch.confirmed.length + batch.probable.length > 0) {
+              // Aggregates come from confirmed only — badge-only probables
+              // don't skew the headline numbers.
+              const aggSource = batch.confirmed.length > 0 ? batch.confirmed : batch.probable;
+              const sorted    = [...aggSource].sort((a, b) => a.price - b.price);
+              const prices    = sorted.map(i => i.price);
+              soldSection = {
+                low:            round2(prices[0]),
+                average:        round2(prices.reduce((s, p) => s + p, 0) / prices.length),
+                high:           round2(prices[prices.length - 1]),
+                count:          batch.confirmed.length,
+                count_probable: batch.probable.length,
+                items:          mergedForList.slice(0, 10),
+              };
+            }
           }
         }
       }

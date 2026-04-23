@@ -143,7 +143,8 @@ struct AddToCollectionSheet: View {
                     element: card.element,
                     power: card.power,
                     radishUrl: card.radishUrl,
-                    days: 30
+                    days: 30,
+                    treatment: card.treatment
                 ) {
                     marketAverage = pricing.average
                 }

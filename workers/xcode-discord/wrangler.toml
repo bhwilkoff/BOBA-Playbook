@@ -1,0 +1,13 @@
+name            = "boba-xcode-discord"
+main            = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Secrets (set via `wrangler secret put <NAME>`):
+#   DISCORD_WEBHOOK_URL — full Discord webhook URL, e.g.
+#     https://discord.com/api/webhooks/<id>/<token>
+
+# Opt-in var to also notify on PENDING / RUNNING states. Default
+# (unset or "false") only notifies on COMPLETE runs to cut Xcode
+# Cloud's noise. Flip to "true" to see every state transition.
+[vars]
+NOTIFY_ON_RUNNING = "false"

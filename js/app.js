@@ -71,6 +71,7 @@
     powerMin: null,
     powerMax: null,
     sortBy:   'default',
+    showcaseId: '',   // curated subset (WOBA / Basketball / etc.), see js/showcases.js
   };
 
   /* ================================================================
@@ -82,7 +83,8 @@
   const searchInput     = $('search-input');
   const searchClear     = $('search-clear');
   const searchCount     = $('search-count');
-  const elementFilters  = $('element-filters');
+  const elementFilters   = $('element-filters');
+  const showcaseFilters  = $('showcase-filters');
   const setFilter       = $('set-filter');
   const treatmentFilter = $('treatment-filter');
   const hasImageCheckbox = document.getElementById('has-image-checkbox');
@@ -858,13 +860,35 @@
      search-index values are bobaId strings — one bobaId = one card.
   ================================================================ */
 
+  /// Cards matching a showcase's `match(card)` predicate, reduced to a
+  /// Set of bobaIds. Used by both the filter sheet chips and the smart-
+  /// search path when a full query resolves to a showcase name.
+  function showcaseIdSet(showcase) {
+    const ids = new Set();
+    if (!showcase) return ids;
+    for (const c of displayCards) {
+      if (showcase.match(c) && c.bobaId) ids.add(String(c.bobaId));
+    }
+    return ids;
+  }
+
   function computeResults() {
     let resultIds = null; // null = "all cards"; Set of bobaId strings when filtered
 
     // Text search
     // Normalize dashes to spaces so card numbers like "CBF-656" tokenize correctly.
     const q = filters.query.trim().toLowerCase().replace(/-/g, ' ');
-    if (q) {
+
+    // Smart-search showcase shortcut: typing the full showcase name
+    // ("WOBA", "Baseball") narrows to the showcase without requiring
+    // the filter sheet. Tried BEFORE token matching so a user searching
+    // "basketball" doesn't get hero-name partial matches on "Basket".
+    const typedShowcase = (window.Showcases && q) ? window.Showcases.matching(q) : null;
+    if (typedShowcase) {
+      const s = showcaseIdSet(typedShowcase);
+      if (s.size === 0) return [];
+      resultIds = s;
+    } else if (q) {
       const tokens = q.split(/\s+/).filter(Boolean);
       for (const token of tokens) {
         // Expand community aliases: if the user typed a known slang
@@ -906,6 +930,15 @@
         resultIds = resultIds === null ? matches : intersect(resultIds, matches);
       }
       if (resultIds !== null && resultIds.size === 0) return [];
+    }
+
+    // Showcase filter (from the filter-sheet chips, distinct from
+    // the smart-search shortcut above). Intersects after text search.
+    if (filters.showcaseId && window.Showcases) {
+      const showcase = window.Showcases.byId(filters.showcaseId);
+      const s = showcaseIdSet(showcase);
+      if (s.size === 0) return [];
+      resultIds = resultIds === null ? s : intersect(resultIds, s);
     }
 
     // Element filter
@@ -1084,6 +1117,35 @@
     }
   }
 
+  /* Showcase chips — curated subsets (WOBA + sports today; team / city /
+     custom planned). Tap an active chip to clear it, matching the
+     Learn > Browse UX. Entries come from js/showcases.js. */
+  function buildShowcaseFilters() {
+    if (!showcaseFilters || !window.Showcases) return;
+    showcaseFilters.innerHTML = '';
+    for (const s of window.Showcases.all) {
+      const btn = document.createElement('button');
+      btn.className = 'showcase-pill';
+      btn.dataset.showcaseId = s.id;
+      btn.setAttribute('aria-pressed', 'false');
+      btn.textContent = s.name;
+      btn.addEventListener('click', () => {
+        setShowcaseFilter(filters.showcaseId === s.id ? '' : s.id);
+      });
+      showcaseFilters.appendChild(btn);
+    }
+  }
+
+  function setShowcaseFilter(id) {
+    filters.showcaseId = id;
+    showcaseFilters?.querySelectorAll('.showcase-pill').forEach(pill => {
+      const active = pill.dataset.showcaseId === id;
+      pill.classList.toggle('active', active);
+      pill.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    applyFilters();
+  }
+
   function makePill(element, label) {
     const btn = document.createElement('button');
     btn.className = 'element-pill';
@@ -1200,10 +1262,16 @@
     filters.powerMin = null;
     filters.powerMax = null;
     filters.sortBy = 'default';
+    filters.showcaseId = '';
     searchInput.value = '';
     searchClear.hidden = true;
     setFilter.value = '';
     buildTreatmentFilter('');
+    // Clear any active showcase chip so the filter sheet matches state.
+    showcaseFilters?.querySelectorAll('.showcase-pill').forEach(p => {
+      p.classList.remove('active');
+      p.setAttribute('aria-pressed', 'false');
+    });
     if (hasImageCheckbox) hasImageCheckbox.checked = false;
     if (powerMinInput) powerMinInput.value = '';
     if (powerMaxInput) powerMaxInput.value = '';
@@ -2146,6 +2214,7 @@
     });
 
     loadingState.hidden = true;
+    buildShowcaseFilters();
     buildElementFilters();
     buildSetFilter();
 

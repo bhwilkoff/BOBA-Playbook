@@ -180,7 +180,10 @@
 
       <div class="filter-panel" id="filter-panel" aria-hidden="true">
         <div class="filter-bar">
-          <div class="filter-scroll" id="element-filters" role="group" aria-label="Filter by element"></div>
+          <!-- Showcase chips — WOBA + sport showcases. Populated from
+               js/showcases.js so the iOS and web filter lists stay in sync. -->
+          <div class="filter-scroll" id="showcase-filters" role="group" aria-label="Filter by showcase"></div>
+          <div class="filter-scroll" id="element-filters" role="group" aria-label="Filter by weapon"></div>
           <div class="filter-selects">
             <select class="filter-select" id="set-filter" aria-label="Filter by set">
               <option value="">All Sets</option>
@@ -1837,6 +1840,7 @@
   <script src="js/collection.js"></script>
   <script src="js/discord.js"></script>
   <script src="js/practice.js"></script>
+  <script src="js/showcases.js"></script>
   <script src="js/app.js"></script>
   <script>
     // Render Lucide icons in static HTML (deck builder buttons, etc.)

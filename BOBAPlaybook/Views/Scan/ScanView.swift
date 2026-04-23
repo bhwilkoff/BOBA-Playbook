@@ -207,48 +207,47 @@ struct ScanView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            // Mode toggle
+            // Mode row — Single / Multi (+ Show when the user is a
+            // streamer). Show Mode queues cards into a Show (Whatnot
+            // prep) rather than the collection; the Save All button in
+            // the queue adapts its destination accordingly.
             HStack {
                 Spacer()
-
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        scanStore.isMultiCardMode.toggle()
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: scanStore.isMultiCardMode
-                              ? "rectangle.stack.fill"
-                              : "rectangle.on.rectangle")
-                            .font(.system(size: 13))
-                        Text(scanStore.isMultiCardMode ? "MULTI" : "SINGLE")
-                            .font(Design.Fonts.mono(12, weight: .bold))
-                            .tracking(0.5)
-                    }
-                    .foregroundStyle(scanStore.isMultiCardMode
-                                     ? Design.Colors.bobaOrange
-                                     : .white.opacity(0.7))
-                    .padding(.horizontal, Design.Spacing.md)
-                    .padding(.vertical, Design.Spacing.sm)
-                    .background(
-                        Capsule()
-                            .fill(scanStore.isMultiCardMode
-                                  ? Design.Colors.bobaOrange.opacity(0.2)
-                                  : Color.white.opacity(0.12))
-                            .overlay(
-                                Capsule()
-                                    .strokeBorder(
-                                        scanStore.isMultiCardMode
-                                            ? Design.Colors.bobaOrange.opacity(0.6)
-                                            : Color.white.opacity(0.25),
-                                        lineWidth: 1
-                                    )
-                            )
-                    )
+                modePill(for: .single, label: "SINGLE", icon: "rectangle.on.rectangle")
+                modePill(for: .multi,  label: "MULTI",  icon: "rectangle.stack.fill")
+                if auth.isStreamer {
+                    modePill(for: .show, label: "SHOW", icon: "tv.badge.wifi")
                 }
-                .padding(.trailing, Design.Spacing.lg)
             }
+            .padding(.trailing, Design.Spacing.lg)
             .padding(.bottom, 90)
+        }
+    }
+
+    /// One pill in the scanner's mode row. Tap selects that mode; the
+    /// current selection is tinted orange. Show mode is streamer-only
+    /// (the pill just doesn't render for other roles).
+    private func modePill(for mode: ScanStore.Mode, label: String, icon: String) -> some View {
+        let isSelected = scanStore.mode == mode
+        return Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                scanStore.mode = mode
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: icon).font(.system(size: 12))
+                Text(label).font(Design.Fonts.mono(11, weight: .bold)).tracking(0.5)
+            }
+            .foregroundStyle(isSelected ? Design.Colors.bobaOrange : .white.opacity(0.7))
+            .padding(.horizontal, Design.Spacing.sm + 2)
+            .padding(.vertical, Design.Spacing.sm - 1)
+            .background(
+                Capsule()
+                    .fill(isSelected ? Design.Colors.bobaOrange.opacity(0.2) : Color.white.opacity(0.12))
+                    .overlay(Capsule().strokeBorder(
+                        isSelected ? Design.Colors.bobaOrange.opacity(0.6) : Color.white.opacity(0.25),
+                        lineWidth: 1))
+            )
         }
     }
 

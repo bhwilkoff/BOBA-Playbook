@@ -11,9 +11,26 @@ struct AddToShowSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(ShowsStore.self) private var shows
 
-    let card: Card
-    /// Called with the name of the show the card was added to. Parent
-    /// animates a "Added to {show}" toast.
+    /// Single-card convenience init used from CardDetailView /
+    /// CollectionCardDetailView. Wraps the single card in the bulk
+    /// array so both call sites land in the same add path.
+    init(card: Card, onAdded: @escaping (String) -> Void) {
+        self.cards = [card]
+        self.titleDescription = card.name
+        self.onAdded = onAdded
+    }
+
+    /// Bulk-add init used from the scanner Show Mode queue.
+    init(cards: [Card], title: String, onAdded: @escaping (String) -> Void) {
+        self.cards = cards
+        self.titleDescription = title
+        self.onAdded = onAdded
+    }
+
+    let cards: [Card]
+    let titleDescription: String
+    /// Called with the name of the show the cards landed in. Parent
+    /// animates "Added to {show}" / "Saved N cards to {show}".
     var onAdded: (String) -> Void
 
     @State private var isLoading = true
@@ -48,7 +65,7 @@ struct AddToShowSheet: View {
                         .foregroundStyle(Design.Colors.bobaOrange)
                 }
                 ToolbarItem(placement: .principal) {
-                    Text("Add \(card.name)")
+                    Text(cards.count == 1 ? "Add \(titleDescription)" : titleDescription)
                         .font(Design.Fonts.display(14))
                         .foregroundStyle(Design.Colors.textPrimary)
                         .lineLimit(1)
@@ -156,7 +173,9 @@ struct AddToShowSheet: View {
                     TextField("Show name", text: $newShowText)
                         .font(Design.Fonts.mono(14))
                 } footer: {
-                    Text("We'll create the show and drop \(card.name) into it.")
+                    Text(cards.count == 1
+                         ? "We'll create the show and drop \(titleDescription) into it."
+                         : "We'll create the show and drop all \(cards.count) cards into it.")
                         .font(Design.Fonts.mono(11))
                         .foregroundStyle(Design.Colors.textMuted)
                 }
@@ -196,7 +215,7 @@ struct AddToShowSheet: View {
         errorMessage = nil
         defer { busyShowId = nil }
         do {
-            try await shows.addCards(showId: show.id, bobaIds: [card.id])
+            try await shows.addCards(showId: show.id, bobaIds: cards.map(\.id))
             onAdded(show.name)
             dismiss()
         } catch {
@@ -209,7 +228,7 @@ struct AddToShowSheet: View {
         errorMessage = nil
         defer { isCreatingNew = false }
         do {
-            let show = try await shows.createShow(name: name, initialCardBobaIds: [card.id])
+            let show = try await shows.createShow(name: name, initialCardBobaIds: cards.map(\.id))
             onAdded(show.name)
             showNewSheet = false
             dismiss()

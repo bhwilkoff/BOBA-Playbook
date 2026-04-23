@@ -322,12 +322,16 @@ private struct UserRoleRow: View {
 
     @State private var showPicker = false
 
-    private let allRoles = ["user", "moderator", "admin"]
+    // 'streamer' added 2026-04-23 — gates the Shows feature
+    // (Whatnot prep / giveaways). Order matches the role hierarchy
+    // displayed in the picker.
+    private let allRoles = ["user", "streamer", "moderator", "admin"]
 
     private func badgeColor(_ role: String) -> Color {
         switch role {
         case "admin":     return Design.Colors.bobaOrange
         case "moderator": return Design.Colors.bobaCyan
+        case "streamer":  return Color(hex: "FF00FF")  // magenta — keeps it distinct from mod/admin
         default:          return Design.Colors.textMuted
         }
     }

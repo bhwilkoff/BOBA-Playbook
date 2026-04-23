@@ -56,11 +56,13 @@ CREATE POLICY "public decks" ON decks FOR SELECT USING (is_public = true);
 -- Moderator / Admin roles
 -- ============================================================
 
--- User profiles: one row per auth.users entry, stores role
+-- User profiles: one row per auth.users entry, stores role.
+-- 'streamer' role added 2026-04-23 (migration add_streamer_role_and_shows)
+-- — a streamer preps for Whatnot shows via the Shows feature (see below).
 CREATE TABLE user_profiles (
   user_id    uuid PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
   email      text,
-  role       text NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'moderator', 'admin')),
+  role       text NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'moderator', 'admin', 'streamer')),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -272,3 +274,53 @@ BEGIN
   END IF;
 END;
 $$;
+
+-- ============================================================
+-- Streamer Shows (2026-04-23)
+-- ============================================================
+--
+-- A "show" is a streamer's pre-curated list of cards used to prep for
+-- a live Whatnot broadcast — giveaways, chasers, running totals. Cards
+-- in a show are NOT in the user's collection; shows are a separate
+-- top-level container. Applied live via migration
+-- add_streamer_role_and_shows.
+
+CREATE TABLE shows (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     uuid NOT NULL REFERENCES auth.users ON DELETE CASCADE,
+  name        text NOT NULL,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_shows_user_id ON shows (user_id);
+
+CREATE TABLE show_cards (
+  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  show_id             uuid NOT NULL REFERENCES shows(id) ON DELETE CASCADE,
+  boba_id             text NOT NULL,
+  sort_order          int  NOT NULL DEFAULT 0,
+  excluded_from_total boolean NOT NULL DEFAULT false,
+  added_at            timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_show_cards_show_id ON show_cards (show_id);
+
+ALTER TABLE shows      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE show_cards ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "own shows" ON shows
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "own show rows" ON show_cards
+  FOR ALL
+  USING     (show_id IN (SELECT id FROM shows WHERE user_id = auth.uid()))
+  WITH CHECK (show_id IN (SELECT id FROM shows WHERE user_id = auth.uid()));
+
+-- Auto-bump updated_at on every show mutation.
+CREATE OR REPLACE FUNCTION touch_shows_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN NEW.updated_at = now(); RETURN NEW; END;
+$$;
+
+CREATE TRIGGER trg_shows_touch_updated_at
+  BEFORE UPDATE ON shows
+  FOR EACH ROW EXECUTE FUNCTION touch_shows_updated_at();

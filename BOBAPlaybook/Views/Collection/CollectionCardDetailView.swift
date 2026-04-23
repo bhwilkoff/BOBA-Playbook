@@ -10,14 +10,17 @@ struct CollectionCardDetailView: View {
 
     @Environment(CollectionStore.self) private var collection
     @Environment(CardStore.self) private var cardStore
+    @Environment(AuthManager.self) private var auth
     @Environment(\.dismiss) private var dismiss
 
     @State private var editingEntry: UserCard?
     @State private var showingAddSheet = false
     @State private var showingAddToDeck = false
+    @State private var showingAddToShow = false
     @State private var deleteError: String?
     @State private var isRefreshingPrice = false
     @State private var addedToDeckName: String?
+    @State private var addedToShowName: String?
 
     private var catalogCard: Card? {
         // Try exact bobaId match first, then fall back to cardNumber for legacy entries
@@ -85,6 +88,14 @@ struct CollectionCardDetailView: View {
                                         Label("To Custom Deck", systemImage: "rectangle.stack.badge.plus")
                                     }
                                 }
+                                // Streamer-only add-to-Show destination.
+                                if auth.isStreamer {
+                                    Button {
+                                        showingAddToShow = true
+                                    } label: {
+                                        Label("To Show", systemImage: "tv.badge.wifi")
+                                    }
+                                }
                             }
                         } label: {
                             Image(systemName: "plus")
@@ -108,6 +119,13 @@ struct CollectionCardDetailView: View {
                     .environment(cardStore)
                 }
             }
+            .sheet(isPresented: $showingAddToShow) {
+                if let card = catalogCard {
+                    AddToShowSheet(card: card) { showName in
+                        showAddedToShowToast(showName)
+                    }
+                }
+            }
             .sheet(item: $editingEntry) { entry in
                 if let card = catalogCard {
                     EditCollectionEntrySheet(entry: entry, card: card)
@@ -122,22 +140,28 @@ struct CollectionCardDetailView: View {
             }
             .overlay(alignment: .top) {
                 if let name = addedToDeckName {
-                    HStack(spacing: Design.Spacing.sm) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(Color(hex: "4CAF50"))
-                        Text("Added to \(name)")
-                            .font(Design.Fonts.mono(12, weight: .bold))
-                            .foregroundStyle(Design.Colors.textPrimary)
-                    }
-                    .padding(.horizontal, Design.Spacing.md)
-                    .padding(.vertical, Design.Spacing.sm)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface))
-                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(hex: "4CAF50").opacity(0.4), lineWidth: 1))
-                    .padding(.top, Design.Spacing.md)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    confirmationToast("Added to \(name)")
+                } else if let showName = addedToShowName {
+                    confirmationToast("Added to \(showName)")
                 }
             }
         }
+    }
+
+    private func confirmationToast(_ text: String) -> some View {
+        HStack(spacing: Design.Spacing.sm) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(Color(hex: "4CAF50"))
+            Text(text)
+                .font(Design.Fonts.mono(12, weight: .bold))
+                .foregroundStyle(Design.Colors.textPrimary)
+        }
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.sm)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(hex: "4CAF50").opacity(0.4), lineWidth: 1))
+        .padding(.top, Design.Spacing.md)
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     private func showAddedToDeckToast(_ name: String) {
@@ -145,6 +169,14 @@ struct CollectionCardDetailView: View {
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(2))
             withAnimation(.easeOut(duration: 0.3)) { addedToDeckName = nil }
+        }
+    }
+
+    private func showAddedToShowToast(_ name: String) {
+        withAnimation(.easeOut(duration: 0.25)) { addedToShowName = name }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation(.easeOut(duration: 0.3)) { addedToShowName = nil }
         }
     }
 

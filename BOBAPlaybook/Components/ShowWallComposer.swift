@@ -24,7 +24,11 @@ struct ShowWallOptions: Sendable {
     var customText:      String = ""   // Replaces / adds to the title — see WallGrid
     var includePrices:   Bool = false  // Per-tile price overlay
 
-    static let `default` = ShowWallOptions()
+    /// Computed (not stored) so the initializer expression isn't evaluated
+    /// in the file's inferred MainActor context — Swift 6 was flagging
+    /// `static let default = ShowWallOptions()` as MainActor-isolated even
+    /// after the struct was marked Sendable.
+    static var `default`: ShowWallOptions { ShowWallOptions() }
 }
 
 enum ShowWallComposer {

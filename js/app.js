@@ -1642,6 +1642,12 @@
       });
 
       try {
+        // Build the Radish URL on the client so the Worker can scrape
+        // Radish's pre-validated sold data — without this, the Worker
+        // only saw radishUrl when the (rare) catalog field was set,
+        // which meant most cards silently fell back to an Insights-
+        // only path that's scope-gated.
+        const radishUrl = buildRadishUrl(card);
         const params = new URLSearchParams({
           cardNumber: card.cardNumber,
           hero:    card.hero    || '',
@@ -1649,7 +1655,8 @@
           element: card.element || '',
           days:    String(days),
           ...(card.power    != null ? { power:     String(card.power) }  : {}),
-          ...(card.radishUrl       ? { radishUrl:  card.radishUrl }       : {}),
+          ...(card.treatment       ? { treatment: card.treatment }       : {}),
+          ...(radishUrl            ? { radishUrl }                        : {}),
         });
         const res  = await fetch(`${WORKER_URL}?${params}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

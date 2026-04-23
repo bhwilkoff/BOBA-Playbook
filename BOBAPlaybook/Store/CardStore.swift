@@ -65,6 +65,10 @@ final class CardStore {
     var hasImageOnly = false        { didSet { scheduleFilter() } }
     var sortOrder: CardSortOrder = .default { didSet { scheduleFilter() } }
     var cardPurpose: CardPurpose = .all { didSet { scheduleFilter() } }
+    /// Optional curated-list filter. Lives alongside the other filter
+    /// dimensions so a showcase can combine with element / power / etc.
+    /// Nil when no showcase is selected (the typical case).
+    var selectedShowcaseId: String?     { didSet { scheduleFilter() } }
 
     var activeFilterCount: Int {
         (selectedElements.isEmpty ? 0 : 1)
@@ -74,6 +78,7 @@ final class CardStore {
         + (hasImageOnly ? 1 : 0)
         + (sortOrder != .default ? 1 : 0)
         + (cardPurpose != .all ? 1 : 0)
+        + (selectedShowcaseId == nil ? 0 : 1)
     }
 
     // MARK: - Image removal overrides
@@ -237,6 +242,21 @@ final class CardStore {
         let imgOnly   = hasImageOnly
 
         let purpose = cardPurpose
+        // Pre-resolve whichever showcase is active from both the picker
+        // AND the search bar (e.g. typing "WOBA" activates the WOBA
+        // showcase without the filter sheet). The search path takes
+        // precedence on a given keystroke.
+        let pickedShowcase:   Showcase? = selectedShowcaseId.flatMap { Showcases.byId($0) }
+        let typedShowcase:    Showcase? = search.isEmpty ? nil : Showcases.matching(searchToken: search)
+        let activeShowcase:   Showcase? = typedShowcase ?? pickedShowcase
+
+        // Search tokens the user's bar text resolves to. "fire" → FIRE
+        // element; "bojax" → BoJax + alias expansion; "battlefoil" →
+        // treatment; "woba" → already handled by activeShowcase above
+        // so we strip it from the text-match path.
+        let isShowcaseSearch = typedShowcase != nil
+        let searchTerms: [String] = isShowcaseSearch ? [] : expandedSearchTerms(search)
+
         filteredCards = displayCards.filter { card in
             if isLoadingMore && card.isSealed           { return false }
             switch purpose {
@@ -246,17 +266,20 @@ final class CardStore {
             case .hotDogs: if !card.isHotDog  { return false }
             case .sealed:  if !card.isSealed  { return false }
             }
+            if let showcase = activeShowcase, !showcase.match(card) { return false }
             if imgOnly && !card.imageAvailable          { return false }
             if !elements.isEmpty && !elements.contains(card.element) { return false }
             if let s = set,       !s.isEmpty, card.set      != s     { return false }
             if let t = treatment, !t.isEmpty, card.treatment != t    { return false }
             if let min = pMin, let p = card.power, p < min           { return false }
             if let max = pMax, let p = card.power, p > max           { return false }
-            if !search.isEmpty {
-                // Try the raw term first, then any community-alias expansions
-                // so "bojax" hits BoJax, "obf" hits Orange Battlefoil, etc.
-                let terms = expandedSearchTerms(search)
-                let match = terms.contains { term in
+            if !search.isEmpty && !isShowcaseSearch {
+                // Smart match. Each token (raw + alias expansions) is
+                // checked against every searchable surface on the card —
+                // hero name, card number, card name, athlete, element
+                // label, set, sub-set, treatment, and the catalog's
+                // pre-built searchTokens if present. One hit is enough.
+                let match = searchTerms.contains { term in
                     card.name.lowercased().contains(term)
                         || card.cardNumber.lowercased().contains(term)
                         || card.hero.lowercased().contains(term)
@@ -264,6 +287,9 @@ final class CardStore {
                         || card.element.lowercased().contains(term)
                         || (card.treatment?.lowercased().contains(term) == true)
                         || card.set.lowercased().contains(term)
+                        || (card.subSet?.lowercased().contains(term) == true)
+                        || (card.variation?.lowercased().contains(term) == true)
+                        || (card.searchTokens?.contains { $0.lowercased().contains(term) } == true)
                 }
                 if !match { return false }
             }
@@ -303,14 +329,15 @@ final class CardStore {
 
     // MARK: - Clear
     func clearAllFilters() {
-        searchText        = ""
-        selectedElements  = []
-        selectedSet       = nil
-        selectedTreatment = nil
-        powerMin          = nil
-        powerMax          = nil
-        hasImageOnly      = false
-        sortOrder         = .default
-        cardPurpose       = .all
+        searchText         = ""
+        selectedElements   = []
+        selectedSet        = nil
+        selectedTreatment  = nil
+        powerMin           = nil
+        powerMax           = nil
+        hasImageOnly       = false
+        sortOrder          = .default
+        cardPurpose        = .all
+        selectedShowcaseId = nil
     }
 }

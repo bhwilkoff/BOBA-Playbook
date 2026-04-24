@@ -50,7 +50,7 @@
   const showcases = [
     {
       id: "woba",
-      name: "WOBA",
+      name: "WoBA (Women of BoBA)",
       searchTokens: ["woba", "women of boba", "women"],
       description: "Women of BOBA — heroes inspired by legendary female athletes.",
       match: (card) => WOBA_HEROES.has(card.hero),

@@ -479,6 +479,33 @@ final class SupabaseClient {
         return try await executeArray(request)
     }
 
+    /// Returns every deck (id + name + format) that contains a card with
+    /// the given `bobaId`. Postgrest's resource embedding joins the
+    /// `decks` table through the `deck_cards` foreign key, so this is
+    /// one round trip rather than the old fetch-all + per-deck walk.
+    func decksContaining(bobaId: String) async throws -> [SavedDeck] {
+        // deck_cards?boba_id=eq.{id}&select=decks(id,name,format,created_at)
+        // Postgrest returns `{ decks: {...} }` rows; we flatten to [SavedDeck].
+        let encoded = bobaId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? bobaId
+        let url = try makeURL(path: "/rest/v1/deck_cards?boba_id=eq.\(encoded)&select=decks(id,name,format,created_at)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        struct Wrapper: Decodable { let decks: SavedDeck? }
+        let wrapped: [Wrapper] = try await executeArray(request)
+        // Dedupe — the same deck can have the same bobaId in multiple
+        // roles (e.g. a Play in both Playbook and Sideboard rows).
+        var seen = Set<UUID>()
+        var out: [SavedDeck] = []
+        for w in wrapped {
+            if let d = w.decks, !seen.contains(d.id) {
+                seen.insert(d.id)
+                out.append(d)
+            }
+        }
+        return out
+    }
+
     func saveDeck(_ store: DeckBuilderStore) async throws {
         guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
         let encoder = JSONEncoder()

@@ -5,6 +5,11 @@ import SwiftUI
 /// (Browse API fallback) from the eBay proxy worker.
 struct PricingSection: View {
     let card: Card
+    /// Whether to render the "BUY NOW" bucket of active listings. The
+    /// Collection surface passes `false` so coaches see only what the
+    /// card has actually sold for — active asks are not apples-to-
+    /// apples with owned-copy market value.
+    var showActiveListings: Bool = true
 
     @State private var selectedDays = 30
     @State private var result: PricingService.PricingResult?
@@ -47,7 +52,7 @@ struct PricingSection: View {
                         if let sold = result.sold {
                             bucketView(sold, label: "RECENT SALES", isActive: false)
                         }
-                        if let active = result.active {
+                        if showActiveListings, let active = result.active {
                             bucketView(active, label: "BUY NOW", isActive: true)
                         }
                     } else {

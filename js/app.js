@@ -164,13 +164,14 @@
   /* ================================================================
      VIEW SYSTEM
   ================================================================ */
-  const viewIds = ['search', 'scan', 'rules', 'decks', 'practice', 'collection', 'profile'];
+  const viewIds = ['search', 'scan', 'rules', 'decks', 'practice', 'stores', 'collection', 'profile'];
   const navBtnIds = {
     search:        'nav-search-btn',
     scan:          'nav-scan-btn',
     rules:         'nav-rules-btn',
     decks:         'nav-decks-btn',
     practice:      'nav-practice-btn',
+    stores:        'nav-stores-btn',
     collection:    'nav-collection-btn',
     profile:       'nav-profile-btn',
   };
@@ -304,6 +305,9 @@
     }
     if (name === 'rules' || name === 'decks' || name === 'practice') {
       initPlayView();
+    }
+    if (name === 'stores' && window.BOBAStoreLocator?.init) {
+      window.BOBAStoreLocator.init();
     }
 
     if (!fromHistory) {
@@ -1395,7 +1399,7 @@
     el.setAttribute('role', 'listitem');
     el.dataset.element = card.element || 'NONE';
     el.setAttribute('tabindex', '0');
-    el.setAttribute('aria-label', `${card.name}, ${card.element || 'No element'}, Power ${card.power}`);
+    el.setAttribute('aria-label', `${card.name}, ${card.element || 'No weapon'}, Power ${card.power}`);
 
     const thumbSrc = API.cardThumbUrl(card);
     const imgHtml = thumbSrc
@@ -2024,22 +2028,40 @@
            <span class="placeholder-status">Image Pending</span>
          </div>`;
 
-    // Build stat cells — grid layout
+    // Build stat cells — canonical 6-cell taxonomy layout per the
+    // BoBA-expert spec (2026-04-24). Reading order with the existing
+    // 2-col CSS grid is left-to-right then top-to-bottom, so the
+    // ordered sequence below renders as:
+    //
+    //   Card #    │ Type
+    //   Treatment │ Weapon
+    //   Set       │ Sub-set
+    //
+    // "Treatment" replaces "Rarity" everywhere outside the rarity-
+    // by-weapon-type discussion in the Learn tab. "Weapon" replaces
+    // "Element" (community always says weapon). Cost / DBS / Ability
+    // for plays render below the canonical 6 so the standard layout
+    // stays predictable across card types.
     const isHero    = card.cardType === 'Hero';
     const isPlay    = card.cardType === 'Play';
     const isHotDog  = card.cardType === 'HotDog';
+    const isSealed  = card.cardType === 'Sealed Product';
+
+    const treatmentVal = !isSealed
+      ? (card.treatment && card.treatment.trim() ? card.treatment : 'Base Set')
+      : null;
+    const weaponVal = (card.element && card.element !== 'NONE') ? card.element : (isSealed ? null : '—');
+
     const statDefs = [
-      // Element only meaningful for Hero cards
-      isHero ? { label: 'Element', val: card.element && card.element !== 'NONE' ? card.element : null, full: false } : null,
-      isPlay ? { label: 'Cost',    val: card.playCost === 0 ? 'FREE' : `${card.playCost} Hot Dog${card.playCost !== 1 ? 's' : ''}`, full: false } : null,
-      { label: 'Set',       val: card.set,       full: false },
-      { label: 'Sub-Set',   val: card.subSet,     full: false },
-      { label: 'Type',      val: card.cardType,   full: false },
-      { label: 'Variation', val: card.variation,  full: false },
-    ].filter(s => s?.val);
-    if (card.cardType !== 'Sealed Product') {
-      statDefs.push({ label: 'Rarity', val: getCardRarity(card).label, full: false });
-    }
+      { label: 'Card #',    val: card.cardNumber,                 full: false },
+      { label: 'Type',      val: card.cardType,                   full: false },
+      !isSealed ? { label: 'Treatment', val: treatmentVal, full: false } : null,
+      !isSealed ? { label: 'Weapon',    val: weaponVal,    full: false } : null,
+      { label: 'Set',       val: card.set,                        full: false },
+      { label: 'Sub-set',   val: card.subSet || (isSealed ? null : '—'), full: false },
+      // Play-specific extras render after the canonical 6
+      isPlay ? { label: 'Cost', val: card.playCost === 0 ? 'FREE' : `${card.playCost} Hot Dog${card.playCost !== 1 ? 's' : ''}`, full: false } : null,
+    ].filter(s => s !== null && s.val !== null && s.val !== undefined);
 
     let statCells = statDefs.map(s =>
       `<div class="stat-cell${s.full ? ' full' : ''}">

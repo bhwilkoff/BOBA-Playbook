@@ -196,12 +196,35 @@ header { flex-shrink: 0; position: relative; }
 
 **iOS tabs:** Find · Learn · Play · Decks · Collection
 - **Find** — card search (formerly "Search"). Scan shortcut lives inside the search bar (right edge). Profile opens as a sheet from a toolbar icon (left of the BOBA wordmark).
-- **Learn** — rules, strategy, browse-by-athlete lists, collecting guide, tournament reference (formerly the main content of the Play tab).
-- **Play** — practice battle setup/playmat (formerly a toolbar button inside Play).
-- **Decks** — deck builder (formerly a toolbar button inside Play).
-- **Collection** — unchanged.
+- **Learn** — rules, strategy, browse-by-athlete lists, collecting guide, tournament reference. Sub-sections: Setup (match flow + edge cases + reading the playmat) · Rules · Strategy · Browse · Collect · Glossary · Tournament.
+- **Play** — practice battle setup/playmat.
+- **Decks** — deck builder.
+- **Collection** — owned cards + Rainbow + Shows (streamer-only).
 
-**Web sidebar:** Search Cards · Play · My Collection · Profile
+**Web sidebar:** Search Cards · Scan · Learn · Deck Builder · Practice · Find a Store · My Collection · Profile (Practice, Decks, Find a Store split out — iOS bundles them inside Play / Decks / Collection-menu).
+
+**iOS app display name:** `CFBundleDisplayName = "Playbook"` (under the icon on the home screen). In-app wordmark + App Store listing still read "BOBA Playbook." See DECISIONS.md #032.
+
+---
+
+## Card Taxonomy (User-Facing)
+
+**Treatments vs Parallels** — distinct concepts per the BoBA-expert audit (see DECISIONS.md #028). Treatments are print variants of a single card (Base Set, Battlefoil family with seven color subsets, themed foils, Inspired Ink = Serialized variants, Superfoil). Parallels are entirely separate runs (Billy Cameo Alt Arts, SideKicks, Plays, Bonus Plays, Prize/Promos, Hot Dogs).
+
+**Inspired Ink = Serialized** with weapon-tied print numbers: Hex /5, Glow /10, Fire /25, Ice /50.
+
+**User-facing language** (DECISIONS.md #027):
+- The catalog field is `element` → render as **Weapon** in UI
+- The catalog field is `treatment` → render as **Treatment** in UI (not "Rarity")
+- "Rarity" is reserved for the *rarity-by-weapon-type* discussion in the Learn → Collect → Weapon Rarity section. Nowhere else.
+
+**Card-detail canonical layout** (DECISIONS.md #029): every card-detail surface uses the same 6-cell 2-col grid:
+```
+Card #     │ Type
+Treatment  │ Weapon
+Set        │ Sub-set
+```
+Cost + DBS for Plays render BELOW the canonical six.
 
 ---
 

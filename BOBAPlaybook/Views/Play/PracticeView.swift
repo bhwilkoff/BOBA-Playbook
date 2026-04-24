@@ -22,6 +22,16 @@ struct PracticeView: View {
     @State private var showPlaysPanel = false
     @State private var isExiting = false
     @State private var showPhaseBanner = true
+    /// UX#8 — discard inspector. Side that the user wants to inspect,
+    /// or nil when no sheet is open. Wrapped so SwiftUI's
+    /// `sheet(item:)` (which needs `Identifiable`) can carry it.
+    @State private var inspectingDiscardSide: InspectingSide? = nil
+
+    /// Identifiable wrapper around PlayExecContext.Side for sheet(item:).
+    struct InspectingSide: Identifiable {
+        let side: PlayExecContext.Side
+        var id: String { side.rawValue }
+    }
     @AppStorage("bp_practiceTutorialSeen_v1") private var tutorialSeen = false
     @State private var showTutorial = false
 
@@ -45,9 +55,11 @@ struct PracticeView: View {
                 } else {
                     // ── Landscape: full playmat ─────────────────────────────
                     VStack(spacing: 0) {
-                        PracticeTopBar(store: store) {
-                            showExitConfirm = true
-                        }
+                        PracticeTopBar(
+                            store: store,
+                            onExit: { showExitConfirm = true },
+                            onInspectCpuDiscard: { inspectingDiscardSide = .init(side: .cpu) }
+                        )
 
                         // Scrollable battle arena
                         arenaView(geo: geo)
@@ -55,10 +67,33 @@ struct PracticeView: View {
                         PracticeBottomToolbar(
                             store: store,
                             showBenchPanel: $showBenchPanel,
-                            showPlaysPanel: $showPlaysPanel
-                        ) {
-                            store.advancePhase()
+                            showPlaysPanel: $showPlaysPanel,
+                            onAction: { store.advancePhase() },
+                            onInspectPlayerDiscard: { inspectingDiscardSide = .init(side: .player) }
+                        )
+                    }
+                    .sheet(item: $inspectingDiscardSide) { wrapper in
+                        DiscardInspectorSheet(store: store, side: wrapper.side)
+                    }
+                    // Rules-clarification alert (handoff §6.A): warns
+                    // when Recycle / Reload / Return from the Depths
+                    // would clear active rest_of_game effects.
+                    .alert(
+                        "Recycle these plays?",
+                        isPresented: Binding(
+                            get: { store.pendingRecycleCard != nil },
+                            set: { newValue in if !newValue { store.cancelPendingRecycle() } }
+                        ),
+                        presenting: store.pendingRecycleCard
+                    ) { _ in
+                        Button("Recycle", role: .destructive) {
+                            store.confirmPendingRecycle()
                         }
+                        Button("Cancel", role: .cancel) {
+                            store.cancelPendingRecycle()
+                        }
+                    } message: { _ in
+                        Text("Picking plays back up from your discard ends any rest-of-game effects attached to them. Currently active:\n\n• \(store.pendingRecycleVictimSummary)")
                     }
                     // Bench panel overlay
                     .safeAreaInset(edge: .bottom) {
@@ -99,6 +134,18 @@ struct PracticeView: View {
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    // ── Active persistent effects banner ────────────────────
+                    // Anchored under the top bar so it never blocks the
+                    // arena. Renders nothing when no effects are in
+                    // scope; otherwise a horizontally-scrollable strip
+                    // of pills.
+                    if !store.activeEffectsForUI.isEmpty {
+                        VStack {
+                            activeEffectsBanner
+                            Spacer()
                         }
                     }
 
@@ -206,7 +253,9 @@ struct PracticeView: View {
                             ActiveBattleView(
                                 slot: slot,
                                 phase: store.phase,
-                                mode: store.mode
+                                mode: store.mode,
+                                playerEffectiveWeapon: store.effectiveWeapon(of: slot.playerCard, side: .player),
+                                cpuEffectiveWeapon:    store.effectiveWeapon(of: slot.cpuCard,    side: .cpu)
                             )
                             .frame(width: activeWidth)
                             .id(slot.id)
@@ -272,41 +321,228 @@ struct PracticeView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    // MARK: - Discard inspector — see DiscardInspectorSheet below
+
+    // MARK: - Active persistent-effects banner
+    //
+    // Shows every weapon transform + persistent effect currently in
+    // scope as a horizontal pill strip just under the top bar. Each
+    // pill carries owner side (cyan = you, violet = CPU), an icon for
+    // the effect family, and a one-line summary built by the store.
+    // Coaches can read the whole "what's currently affecting this
+    // battle" surface at a glance without opening anything.
+    private var activeEffectsBanner: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(store.activeEffectsForUI, id: \.id) { row in
+                    HStack(spacing: 5) {
+                        Image(systemName: row.icon)
+                            .font(.system(size: 11, weight: .bold))
+                        Text(row.label)
+                            .font(Design.Fonts.mono(11, weight: .bold))
+                            .lineLimit(1)
+                        if let r = row.remaining, r > 0 {
+                            // UX#11 tick-down — finite-scope effects
+                            // show how many battles they have left so
+                            // coaches can plan around their expiry.
+                            Text("\(r)")
+                                .font(Design.Fonts.mono(9, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(Capsule().fill(Color.black.opacity(0.4)))
+                        }
+                    }
+                    .foregroundStyle(Color(hex: row.color))
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5)
+                    .background(
+                        Capsule()
+                            .fill(Color(hex: row.color).opacity(0.12))
+                            .overlay(Capsule().strokeBorder(Color(hex: row.color).opacity(0.5), lineWidth: 1))
+                    )
+                    .overlay(alignment: .leading) {
+                        // 3pt color tab on the leading edge so the
+                        // owner side reads at-a-glance even when the
+                        // user hasn't read the label.
+                        Capsule()
+                            .fill(row.owner == .player
+                                  ? Design.Colors.bobaCyan
+                                  : Design.Colors.bobaViolet)
+                            .frame(width: 3, height: 14)
+                            .padding(.leading, 1)
+                    }
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+        }
+        .frame(height: 32)
+        .background(.ultraThinMaterial)
+        .padding(.top, 4)
+    }
+
     // MARK: - Match Over Overlay
 
     private var matchOverOverlay: some View {
         ZStack {
-            Color.black.opacity(0.75).ignoresSafeArea()
-            VStack(spacing: Design.Spacing.lg) {
-                if let winner = store.matchWinner {
-                    if winner == .player {
-                        Text("VICTORY!").font(Design.Fonts.display(48)).foregroundStyle(Color(hex: "4CAF50"))
-                        Text("You won the match").font(Design.Fonts.mono(16)).foregroundStyle(Design.Colors.textSecondary)
+            Color.black.opacity(0.85).ignoresSafeArea()
+            VStack(spacing: Design.Spacing.md) {
+                // Verdict banner
+                VStack(spacing: 4) {
+                    if let winner = store.matchWinner {
+                        if winner == .player {
+                            Text("VICTORY!").font(Design.Fonts.display(40))
+                                .foregroundStyle(Color(hex: "4CAF50"))
+                            Text("You won the match")
+                                .font(Design.Fonts.mono(14))
+                                .foregroundStyle(Design.Colors.textSecondary)
+                        } else {
+                            Text("DEFEAT").font(Design.Fonts.display(40))
+                                .foregroundStyle(Color(hex: "C0392B"))
+                            Text("CPU won the match")
+                                .font(Design.Fonts.mono(14))
+                                .foregroundStyle(Design.Colors.textSecondary)
+                        }
                     } else {
-                        Text("DEFEAT").font(Design.Fonts.display(48)).foregroundStyle(Color(hex: "C0392B"))
-                        Text("CPU won the match").font(Design.Fonts.mono(16)).foregroundStyle(Design.Colors.textSecondary)
+                        Text("SUDDEN DEATH").font(Design.Fonts.display(30))
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                        Text("The match ended in a tie")
+                            .font(Design.Fonts.mono(14))
+                            .foregroundStyle(Design.Colors.textSecondary)
                     }
-                } else {
-                    Text("SUDDEN DEATH").font(Design.Fonts.display(36)).foregroundStyle(Design.Colors.bobaOrange)
-                    Text("The match ended in a tie").font(Design.Fonts.mono(16)).foregroundStyle(Design.Colors.textSecondary)
+                    Text("\(store.playerScore) — \(store.cpuScore)")
+                        .font(Design.Fonts.display(28))
+                        .foregroundStyle(Design.Colors.textPrimary)
                 }
 
-                Text("\(store.playerScore) — \(store.cpuScore)")
-                    .font(Design.Fonts.display(32))
-                    .foregroundStyle(Design.Colors.textPrimary)
+                // Trophy progression — one icon per battle. Lets coaches
+                // read the match flow at a glance: where they held, where
+                // they lost, which battles went to tiebreaker.
+                trophyStrip
 
-                HStack(spacing: Design.Spacing.lg) {
-                    Button("PLAY AGAIN") {
-                        store.startMatch(allCards: [])
+                // Per-battle play summary — scrollable so 7 battles worth
+                // of plays never get clipped on a small phone.
+                ScrollView {
+                    VStack(spacing: Design.Spacing.sm) {
+                        ForEach(store.battles) { slot in
+                            battleSummaryRow(slot: slot)
+                        }
                     }
-                    .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
+                    .padding(.vertical, Design.Spacing.xs)
+                }
+                .frame(maxHeight: 260)
 
+                HStack(spacing: Design.Spacing.md) {
+                    Button("PLAY AGAIN") { store.startMatch(allCards: []) }
+                        .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
                     Button("EXIT") { dismiss() }
                         .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.glass))
                 }
             }
-            .padding(Design.Spacing.xl)
-            .background(RoundedRectangle(cornerRadius: 20).fill(Design.Colors.surface).shadow(color: .black.opacity(0.5), radius: 20))
+            .padding(Design.Spacing.lg)
+            .frame(maxWidth: 440)
+            .background(RoundedRectangle(cornerRadius: 20).fill(Design.Colors.surface)
+                .shadow(color: .black.opacity(0.5), radius: 20))
+            .padding(.horizontal, Design.Spacing.md)
+        }
+    }
+
+    // MARK: - Match summary pieces
+
+    private var trophyStrip: some View {
+        VStack(spacing: 6) {
+            Text("BATTLE PROGRESSION")
+                .font(Design.Fonts.mono(9, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+                .tracking(1.5)
+            HStack(spacing: 6) {
+                ForEach(store.battles) { slot in
+                    trophyIcon(for: slot)
+                }
+            }
+        }
+    }
+
+    /// One trophy per battle. Green = player won, red = CPU won,
+    /// orange = tie, muted = battle not played. Always renders 7 slots
+    /// so the row visually matches "first to 4" pacing.
+    @ViewBuilder
+    private func trophyIcon(for slot: BattleSlot) -> some View {
+        let (symbol, color): (String, Color) = {
+            switch slot.result {
+            case .win:  return ("trophy.fill", Color(hex: "4CAF50"))
+            case .lose: return ("xmark.shield.fill", Color(hex: "C0392B"))
+            case .tie:  return ("equal.circle.fill", Design.Colors.bobaOrange)
+            case .none: return ("circle", Design.Colors.textMuted)
+            }
+        }()
+        VStack(spacing: 2) {
+            Image(systemName: symbol)
+                .font(.system(size: 22))
+                .foregroundStyle(color)
+            Text("\(slot.id + 1)")
+                .font(Design.Fonts.mono(9, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+        }
+        .frame(width: 32)
+    }
+
+    private func battleSummaryRow(slot: BattleSlot) -> some View {
+        let verdict: String
+        let verdictColor: Color
+        switch slot.result {
+        case .win:  verdict = "YOU WON";  verdictColor = Color(hex: "4CAF50")
+        case .lose: verdict = "CPU WON";  verdictColor = Color(hex: "C0392B")
+        case .tie:  verdict = "TIE";       verdictColor = Design.Colors.bobaOrange
+        case .none: verdict = "—";         verdictColor = Design.Colors.textMuted
+        }
+        let playerPlays = slot.playerPlayedCards.map { $0.name }.joined(separator: ", ")
+        let cpuPlays    = slot.cpuPlayedCards.map    { $0.name }.joined(separator: ", ")
+        return VStack(alignment: .leading, spacing: 3) {
+            HStack {
+                Text("BATTLE \(slot.id + 1)")
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                Text("·")
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(Design.Colors.textMuted)
+                Text(verdict)
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(verdictColor)
+                Spacer()
+                Text("\(slot.playerFinalPower) — \(slot.cpuFinalPower)")
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+            summaryPlayLine(label: "YOU", plays: playerPlays, hero: slot.playerCard?.hero)
+            summaryPlayLine(label: "CPU", plays: cpuPlays,    hero: slot.cpuCard?.hero)
+        }
+        .padding(.horizontal, Design.Spacing.sm)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.glass.opacity(0.5)))
+    }
+
+    private func summaryPlayLine(label: String, plays: String, hero: String?) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Text(label)
+                .font(Design.Fonts.mono(9, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+                .frame(width: 30, alignment: .leading)
+            VStack(alignment: .leading, spacing: 1) {
+                if let h = hero, !h.isEmpty {
+                    Text(h)
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                }
+                Text(plays.isEmpty ? "(no plays)" : plays)
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(plays.isEmpty ? Design.Colors.textMuted : Design.Colors.bobaCyan)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
         }
     }
 

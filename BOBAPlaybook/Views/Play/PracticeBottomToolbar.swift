@@ -13,6 +13,9 @@ struct PracticeBottomToolbar: View {
     @Binding var showBenchPanel: Bool
     @Binding var showPlaysPanel: Bool
     let onAction: () -> Void
+    /// UX#8 — discard inspector trigger. Optional so existing call
+    /// sites stay valid; renders the discard chip when provided.
+    var onInspectPlayerDiscard: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 0) {
@@ -39,6 +42,10 @@ struct PracticeBottomToolbar: View {
                 hotDogCounter
                 divider
             }
+
+            // Discard inspector chip — UX#8
+            discardChip
+                .padding(.leading, Design.Spacing.xs)
 
             Spacer()
 
@@ -121,6 +128,38 @@ struct PracticeBottomToolbar: View {
                 .foregroundStyle(Color(hex: "4CAF50").opacity(0.7))
         }
         .frame(width: 60)
+    }
+
+    // UX#8 — discard inspector trigger. Renders a small "DISCARD ·N"
+    // chip when there are any cards in discard, tappable to open the
+    // inspector. Hidden when discard is empty so it doesn't take up
+    // bench/playmat real estate prematurely.
+    var discardChip: some View {
+        Group {
+            if let onTap = onInspectPlayerDiscard {
+                let count = store.playerPlayDiscard.count
+                if count > 0 {
+                    Button {
+                        onTap()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "tray.fill")
+                                .font(.system(size: 10))
+                            Text("\(count)")
+                                .font(Design.Fonts.mono(11, weight: .bold))
+                            Text("DISCARD")
+                                .font(Design.Fonts.mono(8, weight: .bold))
+                                .tracking(1)
+                        }
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .padding(.horizontal, 8)
+                        .frame(height: 28)
+                        .background(Capsule().fill(Design.Colors.glass.opacity(0.5)))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     // MARK: - Action Buttons

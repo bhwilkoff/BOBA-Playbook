@@ -5,11 +5,12 @@ import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("selectedIconName") private var selectedIconName: String = "default"
+    @State private var hints = HintsManager.shared
 
     var body: some View {
         List {
             Section {
-                Text("Choose an element color for the app icon. The change takes effect immediately on your home screen.")
+                Text("Choose a weapon color for the app icon. The change takes effect immediately on your home screen.")
                     .font(Design.Fonts.mono(13))
                     .foregroundStyle(Design.Colors.textMuted)
                     .listRowBackground(Design.Colors.surface)
@@ -31,6 +32,34 @@ struct SettingsView: View {
             }
             .listRowBackground(Design.Colors.surface)
             .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+
+            // Practice-mode hints — first-run-only contextual tips
+            // (substitution positioning, bonus play ceiling, etc.)
+            // The toggle silences the entire system; "Reset" replays
+            // every hint as if the coach had never dismissed any.
+            Section {
+                Toggle(isOn: Binding(
+                    get: { hints.hintsEnabled },
+                    set: { hints.hintsEnabled = $0 }
+                )) {
+                    Text("Show first-run hints")
+                        .font(Design.Fonts.mono(14))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                }
+                .tint(Design.Colors.bobaCyan)
+                Button("Reset hints") { hints.resetAll() }
+                    .font(Design.Fonts.mono(13))
+                    .foregroundStyle(Design.Colors.bobaOrange)
+            } header: {
+                Text("PRACTICE HINTS")
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+            } footer: {
+                Text("Lightbulb tips appear at key moments — substitution positioning, deck composition, bonus-play limits. Each one shows only once per device unless you reset them here.")
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+            .listRowBackground(Design.Colors.surface)
         }
         .scrollContentBackground(.hidden)
         .background(Design.Colors.nearBlack)

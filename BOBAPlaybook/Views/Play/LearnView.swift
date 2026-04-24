@@ -15,6 +15,7 @@ import SwiftUI
 // ════════════════════════════════════════════════════════════════
 
 private enum PlaySection: String, CaseIterable, Identifiable {
+    case setup      = "Setup"
     case rules      = "Rules"
     case strategy   = "Strategy"
     case browse     = "Browse"
@@ -40,6 +41,7 @@ struct LearnView: View {
                     .background(Design.Colors.surface)
 
                 switch selectedSection {
+                case .setup:      SetupView()
                 case .rules:      RulesView()
                 case .strategy:   StrategyView()
                 case .browse:     BrowseView()
@@ -72,21 +74,31 @@ private struct PlaySectionPicker: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Design.Spacing.xs) {
                 ForEach(PlaySection.allCases) { section in
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.18)) { selected = section }
-                    } label: {
-                        Text(section.rawValue)
-                            .font(Design.Fonts.mono(13, weight: selected == section ? .bold : .regular))
-                            .foregroundStyle(selected == section ? Design.Colors.nearBlack : Design.Colors.textSecondary)
-                            .padding(.horizontal, Design.Spacing.md)
-                            .frame(height: 34)
-                            .background(Capsule().fill(selected == section ? Design.Colors.bobaOrange : Design.Colors.glass))
-                    }
-                    .buttonStyle(.plain)
+                    pill(for: section)
                 }
             }
             .padding(.horizontal, Design.Spacing.lg)
         }
+    }
+
+    /// Per-pill renderer broken out so the body's type chain stays
+    /// short — Swift 6's checker can't infer the full ScrollView →
+    /// HStack → ForEach → Button → 5 chained modifiers tree fast
+    /// enough when the section count grows.
+    @ViewBuilder
+    private func pill(for section: PlaySection) -> some View {
+        let isSelected = selected == section
+        Button {
+            withAnimation(.easeInOut(duration: 0.18)) { selected = section }
+        } label: {
+            Text(section.rawValue)
+                .font(Design.Fonts.mono(13, weight: isSelected ? .bold : .regular))
+                .foregroundStyle(isSelected ? Design.Colors.nearBlack : Design.Colors.textSecondary)
+                .padding(.horizontal, Design.Spacing.md)
+                .frame(height: 34)
+                .background(Capsule().fill(isSelected ? Design.Colors.bobaOrange : Design.Colors.glass))
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -234,6 +246,88 @@ private enum GameMode: String, CaseIterable, Hashable {
     case rookie       = "Rookie"
     case substitution = "Substitution"
     case playmaker    = "Playmaker"
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - Setup & Edge Cases
+// ════════════════════════════════════════════════════════════════
+//
+// Step-by-step match setup walkthrough + the rules edge cases that
+// veteran players debate at the table. Sourced from the Brad+Rob
+// 160-Spec tutorial transcript and Cowork's UI handoff §4 + §6.
+private struct SetupView: View {
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Design.Spacing.lg) {
+
+                // ── Pre-match flow ──────────────────────────────
+                RulesSectionHeader(title: "Before Battle 1")
+                RuleCard(lines: [
+                    .init(label: "Coin flip",
+                          body: "One coin flip determines who picks first. The winner of the flip earns initial Honors — the right to act first in every phase of Battle 1."),
+                    .init(label: "Direction (table-only)",
+                          body: "In a physical match the Honors player picks the direction the Hero lineup reads (left-to-right or right-to-left). The app uses one consistent visual convention so this step is invisible."),
+                    .init(label: "Hero deck",
+                          body: "Shuffle your 60-card Hero Deck and place 7 face-down in your Battle row — one per battle slot."),
+                    .init(label: "Bench draw",
+                          body: "After your 7 are placed, draw 4 more Heroes from the top of the deck for your Bench. The Bench is hidden from your opponent."),
+                    .init(label: "Hot Dogs",
+                          body: "Both players start with 10 Hot Dogs in their pool. The count is always public information — your opponent can see how many you have at any time."),
+                    .init(label: "Playbook (Playmaker only)",
+                          body: "Your 30-card Playbook is shuffled and placed face-down. Draw 5 plays for your starting hand. Bonus Plays draw automatically when their trigger fires (gold border in your hand)."),
+                ])
+
+                // ── Battle loop ──────────────────────────────────
+                RulesSectionHeader(title: "Each Battle Has 5 Phases")
+                RuleCard(lines: [
+                    .init(label: "1. Substitution",
+                          body: "Honors player decides first. Pay 2 Hot Dogs to swap your face-down Hero for one from the Bench. Cost is always 2 — even when a play modifier inflates other costs."),
+                    .init(label: "2. Reveal",
+                          body: "Both players flip their Hero simultaneously. Element-triggered Bonus Plays fire automatically (e.g., a Glow hero reveal triggers Glow Bonus draws)."),
+                    .init(label: "3. Play Window",
+                          body: "Players alternate plays, each paying its Hot Dog cost. Pass when you're done. Both must pass to advance to Resolution."),
+                    .init(label: "4. Resolution",
+                          body: "Powers are compared. Higher wins. Equal power = tie unless one Hero is a Super-weapon type (Playmaker only — Super wins ties). The on-mat power breakdown shows every modifier that contributed."),
+                    .init(label: "5. Cleanup",
+                          body: "Both players draw 1 Play. Honors moves to the battle winner. Scope-limited effects tick down. The next battle begins automatically."),
+                ])
+
+                // ── Edge cases ──────────────────────────────────
+                RulesSectionHeader(title: "Common Edge Cases")
+                RuleCard(lines: [
+                    .init(label: "Substitution cost is always 2",
+                          body: "Cost-modifier plays like Dog On Inflation (+2 to plays) do NOT affect Substitution. The Substitute button always shows 2 HD regardless of active modifiers."),
+                    .init(label: "Pull The Plug only cancels rest-of-game effects",
+                          body: "Persistent effects scoped to specific battles (next 2 battles, battle 7, etc.) survive Pull The Plug. After playing it, you'll see a CANCELLED / UNCHANGED breakdown so you know exactly what was hit."),
+                    .init(label: "Recycle clears attached effects",
+                          body: "When a play is shuffled out of your discard back into your Playbook, any rest-of-game effect it had stops applying. If Flash Sale is active, recycling it removes the −1 cost discount."),
+                    .init(label: "Play Booster recounts every time",
+                          body: "Play Booster's draw amount = plays used this battle, including itself. If you play it again later in the same battle, the recount includes the previous Play Booster."),
+                    .init(label: "Deck exhaustion auto-reshuffles",
+                          body: "When your Playbook hits 0 cards, the discard pile shuffles back in automatically. You'll see a brief 'Playbook reshuffled · N cards back into deck' notification."),
+                    .init(label: "Bonus Plays don't count against the 30-card limit",
+                          body: "Cards with the gold ★ BONUS tag are extras — they enter the deck through element triggers and don't count against the 30-Play deckbuilding cap. They're surfaced visually so you can plan around them."),
+                ])
+
+                // ── Reading the playmat ─────────────────────────
+                RulesSectionHeader(title: "Reading the Playmat")
+                RuleCard(lines: [
+                    .init(label: "Persistent-effects banner (top)",
+                          body: "Every active effect with its scope and remaining battles. Cyan tab = your effect, violet tab = opponent's. The number badge ticks down every battle."),
+                    .init(label: "Plays-used row (under each Hero)",
+                          body: "Every play used this battle, in order. Drives Play Booster / 10 Per Play / No Huddle math you can verify visually."),
+                    .init(label: "Effective-cost display (in hand)",
+                          body: "Plays whose cost has been modified show 3→5 with the original struck through. Green = discounted, amber = inflated but affordable, red = unaffordable."),
+                    .init(label: "Power breakdown (after resolution)",
+                          body: "Itemized list of every modifier that contributed: base power, each played card, each persistent. Footings to the engine's verdict so you can audit the math."),
+                    .init(label: "Discard inspector (tap discard chip)",
+                          body: "Tap the DISCARD chip in the bottom toolbar (or the play count next to CPU) to see the full list of cards used so far."),
+                ])
+            }
+            .padding(Design.Spacing.lg)
+        }
+        .background(Design.Colors.nearBlack)
+    }
 }
 
 private struct RulesView: View {
@@ -1626,9 +1720,9 @@ private struct CollectView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Design.Spacing.xl) {
                 WeaponRaritySection()
-                ParallelsAndTreatmentsSection()
+                TreatmentsSection()
+                ParallelsSection()
                 VariationSection()
-                TreatmentHighlightsSection()
             }
             .padding(Design.Spacing.lg)
             .padding(.bottom, Design.Spacing.xxl)
@@ -1686,50 +1780,322 @@ private struct WeaponRaritySection: View {
     }
 }
 
-private struct ParallelsAndTreatmentsSection: View {
-    private let tiers: [(Int, String, String, String, Color)] = [
-        (1, "Base Set",                      "No foil treatment. The most common card in any set — but hero scarcity varies widely. Your entry point for any collection.",                                           "Most common",  Design.Colors.textMuted),
-        (2, "Grandma's Linoleum Battlefoil", "GLBF — a linoleum-textured foil border. One of the most common foil treatments; community calls it Lino or Grandma. Great first foil to chase.",                       "Common foil",  Color(hex: "FFD700")),
-        (3, "80's Rad Battlefoil",           "RAD — retro 80's-inspired holographic finish. Common alongside GLBF; both are frequent pulls from standard packs.",                                                   "Common foil",  Color(hex: "AAAAFF")),
-        (4, "Color Battlefoil",              "Element-colored foil border matching the card's weapon type. 9 color variants (Fire, Ice, Steel, Brawl, Glow, Hex, Gum, Super, Alt). Harder to pull than GLBF/RAD.",   "Mid-rarity",   Design.Colors.bobaCyan),
-        (5, "Superfoil",                     "Full-card holographic foil treatment covering the entire card face. Significantly rarer than any Battlefoil. The most visually striking card in most collections.",    "Premium",      Color(hex: "FF00FF")),
-        (6, "Inspired Ink",                  "Autograph-style treatment featuring athlete tribute art. Named after the 'inspired by' athletes. Premium rarity — typically 1 per box or less.",                       "Premium",      Color(hex: "FF69B4")),
-        (7, "Kanjifoil",                     "Japanese kanji script foil treatment. Chase rarity — rare enough that most collectors have never pulled one from a pack.",                                              "Chase",        Color(hex: "8B00FF")),
-        (8, "Serialized",                    "Each card is hand-stamped with its print number (/10, /25, /50). Hard-stop scarcity — the total supply is literally on the card. Highly prized by serious collectors.", "Chase",        Design.Colors.bobaOrange),
-        (9, "Billy Cameo Alt Art",           "Alternate art featuring Billy, the iconic BOBA hot dog mascot. The rarest and most sought-after cards in the entire game.",                                             "Chase",        Color(hex: "FF4500")),
+// ════════════════════════════════════════════════════════════════
+// MARK: - Treatments (canonical list, sourced from Griffey checklist)
+// ════════════════════════════════════════════════════════════════
+//
+// Per the BoBA expert audit (2026-04-24): Treatments are print
+// variants of a single card — Battlefoils, the various themed foils,
+// Inspired Ink (which IS the Serialized series), and Superfoil.
+// Parallels are entirely separate runs (Billy Cameos, SideKicks).
+// Mixing the two — which the previous "Parallels & Treatments"
+// section did — confused users; the official `/collecting-basics`
+// page treats them as different concepts.
+//
+// Tags below match the prefixes from the Griffey checklist CSV so
+// collectors can map a card # they're holding directly to a row.
+private struct TreatmentsSection: View {
+    /// (id, name, prefix, description, group)
+    /// Group = "Standard" | "Themed" | "Premium"
+    private struct Treatment: Identifiable {
+        let id: Int
+        let name: String
+        let prefix: String
+        let description: String
+        let group: Group
+        let color: Color
+        enum Group: String, CaseIterable { case standard = "STANDARD", themed = "THEMED", premium = "PREMIUM" }
+    }
+
+    private let treatments: [Treatment] = [
+        // Standard / starter treatments — what you pull from a typical pack
+        .init(id: 1, name: "Base Set",
+              prefix: "(no prefix)",
+              description: "The card's plain printing. Most common in any set — your entry point for any collection.",
+              group: .standard, color: Design.Colors.textSecondary),
+        .init(id: 2, name: "Grandma's Linoleum Battlefoil",
+              prefix: "GLBF",
+              description: "Linoleum-textured foil border. One of the most common foil treatments; community calls it Lino or Grandma.",
+              group: .standard, color: Color(hex: "FFD700")),
+        .init(id: 3, name: "80's Rad Battlefoil",
+              prefix: "RAD",
+              description: "Retro 80's-inspired holographic finish. Common alongside GLBF.",
+              group: .standard, color: Color(hex: "AAAAFF")),
+
+        // Battlefoil family — the umbrella treatment with named subsets
+        .init(id: 4, name: "Battlefoil",
+              prefix: "BF",
+              description: "Generic foil border treatment. Comes in seven color subsets: Red (RBF), Silver (SBF), Blue (BBF), Orange (OBF), Green (GBF), Pink (PBF), and Bubble Gum (BGBF). Each subset is its own pull.",
+              group: .standard, color: Design.Colors.bobaCyan),
+
+        // Themed Battlefoils — each its own treatment, not subsets of BF
+        .init(id: 5, name: "Blizzard Battlefoil",
+              prefix: "BLBF",
+              description: "Snowy/icy themed foil border. Distinct from the Battlefoil color family.",
+              group: .themed, color: Color(hex: "00BFFF")),
+        .init(id: 6, name: "Alpha Battlefoil",
+              prefix: "ABF",
+              description: "Premium foil tied to Alpha Edition releases.",
+              group: .themed, color: Color(hex: "9B59B6")),
+        .init(id: 7, name: "Headlines Battlefoil",
+              prefix: "HBF",
+              description: "Newspaper-style headline border treatment. Has Blue (BHBF) and Red (RHBF) subset variants.",
+              group: .themed, color: Color(hex: "ECF0F1")),
+        .init(id: 8, name: "Power Glove Battlefoil",
+              prefix: "PG",
+              description: "Power Glove division themed foil. Tied to the Power Glove tournament division.",
+              group: .themed, color: Color(hex: "FF4D00")),
+        .init(id: 9, name: "Great Grandma Linoleum Battlefoil",
+              prefix: "GGL",
+              description: "2026 Edition exclusive — distinctive linoleum texture. Rarer than the standard GLBF.",
+              group: .themed, color: Color(hex: "FFC107")),
+        .init(id: 10, name: "Chillin' Battlefoil",
+              prefix: "CHILL",
+              description: "Chillin' themed foil treatment. Community-flavor naming.",
+              group: .themed, color: Color(hex: "00F5FF")),
+        .init(id: 11, name: "Grillin' Battlefoil",
+              prefix: "GRILL",
+              description: "Grillin' themed foil treatment. Pairs visually with Chillin' as a thematic duo.",
+              group: .themed, color: Color(hex: "E67E22")),
+        .init(id: 12, name: "Icon Battlefoil",
+              prefix: "IBF",
+              description: "Icon-themed foil border for the iconic athlete heroes.",
+              group: .themed, color: Color(hex: "F39C12")),
+        .init(id: 13, name: "Mixtape Battlefoil",
+              prefix: "MIX",
+              description: "Mixtape-themed retro audio aesthetic foil border.",
+              group: .themed, color: Color(hex: "FF1493")),
+        .init(id: 14, name: "Miami Ice Battlefoil",
+              prefix: "MI",
+              description: "Miami-inspired neon-on-ice foil border. Visually distinctive themed treatment.",
+              group: .themed, color: Color(hex: "FF6EC7")),
+        .init(id: 15, name: "Fire Tracks Battlefoil",
+              prefix: "FT",
+              description: "Fiery track-pattern themed foil border.",
+              group: .themed, color: Color(hex: "FF4500")),
+        .init(id: 16, name: "Colosseum Battlefoil",
+              prefix: "CBF",
+              description: "2026 Edition exclusive — stadium-arena themed foil border.",
+              group: .themed, color: Design.Colors.bobaCyan),
+        .init(id: 17, name: "Logofoil",
+              prefix: "LOGO",
+              description: "2026 Edition exclusive — logo foil print. Not available in First Edition.",
+              group: .themed, color: Color(hex: "FFD700")),
+        .init(id: 18, name: "Slime Battlefoil",
+              prefix: "SL",
+              description: "Slime-textured foil border — distinctive viscous-effect finish.",
+              group: .themed, color: Color(hex: "7CFC00")),
+
+        // Premium / chase treatments
+        .init(id: 19, name: "Inspired Ink Battlefoil",
+              prefix: "AAA",
+              description: "Standard Inspired Ink treatment — autograph-style art with athlete tribute. The serialized base.",
+              group: .premium, color: Color(hex: "FF69B4")),
+        .init(id: 20, name: "Inspired Ink Bubble Gum Battlefoil",
+              prefix: "ABA",
+              description: "Inspired Ink with Bubble Gum foil overlay — a serialized variant of the IIBF treatment.",
+              group: .premium, color: Color(hex: "FF8FCA")),
+        .init(id: 21, name: "Inspired Ink Metallic Battlefoil",
+              prefix: "ABA",
+              description: "Inspired Ink with Metallic foil overlay — a higher-tier serialized variant.",
+              group: .premium, color: Color(hex: "C0C0C0")),
+        .init(id: 22, name: "Inspired Ink Superfoil",
+              prefix: "AAA",
+              description: "Inspired Ink + Superfoil — premium chase combining autograph art with full-card holographic. The pinnacle Inspired Ink variant.",
+              group: .premium, color: Color(hex: "FF00FF")),
+        .init(id: 23, name: "Superfoil",
+              prefix: "SF",
+              description: "Full-card holographic foil treatment covering the entire card face. The most visually striking pull in most collections.",
+              group: .premium, color: Color(hex: "FF00FF")),
     ]
+
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-            Text("PARALLELS & TREATMENTS")
-                .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
-            Text("These are the different ways a given card can be printed — base, foils, autographs, serialized chase cards. They're print variants, not the card's rarity (that's the weapon type above).")
-                .font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true).padding(.bottom, Design.Spacing.xs)
-            VStack(spacing: 1) {
-                ForEach(tiers, id: \.0) { tier in
-                    HStack(alignment: .top, spacing: Design.Spacing.md) {
-                        ZStack {
-                            Circle().fill(tier.4.opacity(0.15)).frame(width: 28, height: 28)
-                            Text("\(tier.0)").font(Design.Fonts.display(12)).foregroundStyle(tier.4)
+            Text("TREATMENTS")
+                .font(Design.Fonts.mono(12, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+                .tracking(1.5)
+            Text("Treatments are the different ways a given card can be printed — Base Set, the Battlefoil family, themed foils, and the premium Inspired Ink / Superfoil chase tiers. The prefix on the card number maps to its treatment.")
+                .font(Design.Fonts.mono(13))
+                .foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, Design.Spacing.xs)
+
+            // Inspired Ink serial-number callout — surfaces the
+            // Hex /5, Glow /10, Fire /25, Ice /50 ladder collectors
+            // need to know.
+            inspiredInkCallout
+                .padding(.bottom, Design.Spacing.xs)
+
+            ForEach(Treatment.Group.allCases, id: \.rawValue) { group in
+                let rows = treatments.filter { $0.group == group }
+                if !rows.isEmpty {
+                    Text(group.rawValue)
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .tracking(1.2)
+                        .padding(.top, Design.Spacing.sm)
+                    VStack(spacing: 1) {
+                        ForEach(rows) { row in
+                            treatmentRow(row)
                         }
-                        .padding(.top, 2)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.md)
+                        .strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+                }
+            }
+        }
+    }
+
+    private func treatmentRow(_ t: Treatment) -> some View {
+        HStack(alignment: .top, spacing: Design.Spacing.md) {
+            // Prefix chip — mappable to the card number on the card
+            // collectors are holding.
+            Text(t.prefix)
+                .font(Design.Fonts.mono(10, weight: .bold))
+                .foregroundStyle(t.color)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(t.color.opacity(0.12))
+                    .overlay(Capsule().strokeBorder(t.color.opacity(0.4), lineWidth: 0.75)))
+                .frame(minWidth: 60, alignment: .leading)
+                .padding(.top, 2)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(t.name)
+                    .font(Design.Fonts.mono(13, weight: .bold))
+                    .foregroundStyle(t.color)
+                Text(t.description)
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Design.Colors.surface)
+    }
+
+    private var inspiredInkCallout: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "signature")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color(hex: "FF69B4"))
+                Text("INSPIRED INK = SERIALIZED")
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Color(hex: "FF69B4"))
+                    .tracking(1)
+            }
+            Text("Inspired Ink cards carry hand-stamped serial numbers tied to the hero's weapon type:")
+                .font(Design.Fonts.mono(12))
+                .foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 6) {
+                serialChip("Hex", "/5",  Design.Colors.element("HEX"))
+                serialChip("Glow", "/10", Design.Colors.element("GLOW"))
+                serialChip("Fire", "/25", Design.Colors.element("FIRE"))
+                serialChip("Ice", "/50", Design.Colors.element("ICE"))
+            }
+        }
+        .padding(Design.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: Design.Radius.md)
+            .fill(Color(hex: "FF69B4").opacity(0.08))
+            .overlay(RoundedRectangle(cornerRadius: Design.Radius.md)
+                .strokeBorder(Color(hex: "FF69B4").opacity(0.35), lineWidth: 1)))
+    }
+
+    private func serialChip(_ weapon: String, _ serial: String, _ color: Color) -> some View {
+        VStack(spacing: 1) {
+            Text(weapon)
+                .font(Design.Fonts.mono(9, weight: .bold))
+                .foregroundStyle(color)
+            Text(serial)
+                .font(Design.Fonts.mono(13, weight: .bold))
+                .foregroundStyle(.white)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(color.opacity(0.18))
+            .overlay(Capsule().strokeBorder(color.opacity(0.5), lineWidth: 1)))
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - Parallels (separate from Treatments per expert taxonomy)
+// ════════════════════════════════════════════════════════════════
+//
+// Parallels are entirely separate card-runs that share the format —
+// not print variants of a base card. Billy Cameos, SideKicks, the
+// Plays/Bonus Plays/Hot Dogs subsystems, and the Prize/Promo line
+// all sit here. Surfaced as its own section so the visual taxonomy
+// matches the community's mental model.
+private struct ParallelsSection: View {
+    private let parallels: [(prefix: String, name: String, description: String, color: Color)] = [
+        ("ALT",  "Billy Cameo Alt Arts",
+         "Alternate art featuring Billy, the iconic BOBA hot dog mascot, in cameo on each card. Among the rarest and most sought-after cards in the game.",
+         Color(hex: "FF4500")),
+        ("FFA",  "SideKicks",
+         "SideKicks parallel run — separate cards built around supporting/companion characters. Distinct numbering from the main Hero set.",
+         Color(hex: "9B59B6")),
+        ("PL",   "Plays",
+         "The Playbook subsystem — non-Hero cards used during Battle to modify outcomes. Tracked separately from Heroes for deck-building purposes.",
+         Design.Colors.bobaViolet),
+        ("BPL",  "Bonus Plays",
+         "Element-triggered Plays that don't count against the 30-card Playbook limit. Drawn automatically when their trigger fires; surfaced with a gold ★ BONUS tag in the practice playmat.",
+         Color(hex: "FFD700")),
+        ("P",    "Prize & Promo",
+         "Prize cards (tournament rewards) and Promo cards (event/release exclusives). Limited distribution; not part of standard pack rotation.",
+         Color(hex: "FFA500")),
+        ("HD",   "Hot Dogs",
+         "The 10-card Hot Dog deck that powers play costs. Each player starts each match with the same 10. Some are themed but mechanically identical.",
+         Color(hex: "4CAF50")),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            Text("PARALLELS")
+                .font(Design.Fonts.mono(12, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+                .tracking(1.5)
+            Text("Parallels are separate card runs that share the BoBA format but aren't print variants of the base set. They have their own numbering and collectibility profile.")
+                .font(Design.Fonts.mono(13))
+                .foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, Design.Spacing.xs)
+            VStack(spacing: 1) {
+                ForEach(parallels, id: \.prefix) { p in
+                    HStack(alignment: .top, spacing: Design.Spacing.md) {
+                        Text(p.prefix)
+                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .foregroundStyle(p.color)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(p.color.opacity(0.12))
+                                .overlay(Capsule().strokeBorder(p.color.opacity(0.4), lineWidth: 0.75)))
+                            .frame(minWidth: 60, alignment: .leading)
+                            .padding(.top, 2)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(tier.1).font(Design.Fonts.mono(13, weight: .bold)).foregroundStyle(tier.4)
-                            Text(tier.2).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
+                            Text(p.name)
+                                .font(Design.Fonts.mono(13, weight: .bold))
+                                .foregroundStyle(p.color)
+                            Text(p.description)
+                                .font(Design.Fonts.mono(12))
+                                .foregroundStyle(Design.Colors.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        Spacer()
-                        Text(tier.3).font(Design.Fonts.mono(10, weight: .bold)).foregroundStyle(tier.4.opacity(0.8))
-                            .padding(.horizontal, 6).padding(.vertical, 3)
-                            .background(Capsule().fill(tier.4.opacity(0.1)))
-                            .fixedSize()
                     }
-                    .padding(.horizontal, Design.Spacing.md).padding(.vertical, Design.Spacing.sm)
+                    .padding(.horizontal, Design.Spacing.md)
+                    .padding(.vertical, Design.Spacing.sm)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Design.Colors.surface)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: Design.Radius.md)
+                .strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
         }
     }
 }
@@ -1825,47 +2191,9 @@ private struct VariationDetailCard: View {
     }
 }
 
-private struct TreatmentHighlightsSection: View {
-    private let highlights: [(String, String, Color)] = [
-        ("Logofoil",                       "2026 Edition exclusive — logo foil print. Not available in First Edition.",                                                   Color(hex: "FFD700")),
-        ("Colosseum Battlefoil",           "2026 Edition — stadium-arena themed foil border. One of three treatments introduced with the 2026 print run.",               Design.Colors.bobaCyan),
-        ("Great Grandma's Linoleum BF",    "2026 Edition — uniquely textured linoleum-style foil treatment. The most distinctive of the new 2026 treatments.",           Color(hex: "FF69B4")),
-        ("Hot Dog Treatment",              "Heroes printed on Hot Dog-style cards — a crossover rarity. Instantly recognizable and iconic collector items.",              Color(hex: "FFB347")),
-        ("Superfoil",                      "Full-card holographic foil. The most visually impactful treatment in the game and the goal of most new collectors.",          Color(hex: "FF00FF")),
-        ("Inspired Ink",                   "Athlete tribute art in an autograph-inspired style. Named after the real athletes who inspired each hero character.",          Color(hex: "FF69B4")),
-        ("Kanjifoil",                      "Japanese kanji script foil treatment. Rare enough to be a genuine chase card — many collectors actively seek these.",         Color(hex: "8B00FF")),
-    ]
-    var body: some View {
-        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-            Text("NOTABLE TREATMENTS")
-                .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
-            Text("Treatments apply across variations — a Superfoil First Edition and a Superfoil 2026 Edition are both Superfoils but are distinct collectibles.")
-                .font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true).padding(.bottom, Design.Spacing.xs)
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(highlights.enumerated()), id: \.offset) { idx, item in
-                    HStack(alignment: .top, spacing: Design.Spacing.md) {
-                        Circle().fill(item.2).frame(width: 8, height: 8).padding(.top, 5)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(item.0).font(Design.Fonts.mono(13, weight: .bold)).foregroundStyle(item.2)
-                            Text(item.1).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Design.Spacing.md)
-                    .padding(.vertical, Design.Spacing.sm)
-                    .background(Design.Colors.surface)
-                    if idx < highlights.count - 1 {
-                        Divider().background(Design.Colors.glassBorder)
-                    }
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
-        }
-    }
-}
+// (former TreatmentHighlightsSection removed — folded into the new
+// TreatmentsSection / ParallelsSection split per the 2026-04-24
+// expert taxonomy update.)
 
 // ════════════════════════════════════════════════════════════════
 // MARK: - Tournament View

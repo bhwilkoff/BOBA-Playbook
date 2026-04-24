@@ -489,33 +489,63 @@ struct CardDetailView: View {
 
             Divider().background(Design.Colors.glassBorder)
 
-            // Stats grid
+            // Stats grid — fixed 6-cell layout per the BoBA-expert
+            // taxonomy spec. Reading order with [flex, flex] columns
+            // is left-to-right then top-to-bottom, so the sequence
+            // below produces:
+            //
+            //   Card #     │ Type
+            //   Treatment  │ Weapon
+            //   Set        │ Sub-set
+            //
+            // Heroes show their printed weapon in the right-middle
+            // slot; non-heroes leave it blank ("—") rather than
+            // collapsing the row, which would shift everything
+            // beneath and break the visual grid the user expects.
+            // Cost + DBS for plays render below the standard 6-cell
+            // block so the canonical taxonomy is never disrupted.
             LazyVGrid(
                 columns: [GridItem(.flexible()), GridItem(.flexible())],
                 spacing: Design.Spacing.sm
             ) {
                 statCell(label: "Card #",   value: card.cardNumber)
-                if card.isHero {
-                    statCell(label: "Weapon",   value: card.element, color: Design.Colors.element(card.element))
+                statCell(label: "Type",     value: card.cardType)
+
+                // "Treatment" is the print variant (Base Set, Battlefoil,
+                // Superfoil, Inspired Ink, etc.) — the field that used
+                // to render as "Rarity" in this slot. Per the expert
+                // feedback, "Rarity" is reserved for the rarity-by-
+                // weapon-type discussion in the Learn tab; everywhere
+                // else this field is "Treatment."
+                if !card.isSealed {
+                    statCell(label: "Treatment",
+                             value: card.treatment?.isEmpty == false ? card.treatment! : (card.rarityLabel == "Paper" ? "Base Set" : card.rarityLabel))
                 }
+                if card.isHero || (card.element != "NONE" && !card.element.isEmpty) {
+                    statCell(label: "Weapon",
+                             value: card.element,
+                             color: Design.Colors.element(card.element))
+                } else if !card.isSealed {
+                    statCell(label: "Weapon", value: "—", color: Design.Colors.textMuted)
+                }
+
+                statCell(label: "Set",      value: card.set)
+                if let sub = card.subSet, !sub.isEmpty {
+                    statCell(label: "Sub-set", value: sub)
+                } else {
+                    statCell(label: "Sub-set", value: "—", color: Design.Colors.textMuted)
+                }
+
+                // Play-only fields — cost + DBS appear in row 4+
+                // beneath the canonical six.
                 if card.isPlay, let cost = card.playCost {
-                    statCell(label: "Cost", value: cost == 0 ? "FREE" : "\(cost) Hot Dog\(cost == 1 ? "" : "s")",
+                    statCell(label: "Cost",
+                             value: cost == 0 ? "FREE" : "\(cost) Hot Dog\(cost == 1 ? "" : "s")",
                              color: cost == 0 ? Color(hex: "7ecb82") : Design.Colors.bobaCyan)
                 }
-                // DBS (Deck Balancing System) cell — Plays only. Tappable
-                // to open an info modal explaining the score and budget.
                 if card.isPlay, let dbs = card.dbs {
                     dbsStatCell(dbs: dbs, tier: card.dbsTier)
                 }
-                statCell(label: "Set",      value: card.set)
-                statCell(label: "Type",     value: card.cardType)
-                if !card.isSealed {
-                    statCell(label: "Rarity", value: card.rarityLabel)
-                }
-                if let sub = card.subSet {
-                    statCell(label: "Sub-set", value: sub)
-                }
-
             }
 
             // Per-card format restrictions — only renders when the card

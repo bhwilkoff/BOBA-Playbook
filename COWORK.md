@@ -16,6 +16,106 @@ This file is the shared communication channel between two Claude instances:
 
 *Items Claude Code needs Cowork to research, investigate, or produce.*
 
+- **[2026-04-24 FYI] Terminology + taxonomy decisions Cowork should preserve in future scrapes / handoffs / scripts** — heads-up only, no action required, but please read before the next data drop so we stay in sync.
+
+  **1. Treatments vs Parallels are distinct.** The BoBA-expert audit (Griffey checklist + the official `bobattlearena.com/collecting-basics` page) split these into separate concepts:
+  - **Treatments** are print variants of a single card — Base Set, the Battlefoil family with seven color subsets (Red/Silver/Blue/Orange/Green/Pink/Bubble Gum), themed foils (Blizzard, Alpha, Headlines + Blue/Red subsets, Power Glove, Grandma's Linoleum, Great Grandma's Linoleum, Chillin', Grillin', Icon, Mixtape, Miami Ice, Fire Tracks, Colosseum, Logofoil, Slime), Inspired Ink variants, Superfoil. Each has a card-number prefix.
+  - **Parallels** are entirely separate card runs — Billy Cameo Alt Arts (ALT), SideKicks (FFA), Plays (PL), Bonus Plays (BPL), Prize/Promos (P), Hot Dogs (HD).
+
+  **What this means for Cowork**: when authoring or correcting catalog data, never collapse a Parallel into a Treatment or vice versa. The catalog `treatment` field carries the canonical treatment string for each card; existing values are correct and should be preserved as-is. If a card looks like it belongs to both buckets, default to Treatment + flag for Ben.
+
+  **2. Inspired Ink = Serialized.** Cards in the Inspired Ink family carry hand-stamped serial numbers tied to the hero's weapon: **Hex /5, Glow /10, Fire /25, Ice /50**. If you see a serialized card and the weapon doesn't match the expected /N, that's a data issue worth flagging.
+
+  **3. User-facing terminology** (no schema changes — only UI strings):
+  - Catalog field `element` → rendered as **"Weapon"** in every iOS + web user-facing string
+  - Catalog field `treatment` → rendered as **"Treatment"** (not "Rarity") everywhere except the one rarity-by-weapon-type section in Learn
+  - When writing copy that ends up in the app (handoff descriptions that get surfaced verbatim, etc.), use Weapon and Treatment
+
+  **4. Card-detail canonical 6-cell layout** — both apps now render:
+  ```
+  Card #     │ Type
+  Treatment  │ Weapon
+  Set        │ Sub-set
+  ```
+  Reading order matters for any future surface that mirrors this view.
+
+  **5. Practice executor expansion (B-family)** — the play-effects audit's Part B intent gaps are mostly closed:
+  - **B.1** persistent_weapon_transform — `weapon_transform` op now installed via the persistent path; reads route through `resolveWeapon`
+  - **B.2** on_plays_resolved trigger — fires before winner resolution
+  - **B.3** formula-literal delta — `evalFormula` recognizes `{factor, metric: {type, target, kind}}` and nested `{formula, left, right}` shapes
+  - **B.4** on_battle_win / on_battle_loss triggers — owner-side filtered, fire after `result` is set
+  - **B.5** hd_recover modifier family — `applyHDRecover` runs redirect → cap → delta → block; `block_hd_recover` accepts `target: "both"`
+  - **B.8** auto_lose_battle — supersedes power compare when active
+  - **B.9** on_battle_start trigger + `hd_recover from:"discard" amount:"all"`
+  - **B.12** discard_hand_all `kind: "hero"` variant
+  - **C.1** Scope vocabulary fully recognized: `rest_of_game`, `this_battle`, `next_battle`, `this_and_next`, `next_2_battles`, `next_N_battles` (with `n:` field), `battle_1`–`battle_7`, `battles_4_7`, plus `current` legacy alias
+  - **Still open**: B.6 (require_dice_roll), B.7 (allow_hd_overspend), B.10 (refund_cost), B.11 (player_choice), B.13 (Scare Tactics) — all require UI affordances and are deferred to a follow-on session
+
+  When the next play-effects audit happens, you can use the full op vocabulary above as authoring targets — entries currently in `op: "note"` for any of these closed gaps are now safe to author with the structured form.
+
+  **6. Setup tab in Learn** — new sub-section in the Learn tab covering: Before Battle 1 (coin flip + opening hand), Each Battle's 5 Phases, Common Edge Cases (substitution cost is always 2; Pull The Plug only cancels rest_of_game; Recycle clears attached effects; Play Booster recounts; auto-reshuffle; bonus plays don't count against 30-card limit), Reading the Playmat (banner, plays-used row, effective-cost display, power breakdown, discard inspector). If Cowork ever needs to point a user to "how do I read the playmat," the Setup tab is the first-line reference.
+
+  **7. WoBA showcase rename** — the `woba` showcase is now displayed as `"WoBA (Women of BoBA)"` (was `"WOMEN OF BOBA (WOBA)"`). The showcase ID `woba` and the search tokens stay the same. Mirror in `js/showcases.js`.
+
+  **md5 of current `play-effects.json`** (matches both `assets/data/play-effects.json` and `BOBAPlaybook/play-effects.json`): `e1c9beae3076bacb60e441971f1aba56`
+
+---
+
+- **[2026-04-24] Full `play-effects.json` audit — 383 entries, every `effects[]` reconciled against `ability` text + executor vocabulary** — high-priority; practice battles are misbehaving on multi-battle / conditional plays (especially weapon-gated ones).
+
+  **Context:** Ben tested practice and found several play cards executing the wrong effect — e.g. *"If your Hero has a Gum weapon, your opponent can't play any plays during the next battle"* produced a flat +12 power swing and no opponent lock; *"All heroes will have Steel weapons for the rest of the game"* didn't transform anything. Claude Code will fix the executor side (missing ops, missing visual state layer, multi-battle persistent effects). Cowork's job is the data side: guarantee that for every one of the 383 entries, the JSON ops encode the rules-text intent exactly, using only vocabulary the executor understands — and flag any intent that the current vocabulary can't express so Claude Code can add ops.
+
+  **Why both halves matter:** Ben wants "each card says what it should and will be used by the app correctly." The executor is worth nothing if the JSON says the wrong thing; the JSON is worth nothing if the executor can't interpret it. So this audit is the data-half.
+
+  **Immediate red flag in the data:** `grep` over `effects[].op` finds **99 entries with `op: "?"`** (placeholder for unknown/unhandled). Those are the most-broken rows by definition — they were authored before the vocabulary stabilized. Any row where the `op` literal is `?` needs a concrete op substituted.
+
+  **Inputs you'll work from:**
+  - `assets/data/play-effects.json` (also mirrored at `BOBAPlaybook/play-effects.json` — update both, identical md5)
+  - Current executor op vocabulary: `/tmp/known_ops.txt` on Claude Code's machine; authoritative source is the big switch in `BOBAPlaybook/Store/PlayEffects.swift` (≈1,340 lines). Reproduced below as of 2026-04-24 for convenience (150 tokens covering ops, conditions, metrics, targets). When in doubt, trust the Swift file.
+  - Card catalog: `assets/data/cards.json` — the `ability` field on each Play is the canonical rules text.
+
+  **Schema recap (v2):**
+  ```json
+  {
+    "1 For 10": {
+      "cost": 0,
+      "ability": "Draw 1 additional Play, but your Hero loses -10.",
+      "category": "economy",
+      "effects": [
+        { "op": "draw",  "target": "self", "kind": "play", "count": 1 },
+        { "op": "power", "target": "self", "delta": -10 }
+      ]
+    }
+  }
+  ```
+  - `effects` is ordered; ops run sequentially on the executor's battle context.
+  - `target`: one of `self`, `opponent`, `both`, `self_this_play`.
+  - `kind` + `count` + `delta` + `amount` + `set` + `weapon` + `operator` (`eq`, `gt`, `gte`, `lt`, `lte`, `neq`, `not`, `any`, `all`) + nested `conditions: [...]` clauses.
+  - A `note` field describes the mechanic for ops that can't be structured yet — but as of v3 there should be **zero** note-only entries. If you find any, flag them.
+
+  **What Cowork needs to deliver:**
+  1. **One patch file** at `handoff-updates-2026-04-24/play-effects/play-effects.json` — complete drop-in replacement, schema v2, md5 to be included in a sibling `.md5` file so Claude Code can verify the wire.
+  2. **Audit report** at `handoff-updates-2026-04-24/play-effects/COWORK_PLAY_EFFECTS_AUDIT.md` with:
+     - **A. Fixed rows** — per row: `name`, one-line reason (e.g. "op was `?`; ability reads 'Next Battle: opponent Hero −10', authored as `persistent_delta` with `scope: next_battle` + `target: opponent`").
+     - **B. Intent gaps** — rows where the ability text describes a mechanic the executor can't express. For each, give the `name`, the literal ability text, and a *proposed new op spec* (name + required fields + where it fits into the ordered pipeline). Ben will decide whether to expand the executor or file-to-later. **This is the highest-signal output of the audit** — more valuable than the patch itself.
+     - **C. Ambiguity callouts** — rules text that's genuinely unclear (e.g. "your next Hero" — does that mean the next Hero revealed, or the next one you play?) with your best-guess interpretation and a flag for Ben.
+     - **D. Per-weapon spot-check** — Ben's test cases were weapon-gated, so validate all 82 abilities that mention a weapon word (Fire / Ice / Steel / Brawl / Glow / Hex / Gum / Super / Cyber / "weapon" / "element"). Check these against the known executor ops: `weapon`, `weapon_same`, `weapon_different`, `weapon_streak`, `weapon_debuff_or_penalty`, `next_hero_weapon_equals`, `opponent_played_weapon_match`, `previous_and_current_share_weapon`, `previous_two_heroes_share_weapon`, `distinct_weapons_revealed`, `discard_pile_heroes_weapon_match`, `discarded_hero_weapon_matches_active`. If the ability wants *persistent weapon transform* ("all heroes have Steel weapons for the rest of the game") or *active-hero weapon gating* ("if your Hero has a Fire weapon"), flag as intent gap per Part B — those ops don't exist yet on the executor side.
+  3. **Stats header** in the audit report: before/after count of `op: "?"` rows (goal: zero), entries with `note` field only (goal: zero), total effects authored, unique ops used.
+
+  **Suggested sequencing:**
+  1. Start with the 99 `op: "?"` rows — they're definitely wrong. Either rewrite to concrete ops or escalate to Part B if the executor can't express them.
+  2. Then the 82 weapon-keyword abilities — that's Ben's live pain.
+  3. Then a spot-check sweep of the rest: pick the 20 most-played cards (the Fire Boost / Ice Boost / Steel Shield etc. crew that show up in every starter deck) and double-check their ops against text.
+  4. Then a category sweep if time permits — filter by `category` and check the mechanical family makes sense (all `economy` cards move Hot Dogs, all `disruption` cards block/deny, etc.).
+
+  **Known-good reference:** `"1 For 10"` quoted above in the schema recap. `"Fire Boost"` and `"Ice Boost"` are also likely-sane baselines — if they don't match rules text, something's off globally.
+
+  **Handoff metadata:** Report should include md5 of the new JSON + total entry count. Claude Code will verify on receipt and merge into both `assets/data/play-effects.json` and `BOBAPlaybook/play-effects.json` simultaneously (they must match exactly — the iOS build reads from the bundle copy).
+
+  **Why now:** Blocks the executor rewrite. Claude Code is starting on multi-battle persistent effect handling + on-mat visual indicators (active-effect badges on heroes, persistent-effect ticker) on the iOS + web side in parallel. The JSON is the source of truth; we can't reason about executor correctness if the data itself is wrong.
+
+---
+
 - **[2026-04-21] DBS upstream data gap — 33 Play names with no DBS on any printing** — not fixable from catalog data, needs a fresh scrape of the official BOBA deckbuilder or authoritative authoring.
 
   **Context:** DBS (Deck Balancing System) is a per-Play-name mechanical rating (`dbs` int + `dbsTier` ∈ Low/Medium/High/Very High) used by the deck builder's tiering. `reconcile_all.py::step13` enriches cards.json from the scraped official deckbuilder. Claude Code just propagated known DBS values across all printings of the same Play name (67.3% → 93.3% of Play printings now tagged), closing 121 nulls. The remaining 34 nulls belong to **33 distinct Play names** that have no DBS on any printing — these are post-scrape specialty releases (World Champions, Superfan Series) plus a handful of Alpha/Starter edge cases. Full list with cost + ability preview below.
@@ -1428,14 +1528,30 @@ Things both instances should know about the current state of the project.
 cardNumber    — e.g. "BOJ-123" (NOT unique on its own)
 hero          — hero name, e.g. "BoJax"
 treatment     — e.g. "Base Set", "Silver Battlefoil", "Bubble Gum Battlefoil"
+                Carries the canonical Treatment string (a print variant
+                of a single card). Distinct from Parallels (Billy Cameo,
+                SideKicks, Plays, Bonus Plays, Prize/Promos, Hot Dogs)
+                which have their own card-number namespaces. See
+                DECISIONS.md #028. Rendered in the UI as "Treatment"
+                (not "Rarity") per DECISIONS.md #027.
 variation     — e.g. "First Edition", "2026 Edition", "Debut", "Unmasked"
-element       — FIRE | ICE | STEEL | BRAWL | GLOW | HEX | GUM | SUPER | NONE
+element       — FIRE | ICE | STEEL | BRAWL | GLOW | HEX | GUM | SUPER | CYBER | NONE
+                Field name stays `element`; rendered in the UI as
+                "Weapon" everywhere per DECISIONS.md #027.
 set           — e.g. "Base Set", "2026 Edition"
+subSet        — optional secondary grouping shown in the canonical
+                6-cell card-detail layout (DECISIONS.md #029)
 imageFile     — filename on R2, unique per card (One Image per Card)
 bobaId        — canonical unique ID (One ID per Card):
                 "{cardNumber}-{hero or name}-{treatment ?? ''}-{variation ?? ''}"
                 Now stored as a real field in every JSON bundle (not
                 computed at read time). Defined once in scripts/boba_id.py.
+isBonusPlay   — Bool flag for Plays that don't count against the
+                30-card Playbook limit. Surfaced visually in the
+                practice playmat with a gold ★ BONUS tag.
+dbs           — Deck Balancing Score per Play (int). Used by deck
+                builder + post-battle analysis. dbsTier ∈ Low | Medium
+                | High | Very High.
 ```
 
 ### Mantra: One Image per Card. One ID per Card.

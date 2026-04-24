@@ -1,0 +1,50 @@
+name: Refresh store locator
+
+on:
+  schedule:
+    # Sunday 03:07 UTC — off-the-hour to avoid cron-service rate-limit
+    # clusters. Weekly is plenty for this dataset.
+    - cron: '7 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run scraper
+        run: |
+          mkdir -p assets/data
+          python3 scripts/scrape_store_locator.py --output assets/data
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet assets/data/stores.json assets/data/stores-manifest.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit + push if changed
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/data/stores.json assets/data/stores-manifest.json
+          git commit -m "chore(stores): weekly refresh $(date -u +%Y-%m-%d)"
+          git push
+
+      - name: No-op notice
+        if: steps.diff.outputs.changed == 'false'
+        run: echo "No changes this week — nothing to commit."

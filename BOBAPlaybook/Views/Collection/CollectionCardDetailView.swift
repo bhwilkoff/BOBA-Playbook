@@ -21,6 +21,14 @@ struct CollectionCardDetailView: View {
     @State private var isRefreshingPrice = false
     @State private var addedToDeckName: String?
     @State private var addedToShowName: String?
+    /// Custom decks this card is in. Loaded on appear when the user is
+    /// authenticated. `nil` = not yet loaded, `[]` = loaded and empty.
+    @State private var containingDecks: [SavedDeck]? = nil
+    /// Selected copy for nav — identity comes from UserCard.id so
+    /// multiple entries of the same bobaId can be paged through.
+    @State private var focusedEntryID: UUID?
+    /// Pushed card detail when coach taps a variation / other-copy tile.
+    @State private var jumpBobaId: String?
 
     private var catalogCard: Card? {
         // Try exact bobaId match first, then fall back to cardNumber for legacy entries
@@ -54,6 +62,25 @@ struct CollectionCardDetailView: View {
                     }
 
                     copiesSection
+
+                    // Saved decks this exact card is in. Silent until
+                    // the list loads. Helps coaches see at a glance
+                    // whether a card is committed to a build before
+                    // they mark it "For Sale."
+                    if auth.isAuthenticated {
+                        decksSection
+                    }
+
+                    if let card = catalogCard, !(card.isSealed) {
+                        // Recent-sale pricing — `showActiveListings: false`
+                        // hides the "Buy Now" bucket per spec (§7). We
+                        // want sold comps, not active asks.
+                        PricingSection(card: card, showActiveListings: false)
+                    }
+
+                    if let card = catalogCard, !(card.isSealed) {
+                        externalLinksRow(card: card)
+                    }
 
                     if !variations.isEmpty {
                         variationsSection
@@ -137,6 +164,24 @@ struct CollectionCardDetailView: View {
                 isRefreshingPrice = true
                 await collection.refreshPricingIfNeeded(for: card.cardNumber, card: card)
                 isRefreshingPrice = false
+            }
+            .task(id: auth.isAuthenticated) {
+                guard auth.isAuthenticated else {
+                    containingDecks = []
+                    return
+                }
+                // One-shot load of custom decks containing this card.
+                // Failures are silent — the section just stays hidden
+                // rather than surfacing a network error on a view
+                // that's already dense.
+                do {
+                    containingDecks = try await SupabaseClient.shared.decksContaining(bobaId: bobaId)
+                } catch {
+                    containingDecks = []
+                }
+            }
+            .navigationDestination(item: $jumpBobaId) { other in
+                CollectionCardDetailView(bobaId: other)
             }
             .overlay(alignment: .top) {
                 if let name = addedToDeckName {
@@ -267,6 +312,32 @@ struct CollectionCardDetailView: View {
     }
 
     private func entryRow(_ entry: UserCard) -> some View {
+        // Whole row is tappable → opens the inline edit sheet. Feels
+        // like "tap the field to edit" since every visible value lives
+        // in the same row; the dedicated pencil button still works for
+        // users who expect it.
+        Button {
+            editingEntry = entry
+        } label: {
+            entryRowBody(entry)
+        }
+        .buttonStyle(.plain)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                Task {
+                    do {
+                        try await collection.deleteCard(id: entry.id)
+                    } catch {
+                        deleteError = error.localizedDescription
+                    }
+                }
+            } label: {
+                Label("Remove", systemImage: "trash")
+            }
+        }
+    }
+
+    private func entryRowBody(_ entry: UserCard) -> some View {
         HStack(spacing: Design.Spacing.md) {
             // Designation icon
             Image(systemName: entry.designation.icon)
@@ -348,17 +419,94 @@ struct CollectionCardDetailView: View {
                         .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)
                 )
         )
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
-                Task {
-                    do {
-                        try await collection.deleteCard(id: entry.id)
-                    } catch {
-                        deleteError = error.localizedDescription
+    }
+
+    // MARK: - Decks containing this card
+    //
+    // Lists custom decks the user has saved that include this exact
+    // bobaId. Hidden until loaded so the section doesn't flicker. An
+    // empty result stays hidden — only show when there's something to
+    // surface.
+    @ViewBuilder
+    private var decksSection: some View {
+        if let decks = containingDecks, !decks.isEmpty {
+            VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                sectionHeader("IN YOUR DECKS (\(decks.count))")
+                VStack(spacing: 6) {
+                    ForEach(decks) { deck in
+                        HStack(spacing: Design.Spacing.md) {
+                            Image(systemName: "rectangle.stack")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Design.Colors.bobaCyan)
+                                .frame(width: 22)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(deck.name)
+                                    .font(Design.Fonts.mono(13, weight: .bold))
+                                    .foregroundStyle(Design.Colors.textPrimary)
+                                if !deck.format.isEmpty {
+                                    Text(deck.format.uppercased())
+                                        .font(Design.Fonts.mono(9))
+                                        .foregroundStyle(Design.Colors.textMuted)
+                                        .tracking(1.2)
+                                }
+                            }
+                            Spacer()
+                        }
+                        .padding(Design.Spacing.sm)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                .fill(Design.Colors.bobaCyan.opacity(0.08))
+                                .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                    .strokeBorder(Design.Colors.bobaCyan.opacity(0.25), lineWidth: 1))
+                        )
                     }
                 }
-            } label: {
-                Label("Remove", systemImage: "trash")
+            }
+        }
+    }
+
+    /// "eBay Sales" + "Radish Guide" row, mirrors the Find-tab card
+    /// detail but skips the active "Buy Now" button.
+    private func externalLinksRow(card: Card) -> some View {
+        HStack(spacing: Design.Spacing.sm) {
+            if let url = ebaySoldURL(for: card) {
+                Link(destination: url) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "cart.fill")
+                            .font(.system(size: 11))
+                        Text("eBay Sales")
+                            .font(Design.Fonts.mono(12))
+                    }
+                    .foregroundStyle(Design.Colors.bobaOrange)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Design.Spacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: Design.Radius.sm)
+                            .fill(Design.Colors.bobaOrange.opacity(0.12))
+                            .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                .strokeBorder(Design.Colors.bobaOrange.opacity(0.4), lineWidth: 1))
+                    )
+                }
+            }
+            if let radishStr = card.radishUrl, let url = URL(string: radishStr) {
+                Link(destination: url) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.system(size: 11))
+                        Text("Radish Guide")
+                            .font(Design.Fonts.mono(12))
+                    }
+                    .foregroundStyle(Design.Colors.bobaCyan)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Design.Spacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: Design.Radius.sm)
+                            .fill(Design.Colors.bobaCyan.opacity(0.10))
+                            .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                .strokeBorder(Design.Colors.bobaCyan.opacity(0.35), lineWidth: 1))
+                    )
+                }
             }
         }
     }
@@ -371,8 +519,22 @@ struct CollectionCardDetailView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Design.Spacing.md) {
                     ForEach(variations, id: \.cardNumber) { variant in
-                        NavigationLink(destination: CardDetailView(card: variant)) {
-                            variationTile(variant)
+                        // Owned variants route back into this view so
+                        // coaches can edit that copy's designation /
+                        // price / notes in the same flow. Un-owned
+                        // variants fall through to the Find-tab detail
+                        // where they can add a new copy.
+                        if collection.isOwned(bobaId: variant.id) {
+                            Button {
+                                jumpBobaId = variant.id
+                            } label: {
+                                variationTile(variant)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            NavigationLink(destination: CardDetailView(card: variant)) {
+                                variationTile(variant)
+                            }
                         }
                     }
                 }
@@ -404,6 +566,18 @@ struct CollectionCardDetailView: View {
     }
 
     // MARK: - Helpers
+
+    private func ebaySoldURL(for card: Card) -> URL? {
+        guard let query = card.ebaySearchQuery else { return nil }
+        var components = URLComponents(string: "https://www.ebay.com/sch/i.html")!
+        components.queryItems = [
+            URLQueryItem(name: "_nkw",        value: query),
+            URLQueryItem(name: "LH_Sold",     value: "1"),
+            URLQueryItem(name: "LH_Complete", value: "1"),
+            URLQueryItem(name: "_sacat",      value: "0"),
+        ]
+        return components.url
+    }
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title)

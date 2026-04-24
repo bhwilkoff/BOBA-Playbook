@@ -143,3 +143,73 @@ A post-mortem scan found 35 such pairs catalog-wide. Without a guard, the next r
 **Master-level fallback**: When a master-level collision cannot be resolved because the correct source art does not exist publicly (verified against Radish, BazookaVault, Cardeio, and any other known source), the card is reclassified into the missing-art queue instead: set `imageFile=null, imageSource=null, imageAvailable=false` in `cards.json`, regenerate `missing-cards.json` via `step5`, and let `ebay_missing_images.py` recover the art on its next run. First applied 2026-04-13 to the three Griffey Edition Blizzard Battlefoils (BLBF-95 D-Harp, BLBF-120 Zephyr, BLBF-174 Highway to Helton) — their correct art turned out to not exist on any surveyed CDN.
 
 **Principle**: Every invariant the app relies on should be enforced where it can be measured. "One Image per Card" lives in binary content, so the check has to run against binary content.
+
+## 027 — User-facing terminology: "Weapon" not "Element", "Treatment" not "Rarity"
+*2026-04-23 → 2026-04-24*
+The catalog field name is `element` (FIRE / ICE / STEEL / etc.). User-facing strings everywhere call it **Weapon**. The `treatment` field carries the print variant (Base Set, Battlefoil, Superfoil, Inspired Ink, etc.). User-facing strings everywhere call it **Treatment** — except the one Learn-tab section that explicitly discusses *rarity by weapon type*, where "Rarity" is the right word.
+
+**Why**: Every BoBA collector and player calls them weapons. "Element" is leftover schema language from when the game was being modeled, not what people actually say at the table. Same with "Rarity" — it's a TCG term that conflates two things in BoBA: the hero's intrinsic scarcity (tied to weapon) and the print variant (the treatment). Splitting them gives users a vocabulary that matches the community.
+
+**How to apply**: Field names in code stay (`element`, `treatment`, `rarityLabel`, `rarityTier`). Anything rendered to a user — labels, headers, copy, accessibility strings — uses Weapon and Treatment. The two exceptions are the "RARITY BY WEAPON TYPE" section header in Learn (intentional) and internal helper names that don't appear in the UI.
+
+## 028 — Treatments vs Parallels are distinct concepts
+*2026-04-24*
+Sourced from BoBA-expert audit (Griffey checklist + the official `bobattlearena.com/collecting-basics` page).
+
+**Treatments** are different ways a single card can be printed: Base Set, Battlefoil family (with seven color subsets — Red/Silver/Blue/Orange/Green/Pink/Bubble Gum), themed foils (Blizzard, Alpha, Headlines, Power Glove, Grandma's Linoleum, Great Grandma's Linoleum, Chillin', Grillin', Icon, Mixtape, Miami Ice, Fire Tracks, Colosseum, Logofoil, Slime), Inspired Ink (= Serialized) variants, and Superfoil. Each has a card-number prefix that maps directly to the treatment.
+
+**Parallels** are entirely separate card runs sharing the format but with their own numbering: Billy Cameo Alt Arts, SideKicks, Plays, Bonus Plays, Prize/Promos, Hot Dogs.
+
+**Inspired Ink = Serialized.** Inspired Ink cards carry hand-stamped serial numbers tied to the hero's weapon: Hex /5, Glow /10, Fire /25, Ice /50.
+
+**Why this matters for the app**: The previous "Parallels & Treatments" section bundled them, which confused new collectors who heard the terms used differently in the community. Splitting into two sections matches how veteran collectors talk and matches the official collecting-basics taxonomy.
+
+**How to apply**: The Learn → Collect page has separate "TREATMENTS" and "PARALLELS" sections. The card detail's stat grid uses "Treatment" (not "Rarity") for the print variant. Future scrapes / data corrections / Cowork handoffs should preserve this distinction — never collapse a Parallel into a Treatment in the catalog data.
+
+## 029 — Card-detail canonical 6-cell layout
+*2026-04-24*
+Every card-detail surface (iOS card-detail view, web card modal) renders the same 6-cell stat grid in a 2-column layout, in this exact reading order:
+
+```
+Card #     │ Type
+Treatment  │ Weapon
+Set        │ Sub-set
+```
+
+Card-type-specific extras (Cost + DBS for Plays) render BELOW the canonical 6 — never interleaved.
+
+**Why**: A consistent layout means coaches can find any field with one glance, no matter what they're looking at. "Same shape on every card" is part of building visual literacy with the catalog. Sealed products skip Treatment + Weapon (they don't apply); empty Sub-set renders as `—` rather than collapsing the row, which would shift everything beneath.
+
+## 030 — Practice executor: persistent-effect engine architecture
+*2026-04-24*
+Two parallel state arrays on `PracticeStore` drive every persistent effect:
+- `persistents: [PersistentEffect]` — every persistent block from a played card's `persistent[]` array except weapon-transform ops
+- `weaponTransforms: [WeaponTransform]` — split out separately so the hot-path weapon read (`ctx.weapon(of:as:)`) consults a flat array instead of re-walking persistent specs
+
+**Install**: `installPersistent(owner:spec:)` is the single entry point. It splits weapon-transform specs into the dedicated array; everything else routes to `persistents`. Both player + CPU play-resolution sites call this helper (no direct `.append` allowed).
+
+**Lifecycle triggers**: `firePersistentTriggers(trigger:winner:)` is the single dispatcher for non-continuous effects. Called at:
+- top of `resolveCurrentBattle` → `on_plays_resolved` (deltas land in slot.effectPower so end-of-turn boosts can swing the verdict)
+- end of `resolveCurrentBattle` → `on_battle_win` + `on_battle_loss` filtered by owner side
+- inside `moveToNextBattle` → `on_battle_start` (after honors + block-purge, before marked-battle on-reveal effects)
+- inline in `resolveCurrentBattle` for B.8 `auto_lose_battle` checks (supersedes normal compare)
+
+**HD recover pipeline**: Every positive HD change routes through `applyHDRecover(side:amount:)`, which runs redirect → cap → delta → block in that order. Negative HD (spend) bypasses the pipeline.
+
+**Scope vocabulary**: Single `isScopeActive(_:installedAt:at:spec:)` helper recognizes `rest_of_game`, `this_battle`, `next_battle`, `this_and_next`, `next_2_battles`, `next_N_battles` (with `n:` field), `battle_1`–`battle_7`, `battles_4_7`, plus legacy aliases. Unknown scopes return false (silent no-op safety net for new scopes authored before the host learns them).
+
+**Why this architecture**: Centralizing install + lifecycle + scope eval in three single-source-of-truth helpers means future op families (B.6 / B.7 / B.10 / B.11 / B.13) need only their per-op behavior — they get all the plumbing for free.
+
+## 031 — First-run hint system
+*2026-04-24*
+`HintsManager` (`@Observable`, UserDefaults-backed) tracks dismissed hint IDs per device. `HintBanner(id:title:message:)` renders nothing if the hint is dismissed OR the global toggle is off. Tapping the X dismisses permanently. Settings has a master toggle + "Reset hints" button.
+
+**Why**: The eight teaching moments from the practice-battle UI handoff (substitution positioning, deck composition triad, bonus play ceiling, etc.) need to surface at the right moment but never lecture experienced coaches twice. One-shot per device + global silence + reset gives users full control without removing the teaching value for newcomers.
+
+**Inlined into `Design.swift`** rather than living in its own file — Xcode's PBXFileSystemSynchronizedRootGroup intermittently fails to pick up newly-added Swift files even after Clean Build Folder. Co-locating with an existing compile target sidesteps the issue. If/when Xcode's synchronized-group reliability improves, this can be moved back into a standalone file.
+
+## 032 — iOS home-screen display name: "Playbook" not "BOBA Playbook"
+*2026-04-24*
+`INFOPLIST_KEY_CFBundleDisplayName = Playbook` in both Debug + Release configs. The full "BOBA Playbook" name still appears in `BOBAWordmark` everywhere inside the app, in `CFBundleName` (Settings → iPhone Storage), and on the App Store listing.
+
+**Why**: "BOBA Playbook" truncates to "BOBA Pl…" under the icon on every iPhone home screen tested. Truncation reads as broken; the shorter name is intentional. The XOXO icon already carries enough brand to identify the app — the under-icon label only needs to disambiguate from other apps the user has installed.

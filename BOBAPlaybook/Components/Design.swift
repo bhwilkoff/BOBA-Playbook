@@ -97,3 +97,128 @@ extension View {
         modifier(ElementGlow(element: element))
     }
 }
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - First-run contextual hints (handoff §7)
+// ════════════════════════════════════════════════════════════════
+//
+// Inlined here rather than living in a standalone HintBanner.swift —
+// Xcode's file-system-synchronized group occasionally fails to pick
+// up newly-added files in this project even after a Clean Build.
+// Co-locating with Design.swift (which is already on the compile
+// manifest) sidesteps the issue with no behavior change.
+
+enum HintID: String, CaseIterable {
+    /// Surfaces inside the bench panel during the first Sub phase.
+    case substitutionPositioning = "hint.substitution_positioning"
+    /// Surfaces inside the deck builder when bonus-play count reaches 7.
+    case bonusPlayCeiling        = "hint.bonus_play_ceiling"
+    /// Surfaces inside the deck builder on first build.
+    case deckCompositionTriad    = "hint.deck_composition_triad"
+    /// Surfaces when a play with cost ≥3 is added — coaches use the
+    /// "10-points-per-HD" heuristic.
+    case hdValueHeuristic        = "hint.hd_value_heuristic"
+}
+
+@Observable
+final class HintsManager {
+    static let shared = HintsManager()
+
+    /// Master toggle — when false, no hints render. Lets coaches
+    /// silence the entire system from Settings.
+    var hintsEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: "hints.enabled") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "hints.enabled"); _bump.toggle() }
+    }
+
+    private var _bump = false
+
+    func isDismissed(_ id: HintID) -> Bool {
+        UserDefaults.standard.bool(forKey: id.rawValue)
+    }
+
+    func dismiss(_ id: HintID) {
+        UserDefaults.standard.set(true, forKey: id.rawValue)
+        _bump.toggle()
+    }
+
+    func shouldShow(_ id: HintID) -> Bool {
+        hintsEnabled && !isDismissed(id)
+    }
+
+    func resetAll() {
+        for id in HintID.allCases {
+            UserDefaults.standard.removeObject(forKey: id.rawValue)
+        }
+        _bump.toggle()
+    }
+}
+
+/// Inline contextual hint card. Renders only when the hint hasn't
+/// been dismissed AND the global toggle is on. Self-dismissing — tap
+/// the X to mark this hint as seen forever (or until Settings reset).
+struct HintBanner: View {
+    let id: HintID
+    let title: String
+    /// Renamed from `body` to avoid colliding with SwiftUI's body.
+    let message: String
+    @State private var hints = HintsManager.shared
+
+    @ViewBuilder
+    var body: some View {
+        if hints.shouldShow(id) {
+            bannerContent
+        }
+    }
+
+    private var bannerContent: some View {
+        let row = HStack(alignment: .top, spacing: Design.Spacing.sm) {
+            Image(systemName: "lightbulb.fill")
+                .font(.system(size: 13))
+                .foregroundStyle(Color(hex: "FFD700"))
+            textStack
+            Spacer(minLength: 0)
+            dismissButton
+        }
+        return row
+            .padding(Design.Spacing.sm)
+            .background(bannerBackground)
+            .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    private var textStack: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(Design.Fonts.mono(11, weight: .bold))
+                .foregroundStyle(Color(hex: "FFD700"))
+                .tracking(0.6)
+            Text(message)
+                .font(Design.Fonts.mono(11))
+                .foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var bannerBackground: some View {
+        RoundedRectangle(cornerRadius: Design.Radius.sm)
+            .fill(Color(hex: "FFD700").opacity(0.08))
+            .overlay(
+                RoundedRectangle(cornerRadius: Design.Radius.sm)
+                    .strokeBorder(Color(hex: "FFD700").opacity(0.4), lineWidth: 1)
+            )
+    }
+
+    private var dismissButton: some View {
+        Button {
+            withAnimation(.easeOut(duration: 0.2)) {
+                hints.dismiss(id)
+            }
+        } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Color(hex: "FFD700").opacity(0.7))
+                .frame(width: 22, height: 22)
+        }
+        .buttonStyle(.plain)
+    }
+}

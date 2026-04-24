@@ -58,6 +58,101 @@ final class CollectionStore {
         userCards.removeAll { $0.id == id }
     }
 
+    // MARK: - Export
+    //
+    // Renders the whole collection as a CSV. Columns are a superset of
+    // the deck-importer format (`Slot,Card#,Name,Cost,Ability,DBS`) so
+    // the file round-trips through DeckBuilderStore.importDeckCSV — the
+    // Slot column is left blank per row, which the importer treats as a
+    // Play slot. Collection-specific columns follow afterward for human
+    // use: CardType, Element, Power, Hero, Treatment, Set, Designation,
+    // PurchasePrice, AcquiredAt, Notes, BobaId.
+    //
+    // Set-prefix mapping mirrors DeckBuilderStore.setPrefixMap. Keeping
+    // the two in lockstep avoids a round-trip mismatch where an exported
+    // play can't find its set on re-import.
+    private static let exportSetPrefixMap: [String: String] = [
+        "Alpha Edition":   "A",
+        "Alpha Update":    "U",
+        "Griffey Edition": "G",
+    ]
+
+    func exportCSV(cardStore: CardStore) -> String {
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+        let money = NumberFormatter()
+        money.minimumFractionDigits = 2
+        money.maximumFractionDigits = 2
+
+        var rows: [String] = [
+            "Slot,Card#,Name,Cost,Ability,DBS,CardType,Element,Power,Hero,Treatment,Set,Designation,PurchasePrice,AcquiredAt,Notes,BobaId"
+        ]
+
+        // Sort: owned first, then by card number for stable diffs.
+        let sorted = userCards.sorted { a, b in
+            if a.designation.isOwned != b.designation.isOwned { return a.designation.isOwned }
+            return a.cardNumber.localizedStandardCompare(b.cardNumber) == .orderedAscending
+        }
+
+        for uc in sorted {
+            let catalog = uc.bobaId.flatMap { id in cardStore.displayCards.first { $0.id == id } }
+                ?? cardStore.displayCards.first { $0.cardNumber == uc.cardNumber }
+
+            let prefix = catalog.map { Self.exportSetPrefixMap[$0.set].map { "\($0) - " } ?? "" } ?? ""
+            let cardNumCell = "\(prefix)\(uc.cardNumber)"
+            let name  = catalog?.name ?? ""
+            let cost  = catalog?.playCost.map(String.init) ?? ""
+            let abil  = catalog?.playAbility ?? ""
+            let dbs   = catalog?.dbs.map(String.init) ?? ""
+            let ctype = catalog?.cardType ?? ""
+            let elem  = catalog?.element ?? ""
+            let pwr   = catalog?.power.map(String.init) ?? ""
+            let hero  = catalog?.hero ?? ""
+            let trt   = catalog?.treatment ?? ""
+            let setNm = catalog?.set ?? ""
+            let des   = uc.designation.rawValue
+            let price = uc.purchasePrice.flatMap { money.string(from: $0 as NSDecimalNumber) } ?? ""
+            let acq   = iso.string(from: uc.acquiredAt)
+            let note  = uc.notes ?? ""
+            let bid   = uc.bobaId ?? ""
+
+            // Swift 6's type-checker times out on a single 17-element
+            // array + map + join in one expression — build the row in
+            // two steps so the inference stays tractable.
+            var fields: [String] = []
+            fields.append("") // Slot left blank — deck importer still
+                              // routes these as plays; non-plays land
+                              // in its unresolved list, which is the
+                              // expected behavior for a mixed export.
+            fields.append(cardNumCell)
+            fields.append(name)
+            fields.append(cost)
+            fields.append(abil)
+            fields.append(dbs)
+            fields.append(ctype)
+            fields.append(elem)
+            fields.append(pwr)
+            fields.append(hero)
+            fields.append(trt)
+            fields.append(setNm)
+            fields.append(des)
+            fields.append(price)
+            fields.append(acq)
+            fields.append(note)
+            fields.append(bid)
+            let escaped = fields.map { Self.csvEscape($0) }
+            rows.append(escaped.joined(separator: ","))
+        }
+
+        return rows.joined(separator: "\r\n")
+    }
+
+    private static func csvEscape(_ s: String) -> String {
+        let needsQuotes = s.contains(",") || s.contains("\"") || s.contains("\n") || s.contains("\r")
+        if !needsQuotes { return s }
+        return "\"\(s.replacingOccurrences(of: "\"", with: "\"\""))\""
+    }
+
     // MARK: - Derived queries
 
     /// All entries for a given card number, sorted by designation then acquired date.

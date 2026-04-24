@@ -1322,6 +1322,11 @@ function pmMakeExecContext(self /* 'player' | 'cpu' */) {
     battleIdx: PM.currentBattle,
     battlesRemaining: 7 - PM.currentBattle,
     honors: PM.honors,
+    // B.1 — snapshot in-scope weapon transforms; pmEvalCondition
+    // (and any other ctx-driven weapon read) routes through these.
+    weaponTransforms: (PM._weaponTransforms || [])
+      .filter(t => pmIsScopeActive(t.scope, t.installedAt, PM.currentBattle))
+      .map(t => ({ owner: t.owner, target: t.target, to: t.to, from: t.from || null })),
   };
 }
 
@@ -1331,14 +1336,45 @@ function pmEvalFormula(val, ctx) {
   if (val == null) return 0;
   if (typeof val === 'object') {
     if ('value' in val) return val.value | 0;
+    // B.3 — recognize nested {formula, left, right} for binary
+    // operators, plus the {formula: "multiply", factor, metric}
+    // shorthand. Also accepts metric being a nested {type, ...}
+    // dict instead of a bare string.
+    if (val.formula) {
+      switch (val.formula) {
+        case 'min': return Math.min(pmEvalFormula(val.left, ctx), pmEvalFormula(val.right, ctx)) | 0;
+        case 'max': return Math.max(pmEvalFormula(val.left, ctx), pmEvalFormula(val.right, ctx)) | 0;
+        case 'add': return (pmEvalFormula(val.left, ctx) + pmEvalFormula(val.right, ctx)) | 0;
+        case 'sub': return (pmEvalFormula(val.left, ctx) - pmEvalFormula(val.right, ctx)) | 0;
+        case 'multiply':
+          if (val.factor != null || val.metric != null) {
+            const f = val.factor != null ? val.factor : 1;
+            const m = pmEvalMetricAny(val.metric, val, ctx);
+            const off = val.offset || 0;
+            let r = f * m + off;
+            if (val.min != null) r = Math.max(val.min, r);
+            if (val.max != null) r = Math.min(val.max, r);
+            return r | 0;
+          }
+          return (pmEvalFormula(val.left, ctx) * pmEvalFormula(val.right, ctx)) | 0;
+        default: return 0;
+      }
+    }
     const factor = val.factor != null ? val.factor : 1;
     const offset = val.offset || 0;
-    const m = pmEvalMetric(val.metric, val, ctx);
+    const m = pmEvalMetricAny(val.metric, val, ctx);
     let result = factor * m + offset;
     if (val.min != null) result = Math.max(val.min, result);
     if (val.max != null) result = Math.min(val.max, result);
     return result | 0;
   }
+  return 0;
+}
+
+// Accepts metric as a string OR a nested {type, ...} dict.
+function pmEvalMetricAny(val, args, ctx) {
+  if (typeof val === 'string') return pmEvalMetric(val, args, ctx);
+  if (val && typeof val === 'object') return pmEvalMetric(val.type, val, ctx);
   return 0;
 }
 
@@ -1358,13 +1394,13 @@ function pmEvalMetric(metric, args, ctx) {
       const battles = (PM && Array.isArray(PM.battles)) ? PM.battles : [];
       // count of revealed heroes for `target` up through current battle
       let n = 0;
+      const heroSide = target === 'self' ? ctx.self : ctx.opp;
+      const txfm = ctx.weaponTransforms || [];
       for (let i = 0; i <= ctx.battleIdx; i++) {
         const b = battles[i]; if (!b) continue;
-        const card = target === 'self'
-          ? (ctx.self === 'player' ? b.playerCard : b.cpuCard)
-          : (ctx.self === 'player' ? b.cpuCard : b.playerCard);
+        const card = heroSide === 'player' ? b.playerCard : b.cpuCard;
         if (!card) continue;
-        if (weapon && card.element !== weapon) continue;
+        if (weapon && pmResolveWeapon(card, heroSide, txfm) !== weapon) continue;
         n++;
       }
       return n;
@@ -1406,8 +1442,11 @@ function pmEvalMetric(metric, args, ctx) {
     }
     case 'discard_pile_heroes_weapon_match': {
       const pile = bound.selfDiscard || [];
-      const activeW = ctx.selfCard?.element;
-      return pile.filter(c => c.cardType === 'Hero' && c.element === activeW).length;
+      const activeSide = target === 'self' ? ctx.self : ctx.opp;
+      const txfm = ctx.weaponTransforms || [];
+      const activeW = pmResolveWeapon(ctx.selfCard, activeSide, txfm);
+      if (!activeW) return 0;
+      return pile.filter(c => c.cardType === 'Hero' && pmResolveWeapon(c, activeSide, txfm) === activeW).length;
     }
     case 'discard_pile_count_excluding_hd': {
       const pile = bound.selfDiscard || [];
@@ -1415,10 +1454,13 @@ function pmEvalMetric(metric, args, ctx) {
     }
     case 'distinct_weapons_revealed': {
       const weapons = new Set();
+      const txfm = ctx.weaponTransforms || [];
       for (let i = 0; i <= ctx.battleIdx; i++) {
         const b = PM.battles[i]; if (!b) continue;
-        if (b.playerCard?.element) weapons.add(b.playerCard.element);
-        if (b.cpuCard?.element)    weapons.add(b.cpuCard.element);
+        const pw = pmResolveWeapon(b.playerCard, 'player', txfm);
+        const cw = pmResolveWeapon(b.cpuCard,    'cpu',    txfm);
+        if (pw) weapons.add(pw);
+        if (cw) weapons.add(cw);
       }
       return weapons.size;
     }
@@ -1456,15 +1498,29 @@ function pmEvalCondition(cond, ctx) {
   const target = cond.target || 'self';
   const selfView = target === 'self';
   const card = selfView ? ctx.selfCard : ctx.oppCard;
+  // B.1 — every weapon read routes through pmResolveWeapon so any
+  // active persistent_weapon_transform changes what the rules engine
+  // evaluates as the hero's weapon. controllerOf returns the side
+  // that owns a card so transforms with target:"self"/"opponent"
+  // gate correctly.
+  const transforms = ctx.weaponTransforms || [];
+  const selfSide = ctx.self;
+  const oppSide  = ctx.opp;
+  const wpn = (c, controller) => pmResolveWeapon(c, controller, transforms);
+
   switch (cond.type) {
     case 'weapon':
-      return card && card.element === cond.weapon;
+      return card && wpn(card, selfView ? selfSide : oppSide) === cond.weapon;
     case 'weapon_same': {
-      if (cond.between === 'self_opp') return ctx.selfCard?.element === ctx.oppCard?.element;
+      if (cond.between === 'self_opp') {
+        return wpn(ctx.selfCard, selfSide) === wpn(ctx.oppCard, oppSide);
+      }
       return false; // self_prev variants not tracked
     }
     case 'weapon_different': {
-      if (cond.between === 'self_opp') return ctx.selfCard?.element !== ctx.oppCard?.element;
+      if (cond.between === 'self_opp') {
+        return wpn(ctx.selfCard, selfSide) !== wpn(ctx.oppCard, oppSide);
+      }
       return false;
     }
     case 'hd_count': {
@@ -1539,15 +1595,17 @@ function pmEvalCondition(cond, ctx) {
       const length = cond.length || 2;
       const ref = cond.weapon_ref || 'current_hero';
       let refWeapon = null;
-      if (ref === 'current_hero') refWeapon = selfView ? ctx.selfCard?.element : ctx.oppCard?.element;
+      if (ref === 'current_hero') {
+        const c = selfView ? ctx.selfCard : ctx.oppCard;
+        refWeapon = wpn(c, selfView ? selfSide : oppSide);
+      }
       if (!refWeapon) return false;
+      const heroSide = selfView ? selfSide : oppSide;
       let matched = 0, i = ctx.battleIdx - 1;
       while (i >= 0 && matched < length) {
         const slot = PM.battles[i]; if (!slot) break;
-        const hero = selfView
-          ? (ctx.self === 'player' ? slot.playerCard : slot.cpuCard)
-          : (ctx.self === 'player' ? slot.cpuCard : slot.playerCard);
-        if (hero?.element === refWeapon) matched++; else break;
+        const hero = heroSide === 'player' ? slot.playerCard : slot.cpuCard;
+        if (wpn(hero, heroSide) === refWeapon) matched++; else break;
         i--;
       }
       return matched >= length;
@@ -1555,22 +1613,29 @@ function pmEvalCondition(cond, ctx) {
     case 'previous_two_heroes_share_weapon': {
       if (ctx.battleIdx < 2) return false;
       const b1 = PM.battles[ctx.battleIdx - 1], b2 = PM.battles[ctx.battleIdx - 2];
-      const h1 = selfView ? (ctx.self === 'player' ? b1.playerCard : b1.cpuCard) : (ctx.self === 'player' ? b1.cpuCard : b1.playerCard);
-      const h2 = selfView ? (ctx.self === 'player' ? b2.playerCard : b2.cpuCard) : (ctx.self === 'player' ? b2.cpuCard : b2.playerCard);
-      return h1?.element && h1.element === h2?.element;
+      const heroSide = selfView ? selfSide : oppSide;
+      const h1 = heroSide === 'player' ? b1.playerCard : b1.cpuCard;
+      const h2 = heroSide === 'player' ? b2.playerCard : b2.cpuCard;
+      const w1 = wpn(h1, heroSide), w2 = wpn(h2, heroSide);
+      return !!w1 && w1 === w2;
     }
     case 'previous_and_current_share_weapon': {
       if (ctx.battleIdx < 1) return false;
       const prev = PM.battles[ctx.battleIdx - 1];
-      const prevHero = selfView ? (ctx.self === 'player' ? prev.playerCard : prev.cpuCard) : (ctx.self === 'player' ? prev.cpuCard : prev.playerCard);
-      return ctx.selfCard?.element && ctx.selfCard.element === prevHero?.element;
+      const heroSide = selfView ? selfSide : oppSide;
+      const prevHero = heroSide === 'player' ? prev.playerCard : prev.cpuCard;
+      const curW = wpn(ctx.selfCard, heroSide);
+      const prevW = wpn(prevHero, heroSide);
+      return !!curW && curW === prevW;
     }
     case 'opponent_played_weapon_match': {
       const ref = cond.weapon_ref || 'self_current_hero';
-      const refWeapon = ref === 'self_current_hero' ? ctx.selfCard?.element : null;
+      const selfW = wpn(ctx.selfCard, selfSide);
+      const refWeapon = ref === 'self_current_hero' ? (selfW || null) : null;
       if (!refWeapon) return false;
       const b = PM.battles[ctx.battleIdx]; if (!b) return false;
       const oppPlays = ctx.self === 'player' ? (b.cpuPlaysPlayed || b.cpuPlaysRan || []) : (b.playerPlaysPlayed || []);
+      // Play cards have no transform — element is stable.
       return oppPlays.some(p => p?.element === refWeapon);
     }
     case 'next_hero_power_gt': {
@@ -1584,7 +1649,7 @@ function pmEvalCondition(cond, ctx) {
       const slot = PM.battles[ctx.battleIdx + 1]; if (!slot) return false;
       const c = side === 'player' ? slot.playerCard : slot.cpuCard;
       if (cond.weapon === 'player_named') return true;
-      return c?.element === cond.weapon;
+      return wpn(c, side) === cond.weapon;
     }
     case 'hd_count_compare': {
       switch (cond.comparison) {
@@ -1606,8 +1671,10 @@ function pmEvalCondition(cond, ctx) {
     }
     case 'discarded_hero_weapon_matches_active': {
       const pile = selfView ? (ctx.selfDiscard || []) : [];
-      const activeW = ctx.selfCard?.element;
-      return pile.some(c => c?.cardType === 'Hero' && c.element === activeW);
+      const activeSide = selfView ? selfSide : oppSide;
+      const activeW = wpn(ctx.selfCard, activeSide);
+      if (!activeW) return false;
+      return pile.some(c => c?.cardType === 'Hero' && wpn(c, activeSide) === activeW);
     }
     case 'battle_won_nth': {
       const n = cond.n || 1;
@@ -1746,7 +1813,9 @@ function pmExecStep(step, ctx, out) {
       break;
     }
     case 'hd_recover': {
-      const amt = pmEvalFormula(step.amount, ctx);
+      // B.9 — `amount: "all"` recovers everything possible (clamped
+      // by applyHDRecover at 10).
+      const amt = (step.amount === 'all') ? 10 : pmEvalFormula(step.amount, ctx);
       if (step.target === 'opponent') out.oppHDDelta += amt;
       else out.selfHDDelta += amt;
       out.hasEffect = true;
@@ -1803,6 +1872,11 @@ function pmExecStep(step, ctx, out) {
         const branch = fire ? step.then : step.else;
         if (branch) for (const s of branch) pmExecStep(s, ctx, out);
       }
+      // Visual reveal — emoji + sequence so the user sees WHICH faces
+      // came up, not just the aggregate count.
+      const faces = results.map(h => h ? 'HEADS' : 'TAILS');
+      const glyphs = '🪙'.repeat(results.length);
+      out.notifications.push(`${glyphs} ${faces.join(' · ')}`);
       out.hasEffect = true;
       break;
     }
@@ -1831,6 +1905,13 @@ function pmExecStep(step, ctx, out) {
         const branch = Math.random() < 1 / 6 ? step.on_match : step.on_miss;
         if (branch) for (const s of branch) pmExecStep(s, ctx, out);
       }
+      // Visual reveal — die-face glyph per roll so the user sees the
+      // actual values, not just the aggregate.
+      const dieFaces = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+      const pretty = rolls.map(r => (r >= 1 && r <= 6) ? `${dieFaces[r-1]} ${r}` : String(r));
+      out.notifications.push(rolls.length > 1
+        ? `🎲 ${pretty.join(' · ')} (sum ${sum})`
+        : `🎲 ${pretty[0]}`);
       out.hasEffect = true;
       break;
     }
@@ -1847,11 +1928,21 @@ function pmExecStep(step, ctx, out) {
     case 'block_draw':
     case 'block_hd_recover':
     case 'block_plays': {
-      const targetSide = (step.target === 'opponent') ? ctx.opp : ctx.self;
       const scope = step.scope || step.duration || 'this_battle';
+      const targetStr = step.target || 'self';
       PM._blocks = PM._blocks || { player: [], cpu: [] };
-      PM._blocks[targetSide].push({ kind: op, scope, installedAt: PM.currentBattle });
-      out.notifications.push(`${targetSide === ctx.self ? 'You' : 'Opponent'} blocked: ${op.replace(/_/g, ' ')}`);
+      if (targetStr === 'both') {
+        // B.5 — Bun Shortage installs blocks on both sides so every
+        // pmIsBlocked check sees the right answer without learning
+        // about "both."
+        PM._blocks.player.push({ kind: op, scope, installedAt: PM.currentBattle });
+        PM._blocks.cpu.push(   { kind: op, scope, installedAt: PM.currentBattle });
+        out.notifications.push(`Both sides blocked: ${op.replace(/_/g, ' ')}`);
+      } else {
+        const targetSide = targetStr === 'opponent' ? ctx.opp : ctx.self;
+        PM._blocks[targetSide].push({ kind: op, scope, installedAt: PM.currentBattle });
+        out.notifications.push(`${targetSide === ctx.self ? 'You' : 'Opponent'} blocked: ${op.replace(/_/g, ' ')}`);
+      }
       out.hasEffect = true;
       break;
     }
@@ -1993,17 +2084,34 @@ function pmExecStep(step, ctx, out) {
       break;
     }
     case 'discard_hand_all': {
-      // Count cards discarded for the `cards_discarded_by_this_play` metric
+      // B.12 — kind:"hero" filters to heroes-from-hand only.
+      // Heroes-in-hand on iOS live alongside plays in the same array;
+      // on JS the hand is similarly mixed when heroes get drawn into
+      // it, so the same filter applies.
+      const kind = step.kind;
       const side = step.target === 'opponent' ? ctx.opp : ctx.self;
       if (side === 'player') {
-        const n = PM.playerPlayHand.length;
-        ctx._discardedByThisPlay = (ctx._discardedByThisPlay || 0) + n;
-        PM.playerDiscard.push(...PM.playerPlayHand);
-        PM.playerPlayHand = [];
+        if (kind === 'hero') {
+          const heroes = PM.playerPlayHand.filter(c => c.cardType === 'Hero');
+          if (heroes.length) {
+            ctx._discardedByThisPlay = (ctx._discardedByThisPlay || 0) + heroes.length;
+            PM.playerDiscard.push(...heroes);
+            PM.playerPlayHand = PM.playerPlayHand.filter(c => c.cardType !== 'Hero');
+          }
+        } else {
+          const n = PM.playerPlayHand.length;
+          ctx._discardedByThisPlay = (ctx._discardedByThisPlay || 0) + n;
+          PM.playerDiscard.push(...PM.playerPlayHand);
+          PM.playerPlayHand = [];
+        }
       } else {
-        const n = PM.cpuPlayPool.length;
-        ctx._discardedByThisPlay = (ctx._discardedByThisPlay || 0) + n;
-        PM.cpuPlayPool = [];
+        // CPU side: cpuPlayPool only contains plays in this codepath,
+        // so kind:"hero" is a structural no-op there.
+        if (kind !== 'hero') {
+          const n = PM.cpuPlayPool.length;
+          ctx._discardedByThisPlay = (ctx._discardedByThisPlay || 0) + n;
+          PM.cpuPlayPool = [];
+        }
       }
       out.hasEffect = true;
       break;
@@ -2287,12 +2395,18 @@ function pmExecStep(step, ctx, out) {
       break;
     }
     case 'cancel_persistent': {
+      // Rules-clarification (handoff §6.D): only rest_of_game effects
+      // get cancelled. Scope-limited persistents (next_battle,
+      // this_and_next, etc.) survive and continue ticking. Build a
+      // two-column "cancelled vs unchanged" notification so the user
+      // can audit what just happened.
       const target = step.target || 'opponent';
-      // Identify victims first so we can rewind their applied deltas
-      let victims;
-      if (target === 'self') victims = (PM._persistents || []).filter(p => p.owner === ctx.self);
-      else if (target === 'opponent') victims = (PM._persistents || []).filter(p => p.owner !== ctx.self);
-      else victims = (PM._persistents || []).slice();
+      const inGroup = (p) => target === 'self' ? p.owner === ctx.self
+                          : target === 'opponent' ? p.owner !== ctx.self
+                          : true;
+      const candidates = (PM._persistents || []).filter(inGroup);
+      const victims  = candidates.filter(p => (p.spec && p.spec.scope) === 'rest_of_game');
+      const survived = candidates.filter(p => (p.spec && p.spec.scope) !== 'rest_of_game');
       // Rewind any deltas already applied to the CURRENT battle
       const b = PM.battles[PM.currentBattle];
       if (b) {
@@ -2303,23 +2417,47 @@ function pmExecStep(step, ctx, out) {
           }
         }
       }
-      const before = (PM._persistents || []).length;
-      if (target === 'self') {
-        PM._persistents = (PM._persistents || []).filter(p => p.owner !== ctx.self);
-      } else if (target === 'opponent') {
-        PM._persistents = (PM._persistents || []).filter(p => p.owner === ctx.self);
+      const victimSet = new Set(victims);
+      PM._persistents = (PM._persistents || []).filter(p => !victimSet.has(p));
+      // Sweep weapon transforms with rest_of_game scope owned by the
+      // targeted side(s) — they're persistents too.
+      const weaponVictims = (PM._weaponTransforms || []).filter(t => {
+        const sideMatch = target === 'self' ? t.owner === ctx.self
+                       : target === 'opponent' ? t.owner !== ctx.self
+                       : true;
+        return sideMatch && t.scope === 'rest_of_game';
+      });
+      const wvSet = new Set(weaponVictims);
+      PM._weaponTransforms = (PM._weaponTransforms || []).filter(t => !wvSet.has(t));
+
+      // Build the user-facing summary
+      const victimLabels = victims
+        .map(p => PM._persistentSummaryLabel(p.spec, p.owner))
+        .filter(Boolean)
+        .concat(weaponVictims.map(t => PM._weaponTransformLabel(t)));
+      const survivorLabels = survived
+        .map(p => PM._persistentSummaryLabel(p.spec, p.owner))
+        .filter(Boolean);
+
+      if (victimLabels.length || survivorLabels.length) {
+        const lines = [];
+        if (victimLabels.length) {
+          lines.push('CANCELLED:\n  • ' + victimLabels.join('\n  • '));
+        }
+        if (survivorLabels.length) {
+          lines.push('UNCHANGED (scope-limited):\n  • ' + survivorLabels.join('\n  • '));
+        }
+        out.notifications.push(lines.join('\n\n'));
       } else {
-        PM._persistents = [];
+        out.notifications.push('Pull The Plug — no rest-of-game effects to cancel.');
       }
-      const removed = before - (PM._persistents || []).length;
-      if (removed > 0) out.notifications.push(`Canceled ${removed} persistent effect${removed === 1 ? '' : 's'} (rewound current battle)`);
       out.hasEffect = true;
       break;
     }
     case 'persistent_delta': {
-      // Install persistent with the inner effect
-      PM._persistents = PM._persistents || [];
-      PM._persistents.push({ owner: ctx.self, spec: step, installedAt: PM.currentBattle });
+      // Install persistent with the inner effect — route through PM
+      // so weapon_transform specs split into _weaponTransforms.
+      PM.installPersistent(ctx.self, step);
       out.hasEffect = true;
       break;
     }
@@ -2347,7 +2485,7 @@ function pmExecStep(step, ctx, out) {
       break;
     case 'weapon_debuff_or_penalty': {
       // Auto-pick: match opponent's active weapon → apply if_match; else else
-      const oppW = ctx.oppCard?.element;
+      const oppW = pmResolveWeapon(ctx.oppCard, ctx.opp, ctx.weaponTransforms || []);
       if (oppW && step.if_match) {
         pmExecStep(step.if_match, ctx, out);
         out.notifications.push(`Named weapon matched`);
@@ -2962,6 +3100,121 @@ function pmElementColor(el) {
   return map[el] || '#666680';
 }
 
+// ── Foundation helpers (mirror PracticeStore.swift) ────────────────
+//
+// pmIsScopeActive — canonical scope vocabulary used by every persistent
+// reader (block check, weapon transform, trigger fire). Recognizes the
+// full set of scopes Cowork's audit calls out: rest_of_game,
+// this_battle, next_battle, this_and_next, next_2_battles,
+// next_N_battles (with spec.n), battle_1..battle_7, battles_4_7,
+// current (legacy alias), prev_battle (always false going forward).
+function pmIsScopeActive(scope, installedAt, at, spec) {
+  if (!scope) return false;
+  switch (scope) {
+    case 'rest_of_game':   return true;
+    case 'this_battle':    return at === installedAt;
+    case 'current':        return at === installedAt; // legacy alias
+    case 'next_battle':    return at === installedAt + 1;
+    case 'this_and_next':  return at >= installedAt && at <= installedAt + 1;
+    case 'next_2_battles': return at > installedAt && at <= installedAt + 2;
+    case 'battles_4_7':    return at >= 3 && at <= 6;
+    case 'next_N_battles': {
+      const n = (spec && Number(spec.n)) || 1;
+      return at > installedAt && at <= installedAt + n;
+    }
+    case 'prev_battle':    return false;
+    default:
+      if (typeof scope === 'string' && scope.startsWith('battle_')) {
+        const n = parseInt(scope.slice('battle_'.length), 10);
+        if (!isNaN(n) && n >= 1 && n <= 7) return at === (n - 1);
+      }
+      return false;
+  }
+}
+
+// pmResolveWeapon — apply any in-scope weapon_transform to a card from
+// the controller's perspective. Mirrors PlayExecContext.weapon(of:as:)
+// in iOS. `controller` is the side that OWNS the hero being asked
+// about; `transforms` is the snapshot of in-scope transforms passed
+// via ctx (or PM._weaponTransforms when called outside a context).
+function pmResolveWeapon(card, controller, transforms) {
+  if (!card) return '';
+  let w = card.element || '';
+  if (!Array.isArray(transforms)) return w;
+  for (const t of transforms) {
+    const target = t.target;
+    const to = t.to;
+    if (!target || !to) continue;
+    let applies;
+    switch (target) {
+      case 'all_heroes': applies = true; break;
+      case 'self':       applies = controller === t.owner; break;
+      case 'opponent':   applies = controller !== t.owner; break;
+      default:           applies = false;
+    }
+    if (!applies) continue;
+    if (t.from && t.from !== '' && t.from !== w) continue;
+    w = to;
+  }
+  return w;
+}
+
+// Lightweight toast — used by trigger firings + HD recover modifier
+// surfacing. Defers to pmQueuePhaseBanner once the playmat has rendered;
+// silently no-ops if called too early (e.g. during match init).
+function pmEnqueueNotification(text, duration) {
+  if (typeof pmQueuePhaseBanner !== 'function') return;
+  try { pmQueuePhaseBanner(text, duration || 1800); }
+  catch (e) { /* ignore — the playmat may not be in the DOM yet */ }
+}
+
+// Battles left before a finite-scope effect expires. Null for
+// rest_of_game and unrecognized scopes. Mirrors PracticeStore.swift
+// battlesRemaining(for:installedAt:at:spec:).
+function pmBattlesRemaining(scope, installedAt, at, spec) {
+  if (!scope) return null;
+  switch (scope) {
+    case 'rest_of_game':   return null;
+    case 'this_battle':    return at === installedAt ? 1 : 0;
+    case 'current':        return at === installedAt ? 1 : 0;
+    case 'next_battle':    return at === installedAt + 1 ? 1 : 0;
+    case 'this_and_next':  return Math.max(0, (installedAt + 1) - at + 1);
+    case 'next_2_battles': return Math.max(0, (installedAt + 2) - at + 1);
+    case 'battles_4_7':    return Math.max(0, 6 - at + 1);
+    case 'next_N_battles': {
+      const n = (spec && Number(spec.n)) || 1;
+      return Math.max(0, (installedAt + n) - at + 1);
+    }
+    default:
+      if (typeof scope === 'string' && scope.startsWith('battle_')) {
+        const n = parseInt(scope.slice('battle_'.length), 10);
+        if (!isNaN(n)) return at === (n - 1) ? 1 : 0;
+      }
+      return null;
+  }
+}
+
+// Human-friendly suffix matching scopeDisplayLabel on iOS.
+function pmScopeDisplayLabel(scope) {
+  if (!scope) return '';
+  switch (scope) {
+    case 'rest_of_game':   return '(rest of game)';
+    case 'this_battle':    return '(this battle)';
+    case 'current':        return '(this battle)';
+    case 'next_battle':    return '(next battle)';
+    case 'this_and_next':  return '(this + next battle)';
+    case 'next_2_battles': return '(next 2 battles)';
+    case 'battles_4_7':    return '(battles 4–7)';
+    case 'next_N_battles': return '(next N battles)';
+    default:
+      if (typeof scope === 'string' && scope.startsWith('battle_')) {
+        const n = parseInt(scope.slice('battle_'.length), 10);
+        if (!isNaN(n)) return `(battle ${n})`;
+      }
+      return '';
+  }
+}
+
 // ── PM state object ──────────────────────────────────────────────
 const PM = {
   mode: 'playmaker',         // 'rookie' | 'substitution' | 'playmaker'
@@ -3005,6 +3258,7 @@ const PM = {
     this._lastOpts = opts; // remember for Rematch / Play Again
     pmLoadPlayEffects(); // fire-and-forget — ready by the time cards are played
     this._persistents = []; // installed persistent effects (rest_of_game / next_battle, etc.)
+    this._weaponTransforms = []; // B.1 — see installPersistent
     this._nextHonors = null;
     this._nextSubFree = null;
     PM._blocks = { player: [], cpu: [] };
@@ -3217,22 +3471,18 @@ const PM = {
       if (out.hasEffect) {
         effect.playerDelta = out.selfDelta;
         effect.cpuDelta = out.oppDelta;
-        if (out.selfHDDelta > 0) {
-          if (!pmIsBlocked('player', 'block_hd_recover')) hdRecovery = out.selfHDDelta;
-        } else if (out.selfHDDelta < 0) {
-          this.playerHD = Math.max(0, this.playerHD + out.selfHDDelta);
-        }
-        if (out.oppHDDelta > 0) {
-          if (!pmIsBlocked('cpu', 'block_hd_recover')) this.cpuHD = Math.min(10, this.cpuHD + out.oppHDDelta);
-        } else if (out.oppHDDelta < 0) {
-          this.cpuHD = Math.max(0, this.cpuHD + out.oppHDDelta);
-        }
+        // Route through applyHDRecover so persistent modifiers
+        // (Bonus Recovery / Grilled Bandit / Bun Shortage) interpose.
+        // hdRecovery here is informational only (the legacy single-
+        // source toast); the actual HD change is applied inside
+        // applyHDRecover.
+        this.applyHDRecover('player', out.selfHDDelta);
+        this.applyHDRecover('cpu',    out.oppHDDelta);
         structuredHandled = true;
-        // Queue persistent effects
+        // Queue persistent effects — installPersistent splits
+        // weapon_transform specs into the dedicated array.
         if (out.hasPersistent && entry.persistent) {
-          for (const p of entry.persistent) {
-            this._persistents.push({ owner: 'player', spec: p, installedAt: this.currentBattle });
-          }
+          for (const p of entry.persistent) this.installPersistent('player', p);
         }
         // Surface extra notifications from ops (peek, swap, choice label, etc.)
         if (out.notifications && out.notifications.length) {
@@ -3377,25 +3627,17 @@ const PM = {
           // Flip perspective back to queue's player/cpu convention
           effect.playerDelta = out.oppDelta;
           effect.cpuDelta = out.selfDelta;
-          if (out.selfHDDelta > 0) {
-            if (!pmIsBlocked('cpu', 'block_hd_recover')) hdRecovery = out.selfHDDelta;
-          } else if (out.selfHDDelta < 0) {
-            this.cpuHD = Math.max(0, this.cpuHD + out.selfHDDelta);
-          }
-          if (out.oppHDDelta > 0) {
-            if (!pmIsBlocked('player', 'block_hd_recover')) this.playerHD = Math.min(10, this.playerHD + out.oppHDDelta);
-          } else if (out.oppHDDelta < 0) {
-            this.playerHD = Math.max(0, this.playerHD + out.oppHDDelta);
-          }
+          // Route through applyHDRecover so persistent modifiers
+          // interpose. CPU's "self" is cpu; CPU's "opp" is player.
+          this.applyHDRecover('cpu',    out.selfHDDelta);
+          this.applyHDRecover('player', out.oppHDDelta);
           structuredHandled = true;
           // Surface peek/swap/choice notifications from CPU plays
           if (out.notifications && out.notifications.length) {
             PM._peekCallouts = (PM._peekCallouts || []).concat(out.notifications);
           }
           if (out.hasPersistent && entry.persistent) {
-            for (const p of entry.persistent) {
-              this._persistents.push({ owner: 'cpu', spec: p, installedAt: this.currentBattle });
-            }
+            for (const p of entry.persistent) this.installPersistent('cpu', p);
           }
         }
       }
@@ -3425,6 +3667,274 @@ const PM = {
   // Dry-run: compute the pending power delta that installed continuous/battle_start
   // persistents will apply to an unrevealed battle for the given side.
   // Returns 0 for already-revealed battles (their delta is already in effectPower).
+  // ── B.1 weapon transform + active-effect surface ────────────────
+
+  // Snapshot of transforms in scope right now (used by ctx & UI).
+  _activeWeaponTransforms() {
+    return (this._weaponTransforms || []).filter(t =>
+      pmIsScopeActive(t.scope, t.installedAt, this.currentBattle)
+    );
+  },
+
+  effectiveWeapon(card, side) {
+    if (!card) return '';
+    return pmResolveWeapon(card, side, this._activeWeaponTransforms());
+  },
+
+  isWeaponTransformed(card, side) {
+    if (!card) return false;
+    return this.effectiveWeapon(card, side) !== (card.element || '');
+  },
+
+  // Central persistent-install. Splits weapon_transform persistents
+  // into PM._weaponTransforms; everything else routes to _persistents.
+  // Pushes a banner-friendly summary into PM._activeEffectsLog so the
+  // UI can render "what's currently in force" without re-walking
+  // everything every frame.
+  installPersistent(owner, spec) {
+    if (!this._weaponTransforms) this._weaponTransforms = [];
+    if (!this._persistents)      this._persistents = [];
+    const eff = spec && spec.effect;
+    if (eff && eff.op === 'weapon_transform') {
+      const to = eff.to || '';
+      if (!to) return;
+      const t = {
+        owner: owner,
+        installedAt: this.currentBattle,
+        scope: spec.scope || 'rest_of_game',
+        target: eff.target || 'self',
+        to: to,
+        from: (eff.from && eff.from !== '') ? eff.from : null,
+      };
+      this._weaponTransforms.push(t);
+      this._appendActiveEffectsLog({
+        owner: owner,
+        label: this._weaponTransformLabel(t),
+        kind: 'transform',
+      });
+      return;
+    }
+    this._persistents.push({ owner, spec, installedAt: this.currentBattle });
+    const label = this._persistentSummaryLabel(spec, owner);
+    if (label) this._appendActiveEffectsLog({ owner, label, kind: 'persistent' });
+  },
+
+  _weaponTransformLabel(t) {
+    const scope = pmScopeDisplayLabel(t.scope);
+    switch (t.target) {
+      case 'all_heroes': return `All Heroes → ${t.to} weapons ${scope}`;
+      case 'self':       return t.from
+                                ? `Your ${t.from} Heroes → ${t.to} weapons ${scope}`
+                                : `Your Heroes → ${t.to} weapons ${scope}`;
+      case 'opponent':   return `Opponent's Heroes → ${t.to} weapons ${scope}`;
+      default:           return `Weapon transform → ${t.to} ${scope}`;
+    }
+  },
+
+  _persistentSummaryLabel(spec, owner) {
+    const eff = spec && spec.effect;
+    if (!eff) return null;
+    const op = eff.op || '';
+    const scope = pmScopeDisplayLabel(spec.scope || 'this_battle');
+    const who = owner === 'player' ? 'You' : 'CPU';
+    switch (op) {
+      case 'modify_hd_recover':
+        if (eff.cap != null)   return `HD recovery capped at ${eff.cap} ${scope}`;
+        if (eff.delta != null) return `HD recovery ${eff.delta > 0 ? '+' : ''}${eff.delta} ${scope}`;
+        return `HD recovery modifier active ${scope}`;
+      case 'redirect_hd_recover':
+        return `${who}: redirect HD recovery ${scope}`;
+      case 'block_hd_recover': {
+        const target = eff.target || 'self';
+        if (target === 'both')     return `Neither side recovers HDs ${scope}`;
+        if (target === 'opponent') return `Opponent can't recover HDs ${scope}`;
+        return `${who} can't recover HDs ${scope}`;
+      }
+      case 'auto_lose_battle':    return `Lose any battle with 0 HDs ${scope}`;
+      case 'require_dice_roll':   return `Opponent must roll dice to play ${scope}`;
+      case 'allow_hd_overspend':  return `${who} can overspend HDs by ${eff.max_deficit || 0} ${scope}`;
+      case 'power': {
+        if (eff.delta != null) {
+          const target = eff.target || 'self';
+          const recipient = target === 'opponent'
+            ? (owner === 'player' ? 'CPU Hero' : 'Your Hero')
+            : (owner === 'player' ? 'Your Hero' : 'CPU Hero');
+          return `${recipient} ${eff.delta > 0 ? '+' : ''}${eff.delta} ${scope}`;
+        }
+        return null;
+      }
+      default:
+        return `${who} installed ${op.replace(/_/g, ' ')} ${scope}`;
+    }
+  },
+
+  // Live banner data — reads BOTH transforms and persistents, filtered
+  // to in-scope only. Each entry: {id, owner, label, icon, color,
+  // remaining}. `remaining` is the count of battles left for finite
+  // scopes; null for rest_of_game.
+  activeEffectsForUI() {
+    const rows = [];
+    let id = 0;
+    for (const t of (this._weaponTransforms || [])) {
+      if (!pmIsScopeActive(t.scope, t.installedAt, this.currentBattle)) continue;
+      rows.push({
+        id: ++id, owner: t.owner,
+        label: this._weaponTransformLabel(t),
+        icon: 'transform', color: '#8B00FF',
+        remaining: pmBattlesRemaining(t.scope, t.installedAt, this.currentBattle, null),
+      });
+    }
+    for (const inst of (this._persistents || [])) {
+      const scope = inst.spec && inst.spec.scope;
+      if (!pmIsScopeActive(scope, inst.installedAt, this.currentBattle, inst.spec)) continue;
+      const label = this._persistentSummaryLabel(inst.spec, inst.owner);
+      if (!label) continue;
+      rows.push({
+        id: ++id, owner: inst.owner, label,
+        icon: 'persistent', color: '#00F5FF',
+        remaining: pmBattlesRemaining(scope, inst.installedAt, this.currentBattle, inst.spec),
+      });
+    }
+    return rows;
+  },
+
+  _appendActiveEffectsLog(entry) {
+    // No-op stub today — banner re-renders from activeEffectsForUI()
+    // after every battle update so we don't need a separate log.
+    // Keeping the hook so future code can persist a "trigger fired"
+    // history surfaced by the post-battle summary.
+  },
+
+  // ── B.2 / B.4 / B.9 trigger dispatch ────────────────────────────
+  //
+  // One entry point for every non-continuous trigger (on_plays_resolved,
+  // on_battle_win, on_battle_loss, on_battle_start, on_turn_end). Walks
+  // _persistents, runs each matching block's effect, and writes any
+  // produced power deltas back into the current slot's effectPower so
+  // late-firing boosts can sway the battle they fire in.
+  firePersistentTriggers(trigger, winner /* 'player' | 'cpu' | null */) {
+    const b = this.battles[this.currentBattle];
+    if (!b) return;
+    for (const inst of (this._persistents || [])) {
+      const persistentTrigger = inst.spec && inst.spec.trigger;
+      if (persistentTrigger !== trigger) continue;
+      const scope = inst.spec && inst.spec.scope;
+      if (!pmIsScopeActive(scope, inst.installedAt, this.currentBattle, inst.spec)) continue;
+      if (trigger === 'on_battle_win'  && winner != null && inst.owner !== winner) continue;
+      if (trigger === 'on_battle_loss' && winner != null && inst.owner === winner) continue;
+      const eff = inst.spec.effect;
+      if (!eff) continue;
+      const ctx = pmMakeExecContext(inst.owner);
+      const out = { selfDelta: 0, oppDelta: 0, selfHDDelta: 0, oppHDDelta: 0,
+                    draws: 0, discards: 0, hasEffect: false, unknownOps: [], notifications: [] };
+      pmExecStep(eff, ctx, out);
+      const playerDelta = inst.owner === 'player' ? (out.selfDelta || 0) : (out.oppDelta || 0);
+      const cpuDelta    = inst.owner === 'player' ? (out.oppDelta  || 0) : (out.selfDelta || 0);
+      b.playerEffectPower = (b.playerEffectPower || 0) + playerDelta;
+      b.cpuEffectPower    = (b.cpuEffectPower    || 0) + cpuDelta;
+      // Surface the firing — without a callout the user sees numbers
+      // change with no explanation.
+      if (playerDelta || cpuDelta || (out.notifications && out.notifications.length)) {
+        const recipientDelta = inst.owner === 'player' ? playerDelta : cpuDelta;
+        const oppDeltaToOwner = inst.owner === 'player' ? cpuDelta : playerDelta;
+        let parts = [];
+        if (recipientDelta) {
+          parts.push(`${inst.owner === 'player' ? 'Your' : 'CPU'} Hero ${recipientDelta > 0 ? '+' : ''}${recipientDelta}`);
+        }
+        if (oppDeltaToOwner) {
+          parts.push(`${inst.owner === 'player' ? 'CPU' : 'Your'} Hero ${oppDeltaToOwner > 0 ? '+' : ''}${oppDeltaToOwner}`);
+        }
+        if (out.notifications && out.notifications.length) parts.push(out.notifications.join(', '));
+        const prefix = trigger === 'on_battle_win'     ? 'Win trigger'
+                     : trigger === 'on_battle_loss'    ? 'Loss trigger'
+                     : trigger === 'on_plays_resolved' ? 'End-of-turn'
+                     : trigger === 'on_battle_start'   ? 'Battle start'
+                     : 'Trigger';
+        pmEnqueueNotification(`${prefix}: ${parts.join(' — ')}`);
+      }
+    }
+  },
+
+  // B.8 Ultimatum Dog — auto_lose_battle persistent fires before normal
+  // power compare. Returns the side forced to lose, or null.
+  _sideForcedToLoseForZeroHD() {
+    for (const inst of (this._persistents || [])) {
+      if ((inst.spec && inst.spec.trigger) !== 'on_turn_end') continue;
+      const eff = inst.spec.effect;
+      if (!eff || eff.op !== 'auto_lose_battle') continue;
+      if (!pmIsScopeActive(inst.spec.scope, inst.installedAt, this.currentBattle, inst.spec)) continue;
+      const target = eff.target || 'any_with_zero_hd';
+      if (target !== 'any_with_zero_hd') continue;
+      const playerZero = (this.playerHD || 0) === 0;
+      const cpuZero    = (this.cpuHD    || 0) === 0;
+      if (playerZero && !cpuZero) return 'player';
+      if (cpuZero    && !playerZero) return 'cpu';
+      if (playerZero && cpuZero)
+        return inst.owner === 'player' ? 'cpu' : 'player';
+    }
+    return null;
+  },
+
+  // ── B.5 HD recover pipeline ─────────────────────────────────────
+  applyHDRecover(side, amount) {
+    if (!amount) return 0;
+    if (amount < 0) {
+      if (side === 'player') this.playerHD = Math.max(0, (this.playerHD || 0) + amount);
+      else                   this.cpuHD    = Math.max(0, (this.cpuHD    || 0) + amount);
+      return amount;
+    }
+    let actualSide = side;
+    let actualAmount = amount;
+
+    // 1. Redirect
+    for (const inst of (this._persistents || [])) {
+      const eff = inst.spec && inst.spec.effect;
+      if (!eff || eff.op !== 'redirect_hd_recover') continue;
+      if (!pmIsScopeActive(inst.spec.scope, inst.installedAt, this.currentBattle, inst.spec)) continue;
+      const owner = inst.owner;
+      const fromStr = eff.from || 'opponent';
+      const toStr   = eff.to   || 'self';
+      const fromSide = fromStr === 'self' ? owner : (owner === 'player' ? 'cpu' : 'player');
+      const toSide   = toStr   === 'self' ? owner : (owner === 'player' ? 'cpu' : 'player');
+      if (actualSide === fromSide) actualSide = toSide;
+    }
+
+    // 2. Cap + 3. Delta
+    for (const inst of (this._persistents || [])) {
+      const eff = inst.spec && inst.spec.effect;
+      if (!eff || eff.op !== 'modify_hd_recover') continue;
+      if (!pmIsScopeActive(inst.spec.scope, inst.installedAt, this.currentBattle, inst.spec)) continue;
+      const targetStr = eff.target || 'both';
+      let applies;
+      switch (targetStr) {
+        case 'both': applies = true; break;
+        case 'self': applies = actualSide === inst.owner; break;
+        default:     applies = actualSide !== inst.owner;
+      }
+      if (!applies) continue;
+      if (eff.cap   != null) actualAmount = Math.min(actualAmount, eff.cap);
+      if (eff.delta != null) actualAmount += eff.delta;
+    }
+
+    // 4. Block
+    if (pmIsBlocked(actualSide, 'block_hd_recover')) {
+      pmEnqueueNotification(`${actualSide === 'player' ? 'You' : 'CPU'} blocked from HD recovery`);
+      return 0;
+    }
+    actualAmount = Math.max(0, actualAmount);
+    if (actualSide === 'player') this.playerHD = Math.min(10, (this.playerHD || 0) + actualAmount);
+    else                          this.cpuHD    = Math.min(10, (this.cpuHD    || 0) + actualAmount);
+
+    if (actualAmount !== amount || actualSide !== side) {
+      const from = side === 'player' ? 'You' : 'CPU';
+      const to   = actualSide === 'player' ? 'You' : 'CPU';
+      pmEnqueueNotification(actualSide !== side
+        ? `HD recovery redirected: ${from} → ${to} (+${actualAmount})`
+        : `HD recovery: ${to} +${actualAmount} (modified from +${amount})`);
+    }
+    return actualAmount;
+  },
+
   previewPersistentPower(battleIdx, side /* 'player' | 'cpu' */) {
     const b = this.battles[battleIdx];
     if (!b || b.revealed) return 0;
@@ -3433,15 +3943,7 @@ const PM = {
       const scope = inst.spec && inst.spec.scope;
       const trigger = inst.spec && inst.spec.trigger;
       if (trigger !== 'continuous' && trigger !== 'battle_start') continue;
-      const inScope = (() => {
-        if (scope === 'rest_of_game') return true;
-        if (scope === 'next_battle') return battleIdx === inst.installedAt + 1;
-        if (scope === 'next_2_battles') return battleIdx > inst.installedAt && battleIdx <= inst.installedAt + 2;
-        if (scope === 'battle_7') return battleIdx === 6;
-        if (scope === 'battles_4_7') return battleIdx >= 3;
-        if (scope === 'this_battle') return battleIdx === inst.installedAt;
-        return false;
-      })();
+      const inScope = pmIsScopeActive(scope, inst.installedAt, battleIdx, inst.spec);
       if (!inScope || !inst.spec.effect) continue;
       // Build a context rooted at the owner but pointing at the previewed battle.
       const ctx = pmMakeExecContext(inst.owner);
@@ -3468,15 +3970,7 @@ const PM = {
       const scope = inst.spec.scope;
       const trigger = inst.spec.trigger;
       // Scope gating
-      const inScope = (() => {
-        if (scope === 'rest_of_game') return true;
-        if (scope === 'next_battle') return this.currentBattle === inst.installedAt + 1;
-        if (scope === 'next_2_battles') return this.currentBattle > inst.installedAt && this.currentBattle <= inst.installedAt + 2;
-        if (scope === 'battle_7') return this.currentBattle === 6;
-        if (scope === 'battles_4_7') return this.currentBattle >= 3;
-        if (scope === 'this_battle') return this.currentBattle === inst.installedAt;
-        return false;
-      })();
+      const inScope = pmIsScopeActive(scope, inst.installedAt, this.currentBattle, inst.spec);
       if (!inScope) continue;
       if (trigger !== 'continuous' && trigger !== 'battle_start') continue;
 
@@ -3499,11 +3993,29 @@ const PM = {
   },
 
   resolve() {
+    // B.2 — fire on_plays_resolved persistents BEFORE we decide the
+    // winner. Their power deltas land in effectPower so end-of-turn
+    // boosts (Steel Resolve, Baby Phoenix) can swing the verdict.
+    this.firePersistentTriggers('on_plays_resolved');
+
     const b = this.battles[this.currentBattle];
     const playerBase = b.playerTransformedToHotDog ? 0 : (b.playerCard?.power || 0);
     const cpuBase    = b.cpuTransformedToHotDog    ? 0 : (b.cpuCard?.power    || 0);
     const playerPow = playerBase + (b.playerEffectPower || 0);
     const cpuPow    = cpuBase    + (b.cpuEffectPower    || 0);
+
+    // B.8 Ultimatum Dog — auto-loss for any side at 0 HDs supersedes
+    // power compare entirely.
+    const forcedLoser = this._sideForcedToLoseForZeroHD();
+    if (forcedLoser) {
+      if (forcedLoser === 'player') { b.result = 'lose'; this.cpuScore++;    this.honors = 'cpu'; }
+      else                          { b.result = 'win';  this.playerScore++; this.honors = 'player'; }
+      this.firePersistentTriggers(b.result === 'win' ? 'on_battle_win' : 'on_battle_loss', b.result === 'win' ? 'player' : 'cpu');
+      this.phase = 'resolution';
+      this._showPhaseBanner = true;
+      this.checkOver();
+      return;
+    }
 
     if (playerPow > cpuPow) {
       b.result = 'win';  this.playerScore++; this.honors = 'player';
@@ -3513,8 +4025,12 @@ const PM = {
       // Tie — SUPER weapon wins ONLY in Playmaker mode (§4.3.2 Super Tie Breaker)
       // Rookie/Substitution: tied power = draw, no trophy (§4.1.2, §4.2.2)
       if (this.mode === 'playmaker') {
-        const pSuper = b.playerCard?.element === 'SUPER';
-        const cSuper = b.cpuCard?.element    === 'SUPER';
+        // Resolve weapon through transform stack so "Only Fire" + a
+        // SUPER-printed hero reads as FIRE here.
+        const pW = this.effectiveWeapon(b.playerCard, 'player');
+        const cW = this.effectiveWeapon(b.cpuCard,    'cpu');
+        const pSuper = pW === 'SUPER';
+        const cSuper = cW === 'SUPER';
         if (pSuper && !cSuper) {
           b.result = 'win';  this.playerScore++; this.honors = 'player';
         } else if (cSuper && !pSuper) {
@@ -3526,6 +4042,17 @@ const PM = {
         b.result = 'tie';
       }
     }
+
+    // B.4 — battle-resolution triggers. on_battle_win fires for the
+    // winning side's persistents; on_battle_loss for the loser's.
+    if (b.result === 'win') {
+      this.firePersistentTriggers('on_battle_win',  'player');
+      this.firePersistentTriggers('on_battle_loss', 'player');  // fires CPU's loss persistents
+    } else if (b.result === 'lose') {
+      this.firePersistentTriggers('on_battle_win',  'cpu');
+      this.firePersistentTriggers('on_battle_loss', 'cpu');     // fires player's loss persistents
+    }
+
     this.phase = 'resolution';
     this._showPhaseBanner = true;
     this.checkOver();
@@ -3555,6 +4082,10 @@ const PM = {
     }
     // Purge expired blocks
     pmPurgeExpiredBlocks();
+    // B.9 — fire on_battle_start triggers for any persistent whose
+    // scope matches this battle (e.g. Late Game Push reveals its
+    // hd_recover at the start of Battle 7).
+    this.firePersistentTriggers('on_battle_start');
     // Fire marked_battle on_reveal effects for this battle
     const fires = (PM._markedBattles || []).filter(m => m.battleIdx === this.currentBattle);
     for (const mark of fires) {
@@ -3590,9 +4121,14 @@ const PM = {
   drawPlayCard() {
     if (this.mode !== 'playmaker') return;
     if (pmIsBlocked('player', 'block_draw')) return;
+    // UX#9 — auto-reshuffle when the playbook deck is empty. Surface
+    // a notification so the user sees the reshuffle happen rather
+    // than wondering where the new draws came from.
     if (this.playerPlayDeck.length === 0 && this.playerDiscard.length > 0) {
+      const count = this.playerDiscard.length;
       this.playerPlayDeck = shuffle([...this.playerDiscard]);
       this.playerDiscard = [];
+      pmEnqueueNotification(`Playbook reshuffled · ${count} cards back into deck`);
     }
     if (this.playerPlayDeck.length > 0) {
       this.playerPlayHand.push(this.playerPlayDeck.shift());
@@ -3645,6 +4181,9 @@ function pmBuildPlaymatHTML() {
     <button class="pm-top-exit" id="pm-exit-btn" aria-label="Exit practice"><i data-lucide="x" class="pm-icon"></i></button>
   </div>
 
+  <!-- ACTIVE EFFECTS BANNER -->
+  <div class="pm-active-effects" id="pm-active-effects" hidden></div>
+
   <!-- PLAY AREA -->
   <div class="pm-play-area">
     <div class="pm-opponent-zone">
@@ -3653,13 +4192,14 @@ function pmBuildPlaymatHTML() {
         <span class="pm-opp-sub-label">Bench</span>
         <div id="pm-opp-bench" style="display:flex;gap:3px"></div>
       </div>
-      <div class="pm-opp-plays-area">
+      <button type="button" class="pm-opp-plays-area" id="pm-opp-plays-btn"
+              aria-label="Inspect CPU plays used">
         <span class="pm-opp-sub-label">Plays</span>
         <div class="pm-resource-chip">
           <span class="pm-rc-val" id="pm-opp-plays-val">30</span>
           <span class="pm-rc-label">left</span>
         </div>
-      </div>
+      </button>
       <div class="pm-opp-resources">
         <div class="pm-resource-chip">
           ${hdIcon}
@@ -3721,13 +4261,13 @@ function pmBuildPlaymatHTML() {
       <button class="pm-btn-done" id="pm-btn-done">REVEAL →</button>
     </div>
     <div class="pm-zone-divider"></div>
-    <div class="pm-discard-stack">
+    <button class="pm-discard-stack" id="pm-discard-btn" type="button" aria-label="Inspect your discard pile">
       <div class="pm-deck-icon" style="border-style:dashed;background:transparent;opacity:0.4">
         <i data-lucide="rotate-ccw" class="pm-icon" style="opacity:0.6"></i>
         <span class="pm-di-count" id="pm-discard-count">0</span>
       </div>
       <span class="pm-deck-label">Discard</span>
-    </div>
+    </button>
   </div>
 
   <!-- Phase transition banner -->
@@ -3927,7 +4467,36 @@ function pmUpdateBattleCols() {
     // Player slot
     const playerSlot = col.querySelector('.pm-bc-player');
     if (playerSlot) pmRenderBattleSlotContent(playerSlot, b.playerCard, true, false, b);
+
+    // UX#1 — plays-used row on the active battle column. Renders a
+    // small chip strip per side under the hero slots showing every
+    // play used this battle plus a running count. Helps coaches
+    // verify Play Booster / 10 Per Play / No Huddle math.
+    if (isActive) pmRenderPlaysUsedRow(col, b);
   }
+}
+
+function pmRenderPlaysUsedRow(col, b) {
+  let host = col.querySelector('.pm-bc-plays-row');
+  const playerPlays = b.playerPlaysPlayed || [];
+  const cpuPlays    = b.cpuPlaysPlayed || b.cpuPlaysRan || [];
+  if (!playerPlays.length && !cpuPlays.length) {
+    if (host) host.remove();
+    return;
+  }
+  if (!host) {
+    host = document.createElement('div');
+    host.className = 'pm-bc-plays-row';
+    col.appendChild(host);
+  }
+  const chip = (name, side) =>
+    `<span class="pm-bc-play-chip pm-bc-play-chip--${side}">${name}</span>`;
+  const playerStrip = playerPlays.map(c => chip((c.name || '').substring(0, 14), 'you')).join('');
+  const cpuStrip    = cpuPlays.map(c    => chip((c.name || '').substring(0, 14), 'opp')).join('');
+  host.innerHTML = `
+    ${playerPlays.length ? `<div class="pm-bc-plays-side"><span class="pm-bc-plays-count">YOU · ${playerPlays.length}</span>${playerStrip}</div>` : ''}
+    ${cpuPlays.length    ? `<div class="pm-bc-plays-side"><span class="pm-bc-plays-count">CPU · ${cpuPlays.length}</span>${cpuStrip}</div>` : ''}
+  `;
 }
 
 function pmUpdateOpponentZone() {
@@ -3981,16 +4550,33 @@ function pmUpdatePlayerZone() {
   const handEl = $('pm-hand-cards');
   if (handEl) {
     handEl.innerHTML = PM.playerPlayHand.map((card, idx) => {
-      const cost      = card.playCost || 0;
+      const nominal   = card.playCost || 0;
+      const cost      = pmEffectiveCost(card, 'player');
       const canAfford = PM.playerHD >= cost;
+      const modified  = cost !== nominal;
+      const isBonus   = cost < nominal;
+      const isBonusPlay = card.isBonusPlay === true;
       const name      = (card.name || '').substring(0, 14);
       const imgUrl    = card.imageFile ? thumbUrl(card.imageFile) : null;
       const imgHtml   = imgUrl ? `<img class="pm-pc-img" src="${imgUrl}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
-      return `<div class="pm-play-card${!canAfford ? ' cannot-afford' : ''}" data-hand-idx="${idx}" title="${card.name||''} — tap to view">
+      // UX#5 — when an active scope shifts the cost, show "3→5" with
+      // the original struck through. Color: green if reduced, amber
+      // if inflated but affordable, red if unaffordable.
+      const costHtml = modified
+        ? `<span class="pm-pc-cost pm-pc-cost--${!canAfford ? 'over' : isBonus ? 'discount' : 'inflated'}">
+             <s>${nominal}</s>→<strong>${cost > 0 ? cost : 'FREE'}</strong>
+           </span>`
+        : `<span class="pm-pc-cost">${cost > 0 ? cost + 'HD' : 'FREE'}</span>`;
+      // UX#10 — bonus-play distinction. Gold border + ★ BONUS tag.
+      const bonusBadge = isBonusPlay
+        ? `<span class="pm-pc-bonus-tag">★ BONUS</span>` : '';
+      const cardClass = `pm-play-card${!canAfford ? ' cannot-afford' : ''}${isBonusPlay ? ' is-bonus' : ''}`;
+      return `<div class="${cardClass}" data-hand-idx="${idx}" title="${card.name||''} — tap to view">
         ${imgHtml}
+        ${bonusBadge}
         <div class="pm-pc-header">
           <span class="pm-pc-name">${name}</span>
-          <span class="pm-pc-cost">${cost > 0 ? cost + 'HD' : 'FREE'}</span>
+          ${costHtml}
         </div>
       </div>`;
     }).join('');
@@ -4035,10 +4621,181 @@ function pmUpdateAll() {
   pmUpdateBattleCols();
   pmUpdateOpponentZone();
   pmUpdatePlayerZone();
+  pmUpdateActiveEffectsBanner();
   pmUpdateMatchOverlay();
   // Auto-save match state
   if (!PM.matchOver) pmSaveMatch();
   else pmClearSavedMatch();
+}
+
+/// UX#8 — discard inspector modal. Player side renders the actual list
+/// of discarded play Card objects; CPU side reconstructs the per-battle
+/// play history from `battles[].cpuPlaysPlayed` since the engine
+/// doesn't carry a per-card CPU discard pile.
+function pmShowDiscardInspector(side /* 'player' | 'cpu' */) {
+  const existing = document.getElementById('pm-discard-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'pm-discard-overlay';
+  overlay.className = 'modal-overlay pm-modal-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', side === 'player' ? 'Your discard pile' : 'CPU plays used');
+
+  const cardRow = (card) => {
+    const cost = card.playCost;
+    const costHtml = (cost === 0)
+      ? `<span class="pm-di-row-cost pm-di-row-cost--free">FREE</span>`
+      : (cost != null ? `<span class="pm-di-row-cost">${cost} HD</span>` : '');
+    const bonusHtml = card.isBonusPlay
+      ? `<span class="pm-di-row-bonus">★ BONUS</span>` : '';
+    return `<div class="pm-di-row">
+      <div class="pm-di-row-name">${pmEscapeHTML(card.name || '')}</div>
+      <div class="pm-di-row-meta">${costHtml}${bonusHtml}</div>
+    </div>`;
+  };
+
+  let body;
+  if (side === 'player') {
+    const pile = PM.playerDiscard || [];
+    if (!pile.length) {
+      body = `<div class="pm-di-empty">No cards in discard yet</div>`;
+    } else {
+      body = `<div class="pm-di-header">${pile.length} PLAY${pile.length === 1 ? '' : 'S'} · MOST RECENT FIRST</div>
+        ${pile.slice().reverse().map(cardRow).join('')}`;
+    }
+  } else {
+    const battles = PM.battles || [];
+    const total = battles.reduce((acc, b) => acc + (b.cpuPlaysPlayed || b.cpuPlaysRan || []).length, 0);
+    if (!total) {
+      body = `<div class="pm-di-empty">CPU hasn't played any cards yet</div>`;
+    } else {
+      body = `<div class="pm-di-header">${total} PLAY${total === 1 ? '' : 'S'} USED · GROUPED BY BATTLE</div>`;
+      battles.forEach(b => {
+        const plays = b.cpuPlaysPlayed || b.cpuPlaysRan || [];
+        if (!plays.length) return;
+        body += `<div class="pm-di-battle-label">BATTLE ${b.id + 1}</div>`;
+        body += plays.map(cardRow).join('');
+      });
+    }
+  }
+
+  overlay.innerHTML = `
+    <div class="pm-discard-inspector">
+      <div class="pm-di-titlebar">
+        <h2>${side === 'player' ? 'Your Discard Pile' : 'CPU Plays Used'}</h2>
+        <button class="pm-di-close" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="pm-di-body">${body}</div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelector('.pm-di-close')?.addEventListener('click', () => overlay.remove());
+  document.addEventListener('keydown', function escClose(ev) {
+    if (ev.key === 'Escape') {
+      overlay.remove();
+      document.removeEventListener('keydown', escClose);
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Rules-clarification helpers (§6.A — Recycle / Reload warning)
+
+function pmIsRecyclePlay(card) {
+  if (!card) return false;
+  const entry = pmGetPlayEntry(card);
+  if (!entry || !entry.effects) return false;
+  return entry.effects.some(s => s && (s.op === 'shuffle_from_discard_to_deck' || s.op === 'reclaim_used_play'));
+}
+
+function pmPlayerHasRestOfGameEffects() {
+  const persistents = (PM._persistents || []).some(p =>
+    p.owner === 'player' && (p.spec && p.spec.scope) === 'rest_of_game');
+  const transforms = (PM._weaponTransforms || []).some(t =>
+    t.owner === 'player' && t.scope === 'rest_of_game');
+  return persistents || transforms;
+}
+
+function pmPlayerRestOfGameEffectSummary() {
+  const labels = [];
+  for (const p of (PM._persistents || [])) {
+    if (p.owner !== 'player') continue;
+    if ((p.spec && p.spec.scope) !== 'rest_of_game') continue;
+    const lbl = PM._persistentSummaryLabel(p.spec, p.owner);
+    if (lbl) labels.push(lbl);
+  }
+  for (const t of (PM._weaponTransforms || [])) {
+    if (t.owner !== 'player' || t.scope !== 'rest_of_game') continue;
+    labels.push(PM._weaponTransformLabel(t));
+  }
+  return labels.join('\n• ');
+}
+
+/// Confirm modal for Recycle/Reload. Shows the active rest_of_game
+/// effects that will end if the user proceeds. Calls `onConfirm()`
+/// when the user accepts; closes silently on cancel.
+function pmConfirmRecycle(summary, onConfirm) {
+  const existing = document.getElementById('pm-recycle-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'pm-recycle-overlay';
+  overlay.className = 'modal-overlay pm-modal-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Confirm recycle');
+  overlay.innerHTML = `
+    <div class="pm-recycle-modal">
+      <h2>Recycle these plays?</h2>
+      <p>Picking plays back up from your discard ends any rest-of-game effects attached to them. Currently active:</p>
+      <ul class="pm-recycle-list">
+        ${summary.split('\n• ').filter(Boolean).map(line => `<li>${pmEscapeHTML(line)}</li>`).join('')}
+      </ul>
+      <div class="pm-recycle-actions">
+        <button class="pm-recycle-cancel" type="button">Cancel</button>
+        <button class="pm-recycle-go" type="button">Recycle</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.querySelector('.pm-recycle-cancel').addEventListener('click', close);
+  overlay.querySelector('.pm-recycle-go').addEventListener('click', () => {
+    close();
+    onConfirm();
+  });
+  document.addEventListener('keydown', function escClose(ev) {
+    if (ev.key === 'Escape') { close(); document.removeEventListener('keydown', escClose); }
+  });
+}
+
+function pmEscapeHTML(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+  ));
+}
+
+/// Re-render the active-effects pill strip from PM.activeEffectsForUI().
+/// Hidden when no effects are in scope.
+function pmUpdateActiveEffectsBanner() {
+  const el = document.getElementById('pm-active-effects');
+  if (!el) return;
+  const rows = (typeof PM.activeEffectsForUI === 'function') ? PM.activeEffectsForUI() : [];
+  if (!rows.length) { el.hidden = true; el.innerHTML = ''; return; }
+  el.hidden = false;
+  el.innerHTML = rows.map(r => {
+    const ownerClass = r.owner === 'player' ? 'pm-effect-pill--you' : 'pm-effect-pill--opp';
+    const iconHTML = r.icon === 'transform'
+      ? '<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>'
+      : '<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.6 6.62a5.5 5.5 0 0 0-7.78 0L12 7.83l-1.18-1.18a5.5 5.5 0 0 0-7.78 7.78L12 23.07l8.96-8.64a5.5 5.5 0 0 0-2.36-9.81z"/></svg>';
+    // UX#11 tick-down badge — rendered when remaining > 0.
+    const tickHTML = (r.remaining != null && r.remaining > 0)
+      ? `<span class="pm-effect-pill-tick">${r.remaining}</span>`
+      : '';
+    return `<span class="pm-effect-pill ${ownerClass}" style="--effect-color:${r.color}">${iconHTML}<span>${r.label}</span>${tickHTML}</span>`;
+  }).join('');
 }
 
 // ── Init (event listeners attached once per session) ────────────
@@ -4050,11 +4807,33 @@ function pmExitPlaymat() {
   if (view)  view.classList.remove('playmat-mode');
   if (setup) setup.hidden = false;
   if (mat)   mat.hidden = true;
+  // Body-level flag used by CSS to gate the portrait rotate hint; we
+  // only want that overlay while a match is actually running, not on
+  // the setup screen.
+  document.body.classList.remove('practice-active');
+  document.body.classList.remove('practice-rotate-dismissed');
   // Update resume button visibility
   const resumeBtn = $('btn-resume-practice');
   if (resumeBtn) resumeBtn.hidden = !pmLoadMatch();
   // Refresh saved-deck options in case user created new decks since last setup view
   pmPopulateSavedDeckOptions();
+}
+
+// Toggle body.practice-active so CSS reveals the portrait rotate hint
+// only while the playmat is the active surface. Called from the two
+// start paths (fresh start + resume) where setup hides + mat shows.
+function pmMarkPlaymatActive() {
+  document.body.classList.add('practice-active');
+  // Dismiss handler is wired once; reset on every new match so the
+  // hint reappears if a user goes back to portrait after dismissing.
+  document.body.classList.remove('practice-rotate-dismissed');
+  const dismiss = document.getElementById('practice-rotate-dismiss');
+  if (dismiss && !dismiss.dataset.wired) {
+    dismiss.addEventListener('click', () => {
+      document.body.classList.add('practice-rotate-dismissed');
+    });
+    dismiss.dataset.wired = '1';
+  }
 }
 
 // Show a popup for a play card so the user can read the effect before deciding to play
@@ -4109,6 +4888,20 @@ function pmShowPlayCardPopup(handIdx) {
     </div>`;
 
   popup.querySelector('.pm-play-popup-play').addEventListener('click', () => {
+    // Rules-clarification (handoff §6.A): warn before Recycle/Reload
+    // clear active rest_of_game effects.
+    const card = PM.playerPlayHand[handIdx];
+    if (pmIsRecyclePlay(card) && pmPlayerHasRestOfGameEffects()) {
+      const summary = pmPlayerRestOfGameEffectSummary();
+      pmConfirmRecycle(summary, () => {
+        if (PM.playerPlayCard(handIdx)) {
+          popup.remove();
+          pmUpdateAll();
+          if (PM.lastEffectResult) pmShowEffectToast(PM.lastEffectResult);
+        }
+      });
+      return;
+    }
     if (PM.playerPlayCard(handIdx)) {
       popup.remove();
       pmUpdateAll();
@@ -4449,6 +5242,10 @@ function pmInitPlaymat() {
     pmUpdateAll();
   });
 
+  // UX#8 — discard inspector triggers (player + CPU)
+  $('pm-discard-btn')?.addEventListener('click', () => pmShowDiscardInspector('player'));
+  $('pm-opp-plays-btn')?.addEventListener('click', () => pmShowDiscardInspector('cpu'));
+
   // Mode tabs inside playmat
   document.querySelectorAll('#practice-playmat .pm-mode-tab').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -4492,6 +5289,7 @@ function initPractice(allCards) {
     if (setup) setup.hidden = true;
     if (mat)   mat.hidden = false;
     view.classList.add('playmat-mode');
+    pmMarkPlaymatActive();
 
     pmInitPlaymat();
     pmUpdateAll();
@@ -4540,6 +5338,7 @@ function initPractice(allCards) {
     if (setup) setup.hidden = true;
     if (mat)   mat.hidden = false;
     view.classList.add('playmat-mode');
+    pmMarkPlaymatActive();
 
     pmInitPlaymat();
     pmUpdateAll();

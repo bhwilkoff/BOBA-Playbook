@@ -10,6 +10,9 @@ import SwiftUI
 struct PracticeTopBar: View {
     let store: PracticeStore
     let onExit: () -> Void
+    /// Tap-handler for the CPU play count chip — opens the discard
+    /// inspector. Optional so existing call sites stay valid.
+    var onInspectCpuDiscard: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 0) {
@@ -106,9 +109,16 @@ struct PracticeTopBar: View {
                             .foregroundStyle(Color(hex: "4CAF50"))
                     }
                     if store.mode.showPlays {
-                        Label("\(store.cpuPlaysRemaining)", systemImage: "rectangle.stack")
-                            .font(Design.Fonts.mono(9))
-                            .foregroundStyle(Design.Colors.bobaViolet)
+                        // Tap to inspect CPU's discard pile (UX#8).
+                        Button {
+                            onInspectCpuDiscard?()
+                        } label: {
+                            Label("\(store.cpuPlaysRemaining)", systemImage: "rectangle.stack")
+                                .font(Design.Fonts.mono(9))
+                                .foregroundStyle(Design.Colors.bobaViolet)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(onInspectCpuDiscard == nil)
                     }
                 }
                 .padding(.horizontal, 8)

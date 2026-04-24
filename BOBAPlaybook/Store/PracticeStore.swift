@@ -60,6 +60,12 @@ enum BattleResult: String, Codable {
 // MARK: - Battle Slot
 // ════════════════════════════════════════════════════════════════
 
+struct PowerContribution: Identifiable, Codable, Hashable {
+    var id: UUID = UUID()
+    let label: String
+    let delta: Int
+}
+
 struct BattleSlot: Identifiable, Codable {
     let id: Int   // 0-based battle index
     var playerCard: Card?
@@ -68,6 +74,14 @@ struct BattleSlot: Identifiable, Codable {
     var cpuPlayedCards: [Card] = []
     var playerEffectPower: Int = 0   // bonus from played play cards
     var cpuEffectPower: Int = 0
+    /// Auto-itemized power breakdown — each entry corresponds to one
+    /// modifier (a played card or an in-scope persistent firing) that
+    /// contributed to the side's effect power. Drives the Resolution
+    /// overlay so coaches can audit the math at a glance and never
+    /// hit the "wait, what did that +10 come from?" pain point that
+    /// the practice-battle UI handoff calls out at [00:17:08].
+    var playerBreakdown: [PowerContribution] = []
+    var cpuBreakdown: [PowerContribution] = []
     var playerFinalPower: Int = 0
     var cpuFinalPower: Int = 0
     var result: BattleResult?
@@ -187,6 +201,31 @@ final class PracticeStore {
     }
     var persistents: [PersistentEffect] = []
 
+    // MARK: - Weapon transforms (B.1 persistent_weapon_transform)
+    //
+    // Parallel state to `persistents` — when a persistent's effect is a
+    // `weapon_transform` op, we record it here instead of (or in addition
+    // to) the PersistentEffect list, so every weapon read can consult a
+    // simple flat array rather than re-walking the persistent specs.
+    //
+    // Precedence rule (matches audit §B.1): transforms apply in install
+    // order — later installs win on overlapping heroes. Scope respects
+    // the shared `isScopeActive` helper so transforms fall off the mat
+    // the same way any other persistent does.
+    struct WeaponTransform: Codable {
+        let owner: PlayExecContext.Side
+        let installedAt: Int
+        let scope: String
+        /// `all_heroes` | `self` | `opponent`
+        let target: String
+        /// When non-nil, only transforms heroes whose printed element
+        /// matches. Absent means "transform everything the target clause
+        /// covers, regardless of starting weapon."
+        let from: String?
+        let to: String
+    }
+    var weaponTransforms: [WeaponTransform] = []
+
     // MARK: - Play-cost modifiers (from play_cost_delta op)
     struct CostMod: Codable {
         var delta: Int
@@ -238,25 +277,94 @@ final class PracticeStore {
     func isBlocked(_ side: PlayExecContext.Side, kind: String) -> Bool {
         let blocks = side == .player ? playerBlocks : cpuBlocks
         for b in blocks where b.kind == kind {
-            switch b.scope {
-            case "this_battle":
-                if currentBattle == b.installedAt { return true }
-            case "next_battle":
-                if currentBattle == b.installedAt + 1 { return true }
-            case "rest_of_game":
-                return true
-            default:
-                if currentBattle >= b.installedAt { return true }
-            }
+            if Self.isScopeActive(b.scope, installedAt: b.installedAt, at: currentBattle) { return true }
         }
         return false
     }
 
     private func purgeExpiredBlocks() {
-        playerBlocks.removeAll { $0.scope == "this_battle" && currentBattle > $0.installedAt }
-        playerBlocks.removeAll { $0.scope == "next_battle" && currentBattle > $0.installedAt + 1 }
-        cpuBlocks.removeAll    { $0.scope == "this_battle" && currentBattle > $0.installedAt }
-        cpuBlocks.removeAll    { $0.scope == "next_battle" && currentBattle > $0.installedAt + 1 }
+        playerBlocks.removeAll { !Self.isScopeActive($0.scope, installedAt: $0.installedAt, at: currentBattle)
+                                  && !Self.isScopeStillValidForFutureBattles($0.scope, installedAt: $0.installedAt, now: currentBattle) }
+        cpuBlocks.removeAll    { !Self.isScopeActive($0.scope, installedAt: $0.installedAt, at: currentBattle)
+                                  && !Self.isScopeStillValidForFutureBattles($0.scope, installedAt: $0.installedAt, now: currentBattle) }
+    }
+
+    // MARK: - Scope interpreter (shared by all persistent / block readers)
+    //
+    // Canonical vocabulary (matches Cowork's 2026-04-24 audit):
+    //   rest_of_game            — always true
+    //   this_battle             — battleIdx == installedAt
+    //   next_battle             — battleIdx == installedAt + 1
+    //   this_and_next           — battleIdx ∈ [installedAt, installedAt+1]
+    //   next_2_battles          — battleIdx ∈ (installedAt, installedAt+2]
+    //   next_N_battles  (any N) — battleIdx ∈ (installedAt, installedAt+N]  (N from spec["n"])
+    //   battle_1 … battle_7     — battleIdx == (N − 1)
+    //   battles_4_7             — battleIdx ∈ [3, 6]
+    //   until_opp_wins          — rest_of_game minus any battle after the opponent
+    //                             wins one (caller passes the actual flag; default true)
+    //   current                 — alias for this_battle (legacy, should be fixed
+    //                             in JSON by now but kept for safety)
+    //   prev_battle             — retrospective scope, never active as a forward
+    //                             effect; returns false so broken data stays silent
+    //                             rather than silently-wrong.
+    //
+    // Unknown scopes return false — that's a "silent no-op" safety net for any
+    // new scope authored in the JSON before the host learns to read it.
+    static func isScopeActive(
+        _ scope: String?,
+        installedAt: Int,
+        at battleIdx: Int,
+        spec: [String: Any]? = nil
+    ) -> Bool {
+        guard let scope else { return false }
+        switch scope {
+        case "rest_of_game":   return true
+        case "this_battle":    return battleIdx == installedAt
+        case "current":        return battleIdx == installedAt            // legacy alias
+        case "next_battle":    return battleIdx == installedAt + 1
+        case "this_and_next":  return battleIdx >= installedAt && battleIdx <= installedAt + 1
+        case "next_2_battles": return battleIdx > installedAt && battleIdx <= installedAt + 2
+        case "battles_4_7":    return battleIdx >= 3 && battleIdx <= 6
+        case "next_N_battles":
+            let n = (spec?["n"] as? Int) ?? 1
+            return battleIdx > installedAt && battleIdx <= installedAt + n
+        case "prev_battle":    return false   // never active going forward
+        default:
+            // battle_1 … battle_7 literal
+            if scope.hasPrefix("battle_"),
+               let n = Int(scope.dropFirst("battle_".count)),
+               n >= 1, n <= 7 {
+                return battleIdx == (n - 1)
+            }
+            return false
+        }
+    }
+
+    /// Block-reaper predicate. Returns true when a block should be KEPT even
+    /// though it isn't active this battle — e.g. `rest_of_game` blocks always
+    /// stay; `next_battle` stays until currentBattle passes installedAt+1.
+    /// Used only by `purgeExpiredBlocks`.
+    static func isScopeStillValidForFutureBattles(
+        _ scope: String?,
+        installedAt: Int,
+        now: Int
+    ) -> Bool {
+        guard let scope else { return false }
+        switch scope {
+        case "rest_of_game":   return true
+        case "this_battle":    return now <= installedAt
+        case "current":        return now <= installedAt
+        case "next_battle":    return now <= installedAt + 1
+        case "this_and_next":  return now <= installedAt + 1
+        case "next_2_battles": return now <= installedAt + 2
+        case "battles_4_7":    return now <= 6
+        default:
+            if scope.hasPrefix("battle_"),
+               let n = Int(scope.dropFirst("battle_".count)) {
+                return now <= (n - 1)
+            }
+            return false
+        }
     }
 
     /// Effective play cost for `card` on `side`. Pass `consume: true` only when
@@ -321,8 +429,20 @@ final class PracticeStore {
             }
         }
         if out.discardHandAll && actingSide == .player {
-            playerPlayDiscard.append(contentsOf: playerHand)
-            playerHand = []
+            // B.12 — kind: "hero" filters to heroes-from-hand only.
+            // Heroes-in-hand currently live in playerHand alongside
+            // plays — strip and discard those, leaving plays untouched.
+            switch out.discardHandAllKind {
+            case "hero":
+                let heroes = playerHand.filter { $0.cardType == "Hero" }
+                if !heroes.isEmpty {
+                    playerPlayDiscard.append(contentsOf: heroes)
+                    playerHand.removeAll { $0.cardType == "Hero" }
+                }
+            default:
+                playerPlayDiscard.append(contentsOf: playerHand)
+                playerHand = []
+            }
         }
         if out.reclaimUsedPlayCount > 0 && actingSide == .player {
             let n = min(out.reclaimUsedPlayCount, playerPlayDiscard.count)
@@ -555,14 +675,22 @@ final class PracticeStore {
             break // already applied inline
 
         case .cancelPersistents(let target):
-            // Decide which persistents to cancel
-            let victims: [PersistentEffect] = {
+            // Rules-clarification (handoff §6.D): Pull The Plug only
+            // cancels `rest_of_game` effects. Scope-limited effects
+            // (next_battle, this_and_next, etc.) survive and continue
+            // to tick down. We split persistents accordingly so the
+            // post-fire callout can show the user exactly what was
+            // hit and what stuck around.
+            let inTargetGroup: (PersistentEffect) -> Bool = { p in
                 switch target {
-                case "self":     return persistents.filter { $0.owner == actingSide }
-                case "opponent": return persistents.filter { $0.owner != actingSide }
-                default:         return persistents  // "both"
+                case "self":     return p.owner == actingSide
+                case "opponent": return p.owner != actingSide
+                default:         return true
                 }
-            }()
+            }
+            let candidates = persistents.filter(inTargetGroup)
+            let victims  = candidates.filter { ($0.spec["scope"] as? String) == "rest_of_game" }
+            let survived = candidates.filter { ($0.spec["scope"] as? String) != "rest_of_game" }
             // Rewind their deltas that already hit the CURRENT battle
             if battles.indices.contains(currentBattle) {
                 var slot = battles[currentBattle]
@@ -572,19 +700,51 @@ final class PracticeStore {
                 }
                 battles[currentBattle] = slot
             }
-            let before = persistents.count
-            switch target {
-            case "self":
-                persistents.removeAll { $0.owner == actingSide }
-            case "opponent":
-                persistents.removeAll { $0.owner != actingSide }
-            default: // "both"
-                persistents.removeAll()
+            // Remove ONLY the rest_of_game victims; survivors stay in
+            // place to keep ticking down on their own schedule.
+            let victimIds = Set(victims.map { ObjectIdentifier($0) })
+            persistents.removeAll { victimIds.contains(ObjectIdentifier($0)) }
+            // Also clean weapon transforms with rest_of_game scope
+            // owned by the targeted side(s) — they're effectively
+            // persistents too.
+            let weaponVictims = weaponTransforms.filter { t in
+                let sideMatch: Bool = {
+                    switch target {
+                    case "self":     return t.owner == actingSide
+                    case "opponent": return t.owner != actingSide
+                    default:         return true
+                    }
+                }()
+                return sideMatch && t.scope == "rest_of_game"
             }
-            let removed = before - persistents.count
-            if removed > 0 {
+            weaponTransforms.removeAll { t in
+                weaponVictims.contains(where: { $0.installedAt == t.installedAt && $0.to == t.to && $0.target == t.target })
+            }
+            // Build the user-facing summary — names of cancelled +
+            // names of survived. Strict labels per the audit's "two-
+            // column list" call-out (§6.D).
+            let victimLabels: [String] = victims.compactMap { p in
+                persistentSummaryLabel(spec: p.spec, owner: p.owner)
+            } + weaponVictims.map { weaponTransformLabel(target: $0.target, from: $0.from, to: $0.to, scope: $0.scope) }
+            let survivorLabels: [String] = survived.compactMap { p in
+                persistentSummaryLabel(spec: p.spec, owner: p.owner)
+            }
+            if !victimLabels.isEmpty || !survivorLabels.isEmpty {
+                var lines: [String] = []
+                if !victimLabels.isEmpty {
+                    lines.append("CANCELLED:\n  • " + victimLabels.joined(separator: "\n  • "))
+                }
+                if !survivorLabels.isEmpty {
+                    lines.append("UNCHANGED (scope-limited):\n  • " + survivorLabels.joined(separator: "\n  • "))
+                }
                 callouts.append(ActionCallout(
-                    message: "Canceled \(removed) persistent effect\(removed == 1 ? "" : "s") (rewound current battle)",
+                    message: lines.joined(separator: "\n\n"),
+                    icon: "bolt.slash.fill",
+                    color: "FF4D00"
+                ))
+            } else {
+                callouts.append(ActionCallout(
+                    message: "Pull The Plug — no rest-of-game effects to cancel.",
                     icon: "bolt.slash.fill",
                     color: "FF4D00"
                 ))
@@ -754,7 +914,7 @@ final class PracticeStore {
             }
 
         case .installPersistent(let owner, let spec):
-            persistents.append(PersistentEffect(owner: owner, spec: spec, installedAt: currentBattle))
+            installPersistent(owner: owner, spec: spec)
 
         case .installBlock(let side, let kind, let scope):
             let entry = BlockEntry(kind: kind, scope: scope, installedAt: currentBattle)
@@ -846,6 +1006,7 @@ final class PracticeStore {
         Self.deleteSavedMatch()
         PlayEffects.loadIfNeeded()
         persistents = []
+        weaponTransforms = []
         playerCostMods = []
         cpuCostMods = []
         playerBlocks = []
@@ -1031,6 +1192,18 @@ final class PracticeStore {
             // Apply the effect now as user sees it
             battles[currentBattle].cpuEffectPower += play.cpuDelta
             battles[currentBattle].playerEffectPower += play.playerDelta
+            // UX#3 — log itemized contributions. Use the callout's
+            // card name when available; otherwise fall back to the
+            // callout message ("CPU plays Combo Deal").
+            let label = play.card?.name ?? play.message
+            if play.cpuDelta != 0 {
+                battles[currentBattle].cpuBreakdown.append(
+                    .init(label: label, delta: play.cpuDelta))
+            }
+            if play.playerDelta != 0 {
+                battles[currentBattle].playerBreakdown.append(
+                    .init(label: "\(label) (CPU played)", delta: play.playerDelta))
+            }
         }
         if cpuPlayQueue.isEmpty {
             currentCpuPlay = nil
@@ -1101,11 +1274,32 @@ final class PracticeStore {
 
     // MARK: - Play Card (Player)
 
+    /// Card the player tapped Play on but hasn't confirmed yet — non-nil
+    /// while the Recycle warning is up. View binds an alert to this so
+    /// the play happens only after explicit confirmation.
+    var pendingRecycleCard: Card? = nil
+
+    /// Friendly summary of rest_of_game effects (per-side) the user is
+    /// about to risk losing. Cached when the warning fires so the alert
+    /// can show the list without re-walking persistents.
+    var pendingRecycleVictimSummary: String = ""
+
     func playerPlayCard(_ card: Card) {
         guard phase == .play, playerHand.contains(card) else { return }
         guard !isBlocked(.player, kind: "block_plays") else { return }
         guard effectiveCost(for: card, side: .player) <= playerHotDogs else { return }
         guard PlayEffects.isPlayable(name: card.name, ctx: makeExecContext(self_: .player)) else { return }
+
+        // Rules-clarification (handoff §6.A): Recycle / Reload pull
+        // plays from the discard back into the playbook/hand. Per the
+        // physical-game ruling, rest-of-game effects attached to those
+        // plays end. Surface a confirm alert when the user is about to
+        // play a recycler AND has rest-of-game effects in force.
+        if pendingRecycleCard == nil, isRecyclePlay(card), playerHasRestOfGameEffects() {
+            pendingRecycleVictimSummary = playerRestOfGameEffectSummary()
+            pendingRecycleCard = card
+            return
+        }
         let cost = effectiveCost(for: card, side: .player, consume: true)
 
         lastEffectCallout = nil
@@ -1125,24 +1319,10 @@ final class PracticeStore {
             if out.hasEffect {
                 playerDelta = out.selfDelta
                 cpuDelta = out.oppDelta
-                if out.selfHDDelta > 0 {
-                    if !isBlocked(.player, kind: "block_hd_recover") {
-                        playerHotDogs = min(10, playerHotDogs + out.selfHDDelta)
-                    }
-                } else if out.selfHDDelta < 0 {
-                    playerHotDogs = max(0, playerHotDogs + out.selfHDDelta)
-                }
-                if out.oppHDDelta > 0 {
-                    if !isBlocked(.cpu, kind: "block_hd_recover") {
-                        cpuHotDogs = min(10, cpuHotDogs + out.oppHDDelta)
-                    }
-                } else if out.oppHDDelta < 0 {
-                    cpuHotDogs = max(0, cpuHotDogs + out.oppHDDelta)
-                }
+                applyHDRecover(side: .player, amount: out.selfHDDelta)
+                applyHDRecover(side: .cpu,    amount: out.oppHDDelta)
                 if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
-                    for p in persistent {
-                        persistents.append(PersistentEffect(owner: .player, spec: p, installedAt: currentBattle))
-                    }
+                    for p in persistent { installPersistent(owner: .player, spec: p) }
                 }
                 let notes = applyIntents(out, actingSide: .player)
                 // Accumulate notifications for later display
@@ -1160,6 +1340,18 @@ final class PracticeStore {
 
         battles[currentBattle].playerEffectPower += playerDelta
         battles[currentBattle].cpuEffectPower += cpuDelta
+        // UX#3 — record per-modifier breakdown so the Resolution
+        // overlay can itemize the math instead of showing a single
+        // +N total. Each play that produced a delta becomes its own
+        // line item; persistents add their own entries when they fire.
+        if playerDelta != 0 {
+            battles[currentBattle].playerBreakdown.append(
+                .init(label: card.name, delta: playerDelta))
+        }
+        if cpuDelta != 0 {
+            battles[currentBattle].cpuBreakdown.append(
+                .init(label: "\(card.name) (you played)", delta: cpuDelta))
+        }
 
         // Handle shuffle/draw effects (legacy — still useful for cards where structured
         // path didn't produce draws)
@@ -1385,24 +1577,10 @@ final class PracticeStore {
                     // CPU's "self" is cpu; map out.selfDelta → cpuDelta, out.oppDelta → playerDelta
                     cpuDelta = out.selfDelta
                     playerDelta = out.oppDelta
-                    if out.selfHDDelta > 0 {
-                        if !isBlocked(.cpu, kind: "block_hd_recover") {
-                            cpuHotDogs = min(10, cpuHotDogs + out.selfHDDelta)
-                        }
-                    } else if out.selfHDDelta < 0 {
-                        cpuHotDogs = max(0, cpuHotDogs + out.selfHDDelta)
-                    }
-                    if out.oppHDDelta > 0 {
-                        if !isBlocked(.player, kind: "block_hd_recover") {
-                            playerHotDogs = min(10, playerHotDogs + out.oppHDDelta)
-                        }
-                    } else if out.oppHDDelta < 0 {
-                        playerHotDogs = max(0, playerHotDogs + out.oppHDDelta)
-                    }
+                    applyHDRecover(side: .cpu,    amount: out.selfHDDelta)
+                    applyHDRecover(side: .player, amount: out.oppHDDelta)
                     if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
-                        for p in persistent {
-                            persistents.append(PersistentEffect(owner: .cpu, spec: p, installedAt: currentBattle))
-                        }
+                        for p in persistent { installPersistent(owner: .cpu, spec: p) }
                     }
                     let notes = applyIntents(out, actingSide: .cpu)
                     cpuLastPlayNotes = notes
@@ -1442,13 +1620,75 @@ final class PracticeStore {
         }
     }
 
+    // MARK: - Recycle-warning helpers (§6.A rules clarification)
+
+    /// True when the play has any op that pulls cards back from the
+    /// discard pile into the active deck/hand. Recycle, Reload, and
+    /// Return from the Depths all qualify.
+    private func isRecyclePlay(_ card: Card) -> Bool {
+        guard let entry = PlayEffects.entry(for: card.name),
+              let effects = entry["effects"] as? [[String: Any]] else { return false }
+        return effects.contains { step in
+            let op = step["op"] as? String
+            return op == "shuffle_from_discard_to_deck"
+                || op == "reclaim_used_play"
+        }
+    }
+
+    private func playerHasRestOfGameEffects() -> Bool {
+        let persistentHit = persistents.contains { p in
+            p.owner == .player && (p.spec["scope"] as? String) == "rest_of_game"
+        }
+        let weaponHit = weaponTransforms.contains { t in
+            t.owner == .player && t.scope == "rest_of_game"
+        }
+        return persistentHit || weaponHit
+    }
+
+    private func playerRestOfGameEffectSummary() -> String {
+        var labels: [String] = []
+        for p in persistents where p.owner == .player && (p.spec["scope"] as? String) == "rest_of_game" {
+            if let label = persistentSummaryLabel(spec: p.spec, owner: .player) {
+                labels.append(label)
+            }
+        }
+        for t in weaponTransforms where t.owner == .player && t.scope == "rest_of_game" {
+            labels.append(weaponTransformLabel(target: t.target, from: t.from, to: t.to, scope: t.scope))
+        }
+        return labels.joined(separator: "\n• ")
+    }
+
+    /// Called by the view when the user confirms the Recycle warning.
+    /// Clears the pending state and re-enters playerPlayCard, this
+    /// time bypassing the confirmation gate.
+    func confirmPendingRecycle() {
+        guard let card = pendingRecycleCard else { return }
+        pendingRecycleCard = nil
+        pendingRecycleVictimSummary = ""
+        playerPlayCard(card)
+    }
+
+    /// Called when the user backs out of the Recycle confirmation.
+    func cancelPendingRecycle() {
+        pendingRecycleCard = nil
+        pendingRecycleVictimSummary = ""
+    }
+
     private func drawPlayCard() {
         guard mode.showPlays else { return }
         guard !isBlocked(.player, kind: "block_draw") else { return }
-        // Reshuffle discard into deck if deck is empty
+        // UX#9 — auto-reshuffle when the playbook deck is empty.
+        // Surface the reshuffle as a callout so the user sees it
+        // happen rather than wondering where the new cards came from.
         if playerPlayDeck.isEmpty && !playerPlayDiscard.isEmpty {
+            let count = playerPlayDiscard.count
             playerPlayDeck = playerPlayDiscard.shuffled()
             playerPlayDiscard = []
+            cpuCallouts.append(ActionCallout(
+                message: "Playbook reshuffled · \(count) cards back into deck",
+                icon: "arrow.triangle.2.circlepath.circle.fill",
+                color: "00F5FF"
+            ))
         }
         if let drawn = playerPlayDeck.first {
             playerPlayDeck.removeFirst()
@@ -1464,6 +1704,13 @@ final class PracticeStore {
 
     private func resolveCurrentBattle() {
         guard battles.indices.contains(currentBattle) else { return }
+
+        // B.2 — fire on_plays_resolved persistents before we decide the
+        // winner. Their power/hd deltas feed back into slot.*EffectPower
+        // so conditional end-of-turn boosts (Steel Resolve, Baby Phoenix)
+        // can actually sway the outcome of the battle they fire in.
+        firePersistentTriggers(trigger: "on_plays_resolved")
+
         var slot = battles[currentBattle]
 
         // Transform-to-hot-dog: active hero's base power treated as 0
@@ -1474,6 +1721,21 @@ final class PracticeStore {
 
         slot.playerFinalPower = playerPower
         slot.cpuFinalPower    = cpuPower
+
+        // B.8 check — Ultimatum Dog: `auto_lose_battle` intent forces the
+        // zero-HD side to lose regardless of power. Checked here so it
+        // supersedes the normal compare + the SUPER tiebreaker.
+        if let forcedLoser = sideForcedToLoseForZeroHD() {
+            if forcedLoser == .player {
+                slot.result = .lose; cpuScore += 1; honors = .cpu
+            } else {
+                slot.result = .win; playerScore += 1; honors = .player
+            }
+            battles[currentBattle] = slot
+            firePersistentTriggers(trigger: slot.result == .win ? "on_battle_win" : "on_battle_loss")
+            checkMatchOver()
+            return
+        }
 
         if playerPower > cpuPower {
             slot.result = .win
@@ -1487,8 +1749,12 @@ final class PracticeStore {
             // Tie — SUPER weapon type wins ONLY in Playmaker mode (§4.3.2 Super Tie Breaker)
             // Rookie/Substitution: tied power = draw, no trophy (§4.1.2, §4.2.2)
             if mode == .playmaker {
-                let playerIsSuper = slot.playerCard?.element == "SUPER"
-                let cpuIsSuper    = slot.cpuCard?.element == "SUPER"
+                // Resolve weapon through the transform layer so `Only
+                // Fire` + a SUPER-printed hero reads as FIRE here.
+                let playerCtx = makeExecContext(self_: .player)
+                let cpuCtx    = makeExecContext(self_: .cpu)
+                let playerIsSuper = playerCtx.weapon(of: slot.playerCard, as: .player) == "SUPER"
+                let cpuIsSuper    = cpuCtx.weapon(of: slot.cpuCard,       as: .cpu)    == "SUPER"
                 if playerIsSuper && !cpuIsSuper {
                     slot.result = .win; playerScore += 1; honors = .player
                 } else if cpuIsSuper && !playerIsSuper {
@@ -1502,7 +1768,149 @@ final class PracticeStore {
         }
 
         battles[currentBattle] = slot
+
+        // B.4 — battle resolution triggers. on_battle_win fires for the
+        // winning side's persistents; on_battle_loss for the losing
+        // side's. Ties skip both. Effects applied here can install
+        // next-battle persistents, discard plays, recover HDs, etc.
+        switch slot.result {
+        case .win:
+            firePersistentTriggers(trigger: "on_battle_win",  winner: .player)
+            firePersistentTriggers(trigger: "on_battle_loss", winner: .player)
+        case .lose:
+            firePersistentTriggers(trigger: "on_battle_win",  winner: .cpu)
+            firePersistentTriggers(trigger: "on_battle_loss", winner: .cpu)
+        case .tie, .none:
+            break
+        }
+
         checkMatchOver()
+    }
+
+    // MARK: - Persistent-trigger firings (B.2, B.4, B.8)
+    //
+    // One dispatch point for every non-continuous trigger. Matches
+    // persistents whose scope is active at this battle AND whose
+    // `trigger` string equals the requested event. `winner` is used
+    // for on_battle_win / on_battle_loss to filter to the right
+    // owner; other triggers ignore it.
+    private func firePersistentTriggers(trigger: String, winner: PlayExecContext.Side? = nil) {
+        guard battles.indices.contains(currentBattle) else { return }
+        var slot = battles[currentBattle]
+        for inst in persistents {
+            let persistentTrigger = inst.spec["trigger"] as? String
+            guard persistentTrigger == trigger else { continue }
+            let scope = inst.spec["scope"] as? String
+            guard Self.isScopeActive(scope, installedAt: inst.installedAt,
+                                     at: currentBattle, spec: inst.spec) else { continue }
+
+            // on_battle_win / on_battle_loss filter to the right owner.
+            if trigger == "on_battle_win", winner != nil, inst.owner != winner { continue }
+            if trigger == "on_battle_loss", winner != nil, inst.owner == winner { continue }
+
+            guard let eff = inst.spec["effect"] as? [String: Any] else { continue }
+            let ctx = makeExecContext(self_: inst.owner)
+            var out = PlayExecOut()
+            PlayEffectExecutor.execStep(eff, ctx: ctx, out: &out)
+
+            // Feed power deltas back into this battle's slot so
+            // on_plays_resolved boosts can change the verdict.
+            let playerDelta: Int
+            let cpuDelta: Int
+            if inst.owner == .player {
+                playerDelta = out.selfDelta
+                cpuDelta = out.oppDelta
+            } else {
+                cpuDelta = out.selfDelta
+                playerDelta = out.oppDelta
+            }
+            slot.playerEffectPower += playerDelta
+            slot.cpuEffectPower    += cpuDelta
+            inst.appliedAtBattle    = currentBattle
+            inst.appliedPlayerDelta += playerDelta
+            inst.appliedCpuDelta    += cpuDelta
+            // UX#3 — record itemized contribution for the Resolution
+            // overlay. Label uses the trigger so coaches can see "End-
+            // of-turn: Steel Resolve" rather than a bare delta.
+            let triggerLabel = trigger == "on_plays_resolved" ? "End-of-turn"
+                              : trigger == "on_battle_win"    ? "Win trigger"
+                              : trigger == "on_battle_loss"   ? "Loss trigger"
+                              : trigger == "on_battle_start"  ? "Battle start"
+                              : "Trigger"
+            if playerDelta != 0 {
+                slot.playerBreakdown.append(.init(label: triggerLabel, delta: playerDelta))
+            }
+            if cpuDelta != 0 {
+                slot.cpuBreakdown.append(.init(label: triggerLabel, delta: cpuDelta))
+            }
+
+            // Apply any structured intents (install next-battle
+            // persistent, discard hand, recover HDs, etc.) exactly
+            // like a normal play would.
+            _ = applyIntents(out, actingSide: inst.owner)
+
+            // Surface trigger firings to the user — without this,
+            // on_battle_win / on_plays_resolved / on_battle_start
+            // boosts feel like the game changed numbers for no
+            // reason. Compose a callout with whatever delta or note
+            // applied so the player can connect cause to effect.
+            var message = ""
+            if playerDelta != 0 || cpuDelta != 0 {
+                let recipientDelta = inst.owner == .player ? playerDelta : cpuDelta
+                let oppDeltaToOwner = inst.owner == .player ? cpuDelta : playerDelta
+                if recipientDelta != 0 {
+                    message += "\(inst.owner == .player ? "Your" : "CPU") Hero \(recipientDelta > 0 ? "+\(recipientDelta)" : "\(recipientDelta)")"
+                }
+                if oppDeltaToOwner != 0 {
+                    if !message.isEmpty { message += " · " }
+                    message += "\(inst.owner == .player ? "CPU" : "Your") Hero \(oppDeltaToOwner > 0 ? "+\(oppDeltaToOwner)" : "\(oppDeltaToOwner)")"
+                }
+            }
+            if !out.notifications.isEmpty {
+                if !message.isEmpty { message += " — " }
+                message += out.notifications.joined(separator: ", ")
+            }
+            if !message.isEmpty {
+                let prefix = trigger == "on_battle_win"     ? "Win trigger"
+                           : trigger == "on_battle_loss"    ? "Loss trigger"
+                           : trigger == "on_plays_resolved" ? "End-of-turn"
+                           : trigger == "on_battle_start"   ? "Battle start"
+                           : "Trigger"
+                cpuCallouts.append(ActionCallout(
+                    message: "\(prefix): \(message)",
+                    icon: "bolt.fill",
+                    color: "FFD166"
+                ))
+            }
+        }
+        battles[currentBattle] = slot
+    }
+
+    /// B.8 Ultimatum Dog: if an `auto_lose_battle` persistent is active
+    /// with `target: "any_with_zero_hd"`, return the side (if any) that
+    /// has zero HDs at end-of-turn. Both sides at zero → the owner's
+    /// opponent is forced to lose (conservative reading).
+    private func sideForcedToLoseForZeroHD() -> PlayExecContext.Side? {
+        for inst in persistents {
+            guard (inst.spec["trigger"] as? String) == "on_turn_end",
+                  let eff = inst.spec["effect"] as? [String: Any],
+                  (eff["op"] as? String) == "auto_lose_battle",
+                  Self.isScopeActive(inst.spec["scope"] as? String,
+                                     installedAt: inst.installedAt,
+                                     at: currentBattle, spec: inst.spec)
+            else { continue }
+            let target = (eff["target"] as? String) ?? "any_with_zero_hd"
+            guard target == "any_with_zero_hd" else { continue }
+            let playerZero = playerHotDogs == 0
+            let cpuZero    = cpuHotDogs    == 0
+            if playerZero && !cpuZero { return .player }
+            if cpuZero    && !playerZero { return .cpu }
+            if playerZero && cpuZero {
+                // Both zero — the opponent of the persistent's owner loses.
+                return inst.owner == .player ? .cpu : .player
+            }
+        }
+        return nil
     }
 
     private func checkMatchOver() {
@@ -1539,6 +1947,12 @@ final class PracticeStore {
         }
         // Purge expired blocks
         purgeExpiredBlocks()
+
+        // B.9 — fire on_battle_start triggers for any persistent
+        // whose scope matches this battle (e.g. Late Game Push reveals
+        // its hd_recover at the start of Battle 7). Runs BEFORE the
+        // marked_battle on_reveal pass so effects can layer.
+        firePersistentTriggers(trigger: "on_battle_start")
 
         // Fire marked_battle on_reveal effects for this battle
         let fires = markedBattles.filter { $0.battleIdx == currentBattle }
@@ -1594,6 +2008,21 @@ final class PracticeStore {
 
         let playsUsed = selfIsPlayer ? slot.playerPlayedCards.count : slot.cpuPlayedCards.count
 
+        // Snapshot in-scope weapon transforms into the context so every
+        // condition eval reads through the same view. We pass dicts to
+        // keep PlayEffects.swift free of PracticeStore types.
+        let transformSnapshot: [[String: Any]] = weaponTransforms.compactMap { t in
+            guard Self.isScopeActive(t.scope, installedAt: t.installedAt, at: currentBattle)
+            else { return nil }
+            var d: [String: Any] = [
+                "owner":  t.owner == .player ? "player" : "cpu",
+                "target": t.target,
+                "to":     t.to,
+            ]
+            if let from = t.from, !from.isEmpty { d["from"] = from }
+            return d
+        }
+
         return PlayExecContext(
             self_: self_,
             selfCard: selfCard, oppCard: oppCard,
@@ -1607,7 +2036,8 @@ final class PracticeStore {
             battleIdx: currentBattle,
             battlesRemaining: 7 - currentBattle,
             honors: honors == .player ? "player" : "cpu",
-            battles: battles
+            battles: battles,
+            weaponTransforms: transformSnapshot
         )
     }
 
@@ -1622,17 +2052,8 @@ final class PracticeStore {
             let scope = inst.spec["scope"] as? String
             let trigger = inst.spec["trigger"] as? String
             guard trigger == "continuous" || trigger == "battle_start" else { continue }
-            let inScope: Bool = {
-                switch scope {
-                case "rest_of_game":   return true
-                case "next_battle":    return battleIdx == inst.installedAt + 1
-                case "next_2_battles": return battleIdx > inst.installedAt && battleIdx <= inst.installedAt + 2
-                case "battle_7":       return battleIdx == 6
-                case "battles_4_7":    return battleIdx >= 3
-                case "this_battle":    return battleIdx == inst.installedAt
-                default:               return false
-                }
-            }()
+            let inScope = Self.isScopeActive(scope, installedAt: inst.installedAt,
+                                              at: battleIdx, spec: inst.spec)
             guard inScope, let eff = inst.spec["effect"] as? [String: Any] else { continue }
             // Evaluate the effect with a context rooted at the owner; translate to the asked side.
             var snapCtx = makeExecContext(self_: inst.owner)
@@ -1649,6 +2070,326 @@ final class PracticeStore {
         return total
     }
 
+    // MARK: - HD recover pipeline (B.5)
+    //
+    // Every positive HD change (recover) routes through this helper so
+    // persistent modifier blocks can interpose: redirect first (swap
+    // who the HDs go to), then cap (limit per-invocation amount), then
+    // delta (add/subtract from the amount), then block (drop the whole
+    // thing). A caller that passes `side: .cpu, amount: +3` may end up
+    // applying `+4` to `.player` if a redirect + delta are both active.
+    //
+    // Negative amounts (spend) bypass the pipeline entirely — those
+    // are deductions the player chose to make and the rules text
+    // doesn't contemplate blocking them here.
+    @discardableResult
+    func applyHDRecover(side: PlayExecContext.Side, amount: Int) -> Int {
+        if amount <= 0 {
+            if side == .player { playerHotDogs = max(0, playerHotDogs + amount) }
+            else               { cpuHotDogs    = max(0, cpuHotDogs    + amount) }
+            return amount
+        }
+        var actualSide = side
+        var actualAmount = amount
+
+        // 1. Redirect
+        for inst in persistents {
+            guard let eff = inst.spec["effect"] as? [String: Any],
+                  (eff["op"] as? String) == "redirect_hd_recover",
+                  Self.isScopeActive(inst.spec["scope"] as? String,
+                                     installedAt: inst.installedAt,
+                                     at: currentBattle, spec: inst.spec)
+            else { continue }
+            // `from` is the instigating side *relative to the inst
+            // owner*. If owner is .player and from is "opponent",
+            // redirect fires when `side == .cpu`.
+            let ownerSide = inst.owner
+            let fromStr = (eff["from"] as? String) ?? "opponent"
+            let toStr   = (eff["to"]   as? String) ?? "self"
+            let fromSide: PlayExecContext.Side = fromStr == "self"
+                ? ownerSide
+                : (ownerSide == .player ? .cpu : .player)
+            let toSide: PlayExecContext.Side = toStr == "self"
+                ? ownerSide
+                : (ownerSide == .player ? .cpu : .player)
+            if actualSide == fromSide { actualSide = toSide }
+        }
+
+        // 2. Cap + 3. Delta (applied in that order)
+        for inst in persistents {
+            guard let eff = inst.spec["effect"] as? [String: Any],
+                  (eff["op"] as? String) == "modify_hd_recover",
+                  Self.isScopeActive(inst.spec["scope"] as? String,
+                                     installedAt: inst.installedAt,
+                                     at: currentBattle, spec: inst.spec)
+            else { continue }
+            let targetStr = (eff["target"] as? String) ?? "both"
+            let applies: Bool
+            switch targetStr {
+            case "both": applies = true
+            case "self": applies = actualSide == inst.owner
+            default:     applies = actualSide != inst.owner
+            }
+            if !applies { continue }
+            if let cap = eff["cap"] as? Int { actualAmount = min(actualAmount, cap) }
+            if let d   = eff["delta"] as? Int { actualAmount += d }
+        }
+
+        // 4. Block
+        if isBlocked(actualSide, kind: "block_hd_recover") {
+            cpuCallouts.append(ActionCallout(
+                message: "\(actualSide == .player ? "You" : "CPU") blocked from HD recovery",
+                icon: "hand.raised.fill",
+                color: "C0392B"
+            ))
+            return 0
+        }
+        actualAmount = max(0, actualAmount)
+        if actualSide == .player { playerHotDogs = min(10, playerHotDogs + actualAmount) }
+        else                     { cpuHotDogs    = min(10, cpuHotDogs    + actualAmount) }
+
+        // Surface modifier-driven changes — only callout when the
+        // applied amount differs from what the play asked for, OR the
+        // recipient swapped. Keeps the banner quiet for vanilla
+        // recovers while loud for actually-modified ones.
+        if actualAmount != amount || actualSide != side {
+            let from = side == .player ? "You" : "CPU"
+            let to   = actualSide == .player ? "You" : "CPU"
+            let label: String
+            if actualSide != side {
+                label = "HD recovery redirected: \(from) → \(to) (+\(actualAmount))"
+            } else {
+                label = "HD recovery: \(to) +\(actualAmount) (modified from +\(amount))"
+            }
+            cpuCallouts.append(ActionCallout(
+                message: label,
+                icon: "arrow.triangle.swap",
+                color: "FFD166"
+            ))
+        }
+        return actualAmount
+    }
+
+    /// Central persistent-install entry point. Weapon-transform specs
+    /// (B.1) split into `weaponTransforms` instead of joining the main
+    /// persistents list — reads of `ctx.weapon(of:as:)` only consult
+    /// the transform array, keeping the hot-path condition eval cheap.
+    /// All other persistents fall through unchanged.
+    ///
+    /// Every install also pushes a callout into `cpuCallouts` so the
+    /// playmat surfaces what was just installed — without a callout the
+    /// user has no visual signal that a persistent is in force.
+    func installPersistent(owner: PlayExecContext.Side, spec: [String: Any]) {
+        if let effect = spec["effect"] as? [String: Any],
+           (effect["op"] as? String) == "weapon_transform" {
+            let scope = (spec["scope"] as? String) ?? "rest_of_game"
+            let target = (effect["target"] as? String) ?? "self"
+            let to = (effect["to"] as? String) ?? ""
+            guard !to.isEmpty else { return }
+            let from = effect["from"] as? String
+            weaponTransforms.append(WeaponTransform(
+                owner: owner,
+                installedAt: currentBattle,
+                scope: scope,
+                target: target,
+                from: from?.isEmpty == true ? nil : from,
+                to: to
+            ))
+            cpuCallouts.append(ActionCallout(
+                message: weaponTransformLabel(target: target, from: from, to: to, scope: scope),
+                icon: "arrow.triangle.2.circlepath",
+                color: "8B00FF"
+            ))
+            return
+        }
+        persistents.append(PersistentEffect(owner: owner, spec: spec, installedAt: currentBattle))
+        if let label = persistentSummaryLabel(spec: spec, owner: owner) {
+            cpuCallouts.append(ActionCallout(
+                message: label,
+                icon: "infinity",
+                color: "00F5FF"
+            ))
+        }
+    }
+
+    // MARK: - Active-effect summaries (UI surfacing)
+    //
+    // These power the on-mat persistent-effects banner. Returning
+    // `nil` from `persistentSummaryLabel` means the persistent is
+    // structural-only (no end-user signal needed).
+
+    private func weaponTransformLabel(target: String, from: String?, to: String, scope: String) -> String {
+        let scopeLabel = scopeDisplayLabel(scope)
+        switch target {
+        case "all_heroes":
+            return "All Heroes → \(to) weapons \(scopeLabel)"
+        case "self":
+            if let from = from, !from.isEmpty {
+                return "Your \(from) Heroes → \(to) weapons \(scopeLabel)"
+            }
+            return "Your Heroes → \(to) weapons \(scopeLabel)"
+        case "opponent":
+            return "Opponent's Heroes → \(to) weapons \(scopeLabel)"
+        default:
+            return "Weapon transform: → \(to) \(scopeLabel)"
+        }
+    }
+
+    private func persistentSummaryLabel(spec: [String: Any], owner: PlayExecContext.Side) -> String? {
+        guard let eff = spec["effect"] as? [String: Any] else { return nil }
+        let op = (eff["op"] as? String) ?? ""
+        let scope = scopeDisplayLabel(spec["scope"] as? String ?? "this_battle")
+        let who = owner == .player ? "You" : "CPU"
+        switch op {
+        case "modify_hd_recover":
+            if let cap = eff["cap"] as? Int { return "HD recovery capped at \(cap) \(scope)" }
+            if let d = eff["delta"] as? Int { return "HD recovery \(d > 0 ? "+\(d)" : "\(d)") \(scope)" }
+            return "HD recovery modifier active \(scope)"
+        case "redirect_hd_recover":
+            return "\(who): redirect HD recovery \(scope)"
+        case "block_hd_recover":
+            let target = (eff["target"] as? String) ?? "self"
+            switch target {
+            case "both":     return "Neither side recovers HDs \(scope)"
+            case "opponent": return "Opponent can't recover HDs \(scope)"
+            default:         return "\(who) can't recover HDs \(scope)"
+            }
+        case "auto_lose_battle":
+            return "Lose any battle with 0 HDs \(scope)"
+        case "require_dice_roll":
+            return "Opponent must roll dice to play \(scope)"
+        case "allow_hd_overspend":
+            let max = (eff["max_deficit"] as? Int) ?? 0
+            return "\(who) can overspend HDs by \(max) \(scope)"
+        case "power":
+            // Conditional/continuous boosts (Fire Boost, Steel Resolve).
+            if let delta = eff["delta"] as? Int {
+                let target = (eff["target"] as? String) ?? "self"
+                let recipient = target == "opponent"
+                    ? (owner == .player ? "CPU Hero" : "Your Hero")
+                    : (owner == .player ? "Your Hero" : "CPU Hero")
+                return "\(recipient) \(delta > 0 ? "+\(delta)" : "\(delta)") \(scope)"
+            }
+            return nil
+        default:
+            // Unmapped persistent effect — surface a generic banner so
+            // the user at least knows SOMETHING is in force, even if
+            // we don't have a specific label yet.
+            return "\(who) installed \(op.replacingOccurrences(of: "_", with: " ")) \(scope)"
+        }
+    }
+
+    /// Human-friendly suffix for any scope string.
+    func scopeDisplayLabel(_ scope: String?) -> String {
+        guard let s = scope else { return "" }
+        switch s {
+        case "rest_of_game":   return "(rest of game)"
+        case "this_battle":    return "(this battle)"
+        case "current":        return "(this battle)"
+        case "next_battle":    return "(next battle)"
+        case "this_and_next":  return "(this + next battle)"
+        case "next_2_battles": return "(next 2 battles)"
+        case "battles_4_7":    return "(battles 4–7)"
+        default:
+            if s.hasPrefix("battle_"),
+               let n = Int(s.dropFirst("battle_".count)) {
+                return "(battle \(n))"
+            }
+            if s == "next_N_battles" { return "(next N battles)" }
+            return ""
+        }
+    }
+
+    /// Effective weapon for a given Hero card seen from a particular
+    /// seat. Routes through the same transform stack the executor
+    /// uses, so what the user sees on the card matches what the rules
+    /// engine evaluates. Returns the printed element when no transform
+    /// applies; empty string for nil.
+    func effectiveWeapon(of card: Card?, side: PlayExecContext.Side) -> String {
+        guard let card else { return "" }
+        // makeExecContext snapshots in-scope transforms into the ctx,
+        // so this call is sufficient — no double-walk of the array.
+        let ctx = makeExecContext(self_: side)
+        return ctx.weapon(of: card, as: side)
+    }
+
+    /// True when the resolved weapon differs from the card's printed
+    /// element — i.e., a transform is currently active on this hero.
+    /// Used by the playmat to render the "transformed" indicator.
+    func isWeaponTransformed(card: Card?, side: PlayExecContext.Side) -> Bool {
+        guard let card else { return false }
+        return effectiveWeapon(of: card, side: side) != card.element
+    }
+
+    /// Public, ordered list of currently-active persistent + weapon
+    /// transforms with display info. The on-mat banner reads this and
+    /// re-renders on every store mutation. Filters out anything not in
+    /// scope so the banner shrinks as effects expire.
+    ///
+    /// `remaining` is the count of battles left for finite-scope
+    /// effects (this_battle = 1, next_2_battles = 2 freshly-installed
+    /// or 1 after a battle, etc.). Nil for `rest_of_game`. Drives the
+    /// tick-down badge UX#11 calls for.
+    var activeEffectsForUI: [(id: UUID, owner: PlayExecContext.Side, label: String, icon: String, color: String, remaining: Int?)] {
+        var rows: [(UUID, PlayExecContext.Side, String, String, String, Int?)] = []
+        for t in weaponTransforms where Self.isScopeActive(t.scope, installedAt: t.installedAt, at: currentBattle) {
+            rows.append((
+                UUID(),
+                t.owner,
+                weaponTransformLabel(target: t.target, from: t.from, to: t.to, scope: t.scope),
+                "arrow.triangle.2.circlepath",
+                "8B00FF",
+                Self.battlesRemaining(for: t.scope, installedAt: t.installedAt, at: currentBattle, spec: nil)
+            ))
+        }
+        for inst in persistents where Self.isScopeActive(inst.spec["scope"] as? String,
+                                                          installedAt: inst.installedAt,
+                                                          at: currentBattle, spec: inst.spec) {
+            if let label = persistentSummaryLabel(spec: inst.spec, owner: inst.owner) {
+                rows.append((
+                    UUID(),
+                    inst.owner,
+                    label,
+                    "infinity",
+                    "00F5FF",
+                    Self.battlesRemaining(for: inst.spec["scope"] as? String,
+                                          installedAt: inst.installedAt,
+                                          at: currentBattle,
+                                          spec: inst.spec)
+                ))
+            }
+        }
+        return rows
+    }
+
+    /// Battles left before the scope expires. Returns nil for unbounded
+    /// (rest_of_game) or unrecognized scopes. Used by the tick-down
+    /// badge so coaches see "3" or "1 left" on a persistent pill.
+    static func battlesRemaining(for scope: String?,
+                                  installedAt: Int,
+                                  at battleIdx: Int,
+                                  spec: [String: Any]?) -> Int? {
+        guard let scope else { return nil }
+        switch scope {
+        case "rest_of_game":   return nil
+        case "this_battle":    return battleIdx == installedAt ? 1 : 0
+        case "current":        return battleIdx == installedAt ? 1 : 0
+        case "next_battle":    return battleIdx == installedAt + 1 ? 1 : 0
+        case "this_and_next":  return max(0, (installedAt + 1) - battleIdx + 1)
+        case "next_2_battles": return max(0, (installedAt + 2) - battleIdx + 1)
+        case "battles_4_7":    return max(0, 6 - battleIdx + 1)
+        case "next_N_battles":
+            let n = (spec?["n"] as? Int) ?? 1
+            return max(0, (installedAt + n) - battleIdx + 1)
+        default:
+            if scope.hasPrefix("battle_"),
+               let n = Int(scope.dropFirst("battle_".count)) {
+                return battleIdx == n - 1 ? 1 : 0
+            }
+            return nil
+        }
+    }
+
     /// Apply continuous/battle-start persistents (Fire Boost, etc.) at reveal.
     func applyContinuousPersistents() {
         guard battles.indices.contains(currentBattle) else { return }
@@ -1656,17 +2397,8 @@ final class PracticeStore {
         for inst in persistents {
             let scope = inst.spec["scope"] as? String
             let trigger = inst.spec["trigger"] as? String
-            let inScope: Bool = {
-                switch scope {
-                case "rest_of_game":      return true
-                case "next_battle":       return currentBattle == inst.installedAt + 1
-                case "next_2_battles":    return currentBattle > inst.installedAt && currentBattle <= inst.installedAt + 2
-                case "battle_7":          return currentBattle == 6
-                case "battles_4_7":       return currentBattle >= 3
-                case "this_battle":       return currentBattle == inst.installedAt
-                default:                  return false
-                }
-            }()
+            let inScope = Self.isScopeActive(scope, installedAt: inst.installedAt,
+                                              at: currentBattle, spec: inst.spec)
             guard inScope else { continue }
             guard trigger == "continuous" || trigger == "battle_start" else { continue }
             guard let eff = inst.spec["effect"] as? [String: Any] else { continue }
@@ -1688,6 +2420,16 @@ final class PracticeStore {
             }
             slot.playerEffectPower += playerDelta
             slot.cpuEffectPower    += cpuDelta
+            // UX#3 — record itemized contribution. Pull a friendly
+            // label from the persistent's own summary helper.
+            let label = persistentSummaryLabel(spec: inst.spec, owner: inst.owner)
+                ?? "Persistent effect"
+            if playerDelta != 0 {
+                slot.playerBreakdown.append(.init(label: label, delta: playerDelta))
+            }
+            if cpuDelta != 0 {
+                slot.cpuBreakdown.append(.init(label: label, delta: cpuDelta))
+            }
 
             // Record applied deltas so cancel_persistent can rewind the
             // current battle if it fires later.

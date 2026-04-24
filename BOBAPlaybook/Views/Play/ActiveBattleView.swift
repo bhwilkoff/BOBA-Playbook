@@ -13,6 +13,13 @@ struct ActiveBattleView: View {
     let slot: BattleSlot
     let phase: BattlePhase
     let mode: PracticeMode
+    /// Resolved weapons for the player's + CPU's active hero, after
+    /// any persistent_weapon_transform has been applied. When these
+    /// differ from the printed card.element, the hero card's weapon
+    /// badge shows a "transformed" indicator so the user can see
+    /// at-a-glance that an effect is changing what their hero is.
+    var playerEffectiveWeapon: String = ""
+    var cpuEffectiveWeapon: String    = ""
 
     var body: some View {
         activeBattleBody.tutorialTarget(.activeBattle)
@@ -26,6 +33,16 @@ struct ActiveBattleView: View {
                 .foregroundStyle(Design.Colors.bobaOrange)
                 .padding(.top, Design.Spacing.sm)
 
+            // Power breakdown — appears once both sides have resolved
+            // their plays and the battle's outcome is locked. Itemizes
+            // every modifier that contributed to either side's effect
+            // power so coaches can audit the math instead of squinting
+            // at a +N badge. Hidden during the play phase to keep the
+            // arena uncluttered while plays are still happening.
+            if slot.result != nil {
+                powerBreakdownPanel
+            }
+
             GeometryReader { geo in
                 let cardH = geo.size.height - 28
                 HStack(spacing: 0) {
@@ -35,6 +52,7 @@ struct ActiveBattleView: View {
                         revealed: true,
                         isOpponent: false,
                         effectBonus: slot.playerEffectPower,
+                        effectiveWeapon: playerEffectiveWeapon,
                         height: cardH
                     )
                     .frame(maxWidth: .infinity)
@@ -49,6 +67,7 @@ struct ActiveBattleView: View {
                         revealed: slot.isRevealed,
                         isOpponent: true,
                         effectBonus: slot.cpuEffectPower,
+                        effectiveWeapon: cpuEffectiveWeapon,
                         height: cardH
                     )
                     .frame(maxWidth: .infinity)
@@ -86,7 +105,7 @@ struct ActiveBattleView: View {
 
     // MARK: - Hero Card
 
-    private func heroCard(card: Card?, revealed: Bool, isOpponent: Bool, effectBonus: Int, height: CGFloat) -> some View {
+    private func heroCard(card: Card?, revealed: Bool, isOpponent: Bool, effectBonus: Int, effectiveWeapon: String = "", height: CGFloat) -> some View {
         VStack(spacing: 4) {
             if let card = card {
                 ZStack(alignment: .bottom) {
@@ -123,11 +142,24 @@ struct ActiveBattleView: View {
                     .padding(.bottom, 6)
                 }
 
-                // Hero name
-                Text(card.hero.isEmpty ? card.name : card.hero)
-                    .font(Design.Fonts.mono(10, weight: .bold))
-                    .foregroundStyle(Design.Colors.textSecondary)
-                    .lineLimit(1)
+                // Hero name + weapon badge. Weapon resolves through
+                // the persistent_weapon_transform stack — when an
+                // effect like "Only Steel" is in force, the badge
+                // shows STEEL with a small ⟲ "transformed" marker so
+                // the user can see the change directly on the hero.
+                VStack(spacing: 2) {
+                    Text(card.hero.isEmpty ? card.name : card.hero)
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .lineLimit(1)
+                    weaponBadge(card: card, effective: effectiveWeapon)
+                }
+                // Plays-used-this-battle strip — players literally lose
+                // count of this in physical games (transcript [00:42:40])
+                // and Play Booster / 10 Per Play / No Huddle all pivot
+                // on it. Showing the strip live makes the math visible.
+                playsUsedStrip(plays: isOpponent ? slot.cpuPlayedCards : slot.playerPlayedCards,
+                               accent: isOpponent ? Color(hex: "8B00FF") : Design.Colors.bobaCyan)
             } else {
                 // Facedown card
                 RoundedRectangle(cornerRadius: 8)
@@ -152,6 +184,145 @@ struct ActiveBattleView: View {
     }
 
     // MARK: - Helpers
+
+    /// Side-by-side itemized power breakdown shown after a battle
+    /// resolves. Reads `slot.playerBreakdown` / `slot.cpuBreakdown` —
+    /// each contribution becomes its own line item with a +/- delta.
+    /// Foots to the same `*FinalPower` value the engine compared.
+    private var powerBreakdownPanel: some View {
+        HStack(alignment: .top, spacing: Design.Spacing.sm) {
+            powerBreakdownColumn(
+                title: "YOU",
+                base: slot.playerTransformedToHotDog ? 0 : (slot.playerCard?.power ?? 0),
+                contribs: slot.playerBreakdown,
+                final: slot.playerFinalPower,
+                won: slot.result == .win
+            )
+            powerBreakdownColumn(
+                title: "CPU",
+                base: slot.cpuTransformedToHotDog ? 0 : (slot.cpuCard?.power ?? 0),
+                contribs: slot.cpuBreakdown,
+                final: slot.cpuFinalPower,
+                won: slot.result == .lose
+            )
+        }
+        .padding(.horizontal, Design.Spacing.sm)
+    }
+
+    private func powerBreakdownColumn(title: String, base: Int, contribs: [PowerContribution], final: Int, won: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(Design.Fonts.mono(10, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+                .tracking(1.2)
+            HStack(spacing: 4) {
+                Text("Base")
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textMuted)
+                Spacer(minLength: 0)
+                Text("\(base)")
+                    .font(Design.Fonts.mono(12, weight: .bold))
+                    .foregroundStyle(Design.Colors.textPrimary)
+            }
+            ForEach(contribs) { c in
+                HStack(spacing: 4) {
+                    Text(c.label)
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                    Text(c.delta > 0 ? "+\(c.delta)" : "\(c.delta)")
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(c.delta > 0 ? Design.Colors.bobaCyan : Color(hex: "C0392B"))
+                }
+            }
+            Divider().background(Design.Colors.glassBorder).padding(.vertical, 1)
+            HStack(spacing: 4) {
+                Text("Total")
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(won ? Color(hex: "4CAF50") : Design.Colors.textSecondary)
+                Spacer(minLength: 0)
+                Text("\(final)")
+                    .font(Design.Fonts.mono(14, weight: .bold))
+                    .foregroundStyle(won ? Color(hex: "4CAF50") : Design.Colors.textPrimary)
+            }
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Design.Colors.surface.opacity(0.85))
+                .overlay(RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(won
+                        ? Color(hex: "4CAF50").opacity(0.5)
+                        : Design.Colors.glassBorder, lineWidth: 1))
+        )
+    }
+
+    /// Horizontal strip showing every play card used by this side
+    /// during the current battle. Each play renders as a small chip
+    /// with the play name; a running count appears at the leading
+    /// edge. Empty when no plays have been used yet.
+    @ViewBuilder
+    private func playsUsedStrip(plays: [Card], accent: Color) -> some View {
+        if plays.isEmpty {
+            EmptyView()
+        } else {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("\(plays.count) PLAY\(plays.count == 1 ? "" : "S") USED")
+                    .font(Design.Fonts.mono(9, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .tracking(1.0)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        ForEach(Array(plays.enumerated()), id: \.offset) { _, card in
+                            Text(card.name)
+                                .font(Design.Fonts.mono(10, weight: .bold))
+                                .foregroundStyle(accent)
+                                .lineLimit(1)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(
+                                    Capsule()
+                                        .fill(accent.opacity(0.14))
+                                        .overlay(Capsule().strokeBorder(accent.opacity(0.5), lineWidth: 0.75))
+                                )
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// Small weapon pill rendered under each hero. When `effective`
+    /// is non-empty AND differs from the card's printed element, the
+    /// pill shows the transformed weapon with a ⟲ icon so it reads
+    /// as "this hero's weapon is currently being changed."
+    private func weaponBadge(card: Card, effective: String) -> some View {
+        let printed = card.element
+        let display = effective.isEmpty ? printed : effective
+        let isTransformed = !effective.isEmpty && effective != printed
+        return HStack(spacing: 3) {
+            if isTransformed {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 8, weight: .bold))
+            }
+            Text(display)
+                .font(Design.Fonts.mono(9, weight: .bold))
+        }
+        .foregroundStyle(isTransformed ? Color(hex: "8B00FF") : Design.Colors.element(display))
+        .padding(.horizontal, 6)
+        .padding(.vertical, 1)
+        .background(
+            Capsule()
+                .fill((isTransformed ? Color(hex: "8B00FF") : Design.Colors.element(display)).opacity(0.15))
+                .overlay(Capsule().strokeBorder(
+                    (isTransformed ? Color(hex: "8B00FF") : Design.Colors.element(display)).opacity(0.5),
+                    lineWidth: 1
+                ))
+        )
+    }
 
     private func placeholderFace(card: Card, isOpponent: Bool) -> some View {
         RoundedRectangle(cornerRadius: 8)

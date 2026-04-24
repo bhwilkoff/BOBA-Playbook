@@ -54,7 +54,7 @@ enum Showcases {
 
     nonisolated static let woba = Showcase(
         id: "woba",
-        name: "WOMEN OF BOBA (WOBA)",
+        name: "WoBA (Women of BoBA)",
         searchTokens: ["woba", "women of boba", "women"],
         description: "Women of BOBA — heroes inspired by legendary female athletes across every sport.",
         countLabel: "884 cards"

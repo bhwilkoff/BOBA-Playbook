@@ -16,6 +16,13 @@ struct PracticeBenchPanel: View {
 
     var body: some View {
         VStack(spacing: Design.Spacing.sm) {
+            // First-time hint about positioning. Auto-hides once the
+            // coach dismisses it (per-device persistence).
+            HintBanner(
+                id: .substitutionPositioning,
+                title: "TIP — SUBSTITUTION POSITIONING",
+                message: "Put your lowest-power Hero in Battle 1 so you can substitute it cheaply if you have HDs to spare. Your strongest cards are wasted in the early slots."
+            )
             // Header
             HStack {
                 Text("YOUR BENCH")
@@ -58,14 +65,16 @@ struct PracticeBenchPanel: View {
                 }
             }
 
-            // Selected card detail — constrained height like the plays panel
+            // Selected card detail — legible tap-to-inspect info.
+            // Bumped from maxHeight: 80 / panel 240 to fit larger type
+            // without requiring a scroll.
             if let idx = selectedBenchIdx, idx < store.playerBench.count {
                 cardDetail(card: store.playerBench[idx], idx: idx)
-                    .frame(maxHeight: 80)
+                    .frame(maxHeight: 120)
             }
         }
         .padding(Design.Spacing.md)
-        .frame(maxHeight: 240)
+        .frame(maxHeight: 280)
         .background(Design.Colors.surface.opacity(0.98))
         .overlay(Divider().background(Design.Colors.glass), alignment: .top)
         .onChange(of: store.phase) { _, _ in selectedBenchIdx = nil }
@@ -118,23 +127,23 @@ struct PracticeBenchPanel: View {
         let canAfford = store.playerHotDogs >= 2
         let isSubPhase = store.phase == .sub && !store.playerSubstituted
 
-        return HStack(spacing: Design.Spacing.sm) {
-            VStack(alignment: .leading, spacing: 2) {
+        return HStack(spacing: Design.Spacing.md) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(card.hero.isEmpty ? card.name : card.hero)
-                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .font(Design.Fonts.display(16))
                     .foregroundStyle(Design.Colors.textPrimary)
                     .lineLimit(1)
 
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text("PW \(card.power ?? 0)")
-                        .font(Design.Fonts.mono(9, weight: .bold))
+                        .font(Design.Fonts.mono(13, weight: .bold))
                         .foregroundStyle(Design.Colors.bobaOrange)
                     Text(card.element)
-                        .font(Design.Fonts.mono(9, weight: .bold))
+                        .font(Design.Fonts.mono(13, weight: .bold))
                         .foregroundStyle(Design.Colors.element(card.element))
                     if let t = card.treatment, !t.isEmpty {
                         Text(t)
-                            .font(Design.Fonts.mono(9))
+                            .font(Design.Fonts.mono(12))
                             .foregroundStyle(Design.Colors.textMuted)
                             .lineLimit(1)
                     }
@@ -142,7 +151,7 @@ struct PracticeBenchPanel: View {
 
                 if let athlete = card.athleteInspiration, !athlete.isEmpty {
                     Text("Inspired by \(athlete)")
-                        .font(Design.Fonts.mono(9))
+                        .font(Design.Fonts.mono(12))
                         .foregroundStyle(Design.Colors.bobaCyan)
                         .lineLimit(1)
                 }
@@ -156,12 +165,12 @@ struct PracticeBenchPanel: View {
                     selectedBenchIdx = nil
                 } label: {
                     Text(canAfford ? "SUB\n2 HD" : "NEED\n2 HD")
-                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .font(Design.Fonts.mono(12, weight: .bold))
                         .foregroundStyle(canAfford ? Design.Colors.nearBlack : Design.Colors.textMuted)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 10)
-                        .frame(width: 70, height: 40)
-                        .background(RoundedRectangle(cornerRadius: 6)
+                        .frame(width: 80, height: 52)
+                        .background(RoundedRectangle(cornerRadius: 8)
                             .fill(canAfford ? Design.Colors.bobaOrange : Design.Colors.glass))
                 }
                 .buttonStyle(.plain)

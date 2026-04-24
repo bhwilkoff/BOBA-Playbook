@@ -20,6 +20,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Russo+One&family=Chakra+Petch:wght@300;400;500;600;700&display=block" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  <!-- Leaflet — Store Locator map. SRI-pinned to 1.9.4; both assets load
+       on every page (small enough not to warrant code-splitting). -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <!-- Lucide Icons — professional SVG icon library, replaces custom sprite for all standard glyphs -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
@@ -99,7 +105,7 @@
           <rect x="2" y="2" width="20" height="20" rx="4"/>
           <path fill="#080810" d="M14 3 L5 14 H11 L9 21 L19 10 H13 Z"/>
         </svg>
-        <span>Play</span>
+        <span>Learn</span>
       </button>
       <button class="sidebar-nav-item" id="nav-decks-btn" data-view="decks">
         <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -121,6 +127,12 @@
           <line x1="3" x2="5" y1="19" y2="21"/>
         </svg>
         <span>Practice</span>
+      </button>
+      <button class="sidebar-nav-item" id="nav-stores-btn" data-view="stores">
+        <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>
+        </svg>
+        <span>Find a Store</span>
       </button>
       <button class="sidebar-nav-item" id="nav-collection-btn" data-view="collection">
         <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -253,14 +265,16 @@
     </section>
 
     <!-- PLAY VIEW -->
-    <section id="view-rules" class="view" hidden aria-label="Play">
+    <section id="view-rules" class="view" hidden aria-label="Learn">
       <div class="view-inner play-view">
-        <h2 class="view-heading">Play</h2>
+        <h2 class="view-heading">Learn</h2>
 
-        <!-- Top-level tab pills: Rules | Strategy | Browse | Collect | Tournament -->
+        <!-- Top-level tab pills: Setup | Rules | Strategy | Browse | Collect | Tournament -->
         <div class="play-tabs" role="tablist" aria-label="Play sections">
-          <button class="play-tab active" data-tab="rules" role="tab"
-                  aria-selected="true" aria-controls="play-panel-rules" id="play-tab-rules">Rules</button>
+          <button class="play-tab active" data-tab="setup" role="tab"
+                  aria-selected="true" aria-controls="play-panel-setup" id="play-tab-setup">Setup</button>
+          <button class="play-tab" data-tab="rules" role="tab"
+                  aria-selected="false" aria-controls="play-panel-rules" id="play-tab-rules">Rules</button>
           <button class="play-tab" data-tab="strategy" role="tab"
                   aria-selected="false" aria-controls="play-panel-strategy" id="play-tab-strategy">Strategy</button>
           <button class="play-tab" data-tab="browse" role="tab"
@@ -271,8 +285,56 @@
                   aria-selected="false" aria-controls="play-panel-tournament" id="play-tab-tournament">Tournament</button>
         </div>
 
+        <!-- ══ SETUP PANEL — match flow + rules edge cases ════════════ -->
+        <div id="play-panel-setup" class="play-panel" role="tabpanel" aria-labelledby="play-tab-setup">
+          <section class="setup-section">
+            <h3 class="setup-h3">Before Battle 1</h3>
+            <ul class="setup-list">
+              <li><strong>Coin flip.</strong> One coin flip determines who picks first. The winner earns initial Honors — the right to act first in every phase of Battle 1.</li>
+              <li><strong>Hero deck.</strong> Shuffle your 60-card Hero Deck and place 7 face-down in your Battle row — one per battle slot.</li>
+              <li><strong>Bench draw.</strong> After your 7 are placed, draw 4 more Heroes from the top of the deck for your Bench. The Bench is hidden from your opponent.</li>
+              <li><strong>Hot Dogs.</strong> Both players start with 10 Hot Dogs. The count is always public.</li>
+              <li><strong>Playbook (Playmaker only).</strong> 30-card deck shuffled face-down. Draw 5 plays for your starting hand. Bonus Plays draw automatically when their trigger fires (gold ★ BONUS tag in your hand).</li>
+            </ul>
+          </section>
+
+          <section class="setup-section">
+            <h3 class="setup-h3">Each Battle Has 5 Phases</h3>
+            <ol class="setup-list">
+              <li><strong>Substitution.</strong> Honors player decides first. Pay 2 Hot Dogs to swap your face-down Hero for one from the Bench. Cost is always 2 — even when a play modifier inflates other costs.</li>
+              <li><strong>Reveal.</strong> Both players flip their Hero. Element-triggered Bonus Plays fire automatically.</li>
+              <li><strong>Play Window.</strong> Players alternate plays, each paying its Hot Dog cost. Pass when done. Both must pass to advance.</li>
+              <li><strong>Resolution.</strong> Powers are compared. Higher wins. Equal power = tie unless one Hero is Super-weapon (Playmaker only). The on-mat power breakdown shows every modifier that contributed.</li>
+              <li><strong>Cleanup.</strong> Both players draw 1 Play. Honors moves to the battle winner. Scope-limited effects tick down.</li>
+            </ol>
+          </section>
+
+          <section class="setup-section">
+            <h3 class="setup-h3">Common Edge Cases</h3>
+            <ul class="setup-list">
+              <li><strong>Substitution cost is always 2.</strong> Cost-modifier plays like Dog On Inflation (+2 to plays) do <em>not</em> affect Substitution.</li>
+              <li><strong>Pull The Plug only cancels rest-of-game effects.</strong> Persistent effects scoped to specific battles (next 2 battles, battle 7, etc.) survive. After playing it, the on-mat banner shows a CANCELLED / UNCHANGED breakdown.</li>
+              <li><strong>Recycle clears attached effects.</strong> When a play is shuffled out of your discard back into your Playbook, any rest-of-game effect it had stops applying.</li>
+              <li><strong>Play Booster recounts every time.</strong> Play Booster's draw amount = plays used this battle, including itself. Played twice in the same battle? The recount includes the previous Play Booster.</li>
+              <li><strong>Deck exhaustion auto-reshuffles.</strong> Playbook hits 0 → discard pile shuffles back in automatically with a notification.</li>
+              <li><strong>Bonus Plays don't count against the 30-card limit.</strong> Cards with the gold ★ BONUS tag are extras — they enter the deck through element triggers.</li>
+            </ul>
+          </section>
+
+          <section class="setup-section">
+            <h3 class="setup-h3">Reading the Playmat</h3>
+            <ul class="setup-list">
+              <li><strong>Persistent-effects banner (top).</strong> Every active effect with its scope and remaining battles. Cyan tab = your effect, violet tab = opponent's. The number badge ticks down each battle.</li>
+              <li><strong>Plays-used row (active battle column).</strong> Every play used this battle, in order, per side. Drives Play Booster / 10 Per Play / No Huddle math.</li>
+              <li><strong>Effective-cost display (in hand).</strong> Plays whose cost has been modified show <s>3</s>→<strong>5</strong> with the original struck through. Green = discounted, amber = inflated, red = unaffordable.</li>
+              <li><strong>Power breakdown (after resolution).</strong> Itemized list of every modifier that contributed: base, each played card, each persistent. Footings to the engine's verdict so you can audit the math.</li>
+              <li><strong>Discard inspector.</strong> Tap your DISCARD chip in the bottom toolbar (or the play count next to CPU info) to see the full list of cards used so far.</li>
+            </ul>
+          </section>
+        </div>
+
         <!-- ══ RULES PANEL ══════════════════════════════════════════ -->
-        <div id="play-panel-rules" class="play-panel" role="tabpanel" aria-labelledby="play-tab-rules">
+        <div id="play-panel-rules" class="play-panel" role="tabpanel" aria-labelledby="play-tab-rules" hidden>
 
           <!-- Battle Flow Diagram — static, all phases always shown -->
           <div class="battle-flow" aria-label="Battle sequence — all phases">
@@ -1176,81 +1238,251 @@
             <p class="collect-intro" style="font-size:12px;color:var(--boba-text-muted);margin-top:8px">Brawl, Super, Alt, and Cyber sit outside this six-weapon spectrum — Super especially is tie-breaker-only and typically appears serialized.</p>
           </section>
 
+          <!-- Treatments are print variants of a single card; Parallels
+               are entirely separate runs. The two were previously
+               bundled — split here per the BoBA-expert taxonomy
+               update (2026-04-24). -->
           <section class="collect-section">
-            <h3 class="collect-heading">PARALLELS &amp; TREATMENTS</h3>
-            <p class="collect-intro">These are the different ways a given card can be printed — base, foils, autographs, serialized chase cards. They're print variants, not the card's rarity (that's the weapon type above).</p>
-            <div class="rarity-tier-list">
-              <div class="rarity-tier-row" style="--tier-color:var(--boba-text-muted)">
-                <div class="rarity-tier-num">1</div>
-                <div class="rarity-tier-info">
-                  <div class="rarity-tier-name">Base Set</div>
-                  <div class="rarity-tier-desc">No foil treatment. The most common card in any set — but hero scarcity varies. Your entry point for any collection.</div>
-                </div>
-                <div class="rarity-tier-badge">Most common</div>
+            <h3 class="collect-heading">TREATMENTS</h3>
+            <p class="collect-intro">Treatments are the different ways a given card can be printed — Base Set, the Battlefoil family, themed foils, and the premium Inspired Ink / Superfoil chase tiers. The prefix on the card number maps to its treatment.</p>
+
+            <!-- Inspired Ink serial-number ladder (Hex /5, Glow /10,
+                 Fire /25, Ice /50). Surfaced as its own callout
+                 because collectors specifically need the weapon-tied
+                 print numbers when valuing serialized cards. -->
+            <div class="treatment-callout">
+              <div class="treatment-callout-head">
+                <span class="treatment-callout-glyph">✍︎</span>
+                <span class="treatment-callout-label">INSPIRED INK = SERIALIZED</span>
               </div>
-              <div class="rarity-tier-row" style="--tier-color:#FFD700">
-                <div class="rarity-tier-num">2</div>
-                <div class="rarity-tier-info">
-                  <div class="rarity-tier-name">Grandma's Linoleum Battlefoil</div>
-                  <div class="rarity-tier-desc">GLBF — a linoleum-textured foil border. One of the most common foil treatments; community calls it Lino or Grandma. Great first foil to chase.</div>
-                </div>
-                <div class="rarity-tier-badge">Common foil</div>
+              <p class="treatment-callout-body">Inspired Ink cards carry hand-stamped serial numbers tied to the hero's weapon type:</p>
+              <div class="treatment-serial-row">
+                <div class="treatment-serial-chip" style="--serial-color:#8B00FF"><span class="serial-weapon">Hex</span><span class="serial-num">/5</span></div>
+                <div class="treatment-serial-chip" style="--serial-color:#FFD700"><span class="serial-weapon">Glow</span><span class="serial-num">/10</span></div>
+                <div class="treatment-serial-chip" style="--serial-color:#FF4D00"><span class="serial-weapon">Fire</span><span class="serial-num">/25</span></div>
+                <div class="treatment-serial-chip" style="--serial-color:#00BFFF"><span class="serial-weapon">Ice</span><span class="serial-num">/50</span></div>
               </div>
-              <div class="rarity-tier-row" style="--tier-color:#AAAAFF">
-                <div class="rarity-tier-num">3</div>
-                <div class="rarity-tier-info">
-                  <div class="rarity-tier-name">80's Rad Battlefoil</div>
-                  <div class="rarity-tier-desc">RAD — retro 80's-inspired holographic finish. Common alongside GLBF; both are frequent pulls from standard packs.</div>
+            </div>
+
+            <h4 class="treatment-group-heading">STANDARD</h4>
+            <div class="treatment-list">
+              <div class="treatment-row" style="--t-color:rgba(255,255,255,0.7)">
+                <span class="treatment-prefix">(no prefix)</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Base Set</div>
+                  <div class="treatment-desc">The card's plain printing. Most common in any set — your entry point for any collection.</div>
                 </div>
-                <div class="rarity-tier-badge">Common foil</div>
               </div>
-              <div class="rarity-tier-row" style="--tier-color:var(--boba-cyan)">
-                <div class="rarity-tier-num">4</div>
-                <div class="rarity-tier-info">
-                  <div class="rarity-tier-name">Color Battlefoil</div>
-                  <div class="rarity-tier-desc">Element-colored foil border in the card's weapon color. 9 variants (Fire, Ice, Steel, Brawl, Glow, Hex, Gum, Super, Alt). Harder to pull than GLBF/RAD.</div>
+              <div class="treatment-row" style="--t-color:#FFD700">
+                <span class="treatment-prefix">GLBF</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Grandma's Linoleum Battlefoil</div>
+                  <div class="treatment-desc">Linoleum-textured foil border. One of the most common foil treatments; community calls it Lino or Grandma.</div>
                 </div>
-                <div class="rarity-tier-badge">Mid-rarity</div>
               </div>
-              <div class="rarity-tier-row" style="--tier-color:#FF00FF">
-                <div class="rarity-tier-num">5</div>
-                <div class="rarity-tier-info">
-                  <div class="rarity-tier-name">Superfoil</div>
-                  <div class="rarity-tier-desc">Full-card holographic foil covering the entire card face. Significantly rarer than any Battlefoil. The most visually striking card in most collections.</div>
+              <div class="treatment-row" style="--t-color:#AAAAFF">
+                <span class="treatment-prefix">RAD</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">80's Rad Battlefoil</div>
+                  <div class="treatment-desc">Retro 80's-inspired holographic finish. Common alongside GLBF.</div>
                 </div>
-                <div class="rarity-tier-badge">Premium</div>
               </div>
-              <div class="rarity-tier-row" style="--tier-color:#FF69B4">
-                <div class="rarity-tier-num">6</div>
-                <div class="rarity-tier-info">
-                  <div class="rarity-tier-name">Inspired Ink</div>
-                  <div class="rarity-tier-desc">Autograph-style treatment with athlete tribute art. Named after the 'inspired by' athletes. Premium rarity — typically 1 per box or less.</div>
+              <div class="treatment-row" style="--t-color:var(--boba-cyan)">
+                <span class="treatment-prefix">BF</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Battlefoil</div>
+                  <div class="treatment-desc">Generic foil border treatment. Comes in seven color subsets: Red (RBF), Silver (SBF), Blue (BBF), Orange (OBF), Green (GBF), Pink (PBF), and Bubble Gum (BGBF). Each subset is its own pull.</div>
                 </div>
-                <div class="rarity-tier-badge">Premium</div>
               </div>
-              <div class="rarity-tier-row" style="--tier-color:#8B00FF">
-                <div class="rarity-tier-num">7</div>
-                <div class="rarity-tier-info">
-                  <div class="rarity-tier-name">Kanjifoil</div>
-                  <div class="rarity-tier-desc">Japanese kanji script foil treatment. Chase rarity — rare enough that most collectors have never pulled one from a pack.</div>
+            </div>
+
+            <h4 class="treatment-group-heading">THEMED</h4>
+            <div class="treatment-list">
+              <div class="treatment-row" style="--t-color:#00BFFF">
+                <span class="treatment-prefix">BLBF</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Blizzard Battlefoil</div>
+                  <div class="treatment-desc">Snowy/icy themed foil border. Distinct from the Battlefoil color family.</div>
                 </div>
-                <div class="rarity-tier-badge">Chase</div>
               </div>
-              <div class="rarity-tier-row" style="--tier-color:var(--boba-orange)">
-                <div class="rarity-tier-num">8</div>
-                <div class="rarity-tier-info">
-                  <div class="rarity-tier-name">Serialized</div>
-                  <div class="rarity-tier-desc">Hand-stamped serial number (/10, /25, /50). Hard-stop scarcity — the total supply is literally on the card. Highly prized by serious collectors.</div>
+              <div class="treatment-row" style="--t-color:#9B59B6">
+                <span class="treatment-prefix">ABF</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Alpha Battlefoil</div>
+                  <div class="treatment-desc">Premium foil tied to Alpha Edition releases.</div>
                 </div>
-                <div class="rarity-tier-badge">Chase</div>
               </div>
-              <div class="rarity-tier-row" style="--tier-color:#FF4500">
-                <div class="rarity-tier-num">9</div>
-                <div class="rarity-tier-info">
-                  <div class="rarity-tier-name">Billy Cameo Alt Art</div>
-                  <div class="rarity-tier-desc">Alternate art featuring Billy, the iconic BOBA hot dog mascot. The rarest and most sought-after cards in the entire game.</div>
+              <div class="treatment-row" style="--t-color:#ECF0F1">
+                <span class="treatment-prefix">HBF</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Headlines Battlefoil</div>
+                  <div class="treatment-desc">Newspaper-style headline border treatment. Has Blue (BHBF) and Red (RHBF) subset variants.</div>
                 </div>
-                <div class="rarity-tier-badge">Chase</div>
+              </div>
+              <div class="treatment-row" style="--t-color:#FF4D00">
+                <span class="treatment-prefix">PG</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Power Glove Battlefoil</div>
+                  <div class="treatment-desc">Power Glove division themed foil. Tied to the Power Glove tournament division.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#FFC107">
+                <span class="treatment-prefix">GGL</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Great Grandma Linoleum Battlefoil</div>
+                  <div class="treatment-desc">2026 Edition exclusive — distinctive linoleum texture. Rarer than the standard GLBF.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#00F5FF">
+                <span class="treatment-prefix">CHILL</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Chillin' Battlefoil</div>
+                  <div class="treatment-desc">Chillin' themed foil treatment. Community-flavor naming.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#E67E22">
+                <span class="treatment-prefix">GRILL</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Grillin' Battlefoil</div>
+                  <div class="treatment-desc">Grillin' themed foil treatment. Pairs visually with Chillin' as a thematic duo.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#F39C12">
+                <span class="treatment-prefix">IBF</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Icon Battlefoil</div>
+                  <div class="treatment-desc">Icon-themed foil border for the iconic athlete heroes.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#FF1493">
+                <span class="treatment-prefix">MIX</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Mixtape Battlefoil</div>
+                  <div class="treatment-desc">Mixtape-themed retro audio aesthetic foil border.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#FF6EC7">
+                <span class="treatment-prefix">MI</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Miami Ice Battlefoil</div>
+                  <div class="treatment-desc">Miami-inspired neon-on-ice foil border. Visually distinctive themed treatment.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#FF4500">
+                <span class="treatment-prefix">FT</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Fire Tracks Battlefoil</div>
+                  <div class="treatment-desc">Fiery track-pattern themed foil border.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:var(--boba-cyan)">
+                <span class="treatment-prefix">CBF</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Colosseum Battlefoil</div>
+                  <div class="treatment-desc">2026 Edition exclusive — stadium-arena themed foil border.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#FFD700">
+                <span class="treatment-prefix">LOGO</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Logofoil</div>
+                  <div class="treatment-desc">2026 Edition exclusive — logo foil print. Not available in First Edition.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#7CFC00">
+                <span class="treatment-prefix">SL</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Slime Battlefoil</div>
+                  <div class="treatment-desc">Slime-textured foil border — distinctive viscous-effect finish.</div>
+                </div>
+              </div>
+            </div>
+
+            <h4 class="treatment-group-heading">PREMIUM</h4>
+            <div class="treatment-list">
+              <div class="treatment-row" style="--t-color:#FF69B4">
+                <span class="treatment-prefix">AAA</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Inspired Ink Battlefoil</div>
+                  <div class="treatment-desc">Standard Inspired Ink treatment — autograph-style art with athlete tribute. The serialized base.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#FF8FCA">
+                <span class="treatment-prefix">ABA</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Inspired Ink Bubble Gum Battlefoil</div>
+                  <div class="treatment-desc">Inspired Ink with Bubble Gum foil overlay — a serialized variant of the IIBF treatment.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#C0C0C0">
+                <span class="treatment-prefix">ABA</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Inspired Ink Metallic Battlefoil</div>
+                  <div class="treatment-desc">Inspired Ink with Metallic foil overlay — a higher-tier serialized variant.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#FF00FF">
+                <span class="treatment-prefix">AAA</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Inspired Ink Superfoil</div>
+                  <div class="treatment-desc">Inspired Ink + Superfoil — premium chase combining autograph art with full-card holographic. The pinnacle Inspired Ink variant.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#FF00FF">
+                <span class="treatment-prefix">SF</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Superfoil</div>
+                  <div class="treatment-desc">Full-card holographic foil treatment covering the entire card face. The most visually striking pull in most collections.</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="collect-section">
+            <h3 class="collect-heading">PARALLELS</h3>
+            <p class="collect-intro">Parallels are separate card runs that share the BoBA format but aren't print variants of the base set. They have their own numbering and collectibility profile.</p>
+            <div class="treatment-list">
+              <div class="treatment-row" style="--t-color:#FF4500">
+                <span class="treatment-prefix">ALT</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Billy Cameo Alt Arts</div>
+                  <div class="treatment-desc">Alternate art featuring Billy, the iconic BOBA hot dog mascot, in cameo on each card. Among the rarest and most sought-after cards in the game.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#9B59B6">
+                <span class="treatment-prefix">FFA</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">SideKicks</div>
+                  <div class="treatment-desc">SideKicks parallel run — separate cards built around supporting/companion characters. Distinct numbering from the main Hero set.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#8B00FF">
+                <span class="treatment-prefix">PL</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Plays</div>
+                  <div class="treatment-desc">The Playbook subsystem — non-Hero cards used during Battle to modify outcomes. Tracked separately from Heroes for deck-building purposes.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#FFD700">
+                <span class="treatment-prefix">BPL</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Bonus Plays</div>
+                  <div class="treatment-desc">Element-triggered Plays that don't count against the 30-card Playbook limit. Drawn automatically when their trigger fires; surfaced with a gold ★ BONUS tag in the practice playmat.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#FFA500">
+                <span class="treatment-prefix">P</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Prize &amp; Promo</div>
+                  <div class="treatment-desc">Prize cards (tournament rewards) and Promo cards (event/release exclusives). Limited distribution; not part of standard pack rotation.</div>
+                </div>
+              </div>
+              <div class="treatment-row" style="--t-color:#4CAF50">
+                <span class="treatment-prefix">HD</span>
+                <div class="treatment-info">
+                  <div class="treatment-name">Hot Dogs</div>
+                  <div class="treatment-desc">The 10-card Hot Dog deck that powers play costs. Each player starts each match with the same 10. Some are themed but mechanically identical.</div>
+                </div>
               </div>
             </div>
           </section>
@@ -1307,62 +1539,6 @@
                   <li>Typically commands the highest value of any variation for a given hero</li>
                   <li>The premier card for collectors building athlete-specific portfolios</li>
                 </ul>
-              </div>
-            </div>
-          </section>
-
-          <section class="collect-section">
-            <h3 class="collect-heading">NOTABLE TREATMENTS</h3>
-            <p class="collect-intro">Treatments apply across variations — a Superfoil First Edition and a Superfoil 2026 Edition are both Superfoils but are distinct collectibles.</p>
-            <div class="collect-treatment-list">
-              <div class="collect-treatment-row" style="--treat-color:#FFD700">
-                <div class="collect-treatment-dot"></div>
-                <div>
-                  <div class="collect-treatment-name">Logofoil</div>
-                  <div class="collect-treatment-desc">2026 Edition exclusive — logo foil print. Not available in any First Edition cards.</div>
-                </div>
-              </div>
-              <div class="collect-treatment-row" style="--treat-color:var(--boba-cyan)">
-                <div class="collect-treatment-dot"></div>
-                <div>
-                  <div class="collect-treatment-name">Colosseum Battlefoil</div>
-                  <div class="collect-treatment-desc">2026 Edition — stadium-arena themed foil border. One of three treatments introduced with the 2026 print run.</div>
-                </div>
-              </div>
-              <div class="collect-treatment-row" style="--treat-color:#FF69B4">
-                <div class="collect-treatment-dot"></div>
-                <div>
-                  <div class="collect-treatment-name">Great Grandma's Linoleum BF</div>
-                  <div class="collect-treatment-desc">2026 Edition — uniquely textured linoleum-style foil treatment. The most distinctive of the new 2026 treatments.</div>
-                </div>
-              </div>
-              <div class="collect-treatment-row" style="--treat-color:#FFB347">
-                <div class="collect-treatment-dot"></div>
-                <div>
-                  <div class="collect-treatment-name">Hot Dog Treatment</div>
-                  <div class="collect-treatment-desc">Heroes printed on Hot Dog-style cards — a crossover rarity. Instantly recognizable and iconic collector items.</div>
-                </div>
-              </div>
-              <div class="collect-treatment-row" style="--treat-color:#FF00FF">
-                <div class="collect-treatment-dot"></div>
-                <div>
-                  <div class="collect-treatment-name">Superfoil</div>
-                  <div class="collect-treatment-desc">Full-card holographic foil. The most visually impactful treatment in the game and the goal of most new collectors.</div>
-                </div>
-              </div>
-              <div class="collect-treatment-row" style="--treat-color:#FF69B4">
-                <div class="collect-treatment-dot"></div>
-                <div>
-                  <div class="collect-treatment-name">Inspired Ink</div>
-                  <div class="collect-treatment-desc">Athlete tribute art in an autograph-inspired style. Named after the real athletes who inspired each hero character.</div>
-                </div>
-              </div>
-              <div class="collect-treatment-row" style="--treat-color:#8B00FF">
-                <div class="collect-treatment-dot"></div>
-                <div>
-                  <div class="collect-treatment-name">Kanjifoil</div>
-                  <div class="collect-treatment-desc">Japanese kanji script foil treatment. Rare enough to be a genuine chase card — many collectors actively seek these.</div>
-                </div>
               </div>
             </div>
           </section>
@@ -1742,6 +1918,26 @@
       </div>
       <!-- Playmat rendered here by practice.js -->
       <div id="practice-playmat" class="practice-playmat" hidden></div>
+      <!-- Mobile portrait rotate hint — the playmat is designed for
+           landscape and squishes badly in a 390pt-wide viewport. Shown
+           only when the playmat is active AND the device is on a small
+           portrait screen (see CSS media query). -->
+      <div id="practice-rotate-hint" class="practice-rotate-hint" aria-live="polite">
+        <div class="practice-rotate-hint-inner">
+          <div class="practice-rotate-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor"
+                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="14" y="4" width="20" height="36" rx="3"/>
+              <circle cx="24" cy="36" r="1.5" fill="currentColor"/>
+              <path d="M30 42c5-2 8-7 8-13"/>
+              <path d="m38 32 2 6-6 2"/>
+            </svg>
+          </div>
+          <h3>Rotate to landscape</h3>
+          <p>Practice battles are built for a wide screen. Turn your phone sideways to fit the whole playmat.</p>
+          <button type="button" id="practice-rotate-dismiss" class="practice-rotate-dismiss">Got it</button>
+        </div>
+      </div>
     </section>
 
     <!-- SCAN VIEW — rendered by app.js -->
@@ -1750,6 +1946,43 @@
     </section>
 
 
+
+<!-- STORE LOCATOR VIEW — rendered by js/store-locator.js -->
+    <section id="view-stores" class="view" hidden aria-label="Find a Store">
+      <div class="store-locator">
+        <div class="store-locator-bar">
+          <div class="store-search-wrap">
+            <svg class="store-search-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input type="search" id="store-search-input" class="store-search-input"
+                   placeholder="Search name, city, or ZIP" autocomplete="off">
+          </div>
+          <select id="store-state-filter" class="store-state-filter" aria-label="Filter by state">
+            <option value="">All States</option>
+          </select>
+          <button id="store-near-me" class="store-near-me" type="button" aria-label="Use my location">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+            </svg>
+            Near me
+          </button>
+        </div>
+        <!-- Big-box toggle — off by default. Independent hobby shops get
+             the spotlight; coaches who want a DICK'S or Target can opt in. -->
+        <label for="store-include-bigbox" class="store-bigbox-toggle">
+          <input type="checkbox" id="store-include-bigbox">
+          <span class="store-bigbox-box" aria-hidden="true"></span>
+          <span class="store-bigbox-label">Include big box</span>
+        </label>
+        <div id="store-map" class="store-map" role="application" aria-label="Map of authorized retailers"></div>
+        <div class="store-summary" id="store-summary"></div>
+        <div id="store-list" class="store-list"></div>
+      </div>
+    </section>
 
 <!-- COLLECTION VIEW — rendered by collection.js -->
     <section id="view-collection" class="view" hidden aria-label="My Collection"></section>
@@ -1849,6 +2082,7 @@
   <script src="js/discord.js"></script>
   <script src="js/practice.js"></script>
   <script src="js/showcases.js"></script>
+  <script src="js/store-locator.js"></script>
   <script src="js/app.js"></script>
   <script>
     // Render Lucide icons in static HTML (deck builder buttons, etc.)

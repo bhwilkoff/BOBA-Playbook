@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "keyedBy": "name",
-  "note": "383 entries total, 383 with at least one structured op, 0 note-only (effect needs runtime support not yet in schema or requires ability text the engine can't yet represent). Post-pass on Claude Code's side will expand to bobaId-keyed. Missing from PLAYS table: 0 (shipped as note-only TODO).",
+  "note": "383 entries total, 383 with at least one structured op, 0 note-only. 38 entries still contain an op:\"note\" for mechanics the executor cannot yet express — see COWORK_PLAY_EFFECTS_AUDIT.md Part B for the executor-extension roadmap that unblocks them.",
   "entries": {
     "1 For 10": {
       "cost": 0,
@@ -203,7 +203,11 @@
       "cost": 1,
       "ability": "Play this in Battle 5 or later, for every Battle you have won your active Hero gets +5.",
       "category": "conditional",
-      "requires": { "type": "battle_num", "comparison": "gte", "value": 5 },
+      "requires": {
+        "type": "battle_num",
+        "comparison": "gte",
+        "value": 5
+      },
       "effects": [
         {
           "if": {
@@ -1747,7 +1751,7 @@
       "effects": [
         {
           "op": "power_swap",
-          "scope": "current"
+          "scope": "this_battle"
         }
       ]
     },
@@ -2365,7 +2369,11 @@
       "cost": 1,
       "ability": "Play this in Battle 5 or later. Your Hero gets +5 for each Battle you’ve won.",
       "category": "conditional",
-      "requires": { "type": "battle_num", "comparison": "gte", "value": 5 },
+      "requires": {
+        "type": "battle_num",
+        "comparison": "gte",
+        "value": 5
+      },
       "effects": [
         {
           "if": {
@@ -3821,7 +3829,11 @@
       "cost": 1,
       "ability": "This must be played in Battle 7. Your opponent switches their number of unused Hot Dogs with you.",
       "category": "conditional",
-      "requires": { "type": "battle_num", "comparison": "eq", "value": 7 },
+      "requires": {
+        "type": "battle_num",
+        "comparison": "eq",
+        "value": 7
+      },
       "effects": [
         {
           "if": {
@@ -4142,7 +4154,11 @@
       "cost": 3,
       "ability": "This must be played on or after Battle 4. You and your opponent both lose 1 Hot Dog at the start of each Battle.",
       "category": "economy",
-      "requires": { "type": "battle_num", "comparison": "gte", "value": 4 },
+      "requires": {
+        "type": "battle_num",
+        "comparison": "gte",
+        "value": 4
+      },
       "effects": [],
       "persistent": [
         {
@@ -4942,7 +4958,13 @@
       "cost": 4,
       "ability": "For the rest of the game all of your Substitutions are free.",
       "category": "economy",
-      "effects": [],
+      "effects": [
+        {
+          "op": "substitute_free",
+          "target": "self",
+          "scope": "rest_of_game"
+        }
+      ],
       "persistent": [
         {
           "scope": "rest_of_game",
@@ -6410,11 +6432,20 @@
       "effects": [
         {
           "op": "coin_flip",
-          "times": 1,
-          "heads": [
+          "count": 1,
+          "branches": [
             {
-              "op": "note",
-              "text": "Replace active Hero with one from hand."
+              "on": "heads",
+              "then": [
+                {
+                  "op": "replace_active_from_hand",
+                  "target": "self"
+                }
+              ]
+            },
+            {
+              "on": "tails",
+              "then": []
             }
           ]
         }
@@ -6479,7 +6510,7 @@
               "then": [
                 {
                   "op": "power_swap",
-                  "scope": "current"
+                  "scope": "this_battle"
                 }
               ]
             },
@@ -7552,8 +7583,16 @@
       "requires": {
         "type": "all",
         "of": [
-          { "type": "battle_num", "comparison": "gte", "value": 5 },
-          { "type": "battle_num", "comparison": "lte", "value": 6 }
+          {
+            "type": "battle_num",
+            "comparison": "gte",
+            "value": 5
+          },
+          {
+            "type": "battle_num",
+            "comparison": "lte",
+            "value": 6
+          }
         ]
       },
       "effects": [
@@ -7886,20 +7925,27 @@
       "effects": [
         {
           "op": "coin_flip",
-          "times": 1,
-          "heads": [
+          "count": 1,
+          "branches": [
             {
-              "op": "note",
-              "text": "Swap active Hero with one from hand."
-            }
-          ],
-          "tails": [
+              "on": "heads",
+              "then": [
+                {
+                  "op": "swap_active_with_hand",
+                  "target": "self"
+                }
+              ]
+            },
             {
-              "op": "discard",
-              "target": "self",
-              "kind": "play",
-              "count": 1,
-              "mode": "choice"
+              "on": "tails",
+              "then": [
+                {
+                  "op": "discard",
+                  "target": "self",
+                  "kind": "play",
+                  "count": 1
+                }
+              ]
             }
           ]
         }
@@ -8093,7 +8139,13 @@
       "cost": 4,
       "ability": "For the rest of the Game all of your Substitutions are free.",
       "category": "economy",
-      "effects": [],
+      "effects": [
+        {
+          "op": "substitute_free",
+          "target": "self",
+          "scope": "rest_of_game"
+        }
+      ],
       "persistent": [
         {
           "scope": "rest_of_game",
@@ -8341,11 +8393,20 @@
       "effects": [
         {
           "op": "coin_flip",
-          "times": 1,
-          "heads": [
+          "count": 1,
+          "branches": [
             {
-              "op": "note",
-              "text": "Play top Play of self Playbook in this Battle for free."
+              "on": "heads",
+              "then": [
+                {
+                  "op": "play_top_of_playbook_free",
+                  "target": "self"
+                }
+              ]
+            },
+            {
+              "on": "tails",
+              "then": []
             }
           ]
         }

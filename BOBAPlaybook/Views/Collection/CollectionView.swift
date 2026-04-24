@@ -22,6 +22,9 @@ struct CollectionView: View {
     @State private var viewMode: CollectionViewMode = .myCards
     @State private var isRecalculating = false
     @State private var recalcProgress: (current: Int, total: Int)? = nil
+    @State private var showingStoreLocator = false
+    @State private var showingFilters      = false
+    @State private var exportShareURL: URL?    = nil
 
     enum CollectionViewMode: String, CaseIterable, Identifiable {
         case myCards = "My Cards"
@@ -49,20 +52,31 @@ struct CollectionView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                if auth.isAuthenticated {
+                    ToolbarItem(placement: .topBarLeading) {
+                        collectionMenu
+                    }
+                }
                 ToolbarItem(placement: .principal) {
                     BOBAWordmark()
                 }
-                if auth.isAuthenticated {
+                if auth.isAuthenticated && viewMode == .myCards {
                     ToolbarItem(placement: .topBarTrailing) {
-                        collectionMenu
+                        filterButton
                     }
                 }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .navigationDestination(isPresented: $showingStoreLocator) {
+                StoreLocatorView()
+            }
         }
         .sheet(isPresented: $showingSignIn) {
             SignInView()
+        }
+        .sheet(isPresented: $showingFilters) {
+            FilterSheetView(store: cardStore)
         }
         .sheet(item: $selectedCard) { wrapper in
             CollectionCardDetailView(bobaId: wrapper.id)
@@ -71,6 +85,15 @@ struct CollectionView: View {
             if auth.isAuthenticated {
                 await collection.loadCollection()
             }
+        }
+        .onAppear {
+            // Reset shared CardStore filter state whenever Collection
+            // becomes visible again — coaches shouldn't inherit a
+            // forgotten "Fire only" dial from their last visit to
+            // Find. Sheets (card detail, add-to-deck, etc.) don't
+            // re-trigger onAppear, so in-tab interactions keep the
+            // filters the user set this session.
+            cardStore.clearAllFilters()
         }
         .onChange(of: auth.isAuthenticated) { _, isAuthenticated in
             if isAuthenticated {
@@ -180,12 +203,50 @@ struct CollectionView: View {
                       systemImage: "arrow.clockwise")
             }
             .disabled(isRecalculating)
+
+            Button {
+                showingStoreLocator = true
+            } label: {
+                Label("Find a Store", systemImage: "mappin.and.ellipse")
+            }
+
+            // Last item — matches user spec. Writes CSV to a tmp file
+            // named with today's date, then presents the share sheet
+            // via the exportShareURL sheet modifier on the body.
+            Button {
+                exportCollectionCSV()
+            } label: {
+                Label("Export Collection", systemImage: "square.and.arrow.up")
+            }
+            .disabled(collection.userCards.isEmpty)
         } label: {
             if isRecalculating {
                 ProgressView().tint(Design.Colors.bobaOrange)
             } else {
                 Image(systemName: "ellipsis.circle")
                     .foregroundStyle(Design.Colors.bobaOrange)
+            }
+        }
+    }
+
+    // MARK: - Filters button (trailing)
+    // Shares filter state with the Find tab via CardStore. Changing a
+    // filter here will also apply when the user switches to Find —
+    // treated as a feature, not a bug: filters follow intent.
+    private var filterButton: some View {
+        Button {
+            showingFilters = true
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                if cardStore.activeFilterCount > 0 {
+                    Circle()
+                        .fill(Design.Colors.bobaOrange)
+                        .frame(width: 8, height: 8)
+                        .offset(x: 4, y: -4)
+                }
             }
         }
     }
@@ -269,13 +330,14 @@ struct CollectionView: View {
                                 .font(Design.Fonts.mono(12, weight: selectedDesignation == d ? .bold : .regular))
                             if count > 0 {
                                 Text("\(count)")
-                                    .font(Design.Fonts.mono(10))
+                                    .font(Design.Fonts.mono(10, weight: .bold))
+                                    .foregroundStyle(.white)
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 1)
-                                    .background(Capsule().fill(selectedDesignation == d ? Design.Colors.nearBlack.opacity(0.3) : Design.Colors.glass))
+                                    .background(Capsule().fill(selectedDesignation == d ? Color.black.opacity(0.35) : Design.Colors.glass))
                             }
                         }
-                        .foregroundStyle(selectedDesignation == d ? Design.Colors.nearBlack : Design.Colors.textSecondary)
+                        .foregroundStyle(selectedDesignation == d ? .white : Design.Colors.textSecondary)
                         .padding(.horizontal, Design.Spacing.md)
                         .frame(height: 34)
                         .background(selectedDesignation == d ? Design.Colors.bobaOrange : Design.Colors.glass)
@@ -322,7 +384,7 @@ struct CollectionView: View {
     // MARK: - Card list
 
     private var cardList: some View {
-        let identifiers = collection.uniqueBobaIds(for: selectedDesignation)
+        let identifiers = collectionIdentifiers(for: selectedDesignation)
 
         // Always wrap in a vertical ScrollView so .refreshable has a
         // valid attachment point, whether or not there are cards. Empty
@@ -614,6 +676,64 @@ struct CollectionView: View {
         .buttonStyle(.plain)
         .padding(.trailing, 20)
         .padding(.bottom, 24)
+    }
+
+    // MARK: - CSV export
+    //
+    // Writes collection to a timestamped CSV file in the temp directory
+    // and hands it to UIActivityViewController so users can share, save
+    // to Files, AirDrop, etc. Named after the date so multiple exports
+    // don't collide. The file sticks around in tmp until iOS evicts it.
+    private func exportCollectionCSV() {
+        let csv = collection.exportCSV(cardStore: cardStore)
+        let stamp: String = {
+            let f = DateFormatter()
+            f.dateFormat = "yyyy-MM-dd"
+            return f.string(from: Date())
+        }()
+        let filename = "BOBA_collection_\(stamp).csv"
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        do {
+            try csv.write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            return
+        }
+        presentShareSheet(for: url)
+    }
+
+    private func presentShareSheet(for url: URL) {
+        let scene = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first(where: { $0.activationState == .foregroundActive })
+        guard let keyWindow = scene?.windows.first(where: { $0.isKeyWindow }),
+              var top = keyWindow.rootViewController else { return }
+        while let next = top.presentedViewController { top = next }
+        let vc = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        // iPad popover anchor — trailing area near the 3-dots menu.
+        vc.popoverPresentationController?.sourceView = top.view
+        vc.popoverPresentationController?.sourceRect = CGRect(
+            x: 40, y: 40, width: 0, height: 0)
+        top.present(vc, animated: true)
+    }
+
+    // MARK: - Collection filter integration
+    //
+    // When Find-tab filters are active, intersect the collection rows
+    // with the catalog cards that pass the filter. Reuses the same
+    // predicate set as SearchView (element, set, treatment, power,
+    // has-image, card-type, showcase) so coaches get consistent
+    // filtering semantics across tabs.
+    //
+    // Search text is intentionally ignored here — filtering the catalog
+    // by "fire" makes sense on Find; applying that same text-filter to a
+    // user's owned cards surfaces rows they can only glimpse through the
+    // search bar. Filters are the dial for Collection; searchbar stays
+    // on Find.
+    private func collectionIdentifiers(for designation: UserCard.Designation) -> [String] {
+        let owned = collection.uniqueBobaIds(for: designation)
+        guard cardStore.activeFilterCount > 0 else { return owned }
+        let allowed = Set(cardStore.filteredCards.map(\.id))
+        return owned.filter { allowed.contains($0) }
     }
 
     // MARK: - Helpers

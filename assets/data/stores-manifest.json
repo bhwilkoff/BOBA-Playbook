@@ -1,0 +1,9 @@
+{
+  "scraped_at": "2026-04-23T14:50:53",
+  "source": "https://bobattlearena.com/api/stores-cache",
+  "raw_file": "stores-raw-2026-04-23.json",
+  "stores_file": "stores.json",
+  "raw_count": 2165,
+  "stores_count": 2155,
+  "stores_sha256": "1269ea47929e7da68a65138065739b8f61516bfa68a8d25b93ccfddfb96048d0"
+}

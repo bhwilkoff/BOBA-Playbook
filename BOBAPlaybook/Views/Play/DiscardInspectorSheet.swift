@@ -1,0 +1,166 @@
+//
+//  DiscardInspectorSheet.swift
+//  BOBAPlaybook
+//
+//  UX#8 — tap-to-inspect discard pile from the practice playmat.
+//  Player side renders the actual list of discarded plays (engine
+//  tracks them as Card objects). CPU side renders the per-battle
+//  play history reconstructed from `battles[].cpuPlayedCards` since
+//  the CPU's discard pile isn't tracked as individual cards.
+//
+
+import SwiftUI
+
+struct DiscardInspectorSheet: View {
+    let store: PracticeStore
+    let side: PlayExecContext.Side
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            content
+                .navigationTitle(side == .player ? "Your Discard Pile" : "CPU Plays Used")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") { dismiss() }
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                    }
+                }
+                .toolbarBackground(.regularMaterial, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch side {
+        case .player: playerDiscardList
+        case .cpu:    cpuPlayHistory
+        }
+    }
+
+    // MARK: - Player side — flat list of discarded play cards
+
+    private var playerDiscardList: some View {
+        let pile = store.playerPlayDiscard
+        return ScrollView {
+            if pile.isEmpty {
+                emptyState(message: "No cards in discard yet")
+            } else {
+                VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                    Text("\(pile.count) PLAY\(pile.count == 1 ? "" : "S") · MOST RECENT FIRST")
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .tracking(1)
+                    ForEach(Array(pile.reversed().enumerated()), id: \.offset) { _, card in
+                        cardRow(card: card)
+                    }
+                }
+                .padding(Design.Spacing.lg)
+            }
+        }
+        .background(Design.Colors.nearBlack)
+    }
+
+    // MARK: - CPU side — grouped per-battle history
+
+    private var cpuPlayHistory: some View {
+        // Walk every closed battle (and the active one) and pull
+        // cpuPlayedCards. The CPU's "discard pile" is the union
+        // of these across all battles.
+        let battles = store.battles
+        let totalCount = battles.reduce(0) { $0 + $1.cpuPlayedCards.count }
+        return ScrollView {
+            if totalCount == 0 {
+                emptyState(message: "CPU hasn't played any cards yet")
+            } else {
+                VStack(alignment: .leading, spacing: Design.Spacing.md) {
+                    Text("\(totalCount) PLAY\(totalCount == 1 ? "" : "S") USED · GROUPED BY BATTLE")
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .tracking(1)
+                    ForEach(battles) { slot in
+                        if !slot.cpuPlayedCards.isEmpty {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("BATTLE \(slot.id + 1)")
+                                    .font(Design.Fonts.mono(9, weight: .bold))
+                                    .foregroundStyle(Design.Colors.bobaViolet)
+                                    .tracking(1)
+                                ForEach(Array(slot.cpuPlayedCards.enumerated()), id: \.offset) { _, card in
+                                    cardRow(card: card)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(Design.Spacing.lg)
+            }
+        }
+        .background(Design.Colors.nearBlack)
+    }
+
+    // MARK: - Shared row
+
+    private func cardRow(card: Card) -> some View {
+        HStack(spacing: Design.Spacing.md) {
+            // Small thumbnail
+            Group {
+                if let file = card.imageFile, !file.isEmpty {
+                    CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
+                } else {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Design.Colors.bobaViolet.opacity(0.15))
+                }
+            }
+            .frame(width: 38, height: 54)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(card.name)
+                    .font(Design.Fonts.mono(13, weight: .bold))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                HStack(spacing: 6) {
+                    if let cost = card.playCost {
+                        Text(cost == 0 ? "FREE" : "\(cost) HD")
+                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .foregroundStyle(cost == 0 ? Color(hex: "4CAF50") : Design.Colors.bobaCyan)
+                    }
+                    if card.isBonusPlay == true {
+                        Text("★ BONUS")
+                            .font(Design.Fonts.mono(8, weight: .bold))
+                            .foregroundStyle(Design.Colors.nearBlack)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(Capsule().fill(Color(hex: "FFD700")))
+                    }
+                }
+            }
+            Spacer()
+        }
+        .padding(Design.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: Design.Radius.sm)
+                .fill(Design.Colors.surface)
+                .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                    .strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+        )
+    }
+
+    private func emptyState(message: String) -> some View {
+        VStack(spacing: Design.Spacing.md) {
+            Image(systemName: "tray")
+                .font(.system(size: 32))
+                .foregroundStyle(Design.Colors.textMuted)
+            Text(message)
+                .font(Design.Fonts.mono(13))
+                .foregroundStyle(Design.Colors.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, Design.Spacing.xl * 2)
+    }
+}

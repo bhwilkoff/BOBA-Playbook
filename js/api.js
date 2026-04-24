@@ -76,6 +76,48 @@ const API = (() => {
     return _categories;
   }
 
+  /* ----------------------------------------------------------------
+     Store locator — authorized-retailer list (refreshed weekly by
+     GitHub Actions). Manifest-first protocol: fetch the tiny
+     stores-manifest.json, compare its sha256 against the cached copy
+     in localStorage, and only re-download the 1.4 MB stores.json when
+     the manifest has actually changed. Falls back to cache on any
+     network failure.
+  ---------------------------------------------------------------- */
+  async function loadStores() {
+    let localManifest = null;
+    let localStores   = null;
+    try {
+      localManifest = JSON.parse(localStorage.getItem('stores_manifest') || 'null');
+      localStores   = JSON.parse(localStorage.getItem('stores_cache')    || 'null');
+    } catch { /* corrupt entry — treat as no cache */ }
+
+    try {
+      const res = await fetch('assets/data/stores-manifest.json', { cache: 'no-store' });
+      if (!res.ok) throw new Error(`stores-manifest ${res.status}`);
+      const remote = await res.json();
+
+      if (localStores && localManifest?.stores_sha256 === remote.stores_sha256) {
+        return { stores: localStores, manifest: remote };
+      }
+
+      const storesRes = await fetch('assets/data/stores.json');
+      if (!storesRes.ok) throw new Error(`stores ${storesRes.status}`);
+      const stores = await storesRes.json();
+
+      try {
+        localStorage.setItem('stores_cache',    JSON.stringify(stores));
+        localStorage.setItem('stores_manifest', JSON.stringify(remote));
+      } catch (e) {
+        console.warn('[stores] localStorage write failed:', e);
+      }
+      return { stores, manifest: remote };
+    } catch (err) {
+      if (localStores) return { stores: localStores, manifest: localManifest };
+      throw err;
+    }
+  }
+
   // Community-alias files — load in parallel with catalog, merge into one
   // lowercase lookup: slang → [canonical, ...]. Sourced from the Discord
   // terminology handoff; missing files are a no-op (aliases only expand
@@ -520,6 +562,7 @@ const API = (() => {
     loadSearchIndex,
     loadCategories,
     loadAliasIndex,
+    loadStores,
     // Auth
     authSignUp,
     authSignIn,

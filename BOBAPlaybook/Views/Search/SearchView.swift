@@ -143,6 +143,13 @@ struct SearchView: View {
             }
         }
         .onAppear {
+            // Reset filter state when the tab re-appears — moving
+            // between Find ↔ Collection ↔ etc. starts with a clean
+            // slate rather than dragging a forgotten element pill
+            // along. Sheets / modals don't retrigger onAppear on the
+            // presenter so in-tab navigation (open card → close) keeps
+            // whatever was set.
+            store.clearAllFilters()
             tryPresentPendingCard()
             if store.pendingScan {
                 showScan = true

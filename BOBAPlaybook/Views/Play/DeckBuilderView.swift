@@ -26,7 +26,13 @@ struct DeckBuilderView: View {
     var isRootView: Bool = false
 
     @Environment(CardStore.self) private var cardStore
+    @Environment(CollectionStore.self) private var collection
+    @Environment(AuthManager.self) private var auth
     @State private var store = DeckBuilderStore()
+    /// When on, the card browser pool restricts to cards the user owns
+    /// (any designation in `.isOwned`). Off by default — full catalog
+    /// is the expected starting point for building from scratch.
+    @State private var collectionOnly = false
     @State private var showTemplates = true
     @State private var showDeckManagement = false
     @State private var showDeckList = false
@@ -76,14 +82,36 @@ struct DeckBuilderView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showDeckManagement = true
-                    } label: {
-                        Image(systemName: "line.3.horizontal.circle")
-                            .font(.system(size: 20))
-                            .foregroundStyle(Design.Colors.bobaCyan)
+                    HStack(spacing: Design.Spacing.md) {
+                        Button {
+                            showDeckManagement = true
+                        } label: {
+                            Image(systemName: "line.3.horizontal.circle")
+                                .font(.system(size: 20))
+                                .foregroundStyle(Design.Colors.bobaCyan)
+                        }
+                        .deckBuilderTutorialTarget(.deckMenu)
+
+                        // Collection-only toggle — restricts the card
+                        // picker pool to cards the user owns. Matches
+                        // the Collection tab icon for a visible link
+                        // between the two surfaces.
+                        Button {
+                            collectionOnly.toggle()
+                        } label: {
+                            Image(systemName: "square.grid.2x2")
+                                .font(.system(size: 18))
+                                .foregroundStyle(collectionOnly ? Design.Colors.nearBlack : Design.Colors.bobaCyan)
+                                .padding(4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(collectionOnly ? Design.Colors.bobaCyan : Color.clear)
+                                )
+                        }
+                        .accessibilityLabel(collectionOnly ? "Showing my collection only" : "Show only cards I own")
+                        .disabled(!auth.isAuthenticated)
+                        .opacity(auth.isAuthenticated ? 1 : 0.4)
                     }
-                    .deckBuilderTutorialTarget(.deckMenu)
                 }
                 ToolbarItem(placement: .principal) {
                     if isRootView {
@@ -107,13 +135,15 @@ struct DeckBuilderView: View {
                         Button {
                             showRulesSheet = true
                         } label: {
+                            // Override indicator is still visible via
+                            // the filled-vs-outline icon swap, so the
+                            // color can stay cyan for visual balance
+                            // with the rest of the toolbar.
                             Image(systemName: store.ruleOverrides.hasAnyUserOverride
                                   ? "list.bullet.rectangle.fill"
                                   : "list.bullet.rectangle")
                                 .font(.system(size: 18))
-                                .foregroundStyle(store.ruleOverrides.hasAnyUserOverride
-                                                 ? Design.Colors.bobaOrange
-                                                 : Design.Colors.bobaCyan)
+                                .foregroundStyle(Design.Colors.bobaCyan)
                         }
                         .accessibilityLabel("Deck rules")
                         .deckBuilderTutorialTarget(.rulesButton)
@@ -515,7 +545,21 @@ struct DeckBuilderView: View {
 
     private var filteredCards: [Card] {
         let query = store.browserSearch.lowercased()
+        // Pre-compute the owned bobaId + cardNumber sets once per filter
+        // pass so the inner closure stays O(1) per card rather than
+        // re-walking userCards on every candidate.
+        let ownedBobaIds: Set<String> = collectionOnly
+            ? Set(collection.userCards.filter { $0.designation.isOwned }.compactMap { $0.bobaId })
+            : []
+        let ownedCardNumbers: Set<String> = collectionOnly
+            ? Set(collection.userCards.filter { $0.designation.isOwned && $0.bobaId == nil }.map { $0.cardNumber })
+            : []
         let cards = cardStore.displayCards.filter { card in
+            if collectionOnly,
+               !ownedBobaIds.contains(card.id),
+               !ownedCardNumbers.contains(card.cardNumber) {
+                return false
+            }
             // Card type filter
             switch store.browserTab {
             case .hero:
@@ -633,15 +677,36 @@ struct DeckBuilderView: View {
                         // Hero Deck section
                         DeckSection(title: "HERO DECK (\(store.heroes.count)/\(store.format.heroTarget))",
                                     isEmpty: store.heroes.isEmpty) {
+                            // Cross-tier hero repeat banner — flags the
+                            // "6-per-hero across variations" rule (§4.2).
+                            // Silent when no hero is repeated, so it stays
+                            // out of the way during normal deck building.
+                            if !heroRepeats.isEmpty {
+                                heroRepeatBanner
+                            }
                             ForEach(groupedHeroes, id: \.power) { group in
-                                HStack {
-                                    Text("PWR \(group.power)")
-                                        .font(Design.Fonts.mono(10, weight: .bold))
-                                        .foregroundStyle(Design.Colors.textMuted)
-                                    Text("(\(group.cards.count)/6)")
-                                        .font(Design.Fonts.mono(10))
-                                        .foregroundStyle(group.cards.count > 6 ? Color(hex: "C0392B") : Design.Colors.textMuted)
-                                    Spacer()
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack {
+                                        Text("PWR \(group.power)")
+                                            .font(Design.Fonts.mono(10, weight: .bold))
+                                            .foregroundStyle(Design.Colors.textMuted)
+                                        Text("(\(group.cards.count)/6)")
+                                            .font(Design.Fonts.mono(10))
+                                            .foregroundStyle(group.cards.count > 6 ? Color(hex: "C0392B") : Design.Colors.textMuted)
+                                        Spacer()
+                                    }
+                                    // Hero × weapon breakdown for this power
+                                    // tier. Helps coaches see at a glance
+                                    // which heroes they've leaned on and
+                                    // whether weapon spread is diverse.
+                                    let breakdown = heroWeaponBreakdown(for: group.cards)
+                                    if !breakdown.isEmpty {
+                                        Text(breakdown)
+                                            .font(Design.Fonts.mono(9))
+                                            .foregroundStyle(Design.Colors.textMuted)
+                                            .lineLimit(2)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
                                 }
                                 .padding(.horizontal, Design.Spacing.md)
                                 .padding(.top, Design.Spacing.xs)
@@ -658,6 +723,19 @@ struct DeckBuilderView: View {
                                 }
                             }
                             if !store.bonusPlays.isEmpty {
+                                // Tip surfaces only when the count
+                                // crosses the soft ceiling Brad calls
+                                // out in the tutorial (transcript
+                                // [00:23:31]) — too many bonus plays
+                                // dilutes your Playbook.
+                                if store.bonusPlays.count >= 7 {
+                                    HintBanner(
+                                        id: .bonusPlayCeiling,
+                                        title: "TIP — BONUS PLAY CEILING",
+                                        message: "More than 6 bonus plays dilutes your Playbook. Consider trimming back."
+                                    )
+                                    .padding(.horizontal, Design.Spacing.md)
+                                }
                                 DeckSection(title: "BONUS PLAYS (\(store.bonusPlays.count))", isEmpty: false) {
                                     ForEach(store.bonusPlays) { card in
                                         DeckCardRow(card: card) { store.removeCard(card, role: .bonusPlay) }
@@ -702,6 +780,97 @@ struct DeckBuilderView: View {
     private var groupedHeroes: [(power: Int, cards: [Card])] {
         let groups = Dictionary(grouping: store.heroes) { $0.power ?? 0 }
         return groups.map { (power: $0.key, cards: $0.value) }.sorted { $0.power > $1.power }
+    }
+
+    /// One-line "Hero (FIRE×2, ICE)" breakdown for the cards inside a
+    /// single power tier. Order: heroes by total-count desc, then
+    /// alphabetical. Weapons listed in their canonical element order
+    /// within each hero so the reading pattern is stable.
+    private func heroWeaponBreakdown(for cards: [Card]) -> String {
+        // hero -> element -> count
+        var byHero: [String: [String: Int]] = [:]
+        for c in cards {
+            let hero = c.hero.isEmpty ? c.name : c.hero
+            byHero[hero, default: [:]][c.element, default: 0] += 1
+        }
+        let elementOrder = ["FIRE","ICE","STEEL","BRAWL","GLOW","HEX","GUM","SUPER","CYBER","ALT","NONE"]
+        let sortedHeroes = byHero.keys.sorted { a, b in
+            let aTotal = byHero[a]!.values.reduce(0, +)
+            let bTotal = byHero[b]!.values.reduce(0, +)
+            if aTotal != bTotal { return aTotal > bTotal }
+            return a.localizedCompare(b) == .orderedAscending
+        }
+        return sortedHeroes.map { hero -> String in
+            let weapons = byHero[hero]!.sorted { a, b in
+                let ai = elementOrder.firstIndex(of: a.key) ?? 99
+                let bi = elementOrder.firstIndex(of: b.key) ?? 99
+                return ai < bi
+            }
+            let weaponFrag = weapons.map { "\($0.key)\($0.value > 1 ? "×\($0.value)" : "")" }.joined(separator: ", ")
+            return "\(hero) (\(weaponFrag))"
+        }.joined(separator: " · ")
+    }
+
+    /// Heroes that appear more than once across the full Hero Deck
+    /// (counting all variations). The 6-per-hero rule caps this at 6;
+    /// the banner shows current counts so coaches spot crowding early.
+    //
+    // Split across discrete `var` steps because Swift 6's type-checker
+    // times out on a chained compactMap → sorted → map carrying nested
+    // tuple types. Building each stage with an explicit array type
+    // keeps inference local.
+    private var heroRepeats: [(hero: String, count: Int, weapons: [String])] {
+        var byHero: [String: [Card]] = [:]
+        for c in store.heroes {
+            let key = c.hero.isEmpty ? c.name : c.hero
+            byHero[key, default: []].append(c)
+        }
+        let elementOrder = ["FIRE","ICE","STEEL","BRAWL","GLOW","HEX","GUM","SUPER","CYBER","ALT","NONE"]
+        var rows: [(hero: String, count: Int, weapons: [String])] = []
+        for (hero, cards) in byHero {
+            guard cards.count > 1 else { continue }
+            var weapons: [String: Int] = [:]
+            for c in cards { weapons[c.element, default: 0] += 1 }
+            let sorted = weapons.sorted { a, b in
+                let ai = elementOrder.firstIndex(of: a.key) ?? 99
+                let bi = elementOrder.firstIndex(of: b.key) ?? 99
+                return ai < bi
+            }
+            let frag = sorted.map { "\($0.key)\($0.value > 1 ? "×\($0.value)" : "")" }
+            rows.append((hero: hero, count: cards.count, weapons: frag))
+        }
+        rows.sort { lhs, rhs in
+            if lhs.count != rhs.count { return lhs.count > rhs.count }
+            return lhs.hero < rhs.hero
+        }
+        return rows
+    }
+
+    private var heroRepeatBanner: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("HERO REPEATS · 6 per hero max across variations")
+                .font(Design.Fonts.mono(9, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+                .tracking(1)
+            ForEach(heroRepeats, id: \.hero) { row in
+                HStack(spacing: 4) {
+                    Text(row.hero)
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(row.count > 6 ? Color(hex: "C0392B") : Design.Colors.textPrimary)
+                    Text("(\(row.count)/6)")
+                        .font(Design.Fonts.mono(10))
+                        .foregroundStyle(row.count > 6 ? Color(hex: "C0392B") : Design.Colors.textMuted)
+                    Text(row.weapons.joined(separator: ", "))
+                        .font(Design.Fonts.mono(9))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.xs)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Design.Colors.bobaCyan.opacity(0.06))
     }
 }
 

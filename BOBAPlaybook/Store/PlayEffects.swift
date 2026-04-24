@@ -140,7 +140,46 @@ struct PlayExecContext {
     var battles: [BattleSlot]
     var counters: ExecCounters = ExecCounters()
 
+    /// Snapshot of every weapon_transform currently in scope, ordered by
+    /// install. Each dict carries `owner` ("player"/"cpu"), `target`
+    /// ("all_heroes"|"self"|"opponent"), `to`, and optional `from`. Read
+    /// via `weapon(of:as:)` — never inspect directly.
+    var weaponTransforms: [[String: Any]] = []
+
     var opp: Side { self_ == .player ? .cpu : .player }
+
+    /// Effective weapon for a card from the given controller's seat.
+    /// Applies every in-scope `weapon_transform` in install order;
+    /// later installs win on overlapping heroes (matches B.1 spec).
+    /// Falls back to `card.element` when no transform applies. Returns
+    /// the empty string for `nil`.
+    ///
+    /// Convention: `controller` is the side that OWNS the hero being
+    /// asked about. A transform with `target: "self"` only applies when
+    /// the transform's `owner` matches `controller`; `target:
+    /// "opponent"` applies when it doesn't; `all_heroes` applies
+    /// regardless.
+    func weapon(of card: Card?, as controller: Side) -> String {
+        guard let card else { return "" }
+        var w = card.element
+        for t in weaponTransforms {
+            guard let target = t["target"] as? String,
+                  let to = t["to"] as? String else { continue }
+            let ownerStr = (t["owner"] as? String) ?? "player"
+            let owner: Side = ownerStr == "cpu" ? .cpu : .player
+            let applies: Bool
+            switch target {
+            case "all_heroes": applies = true
+            case "self":       applies = controller == owner
+            case "opponent":   applies = controller != owner
+            default:           applies = false
+            }
+            if !applies { continue }
+            if let from = t["from"] as? String, !from.isEmpty, from != w { continue }
+            w = to
+        }
+        return w
+    }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -216,6 +255,10 @@ struct PlayExecOut {
     var shuffleDiscardToDeckCount: Int = 0
     var discardTopCount: Int = 0
     var discardHandAll: Bool = false
+    /// B.12 — Rebuild / Return from the Depths use kind:"hero" to
+    /// discard heroes from hand instead of plays. nil → legacy
+    /// "plays" behavior; "hero" → strip heroes only.
+    var discardHandAllKind: String? = nil
     var reclaimUsedPlayCount: Int = 0
 
     // Tier B/C intents
@@ -332,7 +375,16 @@ enum PlayEffectExecutor {
             out.hasEffect = true
 
         case "hd_recover":
-            let amt = evalFormula(step["amount"], ctx: ctx)
+            // B.9 — `amount: "all"` recovers everything possible (host
+            // clamps at 10). `from: "discard"` is informational only;
+            // iOS doesn't track HDs as physical cards in a pile, so the
+            // semantics are equivalent to a regular recover.
+            let amt: Int
+            if (step["amount"] as? String) == "all" {
+                amt = 10  // clamped by applyHDRecover's min(10, ...)
+            } else {
+                amt = evalFormula(step["amount"], ctx: ctx)
+            }
             if (step["target"] as? String) == "opponent" { out.oppHDDelta += amt } else { out.selfHDDelta += amt }
             out.hasEffect = true
 
@@ -381,10 +433,21 @@ enum PlayEffectExecutor {
             out.hasEffect = true
 
         case "block_sub", "block_plays", "block_draw", "block_hd_recover":
-            let targetSide: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
             let scope = (step["scope"] as? String) ?? (step["duration"] as? String) ?? "this_battle"
-            out.intents.append(.installBlock(side: targetSide, kind: op, scope: scope))
-            out.notifications.append("\(targetSide == ctx.self_ ? "You" : "Opponent") blocked: \(op.replacingOccurrences(of: "_", with: " "))")
+            let targetStr = (step["target"] as? String) ?? "self"
+            if targetStr == "both" {
+                // B.5 — Bun Shortage uses target:"both". Install two
+                // blocks (one per side) so every HD-recover read that
+                // checks `isBlocked(side:kind:)` sees the right answer
+                // without isBlocked needing to know about "both."
+                out.intents.append(.installBlock(side: .player, kind: op, scope: scope))
+                out.intents.append(.installBlock(side: .cpu,    kind: op, scope: scope))
+                out.notifications.append("Both sides blocked: \(op.replacingOccurrences(of: "_", with: " "))")
+            } else {
+                let targetSide: PlayExecContext.Side = targetStr == "opponent" ? ctx.opp : ctx.self_
+                out.intents.append(.installBlock(side: targetSide, kind: op, scope: scope))
+                out.notifications.append("\(targetSide == ctx.self_ ? "You" : "Opponent") blocked: \(op.replacingOccurrences(of: "_", with: " "))")
+            }
             out.hasEffect = true
 
         case "honors_set":
@@ -455,6 +518,7 @@ enum PlayEffectExecutor {
 
         case "discard_hand_all":
             out.discardHandAll = true
+            if let kind = step["kind"] as? String { out.discardHandAllKind = kind }
             // Update counter now so any same-execution power formula referencing
             // `cards_discarded_by_this_play` can read the correct value.
             ctx.counters.cardsDiscardedByThisPlay += ctx.selfHand.count
@@ -760,8 +824,8 @@ enum PlayEffectExecutor {
 
         case "weapon_debuff_or_penalty":
             // Auto-pick opp weapon → if match, apply if_match; else penalty applies
-            let oppWeapon = ctx.oppCard?.element
-            if oppWeapon != nil,
+            let oppWeapon = ctx.weapon(of: ctx.oppCard, as: ctx.opp)
+            if !oppWeapon.isEmpty,
                let ifMatch = step["if_match"] as? [String: Any] {
                 execStep(ifMatch, ctx: ctx, out: &out)
                 out.notifications.append("Named weapon matched")
@@ -831,7 +895,12 @@ enum PlayEffectExecutor {
             let branch = fire ? (step["then"] as? [[String: Any]]) : (step["else"] as? [[String: Any]])
             if let branch = branch { for s in branch { execStep(s, ctx: ctx, out: &out) } }
         }
-        out.notifications.append("Coin flip: \(heads) heads / \(tails) tails")
+        // Visual reveal — emoji + sequence so coaches see WHICH faces
+        // came up, not just the aggregate count. "🪙 HEADS · TAILS · HEADS"
+        // is more diagnostic than "2 heads / 1 tails."
+        let faces = results.map { $0 ? "HEADS" : "TAILS" }
+        let glyphs = String(repeating: "🪙", count: results.count)
+        out.notifications.append("\(glyphs) \(faces.joined(separator: " · "))")
         out.hasEffect = true
     }
 
@@ -867,7 +936,14 @@ enum PlayEffectExecutor {
                 for s in branch { execStep(s, ctx: ctx, out: &out) }
             }
         }
-        out.notifications.append("Dice: \(rolls.map(String.init).joined(separator: ",")) (sum \(sum))")
+        // Visual reveal — die-face emoji per roll so coaches see the
+        // actual values, not just the aggregate. "🎲 4 · 6 (sum 10)"
+        let dieFaces = ["⚀","⚁","⚂","⚃","⚄","⚅"]
+        let pretty = rolls.map { r in (r >= 1 && r <= 6) ? dieFaces[r-1] + " " + String(r) : String(r) }
+        let line = rolls.count > 1
+            ? "🎲 \(pretty.joined(separator: " · ")) (sum \(sum))"
+            : "🎲 \(pretty.first ?? "")"
+        out.notifications.append(line)
         out.hasEffect = true
     }
 
@@ -926,19 +1002,30 @@ enum PlayEffectExecutor {
         let selfView = target == "self"
         let card = selfView ? ctx.selfCard : ctx.oppCard
 
+        // Helper closures — compute the controller (which seat owns a
+        // given card) so `ctx.weapon(of:as:)` applies the right
+        // transform targeting. Heroes in `selfHand` / `selfCard` /
+        // `selfHeroDeck` all belong to ctx.self_; opp-side heroes
+        // belong to ctx.opp.
+        let selfSide = ctx.self_
+        let oppSide  = ctx.opp
+
         switch type {
         case "weapon":
-            return card?.element == (cond["weapon"] as? String)
+            let controller = selfView ? selfSide : oppSide
+            return ctx.weapon(of: card, as: controller) == (cond["weapon"] as? String)
 
         case "weapon_same":
             if (cond["between"] as? String) == "self_opp" {
-                return ctx.selfCard?.element == ctx.oppCard?.element
+                return ctx.weapon(of: ctx.selfCard, as: selfSide)
+                    == ctx.weapon(of: ctx.oppCard,  as: oppSide)
             }
             return false
 
         case "weapon_different":
             if (cond["between"] as? String) == "self_opp" {
-                return ctx.selfCard?.element != ctx.oppCard?.element
+                return ctx.weapon(of: ctx.selfCard, as: selfSide)
+                    != ctx.weapon(of: ctx.oppCard,  as: oppSide)
             }
             return false
 
@@ -948,7 +1035,10 @@ enum PlayEffectExecutor {
             let ref = (cond["weapon_ref"] as? String) ?? "current_hero"
             var refWeapon: String? = nil
             if ref == "current_hero" {
-                refWeapon = selfView ? ctx.selfCard?.element : ctx.oppCard?.element
+                let card = selfView ? ctx.selfCard : ctx.oppCard
+                let controller = selfView ? selfSide : oppSide
+                let w = ctx.weapon(of: card, as: controller)
+                refWeapon = w.isEmpty ? nil : w
             }
             guard let w = refWeapon else { return false }
             var matched = 0
@@ -956,10 +1046,9 @@ enum PlayEffectExecutor {
             while i >= 0 && matched < length {
                 guard ctx.battles.indices.contains(i) else { break }
                 let slot = ctx.battles[i]
-                let hero: Card? = selfView
-                    ? (ctx.self_ == .player ? slot.playerCard : slot.cpuCard)
-                    : (ctx.self_ == .player ? slot.cpuCard    : slot.playerCard)
-                if hero?.element == w { matched += 1 } else { break }
+                let heroSide: PlayExecContext.Side = selfView ? selfSide : oppSide
+                let hero: Card? = heroSide == .player ? slot.playerCard : slot.cpuCard
+                if ctx.weapon(of: hero, as: heroSide) == w { matched += 1 } else { break }
                 i -= 1
             }
             return matched >= length
@@ -968,25 +1057,34 @@ enum PlayEffectExecutor {
             guard ctx.battleIdx >= 2 else { return false }
             let b1 = ctx.battles[ctx.battleIdx - 1]
             let b2 = ctx.battles[ctx.battleIdx - 2]
-            let h1: Card? = selfView ? (ctx.self_ == .player ? b1.playerCard : b1.cpuCard) : (ctx.self_ == .player ? b1.cpuCard : b1.playerCard)
-            let h2: Card? = selfView ? (ctx.self_ == .player ? b2.playerCard : b2.cpuCard) : (ctx.self_ == .player ? b2.cpuCard : b2.playerCard)
-            return h1?.element != nil && h1?.element == h2?.element
+            let side: PlayExecContext.Side = selfView ? selfSide : oppSide
+            let h1: Card? = side == .player ? b1.playerCard : b1.cpuCard
+            let h2: Card? = side == .player ? b2.playerCard : b2.cpuCard
+            let w1 = ctx.weapon(of: h1, as: side)
+            let w2 = ctx.weapon(of: h2, as: side)
+            return !w1.isEmpty && w1 == w2
 
         case "previous_and_current_share_weapon":
             guard ctx.battleIdx >= 1 else { return false }
             let cur = ctx.selfCard
             let prev = ctx.battles[ctx.battleIdx - 1]
-            let prevHero: Card? = selfView ? (ctx.self_ == .player ? prev.playerCard : prev.cpuCard) : (ctx.self_ == .player ? prev.cpuCard : prev.playerCard)
-            return cur?.element != nil && cur?.element == prevHero?.element
+            let side: PlayExecContext.Side = selfView ? selfSide : oppSide
+            let prevHero: Card? = side == .player ? prev.playerCard : prev.cpuCard
+            let curW  = ctx.weapon(of: cur,      as: side)
+            let prevW = ctx.weapon(of: prevHero, as: side)
+            return !curW.isEmpty && curW == prevW
 
         case "opponent_played_weapon_match":
             let ref = (cond["weapon_ref"] as? String) ?? "self_current_hero"
-            let refWeapon = ref == "self_current_hero" ? ctx.selfCard?.element : nil
+            let selfW = ctx.weapon(of: ctx.selfCard, as: selfSide)
+            let refWeapon: String? = ref == "self_current_hero"
+                ? (selfW.isEmpty ? nil : selfW)
+                : nil
             guard let w = refWeapon,
                   ctx.battles.indices.contains(ctx.battleIdx) else { return false }
             let b = ctx.battles[ctx.battleIdx]
-            let oppPlays = ctx.self_ == .player ? b.cpuPlayedCards : b.playerPlayedCards
-            return oppPlays.contains { $0.element == w }
+            let oppPlays = selfSide == .player ? b.cpuPlayedCards : b.playerPlayedCards
+            return oppPlays.contains { $0.element == w }   // Play cards have no weapon transform; their `element` is stable.
 
         case "next_hero_power_gt":
             let side: PlayExecContext.Side = target == "opponent" ? ctx.opp : ctx.self_
@@ -1007,7 +1105,7 @@ enum PlayEffectExecutor {
             if want == "player_named" {
                 return true
             }
-            return card?.element == want
+            return ctx.weapon(of: card, as: side) == want
 
         case "hd_count":
             let v = selfView ? ctx.selfHD : ctx.oppHD
@@ -1052,8 +1150,12 @@ enum PlayEffectExecutor {
 
         case "discarded_hero_weapon_matches_active":
             let pile = selfView ? ctx.selfDiscard : []
-            let activeW = ctx.selfCard?.element
-            return pile.contains { $0.cardType == "Hero" && $0.element == activeW }
+            let activeSide: PlayExecContext.Side = selfView ? ctx.self_ : ctx.opp
+            let activeW = ctx.weapon(of: ctx.selfCard, as: activeSide)
+            guard !activeW.isEmpty else { return false }
+            return pile.contains {
+                $0.cardType == "Hero" && ctx.weapon(of: $0, as: activeSide) == activeW
+            }
 
         case "plays_used":
             return cmp(ctx.playsUsedThisBattle, cond["comparison"] as? String, cond["value"] as? Int)
@@ -1188,14 +1290,64 @@ enum PlayEffectExecutor {
         if let d = val as? Double { return Int(d) }
         guard let obj = val as? [String: Any] else { return 0 }
         if let v = obj["value"] as? Int { return v }
+
+        // B.3 nested-formula shape: {formula, left, right} for
+        // multiply/min/max/add/sub. The `metric` field may be a nested
+        // {type, target, ...} dict instead of a bare string; we route
+        // it through evalMetric regardless.
+        if let kind = obj["formula"] as? String {
+            let l = evalFormula(obj["left"],  ctx: ctx)
+            let r = evalFormula(obj["right"], ctx: ctx)
+            switch kind {
+            case "min":      return min(l, r)
+            case "max":      return max(l, r)
+            case "add":      return l + r
+            case "sub":      return l - r
+            case "multiply":
+                // Back-compat: multiply may appear as either a binary
+                // {left, right} or the older flat {factor, metric}
+                // shape. Prefer the flat shape when `factor`/`metric`
+                // are present.
+                if obj["factor"] != nil || obj["metric"] != nil {
+                    let factor = (obj["factor"] as? Int) ?? 1
+                    let m = evalMetricAny(obj["metric"], args: obj, ctx: ctx)
+                    let offset = (obj["offset"] as? Int) ?? 0
+                    var result = factor * m + offset
+                    if let minV = obj["min"] as? Int { result = Swift.max(minV, result) }
+                    if let maxV = obj["max"] as? Int { result = Swift.min(maxV, result) }
+                    return result
+                }
+                return l * r
+            default:
+                return 0
+            }
+        }
+
+        // Flat shape: {factor, metric, offset?, min?, max?}
         let factor = (obj["factor"] as? Int) ?? 1
         let offset = (obj["offset"] as? Int) ?? 0
-        let metric = obj["metric"] as? String
-        let m = evalMetric(metric, args: obj, ctx: ctx)
+        let m = evalMetricAny(obj["metric"], args: obj, ctx: ctx)
         var result = factor * m + offset
         if let minV = obj["min"] as? Int { result = max(minV, result) }
         if let maxV = obj["max"] as? Int { result = min(maxV, result) }
         return result
+    }
+
+    /// Metric dispatcher that accepts either a bare string ("battles_won")
+    /// or a nested dict ({"type": "battles_won", "target": "self"}).
+    /// Unknown shapes return 0. Keeps evalFormula readable.
+    private static func evalMetricAny(_ val: Any?, args: [String: Any], ctx: PlayExecContext) -> Int {
+        if let name = val as? String {
+            return evalMetric(name, args: args, ctx: ctx)
+        }
+        if let nested = val as? [String: Any] {
+            let type = nested["type"] as? String
+            // Nested metric's own args override the outer formula's args
+            // (so `{type: "discard_count", target: "opponent", kind: "hero"}`
+            // can reach evalMetric as if it were a flat lookup).
+            return evalMetric(type, args: nested, ctx: ctx)
+        }
+        return 0
     }
 
     private static func evalMetric(_ metric: String?, args: [String: Any], ctx: PlayExecContext) -> Int {
@@ -1212,14 +1364,13 @@ enum PlayEffectExecutor {
 
         case "heroes_used_total":
             let weapon = args["weapon"] as? String
+            let side: PlayExecContext.Side = selfView ? ctx.self_ : ctx.opp
             var n = 0
             for i in 0...ctx.battleIdx where ctx.battles.indices.contains(i) {
                 let slot = ctx.battles[i]
-                let card: Card? = selfView
-                    ? (ctx.self_ == .player ? slot.playerCard : slot.cpuCard)
-                    : (ctx.self_ == .player ? slot.cpuCard : slot.playerCard)
+                let card: Card? = side == .player ? slot.playerCard : slot.cpuCard
                 guard let card = card else { continue }
-                if let weapon = weapon, card.element != weapon { continue }
+                if let weapon = weapon, ctx.weapon(of: card, as: side) != weapon { continue }
                 n += 1
             }
             return n
@@ -1259,8 +1410,12 @@ enum PlayEffectExecutor {
         case "discard_pile_heroes_weapon_match":
             // Count heroes in discard whose weapon matches active hero
             let pile = selfView ? ctx.selfDiscard : []
-            let activeW = ctx.selfCard?.element
-            return pile.filter { $0.cardType == "Hero" && $0.element == activeW }.count
+            let side: PlayExecContext.Side = selfView ? ctx.self_ : ctx.opp
+            let activeW = ctx.weapon(of: ctx.selfCard, as: side)
+            guard !activeW.isEmpty else { return 0 }
+            return pile.filter {
+                $0.cardType == "Hero" && ctx.weapon(of: $0, as: side) == activeW
+            }.count
 
         case "discard_pile_count_excluding_hd":
             let pile = selfView ? ctx.selfDiscard : []
@@ -1270,8 +1425,10 @@ enum PlayEffectExecutor {
             var weapons = Set<String>()
             for i in 0...ctx.battleIdx where ctx.battles.indices.contains(i) {
                 let slot = ctx.battles[i]
-                if let e = slot.playerCard?.element { weapons.insert(e) }
-                if let e = slot.cpuCard?.element    { weapons.insert(e) }
+                let pw = ctx.weapon(of: slot.playerCard, as: .player)
+                let cw = ctx.weapon(of: slot.cpuCard,    as: .cpu)
+                if !pw.isEmpty { weapons.insert(pw) }
+                if !cw.isEmpty { weapons.insert(cw) }
             }
             return weapons.count
 

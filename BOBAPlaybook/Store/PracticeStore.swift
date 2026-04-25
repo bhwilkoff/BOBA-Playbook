@@ -1443,6 +1443,195 @@ final class PracticeStore {
         return r
     }
 
+    // ════════════════════════════════════════════════════════════
+    // MARK: - Random deck builders (realistic-feel)
+    // ════════════════════════════════════════════════════════════
+    //
+    // The original `randomHeroPool.shuffled().prefix(60)` produced
+    // decks dominated by the long tail of low-power heroes (55-90).
+    // Per the practice-battle UI handoff §11 ("Deck composition
+    // triad" + "Bonus play ceiling" + "Substitution positioning")
+    // and §10 (Spec/Limited/SPEC+ formats), a plausible competitive
+    // deck has a defined power curve, balanced play categories,
+    // and at most 6 bonus plays.
+    //
+    // These builders aim for that profile.
+
+    /// Builds a 60-card hero deck with a realistic power
+    /// distribution and the 6-per-power-value rule enforced.
+    /// Distribution target (matches typical 160-Spec-style builds):
+    ///   - 30 high  (135-175 power)  — your starting line
+    ///   - 24 mid   (100-134 power)  — bench / sub options
+    ///   - 6  low   (55-99 power)    — cheap-sub bench tail
+    /// Limits: max 6 heroes per power value, max 4 variations
+    /// of any one hero name (so a random pull doesn't show 6
+    /// foils of the same hero in a row).
+    static func buildRandomHeroDeck(pool: [Card]) -> [Card] {
+        let candidates = pool.filter {
+            $0.cardType == "Hero"
+            && ($0.power ?? 0) >= 55      // exclude Hot Dog token (power 0) + sealed
+            && !($0.imageFile ?? "").isEmpty
+            // Skip Hot Dog hero variants — they aren't real picks
+            && !((($0.treatment ?? "").lowercased()).contains("hot dog"))
+        }
+        guard !candidates.isEmpty else { return [] }
+
+        let high = candidates.filter { ($0.power ?? 0) >= 135 }.shuffled()
+        let mid  = candidates.filter { let p = $0.power ?? 0; return p >= 100 && p < 135 }.shuffled()
+        let low  = candidates.filter { ($0.power ?? 0) < 100 }.shuffled()
+
+        var deck: [Card] = []
+        var deckIDs: Set<String> = []
+        var byPower: [Int: Int] = [:]
+        var byHero:  [String: Int] = [:]
+
+        @discardableResult
+        func tryAdd(_ card: Card, perPowerCap: Int = 6, perHeroCap: Int = 4) -> Bool {
+            if deckIDs.contains(card.id) { return false }
+            let p = card.power ?? 0
+            let h = card.hero
+            if (byPower[p] ?? 0) >= perPowerCap { return false }
+            if !h.isEmpty, (byHero[h] ?? 0) >= perHeroCap { return false }
+            deck.append(card)
+            deckIDs.insert(card.id)
+            byPower[p, default: 0] += 1
+            if !h.isEmpty { byHero[h, default: 0] += 1 }
+            return true
+        }
+
+        func fillFrom(_ source: [Card], targetCount: Int, predicate: (Card) -> Bool) {
+            for card in source where deck.count < targetCount && predicate(card) {
+                tryAdd(card)
+            }
+        }
+
+        // Pass 1: fill the high tier (target 30)
+        fillFrom(high, targetCount: 30, predicate: { _ in true })
+        // Pass 2: mid tier (cumulative target 54)
+        fillFrom(mid, targetCount: 54, predicate: { _ in true })
+        // Pass 3: low tier (cumulative target 60)
+        fillFrom(low, targetCount: 60, predicate: { _ in true })
+        // Pass 4: fill any shortfall with anything left, ignoring
+        // tier preferences but still respecting the caps.
+        let backfill = (high + mid + low).shuffled()
+        for card in backfill where deck.count < 60 {
+            tryAdd(card)
+        }
+        // Pass 5: last-resort — relax the per-hero cap if still short.
+        for card in backfill where deck.count < 60 {
+            tryAdd(card, perHeroCap: 6)
+        }
+        return deck
+    }
+
+    /// Pads a partial hero deck up to 60 cards from the catalog.
+    /// Used when a saved/template deck is short. Matches caps
+    /// from `buildRandomHeroDeck` (6/power, 4/hero).
+    static func padHeroDeck(_ existing: [Card], pool: [Card]) -> [Card] {
+        guard existing.count < 60 else { return existing }
+        var deck = existing
+        var deckIDs: Set<String> = Set(existing.map(\.id))
+        var byPower: [Int: Int] = [:]
+        var byHero:  [String: Int] = [:]
+        for c in existing {
+            byPower[c.power ?? 0, default: 0] += 1
+            if !c.hero.isEmpty { byHero[c.hero, default: 0] += 1 }
+        }
+        let candidates = pool.filter {
+            $0.cardType == "Hero"
+            && ($0.power ?? 0) >= 55
+            && !($0.imageFile ?? "").isEmpty
+            && !deckIDs.contains($0.id)
+        }.shuffled()
+        for card in candidates where deck.count < 60 {
+            let p = card.power ?? 0
+            if (byPower[p] ?? 0) >= 6 { continue }
+            if !card.hero.isEmpty, (byHero[card.hero] ?? 0) >= 4 { continue }
+            deck.append(card)
+            deckIDs.insert(card.id)
+            byPower[p, default: 0] += 1
+            if !card.hero.isEmpty { byHero[card.hero, default: 0] += 1 }
+        }
+        return deck
+    }
+
+    /// Builds a 30-card playbook biased toward the deck-composition
+    /// triad — HD recovery, card draw, buff plays — with the
+    /// 6-bonus-play ceiling enforced. Categories are looked up
+    /// from play-effects.json via `PlayEffects.entry(for:)`.
+    /// Falls back to a clean shuffle if the categorized pool is
+    /// thin in any bucket.
+    static func buildRandomPlaybook(pool: [Card]) -> [Card] {
+        guard !pool.isEmpty else { return [] }
+        PlayEffects.loadIfNeeded()
+
+        // Resolve each card's play-effects category. Cards with no
+        // entry (very rare — auditor catches these) get "unknown."
+        func categoryOf(_ c: Card) -> String {
+            (PlayEffects.entry(for: c.name)?["category"] as? String) ?? "unknown"
+        }
+
+        // Bucket by triad role:
+        //   recovery: economy + value (HD recovery, card draw)
+        //   buffs:    tempo + conditional + persistent (power swings)
+        //   utility:  utility (search / swap / reorder)
+        //   denial:   disruption (debuffs, blocks, force-discards)
+        // Bonus plays are handled separately under the 6-card cap.
+        let regular = pool.filter { $0.isBonusPlay != true }
+        let bonus   = pool.filter { $0.isBonusPlay == true }.shuffled()
+
+        var byRole: [String: [Card]] = [:]
+        for c in regular {
+            switch categoryOf(c) {
+            case "economy", "value":             byRole["recovery", default: []].append(c)
+            case "tempo", "conditional", "persistent":
+                                                 byRole["buffs",    default: []].append(c)
+            case "utility":                      byRole["utility",  default: []].append(c)
+            case "disruption":                   byRole["denial",   default: []].append(c)
+            default:                             byRole["other",    default: []].append(c)
+            }
+        }
+        // Shuffle each bucket
+        for k in byRole.keys { byRole[k] = byRole[k]?.shuffled() }
+
+        // Target: 8 recovery, 8 buffs, 4 utility, 4 denial,
+        // up to 6 bonus = 30 total. Adjust if any bucket is thin.
+        var deck: [Card] = []
+        var deckIDs: Set<String> = []
+        func draw(_ key: String, _ count: Int) {
+            var taken = 0
+            for c in byRole[key] ?? [] where taken < count {
+                if !deckIDs.contains(c.id) {
+                    deck.append(c); deckIDs.insert(c.id); taken += 1
+                }
+            }
+        }
+        draw("recovery", 8)
+        draw("buffs",    8)
+        draw("utility",  4)
+        draw("denial",   4)
+        // Bonus plays — capped at 6 per handoff guidance ("Never
+        // more than 6 bonus plays — too many cards dilutes your
+        // Playbook.").
+        var bonusTaken = 0
+        for c in bonus where bonusTaken < 6 && deck.count < 30 {
+            if !deckIDs.contains(c.id) {
+                deck.append(c); deckIDs.insert(c.id); bonusTaken += 1
+            }
+        }
+        // Backfill any shortage from any role (still excludes
+        // duplicate IDs).
+        if deck.count < 30 {
+            let backfill = regular.shuffled()
+            for c in backfill where deck.count < 30 {
+                if !deckIDs.contains(c.id) {
+                    deck.append(c); deckIDs.insert(c.id)
+                }
+            }
+        }
+        return deck.shuffled()
+    }
+
     func startMatch(allCards: [Card]) {
         Self.deleteSavedMatch()
         PlayEffects.loadIfNeeded()
@@ -1474,25 +1663,41 @@ final class PracticeStore {
             cpuResolvedDeck = Self.resolveTemplateDeck(cpuDeckSource, catalog: pool)
         }
 
-        // Random hero pool (for any side set to random, and for padding partial decks)
-        let heroes = pool.filter { $0.cardType == "Hero" && ($0.power ?? 0) > 0 }
-        let heroesWithImg = heroes.filter { !($0.imageFile ?? "").isEmpty }
-        let heroesNoImg   = heroes.filter {  ($0.imageFile ?? "").isEmpty }
-        let randomHeroPool = heroesWithImg.shuffled() + heroesNoImg.shuffled()
-        let allPlays = pool.filter { $0.cardType == "Play" }
+        // Random pools — used when a side is set to .random AND for
+        // padding any incomplete saved/template deck. Built lazily
+        // per side so each random side gets a fresh draw + the two
+        // sides aren't mirror images of each other.
+        let allPlays = pool.filter { $0.cardType == "Play" && !($0.imageFile ?? "").isEmpty }
 
-        func buildSide(resolved: ResolvedDeck?, randomOffset: Int) -> (heroes: [Card], plays: [Card]) {
-            var sideHeroes = (resolved?.heroes.isEmpty == false) ? resolved!.heroes.shuffled() : Array(randomHeroPool.dropFirst(randomOffset).prefix(60))
-            if sideHeroes.count < 11 {
-                let fill = randomHeroPool.filter { !sideHeroes.contains($0) }
-                sideHeroes.append(contentsOf: fill.prefix(60 - sideHeroes.count))
+        func buildSide(resolved: ResolvedDeck?) -> (heroes: [Card], plays: [Card]) {
+            // Heroes: build a realistic 60-card mix instead of a flat
+            // shuffle. Spec from the practice-battle UI handoff —
+            // bias toward 100+-power heroes with a small low-power
+            // bench tail for cheap substitutions; respect the
+            // 6-per-power-value rule and cap variations of any one
+            // hero name at 4.
+            let sideHeroes: [Card]
+            if let resolved, !resolved.heroes.isEmpty {
+                sideHeroes = Self.padHeroDeck(resolved.heroes.shuffled(), pool: pool)
+            } else {
+                sideHeroes = Self.buildRandomHeroDeck(pool: pool)
             }
-            let sidePlays = (resolved?.plays.isEmpty == false) ? resolved!.plays.shuffled() : Array(allPlays.shuffled().prefix(30))
+            // Plays: balanced 30-card playbook with the deck-
+            // composition triad (HD recovery / draw plays / buff
+            // plays) and the 6-bonus-play ceiling per handoff
+            // guidance. Falls back to a clean shuffle when the
+            // composition pass can't fill all slots.
+            let sidePlays: [Card]
+            if let resolved, !resolved.plays.isEmpty {
+                sidePlays = resolved.plays.shuffled()
+            } else {
+                sidePlays = Self.buildRandomPlaybook(pool: allPlays)
+            }
             return (sideHeroes, sidePlays)
         }
 
-        let playerSide = buildSide(resolved: playerResolvedDeck, randomOffset: 0)
-        let cpuSide    = buildSide(resolved: cpuResolvedDeck,    randomOffset: 60)
+        let playerSide = buildSide(resolved: playerResolvedDeck)
+        let cpuSide    = buildSide(resolved: cpuResolvedDeck)
 
         let playerPool = Array(playerSide.heroes.prefix(11))
         let cpuPool    = Array(cpuSide.heroes.prefix(11))

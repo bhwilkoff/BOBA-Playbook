@@ -427,7 +427,7 @@ struct PracticeSetupView: View {
 
             deckSourceOption(
                 title: "Random Deck",
-                subtitle: "Auto-generated from the full catalog",
+                subtitle: "Realistic mix — 30 high / 24 mid / 6 low power, balanced playbook",
                 isSelected: currentSource(side: side) == .random,
                 systemImage: "shuffle"
             ) {

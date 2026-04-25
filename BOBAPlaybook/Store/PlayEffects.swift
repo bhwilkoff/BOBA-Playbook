@@ -60,7 +60,7 @@ enum PlayEffects {
         "protect_self","cancel_opponent_plays","cap_opponent_plays",
         "block_sub","block_plays","block_draw","block_hd_recover",
         "honors_set","substitute_free","force_substitute",
-        "play_cost_delta","cancel_persistent","persistent_delta",
+        "play_cost_delta","cancel_persistent","persistent_delta","install_persistent",
         // Hero manipulation
         "swap_active_with_hand","swap_active_with_discard","swap_active_with_future_hero",
         "replace_active_with_top_hero_deck","replace_next_with_top_hero_deck",
@@ -667,6 +667,20 @@ enum PlayEffectExecutor {
             let side: PlayExecContext.Side = tgt == "opponent" ? ctx.opp : ctx.self_
             out.intents.append(.transformActiveToHotDog(side: side))
             out.notifications.append("Active hero transformed → Hot Dog")
+            out.hasEffect = true
+
+        case "install_persistent":
+            // A persistent's `effect` can call this op to install a
+            // CHILD persistent at fire time. Used for "next-battle
+            // delivery" patterns: a parent installs at on_battle_win
+            // (rest_of_game), then per-win it installs a one-shot
+            // child scoped to next_battle that delivers the actual
+            // power/HD effect. Without this op, you can't express
+            // "after I win, +5 next battle."
+            if let spec = step["spec"] as? [String: Any] {
+                out.intents.append(.installPersistent(owner: ctx.self_, spec: spec))
+                out.notifications.append("Installed follow-up effect")
+            }
             out.hasEffect = true
 
         case "mark_future_battle":

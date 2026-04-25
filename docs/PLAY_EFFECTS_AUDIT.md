@@ -1,6 +1,6 @@
 # Play Effects Audit
 
-_383 entries · 79 known ops · **0 errors** · **0 warnings** · **0 info** · **383 clean**_
+_383 entries · 81 known ops · **0 errors** · **0 warnings** · **0 info** · **383 clean**_
 
 Run with: `python3 scripts/audit_play_effects.py`
 

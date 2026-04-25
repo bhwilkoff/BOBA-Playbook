@@ -1090,6 +1090,40 @@ final class PracticeStore {
                 autoDiscardCpuHand(count: count, into: &callouts)
             }
 
+        case .revealForConditionalFree(let side):
+            // Scare Tactics — player picks a play to "reveal" from
+            // their hand. CPU side just picks the highest-cost play
+            // (gives the best chance of a free use next battle).
+            if side == .player {
+                guard !playerHand.isEmpty else { break }
+                pendingScareReveal = ScareTacticsState(
+                    pool: playerHand
+                )
+            } else {
+                guard let pick = cpuHand.max(by: { ($0.playCost ?? 0) < ($1.playCost ?? 0) }) else { break }
+                cpuRevealedScarePlay = pick
+                callouts.append(ActionCallout(
+                    message: "CPU revealed a play for Scare Tactics",
+                    icon: "eye", color: "C77DFF"
+                ))
+            }
+
+        case .presentPlayerChoice(let side, let prompt, let options, let cpuPick):
+            // CPU side auto-picks. Player side queues a chooser
+            // sheet via observable state. The chosen option's
+            // `effects` are run through the executor at confirm.
+            if side == .cpu {
+                let pick = max(0, min(cpuPick, options.count - 1))
+                runChoiceEffects(options[pick].effects, actingSide: .cpu, into: &callouts)
+            } else {
+                pendingPlayerChoice = PlayerChoiceState(
+                    prompt: prompt,
+                    options: options.enumerated().map { idx, opt in
+                        PlayerChoiceState.Option(id: idx, label: opt.label, effects: opt.effects)
+                    }
+                )
+            }
+
         case .autoDiscardHand(let side, let count):
             // Forced discard with no chooser — host picks the
             // lowest-cost plays as a sensible default. Used by cards
@@ -1181,6 +1215,170 @@ final class PracticeStore {
     /// op). Set by `firePersistentTriggers` before calling
     /// `applyIntents`, cleared after. Empty string disables.
     private var _inheritedInstallSource: String = ""
+
+    // MARK: - Player choice (player_choice op)
+    //
+    // Generic chooser surface. When the executor emits a
+    // `presentPlayerChoice` intent for the player side, we stash a
+    // PlayerChoiceState here; the practice view watches for it and
+    // presents PlayerChoiceSheet. On confirm, the chosen option's
+    // effects are run through the executor as if they were inline.
+    struct PlayerChoiceState: Identifiable {
+        let id = UUID()
+        let prompt: String
+        let options: [Option]
+        struct Option: Identifiable {
+            let id: Int
+            let label: String
+            let effects: [[String: Any]]
+        }
+    }
+    var pendingPlayerChoice: PlayerChoiceState? = nil
+
+    // MARK: - Scare Tactics
+    //
+    // Player picks a play from their hand to "reveal." The card
+    // stays in hand. Next battle, if the OPPONENT plays a card
+    // whose cost ≥ the revealed card's cost, the player gets to
+    // run the revealed card free. After that, the reveal clears.
+    struct ScareTacticsState: Identifiable {
+        let id = UUID()
+        let pool: [Card]
+    }
+    var pendingScareReveal: ScareTacticsState? = nil
+    /// Per-side: the play card revealed for Scare Tactics, kept
+    /// until next battle resolves or the trigger fires.
+    var playerRevealedScarePlay: Card? = nil
+    var cpuRevealedScarePlay: Card? = nil
+    /// The battle index at which Scare Tactics was activated (the
+    /// reveal becomes eligible to fire in `installedAt + 1`).
+    var playerScareRevealedAt: Int = -1
+
+    // MARK: - Hero pulse (power-change visual feedback)
+    //
+    // Bumped each time a side's effect power changes — the hero
+    // card on that side pulses (scale + glow) once per increment
+    // so coaches see WHICH hero just got hit instead of having to
+    // re-read the breakdown.
+    var playerHeroPulse: Int = 0
+    var cpuHeroPulse: Int = 0
+    private func pulse(_ side: PlayExecContext.Side) {
+        if side == .player { playerHeroPulse &+= 1 }
+        else               { cpuHeroPulse &+= 1 }
+    }
+
+    func confirmScareReveal(_ card: Card) {
+        playerRevealedScarePlay = card
+        playerScareRevealedAt = currentBattle
+        pendingScareReveal = nil
+        cpuCallouts.append(ActionCallout(
+            message: "Revealed \(card.name) — free next battle if CPU plays cost ≥ \(card.playCost ?? 0)",
+            icon: "eye", color: "00F5FF",
+            card: card
+        ))
+    }
+
+    func cancelScareReveal() {
+        pendingScareReveal = nil
+    }
+
+    /// Called from the CPU play path each time the CPU resolves
+    /// a play. If the player has a revealed Scare Tactics card,
+    /// we're in the eligibility window (install battle + 1), and
+    /// the CPU's play cost meets or exceeds the revealed card's
+    /// cost, the revealed play fires for free.
+    private func maybeFireScareReveal(cpuPlayCost: Int) {
+        guard let revealed = playerRevealedScarePlay else { return }
+        guard currentBattle == playerScareRevealedAt + 1 else { return }
+        let threshold = revealed.playCost ?? 0
+        guard cpuPlayCost >= threshold else { return }
+        guard let idx = playerHand.firstIndex(where: { $0.id == revealed.id }) else {
+            // Card was discarded or otherwise gone — clear reveal.
+            playerRevealedScarePlay = nil
+            return
+        }
+        playerHand.remove(at: idx)
+        battles[currentBattle].playerPlayedCards.append(revealed)
+        playerPlayDiscard.append(revealed)
+        // Run the revealed play's executor for free
+        if let entry = PlayEffects.entry(for: revealed.name),
+           let effects = entry["effects"] as? [[String: Any]], !effects.isEmpty {
+            let ctx = makeExecContext(self_: .player)
+            let out = PlayEffectExecutor.run(entry: entry, ctx: ctx)
+            battles[currentBattle].playerEffectPower += out.selfDelta
+            battles[currentBattle].cpuEffectPower    += out.oppDelta
+            applyHDRecover(side: .player, amount: out.selfHDDelta)
+            applyHDRecover(side: .cpu,    amount: out.oppHDDelta)
+            if out.selfDelta != 0 {
+                battles[currentBattle].playerBreakdown.append(
+                    .init(label: "\(revealed.name) (Scare Tactics free)", delta: out.selfDelta))
+            }
+            if out.oppDelta != 0 {
+                battles[currentBattle].cpuBreakdown.append(
+                    .init(label: "\(revealed.name) (Scare Tactics free)", delta: out.oppDelta))
+            }
+        }
+        cpuCallouts.append(ActionCallout(
+            message: "Scare Tactics fired — \(revealed.name) ran free (CPU's cost \(cpuPlayCost) ≥ \(threshold))",
+            icon: "wand.and.stars", color: "FFD700",
+            card: revealed
+        ))
+        playerRevealedScarePlay = nil
+    }
+
+    /// Called by the chooser sheet when the user picks an option.
+    /// Runs the option's effects through the player-side executor
+    /// and applies the resulting deltas/intents.
+    func confirmPlayerChoice(option: PlayerChoiceState.Option) {
+        var followups: [ActionCallout] = []
+        runChoiceEffects(option.effects, actingSide: .player, into: &followups)
+        cpuCallouts.append(contentsOf: followups)
+        pendingPlayerChoice = nil
+    }
+
+    func cancelPlayerChoice() {
+        pendingPlayerChoice = nil
+    }
+
+    /// Runs a list of executor steps (the chosen option's effects)
+    /// as if they were inline at the originating play card. Used by
+    /// both the player confirm path and the CPU auto-pick path.
+    private func runChoiceEffects(_ effects: [[String: Any]],
+                                  actingSide: PlayExecContext.Side,
+                                  into callouts: inout [ActionCallout]) {
+        let ctx = makeExecContext(self_: actingSide)
+        var out = PlayExecOut()
+        for step in effects {
+            PlayEffectExecutor.execStep(step, ctx: ctx, out: &out)
+        }
+        // Power deltas — feed back into the current battle slot
+        // so a chosen +20 actually changes hero power.
+        if battles.indices.contains(currentBattle) {
+            if actingSide == .player {
+                battles[currentBattle].playerEffectPower += out.selfDelta
+                battles[currentBattle].cpuEffectPower    += out.oppDelta
+                if out.selfDelta != 0 {
+                    battles[currentBattle].playerBreakdown.append(.init(label: "Choice", delta: out.selfDelta))
+                }
+                if out.oppDelta != 0 {
+                    battles[currentBattle].cpuBreakdown.append(.init(label: "Choice", delta: out.oppDelta))
+                }
+            } else {
+                battles[currentBattle].cpuEffectPower    += out.selfDelta
+                battles[currentBattle].playerEffectPower += out.oppDelta
+            }
+        }
+        applyHDRecover(side: actingSide, amount: out.selfHDDelta)
+        applyHDRecover(side: actingSide == .player ? .cpu : .player, amount: out.oppHDDelta)
+        // Apply nested intents (could include further choices,
+        // installs, discards, etc.).
+        for intent in out.intents {
+            applyIntent(intent, actingSide: actingSide, notifyInto: &callouts)
+        }
+        for msg in out.notifications {
+            callouts.append(ActionCallout(message: msg, icon: "sparkles", color: "00F5FF"))
+        }
+    }
 
     /// Map executor's `out.revealMode` string into the typed
     /// RevealState.RevealKind. Defaults to .single for unknown
@@ -1346,6 +1544,11 @@ final class PracticeStore {
         pendingRecycleVictimSummary = ""
         pendingHandDiscard = nil
         pendingHeroDiscardChoice = nil
+        pendingPlayerChoice = nil
+        pendingScareReveal = nil
+        playerRevealedScarePlay = nil
+        cpuRevealedScarePlay = nil
+        playerScareRevealedAt = -1
         playerHeroDiscard = []
         cpuHeroDiscard = []
         // Roll 1d6 per side for Honors. High roll wins, ties re-roll.
@@ -1465,6 +1668,8 @@ final class PracticeStore {
             // Apply the effect now as user sees it
             battles[currentBattle].cpuEffectPower += play.cpuDelta
             battles[currentBattle].playerEffectPower += play.playerDelta
+            if play.cpuDelta != 0    { pulse(.cpu) }
+            if play.playerDelta != 0 { pulse(.player) }
             // UX#3 — log itemized contributions. Use the callout's
             // card name when available; otherwise fall back to the
             // callout message ("CPU plays Combo Deal").
@@ -1686,6 +1891,8 @@ final class PracticeStore {
 
         battles[currentBattle].playerEffectPower += playerDelta
         battles[currentBattle].cpuEffectPower += cpuDelta
+        if playerDelta != 0 { pulse(.player) }
+        if cpuDelta != 0    { pulse(.cpu) }
         // UX#3 — record per-modifier breakdown so the Resolution
         // overlay can itemize the math instead of showing a single
         // +N total. Every played card gets a line item (even when
@@ -2048,6 +2255,11 @@ final class PracticeStore {
                 revealMode: capturedRevealMode,
                 revealLabel: capturedRevealLabel
             ))
+            // Scare Tactics — fire the player's revealed play free
+            // when the CPU's play cost meets the threshold. Runs
+            // immediately so the breakdown shows the contribution
+            // before the user dismisses the CPU's overlay.
+            maybeFireScareReveal(cpuPlayCost: cost)
         }
 
         if cpuPlayQueue.isEmpty {
@@ -2264,6 +2476,8 @@ final class PracticeStore {
             }
             slot.playerEffectPower += playerDelta
             slot.cpuEffectPower    += cpuDelta
+            if playerDelta != 0 { pulse(.player) }
+            if cpuDelta != 0    { pulse(.cpu) }
             inst.appliedAtBattle    = currentBattle
             inst.appliedPlayerDelta += playerDelta
             inst.appliedCpuDelta    += cpuDelta
@@ -2391,6 +2605,20 @@ final class PracticeStore {
 
     private func moveToNextBattle() {
         battles[currentBattle].isActive = false
+        // Scare Tactics window closes after the FOLLOWING battle
+        // (installed at N → eligible during N+1 → expires when
+        // moving N+1 → N+2). We compare currentBattle (N+1) to
+        // playerScareRevealedAt + 1 (N+1).
+        if playerRevealedScarePlay != nil
+           && currentBattle >= playerScareRevealedAt + 1 {
+            cpuCallouts.append(ActionCallout(
+                message: "Scare Tactics window closed — no opp play met the threshold",
+                icon: "eye.slash", color: "666680"
+            ))
+            playerRevealedScarePlay = nil
+            playerScareRevealedAt = -1
+        }
+        cpuRevealedScarePlay = nil
         let next = currentBattle + 1
         if next >= 7 || matchOver {
             phase = .matchOver

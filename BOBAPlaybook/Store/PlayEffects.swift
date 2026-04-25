@@ -61,6 +61,7 @@ enum PlayEffects {
         "block_sub","block_plays","block_draw","block_hd_recover",
         "honors_set","substitute_free","force_substitute",
         "play_cost_delta","cancel_persistent","persistent_delta","install_persistent",
+        "player_choice","reveal_play_for_conditional_free",
         // Hero manipulation
         "swap_active_with_hand","swap_active_with_discard","swap_active_with_future_hero",
         "replace_active_with_top_hero_deck","replace_next_with_top_hero_deck",
@@ -232,6 +233,23 @@ enum PlayIntent {
     /// `discard` op fires without `mode: "choice"` — host picks
     /// lowest-cost plays as a sensible default.
     case autoDiscardHand(side: PlayExecContext.Side, count: Int)
+    /// Generic player choice — surface a sheet with `options` and
+    /// run the chosen option's effects via the executor. CPU side
+    /// auto-picks the option at index `cpuPick` (default 0).
+    /// `prompt` is the headline shown above the options.
+    case presentPlayerChoice(side: PlayExecContext.Side, prompt: String, options: [PlayChoiceOption], cpuPick: Int)
+    /// Scare Tactics — pick a play from hand to "reveal." Host
+    /// installs a one-shot persistent for next battle that watches
+    /// for opp playing a card of cost ≥ the revealed card's cost;
+    /// if so, the player gets the revealed card free.
+    case revealForConditionalFree(side: PlayExecContext.Side)
+}
+
+/// One option in a `player_choice` sheet. `label` is the button
+/// caption, `effects` is the JSON effect array that runs when picked.
+struct PlayChoiceOption {
+    let label: String
+    let effects: [[String: Any]]
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -675,6 +693,39 @@ enum PlayEffectExecutor {
             let side: PlayExecContext.Side = tgt == "opponent" ? ctx.opp : ctx.self_
             out.intents.append(.transformActiveToHotDog(side: side))
             out.notifications.append("Active hero transformed → Hot Dog")
+            out.hasEffect = true
+
+        case "reveal_play_for_conditional_free":
+            // Scare Tactics — host opens a hand-based chooser, then
+            // installs a one-shot next-battle persistent gated on
+            // opponent's play cost.
+            out.intents.append(.revealForConditionalFree(side: ctx.self_))
+            out.hasEffect = true
+
+        case "player_choice":
+            // Generic chooser: present `options[]` to the player.
+            // Each option has a `label` and a list of `effects`.
+            // CPU side picks `cpu_pick` (default 0). Player side
+            // routes through the host's chooser sheet.
+            let prompt = (step["prompt"] as? String) ?? "Choose one"
+            guard let rawOptions = step["options"] as? [[String: Any]],
+                  !rawOptions.isEmpty
+            else {
+                out.unknownOps.append("player_choice (no options)")
+                return
+            }
+            let parsed: [PlayChoiceOption] = rawOptions.compactMap { o in
+                guard let label = o["label"] as? String else { return nil }
+                let effects = (o["effects"] as? [[String: Any]]) ?? []
+                return PlayChoiceOption(label: label, effects: effects)
+            }
+            let cpuPick = (step["cpu_pick"] as? Int) ?? 0
+            out.intents.append(.presentPlayerChoice(
+                side: ctx.self_,
+                prompt: prompt,
+                options: parsed,
+                cpuPick: cpuPick
+            ))
             out.hasEffect = true
 
         case "install_persistent":

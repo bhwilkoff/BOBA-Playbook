@@ -154,6 +154,28 @@ struct PracticeView: View {
                         cpuPlayOverlay(play)
                     }
 
+                    // ── Animated dice / coin reveal ─────────────────────────
+                    // Plays through a ~1s spin/tumble before the rest of the
+                    // effect resolves visually. Auto-clears when done.
+                    if let reveal = store.pendingReveal {
+                        DiceCoinRevealOverlay(reveal: reveal) {
+                            store.pendingReveal = nil
+                        }
+                        .transition(.opacity)
+                        .zIndex(50)
+                    }
+
+                    // ── Honors-roll setup overlay ───────────────────────────
+                    // First-of-match dice roll for who acts first. Auto-
+                    // dismisses when the player taps "Begin Battle 1."
+                    if let setup = store.pendingSetupHonors {
+                        SetupHonorsRollOverlay(roll: setup) {
+                            store.pendingSetupHonors = nil
+                        }
+                        .transition(.opacity)
+                        .zIndex(60)
+                    }
+
                     // ── Effect Callout (coin flip / dice / power change) ────
                     if let callout = store.lastEffectCallout {
                         effectCalloutBanner(callout)
@@ -560,6 +582,24 @@ struct PracticeView: View {
                     .font(Design.Fonts.display(20))
                     .foregroundStyle(Design.Colors.textPrimary)
 
+                // Show the displaced hero face-up so the player can
+                // see what power level the CPU just replaced. The new
+                // hero stays face-down (sub happens before reveal).
+                if let card = callout.card, let file = card.imageFile, !file.isEmpty {
+                    VStack(spacing: 4) {
+                        Text("SUBBED OUT")
+                            .font(Design.Fonts.mono(9, weight: .bold))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .tracking(1.5)
+                        CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
+                            .aspectRatio(5.0/7.0, contentMode: .fit)
+                            .frame(maxHeight: 140)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(Color(hex: callout.color).opacity(0.5), lineWidth: 2))
+                    }
+                }
+
                 Text(callout.message)
                     .font(Design.Fonts.mono(13, weight: .bold))
                     .foregroundStyle(Design.Colors.textSecondary)
@@ -774,6 +814,306 @@ private extension View {
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
                 windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
             }
+        }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - DiceCoinRevealOverlay
+// ════════════════════════════════════════════════════════════════
+//
+// Animated overlay that plays whenever a Play card flips coins or
+// rolls dice. Coins spin around the Y axis cycling HEADS/TAILS
+// labels; dice rapidly cycle face glyphs. Both settle on the actual
+// rolled result after `spinDuration`, hold briefly, then call
+// `onFinished` so the store can clear `pendingReveal`.
+//
+// Side affects tint only: cyan for the player, purple for CPU.
+
+private struct DiceCoinRevealOverlay: View {
+    let reveal: PracticeStore.RevealState
+    let onFinished: () -> Void
+
+    private let spinDuration: Double = 0.85
+    private let holdDuration: Double  = 0.55
+
+    @State private var settled = false
+    @State private var tick = 0
+
+    private var accent: Color {
+        reveal.side == .player ? Design.Colors.bobaCyan : Color(hex: "C77DFF")
+    }
+
+    private var title: String {
+        if !reveal.coinFlips.isEmpty && !reveal.diceRolls.isEmpty { return "ROLL" }
+        if !reveal.coinFlips.isEmpty {
+            return reveal.coinFlips.count > 1 ? "COIN FLIPS" : "COIN FLIP"
+        }
+        return reveal.diceRolls.count > 1 ? "DICE ROLL" : "DIE ROLL"
+    }
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.55).ignoresSafeArea()
+
+            VStack(spacing: 14) {
+                Text(title)
+                    .font(Design.Fonts.display(22))
+                    .foregroundStyle(accent)
+                    .tracking(2.5)
+
+                if !reveal.coinFlips.isEmpty {
+                    HStack(spacing: 14) {
+                        ForEach(Array(reveal.coinFlips.enumerated()), id: \.offset) { _, finalFace in
+                            CoinFace(finalFace: finalFace, settled: settled, tick: tick, accent: accent)
+                        }
+                    }
+                }
+
+                if !reveal.diceRolls.isEmpty {
+                    HStack(spacing: 14) {
+                        ForEach(Array(reveal.diceRolls.enumerated()), id: \.offset) { _, finalRoll in
+                            DieFace(finalRoll: finalRoll, settled: settled, tick: tick, accent: accent)
+                        }
+                    }
+                }
+
+                if settled, !reveal.diceRolls.isEmpty, reveal.diceRolls.count > 1 {
+                    Text("SUM \(reveal.diceRolls.reduce(0, +))")
+                        .font(Design.Fonts.mono(13, weight: .bold))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .tracking(1.5)
+                }
+            }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 22)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Design.Colors.surface.opacity(0.96))
+                    .overlay(RoundedRectangle(cornerRadius: 18)
+                        .strokeBorder(accent.opacity(0.6), lineWidth: 2))
+                    .shadow(color: .black.opacity(0.6), radius: 16)
+            )
+        }
+        .task(id: reveal.id) {
+            settled = false
+            tick = 0
+            // Cycle faces every ~50ms while spinning so the overlay
+            // visibly tumbles. We don't need the loop to be exact —
+            // just frequent enough that the eye reads it as motion.
+            let frame = UInt64(50_000_000) // 50ms
+            let frames = Int((spinDuration * 1000) / 50)
+            for _ in 0..<frames {
+                try? await Task.sleep(nanoseconds: frame)
+                tick &+= 1
+            }
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.7)) {
+                settled = true
+            }
+            try? await Task.sleep(nanoseconds: UInt64(holdDuration * 1_000_000_000))
+            onFinished()
+        }
+    }
+}
+
+private struct CoinFace: View {
+    let finalFace: Bool      // true = HEADS
+    let settled: Bool
+    let tick: Int
+    let accent: Color
+
+    private var displayedHeads: Bool {
+        settled ? finalFace : (tick % 2 == 0)
+    }
+
+    var body: some View {
+        Text(displayedHeads ? "HEADS" : "TAILS")
+            .font(Design.Fonts.display(20))
+            .foregroundStyle(.white)
+            .frame(width: 90, height: 56)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(displayedHeads ? Color(hex: "FFD700").opacity(0.85) : Color(hex: "8A9BB0").opacity(0.85))
+                    .overlay(RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(accent.opacity(settled ? 0.85 : 0.4), lineWidth: settled ? 2 : 1))
+            )
+            .rotation3DEffect(
+                .degrees(settled ? 0 : Double(tick) * 80),
+                axis: (x: 0, y: 1, z: 0)
+            )
+            .scaleEffect(settled ? 1.05 : 1.0)
+    }
+}
+
+private struct DieFace: View {
+    let finalRoll: Int       // 1…6
+    let settled: Bool
+    let tick: Int
+    let accent: Color
+
+    private static let glyphs = ["⚀","⚁","⚂","⚃","⚄","⚅"]
+
+    private var displayedRoll: Int {
+        if settled { return max(1, min(6, finalRoll)) }
+        return (tick % 6) + 1
+    }
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(Self.glyphs[displayedRoll - 1])
+                .font(.system(size: 44, weight: .bold))
+                .foregroundStyle(.white)
+            Text("\(displayedRoll)")
+                .font(Design.Fonts.mono(13, weight: .bold))
+                .foregroundStyle(accent)
+        }
+        .frame(width: 70, height: 84)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.black.opacity(0.6))
+                .overlay(RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(accent.opacity(settled ? 0.85 : 0.4), lineWidth: settled ? 2 : 1))
+        )
+        .rotationEffect(.degrees(settled ? 0 : Double(tick * 24).truncatingRemainder(dividingBy: 360)))
+        .scaleEffect(settled ? 1.08 : 1.0)
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - SetupHonorsRollOverlay
+// ════════════════════════════════════════════════════════════════
+//
+// One-time pre-match overlay that walks through the BoBA setup
+// procedure. Each player rolls 2d6; high total wins Honors for
+// Battle 1. Mirrors the Setup section in Learn so newcomers see
+// the same procedure they read about. Auto-tumbles for ~1.1s,
+// settles, holds, then waits for "Begin Battle 1" tap.
+
+private struct SetupHonorsRollOverlay: View {
+    let roll: PracticeStore.SetupHonorsRoll
+    let onFinished: () -> Void
+
+    private let spinDuration: Double = 1.1
+    @State private var settled = false
+    @State private var tick = 0
+
+    private var playerSum: Int { roll.playerRolls.reduce(0, +) }
+    private var cpuSum: Int    { roll.cpuRolls.reduce(0, +) }
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.7).ignoresSafeArea()
+
+            VStack(spacing: 18) {
+                Text("MATCH SETUP")
+                    .font(Design.Fonts.display(14))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .tracking(3)
+
+                Text("ROLL FOR HONORS")
+                    .font(Design.Fonts.display(26))
+                    .foregroundStyle(Design.Colors.bobaOrange)
+
+                Text("High roll wins the right to act first in Battle 1.")
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Design.Spacing.lg)
+
+                HStack(alignment: .top, spacing: Design.Spacing.lg) {
+                    rollColumn(
+                        title: "YOU",
+                        rolls: roll.playerRolls,
+                        sum: playerSum,
+                        accent: Design.Colors.bobaCyan,
+                        won: settled && roll.winner == .player
+                    )
+                    rollColumn(
+                        title: "CPU",
+                        rolls: roll.cpuRolls,
+                        sum: cpuSum,
+                        accent: Color(hex: "C77DFF"),
+                        won: settled && roll.winner == .cpu
+                    )
+                }
+
+                if settled {
+                    VStack(spacing: 6) {
+                        Text(roll.winner == .player
+                             ? "YOU WIN HONORS"
+                             : "CPU WINS HONORS")
+                            .font(Design.Fonts.display(18))
+                            .foregroundStyle(roll.winner == .player
+                                             ? Design.Colors.bobaCyan
+                                             : Color(hex: "C77DFF"))
+                        Text(roll.winner == .player
+                             ? "You act first this battle."
+                             : "CPU acts first this battle.")
+                            .font(Design.Fonts.mono(11))
+                            .foregroundStyle(Design.Colors.textSecondary)
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+
+                    Button {
+                        onFinished()
+                    } label: {
+                        Text("BEGIN BATTLE 1")
+                            .font(Design.Fonts.mono(14, weight: .bold))
+                            .foregroundStyle(Design.Colors.nearBlack)
+                            .padding(.horizontal, 28)
+                            .frame(height: 44)
+                            .background(Capsule().fill(Design.Colors.bobaOrange))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 4)
+                }
+            }
+            .padding(Design.Spacing.xl)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Design.Colors.surface.opacity(0.97))
+                    .overlay(RoundedRectangle(cornerRadius: 18)
+                        .strokeBorder(Design.Colors.bobaOrange.opacity(0.6), lineWidth: 2))
+                    .shadow(color: .black.opacity(0.6), radius: 18)
+            )
+            .padding(.horizontal, Design.Spacing.lg)
+        }
+        .task(id: roll.id) {
+            settled = false
+            tick = 0
+            let frame = UInt64(50_000_000) // 50ms
+            let frames = Int((spinDuration * 1000) / 50)
+            for _ in 0..<frames {
+                try? await Task.sleep(nanoseconds: frame)
+                tick &+= 1
+            }
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.7)) {
+                settled = true
+            }
+        }
+    }
+
+    private func rollColumn(title: String, rolls: [Int], sum: Int, accent: Color, won: Bool) -> some View {
+        VStack(spacing: 6) {
+            Text(title)
+                .font(Design.Fonts.mono(11, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+                .tracking(1.6)
+            HStack(spacing: 6) {
+                ForEach(Array(rolls.enumerated()), id: \.offset) { _, finalRoll in
+                    DieFace(finalRoll: finalRoll, settled: settled, tick: tick, accent: accent)
+                }
+            }
+            Text(settled ? "SUM \(sum)" : "—")
+                .font(Design.Fonts.mono(12, weight: .bold))
+                .foregroundStyle(won ? accent : Design.Colors.textSecondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(
+                    Capsule()
+                        .fill(won ? accent.opacity(0.15) : Color.black.opacity(0.4))
+                        .overlay(Capsule().strokeBorder(won ? accent.opacity(0.85) : Color.clear, lineWidth: 1))
+                )
         }
     }
 }

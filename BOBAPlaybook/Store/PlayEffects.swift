@@ -264,6 +264,15 @@ struct PlayExecOut {
     // Tier B/C intents
     var intents: [PlayIntent] = []
     var notifications: [String] = []
+
+    // Reveal streams — used to drive the animated coin/dice overlay
+    // in the practice UI. Each entry is one physical randomization:
+    // a single coin flip (true = HEADS) or a single die roll (1–6).
+    // Populated by `execCoinFlip` / `execDiceRoll`; the UI consumes
+    // them to play a ~1s animation before the effect resolves in the
+    // player's eyes.
+    var coinFlips: [Bool] = []
+    var diceRolls: [Int] = []
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -435,18 +444,28 @@ enum PlayEffectExecutor {
         case "block_sub", "block_plays", "block_draw", "block_hd_recover":
             let scope = (step["scope"] as? String) ?? (step["duration"] as? String) ?? "this_battle"
             let targetStr = (step["target"] as? String) ?? "self"
+            // Friendlier notification text — `op.replacing("_", " ")`
+            // produced "block plays" which is grammar-broken UX. The
+            // verb-phrase form below reads as a sentence and tells the
+            // user *what* the block actually prevents.
+            let actionPhrase: String
+            switch op {
+            case "block_plays":      actionPhrase = "play any Plays this battle"
+            case "block_draw":       actionPhrase = "draw new Plays this battle"
+            case "block_sub":        actionPhrase = "substitute this battle"
+            case "block_hd_recover": actionPhrase = "recover Hot Dogs"
+            default:                 actionPhrase = op.replacingOccurrences(of: "_", with: " ")
+            }
             if targetStr == "both" {
-                // B.5 — Bun Shortage uses target:"both". Install two
-                // blocks (one per side) so every HD-recover read that
-                // checks `isBlocked(side:kind:)` sees the right answer
-                // without isBlocked needing to know about "both."
                 out.intents.append(.installBlock(side: .player, kind: op, scope: scope))
                 out.intents.append(.installBlock(side: .cpu,    kind: op, scope: scope))
-                out.notifications.append("Both sides blocked: \(op.replacingOccurrences(of: "_", with: " "))")
+                out.notifications.append("Neither side can \(actionPhrase)")
             } else {
                 let targetSide: PlayExecContext.Side = targetStr == "opponent" ? ctx.opp : ctx.self_
                 out.intents.append(.installBlock(side: targetSide, kind: op, scope: scope))
-                out.notifications.append("\(targetSide == ctx.self_ ? "You" : "Opponent") blocked: \(op.replacingOccurrences(of: "_", with: " "))")
+                let who = targetSide == ctx.self_ ? "You" : "Opponent"
+                let verb = who == "You" ? "can't" : "can't"
+                out.notifications.append("\(who) \(verb) \(actionPhrase)")
             }
             out.hasEffect = true
 
@@ -846,6 +865,7 @@ enum PlayEffectExecutor {
         let times = (step["times"] as? Int) ?? 1
         var results: [Bool] = []
         for _ in 0..<times { results.append(Bool.random()) }
+        out.coinFlips.append(contentsOf: results)
         let heads = results.filter { $0 }.count
         let tails = times - heads
 
@@ -908,13 +928,19 @@ enum PlayEffectExecutor {
         let count = (step["count"] as? Int) ?? 1
         var rolls: [Int] = []
         for _ in 0..<count { rolls.append(Int.random(in: 1...6)) }
+        out.diceRolls.append(contentsOf: rolls)
         let sum = rolls.reduce(0, +)
         let agg = (step["aggregate"] as? String) ?? (count > 1 ? "sum" : "")
         let matchValue = agg == "sum" ? sum : (rolls.first ?? 0)
 
+        // Track whether ANY branch (or the else branch) actually
+        // produced a triggered effect — used to surface a clear
+        // "no power added" notification when the roll missed and
+        // the else branch is empty (Fire Roll, Ice Roll, etc.).
+        var matched = false
+        var elseFiredAndEmpty = false
         if let branches = step["branches"] as? [[String: Any]] {
             var elseBranch: [[String: Any]]? = nil
-            var matched = false
             for br in branches {
                 if let onStr = br["on"] as? String, onStr == "else" {
                     elseBranch = br["then"] as? [[String: Any]]
@@ -927,7 +953,10 @@ enum PlayEffectExecutor {
                 }
             }
             if !matched, let elseBranch = elseBranch {
+                if elseBranch.isEmpty { elseFiredAndEmpty = true }
                 for s in elseBranch { execStep(s, ctx: ctx, out: &out) }
+            } else if !matched {
+                elseFiredAndEmpty = true
             }
         }
         if step["on_match"] != nil || step["on_miss"] != nil {
@@ -944,6 +973,14 @@ enum PlayEffectExecutor {
             ? "🎲 \(pretty.joined(separator: " · ")) (sum \(sum))"
             : "🎲 \(pretty.first ?? "")"
         out.notifications.append(line)
+        // When the roll didn't trigger any branch (and the else branch
+        // was empty or absent), explicitly state that no effect fired
+        // — otherwise the user just sees the dice glyph with no
+        // explanation of why their power didn't change. This is the
+        // Fire Roll / Ice Roll / etc. failed-roll case.
+        if elseFiredAndEmpty {
+            out.notifications.append("Roll didn't trigger any effect")
+        }
         out.hasEffect = true
     }
 
@@ -953,8 +990,15 @@ enum PlayEffectExecutor {
         var dieVal: Int? = nil
         for comp in components {
             let op = comp["op"] as? String
-            if op == "coin_flip" { coinHeads = Bool.random() }
-            else if op == "dice_roll" { dieVal = Int.random(in: 1...6) }
+            if op == "coin_flip" {
+                let r = Bool.random()
+                coinHeads = r
+                out.coinFlips.append(r)
+            } else if op == "dice_roll" {
+                let r = Int.random(in: 1...6)
+                dieVal = r
+                out.diceRolls.append(r)
+            }
         }
         guard let branches = step["branches"] as? [[String: Any]] else { return }
         for br in branches {

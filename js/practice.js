@@ -1887,8 +1887,10 @@ function pmExecStep(step, ctx, out) {
       const agg = step.aggregate || (count > 1 ? 'sum' : null);
       const sum = rolls.reduce((a, b) => a + b, 0);
       const matchValue = agg === 'sum' ? sum : rolls[0];
+      let matched = false;
+      let elseFiredAndEmpty = false;
       if (step.branches) {
-        let elseBranch = null, matched = false;
+        let elseBranch = null;
         for (const br of step.branches) {
           if (br.on === 'else') { elseBranch = br; continue; }
           if (Array.isArray(br.on) && br.on.includes(matchValue)) {
@@ -1897,7 +1899,10 @@ function pmExecStep(step, ctx, out) {
           }
         }
         if (!matched && elseBranch && elseBranch.then) {
+          if (!elseBranch.then.length) elseFiredAndEmpty = true;
           for (const s of elseBranch.then) pmExecStep(s, ctx, out);
+        } else if (!matched) {
+          elseFiredAndEmpty = true;
         }
       }
       if (step.on_match || step.on_miss) {
@@ -1912,6 +1917,13 @@ function pmExecStep(step, ctx, out) {
       out.notifications.push(rolls.length > 1
         ? `🎲 ${pretty.join(' · ')} (sum ${sum})`
         : `🎲 ${pretty[0]}`);
+      // Surface a clear "no power added" callout when the roll missed
+      // and the else branch was empty/absent. Without this, the user
+      // sees the dice glyph and wonders why nothing happened (Fire
+      // Roll / Ice Roll / etc. failed-roll case).
+      if (elseFiredAndEmpty) {
+        out.notifications.push("Roll didn't trigger any effect");
+      }
       out.hasEffect = true;
       break;
     }
@@ -1931,17 +1943,25 @@ function pmExecStep(step, ctx, out) {
       const scope = step.scope || step.duration || 'this_battle';
       const targetStr = step.target || 'self';
       PM._blocks = PM._blocks || { player: [], cpu: [] };
+      // Verb-phrase notification text — the legacy
+      // `op.replace('_', ' ')` produced "block plays" which read as
+      // broken grammar. Sentence form tells the user what's prevented.
+      const phraseFor = {
+        block_plays:      'play any Plays this battle',
+        block_draw:       'draw new Plays this battle',
+        block_sub:        'substitute this battle',
+        block_hd_recover: 'recover Hot Dogs',
+      };
+      const actionPhrase = phraseFor[op] || op.replace(/_/g, ' ');
       if (targetStr === 'both') {
-        // B.5 — Bun Shortage installs blocks on both sides so every
-        // pmIsBlocked check sees the right answer without learning
-        // about "both."
         PM._blocks.player.push({ kind: op, scope, installedAt: PM.currentBattle });
         PM._blocks.cpu.push(   { kind: op, scope, installedAt: PM.currentBattle });
-        out.notifications.push(`Both sides blocked: ${op.replace(/_/g, ' ')}`);
+        out.notifications.push(`Neither side can ${actionPhrase}`);
       } else {
         const targetSide = targetStr === 'opponent' ? ctx.opp : ctx.self;
         PM._blocks[targetSide].push({ kind: op, scope, installedAt: PM.currentBattle });
-        out.notifications.push(`${targetSide === ctx.self ? 'You' : 'Opponent'} blocked: ${op.replace(/_/g, ' ')}`);
+        const who = targetSide === ctx.self ? 'You' : 'Opponent';
+        out.notifications.push(`${who} can't ${actionPhrase}`);
       }
       out.hasEffect = true;
       break;
@@ -3269,8 +3289,17 @@ const PM = {
     PM._peekCallouts = [];
     PM._playCostMods = { player: [], cpu: [] };
     PM._endBattleImmediately = false;
-    // Per rules §4.3.1: starting player is determined randomly (coin flip).
-    const startHonors = Math.random() < 0.5 ? 'player' : 'cpu';
+    // Roll 2d6 per side for Honors. High roll wins, ties re-roll.
+    // Stash the rolls so the setup overlay can replay them visually.
+    let playerRolls = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
+    let cpuRolls    = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
+    const sum = arr => arr.reduce((a, b) => a + b, 0);
+    while (sum(playerRolls) === sum(cpuRolls)) {
+      playerRolls = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
+      cpuRolls    = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
+    }
+    const startHonors = sum(playerRolls) > sum(cpuRolls) ? 'player' : 'cpu';
+    PM._pendingSetupHonors = { playerRolls, cpuRolls, winner: startHonors };
     Object.assign(this, {
       matchOver: false, matchWinner: null, playerScore: 0, cpuScore: 0,
       honors: startHonors, currentBattle: 0,
@@ -3563,6 +3592,11 @@ const PM = {
     const opportunisticSub = bestPow - cpuPow >= 30;
 
     if (weakHero || opportunisticSub) {
+      // Capture the displaced hero so the callout can render it. Per
+      // strict BoBA rules the player wouldn't see this; in practice
+      // we trade rule fidelity for teaching value (player can read
+      // the power swing of the swap).
+      const displaced = b.cpuCard;
       // Per rules: original hero goes to discard, bench card replaces it
       this.battles[this.currentBattle].cpuCard = bestCard;
       this.cpuBench.splice(bestIdx, 1); // remove from bench (original hero discarded)
@@ -3578,6 +3612,8 @@ const PM = {
         this.cpuBench.push(this.cpuHeroDeck.shift());
       }
       this.cpuSubstituted = true;
+      PM._pendingCpuSubDisplaced = displaced || null;
+      PM._pendingCpuSubFree = freeSub;
       return true;
     }
     this.cpuSubstituted = true;
@@ -3596,9 +3632,36 @@ const PM = {
     const b = this.battles[this.currentBattle];
     this.cpuPlayQueue = [];
 
-    // CPU plays 0-2 cards based on situation
-    const losing = (b.cpuCard?.power || 0) + (b.cpuEffectPower || 0) < (b.playerCard?.power || 0) + (b.playerEffectPower || 0);
-    const numPlays = losing ? (Math.random() < 0.6 ? 2 : 1) : (Math.random() < 0.4 ? 1 : 0);
+    // Smart pacing — distribute remaining plays across remaining
+    // battles instead of dumping early. Mirrors the iOS heuristic
+    // in PracticeStore.cpuPreparePlayTurn.
+    const battlesPlayed   = this.currentBattle;
+    const battlesLeft     = Math.max(1, 7 - battlesPlayed);
+    const futureBattles   = Math.max(0, battlesLeft - 1);
+    const reserveForLater = futureBattles;
+    const availableForNow = Math.max(0, this.cpuPlayCount - reserveForLater);
+    const fairShare       = Math.max(1, Math.floor(availableForNow / battlesLeft));
+    let numPlays          = Math.min(this.cpuPlayCount, fairShare);
+
+    // Stakes bump — high-stakes battles get one extra play
+    const cpuLossesSoFar = this.battles
+      .slice(0, this.currentBattle)
+      .filter(slot => slot.result === 'win')   // player win == cpu loss
+      .length;
+    const mustWin = cpuLossesSoFar >= 3 || this.currentBattle >= 6;
+    if (mustWin) numPlays = Math.min(this.cpuPlayCount, numPlays + 1);
+
+    // Situational nudge — if currently losing the power race, play
+    // one MORE; if comfortably winning, play one LESS.
+    const losing = (b.cpuCard?.power || 0) + (b.cpuEffectPower || 0)
+                 < (b.playerCard?.power || 0) + (b.playerEffectPower || 0);
+    if (losing) numPlays = Math.min(this.cpuPlayCount, numPlays + 1);
+
+    // HD-conservation pullback — preserve fuel for next battle's sub
+    if (this.cpuHD <= 2 && numPlays > 1) numPlays -= 1;
+
+    // Floor / ceiling — never more than 4 in one battle, never < 0
+    numPlays = Math.max(0, Math.min(numPlays, 4));
 
     for (let i = 0; i < numPlays; i++) {
       if (this.cpuHD < 1 || this.cpuPlayCount <= 0 || this.cpuPlayPool.length === 0) break;
@@ -4489,14 +4552,84 @@ function pmRenderPlaysUsedRow(col, b) {
     host.className = 'pm-bc-plays-row';
     col.appendChild(host);
   }
-  const chip = (name, side) =>
-    `<span class="pm-bc-play-chip pm-bc-play-chip--${side}">${name}</span>`;
-  const playerStrip = playerPlays.map(c => chip((c.name || '').substring(0, 14), 'you')).join('');
-  const cpuStrip    = cpuPlays.map(c    => chip((c.name || '').substring(0, 14), 'opp')).join('');
+  // Stash the cards on the host so the click handler can resolve a
+  // chip back to its play card without re-walking the battle slot.
+  host._playerPlays = playerPlays;
+  host._cpuPlays    = cpuPlays;
+
+  const chip = (name, side, idx) =>
+    `<button type="button" class="pm-bc-play-chip pm-bc-play-chip--${side}" data-side="${side}" data-idx="${idx}">${name}</button>`;
+  const playerStrip = playerPlays.map((c, i) => chip((c.name || '').substring(0, 14), 'you', i)).join('');
+  const cpuStrip    = cpuPlays.map((c, i)    => chip((c.name || '').substring(0, 14), 'opp', i)).join('');
   host.innerHTML = `
     ${playerPlays.length ? `<div class="pm-bc-plays-side"><span class="pm-bc-plays-count">YOU · ${playerPlays.length}</span>${playerStrip}</div>` : ''}
     ${cpuPlays.length    ? `<div class="pm-bc-plays-side"><span class="pm-bc-plays-count">CPU · ${cpuPlays.length}</span>${cpuStrip}</div>` : ''}
   `;
+
+  // Tap-to-review wiring — re-attach each render so newly-added chips
+  // also pick up the handler. Mirrors the iOS PlayReviewSheet.
+  host.querySelectorAll('.pm-bc-play-chip').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const side = btn.dataset.side;
+      const idx = parseInt(btn.dataset.idx, 10);
+      const arr = side === 'you' ? host._playerPlays : host._cpuPlays;
+      const card = arr && arr[idx];
+      if (card) pmShowPlayReviewSheet(card);
+    });
+  });
+}
+
+/// UX#7 — review sheet for a played card. Shared by tap-on-chip
+/// from the plays-used row. Mirrors iOS PlayReviewSheet visually.
+function pmShowPlayReviewSheet(card) {
+  const existing = document.getElementById('pm-play-review-overlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'pm-play-review-overlay';
+  overlay.className = 'modal-overlay pm-modal-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', `Review play: ${card.name || ''}`);
+
+  const fullBase = (window.BOBA && window.BOBA.fullUrl)
+    ? window.BOBA.fullUrl(card.imageFile)
+    : (card.imageFile
+        ? `https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/${card.imageFile}`
+        : '');
+  const imgHtml = card.imageFile
+    ? `<img class="pm-prs-image" src="${fullBase}" alt="">`
+    : '';
+  const cost = card.playCost;
+  const costHtml = (cost === 0)
+    ? `<span class="pm-prs-chip pm-prs-chip--free">FREE</span>`
+    : (cost != null ? `<span class="pm-prs-chip">${cost} HD</span>` : '');
+  const bonusHtml = card.isBonusPlay
+    ? `<span class="pm-prs-chip pm-prs-chip--bonus">★ BONUS</span>` : '';
+  const ability = card.playAbility ? pmEscapeHTML(card.playAbility) : 'No effect text on file.';
+
+  overlay.innerHTML = `
+    <div class="pm-play-review">
+      <div class="pm-prs-header">
+        <h2>${pmEscapeHTML(card.name || '')}</h2>
+        <button class="pm-prs-close" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="pm-prs-body">
+        ${imgHtml}
+        <div class="pm-prs-meta">${costHtml}${bonusHtml}</div>
+        <div class="pm-prs-effect-label">EFFECT</div>
+        <div class="pm-prs-effect-text">${ability}</div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelector('.pm-prs-close')?.addEventListener('click', () => overlay.remove());
+  document.addEventListener('keydown', function escClose(ev) {
+    if (ev.key === 'Escape') {
+      overlay.remove();
+      document.removeEventListener('keydown', escClose);
+    }
+  });
 }
 
 function pmUpdateOpponentZone() {
@@ -4643,6 +4776,18 @@ function pmShowDiscardInspector(side /* 'player' | 'cpu' */) {
   overlay.setAttribute('aria-modal', 'true');
   overlay.setAttribute('aria-label', side === 'player' ? 'Your discard pile' : 'CPU plays used');
 
+  const thumbBaseFor = (file) => (window.BOBA && window.BOBA.thumbUrl)
+    ? window.BOBA.thumbUrl(file)
+    : `https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/${file}`;
+  const fullBaseFor = (file) => (window.BOBA && window.BOBA.fullUrl)
+    ? window.BOBA.fullUrl(file)
+    : `https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/${file}`;
+
+  // Per-row template — wraps the row in a `<details>` so each card
+  // can be expanded independently (matches iOS DiscardCardRow). The
+  // expanded body shows the full ability text + a larger thumb so
+  // the player can review what each played card actually did.
+  let _rowKey = 0;
   const cardRow = (card) => {
     const cost = card.playCost;
     const costHtml = (cost === 0)
@@ -4650,10 +4795,33 @@ function pmShowDiscardInspector(side /* 'player' | 'cpu' */) {
       : (cost != null ? `<span class="pm-di-row-cost">${cost} HD</span>` : '');
     const bonusHtml = card.isBonusPlay
       ? `<span class="pm-di-row-bonus">★ BONUS</span>` : '';
-    return `<div class="pm-di-row">
-      <div class="pm-di-row-name">${pmEscapeHTML(card.name || '')}</div>
-      <div class="pm-di-row-meta">${costHtml}${bonusHtml}</div>
-    </div>`;
+    const thumbHtml = card.imageFile
+      ? `<img class="pm-di-row-thumb" src="${thumbBaseFor(card.imageFile)}" alt="">`
+      : '';
+    const fullThumbHtml = card.imageFile
+      ? `<img class="pm-di-detail-img" src="${fullBaseFor(card.imageFile)}" alt="">`
+      : '';
+    const ability = card.playAbility
+      ? pmEscapeHTML(card.playAbility)
+      : 'No effect text on file.';
+    const key = `pm-di-row-${++_rowKey}`;
+    return `<details class="pm-di-row" id="${key}">
+      <summary class="pm-di-row-summary">
+        ${thumbHtml}
+        <div class="pm-di-row-text">
+          <div class="pm-di-row-name">${pmEscapeHTML(card.name || '')}</div>
+          <div class="pm-di-row-meta">${costHtml}${bonusHtml}</div>
+        </div>
+        <span class="pm-di-row-chev" aria-hidden="true">▾</span>
+      </summary>
+      <div class="pm-di-row-detail">
+        ${fullThumbHtml}
+        <div class="pm-di-row-effect">
+          <div class="pm-di-row-effect-label">EFFECT</div>
+          <div class="pm-di-row-effect-text">${ability}</div>
+        </div>
+      </div>
+    </details>`;
   };
 
   let body;
@@ -5077,6 +5245,35 @@ function pmQueueCpuSub() {
     show(done) {
       const callout = $('pm-cpu-sub-callout');
       if (!callout) { done(); return; }
+      // Re-render the callout body with displaced hero info so the
+      // player can read what was just swapped. The new (face-down)
+      // hero is intentionally NOT shown — sub still happens before
+      // reveal, we're just exposing what got dropped.
+      const displaced = PM._pendingCpuSubDisplaced;
+      const freeSub = PM._pendingCpuSubFree;
+      const inner = callout.querySelector('.pm-cpu-sub-inner');
+      if (inner) {
+        const name = displaced ? (displaced.hero || displaced.name || 'their hero') : 'their hero';
+        const powerLabel = displaced && displaced.power != null ? ` (${displaced.power} power)` : '';
+        const costLabel = freeSub ? 'for free' : 'for 2 Hot Dogs';
+        const thumbBase = (window.BOBA && window.BOBA.thumbUrl)
+          ? window.BOBA.thumbUrl(displaced && displaced.imageFile)
+          : (displaced && displaced.imageFile
+              ? `https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/thumbs/${displaced.imageFile}`
+              : '');
+        const imageHtml = displaced && displaced.imageFile
+          ? `<img class="pm-cpu-sub-img" src="${thumbBase}" alt="">`
+          : '';
+        inner.innerHTML = `
+          <span class="pm-cpu-sub-icon">⚡</span>
+          <div class="pm-cpu-sub-body">
+            <div class="pm-cpu-sub-text">CPU SUBSTITUTED</div>
+            ${imageHtml}
+            <div class="pm-cpu-sub-detail">Subbed out ${name}${powerLabel} ${costLabel}</div>
+          </div>`;
+      }
+      PM._pendingCpuSubDisplaced = null;
+      PM._pendingCpuSubFree = false;
       callout.hidden = false;
       callout.style.animation = 'none';
       callout.offsetHeight;
@@ -5084,7 +5281,7 @@ function pmQueueCpuSub() {
       pmNotifQueue._timer = setTimeout(() => {
         callout.hidden = true;
         done();
-      }, 2000);
+      }, 3200);
     }
   });
 }
@@ -5342,7 +5539,92 @@ function initPractice(allCards) {
 
     pmInitPlaymat();
     pmUpdateAll();
+    pmShowSetupHonorsRoll();
     pmMaybeShowTutorial();
+  });
+}
+
+/// Setup overlay — animates the 2d6 honors roll for both sides
+/// before the first battle starts. Mirrors iOS SetupHonorsRollOverlay.
+function pmShowSetupHonorsRoll() {
+  const data = PM._pendingSetupHonors;
+  if (!data) return;
+  PM._pendingSetupHonors = null;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'pm-setup-honors-overlay';
+  overlay.className = 'modal-overlay pm-modal-overlay pm-setup-honors-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Roll for honors');
+
+  const dieFaces = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+  const renderDie = (val) => `<span class="pm-shr-die" data-final="${val}">${dieFaces[val - 1]}</span>`;
+  const sumOf = arr => arr.reduce((a, b) => a + b, 0);
+  const playerSum = sumOf(data.playerRolls);
+  const cpuSum    = sumOf(data.cpuRolls);
+
+  overlay.innerHTML = `
+    <div class="pm-setup-honors">
+      <div class="pm-shr-eyebrow">MATCH SETUP</div>
+      <h2 class="pm-shr-title">ROLL FOR HONORS</h2>
+      <p class="pm-shr-sub">High roll wins the right to act first in Battle 1.</p>
+      <div class="pm-shr-grid">
+        <div class="pm-shr-col pm-shr-col--you">
+          <div class="pm-shr-label">YOU</div>
+          <div class="pm-shr-dice">${data.playerRolls.map(renderDie).join('')}</div>
+          <div class="pm-shr-sum" data-final="${playerSum}">—</div>
+        </div>
+        <div class="pm-shr-col pm-shr-col--cpu">
+          <div class="pm-shr-label">CPU</div>
+          <div class="pm-shr-dice">${data.cpuRolls.map(renderDie).join('')}</div>
+          <div class="pm-shr-sum" data-final="${cpuSum}">—</div>
+        </div>
+      </div>
+      <div class="pm-shr-result" hidden>
+        <div class="pm-shr-winner pm-shr-winner--${data.winner}">
+          ${data.winner === 'player' ? 'YOU WIN HONORS' : 'CPU WINS HONORS'}
+        </div>
+        <div class="pm-shr-detail">
+          ${data.winner === 'player' ? 'You act first this battle.' : 'CPU acts first this battle.'}
+        </div>
+        <button class="pm-shr-begin" type="button">BEGIN BATTLE 1</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  // Tumble the dice for ~1.1s, then settle on the rolled values.
+  const dieEls = overlay.querySelectorAll('.pm-shr-die');
+  const sumEls = overlay.querySelectorAll('.pm-shr-sum');
+  const SPIN_MS = 1100;
+  const FRAME_MS = 60;
+  const start = Date.now();
+  const interval = setInterval(() => {
+    if (Date.now() - start >= SPIN_MS) {
+      clearInterval(interval);
+      // Settle to final values
+      dieEls.forEach(el => {
+        const final = parseInt(el.dataset.final, 10);
+        el.textContent = dieFaces[final - 1];
+        el.classList.add('settled');
+      });
+      sumEls.forEach(el => {
+        el.textContent = `SUM ${el.dataset.final}`;
+        el.classList.add('settled');
+      });
+      const winnerCol = overlay.querySelector(`.pm-shr-col--${data.winner}`);
+      if (winnerCol) winnerCol.classList.add('won');
+      const result = overlay.querySelector('.pm-shr-result');
+      if (result) result.hidden = false;
+      return;
+    }
+    dieEls.forEach(el => {
+      el.textContent = dieFaces[Math.floor(Math.random() * 6)];
+    });
+  }, FRAME_MS);
+
+  overlay.querySelector('.pm-shr-begin')?.addEventListener('click', () => {
+    overlay.remove();
   });
 }
 

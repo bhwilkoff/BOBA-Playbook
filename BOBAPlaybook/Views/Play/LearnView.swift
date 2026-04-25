@@ -263,8 +263,8 @@ private struct SetupView: View {
                 // ── Pre-match flow ──────────────────────────────
                 RulesSectionHeader(title: "Before Battle 1")
                 RuleCard(lines: [
-                    .init(label: "Coin flip",
-                          body: "One coin flip determines who picks first. The winner of the flip earns initial Honors — the right to act first in every phase of Battle 1."),
+                    .init(label: "Roll for Honors",
+                          body: "Each player rolls 2d6. Highest total wins initial Honors — the right to act first in every phase of Battle 1. Re-roll on a tie. The practice mode replays this roll on screen so you see who won and why."),
                     .init(label: "Direction (table-only)",
                           body: "In a physical match the Honors player picks the direction the Hero lineup reads (left-to-right or right-to-left). The app uses one consistent visual convention so this step is invisible."),
                     .init(label: "Hero deck",

@@ -56,3 +56,6 @@ credentials.json
 .dev.vars*
 !.dev.vars.example
 !.env.example
+
+# Private business / monetization strategy
+MONETIZATION.md

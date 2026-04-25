@@ -21,8 +21,24 @@ struct ActiveBattleView: View {
     var playerEffectiveWeapon: String = ""
     var cpuEffectiveWeapon: String    = ""
 
+    /// Carrier for the play-card review sheet. Tapping any chip in the
+    /// plays-used strip sets this; SwiftUI's `sheet(item:)` then renders
+    /// PlayReviewSheet so the player can read the full ability text.
+    @State private var inspectedPlay: InspectedPlay? = nil
+
+    private struct InspectedPlay: Identifiable {
+        let id = UUID()
+        let card: Card
+    }
+
     var body: some View {
-        activeBattleBody.tutorialTarget(.activeBattle)
+        activeBattleBody
+            .tutorialTarget(.activeBattle)
+            .sheet(item: $inspectedPlay) { wrapper in
+                PlayReviewSheet(card: wrapper.card)
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
+            }
     }
 
     private var activeBattleBody: some View {
@@ -75,6 +91,7 @@ struct ActiveBattleView: View {
             }
         }
         .padding(.horizontal, Design.Spacing.sm)
+        .padding(.bottom, 10)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Design.Colors.bobaOrange.opacity(0.06))
@@ -276,17 +293,22 @@ struct ActiveBattleView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
                         ForEach(Array(plays.enumerated()), id: \.offset) { _, card in
-                            Text(card.name)
-                                .font(Design.Fonts.mono(10, weight: .bold))
-                                .foregroundStyle(accent)
-                                .lineLimit(1)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 3)
-                                .background(
-                                    Capsule()
-                                        .fill(accent.opacity(0.14))
-                                        .overlay(Capsule().strokeBorder(accent.opacity(0.5), lineWidth: 0.75))
-                                )
+                            Button {
+                                inspectedPlay = InspectedPlay(card: card)
+                            } label: {
+                                Text(card.name)
+                                    .font(Design.Fonts.mono(10, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .lineLimit(1)
+                                    .padding(.horizontal, 7)
+                                    .padding(.vertical, 3)
+                                    .background(
+                                        Capsule()
+                                            .fill(Color.black.opacity(0.72))
+                                            .overlay(Capsule().strokeBorder(accent.opacity(0.85), lineWidth: 1))
+                                    )
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -344,6 +366,92 @@ struct ActiveBattleView: View {
         case .win:  return Color(hex: "4CAF50")
         case .lose: return Color(hex: "C0392B")
         case .tie:  return Design.Colors.textMuted
+        }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - PlayReviewSheet
+// ════════════════════════════════════════════════════════════════
+//
+// Modal that opens when a player taps a chip in the plays-used strip
+// (or any other surface that wants to show a single play card's full
+// details). Mirrors the look of the CPU play overlay so review reads
+// as the same visual language as in-the-moment notification.
+
+struct PlayReviewSheet: View {
+    let card: Card
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: Design.Spacing.lg) {
+                    if let file = card.imageFile, !file.isEmpty {
+                        CachedAsyncCardImage(url: CDN.full(for: file), contentMode: .fit)
+                            .aspectRatio(5.0/7.0, contentMode: .fit)
+                            .frame(maxHeight: 220)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10)
+                                .strokeBorder(Design.Colors.bobaViolet.opacity(0.5), lineWidth: 2))
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(card.name)
+                            .font(Design.Fonts.display(22))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                        HStack(spacing: 8) {
+                            if let cost = card.playCost {
+                                Text(cost == 0 ? "FREE" : "\(cost) HD")
+                                    .font(Design.Fonts.mono(11, weight: .bold))
+                                    .foregroundStyle(cost == 0 ? Color(hex: "4CAF50") : Design.Colors.bobaCyan)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(Capsule().fill((cost == 0 ? Color(hex: "4CAF50") : Design.Colors.bobaCyan).opacity(0.15)))
+                            }
+                            if card.isBonusPlay == true {
+                                Text("★ BONUS")
+                                    .font(Design.Fonts.mono(10, weight: .bold))
+                                    .foregroundStyle(Design.Colors.nearBlack)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Capsule().fill(Color(hex: "FFD700")))
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("EFFECT")
+                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .tracking(1.5)
+                        Text(card.playAbility ?? "No effect text on file.")
+                            .font(Design.Fonts.mono(13))
+                            .foregroundStyle(Design.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(Design.Spacing.md)
+                    .background(
+                        RoundedRectangle(cornerRadius: Design.Radius.md)
+                            .fill(Design.Colors.surface)
+                            .overlay(RoundedRectangle(cornerRadius: Design.Radius.md)
+                                .strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+                    )
+                }
+                .padding(Design.Spacing.lg)
+            }
+            .background(Design.Colors.nearBlack)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                }
+            }
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 }

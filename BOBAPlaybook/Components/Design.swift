@@ -125,21 +125,38 @@ final class HintsManager {
     static let shared = HintsManager()
 
     /// Master toggle — when false, no hints render. Lets coaches
-    /// silence the entire system from Settings.
+    /// silence the entire system from Settings. Stored property
+    /// (not computed) so SwiftUI's `@Observable` tracking actually
+    /// fires when the value changes; UserDefaults is the durable
+    /// mirror.
     var hintsEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: "hints.enabled") as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: "hints.enabled"); _bump.toggle() }
+        didSet { UserDefaults.standard.set(hintsEnabled, forKey: "hints.enabled") }
     }
 
-    private var _bump = false
+    /// Dismissed hint IDs. Tracked stored property — reads from
+    /// `body` register a SwiftUI dependency, so toggling dismissal
+    /// re-renders any HintBanner currently on screen. Without this,
+    /// the X button updated UserDefaults but the view never knew.
+    private(set) var dismissedIDs: Set<String>
+
+    init() {
+        let dflt = UserDefaults.standard
+        // Default to enabled when the key has never been written.
+        self.hintsEnabled = dflt.object(forKey: "hints.enabled") as? Bool ?? true
+        var initial: Set<String> = []
+        for id in HintID.allCases where dflt.bool(forKey: id.rawValue) {
+            initial.insert(id.rawValue)
+        }
+        self.dismissedIDs = initial
+    }
 
     func isDismissed(_ id: HintID) -> Bool {
-        UserDefaults.standard.bool(forKey: id.rawValue)
+        dismissedIDs.contains(id.rawValue)
     }
 
     func dismiss(_ id: HintID) {
         UserDefaults.standard.set(true, forKey: id.rawValue)
-        _bump.toggle()
+        dismissedIDs.insert(id.rawValue)
     }
 
     func shouldShow(_ id: HintID) -> Bool {
@@ -150,7 +167,7 @@ final class HintsManager {
         for id in HintID.allCases {
             UserDefaults.standard.removeObject(forKey: id.rawValue)
         }
-        _bump.toggle()
+        dismissedIDs.removeAll()
     }
 }
 

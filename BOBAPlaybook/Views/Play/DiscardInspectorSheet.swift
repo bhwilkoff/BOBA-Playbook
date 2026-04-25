@@ -105,8 +105,59 @@ struct DiscardInspectorSheet: View {
     // MARK: - Shared row
 
     private func cardRow(card: Card) -> some View {
+        DiscardCardRow(card: card)
+    }
+
+    private func emptyState(message: String) -> some View {
+        VStack(spacing: Design.Spacing.md) {
+            Image(systemName: "tray")
+                .font(.system(size: 32))
+                .foregroundStyle(Design.Colors.textMuted)
+            Text(message)
+                .font(Design.Fonts.mono(13))
+                .foregroundStyle(Design.Colors.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, Design.Spacing.xl * 2)
+    }
+}
+
+// MARK: - DiscardCardRow
+//
+// Self-contained row that toggles its own expansion. Tapping reveals
+// the card's full ability text + a larger thumbnail so the player can
+// review what each played card actually did. Each row owns its own
+// `expanded` state so multiple rows can be open simultaneously.
+
+private struct DiscardCardRow: View {
+    let card: Card
+    @State private var expanded = false
+
+    var body: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.18)) { expanded.toggle() }
+        } label: {
+            VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                header
+                if expanded { detail }
+            }
+            .padding(Design.Spacing.sm)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: Design.Radius.sm)
+                    .fill(Design.Colors.surface)
+                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                        .strokeBorder(expanded
+                                      ? Design.Colors.bobaCyan.opacity(0.5)
+                                      : Design.Colors.glassBorder,
+                                      lineWidth: 1))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var header: some View {
         HStack(spacing: Design.Spacing.md) {
-            // Small thumbnail
             Group {
                 if let file = card.imageFile, !file.isEmpty {
                     CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
@@ -138,29 +189,46 @@ struct DiscardInspectorSheet: View {
                             .padding(.vertical, 1)
                             .background(Capsule().fill(Color(hex: "FFD700")))
                     }
+                    Spacer(minLength: 0)
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
                 }
             }
-            Spacer()
         }
-        .padding(Design.Spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: Design.Radius.sm)
-                .fill(Design.Colors.surface)
-                .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
-                    .strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
-        )
     }
 
-    private func emptyState(message: String) -> some View {
-        VStack(spacing: Design.Spacing.md) {
-            Image(systemName: "tray")
-                .font(.system(size: 32))
-                .foregroundStyle(Design.Colors.textMuted)
-            Text(message)
-                .font(Design.Fonts.mono(13))
-                .foregroundStyle(Design.Colors.textMuted)
+    private var detail: some View {
+        HStack(alignment: .top, spacing: Design.Spacing.md) {
+            Group {
+                if let file = card.imageFile, !file.isEmpty {
+                    CachedAsyncCardImage(url: CDN.full(for: file), contentMode: .fit)
+                } else {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Design.Colors.bobaViolet.opacity(0.15))
+                }
+            }
+            .frame(width: 96)
+            .aspectRatio(5.0/7.0, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)
+            )
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("EFFECT")
+                    .font(Design.Fonts.mono(9, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .tracking(1.5)
+                Text(card.playAbility ?? "No effect text on file.")
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.leading)
+            }
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, Design.Spacing.xl * 2)
+        .padding(.top, 4)
     }
 }

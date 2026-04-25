@@ -167,6 +167,36 @@ final class PracticeStore {
     var cpuCallouts: [ActionCallout] = []
     var lastEffectCallout: ActionCallout? = nil  // coin flip / dice result
 
+    // MARK: - Setup honors roll
+    //
+    // Per BoBA setup procedure each player rolls 2d6 — high total
+    // wins Honors for Battle 1 (re-roll on tie). Practice surfaces
+    // the rolls in a dedicated overlay so newcomers see how the
+    // procedure works rather than honors being assigned silently.
+    struct SetupHonorsRoll: Identifiable {
+        let id = UUID()
+        let playerRolls: [Int]    // two d6 values
+        let cpuRolls: [Int]
+        let winner: Honors
+    }
+    var pendingSetupHonors: SetupHonorsRoll? = nil
+
+    // MARK: - Animated dice / coin reveal
+    //
+    // Populated when a played card rolls dice or flips coins. The
+    // PracticeView watches `pendingReveal` and renders a spinning
+    // coin / tumbling dice overlay for ~1s before clearing it and
+    // letting the rest of the effect cascade (callouts, deltas).
+    // `side` tracks who played the card so the overlay can tint
+    // correctly (cyan for player, purple for CPU).
+    struct RevealState: Identifiable {
+        let id = UUID()
+        let side: PlayExecContext.Side
+        let coinFlips: [Bool]     // true = HEADS
+        let diceRolls: [Int]      // 1…6
+    }
+    var pendingReveal: RevealState? = nil
+
     // CPU play queue — shown one at a time, user dismisses each
     var cpuPlayQueue: [ActionCallout] = []
     var currentCpuPlay: ActionCallout? = nil
@@ -1087,8 +1117,20 @@ final class PracticeStore {
         playerScore = 0; cpuScore = 0
         playerHotDogs = 10; cpuHotDogs = 10
         cpuPlaysRemaining = 30
-        // Per rules §4.3.1: starting player is determined randomly (coin flip).
-        honors = Bool.random() ? .player : .cpu
+        // Roll 2d6 per side for Honors. High roll wins, ties re-roll.
+        // Surfaces via `pendingSetupHonors` so the UI can play a
+        // dedicated overlay before the first battle starts.
+        var playerRolls = [Int.random(in: 1...6), Int.random(in: 1...6)]
+        var cpuRolls    = [Int.random(in: 1...6), Int.random(in: 1...6)]
+        while playerRolls.reduce(0, +) == cpuRolls.reduce(0, +) {
+            playerRolls = [Int.random(in: 1...6), Int.random(in: 1...6)]
+            cpuRolls    = [Int.random(in: 1...6), Int.random(in: 1...6)]
+        }
+        let winner: Honors = playerRolls.reduce(0, +) > cpuRolls.reduce(0, +) ? .player : .cpu
+        honors = winner
+        pendingSetupHonors = SetupHonorsRoll(
+            playerRolls: playerRolls, cpuRolls: cpuRolls, winner: winner
+        )
         currentBattle = 0
         // Per rules: Sub phase comes BEFORE reveal (§4.2.2, §4.3.2)
         // Rookie has no sub phase, starts at reveal
@@ -1321,6 +1363,9 @@ final class PracticeStore {
                 cpuDelta = out.oppDelta
                 applyHDRecover(side: .player, amount: out.selfHDDelta)
                 applyHDRecover(side: .cpu,    amount: out.oppHDDelta)
+                if !out.coinFlips.isEmpty || !out.diceRolls.isEmpty {
+                    pendingReveal = RevealState(side: .player, coinFlips: out.coinFlips, diceRolls: out.diceRolls)
+                }
                 if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
                     for p in persistent { installPersistent(owner: .player, spec: p) }
                 }
@@ -1510,6 +1555,13 @@ final class PracticeStore {
 
         if weakHero || bigUpgrade {
             let best = cpuBench[bestIdx]
+            // Capture the hero being subbed OUT before we overwrite
+            // it on the slot — we surface this in the callout so the
+            // player can see what power level the CPU is dropping
+            // and make a more informed read on whether to counter-sub
+            // themselves. (Strict BoBA rules would hide this; for
+            // practice we trade fidelity for teaching value.)
+            let displaced = battles[currentBattle].cpuCard
             cpuBench.remove(at: bestIdx)
             battles[currentBattle].cpuCard = best
             if transferFrom == .player {
@@ -1520,11 +1572,21 @@ final class PracticeStore {
             }
             if freeSub { cpuFreeSub = nil }
 
-            // Sub happens before reveal — don't reveal original or new hero names
+            // Sub happens before reveal — don't show the NEW hero
+            // (still face-down). DO show the displaced one so the
+            // player can read the swing.
+            let displacedLabel: String = {
+                guard let d = displaced else { return "their hero" }
+                let nm = d.hero.isEmpty ? d.name : d.hero
+                let pw = d.power.map { " (\($0) power)" } ?? ""
+                return "\(nm)\(pw)"
+            }()
+            let costLine = freeSub ? "for free" : "for 2 Hot Dogs"
             let pendingCallout = ActionCallout(
-                message: "CPU spent 2 Hot Dogs to substitute their hero",
+                message: "CPU subbed out \(displacedLabel) \(costLine)",
                 icon: "arrow.triangle.2.circlepath",
-                color: "FF4D00"
+                color: "FF4D00",
+                card: displaced
             )
             // Delay showing callout so it appears after the phase banner clears (~2.5s)
             // Only show if still in reveal phase and cards haven't been flipped yet
@@ -1550,7 +1612,39 @@ final class PracticeStore {
         }
 
         var cardsPlayed = 0
-        let maxPlays = Int.random(in: 1...3)
+        // Smart pacing — distribute the CPU's remaining plays across
+        // the remaining battles instead of dumping them in early
+        // rounds. Without this the CPU often emptied its playbook by
+        // battle 3 and had nothing to answer with in battles 5–7.
+        //
+        // Heuristic per battle:
+        // 1. Reserve at least 1 play per future battle (so even at
+        //    battle 7 there's still ammo).
+        // 2. Spend a fair share of what's left after the reservation.
+        // 3. Push 1 extra play if this is a high-stakes battle
+        //    (battle 7, or any battle where the CPU is one win away
+        //    from losing the match).
+        // 4. Pull back 1 play if HD reserves are critically low.
+        let battlesPlayed   = currentBattle
+        let battlesLeft     = max(1, 7 - battlesPlayed)        // includes current
+        let futureBattles   = max(0, battlesLeft - 1)
+        let reserveForLater = futureBattles                    // 1 play per future battle
+        let availableForNow = max(0, cpuPlaysRemaining - reserveForLater)
+        let fairShare       = max(1, availableForNow / battlesLeft)
+        var maxPlays        = min(cpuPlaysRemaining, fairShare)
+        // Stakes bump — if losing the match is one battle away OR
+        // we're in the final battle, allow one more play.
+        let cpuLosses = battles.prefix(currentBattle).filter { $0.result == .win }.count // player wins == cpu loss
+        let mustWin   = cpuLosses >= 3 || currentBattle >= 6   // battle 7 (idx 6) or 3 losses already
+        if mustWin { maxPlays = min(cpuPlaysRemaining, maxPlays + 1) }
+        // HD-conservation pullback — if HD ≤ 2, drop the count by one
+        // so the CPU still has fuel for substitutions next battle.
+        if cpuHotDogs <= 2 && maxPlays > 1 { maxPlays -= 1 }
+        // Floor / ceiling — never play more than 4 in a single battle
+        // (avoids the dump-everything-on-turn-1 problem) and never
+        // less than 0 (passing is fine).
+        maxPlays = max(0, min(maxPlays, 4))
+
         var tempHotDogs = cpuHotDogs
 
         let cpuCtx = makeExecContext(self_: .cpu)
@@ -1579,6 +1673,9 @@ final class PracticeStore {
                     playerDelta = out.oppDelta
                     applyHDRecover(side: .cpu,    amount: out.selfHDDelta)
                     applyHDRecover(side: .player, amount: out.oppHDDelta)
+                    if !out.coinFlips.isEmpty || !out.diceRolls.isEmpty {
+                        pendingReveal = RevealState(side: .cpu, coinFlips: out.coinFlips, diceRolls: out.diceRolls)
+                    }
                     if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
                         for p in persistent { installPersistent(owner: .cpu, spec: p) }
                     }

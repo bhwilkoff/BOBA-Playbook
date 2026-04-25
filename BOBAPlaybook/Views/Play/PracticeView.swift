@@ -881,10 +881,15 @@ private struct DiceCoinRevealOverlay: View {
         ZStack {
             // Dim backdrop blocks taps from reaching anything underneath
             // — the user has to acknowledge the reveal before continuing.
+            // Tap on backdrop dismisses ONLY after settled + a valid
+            // payload exists, so an empty-state shell can never trap
+            // the user with no way to dismiss.
             Color.black.opacity(0.55).ignoresSafeArea()
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    if settled { onFinished() }
+                    if settled, !reveal.coinFlips.isEmpty || !reveal.diceRolls.isEmpty {
+                        onFinished()
+                    }
                 }
 
             VStack(spacing: 12) {

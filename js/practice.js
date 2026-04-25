@@ -4583,8 +4583,12 @@ const PM = {
         const cSuper = cW === 'SUPER';
         if (pSuper && !cSuper) {
           b.result = 'win';  this.playerScore++; this.honors = 'player';
+          b.superTiebreaker = { winner: 'player', total: playerPow };
+          pmEnqueueNotification(`⚡ TIED at ${playerPow} — ${b.playerCard?.hero || b.playerCard?.name || 'Your hero'}'s SUPER weapon breaks the tie (Rules §4.5)`);
         } else if (cSuper && !pSuper) {
           b.result = 'lose'; this.cpuScore++;    this.honors = 'cpu';
+          b.superTiebreaker = { winner: 'cpu', total: cpuPow };
+          pmEnqueueNotification(`⚡ TIED at ${cpuPow} — ${b.cpuCard?.hero || b.cpuCard?.name || 'CPU hero'}'s SUPER weapon breaks the tie (Rules §4.5)`);
         } else {
           b.result = 'tie';
         }

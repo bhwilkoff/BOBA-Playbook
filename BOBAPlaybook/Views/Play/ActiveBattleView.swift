@@ -81,6 +81,9 @@ struct ActiveBattleView: View {
             // arena uncluttered while plays are still happening.
             if slot.result != nil {
                 powerBreakdownPanel
+                if isSuperTiebreaker {
+                    superTiebreakerBanner
+                }
             }
 
             GeometryReader { geo in
@@ -148,6 +151,60 @@ struct ActiveBattleView: View {
             }
             Spacer()
         }
+    }
+
+    /// True when the result was decided by the SUPER tiebreaker
+    /// (Comprehensive Rules Guide §4.5). Surfacing this teaches new
+    /// coaches the rule at the moment it actually costs them — they
+    /// see the totals tied + a SUPER-weapon hero on one side, and
+    /// the result is no longer mysterious.
+    private var isSuperTiebreaker: Bool {
+        guard mode == .playmaker, let result = slot.result, result != .tie else { return false }
+        let playerTotal = (slot.playerCard?.power ?? 0) + slot.playerEffectPower
+        let cpuTotal    = (slot.cpuCard?.power    ?? 0) + slot.cpuEffectPower
+        guard playerTotal == cpuTotal else { return false }
+        let playerWeapon = playerEffectiveWeapon.isEmpty ? (slot.playerCard?.element ?? "") : playerEffectiveWeapon
+        let cpuWeapon    = cpuEffectiveWeapon.isEmpty    ? (slot.cpuCard?.element    ?? "") : cpuEffectiveWeapon
+        return (playerWeapon == "SUPER") != (cpuWeapon == "SUPER")
+    }
+
+    /// Full-width banner explaining a SUPER tiebreaker resolution.
+    /// Renders only when isSuperTiebreaker == true. Names the SUPER
+    /// hero by its display name and points at the rule so coaches can
+    /// look it up.
+    @ViewBuilder
+    private var superTiebreakerBanner: some View {
+        let result = slot.result
+        let winnerCard = result == .win ? slot.playerCard : slot.cpuCard
+        let winnerName = winnerCard?.hero ?? winnerCard?.name ?? "SUPER hero"
+        let totalText = "\(slot.playerFinalPower)"
+        HStack(spacing: 8) {
+            Text("⚡")
+                .font(.system(size: 16))
+            VStack(alignment: .leading, spacing: 1) {
+                Text("SUPER WEAPON BREAKS TIE")
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(Color(hex: "FF00FF"))
+                    .tracking(1.0)
+                Text("Both heroes tied at \(totalText) power. \(winnerName)'s SUPER weapon wins automatically (Rules §4.5).")
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Design.Spacing.sm)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(hex: "FF00FF").opacity(0.10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(Color(hex: "FF00FF").opacity(0.45), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, Design.Spacing.sm)
     }
 
     // MARK: - Hero Card

@@ -124,6 +124,69 @@ def all_targets(entry: dict) -> set[str]:
     return out
 
 
+def all_metrics(entry: dict) -> set[str]:
+    """Every `metric` string AND condition `type` string appearing
+    anywhere in the entry tree. Used to recognize that a card READS
+    something (HD count, discard count, etc.) even if it doesn't
+    have a corresponding mutating op."""
+    out: set[str] = set()
+    def walk(node, in_cond=False):
+        if isinstance(node, dict):
+            m = node.get("metric")
+            if isinstance(m, str): out.add(m)
+            elif isinstance(m, dict):
+                t = m.get("type")
+                if isinstance(t, str): out.add(t)
+            # Condition `type` — `if: { type: "discard_count" }` etc.
+            if in_cond:
+                t = node.get("type")
+                if isinstance(t, str): out.add(t)
+            for k, v in node.items():
+                # `if` / `requires` / sub-`of` arrays carry conditions
+                walk(v, in_cond=in_cond or k in ("if", "requires", "of", "and", "or", "not", "all", "any"))
+        elif isinstance(node, list):
+            for v in node: walk(v, in_cond=in_cond)
+    walk(entry)
+    return out
+
+
+def all_from_sources(entry: dict) -> set[str]:
+    """Every `from` value (e.g. hd_recover from:"discard")."""
+    out: set[str] = set()
+    def walk(node):
+        if isinstance(node, dict):
+            f = node.get("from")
+            if isinstance(f, str): out.add(f)
+            for v in node.values(): walk(v)
+        elif isinstance(node, list):
+            for v in node: walk(v)
+    walk(entry)
+    return out
+
+
+def all_triggers(entry: dict) -> set[str]:
+    """Every `trigger` value found in any persistent block."""
+    out: set[str] = set()
+    for p in (entry.get("persistent") or []):
+        if isinstance(p, dict) and isinstance(p.get("trigger"), str):
+            out.add(p["trigger"])
+    return out
+
+
+def all_string_values(entry: dict, key: str) -> set[str]:
+    """Every value found at any nested `key` field, when stringy."""
+    out: set[str] = set()
+    def walk(node):
+        if isinstance(node, dict):
+            v = node.get(key)
+            if isinstance(v, str): out.add(v)
+            for x in node.values(): walk(x)
+        elif isinstance(node, list):
+            for x in node: walk(x)
+    walk(entry)
+    return out
+
+
 def all_deltas(entry: dict) -> tuple[list[int], bool]:
     """Returns (literal_deltas, has_formula_deltas).
 
@@ -249,24 +312,79 @@ def audit_card(name: str, entry: dict, card: dict | None,
                 fnd.append(Finding(name, "warning", "missing_neg_delta",
                                    f"Ability text claims -{claim} but no JSON delta of -{claim} found"))
 
+    metrics = all_metrics(entry)
+    sources = all_from_sources(entry)
+    triggers = all_triggers(entry)
+    exclude_kinds = all_string_values(entry, "exclude_kind")
+
     # ── Hot Dog mentions ─────────────────────────────────────────
+    # Recognize HD ops, HD-driving intents, formula reads of hd_count,
+    # play_cost_delta (transforms HD cost of plays), block_hd_recover
+    # (denies HDs), substitute_free / transfer_sub_cost (HD-cost
+    # mods on substitutions), and copy_last_play (re-charges HD).
+    # Also recognize transform_to_hot_dog (literal HD transform) and
+    # `exclude_kind: "hot_dog"` (HD filter on a shuffle/discard op).
     hd_text = "hot dog" in lower
-    hd_ops = used & {"hd", "hd_recover", "swap_hd_counts", "variable_cost_bonus"}
-    hd_intent_ops = used & {"force_substitute"}  # implies HD spending via the cost arg
-    if hd_text and not (hd_ops or hd_intent_ops or has_persistent):
+    hd_ops = used & {
+        "hd", "hd_recover", "swap_hd_counts", "variable_cost_bonus",
+        "play_cost_delta", "block_hd_recover", "copy_last_play",
+        "substitute_free", "force_substitute", "transfer_sub_cost",
+        "transform_to_hot_dog",
+    }
+    hd_metric_reads = bool(metrics & {
+        "hd_count", "hd_count_before_cost", "hd_discarded_this_battle",
+        "opponent_hd_used_this_battle",
+    })
+    # Cards that filter the discard pile by hot_dog implicitly
+    # reference HDs ("Shuffle pile excluding Hot Dogs", "+5 per
+    # card except Hot Dogs").
+    hd_kind_filter = "hot_dog" in exclude_kinds or any(
+        "exclude" in m or "_excluding_hd" in m for m in metrics
+    )
+    if hd_text and not (hd_ops or has_persistent or hd_metric_reads or hd_kind_filter):
         # Skip cost-only mentions ("costs 0 Hot Dogs", "pay X Hot Dogs to play")
         if not re.search(r"(costs?|pay)\s+\d+\s+hot\s+dog", lower):
             fnd.append(Finding(name, "info", "missing_hd_op",
-                               "Ability text mentions Hot Dogs but JSON has no HD-related op or persistent"))
+                               "Ability text mentions Hot Dogs but JSON has no HD-related op, persistent, or metric read"))
 
     # ── Discard mentions ─────────────────────────────────────────
+    # A card "mentions discard" can mean (a) it discards something
+    # — needs a discard op — or (b) it reads/recovers from the
+    # discard pile — covered by swap_active_with_discard,
+    # shuffle_from_discard_to_deck, hd_recover from:"discard", or
+    # a `discard_count` / `discard_pile_*` metric read.
     if re.search(r"\bdiscard\b", lower):
-        discard_ops = used & {"discard", "discard_top", "discard_hand_all",
-                              "discard_hero", "discard_hero_from_hand",
-                              "discard_revealed_hero", "discard_revealed_play"}
-        if not discard_ops and not has_persistent:
+        discard_mutation_ops = used & {
+            "discard", "discard_top", "discard_hand_all",
+            "discard_hero", "discard_hero_from_hand",
+            "discard_revealed", "discard_revealed_hero", "discard_revealed_play",
+            # Implicit-discard ops (the discard happens as a side
+            # effect of the op's main behavior):
+            "name_and_discard",                              # forces opp to discard a named play
+            "replace_all_unrevealed_with_top_hero_deck",     # discards unrevealed heroes
+            "replace_active_with_top_hero_deck",             # discards old active
+            "replace_next_with_top_hero_deck",               # discards next-battle hero
+            "replace_active_from_hand",                      # discards active
+            "transform_to_hot_dog",                          # consumes/discards the play
+            "discard_other_revealed",                        # see executor handler
+            "add_chosen_revealed_to_hand_discard_rest",      # discards the unchosen
+        }
+        discard_read_ops = used & {
+            "swap_active_with_discard", "shuffle_from_discard_to_deck",
+            "shuffle_revealed_back",
+        }
+        discard_metric_reads = any(m.startswith("discard_") or "discard_pile" in m for m in metrics)
+        recovers_from_discard = "discard" in sources
+        # `hd ... via:"discard"` is a discard-flavored HD spend
+        via_discard = any(
+            isinstance(s, dict) and s.get("via") == "discard"
+            for _, s in walk_ops(entry)
+        )
+        if not (discard_mutation_ops or discard_read_ops
+                or discard_metric_reads or recovers_from_discard
+                or via_discard or has_persistent):
             fnd.append(Finding(name, "info", "missing_discard_op",
-                               "Ability text mentions discard but JSON has no discard op"))
+                               "Ability text mentions discard but JSON has no discard op or read"))
 
     # ── Coin flip / dice mentions ────────────────────────────────
     if "flip a coin" in lower:
@@ -274,14 +392,27 @@ def audit_card(name: str, entry: dict, card: dict | None,
             fnd.append(Finding(name, "warning", "missing_coin_op",
                                "Ability text mentions coin flip but JSON has no coin_flip op"))
     if re.search(r"roll\s+(?:a\s+)?(?:di(?:e|ce)|d\d+)", lower):
-        if not (used & {"dice_roll", "compound_roll", "versus_dice_roll", "dice_roll_again"}):
+        if not (used & {"dice_roll", "compound_roll", "versus_dice_roll", "dice_roll_again", "dice_gate"}):
             fnd.append(Finding(name, "warning", "missing_dice_op",
                                "Ability text mentions dice roll but JSON has no dice op"))
 
     # ── Substitution mentions ────────────────────────────────────
     if "substitut" in lower:
-        sub_ops = used & {"force_substitute", "substitute_free", "block_sub", "swap_active_with_hand", "swap_active_with_discard"}
-        if not sub_ops:
+        sub_ops = used & {
+            "force_substitute", "substitute_free", "block_sub",
+            "swap_active_with_hand", "swap_active_with_discard",
+            "transfer_sub_cost", "play_cost_delta",
+        }
+        # Persistent triggers and conditional reads count too —
+        # cards like Substitution Boost (trigger: on_substitute),
+        # 10 For A Sub (if: substituted_this_battle), No Retreat
+        # (persistent reads substituted_this_battle).
+        sub_signals = (
+            "on_substitute" in triggers
+            or "substituted_this_battle" in metrics
+            or "include_substitutions" in (all_string_values(entry, "kind") | metrics)
+        )
+        if not sub_ops and not sub_signals:
             fnd.append(Finding(name, "info", "missing_sub_op",
                                "Ability text mentions substitution but JSON has no substitution op"))
 

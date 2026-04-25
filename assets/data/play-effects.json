@@ -490,14 +490,17 @@
           "times": 4,
           "heads": [
             {
-              "op": "note",
-              "text": "Per heads: player chooses to draw (Hero or Play) OR recover a Hot Dog from Discard."
+              "op": "hd_recover",
+              "target": "self",
+              "amount": 1,
+              "from": "discard"
             }
           ]
         }
       ],
       "ui": {
-        "player_choice": true
+        "player_choice": true,
+        "auto_pick": "Per heads: auto-recovers 1 HD from discard (most-useful default until per-heads chooser is wired)."
       }
     },
     "Adding Depth": {
@@ -4259,12 +4262,15 @@
           "delta": -15
         },
         {
-          "op": "note",
-          "text": "Player may recover up to 2 HDs from Discard Pile."
+          "op": "hd_recover",
+          "target": "self",
+          "amount": 2,
+          "from": "discard"
         }
       ],
       "ui": {
-        "player_choice": true
+        "player_choice": true,
+        "auto_pick": "Auto-recovers max (2 HDs); the player-choice for 0/1/2 is a UI nicety we haven't wired yet."
       }
     },
     "Jump Ball": {
@@ -4397,10 +4403,10 @@
       "persistent": [
         {
           "scope": "rest_of_game",
-          "trigger": "continuous",
+          "trigger": "on_opp_play",
           "effect": {
-            "op": "note",
-            "text": "After opponent pays a Play cost, they roll a die: 2-5 → Play runs; else → Play cancelled."
+            "op": "dice_gate",
+            "pass_on": [2, 3, 4, 5]
           }
         }
       ]
@@ -5258,12 +5264,14 @@
         {
           "op": "hd",
           "target": "self",
-          "delta": -2
+          "delta": -2,
+          "via": "discard"
         },
         {
           "op": "hd",
           "target": "opponent",
-          "delta": -2
+          "delta": -2,
+          "via": "discard"
         }
       ]
     },
@@ -5812,18 +5820,39 @@
       "cost": 0,
       "ability": "If you lost the previous Battle, your opponent must pay 1 Hot Dog at the start of the next Battle or Discard a Play.",
       "category": "disruption",
-      "effects": [
+      "effects": [],
+      "persistent": [
         {
           "if": {
             "type": "prev_battle",
             "result": "lost"
           },
-          "then": [
-            {
-              "op": "note",
-              "text": "At start of next Battle, opponent must pay 1 HD or discard a Play."
-            }
-          ]
+          "scope": "next_battle",
+          "trigger": "on_battle_start",
+          "effect": {
+            "if": {
+              "type": "hd_count",
+              "target": "opponent",
+              "comparison": "gte",
+              "value": 1
+            },
+            "then": [
+              {
+                "op": "hd",
+                "target": "opponent",
+                "delta": -1,
+                "via": "discard"
+              }
+            ],
+            "else": [
+              {
+                "op": "discard",
+                "target": "opponent",
+                "kind": "play",
+                "count": 1
+              }
+            ]
+          }
         }
       ]
     },
@@ -6982,22 +7011,25 @@
       "cost": 1,
       "ability": "If you have Honors, reveal a Play from your hand. You may use it for free next Battle if your opponent uses a Play with equal or greater cost.",
       "category": "utility",
-      "effects": [
+      "effects": [],
+      "persistent": [
         {
           "if": {
             "type": "honors",
             "target": "self"
           },
-          "then": [
-            {
-              "op": "note",
-              "text": "Reveal a Play from hand; next Battle, run it free if opponent plays something of equal-or-greater cost."
-            }
-          ]
+          "scope": "next_battle",
+          "trigger": "on_battle_start",
+          "effect": {
+            "op": "substitute_free",
+            "target": "self",
+            "scope": "this_battle"
+          }
         }
       ],
       "ui": {
-        "player_choice": true
+        "player_choice": true,
+        "auto_pick": "Approximated as a free substitution next battle (~equal HD value to a free play). The faithful 'reveal play, conditional free play if opp plays equal-or-greater cost' is deferred to B.13."
       }
     },
     "Scorching Pressure": {

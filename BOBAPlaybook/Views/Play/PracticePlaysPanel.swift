@@ -14,7 +14,7 @@ struct PracticePlaysPanel: View {
     @State private var selectedCard: Card?
 
     var body: some View {
-        VStack(spacing: Design.Spacing.sm) {
+        VStack(spacing: 6) {
             // Header
             HStack {
                 Text("YOUR PLAYS")
@@ -34,15 +34,17 @@ struct PracticePlaysPanel: View {
                 .buttonStyle(.plain)
             }
 
-            // Play cards
+            // Play cards — compact thumbnails so the panel's detail
+            // area below has room to render all of a card's info
+            // without scrolling. See cardDetail() comment for context.
             if store.playerHand.isEmpty {
                 Text("No plays in hand")
                     .font(Design.Fonts.mono(12))
                     .foregroundStyle(Design.Colors.textMuted)
-                    .padding(.vertical, Design.Spacing.md)
+                    .padding(.vertical, Design.Spacing.sm)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         ForEach(store.playerHand) { card in
                             playCardThumb(card: card)
                         }
@@ -50,20 +52,19 @@ struct PracticePlaysPanel: View {
                 }
             }
 
-            // Selected card detail — vertical scroll covers any
-            // ability text that runs past the panel's natural height
-            // (two-line plays were getting their bottom clipped under
-            // the prior fixed 120pt cap). Cap raised + scroll added
-            // so the content can never visually truncate.
+            // Selected card detail — rendered as a rigid container that
+            // sizes to its content. Previous design used a fixed-height
+            // ScrollView, but coaches reported the lower half of every
+            // card's info was visually hidden until they scrolled.
+            // We trade hand-thumbnail size (72x100 → 60x84) and panel
+            // padding (md → sm) so even a 5-line ability text fits in
+            // the natural panel height with no clipping.
             if let card = selectedCard {
-                ScrollView(.vertical, showsIndicators: false) {
-                    cardDetail(card: card)
-                }
-                .frame(maxHeight: 170)
+                cardDetail(card: card)
             }
         }
-        .padding(Design.Spacing.md)
-        .frame(maxHeight: 330)
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.sm)
         .background(Design.Colors.surface.opacity(0.98))
         .overlay(Divider().background(Design.Colors.glass), alignment: .top)
     }
@@ -97,7 +98,7 @@ struct PracticePlaysPanel: View {
                             playPlaceholder(card: card)
                         }
                     }
-                    .frame(width: 72, height: 100)
+                    .frame(width: 60, height: 84)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                     .overlay(
                         RoundedRectangle(cornerRadius: 6).strokeBorder(
@@ -162,7 +163,7 @@ struct PracticePlaysPanel: View {
                     .font(Design.Fonts.mono(8, weight: .bold))
                     .foregroundStyle(isSelected ? Design.Colors.bobaCyan : Design.Colors.textSecondary)
                     .lineLimit(1)
-                    .frame(width: 72)
+                    .frame(width: 60)
             }
             .opacity(canAfford ? 1 : 0.4)
         }
@@ -179,27 +180,32 @@ struct PracticePlaysPanel: View {
         let isPlayPhase = store.phase == .play
         let partial = PlayEffects.entryHasUnknownOps(PlayEffects.entry(for: card.name))
 
-        return HStack(spacing: Design.Spacing.md) {
+        return HStack(alignment: .top, spacing: Design.Spacing.sm) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(card.name)
-                    .font(Design.Fonts.display(16))
-                    .foregroundStyle(Design.Colors.textPrimary)
-                    .lineLimit(1)
-
-                Text("Cost: \(effCost == 0 ? "FREE" : "\(effCost) HD")")
-                    .font(Design.Fonts.mono(12, weight: .bold))
-                    .foregroundStyle(canAfford ? Color(hex: "4CAF50") : Color(hex: "C0392B"))
+                HStack(spacing: 8) {
+                    Text(card.name)
+                        .font(Design.Fonts.display(16))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                        .lineLimit(1)
+                    Text(effCost == 0 ? "FREE" : "\(effCost) HD")
+                        .font(Design.Fonts.mono(11, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(canAfford ? Color(hex: "4CAF50") : Color(hex: "C0392B")))
+                }
 
                 Text(PracticeStore.effectDescription(for: card))
-                    .font(Design.Fonts.mono(12))
+                    .font(Design.Fonts.mono(13))
                     .foregroundStyle(Design.Colors.bobaCyan)
                     .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 if partial {
                     Text("⚠ Some effects not yet simulated")
                         .font(Design.Fonts.mono(11))
                         .foregroundStyle(Color(hex: "FFD166"))
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -216,7 +222,7 @@ struct PracticePlaysPanel: View {
                         .foregroundStyle(playable ? Design.Colors.nearBlack : Design.Colors.textMuted)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 10)
-                        .frame(width: 80, height: 52)
+                        .frame(width: 76, height: 48)
                         .background(RoundedRectangle(cornerRadius: 8)
                             .fill(playable ? Design.Colors.bobaOrange : Design.Colors.glass))
                 }

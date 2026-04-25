@@ -8,9 +8,8 @@ struct StoreDetailSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: Design.Spacing.lg) {
+                VStack(alignment: .leading, spacing: Design.Spacing.md) {
                     header
-                    Divider().overlay(Design.Colors.glassBorder)
                     addressBlock
                     if let tel = store.telURL {
                         contactRow(icon: "phone.fill", label: store.phone) { openURL(tel) }
@@ -23,9 +22,8 @@ struct StoreDetailSheet: View {
                         contactRow(icon: "envelope.fill", label: store.email) { openURL(mail) }
                     }
 
-                    Divider().overlay(Design.Colors.glassBorder)
-
                     directionsButtons
+                        .padding(.top, Design.Spacing.sm)
 
                     if !store.lastVerifiedLabel.isEmpty {
                         Text(store.lastVerifiedLabel)
@@ -69,14 +67,12 @@ struct StoreDetailSheet: View {
             if let url = store.appleMapsURL { UIApplication.shared.open(url) }
         } label: {
             HStack(alignment: .top, spacing: Design.Spacing.md) {
-                Image(systemName: "mappin.and.ellipse")
-                    .font(.system(size: 18))
-                    .foregroundStyle(Design.Colors.bobaOrange)
-                VStack(alignment: .leading, spacing: 2) {
+                iconCircle("mappin.and.ellipse", tint: Design.Colors.bobaOrange)
+                VStack(alignment: .leading, spacing: 3) {
                     Text(store.address.full.isEmpty
                          ? "\(store.address.street), \(store.address.city)"
                          : store.address.full)
-                        .font(Design.Fonts.mono(13))
+                        .font(Design.Fonts.mono(13, weight: .bold))
                         .foregroundStyle(Design.Colors.textPrimary)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -84,8 +80,14 @@ struct StoreDetailSheet: View {
                         .font(Design.Fonts.mono(10))
                         .foregroundStyle(Design.Colors.textMuted)
                 }
-                Spacer()
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
             }
+            .padding(Design.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(rowBackground)
         }
         .buttonStyle(.plain)
     }
@@ -93,23 +95,43 @@ struct StoreDetailSheet: View {
     private func contactRow(icon: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: Design.Spacing.md) {
-                Image(systemName: icon)
-                    .font(.system(size: 16))
-                    .foregroundStyle(Design.Colors.bobaCyan)
-                    .frame(width: 24)
+                iconCircle(icon, tint: Design.Colors.bobaCyan)
                 Text(label)
                     .font(Design.Fonts.mono(13))
                     .foregroundStyle(Design.Colors.textPrimary)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                Spacer()
+                Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(Design.Colors.textMuted)
             }
-            .padding(.vertical, Design.Spacing.xs)
+            .padding(Design.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(rowBackground)
         }
         .buttonStyle(.plain)
+    }
+
+    private func iconCircle(_ name: String, tint: Color) -> some View {
+        Image(systemName: name)
+            .font(.system(size: 14, weight: .bold))
+            .foregroundStyle(tint)
+            .frame(width: 32, height: 32)
+            .background(
+                Circle()
+                    .fill(tint.opacity(0.15))
+                    .overlay(Circle().strokeBorder(tint.opacity(0.4), lineWidth: 1))
+            )
+    }
+
+    private var rowBackground: some View {
+        RoundedRectangle(cornerRadius: Design.Radius.md)
+            .fill(Design.Colors.surface)
+            .overlay(
+                RoundedRectangle(cornerRadius: Design.Radius.md)
+                    .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)
+            )
     }
 
     private var directionsButtons: some View {

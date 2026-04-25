@@ -206,7 +206,13 @@ struct StoreLocatorView: View {
                 MapScaleView()
             }
             .mapStyle(.standard(elevation: .flat))
-            .frame(height: 260)
+            .frame(height: 240)
+            .clipShape(RoundedRectangle(cornerRadius: Design.Radius.lg))
+            .overlay(
+                RoundedRectangle(cornerRadius: Design.Radius.lg)
+                    .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.35), radius: 6, y: 3)
 
             if store.loadState == .loading {
                 ProgressView()
@@ -216,6 +222,8 @@ struct StoreLocatorView: View {
                     .padding(Design.Spacing.sm)
             }
         }
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.top, Design.Spacing.sm)
     }
 
     // MARK: - List

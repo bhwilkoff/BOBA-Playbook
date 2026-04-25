@@ -5738,12 +5738,60 @@ main {
   font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
   color: #8B00FF; margin: 6px 0 2px;
 }
+/* Tappable expandable row — uses <details>/<summary> for free state.
+   Closed: thumb + name + meta. Open: also shows the larger card image
+   and the full ability text so the player can review what each card
+   actually did during the battle. Mirrors iOS DiscardCardRow. */
 .pm-di-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 10px;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 6px;
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+.pm-di-row[open] {
+  border-color: rgba(0,245,255,0.4);
+  background: rgba(0,245,255,0.04);
+}
+.pm-di-row > summary { list-style: none; cursor: pointer; }
+.pm-di-row > summary::-webkit-details-marker { display: none; }
+.pm-di-row-summary {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+}
+.pm-di-row-thumb {
+  width: 32px; height: 46px; object-fit: cover;
+  border-radius: 4px; background: rgba(8,8,16,0.5);
+  flex-shrink: 0;
+}
+.pm-di-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pm-di-row-chev {
+  font-size: 12px; color: rgba(255,255,255,0.45);
+  transition: transform 0.18s ease;
+}
+.pm-di-row[open] .pm-di-row-chev { transform: rotate(180deg); color: #00F5FF; }
+.pm-di-row-detail {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 0 10px 10px 10px;
+}
+.pm-di-detail-img {
+  width: 90px; height: auto; aspect-ratio: 5/7; object-fit: cover;
+  border-radius: 6px; border: 1px solid rgba(255,255,255,0.12);
+  flex-shrink: 0;
+}
+.pm-di-row-effect {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.pm-di-row-effect-label {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.15em; color: rgba(255,255,255,0.4);
+}
+.pm-di-row-effect-text {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 11px; line-height: 1.4;
+  color: rgba(255,255,255,0.85);
 }
 .pm-di-row-name {
   font-family: 'Chakra Petch', monospace;
@@ -5899,22 +5947,203 @@ main {
   font-family: 'Chakra Petch', monospace;
   font-size: 10px;
   font-weight: 700;
-  padding: 2px 7px;
+  padding: 3px 8px;
   border-radius: 999px;
   white-space: nowrap;
-  max-width: 100px;
+  max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+  color: #fff;
+  background: rgba(8,8,16,0.72);
+  font: inherit; font-size: 10px; font-weight: 700;
+  font-family: 'Chakra Petch', monospace;
+  transition: transform 0.12s ease, background 0.12s ease;
 }
+.pm-root .pm-bc-play-chip:hover { background: rgba(8,8,16,0.95); transform: translateY(-1px); }
+.pm-root .pm-bc-play-chip:active { transform: translateY(0); }
 .pm-root .pm-bc-play-chip--you {
-  color: #00F5FF;
-  background: rgba(0, 245, 255, 0.12);
-  border: 0.5px solid rgba(0, 245, 255, 0.45);
+  border: 1px solid rgba(0, 245, 255, 0.85);
 }
 .pm-root .pm-bc-play-chip--opp {
-  color: #8B00FF;
-  background: rgba(139, 0, 255, 0.12);
-  border: 0.5px solid rgba(139, 0, 255, 0.45);
+  border: 1px solid rgba(199, 125, 255, 0.85);
+}
+
+/* Setup honors-roll overlay (M4 setup parity) */
+.pm-setup-honors-overlay { z-index: 1100; }
+.pm-setup-honors {
+  background: rgba(13,13,26,0.97);
+  border: 2px solid rgba(255,77,0,0.55);
+  border-radius: 18px;
+  padding: 28px 24px 22px;
+  max-width: min(420px, 92vw);
+  text-align: center;
+  display: flex; flex-direction: column; gap: 14px;
+  align-items: stretch;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.7);
+}
+.pm-shr-eyebrow {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.28em;
+  color: rgba(255,255,255,0.45);
+}
+.pm-shr-title {
+  margin: 0;
+  font-family: 'Bebas Neue', 'Russo One', sans-serif;
+  font-size: 26px; font-weight: 700;
+  color: #FF4D00;
+  letter-spacing: 0.04em;
+}
+.pm-shr-sub {
+  margin: 0;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+}
+.pm-shr-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 8px 0;
+}
+.pm-shr-col {
+  display: flex; flex-direction: column; gap: 8px; align-items: center;
+  padding: 12px 8px;
+  border-radius: 10px;
+  background: rgba(8,8,16,0.35);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.pm-shr-col.won { border-color: currentColor; }
+.pm-shr-col--you { color: #00F5FF; }
+.pm-shr-col--cpu { color: #C77DFF; }
+.pm-shr-label {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.16em;
+  color: rgba(255,255,255,0.55);
+}
+.pm-shr-dice {
+  display: flex; gap: 6px;
+}
+.pm-shr-die {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px;
+  font-size: 30px; line-height: 1;
+  color: #fff;
+  background: rgba(8,8,16,0.7);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 8px;
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+.pm-shr-die.settled {
+  border-color: currentColor;
+  transform: scale(1.06);
+}
+.pm-shr-sum {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(8,8,16,0.6);
+  color: rgba(255,255,255,0.7);
+}
+.pm-shr-sum.settled { color: currentColor; background: rgba(0,0,0,0.45); }
+.pm-shr-result {
+  display: flex; flex-direction: column; gap: 6px; align-items: center;
+  padding-top: 6px;
+}
+.pm-shr-result[hidden] { display: none; }
+.pm-shr-winner {
+  font-family: 'Bebas Neue', 'Russo One', sans-serif;
+  font-size: 20px; font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.pm-shr-winner--player { color: #00F5FF; }
+.pm-shr-winner--cpu    { color: #C77DFF; }
+.pm-shr-detail {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 11px;
+  color: rgba(255,255,255,0.7);
+}
+.pm-shr-begin {
+  margin-top: 6px;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #080810;
+  background: #FF4D00;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 22px;
+  cursor: pointer;
+}
+.pm-shr-begin:hover { background: #ff6020; }
+
+/* UX#7 — Play card review modal opened by tapping a played chip. */
+.pm-play-review {
+  background: rgba(13,13,26,0.98);
+  border: 1px solid rgba(0,245,255,0.4);
+  border-radius: 14px;
+  max-width: min(420px, 92vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 0;
+}
+.pm-prs-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  position: sticky; top: 0;
+  background: rgba(13,13,26,0.98);
+  z-index: 1;
+}
+.pm-prs-header h2 {
+  margin: 0;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+}
+.pm-prs-close {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.6);
+  font-size: 22px; line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.pm-prs-close:hover { color: #FF4D00; }
+.pm-prs-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.pm-prs-image {
+  width: 160px;
+  height: auto; aspect-ratio: 5/7; object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid rgba(139,0,255,0.5);
+  align-self: center;
+}
+.pm-prs-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+.pm-prs-chip {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 11px; font-weight: 700;
+  color: #00F5FF;
+  background: rgba(0,245,255,0.15);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.pm-prs-chip--free { color: #4CAF50; background: rgba(76,175,80,0.15); }
+.pm-prs-chip--bonus { color: #080810; background: #FFD700; }
+.pm-prs-effect-label {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.45);
+}
+.pm-prs-effect-text {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 13px; line-height: 1.45;
+  color: rgba(255,255,255,0.88);
 }
 
 /* Opponent zone */
@@ -6413,18 +6642,33 @@ body.practice-active:not(.practice-rotate-dismissed) .practice-rotate-hint {
 /* CPU sub callout */
 .pm-cpu-sub-callout {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-  background: rgba(8,8,16,0.85); border: 1px solid rgba(255,77,0,0.4); border-radius: 12px;
-  padding: 0.75rem 1.5rem; z-index: 40; animation: pmFadeInOut 2s ease-in-out forwards;
+  background: rgba(8,8,16,0.92); border: 1px solid rgba(255,77,0,0.4); border-radius: 14px;
+  padding: 1rem 1.25rem; z-index: 40; animation: pmFadeInOut 3.2s ease-in-out forwards;
+  max-width: min(340px, 90vw);
 }
 .pm-cpu-sub-callout[hidden] { display: none; }
-.pm-cpu-sub-inner { display: flex; align-items: center; gap: 0.5rem; }
-.pm-cpu-sub-icon { font-size: 1.2rem; }
+.pm-cpu-sub-inner {
+  display: flex; align-items: center; gap: 0.75rem; flex-direction: column;
+}
+.pm-cpu-sub-icon { font-size: 1.6rem; }
+.pm-cpu-sub-body {
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+}
 .pm-cpu-sub-text {
-  font-family: var(--font-mono, monospace); font-size: 0.75rem; font-weight: 700;
-  letter-spacing: 0.08em; color: #FF4D00;
+  font-family: var(--font-mono, monospace); font-size: 0.85rem; font-weight: 700;
+  letter-spacing: 0.12em; color: #FF4D00; text-align: center;
+}
+.pm-cpu-sub-img {
+  width: 84px; height: auto; aspect-ratio: 5/7; object-fit: cover;
+  border-radius: 6px; border: 2px solid rgba(255,77,0,0.5);
+  background: rgba(8,8,16,0.5);
+}
+.pm-cpu-sub-detail {
+  font-family: var(--font-mono, monospace); font-size: 0.72rem; font-weight: 600;
+  color: rgba(255,255,255,0.85); text-align: center; line-height: 1.35;
 }
 @keyframes pmFadeInOut {
-  0% { opacity: 0; } 15% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; }
+  0% { opacity: 0; } 8% { opacity: 1; } 88% { opacity: 1; } 100% { opacity: 0; }
 }
 
 /* MODE VISIBILITY — hides sections irrelevant to game mode */

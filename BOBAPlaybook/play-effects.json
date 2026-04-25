@@ -4321,6 +4321,11 @@
       "cost": 3,
       "ability": "This must be used in Battle 7, your opponent's Hero gets -35.",
       "category": "tempo",
+      "requires": {
+        "type": "battle_num",
+        "comparison": "eq",
+        "value": 7
+      },
       "effects": [
         {
           "op": "power",
@@ -4485,9 +4490,14 @@
     },
     "Locked Playbook": {
       "cost": 1,
-      "ability": "Your opponent can't draw any Plays this Battle, including at the end of their turn.",
+      "ability": "Your opponent can't play any Plays this Battle, including at the end of their turn.",
       "category": "disruption",
       "effects": [
+        {
+          "op": "block_plays",
+          "target": "opponent",
+          "scope": "this_battle"
+        },
         {
           "op": "block_draw",
           "target": "opponent",

@@ -993,88 +993,76 @@ private struct SetupHonorsRollOverlay: View {
     let roll: PracticeStore.SetupHonorsRoll
     let onFinished: () -> Void
 
-    private let spinDuration: Double = 1.1
+    private let spinDuration: Double = 1.0
     @State private var settled = false
     @State private var tick = 0
 
-    private var playerSum: Int { roll.playerRolls.reduce(0, +) }
-    private var cpuSum: Int    { roll.cpuRolls.reduce(0, +) }
-
     var body: some View {
+        // Compact landscape layout — practice mat runs in landscape
+        // on iOS, where vertical room is ~330–390 pt before clipping
+        // safe areas. The original tall stack ran past the bottom of
+        // the screen on iPhone 14/15. This version uses a horizontal
+        // dice row with a single-line title and a single-line result
+        // so the whole overlay fits inside ~280 pt.
         ZStack {
             Color.black.opacity(0.7).ignoresSafeArea()
 
-            VStack(spacing: 18) {
-                Text("MATCH SETUP")
-                    .font(Design.Fonts.display(14))
-                    .foregroundStyle(Design.Colors.textMuted)
-                    .tracking(3)
-
+            VStack(spacing: 10) {
                 Text("ROLL FOR HONORS")
-                    .font(Design.Fonts.display(26))
+                    .font(Design.Fonts.display(20))
                     .foregroundStyle(Design.Colors.bobaOrange)
+                    .tracking(2)
 
-                Text("High roll wins the right to act first in Battle 1.")
-                    .font(Design.Fonts.mono(12))
+                Text("High roll acts first in Battle 1.")
+                    .font(Design.Fonts.mono(11))
                     .foregroundStyle(Design.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Design.Spacing.lg)
 
-                HStack(alignment: .top, spacing: Design.Spacing.lg) {
+                HStack(spacing: Design.Spacing.lg) {
                     rollColumn(
                         title: "YOU",
-                        rolls: roll.playerRolls,
-                        sum: playerSum,
+                        rollValue: roll.playerRoll,
                         accent: Design.Colors.bobaCyan,
                         won: settled && roll.winner == .player
                     )
                     rollColumn(
                         title: "CPU",
-                        rolls: roll.cpuRolls,
-                        sum: cpuSum,
+                        rollValue: roll.cpuRoll,
                         accent: Color(hex: "C77DFF"),
                         won: settled && roll.winner == .cpu
                     )
                 }
+                .padding(.vertical, 2)
 
                 if settled {
-                    VStack(spacing: 6) {
-                        Text(roll.winner == .player
-                             ? "YOU WIN HONORS"
-                             : "CPU WINS HONORS")
-                            .font(Design.Fonts.display(18))
+                    HStack(spacing: 8) {
+                        Text(roll.winner == .player ? "YOU WIN HONORS" : "CPU WINS HONORS")
+                            .font(Design.Fonts.display(15))
                             .foregroundStyle(roll.winner == .player
                                              ? Design.Colors.bobaCyan
                                              : Color(hex: "C77DFF"))
-                        Text(roll.winner == .player
-                             ? "You act first this battle."
-                             : "CPU acts first this battle.")
-                            .font(Design.Fonts.mono(11))
-                            .foregroundStyle(Design.Colors.textSecondary)
+                        Button {
+                            onFinished()
+                        } label: {
+                            Text("BEGIN BATTLE 1")
+                                .font(Design.Fonts.mono(12, weight: .bold))
+                                .foregroundStyle(Design.Colors.nearBlack)
+                                .padding(.horizontal, 16)
+                                .frame(height: 34)
+                                .background(Capsule().fill(Design.Colors.bobaOrange))
+                        }
+                        .buttonStyle(.plain)
                     }
                     .transition(.opacity.combined(with: .scale(scale: 0.9)))
-
-                    Button {
-                        onFinished()
-                    } label: {
-                        Text("BEGIN BATTLE 1")
-                            .font(Design.Fonts.mono(14, weight: .bold))
-                            .foregroundStyle(Design.Colors.nearBlack)
-                            .padding(.horizontal, 28)
-                            .frame(height: 44)
-                            .background(Capsule().fill(Design.Colors.bobaOrange))
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, 4)
                 }
             }
-            .padding(Design.Spacing.xl)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 16)
             .background(
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: 16)
                     .fill(Design.Colors.surface.opacity(0.97))
-                    .overlay(RoundedRectangle(cornerRadius: 18)
+                    .overlay(RoundedRectangle(cornerRadius: 16)
                         .strokeBorder(Design.Colors.bobaOrange.opacity(0.6), lineWidth: 2))
-                    .shadow(color: .black.opacity(0.6), radius: 18)
+                    .shadow(color: .black.opacity(0.6), radius: 14)
             )
             .padding(.horizontal, Design.Spacing.lg)
         }
@@ -1093,27 +1081,57 @@ private struct SetupHonorsRollOverlay: View {
         }
     }
 
-    private func rollColumn(title: String, rolls: [Int], sum: Int, accent: Color, won: Bool) -> some View {
-        VStack(spacing: 6) {
+    private func rollColumn(title: String, rollValue: Int, accent: Color, won: Bool) -> some View {
+        HStack(spacing: 10) {
             Text(title)
                 .font(Design.Fonts.mono(11, weight: .bold))
-                .foregroundStyle(Design.Colors.textMuted)
-                .tracking(1.6)
-            HStack(spacing: 6) {
-                ForEach(Array(rolls.enumerated()), id: \.offset) { _, finalRoll in
-                    DieFace(finalRoll: finalRoll, settled: settled, tick: tick, accent: accent)
-                }
-            }
-            Text(settled ? "SUM \(sum)" : "—")
-                .font(Design.Fonts.mono(12, weight: .bold))
-                .foregroundStyle(won ? accent : Design.Colors.textSecondary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(
-                    Capsule()
-                        .fill(won ? accent.opacity(0.15) : Color.black.opacity(0.4))
-                        .overlay(Capsule().strokeBorder(won ? accent.opacity(0.85) : Color.clear, lineWidth: 1))
-                )
+                .foregroundStyle(won ? accent : Design.Colors.textMuted)
+                .tracking(1.4)
+            CompactDieFace(finalRoll: rollValue, settled: settled, tick: tick, accent: accent)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(won ? accent.opacity(0.12) : Color.black.opacity(0.35))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(won ? accent.opacity(0.85) : Color.white.opacity(0.10), lineWidth: 1)
+                )
+        )
+    }
+}
+
+/// Smaller die used in the setup honors overlay so the whole popup
+/// fits inside iPhone landscape (~280pt of usable vertical space).
+/// Visually echoes `DieFace` but at ~60% size and without the
+/// stacked numeric label — the glyph speaks for itself at a glance.
+private struct CompactDieFace: View {
+    let finalRoll: Int
+    let settled: Bool
+    let tick: Int
+    let accent: Color
+
+    private static let glyphs = ["⚀","⚁","⚂","⚃","⚄","⚅"]
+
+    private var displayedRoll: Int {
+        if settled { return max(1, min(6, finalRoll)) }
+        return (tick % 6) + 1
+    }
+
+    var body: some View {
+        Text(Self.glyphs[displayedRoll - 1])
+            .font(.system(size: 30, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: 44, height: 44)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.black.opacity(0.55))
+                    .overlay(RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(accent.opacity(settled ? 0.85 : 0.4),
+                                      lineWidth: settled ? 2 : 1))
+            )
+            .rotationEffect(.degrees(settled ? 0 : Double(tick * 24).truncatingRemainder(dividingBy: 360)))
+            .scaleEffect(settled ? 1.06 : 1.0)
     }
 }

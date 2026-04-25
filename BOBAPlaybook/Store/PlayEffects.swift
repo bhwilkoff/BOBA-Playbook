@@ -282,6 +282,14 @@ struct PlayExecOut {
     // player's eyes.
     var coinFlips: [Bool] = []
     var diceRolls: [Int] = []
+    /// "versus" (2 dice, side-by-side, high wins),
+    /// "summed" (2+ dice, summed total — Lucky 7 etc.),
+    /// "single" (default — one die OR one coin per slot).
+    /// Used by the host to label the reveal overlay correctly.
+    var revealMode: String = "single"
+    /// Optional eyebrow text for the reveal overlay (e.g., the
+    /// originating play card's name when known).
+    var revealLabel: String = ""
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -799,6 +807,8 @@ enum PlayEffectExecutor {
             out.hasEffect = true
 
         case "versus_dice_roll":
+            out.revealMode = "versus"
+            out.revealLabel = "VERSUS ROLL"
             // Both sides roll a single die; winner runs `winner_effect`.
             // Tie → no-op (re-roll deferred for now). Both rolls land
             // in `out.diceRolls` so the existing dice-reveal overlay
@@ -1010,6 +1020,12 @@ enum PlayEffectExecutor {
         let sum = rolls.reduce(0, +)
         let agg = (step["aggregate"] as? String) ?? (count > 1 ? "sum" : "")
         let matchValue = agg == "sum" ? sum : (rolls.first ?? 0)
+        // Tag the reveal mode so the overlay can render two dice as
+        // "DIE 1 + DIE 2 = SUM N" for summed rolls (Lucky 7) vs as
+        // distinct dice for any other multi-die count.
+        if count > 1 && out.revealMode == "single" {
+            out.revealMode = agg == "sum" ? "summed" : "single"
+        }
 
         // Track whether ANY branch (or the else branch) actually
         // produced a triggered effect — used to surface a clear

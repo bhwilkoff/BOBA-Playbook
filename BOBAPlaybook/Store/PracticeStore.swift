@@ -172,6 +172,10 @@ final class PracticeStore {
         // the roll instead of bursting at the start of the play phase.
         var coinFlips: [Bool] = []
         var diceRolls: [Int] = []
+        /// Carry-through for executor revealMode/revealLabel so the
+        /// host can build a properly-tagged RevealState at dismiss.
+        var revealMode: String = "single"
+        var revealLabel: String = ""
     }
     var cpuCallouts: [ActionCallout] = []
     var lastEffectCallout: ActionCallout? = nil  // coin flip / dice result
@@ -198,11 +202,16 @@ final class PracticeStore {
     // letting the rest of the effect cascade (callouts, deltas).
     // `side` tracks who played the card so the overlay can tint
     // correctly (cyan for player, purple for CPU).
+    enum RevealKind: String, Codable { case single, versus, summed, gate }
     struct RevealState: Identifiable {
         let id = UUID()
         let side: PlayExecContext.Side
         let coinFlips: [Bool]     // true = HEADS
         let diceRolls: [Int]      // 1…6
+        var kind: RevealKind = .single
+        /// When set, the overlay shows a contextual label
+        /// (e.g. "Leave It To Chance gate", "Luck of the Draw").
+        var sourceLabel: String = ""
     }
     var pendingReveal: RevealState? = nil
 
@@ -269,6 +278,10 @@ final class PracticeStore {
         /// covers, regardless of starting weapon."
         let from: String?
         let to: String
+        /// Name of the play card that installed this transform.
+        /// Lets the active-effects banner show "Only Steel · Steel
+        /// transform" instead of just "Steel transform."
+        var sourceCard: String = ""
     }
     var weaponTransforms: [WeaponTransform] = []
 
@@ -1169,6 +1182,18 @@ final class PracticeStore {
     /// `applyIntents`, cleared after. Empty string disables.
     private var _inheritedInstallSource: String = ""
 
+    /// Map executor's `out.revealMode` string into the typed
+    /// RevealState.RevealKind. Defaults to .single for unknown
+    /// values so future modes silently fall back to a sane render.
+    private func revealKindFromMode(_ mode: String) -> RevealKind {
+        switch mode {
+        case "versus": return .versus
+        case "summed": return .summed
+        case "gate":   return .gate
+        default:       return .single
+        }
+    }
+
     func confirmHeroDiscardSwap(_ chosen: Card) {
         guard battles.indices.contains(currentBattle) else { return }
         let current = battles[currentBattle].playerCard
@@ -1462,7 +1487,11 @@ final class PracticeStore {
                 pendingReveal = RevealState(
                     side: .cpu,
                     coinFlips: play.coinFlips,
-                    diceRolls: play.diceRolls
+                    diceRolls: play.diceRolls,
+                    kind: revealKindFromMode(play.revealMode),
+                    sourceLabel: play.revealLabel.isEmpty
+                        ? (play.card?.name ?? "")
+                        : play.revealLabel
                 )
             }
         }
@@ -1578,14 +1607,25 @@ final class PracticeStore {
         // dice roll AFTER cost is paid; on a miss the play's effects
         // are cancelled but the HD remains spent (per ability text).
         if let gate = checkPlayGate(actingSide: .player) {
-            pendingReveal = RevealState(side: .player, coinFlips: [], diceRolls: [gate.roll])
-            cpuCallouts.append(ActionCallout(
+            pendingReveal = RevealState(
+                side: .player,
+                coinFlips: [],
+                diceRolls: [gate.roll],
+                kind: .gate,
+                sourceLabel: "Leave It To Chance"
+            )
+            // Surface the *card* in the callout — effectCalloutBanner
+            // renders the cancelled play's image with a red ✕ stamp
+            // so the user sees exactly which card got killed.
+            lastEffectCallout = ActionCallout(
                 message: gate.passed
-                    ? "🎲 \(gate.roll) — Play continues"
-                    : "🎲 \(gate.roll) — Play cancelled by Leave It To Chance",
+                    ? "🎲 \(gate.roll) — \(card.name) plays through Leave It To Chance"
+                    : "🎲 \(gate.roll) — \(card.name) cancelled by Leave It To Chance",
                 icon: "dice.fill",
-                color: gate.passed ? "4CAF50" : "C0392B"
-            ))
+                color: gate.passed ? "4CAF50" : "C0392B",
+                card: card
+            )
+            scheduleEffectDismiss()
             if !gate.passed {
                 playerPlayDiscard.append(card)
                 saveMatch()
@@ -1616,7 +1656,13 @@ final class PracticeStore {
             applyHDRecover(side: .player, amount: out.selfHDDelta)
             applyHDRecover(side: .cpu,    amount: out.oppHDDelta)
             if !out.coinFlips.isEmpty || !out.diceRolls.isEmpty {
-                pendingReveal = RevealState(side: .player, coinFlips: out.coinFlips, diceRolls: out.diceRolls)
+                pendingReveal = RevealState(
+                    side: .player,
+                    coinFlips: out.coinFlips,
+                    diceRolls: out.diceRolls,
+                    kind: revealKindFromMode(out.revealMode),
+                    sourceLabel: out.revealLabel.isEmpty ? card.name : out.revealLabel
+                )
             }
             if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
                 let ctxForCheck = makeExecContext(self_: .player)
@@ -1944,6 +1990,8 @@ final class PracticeStore {
             // overlay, instead of bursting at start-of-phase.
             var capturedCoinFlips: [Bool] = []
             var capturedDiceRolls: [Int] = []
+            var capturedRevealMode = "single"
+            var capturedRevealLabel = ""
             if let entry = PlayEffects.entry(for: card.name),
                let effects = entry["effects"] as? [[String: Any]], !effects.isEmpty {
                 let ctx = makeExecContext(self_: .cpu)
@@ -1959,6 +2007,8 @@ final class PracticeStore {
                 applyHDRecover(side: .player, amount: out.oppHDDelta)
                 capturedCoinFlips = out.coinFlips
                 capturedDiceRolls = out.diceRolls
+                capturedRevealMode = out.revealMode
+                capturedRevealLabel = out.revealLabel
                 if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
                     let ctxForCheck = makeExecContext(self_: .cpu)
                     for p in persistent {
@@ -1994,7 +2044,9 @@ final class PracticeStore {
                 playerDelta: playerDelta,
                 cpuDelta: cpuDelta,
                 coinFlips: capturedCoinFlips,
-                diceRolls: capturedDiceRolls
+                diceRolls: capturedDiceRolls,
+                revealMode: capturedRevealMode,
+                revealLabel: capturedRevealLabel
             ))
         }
 
@@ -2283,11 +2335,14 @@ final class PracticeStore {
                 message += out.notifications.joined(separator: ", ")
             }
             if !message.isEmpty {
-                let prefix = trigger == "on_battle_win"     ? "Win trigger"
-                           : trigger == "on_battle_loss"    ? "Loss trigger"
-                           : trigger == "on_plays_resolved" ? "End-of-turn"
-                           : trigger == "on_battle_start"   ? "Battle start"
-                           : "Trigger"
+                let triggerKind = trigger == "on_battle_win"     ? "Win"
+                                : trigger == "on_battle_loss"    ? "Loss"
+                                : trigger == "on_plays_resolved" ? "End-of-turn"
+                                : trigger == "on_battle_start"   ? "Battle start"
+                                : "Trigger"
+                let prefix = inst.sourceCard.isEmpty
+                    ? triggerKind
+                    : "\(inst.sourceCard) (\(triggerKind))"
                 cpuCallouts.append(ActionCallout(
                     message: "\(prefix): \(message)",
                     icon: "bolt.fill",
@@ -2605,7 +2660,8 @@ final class PracticeStore {
                 scope: scope,
                 target: target,
                 from: from?.isEmpty == true ? nil : from,
-                to: to
+                to: to,
+                sourceCard: sourceCard
             ))
             cpuCallouts.append(ActionCallout(
                 message: weaponTransformLabel(target: target, from: from, to: to, scope: scope),
@@ -2751,8 +2807,8 @@ final class PracticeStore {
     /// effects (this_battle = 1, next_2_battles = 2 freshly-installed
     /// or 1 after a battle, etc.). Nil for `rest_of_game`. Drives the
     /// tick-down badge UX#11 calls for.
-    var activeEffectsForUI: [(id: UUID, owner: PlayExecContext.Side, label: String, icon: String, color: String, remaining: Int?)] {
-        var rows: [(UUID, PlayExecContext.Side, String, String, String, Int?)] = []
+    var activeEffectsForUI: [(id: UUID, owner: PlayExecContext.Side, label: String, icon: String, color: String, remaining: Int?, sourceCard: String)] {
+        var rows: [(UUID, PlayExecContext.Side, String, String, String, Int?, String)] = []
         for t in weaponTransforms where Self.isScopeActive(t.scope, installedAt: t.installedAt, at: currentBattle) {
             rows.append((
                 UUID(),
@@ -2760,7 +2816,8 @@ final class PracticeStore {
                 weaponTransformLabel(target: t.target, from: t.from, to: t.to, scope: t.scope),
                 "arrow.triangle.2.circlepath",
                 "8B00FF",
-                Self.battlesRemaining(for: t.scope, installedAt: t.installedAt, at: currentBattle, spec: nil)
+                Self.battlesRemaining(for: t.scope, installedAt: t.installedAt, at: currentBattle, spec: nil),
+                t.sourceCard
             ))
         }
         for inst in persistents where Self.isScopeActive(inst.spec["scope"] as? String,
@@ -2776,7 +2833,8 @@ final class PracticeStore {
                     Self.battlesRemaining(for: inst.spec["scope"] as? String,
                                           installedAt: inst.installedAt,
                                           at: currentBattle,
-                                          spec: inst.spec)
+                                          spec: inst.spec),
+                    inst.sourceCard
                 ))
             }
         }

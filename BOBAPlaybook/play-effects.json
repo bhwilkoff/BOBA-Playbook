@@ -8067,6 +8067,11 @@
       "cost": 4,
       "ability": "If you lost the first 3 Battles, give your Hero +60.",
       "category": "conditional",
+      "requires": {
+        "type": "battle_num",
+        "comparison": "gte",
+        "value": 4
+      },
       "effects": [
         {
           "if": {

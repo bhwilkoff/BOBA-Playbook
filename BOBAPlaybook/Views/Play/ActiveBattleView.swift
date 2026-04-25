@@ -335,9 +335,11 @@ struct ActiveBattleView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: 0)
-            Text(c.delta > 0 ? "+\(c.delta)" : "\(c.delta)")
+            Text(c.delta == 0 ? "—" : (c.delta > 0 ? "+\(c.delta)" : "\(c.delta)"))
                 .font(Design.Fonts.mono(11, weight: .bold))
-                .foregroundStyle(c.delta > 0 ? Design.Colors.bobaCyan : Color(hex: "C0392B"))
+                .foregroundStyle(c.delta == 0
+                                 ? Design.Colors.textMuted
+                                 : (c.delta > 0 ? Design.Colors.bobaCyan : Color(hex: "C0392B")))
         }
         if let card = resolvedCard {
             Button {

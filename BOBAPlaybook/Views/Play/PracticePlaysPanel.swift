@@ -50,14 +50,20 @@ struct PracticePlaysPanel: View {
                 }
             }
 
-            // Selected card detail — constrained height to prevent overflow
+            // Selected card detail — vertical scroll covers any
+            // ability text that runs past the panel's natural height
+            // (two-line plays were getting their bottom clipped under
+            // the prior fixed 120pt cap). Cap raised + scroll added
+            // so the content can never visually truncate.
             if let card = selectedCard {
-                cardDetail(card: card)
-                    .frame(maxHeight: 120)
+                ScrollView(.vertical, showsIndicators: false) {
+                    cardDetail(card: card)
+                }
+                .frame(maxHeight: 170)
             }
         }
         .padding(Design.Spacing.md)
-        .frame(maxHeight: 280)
+        .frame(maxHeight: 330)
         .background(Design.Colors.surface.opacity(0.98))
         .overlay(Divider().background(Design.Colors.glass), alignment: .top)
     }
@@ -187,7 +193,6 @@ struct PracticePlaysPanel: View {
                 Text(PracticeStore.effectDescription(for: card))
                     .font(Design.Fonts.mono(12))
                     .foregroundStyle(Design.Colors.bobaCyan)
-                    .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if partial {

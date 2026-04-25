@@ -20,6 +20,14 @@ struct ActiveBattleView: View {
     /// at-a-glance that an effect is changing what their hero is.
     var playerEffectiveWeapon: String = ""
     var cpuEffectiveWeapon: String    = ""
+    /// Monotonic pulse counters from the store — bump to trigger
+    /// a one-shot scale + glow on the relevant hero card whenever
+    /// that side's effect power changes.
+    var playerPulseTrigger: Int = 0
+    var cpuPulseTrigger: Int = 0
+
+    @State private var playerPulse: Bool = false
+    @State private var cpuPulse: Bool = false
 
     /// Carrier for the play-card review sheet. Tapping any chip in the
     /// plays-used strip sets this; SwiftUI's `sheet(item:)` then renders
@@ -38,6 +46,22 @@ struct ActiveBattleView: View {
                 PlayReviewSheet(card: wrapper.card)
                     .presentationDetents([.medium])
                     .presentationDragIndicator(.visible)
+            }
+            // Pulse the affected hero on every store-side bump.
+            // The .task(id:) blocks fire whenever the trigger int
+            // changes; toggling the local `pulse` bool runs a one
+            // -shot scale+glow animation tied to the hero card.
+            .task(id: playerPulseTrigger) {
+                guard playerPulseTrigger > 0 else { return }
+                withAnimation(.spring(response: 0.18, dampingFraction: 0.5)) { playerPulse = true }
+                try? await Task.sleep(nanoseconds: 220_000_000)
+                withAnimation(.easeOut(duration: 0.4)) { playerPulse = false }
+            }
+            .task(id: cpuPulseTrigger) {
+                guard cpuPulseTrigger > 0 else { return }
+                withAnimation(.spring(response: 0.18, dampingFraction: 0.5)) { cpuPulse = true }
+                try? await Task.sleep(nanoseconds: 220_000_000)
+                withAnimation(.easeOut(duration: 0.4)) { cpuPulse = false }
             }
     }
 
@@ -72,6 +96,9 @@ struct ActiveBattleView: View {
                         height: cardH
                     )
                     .frame(maxWidth: .infinity)
+                    .scaleEffect(playerPulse ? 1.06 : 1.0)
+                    .shadow(color: Design.Colors.bobaCyan.opacity(playerPulse ? 0.85 : 0),
+                            radius: playerPulse ? 18 : 0)
 
                     // VS indicator
                     vsIndicator
@@ -87,6 +114,9 @@ struct ActiveBattleView: View {
                         height: cardH
                     )
                     .frame(maxWidth: .infinity)
+                    .scaleEffect(cpuPulse ? 1.06 : 1.0)
+                    .shadow(color: Color(hex: "C77DFF").opacity(cpuPulse ? 0.85 : 0),
+                            radius: cpuPulse ? 18 : 0)
                 }
             }
         }

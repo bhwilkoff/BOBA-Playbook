@@ -100,6 +100,22 @@ struct PracticeView: View {
                             weaponFilter: choice.weaponFilter
                         )
                     }
+                    // Generic player choice — Add Firepower's per-heads
+                    // chooser, It's Gonna Cost Ya's HD-amount chooser,
+                    // Adding Depth's draw-Hero-vs-Play, etc.
+                    .sheet(item: Binding(
+                        get: { store.pendingPlayerChoice },
+                        set: { newValue in if newValue == nil { store.cancelPlayerChoice() } }
+                    )) { choice in
+                        PlayerChoiceSheet(store: store, choice: choice)
+                    }
+                    // Scare Tactics reveal — pick a play to "reveal".
+                    .sheet(item: Binding(
+                        get: { store.pendingScareReveal },
+                        set: { newValue in if newValue == nil { store.cancelScareReveal() } }
+                    )) { state in
+                        ScareRevealChooserSheet(store: store, pool: state.pool)
+                    }
                     // Rules-clarification alert (handoff §6.A): warns
                     // when Recycle / Reload / Return from the Depths
                     // would clear active rest_of_game effects.
@@ -302,7 +318,9 @@ struct PracticeView: View {
                                 phase: store.phase,
                                 mode: store.mode,
                                 playerEffectiveWeapon: store.effectiveWeapon(of: slot.playerCard, side: .player),
-                                cpuEffectiveWeapon:    store.effectiveWeapon(of: slot.cpuCard,    side: .cpu)
+                                cpuEffectiveWeapon:    store.effectiveWeapon(of: slot.cpuCard,    side: .cpu),
+                                playerPulseTrigger:    store.playerHeroPulse,
+                                cpuPulseTrigger:       store.cpuHeroPulse
                             )
                             .frame(width: activeWidth)
                             .id(slot.id)
@@ -1567,6 +1585,177 @@ struct HeroDiscardChooserSheet: View {
                 Text(card.element)
                     .font(Design.Fonts.mono(9, weight: .bold))
                     .foregroundStyle(Design.Colors.element(card.element))
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - PlayerChoiceSheet
+// ════════════════════════════════════════════════════════════════
+//
+// Surfaces when a play card emits the `player_choice` op for the
+// player's side. Shows a vertical stack of option buttons; tapping
+// any one runs that option's nested effects through the executor.
+// CPU side never sees this — it auto-picks via cpu_pick.
+
+struct PlayerChoiceSheet: View {
+    let store: PracticeStore
+    let choice: PracticeStore.PlayerChoiceState
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Design.Spacing.lg) {
+                    Text(choice.prompt)
+                        .font(Design.Fonts.display(18))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    VStack(spacing: Design.Spacing.sm) {
+                        ForEach(choice.options) { option in
+                            optionButton(option)
+                        }
+                    }
+                }
+                .padding(Design.Spacing.lg)
+            }
+            .background(Design.Colors.nearBlack)
+            .navigationTitle("Choose")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Cancel") {
+                        store.cancelPlayerChoice()
+                        dismiss()
+                    }
+                    .foregroundStyle(Design.Colors.textSecondary)
+                }
+            }
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func optionButton(_ option: PracticeStore.PlayerChoiceState.Option) -> some View {
+        Button {
+            store.confirmPlayerChoice(option: option)
+            dismiss()
+        } label: {
+            HStack(spacing: Design.Spacing.md) {
+                Image(systemName: "circle.dashed")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+                Text(option.label)
+                    .font(Design.Fonts.mono(14, weight: .bold))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+            .padding(Design.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: Design.Radius.md)
+                    .fill(Design.Colors.surface)
+                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.md)
+                        .strokeBorder(Design.Colors.bobaCyan.opacity(0.4), lineWidth: 1))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - ScareRevealChooserSheet
+// ════════════════════════════════════════════════════════════════
+//
+// Surfaced when the player plays Scare Tactics with honors. The
+// player picks any play from their hand to "reveal" (the card stays
+// in hand). Next battle, if the CPU plays a card whose cost is at
+// least the revealed card's cost, the revealed card fires for free.
+
+struct ScareRevealChooserSheet: View {
+    let store: PracticeStore
+    let pool: [Card]
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Design.Spacing.md) {
+                    Text("Pick a play to reveal. If the CPU plays a card of equal-or-greater cost next battle, your revealed play runs free.")
+                        .font(Design.Fonts.mono(13))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
+                        ForEach(Array(pool.enumerated()), id: \.offset) { _, card in
+                            tile(card)
+                        }
+                    }
+                }
+                .padding(Design.Spacing.lg)
+            }
+            .background(Design.Colors.nearBlack)
+            .navigationTitle("Reveal a Play")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Cancel") {
+                        store.cancelScareReveal()
+                        dismiss()
+                    }
+                    .foregroundStyle(Design.Colors.textSecondary)
+                }
+            }
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func tile(_ card: Card) -> some View {
+        Button {
+            store.confirmScareReveal(card)
+            dismiss()
+        } label: {
+            VStack(spacing: 4) {
+                ZStack(alignment: .topTrailing) {
+                    Group {
+                        if let file = card.imageFile, !file.isEmpty {
+                            CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
+                        } else {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Design.Colors.bobaViolet.opacity(0.15))
+                        }
+                    }
+                    .frame(width: 100, height: 140)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(Design.Colors.bobaCyan.opacity(0.5), lineWidth: 2)
+                    )
+                    Text("\(card.playCost ?? 0) HD")
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.black.opacity(0.75)))
+                        .padding(4)
+                }
+                Text(card.name)
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
             }
         }
         .buttonStyle(.plain)

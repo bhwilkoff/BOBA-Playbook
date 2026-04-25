@@ -496,18 +496,33 @@
           "times": 4,
           "heads": [
             {
-              "op": "hd_recover",
-              "target": "self",
-              "amount": 1,
-              "from": "discard"
+              "op": "player_choice",
+              "prompt": "Heads — pick one:",
+              "cpu_pick": 0,
+              "options": [
+                {
+                  "label": "Recover 1 Hot Dog from discard",
+                  "effects": [
+                    { "op": "hd_recover", "target": "self", "amount": 1, "from": "discard" }
+                  ]
+                },
+                {
+                  "label": "Draw 1 Play",
+                  "effects": [
+                    { "op": "draw", "target": "self", "kind": "play", "count": 1 }
+                  ]
+                },
+                {
+                  "label": "Draw 1 Hero",
+                  "effects": [
+                    { "op": "draw", "target": "self", "kind": "hero", "count": 1 }
+                  ]
+                }
+              ]
             }
           ]
         }
-      ],
-      "ui": {
-        "player_choice": true,
-        "auto_pick": "Per heads: auto-recovers 1 HD from discard (most-useful default until per-heads chooser is wired)."
-      }
+      ]
     },
     "Adding Depth": {
       "cost": 0,
@@ -4268,16 +4283,29 @@
           "delta": -15
         },
         {
-          "op": "hd_recover",
-          "target": "self",
-          "amount": 2,
-          "from": "discard"
+          "op": "player_choice",
+          "prompt": "How many Hot Dogs to recover from discard?",
+          "cpu_pick": 2,
+          "options": [
+            {
+              "label": "Recover 0 (skip)",
+              "effects": []
+            },
+            {
+              "label": "Recover 1",
+              "effects": [
+                { "op": "hd_recover", "target": "self", "amount": 1, "from": "discard" }
+              ]
+            },
+            {
+              "label": "Recover 2",
+              "effects": [
+                { "op": "hd_recover", "target": "self", "amount": 2, "from": "discard" }
+              ]
+            }
+          ]
         }
-      ],
-      "ui": {
-        "player_choice": true,
-        "auto_pick": "Auto-recovers max (2 HDs); the player-choice for 0/1/2 is a UI nicety we haven't wired yet."
-      }
+      ]
     },
     "Jump Ball": {
       "cost": 0,
@@ -7023,26 +7051,19 @@
       "cost": 1,
       "ability": "If you have Honors, reveal a Play from your hand. You may use it for free next Battle if your opponent uses a Play with equal or greater cost.",
       "category": "utility",
-      "effects": [],
-      "persistent": [
+      "effects": [
         {
           "if": {
             "type": "honors",
             "target": "self"
           },
-          "scope": "next_battle",
-          "trigger": "on_battle_start",
-          "effect": {
-            "op": "substitute_free",
-            "target": "self",
-            "scope": "this_battle"
-          }
+          "then": [
+            {
+              "op": "reveal_play_for_conditional_free"
+            }
+          ]
         }
-      ],
-      "ui": {
-        "player_choice": true,
-        "auto_pick": "Approximated as a free substitution next battle (~equal HD value to a free play). The faithful 'reveal play, conditional free play if opp plays equal-or-greater cost' is deferred to B.13."
-      }
+      ]
     },
     "Scorching Pressure": {
       "cost": 2,

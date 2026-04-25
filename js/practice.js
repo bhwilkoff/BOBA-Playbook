@@ -3289,17 +3289,16 @@ const PM = {
     PM._peekCallouts = [];
     PM._playCostMods = { player: [], cpu: [] };
     PM._endBattleImmediately = false;
-    // Roll 2d6 per side for Honors. High roll wins, ties re-roll.
+    // Roll 1d6 per side for Honors. High roll wins, ties re-roll.
     // Stash the rolls so the setup overlay can replay them visually.
-    let playerRolls = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
-    let cpuRolls    = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
-    const sum = arr => arr.reduce((a, b) => a + b, 0);
-    while (sum(playerRolls) === sum(cpuRolls)) {
-      playerRolls = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
-      cpuRolls    = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
+    let playerRoll = 1 + Math.floor(Math.random() * 6);
+    let cpuRoll    = 1 + Math.floor(Math.random() * 6);
+    while (playerRoll === cpuRoll) {
+      playerRoll = 1 + Math.floor(Math.random() * 6);
+      cpuRoll    = 1 + Math.floor(Math.random() * 6);
     }
-    const startHonors = sum(playerRolls) > sum(cpuRolls) ? 'player' : 'cpu';
-    PM._pendingSetupHonors = { playerRolls, cpuRolls, winner: startHonors };
+    const startHonors = playerRoll > cpuRoll ? 'player' : 'cpu';
+    PM._pendingSetupHonors = { playerRoll, cpuRoll, winner: startHonors };
     Object.assign(this, {
       matchOver: false, matchWinner: null, playerScore: 0, cpuScore: 0,
       honors: startHonors, currentBattle: 0,
@@ -5544,8 +5543,10 @@ function initPractice(allCards) {
   });
 }
 
-/// Setup overlay — animates the 2d6 honors roll for both sides
-/// before the first battle starts. Mirrors iOS SetupHonorsRollOverlay.
+/// Setup overlay — animates the honors roll (1d6 per side) before
+/// the first battle starts. Mirrors iOS SetupHonorsRollOverlay.
+/// Layout is intentionally compact so it fits in iPhone landscape
+/// without clipping the bottom of the popup.
 function pmShowSetupHonorsRoll() {
   const data = PM._pendingSetupHonors;
   if (!data) return;
@@ -5560,56 +5561,41 @@ function pmShowSetupHonorsRoll() {
 
   const dieFaces = ['⚀','⚁','⚂','⚃','⚄','⚅'];
   const renderDie = (val) => `<span class="pm-shr-die" data-final="${val}">${dieFaces[val - 1]}</span>`;
-  const sumOf = arr => arr.reduce((a, b) => a + b, 0);
-  const playerSum = sumOf(data.playerRolls);
-  const cpuSum    = sumOf(data.cpuRolls);
 
   overlay.innerHTML = `
     <div class="pm-setup-honors">
-      <div class="pm-shr-eyebrow">MATCH SETUP</div>
       <h2 class="pm-shr-title">ROLL FOR HONORS</h2>
-      <p class="pm-shr-sub">High roll wins the right to act first in Battle 1.</p>
+      <p class="pm-shr-sub">High roll acts first in Battle 1.</p>
       <div class="pm-shr-grid">
         <div class="pm-shr-col pm-shr-col--you">
           <div class="pm-shr-label">YOU</div>
-          <div class="pm-shr-dice">${data.playerRolls.map(renderDie).join('')}</div>
-          <div class="pm-shr-sum" data-final="${playerSum}">—</div>
+          ${renderDie(data.playerRoll)}
         </div>
         <div class="pm-shr-col pm-shr-col--cpu">
           <div class="pm-shr-label">CPU</div>
-          <div class="pm-shr-dice">${data.cpuRolls.map(renderDie).join('')}</div>
-          <div class="pm-shr-sum" data-final="${cpuSum}">—</div>
+          ${renderDie(data.cpuRoll)}
         </div>
       </div>
       <div class="pm-shr-result" hidden>
         <div class="pm-shr-winner pm-shr-winner--${data.winner}">
           ${data.winner === 'player' ? 'YOU WIN HONORS' : 'CPU WINS HONORS'}
         </div>
-        <div class="pm-shr-detail">
-          ${data.winner === 'player' ? 'You act first this battle.' : 'CPU acts first this battle.'}
-        </div>
         <button class="pm-shr-begin" type="button">BEGIN BATTLE 1</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
 
-  // Tumble the dice for ~1.1s, then settle on the rolled values.
+  // Tumble the dice for ~1.0s, then settle on the rolled values.
   const dieEls = overlay.querySelectorAll('.pm-shr-die');
-  const sumEls = overlay.querySelectorAll('.pm-shr-sum');
-  const SPIN_MS = 1100;
+  const SPIN_MS = 1000;
   const FRAME_MS = 60;
   const start = Date.now();
   const interval = setInterval(() => {
     if (Date.now() - start >= SPIN_MS) {
       clearInterval(interval);
-      // Settle to final values
       dieEls.forEach(el => {
         const final = parseInt(el.dataset.final, 10);
         el.textContent = dieFaces[final - 1];
-        el.classList.add('settled');
-      });
-      sumEls.forEach(el => {
-        el.textContent = `SUM ${el.dataset.final}`;
         el.classList.add('settled');
       });
       const winnerCol = overlay.querySelector(`.pm-shr-col--${data.winner}`);

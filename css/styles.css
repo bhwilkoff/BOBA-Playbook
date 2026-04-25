@@ -5969,67 +5969,59 @@ main {
   border: 1px solid rgba(199, 125, 255, 0.85);
 }
 
-/* Setup honors-roll overlay (M4 setup parity) */
+/* Setup honors-roll overlay (M4 setup parity) — compact landscape
+   layout. Single die per side, horizontal row, minimal vertical
+   footprint so the popup never clips on iPhone landscape (~330pt
+   usable height). */
 .pm-setup-honors-overlay { z-index: 1100; }
 .pm-setup-honors {
   background: rgba(13,13,26,0.97);
   border: 2px solid rgba(255,77,0,0.55);
-  border-radius: 18px;
-  padding: 28px 24px 22px;
+  border-radius: 14px;
+  padding: 16px 22px;
   max-width: min(420px, 92vw);
   text-align: center;
-  display: flex; flex-direction: column; gap: 14px;
+  display: flex; flex-direction: column; gap: 10px;
   align-items: stretch;
   box-shadow: 0 12px 36px rgba(0,0,0,0.7);
-}
-.pm-shr-eyebrow {
-  font-family: 'Chakra Petch', monospace;
-  font-size: 11px; font-weight: 700;
-  letter-spacing: 0.28em;
-  color: rgba(255,255,255,0.45);
 }
 .pm-shr-title {
   margin: 0;
   font-family: 'Bebas Neue', 'Russo One', sans-serif;
-  font-size: 26px; font-weight: 700;
+  font-size: 20px; font-weight: 700;
   color: #FF4D00;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
 }
 .pm-shr-sub {
   margin: 0;
   font-family: 'Chakra Petch', monospace;
-  font-size: 12px;
-  color: rgba(255,255,255,0.7);
+  font-size: 11px;
+  color: rgba(255,255,255,0.65);
 }
 .pm-shr-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  padding: 8px 0;
+  display: flex; gap: 14px; justify-content: center;
 }
 .pm-shr-col {
-  display: flex; flex-direction: column; gap: 8px; align-items: center;
-  padding: 12px 8px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 12px;
   border-radius: 10px;
   background: rgba(8,8,16,0.35);
   border: 1px solid rgba(255,255,255,0.08);
 }
-.pm-shr-col.won { border-color: currentColor; }
+.pm-shr-col.won { border-color: currentColor; background: rgba(0,0,0,0.55); }
 .pm-shr-col--you { color: #00F5FF; }
 .pm-shr-col--cpu { color: #C77DFF; }
 .pm-shr-label {
   font-family: 'Chakra Petch', monospace;
   font-size: 11px; font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   color: rgba(255,255,255,0.55);
 }
-.pm-shr-dice {
-  display: flex; gap: 6px;
-}
+.pm-shr-col.won .pm-shr-label { color: currentColor; }
 .pm-shr-die {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 44px; height: 44px;
-  font-size: 30px; line-height: 1;
+  width: 40px; height: 40px;
+  font-size: 28px; line-height: 1;
   color: #fff;
   background: rgba(8,8,16,0.7);
   border: 1px solid rgba(255,255,255,0.18);
@@ -6040,43 +6032,27 @@ main {
   border-color: currentColor;
   transform: scale(1.06);
 }
-.pm-shr-sum {
-  font-family: 'Chakra Petch', monospace;
-  font-size: 12px; font-weight: 700;
-  letter-spacing: 0.12em;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgba(8,8,16,0.6);
-  color: rgba(255,255,255,0.7);
-}
-.pm-shr-sum.settled { color: currentColor; background: rgba(0,0,0,0.45); }
 .pm-shr-result {
-  display: flex; flex-direction: column; gap: 6px; align-items: center;
-  padding-top: 6px;
+  display: flex; flex-direction: row; gap: 12px; justify-content: center; align-items: center;
+  padding-top: 4px; flex-wrap: wrap;
 }
 .pm-shr-result[hidden] { display: none; }
 .pm-shr-winner {
   font-family: 'Bebas Neue', 'Russo One', sans-serif;
-  font-size: 20px; font-weight: 700;
-  letter-spacing: 0.05em;
+  font-size: 16px; font-weight: 700;
+  letter-spacing: 0.06em;
 }
 .pm-shr-winner--player { color: #00F5FF; }
 .pm-shr-winner--cpu    { color: #C77DFF; }
-.pm-shr-detail {
-  font-family: 'Chakra Petch', monospace;
-  font-size: 11px;
-  color: rgba(255,255,255,0.7);
-}
 .pm-shr-begin {
-  margin-top: 6px;
   font-family: 'Chakra Petch', monospace;
-  font-size: 13px; font-weight: 700;
+  font-size: 12px; font-weight: 700;
   letter-spacing: 0.1em;
   color: #080810;
   background: #FF4D00;
   border: none;
   border-radius: 999px;
-  padding: 10px 22px;
+  padding: 8px 16px;
   cursor: pointer;
 }
 .pm-shr-begin:hover { background: #ff6020; }

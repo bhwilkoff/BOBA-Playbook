@@ -169,14 +169,14 @@ final class PracticeStore {
 
     // MARK: - Setup honors roll
     //
-    // Per BoBA setup procedure each player rolls 2d6 — high total
+    // Per BoBA setup procedure each player rolls one d6 — high roll
     // wins Honors for Battle 1 (re-roll on tie). Practice surfaces
-    // the rolls in a dedicated overlay so newcomers see how the
-    // procedure works rather than honors being assigned silently.
+    // the roll in a dedicated overlay so newcomers see the procedure
+    // play out rather than honors being assigned silently.
     struct SetupHonorsRoll: Identifiable {
         let id = UUID()
-        let playerRolls: [Int]    // two d6 values
-        let cpuRolls: [Int]
+        let playerRoll: Int       // single d6 face
+        let cpuRoll: Int
         let winner: Honors
     }
     var pendingSetupHonors: SetupHonorsRoll? = nil
@@ -1117,19 +1117,19 @@ final class PracticeStore {
         playerScore = 0; cpuScore = 0
         playerHotDogs = 10; cpuHotDogs = 10
         cpuPlaysRemaining = 30
-        // Roll 2d6 per side for Honors. High roll wins, ties re-roll.
+        // Roll 1d6 per side for Honors. High roll wins, ties re-roll.
         // Surfaces via `pendingSetupHonors` so the UI can play a
         // dedicated overlay before the first battle starts.
-        var playerRolls = [Int.random(in: 1...6), Int.random(in: 1...6)]
-        var cpuRolls    = [Int.random(in: 1...6), Int.random(in: 1...6)]
-        while playerRolls.reduce(0, +) == cpuRolls.reduce(0, +) {
-            playerRolls = [Int.random(in: 1...6), Int.random(in: 1...6)]
-            cpuRolls    = [Int.random(in: 1...6), Int.random(in: 1...6)]
+        var playerRoll = Int.random(in: 1...6)
+        var cpuRoll    = Int.random(in: 1...6)
+        while playerRoll == cpuRoll {
+            playerRoll = Int.random(in: 1...6)
+            cpuRoll    = Int.random(in: 1...6)
         }
-        let winner: Honors = playerRolls.reduce(0, +) > cpuRolls.reduce(0, +) ? .player : .cpu
+        let winner: Honors = playerRoll > cpuRoll ? .player : .cpu
         honors = winner
         pendingSetupHonors = SetupHonorsRoll(
-            playerRolls: playerRolls, cpuRolls: cpuRolls, winner: winner
+            playerRoll: playerRoll, cpuRoll: cpuRoll, winner: winner
         )
         currentBattle = 0
         // Per rules: Sub phase comes BEFORE reveal (§4.2.2, §4.3.2)

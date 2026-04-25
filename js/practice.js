@@ -1591,8 +1591,28 @@ function pmEvalCondition(cond, ctx) {
       const r = pmEvalFormula(cond.right, ctx);
       return pmCmp(l, cond.comparison, r);
     }
-    case 'plays_used':
-      return pmCmp(ctx.playsUsedThisBattle || 0, cond.comparison, cond.value);
+    case 'plays_used': {
+      // Honor `scope`. Default "this_battle" matches legacy entries.
+      // No Huddle ("If you ran a Play in the previous Battle…") sets
+      // scope: "prev_battle" — without that the condition trivially
+      // checks THIS battle's count and fires every battle.
+      const scope = cond.scope || 'this_battle';
+      const target = cond.target || 'self';
+      const selfView = target === 'self';
+      let count = 0;
+      if (scope === 'prev_battle') {
+        if (ctx.battleIdx === 0) return false;
+        const prev = PM.battles[ctx.battleIdx - 1];
+        if (!prev) return false;
+        const plays = selfView
+          ? (ctx.self === 'player' ? (prev.playerPlaysPlayed || []) : (prev.cpuPlaysPlayed || []))
+          : (ctx.self === 'player' ? (prev.cpuPlaysPlayed || []) : (prev.playerPlaysPlayed || []));
+        count = plays.length;
+      } else {
+        count = selfView ? (ctx.playsUsedThisBattle || 0) : 0;
+      }
+      return pmCmp(count, cond.comparison, cond.value);
+    }
     case 'weapon_streak': {
       const length = cond.length || 2;
       const ref = cond.weapon_ref || 'current_hero';

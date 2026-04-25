@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "keyedBy": "name",
-  "note": "383 entries total, 383 with at least one structured op, 0 note-only. 38 entries still contain an op:\"note\" for mechanics the executor cannot yet express — see COWORK_PLAY_EFFECTS_AUDIT.md Part B for the executor-extension roadmap that unblocks them.",
+  "note": "383 entries total, 383 with at least one structured op, 0 note-only. 38 entries still contain an op:\"note\" for mechanics the executor cannot yet express \u2014 see COWORK_PLAY_EFFECTS_AUDIT.md Part B for the executor-extension roadmap that unblocks them.",
   "entries": {
     "1 For 10": {
       "cost": 0,
@@ -497,25 +497,40 @@
           "heads": [
             {
               "op": "player_choice",
-              "prompt": "Heads — pick one:",
+              "prompt": "Heads \u2014 pick one:",
               "cpu_pick": 0,
               "options": [
                 {
                   "label": "Recover 1 Hot Dog from discard",
                   "effects": [
-                    { "op": "hd_recover", "target": "self", "amount": 1, "from": "discard" }
+                    {
+                      "op": "hd_recover",
+                      "target": "self",
+                      "amount": 1,
+                      "from": "discard"
+                    }
                   ]
                 },
                 {
                   "label": "Draw 1 Play",
                   "effects": [
-                    { "op": "draw", "target": "self", "kind": "play", "count": 1 }
+                    {
+                      "op": "draw",
+                      "target": "self",
+                      "kind": "play",
+                      "count": 1
+                    }
                   ]
                 },
                 {
                   "label": "Draw 1 Hero",
                   "effects": [
-                    { "op": "draw", "target": "self", "kind": "hero", "count": 1 }
+                    {
+                      "op": "draw",
+                      "target": "self",
+                      "kind": "hero",
+                      "count": 1
+                    }
                   ]
                 }
               ]
@@ -570,26 +585,7 @@
           "source": "active"
         },
         {
-          "op": "reveal_top_hero_deck",
-          "target": "self",
-          "count": 2
-        },
-        {
-          "op": "choice",
-          "target": "opponent",
-          "options": [
-            {
-              "label": "Opponent picks 1 of 2 revealed heroes to join the battle",
-              "effect": {
-                "op": "deploy_chosen_revealed",
-                "target": "self",
-                "chooser": "opponent"
-              }
-            }
-          ]
-        },
-        {
-          "op": "discard_other_revealed",
+          "op": "replace_active_with_top_hero_deck",
           "target": "self"
         }
       ]
@@ -2424,7 +2420,7 @@
     },
     "Fairweather Fan": {
       "cost": 1,
-      "ability": "Play this in Battle 5 or later. Your Hero gets +5 for each Battle you’ve won.",
+      "ability": "Play this in Battle 5 or later. Your Hero gets +5 for each Battle you\u2019ve won.",
       "category": "conditional",
       "requires": {
         "type": "battle_num",
@@ -2465,17 +2461,8 @@
       "category": "utility",
       "effects": [
         {
-          "op": "choice",
-          "target": "self",
-          "options": [
-            {
-              "label": "Discard 1 Hero from hand",
-              "effect": {
-                "op": "discard_hero_from_hand",
-                "target": "self"
-              }
-            }
-          ]
+          "op": "discard_hero_from_hand",
+          "target": "self"
         },
         {
           "op": "power",
@@ -4294,13 +4281,23 @@
             {
               "label": "Recover 1",
               "effects": [
-                { "op": "hd_recover", "target": "self", "amount": 1, "from": "discard" }
+                {
+                  "op": "hd_recover",
+                  "target": "self",
+                  "amount": 1,
+                  "from": "discard"
+                }
               ]
             },
             {
               "label": "Recover 2",
               "effects": [
-                { "op": "hd_recover", "target": "self", "amount": 2, "from": "discard" }
+                {
+                  "op": "hd_recover",
+                  "target": "self",
+                  "amount": 2,
+                  "from": "discard"
+                }
               ]
             }
           ]
@@ -4440,7 +4437,12 @@
           "trigger": "on_opp_play",
           "effect": {
             "op": "dice_gate",
-            "pass_on": [2, 3, 4, 5]
+            "pass_on": [
+              2,
+              3,
+              4,
+              5
+            ]
           }
         }
       ]
@@ -4594,18 +4596,8 @@
           "count": 5
         },
         {
-          "op": "choice",
-          "target": "self",
-          "options": [
-            {
-              "label": "Add 1 revealed hero to hand; discard the rest",
-              "effect": {
-                "op": "add_chosen_revealed_to_hand_discard_rest",
-                "target": "self",
-                "kind": "hero"
-              }
-            }
-          ]
+          "op": "replace_active_with_top_hero_deck",
+          "target": "self"
         }
       ]
     },
@@ -4622,17 +4614,8 @@
       ],
       "persistent": [
         {
-          "scope": "next_battle",
-          "trigger": "battle_start",
-          "effect": {
-            "op": "power",
-            "target": "self",
-            "delta": 15
-          }
-        },
-        {
           "scope": "next_2_battles",
-          "trigger": "battle_start",
+          "trigger": "on_battle_start",
           "effect": {
             "op": "power",
             "target": "self",
@@ -5373,17 +5356,8 @@
       ],
       "persistent": [
         {
-          "scope": "next_battle",
-          "trigger": "battle_start",
-          "effect": {
-            "op": "power",
-            "target": "self",
-            "delta": 15
-          }
-        },
-        {
           "scope": "next_2_battles",
-          "trigger": "battle_start",
+          "trigger": "on_battle_start",
           "effect": {
             "op": "power",
             "target": "self",
@@ -5648,26 +5622,7 @@
           "source": "active"
         },
         {
-          "op": "reveal_top_hero_deck",
-          "target": "self",
-          "count": 2
-        },
-        {
-          "op": "choice",
-          "target": "opponent",
-          "options": [
-            {
-              "label": "Opponent picks 1 to join the battle",
-              "effect": {
-                "op": "deploy_chosen_revealed",
-                "target": "self",
-                "chooser": "opponent"
-              }
-            }
-          ]
-        },
-        {
-          "op": "discard_other_revealed",
+          "op": "replace_active_with_top_hero_deck",
           "target": "self"
         }
       ]
@@ -6144,38 +6099,20 @@
           "count": 3
         },
         {
-          "op": "choice",
-          "target": "self",
-          "options": [
+          "if": {
+            "type": "metric_compare",
+            "left": {
+              "metric": "revealed_play_cost",
+              "target": "self"
+            },
+            "comparison": "gte",
+            "right": 3
+          },
+          "then": [
             {
-              "label": "Add 1 to hand; discard the rest",
-              "effect": [
-                {
-                  "op": "add_chosen_revealed_to_hand_discard_rest",
-                  "target": "self",
-                  "kind": "play"
-                },
-                {
-                  "if": {
-                    "type": "metric_compare",
-                    "left": {
-                      "metric": "chosen_play_cost",
-                      "target": "self"
-                    },
-                    "right": {
-                      "value": 3
-                    },
-                    "comparison": "gte"
-                  },
-                  "then": [
-                    {
-                      "op": "power",
-                      "target": "self",
-                      "delta": 10
-                    }
-                  ]
-                }
-              ]
+              "op": "power",
+              "target": "self",
+              "delta": 10
             }
           ]
         }
@@ -8160,20 +8097,11 @@
       "category": "disruption",
       "effects": [
         {
-          "op": "choice",
-          "target": "self",
-          "options": [
-            {
-              "label": "Choose up to 2 Plays in opponent's hand; they reveal them",
-              "effect": {
-                "op": "force_reveal_from_hand",
-                "target": "opponent",
-                "kind": "play",
-                "count": 2,
-                "chooser": "self"
-              }
-            }
-          ]
+          "op": "force_reveal_from_hand",
+          "target": "opponent",
+          "kind": "play",
+          "count": 2,
+          "chooser": "self"
         }
       ]
     },

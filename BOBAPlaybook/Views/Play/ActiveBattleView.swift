@@ -257,6 +257,14 @@ struct ActiveBattleView: View {
                 // effect like "Only Steel" is in force, the badge
                 // shows STEEL with a small ⟲ "transformed" marker so
                 // the user can see the change directly on the hero.
+                //
+                // `.layoutPriority(1)` ensures the name + weapon
+                // badge claim their natural size before the image
+                // (priority 0) gets to flex. Without this, when the
+                // breakdown panel grows tall enough to squeeze the
+                // hero card area, the badge would get clipped at
+                // the bottom of the orange container instead of the
+                // image absorbing the space pressure.
                 VStack(spacing: 2) {
                     Text(card.hero.isEmpty ? card.name : card.hero)
                         .font(Design.Fonts.mono(10, weight: .bold))
@@ -264,6 +272,7 @@ struct ActiveBattleView: View {
                         .lineLimit(1)
                     weaponBadge(card: card, effective: effectiveWeapon)
                 }
+                .layoutPriority(1)
                 // Plays-used-this-battle strip — players literally lose
                 // count of this in physical games (transcript [00:42:40])
                 // and Play Booster / 10 Per Play / No Huddle all pivot
@@ -308,20 +317,23 @@ struct ActiveBattleView: View {
     /// resolves. Reads `slot.playerBreakdown` / `slot.cpuBreakdown` —
     /// each contribution becomes its own line item with a +/- delta.
     /// Foots to the same `*FinalPower` value the engine compared.
-    /// Hard-coded total height of the post-battle breakdown panel.
-    /// Smaller = more room for the hero cards below it. Sized for the
-    /// realistic worst case (4 plays + Heads-Up + a persistent trigger
-    /// = 6 contribs per side) so it never scrolls in normal play. If
-    /// a coach somehow chains 7+ contribs in one battle, the inner
-    /// container falls back to scrolling rather than overflowing.
-    private let breakdownPanelHeight: CGFloat = 130
-    private let breakdownContribsHeight: CGFloat = 78
+    /// The breakdown panel sizes naturally to its tallest column —
+    /// a single Heads-Up contrib renders short, a battle with 4
+    /// plays + Heads-Up + a persistent trigger renders tall. We cap
+    /// the inner contribs container at `breakdownContribsMaxHeight`
+    /// so a chained 8-contrib battle scrolls inside the cap rather
+    /// than swallowing the whole hero-card area.
+    private let breakdownContribsMaxHeight: CGFloat = 110
 
     private var powerBreakdownPanel: some View {
         // Pool of every card played in this battle on either side —
         // used to resolve a contrib row's label back to its Card so
         // the row can open the same PlayReviewSheet the chips opened.
         let allPlays = slot.playerPlayedCards + slot.cpuPlayedCards
+        // Tallest column drives the panel height so both sides stay
+        // visually aligned even when one side has more contribs than
+        // the other.
+        let maxContribs = max(slot.playerBreakdown.count, slot.cpuBreakdown.count)
 
         return HStack(alignment: .top, spacing: Design.Spacing.sm) {
             powerBreakdownColumn(
@@ -330,6 +342,7 @@ struct ActiveBattleView: View {
                 contribs: slot.playerBreakdown,
                 final: slot.playerFinalPower,
                 won: slot.result == .win,
+                rowsToShow: maxContribs,
                 playPool: allPlays
             )
             powerBreakdownColumn(
@@ -338,14 +351,15 @@ struct ActiveBattleView: View {
                 contribs: slot.cpuBreakdown,
                 final: slot.cpuFinalPower,
                 won: slot.result == .lose,
+                rowsToShow: maxContribs,
                 playPool: allPlays
             )
         }
         .padding(.horizontal, Design.Spacing.sm)
-        // Hard fixed height — `.frame(height:)` (not maxHeight)
-        // forces the panel to stay this size regardless of how
-        // many contribs each side accumulated.
-        .frame(height: breakdownPanelHeight)
+        // No fixed height — the panel sizes to its content. One
+        // Heads-Up contrib renders short; a 6-contrib battle renders
+        // tall (capped via the inner container so the hero cards
+        // below can never starve).
     }
 
     /// Strip parenthetical attribution suffixes the engine appends to
@@ -359,8 +373,15 @@ struct ActiveBattleView: View {
         return label
     }
 
-    private func powerBreakdownColumn(title: String, base: Int, contribs: [PowerContribution], final: Int, won: Bool, playPool: [Card]) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+    private func powerBreakdownColumn(title: String, base: Int, contribs: [PowerContribution], final: Int, won: Bool, rowsToShow: Int, playPool: [Card]) -> some View {
+        // Row height: mono(12) text + 1pt VStack spacing ≈ 14pt per
+        // row. Cap the visible rows at 7 so a chained mega-battle
+        // still leaves the hero cards a usable area below.
+        let perRow: CGFloat = 14
+        let visibleRows = min(rowsToShow, 7)
+        let contribsHeight = max(perRow, CGFloat(visibleRows) * perRow)
+
+        return VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 4) {
                 Text(title)
                     .font(Design.Fonts.mono(10, weight: .bold))
@@ -371,11 +392,12 @@ struct ActiveBattleView: View {
                     .font(Design.Fonts.mono(10))
                     .foregroundStyle(Design.Colors.textMuted)
             }
-            // Contribution rows. Sized for up to 6 rows at the row's
-            // natural height (~14pt). The ScrollView remains as a
-            // fallback if a battle chains more contribs than that —
-            // realistic worst case is 4 plays + Heads-Up + 1 trigger,
-            // which fits in the fixed viewport without scrolling.
+            // Contribution rows. Container height tracks the tallest
+            // side's contrib count — so 1 Heads-Up renders a short
+            // panel, 5 contribs renders taller. Capped at
+            // breakdownContribsMaxHeight; if the cap kicks in, this
+            // ScrollView absorbs the overflow instead of pushing the
+            // hero cards offscreen.
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 1) {
                     ForEach(contribs) { c in
@@ -383,7 +405,7 @@ struct ActiveBattleView: View {
                     }
                 }
             }
-            .frame(height: breakdownContribsHeight)
+            .frame(height: min(contribsHeight, breakdownContribsMaxHeight))
             Divider().background(Design.Colors.glassBorder)
             HStack(spacing: 4) {
                 Text("Total")

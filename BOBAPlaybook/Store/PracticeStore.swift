@@ -132,6 +132,7 @@ final class PracticeStore {
     // MARK: - Player Resources
     var playerHeroDeck: [Card] = []     // shuffled, remaining
     var playerBench: [Card] = []        // 4 bench cards per rules (§4.2.1, §4.3.1)
+    var playerHeroDiscard: [Card] = []  // displaced heroes go here (subs, swaps, etc.)
     var playerHand: [Card] = []         // play cards in hand (4 starting, draw 1/battle)
     var playerPlayDeck: [Card] = []     // remaining play cards
     var playerPlayDiscard: [Card] = []  // played/discarded play cards
@@ -141,6 +142,7 @@ final class PracticeStore {
     // MARK: - CPU Resources
     var cpuHeroDeck: [Card] = []
     var cpuBench: [Card] = []
+    var cpuHeroDiscard: [Card] = []
     var cpuHand: [Card] = []
     var cpuHotDogs: Int = 10
     var cpuPlaysRemaining: Int = 30
@@ -546,20 +548,46 @@ final class PracticeStore {
             ))
 
         case .swapActiveWithDiscard(let side, let weaponFilter):
-            guard battles.indices.contains(currentBattle), side == .player else { break }
-            let pool = playerPlayDiscard.filter {
-                $0.cardType == "Hero" && (weaponFilter == nil || $0.element == weaponFilter)
+            guard battles.indices.contains(currentBattle) else { break }
+            // Heroes live in playerHeroDiscard / cpuHeroDiscard now;
+            // play cards live in playerPlayDiscard. Don't Call It a
+            // Comeback specifically pulls from the HERO pile.
+            let pool: [Card]
+            if side == .player {
+                pool = playerHeroDiscard.filter {
+                    $0.cardType == "Hero" && (weaponFilter == nil || $0.element == weaponFilter)
+                }
+            } else {
+                pool = cpuHeroDiscard.filter {
+                    $0.cardType == "Hero" && (weaponFilter == nil || $0.element == weaponFilter)
+                }
             }
-            guard let best = pool.max(by: { ($0.power ?? 0) < ($1.power ?? 0) }) else { break }
-            let current = battles[currentBattle].playerCard
-            battles[currentBattle].playerCard = best
-            playerPlayDiscard.removeAll { $0.id == best.id }
-            if let current = current { playerPlayDiscard.append(current) }
-            callouts.append(ActionCallout(
-                message: "Swapped active → \(best.name) (from discard)",
-                icon: "arrow.counterclockwise",
-                color: "8B00FF"
-            ))
+            guard !pool.isEmpty else {
+                callouts.append(ActionCallout(
+                    message: "No heroes in \(side == .player ? "your" : "CPU") discard pile",
+                    icon: "questionmark.circle", color: "666680"
+                ))
+                break
+            }
+            // Player side: open a chooser sheet so the user picks
+            // which hero to bring back. CPU auto-picks highest power.
+            if side == .player {
+                pendingHeroDiscardChoice = HeroDiscardChoice(
+                    side: .player, weaponFilter: weaponFilter, pool: pool
+                )
+            } else {
+                if let best = pool.max(by: { ($0.power ?? 0) < ($1.power ?? 0) }) {
+                    let current = battles[currentBattle].cpuCard
+                    battles[currentBattle].cpuCard = best
+                    cpuHeroDiscard.removeAll { $0.id == best.id }
+                    if let current = current { cpuHeroDiscard.append(current) }
+                    callouts.append(ActionCallout(
+                        message: "CPU swapped active → \(best.hero.isEmpty ? best.name : best.hero) (from discard)",
+                        icon: "arrow.counterclockwise",
+                        color: "8B00FF"
+                    ))
+                }
+            }
 
         case .swapActiveWithFutureHero(let side):
             let nextIdx = currentBattle + 1
@@ -998,7 +1026,83 @@ final class PracticeStore {
             // Trigger resolution immediately (best-effort — caller will still need to advance phase)
             phase = .resolution
             resolveCurrentBattle()
+
+        case .chooseHandDiscard(let side, let count):
+            // Player side: surface the chooser sheet via observable
+            // state. CPU side: auto-pick the lowest-cost plays so
+            // the card's downstream effects still apply mechanically.
+            if side == .player {
+                pendingHandDiscard = HandDiscardChoice(
+                    count: min(count, playerHand.count)
+                )
+            } else {
+                let n = min(count, cpuHand.count)
+                let toDiscard = Array(cpuHand.sorted { ($0.playCost ?? 0) < ($1.playCost ?? 0) }.prefix(n))
+                for c in toDiscard {
+                    if let idx = cpuHand.firstIndex(of: c) {
+                        cpuHand.remove(at: idx)
+                    }
+                }
+                callouts.append(ActionCallout(
+                    message: "CPU discarded \(n) play\(n == 1 ? "" : "s")",
+                    icon: "trash", color: "C0392B"
+                ))
+            }
         }
+    }
+
+    // MARK: - Hand-discard chooser
+    //
+    // Damage on Discard, Trash Bandit, etc. ask the player to pick
+    // N plays to throw away. `pendingHandDiscard` is set by the
+    // executor's `chooseHandDiscard` intent; the practice view
+    // presents a sheet bound to it.
+    struct HandDiscardChoice: Identifiable {
+        let id = UUID()
+        let count: Int
+    }
+    var pendingHandDiscard: HandDiscardChoice? = nil
+
+    /// Called by the chooser sheet when the user confirms their
+    /// selection. Removes the chosen cards from hand into discard.
+    func confirmHandDiscard(_ cards: [Card]) {
+        for c in cards {
+            if let idx = playerHand.firstIndex(of: c) {
+                playerHand.remove(at: idx)
+                playerPlayDiscard.append(c)
+            }
+        }
+        pendingHandDiscard = nil
+    }
+
+    func cancelHandDiscard() {
+        pendingHandDiscard = nil
+    }
+
+    // MARK: - Hero-discard chooser
+    //
+    // Don't Call It a Comeback (and other future swap-with-discard
+    // plays) pull a hero from the displaced-hero pile back into the
+    // active slot. Player picks one; CPU auto-selects.
+    struct HeroDiscardChoice: Identifiable {
+        let id = UUID()
+        let side: PlayExecContext.Side
+        let weaponFilter: String?
+        let pool: [Card]
+    }
+    var pendingHeroDiscardChoice: HeroDiscardChoice? = nil
+
+    func confirmHeroDiscardSwap(_ chosen: Card) {
+        guard battles.indices.contains(currentBattle) else { return }
+        let current = battles[currentBattle].playerCard
+        battles[currentBattle].playerCard = chosen
+        playerHeroDiscard.removeAll { $0.id == chosen.id }
+        if let current = current { playerHeroDiscard.append(current) }
+        pendingHeroDiscardChoice = nil
+    }
+
+    func cancelHeroDiscardSwap() {
+        pendingHeroDiscardChoice = nil
     }
 
     // MARK: - Computed
@@ -1138,6 +1242,10 @@ final class PracticeStore {
         peekedCards = []
         pendingRecycleCard = nil
         pendingRecycleVictimSummary = ""
+        pendingHandDiscard = nil
+        pendingHeroDiscardChoice = nil
+        playerHeroDiscard = []
+        cpuHeroDiscard = []
         // Roll 1d6 per side for Honors. High roll wins, ties re-roll.
         // Surfaces via `pendingSetupHonors` so the UI can play a
         // dedicated overlay before the first battle starts.
@@ -1323,6 +1431,13 @@ final class PracticeStore {
         let cost = freeSub ? 0 : 2
         guard playerHotDogs >= cost || transferFrom != nil else { return }
 
+        // Capture the displaced hero so it lands in the discard pile —
+        // makes Don't Call It a Comeback / hero-discard inspector
+        // possible. Per rules the swapped-out hero is discarded, not
+        // returned to the bench.
+        if let displaced = battles[currentBattle].playerCard {
+            playerHeroDiscard.append(displaced)
+        }
         battles[currentBattle].playerCard = playerBench[benchIndex]
         // Original hero goes to discard (removed from bench)
         playerBench.remove(at: benchIndex)
@@ -1599,6 +1714,7 @@ final class PracticeStore {
             // themselves. (Strict BoBA rules would hide this; for
             // practice we trade fidelity for teaching value.)
             let displaced = battles[currentBattle].cpuCard
+            if let d = displaced { cpuHeroDiscard.append(d) }
             cpuBench.remove(at: bestIdx)
             battles[currentBattle].cpuCard = best
             if transferFrom == .player {

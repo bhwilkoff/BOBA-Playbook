@@ -632,90 +632,116 @@ struct PracticeView: View {
     private func cpuPlayOverlay(_ play: PracticeStore.ActionCallout) -> some View {
         ZStack {
             Color.black.opacity(0.5).ignoresSafeArea()
-            VStack(spacing: Design.Spacing.md) {
-                Text("CPU PLAYS A CARD")
-                    .font(Design.Fonts.display(16))
-                    .foregroundStyle(Design.Colors.bobaViolet)
-
-                // Card image if available
+            // Horizontal layout for landscape iPhone — image on the
+            // left, all text on the right. Frees vertical space for
+            // legible ability copy without forcing the user to squint.
+            HStack(alignment: .top, spacing: Design.Spacing.md) {
                 if let card = play.card, let file = card.imageFile, !file.isEmpty {
-                    CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
-                        .aspectRatio(5.0/7.0, contentMode: .fit)
-                        .frame(maxHeight: 160)
+                    CachedAsyncCardImage(url: CDN.full(for: file), contentMode: .fill)
+                        .frame(width: 130, height: 182)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Design.Colors.bobaViolet.opacity(0.5), lineWidth: 2))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(Design.Colors.bobaViolet.opacity(0.5), lineWidth: 2)
+                        )
                 }
 
-                // Card name and cost
-                if let card = play.card {
-                    Text(card.name)
-                        .font(Design.Fonts.mono(14, weight: .bold))
-                        .foregroundStyle(Design.Colors.textPrimary)
+                VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                    Text("CPU PLAYS A CARD")
+                        .font(Design.Fonts.display(14))
+                        .foregroundStyle(Design.Colors.bobaViolet)
+                        .tracking(2)
 
-                    Text("Cost: \(card.playCost ?? 0) Hot Dogs")
-                        .font(Design.Fonts.mono(11))
-                        .foregroundStyle(Design.Colors.textMuted)
-                }
+                    if let card = play.card {
+                        Text(card.name)
+                            .font(Design.Fonts.display(20))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.7)
 
-                // Effect description
-                VStack(spacing: 4) {
-                    if play.cpuDelta > 0 {
-                        Text("+\(play.cpuDelta) to CPU")
+                        HStack(spacing: 6) {
+                            let cost = card.playCost ?? 0
+                            Text(cost == 0 ? "FREE" : "\(cost) HD")
+                                .font(Design.Fonts.mono(12, weight: .bold))
+                                .foregroundStyle(cost == 0 ? Color(hex: "4CAF50") : Design.Colors.bobaCyan)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill((cost == 0 ? Color(hex: "4CAF50") : Design.Colors.bobaCyan).opacity(0.15)))
+                            if card.isBonusPlay == true {
+                                Text("★ BONUS")
+                                    .font(Design.Fonts.mono(10, weight: .bold))
+                                    .foregroundStyle(Design.Colors.nearBlack)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Capsule().fill(Color(hex: "FFD700")))
+                            }
+                        }
+                    }
+
+                    // Ability text — primary content, sized for comfortable
+                    // reading. Wraps freely; landscape iPhone has plenty
+                    // of horizontal room for prose.
+                    if let card = play.card, let ability = card.playAbility, !ability.isEmpty {
+                        Text(ability)
+                            .font(Design.Fonts.mono(13))
+                            .foregroundStyle(Design.Colors.textSecondary)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    // Power deltas — secondary, shown after ability
+                    HStack(spacing: 8) {
+                        if play.cpuDelta > 0 {
+                            deltaPill("+\(play.cpuDelta) CPU", color: Color(hex: "C0392B"))
+                        } else if play.cpuDelta < 0 {
+                            deltaPill("\(play.cpuDelta) CPU", color: Color(hex: "4CAF50"))
+                        }
+                        if play.playerDelta < 0 {
+                            deltaPill("\(play.playerDelta) YOU", color: Color(hex: "C0392B"))
+                        } else if play.playerDelta > 0 {
+                            deltaPill("+\(play.playerDelta) YOU", color: Color(hex: "4CAF50"))
+                        }
+                        if play.cpuDelta == 0 && play.playerDelta == 0 {
+                            Text("No power change")
+                                .font(Design.Fonts.mono(11))
+                                .foregroundStyle(Design.Colors.textMuted)
+                        }
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Button {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            store.dismissCpuPlay()
+                        }
+                    } label: {
+                        Text(store.cpuPlayQueue.isEmpty ? "CONTINUE" : "NEXT CARD")
                             .font(Design.Fonts.mono(13, weight: .bold))
-                            .foregroundStyle(Color(hex: "C0392B"))
+                            .foregroundStyle(Design.Colors.nearBlack)
+                            .padding(.horizontal, 22)
+                            .frame(height: 36)
+                            .background(Capsule().fill(Design.Colors.bobaViolet))
                     }
-                    if play.cpuDelta < 0 {
-                        Text("\(play.cpuDelta) to CPU")
-                            .font(Design.Fonts.mono(13, weight: .bold))
-                            .foregroundStyle(Color(hex: "4CAF50"))
-                    }
-                    if play.playerDelta < 0 {
-                        Text("\(play.playerDelta) to You")
-                            .font(Design.Fonts.mono(13, weight: .bold))
-                            .foregroundStyle(Color(hex: "C0392B"))
-                    }
-                    if play.playerDelta > 0 {
-                        Text("+\(play.playerDelta) to You")
-                            .font(Design.Fonts.mono(13, weight: .bold))
-                            .foregroundStyle(Color(hex: "4CAF50"))
-                    }
-                    if play.cpuDelta == 0 && play.playerDelta == 0 {
-                        Text("No power change")
-                            .font(Design.Fonts.mono(11))
-                            .foregroundStyle(Design.Colors.textMuted)
-                    }
+                    .buttonStyle(.plain)
                 }
-
-                // Ability text
-                if let card = play.card, let ability = card.playAbility, !ability.isEmpty {
-                    Text(ability)
-                        .font(Design.Fonts.mono(10))
-                        .foregroundStyle(Design.Colors.bobaCyan)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(3)
-                        .padding(.horizontal, Design.Spacing.md)
-                }
-
-                Button {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        store.dismissCpuPlay()
-                    }
-                } label: {
-                    Text(store.cpuPlayQueue.isEmpty ? "CONTINUE" : "NEXT CARD")
-                        .font(Design.Fonts.mono(14, weight: .bold))
-                        .foregroundStyle(Design.Colors.nearBlack)
-                        .padding(.horizontal, 40)
-                        .frame(height: 40)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.bobaViolet))
-                }
-                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(Design.Spacing.xl)
+            .padding(Design.Spacing.lg)
+            .frame(maxWidth: 540)
             .background(RoundedRectangle(cornerRadius: 16).fill(Design.Colors.surface))
             .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Design.Colors.bobaViolet.opacity(0.4), lineWidth: 2))
-            .padding(.horizontal, 40)
+            .padding(.horizontal, Design.Spacing.lg)
         }
         .transition(.opacity.combined(with: .scale(scale: 0.9)))
+    }
+
+    private func deltaPill(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(Design.Fonts.mono(13, weight: .bold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(Capsule().fill(color.opacity(0.15)))
     }
 
     // MARK: - Effect Callout

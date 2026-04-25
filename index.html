@@ -1864,57 +1864,136 @@
     <!-- PRACTICE VIEW -->
     <section id="view-practice" class="view" hidden aria-label="Practice Battle">
       <div id="practice-setup" class="practice-setup">
-        <!-- Mode selection -->
-        <div class="practice-section-label">GAME MODE</div>
-        <div class="practice-modes" role="radiogroup" aria-label="Game mode">
-          <label class="practice-mode-option">
-            <input type="radio" name="practice-mode" value="rookie">
-            <span class="practice-mode-card">
-              <span class="practice-mode-name">Rookie</span>
-              <span class="practice-mode-desc">Hero deck only — pure power comparison</span>
-            </span>
-          </label>
-          <label class="practice-mode-option">
-            <input type="radio" name="practice-mode" value="substitution">
-            <span class="practice-mode-card">
-              <span class="practice-mode-name">Substitution</span>
-              <span class="practice-mode-desc">Hero + Hot Dogs — swap heroes mid-battle</span>
-            </span>
-          </label>
-          <label class="practice-mode-option">
-            <input type="radio" name="practice-mode" value="playmaker" checked>
-            <span class="practice-mode-card">
-              <span class="practice-mode-name">Playmaker</span>
-              <span class="practice-mode-desc">Full game — subs + play cards (tournament standard)</span>
-            </span>
-          </label>
+        <!-- Tab segmented picker — mirrors iOS PracticeSetupView -->
+        <div class="practice-setup-tabs" role="tablist" aria-label="Practice setup sections">
+          <button type="button" class="practice-setup-tab active" data-tab="game-mode" role="tab" aria-selected="true">Game Mode</button>
+          <button type="button" class="practice-setup-tab" data-tab="your-deck" role="tab" aria-selected="false">Your Deck</button>
+          <button type="button" class="practice-setup-tab" data-tab="cpu-deck" role="tab" aria-selected="false">CPU Deck</button>
         </div>
-        <div class="practice-section-label" style="margin-top:1.5rem">YOUR DECK</div>
-        <select class="practice-deck-select" id="practice-player-select" aria-label="Your deck">
-          <option value="random">Random (from full card pool)</option>
-          <optgroup label="Starter Decks">
-            <option value="template:fire-aggro">Fire Aggro</option>
-            <option value="template:ice-control">Ice Control</option>
-            <option value="template:steel-wall">Steel Wall</option>
-            <option value="template:mixed-toolbox">Mixed Toolbox</option>
-            <option value="template:economy-attrition">Economy / Attrition</option>
-          </optgroup>
-          <optgroup label="Your Saved Decks" id="practice-player-saved"></optgroup>
-        </select>
-        <div class="practice-section-label" style="margin-top:1rem">OPPONENT DECK</div>
-        <select class="practice-deck-select" id="practice-cpu-select" aria-label="Opponent deck">
-          <option value="random">Random (from full card pool)</option>
-          <optgroup label="Starter Decks">
-            <option value="template:fire-aggro">Fire Aggro</option>
-            <option value="template:ice-control">Ice Control</option>
-            <option value="template:steel-wall">Steel Wall</option>
-            <option value="template:mixed-toolbox">Mixed Toolbox</option>
-            <option value="template:economy-attrition">Economy / Attrition</option>
-          </optgroup>
-          <optgroup label="Your Saved Decks" id="practice-cpu-saved"></optgroup>
-        </select>
-        <button class="practice-start-btn" id="btn-start-practice">START PRACTICE</button>
+
         <button class="practice-start-btn practice-resume-btn" id="btn-resume-practice" hidden>RESUME MATCH</button>
+
+        <!-- TAB: Game Mode -->
+        <div class="practice-setup-pane active" data-pane="game-mode" role="tabpanel">
+          <div class="practice-section-label">GAME MODE</div>
+          <div class="practice-modes" role="radiogroup" aria-label="Game mode">
+            <label class="practice-mode-option">
+              <input type="radio" name="practice-mode" value="rookie">
+              <span class="practice-mode-card">
+                <span class="practice-mode-name">Rookie</span>
+                <span class="practice-mode-desc">Hero deck only — pure power comparison</span>
+              </span>
+            </label>
+            <label class="practice-mode-option">
+              <input type="radio" name="practice-mode" value="substitution">
+              <span class="practice-mode-card">
+                <span class="practice-mode-name">Substitution</span>
+                <span class="practice-mode-desc">Hero + Hot Dogs — swap heroes mid-battle</span>
+              </span>
+            </label>
+            <label class="practice-mode-option">
+              <input type="radio" name="practice-mode" value="playmaker" checked>
+              <span class="practice-mode-card">
+                <span class="practice-mode-name">Playmaker</span>
+                <span class="practice-mode-desc">Full game — subs + play cards (tournament standard)</span>
+              </span>
+            </label>
+          </div>
+
+          <!-- Custom rules disclosure — mirrors iOS expandable section -->
+          <button type="button" class="practice-custom-rules-toggle" id="practice-custom-rules-toggle" aria-expanded="false">
+            <span class="practice-custom-rules-title">CUSTOM RULES</span>
+            <span class="practice-custom-rules-badge" id="practice-custom-rules-badge" hidden>0 overrides</span>
+            <svg class="practice-custom-rules-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="practice-custom-rules" id="practice-custom-rules" hidden>
+            <div class="practice-custom-rule-row">
+              <label class="practice-custom-rule-label">Match length</label>
+              <div class="practice-segmented" data-rule="matchLength">
+                <button type="button" class="practice-seg active" data-value="bo7">Bo7</button>
+                <button type="button" class="practice-seg" data-value="bo5">Bo5</button>
+                <button type="button" class="practice-seg" data-value="bo3">Bo3</button>
+              </div>
+            </div>
+            <div class="practice-custom-rule-row" id="practice-format-row">
+              <label class="practice-custom-rule-label">Hero deck format</label>
+              <select class="practice-custom-rule-select" id="practice-hero-format">
+                <option value="standard">Standard (60)</option>
+                <option value="spec">SPEC (160 cap)</option>
+                <option value="specPlus">SPEC+ (200 cap)</option>
+                <option value="limited">Limited (40 cards)</option>
+              </select>
+            </div>
+            <div class="practice-custom-rule-row">
+              <label class="practice-custom-rule-label">Starting Hot Dogs</label>
+              <div class="practice-segmented" data-rule="startingHotDogs">
+                <button type="button" class="practice-seg" data-value="5">5</button>
+                <button type="button" class="practice-seg" data-value="8">8</button>
+                <button type="button" class="practice-seg active" data-value="10">10</button>
+                <button type="button" class="practice-seg" data-value="12">12</button>
+                <button type="button" class="practice-seg" data-value="15">15</button>
+              </div>
+            </div>
+            <div class="practice-custom-rule-row practice-custom-rule-toggle">
+              <label class="practice-custom-rule-label" for="practice-super-ties">Super weapon breaks ties</label>
+              <input type="checkbox" id="practice-super-ties" checked>
+            </div>
+            <div class="practice-custom-rule-row practice-custom-rule-toggle">
+              <label class="practice-custom-rule-label" for="practice-sudden-death">Sudden death at 3-3</label>
+              <input type="checkbox" id="practice-sudden-death" checked>
+            </div>
+            <p class="practice-custom-rules-footnote">
+              Hero deck format flows through to deck construction. Other knobs persist for now —
+              additional engine wiring lands in upcoming releases.
+            </p>
+          </div>
+
+          <button class="practice-start-btn practice-start-game-mode" id="btn-start-practice">START PRACTICE</button>
+        </div>
+
+        <!-- TAB: Your Deck -->
+        <div class="practice-setup-pane" data-pane="your-deck" role="tabpanel" hidden>
+          <div class="practice-section-label">YOUR DECK</div>
+          <select class="practice-deck-select" id="practice-player-select" aria-label="Your deck">
+            <optgroup label="Starter Decks">
+              <option value="random" selected>Random Deck (realistic mix)</option>
+              <option value="template:fire-aggro">Fire Aggro</option>
+              <option value="template:ice-control">Ice Control</option>
+              <option value="template:steel-wall">Steel Wall</option>
+              <option value="template:mixed-toolbox">Mixed Toolbox</option>
+              <option value="template:economy-attrition">Economy / Attrition</option>
+            </optgroup>
+            <optgroup label="Your Saved Decks" id="practice-player-saved"></optgroup>
+          </select>
+          <div class="practice-format-banner" id="practice-player-format-banner" hidden></div>
+          <div class="practice-coming-soon">
+            <div class="practice-coming-soon-title">Coming soon — Player Ranking</div>
+            <div class="practice-coming-soon-desc">ELO progression and per-mode records as you play.</div>
+          </div>
+          <button class="practice-start-btn" id="btn-start-practice-your-deck">START PRACTICE</button>
+        </div>
+
+        <!-- TAB: CPU Deck -->
+        <div class="practice-setup-pane" data-pane="cpu-deck" role="tabpanel" hidden>
+          <div class="practice-section-label">CPU DECK</div>
+          <select class="practice-deck-select" id="practice-cpu-select" aria-label="Opponent deck">
+            <optgroup label="Starter Decks">
+              <option value="random" selected>Random Deck (realistic mix)</option>
+              <option value="template:fire-aggro">Fire Aggro</option>
+              <option value="template:ice-control">Ice Control</option>
+              <option value="template:steel-wall">Steel Wall</option>
+              <option value="template:mixed-toolbox">Mixed Toolbox</option>
+              <option value="template:economy-attrition">Economy / Attrition</option>
+            </optgroup>
+            <optgroup label="Your Saved Decks" id="practice-cpu-saved"></optgroup>
+          </select>
+          <div class="practice-format-banner" id="practice-cpu-format-banner" hidden></div>
+          <div class="practice-coming-soon">
+            <div class="practice-coming-soon-title">Coming soon — Named CPU Opponents</div>
+            <div class="practice-coming-soon-desc">Rookie / Coach / Captain / Master / Grandmaster — each with its own deck and tendencies.</div>
+          </div>
+          <button class="practice-start-btn" id="btn-start-practice-cpu-deck">START PRACTICE</button>
+        </div>
       </div>
       <!-- Playmat rendered here by practice.js -->
       <div id="practice-playmat" class="practice-playmat" hidden></div>

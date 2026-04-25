@@ -5550,6 +5550,137 @@ main {
 .practice-resume-btn:hover { background: rgba(0,245,255,0.25); }
 .practice-resume-btn[hidden] { display: none; }
 
+/* ── 3-tab practice setup (mirrors iOS PracticeSetupView) ── */
+.practice-setup-tabs {
+  display: flex; gap: 0.25rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; padding: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+.practice-setup-tab {
+  flex: 1; padding: 0.5rem 0.75rem;
+  background: transparent; border: none; border-radius: 8px;
+  color: rgba(255,255,255,0.6); cursor: pointer;
+  font-family: var(--font-mono, sans-serif); font-size: 0.78rem;
+  font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  transition: background 0.15s, color 0.15s;
+}
+.practice-setup-tab:hover { color: rgba(255,255,255,0.85); }
+.practice-setup-tab.active {
+  background: rgba(0,245,255,0.15);
+  color: #00F5FF;
+}
+
+.practice-setup-pane { display: flex; flex-direction: column; gap: 0.75rem; }
+.practice-setup-pane[hidden] { display: none; }
+
+/* ── Custom rules disclosure ── */
+.practice-custom-rules-toggle {
+  display: flex; align-items: center; gap: 0.5rem;
+  background: rgba(139,0,255,0.10);
+  border: 1px solid rgba(139,0,255,0.35);
+  border-radius: 10px;
+  color: #C9A0FF;
+  cursor: pointer;
+  font-family: var(--font-display, sans-serif);
+  font-size: 0.85rem; font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.65rem 0.85rem; margin-top: 0.5rem;
+  transition: background 0.15s;
+}
+.practice-custom-rules-toggle:hover { background: rgba(139,0,255,0.18); }
+.practice-custom-rules-toggle[aria-expanded="true"] .practice-custom-rules-chevron { transform: rotate(180deg); }
+.practice-custom-rules-title { flex: 1; text-align: left; }
+.practice-custom-rules-badge {
+  background: rgba(255,77,0,0.20); border: 1px solid rgba(255,77,0,0.45);
+  border-radius: 999px; color: #FF8E5A;
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em;
+  padding: 0.15rem 0.5rem;
+}
+.practice-custom-rules-badge[hidden] { display: none; }
+.practice-custom-rules-chevron { transition: transform 0.2s; flex-shrink: 0; }
+
+.practice-custom-rules {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 0.85rem; display: flex; flex-direction: column; gap: 0.65rem;
+}
+.practice-custom-rules[hidden] { display: none; }
+.practice-custom-rule-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.5rem;
+}
+.practice-custom-rule-label {
+  color: rgba(255,255,255,0.85);
+  font-family: var(--font-mono, sans-serif);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.practice-custom-rule-toggle input[type="checkbox"] { accent-color: #00F5FF; transform: scale(1.15); }
+.practice-custom-rule-select {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px; color: #fff;
+  font-family: var(--font-mono, sans-serif);
+  font-size: 0.85rem;
+  padding: 0.4rem 0.6rem;
+}
+.practice-segmented {
+  display: inline-flex; gap: 0.15rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 8px; padding: 0.15rem;
+}
+.practice-seg {
+  background: transparent; border: none; border-radius: 6px;
+  color: rgba(255,255,255,0.65); cursor: pointer;
+  font-family: var(--font-mono, sans-serif);
+  font-size: 0.78rem; font-weight: 600;
+  padding: 0.32rem 0.6rem; transition: background 0.15s, color 0.15s;
+}
+.practice-seg.active { background: rgba(0,245,255,0.18); color: #00F5FF; }
+.practice-custom-rules-footnote {
+  color: rgba(255,255,255,0.50);
+  font-size: 0.75rem; margin: 0.25rem 0 0; line-height: 1.45;
+}
+
+/* ── Format-compliance banner (shown in deck tabs) ── */
+.practice-format-banner {
+  border-radius: 8px; padding: 0.55rem 0.75rem;
+  font-family: var(--font-mono, sans-serif);
+  font-size: 0.78rem; line-height: 1.4;
+  display: flex; align-items: flex-start; gap: 0.5rem;
+}
+.practice-format-banner[hidden] { display: none; }
+.practice-format-banner.compliant {
+  background: rgba(0,245,255,0.10);
+  border: 1px solid rgba(0,245,255,0.35);
+  color: #9EEAF5;
+}
+.practice-format-banner.warning {
+  background: rgba(255,179,0,0.10);
+  border: 1px solid rgba(255,179,0,0.45);
+  color: #FFD68A;
+}
+
+/* ── Coming-soon hint (deck tabs) ── */
+.practice-coming-soon {
+  background: rgba(139,0,255,0.08);
+  border: 1px dashed rgba(139,0,255,0.35);
+  border-radius: 10px; padding: 0.75rem;
+  margin-top: 0.5rem;
+}
+.practice-coming-soon-title {
+  color: #C9A0FF; font-family: var(--font-display, sans-serif);
+  font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; margin-bottom: 0.2rem;
+}
+.practice-coming-soon-desc {
+  color: rgba(255,255,255,0.65); font-size: 0.78rem; line-height: 1.4;
+}
+
 /* Playmat container */
 .practice-playmat {
   flex: 1;

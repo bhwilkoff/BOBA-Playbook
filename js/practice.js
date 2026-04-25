@@ -1231,12 +1231,14 @@ function pmEntryHasUnknownOps(entry) {
     'draw','discard','discard_top','discard_hand_all','shuffle_hand_into_deck',
     'shuffle_from_discard_to_deck','reclaim_used_play','variable_cost_bonus',
     // Randomness
-    'coin_flip','dice_roll','compound_roll','dice_roll_again',
+    'coin_flip','dice_roll','compound_roll','dice_roll_again','versus_dice_roll',
+    'dice_gate',  // persistent gate — opponent must roll to play (Leave It To Chance)
     // Legality / control
     'protect_self','cancel_opponent_plays','cap_opponent_plays',
     'block_sub','block_plays','block_draw','block_hd_recover',
     'honors_set','substitute_free','force_substitute',
-    'play_cost_delta','cancel_persistent','persistent_delta',
+    'play_cost_delta','cancel_persistent','persistent_delta','install_persistent',
+    'player_choice','reveal_play_for_conditional_free',
     // Hero manipulation
     'swap_active_with_hand','swap_active_with_discard','swap_active_with_future_hero',
     'replace_active_with_top_hero_deck','replace_next_with_top_hero_deck',
@@ -2567,6 +2569,107 @@ function pmExecStep(step, ctx, out) {
       out.hasEffect = true;
       break;
     }
+    case 'versus_dice_roll': {
+      // Both sides roll a single die; winner runs `winner_effect`.
+      // Tie → no-op. Both rolls land in `out.diceRolls` so the dice-
+      // reveal overlay can show them side-by-side. When opponent
+      // wins, winner_effect's `target: "winner"` rewrites to
+      // "opponent" (and "self" → "opponent") so downstream ops fire
+      // for the right seat.
+      const selfRoll = Math.floor(Math.random() * 6) + 1;
+      const oppRoll  = Math.floor(Math.random() * 6) + 1;
+      out.diceRolls = (out.diceRolls || []).concat([selfRoll, oppRoll]);
+      out.revealMode = 'versus';
+      out.revealLabel = 'VERSUS ROLL';
+      const tied = selfRoll === oppRoll;
+      const selfWins = selfRoll > oppRoll;
+      const outcome = tied ? 'TIE — no effect'
+                           : (selfWins ? 'YOU WIN the roll' : 'OPPONENT WINS the roll');
+      out.notifications.push(`Versus roll: you ${selfRoll}, opponent ${oppRoll} — ${outcome}`);
+      if (!tied && Array.isArray(step.winner_effect)) {
+        for (const effect of step.winner_effect) {
+          const rewritten = Object.assign({}, effect);
+          if (selfWins) {
+            if (rewritten.target === 'winner') rewritten.target = 'self';
+          } else {
+            if (rewritten.target === 'winner' || rewritten.target === 'self') {
+              rewritten.target = 'opponent';
+            }
+          }
+          pmExecStep(rewritten, ctx, out);
+        }
+      }
+      out.hasEffect = true;
+      break;
+    }
+    case 'install_persistent': {
+      // A fired persistent's `effect` can call this to install a
+      // CHILD persistent at fire time — used for "next-battle
+      // delivery" (e.g. 2017 Cinderellas: parent fires on_battle_win
+      // rest_of_game; child is scoped next_battle and delivers +5
+      // power on_battle_start).
+      if (step.spec && typeof step.spec === 'object') {
+        // Carry parent's source name onto child install so trigger
+        // callouts read "Make It, Take It (Win)" instead of generic.
+        PM._inheritedInstallSource = ctx._sourceCard || PM._inheritedInstallSource || null;
+        PM.installPersistent(ctx.self, step.spec);
+        PM._inheritedInstallSource = null;
+        out.notifications.push('Installed follow-up effect');
+      }
+      out.hasEffect = true;
+      break;
+    }
+    case 'player_choice': {
+      // Generic chooser. JSON shape:
+      //   { op:'player_choice', prompt, options:[{label, effects}],
+      //     cpu_pick: 0 }
+      // CPU side auto-picks `cpu_pick`. Player side surfaces a
+      // chooser sheet (host renders pmPlayerChoiceSheet).
+      const prompt = step.prompt || 'Choose one';
+      const options = Array.isArray(step.options) ? step.options : [];
+      if (!options.length) {
+        out.unknownOps.push('player_choice (no options)');
+        break;
+      }
+      const cpuPick = (typeof step.cpu_pick === 'number') ? step.cpu_pick : 0;
+      if (ctx.self === 'cpu') {
+        // CPU resolves immediately with the recommended pick.
+        const opt = options[Math.max(0, Math.min(cpuPick, options.length - 1))];
+        for (const eff of (opt.effects || [])) pmExecStep(eff, ctx, out);
+        if (opt.label) out.notifications.push(`CPU chose: ${opt.label}`);
+      } else {
+        // Player path: queue a chooser intent; host opens the sheet
+        // and re-runs the chosen option's effects via the executor.
+        out.intents = (out.intents || []);
+        out.intents.push({
+          kind: 'presentPlayerChoice',
+          side: ctx.self,
+          prompt,
+          options,
+          cpuPick,
+        });
+      }
+      out.hasEffect = true;
+      break;
+    }
+    case 'reveal_play_for_conditional_free': {
+      // Scare Tactics. Player picks a card from hand; if next CPU
+      // play's cost ≥ revealed cost, the revealed card resolves free
+      // for the player. CPU side auto-reveals their highest-cost play.
+      out.intents = (out.intents || []);
+      out.intents.push({ kind: 'revealForConditionalFree', side: ctx.self });
+      out.hasEffect = true;
+      break;
+    }
+    case 'dice_gate': {
+      // Inert when invoked directly — `dice_gate` lives inside a
+      // persistent's `effect` and is consumed by pmCheckPlayGate
+      // when the OPPOSING side plays. If we hit it here it just
+      // means a malformed entry tried to fire it as a one-shot.
+      out.notifications.push('Dice gate set (opponent must roll to play)');
+      out.hasEffect = true;
+      break;
+    }
 
     default:
       // Unknown op — log once, skip silently
@@ -2595,6 +2698,143 @@ function pmExecStructured(entry, ctx) {
 // ══════════════════════════════════════════════════════════════════
 // Intent helpers — mutate PM state for Tier B/C ops
 // ══════════════════════════════════════════════════════════════════
+
+// Auto-discard N cards from the given side's playbook hand. Cards
+// referencing `discard 2 plays` would otherwise be silent no-ops
+// because out.discards is just a counter. Pops from the front (oldest
+// drawn) of the hand and pushes onto the discard pile. Player-side
+// chooser flow can come later; for now this matches iOS's
+// autoDiscardHand intent semantics.
+function pmAutoDiscardFromHand(side, count) {
+  if (!count || count < 1) return;
+  const hand = side === 'player' ? PM.playerPlayHand : PM.cpuPlayPool;
+  if (!hand.length) return;
+  const n = Math.min(count, hand.length);
+  const dropped = hand.splice(0, n);
+  if (side === 'player') {
+    PM.playerDiscard.push(...dropped);
+  }
+  // CPU has no public discard pile; cards go to the void per the rules.
+  pmEnqueueNotification(`${side === 'player' ? 'You' : 'CPU'} discarded ${n} play${n === 1 ? '' : 's'}`);
+}
+
+// Dispatch executor-emitted intents that need host-side handling
+// (player_choice, scare reveal, etc.). The web doesn't yet have full
+// chooser sheets, so we route each intent to a sane auto-resolution
+// (CPU-style auto-pick for the first option) and let the UI evolve.
+function pmHandlePlayIntents(intents, ctx, out, sourceCard) {
+  for (const intent of intents) {
+    if (!intent || !intent.kind) continue;
+    if (intent.kind === 'presentPlayerChoice') {
+      // Player surfaces the chooser sheet; CPU auto-picked already
+      // inside the executor. For player side, queue a deferred
+      // chooser; for now, auto-pick the cpuPick option so the play
+      // resolves without dropping. (Sheet UI lands in Wave 3.)
+      const opts = intent.options || [];
+      if (!opts.length) continue;
+      const idx = Math.max(0, Math.min(intent.cpuPick || 0, opts.length - 1));
+      const opt = opts[idx];
+      const childCtx = Object.assign({}, ctx, { _sourceCard: sourceCard?.name || '' });
+      for (const eff of (opt.effects || [])) {
+        const child = { selfDelta: 0, oppDelta: 0, selfHDDelta: 0, oppHDDelta: 0,
+                        draws: 0, discards: 0, hasEffect: false, unknownOps: [], notifications: [] };
+        pmExecStep(eff, childCtx, child);
+        out.selfDelta += child.selfDelta || 0;
+        out.oppDelta  += child.oppDelta  || 0;
+        out.selfHDDelta += child.selfHDDelta || 0;
+        out.oppHDDelta  += child.oppHDDelta  || 0;
+        if (child.notifications && child.notifications.length) {
+          out.notifications = (out.notifications || []).concat(child.notifications);
+        }
+      }
+      if (opt.label) {
+        out.notifications = (out.notifications || []).concat([
+          intent.side === 'player' ? `Auto-chose: ${opt.label}` : `CPU chose: ${opt.label}`
+        ]);
+      }
+    } else if (intent.kind === 'revealForConditionalFree') {
+      // Scare Tactics — store revealed card so next opp play can
+      // gate on its cost. Player side would normally surface a
+      // hand chooser; we auto-pick highest-cost play.
+      const hand = intent.side === 'player' ? PM.playerPlayHand : PM.cpuPlayPool;
+      if (!hand.length) continue;
+      let bestIdx = 0;
+      for (let i = 1; i < hand.length; i++) {
+        if ((hand[i]?.playCost || 0) > (hand[bestIdx]?.playCost || 0)) bestIdx = i;
+      }
+      PM._scareReveal = {
+        side: intent.side,
+        card: hand[bestIdx],
+        revealedAt: PM.currentBattle,
+      };
+      pmEnqueueNotification(`Scare Tactics: ${intent.side === 'player' ? 'You' : 'CPU'} revealed ${hand[bestIdx].name}`);
+    }
+  }
+}
+
+// Scare Tactics — if `actingSide` is playing a card whose cost meets
+// the threshold of the OPPOSITE side's revealed card (from a prior
+// battle), the revealed card resolves free for the revealer's side.
+// Single-shot per match — clears the reveal once it fires.
+function pmMaybeFireScareReveal(actingSide, oppPlayCost) {
+  const reveal = PM._scareReveal;
+  if (!reveal) return;
+  // Reveal must have been made on a different battle than the one we're in.
+  if (reveal.revealedAt >= PM.currentBattle) return;
+  // The reveal owner must be the opposite of the acting side.
+  const owner = reveal.side;
+  if (owner === actingSide) return;
+  const threshold = reveal.card?.playCost || 0;
+  if ((oppPlayCost || 0) < threshold) return;
+  // Pull the revealed card from the owner's hand and resolve it free
+  // for the owner's side.
+  const hand = owner === 'player' ? PM.playerPlayHand : PM.cpuPlayPool;
+  const idx = hand.indexOf(reveal.card);
+  if (idx < 0) {
+    PM._scareReveal = null;
+    return;
+  }
+  hand.splice(idx, 1);
+  if (owner === 'player') PM.playerDiscard.push(reveal.card);
+  pmEnqueueNotification(`✨ Scare Tactics fires — ${reveal.card.name} resolves free for ${owner === 'player' ? 'you' : 'CPU'}`);
+  // Run the revealed card's effects with the owner's context.
+  const entry = pmGetPlayEntry(reveal.card);
+  if (entry && entry.effects && entry.effects.length) {
+    const ctx = pmMakeExecContext(owner);
+    ctx._sourceCard = reveal.card.name || '';
+    const out = pmExecStructured(entry, ctx);
+    const b = PM.battles[PM.currentBattle];
+    if (b) {
+      const playerDelta = owner === 'player' ? out.selfDelta : out.oppDelta;
+      const cpuDelta    = owner === 'player' ? out.oppDelta : out.selfDelta;
+      b.playerEffectPower = (b.playerEffectPower || 0) + (playerDelta || 0);
+      b.cpuEffectPower    = (b.cpuEffectPower    || 0) + (cpuDelta || 0);
+    }
+    PM.applyHDRecover(owner, out.selfHDDelta);
+    PM.applyHDRecover(owner === 'player' ? 'cpu' : 'player', out.oppHDDelta);
+  }
+  PM._scareReveal = null;
+}
+
+// Engine side of Leave It To Chance. Returns null if no in-scope
+// dice_gate persistent applies; otherwise returns {roll, passed}.
+// Caller (player or CPU play resolution) cancels the play when
+// passed===false.
+function pmCheckPlayGate(actingSide) {
+  const opp = actingSide === 'player' ? 'cpu' : 'player';
+  for (const inst of (PM._persistents || [])) {
+    if (inst.owner !== opp) continue;
+    const trigger = inst.spec && inst.spec.trigger;
+    if (trigger !== 'on_opp_play') continue;
+    if (!pmIsScopeActive(inst.spec.scope, inst.installedAt, PM.currentBattle, inst.spec)) continue;
+    const eff = inst.spec.effect;
+    if (!eff || eff.op !== 'dice_gate') continue;
+    const passOn = Array.isArray(eff.pass_on) ? eff.pass_on : [2,3,4,5];
+    const roll = Math.floor(Math.random() * 6) + 1;
+    return { roll, passed: passOn.includes(roll) };
+  }
+  return null;
+}
 
 function pmIntentSwapActiveWithHand(side) {
   const b = PM.battles[PM.currentBattle]; if (!b) return;
@@ -3037,6 +3277,188 @@ function pmResolveEffect(card, playerCard, cpuCard) {
 
 function pmFallbackEffect(cost) { return { playerDelta: cost * 6 + 5, cpuDelta: 0 }; }
 
+// ══════════════════════════════════════════════════════════════════
+// § Format-aware deck construction
+// Mirrors iOS PracticeStore.buildRandomHeroDeck/padHeroDeck/
+// buildRandomPlaybook. Powers the Random Deck source + Starter Deck
+// padding when a stricter format is selected (SPEC / SPEC+ / Limited).
+// ══════════════════════════════════════════════════════════════════
+
+function pmFormatPowerCap(format) {
+  switch (format) {
+    case 'spec':     return 160;
+    case 'specPlus': return 200;
+    case 'standard':
+    case 'limited':
+    default:         return null;
+  }
+}
+function pmFormatHeroDeckSize(format) {
+  switch (format) {
+    case 'limited': return 40;
+    default:        return 60;
+  }
+}
+function pmIncompatibleHeroCount(existing, format) {
+  const cap = pmFormatPowerCap(format);
+  if (!cap) return 0;
+  return existing.filter(c => (c.power || 0) > cap).length;
+}
+
+// Build a 60-card (or 40 in limited) hero deck honoring the active
+// format's power cap and a realistic power curve: 50% high (≥135),
+// 40% mid (100–134), 10% low (55–99). Caps any single power value at
+// 6 cards and any hero name at 4 variations. Backfill + relax-cap
+// fallback guarantees hitting target.
+function pmBuildRandomHeroDeck(pool, format) {
+  const cap = pmFormatPowerCap(format);
+  const target = pmFormatHeroDeckSize(format);
+  const candidates = pool.filter(c =>
+       c.cardType === 'Hero'
+    && (c.power || 0) >= 55
+    && c.imageFile
+    && !((c.treatment || '').toLowerCase().includes('hot dog'))
+    && (cap == null || (c.power || 0) <= cap)
+  );
+  if (!candidates.length) return [];
+
+  const highTarget = Math.round(target * 0.50);
+  const midTarget  = Math.round(target * 0.90);   // cumulative
+  const lowTarget  = target;
+
+  const high = shuffle(candidates.filter(c => (c.power || 0) >= 135));
+  const mid  = shuffle(candidates.filter(c => { const p = c.power || 0; return p >= 100 && p < 135; }));
+  const low  = shuffle(candidates.filter(c => (c.power || 0) < 100));
+
+  const deck = [];
+  const deckIDs = new Set();
+  const byPower = new Map();
+  const byHero  = new Map();
+
+  function tryAdd(card, perPowerCap = 6, perHeroCap = 4) {
+    if (deckIDs.has(card.bobaId)) return false;
+    const p = card.power || 0;
+    const h = card.hero || '';
+    if ((byPower.get(p) || 0) >= perPowerCap) return false;
+    if (h && (byHero.get(h) || 0) >= perHeroCap) return false;
+    deck.push(card);
+    deckIDs.add(card.bobaId);
+    byPower.set(p, (byPower.get(p) || 0) + 1);
+    if (h) byHero.set(h, (byHero.get(h) || 0) + 1);
+    return true;
+  }
+  function fillFrom(source, targetCount) {
+    for (const card of source) { if (deck.length >= targetCount) break; tryAdd(card); }
+  }
+  fillFrom(high, highTarget);
+  fillFrom(mid,  midTarget);
+  fillFrom(low,  lowTarget);
+
+  // Backfill + relax-cap so we always hit target.
+  const backfill = shuffle([...high, ...mid, ...low]);
+  for (const card of backfill) { if (deck.length >= target) break; tryAdd(card); }
+  for (const card of backfill) { if (deck.length >= target) break; tryAdd(card, 6, 6); }
+  return deck;
+}
+
+// Filter an existing hero list to format constraints (drop heroes
+// above the cap), then pad up to target from the catalog. Used when
+// a saved/template deck is loaded under a stricter format than it
+// was designed for.
+function pmPadHeroDeck(existing, pool, format) {
+  const cap = pmFormatPowerCap(format);
+  const target = pmFormatHeroDeckSize(format);
+  let deck = existing.filter(c => cap == null || (c.power || 0) <= cap);
+  if (deck.length >= target) return deck.slice(0, target);
+  const deckIDs = new Set(deck.map(c => c.bobaId));
+  const byPower = new Map();
+  const byHero  = new Map();
+  for (const c of deck) {
+    const p = c.power || 0;
+    byPower.set(p, (byPower.get(p) || 0) + 1);
+    const h = c.hero || '';
+    if (h) byHero.set(h, (byHero.get(h) || 0) + 1);
+  }
+  const candidates = shuffle(pool.filter(c =>
+       c.cardType === 'Hero'
+    && (c.power || 0) >= 55
+    && c.imageFile
+    && !deckIDs.has(c.bobaId)
+    && (cap == null || (c.power || 0) <= cap)
+  ));
+  for (const card of candidates) {
+    if (deck.length >= target) break;
+    const p = card.power || 0;
+    const h = card.hero || '';
+    if ((byPower.get(p) || 0) >= 6) continue;
+    if (h && (byHero.get(h) || 0) >= 4) continue;
+    deck.push(card);
+    deckIDs.add(card.bobaId);
+    byPower.set(p, (byPower.get(p) || 0) + 1);
+    if (h) byHero.set(h, (byHero.get(h) || 0) + 1);
+  }
+  return deck;
+}
+
+// 30-card playbook biased toward the deck-composition triad:
+// 8 recovery (economy + value) / 8 buffs (tempo+conditional+persistent)
+// / 4 utility / 4 denial (disruption) / up to 6 bonus plays.
+// Categories pulled from play-effects.json via pmGetPlayEntry.
+function pmBuildRandomPlaybook(pool) {
+  if (!pool || !pool.length) return [];
+  const categoryOf = (c) => {
+    const e = pmGetPlayEntry(c);
+    return (e && e.category) || 'unknown';
+  };
+  const regular = pool.filter(c => c.isBonusPlay !== true && c.imageFile);
+  const bonus   = shuffle(pool.filter(c => c.isBonusPlay === true && c.imageFile));
+  const byRole = { recovery: [], buffs: [], utility: [], denial: [], other: [] };
+  for (const c of regular) {
+    switch (categoryOf(c)) {
+      case 'economy':
+      case 'value':         byRole.recovery.push(c); break;
+      case 'tempo':
+      case 'conditional':
+      case 'persistent':    byRole.buffs.push(c);    break;
+      case 'utility':       byRole.utility.push(c);  break;
+      case 'disruption':    byRole.denial.push(c);   break;
+      default:              byRole.other.push(c);
+    }
+  }
+  for (const k of Object.keys(byRole)) byRole[k] = shuffle(byRole[k]);
+
+  const deck = [];
+  const deckIDs = new Set();
+  function draw(key, count) {
+    let taken = 0;
+    for (const c of byRole[key]) {
+      if (taken >= count) break;
+      if (deckIDs.has(c.bobaId)) continue;
+      deck.push(c); deckIDs.add(c.bobaId); taken++;
+    }
+  }
+  draw('recovery', 8);
+  draw('buffs',    8);
+  draw('utility',  4);
+  draw('denial',   4);
+  // Bonus plays — capped at 6 per practice-battle UI handoff §11.
+  let bonusTaken = 0;
+  for (const c of bonus) {
+    if (bonusTaken >= 6 || deck.length >= 30) break;
+    if (deckIDs.has(c.bobaId)) continue;
+    deck.push(c); deckIDs.add(c.bobaId); bonusTaken++;
+  }
+  if (deck.length < 30) {
+    const backfill = shuffle(regular);
+    for (const c of backfill) {
+      if (deck.length >= 30) break;
+      if (deckIDs.has(c.bobaId)) continue;
+      deck.push(c); deckIDs.add(c.bobaId);
+    }
+  }
+  return shuffle(deck);
+}
+
 function pmResolveCoinFlip(text, playerCard) {
   let flipCount = 1;
   const fcm = text.match(/flip a coin (\d+) times/);
@@ -3273,6 +3695,17 @@ const PM = {
   _pendingCpuSub: false,     // flag: CPU sub callout should be queued after phase banner
   _pendingCpuPlays: false,   // flag: CPU play overlays should be queued after phase banner
 
+  // Custom rules layered on top of mode. Mirrors iOS PracticeCustomRules.
+  // Engine wires: heroFormat → deck construction. Other knobs persist
+  // in state for now; runtime wiring lands as features ship.
+  customRules: {
+    matchLength: 'bo7',         // 'bo7' | 'bo5' | 'bo3'
+    heroFormat:  'standard',    // 'standard' | 'spec' | 'specPlus' | 'limited'
+    startingHotDogs: 10,        // 5 | 8 | 10 | 12 | 15
+    superBreaksTies: true,
+    suddenDeath: true,
+  },
+
   startMatch(allCards, opts = {}) {
     this.allCards = allCards;
     this._lastOpts = opts; // remember for Rematch / Play Again
@@ -3311,27 +3744,30 @@ const PM = {
     });
     pmNotifQueue.clear();
 
-    // Random hero pool — prioritize cards with images. Used for any side set to "random".
-    const allHeroes = allCards.filter(c => c.cardType === 'Hero' && (c.power || 0) > 0);
-    const withImg = allHeroes.filter(c => c.imageFile);
-    const noImg   = allHeroes.filter(c => !c.imageFile);
-    const randomHeroPool = [...shuffle([...withImg]), ...shuffle([...noImg])];
+    // Active format from custom rules drives hero deck size + power cap.
+    // Falls back to standard if customRules hasn't been set.
+    const format = (PM.customRules && PM.customRules.heroFormat) || 'standard';
     const allPlays = allCards.filter(c => c.cardType === 'Play');
 
-    // Build each side's 60-card hero deck + 30-card play deck.
-    // opts.playerDeck / opts.cpuDeck may be { heroes: [], plays: [], hotDogs: [] } or null for random.
-    const buildSide = (deckCards, randomOffset) => {
-      let heroes = deckCards?.heroes?.length ? shuffle([...deckCards.heroes]) : randomHeroPool.slice(randomOffset, randomOffset + 60);
-      // Heroes can be < 60 for partial decks — pad from random pool so we always have 11 + bench refill
-      if (heroes.length < 11) {
-        const fill = randomHeroPool.filter(c => !heroes.includes(c));
-        heroes = heroes.concat(fill.slice(0, 60 - heroes.length));
+    // Build each side: format-aware random builder if no provided deck;
+    // pad-to-target if a partial deck is provided. Templates and saved
+    // decks get cap-violators dropped and gaps refilled from the catalog
+    // so a match never starts with a deck that's illegal for the active
+    // format.
+    const buildSide = (deckCards) => {
+      let heroes;
+      if (deckCards?.heroes?.length) {
+        heroes = pmPadHeroDeck(shuffle([...deckCards.heroes]), allCards, format);
+      } else {
+        heroes = pmBuildRandomHeroDeck(allCards, format);
       }
-      const plays = deckCards?.plays?.length ? shuffle([...deckCards.plays]) : shuffle([...allPlays]).slice(0, 30);
+      const plays = deckCards?.plays?.length
+        ? shuffle([...deckCards.plays]).slice(0, 30)
+        : pmBuildRandomPlaybook(allPlays);
       return { heroes, plays };
     };
-    const playerSide = buildSide(opts.playerDeck, 0);
-    const cpuSide    = buildSide(opts.cpuDeck, 60);
+    const playerSide = buildSide(opts.playerDeck);
+    const cpuSide    = buildSide(opts.cpuDeck);
 
     const playerCards = playerSide.heroes.slice(0, 11);
     const cpuCards    = cpuSide.heroes.slice(0, 11);
@@ -3483,6 +3919,19 @@ const PM = {
     if (this.playerHD < cost) return false;
     if (!pmIsPlayable(card, 'player')) return false;
 
+    // Leave It To Chance: opponent's dice_gate persistent forces a roll.
+    // Fail → play is cancelled (cost still consumed, card discarded).
+    const gate = pmCheckPlayGate('player');
+    if (gate && !gate.passed) {
+      this.playerHD -= cost;
+      this.playerPlayHand.splice(handIdx, 1);
+      this.playerDiscard.push(card);
+      pmEnqueueNotification(`🎲 ${gate.roll} — ${card.name} cancelled by Leave It To Chance`);
+      return true;
+    }
+    if (gate && gate.passed) {
+      pmEnqueueNotification(`🎲 ${gate.roll} — ${card.name} survives the gate`);
+    }
     this.playerHD -= cost;
     this.lastEffectResult = null;
     const b = this.battles[this.currentBattle];
@@ -3495,27 +3944,33 @@ const PM = {
     let structuredHandled = false;
     if (entry && entry.effects && entry.effects.length) {
       const ctx = pmMakeExecContext('player');
+      ctx._sourceCard = card.name || '';
       const out = pmExecStructured(entry, ctx);
-      if (out.hasEffect) {
-        effect.playerDelta = out.selfDelta;
-        effect.cpuDelta = out.oppDelta;
-        // Route through applyHDRecover so persistent modifiers
-        // (Bonus Recovery / Grilled Bandit / Bun Shortage) interpose.
-        // hdRecovery here is informational only (the legacy single-
-        // source toast); the actual HD change is applied inside
-        // applyHDRecover.
-        this.applyHDRecover('player', out.selfHDDelta);
-        this.applyHDRecover('cpu',    out.oppHDDelta);
-        structuredHandled = true;
-        // Queue persistent effects — installPersistent splits
-        // weapon_transform specs into the dedicated array.
-        if (out.hasPersistent && entry.persistent) {
-          for (const p of entry.persistent) this.installPersistent('player', p);
-        }
-        // Surface extra notifications from ops (peek, swap, choice label, etc.)
-        if (out.notifications && out.notifications.length) {
-          extraNotifs = extraNotifs.concat(out.notifications);
-        }
+      // Mark handled whenever a JSON entry exists with effects — even
+      // when out.hasEffect is false (condition-gated cards like To
+      // Fight Another Day on Battle 1). Otherwise the legacy regex
+      // resolver kicks in and applies the bonus unconditionally.
+      effect.playerDelta = out.selfDelta;
+      effect.cpuDelta = out.oppDelta;
+      this.applyHDRecover('player', out.selfHDDelta);
+      this.applyHDRecover('cpu',    out.oppHDDelta);
+      structuredHandled = true;
+      // Queue persistent effects — installPersistent splits
+      // weapon_transform specs into the dedicated array.
+      if (out.hasPersistent && entry.persistent) {
+        for (const p of entry.persistent) this.installPersistent('player', p, { sourceCard: card.name });
+      }
+      // Auto-discard intent: cards saying "discard N plays" set out.discards.
+      // Pop from the top of the player's playbook discard pile (placeholder
+      // — chooser flow will land in a follow-on UI pass).
+      if (out.discards) pmAutoDiscardFromHand('player', out.discards);
+      // Player_choice / scare reveal / install_persistent intents
+      if (Array.isArray(out.intents) && out.intents.length) {
+        pmHandlePlayIntents(out.intents, ctx, out, card);
+      }
+      // Surface extra notifications from ops (peek, swap, choice label, etc.)
+      if (out.notifications && out.notifications.length) {
+        extraNotifs = extraNotifs.concat(out.notifications);
       }
     }
     if (!structuredHandled) {
@@ -3671,6 +4126,25 @@ const PM = {
       const card = affordable[Math.floor(Math.random() * affordable.length)];
       const cost = pmEffectiveCost(card, 'cpu');
 
+      // Leave It To Chance: player's dice_gate persistent forces a roll.
+      // Failed gate cancels the play (cost still consumed).
+      const gate = pmCheckPlayGate('cpu');
+      if (gate && !gate.passed) {
+        this.cpuHD -= cost;
+        this.cpuPlayCount--;
+        const poolIdx0 = this.cpuPlayPool.indexOf(card);
+        if (poolIdx0 >= 0) this.cpuPlayPool.splice(poolIdx0, 1);
+        pmEnqueueNotification(`🎲 ${gate.roll} — ${card.name} cancelled by Leave It To Chance`);
+        continue;
+      }
+      if (gate && gate.passed) {
+        pmEnqueueNotification(`🎲 ${gate.roll} — ${card.name} survives the gate`);
+      }
+      // Scare Tactics: if the player pre-revealed last battle and
+      // CPU's play meets the cost threshold, fire the revealed
+      // card free for the player.
+      pmMaybeFireScareReveal('cpu', cost);
+
       this.cpuHD -= cost;
       this.cpuPlayCount--;
       // Remove from pool
@@ -3684,23 +4158,24 @@ const PM = {
       const entry = pmGetPlayEntry(card);
       if (entry && entry.effects && entry.effects.length) {
         const ctx = pmMakeExecContext('cpu');
+        ctx._sourceCard = card.name || '';
         const out = pmExecStructured(entry, ctx);
-        if (out.hasEffect) {
-          // Flip perspective back to queue's player/cpu convention
-          effect.playerDelta = out.oppDelta;
-          effect.cpuDelta = out.selfDelta;
-          // Route through applyHDRecover so persistent modifiers
-          // interpose. CPU's "self" is cpu; CPU's "opp" is player.
-          this.applyHDRecover('cpu',    out.selfHDDelta);
-          this.applyHDRecover('player', out.oppHDDelta);
-          structuredHandled = true;
-          // Surface peek/swap/choice notifications from CPU plays
-          if (out.notifications && out.notifications.length) {
-            PM._peekCallouts = (PM._peekCallouts || []).concat(out.notifications);
-          }
-          if (out.hasPersistent && entry.persistent) {
-            for (const p of entry.persistent) this.installPersistent('cpu', p);
-          }
+        // Flip perspective back to queue's player/cpu convention
+        effect.playerDelta = out.oppDelta;
+        effect.cpuDelta = out.selfDelta;
+        this.applyHDRecover('cpu',    out.selfHDDelta);
+        this.applyHDRecover('player', out.oppHDDelta);
+        structuredHandled = true;
+        // Surface peek/swap/choice notifications from CPU plays
+        if (out.notifications && out.notifications.length) {
+          PM._peekCallouts = (PM._peekCallouts || []).concat(out.notifications);
+        }
+        if (out.hasPersistent && entry.persistent) {
+          for (const p of entry.persistent) this.installPersistent('cpu', p, { sourceCard: card.name });
+        }
+        if (out.discards) pmAutoDiscardFromHand('cpu', out.discards);
+        if (Array.isArray(out.intents) && out.intents.length) {
+          pmHandlePlayIntents(out.intents, ctx, out, card);
         }
       }
       if (!structuredHandled) {
@@ -3753,9 +4228,15 @@ const PM = {
   // Pushes a banner-friendly summary into PM._activeEffectsLog so the
   // UI can render "what's currently in force" without re-walking
   // everything every frame.
-  installPersistent(owner, spec) {
+  installPersistent(owner, spec, opts) {
     if (!this._weaponTransforms) this._weaponTransforms = [];
     if (!this._persistents)      this._persistents = [];
+    // Source-card attribution. Direct installs pass it via opts;
+    // child installs (via install_persistent op) inherit from the
+    // parent's source through PM._inheritedInstallSource.
+    const sourceCard = (opts && opts.sourceCard)
+      || PM._inheritedInstallSource
+      || '';
     const eff = spec && spec.effect;
     if (eff && eff.op === 'weapon_transform') {
       const to = eff.to || '';
@@ -3767,6 +4248,7 @@ const PM = {
         target: eff.target || 'self',
         to: to,
         from: (eff.from && eff.from !== '') ? eff.from : null,
+        sourceCard,
       };
       this._weaponTransforms.push(t);
       this._appendActiveEffectsLog({
@@ -3776,7 +4258,7 @@ const PM = {
       });
       return;
     }
-    this._persistents.push({ owner, spec, installedAt: this.currentBattle });
+    this._persistents.push({ owner, spec, installedAt: this.currentBattle, sourceCard });
     const label = this._persistentSummaryLabel(spec, owner);
     if (label) this._appendActiveEffectsLog({ owner, label, kind: 'persistent' });
   },
@@ -3907,11 +4389,17 @@ const PM = {
           parts.push(`${inst.owner === 'player' ? 'CPU' : 'Your'} Hero ${oppDeltaToOwner > 0 ? '+' : ''}${oppDeltaToOwner}`);
         }
         if (out.notifications && out.notifications.length) parts.push(out.notifications.join(', '));
-        const prefix = trigger === 'on_battle_win'     ? 'Win trigger'
-                     : trigger === 'on_battle_loss'    ? 'Loss trigger'
-                     : trigger === 'on_plays_resolved' ? 'End-of-turn'
-                     : trigger === 'on_battle_start'   ? 'Battle start'
-                     : 'Trigger';
+        // Source-card-named prefix: "Make It, Take It (Win)" instead
+        // of bare "Win trigger". Falls back to the kind label when no
+        // source is recorded (legacy installs).
+        const kindLabel = trigger === 'on_battle_win'     ? 'Win'
+                        : trigger === 'on_battle_loss'    ? 'Loss'
+                        : trigger === 'on_plays_resolved' ? 'End-of-turn'
+                        : trigger === 'on_battle_start'   ? 'Battle start'
+                        : 'Trigger';
+        const prefix = inst.sourceCard
+          ? `${inst.sourceCard} (${kindLabel})`
+          : `${kindLabel} trigger`;
         pmEnqueueNotification(`${prefix}: ${parts.join(' — ')}`);
       }
     }
@@ -5493,22 +5981,100 @@ function initPractice(allCards) {
 
   // Mode radio
   view.querySelectorAll('input[name="practice-mode"]').forEach(radio => {
-    radio.addEventListener('change', e => { PM.mode = e.target.value; });
+    radio.addEventListener('change', e => {
+      PM.mode = e.target.value;
+      pmUpdateFormatRowVisibility();
+    });
   });
+
+  // Tab switching (Game Mode / Your Deck / CPU Deck)
+  view.querySelectorAll('.practice-setup-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.tab;
+      view.querySelectorAll('.practice-setup-tab').forEach(b => {
+        const isActive = b.dataset.tab === target;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+      view.querySelectorAll('.practice-setup-pane').forEach(p => {
+        const show = p.dataset.pane === target;
+        p.hidden = !show;
+        p.classList.toggle('active', show);
+      });
+    });
+  });
+
+  // Custom rules disclosure
+  const rulesToggle = $('practice-custom-rules-toggle');
+  const rulesPane = $('practice-custom-rules');
+  if (rulesToggle && rulesPane) {
+    rulesToggle.addEventListener('click', () => {
+      const expanded = rulesToggle.getAttribute('aria-expanded') === 'true';
+      rulesToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      rulesPane.hidden = expanded;
+    });
+  }
+
+  // Custom-rules segmented pickers (matchLength / startingHotDogs)
+  view.querySelectorAll('.practice-segmented').forEach(group => {
+    const ruleKey = group.dataset.rule;
+    if (!ruleKey) return;
+    group.querySelectorAll('.practice-seg').forEach(btn => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('.practice-seg').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const raw = btn.dataset.value;
+        PM.customRules[ruleKey] = (ruleKey === 'startingHotDogs') ? parseInt(raw, 10) : raw;
+        pmUpdateCustomRulesBadge();
+      });
+    });
+  });
+
+  // Hero-format select
+  const formatSel = $('practice-hero-format');
+  if (formatSel) {
+    formatSel.addEventListener('change', () => {
+      PM.customRules.heroFormat = formatSel.value;
+      pmUpdateCustomRulesBadge();
+      pmUpdateFormatBanners();
+    });
+  }
+  // Toggles
+  $('practice-super-ties')?.addEventListener('change', e => {
+    PM.customRules.superBreaksTies = e.target.checked;
+    pmUpdateCustomRulesBadge();
+  });
+  $('practice-sudden-death')?.addEventListener('change', e => {
+    PM.customRules.suddenDeath = e.target.checked;
+    pmUpdateCustomRulesBadge();
+  });
+
+  // Deck-select changes refresh the format-compliance banner
+  $('practice-player-select')?.addEventListener('change', pmUpdateFormatBanners);
+  $('practice-cpu-select')?.addEventListener('change', pmUpdateFormatBanners);
 
   // Populate saved-deck optgroups (once, lazily when setup is first shown)
   pmPopulateSavedDeckOptions();
 
-  // Start
-  $('btn-start-practice')?.addEventListener('click', async () => {
+  // Pre-fetch template-decks.json so the format-compliance banner can
+  // count cap-violators without a click-time fetch. Background fire.
+  if (!dbTemplateData) {
+    fetch('assets/data/template-decks.json')
+      .then(r => r.json())
+      .then(data => { dbTemplateData = data; pmUpdateFormatBanners(); })
+      .catch(() => {});
+  }
+
+  // Start — single handler, fired by any of the three tab Start buttons
+  const startHandler = async () => {
     const checked = view.querySelector('input[name="practice-mode"]:checked');
     PM.mode = checked ? checked.value : 'playmaker';
 
     const playerSpec = pmParseDeckSpec($('practice-player-select')?.value || 'random');
     const cpuSpec    = pmParseDeckSpec($('practice-cpu-select')?.value    || 'random');
 
-    const startBtn = $('btn-start-practice');
-    if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'PREPARING…'; }
+    const startBtns = view.querySelectorAll('.practice-start-btn:not(.practice-resume-btn)');
+    startBtns.forEach(b => { b.disabled = true; b.textContent = 'PREPARING…'; });
     let playerDeck = null, cpuDeck = null;
     try {
       [playerDeck, cpuDeck] = await Promise.all([
@@ -5518,7 +6084,7 @@ function initPractice(allCards) {
     } catch (err) {
       console.warn('Deck resolve failed; using random pools.', err);
     } finally {
-      if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'START PRACTICE'; }
+      startBtns.forEach(b => { b.disabled = false; b.textContent = 'START PRACTICE'; });
     }
 
     // Build playmat HTML once
@@ -5540,7 +6106,91 @@ function initPractice(allCards) {
     pmUpdateAll();
     pmShowSetupHonorsRoll();
     pmMaybeShowTutorial();
-  });
+  };
+  $('btn-start-practice')?.addEventListener('click', startHandler);
+  $('btn-start-practice-your-deck')?.addEventListener('click', startHandler);
+  $('btn-start-practice-cpu-deck')?.addEventListener('click', startHandler);
+
+  // Initial UI sync
+  pmUpdateCustomRulesBadge();
+  pmUpdateFormatBanners();
+  pmUpdateFormatRowVisibility();
+}
+
+// Hide the format row outside Playmaker — the deck-format taxonomy
+// (Standard / SPEC / SPEC+ / Limited) only applies to full Playmaker
+// games. Mirrors iOS PracticeSetupView's conditional row.
+function pmUpdateFormatRowVisibility() {
+  const row = document.getElementById('practice-format-row');
+  if (!row) return;
+  row.hidden = (PM.mode !== 'playmaker');
+}
+
+// Sync the "N overrides" badge on the disclosure header.
+function pmUpdateCustomRulesBadge() {
+  const badge = document.getElementById('practice-custom-rules-badge');
+  if (!badge) return;
+  const c = PM.customRules || {};
+  let n = 0;
+  if (c.matchLength && c.matchLength !== 'bo7') n++;
+  if (c.heroFormat && c.heroFormat !== 'standard') n++;
+  if (c.startingHotDogs != null && c.startingHotDogs !== 10) n++;
+  if (c.superBreaksTies === false) n++;
+  if (c.suddenDeath === false) n++;
+  badge.hidden = n === 0;
+  badge.textContent = `${n} override${n === 1 ? '' : 's'}`;
+}
+
+// Render format-compliance banner under each deck dropdown.
+// - Hidden when format is standard.
+// - Cyan checkmark when the selected source is fully compliant.
+// - Amber warning when a template has heroes above the active cap.
+function pmUpdateFormatBanners() {
+  const format = (PM.customRules && PM.customRules.heroFormat) || 'standard';
+  const cap = pmFormatPowerCap(format);
+  const size = pmFormatHeroDeckSize(format);
+
+  function paint(banner, sel) {
+    if (!banner) return;
+    if (format === 'standard' || PM.mode !== 'playmaker') {
+      banner.hidden = true;
+      return;
+    }
+    const value = sel?.value || 'random';
+    const spec = pmParseDeckSpec(value);
+    // Template + saved decks resolve async, so we can't show a precount
+    // of cap-violators here without paying a fetch latency. The format-
+    // aware builder + padHeroDeck still filter at startMatch time; this
+    // banner just communicates the active format restriction so the user
+    // isn't surprised.
+    let bad = 0;
+    if (spec && spec.kind === 'template' && dbTemplateData) {
+      const tpl = dbTemplateData[spec.key];
+      if (tpl && Array.isArray(tpl.heroIds)) {
+        const cap = pmFormatPowerCap(format);
+        if (cap != null && PM.allCards && PM.allCards.length) {
+          const byId = {};
+          for (const c of PM.allCards) if (c.bobaId) byId[c.bobaId] = c;
+          for (const id of tpl.heroIds) {
+            const card = byId[id];
+            if (card && (card.power || 0) > cap) bad++;
+          }
+        }
+      }
+    }
+    const labelMap = { spec: 'SPEC · 160 power cap', specPlus: 'SPEC+ · 200 power cap', limited: 'Limited · 40-card deck' };
+    const tag = labelMap[format] || format;
+    if (bad > 0) {
+      banner.className = 'practice-format-banner warning';
+      banner.textContent = `${tag} · ${bad} hero${bad === 1 ? '' : 'es'} in this selection will be filtered to fit`;
+    } else {
+      banner.className = 'practice-format-banner compliant';
+      banner.textContent = `${tag} · ${size}-card hero deck · ready to play`;
+    }
+    banner.hidden = false;
+  }
+  paint(document.getElementById('practice-player-format-banner'), document.getElementById('practice-player-select'));
+  paint(document.getElementById('practice-cpu-format-banner'),    document.getElementById('practice-cpu-select'));
 }
 
 /// Setup overlay — animates the honors roll (1d6 per side) before

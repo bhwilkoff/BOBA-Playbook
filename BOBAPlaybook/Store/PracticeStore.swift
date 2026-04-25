@@ -1124,6 +1124,20 @@ final class PracticeStore {
         playerScore = 0; cpuScore = 0
         playerHotDogs = 10; cpuHotDogs = 10
         cpuPlaysRemaining = 30
+        // Clear every overlay/callout slot so a previous match's
+        // modal state can't leak into the new one. Without this,
+        // a `pendingReveal` from a prior CPU dice roll could leave
+        // an invisible-tap-blocking layer over the playmat that
+        // would prevent the user from interacting with the bench.
+        pendingReveal = nil
+        currentCpuPlay = nil
+        cpuPlayQueue = []
+        cpuCallouts = []
+        cpuSubCallout = nil
+        lastEffectCallout = nil
+        peekedCards = []
+        pendingRecycleCard = nil
+        pendingRecycleVictimSummary = ""
         // Roll 1d6 per side for Honors. High roll wins, ties re-roll.
         // Surfaces via `pendingSetupHonors` so the UI can play a
         // dedicated overlay before the first battle starts.

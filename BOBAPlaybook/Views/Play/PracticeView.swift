@@ -1022,6 +1022,27 @@ private struct DiceCoinRevealOverlay: View {
         }
     }
 
+    // Extracted: the imperative if/else chain that computes `label`
+    // returns `()` inside a @ViewBuilder, which the result builder
+    // can't accept. Wrapping it in a helper isolates the computation
+    // so only the final Text reaches the parent body.
+    private var versusOutcomeLabel: some View {
+        let actorRoll = reveal.diceRolls[0]
+        let oppRoll   = reveal.diceRolls[1]
+        let label: String
+        if actorRoll == oppRoll {
+            label = "TIE — no effect"
+        } else if actorRoll > oppRoll {
+            label = reveal.side == .player ? "YOU WIN THE ROLL" : "CPU WINS THE ROLL"
+        } else {
+            label = reveal.side == .player ? "CPU WINS THE ROLL" : "YOU WIN THE ROLL"
+        }
+        return Text(label)
+            .font(Design.Fonts.mono(12, weight: .bold))
+            .foregroundStyle(Design.Colors.textPrimary)
+            .tracking(1.2)
+    }
+
     var body: some View {
         ZStack {
             // Dim backdrop blocks taps from reaching anything underneath
@@ -1068,20 +1089,7 @@ private struct DiceCoinRevealOverlay: View {
                         .foregroundStyle(Design.Colors.textSecondary)
                         .tracking(1.5)
                 } else if settled, reveal.kind == .versus, reveal.diceRolls.count == 2 {
-                    let actorRoll = reveal.diceRolls[0]
-                    let oppRoll   = reveal.diceRolls[1]
-                    let label: String
-                    if actorRoll == oppRoll {
-                        label = "TIE — no effect"
-                    } else if actorRoll > oppRoll {
-                        label = reveal.side == .player ? "YOU WIN THE ROLL" : "CPU WINS THE ROLL"
-                    } else {
-                        label = reveal.side == .player ? "CPU WINS THE ROLL" : "YOU WIN THE ROLL"
-                    }
-                    Text(label)
-                        .font(Design.Fonts.mono(12, weight: .bold))
-                        .foregroundStyle(Design.Colors.textPrimary)
-                        .tracking(1.2)
+                    versusOutcomeLabel
                 }
 
                 // Continue button — appears once the dice/coin have

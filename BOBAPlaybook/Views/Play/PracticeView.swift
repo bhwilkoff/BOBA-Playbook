@@ -1008,7 +1008,14 @@ private struct DieFace: View {
     let tick: Int
     let accent: Color
 
-    private static let glyphs = ["⚀","⚁","⚂","⚃","⚄","⚅"]
+    /// SF Symbol names for each die face. SF Symbols sit on the
+    /// proper baseline and center inside their layout box, unlike
+    /// the Unicode dice characters (⚀⚁⚂⚃⚄⚅) which render with
+    /// their ink stuck in the lower-left of the bounding box.
+    private static let symbols = [
+        "die.face.1.fill", "die.face.2.fill", "die.face.3.fill",
+        "die.face.4.fill", "die.face.5.fill", "die.face.6.fill"
+    ]
 
     private var displayedRoll: Int {
         if settled { return max(1, min(6, finalRoll)) }
@@ -1017,9 +1024,10 @@ private struct DieFace: View {
 
     var body: some View {
         VStack(spacing: 2) {
-            Text(Self.glyphs[displayedRoll - 1])
-                .font(.system(size: 44, weight: .bold))
+            Image(systemName: Self.symbols[displayedRoll - 1])
+                .font(.system(size: 38, weight: .regular))
                 .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             Text("\(displayedRoll)")
                 .font(Design.Fonts.mono(13, weight: .bold))
                 .foregroundStyle(accent)
@@ -1169,7 +1177,11 @@ private struct CompactDieFace: View {
     let tick: Int
     let accent: Color
 
-    private static let glyphs = ["⚀","⚁","⚂","⚃","⚄","⚅"]
+    /// SF Symbols, not Unicode glyphs — see DieFace for rationale.
+    private static let symbols = [
+        "die.face.1.fill", "die.face.2.fill", "die.face.3.fill",
+        "die.face.4.fill", "die.face.5.fill", "die.face.6.fill"
+    ]
 
     private var displayedRoll: Int {
         if settled { return max(1, min(6, finalRoll)) }
@@ -1177,8 +1189,8 @@ private struct CompactDieFace: View {
     }
 
     var body: some View {
-        Text(Self.glyphs[displayedRoll - 1])
-            .font(.system(size: 30, weight: .bold))
+        Image(systemName: Self.symbols[displayedRoll - 1])
+            .font(.system(size: 26, weight: .regular))
             .foregroundStyle(.white)
             .frame(width: 44, height: 44)
             .background(

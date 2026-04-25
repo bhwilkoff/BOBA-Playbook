@@ -1259,10 +1259,11 @@ final class PracticeStore {
             // card name when available; otherwise fall back to the
             // callout message ("CPU plays Combo Deal").
             let label = play.card?.name ?? play.message
-            if play.cpuDelta != 0 {
-                battles[currentBattle].cpuBreakdown.append(
-                    .init(label: label, delta: play.cpuDelta))
-            }
+            // Always log the CPU's played card so the breakdown
+            // panel surfaces it as a tappable row, even when its
+            // power delta is zero (Forced Substitution, blocks, etc.).
+            battles[currentBattle].cpuBreakdown.append(
+                .init(label: label, delta: play.cpuDelta))
             if play.playerDelta != 0 {
                 battles[currentBattle].playerBreakdown.append(
                     .init(label: "\(label) (CPU played)", delta: play.playerDelta))
@@ -1391,23 +1392,27 @@ final class PracticeStore {
            let effects = entry["effects"] as? [[String: Any]], !effects.isEmpty {
             let ctx = makeExecContext(self_: .player)
             let out = PlayEffectExecutor.run(entry: entry, ctx: ctx)
-            if out.hasEffect {
-                playerDelta = out.selfDelta
-                cpuDelta = out.oppDelta
-                applyHDRecover(side: .player, amount: out.selfHDDelta)
-                applyHDRecover(side: .cpu,    amount: out.oppHDDelta)
-                if !out.coinFlips.isEmpty || !out.diceRolls.isEmpty {
-                    pendingReveal = RevealState(side: .player, coinFlips: out.coinFlips, diceRolls: out.diceRolls)
-                }
-                if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
-                    for p in persistent { installPersistent(owner: .player, spec: p) }
-                }
-                let notes = applyIntents(out, actingSide: .player)
-                // Accumulate notifications for later display
-                if !notes.isEmpty {
-                    pendingPlayerNotes = notes
-                }
-                structuredHandled = true
+            // Mark the card as structured-handled IF it has a JSON entry,
+            // regardless of whether `out.hasEffect` is true. A
+            // condition-gated card (To Fight Another Day, Turn the
+            // Tide, Comeback Time, etc.) correctly evaluates its
+            // condition to false on Battle 1; without this gate the
+            // legacy regex resolver would run AS A FALLBACK and apply
+            // the bonus unconditionally, ignoring the JSON's logic.
+            structuredHandled = true
+            playerDelta = out.selfDelta
+            cpuDelta = out.oppDelta
+            applyHDRecover(side: .player, amount: out.selfHDDelta)
+            applyHDRecover(side: .cpu,    amount: out.oppHDDelta)
+            if !out.coinFlips.isEmpty || !out.diceRolls.isEmpty {
+                pendingReveal = RevealState(side: .player, coinFlips: out.coinFlips, diceRolls: out.diceRolls)
+            }
+            if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
+                for p in persistent { installPersistent(owner: .player, spec: p) }
+            }
+            let notes = applyIntents(out, actingSide: .player)
+            if !notes.isEmpty {
+                pendingPlayerNotes = notes
             }
         }
         if !structuredHandled {
@@ -1420,12 +1425,11 @@ final class PracticeStore {
         battles[currentBattle].cpuEffectPower += cpuDelta
         // UX#3 — record per-modifier breakdown so the Resolution
         // overlay can itemize the math instead of showing a single
-        // +N total. Each play that produced a delta becomes its own
-        // line item; persistents add their own entries when they fire.
-        if playerDelta != 0 {
-            battles[currentBattle].playerBreakdown.append(
-                .init(label: card.name, delta: playerDelta))
-        }
+        // +N total. Every played card gets a line item (even when
+        // its power delta is 0) so coaches can review which cards
+        // actually fired and tap through to their effect text.
+        battles[currentBattle].playerBreakdown.append(
+            .init(label: card.name, delta: playerDelta))
         if cpuDelta != 0 {
             battles[currentBattle].cpuBreakdown.append(
                 .init(label: "\(card.name) (you played)", delta: cpuDelta))
@@ -1705,21 +1709,22 @@ final class PracticeStore {
                let effects = entry["effects"] as? [[String: Any]], !effects.isEmpty {
                 let ctx = makeExecContext(self_: .cpu)
                 let out = PlayEffectExecutor.run(entry: entry, ctx: ctx)
-                if out.hasEffect {
-                    // CPU's "self" is cpu; map out.selfDelta → cpuDelta, out.oppDelta → playerDelta
-                    cpuDelta = out.selfDelta
-                    playerDelta = out.oppDelta
-                    applyHDRecover(side: .cpu,    amount: out.selfHDDelta)
-                    applyHDRecover(side: .player, amount: out.oppHDDelta)
-                    capturedCoinFlips = out.coinFlips
-                    capturedDiceRolls = out.diceRolls
-                    if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
-                        for p in persistent { installPersistent(owner: .cpu, spec: p) }
-                    }
-                    let notes = applyIntents(out, actingSide: .cpu)
-                    cpuLastPlayNotes = notes
-                    structuredHandled = true
+                // Mark structured-handled regardless of out.hasEffect
+                // — see player-side comment. Prevents the legacy regex
+                // resolver from overriding a JSON condition that
+                // correctly evaluated to false.
+                structuredHandled = true
+                cpuDelta = out.selfDelta
+                playerDelta = out.oppDelta
+                applyHDRecover(side: .cpu,    amount: out.selfHDDelta)
+                applyHDRecover(side: .player, amount: out.oppHDDelta)
+                capturedCoinFlips = out.coinFlips
+                capturedDiceRolls = out.diceRolls
+                if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
+                    for p in persistent { installPersistent(owner: .cpu, spec: p) }
                 }
+                let notes = applyIntents(out, actingSide: .cpu)
+                cpuLastPlayNotes = notes
             }
             if !structuredHandled {
                 let legacy = Self.resolveEffect(card: card, playerCard: battles[currentBattle].cpuCard, cpuCard: battles[currentBattle].playerCard)
@@ -1965,6 +1970,20 @@ final class PracticeStore {
             inst.appliedAtBattle    = currentBattle
             inst.appliedPlayerDelta += playerDelta
             inst.appliedCpuDelta    += cpuDelta
+            // Persistent effects can also produce HD changes (e.g.
+            // Lunch Table's `hd_recover from:"discard" amount:2` at
+            // battle_start). Without this pass, those HD deltas were
+            // silently dropped because applyIntents only walks the
+            // intents array, not the bare `selfHDDelta` / `oppHDDelta`
+            // fields that hd_recover writes to.
+            let ownerSide = inst.owner
+            let oppSide: PlayExecContext.Side = ownerSide == .player ? .cpu : .player
+            if out.selfHDDelta != 0 {
+                applyHDRecover(side: ownerSide, amount: out.selfHDDelta)
+            }
+            if out.oppHDDelta != 0 {
+                applyHDRecover(side: oppSide, amount: out.oppHDDelta)
+            }
             // UX#3 — record itemized contribution for the Resolution
             // overlay. Label uses the trigger so coaches can see "End-
             // of-turn: Steel Resolve" rather than a bare delta.

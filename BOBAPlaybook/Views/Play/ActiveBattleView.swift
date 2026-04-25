@@ -229,20 +229,27 @@ struct ActiveBattleView: View {
     private let breakdownContribsHeight: CGFloat = 36
 
     private var powerBreakdownPanel: some View {
-        HStack(alignment: .top, spacing: Design.Spacing.sm) {
+        // Pool of every card played in this battle on either side —
+        // used to resolve a contrib row's label back to its Card so
+        // the row can open the same PlayReviewSheet the chips opened.
+        let allPlays = slot.playerPlayedCards + slot.cpuPlayedCards
+
+        return HStack(alignment: .top, spacing: Design.Spacing.sm) {
             powerBreakdownColumn(
                 title: "YOU",
                 base: slot.playerTransformedToHotDog ? 0 : (slot.playerCard?.power ?? 0),
                 contribs: slot.playerBreakdown,
                 final: slot.playerFinalPower,
-                won: slot.result == .win
+                won: slot.result == .win,
+                playPool: allPlays
             )
             powerBreakdownColumn(
                 title: "CPU",
                 base: slot.cpuTransformedToHotDog ? 0 : (slot.cpuCard?.power ?? 0),
                 contribs: slot.cpuBreakdown,
                 final: slot.cpuFinalPower,
-                won: slot.result == .lose
+                won: slot.result == .lose,
+                playPool: allPlays
             )
         }
         .padding(.horizontal, Design.Spacing.sm)
@@ -252,7 +259,18 @@ struct ActiveBattleView: View {
         .frame(height: breakdownPanelHeight)
     }
 
-    private func powerBreakdownColumn(title: String, base: Int, contribs: [PowerContribution], final: Int, won: Bool) -> some View {
+    /// Strip parenthetical attribution suffixes the engine appends to
+    /// disambiguate cross-side contributions ("Weapon Tangle (you
+    /// played)") so the bare card name can be matched against the
+    /// played-card pool.
+    private func cardNameFromLabel(_ label: String) -> String {
+        if let openParen = label.firstIndex(of: "(") {
+            return label[..<openParen].trimmingCharacters(in: .whitespaces)
+        }
+        return label
+    }
+
+    private func powerBreakdownColumn(title: String, base: Int, contribs: [PowerContribution], final: Int, won: Bool, playPool: [Card]) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 4) {
                 Text(title)
@@ -270,17 +288,7 @@ struct ActiveBattleView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 1) {
                     ForEach(contribs) { c in
-                        HStack(spacing: 4) {
-                            Text(c.label)
-                                .font(Design.Fonts.mono(11))
-                                .foregroundStyle(Design.Colors.textSecondary)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Spacer(minLength: 0)
-                            Text(c.delta > 0 ? "+\(c.delta)" : "\(c.delta)")
-                                .font(Design.Fonts.mono(11, weight: .bold))
-                                .foregroundStyle(c.delta > 0 ? Design.Colors.bobaCyan : Color(hex: "C0392B"))
-                        }
+                        contribRow(c, playPool: playPool)
                     }
                 }
             }
@@ -307,6 +315,40 @@ struct ActiveBattleView: View {
                         ? Color(hex: "4CAF50").opacity(0.5)
                         : Design.Colors.glassBorder, lineWidth: 1))
         )
+    }
+
+    /// One contribution line. If we can resolve a Card for the row's
+    /// label, the row becomes a Button that opens PlayReviewSheet —
+    /// preserving the tap-to-review behavior that lived on the chip
+    /// strip before chips were hidden post-resolution.
+    @ViewBuilder
+    private func contribRow(_ c: PowerContribution, playPool: [Card]) -> some View {
+        let baseName = cardNameFromLabel(c.label)
+        let resolvedCard = playPool.first(where: { $0.name == baseName })
+        let row = HStack(spacing: 4) {
+            Text(c.label)
+                .font(Design.Fonts.mono(11))
+                .foregroundStyle(resolvedCard != nil
+                                 ? Design.Colors.bobaCyan
+                                 : Design.Colors.textSecondary)
+                .underline(resolvedCard != nil, color: Design.Colors.bobaCyan.opacity(0.4))
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: 0)
+            Text(c.delta > 0 ? "+\(c.delta)" : "\(c.delta)")
+                .font(Design.Fonts.mono(11, weight: .bold))
+                .foregroundStyle(c.delta > 0 ? Design.Colors.bobaCyan : Color(hex: "C0392B"))
+        }
+        if let card = resolvedCard {
+            Button {
+                inspectedPlay = InspectedPlay(card: card)
+            } label: {
+                row.contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        } else {
+            row
+        }
     }
 
     /// Horizontal strip showing every play card used by this side

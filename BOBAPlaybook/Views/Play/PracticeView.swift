@@ -708,8 +708,6 @@ struct PracticeView: View {
                         }
                     }
 
-                    Spacer(minLength: 0)
-
                     Button {
                         withAnimation(.easeOut(duration: 0.2)) {
                             store.dismissCpuPlay()
@@ -723,9 +721,11 @@ struct PracticeView: View {
                             .background(Capsule().fill(Design.Colors.bobaViolet))
                     }
                     .buttonStyle(.plain)
+                    .padding(.top, 4)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .fixedSize(horizontal: false, vertical: true)
             .padding(Design.Spacing.lg)
             .frame(maxWidth: 540)
             .background(RoundedRectangle(cornerRadius: 16).fill(Design.Colors.surface))

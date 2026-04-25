@@ -223,6 +223,12 @@ final class PracticeStore {
         let installedAt: Int   // battle index when installed
         /// Spec is [String: Any]; we carry it as JSON Data for Codable.
         let specData: Data
+        /// Name of the play card that installed this persistent. Used
+        /// to label trigger callouts and breakdown rows ("Baby Phoenix:
+        /// +10" instead of bare "End-of-turn: +10"). Empty for child
+        /// persistents installed by other persistents (those inherit
+        /// the parent's source via the install path).
+        var sourceCard: String = ""
         var spec: [String: Any] {
             (try? JSONSerialization.jsonObject(with: specData) as? [String: Any]) ?? [:]
         }
@@ -232,10 +238,11 @@ final class PracticeStore {
         var appliedCpuDelta: Int = 0
         var appliedAtBattle: Int = -1
 
-        init(owner: PlayExecContext.Side, spec: [String: Any], installedAt: Int) {
+        init(owner: PlayExecContext.Side, spec: [String: Any], installedAt: Int, sourceCard: String = "") {
             self.owner = owner
             self.installedAt = installedAt
             self.specData = (try? JSONSerialization.data(withJSONObject: spec)) ?? Data("{}".utf8)
+            self.sourceCard = sourceCard
         }
     }
     var persistents: [PersistentEffect] = []
@@ -1006,7 +1013,11 @@ final class PracticeStore {
             }
 
         case .installPersistent(let owner, let spec):
-            installPersistent(owner: owner, spec: spec)
+            // Child installs (from `install_persistent` op fired
+            // inside another persistent) inherit the parent's source
+            // card name via `_inheritedInstallSource`. Set by the
+            // firing path; cleared after applyIntents returns.
+            installPersistent(owner: owner, spec: spec, sourceCard: _inheritedInstallSource)
 
         case .installBlock(let side, let kind, let scope):
             let entry = BlockEntry(kind: kind, scope: scope, installedAt: currentBattle)
@@ -1150,6 +1161,13 @@ final class PracticeStore {
         let pool: [Card]
     }
     var pendingHeroDiscardChoice: HeroDiscardChoice? = nil
+
+    /// Transient: source-card name to thread through the install
+    /// pipeline when `installPersistent` is reached via the intent
+    /// path (i.e. fired by another persistent's `install_persistent`
+    /// op). Set by `firePersistentTriggers` before calling
+    /// `applyIntents`, cleared after. Empty string disables.
+    private var _inheritedInstallSource: String = ""
 
     func confirmHeroDiscardSwap(_ chosen: Card) {
         guard battles.indices.contains(currentBattle) else { return }
@@ -1603,17 +1621,10 @@ final class PracticeStore {
             if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
                 let ctxForCheck = makeExecContext(self_: .player)
                 for p in persistent {
-                    // Top-level `if` on a persistent gates whether
-                    // the install fires at all. Used by cards like
-                    // Pick Your Poison ("If you lost the previous
-                    // Battle, ...") where the condition needs to be
-                    // evaluated NOW (against the current battle's
-                    // state) rather than at fire time (when the
-                    // "previous" battle reference would have shifted).
                     if let ifCond = p["if"] as? [String: Any] {
                         guard PlayEffectExecutor.evalCondition(ifCond, ctx: ctxForCheck) else { continue }
                     }
-                    installPersistent(owner: .player, spec: p)
+                    installPersistent(owner: .player, spec: p, sourceCard: card.name)
                 }
             }
             let notes = applyIntents(out, actingSide: .player)
@@ -1954,7 +1965,7 @@ final class PracticeStore {
                         if let ifCond = p["if"] as? [String: Any] {
                             guard PlayEffectExecutor.evalCondition(ifCond, ctx: ctxForCheck) else { continue }
                         }
-                        installPersistent(owner: .cpu, spec: p)
+                        installPersistent(owner: .cpu, spec: p, sourceCard: card.name)
                     }
                 }
                 let notes = applyIntents(out, actingSide: .cpu)
@@ -2221,11 +2232,18 @@ final class PracticeStore {
             // UX#3 — record itemized contribution for the Resolution
             // overlay. Label uses the trigger so coaches can see "End-
             // of-turn: Steel Resolve" rather than a bare delta.
-            let triggerLabel = trigger == "on_plays_resolved" ? "End-of-turn"
-                              : trigger == "on_battle_win"    ? "Win trigger"
-                              : trigger == "on_battle_loss"   ? "Loss trigger"
+            // Use the source card's name when known so the breakdown
+            // reads "Baby Phoenix" / "2017 Cinderellas" instead of
+            // generic "End-of-turn" / "Battle start" — the source name
+            // is set when the persistent was installed.
+            let triggerKind = trigger == "on_plays_resolved" ? "End-of-turn"
+                              : trigger == "on_battle_win"    ? "Win"
+                              : trigger == "on_battle_loss"   ? "Loss"
                               : trigger == "on_battle_start"  ? "Battle start"
                               : "Trigger"
+            let triggerLabel = inst.sourceCard.isEmpty
+                ? triggerKind
+                : "\(inst.sourceCard) (\(triggerKind))"
             if playerDelta != 0 {
                 slot.playerBreakdown.append(.init(label: triggerLabel, delta: playerDelta))
             }
@@ -2233,10 +2251,15 @@ final class PracticeStore {
                 slot.cpuBreakdown.append(.init(label: triggerLabel, delta: cpuDelta))
             }
 
+            // Thread the source card name through any child install
+            // intent. Set before applyIntents, cleared after.
+            _inheritedInstallSource = inst.sourceCard
+
             // Apply any structured intents (install next-battle
             // persistent, discard hand, recover HDs, etc.) exactly
             // like a normal play would.
             _ = applyIntents(out, actingSide: inst.owner)
+            _inheritedInstallSource = ""
 
             // Surface trigger firings to the user — without this,
             // on_battle_win / on_plays_resolved / on_battle_start
@@ -2568,7 +2591,7 @@ final class PracticeStore {
     /// Every install also pushes a callout into `cpuCallouts` so the
     /// playmat surfaces what was just installed — without a callout the
     /// user has no visual signal that a persistent is in force.
-    func installPersistent(owner: PlayExecContext.Side, spec: [String: Any]) {
+    func installPersistent(owner: PlayExecContext.Side, spec: [String: Any], sourceCard: String = "") {
         if let effect = spec["effect"] as? [String: Any],
            (effect["op"] as? String) == "weapon_transform" {
             let scope = (spec["scope"] as? String) ?? "rest_of_game"
@@ -2591,10 +2614,19 @@ final class PracticeStore {
             ))
             return
         }
-        persistents.append(PersistentEffect(owner: owner, spec: spec, installedAt: currentBattle))
+        persistents.append(PersistentEffect(
+            owner: owner,
+            spec: spec,
+            installedAt: currentBattle,
+            sourceCard: sourceCard
+        ))
         if let label = persistentSummaryLabel(spec: spec, owner: owner) {
+            // Prepend source card name when known so the install
+            // callout reads as "Baby Phoenix · End-of-turn +10"
+            // instead of "End-of-turn +10."
+            let prefix = sourceCard.isEmpty ? "" : "\(sourceCard) · "
             cpuCallouts.append(ActionCallout(
-                message: label,
+                message: prefix + label,
                 icon: "infinity",
                 color: "00F5FF"
             ))

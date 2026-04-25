@@ -246,10 +246,16 @@
           "scope": "rest_of_game",
           "trigger": "on_battle_win",
           "effect": {
-            "op": "power",
-            "target": "self",
-            "delta": 5,
-            "applies_to": "next_battle"
+            "op": "install_persistent",
+            "spec": {
+              "scope": "next_battle",
+              "trigger": "on_battle_start",
+              "effect": {
+                "op": "power",
+                "target": "self",
+                "delta": 5
+              }
+            }
           }
         }
       ]
@@ -5032,10 +5038,16 @@
           "scope": "rest_of_game",
           "trigger": "on_battle_win",
           "effect": {
-            "op": "power",
-            "target": "self",
-            "delta": 5,
-            "applies_to": "next_battle"
+            "op": "install_persistent",
+            "spec": {
+              "scope": "next_battle",
+              "trigger": "on_battle_start",
+              "effect": {
+                "op": "power",
+                "target": "self",
+                "delta": 5
+              }
+            }
           }
         }
       ]

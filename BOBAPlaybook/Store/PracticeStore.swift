@@ -163,6 +163,13 @@ final class PracticeStore {
         var card: Card? = nil // the play card (for CPU play display)
         var playerDelta: Int = 0
         var cpuDelta: Int = 0
+        // Dice / coin results produced by this play's executor. Held
+        // here (rather than fired immediately when the executor runs)
+        // so the reveal overlay can play AFTER the user has seen the
+        // CPU play overlay — i.e., timed to the card that triggered
+        // the roll instead of bursting at the start of the play phase.
+        var coinFlips: [Bool] = []
+        var diceRolls: [Int] = []
     }
     var cpuCallouts: [ActionCallout] = []
     var lastEffectCallout: ActionCallout? = nil  // coin flip / dice result
@@ -1246,6 +1253,18 @@ final class PracticeStore {
                 battles[currentBattle].playerBreakdown.append(
                     .init(label: "\(label) (CPU played)", delta: play.playerDelta))
             }
+            // Now that the user has acknowledged THIS specific CPU
+            // play, surface its dice/coin reveal (if any). This is
+            // the timing fix — previously every CPU roll fired during
+            // the executor sweep at start-of-phase, before any of
+            // the play overlays appeared.
+            if !play.coinFlips.isEmpty || !play.diceRolls.isEmpty {
+                pendingReveal = RevealState(
+                    side: .cpu,
+                    coinFlips: play.coinFlips,
+                    diceRolls: play.diceRolls
+                )
+            }
         }
         if cpuPlayQueue.isEmpty {
             currentCpuPlay = nil
@@ -1663,6 +1682,11 @@ final class PracticeStore {
             var cpuDelta = 0
             var playerDelta = 0
             var structuredHandled = false
+            // Per-card reveal data — captured here so the dice/coin
+            // animation can play AFTER the user dismisses this card's
+            // overlay, instead of bursting at start-of-phase.
+            var capturedCoinFlips: [Bool] = []
+            var capturedDiceRolls: [Int] = []
             if let entry = PlayEffects.entry(for: card.name),
                let effects = entry["effects"] as? [[String: Any]], !effects.isEmpty {
                 let ctx = makeExecContext(self_: .cpu)
@@ -1673,9 +1697,8 @@ final class PracticeStore {
                     playerDelta = out.oppDelta
                     applyHDRecover(side: .cpu,    amount: out.selfHDDelta)
                     applyHDRecover(side: .player, amount: out.oppHDDelta)
-                    if !out.coinFlips.isEmpty || !out.diceRolls.isEmpty {
-                        pendingReveal = RevealState(side: .cpu, coinFlips: out.coinFlips, diceRolls: out.diceRolls)
-                    }
+                    capturedCoinFlips = out.coinFlips
+                    capturedDiceRolls = out.diceRolls
                     if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
                         for p in persistent { installPersistent(owner: .cpu, spec: p) }
                     }
@@ -1705,7 +1728,9 @@ final class PracticeStore {
                 color: "8B00FF",
                 card: card,
                 playerDelta: playerDelta,
-                cpuDelta: cpuDelta
+                cpuDelta: cpuDelta,
+                coinFlips: capturedCoinFlips,
+                diceRolls: capturedDiceRolls
             ))
         }
 

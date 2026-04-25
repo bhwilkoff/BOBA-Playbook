@@ -309,11 +309,13 @@ struct ActiveBattleView: View {
     /// each contribution becomes its own line item with a +/- delta.
     /// Foots to the same `*FinalPower` value the engine compared.
     /// Hard-coded total height of the post-battle breakdown panel.
-    /// Smaller = more room for the hero cards below it. The contribs
-    /// list scrolls within `breakdownContribsHeight` so even 5+ plays
-    /// per side can never push the panel past this number.
-    private let breakdownPanelHeight: CGFloat = 92
-    private let breakdownContribsHeight: CGFloat = 36
+    /// Smaller = more room for the hero cards below it. Sized for the
+    /// realistic worst case (4 plays + Heads-Up + a persistent trigger
+    /// = 6 contribs per side) so it never scrolls in normal play. If
+    /// a coach somehow chains 7+ contribs in one battle, the inner
+    /// container falls back to scrolling rather than overflowing.
+    private let breakdownPanelHeight: CGFloat = 130
+    private let breakdownContribsHeight: CGFloat = 78
 
     private var powerBreakdownPanel: some View {
         // Pool of every card played in this battle on either side —
@@ -358,7 +360,7 @@ struct ActiveBattleView: View {
     }
 
     private func powerBreakdownColumn(title: String, base: Int, contribs: [PowerContribution], final: Int, won: Bool, playPool: [Card]) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 4) {
                 Text(title)
                     .font(Design.Fonts.mono(10, weight: .bold))
@@ -369,9 +371,11 @@ struct ActiveBattleView: View {
                     .font(Design.Fonts.mono(10))
                     .foregroundStyle(Design.Colors.textMuted)
             }
-            // Contribution rows live in a fixed-height scroll viewport
-            // so 5+ plays per side never expand the panel — they just
-            // become scrollable. Base + Total stay outside the scroller.
+            // Contribution rows. Sized for up to 6 rows at the row's
+            // natural height (~14pt). The ScrollView remains as a
+            // fallback if a battle chains more contribs than that —
+            // realistic worst case is 4 plays + Heads-Up + 1 trigger,
+            // which fits in the fixed viewport without scrolling.
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 1) {
                     ForEach(contribs) { c in
@@ -387,12 +391,12 @@ struct ActiveBattleView: View {
                     .foregroundStyle(won ? Color(hex: "4CAF50") : Design.Colors.textSecondary)
                 Spacer(minLength: 0)
                 Text("\(final)")
-                    .font(Design.Fonts.mono(13, weight: .bold))
+                    .font(Design.Fonts.mono(14, weight: .bold))
                     .foregroundStyle(won ? Color(hex: "4CAF50") : Design.Colors.textPrimary)
             }
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .padding(.vertical, 5)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 6)
@@ -414,7 +418,7 @@ struct ActiveBattleView: View {
         let resolvedCard = playPool.first(where: { $0.name == baseName })
         let row = HStack(spacing: 4) {
             Text(c.label)
-                .font(Design.Fonts.mono(11))
+                .font(Design.Fonts.mono(12))
                 .foregroundStyle(resolvedCard != nil
                                  ? Design.Colors.bobaCyan
                                  : Design.Colors.textSecondary)
@@ -423,7 +427,7 @@ struct ActiveBattleView: View {
                 .truncationMode(.middle)
             Spacer(minLength: 0)
             Text(c.delta == 0 ? "—" : (c.delta > 0 ? "+\(c.delta)" : "\(c.delta)"))
-                .font(Design.Fonts.mono(11, weight: .bold))
+                .font(Design.Fonts.mono(12, weight: .bold))
                 .foregroundStyle(c.delta == 0
                                  ? Design.Colors.textMuted
                                  : (c.delta > 0 ? Design.Colors.bobaCyan : Color(hex: "C0392B")))

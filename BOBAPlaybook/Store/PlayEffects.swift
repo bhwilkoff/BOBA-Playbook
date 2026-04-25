@@ -1347,7 +1347,27 @@ enum PlayEffectExecutor {
             }
 
         case "plays_used":
-            return cmp(ctx.playsUsedThisBattle, cond["comparison"] as? String, cond["value"] as? Int)
+            // Honor `scope`. Default is "this_battle" for back-compat.
+            // No Huddle ("If you ran a Play in the previous Battle…")
+            // explicitly sets scope: "prev_battle" — without honoring
+            // it the condition trivially evaluates against THIS
+            // battle's count (often non-zero by the time the card
+            // resolves) and the +15 fires every battle.
+            let scope = (cond["scope"] as? String) ?? "this_battle"
+            let count: Int
+            switch scope {
+            case "prev_battle":
+                guard ctx.battleIdx > 0,
+                      ctx.battles.indices.contains(ctx.battleIdx - 1) else { return false }
+                let prev = ctx.battles[ctx.battleIdx - 1]
+                let plays = selfView
+                    ? (ctx.self_ == .player ? prev.playerPlayedCards : prev.cpuPlayedCards)
+                    : (ctx.self_ == .player ? prev.cpuPlayedCards : prev.playerPlayedCards)
+                count = plays.count
+            default:
+                count = selfView ? ctx.playsUsedThisBattle : 0
+            }
+            return cmp(count, cond["comparison"] as? String, cond["value"] as? Int)
 
         case "power_threshold":
             let p = card?.power ?? 0

@@ -429,8 +429,95 @@ def audit_card(name: str, entry: dict, card: dict | None,
             fnd.append(Finding(name, "warning", "missing_both_target",
                                'Ability mentions "both players" but JSON targets neither both nor opponent'))
 
+    # ── Stub ops (in knownOps but executor only emits a notification) ──
+    # These ops pass the unknown-op check but their actual behavior is
+    # a no-op — they print "Did X" without performing X. Real example:
+    # Opp's Choice used `deploy_chosen_revealed` and `discard_other_
+    # revealed`, both of which only emit notifications. The card looked
+    # like it should "send hero to discard, draw 2, opp picks, deploy"
+    # but produced no game-state change. Update this list when an op
+    # gets a real executor handler.
+    stub_ops = used & {
+        "deploy_chosen_revealed",
+        "add_chosen_revealed_to_hand_discard_rest",
+        "discard_other_revealed",
+        "discard_revealed",
+        "discard_revealed_hero",
+        "shuffle_revealed_back",
+    }
+    # Only flag when the ENTIRE entry depends on stubs — if a real op
+    # accompanies the stub, the card still produces a real effect and
+    # the stub is just a flavor notification.
+    real_ops = used - stub_ops - {"note", "choice"}
+    if stub_ops and not real_ops and not has_persistent:
+        fnd.append(Finding(name, "warning", "stub_op",
+                           f"Card relies entirely on stubbed op(s) {sorted(stub_ops)} — "
+                           f"executor only emits a notification, no real effect runs"))
+
+    # ── Single-option `choice` op (no real choice) ───────────────
+    # `choice` is supposed to surface multiple alternatives. A choice
+    # block with one option is a structural mistake — it adds a layer
+    # of indirection but reduces to "always run the option's effects".
+    # In practice the executor's `choice` handler is also a no-op, so
+    # such cards don't fire anything at all (Opp's Choice was the
+    # canonical example).
+    for op_name, step in walk_ops(entry):
+        if op_name == "choice":
+            opts = step.get("options")
+            if isinstance(opts, list) and len(opts) <= 1:
+                fnd.append(Finding(name, "warning", "single_option_choice",
+                                   f"`choice` op has {len(opts)} option(s); collapse to direct ops "
+                                   f"or add real alternatives"))
+
+    # ── Overlapping persistent scopes ────────────────────────────
+    # Two persistents with the same effect op + overlapping scopes
+    # multiply-fire. Lose 1 To Win 2 (Hopefully) was the canonical
+    # example: one persistent at scope=next_battle, another at scope=
+    # next_2_battles, same +15 power effect → next battle got +30
+    # instead of the intended +15-each-of-next-2.
+    persistents = entry.get("persistent") or []
+    if isinstance(persistents, list) and len(persistents) >= 2:
+        # Build a fingerprint per persistent that captures effect + trigger.
+        # Same fingerprint + scopes that overlap → flag.
+        def overlap(a: str, b: str) -> bool:
+            # Conservative: any pair where one scope is a strict subset
+            # of the other (e.g. next_battle ⊆ next_2_battles), or
+            # where both scopes match the same battle index.
+            pairs = {
+                ("next_battle", "next_2_battles"),
+                ("next_battle", "next_N_battles"),
+                ("next_battle", "this_and_next"),
+                ("next_battle", "rest_of_game"),
+                ("this_battle", "this_and_next"),
+                ("this_battle", "rest_of_game"),
+                ("this_and_next", "next_2_battles"),
+                ("this_and_next", "rest_of_game"),
+                ("next_2_battles", "rest_of_game"),
+                ("next_N_battles", "rest_of_game"),
+            }
+            return (a, b) in pairs or (b, a) in pairs or a == b
+        for i in range(len(persistents)):
+            for j in range(i + 1, len(persistents)):
+                pi, pj = persistents[i], persistents[j]
+                if not (isinstance(pi, dict) and isinstance(pj, dict)): continue
+                ei = pi.get("effect") or {}
+                ej = pj.get("effect") or {}
+                if ei.get("op") != ej.get("op"): continue
+                # Same op + different target on the inner effect is a
+                # distinct effect (e.g. Lunch Table recovers HDs for
+                # both self and opponent — two persistents, different
+                # targets, no overlap).
+                if ei.get("target") != ej.get("target"): continue
+                if pi.get("trigger") != pj.get("trigger"): continue
+                if overlap(pi.get("scope", ""), pj.get("scope", "")):
+                    fnd.append(Finding(name, "warning", "overlapping_persistent",
+                                       f"Persistent entries [{i}] scope={pi.get('scope')!r} and "
+                                       f"[{j}] scope={pj.get('scope')!r} share trigger "
+                                       f"{pi.get('trigger')!r} + effect op {ei.get('op')!r} — "
+                                       f"both will fire and stack"))
+
     # ── Conditional that doesn't differ across contexts ──────────
-    # (skip — needs engine simulation; left for the Swift auditor)
+    # (skip — needs engine simulation; left for runtime smoke testing)
 
     return fnd
 

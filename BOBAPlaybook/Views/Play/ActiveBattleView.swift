@@ -214,11 +214,14 @@ struct ActiveBattleView: View {
     /// resolves. Reads `slot.playerBreakdown` / `slot.cpuBreakdown` —
     /// each contribution becomes its own line item with a +/- delta.
     /// Foots to the same `*FinalPower` value the engine compared.
+    /// Hard-coded total height of the post-battle breakdown panel.
+    /// Smaller = more room for the hero cards below it. The contribs
+    /// list scrolls within `breakdownContribsHeight` so even 5+ plays
+    /// per side can never push the panel past this number.
+    private let breakdownPanelHeight: CGFloat = 92
+    private let breakdownContribsHeight: CGFloat = 36
+
     private var powerBreakdownPanel: some View {
-        // Cap the panel at 110pt and vertically scroll any overflow.
-        // Without the cap the panel grows by ~16pt per contribution
-        // which, at 3+ plays per side, pushes the active-battle box
-        // past the bottom of the orange container.
         HStack(alignment: .top, spacing: Design.Spacing.sm) {
             powerBreakdownColumn(
                 title: "YOU",
@@ -236,31 +239,29 @@ struct ActiveBattleView: View {
             )
         }
         .padding(.horizontal, Design.Spacing.sm)
-        .frame(maxHeight: 110)
+        // Hard fixed height — `.frame(height:)` (not maxHeight)
+        // forces the panel to stay this size regardless of how
+        // many contribs each side accumulated.
+        .frame(height: breakdownPanelHeight)
     }
 
     private func powerBreakdownColumn(title: String, base: Int, contribs: [PowerContribution], final: Int, won: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(title)
-                .font(Design.Fonts.mono(10, weight: .bold))
-                .foregroundStyle(Design.Colors.textMuted)
-                .tracking(1.2)
-                .padding(.bottom, 2)
-            // Contribution rows scroll vertically when many plays
-            // resolve in one battle. Base + Total stay pinned outside
-            // the scroller so the user can always see where the math
-            // anchors.
+        VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 4) {
-                Text("Base")
-                    .font(Design.Fonts.mono(11))
+                Text(title)
+                    .font(Design.Fonts.mono(10, weight: .bold))
                     .foregroundStyle(Design.Colors.textMuted)
+                    .tracking(1.2)
                 Spacer(minLength: 0)
-                Text("\(base)")
-                    .font(Design.Fonts.mono(12, weight: .bold))
-                    .foregroundStyle(Design.Colors.textPrimary)
+                Text("Base \(base)")
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(Design.Colors.textMuted)
             }
+            // Contribution rows live in a fixed-height scroll viewport
+            // so 5+ plays per side never expand the panel — they just
+            // become scrollable. Base + Total stay outside the scroller.
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     ForEach(contribs) { c in
                         HStack(spacing: 4) {
                             Text(c.label)
@@ -270,25 +271,27 @@ struct ActiveBattleView: View {
                                 .truncationMode(.middle)
                             Spacer(minLength: 0)
                             Text(c.delta > 0 ? "+\(c.delta)" : "\(c.delta)")
-                                .font(Design.Fonts.mono(12, weight: .bold))
+                                .font(Design.Fonts.mono(11, weight: .bold))
                                 .foregroundStyle(c.delta > 0 ? Design.Colors.bobaCyan : Color(hex: "C0392B"))
                         }
                     }
                 }
             }
-            Divider().background(Design.Colors.glassBorder).padding(.vertical, 1)
+            .frame(height: breakdownContribsHeight)
+            Divider().background(Design.Colors.glassBorder)
             HStack(spacing: 4) {
                 Text("Total")
                     .font(Design.Fonts.mono(11, weight: .bold))
                     .foregroundStyle(won ? Color(hex: "4CAF50") : Design.Colors.textSecondary)
                 Spacer(minLength: 0)
                 Text("\(final)")
-                    .font(Design.Fonts.mono(14, weight: .bold))
+                    .font(Design.Fonts.mono(13, weight: .bold))
                     .foregroundStyle(won ? Color(hex: "4CAF50") : Design.Colors.textPrimary)
             }
         }
-        .padding(8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 6)
                 .fill(Design.Colors.surface.opacity(0.85))

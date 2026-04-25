@@ -1031,22 +1031,17 @@ private struct DiceCoinRevealOverlay: View {
                         let oppRoll = reveal.diceRolls[1]
                         let actorWon = settled && actorRoll > oppRoll
                         let oppWon   = settled && oppRoll > actorRoll
+                        let actorLabel: String = reveal.side == .player ? "YOU" : "CPU"
+                        let oppLabel: String   = reveal.side == .player ? "CPU" : "YOU"
+                        let oppTint: Color     = reveal.side == .player
+                            ? Color(hex: "C77DFF")
+                            : Design.Colors.bobaCyan
                         HStack(spacing: 18) {
-                            versusColumn(
-                                label: reveal.side == .player ? "YOU" : "CPU",
-                                rollValue: actorRoll,
-                                won: actorWon,
-                                tint: accent
-                            )
+                            versusColumn(label: actorLabel, rollValue: actorRoll, won: actorWon, tint: accent)
                             Text("VS")
                                 .font(Design.Fonts.display(14))
                                 .foregroundStyle(Design.Colors.textMuted)
-                            versusColumn(
-                                label: reveal.side == .player ? "CPU" : "YOU",
-                                rollValue: oppRoll,
-                                won: oppWon,
-                                tint: reveal.side == .player ? Color(hex: "C77DFF") : Design.Colors.bobaCyan
-                            )
+                            versusColumn(label: oppLabel, rollValue: oppRoll, won: oppWon, tint: oppTint)
                         }
                     } else {
                         HStack(spacing: 12) {

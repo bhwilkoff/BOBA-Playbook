@@ -835,7 +835,6 @@ private struct DiceCoinRevealOverlay: View {
     let onFinished: () -> Void
 
     private let spinDuration: Double = 0.85
-    private let holdDuration: Double  = 0.55
 
     @State private var settled = false
     @State private var tick = 0
@@ -854,16 +853,22 @@ private struct DiceCoinRevealOverlay: View {
 
     var body: some View {
         ZStack {
+            // Dim backdrop blocks taps from reaching anything underneath
+            // — the user has to acknowledge the reveal before continuing.
             Color.black.opacity(0.55).ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if settled { onFinished() }
+                }
 
-            VStack(spacing: 14) {
+            VStack(spacing: 12) {
                 Text(title)
-                    .font(Design.Fonts.display(22))
+                    .font(Design.Fonts.display(20))
                     .foregroundStyle(accent)
                     .tracking(2.5)
 
                 if !reveal.coinFlips.isEmpty {
-                    HStack(spacing: 14) {
+                    HStack(spacing: 12) {
                         ForEach(Array(reveal.coinFlips.enumerated()), id: \.offset) { _, finalFace in
                             CoinFace(finalFace: finalFace, settled: settled, tick: tick, accent: accent)
                         }
@@ -871,7 +876,7 @@ private struct DiceCoinRevealOverlay: View {
                 }
 
                 if !reveal.diceRolls.isEmpty {
-                    HStack(spacing: 14) {
+                    HStack(spacing: 12) {
                         ForEach(Array(reveal.diceRolls.enumerated()), id: \.offset) { _, finalRoll in
                             DieFace(finalRoll: finalRoll, settled: settled, tick: tick, accent: accent)
                         }
@@ -884,15 +889,36 @@ private struct DiceCoinRevealOverlay: View {
                         .foregroundStyle(Design.Colors.textSecondary)
                         .tracking(1.5)
                 }
+
+                // Continue button — appears once the dice/coin have
+                // settled. Without this the overlay would auto-dismiss
+                // and the user might miss what they rolled. Required
+                // dismissal turns the moment into a beat the user
+                // actually reads.
+                if settled {
+                    Button {
+                        onFinished()
+                    } label: {
+                        Text("CONTINUE")
+                            .font(Design.Fonts.mono(12, weight: .bold))
+                            .foregroundStyle(Design.Colors.nearBlack)
+                            .padding(.horizontal, 18)
+                            .frame(height: 32)
+                            .background(Capsule().fill(accent))
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                    .padding(.top, 2)
+                }
             }
-            .padding(.horizontal, 28)
-            .padding(.vertical, 22)
+            .padding(.horizontal, 26)
+            .padding(.vertical, 16)
             .background(
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(Design.Colors.surface.opacity(0.96))
-                    .overlay(RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Design.Colors.surface.opacity(0.97))
+                    .overlay(RoundedRectangle(cornerRadius: 16)
                         .strokeBorder(accent.opacity(0.6), lineWidth: 2))
-                    .shadow(color: .black.opacity(0.6), radius: 16)
+                    .shadow(color: .black.opacity(0.6), radius: 14)
             )
         }
         .task(id: reveal.id) {
@@ -910,8 +936,8 @@ private struct DiceCoinRevealOverlay: View {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.7)) {
                 settled = true
             }
-            try? await Task.sleep(nanoseconds: UInt64(holdDuration * 1_000_000_000))
-            onFinished()
+            // No auto-dismiss — user taps CONTINUE (or the backdrop)
+            // to clear the overlay so they actually read the result.
         }
     }
 }

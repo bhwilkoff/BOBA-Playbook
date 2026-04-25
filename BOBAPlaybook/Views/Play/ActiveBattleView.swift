@@ -388,12 +388,17 @@ struct PlayReviewSheet: View {
             ScrollView {
                 VStack(spacing: Design.Spacing.lg) {
                     if let file = card.imageFile, !file.isEmpty {
-                        CachedAsyncCardImage(url: CDN.full(for: file), contentMode: .fit)
-                            .aspectRatio(5.0/7.0, contentMode: .fit)
-                            .frame(maxHeight: 220)
+                        // Fixed 5:7 box (160×224) so the rounded border
+                        // hugs the card image instead of stretching to
+                        // VStack width. Outer frame centers it.
+                        CachedAsyncCardImage(url: CDN.full(for: file), contentMode: .fill)
+                            .frame(width: 160, height: 224)
                             .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .overlay(RoundedRectangle(cornerRadius: 10)
-                                .strokeBorder(Design.Colors.bobaViolet.opacity(0.5), lineWidth: 2))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .strokeBorder(Design.Colors.bobaViolet.opacity(0.5), lineWidth: 2)
+                            )
+                            .frame(maxWidth: .infinity)
                     }
 
                     VStack(alignment: .leading, spacing: 4) {

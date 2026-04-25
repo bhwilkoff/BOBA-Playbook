@@ -395,6 +395,7 @@ struct PracticeSetupView: View {
         let header = side == .player ? "YOUR DECK" : "CPU DECK"
         VStack(spacing: Design.Spacing.lg) {
             sectionHeader(header)
+            formatComplianceBanner(side: side)
 
             // ── Saved decks first (when authenticated) ─────────────
             if !savedDecks.isEmpty {
@@ -499,6 +500,61 @@ struct PracticeSetupView: View {
         }
     }
 
+    /// Banner that surfaces above the deck list when the active
+    /// custom rules constrain (or shape) deck construction. Three
+    /// states: hidden (Standard format), info (cap applies but
+    /// nothing flagged on this source), warning (template has
+    /// heroes that will be dropped to fit the cap).
+    @ViewBuilder
+    private func formatComplianceBanner(side: PlayExecContext.Side) -> some View {
+        let format = custom.heroFormat
+        let cap = PracticeStore.powerCap(for: format)
+        let size = PracticeStore.heroDeckSize(for: format)
+        let drops = incompatibleHeroCount(side: side) ?? 0
+        if format == .standard {
+            EmptyView()
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: drops > 0 ? "exclamationmark.triangle.fill" : "checkmark.shield.fill")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("\(format.rawValue.uppercased())")
+                        .font(Design.Fonts.mono(11, weight: .bold))
+                        .tracking(1.5)
+                }
+                .foregroundStyle(drops > 0 ? Color(hex: "FFD166") : Design.Colors.bobaCyan)
+                Text(complianceCopy(drops: drops, cap: cap, size: size))
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(Design.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill((drops > 0 ? Color(hex: "FFD166") : Design.Colors.bobaCyan).opacity(0.10))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder((drops > 0 ? Color(hex: "FFD166") : Design.Colors.bobaCyan).opacity(0.4), lineWidth: 1)
+                    )
+            )
+        }
+    }
+
+    private func complianceCopy(drops: Int, cap: Int?, size: Int) -> String {
+        var parts: [String] = []
+        if let cap = cap {
+            parts.append("Heroes capped at \(cap) power")
+        }
+        parts.append("\(size)-card hero deck")
+        if drops > 0 {
+            parts.append("\(drops) hero\(drops == 1 ? "" : "es") in this template will be filtered to fit")
+        } else {
+            parts.append("Selected deck is fully compliant")
+        }
+        return parts.joined(separator: " · ")
+    }
+
     @ViewBuilder
     private func futureHint(side: PlayExecContext.Side) -> some View {
         let isPlayer = side == .player
@@ -574,6 +630,10 @@ struct PracticeSetupView: View {
         isStarting = true
         defer { isStarting = false }
 
+        // Push the current custom rules into the store so the
+        // deck builders honor them when running.
+        store.customRules = custom
+
         // Resolve saved decks ahead of startMatch (templates resolve synchronously inside the store).
         if case .saved(let id) = store.playerDeckSource {
             store.playerResolvedDeck = await resolveSavedDeck(id)
@@ -584,6 +644,34 @@ struct PracticeSetupView: View {
 
         store.startMatch(allCards: cardStore.displayCards)
         showPlaymat = true
+    }
+
+    // MARK: - Format compatibility helpers
+
+    /// Counts how many heroes from the currently-selected source
+    /// (template or saved deck) would be filtered out by the
+    /// active format's power cap. Returns nil for sources whose
+    /// content is already format-compliant by construction
+    /// (.random) or the deck isn't pre-known (.saved without
+    /// pre-resolution).
+    private func incompatibleHeroCount(side: PlayExecContext.Side) -> Int? {
+        guard custom.heroFormat != .standard, custom.heroFormat != .limited else { return nil }
+        let source = currentSource(side: side)
+        switch source {
+        case .random:
+            return 0    // random builder filters by cap natively
+        case .template(let template):
+            // Resolve template heroes synchronously and count
+            // those that exceed the format's power cap.
+            var byId: [String: Card] = [:]
+            for c in cardStore.displayCards { byId[c.id] = c }
+            let heroes = template.heroIds.compactMap { byId[$0] }
+            return PracticeStore.incompatibleHeroCount(heroes, format: custom.heroFormat)
+        case .saved:
+            // Saved decks are async to fetch. Skip the precount
+            // here — `padHeroDeck` filters at startMatch time.
+            return nil
+        }
     }
 }
 

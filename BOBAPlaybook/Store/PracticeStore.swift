@@ -1428,6 +1428,12 @@ final class PracticeStore {
     var playerResolvedDeck: ResolvedDeck?
     var cpuResolvedDeck: ResolvedDeck?
 
+    /// Custom-rules selection from the Game Mode tab. Drives
+    /// format-aware random deck construction (power caps, deck
+    /// size) and template padding/filtering. Defaults to the
+    /// standard rules so existing call sites keep working.
+    var customRules: PracticeCustomRules = PracticeCustomRules()
+
     /// Resolve a DeckSource to card arrays against the given catalog. Templates are loaded
     /// synchronously from the bundled JSON; .random and .saved return nil here — saved decks
     /// must be resolved asynchronously by the caller.
@@ -1457,25 +1463,60 @@ final class PracticeStore {
     //
     // These builders aim for that profile.
 
-    /// Builds a 60-card hero deck with a realistic power
-    /// distribution and the 6-per-power-value rule enforced.
-    /// Distribution target (matches typical 160-Spec-style builds):
-    ///   - 30 high  (135-175 power)  — your starting line
-    ///   - 24 mid   (100-134 power)  — bench / sub options
-    ///   - 6  low   (55-99 power)    — cheap-sub bench tail
-    /// Limits: max 6 heroes per power value, max 4 variations
-    /// of any one hero name (so a random pull doesn't show 6
-    /// foils of the same hero in a row).
-    static func buildRandomHeroDeck(pool: [Card]) -> [Card] {
+    /// Power cap for a given format — heroes above this value are
+    /// not allowed. Returns nil for "no cap" formats.
+    static func powerCap(for format: PracticeCustomRules.HeroFormat) -> Int? {
+        switch format {
+        case .standard: return nil
+        case .spec:     return 160
+        case .specPlus: return 200
+        case .limited:  return nil
+        }
+    }
+
+    /// Target hero deck size for a given format. The practice
+    /// match only deals 11 heroes (7 battles + 4 bench) per side
+    /// regardless, but the rest sit in the hero deck for
+    /// `draw kind:hero` effects.
+    static func heroDeckSize(for format: PracticeCustomRules.HeroFormat) -> Int {
+        switch format {
+        case .standard: return 60
+        case .spec:     return 60
+        case .specPlus: return 60   // simplification — full SPEC+ caps at 70
+        case .limited:  return 40
+        }
+    }
+
+    /// Builds a hero deck honoring format constraints:
+    /// - Standard: 60 heroes, no power cap
+    /// - SPEC: 60 heroes, max 160 power
+    /// - SPEC+: 60 heroes, max 200 power
+    /// - Limited: 40 heroes, no power cap
+    /// All formats: realistic power-curve distribution + the
+    /// 6-per-power-value rule + max 4 variations of one hero name.
+    static func buildRandomHeroDeck(pool: [Card], format: PracticeCustomRules.HeroFormat = .standard) -> [Card] {
+        let cap = powerCap(for: format)
+        let target = heroDeckSize(for: format)
         let candidates = pool.filter {
             $0.cardType == "Hero"
-            && ($0.power ?? 0) >= 55      // exclude Hot Dog token (power 0) + sealed
+            && ($0.power ?? 0) >= 55
             && !($0.imageFile ?? "").isEmpty
-            // Skip Hot Dog hero variants — they aren't real picks
             && !((($0.treatment ?? "").lowercased()).contains("hot dog"))
+            && (cap == nil || ($0.power ?? 0) <= (cap ?? Int.max))
         }
         guard !candidates.isEmpty else { return [] }
 
+        // Tier targets scale with deck size: the high/mid/low
+        // ratio (50/40/10) is the same regardless of format, so a
+        // 40-card Limited deck still feels like a representative
+        // mix.
+        let highTarget = Int((Double(target) * 0.50).rounded())
+        let midTarget  = Int((Double(target) * 0.90).rounded())   // cumulative
+        let lowTarget  = target
+
+        // The "high" cutoff stays at 135 even when the cap forces
+        // most cards lower (SPEC etc.) — the tier system gracefully
+        // degrades when the pool's max is below 135.
         let high = candidates.filter { ($0.power ?? 0) >= 135 }.shuffled()
         let mid  = candidates.filter { let p = $0.power ?? 0; return p >= 100 && p < 135 }.shuffled()
         let low  = candidates.filter { ($0.power ?? 0) < 100 }.shuffled()
@@ -1498,42 +1539,39 @@ final class PracticeStore {
             if !h.isEmpty { byHero[h, default: 0] += 1 }
             return true
         }
-
-        func fillFrom(_ source: [Card], targetCount: Int, predicate: (Card) -> Bool) {
-            for card in source where deck.count < targetCount && predicate(card) {
+        func fillFrom(_ source: [Card], targetCount: Int) {
+            for card in source where deck.count < targetCount {
                 tryAdd(card)
             }
         }
 
-        // Pass 1: fill the high tier (target 30)
-        fillFrom(high, targetCount: 30, predicate: { _ in true })
-        // Pass 2: mid tier (cumulative target 54)
-        fillFrom(mid, targetCount: 54, predicate: { _ in true })
-        // Pass 3: low tier (cumulative target 60)
-        fillFrom(low, targetCount: 60, predicate: { _ in true })
-        // Pass 4: fill any shortfall with anything left, ignoring
-        // tier preferences but still respecting the caps.
+        fillFrom(high, targetCount: highTarget)
+        fillFrom(mid,  targetCount: midTarget)
+        fillFrom(low,  targetCount: lowTarget)
+
+        // Backfill / relax-cap fallback so we always hit `target`.
         let backfill = (high + mid + low).shuffled()
-        for card in backfill where deck.count < 60 {
-            tryAdd(card)
-        }
-        // Pass 5: last-resort — relax the per-hero cap if still short.
-        for card in backfill where deck.count < 60 {
-            tryAdd(card, perHeroCap: 6)
-        }
+        for card in backfill where deck.count < target { tryAdd(card) }
+        for card in backfill where deck.count < target { tryAdd(card, perHeroCap: 6) }
         return deck
     }
 
-    /// Pads a partial hero deck up to 60 cards from the catalog.
-    /// Used when a saved/template deck is short. Matches caps
-    /// from `buildRandomHeroDeck` (6/power, 4/hero).
-    static func padHeroDeck(_ existing: [Card], pool: [Card]) -> [Card] {
-        guard existing.count < 60 else { return existing }
-        var deck = existing
-        var deckIDs: Set<String> = Set(existing.map(\.id))
+    /// Filters an existing hero list to format constraints (drops
+    /// any hero above the format's power cap), then pads up to the
+    /// format's target size from `pool`. Used when a template or
+    /// saved deck is loaded under a stricter format than it was
+    /// designed for — incompatible heroes get silently filtered
+    /// and the gap is filled with format-compliant picks.
+    static func padHeroDeck(_ existing: [Card], pool: [Card], format: PracticeCustomRules.HeroFormat = .standard) -> [Card] {
+        let cap = powerCap(for: format)
+        let target = heroDeckSize(for: format)
+        // Drop heroes that violate the format's power cap.
+        var deck = existing.filter { cap == nil || ($0.power ?? 0) <= (cap ?? Int.max) }
+        guard deck.count < target else { return Array(deck.prefix(target)) }
+        var deckIDs: Set<String> = Set(deck.map(\.id))
         var byPower: [Int: Int] = [:]
         var byHero:  [String: Int] = [:]
-        for c in existing {
+        for c in deck {
             byPower[c.power ?? 0, default: 0] += 1
             if !c.hero.isEmpty { byHero[c.hero, default: 0] += 1 }
         }
@@ -1542,8 +1580,9 @@ final class PracticeStore {
             && ($0.power ?? 0) >= 55
             && !($0.imageFile ?? "").isEmpty
             && !deckIDs.contains($0.id)
+            && (cap == nil || ($0.power ?? 0) <= (cap ?? Int.max))
         }.shuffled()
-        for card in candidates where deck.count < 60 {
+        for card in candidates where deck.count < target {
             let p = card.power ?? 0
             if (byPower[p] ?? 0) >= 6 { continue }
             if !card.hero.isEmpty, (byHero[card.hero] ?? 0) >= 4 { continue }
@@ -1553,6 +1592,14 @@ final class PracticeStore {
             if !card.hero.isEmpty { byHero[card.hero, default: 0] += 1 }
         }
         return deck
+    }
+
+    /// Counts how many heroes in `existing` violate the format's
+    /// power cap. Drives the "N heroes filtered to fit SPEC" badge
+    /// in the deck tab.
+    static func incompatibleHeroCount(_ existing: [Card], format: PracticeCustomRules.HeroFormat) -> Int {
+        guard let cap = powerCap(for: format) else { return 0 }
+        return existing.filter { ($0.power ?? 0) > cap }.count
     }
 
     /// Builds a 30-card playbook biased toward the deck-composition
@@ -1669,18 +1716,19 @@ final class PracticeStore {
         // sides aren't mirror images of each other.
         let allPlays = pool.filter { $0.cardType == "Play" && !($0.imageFile ?? "").isEmpty }
 
+        let format = customRules.heroFormat
         func buildSide(resolved: ResolvedDeck?) -> (heroes: [Card], plays: [Card]) {
-            // Heroes: build a realistic 60-card mix instead of a flat
-            // shuffle. Spec from the practice-battle UI handoff —
-            // bias toward 100+-power heroes with a small low-power
-            // bench tail for cheap substitutions; respect the
-            // 6-per-power-value rule and cap variations of any one
-            // hero name at 4.
+            // Heroes: build a realistic, FORMAT-COMPLIANT mix.
+            // Spec/SPEC+ enforce a power cap; Limited targets a 40-
+            // card deck. Templates/saved decks are filtered to drop
+            // any cap violations and padded back to target size
+            // from the catalog so a deck always lands legal for the
+            // active format.
             let sideHeroes: [Card]
             if let resolved, !resolved.heroes.isEmpty {
-                sideHeroes = Self.padHeroDeck(resolved.heroes.shuffled(), pool: pool)
+                sideHeroes = Self.padHeroDeck(resolved.heroes.shuffled(), pool: pool, format: format)
             } else {
-                sideHeroes = Self.buildRandomHeroDeck(pool: pool)
+                sideHeroes = Self.buildRandomHeroDeck(pool: pool, format: format)
             }
             // Plays: balanced 30-card playbook with the deck-
             // composition triad (HD recovery / draw plays / buff

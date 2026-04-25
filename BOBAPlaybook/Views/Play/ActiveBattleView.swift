@@ -123,6 +123,12 @@ struct ActiveBattleView: View {
     // MARK: - Hero Card
 
     private func heroCard(card: Card?, revealed: Bool, isOpponent: Bool, effectBonus: Int, effectiveWeapon: String = "", height: CGFloat) -> some View {
+        // Constrain the whole heroCard VStack to the provided height
+        // so it can never overflow the orange container, regardless
+        // of how many chips show in the plays-used strip below. The
+        // image inside flexes (`maxHeight: .infinity`) and is the
+        // only element that absorbs space pressure when chip count
+        // grows.
         VStack(spacing: 4) {
             if let card = card {
                 ZStack(alignment: .bottom) {
@@ -134,7 +140,7 @@ struct ActiveBattleView: View {
                             placeholderFace(card: card, isOpponent: isOpponent)
                         }
                     }
-                    .frame(maxHeight: height - 20)
+                    .frame(maxHeight: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
@@ -198,6 +204,8 @@ struct ActiveBattleView: View {
                     .foregroundStyle(Design.Colors.textMuted)
             }
         }
+        .frame(height: height)
+        .clipped()
     }
 
     // MARK: - Helpers
@@ -207,6 +215,10 @@ struct ActiveBattleView: View {
     /// each contribution becomes its own line item with a +/- delta.
     /// Foots to the same `*FinalPower` value the engine compared.
     private var powerBreakdownPanel: some View {
+        // Cap the panel at 110pt and vertically scroll any overflow.
+        // Without the cap the panel grows by ~16pt per contribution
+        // which, at 3+ plays per side, pushes the active-battle box
+        // past the bottom of the orange container.
         HStack(alignment: .top, spacing: Design.Spacing.sm) {
             powerBreakdownColumn(
                 title: "YOU",
@@ -224,14 +236,20 @@ struct ActiveBattleView: View {
             )
         }
         .padding(.horizontal, Design.Spacing.sm)
+        .frame(maxHeight: 110)
     }
 
     private func powerBreakdownColumn(title: String, base: Int, contribs: [PowerContribution], final: Int, won: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 0) {
             Text(title)
                 .font(Design.Fonts.mono(10, weight: .bold))
                 .foregroundStyle(Design.Colors.textMuted)
                 .tracking(1.2)
+                .padding(.bottom, 2)
+            // Contribution rows scroll vertically when many plays
+            // resolve in one battle. Base + Total stay pinned outside
+            // the scroller so the user can always see where the math
+            // anchors.
             HStack(spacing: 4) {
                 Text("Base")
                     .font(Design.Fonts.mono(11))
@@ -241,16 +259,21 @@ struct ActiveBattleView: View {
                     .font(Design.Fonts.mono(12, weight: .bold))
                     .foregroundStyle(Design.Colors.textPrimary)
             }
-            ForEach(contribs) { c in
-                HStack(spacing: 4) {
-                    Text(c.label)
-                        .font(Design.Fonts.mono(11))
-                        .foregroundStyle(Design.Colors.textSecondary)
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
-                    Text(c.delta > 0 ? "+\(c.delta)" : "\(c.delta)")
-                        .font(Design.Fonts.mono(12, weight: .bold))
-                        .foregroundStyle(c.delta > 0 ? Design.Colors.bobaCyan : Color(hex: "C0392B"))
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(contribs) { c in
+                        HStack(spacing: 4) {
+                            Text(c.label)
+                                .font(Design.Fonts.mono(11))
+                                .foregroundStyle(Design.Colors.textSecondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Spacer(minLength: 0)
+                            Text(c.delta > 0 ? "+\(c.delta)" : "\(c.delta)")
+                                .font(Design.Fonts.mono(12, weight: .bold))
+                                .foregroundStyle(c.delta > 0 ? Design.Colors.bobaCyan : Color(hex: "C0392B"))
+                        }
+                    }
                 }
             }
             Divider().background(Design.Colors.glassBorder).padding(.vertical, 1)
@@ -265,7 +288,7 @@ struct ActiveBattleView: View {
             }
         }
         .padding(8)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 6)
                 .fill(Design.Colors.surface.opacity(0.85))
@@ -290,8 +313,14 @@ struct ActiveBattleView: View {
                     .font(Design.Fonts.mono(9, weight: .bold))
                     .foregroundStyle(Design.Colors.textMuted)
                     .tracking(1.0)
+                // Horizontal scroll with edge insets so the first/last
+                // chip never sits flush against the column edge — and
+                // so a partially-visible chip looks like it's scrolled,
+                // not clipped. `scrollClipDisabled(false)` (default)
+                // keeps overflow content invisible outside the
+                // ScrollView's bounds.
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 5) {
                         ForEach(Array(plays.enumerated()), id: \.offset) { _, card in
                             Button {
                                 inspectedPlay = InspectedPlay(card: card)
@@ -300,6 +329,7 @@ struct ActiveBattleView: View {
                                     .font(Design.Fonts.mono(10, weight: .bold))
                                     .foregroundStyle(.white)
                                     .lineLimit(1)
+                                    .fixedSize()
                                     .padding(.horizontal, 7)
                                     .padding(.vertical, 3)
                                     .background(
@@ -311,7 +341,9 @@ struct ActiveBattleView: View {
                             .buttonStyle(.plain)
                         }
                     }
+                    .padding(.horizontal, 4)
                 }
+                .contentMargins(.horizontal, 2, for: .scrollContent)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

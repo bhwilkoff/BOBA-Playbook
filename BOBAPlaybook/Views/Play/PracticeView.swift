@@ -385,6 +385,19 @@ struct PracticeView: View {
                     HStack(spacing: 5) {
                         Image(systemName: row.icon)
                             .font(.system(size: 11, weight: .bold))
+                        // Source-card eyebrow — when known, the
+                        // banner reads "Baby Phoenix · End-of-turn
+                        // +10" instead of bare "End-of-turn +10".
+                        if !row.sourceCard.isEmpty {
+                            Text(row.sourceCard.uppercased())
+                                .font(Design.Fonts.mono(9, weight: .bold))
+                                .foregroundStyle(Color(hex: row.color).opacity(0.75))
+                                .tracking(0.6)
+                                .lineLimit(1)
+                            Text("·")
+                                .font(Design.Fonts.mono(11, weight: .bold))
+                                .foregroundStyle(Color(hex: row.color).opacity(0.6))
+                        }
                         Text(row.label)
                             .font(Design.Fonts.mono(11, weight: .bold))
                             .lineLimit(1)
@@ -392,9 +405,19 @@ struct PracticeView: View {
                             // UX#11 tick-down — finite-scope effects
                             // show how many battles they have left so
                             // coaches can plan around their expiry.
-                            Text("\(r)")
+                            Text("\(r) BTL")
                                 .font(Design.Fonts.mono(9, weight: .bold))
                                 .foregroundStyle(.white)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(Capsule().fill(Color.black.opacity(0.4)))
+                        } else if row.remaining == nil {
+                            // Unbounded scope (rest_of_game) gets an
+                            // explicit infinity badge so it reads
+                            // distinctly from finite ticks.
+                            Text("∞")
+                                .font(Design.Fonts.mono(11, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.85))
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 1)
                                 .background(Capsule().fill(Color.black.opacity(0.4)))
@@ -772,20 +795,48 @@ struct PracticeView: View {
     // MARK: - Effect Callout
 
     private func effectCalloutBanner(_ callout: PracticeStore.ActionCallout) -> some View {
-        VStack {
+        // Detect cancelled-by-gate callouts so we can show the
+        // killed card with a red CANCELLED stamp — gives the user
+        // a clear visual signal of which card got blocked.
+        let isCancellation = callout.message.contains("cancelled")
+            || callout.message.contains("Cancelled")
+        return VStack {
             Spacer()
-            HStack(spacing: 8) {
-                Image(systemName: callout.icon)
-                    .font(.system(size: 16))
-                    .foregroundStyle(Color(hex: callout.color))
+            HStack(alignment: .center, spacing: 10) {
+                if let card = callout.card,
+                   let file = card.imageFile, !file.isEmpty {
+                    ZStack {
+                        CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
+                            .frame(width: 50, height: 70)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .strokeBorder(Color(hex: callout.color).opacity(0.6), lineWidth: 2)
+                            )
+                            .opacity(isCancellation ? 0.4 : 1.0)
+                        if isCancellation {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundStyle(Color(hex: "C0392B"))
+                                .background(Circle().fill(.white).frame(width: 20, height: 20))
+                        }
+                    }
+                } else {
+                    Image(systemName: callout.icon)
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color(hex: callout.color))
+                }
                 Text(callout.message)
                     .font(Design.Fonts.mono(12, weight: .bold))
                     .foregroundStyle(Design.Colors.textPrimary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(Design.Spacing.md)
             .background(RoundedRectangle(cornerRadius: 12).fill(Design.Colors.surface.opacity(0.95)))
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color(hex: callout.color).opacity(0.4), lineWidth: 1))
             .padding(.bottom, 80)
+            .padding(.horizontal, 24)
             .transition(.scale(scale: 0.8).combined(with: .opacity))
         }
         .allowsHitTesting(false)
@@ -895,11 +946,26 @@ private struct DiceCoinRevealOverlay: View {
     }
 
     private var title: String {
+        if reveal.kind == .gate    { return "OPP GATE ROLL" }
+        if reveal.kind == .versus  { return "VERSUS ROLL" }
+        if reveal.kind == .summed  { return "DICE TOTAL" }
         if !reveal.coinFlips.isEmpty && !reveal.diceRolls.isEmpty { return "ROLL" }
         if !reveal.coinFlips.isEmpty {
             return reveal.coinFlips.count > 1 ? "COIN FLIPS" : "COIN FLIP"
         }
         return reveal.diceRolls.count > 1 ? "DICE ROLL" : "DIE ROLL"
+    }
+
+    @ViewBuilder
+    private func versusColumn(label: String, rollValue: Int, won: Bool, tint: Color) -> some View {
+        VStack(spacing: 6) {
+            Text(label)
+                .font(Design.Fonts.mono(11, weight: .bold))
+                .foregroundStyle(won ? tint : Design.Colors.textMuted)
+                .tracking(1.6)
+            DieFace(finalRoll: rollValue, settled: settled, tick: tick, accent: tint)
+                .opacity(settled && !won && rollValue != reveal.diceRolls.max() ? 0.55 : 1.0)
+        }
     }
 
     var body: some View {
@@ -918,6 +984,13 @@ private struct DiceCoinRevealOverlay: View {
                 }
 
             VStack(spacing: 12) {
+                if !reveal.sourceLabel.isEmpty {
+                    Text(reveal.sourceLabel.uppercased())
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .tracking(2.0)
+                        .lineLimit(1)
+                }
                 Text(title)
                     .font(Design.Fonts.display(20))
                     .foregroundStyle(accent)
@@ -932,18 +1005,60 @@ private struct DiceCoinRevealOverlay: View {
                 }
 
                 if !reveal.diceRolls.isEmpty {
-                    HStack(spacing: 12) {
-                        ForEach(Array(reveal.diceRolls.enumerated()), id: \.offset) { _, finalRoll in
-                            DieFace(finalRoll: finalRoll, settled: settled, tick: tick, accent: accent)
+                    if reveal.kind == .versus, reveal.diceRolls.count == 2 {
+                        // Versus roll — label each die with the side
+                        // it represents and color the winner's tile
+                        // green once settled.
+                        let actorRoll = reveal.diceRolls[0]
+                        let oppRoll = reveal.diceRolls[1]
+                        let actorWon = settled && actorRoll > oppRoll
+                        let oppWon   = settled && oppRoll > actorRoll
+                        HStack(spacing: 18) {
+                            versusColumn(
+                                label: reveal.side == .player ? "YOU" : "CPU",
+                                rollValue: actorRoll,
+                                won: actorWon,
+                                tint: accent
+                            )
+                            Text("VS")
+                                .font(Design.Fonts.display(14))
+                                .foregroundStyle(Design.Colors.textMuted)
+                            versusColumn(
+                                label: reveal.side == .player ? "CPU" : "YOU",
+                                rollValue: oppRoll,
+                                won: oppWon,
+                                tint: reveal.side == .player ? Color(hex: "C77DFF") : Design.Colors.bobaCyan
+                            )
+                        }
+                    } else {
+                        HStack(spacing: 12) {
+                            ForEach(Array(reveal.diceRolls.enumerated()), id: \.offset) { _, finalRoll in
+                                DieFace(finalRoll: finalRoll, settled: settled, tick: tick, accent: accent)
+                            }
                         }
                     }
                 }
 
-                if settled, !reveal.diceRolls.isEmpty, reveal.diceRolls.count > 1 {
+                if settled, reveal.kind == .summed, reveal.diceRolls.count > 1 {
                     Text("SUM \(reveal.diceRolls.reduce(0, +))")
                         .font(Design.Fonts.mono(13, weight: .bold))
                         .foregroundStyle(Design.Colors.textSecondary)
                         .tracking(1.5)
+                } else if settled, reveal.kind == .versus, reveal.diceRolls.count == 2 {
+                    let actorRoll = reveal.diceRolls[0]
+                    let oppRoll   = reveal.diceRolls[1]
+                    let label: String
+                    if actorRoll == oppRoll {
+                        label = "TIE — no effect"
+                    } else if actorRoll > oppRoll {
+                        label = reveal.side == .player ? "YOU WIN THE ROLL" : "CPU WINS THE ROLL"
+                    } else {
+                        label = reveal.side == .player ? "CPU WINS THE ROLL" : "YOU WIN THE ROLL"
+                    }
+                    Text(label)
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                        .tracking(1.2)
                 }
 
                 // Continue button — appears once the dice/coin have

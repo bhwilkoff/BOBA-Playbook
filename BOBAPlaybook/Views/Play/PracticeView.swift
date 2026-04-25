@@ -986,6 +986,42 @@ private struct DiceCoinRevealOverlay: View {
         }
     }
 
+    // Extracted to keep the body simple — the versus / regular branch
+    // pushed the parent VStack past the type-checker's complexity
+    // budget when nested inside the reveal overlay's body.
+    @ViewBuilder
+    private var diceRow: some View {
+        if reveal.kind == .versus, reveal.diceRolls.count == 2 {
+            versusRollRow
+        } else {
+            HStack(spacing: 12) {
+                ForEach(Array(reveal.diceRolls.enumerated()), id: \.offset) { _, finalRoll in
+                    DieFace(finalRoll: finalRoll, settled: settled, tick: tick, accent: accent)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var versusRollRow: some View {
+        let actorRoll = reveal.diceRolls[0]
+        let oppRoll   = reveal.diceRolls[1]
+        let actorWon  = settled && actorRoll > oppRoll
+        let oppWon    = settled && oppRoll > actorRoll
+        let actorLabel: String = reveal.side == .player ? "YOU" : "CPU"
+        let oppLabel:   String = reveal.side == .player ? "CPU" : "YOU"
+        let oppTint:    Color  = reveal.side == .player
+            ? Color(hex: "C77DFF")
+            : Design.Colors.bobaCyan
+        HStack(spacing: 18) {
+            versusColumn(label: actorLabel, rollValue: actorRoll, won: actorWon, tint: accent)
+            Text("VS")
+                .font(Design.Fonts.display(14))
+                .foregroundStyle(Design.Colors.textMuted)
+            versusColumn(label: oppLabel, rollValue: oppRoll, won: oppWon, tint: oppTint)
+        }
+    }
+
     var body: some View {
         ZStack {
             // Dim backdrop blocks taps from reaching anything underneath
@@ -1023,33 +1059,7 @@ private struct DiceCoinRevealOverlay: View {
                 }
 
                 if !reveal.diceRolls.isEmpty {
-                    if reveal.kind == .versus, reveal.diceRolls.count == 2 {
-                        // Versus roll — label each die with the side
-                        // it represents and color the winner's tile
-                        // green once settled.
-                        let actorRoll = reveal.diceRolls[0]
-                        let oppRoll = reveal.diceRolls[1]
-                        let actorWon = settled && actorRoll > oppRoll
-                        let oppWon   = settled && oppRoll > actorRoll
-                        let actorLabel: String = reveal.side == .player ? "YOU" : "CPU"
-                        let oppLabel: String   = reveal.side == .player ? "CPU" : "YOU"
-                        let oppTint: Color     = reveal.side == .player
-                            ? Color(hex: "C77DFF")
-                            : Design.Colors.bobaCyan
-                        HStack(spacing: 18) {
-                            versusColumn(label: actorLabel, rollValue: actorRoll, won: actorWon, tint: accent)
-                            Text("VS")
-                                .font(Design.Fonts.display(14))
-                                .foregroundStyle(Design.Colors.textMuted)
-                            versusColumn(label: oppLabel, rollValue: oppRoll, won: oppWon, tint: oppTint)
-                        }
-                    } else {
-                        HStack(spacing: 12) {
-                            ForEach(Array(reveal.diceRolls.enumerated()), id: \.offset) { _, finalRoll in
-                                DieFace(finalRoll: finalRoll, settled: settled, tick: tick, accent: accent)
-                            }
-                        }
-                    }
+                    diceRow
                 }
 
                 if settled, reveal.kind == .summed, reveal.diceRolls.count > 1 {

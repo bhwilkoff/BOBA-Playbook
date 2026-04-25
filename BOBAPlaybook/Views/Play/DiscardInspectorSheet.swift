@@ -45,24 +45,37 @@ struct DiscardInspectorSheet: View {
     // MARK: - Player side — flat list of discarded play cards
 
     private var playerDiscardList: some View {
-        let pile = store.playerPlayDiscard
+        let plays = store.playerPlayDiscard
+        let heroes = store.playerHeroDiscard
         return ScrollView {
-            if pile.isEmpty {
+            if plays.isEmpty && heroes.isEmpty {
                 emptyState(message: "No cards in discard yet")
             } else {
-                VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-                    Text("\(pile.count) PLAY\(pile.count == 1 ? "" : "S") · MOST RECENT FIRST")
-                        .font(Design.Fonts.mono(10, weight: .bold))
-                        .foregroundStyle(Design.Colors.textMuted)
-                        .tracking(1)
-                    ForEach(Array(pile.reversed().enumerated()), id: \.offset) { _, card in
-                        cardRow(card: card)
+                VStack(alignment: .leading, spacing: Design.Spacing.lg) {
+                    if !heroes.isEmpty {
+                        sectionHeader("\(heroes.count) HERO\(heroes.count == 1 ? "" : "ES")", color: Design.Colors.bobaOrange)
+                        ForEach(Array(heroes.reversed().enumerated()), id: \.offset) { _, card in
+                            cardRow(card: card)
+                        }
+                    }
+                    if !plays.isEmpty {
+                        sectionHeader("\(plays.count) PLAY\(plays.count == 1 ? "" : "S")", color: Design.Colors.bobaCyan)
+                        ForEach(Array(plays.reversed().enumerated()), id: \.offset) { _, card in
+                            cardRow(card: card)
+                        }
                     }
                 }
                 .padding(Design.Spacing.lg)
             }
         }
         .background(Design.Colors.nearBlack)
+    }
+
+    private func sectionHeader(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(Design.Fonts.mono(10, weight: .bold))
+            .foregroundStyle(color)
+            .tracking(1.5)
     }
 
     // MARK: - CPU side — grouped per-battle history

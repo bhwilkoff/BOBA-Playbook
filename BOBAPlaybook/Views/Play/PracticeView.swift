@@ -75,6 +75,31 @@ struct PracticeView: View {
                     .sheet(item: $inspectingDiscardSide) { wrapper in
                         DiscardInspectorSheet(store: store, side: wrapper.side)
                     }
+                    // Hand-discard chooser — surfaced when a play
+                    // (Damage on Discard, Trash Bandit, etc.) asks
+                    // the player to pick N cards to discard.
+                    .sheet(item: Binding(
+                        get: { store.pendingHandDiscard },
+                        set: { newValue in if newValue == nil { store.cancelHandDiscard() } }
+                    )) { choice in
+                        HandDiscardChooserSheet(
+                            store: store,
+                            count: choice.count
+                        )
+                    }
+                    // Hero-discard chooser — Don't Call It a Comeback
+                    // and similar plays let the player pick a hero
+                    // from their discard pile to replace the active.
+                    .sheet(item: Binding(
+                        get: { store.pendingHeroDiscardChoice },
+                        set: { newValue in if newValue == nil { store.cancelHeroDiscardSwap() } }
+                    )) { choice in
+                        HeroDiscardChooserSheet(
+                            store: store,
+                            pool: choice.pool,
+                            weaponFilter: choice.weaponFilter
+                        )
+                    }
                     // Rules-clarification alert (handoff §6.A): warns
                     // when Recycle / Reload / Return from the Depths
                     // would clear active rest_of_game effects.
@@ -1202,5 +1227,233 @@ private struct CompactDieFace: View {
             )
             .rotationEffect(.degrees(settled ? 0 : Double(tick * 24).truncatingRemainder(dividingBy: 360)))
             .scaleEffect(settled ? 1.06 : 1.0)
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - HandDiscardChooserSheet
+// ════════════════════════════════════════════════════════════════
+//
+// Sheet that surfaces when a play card asks the user to pick N
+// plays from their hand to discard. Examples: Damage on Discard
+// (2), Trash Bandit, anything with `discard mode:"choice"`.
+// Multi-select with a confirm button that's disabled until exactly
+// `count` cards are picked.
+
+struct HandDiscardChooserSheet: View {
+    let store: PracticeStore
+    let count: Int
+    @Environment(\.dismiss) private var dismiss
+    @State private var selected: Set<Card> = []
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: Design.Spacing.md) {
+                instructions
+                hand
+                confirmButton
+            }
+            .padding(Design.Spacing.lg)
+            .background(Design.Colors.nearBlack)
+            .navigationTitle("Discard \(count) Play\(count == 1 ? "" : "s")")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Cancel") {
+                        store.cancelHandDiscard()
+                        dismiss()
+                    }
+                    .foregroundStyle(Design.Colors.textSecondary)
+                }
+            }
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private var instructions: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Pick \(count) play\(count == 1 ? "" : "s") to discard from your hand.")
+                .font(Design.Fonts.mono(13))
+                .foregroundStyle(Design.Colors.textSecondary)
+            Text("\(selected.count) of \(count) selected")
+                .font(Design.Fonts.mono(11, weight: .bold))
+                .foregroundStyle(selected.count == count ? Design.Colors.bobaCyan : Design.Colors.textMuted)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var hand: some View {
+        ScrollView {
+            VStack(spacing: 6) {
+                ForEach(Array(store.playerHand.enumerated()), id: \.offset) { _, card in
+                    handRow(card)
+                }
+            }
+        }
+    }
+
+    private func handRow(_ card: Card) -> some View {
+        let isSelected = selected.contains(card)
+        return Button {
+            if isSelected {
+                selected.remove(card)
+            } else if selected.count < count {
+                selected.insert(card)
+            }
+        } label: {
+            HStack(spacing: Design.Spacing.md) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 18))
+                    .foregroundStyle(isSelected ? Design.Colors.bobaCyan : Design.Colors.textMuted)
+                if let file = card.imageFile, !file.isEmpty {
+                    CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
+                        .frame(width: 38, height: 54)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(card.name)
+                        .font(Design.Fonts.mono(13, weight: .bold))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                        .lineLimit(1)
+                    if let cost = card.playCost {
+                        Text(cost == 0 ? "FREE" : "\(cost) HD")
+                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .foregroundStyle(cost == 0 ? Color(hex: "4CAF50") : Design.Colors.bobaCyan)
+                    }
+                    if let ability = card.playAbility {
+                        Text(ability)
+                            .font(Design.Fonts.mono(10))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .lineLimit(2)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(Design.Spacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: Design.Radius.sm)
+                    .fill(isSelected ? Design.Colors.bobaCyan.opacity(0.10) : Design.Colors.surface)
+                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                        .strokeBorder(isSelected ? Design.Colors.bobaCyan : Design.Colors.glassBorder,
+                                      lineWidth: isSelected ? 2 : 1))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var confirmButton: some View {
+        let ready = selected.count == count
+        return Button {
+            store.confirmHandDiscard(Array(selected))
+            dismiss()
+        } label: {
+            Text(ready ? "DISCARD \(count) PLAY\(count == 1 ? "" : "S")" : "PICK \(count - selected.count) MORE")
+                .font(Design.Fonts.mono(14, weight: .bold))
+                .foregroundStyle(ready ? Design.Colors.nearBlack : Design.Colors.textMuted)
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+                .background(Capsule().fill(ready ? Design.Colors.bobaOrange : Design.Colors.glass))
+        }
+        .buttonStyle(.plain)
+        .disabled(!ready)
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - HeroDiscardChooserSheet
+// ════════════════════════════════════════════════════════════════
+//
+// Surfaced when a play card (Don't Call It a Comeback) lets the
+// player swap their active hero for one from the hero-discard pile.
+// Single-select — tapping any pool card immediately commits the
+// swap.
+
+struct HeroDiscardChooserSheet: View {
+    let store: PracticeStore
+    let pool: [Card]
+    let weaponFilter: String?
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Design.Spacing.md) {
+                    Text("Pick a hero to bring back from discard.")
+                        .font(Design.Fonts.mono(13))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                    if let wf = weaponFilter {
+                        Text("Filter: \(wf) weapon only")
+                            .font(Design.Fonts.mono(11, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                    }
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 8)], spacing: 8) {
+                        ForEach(Array(pool.enumerated()), id: \.offset) { _, card in
+                            heroTile(card)
+                        }
+                    }
+                }
+                .padding(Design.Spacing.lg)
+            }
+            .background(Design.Colors.nearBlack)
+            .navigationTitle("Choose Hero")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Cancel") {
+                        store.cancelHeroDiscardSwap()
+                        dismiss()
+                    }
+                    .foregroundStyle(Design.Colors.textSecondary)
+                }
+            }
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func heroTile(_ card: Card) -> some View {
+        Button {
+            store.confirmHeroDiscardSwap(card)
+            dismiss()
+        } label: {
+            VStack(spacing: 4) {
+                ZStack(alignment: .bottom) {
+                    Group {
+                        if let file = card.imageFile, !file.isEmpty {
+                            CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
+                        } else {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Design.Colors.element(card.element).opacity(0.2))
+                        }
+                    }
+                    .frame(width: 90, height: 126)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(Design.Colors.element(card.element).opacity(0.5), lineWidth: 2)
+                    )
+                    Text("\(card.power ?? 0)")
+                        .font(Design.Fonts.display(20))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.black.opacity(0.75)))
+                        .padding(.bottom, 4)
+                }
+                Text(card.hero.isEmpty ? card.name : card.hero)
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .lineLimit(1)
+                Text(card.element)
+                    .font(Design.Fonts.mono(9, weight: .bold))
+                    .foregroundStyle(Design.Colors.element(card.element))
+            }
+        }
+        .buttonStyle(.plain)
     }
 }

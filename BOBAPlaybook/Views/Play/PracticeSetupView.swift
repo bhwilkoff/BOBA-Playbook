@@ -18,6 +18,9 @@ struct PracticeSetupView: View {
     @State private var savedDecks: [SavedDeck] = []
     @State private var isLoadingSaved = false
     @State private var isStarting = false
+    @State private var auditReport: PlayAuditReport? = nil
+    @State private var auditMarkdownPath: String? = nil
+    @State private var showAuditSummary = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -82,6 +85,27 @@ struct PracticeSetupView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(isStarting)
+
+                    // Run the play-effects auditor against every entry
+                    // in play-effects.json. Surfaces a markdown report
+                    // saved to Documents and a summary alert on screen.
+                    Button {
+                        runAudit()
+                    } label: {
+                        HStack {
+                            Image(systemName: "checklist")
+                            Text("RUN PLAY-EFFECTS AUDIT")
+                                .font(Design.Fonts.mono(13, weight: .bold))
+                        }
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 40)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .strokeBorder(Design.Colors.bobaCyan.opacity(0.4), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
                     .padding(.bottom, Design.Spacing.xl)
                 }
                 .padding(.horizontal, Design.Spacing.lg)
@@ -110,10 +134,41 @@ struct PracticeSetupView: View {
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .task { await loadSavedDecks() }
+            .alert("Audit Complete", isPresented: $showAuditSummary, presenting: auditReport) { _ in
+                Button("OK", role: .cancel) {}
+            } message: { report in
+                let path = auditMarkdownPath ?? "Documents/play_audit_report.md"
+                Text("\(report.totalCards) cards · \(report.errorCount) errors · \(report.warningCount) warnings · \(report.infoCount) info\n\nFull report saved to \(path)")
+            }
         }
         .fullScreenCover(isPresented: $showPlaymat) {
             PracticeView(store: store)
         }
+    }
+
+    // MARK: - Auditor
+
+    /// Run the play-effects auditor against every entry in
+    /// play-effects.json. Writes a full markdown report to
+    /// Documents/play_audit_report.md and surfaces a summary alert.
+    private func runAudit() {
+        let report = PlayEffectsAuditor.audit(catalog: cardStore.displayCards)
+        auditReport = report
+
+        // Persist markdown for AirDrop / Files.app inspection
+        let md = report.markdown()
+        if let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let url = dir.appendingPathComponent("play_audit_report.md")
+            try? md.data(using: .utf8)?.write(to: url, options: .atomic)
+            auditMarkdownPath = url.path
+            print("📋 Play-effects audit written to \(url.path)")
+        }
+        // Echo top-line summary to console for quick triage
+        print("📋 Audit: \(report.totalCards) cards · \(report.errorCount) errors · \(report.warningCount) warnings · \(report.infoCount) info")
+        for f in report.findings.prefix(50) {
+            print("  [\(f.severity.rawValue)] \(f.card) — \(f.category): \(f.message)")
+        }
+        showAuditSummary = true
     }
 
     // MARK: - Saved decks

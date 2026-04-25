@@ -4623,18 +4623,11 @@
       "category": "chance",
       "effects": [
         {
-          "op": "dice_roll",
-          "count": 1,
-          "branches": [
+          "op": "versus_dice_roll",
+          "winner_effect": [
             {
-              "match": "players:both",
-              "aggregate": "high_roll_wins",
-              "winner_effect": [
-                {
-                  "op": "play_top_of_playbook_free",
-                  "target": "winner"
-                }
-              ]
+              "op": "play_top_of_playbook_free",
+              "target": "winner"
             }
           ]
         }

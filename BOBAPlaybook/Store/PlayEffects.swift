@@ -55,6 +55,7 @@ enum PlayEffects {
         "shuffle_from_discard_to_deck","reclaim_used_play","variable_cost_bonus",
         // Randomness
         "coin_flip","dice_roll","compound_roll","dice_roll_again","versus_dice_roll",
+        "dice_gate",  // persistent gate — opponent must roll to play (Leave It To Chance)
         // Legality / control
         "protect_self","cancel_opponent_plays","cap_opponent_plays",
         "block_sub","block_plays","block_draw","block_hd_recover",
@@ -227,6 +228,10 @@ enum PlayIntent {
     /// Surfaced when a `discard` op carries `mode: "choice"` on the
     /// player's side. CPU side auto-picks (no chooser UI possible).
     case chooseHandDiscard(side: PlayExecContext.Side, count: Int)
+    /// Auto-discard `count` plays from `side`'s hand. Used when a
+    /// `discard` op fires without `mode: "choice"` — host picks
+    /// lowest-cost plays as a sensible default.
+    case autoDiscardHand(side: PlayExecContext.Side, count: Int)
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -411,14 +416,22 @@ enum PlayEffectExecutor {
             if (step["count"] as? String) == "all" { n = 99 } else { n = evalFormula(step["count"], ctx: ctx) }
             out.discards += n
             ctx.counters.cardsDiscardedByThisPlay += n
-            // `mode: "choice"` (Damage on Discard etc.) — surface the
-            // chooser intent so the player picks which plays to ditch.
-            // CPU side auto-picks (no chooser UI possible) via the
-            // host's intent handler.
             let mode = (step["mode"] as? String) ?? "auto"
             let kind = (step["kind"] as? String) ?? "play"
-            if mode == "choice" && kind == "play" && (step["target"] as? String) ?? "self" == "self" {
-                out.intents.append(.chooseHandDiscard(side: ctx.self_, count: n))
+            let targetStr = (step["target"] as? String) ?? "self"
+            // Resolve the side that needs to discard — `target: "self"`
+            // is the actor; `target: "opponent"` is the other side.
+            let discardSide: PlayExecContext.Side = targetStr == "opponent" ? ctx.opp : ctx.self_
+            if kind == "play" {
+                if mode == "choice" && discardSide == ctx.self_ {
+                    // Player picks which plays to ditch (the actor
+                    // chooses from their own hand).
+                    out.intents.append(.chooseHandDiscard(side: discardSide, count: n))
+                } else {
+                    // Auto-pick (CPU, opponent-targeted, or non-choice
+                    // mode). Host removes lowest-cost plays.
+                    out.intents.append(.autoDiscardHand(side: discardSide, count: n))
+                }
             }
             out.hasEffect = true
 

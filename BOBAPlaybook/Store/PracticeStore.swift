@@ -347,6 +347,33 @@ final class PracticeStore {
     //                             effect; returns false so broken data stays silent
     //                             rather than silently-wrong.
     //
+    /// Resolves any in-scope `dice_gate` persistent owned by the
+    /// opponent of `actingSide`. Returns nil when no gate applies;
+    /// returns (roll, passed) when one does. Implements the engine
+    /// side of Leave It To Chance — opponent rolls, dice is shown,
+    /// and the play either continues (passed) or is cancelled.
+    struct PlayGateOutcome { let roll: Int; let passed: Bool }
+    func checkPlayGate(actingSide: PlayExecContext.Side) -> PlayGateOutcome? {
+        let opp: PlayExecContext.Side = actingSide == .player ? .cpu : .player
+        for inst in persistents {
+            guard inst.owner == opp else { continue }
+            guard (inst.spec["trigger"] as? String) == "on_opp_play" else { continue }
+            guard Self.isScopeActive(
+                inst.spec["scope"] as? String,
+                installedAt: inst.installedAt,
+                at: currentBattle,
+                spec: inst.spec
+            ) else { continue }
+            guard let effect = inst.spec["effect"] as? [String: Any],
+                  (effect["op"] as? String) == "dice_gate"
+            else { continue }
+            let pass = (effect["pass_on"] as? [Int]) ?? [2, 3, 4, 5]
+            let roll = Int.random(in: 1...6)
+            return PlayGateOutcome(roll: roll, passed: pass.contains(roll))
+        }
+        return nil
+    }
+
     // Unknown scopes return false — that's a "silent no-op" safety net for any
     // new scope authored in the JSON before the host learns to read it.
     static func isScopeActive(
@@ -1036,18 +1063,50 @@ final class PracticeStore {
                     count: min(count, playerHand.count)
                 )
             } else {
-                let n = min(count, cpuHand.count)
-                let toDiscard = Array(cpuHand.sorted { ($0.playCost ?? 0) < ($1.playCost ?? 0) }.prefix(n))
+                autoDiscardCpuHand(count: count, into: &callouts)
+            }
+
+        case .autoDiscardHand(let side, let count):
+            // Forced discard with no chooser — host picks the
+            // lowest-cost plays as a sensible default. Used by cards
+            // like Hungry Demands targeting the opponent, or any
+            // discard op without `mode: "choice"`.
+            if side == .player {
+                let n = min(count, playerHand.count)
+                let toDiscard = Array(playerHand.sorted { ($0.playCost ?? 0) < ($1.playCost ?? 0) }.prefix(n))
                 for c in toDiscard {
-                    if let idx = cpuHand.firstIndex(of: c) {
-                        cpuHand.remove(at: idx)
+                    if let idx = playerHand.firstIndex(of: c) {
+                        playerHand.remove(at: idx)
+                        playerPlayDiscard.append(c)
                     }
                 }
-                callouts.append(ActionCallout(
-                    message: "CPU discarded \(n) play\(n == 1 ? "" : "s")",
-                    icon: "trash", color: "C0392B"
-                ))
+                if n > 0 {
+                    callouts.append(ActionCallout(
+                        message: "Discarded \(n) play\(n == 1 ? "" : "s") from hand",
+                        icon: "trash", color: "C0392B"
+                    ))
+                }
+            } else {
+                autoDiscardCpuHand(count: count, into: &callouts)
             }
+        }
+    }
+
+    /// Shared CPU-hand auto-discard helper used by both intent
+    /// branches above.
+    private func autoDiscardCpuHand(count: Int, into callouts: inout [ActionCallout]) {
+        let n = min(count, cpuHand.count)
+        let toDiscard = Array(cpuHand.sorted { ($0.playCost ?? 0) < ($1.playCost ?? 0) }.prefix(n))
+        for c in toDiscard {
+            if let idx = cpuHand.firstIndex(of: c) {
+                cpuHand.remove(at: idx)
+            }
+        }
+        if n > 0 {
+            callouts.append(ActionCallout(
+                message: "CPU discarded \(n) play\(n == 1 ? "" : "s")",
+                icon: "trash", color: "C0392B"
+            ))
         }
     }
 
@@ -1497,6 +1556,25 @@ final class PracticeStore {
         playerHand.removeFirst(where: { $0 == card })
         battles[currentBattle].playerPlayedCards.append(card)
 
+        // Leave It To Chance gate — opponent's persistent forces a
+        // dice roll AFTER cost is paid; on a miss the play's effects
+        // are cancelled but the HD remains spent (per ability text).
+        if let gate = checkPlayGate(actingSide: .player) {
+            pendingReveal = RevealState(side: .player, coinFlips: [], diceRolls: [gate.roll])
+            cpuCallouts.append(ActionCallout(
+                message: gate.passed
+                    ? "🎲 \(gate.roll) — Play continues"
+                    : "🎲 \(gate.roll) — Play cancelled by Leave It To Chance",
+                icon: "dice.fill",
+                color: gate.passed ? "4CAF50" : "C0392B"
+            ))
+            if !gate.passed {
+                playerPlayDiscard.append(card)
+                saveMatch()
+                return
+            }
+        }
+
         let ability = (card.playAbility ?? "").lowercased()
 
         // Structured executor first; fall back to regex resolver if no entry or no mechanical effect
@@ -1523,7 +1601,20 @@ final class PracticeStore {
                 pendingReveal = RevealState(side: .player, coinFlips: out.coinFlips, diceRolls: out.diceRolls)
             }
             if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
-                for p in persistent { installPersistent(owner: .player, spec: p) }
+                let ctxForCheck = makeExecContext(self_: .player)
+                for p in persistent {
+                    // Top-level `if` on a persistent gates whether
+                    // the install fires at all. Used by cards like
+                    // Pick Your Poison ("If you lost the previous
+                    // Battle, ...") where the condition needs to be
+                    // evaluated NOW (against the current battle's
+                    // state) rather than at fire time (when the
+                    // "previous" battle reference would have shifted).
+                    if let ifCond = p["if"] as? [String: Any] {
+                        guard PlayEffectExecutor.evalCondition(ifCond, ctx: ctxForCheck) else { continue }
+                    }
+                    installPersistent(owner: .player, spec: p)
+                }
             }
             let notes = applyIntents(out, actingSide: .player)
             if !notes.isEmpty {
@@ -1812,6 +1903,27 @@ final class PracticeStore {
             battles[currentBattle].cpuPlayedCards.append(card)
             let cost = effectiveCost(for: card, side: .cpu, consume: true)
 
+            // Leave It To Chance gate — same as the player path,
+            // but here the GATE's owner is the player and the gated
+            // actor is the CPU. On a miss the play's effects are
+            // silently dropped (HD remains spent).
+            if let gate = checkPlayGate(actingSide: .cpu) {
+                tempHotDogs -= cost
+                cpuHotDogs -= cost
+                cpuPlaysRemaining -= 1
+                cardsPlayed += 1
+                cpuPlayQueue.append(ActionCallout(
+                    message: gate.passed
+                        ? "CPU rolled \(gate.roll) — \(card.name) plays through"
+                        : "CPU rolled \(gate.roll) — \(card.name) cancelled by your Leave It To Chance",
+                    icon: "dice.fill",
+                    color: gate.passed ? "8B00FF" : "4CAF50",
+                    card: card,
+                    diceRolls: [gate.roll]
+                ))
+                if !gate.passed { continue }
+            }
+
             // Structured executor first (CPU perspective); fall back to regex resolver
             var cpuDelta = 0
             var playerDelta = 0
@@ -1837,7 +1949,13 @@ final class PracticeStore {
                 capturedCoinFlips = out.coinFlips
                 capturedDiceRolls = out.diceRolls
                 if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
-                    for p in persistent { installPersistent(owner: .cpu, spec: p) }
+                    let ctxForCheck = makeExecContext(self_: .cpu)
+                    for p in persistent {
+                        if let ifCond = p["if"] as? [String: Any] {
+                            guard PlayEffectExecutor.evalCondition(ifCond, ctx: ctxForCheck) else { continue }
+                        }
+                        installPersistent(owner: .cpu, spec: p)
+                    }
                 }
                 let notes = applyIntents(out, actingSide: .cpu)
                 cpuLastPlayNotes = notes

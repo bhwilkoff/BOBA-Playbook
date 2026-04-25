@@ -181,8 +181,15 @@ struct ActiveBattleView: View {
                 // count of this in physical games (transcript [00:42:40])
                 // and Play Booster / 10 Per Play / No Huddle all pivot
                 // on it. Showing the strip live makes the math visible.
-                playsUsedStrip(plays: isOpponent ? slot.cpuPlayedCards : slot.playerPlayedCards,
-                               accent: isOpponent ? Color(hex: "8B00FF") : Design.Colors.bobaCyan)
+                //
+                // Hidden once the battle resolves — the breakdown panel
+                // above already itemizes every contributing play by
+                // name + delta, so the strip becomes redundant and just
+                // competes for vertical space against the hero cards.
+                if slot.result == nil {
+                    playsUsedStrip(plays: isOpponent ? slot.cpuPlayedCards : slot.playerPlayedCards,
+                                   accent: isOpponent ? Color(hex: "8B00FF") : Design.Colors.bobaCyan)
+                }
             } else {
                 // Facedown card
                 RoundedRectangle(cornerRadius: 8)
@@ -306,12 +313,17 @@ struct ActiveBattleView: View {
     /// during the current battle. Each play renders as a small chip
     /// with the play name; a running count appears at the leading
     /// edge. Empty when no plays have been used yet.
+    ///
+    /// Total strip height is hard-pinned at 38pt (12pt header + 2pt
+    /// gap + 24pt chip row) so the heroCard VStack can never grow
+    /// vertically when more plays accumulate — they just become
+    /// horizontally scrollable.
     @ViewBuilder
     private func playsUsedStrip(plays: [Card], accent: Color) -> some View {
         if plays.isEmpty {
             EmptyView()
         } else {
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("\(plays.count) PLAY\(plays.count == 1 ? "" : "S") USED")
                     .font(Design.Fonts.mono(9, weight: .bold))
                     .foregroundStyle(Design.Colors.textMuted)
@@ -347,8 +359,10 @@ struct ActiveBattleView: View {
                     .padding(.horizontal, 4)
                 }
                 .contentMargins(.horizontal, 2, for: .scrollContent)
+                .frame(height: 24)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: 38, alignment: .top)
         }
     }
 

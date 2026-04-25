@@ -22,7 +22,7 @@
       ]
     },
     "1-4-1 Hero": {
-      "cost": 1,
+      "cost": 0,
       "ability": "Draw a Hero from your Hero Deck.",
       "category": "economy",
       "effects": [
@@ -210,6 +210,15 @@
       },
       "effects": [
         {
+          "op": "power",
+          "target": "self",
+          "delta": {
+            "factor": 5,
+            "metric": "battles_won",
+            "target": "self"
+          }
+        },
+        {
           "if": {
             "type": "battle_num",
             "comparison": "gte",
@@ -235,10 +244,12 @@
       "persistent": [
         {
           "scope": "rest_of_game",
-          "trigger": "on_win",
+          "trigger": "on_battle_win",
           "effect": {
-            "op": "note",
-            "text": "After winning a Battle, next Battle's Hero gets +5 on reveal."
+            "op": "power",
+            "target": "self",
+            "delta": 5,
+            "applies_to": "next_battle"
           }
         }
       ]
@@ -288,7 +299,7 @@
       ]
     },
     "3rd Time Charm": {
-      "cost": 1,
+      "cost": 2,
       "ability": "Flip a coin 3 times. If all 3 flips land on heads, your Hero's Power is doubled. Each time the coin lands on tails, draw a Play.",
       "category": "tempo",
       "effects": [
@@ -490,7 +501,7 @@
       }
     },
     "Adding Depth": {
-      "cost": 1,
+      "cost": 0,
       "ability": "Draw a card from either your Playbook or your Hero Deck.",
       "category": "economy",
       "effects": [
@@ -585,9 +596,25 @@
           "then": [
             {
               "op": "note",
-              "text": "End-of-turn trigger: +10 to self after both players finish their turn. Requires end-of-turn hook."
+              "text": "Sets up end-of-turn trigger via persistent below."
             }
           ]
+        }
+      ],
+      "persistent": [
+        {
+          "scope": "this_battle",
+          "trigger": "on_plays_resolved",
+          "if": {
+            "type": "weapon",
+            "target": "self",
+            "weapon": "FIRE"
+          },
+          "effect": {
+            "op": "power",
+            "target": "self",
+            "delta": 10
+          }
         }
       ]
     },
@@ -921,7 +948,7 @@
       ]
     },
     "Blind Substitution": {
-      "cost": 2,
+      "cost": 3,
       "ability": "Discard your Hero. Replace it with the top card of your Hero Deck.",
       "category": "utility",
       "effects": [
@@ -953,7 +980,7 @@
       ]
     },
     "Brothers In Arms": {
-      "cost": 1,
+      "cost": 2,
       "ability": "If your opponent has played a Hero with the same weapon type as yours, your Hero gets +20.",
       "category": "conditional",
       "effects": [
@@ -1128,7 +1155,7 @@
       ]
     },
     "Burning Fever": {
-      "cost": 1,
+      "cost": 2,
       "ability": "If your Hero has a Fire weapon, it can't drop below its current Power.",
       "category": "conditional",
       "effects": [
@@ -1601,7 +1628,7 @@
       ]
     },
     "Contract Limitations": {
-      "cost": 0,
+      "cost": 1,
       "ability": "Your Hero gets +15 but you don't draw a Play at the start of next Battle.",
       "category": "value",
       "effects": [
@@ -1661,7 +1688,7 @@
       }
     },
     "Cursed Coin": {
-      "cost": 1,
+      "cost": 2,
       "ability": "Flip a coin 3 times; opponent's Hero gets -10 each time the coin lands on heads.",
       "category": "tempo",
       "effects": [
@@ -1679,7 +1706,7 @@
       ]
     },
     "Curveball": {
-      "cost": 2,
+      "cost": 3,
       "ability": "Replace your Hero with any Hero from your hand and draw 1 Hero.",
       "category": "utility",
       "effects": [
@@ -1953,7 +1980,7 @@
       ]
     },
     "Dog Gone Inflation": {
-      "cost": 1,
+      "cost": 0,
       "ability": "Your opponent's Plays each cost an extra 2 Hot Dogs for this Battle and the next Battle.",
       "category": "disruption",
       "effects": [
@@ -1989,7 +2016,7 @@
       ]
     },
     "Don't Call It A Comeback": {
-      "cost": 1,
+      "cost": 0,
       "ability": "Replace this Hero with any Hero from your Discard Pile.",
       "category": "utility",
       "effects": [
@@ -2078,7 +2105,7 @@
       ]
     },
     "Double or Nothin'": {
-      "cost": 1,
+      "cost": 0,
       "ability": "Flip a coin twice; if both land on heads, play the top card from your Hero Deck and add its power to the active Hero in this Battle.",
       "category": "tempo",
       "effects": [
@@ -2233,7 +2260,7 @@
       ]
     },
     "Easy Choice": {
-      "cost": 0,
+      "cost": 1,
       "ability": "No matter the outcome of this Battle, you decide who gets Honors (goes first) in the next Battle.",
       "category": "utility",
       "effects": [
@@ -2267,10 +2294,16 @@
       "cost": 3,
       "ability": "Your opponent can't run any Plays in Battle 7.",
       "category": "disruption",
-      "effects": [
+      "effects": [],
+      "persistent": [
         {
-          "op": "cancel_opponent_plays",
-          "scope": "battle_7"
+          "scope": "battle_7",
+          "trigger": "on_battle_start",
+          "effect": {
+            "op": "block_plays",
+            "target": "opponent",
+            "scope": "this_battle"
+          }
         }
       ]
     },
@@ -2288,8 +2321,8 @@
           },
           "then": [
             {
-              "op": "note",
-              "text": "Cancel all persistent 'rest of game' effects on both sides."
+              "op": "cancel_persistent",
+              "target": "both"
             }
           ]
         }
@@ -2375,6 +2408,15 @@
         "value": 5
       },
       "effects": [
+        {
+          "op": "power",
+          "target": "self",
+          "delta": {
+            "factor": 5,
+            "metric": "battles_won",
+            "target": "self"
+          }
+        },
         {
           "if": {
             "type": "battle_num",
@@ -2494,7 +2536,7 @@
       ]
     },
     "Fire Comeback": {
-      "cost": 1,
+      "cost": 2,
       "ability": "Swap your Hero with a Fire weapon Hero in your Discard Pile.",
       "category": "utility",
       "effects": [
@@ -2506,7 +2548,7 @@
       ]
     },
     "Fire Crew": {
-      "cost": 2,
+      "cost": 3,
       "ability": "For every Hero with a Fire weapon you've used in all Battles so far, your Hero gets +10.",
       "category": "value",
       "effects": [
@@ -2523,7 +2565,7 @@
       ]
     },
     "Fire Extinguisher": {
-      "cost": 1,
+      "cost": 2,
       "ability": "If your opponent's Hero has a Fire weapon, give it -20.",
       "category": "disruption",
       "effects": [
@@ -2656,7 +2698,7 @@
       ]
     },
     "Flame Wall": {
-      "cost": 0,
+      "cost": 1,
       "ability": "If your Hero has a Fire weapon, your opponent can't run any Plays this Battle.",
       "category": "disruption",
       "effects": [
@@ -2772,7 +2814,7 @@
       ]
     },
     "Forced Retreat": {
-      "cost": 1,
+      "cost": 2,
       "ability": "Your opponent must Discard their current Hero, and replace it with one from their hand.",
       "category": "disruption",
       "effects": [
@@ -2788,7 +2830,7 @@
       ]
     },
     "Forced Substitution": {
-      "cost": 2,
+      "cost": 3,
       "ability": "Your opponent must pay 2 Hot Dogs and Substitute next Battle.",
       "category": "disruption",
       "effects": [
@@ -2804,6 +2846,11 @@
       "cost": 3,
       "ability": "Your Hero gets +20. If you didn't run any Plays last Battle, this Play costs 0. This Play can't be used in Battle 1.",
       "category": "value",
+      "requires": {
+        "type": "battle_num",
+        "comparison": "gte",
+        "value": 2
+      },
       "effects": [
         {
           "op": "power",
@@ -2812,7 +2859,7 @@
         },
         {
           "op": "note",
-          "text": "If self did not run any Plays last Battle, this Play's cost becomes 0 (pre-cost refund). Cannot be used in Battle 1."
+          "text": "If self did not run any Plays last Battle, this Play's cost becomes 0 (pre-cost refund). Power +20 is fully implemented."
         }
       ],
       "ui": {
@@ -2843,7 +2890,7 @@
       ]
     },
     "Frost-Hardened": {
-      "cost": 0,
+      "cost": 1,
       "ability": "For the rest of the game, if your Hero has a Steel weapon, it changes to an Ice weapon.",
       "category": "value",
       "effects": [],
@@ -2932,7 +2979,7 @@
       ]
     },
     "Frozen Resolve": {
-      "cost": 1,
+      "cost": 2,
       "ability": "If your Hero has an Ice weapon, it can't drop below its current Power.",
       "category": "conditional",
       "effects": [
@@ -3001,7 +3048,7 @@
       ]
     },
     "Gavel of Justice": {
-      "cost": 3,
+      "cost": 4,
       "ability": "Lower the opponent's Hero by -30.",
       "category": "disruption",
       "effects": [
@@ -3057,11 +3104,8 @@
         {
           "op": "variable_cost_bonus",
           "target": "self",
-          "per_hd": {
-            "op": "power",
-            "target": "self",
-            "delta": 10
-          },
+          "factor": 10,
+          "per_hd": 10,
           "source_hd": "player_chosen_pool"
         }
       ]
@@ -3146,7 +3190,7 @@
       }
     },
     "Going Back to Back": {
-      "cost": 2,
+      "cost": 3,
       "ability": "This Hero gets any extra Power your previous Hero had.",
       "category": "conditional",
       "effects": [
@@ -3230,18 +3274,11 @@
       "category": "chance",
       "effects": [
         {
-          "op": "dice_roll",
-          "count": 1,
-          "branches": [
+          "op": "versus_dice_roll",
+          "winner_effect": [
             {
-              "match": "players:both",
-              "aggregate": "high_roll_wins",
-              "winner_effect": [
-                {
-                  "op": "play_top_of_playbook_free",
-                  "target": "winner"
-                }
-              ]
+              "op": "play_top_of_playbook_free",
+              "target": "winner"
             }
           ]
         }
@@ -3399,7 +3436,7 @@
       ]
     },
     "Heads I Win, Tails You Lose": {
-      "cost": 0,
+      "cost": 1,
       "ability": "Flip a coin: If heads, your Hero gets +15. If tails, your opponent's Hero loses -5.",
       "category": "tempo",
       "effects": [
@@ -3424,7 +3461,7 @@
       ]
     },
     "Heads-Up!": {
-      "cost": 1,
+      "cost": 2,
       "ability": "Flip a coin 4 times; your Hero gets +5 each time the coin lands on heads.",
       "category": "tempo",
       "effects": [
@@ -3750,7 +3787,7 @@
       ]
     },
     "Hollow Bat": {
-      "cost": 1,
+      "cost": 2,
       "ability": "Roll a dice. If it lands on 3-6, your Hero gets +25. If it lands on 1 or 2, your Hero gets -25.",
       "category": "tempo",
       "effects": [
@@ -3978,7 +4015,7 @@
       ]
     },
     "Ice Climber": {
-      "cost": 1,
+      "cost": 2,
       "ability": "If your Hero has an Ice weapon and your opponent has Steel, your Hero gets +35.",
       "category": "conditional",
       "effects": [
@@ -4009,7 +4046,7 @@
       ]
     },
     "Ice Crew": {
-      "cost": 2,
+      "cost": 3,
       "ability": "For every Hero with an Ice weapon you've used in all Battles so far, your Hero gets +10.",
       "category": "value",
       "effects": [
@@ -4026,7 +4063,7 @@
       ]
     },
     "Ice Pick": {
-      "cost": 1,
+      "cost": 2,
       "ability": "If your opponent's Hero has an Ice weapon, give it -20.",
       "category": "disruption",
       "effects": [
@@ -4108,7 +4145,7 @@
       ]
     },
     "Icy Comeback": {
-      "cost": 1,
+      "cost": 2,
       "ability": "Swap your Hero with an Ice weapon Hero in your Discard Pile.",
       "category": "utility",
       "effects": [
@@ -4120,7 +4157,7 @@
       ]
     },
     "Icy Shield": {
-      "cost": 0,
+      "cost": 1,
       "ability": "If your Hero has an Ice weapon, your opponent can't run any Plays this Battle.",
       "category": "disruption",
       "effects": [
@@ -4183,7 +4220,7 @@
       }
     },
     "Indestructible": {
-      "cost": 0,
+      "cost": 1,
       "ability": "This Hero can't have its power reduced by an opponent's Play.",
       "category": "disruption",
       "effects": [
@@ -4275,7 +4312,7 @@
       ]
     },
     "Last-Minute Re-Org": {
-      "cost": 2,
+      "cost": 3,
       "ability": "Swap your Hero with another one of your face-down Heroes from a future Battle.",
       "category": "utility",
       "effects": [
@@ -4287,7 +4324,7 @@
       ]
     },
     "Late Game Lockdown": {
-      "cost": 1,
+      "cost": 0,
       "ability": "Your opponent cannot Substitute in Battle 7.",
       "category": "disruption",
       "effects": [
@@ -4338,7 +4375,7 @@
       }
     },
     "Late-Game Magic": {
-      "cost": 2,
+      "cost": 0,
       "ability": "You can only run this Play in Battle 5 or later; give your Hero +20.",
       "category": "tempo",
       "effects": [
@@ -4472,7 +4509,7 @@
       ]
     },
     "Loan Sharked": {
-      "cost": 1,
+      "cost": 0,
       "ability": "For the rest of the Game if a coin is flipped, lower the opponent's Hero in the active Battle by -5.",
       "category": "disruption",
       "effects": [],
@@ -4582,7 +4619,7 @@
       ]
     },
     "Lost Plays": {
-      "cost": 0,
+      "cost": 1,
       "ability": "Both Players Discard the top 3 Plays of their Playbook.",
       "category": "utility",
       "effects": [
@@ -4980,17 +5017,19 @@
       ]
     },
     "Make It, Take It": {
-      "cost": 0,
+      "cost": 1,
       "ability": "For the rest of the game, whenever you win a Battle, your Hero in the next Battle gets +5.",
       "category": "value",
       "effects": [],
       "persistent": [
         {
           "scope": "rest_of_game",
-          "trigger": "on_win",
+          "trigger": "on_battle_win",
           "effect": {
-            "op": "note",
-            "text": "After winning a Battle, next Battle's Hero gets +5 on reveal."
+            "op": "power",
+            "target": "self",
+            "delta": 5,
+            "applies_to": "next_battle"
           }
         }
       ]
@@ -5122,7 +5161,7 @@
       ]
     },
     "Molten Steel": {
-      "cost": 0,
+      "cost": 1,
       "ability": "For the rest of the game, if your Hero has a Steel weapon, it changes to a Fire weapon.",
       "category": "value",
       "effects": [],
@@ -5245,7 +5284,7 @@
       ]
     },
     "Nasty Or Nada": {
-      "cost": 0,
+      "cost": 1,
       "ability": "Roll a dice 3 times. Your Hero gets +30 if you roll a 6.",
       "category": "tempo",
       "effects": [
@@ -5408,7 +5447,7 @@
       ]
     },
     "One-And-One": {
-      "cost": 0,
+      "cost": 1,
       "ability": "Flip a coin. If heads, your Hero gets +10. You may do this a second and final time if it lands on heads.",
       "category": "tempo",
       "effects": [
@@ -5433,7 +5472,7 @@
       }
     },
     "Only Fire": {
-      "cost": 2,
+      "cost": 3,
       "ability": "For the rest of the game all Heroes have Fire Weapons.",
       "category": "value",
       "effects": [],
@@ -5449,7 +5488,7 @@
       ]
     },
     "Only Ice": {
-      "cost": 2,
+      "cost": 3,
       "ability": "For the rest of the game all Heroes have Ice Weapons.",
       "category": "value",
       "effects": [],
@@ -5465,7 +5504,7 @@
       ]
     },
     "Only Steel": {
-      "cost": 2,
+      "cost": 3,
       "ability": "For the rest of the game all Heroes have Steel Weapons.",
       "category": "value",
       "effects": [],
@@ -5481,7 +5520,7 @@
       ]
     },
     "Only Upside": {
-      "cost": 0,
+      "cost": 1,
       "ability": "Pick a number from 1 to 6, then roll a dice. If it lands on your number, your Hero gets +20. If not, draw a Play from your Playbook.",
       "category": "chance",
       "effects": [
@@ -5608,7 +5647,7 @@
       ]
     },
     "Over Under": {
-      "cost": 1,
+      "cost": 2,
       "ability": "Send 2 Heroes from your hand to your Discard Pile. Draw 1 Play and 1 Hero.",
       "category": "utility",
       "effects": [
@@ -5801,7 +5840,7 @@
       ]
     },
     "Pinch Hitter": {
-      "cost": 1,
+      "cost": 0,
       "ability": "Next Battle you can Substitute for free (0 Hot Dog cost).",
       "category": "economy",
       "effects": [
@@ -6013,8 +6052,14 @@
           "delta": -10
         },
         {
-          "op": "note",
-          "text": "Self +5 per Hero in opponent Discard Pile. delta = 5 * discard_count(opponent, hero)."
+          "op": "power",
+          "target": "self",
+          "delta": {
+            "factor": 5,
+            "metric": "discard_count",
+            "target": "opponent",
+            "kind": "hero"
+          }
         }
       ]
     },
@@ -6102,7 +6147,7 @@
       ]
     },
     "Prevent D": {
-      "cost": 2,
+      "cost": 0,
       "ability": "Your opponent can't run any Plays in Battle 7.",
       "category": "disruption",
       "effects": [
@@ -6149,7 +6194,7 @@
       ]
     },
     "QB Sneak": {
-      "cost": 0,
+      "cost": 1,
       "ability": "If this Battle is tied, your Hero gets +1.",
       "category": "conditional",
       "effects": [
@@ -6198,7 +6243,7 @@
       ]
     },
     "Radiant Comeback": {
-      "cost": 1,
+      "cost": 2,
       "ability": "Swap your Hero with a Glow weapon Hero in your Discard Pile.",
       "category": "utility",
       "effects": [
@@ -6210,7 +6255,7 @@
       ]
     },
     "Rally Cap": {
-      "cost": 1,
+      "cost": 0,
       "ability": "If your Hero in this Battle is losing by 15 or more it gets +20.",
       "category": "conditional",
       "effects": [
@@ -6230,7 +6275,7 @@
       ]
     },
     "Random Bench Ejection": {
-      "cost": 1,
+      "cost": 0,
       "ability": "If your opponent's Hero has a power of 100 or more, they must Discard 1 random Hero from their hand.",
       "category": "disruption",
       "effects": [
@@ -6254,7 +6299,7 @@
       ]
     },
     "Rebuild": {
-      "cost": 1,
+      "cost": 0,
       "ability": "If you lost the previous Battle, Discard all Heroes in your hand and draw 4 new Heroes from your Hero Deck.",
       "category": "utility",
       "effects": [
@@ -6265,15 +6310,22 @@
           },
           "then": [
             {
-              "op": "note",
-              "text": "Discard all Heroes in self hand; draw 4 new Heroes."
+              "op": "discard_hand_all",
+              "target": "self",
+              "kind": "hero"
+            },
+            {
+              "op": "draw",
+              "target": "self",
+              "kind": "hero",
+              "count": 4
             }
           ]
         }
       ]
     },
     "Recycle": {
-      "cost": 1,
+      "cost": 2,
       "ability": "Shuffle all Plays used in previous Battles back into your Playbook. Draw 2 Plays.",
       "category": "utility",
       "effects": [
@@ -6367,8 +6419,15 @@
           },
           "then": [
             {
-              "op": "note",
-              "text": "Shuffle all Heroes in self Discard Pile back into Hero Deck, then draw 2 Heroes."
+              "op": "shuffle_from_discard_to_deck",
+              "target": "self",
+              "kind": "hero"
+            },
+            {
+              "op": "draw",
+              "target": "self",
+              "kind": "hero",
+              "count": 2
             }
           ]
         }
@@ -6672,7 +6731,7 @@
       ]
     },
     "Roster Cuts": {
-      "cost": 2,
+      "cost": 3,
       "ability": "Discard the top 3 Heroes of your Hero Deck.",
       "category": "utility",
       "effects": [
@@ -7031,7 +7090,7 @@
       ]
     },
     "Shooters Shoot": {
-      "cost": 1,
+      "cost": 0,
       "ability": "Flip a coin 4 times; your opponent's Hero gets -5 each time the coin lands on tails.",
       "category": "tempo",
       "effects": [
@@ -7061,7 +7120,7 @@
       ]
     },
     "Smitty": {
-      "cost": 1,
+      "cost": 2,
       "ability": "If your Hero has a Fire weapon and your opponent has Steel, your Hero gets +35.",
       "category": "conditional",
       "effects": [
@@ -7108,7 +7167,7 @@
       ]
     },
     "Stain-Less-Steel": {
-      "cost": 1,
+      "cost": 2,
       "ability": "If your opponent's Hero has a Steel weapon, give it -15.",
       "category": "disruption",
       "effects": [
@@ -7205,7 +7264,7 @@
       ]
     },
     "Steel Crew": {
-      "cost": 1,
+      "cost": 2,
       "ability": "For every Hero with a Steel weapon you've used in all Battles so far, your Hero gets +10.",
       "category": "value",
       "effects": [
@@ -7222,7 +7281,7 @@
       ]
     },
     "Steel Defense": {
-      "cost": 0,
+      "cost": 1,
       "ability": "If your Hero has a Steel weapon, your opponent can't run any Plays this Battle.",
       "category": "disruption",
       "effects": [
@@ -7332,19 +7391,21 @@
       "cost": 1,
       "ability": "If your Hero has a Steel weapon, after both players finish their turn, your Hero gets +15.",
       "category": "conditional",
-      "effects": [
+      "effects": [],
+      "persistent": [
         {
+          "scope": "this_battle",
+          "trigger": "on_plays_resolved",
           "if": {
             "type": "weapon",
             "target": "self",
             "weapon": "STEEL"
           },
-          "then": [
-            {
-              "op": "note",
-              "text": "End-of-turn trigger: +15 to self after both finish turn."
-            }
-          ]
+          "effect": {
+            "op": "power",
+            "target": "self",
+            "delta": 15
+          }
         }
       ]
     },
@@ -7845,8 +7906,16 @@
           "mode": "choice"
         },
         {
-          "op": "note",
-          "text": "Flip coin 3x; if all heads, opponent power set to 0. Needs all-heads aggregate."
+          "op": "coin_flip",
+          "times": 3,
+          "aggregate": "all_heads",
+          "then": [
+            {
+              "op": "power_set",
+              "target": "opponent",
+              "value": 0
+            }
+          ]
         }
       ],
       "ui": {
@@ -7854,7 +7923,7 @@
       }
     },
     "To Fight Another Day": {
-      "cost": 1,
+      "cost": 0,
       "ability": "If you lost the previous Battle, your Hero in the active Battle gets +20.",
       "category": "conditional",
       "effects": [
@@ -7958,7 +8027,7 @@
       }
     },
     "Tough Call": {
-      "cost": 1,
+      "cost": 0,
       "ability": "Reveal the top 3 Plays of your Playbook; choose 1 and add it to your hand then Discard the other 2.",
       "category": "utility",
       "effects": [
@@ -7998,7 +8067,7 @@
       }
     },
     "Transfer Portal": {
-      "cost": 2,
+      "cost": 3,
       "ability": "Your Hero loses -30. Your Hero in the next Battle gets +30.",
       "category": "value",
       "effects": [
@@ -8249,7 +8318,7 @@
       ]
     },
     "Waiver Wire Pickup": {
-      "cost": 2,
+      "cost": 0,
       "ability": "Search your Hero Deck for any Hero with up to 100 power and add it to your hand.",
       "category": "utility",
       "effects": [
@@ -8395,7 +8464,7 @@
       ]
     },
     "Win The Toss": {
-      "cost": 1,
+      "cost": 0,
       "ability": "Flip a coin; if heads, run the top Play from your Playbook in this Battle for free (0 Hot Dog cost).",
       "category": "economy",
       "effects": [
@@ -8471,7 +8540,7 @@
       ]
     },
     "Worth The Risk?": {
-      "cost": 0,
+      "cost": 1,
       "ability": "Roll a dice: if you get a 1 or 6, your Hero's power drops to 0. If you roll a 2-5, you gain +25.",
       "category": "tempo",
       "effects": [

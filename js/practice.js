@@ -4414,34 +4414,63 @@ const PM = {
     const op = eff.op || '';
     const scope = pmScopeDisplayLabel(spec.scope || 'this_battle');
     const who = owner === 'player' ? 'You' : 'CPU';
+    // Triggered persistents wear a short prefix so multi-branch cards
+    // (Win or Weiners installs one for on_battle_win + one for
+    // on_battle_loss) read as "if win → draw" / "if loss → recover"
+    // instead of two visually-identical pills.
+    const trigger = (spec && spec.trigger) || '';
+    const prefix = (
+      trigger === 'on_battle_win'     ? 'if win → ' :
+      trigger === 'on_battle_loss'    ? 'if loss → ' :
+      trigger === 'on_plays_resolved' ? 'end of plays → ' :
+      trigger === 'on_battle_start'   ? 'battle start → ' :
+      trigger === 'on_opp_play'       ? 'on opp play → ' :
+      trigger === 'on_turn_end'       ? 'turn end → ' :
+      ''
+    );
+    const wrap = body => prefix ? `${prefix}${body}` : body;
     switch (op) {
       case 'modify_hd_recover':
-        if (eff.cap != null)   return `HD recovery capped at ${eff.cap} ${scope}`;
-        if (eff.delta != null) return `HD recovery ${eff.delta > 0 ? '+' : ''}${eff.delta} ${scope}`;
-        return `HD recovery modifier active ${scope}`;
+        if (eff.cap != null)   return wrap(`HD recovery capped at ${eff.cap} ${scope}`);
+        if (eff.delta != null) return wrap(`HD recovery ${eff.delta > 0 ? '+' : ''}${eff.delta} ${scope}`);
+        return wrap(`HD recovery modifier active ${scope}`);
       case 'redirect_hd_recover':
-        return `${who}: redirect HD recovery ${scope}`;
+        return wrap(`${who}: redirect HD recovery ${scope}`);
       case 'block_hd_recover': {
         const target = eff.target || 'self';
-        if (target === 'both')     return `Neither side recovers HDs ${scope}`;
-        if (target === 'opponent') return `Opponent can't recover HDs ${scope}`;
-        return `${who} can't recover HDs ${scope}`;
+        if (target === 'both')     return wrap(`Neither side recovers HDs ${scope}`);
+        if (target === 'opponent') return wrap(`Opponent can't recover HDs ${scope}`);
+        return wrap(`${who} can't recover HDs ${scope}`);
       }
-      case 'auto_lose_battle':    return `Lose any battle with 0 HDs ${scope}`;
-      case 'require_dice_roll':   return `Opponent must roll dice to play ${scope}`;
-      case 'allow_hd_overspend':  return `${who} can overspend HDs by ${eff.max_deficit || 0} ${scope}`;
+      case 'auto_lose_battle':    return wrap(`Lose any battle with 0 HDs ${scope}`);
+      case 'require_dice_roll':   return wrap(`Opponent must roll dice to play ${scope}`);
+      case 'allow_hd_overspend':  return wrap(`${who} can overspend HDs by ${eff.max_deficit || 0} ${scope}`);
       case 'power': {
         if (eff.delta != null) {
           const target = eff.target || 'self';
           const recipient = target === 'opponent'
             ? (owner === 'player' ? 'CPU Hero' : 'Your Hero')
             : (owner === 'player' ? 'Your Hero' : 'CPU Hero');
-          return `${recipient} ${eff.delta > 0 ? '+' : ''}${eff.delta} ${scope}`;
+          return wrap(`${recipient} ${eff.delta > 0 ? '+' : ''}${eff.delta} ${scope}`);
         }
         return null;
       }
+      case 'hd_recover': {
+        const amount = (typeof eff.amount === 'number') ? `${eff.amount} HD`
+                     : (eff.amount === 'all') ? 'all HDs' : 'HDs';
+        const target = eff.target || 'self';
+        const recipient = target === 'opponent'
+          ? (owner === 'player' ? 'CPU' : 'You')
+          : (owner === 'player' ? 'You' : 'CPU');
+        return wrap(`${recipient} recover ${amount} ${scope}`);
+      }
+      case 'draw': {
+        const n = (typeof eff.count === 'number') ? eff.count : 1;
+        const kind = eff.kind === 'hero' ? 'Hero' : 'Play';
+        return wrap(`${who} draw ${n} ${kind}${n === 1 ? '' : 's'} ${scope}`);
+      }
       default:
-        return `${who} installed ${op.replace(/_/g, ' ')} ${scope}`;
+        return wrap(`${who} installed ${op.replace(/_/g, ' ')} ${scope}`);
     }
   },
 
@@ -4462,46 +4491,23 @@ const PM = {
         sourceCard: t.sourceCard || '',
       });
     }
-    // Group persistents by (owner, sourceCard, scope) so multi-branch
-    // cards (Win or Weiners installs one for on_battle_win + one for
-    // on_battle_loss) render as ONE pill instead of N — without the
-    // grouping the banner reads as duplicate noise.
-    const grouped = new Map();
-    const order = [];
+    // One pill per active persistent. The previous attempt to dedupe
+    // multi-branch cards by (owner, sourceCard, scope) caused the
+    // banner to disappear entirely in some cases. Instead we add a
+    // trigger prefix to each body in _persistentSummaryLabel, so
+    // multi-branch cards (Win or Weiners) read as "if win → draw" vs
+    // "if loss → recover 2 HD" — distinct bodies under the same
+    // sourceCard eyebrow.
     for (const inst of (this._persistents || [])) {
       const scope = inst.spec && inst.spec.scope;
       if (!pmIsScopeActive(scope, inst.installedAt, this.currentBattle, inst.spec)) continue;
-      const src = inst.sourceCard || '';
-      // Empty source = legacy install with no attribution; emit each
-      // pill individually so no information is lost.
-      if (!src) {
-        const label = this._persistentSummaryLabel(inst.spec, inst.owner);
-        if (!label) continue;
-        rows.push({
-          id: ++id, owner: inst.owner, label,
-          icon: 'persistent', color: '#00F5FF',
-          remaining: pmBattlesRemaining(scope, inst.installedAt, this.currentBattle, inst.spec),
-          sourceCard: '',
-        });
-        continue;
-      }
-      const key = `${inst.owner}|${src}|${scope || ''}`;
-      if (!grouped.has(key)) { grouped.set(key, []); order.push(key); }
-      grouped.get(key).push(inst);
-    }
-    for (const key of order) {
-      const group = grouped.get(key);
-      if (!group || !group.length) continue;
-      const first = group[0];
-      const scope = first.spec && first.spec.scope;
-      const label = group.length === 1
-        ? (this._persistentSummaryLabel(first.spec, first.owner) || 'Persistent effect')
-        : `${group.length} conditional branches`;
+      const label = this._persistentSummaryLabel(inst.spec, inst.owner);
+      if (!label) continue;
       rows.push({
-        id: ++id, owner: first.owner, label,
+        id: ++id, owner: inst.owner, label,
         icon: 'persistent', color: '#00F5FF',
-        remaining: pmBattlesRemaining(scope, first.installedAt, this.currentBattle, first.spec),
-        sourceCard: first.sourceCard,
+        remaining: pmBattlesRemaining(scope, inst.installedAt, this.currentBattle, inst.spec),
+        sourceCard: inst.sourceCard || '',
       });
     }
     return rows;

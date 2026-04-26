@@ -1762,6 +1762,45 @@ function pmCmp(v, comparison, target) {
   }
 }
 
+// Describe a child persistent that's about to be installed via the
+// `install_persistent` op. Used to make win/start callouts read like
+// real cause-and-effect: "Armed: Your Hero +5 next battle" instead of
+// the generic "Installed follow-up effect."
+function pmDescribeArmedFollowUp(spec, ownerSide) {
+  if (!spec || typeof spec !== 'object') return 'follow-up effect';
+  const scope = spec.scope || '';
+  let scopeText = '';
+  switch (scope) {
+    case 'next_battle':    scopeText = ' next battle'; break;
+    case 'this_battle':    scopeText = ' this battle'; break;
+    case 'this_and_next':  scopeText = ' for two battles'; break;
+    case 'next_2_battles': scopeText = ' for the next 2 battles'; break;
+    case 'rest_of_game':   scopeText = ' rest of game'; break;
+    default: scopeText = scope ? ' (' + scope + ')' : '';
+  }
+  const eff = spec.effect;
+  if (!eff || !eff.op) return 'follow-up' + scopeText;
+  const isOpp = eff.target === 'opponent';
+  let recipient;
+  if (ownerSide === 'player') recipient = isOpp ? 'CPU Hero' : 'Your Hero';
+  else                         recipient = isOpp ? 'Your Hero' : 'CPU Hero';
+  switch (eff.op) {
+    case 'power': {
+      const d = (typeof eff.delta === 'number') ? eff.delta : 0;
+      const sign = d >= 0 ? '+' : '';
+      return recipient + ' ' + sign + d + scopeText;
+    }
+    case 'hd_recover': {
+      const amt = (typeof eff.amount === 'number') ? eff.amount : 0;
+      const owner = ownerSide === 'player' ? 'Your' : 'CPU';
+      return owner + ' +' + amt + ' HD' + scopeText;
+    }
+    case 'block_sub':   return 'block substitutions' + scopeText;
+    case 'block_plays': return 'block plays' + scopeText;
+    default:            return 'follow-up effect' + scopeText;
+  }
+}
+
 // Execute a single step (op, branch, or choice). Mutates `out`.
 function pmExecStep(step, ctx, out) {
   if (!step) return;
@@ -2725,7 +2764,10 @@ function pmExecStep(step, ctx, out) {
         PM._inheritedInstallSource = ctx._sourceCard || PM._inheritedInstallSource || null;
         PM.installPersistent(ctx.self, step.spec);
         PM._inheritedInstallSource = null;
-        out.notifications.push('Installed follow-up effect');
+        // Describe what was armed so the win/start callout reads as
+        // a real cause-and-effect chain ("Armed: Your Hero +5 next
+        // battle") rather than a generic "Installed follow-up effect."
+        out.notifications.push('Armed: ' + pmDescribeArmedFollowUp(step.spec, ctx.self));
       }
       out.hasEffect = true;
       break;

@@ -5985,6 +5985,53 @@ main {
   padding: 1px 5px;
   border-radius: 999px;
 }
+/* Card-type-aware chip variants for the discard inspector. Heroes
+   show power + weapon; Hot Dogs show a single HOT DOG tag. Plays
+   keep the existing pm-di-row-cost / pm-di-row-bonus styling. */
+.pm-di-row-chip {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 10px; font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+.pm-di-row-chip--power {
+  color: #fff;
+  background: var(--boba-orange, #FF4D00);
+}
+.pm-di-row-chip--weapon {
+  color: rgba(255,255,255,0.75);
+  background: rgba(255,255,255,0.06);
+  letter-spacing: 0.05em;
+}
+.pm-di-row-chip--hotdog {
+  color: #4CAF50;
+  background: rgba(76,175,80,0.12);
+  letter-spacing: 0.06em;
+}
+/* Stat block — used in the expanded detail for heroes and hot
+   dogs. Two-column label/value rows with a left-aligned label
+   and the value flowing on the right. */
+.pm-di-stat-block {
+  display: flex; flex-direction: column; gap: 4px;
+  margin-top: 2px;
+}
+.pm-di-stat-row {
+  display: flex; gap: 6px; align-items: flex-start;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 12px; line-height: 1.35;
+}
+.pm-di-stat-label {
+  flex: 0 0 auto;
+  width: 80px;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.45);
+  padding-top: 2px;
+}
+.pm-di-stat-value {
+  flex: 1;
+  color: rgba(255,255,255,0.85);
+}
 .pm-di-empty {
   padding: 32px 16px;
   text-align: center;

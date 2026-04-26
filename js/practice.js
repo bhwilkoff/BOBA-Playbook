@@ -5682,42 +5682,94 @@ function pmShowDiscardInspector(side /* 'player' | 'cpu' */) {
     : `https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/${file}`;
 
   // Per-row template — wraps the row in a `<details>` so each card
-  // can be expanded independently (matches iOS DiscardCardRow). The
-  // expanded body shows the full ability text + a larger thumb so
-  // the player can review what each played card actually did.
+  // can be expanded independently (matches iOS DiscardCardRow).
+  // Card-type-aware: Plays show effect text; Heroes show power +
+  // weapon + set + athlete; Hot Dogs show variation + a one-line
+  // explainer. Replaces the old "no effect on file" boilerplate
+  // for non-Play card types.
   let _rowKey = 0;
-  const cardRow = (card) => {
+  const statRow = (label, value) =>
+    `<div class="pm-di-stat-row"><span class="pm-di-stat-label">${pmEscapeHTML(label).toUpperCase()}</span><span class="pm-di-stat-value">${pmEscapeHTML(value)}</span></div>`;
+  const headerChips = (card) => {
+    if (card.cardType === 'Hero') {
+      const power = (typeof card.power === 'number')
+        ? `<span class="pm-di-row-chip pm-di-row-chip--power">${card.power} PW</span>`
+        : '';
+      const weapon = card.element
+        ? `<span class="pm-di-row-chip pm-di-row-chip--weapon" data-weapon="${pmEscapeHTML(card.element)}">${pmEscapeHTML(card.element)}</span>`
+        : '';
+      return `${power}${weapon}`;
+    }
+    if (card.cardType === 'HotDog') {
+      return `<span class="pm-di-row-chip pm-di-row-chip--hotdog">HOT DOG</span>`;
+    }
+    // Default: Play
     const cost = card.playCost;
     const costHtml = (cost === 0)
       ? `<span class="pm-di-row-cost pm-di-row-cost--free">FREE</span>`
       : (cost != null ? `<span class="pm-di-row-cost">${cost} HD</span>` : '');
     const bonusHtml = card.isBonusPlay
       ? `<span class="pm-di-row-bonus">★ BONUS</span>` : '';
+    return `${costHtml}${bonusHtml}`;
+  };
+  const detailBody = (card) => {
+    if (card.cardType === 'Hero') {
+      const stats = [];
+      if (typeof card.power === 'number') stats.push(statRow('Power', String(card.power)));
+      stats.push(statRow('Weapon', card.element || '—'));
+      stats.push(statRow('Set', card.set || '—'));
+      if (card.subSet) stats.push(statRow('Sub-set', card.subSet));
+      if (card.treatment) stats.push(statRow('Treatment', card.treatment));
+      if (card.athleteInspiration) stats.push(statRow('Inspired by', card.athleteInspiration));
+      return `<div class="pm-di-row-effect">
+        <div class="pm-di-row-effect-label">HERO</div>
+        <div class="pm-di-stat-block">${stats.join('')}</div>
+      </div>`;
+    }
+    if (card.cardType === 'HotDog') {
+      const stats = [];
+      if (card.variation) stats.push(statRow('Variation', card.variation));
+      if (card.set)       stats.push(statRow('Set', card.set));
+      if (card.treatment) stats.push(statRow('Treatment', card.treatment));
+      return `<div class="pm-di-row-effect">
+        <div class="pm-di-row-effect-label" style="color:#4CAF50">HOT DOG · SPENT</div>
+        <div class="pm-di-stat-block">${stats.join('')}</div>
+        <div class="pm-di-row-effect-text" style="margin-top:6px;font-size:11px;opacity:0.7">Spent for a substitution or play cost. Hot Dogs share the discard zone with heroes and plays.</div>
+      </div>`;
+    }
+    // Default: Play
+    const ability = card.playAbility
+      ? pmEscapeHTML(card.playAbility)
+      : 'No effect text on file.';
+    return `<div class="pm-di-row-effect">
+      <div class="pm-di-row-effect-label">EFFECT</div>
+      <div class="pm-di-row-effect-text">${ability}</div>
+    </div>`;
+  };
+  const displayName = (card) => {
+    if (card.cardType === 'Hero' && card.hero) return card.hero;
+    return card.name || '';
+  };
+  const cardRow = (card) => {
     const thumbHtml = card.imageFile
       ? `<img class="pm-di-row-thumb" src="${thumbBaseFor(card.imageFile)}" alt="">`
       : '';
     const fullThumbHtml = card.imageFile
       ? `<img class="pm-di-detail-img" src="${fullBaseFor(card.imageFile)}" alt="">`
       : '';
-    const ability = card.playAbility
-      ? pmEscapeHTML(card.playAbility)
-      : 'No effect text on file.';
     const key = `pm-di-row-${++_rowKey}`;
     return `<details class="pm-di-row" id="${key}">
       <summary class="pm-di-row-summary">
         ${thumbHtml}
         <div class="pm-di-row-text">
-          <div class="pm-di-row-name">${pmEscapeHTML(card.name || '')}</div>
-          <div class="pm-di-row-meta">${costHtml}${bonusHtml}</div>
+          <div class="pm-di-row-name">${pmEscapeHTML(displayName(card))}</div>
+          <div class="pm-di-row-meta">${headerChips(card)}</div>
         </div>
         <span class="pm-di-row-chev" aria-hidden="true">▾</span>
       </summary>
       <div class="pm-di-row-detail">
         ${fullThumbHtml}
-        <div class="pm-di-row-effect">
-          <div class="pm-di-row-effect-label">EFFECT</div>
-          <div class="pm-di-row-effect-text">${ability}</div>
-        </div>
+        ${detailBody(card)}
       </div>
     </details>`;
   };

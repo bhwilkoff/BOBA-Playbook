@@ -253,19 +253,33 @@ struct PracticeBottomToolbar: View {
             case .resolution:
                 // Single button now chains through cleanup to the next
                 // battle (see PracticeStore.advancePhase). Label reflects
-                // that — no more double-tap between battles.
-                Button("NEXT BATTLE", action: onAction)
+                // that — no more double-tap between battles. On the
+                // final battle (B7) or after either side already has 4
+                // wins, the next action ends the match — switch the
+                // label so coaches aren't promised a battle that
+                // doesn't exist.
+                Button(isFinalBattleAction ? "FINISH MATCH" : "NEXT BATTLE", action: onAction)
                     .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
             case .cleanup:
                 // Only reachable from a mid-cleanup restore of an old
                 // saved draft. Keep a neutral label.
-                Button("NEXT BATTLE", action: onAction)
+                Button(isFinalBattleAction ? "FINISH MATCH" : "NEXT BATTLE", action: onAction)
                     .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
             case .matchOver:
                 Button("DONE", action: onAction)
                     .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
             }
         }
+    }
+
+    /// True when pressing the resolution/cleanup action will move the
+    /// match to its end state — either we just resolved Battle 7 or
+    /// one side has already clinched 4 wins. Drives the button label
+    /// so it reads "FINISH MATCH" instead of misleading "NEXT BATTLE".
+    private var isFinalBattleAction: Bool {
+        store.playerScore >= 4
+            || store.cpuScore >= 4
+            || store.currentBattle >= 6
     }
 
     private var divider: some View {

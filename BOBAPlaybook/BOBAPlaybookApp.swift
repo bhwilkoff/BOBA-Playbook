@@ -44,6 +44,16 @@ struct BOBAPlaybookApp: App {
                         await cardStore.loadImageRemovals()
                     }
                 }
+                .task {
+                    // Load the feature-print index in the background.
+                    // Quietly no-ops if `feature-prints.bin` isn't bundled
+                    // (e.g. dev builds before Phase 2 ships) — the
+                    // scanner's OCR pipeline runs unaffected. Loading
+                    // costs ~50ms parsing + ~40MB resident at steady
+                    // state, but the file is mmap'd so resident pages
+                    // are paged in only as the search touches them.
+                    await FeaturePrintIndex.shared.loadFromBundle()
+                }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                     // Re-fetch role when the app comes back to the foreground.
                     // The access token may have expired while backgrounded; fetchRole uses

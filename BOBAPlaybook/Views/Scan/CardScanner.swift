@@ -1,16 +1,23 @@
 import AVFoundation
 import Vision
 import CoreImage
+import Accelerate
 
 // MARK: - ScanObservation
 
 /// All text extracted from one scan cycle, split by card corner region.
-struct ScanObservation: Sendable {
+///
+/// `cgImage` is the cropped guide region from the frame that produced
+/// this observation. Phase 2 image-similarity disambiguation reads from
+/// it when OCR scoring is borderline. CGImage is immutable and Sendable
+/// in Swift 6 — safe to ferry across actor boundaries.
+struct ScanObservation: @unchecked Sendable {
     let cardNumber:   String   // primary identifier — bottom-left corner
     let rawName:      String   // top-left  — card title
     let rawPower:     String   // top-right — power number
     let rawVariation: String   // bottom-right — treatment / variation
     let fullText:     String   // all detected text joined
+    let cgImage:      CGImage? // for image-similarity tiebreak (Phase 2)
 }
 
 // MARK: - CardScanner
@@ -47,10 +54,20 @@ final class CardScanner: NSObject, @unchecked Sendable {
         qos: .userInitiated
     )
 
-    /// Array form for Vision's `customWords`.
+    /// Array form for Vision's `customWords` — card numbers only.
     private var cardNumbers: [String] = []
     /// Set form for O(1) catalog validation on every processed frame.
     private var cardNumberSet: Set<String> = []
+    /// Card NAMES (heroes + play titles) — second source of customWords.
+    /// Lets Vision lock onto "MAHOMES" instead of inventing "MERLOMES",
+    /// "ROLLER DOGS" instead of arbitrary text, etc. Compiled into a
+    /// merged customWords array on every request so the scanner can
+    /// rebuild on the fly when the catalog finishes loading.
+    private var vocabularyNames: [String] = []
+    /// Memoized merged customWords array (numbers + names). Recomputed
+    /// only when either source changes. Guards against per-frame
+    /// allocation of a 17k-entry array.
+    private var customWordsCache: [String] = []
 
     private var regionOfInterest: CGRect = CGRect(x: 0, y: 0, width: 1, height: 1)
 
@@ -84,6 +101,13 @@ final class CardScanner: NSObject, @unchecked Sendable {
         )
     }()
 
+    /// Shared CIContext for one-shot CGImage rendering on commit.
+    /// Single static instance avoids the per-render setup cost of the
+    /// internal Metal command queue.
+    private static let ciContext: CIContext = {
+        CIContext(options: [.useSoftwareRenderer: false])
+    }()
+
     // MARK: - Init
 
     override init() {
@@ -95,8 +119,41 @@ final class CardScanner: NSObject, @unchecked Sendable {
 
     func setCardNumbers(_ numbers: [String]) {
         processingQueue.async { [weak self] in
-            self?.cardNumbers   = numbers
-            self?.cardNumberSet = Set(numbers)
+            guard let self else { return }
+            self.cardNumbers   = numbers
+            self.cardNumberSet = Set(numbers)
+            self.rebuildCustomWordsCache()
+        }
+    }
+
+    /// Seed Vision with hero + play card names. Improves OCR for cards
+    /// whose printed text shares glyphs with adjacent vocabulary
+    /// ("MAHOMES" was being read as "MERLOMES" before this; "ROLLER
+    /// DOGS" was getting truncated). Names are uppercased, deduped,
+    /// and any 2-or-fewer-character entries are dropped — Vision's
+    /// vocab boost is meaningless for words shorter than that and
+    /// just inflates the customWords array.
+    func setVocabularyNames(_ names: [String]) {
+        let cleaned = Array(Set(names
+            .map { $0.uppercased().trimmingCharacters(in: .whitespaces) }
+            .filter { $0.count >= 3 }))
+        processingQueue.async { [weak self] in
+            guard let self else { return }
+            self.vocabularyNames = cleaned
+            self.rebuildCustomWordsCache()
+        }
+    }
+
+    private func rebuildCustomWordsCache() {
+        // Numbers + names merged. Names go AFTER numbers so that if
+        // Vision applies any internal ordering preference, identifiers
+        // (which we want exact) win over generic vocabulary.
+        if vocabularyNames.isEmpty {
+            customWordsCache = cardNumbers
+        } else {
+            var merged = cardNumbers
+            merged.append(contentsOf: vocabularyNames)
+            customWordsCache = merged
         }
     }
 
@@ -225,7 +282,8 @@ extension CardScanner: AVCaptureVideoDataOutputSampleBufferDelegate {
         // 4. Unsharp mask — sharpens edges in the image. Helps Vision detect
         //    text boundaries on cards that are slightly out of focus, and
         //    recovers edge detail after the gamma brightening softens contrast.
-        let enhanced = CIImage(cvPixelBuffer: pixelBuffer)
+        let original = CIImage(cvPixelBuffer: pixelBuffer)
+        let enhanced = original
             .applyingFilter("CIGammaAdjust", parameters: [
                 "inputPower": Float(0.65),            // lifts darks without blowing lights
             ])
@@ -244,8 +302,8 @@ extension CardScanner: AVCaptureVideoDataOutputSampleBufferDelegate {
         request.recognitionLanguages      = ["en-US"]
         request.regionOfInterest          = regionOfInterest
         request.minimumTextHeight         = 0.015   // smaller than default 1/32 ≈ 3.1%
-        if !cardNumbers.isEmpty {
-            request.customWords = cardNumbers
+        if !customWordsCache.isEmpty {
+            request.customWords = customWordsCache
         }
 
         let handler = VNImageRequestHandler(ciImage: enhanced, options: [:])
@@ -315,12 +373,23 @@ extension CardScanner: AVCaptureVideoDataOutputSampleBufferDelegate {
         lastReportedTime = now
         consecutiveCount = 0
 
+        // Render the ORIGINAL (pre-OCR-enhancement) frame to a CGImage
+        // for image-similarity disambiguation. The enhanced version is
+        // grayscale + gamma-lifted + sharpened — great for text but
+        // would mismatch the full-color R2 thumbnails the index was
+        // built from. Only rendered on commit, not on every frame —
+        // costs ~5-10ms, paid at the once-per-2-seconds commit cadence
+        // imposed by `reportCooldown`.
+        let captured = CardScanner.ciContext
+            .createCGImage(original, from: original.extent)
+
         let observation = ScanObservation(
             cardNumber:   number,
             rawName:      topLeft.joined(separator: " "),
             rawPower:     topRight.joined(separator: " "),
             rawVariation: bottomRight.joined(separator: " "),
-            fullText:     fullText
+            fullText:     fullText,
+            cgImage:      captured
         )
 
         DispatchQueue.main.async { [weak self] in
@@ -330,15 +399,24 @@ extension CardScanner: AVCaptureVideoDataOutputSampleBufferDelegate {
 
     // MARK: - Card number extraction
 
-    /// Extracts a card number from `text` using two strategies:
+    /// Extracts a card number from `text` using four strategies, in order:
     ///
-    /// 1. Regex matching (strict then permissive) — handles all standard prefixed
-    ///    formats: BF-208, GLBF-276, RAD-104, ALTA-01, etc.
+    /// 1. Strict regex — exact prefixed format: BF-208, GLBF-276, RAD-104, ALTA-01.
     ///
-    /// 2. Pure-number catalog lookup (`catalogFallback: true`, bottom-left only) —
+    /// 2. Permissive regex — spaces/dashes around separator: "BF 208" → "BF-208".
+    ///
+    /// 3. Adjacent-word reconstruction — when OCR drops the hyphen entirely
+    ///    ("BPL-5" read as two separate tokens "BPL" and "5"), iterate adjacent
+    ///    word pairs and accept the FIRST combination that exists in the catalog.
+    ///    This is the surgical fix for the Plays misreading-as-Heroes bug:
+    ///    bottom-left of a Play card was producing words=["BPL","5"] which
+    ///    fell through to step 4 and grabbed "5", silently routing to a Hero.
+    ///
+    /// 4. Pure-number catalog lookup (`catalogFallback: true`, bottom-left only)
     ///    handles sets like Griffey Edition whose base cards use plain integers.
-    ///    Only numbers present in `cardNumberSet` are accepted, preventing false
-    ///    matches against power values, years, and other numeric text on the card.
+    ///    REFUSES the match when an alphabetic neighbor word would have
+    ///    formed a real card number with the digit — that signature means OCR
+    ///    fragmented a real prefixed identifier and the bare number is a lie.
     private func extractCardNumber(from text: String, catalogFallback: Bool) -> String? {
         let range = NSRange(text.startIndex..., in: text)
 
@@ -355,19 +433,284 @@ extension CardScanner: AVCaptureVideoDataOutputSampleBufferDelegate {
             return "\(text[pRange])-\(text[nRange])"
         }
 
-        // 3. Pure-number catalog lookup — bottom-left quadrant only
+        // Tokenize once for steps 3 + 4.
+        let words = text.components(separatedBy: .whitespacesAndNewlines)
+            .map { $0.trimmingCharacters(in: .punctuationCharacters).uppercased() }
+            .filter { !$0.isEmpty }
+
+        // 3. Adjacent-word reconstruction — "BPL 5" → "BPL-5"
+        //    Limited to 1–6 char alphabetic prefix + 1–4 char digit number,
+        //    matching the strict regex's alphabet. Accept only if the
+        //    combined form exists in the catalog — keeps this from
+        //    inventing card numbers out of incidental adjacencies.
+        if words.count >= 2 && !cardNumberSet.isEmpty {
+            for i in 0..<(words.count - 1) {
+                let p = words[i]
+                let n = words[i + 1]
+                guard p.count >= 1, p.count <= 6,
+                      p.allSatisfy({ $0.isLetter }),
+                      n.count >= 1, n.count <= 4,
+                      n.allSatisfy({ $0.isNumber })
+                else { continue }
+                let combined = "\(p)-\(n)"
+                if cardNumberSet.contains(combined) { return combined }
+            }
+        }
+
+        // 4. Pure-number catalog lookup — bottom-left quadrant only
         guard catalogFallback, !cardNumberSet.isEmpty else { return nil }
 
-        for word in text.components(separatedBy: .whitespaces) {
-            let clean = word.trimmingCharacters(in: .punctuationCharacters)
-            guard !clean.isEmpty,
-                  clean.count >= 1, clean.count <= 4,
-                  clean.allSatisfy({ $0.isNumber }),
-                  cardNumberSet.contains(clean)
+        // Pre-collect alphabetic neighbors (1–6 letters, all caps) from the
+        // same text. If any of them combined with a candidate digit would
+        // form a real card number, treat the digit as fragmented OCR and
+        // refuse the bare-number commit — that's the Plays-as-Heroes path.
+        let alphaNeighbors = words.filter { w in
+            w.count >= 1 && w.count <= 6 && w.allSatisfy({ $0.isLetter })
+        }
+
+        for word in words {
+            guard word.count >= 1, word.count <= 4,
+                  word.allSatisfy({ $0.isNumber }),
+                  cardNumberSet.contains(word)
             else { continue }
-            return clean
+
+            let isFragmentedPrefix = alphaNeighbors.contains { p in
+                cardNumberSet.contains("\(p)-\(word)")
+            }
+            if isFragmentedPrefix { continue }
+
+            return word
         }
 
         return nil
+    }
+}
+
+// MARK: - FeaturePrintIndex (Phase 2 — image-similarity matching)
+//
+// Phase 1 (text OCR + customWords vocabulary boost + card-number
+// fragment reconstruction) handles the common case. Phase 2 plugs in
+// here for cases OCR can't solve:
+//
+//   • Light-foil Ice cards with text that's barely legible.
+//   • Sleeved cards behind cloudy or non-flat sleeves.
+//   • Sun glare / reflection that wipes the bottom-left identifier.
+//   • Frames where the user gets the title but not the number.
+//
+// Strategy: ship a precomputed index of `VNFeaturePrintObservation`
+// embeddings — one per card image on R2 — and at scan time generate an
+// embedding from the captured camera frame and pick the nearest
+// neighbor. Vision's `computeDistance(_:to:)` produces a comparable
+// scalar; a small CLI on macOS using the same Vision API generates the
+// index offline (~30 MB for 14.7k cards at 2KB/embedding).
+//
+// Index file format (proposed):
+//   - 4 bytes magic "BFPI"
+//   - 4 bytes uint32 version (1)
+//   - 4 bytes uint32 entry count
+//   - 4 bytes uint32 print byte length (Vision default 2048)
+//   - For each entry:
+//        - 2 bytes uint16 bobaId byte length
+//        - N bytes  bobaId UTF-8
+//        - K bytes  feature print data
+//
+// Inlined into CardScanner.swift (rather than a standalone file) to
+// avoid Xcode synchronized-group flakiness — see DECISIONS.md / the
+// Design.swift inlining note for the same reasoning.
+//
+// Hook point: `ScanView.handleDetected(observation:)` will consult the
+// index when OCR confidence is borderline (no card number, multiple
+// equally-scored candidates, or sub-threshold match score). Phase 2
+// adds the call site; this stub is API surface only.
+
+@MainActor
+final class FeaturePrintIndex {
+
+    static let shared = FeaturePrintIndex()
+
+    private(set) var isLoaded: Bool = false
+    private(set) var entryCount: Int = 0
+    private(set) var elementCount: Int = 0
+
+    /// We can't reconstruct VNFeaturePrintObservation from serialized
+    /// bytes — Vision does not expose an initializer. Instead the index
+    /// stores raw float vectors and computes Euclidean distance manually
+    /// via Accelerate. Vectors are stored in a SINGLE flat array
+    /// (entries × elementCount floats) so vDSP can read directly into
+    /// it without per-entry allocation, and bobaIds are stored in a
+    /// parallel array indexed by entry number.
+    private var bobaIds: [String] = []
+    private var flatVectors: [Float] = []
+
+    /// Load `feature-prints.bin` from the app bundle. Quietly no-ops if
+    /// the file is missing (so debug builds without the index still
+    /// run). Parses the BFPI v1 format produced by
+    /// `scripts/build_feature_print_index.swift`.
+    func loadFromBundle() async {
+        guard !isLoaded else { return }
+        guard let url = Bundle.main.url(forResource: "feature-prints", withExtension: "bin") else {
+            return
+        }
+        guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { return }
+        guard parse(bfpi: data) else {
+            // Format mismatch — leave isLoaded false so the search path
+            // returns empty and the OCR pipeline runs unaffected.
+            bobaIds.removeAll(keepingCapacity: false)
+            flatVectors.removeAll(keepingCapacity: false)
+            entryCount = 0
+            elementCount = 0
+            return
+        }
+        isLoaded = true
+    }
+
+    /// Search the index for the closest matching cards to a camera
+    /// frame. Returns up to `topK` (bobaId, distance) pairs sorted by
+    /// ascending distance. Lower distance = more similar.
+    func searchNearest(in cgImage: CGImage,
+                       topK: Int = 5) async -> [(bobaId: String, distance: Float)] {
+        guard isLoaded, entryCount > 0 else { return [] }
+
+        let request = VNGenerateImageFeaturePrintRequest()
+        request.imageCropAndScaleOption = .centerCrop
+        // Match the indexer's revision exactly. Different revisions
+        // produce incompatible vectors; without this pin a future iOS
+        // default revision change would silently fall through.
+        request.revision = VNGenerateImageFeaturePrintRequestRevision2
+        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+        do { try handler.perform([request]) } catch { return [] }
+        guard let query = request.results?.first as? VNFeaturePrintObservation,
+              query.elementCount == elementCount,
+              query.elementType == .float
+        else { return [] }
+
+        // Pull the query into a plain [Float].
+        var queryVec = [Float](repeating: 0, count: elementCount)
+        let byteCount = elementCount * MemoryLayout<Float>.size
+        guard query.data.count == byteCount else { return [] }
+        queryVec.withUnsafeMutableBufferPointer { dst in
+            _ = query.data.copyBytes(to: dst)
+        }
+
+        // Compute L2-squared distance from query to each entry. Use
+        // vDSP_distancesq for batched per-entry distance — the absence
+        // of a square root preserves ordering, which is all we need
+        // for top-K. (The CLI doesn't normalize, so we don't either.)
+        var distances = [Float](repeating: 0, count: entryCount)
+        let n = vDSP_Length(elementCount)
+        flatVectors.withUnsafeBufferPointer { allBase in
+            queryVec.withUnsafeBufferPointer { qBase in
+                for i in 0..<entryCount {
+                    var d: Float = 0
+                    let entryStart = allBase.baseAddress!.advanced(by: i * elementCount)
+                    vDSP_distancesq(qBase.baseAddress!, 1,
+                                    entryStart, 1,
+                                    &d, n)
+                    distances[i] = d
+                }
+            }
+        }
+
+        // Top-K extraction. With 14k entries and small K, partial
+        // selection beats a full sort; for clarity here we just pair +
+        // sort. Re-evaluate if profiling shows it as a hot path.
+        var indexed = (0..<entryCount).map { (i: $0, d: distances[$0]) }
+        indexed.sort { $0.d < $1.d }
+        return indexed.prefix(topK).map { (bobaIds[$0.i], $0.d) }
+    }
+
+    // MARK: - Parser
+
+    private func parse(bfpi data: Data) -> Bool {
+        let headerLen = 4 + 4 * 4
+        guard data.count >= headerLen else { return false }
+        let magic = data.prefix(4)
+        guard magic == Data("BFPI".utf8) else { return false }
+
+        // `loadUnaligned` is the alignment-safe primitive — the BFPI
+        // format interleaves variable-length bobaId strings with raw
+        // numeric blocks, so most read offsets aren't aligned to the
+        // type's natural size. `assumingMemoryBound` would be UB even
+        // though Apple Silicon tolerates the access at runtime.
+        func readU32(_ offset: Int) -> UInt32 {
+            data.withUnsafeBytes { raw in
+                UInt32(littleEndian:
+                    raw.loadUnaligned(fromByteOffset: offset, as: UInt32.self))
+            }
+        }
+        func readU16(_ offset: Int) -> UInt16 {
+            data.withUnsafeBytes { raw in
+                UInt16(littleEndian:
+                    raw.loadUnaligned(fromByteOffset: offset, as: UInt16.self))
+            }
+        }
+        let version      = readU32(4)
+        let entries      = Int(readU32(8))
+        let elementCount = Int(readU32(12))
+        let elementSize  = Int(readU32(16))
+        guard entries > 0, elementCount > 0 else { return false }
+        // v1 = Float32 raw, v2 = int8 + per-vector Float32 scale.
+        let isV1 = (version == 1 && elementSize == 4)
+        let isV2 = (version == 2 && elementSize == 1)
+        guard isV1 || isV2 else { return false }
+
+        let perEntryFloats = elementCount
+        var ids: [String] = []
+        ids.reserveCapacity(entries)
+        var flat = [Float](repeating: 0, count: entries * perEntryFloats)
+
+        var cursor = headerLen
+        for i in 0..<entries {
+            guard cursor + 2 <= data.count else { return false }
+            let idLen = Int(readU16(cursor)); cursor += 2
+            guard cursor + idLen <= data.count else { return false }
+            let idData = data.subdata(in: cursor..<(cursor + idLen))
+            guard let id = String(data: idData, encoding: .utf8) else { return false }
+            ids.append(id)
+            cursor += idLen
+
+            let dstStart = i * perEntryFloats
+
+            if isV1 {
+                let printBytes = perEntryFloats * 4
+                guard cursor + printBytes <= data.count else { return false }
+                // memcpy-style copy — alignment-safe.
+                data.withUnsafeBytes { srcRaw in
+                    flat.withUnsafeMutableBufferPointer { dst in
+                        let dstPtr = UnsafeMutableRawPointer(dst.baseAddress!)
+                            .advanced(by: dstStart * 4)
+                        let srcPtr = srcRaw.baseAddress!.advanced(by: cursor)
+                        dstPtr.copyMemory(from: srcPtr, byteCount: printBytes)
+                    }
+                }
+                cursor += printBytes
+            } else {
+                // v2: read scale (Float32 little-endian) then int8 vector.
+                guard cursor + 4 + perEntryFloats <= data.count else { return false }
+                let scaleBits = readU32(cursor); cursor += 4
+                let scale = Float(bitPattern: scaleBits)
+                // Dequantize int8 → Float32 in place. This uses
+                // vDSP_vflt8 (signed int8 → float) followed by
+                // vDSP_vsmul (× scale) — a single linear pass per
+                // vector, batched by Accelerate.
+                data.withUnsafeBytes { srcRaw in
+                    let i8Ptr = srcRaw.baseAddress!.advanced(by: cursor)
+                        .assumingMemoryBound(to: Int8.self)
+                    flat.withUnsafeMutableBufferPointer { dst in
+                        let dstPtr = dst.baseAddress!.advanced(by: dstStart)
+                        vDSP_vflt8(i8Ptr, 1, dstPtr, 1, vDSP_Length(perEntryFloats))
+                        var s = scale
+                        vDSP_vsmul(dstPtr, 1, &s, dstPtr, 1, vDSP_Length(perEntryFloats))
+                    }
+                }
+                cursor += perEntryFloats
+            }
+        }
+
+        self.bobaIds = ids
+        self.flatVectors = flat
+        self.entryCount = entries
+        self.elementCount = elementCount
+        return true
     }
 }

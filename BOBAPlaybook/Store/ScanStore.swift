@@ -51,4 +51,16 @@ final class ScanStore {
     func clearQueue() {
         queuedCards.removeAll()
     }
+
+    /// Replace the most-recently-queued card with a refined version.
+    /// Used by the feature-print disambiguation path: OCR queues a
+    /// candidate, and a subsequent image-similarity check produces a
+    /// better answer for the same physical scan. The queue ordering is
+    /// preserved; the row's UUID changes, which is acceptable since
+    /// SwiftUI will already re-render the row for the new card content.
+    func replaceLastInQueue(with refined: Card) {
+        guard !queuedCards.isEmpty else { return }
+        queuedCards.removeLast()
+        queuedCards.append(QueuedCard(card: refined))
+    }
 }

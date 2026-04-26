@@ -1876,6 +1876,10 @@ function pmExecStep(step, ctx, out) {
       break;
     }
     case 'coin_flip': {
+      // Mark this exec as having rolled — host fires on_dice_roll
+      // afterwards so persistents like Pay The Price fire only when
+      // a roll actually happens (not every battle).
+      out.firedDiceOrCoin = true;
       const times = step.times || 1;
       const results = []; // true = heads
       for (let i = 0; i < times; i++) results.push(Math.random() < 0.5);
@@ -1920,6 +1924,7 @@ function pmExecStep(step, ctx, out) {
       break;
     }
     case 'dice_roll': {
+      out.firedDiceOrCoin = true;
       const count = step.count || 1;
       const rolls = [];
       for (let i = 0; i < count; i++) rolls.push(Math.floor(Math.random() * 6) + 1);
@@ -4235,6 +4240,11 @@ const PM = {
       if (Array.isArray(out.intents) && out.intents.length) {
         pmHandlePlayIntents(out.intents, ctx, out, card);
       }
+      // on_dice_roll persistents (Pay The Price et al.) fire only
+      // when this play actually rolled — not every battle.
+      if (out.firedDiceOrCoin) {
+        this.firePersistentTriggers('on_dice_roll', null);
+      }
       // Surface extra notifications from ops (peek, swap, choice label, etc.)
       if (out.notifications && out.notifications.length) {
         extraNotifs = extraNotifs.concat(out.notifications);
@@ -4473,6 +4483,9 @@ const PM = {
         if (out.protectSelf) PM._cpuProtectedThisBattle = true;
         if (Array.isArray(out.intents) && out.intents.length) {
           pmHandlePlayIntents(out.intents, ctx, out, card);
+        }
+        if (out.firedDiceOrCoin) {
+          this.firePersistentTriggers('on_dice_roll', null);
         }
       }
       if (!structuredHandled) {
@@ -4954,7 +4967,23 @@ const PM = {
   nextBattle() {
     if (this.matchOver) return;
     const next = this.currentBattle + 1;
-    if (next >= 7) {
+    // Sudden Death — Comprehensive Rules Guide §4.4. After 7
+    // battles with the score tied, append an 8th battle to break
+    // the tie. Final SD result is final (no further extensions).
+    if (next >= 7 && this.playerScore === this.cpuScore && this.battles.length < 8) {
+      const sdSlot = {
+        id: 7,
+        playerCard: this.playerHeroDeck.length ? this.playerHeroDeck.shift() : null,
+        cpuCard:    this.cpuHeroDeck.length    ? this.cpuHeroDeck.shift()    : null,
+        playerEffectPower: 0, cpuEffectPower: 0,
+        playerPlaysPlayed: [], cpuPlaysPlayed: [],
+        result: null, revealed: false,
+        playerTransformedToHotDog: false, cpuTransformedToHotDog: false,
+      };
+      this.battles.push(sdSlot);
+      pmEnqueueNotification('⚡ Sudden Death — one more battle to decide it');
+      // Fall through to currentBattle = next (== 7).
+    } else if (next >= 8 || (next >= 7 && this.playerScore !== this.cpuScore)) {
       this.matchOver = true;
       if (this.playerScore > this.cpuScore) this.matchWinner = 'player';
       else if (this.cpuScore > this.playerScore) this.matchWinner = 'cpu';
@@ -5217,11 +5246,15 @@ function pmSetRootClass() {
   const b = PM.battles[PM.currentBattle];
   const revealLabel = (b && b.revealed) ? 'PLAY PHASE →' : 'REVEAL →';
   // Final-battle action: B7 or once a side has clinched 4 wins.
-  // The next press will end the match, so don't promise a battle
-  // that doesn't exist.
-  const isFinalAction = (PM.playerScore >= 4) || (PM.cpuScore >= 4) || (PM.currentBattle >= 6);
-  const resolutionLabel = isFinalAction ? 'FINISH MATCH' : 'NEXT →';
-  const cleanupLabel    = isFinalAction ? 'FINISH MATCH' : 'NEXT BATTLE →';
+  // SD case: B7 with tied score → next press extends to B8.
+  const clinched   = (PM.playerScore >= 4) || (PM.cpuScore >= 4);
+  const isSDTrigger = PM.currentBattle === 6 && PM.playerScore === PM.cpuScore && !clinched;
+  const isFinalAction = clinched
+    || (PM.currentBattle === 6 && PM.playerScore !== PM.cpuScore)
+    || PM.currentBattle >= 7;
+  const labelFor = (def) => isSDTrigger ? 'SUDDEN DEATH' : (isFinalAction ? 'FINISH MATCH' : def);
+  const resolutionLabel = labelFor('NEXT →');
+  const cleanupLabel    = labelFor('NEXT BATTLE →');
   const btnLabels = {
     sub: 'SKIP SUBS →', reveal: revealLabel, play: 'END TURN →',
     resolution: resolutionLabel, cleanup: cleanupLabel, over: 'PLAY AGAIN',

@@ -182,6 +182,7 @@ KNOWN_TRIGGERS: set[str] = {
     "on_plays_resolved",
     "on_opp_play",        # dice_gate
     "on_turn_end",        # auto_lose_battle
+    "on_dice_roll",       # fired by host after coin_flip / dice_roll ops (Pay The Price et al.)
 }
 
 # PracticeStore.isScopeActive — anything else returns false.

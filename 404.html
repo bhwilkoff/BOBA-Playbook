@@ -11,6 +11,9 @@
     var q = location.search;
     window.location.replace('/' + (q ? q : ''));
   </script>
+  <!-- Cloudflare Web Analytics — counts the rare 404 hit before the redirect fires. -->
+  <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token": "55a142aed31b4f2e89b58208bc31892a"}'></script>
 </head>
 <body></body>
 </html>

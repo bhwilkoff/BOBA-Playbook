@@ -1,0 +1,2851 @@
+{
+  "summary": {
+    "totalScanned": 15691,
+    "heroConfirmed": 15301,
+    "confirmedWrongImage": 155,
+    "possibleWrongImageOrOcrNoise": 48,
+    "inconclusive": 187
+  },
+  "byTreatment": {
+    "Mixtape Battlefoil": 38,
+    "Miami Ice Battlefoil": 21,
+    "Inspired Ink Battlefoil": 13,
+    "Grandma's Linoleum Battlefoil": 9,
+    "Alpha Battlefoil": 7,
+    "Battlefoil": 7,
+    "Prize & Promos": 7,
+    "Blizzard Battlefoil": 6,
+    "Great Grandma's Linoleum Battlefoil": 5,
+    "80's Rad Battlefoil": 5,
+    "Superfoil": 5,
+    "Base Set": 4,
+    "Icon Battlefoil": 4,
+    "Colosseum Battlefoil": 3,
+    "Kanjifoil": 3,
+    "Silver Blast": 2,
+    "Green Battlefoil": 2,
+    "Logofoil": 2,
+    "Bubble Gum Battlefoil": 1,
+    "Orange Blast": 1,
+    "Chillin' Battlefoil": 1,
+    "Fire Tracks Battlefoil": 1,
+    "Headlines Battlefoil": 1,
+    "Orange Battlefoil": 1,
+    "Pink Battlefoil": 1,
+    "Power Glove Battlefoil": 1,
+    "Red Battlefoil": 1,
+    "Inspired Ink Superfoil": 1,
+    "Silver Battlefoil": 1,
+    "Paper": 1
+  },
+  "byPrefix": {
+    "MIX": 38,
+    "MI": 21,
+    "BFA": 9,
+    "GLBF": 9,
+    "ABF": 7,
+    "BF": 7,
+    "P": 7,
+    "BLBF": 6,
+    "GGL": 5,
+    "RAD": 5,
+    "SF": 5,
+    "IBF": 4,
+    "CBF": 3,
+    "LA": 3,
+    "BBFA": 2,
+    "GBF": 2,
+    "LOGO": 2,
+    "RJA": 2,
+    "12": 1,
+    "88": 1,
+    "120": 1,
+    "148": 1,
+    "BGBF": 1,
+    "BL": 1,
+    "CHILL": 1,
+    "FT": 1,
+    "HBF": 1,
+    "HLA": 1,
+    "OBF": 1,
+    "PBF": 1,
+    "PG": 1,
+    "RBF": 1,
+    "SBF": 1,
+    "SGA": 1,
+    "T": 1,
+    "THRA": 1
+  },
+  "confirmedWrong": [
+    {
+      "bobaId": "12-J-Jetts-Base Set-First Edition",
+      "catalogHero": "J-Jetts",
+      "catalogCardNumber": "12",
+      "catalogTreatment": "Base Set",
+      "catalogElement": "FIRE",
+      "catalogPower": 130,
+      "ocrCandidates": [
+        "FEIS"
+      ],
+      "imageFile": "12-J-Jetts-Base_Set-First_Edition.webp",
+      "identifiedAs": "Mr. Irrelevant"
+    },
+    {
+      "bobaId": "88-Attak-Base Set-First Edition",
+      "catalogHero": "Attak",
+      "catalogCardNumber": "88",
+      "catalogTreatment": "Base Set",
+      "catalogElement": "ICE",
+      "catalogPower": 115,
+      "ocrCandidates": [
+        "ATTАН"
+      ],
+      "imageFile": "88-Attak-Base_Set-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "120-Sarrtillery-Base Set-First Edition",
+      "catalogHero": "Sarrtillery",
+      "catalogCardNumber": "120",
+      "catalogTreatment": "Base Set",
+      "catalogElement": "ICE",
+      "catalogPower": 90,
+      "ocrCandidates": [
+        "100EI Da"
+      ],
+      "imageFile": "120-Sarrtillery-Base_Set-First_Edition.webp",
+      "identifiedAs": "Curaçao Kid"
+    },
+    {
+      "bobaId": "148-Attak-Base Set-First Edition",
+      "catalogHero": "Attak",
+      "catalogCardNumber": "148",
+      "catalogTreatment": "Base Set",
+      "catalogElement": "STEEL",
+      "catalogPower": 110,
+      "ocrCandidates": [
+        "АTTAН"
+      ],
+      "imageFile": "148-Attak-Base_Set-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "ABF-9-Cousin-Alpha Battlefoil-Randy Quaid Debut",
+      "catalogHero": "Cousin",
+      "catalogCardNumber": "ABF-9",
+      "catalogTreatment": "Alpha Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 195,
+      "ocrCandidates": [
+        ":S6L",
+        "NISNOJO",
+        "HISNOJO"
+      ],
+      "imageFile": "ABF-9-Cousin-Alpha_Battlefoil-Randy_Quaid_Debut.webp",
+      "identifiedAs": "Allenwrench"
+    },
+    {
+      "bobaId": "ABF-75-Dijon-Alpha Battlefoil-First Edition",
+      "catalogHero": "Dijon",
+      "catalogCardNumber": "ABF-75",
+      "catalogTreatment": "Alpha Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "NOTIO"
+      ],
+      "imageFile": "ABF-75-Dijon-Alpha_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Robin Hood"
+    },
+    {
+      "bobaId": "ABF-219-Macho-Alpha Battlefoil-First Edition",
+      "catalogHero": "Macho",
+      "catalogCardNumber": "ABF-219",
+      "catalogTreatment": "Alpha Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 130,
+      "ocrCandidates": [
+        "МАСНО•",
+        "ANST ERIE"
+      ],
+      "imageFile": "ABF-219-Macho-Alpha_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "ABF-357-D-Harp-Alpha Battlefoil-First Edition",
+      "catalogHero": "D-Harp",
+      "catalogCardNumber": "ABF-357",
+      "catalogTreatment": "Alpha Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 120,
+      "ocrCandidates": [
+        "SO-HARP,"
+      ],
+      "imageFile": "ABF-357-D-Harp-Alpha_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Barry \"Cutback\" Sanders"
+    },
+    {
+      "bobaId": "ABF-481-Macho-Alpha Battlefoil-First Edition",
+      "catalogHero": "Macho",
+      "catalogCardNumber": "ABF-481",
+      "catalogTreatment": "Alpha Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 125,
+      "ocrCandidates": [
+        "МАСНO"
+      ],
+      "imageFile": "ABF-481-Macho-Alpha_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "ABF-730-Dijon-Alpha Battlefoil-First Edition",
+      "catalogHero": "Dijon",
+      "catalogCardNumber": "ABF-730",
+      "catalogTreatment": "Alpha Battlefoil",
+      "catalogElement": "BRAWL",
+      "catalogPower": 120,
+      "ocrCandidates": [
+        "DUON"
+      ],
+      "imageFile": "ABF-730-Dijon-Alpha_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Curaçao Kid"
+    },
+    {
+      "bobaId": "ABF-778-Ozzmosis-Alpha Battlefoil-First Edition",
+      "catalogHero": "Ozzmosis",
+      "catalogCardNumber": "ABF-778",
+      "catalogTreatment": "Alpha Battlefoil",
+      "catalogElement": "BRAWL",
+      "catalogPower": 80,
+      "ocrCandidates": [
+        "E08",
+        "SISOWZZO",
+        "SISOWZZO|",
+        "IV4"
+      ],
+      "imageFile": "ABF-778-Ozzmosis-Alpha_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Hard-Drive"
+    },
+    {
+      "bobaId": "BBFA-3-A.I.-Silver Blast-Allen Iverson Debut",
+      "catalogHero": "A.I.",
+      "catalogCardNumber": "BBFA-3",
+      "catalogTreatment": "Silver Blast",
+      "catalogElement": "ICE",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "A.l.",
+        "Tidieeinste liszn"
+      ],
+      "imageFile": "BBFA-3-A_I_-Silver_Blast-Allen_Iverson_Debut.webp",
+      "identifiedAs": "Allenwrench"
+    },
+    {
+      "bobaId": "BBFA-195-Curaçao Kid-Silver Blast-Anduw Jones Debut",
+      "catalogHero": "Curaçao Kid",
+      "catalogCardNumber": "BBFA-195",
+      "catalogTreatment": "Silver Blast",
+      "catalogElement": "ICE",
+      "catalogPower": 160,
+      "ocrCandidates": [
+        "(aRLA0 1U"
+      ],
+      "imageFile": "BBFA-195-Cura_ao_Kid-Silver_Blast-Anduw_Jones_Debut.webp",
+      "identifiedAs": "Allenwrench"
+    },
+    {
+      "bobaId": "BF-42-C.C.-Battlefoil-First Edition",
+      "catalogHero": "C.C.",
+      "catalogCardNumber": "BF-42",
+      "catalogTreatment": "Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 135,
+      "ocrCandidates": [
+        "ST (aTDA"
+      ],
+      "imageFile": "BF-42-C_C_-Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "BF-45-C.C.-Battlefoil-First Edition",
+      "catalogHero": "C.C.",
+      "catalogCardNumber": "BF-45",
+      "catalogTreatment": "Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 125,
+      "ocrCandidates": [
+        "L.C."
+      ],
+      "imageFile": "BF-45-C_C_-Battlefoil-First_Edition.webp",
+      "identifiedAs": "Bell-Camp"
+    },
+    {
+      "bobaId": "BF-49-Botto-Battlefoil-First Edition",
+      "catalogHero": "Botto",
+      "catalogCardNumber": "BF-49",
+      "catalogTreatment": "Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 145,
+      "ocrCandidates": [
+        "ВОTTО"
+      ],
+      "imageFile": "BF-49-Botto-Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "BF-129-Action-Battlefoil-First Edition",
+      "catalogHero": "Action",
+      "catalogCardNumber": "BF-129",
+      "catalogTreatment": "Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 110,
+      "ocrCandidates": [
+        "AСTIОK",
+        "ANST ERTDN"
+      ],
+      "imageFile": "BF-129-Action-Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "BF-132-J-Jetts-Battlefoil-First Edition",
+      "catalogHero": "J-Jetts",
+      "catalogCardNumber": "BF-132",
+      "catalogTreatment": "Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 130,
+      "ocrCandidates": [
+        "FEIS"
+      ],
+      "imageFile": "BF-132-J-Jetts-Battlefoil-First_Edition.webp",
+      "identifiedAs": "Mr. Irrelevant"
+    },
+    {
+      "bobaId": "BF-240-Sarrtillery-Battlefoil-First Edition",
+      "catalogHero": "Sarrtillery",
+      "catalogCardNumber": "BF-240",
+      "catalogTreatment": "Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 90,
+      "ocrCandidates": [
+        "100EI Da"
+      ],
+      "imageFile": "BF-240-Sarrtillery-Battlefoil-First_Edition.webp",
+      "identifiedAs": "Curaçao Kid"
+    },
+    {
+      "bobaId": "BF-268-Attak-Battlefoil-First Edition",
+      "catalogHero": "Attak",
+      "catalogCardNumber": "BF-268",
+      "catalogTreatment": "Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 110,
+      "ocrCandidates": [
+        "АTTAН"
+      ],
+      "imageFile": "BF-268-Attak-Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "BFA-2-A.I.-Inspired Ink Battlefoil-Allen Iverson Debut",
+      "catalogHero": "A.I.",
+      "catalogCardNumber": "BFA-2",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 190,
+      "ocrCandidates": [
+        "A.l.",
+        "dntenssslrisn"
+      ],
+      "imageFile": "BFA-2-A_I_-Inspired_Ink_Battlefoil-Allen_Iverson_Debut.webp",
+      "identifiedAs": "Allenwrench"
+    },
+    {
+      "bobaId": "BFA-4-A.I.-Inspired Ink Battlefoil-Allen Iverson Debut",
+      "catalogHero": "A.I.",
+      "catalogCardNumber": "BFA-4",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "A.l.",
+        "AEZLEгTESIA BCRET"
+      ],
+      "imageFile": "BFA-4-A_I_-Inspired_Ink_Battlefoil-Allen_Iverson_Debut.webp",
+      "identifiedAs": "Allenwrench"
+    },
+    {
+      "bobaId": "BFA-5-A.I.-Inspired Ink Battlefoil-Allen Iverson Debut",
+      "catalogHero": "A.I.",
+      "catalogCardNumber": "BFA-5",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 170,
+      "ocrCandidates": [
+        "A.l.",
+        "AELEN ITRSEN DERS7"
+      ],
+      "imageFile": "BFA-5-A_I_-Inspired_Ink_Battlefoil-Allen_Iverson_Debut.webp",
+      "identifiedAs": "Allenwrench"
+    },
+    {
+      "bobaId": "BFA-41-Emmitt-164-Inspired Ink Battlefoil-Emmitt Smith Debut",
+      "catalogHero": "Emmitt-164",
+      "catalogCardNumber": "BFA-41",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 190,
+      "ocrCandidates": [
+        "FHMI-S"
+      ],
+      "imageFile": "BFA-41-Emmitt-164-Inspired_Ink_Battlefoil-Emmitt_Smith_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "BFA-40-Magic-Inspired Ink Battlefoil-Magic Johnson Debut",
+      "catalogHero": "Magic",
+      "catalogCardNumber": "BFA-40",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 190,
+      "ocrCandidates": [
+        "ЛАБІЄ",
+        "2 190g"
+      ],
+      "imageFile": "BFA-40-Magic-Inspired_Ink_Battlefoil-Magic_Johnson_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "BFA-87-Joey Jawz-Inspired Ink Battlefoil-Joey Chestnut Debut",
+      "catalogHero": "Joey Jawz",
+      "catalogCardNumber": "BFA-87",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 175,
+      "ocrCandidates": [
+        "175g",
+        "ZMIVT A30R"
+      ],
+      "imageFile": "BFA-87-Joey_Jawz-Inspired_Ink_Battlefoil-Joey_Chestnut_Debut.webp",
+      "identifiedAs": "Snowbear"
+    },
+    {
+      "bobaId": "BFA-88-Bus-Inspired Ink Battlefoil-Jerome Bettis Debut",
+      "catalogHero": "Bus",
+      "catalogCardNumber": "BFA-88",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 175,
+      "ocrCandidates": [
+        "BUXH ROOT?:"
+      ],
+      "imageFile": "BFA-88-Bus-Inspired_Ink_Battlefoil-Jerome_Bettis_Debut.webp",
+      "identifiedAs": "Barry \"Cutback\" Sanders"
+    },
+    {
+      "bobaId": "BFA-145-Tikoff-Inspired Ink Battlefoil-Fred Biletnikoff Debut",
+      "catalogHero": "Tikoff",
+      "catalogCardNumber": "BFA-145",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 155,
+      "ocrCandidates": [
+        "THCDFF"
+      ],
+      "imageFile": "BFA-145-Tikoff-Inspired_Ink_Battlefoil-Fred_Biletnikoff_Debut.webp",
+      "identifiedAs": "Barry \"Cutback\" Sanders"
+    },
+    {
+      "bobaId": "BFA-146-Bone-Inspired Ink Battlefoil-Jay Buhner Debut",
+      "catalogHero": "Bone",
+      "catalogCardNumber": "BFA-146",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 155,
+      "ocrCandidates": [
+        "BOHEl"
+      ],
+      "imageFile": "BFA-146-Bone-Inspired_Ink_Battlefoil-Jay_Buhner_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "BGBF-2-Skeee-Bubble Gum Battlefoil-First Edition",
+      "catalogHero": "Skeee",
+      "catalogCardNumber": "BGBF-2",
+      "catalogTreatment": "Bubble Gum Battlefoil",
+      "catalogElement": "GUM",
+      "catalogPower": 195,
+      "ocrCandidates": [
+        "MATATA"
+      ],
+      "imageFile": "BGBF-2-Skeee-Bubble_Gum_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Javalanche"
+    },
+    {
+      "bobaId": "BL-O81-Barry \"Cutback\" Sanders-Orange Blast-Barry Sanders Debut",
+      "catalogHero": "Barry \"Cutback\" Sanders",
+      "catalogCardNumber": "BL-O81",
+      "catalogTreatment": "Orange Blast",
+      "catalogElement": "FIRE",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "SONYS JOVaLMD. AR0T"
+      ],
+      "imageFile": "BL-O81-Barry_Cutback_Sanders-Orange_Blast-Barry_Sanders_Debut.webp",
+      "identifiedAs": "Dart-Board"
+    },
+    {
+      "bobaId": "BLBF-95-Jeesaw-Blizzard Battlefoil-First Edition",
+      "catalogHero": "Jeesaw",
+      "catalogCardNumber": "BLBF-95",
+      "catalogTreatment": "Blizzard Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 115,
+      "ocrCandidates": [
+        "D-HARP",
+        "f3 Chwe"
+      ],
+      "imageFile": "BLBF-95-Jeesaw-Blizzard_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Mr. Irrelevant"
+    },
+    {
+      "bobaId": "BLBF-120-Bandelero-Blizzard Battlefoil-First Edition",
+      "catalogHero": "Bandelero",
+      "catalogCardNumber": "BLBF-120",
+      "catalogTreatment": "Blizzard Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 110,
+      "ocrCandidates": [
+        "ZEPHYR"
+      ],
+      "imageFile": "BLBF-120-Bandelero-Blizzard_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Barry \"Cutback\" Sanders"
+    },
+    {
+      "bobaId": "BLBF-174-Shepherd-Blizzard Battlefoil-First Edition",
+      "catalogHero": "Shepherd",
+      "catalogCardNumber": "BLBF-174",
+      "catalogTreatment": "Blizzard Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 105,
+      "ocrCandidates": [
+        "HIGHWAY TO HELTON"
+      ],
+      "imageFile": "BLBF-174-Shepherd-Blizzard_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Highway to Helton"
+    },
+    {
+      "bobaId": "BLBF-350-Macho-Blizzard Battlefoil-First Edition",
+      "catalogHero": "Macho",
+      "catalogCardNumber": "BLBF-350",
+      "catalogTreatment": "Blizzard Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 125,
+      "ocrCandidates": [
+        "МAСHО",
+        "RIRST ERTIDN"
+      ],
+      "imageFile": "BLBF-350-Macho-Blizzard_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "BLBF-664-Cousin-Blizzard Battlefoil-Randy Quaid Debut",
+      "catalogHero": "Cousin",
+      "catalogCardNumber": "BLBF-664",
+      "catalogTreatment": "Blizzard Battlefoil",
+      "catalogElement": "BRAWL",
+      "catalogPower": 155,
+      "ocrCandidates": [
+        "CCQUẬN",
+        "MYERT"
+      ],
+      "imageFile": "BLBF-664-Cousin-Blizzard_Battlefoil-Randy_Quaid_Debut.webp",
+      "identifiedAs": "Courthouse"
+    },
+    {
+      "bobaId": "BLBF-743-Macho-Blizzard Battlefoil-First Edition",
+      "catalogHero": "Macho",
+      "catalogCardNumber": "BLBF-743",
+      "catalogTreatment": "Blizzard Battlefoil",
+      "catalogElement": "BRAWL",
+      "catalogPower": 110,
+      "ocrCandidates": [
+        "MAСHО"
+      ],
+      "imageFile": "BLBF-743-Macho-Blizzard_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Mr. Irrelevant"
+    },
+    {
+      "bobaId": "CBF-485-Wattage-Colosseum Battlefoil-First Edition",
+      "catalogHero": "Wattage",
+      "catalogCardNumber": "CBF-485",
+      "catalogTreatment": "Colosseum Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 120,
+      "ocrCandidates": [
+        "ALLAGE"
+      ],
+      "imageFile": "CBF-485-Wattage-Colosseum_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Allenwrench"
+    },
+    {
+      "bobaId": "CBF-533-Cousin-Colosseum Battlefoil-Randy Quaid Debut",
+      "catalogHero": "Cousin",
+      "catalogCardNumber": "CBF-533",
+      "catalogTreatment": "Colosseum Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 165,
+      "ocrCandidates": [
+        "MEVENTHETH"
+      ],
+      "imageFile": "CBF-533-Cousin-Colosseum_Battlefoil-Randy_Quaid_Debut.webp",
+      "identifiedAs": "The Ironman"
+    },
+    {
+      "bobaId": "CBF-556-Vlad the Impaler-Colosseum Battlefoil-Vladimir Guerrero Sr. Debut",
+      "catalogHero": "Vlad the Impaler",
+      "catalogCardNumber": "CBF-556",
+      "catalogTreatment": "Colosseum Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 150,
+      "ocrCandidates": [
+        "УРOBER RА PER"
+      ],
+      "imageFile": "CBF-556-Vlad_the_Impaler-Colosseum_Battlefoil-Vladimir_Guerrero_Sr_Debut.webp",
+      "identifiedAs": "Perkolator"
+    },
+    {
+      "bobaId": "CHILL-5-Cruze Control-Chillin' Battlefoil-Elly De La Cruz Unmasked",
+      "catalogHero": "Cruze Control",
+      "catalogCardNumber": "CHILL-5",
+      "catalogTreatment": "Chillin' Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "HYFEEAL"
+      ],
+      "imageFile": "CHILL-5-Cruze_Control-Chillin_Battlefoil-Elly_De_La_Cruz_Unmasked.webp",
+      "identifiedAs": "Highway to Helton"
+    },
+    {
+      "bobaId": "FT-129-Action-Fire Tracks Battlefoil-2026 Edition",
+      "catalogHero": "Action",
+      "catalogCardNumber": "FT-129",
+      "catalogTreatment": "Fire Tracks Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 90,
+      "ocrCandidates": [
+        "HOLDE"
+      ],
+      "imageFile": "FT-129-Action-Fire_Tracks_Battlefoil-2026_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "GBF-1-A.I.-Green Battlefoil-Allen Iverson Debut",
+      "catalogHero": "A.I.",
+      "catalogCardNumber": "GBF-1",
+      "catalogTreatment": "Green Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 190,
+      "ocrCandidates": [
+        "A.l."
+      ],
+      "imageFile": "GBF-1-A_I_-Green_Battlefoil-Allen_Iverson_Debut.webp",
+      "identifiedAs": "Allenwrench"
+    },
+    {
+      "bobaId": "GBF-41-Skeee-Green Battlefoil-First Edition",
+      "catalogHero": "Skeee",
+      "catalogCardNumber": "GBF-41",
+      "catalogTreatment": "Green Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "COBRA"
+      ],
+      "imageFile": "GBF-41-Skeee-Green_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Curaçao Kid"
+    },
+    {
+      "bobaId": "GGL-88-Macho-Great Grandma's Linoleum Battlefoil-First Edition",
+      "catalogHero": "Macho",
+      "catalogCardNumber": "GGL-88",
+      "catalogTreatment": "Great Grandma's Linoleum Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 175,
+      "ocrCandidates": [
+        "МAСHО"
+      ],
+      "imageFile": "GGL-88-Macho-Great_Grandma_s_Linoleum_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "GGL-140-Cousin-Great Grandma's Linoleum Battlefoil-Randy Quaid Debut",
+      "catalogHero": "Cousin",
+      "catalogCardNumber": "GGL-140",
+      "catalogTreatment": "Great Grandma's Linoleum Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "SEROT"
+      ],
+      "imageFile": "GGL-140-Cousin-Great_Grandma_s_Linoleum_Battlefoil-Randy_Quaid_Debut.webp",
+      "identifiedAs": "Aeronaut"
+    },
+    {
+      "bobaId": "GGL-350-Macho-Great Grandma's Linoleum Battlefoil-First Edition",
+      "catalogHero": "Macho",
+      "catalogCardNumber": "GGL-350",
+      "catalogTreatment": "Great Grandma's Linoleum Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 125,
+      "ocrCandidates": [
+        "MAСНО"
+      ],
+      "imageFile": "GGL-350-Macho-Great_Grandma_s_Linoleum_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Mr. Irrelevant"
+    },
+    {
+      "bobaId": "GGL-533-Cousin-Great Grandma's Linoleum Battlefoil-Randy Quaid Debut",
+      "catalogHero": "Cousin",
+      "catalogCardNumber": "GGL-533",
+      "catalogTreatment": "Great Grandma's Linoleum Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 165,
+      "ocrCandidates": [
+        "MISOON",
+        "UA ANT"
+      ],
+      "imageFile": "GGL-533-Cousin-Great_Grandma_s_Linoleum_Battlefoil-Randy_Quaid_Debut.webp",
+      "identifiedAs": "Santa-Moss"
+    },
+    {
+      "bobaId": "GGL-558-Mull & Bones-Great Grandma's Linoleum Battlefoil-Chris Mullin Debut",
+      "catalogHero": "Mull & Bones",
+      "catalogCardNumber": "GGL-558",
+      "catalogTreatment": "Great Grandma's Linoleum Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 145,
+      "ocrCandidates": [
+        "SANOR3TN"
+      ],
+      "imageFile": "GGL-558-Mull_Bones-Great_Grandma_s_Linoleum_Battlefoil-Chris_Mullin_Debut.webp",
+      "identifiedAs": "Barry \"Cutback\" Sanders"
+    },
+    {
+      "bobaId": "GLBF-9-Cousin-Grandma's Linoleum Battlefoil-Randy Quaid Debut",
+      "catalogHero": "Cousin",
+      "catalogCardNumber": "GLBF-9",
+      "catalogTreatment": "Grandma's Linoleum Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 195,
+      "ocrCandidates": [
+        "NISnOF"
+      ],
+      "imageFile": "GLBF-9-Cousin-Grandma_s_Linoleum_Battlefoil-Randy_Quaid_Debut.webp",
+      "identifiedAs": "Barry \"Cutback\" Sanders"
+    },
+    {
+      "bobaId": "GLBF-41-Skeee-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogHero": "Skeee",
+      "catalogCardNumber": "GLBF-41",
+      "catalogTreatment": "Grandma's Linoleum Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 195,
+      "ocrCandidates": [
+        "IMON-RA"
+      ],
+      "imageFile": "GLBF-41-Skeee-Grandma_s_Linoleum_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Barry \"Cutback\" Sanders"
+    },
+    {
+      "bobaId": "GLBF-83-Skeee-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogHero": "Skeee",
+      "catalogCardNumber": "GLBF-83",
+      "catalogTreatment": "Grandma's Linoleum Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "MEAN-JOE"
+      ],
+      "imageFile": "GLBF-83-Skeee-Grandma_s_Linoleum_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Mean-Joe"
+    },
+    {
+      "bobaId": "GLBF-125-Skeee-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogHero": "Skeee",
+      "catalogCardNumber": "GLBF-125",
+      "catalogTreatment": "Grandma's Linoleum Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 180,
+      "ocrCandidates": [
+        "RODDER",
+        "140g"
+      ],
+      "imageFile": "GLBF-125-Skeee-Grandma_s_Linoleum_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "GLBF-140-Swoopes-Grandma's Linoleum Battlefoil-Sheryl Swoopes Debut",
+      "catalogHero": "Swoopes",
+      "catalogCardNumber": "GLBF-140",
+      "catalogTreatment": "Grandma's Linoleum Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 140,
+      "ocrCandidates": [
+        "CODUMS"
+      ],
+      "imageFile": "GLBF-140-Swoopes-Grandma_s_Linoleum_Battlefoil-Sheryl_Swoopes_Debut.webp",
+      "identifiedAs": "Barry \"Cutback\" Sanders"
+    },
+    {
+      "bobaId": "GLBF-167-Skeee-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogHero": "Skeee",
+      "catalogCardNumber": "GLBF-167",
+      "catalogTreatment": "Grandma's Linoleum Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 180,
+      "ocrCandidates": [
+        "BURROCIOUS"
+      ],
+      "imageFile": "GLBF-167-Skeee-Grandma_s_Linoleum_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Barry \"Cutback\" Sanders"
+    },
+    {
+      "bobaId": "GLBF-209-Skeee-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogHero": "Skeee",
+      "catalogCardNumber": "GLBF-209",
+      "catalogTreatment": "Grandma's Linoleum Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 165,
+      "ocrCandidates": [
+        "CRUZE-CONTROL"
+      ],
+      "imageFile": "GLBF-209-Skeee-Grandma_s_Linoleum_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Cruze-Control"
+    },
+    {
+      "bobaId": "GLBF-291-Carroller-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogHero": "Carroller",
+      "catalogCardNumber": "GLBF-291",
+      "catalogTreatment": "Grandma's Linoleum Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 160,
+      "ocrCandidates": [
+        "ALLDAY",
+        "LORILA PETERSON DERST"
+      ],
+      "imageFile": "GLBF-291-Carroller-Grandma_s_Linoleum_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Allenwrench"
+    },
+    {
+      "bobaId": "GLBF-533-Cousin-Grandma's Linoleum Battlefoil-Randy Quaid Debut",
+      "catalogHero": "Cousin",
+      "catalogCardNumber": "GLBF-533",
+      "catalogTreatment": "Grandma's Linoleum Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 165,
+      "ocrCandidates": [
+        "DUSN"
+      ],
+      "imageFile": "GLBF-533-Cousin-Grandma_s_Linoleum_Battlefoil-Randy_Quaid_Debut.webp",
+      "identifiedAs": "Curaçao Kid"
+    },
+    {
+      "bobaId": "HBF-17-Macho-Headlines Battlefoil-First Edition",
+      "catalogHero": "Macho",
+      "catalogCardNumber": "HBF-17",
+      "catalogTreatment": "Headlines Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 120,
+      "ocrCandidates": [
+        "out",
+        "MАСHО"
+      ],
+      "imageFile": "HBF-17-Macho-Headlines_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "HLA-6-King Henrik-Inspired Ink Battlefoil-Henrik Lundqvist Debut",
+      "catalogHero": "King Henrik",
+      "catalogCardNumber": "HLA-6",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 175,
+      "ocrCandidates": [
+        "FNENRIK",
+        "-NENRIK",
+        "EMRIK",
+        "<'IFyI"
+      ],
+      "imageFile": "HLA-6-King_Henrik-Inspired_Ink_Battlefoil-Henrik_Lundqvist_Debut.webp",
+      "identifiedAs": "InVinceable"
+    },
+    {
+      "bobaId": "IBF-9-Dijon-Icon Battlefoil-First Edition",
+      "catalogHero": "Dijon",
+      "catalogCardNumber": "IBF-9",
+      "catalogTreatment": "Icon Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "NOTIO"
+      ],
+      "imageFile": "IBF-9-Dijon-Icon_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Robin Hood"
+    },
+    {
+      "bobaId": "IBF-139-Dijon-Icon Battlefoil-First Edition",
+      "catalogHero": "Dijon",
+      "catalogCardNumber": "IBF-139",
+      "catalogTreatment": "Icon Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 135,
+      "ocrCandidates": [
+        "NOTIO"
+      ],
+      "imageFile": "IBF-139-Dijon-Icon_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Robin Hood"
+    },
+    {
+      "bobaId": "IBF-217-Macho-Icon Battlefoil-First Edition",
+      "catalogHero": "Macho",
+      "catalogCardNumber": "IBF-217",
+      "catalogTreatment": "Icon Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 125,
+      "ocrCandidates": [
+        "MAСHО",
+        "ANSTERITION"
+      ],
+      "imageFile": "IBF-217-Macho-Icon_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Mr. Irrelevant"
+    },
+    {
+      "bobaId": "IBF-334-Dijon-Icon Battlefoil-First Edition",
+      "catalogHero": "Dijon",
+      "catalogCardNumber": "IBF-334",
+      "catalogTreatment": "Icon Battlefoil",
+      "catalogElement": "BRAWL",
+      "catalogPower": 120,
+      "ocrCandidates": [
+        "NOnO"
+      ],
+      "imageFile": "IBF-334-Dijon-Icon_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Coopanova"
+    },
+    {
+      "bobaId": "LA-30-二百-Kanjifoil-Champions Kanji Variation",
+      "catalogHero": "二百",
+      "catalogCardNumber": "LA-30",
+      "catalogTreatment": "Kanjifoil",
+      "catalogElement": "ALT",
+      "catalogPower": 200,
+      "ocrCandidates": [
+        "-ля:",
+        "RAWHERS LAAN IARANEN",
+        "ANGE200:"
+      ],
+      "imageFile": "LA-30-_-Kanjifoil-Champions_Kanji_Variation.webp",
+      "identifiedAs": "Allenwrench"
+    },
+    {
+      "bobaId": "LA-31-百八十五-Kanjifoil-Champions Kanji Variation",
+      "catalogHero": "百八十五",
+      "catalogCardNumber": "LA-31",
+      "catalogTreatment": "Kanjifoil",
+      "catalogElement": "HEX",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "KOUTIEEE IOTI SESVATY",
+        "LOS ANGELEST"
+      ],
+      "imageFile": "LA-31-_-Kanjifoil-Champions_Kanji_Variation.webp",
+      "identifiedAs": "Maxed Out"
+    },
+    {
+      "bobaId": "LA-33-百三十五-Kanjifoil-Champions Kanji Variation",
+      "catalogHero": "百三十五",
+      "catalogCardNumber": "LA-33",
+      "catalogTreatment": "Kanjifoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 135,
+      "ocrCandidates": [
+        "=Л#",
+        "CARMAENS ALAN IARMNDR",
+        "LOS ANGELES"
+      ],
+      "imageFile": "LA-33-_-Kanjifoil-Champions_Kanji_Variation.webp",
+      "identifiedAs": "Javalanche"
+    },
+    {
+      "bobaId": "LOGO-349-King Tuck-Logofoil-First Edition",
+      "catalogHero": "King Tuck",
+      "catalogCardNumber": "LOGO-349",
+      "catalogTreatment": "Logofoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 125,
+      "ocrCandidates": [
+        "моП 9НІй."
+      ],
+      "imageFile": "LOGO-349-King_Tuck-Logofoil-First_Edition.webp",
+      "identifiedAs": "Barry \"Cutback\" Sanders"
+    },
+    {
+      "bobaId": "LOGO-357-D-Harp-Logofoil-First Edition",
+      "catalogHero": "D-Harp",
+      "catalogCardNumber": "LOGO-357",
+      "catalogTreatment": "Logofoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 120,
+      "ocrCandidates": [
+        "JO-HARP"
+      ],
+      "imageFile": "LOGO-357-D-Harp-Logofoil-First_Edition.webp",
+      "identifiedAs": "Barry \"Cutback\" Sanders"
+    },
+    {
+      "bobaId": "MI-8-Gigante-Miami Ice Battlefoil-Pedro Martínez Debut",
+      "catalogHero": "Gigante",
+      "catalogCardNumber": "MI-8",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 180,
+      "ocrCandidates": [
+        "CIGANII"
+      ],
+      "imageFile": "MI-8-Gigante-Miami_Ice_Battlefoil-Pedro_Mart_nez_Debut.webp",
+      "identifiedAs": "Unanimous Sandman"
+    },
+    {
+      "bobaId": "MI-17-Goggles-Miami Ice Battlefoil-Eric Dickerson Debut",
+      "catalogHero": "Goggles",
+      "catalogCardNumber": "MI-17",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 165,
+      "ocrCandidates": [
+        "COCGI",
+        "COGCE",
+        "CIM441K4"
+      ],
+      "imageFile": "MI-17-Goggles-Miami_Ice_Battlefoil-Eric_Dickerson_Debut.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "MI-21-Windmill-Miami Ice Battlefoil-Dominique Wilkins Debut",
+      "catalogHero": "Windmill",
+      "catalogCardNumber": "MI-21",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 165,
+      "ocrCandidates": [
+        "WNDHI"
+      ],
+      "imageFile": "MI-21-Windmill-Miami_Ice_Battlefoil-Dominique_Wilkins_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MI-22-Boom-Miami Ice Battlefoil-Boomer Esiason Debut",
+      "catalogHero": "Boom",
+      "catalogCardNumber": "MI-22",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 165,
+      "ocrCandidates": [
+        "ВССН",
+        "ВСOW"
+      ],
+      "imageFile": "MI-22-Boom-Miami_Ice_Battlefoil-Boomer_Esiason_Debut.webp",
+      "identifiedAs": "Snowbear"
+    },
+    {
+      "bobaId": "MI-27-Gator-Miami Ice Battlefoil-Steve Spurrier Debut",
+      "catalogHero": "Gator",
+      "catalogCardNumber": "MI-27",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 160,
+      "ocrCandidates": [
+        "CATOF"
+      ],
+      "imageFile": "MI-27-Gator-Miami_Ice_Battlefoil-Steve_Spurrier_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MI-30-Slash-Miami Ice Battlefoil-Kordell Stewart Debut",
+      "catalogHero": "Slash",
+      "catalogCardNumber": "MI-30",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 155,
+      "ocrCandidates": [
+        "SIASE"
+      ],
+      "imageFile": "MI-30-Slash-Miami_Ice_Battlefoil-Kordell_Stewart_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MI-33-Kurse-Miami Ice Battlefoil-Jevon Kearse Debut",
+      "catalogHero": "Kurse",
+      "catalogCardNumber": "MI-33",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 150,
+      "ocrCandidates": [
+        "KUPSI",
+        "150g",
+        "IILf,"
+      ],
+      "imageFile": "MI-33-Kurse-Miami_Ice_Battlefoil-Jevon_Kearse_Debut.webp",
+      "identifiedAs": "Allenwrench"
+    },
+    {
+      "bobaId": "MI-35-Bells-Miami Ice Battlefoil-George Bell Debut",
+      "catalogHero": "Bells",
+      "catalogCardNumber": "MI-35",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 155,
+      "ocrCandidates": [
+        "BEHS",
+        "BELISI"
+      ],
+      "imageFile": "MI-35-Bells-Miami_Ice_Battlefoil-George_Bell_Debut.webp",
+      "identifiedAs": "BrockNess"
+    },
+    {
+      "bobaId": "MI-41-Skeee-Miami Ice Battlefoil-First Edition",
+      "catalogHero": "Skeee",
+      "catalogCardNumber": "MI-41",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 180,
+      "ocrCandidates": [
+        "SKFE-BAIL"
+      ],
+      "imageFile": "MI-41-Skeee-Miami_Ice_Battlefoil-First_Edition.webp",
+      "identifiedAs": "A.I."
+    },
+    {
+      "bobaId": "MI-67-Exterminaber-Miami Ice Battlefoil-First Edition",
+      "catalogHero": "Exterminaber",
+      "catalogCardNumber": "MI-67",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 115,
+      "ocrCandidates": [
+        "IXHPAINALER"
+      ],
+      "imageFile": "MI-67-Exterminaber-Miami_Ice_Battlefoil-First_Edition.webp",
+      "identifiedAs": "A.I."
+    },
+    {
+      "bobaId": "MI-68-Bomber-Miami Ice Battlefoil-First Edition",
+      "catalogHero": "Bomber",
+      "catalogCardNumber": "MI-68",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 115,
+      "ocrCandidates": [
+        "БОМВЕР"
+      ],
+      "imageFile": "MI-68-Bomber-Miami_Ice_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Barry \"Cutback\" Sanders"
+    },
+    {
+      "bobaId": "MI-85-Big-Z-Miami Ice Battlefoil-First Edition",
+      "catalogHero": "Big-Z",
+      "catalogCardNumber": "MI-85",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 100,
+      "ocrCandidates": [
+        "BIC-L"
+      ],
+      "imageFile": "MI-85-Big-Z-Miami_Ice_Battlefoil-First_Edition.webp",
+      "identifiedAs": "BrockNess"
+    },
+    {
+      "bobaId": "MI-86-Clutch-Miami Ice Battlefoil-First Edition",
+      "catalogHero": "Clutch",
+      "catalogCardNumber": "MI-86",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 100,
+      "ocrCandidates": [
+        "CЫICH"
+      ],
+      "imageFile": "MI-86-Clutch-Miami_Ice_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Mr. Irrelevant"
+    },
+    {
+      "bobaId": "MI-89-Foxhole-Miami Ice Battlefoil-First Edition",
+      "catalogHero": "Foxhole",
+      "catalogCardNumber": "MI-89",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 100,
+      "ocrCandidates": [
+        "FOXFCI"
+      ],
+      "imageFile": "MI-89-Foxhole-Miami_Ice_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Barry \"Cutback\" Sanders"
+    },
+    {
+      "bobaId": "MI-91-Botto-Miami Ice Battlefoil-First Edition",
+      "catalogHero": "Botto",
+      "catalogCardNumber": "MI-91",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 95,
+      "ocrCandidates": [
+        "БОПО"
+      ],
+      "imageFile": "MI-91-Botto-Miami_Ice_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Mr. Irrelevant"
+    },
+    {
+      "bobaId": "MI-95-Breeze-Miami Ice Battlefoil-First Edition",
+      "catalogHero": "Breeze",
+      "catalogCardNumber": "MI-95",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 95,
+      "ocrCandidates": [
+        "BRIETP"
+      ],
+      "imageFile": "MI-95-Breeze-Miami_Ice_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Mr. Irrelevant"
+    },
+    {
+      "bobaId": "MI-102-Tattoo-Miami Ice Battlefoil-2026 Edition",
+      "catalogHero": "Tattoo",
+      "catalogCardNumber": "MI-102",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 110,
+      "ocrCandidates": [
+        "TATICC"
+      ],
+      "imageFile": "MI-102-Tattoo-Miami_Ice_Battlefoil-2026_Edition.webp",
+      "identifiedAs": "C.C."
+    },
+    {
+      "bobaId": "MI-113-Scary-Miami Ice Battlefoil-First Edition",
+      "catalogHero": "Scary",
+      "catalogCardNumber": "MI-113",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 105,
+      "ocrCandidates": [
+        "5C4Ic"
+      ],
+      "imageFile": "MI-113-Scary-Miami_Ice_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "MI-125-Bell-Camp-Miami Ice Battlefoil-First Edition",
+      "catalogHero": "Bell-Camp",
+      "catalogCardNumber": "MI-125",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 95,
+      "ocrCandidates": [
+        "BЕH-CAMP"
+      ],
+      "imageFile": "MI-125-Bell-Camp-Miami_Ice_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Barry \"Cutback\" Sanders"
+    },
+    {
+      "bobaId": "MI-128-Amoeba-Miami Ice Battlefoil-First Edition",
+      "catalogHero": "Amoeba",
+      "catalogCardNumber": "MI-128",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 90,
+      "ocrCandidates": [
+        "AMCFE"
+      ],
+      "imageFile": "MI-128-Amoeba-Miami_Ice_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MI-129-Action-Miami Ice Battlefoil-2026 Edition",
+      "catalogHero": "Action",
+      "catalogCardNumber": "MI-129",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 90,
+      "ocrCandidates": [
+        "OLLDV"
+      ],
+      "imageFile": "MI-129-Action-Miami_Ice_Battlefoil-2026_Edition.webp",
+      "identifiedAs": "Allenwrench"
+    },
+    {
+      "bobaId": "MIX-9-Cousin-Mixtape Battlefoil-Randy Quaid Debut",
+      "catalogHero": "Cousin",
+      "catalogCardNumber": "MIX-9",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 195,
+      "ocrCandidates": [
+        "IASAOOOJÓNTO",
+        "NISnO))"
+      ],
+      "imageFile": "MIX-9-Cousin-Mixtape_Battlefoil-Randy_Quaid_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MIX-28-Hoge-Ball-Mixtape Battlefoil-Merril Hoge Debut",
+      "catalogHero": "Hoge-Ball",
+      "catalogCardNumber": "MIX-28",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 175,
+      "ocrCandidates": [
+        "sлelo No 183",
+        "11-30H"
+      ],
+      "imageFile": "MIX-28-Hoge-Ball-Mixtape_Battlefoil-Merril_Hoge_Debut.webp",
+      "identifiedAs": "Alexander the Great"
+    },
+    {
+      "bobaId": "MIX-34-Mull & Bones-Mixtape Battlefoil-Chris Mullin Debut",
+      "catalogHero": "Mull & Bones",
+      "catalogCardNumber": "MIX-34",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 175,
+      "ocrCandidates": [
+        "19LI",
+        "MetO wIPOY SAN",
+        "joto afte s4p",
+        "Vk4& poNF",
+        "poMF"
+      ],
+      "imageFile": "MIX-34-Mull_Bones-Mixtape_Battlefoil-Chris_Mullin_Debut.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "MIX-35-Bells-Mixtape Battlefoil-George Bell Debut",
+      "catalogHero": "Bells",
+      "catalogCardNumber": "MIX-35",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 175,
+      "ocrCandidates": [
+        "AASSO TA MON",
+        "irg"
+      ],
+      "imageFile": "MIX-35-Bells-Mixtape_Battlefoil-George_Bell_Debut.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "MIX-48-Muggsy-Mixtape Battlefoil-Muggsy Bogues Debut",
+      "catalogHero": "Muggsy",
+      "catalogCardNumber": "MIX-48",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "120 ш",
+        "RMAL F"
+      ],
+      "imageFile": "MIX-48-Muggsy-Mixtape_Battlefoil-Muggsy_Bogues_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MIX-59-Goggles-Mixtape Battlefoil-Eric Dickerson Debut",
+      "catalogHero": "Goggles",
+      "catalogCardNumber": "MIX-59",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 175,
+      "ocrCandidates": [
+        "тляво козавоте лоз",
+        "120 u",
+        "RMAL F"
+      ],
+      "imageFile": "MIX-59-Goggles-Mixtape_Battlefoil-Eric_Dickerson_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MIX-64-Boom-Mixtape Battlefoil-Boomer Esiason Debut",
+      "catalogHero": "Boom",
+      "catalogCardNumber": "MIX-64",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 175,
+      "ocrCandidates": [
+        "w008",
+        "120 uл",
+        "RMAL F",
+        "175g"
+      ],
+      "imageFile": "MIX-64-Boom-Mixtape_Battlefoil-Boomer_Esiason_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MIX-70-Hoge-Ball-Mixtape Battlefoil-Merril Hoge Debut",
+      "catalogHero": "Hoge-Ball",
+      "catalogCardNumber": "MIX-70",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 165,
+      "ocrCandidates": [
+        "MASSo HOR 1uSSS-",
+        "120 ш",
+        "RMAL F"
+      ],
+      "imageFile": "MIX-70-Hoge-Ball-Mixtape_Battlefoil-Merril_Hoge_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MIX-71-PB Buckets-Mixtape Battlefoil-First Edition",
+      "catalogHero": "PB Buckets",
+      "catalogCardNumber": "MIX-71",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 190,
+      "ocrCandidates": [
+        "SENna ad"
+      ],
+      "imageFile": "MIX-71-PB_Buckets-Mixtape_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Bern Baby, Bern"
+    },
+    {
+      "bobaId": "MIX-76-Crosbow-Mixtape Battlefoil-First Edition",
+      "catalogHero": "Crosbow",
+      "catalogCardNumber": "MIX-76",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "•OUN0) 1507"
+      ],
+      "imageFile": "MIX-76-Crosbow-Mixtape_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "MIX-101-Goggles-Mixtape Battlefoil-Eric Dickerson Debut",
+      "catalogHero": "Goggles",
+      "catalogCardNumber": "MIX-101",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 165,
+      "ocrCandidates": [
+        "тлево козавота лоз",
+        "120 ш",
+        "RMAL F"
+      ],
+      "imageFile": "MIX-101-Goggles-Mixtape_Battlefoil-Eric_Dickerson_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MIX-106-Boom-Mixtape Battlefoil-Boomer Esiason Debut",
+      "catalogHero": "Boom",
+      "catalogCardNumber": "MIX-106",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 165,
+      "ocrCandidates": [
+        "w008",
+        "120 Lл",
+        "RMAL F"
+      ],
+      "imageFile": "MIX-106-Boom-Mixtape_Battlefoil-Boomer_Esiason_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MIX-112-Hoge-Ball-Mixtape Battlefoil-Merril Hoge Debut",
+      "catalogHero": "Hoge-Ball",
+      "catalogCardNumber": "MIX-112",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 155,
+      "ocrCandidates": [
+        "ілет N0 14893'",
+        "11-390M",
+        "120 ш",
+        "RMAL T"
+      ],
+      "imageFile": "MIX-112-Hoge-Ball-Mixtape_Battlefoil-Merril_Hoge_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MIX-143-Goggles-Mixtape Battlefoil-Eric Dickerson Debut",
+      "catalogHero": "Goggles",
+      "catalogCardNumber": "MIX-143",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 165,
+      "ocrCandidates": [
+        "wtкbatodhel",
+        "120 ш",
+        "RMAL f"
+      ],
+      "imageFile": "MIX-143-Goggles-Mixtape_Battlefoil-Eric_Dickerson_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MIX-164-Billhook-Mixtape Battlefoil-Chauncey Billups Debut",
+      "catalogHero": "Billhook",
+      "catalogCardNumber": "MIX-164",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 165,
+      "ocrCandidates": [
+        "LAR SOMN ADMTR",
+        "x00H1118",
+        "120 u",
+        "RMAL1"
+      ],
+      "imageFile": "MIX-164-Billhook-Mixtape_Battlefoil-Chauncey_Billups_Debut.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "MIX-171-JPEG-Mixtape Battlefoil-Jessica Pegula Debut",
+      "catalogHero": "JPEG",
+      "catalogCardNumber": "MIX-171",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 160,
+      "ocrCandidates": [
+        "120 ul",
+        "RMAL1"
+      ],
+      "imageFile": "MIX-171-JPEG-Mixtape_Battlefoil-Jessica_Pegula_Debut.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "MIX-185-Goggles-Mixtape Battlefoil-Eric Dickerson Debut",
+      "catalogHero": "Goggles",
+      "catalogCardNumber": "MIX-185",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 155,
+      "ocrCandidates": [
+        "тлево козавоте лоз",
+        "120u",
+        "RMAL F"
+      ],
+      "imageFile": "MIX-185-Goggles-Mixtape_Battlefoil-Eric_Dickerson_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MIX-189-Windmill-Mixtape Battlefoil-Dominique Wilkins Debut",
+      "catalogHero": "Windmill",
+      "catalogCardNumber": "MIX-189",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 155,
+      "ocrCandidates": [
+        "WIdIL",
+        "BOAINIUE bileTeS WOWH",
+        "120 ur",
+        "RMAL F-"
+      ],
+      "imageFile": "MIX-189-Windmill-Mixtape_Battlefoil-Dominique_Wilkins_Debut.webp",
+      "identifiedAs": "Curaçao Kid"
+    },
+    {
+      "bobaId": "MIX-196-Hoge-Ball-Mixtape Battlefoil-Merril Hoge Debut",
+      "catalogHero": "Hoge-Ball",
+      "catalogCardNumber": "MIX-196",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 145,
+      "ocrCandidates": [
+        "snSto HOR 1u303-",
+        "120 ur",
+        "RMAL F"
+      ],
+      "imageFile": "MIX-196-Hoge-Ball-Mixtape_Battlefoil-Merril_Hoge_Debut.webp",
+      "identifiedAs": "Curaçao Kid"
+    },
+    {
+      "bobaId": "MIX-213-Chosen-Mixtape Battlefoil-First Edition",
+      "catalogHero": "Chosen",
+      "catalogCardNumber": "MIX-213",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "ROSTERTON",
+        "N3SOH)",
+        "RMAI"
+      ],
+      "imageFile": "MIX-213-Chosen-Mixtape_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "MIX-212-Merlomes-Mixtape Battlefoil-First Edition",
+      "catalogHero": "Merlomes",
+      "catalogCardNumber": "MIX-212",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "TPSTONT",
+        "Sw18w"
+      ],
+      "imageFile": "MIX-212-Merlomes-Mixtape_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "MIX-215-Bison-Mixtape Battlefoil-First Edition",
+      "catalogHero": "Bison",
+      "catalogCardNumber": "MIX-215",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "NOSI8",
+        "TPSTONTO"
+      ],
+      "imageFile": "MIX-215-Bison-Mixtape_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Coopanova"
+    },
+    {
+      "bobaId": "MIX-275-Bison-Mixtape Battlefoil-First Edition",
+      "catalogHero": "Bison",
+      "catalogCardNumber": "MIX-275",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 140,
+      "ocrCandidates": [
+        "NOSI8",
+        "120 ц",
+        "RMAVC"
+      ],
+      "imageFile": "MIX-275-Bison-Mixtape_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Coopanova"
+    },
+    {
+      "bobaId": "MIX-295-Billhook-Mixtape Battlefoil-Chauncey Billups Debut",
+      "catalogHero": "Billhook",
+      "catalogCardNumber": "MIX-295",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 155,
+      "ocrCandidates": [
+        "LAR SOMNE ADHATT",
+        "X00H1118",
+        "120 ur",
+        "RMAL 1"
+      ],
+      "imageFile": "MIX-295-Billhook-Mixtape_Battlefoil-Chauncey_Billups_Debut.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "MIX-333-Chosen-Mixtape Battlefoil-First Edition",
+      "catalogHero": "Chosen",
+      "catalogCardNumber": "MIX-333",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 135,
+      "ocrCandidates": [
+        "ROST(OVTON",
+        "N3SOH)",
+        "120 ш",
+        "RMAL F"
+      ],
+      "imageFile": "MIX-333-Chosen-Mixtape_Battlefoil-First_Edition.webp",
+      "identifiedAs": "BrockNess"
+    },
+    {
+      "bobaId": "MIX-335-Bison-Mixtape Battlefoil-First Edition",
+      "catalogHero": "Bison",
+      "catalogCardNumber": "MIX-335",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 135,
+      "ocrCandidates": [
+        "BPSTOTO",
+        "N0S18",
+        "120 u",
+        "RMAY"
+      ],
+      "imageFile": "MIX-335-Bison-Mixtape_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "MIX-377-Foxhole-Mixtape Battlefoil-First Edition",
+      "catalogHero": "Foxhole",
+      "catalogCardNumber": "MIX-377",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 100,
+      "ocrCandidates": [
+        "OOLE",
+        "TPSTOVT",
+        "120 ц",
+        "RMAL"
+      ],
+      "imageFile": "MIX-377-Foxhole-Mixtape_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "MIX-429-Simon Says-Mixtape Battlefoil-First Edition",
+      "catalogHero": "Simon Says",
+      "catalogCardNumber": "MIX-429",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 105,
+      "ocrCandidates": [
+        "OUN) 1S",
+        "SAUS NOWIS",
+        "120 ш",
+        "RMAL I"
+      ],
+      "imageFile": "MIX-429-Simon_Says-Mixtape_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Curaçao Kid"
+    },
+    {
+      "bobaId": "MIX-433-JPEG-Mixtape Battlefoil-Jessica Pegula Debut",
+      "catalogHero": "JPEG",
+      "catalogCardNumber": "MIX-433",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 150,
+      "ocrCandidates": [
+        "120 uI",
+        "RMAL F"
+      ],
+      "imageFile": "MIX-433-JPEG-Mixtape_Battlefoil-Jessica_Pegula_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MIX-443-Shells-Mixtape Battlefoil-Donnie Shell Debut",
+      "catalogHero": "Shells",
+      "catalogCardNumber": "MIX-443",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 145,
+      "ocrCandidates": [
+        "DASAO nSAS PANDO",
+        "120 ul",
+        "RMAL I"
+      ],
+      "imageFile": "MIX-443-Shells-Mixtape_Battlefoil-Donnie_Shell_Debut.webp",
+      "identifiedAs": "DeVaulta"
+    },
+    {
+      "bobaId": "MIX-453-Chosen-Mixtape Battlefoil-First Edition",
+      "catalogHero": "Chosen",
+      "catalogCardNumber": "MIX-453",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 130,
+      "ocrCandidates": [
+        "OUN) SS",
+        "120 ur",
+        "RMAL I"
+      ],
+      "imageFile": "MIX-453-Chosen-Mixtape_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Curaçao Kid"
+    },
+    {
+      "bobaId": "MIX-464-PB Buckets-Mixtape Battlefoil-First Edition",
+      "catalogHero": "PB Buckets",
+      "catalogCardNumber": "MIX-464",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 175,
+      "ocrCandidates": [
+        "120 U",
+        "RMAL F"
+      ],
+      "imageFile": "MIX-464-PB_Buckets-Mixtape_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MIX-516-Ozzmosis-Mixtape Battlefoil-First Edition",
+      "catalogHero": "Ozzmosis",
+      "catalogCardNumber": "MIX-516",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 95,
+      "ocrCandidates": [
+        "saues o",
+        "SISOW2ZO",
+        "120 uл",
+        "RMALI"
+      ],
+      "imageFile": "MIX-516-Ozzmosis-Mixtape_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MIX-559-Bells-Mixtape Battlefoil-George Bell Debut",
+      "catalogHero": "Bells",
+      "catalogCardNumber": "MIX-559",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 145,
+      "ocrCandidates": [
+        "120 ш",
+        "RMALT"
+      ],
+      "imageFile": "MIX-559-Bells-Mixtape_Battlefoil-George_Bell_Debut.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "MIX-564-JPEG-Mixtape Battlefoil-Jessica Pegula Debut",
+      "catalogHero": "JPEG",
+      "catalogCardNumber": "MIX-564",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 140,
+      "ocrCandidates": [
+        "120 шl",
+        "RMAL1"
+      ],
+      "imageFile": "MIX-564-JPEG-Mixtape_Battlefoil-Jessica_Pegula_Debut.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "MIX-689-Mull & Bones-Mixtape Battlefoil-Chris Mullin Debut",
+      "catalogHero": "Mull & Bones",
+      "catalogCardNumber": "MIX-689",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "BRAWL",
+      "catalogPower": 135,
+      "ocrCandidates": [
+        "ITVINE",
+        "in OFC",
+        "t wiтsо4 34007"
+      ],
+      "imageFile": "MIX-689-Mull_Bones-Mixtape_Battlefoil-Chris_Mullin_Debut.webp",
+      "identifiedAs": "InVinceable"
+    },
+    {
+      "bobaId": "MIX-690-Bells-Mixtape Battlefoil-George Bell Debut",
+      "catalogHero": "Bells",
+      "catalogCardNumber": "MIX-690",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "BRAWL",
+      "catalogPower": 135,
+      "ocrCandidates": [
+        "Ле пМ НИ",
+        "120 ui",
+        "MALT"
+      ],
+      "imageFile": "MIX-690-Bells-Mixtape_Battlefoil-George_Bell_Debut.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "MIX-773-Thorn-Mixtape Battlefoil-First Edition",
+      "catalogHero": "Thorn",
+      "catalogCardNumber": "MIX-773",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "BRAWL",
+      "catalogPower": 85,
+      "ocrCandidates": [
+        "120 ui",
+        "RMALT"
+      ],
+      "imageFile": "MIX-773-Thorn-Mixtape_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "OBF-41-Skeee-Orange Battlefoil-First Edition",
+      "catalogHero": "Skeee",
+      "catalogCardNumber": "OBF-41",
+      "catalogTreatment": "Orange Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 180,
+      "ocrCandidates": [
+        "COSRA"
+      ],
+      "imageFile": "OBF-41-Skeee-Orange_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Curaçao Kid"
+    },
+    {
+      "bobaId": "P-1-The Kid-Prize & Promos-2026 Release Day Promo",
+      "catalogHero": "The Kid",
+      "catalogCardNumber": "P-1",
+      "catalogTreatment": "Prize & Promos",
+      "catalogElement": "SUPER",
+      "catalogPower": 150,
+      "ocrCandidates": [
+        "Autograph",
+        "a va"
+      ],
+      "imageFile": "P-1-The_Kid-Prize_Promos-2026_Release_Day_Promo.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "P-2-The Kid-Prize & Promos-2026 Release Day Promo",
+      "catalogHero": "The Kid",
+      "catalogCardNumber": "P-2",
+      "catalogTreatment": "Prize & Promos",
+      "catalogElement": "HEX",
+      "catalogPower": 180,
+      "ocrCandidates": [
+        "SRELA"
+      ],
+      "imageFile": "P-2-The_Kid-Prize_Promos-2026_Release_Day_Promo.webp",
+      "identifiedAs": "Santa-Moss"
+    },
+    {
+      "bobaId": "P-3-The Kid-Prize & Promos-2026 Release Day Promo",
+      "catalogHero": "The Kid",
+      "catalogCardNumber": "P-3",
+      "catalogTreatment": "Prize & Promos",
+      "catalogElement": "GLOW",
+      "catalogPower": 180,
+      "ocrCandidates": [
+        "180g",
+        "AREAA"
+      ],
+      "imageFile": "P-3-The_Kid-Prize_Promos-2026_Release_Day_Promo.webp",
+      "identifiedAs": "Mr. Irrelevant"
+    },
+    {
+      "bobaId": "P-4-The Kid-Prize & Promos-2026 Release Day Promo",
+      "catalogHero": "The Kid",
+      "catalogCardNumber": "P-4",
+      "catalogTreatment": "Prize & Promos",
+      "catalogElement": "FIRE",
+      "catalogPower": 170,
+      "ocrCandidates": [
+        "SRENE"
+      ],
+      "imageFile": "P-4-The_Kid-Prize_Promos-2026_Release_Day_Promo.webp",
+      "identifiedAs": "Mr. Irrelevant"
+    },
+    {
+      "bobaId": "P-7-The Kid-Prize & Promos-2026 Release Day Promo",
+      "catalogHero": "The Kid",
+      "catalogCardNumber": "P-7",
+      "catalogTreatment": "Prize & Promos",
+      "catalogElement": "GUM",
+      "catalogPower": 150,
+      "ocrCandidates": [
+        "ARENA"
+      ],
+      "imageFile": "P-7-The_Kid-Prize_Promos-2026_Release_Day_Promo.webp",
+      "identifiedAs": "Allenwrench"
+    },
+    {
+      "bobaId": "P-10-The Kid-Prize & Promos-2026 Release Day Promo",
+      "catalogHero": "The Kid",
+      "catalogCardNumber": "P-10",
+      "catalogTreatment": "Prize & Promos",
+      "catalogElement": "BRAWL",
+      "catalogPower": 140,
+      "ocrCandidates": [
+        "RATELE"
+      ],
+      "imageFile": "P-10-The_Kid-Prize_Promos-2026_Release_Day_Promo.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "P-9-Bojax-Prize & Promos-PSA Magazine Football",
+      "catalogHero": "Bojax",
+      "catalogCardNumber": "P-9",
+      "catalogTreatment": "Prize & Promos",
+      "catalogElement": "STEEL",
+      "catalogPower": 150,
+      "ocrCandidates": [
+        "HAX-",
+        "ВАСАТИТ НЕТАКО"
+      ],
+      "imageFile": "P-9-Bojax-Prize_Promos-PSA_Magazine_Football.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "PBF-41-Skeee-Pink Battlefoil-First Edition",
+      "catalogHero": "Skeee",
+      "catalogCardNumber": "PBF-41",
+      "catalogTreatment": "Pink Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 195,
+      "ocrCandidates": [
+        "COBRA"
+      ],
+      "imageFile": "PBF-41-Skeee-Pink_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Curaçao Kid"
+    },
+    {
+      "bobaId": "PG-75-Dijon-Power Glove Battlefoil-First Edition",
+      "catalogHero": "Dijon",
+      "catalogCardNumber": "PG-75",
+      "catalogTreatment": "Power Glove Battlefoil",
+      "catalogElement": "BRAWL",
+      "catalogPower": 120,
+      "ocrCandidates": [
+        "BIJDN"
+      ],
+      "imageFile": "PG-75-Dijon-Power_Glove_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "RAD-41-Skeee-80's Rad Battlefoil-First Edition",
+      "catalogHero": "Skeee",
+      "catalogCardNumber": "RAD-41",
+      "catalogTreatment": "80's Rad Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 195,
+      "ocrCandidates": [
+        "AMON...."
+      ],
+      "imageFile": "RAD-41-Skeee-80_s_Rad_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ramponage"
+    },
+    {
+      "bobaId": "RAD-83-Skeee-80's Rad Battlefoil-First Edition",
+      "catalogHero": "Skeee",
+      "catalogCardNumber": "RAD-83",
+      "catalogTreatment": "80's Rad Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "MEAN-JOE"
+      ],
+      "imageFile": "RAD-83-Skeee-80_s_Rad_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Mean-Joe"
+    },
+    {
+      "bobaId": "RAD-125-Skeee-80's Rad Battlefoil-First Edition",
+      "catalogHero": "Skeee",
+      "catalogCardNumber": "RAD-125",
+      "catalogTreatment": "80's Rad Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 180,
+      "ocrCandidates": [
+        "RODDER"
+      ],
+      "imageFile": "RAD-125-Skeee-80_s_Rad_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "RAD-167-Skeee-80's Rad Battlefoil-First Edition",
+      "catalogHero": "Skeee",
+      "catalogCardNumber": "RAD-167",
+      "catalogTreatment": "80's Rad Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 180,
+      "ocrCandidates": [
+        "BURROCIOUS"
+      ],
+      "imageFile": "RAD-167-Skeee-80_s_Rad_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Barry \"Cutback\" Sanders"
+    },
+    {
+      "bobaId": "RAD-209-Skeee-80's Rad Battlefoil-First Edition",
+      "catalogHero": "Skeee",
+      "catalogCardNumber": "RAD-209",
+      "catalogTreatment": "80's Rad Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 165,
+      "ocrCandidates": [
+        "CRUZE-CONTROL"
+      ],
+      "imageFile": "RAD-209-Skeee-80_s_Rad_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Cruze-Control"
+    },
+    {
+      "bobaId": "RBF-75-Dijon-Red Battlefoil-First Edition",
+      "catalogHero": "Dijon",
+      "catalogCardNumber": "RBF-75",
+      "catalogTreatment": "Red Battlefoil",
+      "catalogElement": "BRAWL",
+      "catalogPower": 120,
+      "ocrCandidates": [
+        "DUON"
+      ],
+      "imageFile": "RBF-75-Dijon-Red_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Curaçao Kid"
+    },
+    {
+      "bobaId": "RJA-1-JAW-JAW-Inspired Ink Superfoil-Ron Jaworski Debut",
+      "catalogHero": "JAW-JAW",
+      "catalogCardNumber": "RJA-1",
+      "catalogTreatment": "Inspired Ink Superfoil",
+      "catalogElement": "SUPER",
+      "catalogPower": 175,
+      "ocrCandidates": [
+        "LAW-AAM"
+      ],
+      "imageFile": "RJA-1-JAW-JAW-Inspired_Ink_Superfoil-Ron_Jaworski_Debut.webp",
+      "identifiedAs": "Santa-Moss"
+    },
+    {
+      "bobaId": "RJA-7-JAW-JAW-Inspired Ink Battlefoil-Ron Jaworski Debut",
+      "catalogHero": "JAW-JAW",
+      "catalogCardNumber": "RJA-7",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 145,
+      "ocrCandidates": [
+        "TAW-A N"
+      ],
+      "imageFile": "RJA-7-JAW-JAW-Inspired_Ink_Battlefoil-Ron_Jaworski_Debut.webp",
+      "identifiedAs": "Javalanche"
+    },
+    {
+      "bobaId": "SBF-88-Macho-Silver Battlefoil-First Edition",
+      "catalogHero": "Macho",
+      "catalogCardNumber": "SBF-88",
+      "catalogTreatment": "Silver Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 120,
+      "ocrCandidates": [
+        "МАСНО",
+        "ANST ERNN"
+      ],
+      "imageFile": "SBF-88-Macho-Silver_Battlefoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "SF-19-X.L.-Superfoil-Xavier Legette Alpha Update",
+      "catalogHero": "X.L.",
+      "catalogCardNumber": "SF-19",
+      "catalogTreatment": "Superfoil",
+      "catalogElement": "SUPER",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "K.L.",
+        "ONE 3 ONE"
+      ],
+      "imageFile": "SF-19-X_L_-Superfoil-Xavier_Legette_Alpha_Update.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "SF-24-Curaçao Kid-Superfoil-Anduw Jones Debut",
+      "catalogHero": "Curaçao Kid",
+      "catalogCardNumber": "SF-24",
+      "catalogTreatment": "Superfoil",
+      "catalogElement": "SUPER",
+      "catalogPower": 180,
+      "ocrCandidates": [
+        "ONE & CINE"
+      ],
+      "imageFile": "SF-24-Cura_ao_Kid-Superfoil-Anduw_Jones_Debut.webp",
+      "identifiedAs": "Mull & Bones"
+    },
+    {
+      "bobaId": "SF-39-C.C.-Superfoil-First Edition",
+      "catalogHero": "C.C.",
+      "catalogCardNumber": "SF-39",
+      "catalogTreatment": "Superfoil",
+      "catalogElement": "SUPER",
+      "catalogPower": 180,
+      "ocrCandidates": [
+        "ONE & ONE"
+      ],
+      "imageFile": "SF-39-C_C_-Superfoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "SF-59-Lightningrod-Superfoil-First Edition",
+      "catalogHero": "Lightningrod",
+      "catalogCardNumber": "SF-59",
+      "catalogTreatment": "Superfoil",
+      "catalogElement": "SUPER",
+      "catalogPower": 175,
+      "ocrCandidates": [
+        "ONE & ONE"
+      ],
+      "imageFile": "SF-59-Lightningrod-Superfoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "SF-95-Breeze-Superfoil-First Edition",
+      "catalogHero": "Breeze",
+      "catalogCardNumber": "SF-95",
+      "catalogTreatment": "Superfoil",
+      "catalogElement": "SUPER",
+      "catalogPower": 145,
+      "ocrCandidates": [
+        "ONE & ONE"
+      ],
+      "imageFile": "SF-95-Breeze-Superfoil-First_Edition.webp",
+      "identifiedAs": "Ante-de-something A"
+    },
+    {
+      "bobaId": "SGA-7-Mr. Clean-Inspired Ink Battlefoil-Steve Garvey Debut",
+      "catalogHero": "Mr. Clean",
+      "catalogCardNumber": "SGA-7",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 130,
+      "ocrCandidates": [
+        "HELTLEAN",
+        "30F",
+        "HLEAN",
+        "EDEI"
+      ],
+      "imageFile": "SGA-7-Mr_Clean-Inspired_Ink_Battlefoil-Steve_Garvey_Debut.webp",
+      "identifiedAs": "Allenwrench"
+    },
+    {
+      "bobaId": "T-26/50-LeBoss-Paper-Trainer",
+      "catalogHero": "LeBoss",
+      "catalogCardNumber": "T-26/50",
+      "catalogTreatment": "Paper",
+      "catalogElement": "STEEL",
+      "catalogPower": 90,
+      "ocrCandidates": [
+        "STARTER",
+        "STARTER",
+        "SWT*I"
+      ],
+      "imageFile": "T-26_50-LeBoss-Paper-Trainer.webp",
+      "identifiedAs": "InVinceable"
+    },
+    {
+      "bobaId": "THRA-7-Herro-Inspired Ink Battlefoil-Tyler Herro Debut",
+      "catalogHero": "Herro",
+      "catalogCardNumber": "THRA-7",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 140,
+      "ocrCandidates": [
+        "HAHO"
+      ],
+      "imageFile": "THRA-7-Herro-Inspired_Ink_Battlefoil-Tyler_Herro_Debut.webp",
+      "identifiedAs": "Ramponage"
+    }
+  ],
+  "possibleWrongOrNoise": [
+    {
+      "bobaId": "ABF-731-Crosbow-Alpha Battlefoil-First Edition",
+      "catalogHero": "Crosbow",
+      "catalogCardNumber": "ABF-731",
+      "catalogTreatment": "Alpha Battlefoil",
+      "catalogElement": "BRAWL",
+      "catalogPower": 120,
+      "ocrCandidates": [
+        "CRISEDIM"
+      ],
+      "imageFile": "ABF-731-Crosbow-Alpha_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "BFA-85-Peek-A-Boo-Inspired Ink Battlefoil-Picabo Street Debut",
+      "catalogHero": "Peek-A-Boo",
+      "catalogCardNumber": "BFA-85",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 180,
+      "ocrCandidates": [
+        "РЕEК-A-BOL"
+      ],
+      "imageFile": "BFA-85-Peek-A-Boo-Inspired_Ink_Battlefoil-Picabo_Street_Debut.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "BFA-115-Haymaker-Inspired Ink Battlefoil-Spencer Haywood Debut",
+      "catalogHero": "Haymaker",
+      "catalogCardNumber": "BFA-115",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 150,
+      "ocrCandidates": [
+        "STSNNER"
+      ],
+      "imageFile": "BFA-115-Haymaker-Inspired_Ink_Battlefoil-Spencer_Haywood_Debut.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "BFA-153-Haymaker-Inspired Ink Battlefoil-Spencer Haywood Debut",
+      "catalogHero": "Haymaker",
+      "catalogCardNumber": "BFA-153",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 150,
+      "ocrCandidates": [
+        "ZEЛEATH"
+      ],
+      "imageFile": "BFA-153-Haymaker-Inspired_Ink_Battlefoil-Spencer_Haywood_Debut.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "BL-B54-Turntable-Blue Blast-First Edition",
+      "catalogHero": "Turntable",
+      "catalogCardNumber": "BL-B54",
+      "catalogTreatment": "Blue Blast",
+      "catalogElement": "ICE",
+      "catalogPower": 115,
+      "ocrCandidates": [
+        "IURKTARE"
+      ],
+      "imageFile": "BL-B54-Turntable-Blue_Blast-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "BL-O54-Turntable-Orange Blast-First Edition",
+      "catalogHero": "Turntable",
+      "catalogCardNumber": "BL-O54",
+      "catalogTreatment": "Orange Blast",
+      "catalogElement": "FIRE",
+      "catalogPower": 115,
+      "ocrCandidates": [
+        "TIRNHARTS"
+      ],
+      "imageFile": "BL-O54-Turntable-Orange_Blast-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "BL-O32-Showtime-Orange Blast-First Edition",
+      "catalogHero": "Showtime",
+      "catalogCardNumber": "BL-O32",
+      "catalogTreatment": "Orange Blast",
+      "catalogElement": "FIRE",
+      "catalogPower": 135,
+      "ocrCandidates": [
+        "SHENIEHLE"
+      ],
+      "imageFile": "BL-O32-Showtime-Orange_Blast-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "BLBF-631-Kettle-Bell-Blizzard Battlefoil-First Edition",
+      "catalogHero": "Kettle-Bell",
+      "catalogCardNumber": "BLBF-631",
+      "catalogTreatment": "Blizzard Battlefoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 105,
+      "ocrCandidates": [
+        "KEEE-BEL,oo"
+      ],
+      "imageFile": "BLBF-631-Kettle-Bell-Blizzard_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "BWA-5-Bern Baby, Bern-Inspired Ink Battlefoil-Bernie Williams Debut",
+      "catalogHero": "Bern Baby, Bern",
+      "catalogCardNumber": "BWA-5",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 150,
+      "ocrCandidates": [
+        "BEDN EлHEEEI"
+      ],
+      "imageFile": "BWA-5-Bern_Baby_Bern-Inspired_Ink_Battlefoil-Bernie_Williams_Debut.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "CBF-199-Maverick-Colosseum Battlefoil-First Edition",
+      "catalogHero": "Maverick",
+      "catalogCardNumber": "CBF-199",
+      "catalogTreatment": "Colosseum Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 190,
+      "ocrCandidates": [
+        "MÁVERICK EO"
+      ],
+      "imageFile": "CBF-199-Maverick-Colosseum_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "CHILL-110-Rook-Chillin' Battlefoil-First Edition",
+      "catalogHero": "Rook",
+      "catalogCardNumber": "CHILL-110",
+      "catalogTreatment": "Chillin' Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 105,
+      "ocrCandidates": [
+        "Á 1589",
+        "N00X"
+      ],
+      "imageFile": "CHILL-110-Rook-Chillin_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "EDDA-6-Belladonna-Inspired Ink Battlefoil-Elena Delle Donne Debut",
+      "catalogHero": "Belladonna",
+      "catalogCardNumber": "EDDA-6",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 145,
+      "ocrCandidates": [
+        "IELAbOl"
+      ],
+      "imageFile": "EDDA-6-Belladonna-Inspired_Ink_Battlefoil-Elena_Delle_Donne_Debut.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "GGL-163-Vlad the Impaler-Great Grandma's Linoleum Battlefoil-Vladimir Guerrero Sr. Debut",
+      "catalogHero": "Vlad the Impaler",
+      "catalogCardNumber": "GGL-163",
+      "catalogTreatment": "Great Grandma's Linoleum Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 170,
+      "ocrCandidates": [
+        "MLAUHHEMPALCH"
+      ],
+      "imageFile": "GGL-163-Vlad_the_Impaler-Great_Grandma_s_Linoleum_Battlefoil-Vladimir_Guerrero_Sr_Debut.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "GGL-330-Maverick-Great Grandma's Linoleum Battlefoil-First Edition",
+      "catalogHero": "Maverick",
+      "catalogCardNumber": "GGL-330",
+      "catalogTreatment": "Great Grandma's Linoleum Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 180,
+      "ocrCandidates": [
+        "MVERICK CO",
+        "Aesteyte"
+      ],
+      "imageFile": "GGL-330-Maverick-Great_Grandma_s_Linoleum_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "GGL-516-Ozzmosis-Great Grandma's Linoleum Battlefoil-First Edition",
+      "catalogHero": "Ozzmosis",
+      "catalogCardNumber": "GGL-516",
+      "catalogTreatment": "Great Grandma's Linoleum Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 95,
+      "ocrCandidates": [
+        "SISOWZZO"
+      ],
+      "imageFile": "GGL-516-Ozzmosis-Great_Grandma_s_Linoleum_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "GLBF-4-Freakshow-Grandma's Linoleum Battlefoil-Giannis Antetokounmpo Unmasked",
+      "catalogHero": "Freakshow",
+      "catalogCardNumber": "GLBF-4",
+      "catalogTreatment": "Grandma's Linoleum Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 200,
+      "ocrCandidates": [
+        "Затітевоки"
+      ],
+      "imageFile": "GLBF-4-Freakshow-Grandma_s_Linoleum_Battlefoil-Giannis_Antetokounmpo_Unmasked.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "GLBF-473-Haliburst-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogHero": "Haliburst",
+      "catalogCardNumber": "GLBF-473",
+      "catalogTreatment": "Grandma's Linoleum Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 130,
+      "ocrCandidates": [
+        "(sнпатон"
+      ],
+      "imageFile": "GLBF-473-Haliburst-Grandma_s_Linoleum_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "GLBF-516-Ozzmosis-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogHero": "Ozzmosis",
+      "catalogCardNumber": "GLBF-516",
+      "catalogTreatment": "Grandma's Linoleum Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 95,
+      "ocrCandidates": [
+        "SISOWZZO"
+      ],
+      "imageFile": "GLBF-516-Ozzmosis-Grandma_s_Linoleum_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "GRILL-4-Freakshow-Grillin' Battlefoil-Giannis Antetokounmpo Unmasked",
+      "catalogHero": "Freakshow",
+      "catalogCardNumber": "GRILL-4",
+      "catalogTreatment": "Grillin' Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "• EREANSHOW MA"
+      ],
+      "imageFile": "GRILL-4-Freakshow-Grillin_Battlefoil-Giannis_Antetokounmpo_Unmasked.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "GRILL-41-Captain Hook-Grillin' Battlefoil-Jack Morris Debut",
+      "catalogHero": "Captain Hook",
+      "catalogCardNumber": "GRILL-41",
+      "catalogTreatment": "Grillin' Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 150,
+      "ocrCandidates": [
+        "CАРТАН HIOK",
+        "MCK MORRS BINT"
+      ],
+      "imageFile": "GRILL-41-Captain_Hook-Grillin_Battlefoil-Jack_Morris_Debut.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "IBF-57-Ozzmosis-Icon Battlefoil-First Edition",
+      "catalogHero": "Ozzmosis",
+      "catalogCardNumber": "IBF-57",
+      "catalogTreatment": "Icon Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 145,
+      "ocrCandidates": [
+        "SISOWZZO"
+      ],
+      "imageFile": "IBF-57-Ozzmosis-Icon_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "IBF-122-Ozzmosis-Icon Battlefoil-First Edition",
+      "catalogHero": "Ozzmosis",
+      "catalogCardNumber": "IBF-122",
+      "catalogTreatment": "Icon Battlefoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 100,
+      "ocrCandidates": [
+        "SISOWZZO"
+      ],
+      "imageFile": "IBF-122-Ozzmosis-Icon_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "JBOA-5-Game Time-Inspired Ink Battlefoil-Jim Boeheim Debut",
+      "catalogHero": "Game Time",
+      "catalogCardNumber": "JBOA-5",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 140,
+      "ocrCandidates": [
+        "SANETTAE"
+      ],
+      "imageFile": "JBOA-5-Game_Time-Inspired_Ink_Battlefoil-Jim_Boeheim_Debut.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "LA-32-百四十-Kanjifoil-Champions Kanji Variation",
+      "catalogHero": "百四十",
+      "catalogCardNumber": "LA-32",
+      "catalogTreatment": "Kanjifoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 140,
+      "ocrCandidates": [
+        "LOS ANGELES"
+      ],
+      "imageFile": "LA-32-_-Kanjifoil-Champions_Kanji_Variation.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "LA-35-百三十-Kanjifoil-Champions Kanji Variation",
+      "catalogHero": "百三十",
+      "catalogCardNumber": "LA-35",
+      "catalogTreatment": "Kanjifoil",
+      "catalogElement": "STEEL",
+      "catalogPower": 130,
+      "ocrCandidates": [
+        "TлENS шAg кRAnG",
+        "LOS ANGELES"
+      ],
+      "imageFile": "LA-35-_-Kanjifoil-Champions_Kanji_Variation.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "LA-34-百三十五-Kanjifoil-Champions Kanji Variation",
+      "catalogHero": "百三十五",
+      "catalogCardNumber": "LA-34",
+      "catalogTreatment": "Kanjifoil",
+      "catalogElement": "ICE",
+      "catalogPower": 135,
+      "ocrCandidates": [
+        "LOS ANGELES"
+      ],
+      "imageFile": "LA-34-_-Kanjifoil-Champions_Kanji_Variation.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "LOGO-123-Ozzmosis-Logofoil-First Edition",
+      "catalogHero": "Ozzmosis",
+      "catalogCardNumber": "LOGO-123",
+      "catalogTreatment": "Logofoil",
+      "catalogElement": "HEX",
+      "catalogPower": 145,
+      "ocrCandidates": [
+        "SISOWZZO"
+      ],
+      "imageFile": "LOGO-123-Ozzmosis-Logofoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "LOGO-254-Ozzmosis-Logofoil-First Edition",
+      "catalogHero": "Ozzmosis",
+      "catalogCardNumber": "LOGO-254",
+      "catalogTreatment": "Logofoil",
+      "catalogElement": "GLOW",
+      "catalogPower": 100,
+      "ocrCandidates": [
+        "SISOWZZO"
+      ],
+      "imageFile": "LOGO-254-Ozzmosis-Logofoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "LOGO-294-Vlad the Impaler-Logofoil-Vladimir Guerrero Sr. Debut",
+      "catalogHero": "Vlad the Impaler",
+      "catalogCardNumber": "LOGO-294",
+      "catalogTreatment": "Logofoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 160,
+      "ocrCandidates": [
+        "LN 85802"
+      ],
+      "imageFile": "LOGO-294-Vlad_the_Impaler-Logofoil-Vladimir_Guerrero_Sr_Debut.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "LOGO-342-Haliburst-Logofoil-First Edition",
+      "catalogHero": "Haliburst",
+      "catalogCardNumber": "LOGO-342",
+      "catalogTreatment": "Logofoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 130,
+      "ocrCandidates": [
+        "1sanenivk"
+      ],
+      "imageFile": "LOGO-342-Haliburst-Logofoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "MI-14-HowBout'em-Miami Ice Battlefoil-Jimmy Johnson Debut",
+      "catalogHero": "HowBout'em",
+      "catalogCardNumber": "MI-14",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 175,
+      "ocrCandidates": [
+        "POWBCUTTH"
+      ],
+      "imageFile": "MI-14-HowBout_em-Miami_Ice_Battlefoil-Jimmy_Johnson_Debut.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "MI-34-Deep Freeze-Miami Ice Battlefoil-George Gervin Debut",
+      "catalogHero": "Deep Freeze",
+      "catalogCardNumber": "MI-34",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 150,
+      "ocrCandidates": [
+        "CFEPERFE/F",
+        "CEEREREFAR"
+      ],
+      "imageFile": "MI-34-Deep_Freeze-Miami_Ice_Battlefoil-George_Gervin_Debut.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "MI-96-Gravedigger-Miami Ice Battlefoil-First Edition",
+      "catalogHero": "Gravedigger",
+      "catalogCardNumber": "MI-96",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 95,
+      "ocrCandidates": [
+        "CRAVIDIGCIP",
+        "і4),"
+      ],
+      "imageFile": "MI-96-Gravedigger-Miami_Ice_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "MI-95-D-Harp-Miami Ice Battlefoil-First Edition",
+      "catalogHero": "D-Harp",
+      "catalogCardNumber": "MI-95",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 120,
+      "ocrCandidates": [
+        ",IIIIIIW,Iii',11, &.-"
+      ],
+      "imageFile": "MI-95-D-Harp-Miami_Ice_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "MI-107-Kettle-Bell-Miami Ice Battlefoil-First Edition",
+      "catalogHero": "Kettle-Bell",
+      "catalogCardNumber": "MI-107",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 110,
+      "ocrCandidates": [
+        "КЕНIEВE"
+      ],
+      "imageFile": "MI-107-Kettle-Bell-Miami_Ice_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "MI-122-Golden Bullet-Miami Ice Battlefoil-First Edition",
+      "catalogHero": "Golden Bullet",
+      "catalogCardNumber": "MI-122",
+      "catalogTreatment": "Miami Ice Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 95,
+      "ocrCandidates": [
+        "COIDEN BUIIFT"
+      ],
+      "imageFile": "MI-122-Golden_Bullet-Miami_Ice_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "MIX-17-Goggles-Mixtape Battlefoil-Eric Dickerson Debut",
+      "catalogHero": "Goggles",
+      "catalogCardNumber": "MIX-17",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 185,
+      "ocrCandidates": [
+        "st soalehel",
+        "06&L"
+      ],
+      "imageFile": "MIX-17-Goggles-Mixtape_Battlefoil-Eric_Dickerson_Debut.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "MIX-33-Billhook-Mixtape Battlefoil-Chauncey Billups Debut",
+      "catalogHero": "Billhook",
+      "catalogCardNumber": "MIX-33",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 175,
+      "ocrCandidates": [
+        "I75]",
+        "CKIT NWWN NIVT",
+        "x00#1118"
+      ],
+      "imageFile": "MIX-33-Billhook-Mixtape_Battlefoil-Chauncey_Billups_Debut.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "MIX-257-Foxhole-Mixtape Battlefoil-First Edition",
+      "catalogHero": "Foxhole",
+      "catalogCardNumber": "MIX-257",
+      "catalogTreatment": "Mixtape Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 150,
+      "ocrCandidates": [
+        "310Hx01",
+        "TPSTOVTO"
+      ],
+      "imageFile": "MIX-257-Foxhole-Mixtape_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "OBF-123-Ozzmosis-Orange Battlefoil-First Edition",
+      "catalogHero": "Ozzmosis",
+      "catalogCardNumber": "OBF-123",
+      "catalogTreatment": "Orange Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 95,
+      "ocrCandidates": [
+        "SISOWZZO"
+      ],
+      "imageFile": "OBF-123-Ozzmosis-Orange_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "RAD-123-Ozzmosis-80's Rad Battlefoil-First Edition",
+      "catalogHero": "Ozzmosis",
+      "catalogCardNumber": "RAD-123",
+      "catalogTreatment": "80's Rad Battlefoil",
+      "catalogElement": "HEX",
+      "catalogPower": 145,
+      "ocrCandidates": [
+        "ENST ERITIDN",
+        "SISOWZZO"
+      ],
+      "imageFile": "RAD-123-Ozzmosis-80_s_Rad_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "RAD-328-Ollie-80's Rad Battlefoil-First Edition",
+      "catalogHero": "Ollie",
+      "catalogCardNumber": "RAD-328",
+      "catalogTreatment": "80's Rad Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 100,
+      "ocrCandidates": [
+        "RNST ENTON"
+      ],
+      "imageFile": "RAD-328-Ollie-80_s_Rad_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "RBF-63-PG-D3-Red Battlefoil-Pierre Garçon Debut",
+      "catalogHero": "PG-D3",
+      "catalogCardNumber": "RBF-63",
+      "catalogTreatment": "Red Battlefoil",
+      "catalogElement": "BRAWL",
+      "catalogPower": 120,
+      "ocrCandidates": [
+        "P6-D3"
+      ],
+      "imageFile": "RBF-63-PG-D3-Red_Battlefoil-Pierre_Gar_on_Debut.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "RBF-123-Ozzmosis-Red Battlefoil-First Edition",
+      "catalogHero": "Ozzmosis",
+      "catalogCardNumber": "RBF-123",
+      "catalogTreatment": "Red Battlefoil",
+      "catalogElement": "BRAWL",
+      "catalogPower": 80,
+      "ocrCandidates": [
+        "SISOWZZO"
+      ],
+      "imageFile": "RBF-123-Ozzmosis-Red_Battlefoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "RPU-9-Thomstone-Rookie Power Up-2025 Rookie Power Up Promo",
+      "catalogHero": "Thomstone",
+      "catalogCardNumber": "RPU-9",
+      "catalogTreatment": "Rookie Power Up",
+      "catalogElement": "ALT",
+      "catalogPower": 150,
+      "ocrCandidates": [
+        "SHDISWIÓAL"
+      ],
+      "imageFile": "RPU-9-Thomstone-Rookie_Power_Up-2025_Rookie_Power_Up_Promo.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "SF-122-Ozzmosis-Superfoil-First Edition",
+      "catalogHero": "Ozzmosis",
+      "catalogCardNumber": "SF-122",
+      "catalogTreatment": "Superfoil",
+      "catalogElement": "SUPER",
+      "catalogPower": 145,
+      "ocrCandidates": [
+        "SISOWZZO",
+        "ПRSTARTDA"
+      ],
+      "imageFile": "SF-122-Ozzmosis-Superfoil-First_Edition.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "SSA-5-XL-Inspired Ink Battlefoil-Xavier Leggette Debut",
+      "catalogHero": "XL",
+      "catalogCardNumber": "SSA-5",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "ICE",
+      "catalogPower": 135,
+      "ocrCandidates": [
+        "GABGLING"
+      ],
+      "imageFile": "SSA-5-XL-Inspired_Ink_Battlefoil-Xavier_Leggette_Debut.webp",
+      "identifiedAs": null
+    },
+    {
+      "bobaId": "THA-5-Highway to Helton-Inspired Ink Battlefoil-Todd Helton Debut",
+      "catalogHero": "Highway to Helton",
+      "catalogCardNumber": "THA-5",
+      "catalogTreatment": "Inspired Ink Battlefoil",
+      "catalogElement": "FIRE",
+      "catalogPower": 150,
+      "ocrCandidates": [
+        "НIБINARY TO NELTON"
+      ],
+      "imageFile": "THA-5-Highway_to_Helton-Inspired_Ink_Battlefoil-Todd_Helton_Debut.webp",
+      "identifiedAs": null
+    }
+  ]
+}

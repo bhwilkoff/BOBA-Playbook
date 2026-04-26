@@ -4030,6 +4030,25 @@ const PM = {
 
     this.cpuPlayPool = cpuSide.plays.slice(0, 30);
     this.cpuPlayQueue = [];
+
+    // Hot Dog deck card capture for the discard inspector. Per
+    // Comprehensive Rules Guide §3.1, spent Hot Dogs share the
+    // discard zone with heroes + plays. The web engine still tracks
+    // HDs as an Int (playerHD), but holding onto the actual cards
+    // lets the inspector render them as card rows matching the iOS
+    // treatment. Resolved deck → those exact cards. No resolved
+    // deck (random) → 10 random catalog Hot Dogs.
+    const allHotDogs = allCards.filter(c => c.cardType === 'HotDog' && c.imageFile);
+    const captureHotDogs = (resolved) => {
+      const fromDeck = (resolved && Array.isArray(resolved.hotDogs))
+        ? resolved.hotDogs.slice(0, 10) : [];
+      if (fromDeck.length >= 10) return fromDeck;
+      const need = 10 - fromDeck.length;
+      const fill = [...allHotDogs].sort(() => Math.random() - 0.5).slice(0, need);
+      return fromDeck.concat(fill);
+    };
+    this.playerHotDogDeckCards = captureHotDogs(opts.playerDeck);
+    this.cpuHotDogDeckCards    = captureHotDogs(opts.cpuDeck);
   },
 
   advance() {
@@ -5592,13 +5611,13 @@ function pmUpdatePlayerZone() {
   if (hdEl)  hdEl.textContent  = PM.playerHeroDeck.length;
   if (plEl)  plEl.textContent  = PM.playerPlayDeck.length;
   if (discEl) {
-    // Combined discard count per Comprehensive Rules Guide §3.1
-    // ("Discard Pile: Where Discarded cards and spent Hot dogs go.").
-    // Heroes + plays + spent hot dogs are one zone; the chip
-    // previously only counted plays.
+    // Combined discard count per Comprehensive Rules Guide §3.1.
+    // Hot Dogs are tracked as a count via playerHD (starts at 10);
+    // spent count = 10 - current. Plays and heroes have explicit
+    // arrays.
     const heroes = (PM.playerHeroDiscard && PM.playerHeroDiscard.length) || 0;
     const plays  = PM.playerDiscard.length;
-    const hotdogs = PM.playerHotDogDiscard || 0;
+    const hotdogs = Math.max(0, 10 - (PM.playerHD || 0));
     discEl.textContent = heroes + plays + hotdogs;
   }
 
@@ -5705,12 +5724,29 @@ function pmShowDiscardInspector(side /* 'player' | 'cpu' */) {
 
   let body;
   if (side === 'player') {
-    const pile = PM.playerDiscard || [];
-    if (!pile.length) {
+    // Combined player discard view per Comprehensive Rules Guide
+    // §3.1 — heroes, plays, and spent Hot Dogs all share one zone.
+    const heroes  = PM.playerHeroDiscard || [];
+    const plays   = PM.playerDiscard || [];
+    const hdSpent = Math.max(0, 10 - (PM.playerHD || 0));
+    const hdCards = (PM.playerHotDogDeckCards || []).slice(0, hdSpent);
+    if (!heroes.length && !plays.length && !hdCards.length) {
       body = `<div class="pm-di-empty">No cards in discard yet</div>`;
     } else {
-      body = `<div class="pm-di-header">${pile.length} PLAY${pile.length === 1 ? '' : 'S'} · MOST RECENT FIRST</div>
-        ${pile.slice().reverse().map(cardRow).join('')}`;
+      const sections = [];
+      if (heroes.length) {
+        sections.push(`<div class="pm-di-header">${heroes.length} HERO${heroes.length === 1 ? '' : 'ES'} · MOST RECENT FIRST</div>`);
+        sections.push(heroes.slice().reverse().map(cardRow).join(''));
+      }
+      if (plays.length) {
+        sections.push(`<div class="pm-di-header">${plays.length} PLAY${plays.length === 1 ? '' : 'S'} · MOST RECENT FIRST</div>`);
+        sections.push(plays.slice().reverse().map(cardRow).join(''));
+      }
+      if (hdCards.length) {
+        sections.push(`<div class="pm-di-header">${hdCards.length} HOT DOG${hdCards.length === 1 ? '' : 'S'} SPENT</div>`);
+        sections.push(hdCards.map(cardRow).join(''));
+      }
+      body = sections.join('');
     }
   } else {
     const battles = PM.battles || [];
@@ -6002,6 +6038,11 @@ function pmSaveMatch() {
       playerPlayDeckIds: PM.playerPlayDeck.map(c => c?.bobaId),
       playerDiscardIds: PM.playerDiscard.map(c => c?.bobaId),
       cpuPlayPoolIds: PM.cpuPlayPool.map(c => c?.bobaId),
+      // Captured Hot Dog deck cards for the discard inspector.
+      playerHotDogDeckIds: (PM.playerHotDogDeckCards || []).map(c => c?.bobaId),
+      cpuHotDogDeckIds:    (PM.cpuHotDogDeckCards    || []).map(c => c?.bobaId),
+      // Hero discard pile (displaced by substitutions).
+      playerHeroDiscardIds: (PM.playerHeroDiscard || []).map(c => c?.bobaId),
       savedAt: Date.now(),
     };
     localStorage.setItem(PM_SAVE_KEY, JSON.stringify(snap));
@@ -6062,6 +6103,9 @@ function pmRestoreMatch(snap, allCards) {
   PM.playerPlayHand = (snap.playerPlayHandIds || []).map(findCard).filter(Boolean);
   PM.playerPlayDeck = (snap.playerPlayDeckIds || []).map(findCard).filter(Boolean);
   PM.playerDiscard = (snap.playerDiscardIds || []).map(findCard).filter(Boolean);
+  PM.playerHotDogDeckCards = (snap.playerHotDogDeckIds || []).map(findCard).filter(Boolean);
+  PM.cpuHotDogDeckCards    = (snap.cpuHotDogDeckIds    || []).map(findCard).filter(Boolean);
+  PM.playerHeroDiscard     = (snap.playerHeroDiscardIds || []).map(findCard).filter(Boolean);
   PM.cpuPlayPool = (snap.cpuPlayPoolIds || []).map(findCard).filter(Boolean);
 
   return true;

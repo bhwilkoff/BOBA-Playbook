@@ -47,8 +47,10 @@ struct DiscardInspectorSheet: View {
     private var playerDiscardList: some View {
         let plays = store.playerPlayDiscard
         let heroes = store.playerHeroDiscard
+        let hotDogs = store.playerHotDogDiscard
+        let isEmpty = plays.isEmpty && heroes.isEmpty && hotDogs == 0
         return ScrollView {
-            if plays.isEmpty && heroes.isEmpty {
+            if isEmpty {
                 emptyState(message: "No cards in discard yet")
             } else {
                 VStack(alignment: .leading, spacing: Design.Spacing.lg) {
@@ -63,6 +65,14 @@ struct DiscardInspectorSheet: View {
                         ForEach(Array(plays.reversed().enumerated()), id: \.offset) { _, card in
                             cardRow(card: card)
                         }
+                    }
+                    if hotDogs > 0 {
+                        sectionHeader("\(hotDogs) HOT DOG\(hotDogs == 1 ? "" : "S") SPENT",
+                                      color: Color(hex: "4CAF50"))
+                        Text("Spent Hot Dogs share the discard zone per the rules; they don't render individually since they're tracked as a count.")
+                            .font(Design.Fonts.mono(11))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .padding(Design.Spacing.lg)

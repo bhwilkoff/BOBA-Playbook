@@ -137,7 +137,16 @@ struct PracticeBottomToolbar: View {
     var discardChip: some View {
         Group {
             if let onTap = onInspectPlayerDiscard {
+                // Combined discard count per Comprehensive Rules
+                // Guide §3.1: "Discard Pile: Where Discarded cards
+                // and spent Hot dogs go. Players each maintain their
+                // own Discard zone." Heroes + plays + spent hot dogs
+                // are one zone. Previously only counted plays, so
+                // the chip under-reported as soon as a substitution
+                // moved a hero to the pile.
                 let count = store.playerPlayDiscard.count
+                    + store.playerHeroDiscard.count
+                    + store.playerHotDogDiscard
                 if count > 0 {
                     Button {
                         onTap()

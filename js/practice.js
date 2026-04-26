@@ -5591,7 +5591,16 @@ function pmUpdatePlayerZone() {
   const discEl = $('pm-discard-count');
   if (hdEl)  hdEl.textContent  = PM.playerHeroDeck.length;
   if (plEl)  plEl.textContent  = PM.playerPlayDeck.length;
-  if (discEl) discEl.textContent = PM.playerDiscard.length;
+  if (discEl) {
+    // Combined discard count per Comprehensive Rules Guide §3.1
+    // ("Discard Pile: Where Discarded cards and spent Hot dogs go.").
+    // Heroes + plays + spent hot dogs are one zone; the chip
+    // previously only counted plays.
+    const heroes = (PM.playerHeroDiscard && PM.playerHeroDiscard.length) || 0;
+    const plays  = PM.playerDiscard.length;
+    const hotdogs = PM.playerHotDogDiscard || 0;
+    discEl.textContent = heroes + plays + hotdogs;
+  }
 
   // Sub button — enabled only when a bench card is selected and conditions met
   const subBtn = $('pm-btn-sub');

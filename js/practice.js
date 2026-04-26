@@ -1970,18 +1970,31 @@ function pmExecStep(step, ctx, out) {
       out.protectSelf = true;
       out.hasEffect = true;
       break;
-    case 'cancel_opponent_plays':
-    case 'cap_opponent_plays': {
-      // Both ops mean "opponent can't run plays this battle". Route
-      // through the same block_plays infrastructure scoped to
-      // this_battle. Previously only set out.cancelOpp which nothing
-      // consumed (Flame Wall was a silent no-op).
+    case 'cancel_opponent_plays': {
       const oppSide = ctx.self === 'player' ? 'cpu' : 'player';
+      const scope = step.scope || 'this_battle';
       PM._blocks = PM._blocks || { player: [], cpu: [] };
-      PM._blocks[oppSide].push({ kind: 'block_plays', scope: 'this_battle', installedAt: PM.currentBattle });
-      out.notifications.push(op === 'cap_opponent_plays'
-        ? "Opponent's play count capped this battle (treated as full block)"
-        : "Opponent can't play any Plays this battle");
+      PM._blocks[oppSide].push({ kind: 'block_plays', scope, installedAt: PM.currentBattle });
+      out.notifications.push(`Opponent can't play any Plays ${scope.replace(/_/g, ' ')}`);
+      out.hasEffect = true;
+      break;
+    }
+    case 'cap_opponent_plays': {
+      // Soft cap: opponent allowed up to `max` plays this battle.
+      // Falls back to a full block when max is missing or 0. Counter
+      // is checked + decremented in cpuDoPlay before each play.
+      const oppSide = ctx.self === 'player' ? 'cpu' : 'player';
+      const scope = step.scope || 'this_battle';
+      const maxPlays = (typeof step.max === 'number') ? step.max : 0;
+      if (maxPlays <= 0) {
+        PM._blocks = PM._blocks || { player: [], cpu: [] };
+        PM._blocks[oppSide].push({ kind: 'block_plays', scope, installedAt: PM.currentBattle });
+        out.notifications.push(`Opponent can't play any Plays ${scope.replace(/_/g, ' ')}`);
+      } else {
+        if (oppSide === 'player') PM._playerPlayCapThisBattle = maxPlays;
+        else                      PM._cpuPlayCapThisBattle    = maxPlays;
+        out.notifications.push(`Opponent capped at ${maxPlays} play${maxPlays === 1 ? '' : 's'} ${scope.replace(/_/g, ' ')}`);
+      }
       out.hasEffect = true;
       break;
     }
@@ -4134,6 +4147,12 @@ const PM = {
   playerPlayCard(handIdx) {
     if (this.phase !== 'play') return false;
     if (pmIsBlocked('player', 'block_plays')) return false;
+    // Soft cap (Restricted List). When set, the player can't exceed
+    // N plays this battle.
+    if (PM._playerPlayCapThisBattle != null) {
+      const used = (this.battles[this.currentBattle]?.playerPlaysPlayed || []).length;
+      if (used >= PM._playerPlayCapThisBattle) return false;
+    }
     if (handIdx < 0 || handIdx >= this.playerPlayHand.length) return false;
     const card = this.playerPlayHand[handIdx];
     const cost = pmEffectiveCost(card, 'player');
@@ -4366,6 +4385,12 @@ const PM = {
 
     // Floor / ceiling — never more than 4 in one battle, never < 0
     numPlays = Math.max(0, Math.min(numPlays, 4));
+    // Restricted List soft cap (cap_opponent_plays.max). When set,
+    // CPU's per-battle play count is bounded by it in addition to
+    // the engine's natural numPlays.
+    if (PM._cpuPlayCapThisBattle != null) {
+      numPlays = Math.min(numPlays, PM._cpuPlayCapThisBattle);
+    }
 
     for (let i = 0; i < numPlays; i++) {
       if (this.cpuHD < 1 || this.cpuPlayCount <= 0 || this.cpuPlayPool.length === 0) break;
@@ -4928,6 +4953,9 @@ const PM = {
     // Reset per-battle protect_self flags (Immunity, Indestructible).
     PM._playerProtectedThisBattle = false;
     PM._cpuProtectedThisBattle = false;
+    // Reset per-battle play caps (Restricted List et al).
+    PM._playerPlayCapThisBattle = null;
+    PM._cpuPlayCapThisBattle = null;
     // Apply pending honors_set
     if (PM._pendingHonors) {
       this.honors = PM._pendingHonors.side;

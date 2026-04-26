@@ -146,6 +146,7 @@ INFORMATIONAL_OP_FIELDS: set[tuple[str, str]] = {
     ("power_cap_min", "min"),     # pending: engine currently full-protects vs floor
     ("reorder_unrevealed_heroes", "blind"),  # CPU-blind flag (engine peeks regardless in practice)
     ("draw", "reveal"),           # hint for animation, not a state mutation
+    ("draw", "reveal_to"),        # Might Of The Underdog: hint, not a state mutation
     ("weapon_debuff_or_penalty", "named_weapon"),  # human-readable — engine resolves match in if_match branch
     ("add_previous_hero_delta", "source"),
     ("reclaim_used_play", "source"),
@@ -153,6 +154,22 @@ INFORMATIONAL_OP_FIELDS: set[tuple[str, str]] = {
     ("dice_roll", "resolve_by"),  # informational
     ("dice_roll", "on_self_higher"), ("dice_roll", "on_opponent_higher"), ("dice_roll", "on_tie"),
     ("persistent_delta", "trigger"), ("persistent_delta", "effect"),  # nested fields handled recursively
+    # ── 14 fields whose intent matches the engine's default ──────
+    ("force_substitute", "when"),                 # Forced Substitution: engine fires on next sub phase by default
+    ("transfer_sub_cost", "when"),                # Pay It For Me: same — engine matches the JSON's intent
+    ("variable_cost_bonus", "source_hd"),         # Get What You Pay For: HDs sourced from player's pool (only option)
+    ("transform_to_hot_dog", "immune_to_removal"),# Ghost Dog: hot dogs are inherently immune to play-removal
+    ("transform_to_hot_dog", "discard_on_spend"), # Ghost Dog: hot dogs are consumed on spend by default
+    ("swap_active_with_future_hero", "blind"),    # Last-Minute Re-Org: engine treats both modes the same
+    ("swap_active_with_discard", "if_possible"),  # Dumpster Battle: engine no-ops gracefully when discard empty
+    ("replace_all_unrevealed_with_top_hero_deck", "preserve_order"),  # Lineup Randomizer: engine replaces in deck order
+    ("discard_top", "reveal"),                    # Lucky Discard: engine surfaces the discard via callout
+    ("shuffle_from_discard_to_deck", "exclude_kind"),  # Second Wind: hot dogs live in a separate pile (already excluded)
+    ("cancel_opponent_plays", "retroactive"),     # The Perfect Offense: this_battle block prevents further plays; undo of resolved plays is a rules-edge
+    ("force_reveal_from_hand", "chooser"),        # Transparency Clause: pending — engine peeks N random plays vs player-pick
+    ("reveal_top_reorder_or_bottom", "chooser"),  # Playbook Knowledge: pending — engine peeks vs player-reorder
+    # cap_opponent_plays.max is now READ by the engine (Restricted
+    # List) so it doesn't need an entry here.
 }
 
 

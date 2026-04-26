@@ -218,7 +218,7 @@
 <div class="hero">
   <div class="hero-inner">
     <h1>Privacy <span>Policy</span></h1>
-    <p class="hero-meta">Last updated: April 2026</p>
+    <p class="hero-meta">Last updated: April 25, 2026</p>
   </div>
 </div>
 
@@ -250,11 +250,14 @@
     <h3>Your card collection</h3>
     <p>When you add cards to your collection, we store which cards you own, the designations you apply (Personal, For Sale, For Trade, Wanted, Grails), and any cost or estimated value data you enter. This data is linked to your account and stored in Supabase.</p>
 
+    <h3>Aggregate page hits (web app only)</h3>
+    <p>The web app at <a href="https://bobaplaybook.com">bobaplaybook.com</a> uses Cloudflare Web Analytics to count page hits. This is cookieless, contains no personal identifiers, and is aggregated — we can see that 47 people loaded the search view yesterday, but not who they were. Visitor counts are derived from a hash of IP + user agent (computed by Cloudflare, not stored). No tracking pixels, no cross-site tracking, no advertising profiles. The iOS app collects no analytics whatsoever.</p>
+
     <h3>What we do not collect</h3>
     <ul>
       <li>Your location — the app never requests location access.</li>
       <li>Camera images — the scan feature processes frames entirely on your device using Apple's Vision framework. No image or video is ever transmitted off your device.</li>
-      <li>Analytics or crash data — we do not use any analytics SDK.</li>
+      <li>Crash data or behavioural analytics — we do not use any crash reporter, session recorder, or behavioural analytics SDK on either platform.</li>
       <li>Advertising identifiers (IDFA) — we have no ad network and never request tracking permission.</li>
       <li>Contact information beyond your email — no phone number, address, or social handle is requested.</li>
     </ul>
@@ -303,6 +306,13 @@
             <td class="no">No</td>
           </tr>
           <tr>
+            <td>Aggregate page hits<br><span style="color:var(--text-muted);font-size:12px">(web app only)</span></td>
+            <td class="yes">Yes</td>
+            <td>Cloudflare Web Analytics</td>
+            <td>Cloudflare only</td>
+            <td class="no">No</td>
+          </tr>
+          <tr>
             <td>Location</td>
             <td class="no">No</td>
             <td>—</td>
@@ -328,7 +338,9 @@
     <p>We use <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a> for account authentication and to store your card collection. Supabase is hosted on AWS infrastructure. You can review Supabase's privacy practices at <a href="https://supabase.com/privacy" target="_blank" rel="noopener">supabase.com/privacy</a>.</p>
 
     <h3>Cloudflare</h3>
-    <p>Card images are served from Cloudflare R2. eBay pricing requests are proxied through a Cloudflare Worker — this proxy does not log or store any personal data. Cloudflare's privacy policy is at <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">cloudflare.com/privacypolicy</a>.</p>
+    <p>Card images are served from Cloudflare R2. eBay pricing requests are proxied through a Cloudflare Worker — this proxy does not log or store any personal data.</p>
+    <p>The web app at <a href="https://bobaplaybook.com">bobaplaybook.com</a> additionally uses <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener">Cloudflare Web Analytics</a> to count page hits and unique visitors in aggregate. This service does not use cookies, does not fingerprint individual visitors, and does not track behavior across other sites. The iOS app does not include any analytics service.</p>
+    <p>Cloudflare's privacy policy is at <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">cloudflare.com/privacypolicy</a>.</p>
 
     <h3>eBay</h3>
     <p>When you view pricing information for a card, the app sends the card number and hero name to our Cloudflare Worker, which queries eBay's API. No account information or personal data is included in these requests. eBay's privacy policy is at <a href="https://www.ebay.com/help/policies/member-behaviour-policies/user-privacy-notice-privacy-policy" target="_blank" rel="noopener">ebay.com</a>.</p>

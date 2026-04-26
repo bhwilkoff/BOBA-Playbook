@@ -16,6 +16,48 @@ This file is the shared communication channel between two Claude instances:
 
 *Items Claude Code needs Cowork to research, investigate, or produce.*
 
+- **[2026-04-26] HIGH-PRIORITY — Catalog `power` values disagree with printed art on a meaningful subset of Hero cards.** Beta tester (Ben) reported during practice playtesting that on-screen card art and the engine's Power number visibly disagree. Investigation confirmed the catalog metadata is wrong for at least 3 bobaIds, and the bug pattern likely extends across hundreds of records.
+
+  **Comparison done by bobaId** (per CLAUDE.md mantra) — for each row below, the catalog metadata in the SAME repo and the actual printed art on the SAME R2 file:
+
+  | bobaId | Catalog `power` | Printed power on R2 art |
+  |---|---:|---:|
+  | `ABF-326-Dunker-Alpha Battlefoil-John Starks Debut` | **160** | 140 |
+  | `ABF-197-Game Time-Alpha Battlefoil-Jim Boeheim Debut` | **160** | 150 |
+  | `ABF-721-Game Time-Alpha Battlefoil-Jim Boeheim Debut` | **150** | 120 |
+
+  **Spot-checks that ARE correct** (sample of 5 ABF Heroes — most ABFs are fine):
+  | bobaId | Catalog | Art |
+  |---|---:|---:|
+  | `ABF-73-Gaveler-Alpha Battlefoil-2026 Edition` | 185 HEX | 185 HEX ✓ |
+  | `ABF-293-Pudge-Alpha Battlefoil-Carlton Fisk Debut` | 160 FIRE | 160 FIRE ✓ |
+  | `ABF-282-Bags-Alpha Battlefoil-Jeff Bagwell Debut` | 165 FIRE | 165 FIRE ✓ |
+  | `ABF-26-Fingers-Alpha Battlefoil-Rollie Fingers Debut` | 180 HEX | 180 HEX ✓ |
+  | `ABF-115-Superbaby-Alpha Battlefoil-2026 Edition` | 150 HEX | 150 HEX ✓ |
+
+  **What this is NOT.** Verified ruled-out causes:
+  - **Not** a byte-level collision — md5s of the suspect ABF files differ from their hero+element twins. The image_collisions.json detector wouldn't catch this.
+  - **Not** an `imageFile` slug bug — the bobaId formula and the imageFile string both correctly reference the Alpha Battlefoil treatment.
+  - **Not** caused by the recent hot-dog handoff — those changes only touched `cardType: "HotDog"` rows.
+
+  **What it IS, and why.** The R2 `.webp` at the ABF slug shows the actual printed Alpha Battlefoil card. The printed power is the source of truth. The catalog row was authored with a power value that doesn't match what's on the card. Plausible mechanisms: (a) BV listing for the cardNumber inherited a power from a sibling treatment when BV was scraped, (b) reconcile_all dedupe merged the wrong sibling onto the ABF row at step2_3, (c) the source CSV/checklist used to seed power had wrong rows for these prints.
+
+  **What we need from Cowork:**
+
+  1. **OCR-driven audit.** The R2 thumbs are the source of truth — they're the printed cards. For every Hero record with a non-empty `imageFile`, OCR the thumb (top-right of every BoBA card has a large isolated power number — Vision/Tesseract handles it reliably) and compare the printed value to `catalog.power`. Same idea for `element` if it's printable from the card frame. **No re-sourcing required — every needed input is already on R2 / in `unified-cards/thumbs/`.**
+
+  2. **Patch file.** `handoff-updates-2026-04-26/power-realign/patch.json` shaped like the hot-dog handoff: `modify[]` with `old_bobaId` + `changes` (where `changes` only sets corrected fields, e.g. `power` and optionally `element`). NO `add[]` rows expected — this is purely correcting existing rows.
+
+  3. **Audit report.** A `COWORK_POWER_REALIGN.md` companion at the same path:
+     - per-prefix counts of how many rows changed
+     - histogram of the power deltas (e.g. "62 rows -10, 31 rows -20, 18 rows -30")
+     - any rows where OCR confidence was below threshold — flag these for human review rather than guess
+     - md5 of the produced patch.json
+
+  **Migration footprint.** Power changes don't change `bobaId` (the formula is `cardNumber-hero-treatment-variation`, no power involved), so this is the cheapest possible patch — no R2 renames, no Supabase row migration, no bobaId churn. Just a JSON field update.
+
+  **Apply path on Claude Code's side.** I'll write `scripts/apply_power_realign.py` mirroring the hot-dog one — load patch, apply modifies, regenerate `searchTokens` (since power affects sort but not tokens, this is just to be safe), regenerate categories.json + search-index.json, write all 4 cards.json bundles.
+
 - **[2026-04-24 FYI] Terminology + taxonomy decisions Cowork should preserve in future scrapes / handoffs / scripts** — heads-up only, no action required, but please read before the next data drop so we stay in sync.
 
   **1. Treatments vs Parallels are distinct.** The BoBA-expert audit (Griffey checklist + the official `bobattlearena.com/collecting-basics` page) split these into separate concepts:

@@ -101,6 +101,53 @@ final class CardScanner: NSObject, @unchecked Sendable {
         )
     }()
 
+    /// Letter→digit substitutions for OCR glyph confusions.
+    ///
+    /// Vision frequently misreads stylized digits as visually-similar
+    /// letters: the leading "1" on a 1XX power becomes "I" or "l", "0"
+    /// becomes "O", "5" becomes "S", "8" becomes "B". Catalog audit
+    /// (see scripts/deep_ocr_pass.swift) confirmed this happens in
+    /// hundreds of cards on stylized treatments. Without this layer
+    /// the scanner can't match `"BLBF-I95"` against `"BLBF-195"` even
+    /// though it's clearly the same card.
+    ///
+    /// Applied ONLY to the digit-side of a cardNumber (after the
+    /// hyphen) and ONLY when all primary regex strategies have
+    /// already failed — the strict and permissive regex paths run
+    /// first on the raw text, so a clean read never reaches this
+    /// layer. Letter-side substitution (e.g. "B" → "8" in a prefix)
+    /// is intentionally NOT applied: it would corrupt valid prefixes
+    /// like `"BLBF"` into `"8L8F"`.
+    private static let digitSubs: [Character: Character] = [
+        // Words are uppercased before substitution, so only uppercase
+        // and symbol forms need entries here (lowercase forms will
+        // never appear). Pipe `|` is a Vision-specific failure mode
+        // for the digit "1" on certain stylized fonts.
+        "I": "1", "L": "1", "|": "1",
+        "O": "0",
+        "S": "5",
+        "B": "8",
+    ]
+
+    /// Apply letter→digit substitution to a string. Returns the
+    /// substituted result and a flag indicating whether anything
+    /// changed (callers skip the catalog lookup when no substitution
+    /// occurred — saves a hash lookup on the common case).
+    private static func substituteToDigits(_ s: String) -> (substituted: String, changed: Bool) {
+        var changed = false
+        var out = ""
+        out.reserveCapacity(s.count)
+        for ch in s {
+            if let sub = digitSubs[ch] {
+                out.append(sub)
+                changed = true
+            } else {
+                out.append(ch)
+            }
+        }
+        return (out, changed)
+    }
+
     /// Shared CIContext for one-shot CGImage rendering on commit.
     /// Single static instance avoids the per-render setup cost of the
     /// internal Metal command queue.
@@ -399,7 +446,7 @@ extension CardScanner: AVCaptureVideoDataOutputSampleBufferDelegate {
 
     // MARK: - Card number extraction
 
-    /// Extracts a card number from `text` using four strategies, in order:
+    /// Extracts a card number from `text` using five strategies, in order:
     ///
     /// 1. Strict regex — exact prefixed format: BF-208, GLBF-276, RAD-104, ALTA-01.
     ///
@@ -417,20 +464,41 @@ extension CardScanner: AVCaptureVideoDataOutputSampleBufferDelegate {
     ///    REFUSES the match when an alphabetic neighbor word would have
     ///    formed a real card number with the digit — that signature means OCR
     ///    fragmented a real prefixed identifier and the bare number is a lie.
+    ///
+    /// 5. Letter→digit substitution — last-resort glyph-confusion recovery for
+    ///    "BLBF-I95" → "BLBF-195", "I02" → "102", "BPL l3" → "BPL-13" etc.
+    ///    Only substitutes characters in digit-side positions; never touches
+    ///    a prefix (so "BLBF" stays "BLBF", not "8L8F"). Always validates
+    ///    against the catalog set before returning. Catalog audit found
+    ///    these confusions in hundreds of cards across stylized treatments.
     private func extractCardNumber(from text: String, catalogFallback: Bool) -> String? {
         let range = NSRange(text.startIndex..., in: text)
+
+        // Catalog validation gate. When the cardNumberSet hasn't been
+        // loaded yet (e.g. brief moment during scanner startup), accept
+        // ANY regex match — that preserves the prior behavior. Once the
+        // set is loaded, only return candidates that exist in it. This
+        // unblocks the substitution path for cases like "BLBF-I95":
+        // strict regex would otherwise match it as `[A-Z]?\d{1,4}` =
+        // `I95` and return a non-existent cardNumber, blocking the
+        // substitution layer below from ever getting a chance.
+        func acceptable(_ s: String) -> Bool {
+            cardNumberSet.isEmpty || cardNumberSet.contains(s)
+        }
 
         // 1. Strict: exact format with hyphen
         if let match = Self.strictRegex.firstMatch(in: text, range: range),
            let r = Range(match.range(at: 1), in: text) {
-            return String(text[r])
+            let candidate = String(text[r])
+            if acceptable(candidate) { return candidate }
         }
 
         // 2. Permissive: spaces/dashes around separator
         if let match  = Self.permissiveRegex.firstMatch(in: text, range: range),
            let pRange = Range(match.range(at: 1), in: text),
            let nRange = Range(match.range(at: 2), in: text) {
-            return "\(text[pRange])-\(text[nRange])"
+            let candidate = "\(text[pRange])-\(text[nRange])"
+            if acceptable(candidate) { return candidate }
         }
 
         // Tokenize once for steps 3 + 4.
@@ -448,12 +516,22 @@ extension CardScanner: AVCaptureVideoDataOutputSampleBufferDelegate {
                 let p = words[i]
                 let n = words[i + 1]
                 guard p.count >= 1, p.count <= 6,
-                      p.allSatisfy({ $0.isLetter }),
-                      n.count >= 1, n.count <= 4,
-                      n.allSatisfy({ $0.isNumber })
+                      p.allSatisfy({ $0.isLetter })
                 else { continue }
-                let combined = "\(p)-\(n)"
-                if cardNumberSet.contains(combined) { return combined }
+                // Try the raw number side first (preserves the strict
+                // path), then the substituted form ("I3" → "13",
+                // "1O2" → "102") to recover digit/letter glyph
+                // confusions on the digit-side token.
+                let rawDigits = n
+                let (subDigits, changed) = Self.substituteToDigits(n)
+                let candidates = changed ? [rawDigits, subDigits] : [rawDigits]
+                for cand in candidates {
+                    guard cand.count >= 1, cand.count <= 4,
+                          cand.allSatisfy({ $0.isNumber })
+                    else { continue }
+                    let combined = "\(p)-\(cand)"
+                    if cardNumberSet.contains(combined) { return combined }
+                }
             }
         }
 
@@ -480,6 +558,69 @@ extension CardScanner: AVCaptureVideoDataOutputSampleBufferDelegate {
             if isFragmentedPrefix { continue }
 
             return word
+        }
+
+        // 5. Letter→digit substitution as last resort.
+        //
+        // Two shapes are tried:
+        //   a) PREFIXED: a word that's `[A-Z]+-<rest>`. Substitute only
+        //      the post-dash portion ("BLBF-I95" → "BLBF-195"). The
+        //      pre-dash prefix is left intact — substituting it would
+        //      corrupt valid prefixes like "BLBF" → "8L8F".
+        //   b) PURE-DIGIT-LIKE: a word with no dash whose letters are
+        //      all in the substitution map ("I02" → "102", "lO2" →
+        //      "102"). Validates against the pure-number catalog so we
+        //      don't invent random numerics.
+        //
+        // Catalog membership is the gate in both cases — we never
+        // return a substituted form unless the catalog actually
+        // contains it. This is a recovery path, not a fabrication path.
+        for word in words {
+            // (a) Prefixed shape with a dash.
+            if let dashIdx = word.firstIndex(of: "-") {
+                let prefix = String(word[..<dashIdx])
+                guard prefix.count >= 1, prefix.count <= 6,
+                      prefix.allSatisfy({ $0.isLetter })
+                else { continue }
+                let rest = String(word[word.index(after: dashIdx)...])
+                let (subRest, changed) = Self.substituteToDigits(rest)
+                guard changed else { continue }
+                let combined = "\(prefix)-\(subRest)"
+                if cardNumberSet.contains(combined) { return combined }
+                continue
+            }
+            // (b) Pure-digit-like shape: must be 1–4 chars total, all
+            //     either substitutable letters or digits already, and
+            //     fully numeric AFTER substitution. Pure-number
+            //     fallback already requires `catalogFallback`, so this
+            //     branch inherits that gate.
+            guard catalogFallback,
+                  word.count >= 1, word.count <= 4
+            else { continue }
+            let allSubable = word.allSatisfy { ch in
+                ch.isNumber || Self.digitSubs[ch] != nil
+            }
+            guard allSubable else { continue }
+            // Require at least ONE original digit. Without this, hero-
+            // name fragments like "BO" (B→8, O→0) would substitute to
+            // "80" and falsely match a real cardNumber. Requiring a
+            // real digit anchor confirms we're recovering a corrupted
+            // numeric token, not converting a word.
+            let hasOriginalDigit = word.contains { $0.isNumber }
+            guard hasOriginalDigit else { continue }
+            let (subbed, changed) = Self.substituteToDigits(word)
+            guard changed,
+                  subbed.allSatisfy({ $0.isNumber }),
+                  cardNumberSet.contains(subbed)
+            else { continue }
+            // Same fragmented-prefix guard as step 4 — don't accept a
+            // pure-number recovery if an alphabetic neighbor would
+            // have formed a real prefixed cardNumber instead.
+            let isFragmentedPrefix = alphaNeighbors.contains { p in
+                cardNumberSet.contains("\(p)-\(subbed)")
+            }
+            if isFragmentedPrefix { continue }
+            return subbed
         }
 
         return nil

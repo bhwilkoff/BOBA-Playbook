@@ -189,6 +189,13 @@ final class PracticeStore {
         /// host can build a properly-tagged RevealState at dismiss.
         var revealMode: String = "single"
         var revealLabel: String = ""
+        /// Persistent specs the executor produced for this play but
+        /// the host hasn't yet installed. Held until the user
+        /// dismisses this card's overlay so the active-effects banner
+        /// doesn't reveal a future card's persistent before the user
+        /// has seen the card that produced it. Each spec may carry
+        /// an `if` gate that's evaluated at install time.
+        var deferredPersistents: [[String: Any]] = []
     }
     var cpuCallouts: [ActionCallout] = []
     var lastEffectCallout: ActionCallout? = nil  // coin flip / dice result
@@ -2127,6 +2134,13 @@ final class PracticeStore {
             battles[currentBattle].playerEffectPower += play.playerDelta
             if play.cpuDelta != 0    { pulse(.cpu) }
             if play.playerDelta != 0 { pulse(.player) }
+            // Install any persistents this play deferred until now.
+            // Keeps the active-effects banner from spoiling future
+            // CPU plays in the same queue — chips appear only AFTER
+            // the user has seen the card that produced them.
+            for spec in play.deferredPersistents {
+                installPersistent(owner: .cpu, spec: spec, sourceCard: play.card?.name ?? "")
+            }
             // UX#3 — log itemized contributions. Use the callout's
             // card name when available; otherwise fall back to the
             // callout message ("CPU plays Combo Deal").
@@ -2675,6 +2689,12 @@ final class PracticeStore {
             }
             guard let card = affordable.min(by: { effectiveCost(for: $0, side: .cpu) < effectiveCost(for: $1, side: .cpu) }) else { break }
 
+            // Per-iteration collector for persistent specs the executor
+            // produces for this card. Attached to the cpuPlayQueue
+            // ActionCallout below; installed when the user dismisses
+            // the overlay (see dismissCpuPlay).
+            var cpuDeferredPersistentsForThisPlay: [[String: Any]] = []
+
             cpuHand.removeFirst(where: { $0 == card })
             battles[currentBattle].cpuPlayedCards.append(card)
             let cost = effectiveCost(for: card, side: .cpu, consume: true)
@@ -2733,13 +2753,20 @@ final class PracticeStore {
                 capturedDiceRolls = out.diceRolls
                 capturedRevealMode = out.revealMode
                 capturedRevealLabel = out.revealLabel
+                // Defer persistent installs until the user dismisses
+                // THIS card's overlay (see ActionCallout.deferred-
+                // Persistents). Without this, when CPU plays cards
+                // 1, 2, 3 in sequence, the active-effects banner
+                // would expose card 2's persistent before the user
+                // has seen card 2's overlay — spoiling the reveal
+                // and showing "where did that chip come from?".
                 if out.hasPersistent, let persistent = entry["persistent"] as? [[String: Any]] {
                     let ctxForCheck = makeExecContext(self_: .cpu)
                     for p in persistent {
                         if let ifCond = p["if"] as? [String: Any] {
                             guard PlayEffectExecutor.evalCondition(ifCond, ctx: ctxForCheck) else { continue }
                         }
-                        installPersistent(owner: .cpu, spec: p, sourceCard: card.name)
+                        cpuDeferredPersistentsForThisPlay.append(p)
                     }
                 }
                 lastResolvingPlayCard = card.name
@@ -2772,7 +2799,8 @@ final class PracticeStore {
                 coinFlips: capturedCoinFlips,
                 diceRolls: capturedDiceRolls,
                 revealMode: capturedRevealMode,
-                revealLabel: capturedRevealLabel
+                revealLabel: capturedRevealLabel,
+                deferredPersistents: cpuDeferredPersistentsForThisPlay
             ))
             // Scare Tactics — fire the player's revealed play free
             // when the CPU's play cost meets the threshold. Runs

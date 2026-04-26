@@ -153,6 +153,14 @@ final class PracticeStore {
     // MARK: - Phase-level state
     var playerSubstituted: Bool = false
     var cpuSubstituted: Bool = false
+    /// `protect_self` flags. When set, opponent's play deltas to this
+    /// side's hero clamp to ≥ 0 — Immunity, Indestructible, Showtime's
+    /// Elbow Guard. Reset each battle. Persistent triggers from
+    /// earlier battles bypass protection (the rule text is "can't be
+    /// affected by opponent's PLAYS," not "can't be affected by any
+    /// effect ever").
+    var playerProtectedThisBattle: Bool = false
+    var cpuProtectedThisBattle: Bool = false
     var playerPassedPlays: Bool = false
     var cpuPassedPlays: Bool = false
 
@@ -490,6 +498,15 @@ final class PracticeStore {
             playerHand = []
             playerPlayDeck.shuffle()
         }
+        // protect_self → opponent's play deltas to this side clamp
+        // to ≥ 0 for the rest of THIS battle. Reset in moveToNextBattle.
+        if out.protectSelf {
+            if actingSide == .player {
+                playerProtectedThisBattle = true
+            } else {
+                cpuProtectedThisBattle = true
+            }
+        }
         if out.shuffleDiscardToDeckCount != 0 && actingSide == .player {
             let n = out.shuffleDiscardToDeckCount < 0
                 ? playerPlayDiscard.count
@@ -512,6 +529,33 @@ final class PracticeStore {
                 let dropped = Array(playerPlayDeck.prefix(n))
                 playerPlayDeck.removeFirst(n)
                 playerPlayDiscard.append(contentsOf: dropped)
+            }
+        }
+        // Wire `out.draws` (61 catalog cards use op:"draw" — every
+        // one was a silent no-op before this consumer was added). For
+        // CPU side the cpuHand pool is fluid and not mediated by a
+        // separate deck, so we approximate by bumping cpuPlaysRemaining.
+        if out.draws > 0 {
+            if actingSide == .player {
+                for _ in 0..<out.draws { drawPlayCard() }
+            } else {
+                cpuPlaysRemaining += out.draws
+            }
+        }
+        // Wire `out.heroDraws` — draws from the side's hero deck to
+        // bench. Power Pick and similar use this when bench refills
+        // are part of the effect.
+        if out.heroDraws > 0 {
+            if actingSide == .player {
+                for _ in 0..<out.heroDraws {
+                    guard !playerHeroDeck.isEmpty else { break }
+                    playerBench.append(playerHeroDeck.removeFirst())
+                }
+            } else {
+                for _ in 0..<out.heroDraws {
+                    guard !cpuHeroDeck.isEmpty else { break }
+                    cpuBench.append(cpuHeroDeck.removeFirst())
+                }
             }
         }
         if out.discardHandAll && actingSide == .player {
@@ -2199,6 +2243,10 @@ final class PracticeStore {
             structuredHandled = true
             playerDelta = out.selfDelta
             cpuDelta = out.oppDelta
+            // protect_self: clamp opponent's negative-to-self delta.
+            // Player playing → cpuDelta is delivered to CPU; if CPU
+            // is protected this battle, clamp it.
+            if cpuProtectedThisBattle, cpuDelta < 0 { cpuDelta = 0 }
             applyHDRecover(side: .player, amount: out.selfHDDelta)
             applyHDRecover(side: .cpu,    amount: out.oppHDDelta)
             if !out.coinFlips.isEmpty || !out.diceRolls.isEmpty {
@@ -2570,6 +2618,9 @@ final class PracticeStore {
                 structuredHandled = true
                 cpuDelta = out.selfDelta
                 playerDelta = out.oppDelta
+                // protect_self mirror: CPU playing → playerDelta lands
+                // on player; if player is protected this battle, clamp.
+                if playerProtectedThisBattle, playerDelta < 0 { playerDelta = 0 }
                 applyHDRecover(side: .cpu,    amount: out.selfHDDelta)
                 applyHDRecover(side: .player, amount: out.oppHDDelta)
                 capturedCoinFlips = out.coinFlips
@@ -2991,6 +3042,8 @@ final class PracticeStore {
         battles[currentBattle].isActive = true
         playerSubstituted = false; cpuSubstituted = false
         playerPassedPlays = false; cpuPassedPlays = false
+        playerProtectedThisBattle = false
+        cpuProtectedThisBattle = false
 
         // Apply pending honors_set for this battle
         if let h = playerPendingHonors {

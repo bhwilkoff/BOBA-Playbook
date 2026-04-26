@@ -1971,10 +1971,20 @@ function pmExecStep(step, ctx, out) {
       out.hasEffect = true;
       break;
     case 'cancel_opponent_plays':
-    case 'cap_opponent_plays':
-      out.cancelOpp = true;
+    case 'cap_opponent_plays': {
+      // Both ops mean "opponent can't run plays this battle". Route
+      // through the same block_plays infrastructure scoped to
+      // this_battle. Previously only set out.cancelOpp which nothing
+      // consumed (Flame Wall was a silent no-op).
+      const oppSide = ctx.self === 'player' ? 'cpu' : 'player';
+      PM._blocks = PM._blocks || { player: [], cpu: [] };
+      PM._blocks[oppSide].push({ kind: 'block_plays', scope: 'this_battle', installedAt: PM.currentBattle });
+      out.notifications.push(op === 'cap_opponent_plays'
+        ? "Opponent's play count capped this battle (treated as full block)"
+        : "Opponent can't play any Plays this battle");
       out.hasEffect = true;
       break;
+    }
     case 'block_sub':
     case 'block_draw':
     case 'block_hd_recover':
@@ -4052,6 +4062,9 @@ const PM = {
       //      misfires on the CURRENT battle.
       effect.playerDelta = out.selfDelta;
       effect.cpuDelta = out.oppDelta;
+      // protect_self mirror: player playing → cpuDelta lands on CPU.
+      // If CPU is protected this battle, clamp negative deltas to 0.
+      if (PM._cpuProtectedThisBattle && effect.cpuDelta < 0) effect.cpuDelta = 0;
       this.applyHDRecover('player', out.selfHDDelta);
       this.applyHDRecover('cpu',    out.oppHDDelta);
       structuredHandled = true;
@@ -4064,6 +4077,17 @@ const PM = {
       // Pop from the top of the player's playbook discard pile (placeholder
       // — chooser flow will land in a follow-on UI pass).
       if (out.discards) pmAutoDiscardFromHand('player', out.discards);
+      // Wire `out.draws` (61 catalog cards use op:"draw" — every one
+      // was a silent no-op before this consumer was added).
+      if (out.draws) for (let i = 0; i < out.draws; i++) this.drawPlayCard();
+      if (out.heroDraws) {
+        for (let i = 0; i < out.heroDraws && this.playerHeroDeck.length; i++) {
+          this.playerBench.push(this.playerHeroDeck.shift());
+        }
+      }
+      // protect_self → opponent's negative deltas to player clamp to 0
+      // for the rest of THIS battle (Immunity, Indestructible, etc.).
+      if (out.protectSelf) PM._playerProtectedThisBattle = true;
       // Player_choice / scare reveal / install_persistent intents
       if (Array.isArray(out.intents) && out.intents.length) {
         pmHandlePlayIntents(out.intents, ctx, out, card);
@@ -4267,6 +4291,9 @@ const PM = {
         // Flip perspective back to queue's player/cpu convention
         effect.playerDelta = out.oppDelta;
         effect.cpuDelta = out.selfDelta;
+        // protect_self mirror: CPU playing → playerDelta lands on
+        // player. Clamp if player is protected this battle.
+        if (PM._playerProtectedThisBattle && effect.playerDelta < 0) effect.playerDelta = 0;
         this.applyHDRecover('cpu',    out.selfHDDelta);
         this.applyHDRecover('player', out.oppHDDelta);
         structuredHandled = true;
@@ -4278,6 +4305,14 @@ const PM = {
           for (const p of entry.persistent) this.installPersistent('cpu', p, { sourceCard: card.name });
         }
         if (out.discards) pmAutoDiscardFromHand('cpu', out.discards);
+        // Wire CPU-side draws — cpuPlayCount is the fluid pool budget.
+        if (out.draws) this.cpuPlayCount = (this.cpuPlayCount || 0) + out.draws;
+        if (out.heroDraws) {
+          for (let i = 0; i < out.heroDraws && this.cpuHeroDeck.length; i++) {
+            this.cpuBench.push(this.cpuHeroDeck.shift());
+          }
+        }
+        if (out.protectSelf) PM._cpuProtectedThisBattle = true;
         if (Array.isArray(out.intents) && out.intents.length) {
           pmHandlePlayIntents(out.intents, ctx, out, card);
         }
@@ -4727,6 +4762,9 @@ const PM = {
       return;
     }
     this.currentBattle = next;
+    // Reset per-battle protect_self flags (Immunity, Indestructible).
+    PM._playerProtectedThisBattle = false;
+    PM._cpuProtectedThisBattle = false;
     // Apply pending honors_set
     if (PM._pendingHonors) {
       this.honors = PM._pendingHonors.side;

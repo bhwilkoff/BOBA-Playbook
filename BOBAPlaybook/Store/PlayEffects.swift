@@ -257,6 +257,12 @@ enum PlayIntent {
     /// for opp playing a card of cost ≥ the revealed card's cost;
     /// if so, the player gets the revealed card free.
     case revealForConditionalFree(side: PlayExecContext.Side)
+    /// Restricted List et al. — soft cap on opponent's plays for the
+    /// scope. Stored as a per-battle/per-side counter the cpuDoPlay
+    /// loop reads before issuing each play. Distinct from
+    /// block_plays (full block) so cards saying "max 1 Play" don't
+    /// silently become "no plays."
+    case capOpponentPlays(side: PlayExecContext.Side, scope: String, max: Int)
     /// "Reveal top N, keep best 1, discard rest." Auto-picks the
     /// top-cost play (for kind="play") or top-power hero (for
     /// kind="hero") since neither side has a usable chooser UI.
@@ -512,19 +518,32 @@ enum PlayEffectExecutor {
             out.protectSelf = true
             out.hasEffect = true
 
-        case "cancel_opponent_plays", "cap_opponent_plays":
-            // Both ops mean "opponent can't run plays this battle" —
-            // route through the same installBlock infrastructure
-            // block_plays uses, scoped to this_battle. The previous
-            // implementation only set out.cancelOpp, which nothing
-            // consumed (Flame Wall's effect was a silent no-op).
-            // cap_opponent_plays is technically a soft cap (N plays
-            // allowed), but the engine doesn't have a cap-N mechanism;
-            // a hard block is the conservative fallback.
-            out.intents.append(.installBlock(side: ctx.opp, kind: "block_plays", scope: "this_battle"))
-            out.notifications.append(op == "cap_opponent_plays"
-                ? "Opponent's play count capped this battle (treated as full block)"
-                : "Opponent can't play any Plays this battle")
+        case "cancel_opponent_plays":
+            // "Opponent can't run plays this battle" — install a
+            // block_plays scoped to this_battle (or whatever the
+            // JSON specifies). Routes through the same installBlock
+            // path block_plays uses, so pmIsBlocked('cpu',
+            // 'block_plays') / equivalent fires correctly.
+            let scope = (step["scope"] as? String) ?? "this_battle"
+            out.intents.append(.installBlock(side: ctx.opp, kind: "block_plays", scope: scope))
+            out.notifications.append("Opponent can't play any Plays \(scope.replacingOccurrences(of: "_", with: " "))")
+            out.hasEffect = true
+
+        case "cap_opponent_plays":
+            // Soft cap: opponent allowed up to `max` plays in scope.
+            // Stored as a special intent the host applies via a
+            // per-battle/per-side counter that cpuDoPlay reads
+            // before issuing each play. Falls back to a full block
+            // when max=0.
+            let scope = (step["scope"] as? String) ?? "this_battle"
+            let maxPlays = (step["max"] as? Int) ?? 0
+            if maxPlays <= 0 {
+                out.intents.append(.installBlock(side: ctx.opp, kind: "block_plays", scope: scope))
+                out.notifications.append("Opponent can't play any Plays \(scope.replacingOccurrences(of: "_", with: " "))")
+            } else {
+                out.intents.append(.capOpponentPlays(side: ctx.opp, scope: scope, max: maxPlays))
+                out.notifications.append("Opponent capped at \(maxPlays) play\(maxPlays == 1 ? "" : "s") \(scope.replacingOccurrences(of: "_", with: " "))")
+            }
             out.hasEffect = true
 
         case "block_sub", "block_plays", "block_draw", "block_hd_recover":

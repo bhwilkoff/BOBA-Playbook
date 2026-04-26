@@ -161,6 +161,11 @@ final class PracticeStore {
     /// effect ever").
     var playerProtectedThisBattle: Bool = false
     var cpuProtectedThisBattle: Bool = false
+    /// Soft cap on opp plays this battle (Restricted List). nil =
+    /// uncapped. Counter is checked + decremented in cpuDoPlay /
+    /// playerPlayCard before each play. Reset in moveToNextBattle.
+    var playerPlayCapThisBattle: Int? = nil
+    var cpuPlayCapThisBattle: Int? = nil
     var playerPassedPlays: Bool = false
     var cpuPassedPlays: Bool = false
 
@@ -802,6 +807,21 @@ final class PracticeStore {
                 let cur = battles[currentBattle].cpuCard?.power ?? 0
                 battles[currentBattle].cpuEffectPower -= cur
             }
+
+        case .capOpponentPlays(let side, _, let max):
+            // Restricted List: soft cap that decrements per play.
+            // Only this_battle scope is honored for now (the only
+            // scope the catalog uses). next_battle would need a
+            // pending-cap mechanism similar to honors install.
+            if side == .player {
+                playerPlayCapThisBattle = max
+            } else {
+                cpuPlayCapThisBattle = max
+            }
+            callouts.append(ActionCallout(
+                message: "\(side == .player ? "You" : "CPU") capped at \(max) play\(max == 1 ? "" : "s") this battle",
+                icon: "lock.fill", color: "FFD166"
+            ))
 
         case .markFutureBattle(let side, let onReveal, let selector):
             // Player-pick selector → open a chooser sheet so the
@@ -2237,6 +2257,12 @@ final class PracticeStore {
     func playerPlayCard(_ card: Card) {
         guard phase == .play, playerHand.contains(card) else { return }
         guard !isBlocked(.player, kind: "block_plays") else { return }
+        // Soft cap (Restricted List et al). When set, the player can't
+        // exceed N plays this battle.
+        if let cap = playerPlayCapThisBattle,
+           battles[currentBattle].playerPlayedCards.count >= cap {
+            return
+        }
         guard effectiveCost(for: card, side: .player) <= playerHotDogs else { return }
         guard PlayEffects.isPlayable(name: card.name, ctx: makeExecContext(self_: .player)) else { return }
 
@@ -2636,6 +2662,12 @@ final class PracticeStore {
         var tempHotDogs = cpuHotDogs
 
         let cpuCtx = makeExecContext(self_: .cpu)
+        // Restricted List soft cap (cap_opponent_plays.max). When set,
+        // CPU's per-battle play count is bounded by it in addition to
+        // the engine's natural maxPlays.
+        if let cap = cpuPlayCapThisBattle {
+            maxPlays = min(maxPlays, cap)
+        }
         while cardsPlayed < maxPlays && cpuPlaysRemaining > 0 {
             let affordable = cpuHand.filter {
                 effectiveCost(for: $0, side: .cpu) <= tempHotDogs &&
@@ -3120,6 +3152,8 @@ final class PracticeStore {
         playerPassedPlays = false; cpuPassedPlays = false
         playerProtectedThisBattle = false
         cpuProtectedThisBattle = false
+        playerPlayCapThisBattle = nil
+        cpuPlayCapThisBattle = nil
 
         // Apply pending honors_set for this battle
         if let h = playerPendingHonors {

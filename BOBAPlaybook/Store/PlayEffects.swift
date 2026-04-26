@@ -802,7 +802,11 @@ enum PlayEffectExecutor {
             // "after I win, +5 next battle."
             if let spec = step["spec"] as? [String: Any] {
                 out.intents.append(.installPersistent(owner: ctx.self_, spec: spec))
-                out.notifications.append("Installed follow-up effect")
+                // Describe what was armed so coaches can see the chain
+                // fire ("Armed: Your Hero +5 next battle") instead of a
+                // generic "Installed follow-up effect."
+                let label = describeArmedFollowUp(spec: spec, ownerSide: ctx.self_)
+                out.notifications.append("Armed: \(label)")
             }
             out.hasEffect = true
 
@@ -1808,6 +1812,57 @@ enum PlayEffectExecutor {
 
         default:
             return 0
+        }
+    }
+
+    // MARK: - Install-persistent describer
+    //
+    // When a parent persistent's effect is `install_persistent`, we
+    // synthesize a short description of the CHILD that is being armed
+    // ("Your Hero +5 next battle") so the win/start callout reads as a
+    // real cause-and-effect rather than a generic "Installed follow-up
+    // effect." Falls back to the JSON spec's scope when the effect
+    // shape isn't recognized.
+    private static func describeArmedFollowUp(spec: [String: Any],
+                                              ownerSide: PlayExecContext.Side) -> String {
+        let scope = (spec["scope"] as? String) ?? ""
+        let scopeText: String
+        switch scope {
+        case "next_battle":     scopeText = " next battle"
+        case "this_battle":     scopeText = " this battle"
+        case "this_and_next":   scopeText = " for two battles"
+        case "next_2_battles":  scopeText = " for the next 2 battles"
+        case "rest_of_game":    scopeText = " rest of game"
+        default:                scopeText = scope.isEmpty ? "" : " (\(scope))"
+        }
+
+        guard let eff = spec["effect"] as? [String: Any],
+              let op = eff["op"] as? String else {
+            return "follow-up\(scopeText)"
+        }
+        let isOpp = (eff["target"] as? String) == "opponent"
+        let recipient: String
+        switch (ownerSide, isOpp) {
+        case (.player, false): recipient = "Your Hero"
+        case (.player, true):  recipient = "CPU Hero"
+        case (.cpu, false):    recipient = "CPU Hero"
+        case (.cpu, true):     recipient = "Your Hero"
+        }
+        switch op {
+        case "power":
+            let d = (eff["delta"] as? Int) ?? 0
+            let sign = d >= 0 ? "+" : ""
+            return "\(recipient) \(sign)\(d)\(scopeText)"
+        case "hd_recover":
+            let amt = (eff["amount"] as? Int) ?? 0
+            let owner = ownerSide == .player ? "Your" : "CPU"
+            return "\(owner) +\(amt) HD\(scopeText)"
+        case "block_sub":
+            return "block substitutions\(scopeText)"
+        case "block_plays":
+            return "block plays\(scopeText)"
+        default:
+            return "follow-up effect\(scopeText)"
         }
     }
 }

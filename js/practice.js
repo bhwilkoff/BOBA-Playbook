@@ -1383,10 +1383,22 @@ function pmEvalMetricAny(val, args, ctx) {
 function pmEvalMetric(metric, args, ctx) {
   if (!metric) return 0;
   const target = (args && args.target) || 'self';
+  // Resolve opponent's plays from PM.battles[currentBattle] rather
+  // than the previously-hardcoded 0 — formula deltas like
+  // Overcommited's "-5 per opp play" silently computed to 0 before.
+  const slot = (PM && Array.isArray(PM.battles))
+    ? PM.battles[PM.currentBattle]
+    : null;
+  const oppSide = ctx.self === 'player' ? 'cpu' : 'player';
+  const oppPlays = slot
+    ? (oppSide === 'player'
+        ? (slot.playerPlaysPlayed || [])
+        : (slot.cpuPlaysPlayed || []))
+    : [];
   const bound = target === 'self' ? ctx : { // minimal opp context
     selfWon: ctx.selfLost, selfLost: ctx.selfWon, selfTied: ctx.selfTied,
     selfCard: ctx.oppCard, selfHD: ctx.oppHD, selfHand: [], selfDiscard: [],
-    playsUsedThisBattle: 0,
+    playsUsedThisBattle: oppPlays.length,
   };
   switch (metric) {
     case 'plays_used_this_battle': return bound.playsUsedThisBattle || 0;
@@ -3971,14 +3983,23 @@ const PM = {
     let extraNotifs = [];
     const entry = pmGetPlayEntry(card);
     let structuredHandled = false;
-    if (entry && entry.effects && entry.effects.length) {
+    const hasEffectsBlock    = entry && Array.isArray(entry.effects) && entry.effects.length > 0;
+    const hasPersistentBlock = entry && Array.isArray(entry.persistent) && entry.persistent.length > 0;
+    if (entry && (hasEffectsBlock || hasPersistentBlock)) {
       const ctx = pmMakeExecContext('player');
       ctx._sourceCard = card.name || '';
       const out = pmExecStructured(entry, ctx);
-      // Mark handled whenever a JSON entry exists with effects — even
-      // when out.hasEffect is false (condition-gated cards like To
-      // Fight Another Day on Battle 1). Otherwise the legacy regex
-      // resolver kicks in and applies the bonus unconditionally.
+      // Mark handled whenever a JSON entry exists with effects OR
+      // persistent — even when out.hasEffect is false. Two failure
+      // modes the legacy regex resolver causes when this gate is
+      // wrong:
+      //   1. Condition-gated cards (To Fight Another Day on B1)
+      //      correctly evaluate to false → empty out → regex applies
+      //      the bonus unconditionally.
+      //   2. Persistent-only cards (Overcommited, Lose 1 To Win 2)
+      //      have empty effects[] but a real persistent[]. The regex
+      //      parses ability text ("next battle, opp gets -5") and
+      //      misfires on the CURRENT battle.
       effect.playerDelta = out.selfDelta;
       effect.cpuDelta = out.oppDelta;
       this.applyHDRecover('player', out.selfHDDelta);
@@ -4003,10 +4024,12 @@ const PM = {
       }
     }
     if (!structuredHandled) {
-      hdRecovery = pmDetectHDRecovery(card);
-      if (b) {
-        effect = pmResolveEffect(card, b.playerCard, b.cpuCard);
-      }
+      // Reached only when a Play has no JSON entry. With 100% catalog
+      // coverage in play-effects.json, this branch should never fire
+      // for a real card. The legacy regex resolver was the source of
+      // multiple wrong-battle misfires (Overcommited, Lose 1 To Win 2,
+      // etc.) — replaced with a no-op + console warning.
+      console.warn('⚠️ Play card has no JSON entry — skipping:', card.name);
     }
     if (hdRecovery > 0) {
       this.playerHD = Math.min(10, this.playerHD + hdRecovery);
@@ -4185,7 +4208,9 @@ const PM = {
       let hdRecovery = 0;
       let structuredHandled = false;
       const entry = pmGetPlayEntry(card);
-      if (entry && entry.effects && entry.effects.length) {
+      const cpuHasEffects    = entry && Array.isArray(entry.effects) && entry.effects.length > 0;
+      const cpuHasPersistent = entry && Array.isArray(entry.persistent) && entry.persistent.length > 0;
+      if (entry && (cpuHasEffects || cpuHasPersistent)) {
         const ctx = pmMakeExecContext('cpu');
         ctx._sourceCard = card.name || '';
         const out = pmExecStructured(entry, ctx);
@@ -4208,15 +4233,9 @@ const PM = {
         }
       }
       if (!structuredHandled) {
-        hdRecovery = pmDetectHDRecovery(card);
-        if (hdRecovery > 0) {
-          // HD-only card
-        } else {
-          // For CPU, swap perspective: CPU is the "player" from the resolver's POV
-          const raw = pmResolveEffect(card, b.cpuCard, b.playerCard);
-          effect.cpuDelta = raw.playerDelta;
-          effect.playerDelta = raw.cpuDelta;
-        }
+        // Same dead-code guard as player path; legacy regex resolver
+        // removed because every catalog card has a JSON entry.
+        console.warn('⚠️ CPU play card has no JSON entry — skipping:', card.name);
       }
       if (hdRecovery > 0) this.cpuHD = Math.min(10, this.cpuHD + hdRecovery);
       b.cpuEffectPower = (b.cpuEffectPower || 0) + (effect.cpuDelta || 0);

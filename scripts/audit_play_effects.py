@@ -84,6 +84,23 @@ def load_known_ops() -> set[str]:
     return set(re.findall(r'"([^"]+)"', body))
 
 
+# Triggers the engine actually fires. Persistent entries with any
+# other trigger value silently install but never run their effect.
+# These are the strings the engine passes to firePersistentTriggers
+# (in PracticeStore.swift) plus the special-case scopes
+# applyContinuousPersistents accepts.
+KNOWN_TRIGGERS: set[str] = {
+    "continuous",
+    "battle_start",       # legacy alias of on_battle_start; handled by applyContinuousPersistents
+    "on_battle_start",
+    "on_battle_win",
+    "on_battle_loss",
+    "on_plays_resolved",
+    "on_opp_play",        # dice_gate
+    "on_turn_end",        # auto_lose_battle
+}
+
+
 # ─── Walkers / helpers ────────────────────────────────────────────
 
 
@@ -468,6 +485,23 @@ def audit_card(name: str, entry: dict, card: dict | None,
                 fnd.append(Finding(name, "warning", "single_option_choice",
                                    f"`choice` op has {len(opts)} option(s); collapse to direct ops "
                                    f"or add real alternatives"))
+
+    # ── Unknown persistent trigger ───────────────────────────────
+    # A persistent with an unrecognized trigger string silently
+    # installs but never fires. Real example: Overcommited used
+    # `on_play_run`, which was never wired into the engine; the
+    # card looked correct in the JSON but did nothing on the next
+    # battle (and worse, the empty `effects[]` made it fall back
+    # to the regex resolver, which misfired on the CURRENT battle).
+    for p in (entry.get("persistent") or []):
+        if not isinstance(p, dict): continue
+        trig = p.get("trigger")
+        if not isinstance(trig, str): continue
+        if trig not in KNOWN_TRIGGERS:
+            fnd.append(Finding(name, "warning", "unknown_trigger",
+                               f"Persistent trigger '{trig}' is not in the engine's "
+                               f"firePersistentTriggers vocabulary — effect will install "
+                               f"but never fire. Allowed: {sorted(KNOWN_TRIGGERS)}"))
 
     # ── Overlapping persistent scopes ────────────────────────────
     # Two persistents with the same effect op + overlapping scopes

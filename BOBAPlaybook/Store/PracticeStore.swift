@@ -2108,17 +2108,26 @@ final class PracticeStore {
         var playerDelta = 0
         var cpuDelta = 0
         var structuredHandled = false
-        if let entry = PlayEffects.entry(for: card.name),
-           let effects = entry["effects"] as? [[String: Any]], !effects.isEmpty {
+        let entryForPlayer = PlayEffects.entry(for: card.name)
+        let hasPersistentBlock = (entryForPlayer?["persistent"] as? [[String: Any]])?.isEmpty == false
+        let hasEffectsBlock    = (entryForPlayer?["effects"]    as? [[String: Any]])?.isEmpty == false
+        if let entry = entryForPlayer, hasEffectsBlock || hasPersistentBlock {
             let ctx = makeExecContext(self_: .player)
             let out = PlayEffectExecutor.run(entry: entry, ctx: ctx)
             // Mark the card as structured-handled IF it has a JSON entry,
-            // regardless of whether `out.hasEffect` is true. A
-            // condition-gated card (To Fight Another Day, Turn the
-            // Tide, Comeback Time, etc.) correctly evaluates its
-            // condition to false on Battle 1; without this gate the
-            // legacy regex resolver would run AS A FALLBACK and apply
-            // the bonus unconditionally, ignoring the JSON's logic.
+            // regardless of whether `out.hasEffect` is true. Two failure
+            // modes the legacy regex resolver causes when this gate is
+            // wrong:
+            //   1. Condition-gated cards (To Fight Another Day, Turn
+            //      the Tide, Comeback Time) correctly evaluate to
+            //      false on Battle 1 → empty out → regex applies the
+            //      bonus unconditionally.
+            //   2. Persistent-only cards (Overcommited, Lose 1 To Win
+            //      2 (Hopefully), etc.) have empty `effects` but a
+            //      real `persistent` block. The regex parses the
+            //      ability text ("Next battle, opponent gets -5") and
+            //      misfires on the CURRENT battle.
+            // Gate now triggers on EITHER effects[] or persistent[].
             structuredHandled = true
             playerDelta = out.selfDelta
             cpuDelta = out.oppDelta
@@ -2148,9 +2157,17 @@ final class PracticeStore {
             }
         }
         if !structuredHandled {
-            let legacy = Self.resolveEffect(card: card, playerCard: battles[currentBattle].playerCard, cpuCard: battles[currentBattle].cpuCard)
-            playerDelta = legacy.0
-            cpuDelta = legacy.1
+            // Reached only when a Play has no JSON entry — every card
+            // in play-effects.json now has at least an effects[] or
+            // persistent[] block, so this branch should never run for
+            // catalog cards. The auditor's `catalog` check + the new
+            // `unknown_trigger` check + 0-error gate keep the JSON
+            // honest. If you see this in the console, an unmapped
+            // play card slipped into the deck — surface a no-op
+            // instead of falling back to the legacy regex resolver
+            // (which was the source of multiple wrong-battle misfires
+            // — Overcommited, Lose 1 To Win 2, etc.).
+            print("⚠️ Play card has no JSON entry — skipping: \(card.name)")
         }
 
         battles[currentBattle].playerEffectPower += playerDelta
@@ -2472,14 +2489,16 @@ final class PracticeStore {
             var capturedDiceRolls: [Int] = []
             var capturedRevealMode = "single"
             var capturedRevealLabel = ""
-            if let entry = PlayEffects.entry(for: card.name),
-               let effects = entry["effects"] as? [[String: Any]], !effects.isEmpty {
+            let entryForCpu = PlayEffects.entry(for: card.name)
+            let cpuHasPersistent = (entryForCpu?["persistent"] as? [[String: Any]])?.isEmpty == false
+            let cpuHasEffects    = (entryForCpu?["effects"]    as? [[String: Any]])?.isEmpty == false
+            if let entry = entryForCpu, cpuHasEffects || cpuHasPersistent {
                 let ctx = makeExecContext(self_: .cpu)
                 let out = PlayEffectExecutor.run(entry: entry, ctx: ctx)
                 // Mark structured-handled regardless of out.hasEffect
-                // — see player-side comment. Prevents the legacy regex
-                // resolver from overriding a JSON condition that
-                // correctly evaluated to false.
+                // — same reasoning as the player-side path. Gate must
+                // also fire for persistent-only cards (no effects[])
+                // or the regex resolver misfires on the current battle.
                 structuredHandled = true
                 cpuDelta = out.selfDelta
                 playerDelta = out.oppDelta
@@ -2502,9 +2521,9 @@ final class PracticeStore {
                 cpuLastPlayNotes = notes
             }
             if !structuredHandled {
-                let legacy = Self.resolveEffect(card: card, playerCard: battles[currentBattle].cpuCard, cpuCard: battles[currentBattle].playerCard)
-                cpuDelta = legacy.0
-                playerDelta = legacy.1
+                // Same dead-code guard as player path. CPU shouldn't
+                // be drawing unmapped cards either; log + no-op.
+                print("⚠️ CPU play card has no JSON entry — skipping: \(card.name)")
             }
 
             tempHotDogs -= cost

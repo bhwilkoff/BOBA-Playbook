@@ -1566,7 +1566,18 @@ enum PlayEffectExecutor {
 
         switch metric {
         case "plays_used_this_battle":
-            return selfView ? ctx.playsUsedThisBattle : 0
+            // Return THIS battle's play count for the requested side.
+            // Previously hard-returned 0 for `target: "opponent"`, so
+            // formula-driven persistents like Overcommited's "-5 per
+            // play opp ran" silently computed to zero on the next
+            // battle even after the persistent fixed install path.
+            if selfView { return ctx.playsUsedThisBattle }
+            guard ctx.battles.indices.contains(ctx.battleIdx) else { return 0 }
+            let slot = ctx.battles[ctx.battleIdx]
+            let oppPlays = ctx.self_ == .player
+                ? slot.cpuPlayedCards
+                : slot.playerPlayedCards
+            return oppPlays.count
 
         case "plays_used_total":
             return 0

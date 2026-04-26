@@ -3363,27 +3363,48 @@ final class PracticeStore {
         let op = (eff["op"] as? String) ?? ""
         let scope = scopeDisplayLabel(spec["scope"] as? String ?? "this_battle")
         let who = owner == .player ? "You" : "CPU"
+        // Triggered persistents (on_battle_win / on_battle_loss / etc.)
+        // wear a short prefix in the body so multi-branch cards like
+        // Win or Weiners read as two distinct effects ("if win: …" /
+        // "if loss: …") instead of two visually-identical pills.
+        let trigger = (spec["trigger"] as? String) ?? ""
+        let triggerPrefix: String = {
+            switch trigger {
+            case "on_battle_win":     return "if win → "
+            case "on_battle_loss":    return "if loss → "
+            case "on_plays_resolved": return "end of plays → "
+            case "on_battle_start":   return "battle start → "
+            case "on_opp_play":       return "on opp play → "
+            case "on_turn_end":       return "turn end → "
+            default:                  return ""
+            }
+        }()
+        // Helper to attach the trigger prefix in front of an op-specific
+        // body so it reads naturally in the pill.
+        func withPrefix(_ body: String) -> String {
+            triggerPrefix.isEmpty ? body : "\(triggerPrefix)\(body)"
+        }
         switch op {
         case "modify_hd_recover":
-            if let cap = eff["cap"] as? Int { return "HD recovery capped at \(cap) \(scope)" }
-            if let d = eff["delta"] as? Int { return "HD recovery \(d > 0 ? "+\(d)" : "\(d)") \(scope)" }
-            return "HD recovery modifier active \(scope)"
+            if let cap = eff["cap"] as? Int { return withPrefix("HD recovery capped at \(cap) \(scope)") }
+            if let d = eff["delta"] as? Int { return withPrefix("HD recovery \(d > 0 ? "+\(d)" : "\(d)") \(scope)") }
+            return withPrefix("HD recovery modifier active \(scope)")
         case "redirect_hd_recover":
-            return "\(who): redirect HD recovery \(scope)"
+            return withPrefix("\(who): redirect HD recovery \(scope)")
         case "block_hd_recover":
             let target = (eff["target"] as? String) ?? "self"
             switch target {
-            case "both":     return "Neither side recovers HDs \(scope)"
-            case "opponent": return "Opponent can't recover HDs \(scope)"
-            default:         return "\(who) can't recover HDs \(scope)"
+            case "both":     return withPrefix("Neither side recovers HDs \(scope)")
+            case "opponent": return withPrefix("Opponent can't recover HDs \(scope)")
+            default:         return withPrefix("\(who) can't recover HDs \(scope)")
             }
         case "auto_lose_battle":
-            return "Lose any battle with 0 HDs \(scope)"
+            return withPrefix("Lose any battle with 0 HDs \(scope)")
         case "require_dice_roll":
-            return "Opponent must roll dice to play \(scope)"
+            return withPrefix("Opponent must roll dice to play \(scope)")
         case "allow_hd_overspend":
             let max = (eff["max_deficit"] as? Int) ?? 0
-            return "\(who) can overspend HDs by \(max) \(scope)"
+            return withPrefix("\(who) can overspend HDs by \(max) \(scope)")
         case "power":
             // Conditional/continuous boosts (Fire Boost, Steel Resolve).
             if let delta = eff["delta"] as? Int {
@@ -3391,14 +3412,31 @@ final class PracticeStore {
                 let recipient = target == "opponent"
                     ? (owner == .player ? "CPU Hero" : "Your Hero")
                     : (owner == .player ? "Your Hero" : "CPU Hero")
-                return "\(recipient) \(delta > 0 ? "+\(delta)" : "\(delta)") \(scope)"
+                return withPrefix("\(recipient) \(delta > 0 ? "+\(delta)" : "\(delta)") \(scope)")
             }
             return nil
+        case "hd_recover":
+            // Win or Weiners' loss branch, Lunch Table, etc.
+            let amount: String
+            if let n = eff["amount"] as? Int { amount = "\(n) HD" }
+            else if (eff["amount"] as? String) == "all" { amount = "all HDs" }
+            else { amount = "HDs" }
+            let target = (eff["target"] as? String) ?? "self"
+            let recipient = target == "opponent"
+                ? (owner == .player ? "CPU" : "You")
+                : (owner == .player ? "You" : "CPU")
+            return withPrefix("\(recipient) recover \(amount) \(scope)")
+        case "draw":
+            // Win or Weiners' win branch, etc.
+            let n = (eff["count"] as? Int) ?? 1
+            let kind = (eff["kind"] as? String) ?? "play"
+            let kindLabel = kind == "hero" ? "Hero" : "Play"
+            return withPrefix("\(who) draw \(n) \(kindLabel)\(n == 1 ? "" : "s") \(scope)")
         default:
             // Unmapped persistent effect — surface a generic banner so
             // the user at least knows SOMETHING is in force, even if
             // we don't have a specific label yet.
-            return "\(who) installed \(op.replacingOccurrences(of: "_", with: " ")) \(scope)"
+            return withPrefix("\(who) installed \(op.replacingOccurrences(of: "_", with: " ")) \(scope)")
         }
     }
 
@@ -3466,66 +3504,29 @@ final class PracticeStore {
                 t.sourceCard
             ))
         }
-        // Group persistents by (owner, sourceCard, scope) so a card
-        // that installs multiple branches (Win or Weiners: one
-        // persistent for on_battle_win, one for on_battle_loss) shows
-        // up as ONE pill instead of N. Without grouping the user sees
-        // "WIN OR WEINERS · ... · WIN OR WEINERS · ..." which reads as
-        // duplicate noise even though only one branch will fire.
-        struct GroupKey: Hashable {
-            let owner: PlayExecContext.Side
-            let source: String
-            let scope: String
-        }
-        var grouped: [GroupKey: [PersistentEffect]] = [:]
-        var order: [GroupKey] = []
+        // One pill per active persistent. The previous attempt to
+        // collapse multi-branch cards (Win or Weiners shows up as two
+        // pills) by deduping on (owner, sourceCard, scope) caused the
+        // banner to disappear entirely in some cases — a regression
+        // worse than the original noise. Reverted; instead distinct
+        // bodies handle the visual (see persistentSummaryLabel).
         for inst in persistents where Self.isScopeActive(inst.spec["scope"] as? String,
                                                           installedAt: inst.installedAt,
                                                           at: currentBattle, spec: inst.spec) {
-            let scopeStr = (inst.spec["scope"] as? String) ?? ""
-            let key = GroupKey(owner: inst.owner, source: inst.sourceCard, scope: scopeStr)
-            // Empty source = legacy install with no attribution; don't
-            // group those (they each get their own pill so each effect
-            // is still surfaced).
-            if inst.sourceCard.isEmpty {
-                if let label = persistentSummaryLabel(spec: inst.spec, owner: inst.owner) {
-                    rows.append((
-                        UUID(), inst.owner, label, "infinity", "00F5FF",
-                        Self.battlesRemaining(for: scopeStr, installedAt: inst.installedAt, at: currentBattle, spec: inst.spec),
-                        ""
-                    ))
-                }
-                continue
+            if let label = persistentSummaryLabel(spec: inst.spec, owner: inst.owner) {
+                rows.append((
+                    UUID(),
+                    inst.owner,
+                    label,
+                    "infinity",
+                    "00F5FF",
+                    Self.battlesRemaining(for: inst.spec["scope"] as? String,
+                                          installedAt: inst.installedAt,
+                                          at: currentBattle,
+                                          spec: inst.spec),
+                    inst.sourceCard
+                ))
             }
-            if grouped[key] == nil { order.append(key) }
-            grouped[key, default: []].append(inst)
-        }
-        for key in order {
-            guard let group = grouped[key], let first = group.first else { continue }
-            let label: String
-            if group.count == 1 {
-                label = persistentSummaryLabel(spec: first.spec, owner: first.owner)
-                    ?? "Persistent effect"
-            } else {
-                // Multi-branch card. Use a terser label that conveys
-                // "this card has N conditional branches active" — the
-                // breakdown panel still shows which branch fired post-
-                // resolution with full deltas, so the banner doesn't
-                // need to list each.
-                label = "\(group.count) conditional branches"
-            }
-            rows.append((
-                UUID(),
-                first.owner,
-                label,
-                "infinity",
-                "00F5FF",
-                Self.battlesRemaining(for: key.scope,
-                                      installedAt: first.installedAt,
-                                      at: currentBattle,
-                                      spec: first.spec),
-                first.sourceCard
-            ))
         }
         return rows
     }

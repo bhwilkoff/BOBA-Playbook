@@ -15,7 +15,7 @@ struct PracticeBenchPanel: View {
     @Binding var isVisible: Bool
 
     var body: some View {
-        VStack(spacing: Design.Spacing.sm) {
+        VStack(spacing: 6) {
             // First-time hint about positioning. Auto-hides once the
             // coach dismisses it (per-device persistence).
             HintBanner(
@@ -42,15 +42,17 @@ struct PracticeBenchPanel: View {
                 .buttonStyle(.plain)
             }
 
-            // Bench cards
+            // Bench cards — compact thumbnails so the panel's detail
+            // area below has room to render all of a card's info
+            // without clipping. Mirrors PracticePlaysPanel.
             if store.playerBench.isEmpty {
                 Text("No heroes on bench")
                     .font(Design.Fonts.mono(12))
                     .foregroundStyle(Design.Colors.textMuted)
-                    .padding(.vertical, Design.Spacing.md)
+                    .padding(.vertical, Design.Spacing.sm)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         ForEach(Array(store.playerBench.enumerated()), id: \.offset) { idx, card in
                             Button {
                                 withAnimation(.easeInOut(duration: 0.15)) {
@@ -65,16 +67,20 @@ struct PracticeBenchPanel: View {
                 }
             }
 
-            // Selected card detail — legible tap-to-inspect info.
-            // Bumped from maxHeight: 80 / panel 240 to fit larger type
-            // without requiring a scroll.
+            // Selected card detail — rigid container that sizes to
+            // its content. Same treatment as PracticePlaysPanel:
+            // dropped the fixed-height frame because clipping the
+            // bottom of the detail (which got worse once the active
+            // -effects band ate vertical space) hid critical info.
+            // We trade thumbnail size (72×100 → 60×84) and panel
+            // padding (md → sm vertical) so the panel hugs its
+            // natural height and never clips at the bottom.
             if let idx = selectedBenchIdx, idx < store.playerBench.count {
                 cardDetail(card: store.playerBench[idx], idx: idx)
-                    .frame(maxHeight: 120)
             }
         }
-        .padding(Design.Spacing.md)
-        .frame(maxHeight: 280)
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.sm)
         .background(Design.Colors.surface.opacity(0.98))
         .overlay(Divider().background(Design.Colors.glass), alignment: .top)
         .onChange(of: store.phase) { _, _ in selectedBenchIdx = nil }
@@ -93,7 +99,7 @@ struct PracticeBenchPanel: View {
                         cardPlaceholder(card: card)
                     }
                 }
-                .frame(width: 72, height: 100)
+                .frame(width: 60, height: 84)
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 .overlay(
                     RoundedRectangle(cornerRadius: 6).strokeBorder(
@@ -104,20 +110,20 @@ struct PracticeBenchPanel: View {
 
                 // Power badge at bottom
                 Text("\(card.power ?? 0)")
-                    .font(Design.Fonts.display(16))
+                    .font(Design.Fonts.mono(11, weight: .bold))
                     .foregroundStyle(.white)
                     .shadow(color: .black, radius: 2)
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 5)
                     .padding(.vertical, 2)
                     .background(Capsule().fill(Color.black.opacity(0.75)))
-                    .padding(.bottom, 4)
+                    .padding(.bottom, 3)
             }
 
             Text(card.hero.isEmpty ? card.name : card.hero)
                 .font(Design.Fonts.mono(8, weight: .bold))
                 .foregroundStyle(selected ? Design.Colors.bobaCyan : Design.Colors.textSecondary)
                 .lineLimit(1)
-                .frame(width: 72)
+                .frame(width: 60)
         }
     }
 
@@ -127,23 +133,29 @@ struct PracticeBenchPanel: View {
         let canAfford = store.playerHotDogs >= 2
         let isSubPhase = store.phase == .sub && !store.playerSubstituted
 
-        return HStack(spacing: Design.Spacing.md) {
+        return HStack(alignment: .top, spacing: Design.Spacing.sm) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(card.hero.isEmpty ? card.name : card.hero)
-                    .font(Design.Fonts.display(16))
-                    .foregroundStyle(Design.Colors.textPrimary)
-                    .lineLimit(1)
+                // Name + power chip on the same row to save a line.
+                HStack(spacing: 8) {
+                    Text(card.hero.isEmpty ? card.name : card.hero)
+                        .font(Design.Fonts.display(16))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                        .lineLimit(1)
+                    Text("\(card.power ?? 0) PW")
+                        .font(Design.Fonts.mono(11, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Design.Colors.bobaOrange))
+                }
 
                 HStack(spacing: 8) {
-                    Text("PW \(card.power ?? 0)")
-                        .font(Design.Fonts.mono(13, weight: .bold))
-                        .foregroundStyle(Design.Colors.bobaOrange)
                     Text(card.element)
-                        .font(Design.Fonts.mono(13, weight: .bold))
+                        .font(Design.Fonts.mono(12, weight: .bold))
                         .foregroundStyle(Design.Colors.element(card.element))
                     if let t = card.treatment, !t.isEmpty {
                         Text(t)
-                            .font(Design.Fonts.mono(12))
+                            .font(Design.Fonts.mono(11))
                             .foregroundStyle(Design.Colors.textMuted)
                             .lineLimit(1)
                     }
@@ -151,9 +163,9 @@ struct PracticeBenchPanel: View {
 
                 if let athlete = card.athleteInspiration, !athlete.isEmpty {
                     Text("Inspired by \(athlete)")
-                        .font(Design.Fonts.mono(12))
+                        .font(Design.Fonts.mono(11))
                         .foregroundStyle(Design.Colors.bobaCyan)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -169,7 +181,7 @@ struct PracticeBenchPanel: View {
                         .foregroundStyle(canAfford ? Design.Colors.nearBlack : Design.Colors.textMuted)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 10)
-                        .frame(width: 80, height: 52)
+                        .frame(width: 76, height: 48)
                         .background(RoundedRectangle(cornerRadius: 8)
                             .fill(canAfford ? Design.Colors.bobaOrange : Design.Colors.glass))
                 }

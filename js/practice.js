@@ -4428,6 +4428,9 @@ const PM = {
 
       // Apply effect — structured executor first, regex fallback
       let effect = { playerDelta: 0, cpuDelta: 0 };
+      // Persistent specs the executor produces — held until the
+      // user dismisses this card's overlay (see dismiss path).
+      let deferredPersistents = [];
       let hdRecovery = 0;
       let structuredHandled = false;
       const entry = pmGetPlayEntry(card);
@@ -4451,8 +4454,13 @@ const PM = {
         if (out.notifications && out.notifications.length) {
           PM._peekCallouts = (PM._peekCallouts || []).concat(out.notifications);
         }
+        // Defer persistent installs until the user dismisses THIS
+        // play's overlay. Without this, when CPU plays cards 1, 2, 3
+        // in sequence the active-effects banner would expose card 2's
+        // persistent before the user has seen card 2's overlay —
+        // spoiling the reveal.
         if (out.hasPersistent && entry.persistent) {
-          for (const p of entry.persistent) this.installPersistent('cpu', p, { sourceCard: card.name });
+          deferredPersistents = entry.persistent.slice();
         }
         if (out.discards) pmAutoDiscardFromHand('cpu', out.discards);
         // Wire CPU-side draws — cpuPlayCount is the fluid pool budget.
@@ -4479,7 +4487,12 @@ const PM = {
       b.cpuPlaysPlayed = b.cpuPlaysPlayed || [];
       b.cpuPlaysPlayed.push(card);
       const notifs = PM._peekCallouts && PM._peekCallouts.length ? PM._peekCallouts.splice(0) : [];
-      this.cpuPlayQueue.push({ card, cost, effect, hdRecovery: hdRecovery > 0 ? hdRecovery : undefined, notifications: notifs });
+      this.cpuPlayQueue.push({
+        card, cost, effect,
+        hdRecovery: hdRecovery > 0 ? hdRecovery : undefined,
+        notifications: notifs,
+        deferredPersistents: deferredPersistents || [],
+      });
     }
     this.cpuPassedPlays = true;
   },
@@ -6200,6 +6213,14 @@ function pmShowSingleCpuPlay(entry, done) {
     const newBtn = dismissBtn.cloneNode(true);
     dismissBtn.parentNode.replaceChild(newBtn, dismissBtn);
     newBtn.addEventListener('click', () => {
+      // Install any persistents this play deferred until the user
+      // saw it. Without deferring, the active-effects banner would
+      // expose persistents from CPU plays the user hasn't dismissed
+      // yet — spoiling the queue.
+      const deferred = (entry && entry.deferredPersistents) || [];
+      for (const p of deferred) {
+        PM.installPersistent('cpu', p, { sourceCard: card?.name });
+      }
       overlay.hidden = true;
       pmUpdateAll();
       done();

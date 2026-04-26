@@ -61,6 +61,15 @@ struct PracticeView: View {
                             onInspectCpuDiscard: { inspectingDiscardSide = .init(side: .cpu) }
                         )
 
+                        // Active persistent-effects banner — sits BELOW the
+                        // top bar so the HD counter + exit button stay
+                        // tappable. Previously overlaid on top of the
+                        // top bar via an overlay VStack, which blocked
+                        // both. Renders nothing when no effects in scope.
+                        if !store.activeEffectsForUI.isEmpty {
+                            activeEffectsBanner
+                        }
+
                         // Scrollable battle arena
                         arenaView(geo: geo)
 
@@ -195,18 +204,6 @@ struct PracticeView: View {
                                     }
                                 }
                             }
-                        }
-                    }
-
-                    // ── Active persistent effects banner ────────────────────
-                    // Anchored under the top bar so it never blocks the
-                    // arena. Renders nothing when no effects are in
-                    // scope; otherwise a horizontally-scrollable strip
-                    // of pills.
-                    if !store.activeEffectsForUI.isEmpty {
-                        VStack {
-                            activeEffectsBanner
-                            Spacer()
                         }
                     }
 

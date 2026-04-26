@@ -141,8 +141,12 @@ final class HintsManager {
 
     init() {
         let dflt = UserDefaults.standard
-        // Default to enabled when the key has never been written.
-        self.hintsEnabled = dflt.object(forKey: "hints.enabled") as? Bool ?? true
+        // Default to DISABLED when the key has never been written.
+        // Coaches who want the hint system can flip it on from
+        // Settings; making them opt in keeps the practice mat
+        // uncluttered for the common case (and stops banners from
+        // pushing actionable controls off-screen on small phones).
+        self.hintsEnabled = dflt.object(forKey: "hints.enabled") as? Bool ?? false
         var initial: Set<String> = []
         for id in HintID.allCases where dflt.bool(forKey: id.rawValue) {
             initial.insert(id.rawValue)

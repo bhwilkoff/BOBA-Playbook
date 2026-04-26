@@ -6,6 +6,12 @@ import SwiftUI
 struct SettingsView: View {
     @AppStorage("selectedIconName") private var selectedIconName: String = "default"
     @State private var hints = HintsManager.shared
+    /// Brief banner shown after the Reset button fires. Without this
+    /// the action looks silent — hints have contextual triggers
+    /// (substitution phase, deck builder, etc.) so the visible
+    /// effect doesn't surface until the coach is back in that
+    /// context. The banner closes that perception gap.
+    @State private var resetConfirmation: String?
 
     var body: some View {
         List {
@@ -47,9 +53,23 @@ struct SettingsView: View {
                         .foregroundStyle(Design.Colors.textPrimary)
                 }
                 .tint(Design.Colors.bobaCyan)
-                Button("Reset hints") { hints.resetAll() }
-                    .font(Design.Fonts.mono(13))
-                    .foregroundStyle(Design.Colors.bobaOrange)
+                Button("Reset hints") {
+                    hints.resetAll()
+                    let count = HintID.allCases.count
+                    resetConfirmation = "Cleared \(count) hint dismissals. Tips will reappear at their trigger moments."
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(3))
+                        resetConfirmation = nil
+                    }
+                }
+                .font(Design.Fonts.mono(13))
+                .foregroundStyle(Design.Colors.bobaOrange)
+                if let msg = resetConfirmation {
+                    Text(msg)
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Color(hex: "4CAF50"))
+                        .transition(.opacity)
+                }
             } header: {
                 Text("PRACTICE HINTS")
                     .font(Design.Fonts.mono(10, weight: .bold))

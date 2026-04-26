@@ -13,10 +13,15 @@ struct PracticeTopBar: View {
     /// Tap-handler for the CPU play count chip — opens the discard
     /// inspector. Optional so existing call sites stay valid.
     var onInspectCpuDiscard: (() -> Void)? = nil
+    /// Tap-handler for the "?" walkthrough button. PracticeView
+    /// resets `tutorialSeen` and re-triggers the spotlight overlay so
+    /// the coach can re-watch the practice walkthrough whenever they
+    /// want. Optional so existing call sites stay valid.
+    var onShowWalkthrough: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 0) {
-            modeTabs
+            modeIndicator
                 .padding(.leading, Design.Spacing.md)
             Spacer()
             scoreboard
@@ -29,25 +34,35 @@ struct PracticeTopBar: View {
         .overlay(Divider().background(Design.Colors.glass), alignment: .bottom)
     }
 
-    // MARK: - Mode Tabs
+    // MARK: - Mode indicator + Walkthrough
+    //
+    // Earlier this slot rendered three mode pills (Rookie, Substitution,
+    // Playmaker) with the active one orange and the other two greyed.
+    // The two inactive pills weren't interactive during play (the only
+    // affordance was the orange pill telling the coach what they were
+    // playing), and they ate horizontal space that the walkthrough
+    // button has a better claim on. Now we show only the active mode
+    // label + a "?" that re-runs the practice walkthrough.
 
-    private var modeTabs: some View {
-        HStack(spacing: 4) {
-            ForEach(PracticeMode.allCases) { mode in
-                let isSelected = store.mode == mode
-                Button {
-                    if store.matchOver { store.mode = mode }
-                } label: {
-                    Text(mode.rawValue)
-                        .font(Design.Fonts.mono(10, weight: isSelected ? .bold : .regular))
-                        .foregroundStyle(isSelected ? Design.Colors.nearBlack : Design.Colors.textMuted)
-                        .padding(.horizontal, 8)
-                        .frame(height: 24)
-                        .background(Capsule().fill(isSelected ? Design.Colors.bobaOrange : Design.Colors.glass))
-                }
-                .buttonStyle(.plain)
-                .disabled(!store.matchOver)
+    private var modeIndicator: some View {
+        HStack(spacing: 6) {
+            Text(store.mode.rawValue.uppercased())
+                .font(Design.Fonts.mono(10, weight: .bold))
+                .foregroundStyle(Design.Colors.nearBlack)
+                .padding(.horizontal, 8)
+                .frame(height: 24)
+                .background(Capsule().fill(Design.Colors.bobaOrange))
+
+            Button {
+                onShowWalkthrough?()
+            } label: {
+                Image(systemName: "questionmark.circle")
+                    .font(.system(size: 18))
+                    .foregroundStyle(Design.Colors.bobaCyan)
             }
+            .buttonStyle(.plain)
+            .disabled(onShowWalkthrough == nil)
+            .accessibilityLabel("Show practice walkthrough")
         }
     }
 

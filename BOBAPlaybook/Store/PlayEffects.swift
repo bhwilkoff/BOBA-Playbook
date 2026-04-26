@@ -304,6 +304,11 @@ struct PlayExecOut {
     var hasEffect: Bool = false
     var hasPersistent: Bool = false
     var unknownOps: [String] = []
+    /// Set when this execution ran a coin_flip or dice_roll op. The
+    /// host fires `on_dice_roll` triggers afterwards so persistents
+    /// like Pay The Price ("opponent's Hero loses -5 whenever a dice
+    /// is rolled") actually fire ONLY when a roll happens.
+    var firedDiceOrCoin: Bool = false
 
     // Tier A intents
     var costModInstalls: [CostModInstall] = []
@@ -492,9 +497,15 @@ enum PlayEffectExecutor {
 
         case "coin_flip":
             execCoinFlip(step, ctx: ctx, out: &out)
+            // Mark this play as having rolled — triggers
+            // on_dice_roll / on_coin_flip persistents (Pay The Price
+            // et al.). Host fires the corresponding triggers after
+            // applyIntents so the deltas land on this battle.
+            out.firedDiceOrCoin = true
 
         case "dice_roll":
             execDiceRoll(step, ctx: ctx, out: &out)
+            out.firedDiceOrCoin = true
 
         case "compound_roll":
             execCompoundRoll(step, ctx: ctx, out: &out)

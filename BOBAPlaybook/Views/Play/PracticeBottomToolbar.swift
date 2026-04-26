@@ -258,12 +258,12 @@ struct PracticeBottomToolbar: View {
                 // wins, the next action ends the match — switch the
                 // label so coaches aren't promised a battle that
                 // doesn't exist.
-                Button(isFinalBattleAction ? "FINISH MATCH" : "NEXT BATTLE", action: onAction)
+                Button(resolutionLabel, action: onAction)
                     .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
             case .cleanup:
                 // Only reachable from a mid-cleanup restore of an old
                 // saved draft. Keep a neutral label.
-                Button(isFinalBattleAction ? "FINISH MATCH" : "NEXT BATTLE", action: onAction)
+                Button(resolutionLabel, action: onAction)
                     .buttonStyle(PracticeActionButtonStyle(color: Design.Colors.bobaOrange))
             case .matchOver:
                 Button("DONE", action: onAction)
@@ -273,13 +273,33 @@ struct PracticeBottomToolbar: View {
     }
 
     /// True when pressing the resolution/cleanup action will move the
-    /// match to its end state — either we just resolved Battle 7 or
-    /// one side has already clinched 4 wins. Drives the button label
-    /// so it reads "FINISH MATCH" instead of misleading "NEXT BATTLE".
+    /// match to its end state. Three cases end the match:
+    ///   1. Either side has clinched 4 wins.
+    ///   2. We just resolved Battle 7 with one side ahead.
+    ///   3. We just resolved Sudden Death (battle index 7).
+    /// Battle 7 with a tied score does NOT end the match — it
+    /// extends to Sudden Death, so the button reads "SUDDEN DEATH"
+    /// instead of "FINISH MATCH".
     private var isFinalBattleAction: Bool {
-        store.playerScore >= 4
-            || store.cpuScore >= 4
-            || store.currentBattle >= 6
+        if store.playerScore >= 4 || store.cpuScore >= 4 { return true }
+        // Just resolved B7 with someone ahead → finish.
+        if store.currentBattle == 6 && store.playerScore != store.cpuScore { return true }
+        // Just resolved Sudden Death (B8, idx 7).
+        if store.currentBattle >= 7 { return true }
+        return false
+    }
+    /// True when pressing the resolution/cleanup action triggers
+    /// Sudden Death (B7 tied → extend to B8).
+    private var isSuddenDeathTrigger: Bool {
+        store.currentBattle == 6 && store.playerScore == store.cpuScore
+            && store.playerScore < 4 && store.cpuScore < 4
+    }
+
+    /// Resolution / cleanup button label.
+    private var resolutionLabel: String {
+        if isSuddenDeathTrigger { return "SUDDEN DEATH" }
+        if isFinalBattleAction { return "FINISH MATCH" }
+        return "NEXT BATTLE"
     }
 
     private var divider: some View {

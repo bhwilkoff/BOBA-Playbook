@@ -2382,6 +2382,13 @@ final class PracticeStore {
             lastResolvingPlayCard = card.name
             let notes = applyIntents(out, actingSide: .player)
             lastResolvingPlayCard = ""
+            // on_dice_roll triggers (Pay The Price et al.) — fire
+            // only when this play actually rolled. Skipped before;
+            // result was Pay The Price firing every battle via the
+            // wrong on_plays_resolved alias.
+            if out.firedDiceOrCoin {
+                firePersistentTriggers(trigger: "on_dice_roll")
+            }
             if !notes.isEmpty {
                 pendingPlayerNotes = notes
             }
@@ -2772,6 +2779,9 @@ final class PracticeStore {
                 lastResolvingPlayCard = card.name
                 let notes = applyIntents(out, actingSide: .cpu)
                 lastResolvingPlayCard = ""
+                if out.firedDiceOrCoin {
+                    firePersistentTriggers(trigger: "on_dice_roll")
+                }
                 cpuLastPlayNotes = notes
             }
             if !structuredHandled {
@@ -3144,10 +3154,18 @@ final class PracticeStore {
     private func checkMatchOver() {
         if playerScore >= 4 { matchOver = true; matchWinner = .player; phase = .matchOver }
         else if cpuScore >= 4 { matchOver = true; matchWinner = .cpu; phase = .matchOver }
-        // 7 battles complete, no winner → Sudden Death (show match over)
-        else if currentBattle == 6 && phase == .resolution && playerScore == cpuScore {
-            matchOver = true; matchWinner = nil; phase = .matchOver
+        // After SD (battle index 7) — match ends regardless of score.
+        // If still tied, it's a final draw (no further extensions).
+        else if currentBattle >= 7 && phase == .resolution {
+            matchOver = true
+            if playerScore > cpuScore { matchWinner = .player }
+            else if cpuScore > playerScore { matchWinner = .cpu }
+            else { matchWinner = nil }
+            phase = .matchOver
         }
+        // After B7 with a tied score → Sudden Death extends. Don't
+        // mark matchOver here; moveToNextBattle handles the slot
+        // append + advance.
     }
 
     private func moveToNextBattle() {
@@ -3167,7 +3185,28 @@ final class PracticeStore {
         }
         cpuRevealedScarePlay = nil
         let next = currentBattle + 1
-        if next >= 7 || matchOver {
+        // Sudden Death — Comprehensive Rules Guide §4.4: if 7
+        // battles end with the score tied (3-3 + 1 tie, etc.), a
+        // single Sudden Death battle decides. After SD, a still-tied
+        // result is final (no further extensions).
+        if next >= 7 && playerScore == cpuScore && battles.count < 8 && !matchOver {
+            // Append an 8th battle with a fresh hero from each side's
+            // hero deck. Limited mode (40-card decks) usually has
+            // plenty left; fall back to nil if a deck is empty.
+            var slot = BattleSlot(id: 7)
+            slot.playerCard = playerHeroDeck.first
+            if !playerHeroDeck.isEmpty { playerHeroDeck.removeFirst() }
+            slot.cpuCard    = cpuHeroDeck.first
+            if !cpuHeroDeck.isEmpty    { cpuHeroDeck.removeFirst() }
+            battles.append(slot)
+            cpuCallouts.append(ActionCallout(
+                message: "Sudden Death — one more battle to decide it",
+                icon: "exclamationmark.circle.fill",
+                color: "FF4D00"
+            ))
+            // fall through to currentBattle = next so the new slot
+            // becomes active.
+        } else if next >= 8 || (next >= 7 && (playerScore != cpuScore || matchOver)) {
             phase = .matchOver
             matchOver = true
             if playerScore > cpuScore { matchWinner = .player }

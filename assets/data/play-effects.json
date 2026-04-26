@@ -6096,7 +6096,7 @@
       "category": "utility",
       "effects": [
         {
-          "op": "reveal_top",
+          "op": "add_chosen_revealed_to_hand_discard_rest",
           "target": "self",
           "kind": "play",
           "count": 3
@@ -6105,7 +6105,7 @@
           "if": {
             "type": "metric_compare",
             "left": {
-              "metric": "revealed_play_cost",
+              "metric": "chosen_play_cost",
               "target": "self"
             },
             "comparison": "gte",
@@ -7586,11 +7586,18 @@
       "persistent": [
         {
           "scope": "rest_of_game",
-          "trigger": "on_battle_start",
+          "trigger": "on_plays_resolved",
           "effect": {
-            "op": "power",
-            "target": "actor",
-            "delta": 5
+            "if": {
+              "type": "substituted_this_battle"
+            },
+            "then": [
+              {
+                "op": "power",
+                "target": "self",
+                "delta": 5
+              }
+            ]
           }
         }
       ]

@@ -35,21 +35,162 @@ from collections import Counter
 from pathlib import Path
 
 
+def _letters_only(s):
+    """Strip everything except letters, uppercased. Normalizes
+    "Mic'd Up" → "MICDUP", "Big-Z" → "BIGZ", "Crews-Missle" →
+    "CREWSMISSLE" so OCR's tendency to drop punctuation doesn't
+    invalidate a match."""
+    return "".join(ch for ch in s.upper() if ch.isalpha())
+
+
+def _edit_distance(a, b, cap=3):
+    """Bounded Levenshtein. Returns `cap+1` when distance exceeds
+    `cap` so callers can short-circuit. Cap=3 catches single-char
+    OCR substitutions (CLUTCH/ELUTCH), missed letters, and one
+    inserted glyph at once."""
+    if a == b:
+        return 0
+    if abs(len(a) - len(b)) > cap:
+        return cap + 1
+    if not a:
+        return len(b)
+    if not b:
+        return len(a)
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        curr = [i] + [0] * len(b)
+        rowmin = curr[0]
+        for j, cb in enumerate(b, 1):
+            cost = 0 if ca == cb else 1
+            curr[j] = min(prev[j] + 1, curr[j-1] + 1, prev[j-1] + cost)
+            if curr[j] < rowmin:
+                rowmin = curr[j]
+        if rowmin > cap:
+            return cap + 1
+        prev = curr
+    return prev[-1]
+
+
+def hero_in_candidates(catalog_hero, candidates):
+    """Check whether the OCR captured the catalog's hero name in any
+    of its candidates.
+
+    Returns:
+      - True  if a candidate matches the catalog hero (substring,
+              prefix-overlap ≥4 on long tokens, OR Levenshtein ≤2 on
+              letters-only normalized forms)
+      - False if at least one candidate looks like a hero name (≥3
+              letters) but NONE match the catalog hero — this is the
+              wrong-image case (a different hero's art under the
+              catalog row's slug)
+      - None  if no candidate carries hero signal at all (OCR only
+              captured the power glyph or junk fragments)
+    """
+    if not catalog_hero:
+        return None
+    target = catalog_hero.upper().strip()
+    target_letters = _letters_only(target)
+    target_tokens = {t for t in target.split() if len(t) >= 3 and not t.isdigit()}
+
+    saw_alpha = False
+    for cand in candidates:
+        c = cand.upper().strip()
+        letters = _letters_only(c)
+        if len(letters) < 3:
+            continue
+        saw_alpha = True
+        # 1. Direct substring on letters-only forms — handles missing
+        #    apostrophes/hyphens/spaces ("MICDUP" vs "MIC'D UP").
+        if target_letters and (
+            target_letters in letters or letters in target_letters
+        ):
+            return True
+        # 2. Levenshtein on letters-only — handles single-char OCR
+        #    substitutions (CLUTCH/ELUTCH, BARNACLE/BARHACLE) plus
+        #    one inserted glyph from frame artifacts.
+        if target_letters and len(target_letters) >= 4 and len(letters) >= 4:
+            tolerance = 2 if len(target_letters) >= 6 else 1
+            if _edit_distance(target_letters, letters, cap=tolerance) <= tolerance:
+                return True
+        # 3. Token-level: catalog-hero word in candidate word with
+        #    prefix-overlap or containment.
+        cand_tokens = {t for t in c.split() if len(t) >= 3 and any(ch.isalpha() for ch in t)}
+        for tt in target_tokens:
+            tt_letters = _letters_only(tt)
+            for ct in cand_tokens:
+                ct_letters = _letters_only(ct)
+                if tt_letters and (tt_letters == ct_letters
+                                    or tt_letters in ct_letters
+                                    or ct_letters in tt_letters):
+                    return True
+                if len(tt_letters) >= 5 and len(ct_letters) >= 5:
+                    overlap = 0
+                    for a, b in zip(tt_letters, ct_letters):
+                        if a == b:
+                            overlap += 1
+                        else:
+                            break
+                    if overlap >= 4:
+                        return True
+    return False if saw_alpha else None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--audit", required=True, type=Path)
     ap.add_argument("--out-dir", required=True, type=Path)
+    ap.add_argument(
+        "--catalog",
+        type=Path,
+        default=Path(
+            "/Users/bhwilkoff/Documents/Claude/Projects/Bo Jackson Battle Arena Research"
+            "/unified-cards/data/cards.json"
+        ),
+        help="Master catalog — used for the hero-by-bobaId lookup that drives "
+        "the wrong-image guard.",
+    )
     ap.add_argument(
         "--confidence",
         type=float,
         default=0.85,
         help="Mismatches below this confidence go to needs_review.json instead of the patch",
     )
+    ap.add_argument(
+        "--max-delta",
+        type=int,
+        default=40,
+        help=(
+            "Mismatches with |ocrPower - catalogPower| > max-delta route to "
+            "needs_review.json. Large deltas are dominated by wrong-image-on-R2 "
+            "bugs (catalog row's slug points to a different hero's art) rather "
+            "than wrong-power-in-catalog bugs; patching power on those would "
+            "MIS-align the row with the wrong image. Conservative default 40."
+        ),
+    )
+    ap.add_argument(
+        "--min-ocr",
+        type=int,
+        default=100,
+        help=(
+            "Mismatches with ocrPower below this floor route to needs_review.json. "
+            "Sub-100 OCR results are usually leading-digit-drop errors — Vision "
+            "missed the '1' in '170' and returned '70'."
+        ),
+    )
     args = ap.parse_args()
 
     audit = json.loads(args.audit.read_text())
     rows = audit["results"]
     args.out_dir.mkdir(parents=True, exist_ok=True)
+
+    # Load the catalog and build a bobaId → hero map. We can't reliably
+    # derive `hero` from the bobaId string alone because cardNumbers
+    # contain hyphens (e.g. "ABF-326") and heroes contain hyphens
+    # (e.g. "Crews-Missle"), so a positional split mis-extracts. The
+    # catalog JSON has the canonical hero per row.
+    catalog = json.loads(args.catalog.read_text())
+    hero_by_bid = {c["bobaId"]: (c.get("hero") or "")
+                   for c in catalog if c.get("bobaId")}
 
     patch_modify = []
     needs_review = []
@@ -85,6 +226,54 @@ def main():
             "delta": delta,
             "candidates": r.get("candidates", []),
         }
+        # Leading-digit-drop guard: if the catalog is 3-digit and OCR
+        # is 2-digit AND the OCR matches the trailing digits of the
+        # catalog, this is overwhelmingly an OCR error (the recognizer
+        # missed the leading "1" on a 1XX power glyph). Verified
+        # against ABF-149 Destroya — catalog 175, OCR 75, art shows
+        # 175 ✓. 67 such suspects in the full audit; treating all as
+        # OCR errors rather than catalog errors keeps the patch safe.
+        if (
+            cat is not None
+            and ocr is not None
+            and len(str(cat)) == 3
+            and len(str(ocr)) == 2
+            and str(cat).endswith(str(ocr))
+        ):
+            record["reason_filtered"] = "leading_digit_drop"
+            needs_review.append(record)
+            continue
+        # Min-OCR floor — sub-100 OCRs are almost always glyph-recognition
+        # failures, not real catalog overstatements.
+        if ocr < args.min_ocr:
+            record["reason_filtered"] = "ocr_below_floor"
+            needs_review.append(record)
+            continue
+        # Max-delta filter — large gaps are dominated by wrong-image
+        # bugs (the catalog row's imageFile points to a different
+        # hero's art on R2). Patching power on those mis-aligns the
+        # row with the wrong image; route to review instead.
+        if delta is not None and abs(delta) > args.max_delta:
+            record["reason_filtered"] = "delta_above_threshold"
+            needs_review.append(record)
+            continue
+        # Hero-name verification guard. The OCR captures the printed
+        # hero name as one of its candidates on most cards. If the
+        # captured hero clearly DOES NOT match the catalog row's
+        # hero, the image at this bobaId's slug is a wrong-image
+        # collision (DECISIONS.md #026 territory) — patching the
+        # power would corrupt the catalog row to align with the
+        # wrong card's stats. Route to review instead. We accept
+        # rows where OCR didn't capture a hero token at all (None
+        # return) since on stylized cards the recognizer sometimes
+        # only finds the power glyph; the confidence + delta gates
+        # already filter most of those.
+        catalog_hero = hero_by_bid.get(bid, "")
+        hero_match = hero_in_candidates(catalog_hero, r.get("candidates", []))
+        if hero_match is False:
+            record["reason_filtered"] = "hero_mismatch_likely_wrong_image"
+            needs_review.append(record)
+            continue
         if conf >= args.confidence:
             patch_modify.append(
                 {

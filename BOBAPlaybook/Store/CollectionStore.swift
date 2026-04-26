@@ -77,7 +77,15 @@ final class CollectionStore {
         "Griffey Edition": "G",
     ]
 
-    func exportCSV(cardStore: CardStore) -> String {
+    /// Exports user-card rows as CSV. Pass `restrictTo` to scope the
+    /// export to a subset of bobaIds — used by the Collection view to
+    /// honor the active filter (element / set / treatment / etc.). Nil
+    /// → export every userCard. Empty set → export none. Match is by
+    /// bobaId where present (the canonical key); cards persisted on
+    /// older app versions without a bobaId fall through to cardNumber
+    /// matching against the catalog.
+    func exportCSV(cardStore: CardStore,
+                   restrictTo: Set<String>? = nil) -> String {
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime]
         let money = NumberFormatter()
@@ -88,8 +96,32 @@ final class CollectionStore {
             "Slot,Card#,Name,Cost,Ability,DBS,CardType,Element,Power,Hero,Treatment,Set,Designation,PurchasePrice,AcquiredAt,Notes,BobaId"
         ]
 
+        // Build the source slice: full collection or filter-restricted.
+        // Filter resolution: prefer bobaId; if a userCard has no
+        // bobaId (legacy rows), look up its cardNumber in the catalog
+        // and check whether any catalog row at that number is in the
+        // allowed set.
+        let source: [UserCard]
+        if let allowed = restrictTo {
+            // Pre-build cardNumber → allowed-bobaIds index for legacy
+            // (bobaId-less) rows so we don't re-scan displayCards once
+            // per userCard. One pass over the catalog, O(allowed) lookup.
+            var byCardNumber: [String: Set<String>] = [:]
+            for card in cardStore.displayCards where allowed.contains(card.id) {
+                byCardNumber[card.cardNumber, default: []].insert(card.id)
+            }
+            source = userCards.filter { uc in
+                if let bid = uc.bobaId, !bid.isEmpty {
+                    return allowed.contains(bid)
+                }
+                return (byCardNumber[uc.cardNumber] ?? []).isEmpty == false
+            }
+        } else {
+            source = userCards
+        }
+
         // Sort: owned first, then by card number for stable diffs.
-        let sorted = userCards.sorted { a, b in
+        let sorted = source.sorted { a, b in
             if a.designation.isOwned != b.designation.isOwned { return a.designation.isOwned }
             return a.cardNumber.localizedStandardCompare(b.cardNumber) == .orderedAscending
         }

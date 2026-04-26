@@ -28,7 +28,16 @@ struct DeckBuilderView: View {
     @Environment(CardStore.self) private var cardStore
     @Environment(CollectionStore.self) private var collection
     @Environment(AuthManager.self) private var auth
+    @Environment(ScanStore.self) private var scanStore
     @State private var store = DeckBuilderStore()
+    /// Set true to present the scanner full-screen-cover. Configured
+    /// against `scanStore` (source = .deckBuilder, current deck label,
+    /// saved-decks snapshot) right before flipping the flag so the
+    /// queue UI has everything it needs on first appearance.
+    @State private var showScan = false
+    /// Toast string shown when scanned cards land in the deck — gives
+    /// the coach a confirmation hook similar to `pendingCardAddedBanner`.
+    @State private var scannedAddedBanner: String?
     /// When on, the card browser pool restricts to cards the user owns
     /// (any designation in `.isOwned`). Off by default — full catalog
     /// is the expected starting point for building from scratch.
@@ -192,6 +201,37 @@ struct DeckBuilderView: View {
         .sheet(item: $selectedBrowserCard) { card in
             BrowserCardDetailSheet(card: card, store: store, tab: store.browserTab)
         }
+        // Scanner — same immersive full-screen treatment as Find. The
+        // floating Close button handles dismissal since ScanView has
+        // no nav bar of its own.
+        .fullScreenCover(isPresented: $showScan, onDismiss: { scanStore.endDeckBuilderSession() }) {
+            ZStack(alignment: .topLeading) {
+                ScanView()
+                Button {
+                    showScan = false
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(Color.white.opacity(0.85))
+                        .shadow(color: .black.opacity(0.5), radius: 4)
+                        .padding(Design.Spacing.md)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Close scanner")
+            }
+        }
+        // Drain the queue's hand-off bucket: when the queue saves and
+        // posts cards here, append each to the in-memory deck and reset
+        // the bucket so a future scan session starts clean. We use the
+        // count as the change key (rather than the array itself) so
+        // SwiftUI's @Observable can detect a transition from empty →
+        // populated reliably.
+        .onChange(of: scanStore.pendingScannedCardsForActiveDeck.count) { _, count in
+            guard count > 0 else { return }
+            let cards = scanStore.pendingScannedCardsForActiveDeck
+            scanStore.pendingScannedCardsForActiveDeck = []
+            ingestScannedCards(cards)
+        }
         .onAppear {
             // Auto-restore any in-progress deck. Silently loads the last draft
             // so coaches can wander off (answer a call, check a card detail,
@@ -221,7 +261,12 @@ struct DeckBuilderView: View {
             }
         }
         .overlay(alignment: .top) {
-            if let msg = pendingCardAddedBanner {
+            // Two banners share this slot: the "Add to Custom Deck"
+            // confirmation from CardDetailView, and the post-scan
+            // confirmation. They never both fire simultaneously — the
+            // scanner's banner has priority since it's the more recent
+            // event when both are non-nil.
+            if let msg = scannedAddedBanner ?? pendingCardAddedBanner {
                 HStack(spacing: Design.Spacing.sm) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(Color(hex: "4CAF50"))
@@ -262,6 +307,50 @@ struct DeckBuilderView: View {
         .onDisappear {
             // Snapshot on the way out. No-op for empty decks.
             store.saveDraft()
+        }
+    }
+
+    // MARK: - Scanner integration
+    //
+    // Configures ScanStore for a deck-builder session, then presents
+    // the camera. The queue UI (ScanQueueView) reads `source`,
+    // `currentDeckLabel`, and `availableSavedDecks` to render the deck
+    // routing block; on Save All it writes the cards back to ScanStore
+    // and we ingest them via the .onChange handler above.
+    private func presentScanner() {
+        let label = store.deckName.isEmpty ? "Current deck" : store.deckName
+        let targets = store.savedDecks
+            .filter { $0.id != store.currentDeckId }
+            .map { ScanStore.DeckTarget(id: $0.id, name: $0.name) }
+        scanStore.beginDeckBuilderSession(
+            currentDeckLabel: label,
+            availableSavedDecks: targets
+        )
+        showScan = true
+    }
+
+    /// Append each scanned card to the in-progress deck in memory. Role
+    /// inferred from cardType; Plays split into bonus_play vs play by
+    /// the existing isBonusPlay flag. Persistence happens when the coach
+    /// next saves the deck (Cmd-S equivalent in the toolbar).
+    private func ingestScannedCards(_ cards: [Card]) {
+        guard !cards.isEmpty else { return }
+        for card in cards {
+            let role: DeckCardRole = card.isHero ? .hero
+                                  : card.isHotDog ? .hotDog
+                                  : (card.isBonusPlay == true ? .bonusPlay : .play)
+            store.addCard(card, role: role)
+        }
+        showTemplates = false
+        let label = cards.count == 1
+            ? "Added \(cards[0].name) to your deck"
+            : "Added \(cards.count) cards to your deck"
+        withAnimation(.easeOut(duration: 0.25)) {
+            scannedAddedBanner = label
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation(.easeOut(duration: 0.3)) { scannedAddedBanner = nil }
         }
     }
 
@@ -432,22 +521,50 @@ struct DeckBuilderView: View {
                     .background(Design.Colors.surface)
             }
 
-            // Search
-            HStack {
-                Image(systemName: "magnifyingglass").foregroundStyle(Design.Colors.textMuted).font(.system(size: 14))
-                TextField("Search cards...", text: $store.browserSearch)
-                    .font(Design.Fonts.mono(14))
-                    .foregroundStyle(Design.Colors.textPrimary)
-                    .autocorrectionDisabled()
-                if !store.browserSearch.isEmpty {
-                    Button { store.browserSearch = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(Design.Colors.textMuted)
+            // Search + scan shortcut. Mirrors SearchView's layout: text
+            // field on the left in a glass capsule, orange "SCAN" pill
+            // on the right. Tapping scan launches a deck-builder
+            // scanner session — scanned cards default to the in-progress
+            // deck with optional fan-out to other saved decks and the
+            // Collection (selected in the queue).
+            HStack(spacing: Design.Spacing.sm) {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .font(.system(size: 14))
+                    TextField("Search cards...", text: $store.browserSearch)
+                        .font(Design.Fonts.mono(14))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                        .autocorrectionDisabled()
+                    if !store.browserSearch.isEmpty {
+                        Button { store.browserSearch = "" } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(Design.Colors.textMuted)
+                        }
                     }
                 }
+                .padding(Design.Spacing.sm)
+                .background(Design.Colors.glass)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                Button {
+                    presentScanner()
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "camera.viewfinder")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("SCAN")
+                            .font(Design.Fonts.mono(9, weight: .bold))
+                    }
+                    .foregroundStyle(Design.Colors.bobaOrange)
+                    .padding(.horizontal, 10)
+                    .frame(height: 36)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Design.Colors.bobaOrange.opacity(0.12)))
+                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Design.Colors.bobaOrange.opacity(0.4), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Scan a card into this deck")
             }
-            .padding(Design.Spacing.sm)
-            .background(Design.Colors.glass)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
             .padding(.horizontal, Design.Spacing.md)
             .padding(.vertical, Design.Spacing.xs)
 

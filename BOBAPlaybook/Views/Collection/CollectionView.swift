@@ -685,13 +685,23 @@ struct CollectionView: View {
     // to Files, AirDrop, etc. Named after the date so multiple exports
     // don't collide. The file sticks around in tmp until iOS evicts it.
     private func exportCollectionCSV() {
-        let csv = collection.exportCSV(cardStore: cardStore)
+        // When the user has Collection filters active, scope the export
+        // to only the rows that pass the filter — matches the visible
+        // grid and prevents the "I exported 'just my Fire cards' but got
+        // everything" surprise. Filter is applied via cardStore's
+        // shared filter state; an empty/no-filter state exports the
+        // full collection (preserves the prior default).
+        let restriction: Set<String>? = cardStore.activeFilterCount > 0
+            ? Set(cardStore.filteredCards.map(\.id))
+            : nil
+        let csv = collection.exportCSV(cardStore: cardStore, restrictTo: restriction)
         let stamp: String = {
             let f = DateFormatter()
             f.dateFormat = "yyyy-MM-dd"
             return f.string(from: Date())
         }()
-        let filename = "BOBA_collection_\(stamp).csv"
+        let suffix = restriction == nil ? "" : "_filtered"
+        let filename = "BOBA_collection_\(stamp)\(suffix).csv"
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         do {
             try csv.write(to: url, atomically: true, encoding: .utf8)

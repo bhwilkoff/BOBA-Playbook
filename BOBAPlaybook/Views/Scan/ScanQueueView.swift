@@ -70,6 +70,9 @@ struct ScanQueueView: View {
                 if scanStore.isShowMode {
                     showModeSummary
                 }
+                if scanStore.source == .deckBuilder {
+                    deckBuilderRouting
+                }
                 ForEach(scanStore.queuedCards) { queued in
                     queueRow(queued)
                 }
@@ -150,6 +153,97 @@ struct ScanQueueView: View {
         )
     }
 
+    // MARK: - Deck-builder routing
+    //
+    // Replaces the show-mode header when the scanner was launched from
+    // the deck builder. Surfaces:
+    //   • the in-progress deck (always selected, can't be unticked —
+    //     it's the implicit destination of the scan session)
+    //   • each saved deck the coach has, with a multi-select toggle
+    //   • a single checkbox to mirror everything to the Collection
+    @ViewBuilder
+    private var deckBuilderRouting: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            Text("ADD TO")
+                .font(Design.Fonts.mono(9, weight: .bold))
+                .tracking(1.5)
+                .foregroundStyle(Design.Colors.textMuted)
+
+            // In-progress deck — always selected, dimmed lock icon.
+            HStack(spacing: Design.Spacing.sm) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(Design.Colors.bobaOrange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(scanStore.currentDeckLabel.isEmpty
+                         ? "Current deck"
+                         : scanStore.currentDeckLabel)
+                        .font(Design.Fonts.mono(13, weight: .bold))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                    Text("In progress · always added")
+                        .font(Design.Fonts.mono(10))
+                        .foregroundStyle(Design.Colors.textMuted)
+                }
+                Spacer()
+            }
+            .padding(Design.Spacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: Design.Radius.sm)
+                    .fill(Design.Colors.bobaOrange.opacity(0.10))
+                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                        .strokeBorder(Design.Colors.bobaOrange.opacity(0.4), lineWidth: 1))
+            )
+
+            // Saved-deck multi-select rows.
+            ForEach(scanStore.availableSavedDecks) { deck in
+                let selected = scanStore.selectedDeckIds.contains(deck.id)
+                Button {
+                    if selected {
+                        scanStore.selectedDeckIds.remove(deck.id)
+                    } else {
+                        scanStore.selectedDeckIds.insert(deck.id)
+                    }
+                } label: {
+                    HStack(spacing: Design.Spacing.sm) {
+                        Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(selected ? Design.Colors.bobaCyan : Design.Colors.textMuted)
+                        Text(deck.name)
+                            .font(Design.Fonts.mono(13))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                        Spacer()
+                    }
+                    .padding(Design.Spacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: Design.Radius.sm)
+                            .fill(selected ? Design.Colors.bobaCyan.opacity(0.10) : Design.Colors.glass)
+                            .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                .strokeBorder(selected ? Design.Colors.bobaCyan.opacity(0.4) : Design.Colors.glassBorder, lineWidth: 1))
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+
+            // Mirror-to-Collection toggle.
+            Toggle(isOn: Binding(
+                get: { scanStore.alsoSaveToCollection },
+                set: { scanStore.alsoSaveToCollection = $0 }
+            )) {
+                Text("Also add to Collection")
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textPrimary)
+            }
+            .toggleStyle(SwitchToggleStyle(tint: Design.Colors.bobaOrange))
+            .padding(.top, 2)
+        }
+        .padding(Design.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Design.Radius.md)
+                .fill(Design.Colors.surface)
+                .overlay(RoundedRectangle(cornerRadius: Design.Radius.md)
+                    .strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+        )
+    }
+
     /// Header block shown above the card rows in Show Mode. Same rounded-
     /// card styling as the row pills below so the whole list reads as a
     /// stack of consistent surfaces. The total spans the full LazyVStack
@@ -196,7 +290,10 @@ struct ScanQueueView: View {
                     .foregroundStyle(saveSuccess ? .green : .red)
             }
             if saveSuccess && saveError == nil {
-                Label("All cards saved to Collection", systemImage: "checkmark.circle.fill")
+                Label(scanStore.source == .deckBuilder
+                      ? "Added to deck\(scanStore.selectedDeckIds.isEmpty ? "" : "s")"
+                      : "All cards saved to Collection",
+                      systemImage: "checkmark.circle.fill")
                     .font(Design.Fonts.mono(13))
                     .foregroundStyle(.green)
             }
@@ -206,6 +303,8 @@ struct ScanQueueView: View {
                     // Hand off to the add-to-show sheet; it handles both
                     // add-to-existing and create-new flows.
                     showAddToShow = true
+                } else if scanStore.source == .deckBuilder {
+                    Task { await saveAllToDeckBuilder() }
                 } else {
                     Task { await saveAllToCollection() }
                 }
@@ -235,7 +334,17 @@ struct ScanQueueView: View {
 
     private var saveAllLabel: String {
         if isSavingAll { return "Saving…" }
-        return scanStore.isShowMode ? "Save all to Show" : "Save All to Collection"
+        if scanStore.isShowMode { return "Save all to Show" }
+        if scanStore.source == .deckBuilder {
+            let extra = scanStore.selectedDeckIds.count
+            let collectionTag = scanStore.alsoSaveToCollection ? " + Collection" : ""
+            switch extra {
+            case 0:  return "Add to deck\(collectionTag)"
+            case 1:  return "Add to 2 decks\(collectionTag)"
+            default: return "Add to \(extra + 1) decks\(collectionTag)"
+            }
+        }
+        return "Save All to Collection"
     }
 
     // MARK: - Empty state
@@ -274,6 +383,61 @@ struct ScanQueueView: View {
         ToolbarItem(placement: .topBarTrailing) {
             Button("Done") { dismiss() }
                 .foregroundStyle(Design.Colors.bobaOrange)
+        }
+    }
+
+    // MARK: - Save all (Deck-builder path)
+    //
+    // Two-stage commit:
+    //   1. Hand the queued cards to the presenter via `onSaveToActiveDeck`
+    //      so they land in the in-progress deck's heroes/plays/etc.
+    //      lists. Persistence happens when the coach next saves the deck.
+    //   2. For each saved deck the coach multi-selected, append the
+    //      cards via SupabaseClient.appendCardsToDeck (writes directly
+    //      to deck_cards, no rewrite of the existing rows).
+    //   3. Optional Collection mirror — if the toggle is on, run the
+    //      same path Find-mode uses.
+    private func saveAllToDeckBuilder() async {
+        isSavingAll = true
+        saveError = nil
+        let cards = scanStore.queuedCards.map(\.card)
+        var firstError: String?
+
+        // 1. Hand the cards back to the deck-builder presenter via
+        //    ScanStore.pendingScannedCardsForActiveDeck. DeckBuilderView
+        //    observes this array and appends to its in-memory deck.
+        scanStore.pendingScannedCardsForActiveDeck = cards
+
+        // 2. Append to each saved deck the user picked.
+        for deckId in scanStore.selectedDeckIds {
+            do {
+                try await SupabaseClient.shared.appendCardsToDeck(
+                    deckId: deckId, cards: cards
+                )
+            } catch {
+                if firstError == nil { firstError = error.localizedDescription }
+            }
+        }
+
+        // 3. Optional Collection mirror.
+        if scanStore.alsoSaveToCollection {
+            for card in cards {
+                let entry = NewUserCard(
+                    cardNumber: card.cardNumber,
+                    bobaId: card.id,
+                    designation: .personal
+                )
+                do { try await collectionStore.addCard(entry) }
+                catch { if firstError == nil { firstError = error.localizedDescription } }
+            }
+        }
+
+        isSavingAll = false
+        if let err = firstError {
+            saveError = err
+        } else {
+            saveSuccess = true
+            scanStore.clearQueue()
         }
     }
 

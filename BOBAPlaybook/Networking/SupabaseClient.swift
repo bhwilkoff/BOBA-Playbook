@@ -579,6 +579,41 @@ final class SupabaseClient {
         return rows.map { (bobaId: $0.bobaId, cardType: $0.cardType) }
     }
 
+    /// Append cards to an existing deck without rewriting the rest of
+    /// the deck — used by the scanner-from-deck-builder flow where
+    /// scanned cards should join saved decks the user multi-selects in
+    /// the queue. Computes the next sort_order from the current
+    /// deck_cards count so newly appended rows land at the bottom.
+    /// Role per card is inferred from cardType: Hero/Play/HotDog with
+    /// `bonus_play` carved out from Play when isBonusPlay is set.
+    func appendCardsToDeck(deckId: UUID, cards: [Card]) async throws {
+        guard !cards.isEmpty else { return }
+        let existing = try await fetchDeckCards(deckId: deckId)
+        let baseOrder = existing.count
+        var rows: [[String: Any]] = []
+        for (i, card) in cards.enumerated() {
+            let role: String
+            switch card.cardType {
+            case "Hero":  role = "hero"
+            case "HotDog": role = "hot_dog"
+            case "Play":  role = card.isBonusPlay == true ? "bonus_play" : "play"
+            default:      role = "play"   // safe default for sealed/unknown
+            }
+            rows.append([
+                "deck_id": deckId.uuidString.lowercased(),
+                "boba_id": card.id,
+                "card_type": role,
+                "sort_order": baseOrder + i
+            ])
+        }
+        let url = try makeURL(path: "/rest/v1/deck_cards")
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        addHeaders(&req, authenticated: true)
+        req.httpBody = try JSONSerialization.data(withJSONObject: rows)
+        try await voidExecute(req)
+    }
+
     private func replaceDeckCards(deckId: UUID, store: DeckBuilderStore) async throws {
         // Delete existing cards
         let deleteURL = try makeURL(path: "/rest/v1/deck_cards?deck_id=eq.\(deckId)")

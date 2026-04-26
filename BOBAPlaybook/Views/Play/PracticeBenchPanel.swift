@@ -16,14 +16,13 @@ struct PracticeBenchPanel: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            // First-time hint about positioning. Auto-hides once the
-            // coach dismisses it (per-device persistence).
-            HintBanner(
-                id: .substitutionPositioning,
-                title: "TIP — SUBSTITUTION POSITIONING",
-                message: "Put your lowest-power Hero in Battle 1 so you can substitute it cheaply if you have HDs to spare. Your strongest cards are wasted in the early slots."
-            )
             // Header
+            //
+            // (Substitution-positioning hint moved out of this panel —
+            // it was pushing the bench thumbnails + detail area off
+            // the bottom of the screen and forcing coaches to dismiss
+            // it before they could substitute. The hint now floats as
+            // a top overlay on PracticeView when applicable.)
             HStack {
                 Text("YOUR BENCH")
                     .font(Design.Fonts.mono(12, weight: .bold))

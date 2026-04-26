@@ -58,7 +58,16 @@ struct PracticeView: View {
                         PracticeTopBar(
                             store: store,
                             onExit: { showExitConfirm = true },
-                            onInspectCpuDiscard: { inspectingDiscardSide = .init(side: .cpu) }
+                            onInspectCpuDiscard: { inspectingDiscardSide = .init(side: .cpu) },
+                            onShowWalkthrough: {
+                                // Reset the seen flag and re-fire the
+                                // tutorial. Anchors are already attached
+                                // to subviews via .tutorialTarget(_:),
+                                // so the spotlight ring picks them up
+                                // immediately on the next frame.
+                                tutorialSeen = false
+                                showTutorial = true
+                            }
                         )
 
                         // Active persistent-effects banner — sits BELOW the
@@ -257,6 +266,27 @@ struct PracticeView: View {
                     // ── CPU Sub Callout (shown after phase banner clears) ───
                     if let callout = store.cpuSubCallout {
                         cpuSubOverlay(callout)
+                    }
+
+                    // ── First-run hints (now top-floating, not inside the
+                    //    bench panel — when the banner sat inside the panel
+                    //    it pushed the bench thumbs + detail off-screen and
+                    //    blocked the SUBSTITUTE button).
+                    if showBenchPanel && store.phase == .sub
+                       && HintsManager.shared.shouldShow(.substitutionPositioning) {
+                        VStack {
+                            HintBanner(
+                                id: .substitutionPositioning,
+                                title: "TIP — SUBSTITUTION POSITIONING",
+                                message: "Put your lowest-power Hero in Battle 1 so you can substitute it cheaply if you have HDs to spare. Your strongest cards are wasted in the early slots."
+                            )
+                            .padding(.horizontal, Design.Spacing.md)
+                            .padding(.top, Design.Spacing.md)
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .allowsHitTesting(true)
+                        .zIndex(70)
                     }
                 }
             }

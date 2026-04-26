@@ -3466,23 +3466,66 @@ final class PracticeStore {
                 t.sourceCard
             ))
         }
+        // Group persistents by (owner, sourceCard, scope) so a card
+        // that installs multiple branches (Win or Weiners: one
+        // persistent for on_battle_win, one for on_battle_loss) shows
+        // up as ONE pill instead of N. Without grouping the user sees
+        // "WIN OR WEINERS · ... · WIN OR WEINERS · ..." which reads as
+        // duplicate noise even though only one branch will fire.
+        struct GroupKey: Hashable {
+            let owner: PlayExecContext.Side
+            let source: String
+            let scope: String
+        }
+        var grouped: [GroupKey: [PersistentEffect]] = [:]
+        var order: [GroupKey] = []
         for inst in persistents where Self.isScopeActive(inst.spec["scope"] as? String,
                                                           installedAt: inst.installedAt,
                                                           at: currentBattle, spec: inst.spec) {
-            if let label = persistentSummaryLabel(spec: inst.spec, owner: inst.owner) {
-                rows.append((
-                    UUID(),
-                    inst.owner,
-                    label,
-                    "infinity",
-                    "00F5FF",
-                    Self.battlesRemaining(for: inst.spec["scope"] as? String,
-                                          installedAt: inst.installedAt,
-                                          at: currentBattle,
-                                          spec: inst.spec),
-                    inst.sourceCard
-                ))
+            let scopeStr = (inst.spec["scope"] as? String) ?? ""
+            let key = GroupKey(owner: inst.owner, source: inst.sourceCard, scope: scopeStr)
+            // Empty source = legacy install with no attribution; don't
+            // group those (they each get their own pill so each effect
+            // is still surfaced).
+            if inst.sourceCard.isEmpty {
+                if let label = persistentSummaryLabel(spec: inst.spec, owner: inst.owner) {
+                    rows.append((
+                        UUID(), inst.owner, label, "infinity", "00F5FF",
+                        Self.battlesRemaining(for: scopeStr, installedAt: inst.installedAt, at: currentBattle, spec: inst.spec),
+                        ""
+                    ))
+                }
+                continue
             }
+            if grouped[key] == nil { order.append(key) }
+            grouped[key, default: []].append(inst)
+        }
+        for key in order {
+            guard let group = grouped[key], let first = group.first else { continue }
+            let label: String
+            if group.count == 1 {
+                label = persistentSummaryLabel(spec: first.spec, owner: first.owner)
+                    ?? "Persistent effect"
+            } else {
+                // Multi-branch card. Use a terser label that conveys
+                // "this card has N conditional branches active" — the
+                // breakdown panel still shows which branch fired post-
+                // resolution with full deltas, so the banner doesn't
+                // need to list each.
+                label = "\(group.count) conditional branches"
+            }
+            rows.append((
+                UUID(),
+                first.owner,
+                label,
+                "infinity",
+                "00F5FF",
+                Self.battlesRemaining(for: key.scope,
+                                      installedAt: first.installedAt,
+                                      at: currentBattle,
+                                      spec: first.spec),
+                first.sourceCard
+            ))
         }
         return rows
     }

@@ -4459,17 +4459,49 @@ const PM = {
         label: this._weaponTransformLabel(t),
         icon: 'transform', color: '#8B00FF',
         remaining: pmBattlesRemaining(t.scope, t.installedAt, this.currentBattle, null),
+        sourceCard: t.sourceCard || '',
       });
     }
+    // Group persistents by (owner, sourceCard, scope) so multi-branch
+    // cards (Win or Weiners installs one for on_battle_win + one for
+    // on_battle_loss) render as ONE pill instead of N — without the
+    // grouping the banner reads as duplicate noise.
+    const grouped = new Map();
+    const order = [];
     for (const inst of (this._persistents || [])) {
       const scope = inst.spec && inst.spec.scope;
       if (!pmIsScopeActive(scope, inst.installedAt, this.currentBattle, inst.spec)) continue;
-      const label = this._persistentSummaryLabel(inst.spec, inst.owner);
-      if (!label) continue;
+      const src = inst.sourceCard || '';
+      // Empty source = legacy install with no attribution; emit each
+      // pill individually so no information is lost.
+      if (!src) {
+        const label = this._persistentSummaryLabel(inst.spec, inst.owner);
+        if (!label) continue;
+        rows.push({
+          id: ++id, owner: inst.owner, label,
+          icon: 'persistent', color: '#00F5FF',
+          remaining: pmBattlesRemaining(scope, inst.installedAt, this.currentBattle, inst.spec),
+          sourceCard: '',
+        });
+        continue;
+      }
+      const key = `${inst.owner}|${src}|${scope || ''}`;
+      if (!grouped.has(key)) { grouped.set(key, []); order.push(key); }
+      grouped.get(key).push(inst);
+    }
+    for (const key of order) {
+      const group = grouped.get(key);
+      if (!group || !group.length) continue;
+      const first = group[0];
+      const scope = first.spec && first.spec.scope;
+      const label = group.length === 1
+        ? (this._persistentSummaryLabel(first.spec, first.owner) || 'Persistent effect')
+        : `${group.length} conditional branches`;
       rows.push({
-        id: ++id, owner: inst.owner, label,
+        id: ++id, owner: first.owner, label,
         icon: 'persistent', color: '#00F5FF',
-        remaining: pmBattlesRemaining(scope, inst.installedAt, this.currentBattle, inst.spec),
+        remaining: pmBattlesRemaining(scope, first.installedAt, this.currentBattle, first.spec),
+        sourceCard: first.sourceCard,
       });
     }
     return rows;

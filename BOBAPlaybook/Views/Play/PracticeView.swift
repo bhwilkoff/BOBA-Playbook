@@ -126,6 +126,16 @@ struct PracticeView: View {
                     )) { reveal in
                         PeekedHandSheet(store: store, reveal: reveal)
                     }
+                    // Delayed Recovery / "choose one of your unrevealed
+                    // Heroes" — chooser sheet listing candidate future
+                    // battles. Was previously a silent random pick
+                    // because the engine ignored the JSON's selector.
+                    .sheet(item: Binding(
+                        get: { store.pendingFutureBattlePick },
+                        set: { newValue in if newValue == nil { store.cancelFutureBattlePick() } }
+                    )) { pick in
+                        FutureBattlePickSheet(store: store, pick: pick)
+                    }
                     // Rules-clarification alert (handoff §6.A): warns
                     // when Recycle / Reload / Return from the Depths
                     // would clear active rest_of_game effects.
@@ -1782,6 +1792,127 @@ struct ScareRevealChooserSheet: View {
             }
         }
         .buttonStyle(.plain)
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - FutureBattlePickSheet
+// ════════════════════════════════════════════════════════════════
+//
+// Delayed Recovery and other cards with selector
+// `unrevealed_hero_player_pick`. Lists the candidate unrevealed
+// future battles' heroes; tapping one registers the mark.
+
+struct FutureBattlePickSheet: View {
+    let store: PracticeStore
+    let pick: PracticeStore.FutureBattlePick
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: Design.Spacing.md) {
+                    Text("Choose an Unrevealed Hero")
+                        .font(Design.Fonts.display(20))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                    Text("The card's effect triggers on the chosen hero's reveal.")
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .multilineTextAlignment(.center)
+
+                    ForEach(pick.candidateBattleIndices, id: \.self) { idx in
+                        Button {
+                            store.confirmFutureBattlePick(battleIdx: idx)
+                            dismiss()
+                        } label: {
+                            candidateRow(battleIdx: idx)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(Design.Spacing.lg)
+                .frame(maxWidth: .infinity)
+            }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        store.cancelFutureBattlePick()
+                        dismiss()
+                    }
+                    .font(Design.Fonts.mono(13, weight: .bold))
+                }
+            }
+        }
+    }
+
+    private func candidateRow(battleIdx: Int) -> some View {
+        let slot = battleIdx < store.battles.count ? store.battles[battleIdx] : nil
+        let card = pick.side == .player ? slot?.playerCard : slot?.cpuCard
+        return HStack(spacing: Design.Spacing.md) {
+            Group {
+                if let card, let file = card.imageFile, !file.isEmpty {
+                    CachedAsyncCardImage(url: CDN.full(for: file), contentMode: .fill)
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Design.Colors.glass)
+                        .overlay(
+                            Image(systemName: "questionmark.square.dashed")
+                                .font(.system(size: 24))
+                                .foregroundStyle(Design.Colors.textMuted)
+                        )
+                }
+            }
+            .frame(width: 80, height: 112)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(Design.Colors.bobaCyan.opacity(0.4), lineWidth: 1.5)
+            )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("BATTLE \(battleIdx + 1)")
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .tracking(1.5)
+                if let card {
+                    Text(card.hero.isEmpty ? card.name : card.hero)
+                        .font(Design.Fonts.display(16))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                    HStack(spacing: 8) {
+                        if let pow = card.power {
+                            Text("\(pow) POW")
+                                .font(Design.Fonts.mono(11, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Design.Colors.bobaCyan.opacity(0.7)))
+                        }
+                        Text(card.element.uppercased())
+                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .foregroundStyle(Design.Colors.element(card.element))
+                    }
+                } else {
+                    Text("Unknown hero")
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textMuted)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaCyan)
+        }
+        .padding(Design.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: Design.Radius.md)
+                .fill(Design.Colors.surface.opacity(0.85))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Design.Radius.md)
+                        .strokeBorder(Design.Colors.glass, lineWidth: 1)
+                )
+        )
     }
 }
 

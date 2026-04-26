@@ -98,6 +98,64 @@ def load_known_ops() -> set[str]:
 # engine adds a new case, also add it here OR run with --check-engine
 # to print a diff.
 
+def parse_engine_known_fields(executor_src: str) -> set[str]:
+    """Scan PlayEffects.swift + PracticeStore.swift for every JSON
+    field reference the engine reads. Picks up multiple read
+    patterns:
+      step["field"]    — op handler dispatch (canonical)
+      effect["field"]  — persistent effect blocks (dice_gate.pass_on)
+      eff["field"]     — alias used in helper functions
+      spec["field"]    — persistent spec (scope, trigger, n)
+      cond["field"]    — condition handlers (comparison, value)
+    The result is the union — any JSON field outside this set is
+    silently dropped at runtime. The canonical bug this catches is
+    Delayed Recovery's `selector: "unrevealed_hero_player_pick"`
+    that mark_future_battle never read.
+
+    Whole-file approach (vs. per-op) sidesteps the parser complexity
+    of following helper function dispatch.
+    """
+    practice_store = (ROOT / "BOBAPlaybook" / "Store" / "PracticeStore.swift").read_text()
+    haystack = executor_src + "\n" + practice_store
+    fields: set[str] = set()
+    for prefix in ("step", "effect", "eff", "spec", "cond", "args", "node"):
+        fields.update(re.findall(rf'\b{prefix}\["([^"]+)"\]', haystack))
+    return fields
+
+
+# Op-level keys the engine handles structurally rather than per-op:
+# `op` is the dispatch key, `target` is the canonical addressee
+# resolved by every op that takes one, etc. Flagging these would
+# create noise; the unread-field check skips them and focuses on
+# semantic fields whose absence-of-read silently changes behavior.
+UNIVERSAL_OP_FIELDS: set[str] = {
+    "op", "target", "kind", "scope",
+}
+
+# Fields documented as intentional descriptors the engine doesn't
+# need to act on (the rule text reads "from discard pile" but the
+# engine just adds HDs to the pool — equivalent end-state). Format:
+# (op, field) → reason. Anything not in this set, when missing from
+# the engine's `step["X"]` reads, fires the unread_op_field warning.
+INFORMATIONAL_OP_FIELDS: set[tuple[str, str]] = {
+    ("hd_recover", "from"),       # recovery source — engine treats all pools equivalently
+    ("hd", "via"),                # spend source — same equivalence
+    ("search", "from"),           # search source — engine searches all eligible pools
+    ("discard", "source"),        # discard target source
+    ("note", "text"),             # note op is documentation only
+    ("power_cap_min", "min"),     # pending: engine currently full-protects vs floor
+    ("reorder_unrevealed_heroes", "blind"),  # CPU-blind flag (engine peeks regardless in practice)
+    ("draw", "reveal"),           # hint for animation, not a state mutation
+    ("weapon_debuff_or_penalty", "named_weapon"),  # human-readable — engine resolves match in if_match branch
+    ("add_previous_hero_delta", "source"),
+    ("reclaim_used_play", "source"),
+    ("dice_roll", "players"),     # versus-vs-solo flag — handled by branch shape, not field
+    ("dice_roll", "resolve_by"),  # informational
+    ("dice_roll", "on_self_higher"), ("dice_roll", "on_opponent_higher"), ("dice_roll", "on_tie"),
+    ("persistent_delta", "trigger"), ("persistent_delta", "effect"),  # nested fields handled recursively
+}
+
+
 KNOWN_TRIGGERS: set[str] = {
     "continuous",
     "battle_start",       # legacy alias of on_battle_start; handled by applyContinuousPersistents
@@ -414,8 +472,27 @@ def _check_vocabulary(card: str, entry: dict) -> list[Finding]:
 # ─── Per-card audits ──────────────────────────────────────────────
 
 
+def _check_unread_op_fields(card: str, entry: dict,
+                             engine_known_fields: set[str]) -> list[Finding]:
+    """Walk every op step in `entry` and flag fields the engine never
+    reads ANYWHERE. Catches Delayed Recovery's `selector` on
+    mark_future_battle that the handler ignored — JSON looked
+    correct but the player-pick semantics never fired.
+    """
+    out: list[Finding] = []
+    for op_name, step in walk_ops(entry):
+        for field in step.keys():
+            if field in UNIVERSAL_OP_FIELDS: continue
+            if field in engine_known_fields: continue
+            if (op_name, field) in INFORMATIONAL_OP_FIELDS: continue
+            out.append(Finding(card, "warning", "unread_op_field",
+                f"Op '{op_name}' has JSON field '{field}' the engine "
+                f"never reads — value is silently dropped"))
+    return out
+
+
 def audit_card(name: str, entry: dict, card: dict | None,
-               known_ops: set[str]) -> list[Finding]:
+               known_ops: set[str], engine_known_fields: set[str]) -> list[Finding]:
     fnd: list[Finding] = []
 
     # ── Catalog presence ─────────────────────────────────────────
@@ -660,6 +737,13 @@ def audit_card(name: str, entry: dict, card: dict | None,
                                    f"`choice` op has {len(opts)} option(s); collapse to direct ops "
                                    f"or add real alternatives"))
 
+    # ── Unread op fields ─────────────────────────────────────────
+    # Engine-source scan: any JSON field on an op step that the
+    # engine never reads anywhere is silently dropped. Caught
+    # Delayed Recovery's `selector` that mark_future_battle ignored
+    # so the player-pick semantics never surfaced as a chooser.
+    fnd.extend(_check_unread_op_fields(name, entry, engine_known_fields))
+
     # ── Comprehensive vocabulary sweep ───────────────────────────
     # Walks the entire entry tree and flags any value the engine
     # doesn't recognize. Catches the silent-no-op classes:
@@ -895,10 +979,11 @@ def main() -> int:
     entries = load_play_effects()
     catalog = load_catalog()
     known_ops = load_known_ops()
+    engine_known_fields = parse_engine_known_fields(EXECUTOR_PATH.read_text())
 
     findings: list[Finding] = []
     for name in sorted(entries.keys()):
-        findings.extend(audit_card(name, entries[name], catalog.get(name), known_ops))
+        findings.extend(audit_card(name, entries[name], catalog.get(name), known_ops, engine_known_fields))
 
     if args.json:
         print(json.dumps([f.to_dict() for f in findings], indent=2))

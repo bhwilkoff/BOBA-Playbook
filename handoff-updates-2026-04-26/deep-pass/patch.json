@@ -1,0 +1,12 @@
+{
+  "modify": [],
+  "stats": {
+    "decision": "DO_NOT_APPLY",
+    "reason": "Deep-pass OCR consensus produced 2/3 false positives on spot-check (RAD-555 + SF-30 Pudge cases — Vision misread '150' and '180' as '158'). Even with strict 70%+ vote share, the OCR is unreliable enough on stylized BoBA art that auto-patching introduces more errors than it fixes. Manual review via manual_review.html is the safe path forward.",
+    "deep_pass_total": 218,
+    "would_have_patched": 3,
+    "false_positive_rate_in_sample": "2 of 3 verified wrong",
+    "manual_review_queue": 164,
+    "consensus_matches_catalog": 51
+  }
+}

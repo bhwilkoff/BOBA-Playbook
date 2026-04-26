@@ -6,196 +6,231 @@
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "ABF-198-Butterfly Sting-Alpha Battlefoil-First Edition",
       "changes": {
         "power": 190
       },
-      "reason": "OCR-confirmed printed power 190 (catalog had 195); confidence 1.00"
+      "reason": "OCR-confirmed printed power 190 (catalog had 195); hero match"
     },
     {
       "old_bobaId": "ABF-197-Game Time-Alpha Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "ABF-196-Pauldron-Alpha Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "ABF-199-Maverick-Alpha Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "ABF-195-Dunker-Alpha Battlefoil-John Starks Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "ABF-200-Mad Scientist-Alpha Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "ABF-202-PB Buckets-Alpha Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "ABF-201-Alexander the Great-Alpha Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "ABF-274-Cheryl Bomb-Alpha Battlefoil-Cheryl Miller Debut",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 175); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 175); hero match"
+    },
+    {
+      "old_bobaId": "ABF-324-Game Over-Alpha Battlefoil-Éric Gagné Debut",
+      "changes": {
+        "power": 105
+      },
+      "reason": "OCR-confirmed printed power 105 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "ABF-328-Game Time-Alpha Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "ABF-327-Pauldron-Alpha Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "ABF-326-Dunker-Alpha Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "ABF-405-Cheryl Bomb-Alpha Battlefoil-Cheryl Miller Debut",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 175); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 175); hero match"
     },
     {
       "old_bobaId": "ABF-457-Dunker-Alpha Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "ABF-458-Pauldron-Alpha Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "ABF-459-Game Time-Alpha Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "ABF-588-Dunker-Alpha Battlefoil-John Starks Debut",
+      "changes": {
+        "power": 130
+      },
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "ABF-589-Pauldron-Alpha Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "ABF-590-Game Time-Alpha Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "ABF-719-Dunker-Alpha Battlefoil-John Starks Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
+    },
+    {
+      "old_bobaId": "ABF-720-Pauldron-Alpha Battlefoil-Paula Badosa Debut",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "ABF-721-Game Time-Alpha Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "ABF-723-Maverick-Alpha Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "ABF-724-Mad Scientist-Alpha Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "ABF-725-Alexander the Great-Alpha Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
+    },
+    {
+      "old_bobaId": "ABF-726-PB Buckets-Alpha Battlefoil-First Edition",
+      "changes": {
+        "power": 160
+      },
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "ADPA-6-All day-Inspired Ink Battlefoil-Adrian Peterson Debut",
       "changes": {
         "power": 195
       },
-      "reason": "OCR-confirmed printed power 195 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 195 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "BBF-65-Pauldron-Blue Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "BBF-64-Dunker-Blue Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "BBF-66-Game Time-Blue Battlefoil-Jim Boeheim Debut",
+      "changes": {
+        "power": 140
+      },
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "BBFA-133-Bojax-Silver Blast-Founding Hero Alpha Update",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "BF-61-LeBoss-Battlefoil-First Edition",
@@ -209,406 +244,469 @@
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "BF-63-Chosen-Battlefoil-First Edition",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "BF-64-Midas-Battlefoil-First Edition",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "BF-65-Bison-Battlefoil-First Edition",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 140); hero match"
+    },
+    {
+      "old_bobaId": "BF-66-Wargod-Battlefoil-First Edition",
+      "changes": {
+        "power": 150
+      },
+      "reason": "OCR-confirmed printed power 150 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "BF-67-Donny Buckets-Battlefoil-First Edition",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "BF-68-Warp-Battlefoil-First Edition",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "BF-69-Harpoon-Battlefoil-First Edition",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "BF-70-Mustang-Battlefoil-First Edition",
       "changes": {
         "power": 145
       },
-      "reason": "OCR-confirmed printed power 145 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 145 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "BF-71-Jaybird-Battlefoil-First Edition",
       "changes": {
         "power": 145
       },
-      "reason": "OCR-confirmed printed power 145 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 145 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "BF-73-Merri-Go-Round-Battlefoil-First Edition",
       "changes": {
         "power": 145
       },
-      "reason": "OCR-confirmed printed power 145 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 145 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "BF-72-J-Jetts-Battlefoil-First Edition",
       "changes": {
         "power": 145
       },
-      "reason": "OCR-confirmed printed power 145 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 145 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "BF-74-Shystep-Battlefoil-First Edition",
       "changes": {
         "power": 145
       },
-      "reason": "OCR-confirmed printed power 145 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 145 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "BF-75-Ram-Battlefoil-First Edition",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "BF-77-Lightningrod-Battlefoil-First Edition",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "BF-76-Freakshow-Battlefoil-First Edition",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "BF-78-Bayou-Battlefoil-First Edition",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "BF-79-McArmyKnife-Battlefoil-First Edition",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "BF-80-Tigre-Battlefoil-First Edition",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "BF-81-Cheetah-Battlefoil-First Edition",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "BF-82-Spider-Battlefoil-First Edition",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "BF-83-Crews-Missle-Battlefoil-First Edition",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "BF-84-Unibrow-Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "BF-85-Exterminaber-Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "BF-86-Bomber-Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "BF-87-Juice-Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "BF-88-Attak-Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "BF-89-ChetMate-Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "BF-91-Lieutenant-Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "BF-90-Phoenix-Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "BF-92-Snowbear-Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "BF-93-Boltage-Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "BF-95-Aeronaut-Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "BF-94-Librarian-Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "BF-96-Sabotage-Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "BF-97-Mic'd Up-Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "BF-98-Jambox-Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 110); hero match"
+    },
+    {
+      "old_bobaId": "BF-99-Simon Says-Battlefoil-First Edition",
+      "changes": {
+        "power": 125
+      },
+      "reason": "OCR-confirmed printed power 125 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "BF-101-Pantera-Battlefoil-First Edition",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "BF-102-Rockstar-Battlefoil-First Edition",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 110); hero match"
+    },
+    {
+      "old_bobaId": "BF-103-Big-Z-Battlefoil-First Edition",
+      "changes": {
+        "power": 140
+      },
+      "reason": "OCR-confirmed printed power 140 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "BF-104-Clutch-Battlefoil-First Edition",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "BF-105-PukaDot-Battlefoil-First Edition",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "BF-106-Sprinkler-Battlefoil-First Edition",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "BF-107-Foxhole-Battlefoil-First Edition",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "BF-108-Thomstone-Battlefoil-First Edition",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 105); hero match"
+    },
+    {
+      "old_bobaId": "BF-109-Botto-Battlefoil-First Edition",
+      "changes": {
+        "power": 135
+      },
+      "reason": "OCR-confirmed printed power 135 (catalog had 100); hero match"
     },
     {
       "old_bobaId": "BF-110-Lawman-Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 100); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 100); hero match"
     },
     {
       "old_bobaId": "BF-111-Barnacle-Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 100); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 100); hero match"
     },
     {
       "old_bobaId": "BF-112-Laviathan-Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 100); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 100); hero match"
     },
     {
       "old_bobaId": "BF-113-Breeze-Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 100); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 100); hero match"
     },
     {
       "old_bobaId": "BF-114-Gravedigger-Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 100); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 100); hero match"
     },
     {
       "old_bobaId": "BF-115-D-Hop-Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 95); hero match"
+    },
+    {
+      "old_bobaId": "BF-116-Alien-Battlefoil-First Edition",
+      "changes": {
+        "power": 130
+      },
+      "reason": "OCR-confirmed printed power 130 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "BF-117-Portalize-Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "BF-118-Torque-Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "BF-119-Risarcher-Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 95); hero match"
+    },
+    {
+      "old_bobaId": "BF-120-Sarrtillery-Battlefoil-First Edition",
+      "changes": {
+        "power": 130
+      },
+      "reason": "OCR-confirmed printed power 130 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "BFA-3-Emmitt-164-Inspired Ink Battlefoil-Emmitt Smith Debut",
       "changes": {
         "power": 164
       },
-      "reason": "OCR-confirmed printed power 164 (catalog had 200); confidence 1.00"
+      "reason": "OCR-confirmed printed power 164 (catalog had 200); hero match"
+    },
+    {
+      "old_bobaId": "BFA-71-Kurse-Inspired Ink Battlefoil-Jevon Kearse Debut",
+      "changes": {
+        "power": 150
+      },
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "BFA-130-Howietzer-Inspired Ink Battlefoil-Howie Long Debut",
+      "changes": {
+        "power": 163
+      },
+      "reason": "OCR-confirmed printed power 163 (catalog had 165); hero match"
     },
     {
       "old_bobaId": "BFA-140-Caveman-Inspired Ink Battlefoil-Johnny Damon Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "BGA-12-Bus-Inspired Ink Bubble Gum Battlefoil-Jerome Bettis Debut",
+      "changes": {
+        "power": 175
+      },
+      "reason": "OCR-confirmed printed power 175 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "BGA-24-Curaçao Kid-Inspired Ink Bubble Gum Battlefoil-Anduw Jones Debut",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 180); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 180); hero match"
     },
     {
       "old_bobaId": "BGA-32-Bone-Inspired Ink Bubble Gum Battlefoil-Jay Buhner Debut",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 175); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 175); hero match"
     },
     {
       "old_bobaId": "BGA-38-BuckShot-Inspired Ink Bubble Gum Battlefoil-Buck Showalter Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 170); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 170); hero match"
     },
     {
       "old_bobaId": "BHBF-60-Sarrtillery-Blue Headlines Battlefoil-First Edition",
       "changes": {
         "power": 106
       },
-      "reason": "OCR-confirmed printed power 106 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 106 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "BL-B40-C.C.-Blue Blast-First Edition",
@@ -622,210 +720,266 @@
       "changes": {
         "power": 110
       },
-      "reason": "OCR-confirmed printed power 110 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 110 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "BLBF-195-Dunker-Blizzard Battlefoil-John Starks Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "BLBF-197-Game Time-Blizzard Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "BLBF-196-Pauldron-Blizzard Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "BLBF-198-Butterfly Sting-Blizzard Battlefoil-First Edition",
       "changes": {
         "power": 190
       },
-      "reason": "OCR-confirmed printed power 190 (catalog had 195); confidence 1.00"
+      "reason": "OCR-confirmed printed power 190 (catalog had 195); hero match"
     },
     {
       "old_bobaId": "BLBF-199-Maverick-Blizzard Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
+    },
+    {
+      "old_bobaId": "BLBF-200-Mad Scientist-Blizzard Battlefoil-First Edition",
+      "changes": {
+        "power": 185
+      },
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
+    },
+    {
+      "old_bobaId": "BLBF-201-Alexander the Great-Blizzard Battlefoil-First Edition",
+      "changes": {
+        "power": 180
+      },
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "BLBF-202-PB Buckets-Blizzard Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
+    },
+    {
+      "old_bobaId": "BLBF-326-Dunker-Blizzard Battlefoil-John Starks Debut",
+      "changes": {
+        "power": 140
+      },
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "BLBF-327-Pauldron-Blizzard Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "BLBF-328-Game Time-Blizzard Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "BLBF-459-Game Time-Blizzard Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "BLBF-458-Pauldron-Blizzard Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "BLBF-457-Dunker-Blizzard Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "BLBF-588-Dunker-Blizzard Battlefoil-John Starks Debut",
+      "changes": {
+        "power": 130
+      },
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "BLBF-589-Pauldron-Blizzard Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "BLBF-590-Game Time-Blizzard Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "BLBF-719-Dunker-Blizzard Battlefoil-John Starks Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "BLBF-720-Pauldron-Blizzard Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
+    },
+    {
+      "old_bobaId": "BLBF-723-Maverick-Blizzard Battlefoil-First Edition",
+      "changes": {
+        "power": 160
+      },
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
+    },
+    {
+      "old_bobaId": "BLBF-724-Mad Scientist-Blizzard Battlefoil-First Edition",
+      "changes": {
+        "power": 160
+      },
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
+    },
+    {
+      "old_bobaId": "BLBF-721-Game Time-Blizzard Battlefoil-Jim Boeheim Debut",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "BLBF-725-Alexander the Great-Blizzard Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
+    },
+    {
+      "old_bobaId": "BLBF-726-PB Buckets-Blizzard Battlefoil-First Edition",
+      "changes": {
+        "power": 160
+      },
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "CBF-198-Butterfly Sting-Colosseum Battlefoil-First Edition",
       "changes": {
         "power": 190
       },
-      "reason": "OCR-confirmed printed power 190 (catalog had 195); confidence 1.00"
+      "reason": "OCR-confirmed printed power 190 (catalog had 195); hero match"
     },
     {
       "old_bobaId": "CBF-195-Dunker-Colosseum Battlefoil-John Starks Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "CBF-197-Game Time-Colosseum Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "CBF-196-Pauldron-Colosseum Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "CBF-201-Alexander the Great-Colosseum Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "CBF-202-PB Buckets-Colosseum Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "CBF-200-Mad Scientist-Colosseum Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "CBF-326-Dunker-Colosseum Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "CBF-327-Pauldron-Colosseum Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "CBF-328-Game Time-Colosseum Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "CBF-457-Dunker-Colosseum Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "CBF-458-Pauldron-Colosseum Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "CBF-459-Game Time-Colosseum Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "CBF-589-Pauldron-Colosseum Battlefoil-Paula Badosa Debut",
@@ -835,158 +989,186 @@
       "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
     },
     {
+      "old_bobaId": "CBF-588-Dunker-Colosseum Battlefoil-John Starks Debut",
+      "changes": {
+        "power": 130
+      },
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
+    },
+    {
       "old_bobaId": "CBF-590-Game Time-Colosseum Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "CBF-719-Dunker-Colosseum Battlefoil-John Starks Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "CBF-720-Pauldron-Colosseum Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "CBF-721-Game Time-Colosseum Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "CBF-724-Mad Scientist-Colosseum Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "CBF-725-Alexander the Great-Colosseum Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "CBF-723-Maverick-Colosseum Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "CBF-726-PB Buckets-Colosseum Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
+    },
+    {
+      "old_bobaId": "CHILL-20-Bags-Chillin' Battlefoil-Jeff Bagwell Debut",
+      "changes": {
+        "power": 143
+      },
+      "reason": "OCR-confirmed printed power 143 (catalog had 165); hero match"
     },
     {
       "old_bobaId": "CHILL-66-Game Time-Chillin' Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "CHILL-65-Pauldron-Chillin' Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "CHILL-64-Dunker-Chillin' Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "CJ-5-CJ Maddux-Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
+    },
+    {
+      "old_bobaId": "CJ-4-CJ Maddux-Battlefoil-First Edition",
+      "changes": {
+        "power": 190
+      },
+      "reason": "OCR-confirmed printed power 190 (catalog had 195); hero match"
     },
     {
       "old_bobaId": "CJ-6-CJ Maddux-Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "CJ-7-CJ Maddux-Battlefoil-First Edition",
       "changes": {
         "power": 170
       },
-      "reason": "OCR-confirmed printed power 170 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 170 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "CYB-13-Emmitt-164-Cyber-2025 Cyber Promo",
       "changes": {
         "power": 164
       },
-      "reason": "OCR-confirmed printed power 164 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 164 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "DEA-6-ECKS-Inspired Ink Battlefoil-Dennis Eckersley Debut",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "EDLCA-6-Cruze Control-Inspired Ink Battlefoil-Elly De La Cruz Unmasked",
       "changes": {
         "power": 195
       },
-      "reason": "OCR-confirmed printed power 195 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 195 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "FHA-5-King Felix-Inspired Ink Battlefoil-Félix Hernández Debut",
       "changes": {
         "power": 170
       },
-      "reason": "OCR-confirmed printed power 170 (catalog had 175); confidence 1.00"
+      "reason": "OCR-confirmed printed power 170 (catalog had 175); hero match"
     },
     {
       "old_bobaId": "FHA-6-King Felix-Inspired Ink Battlefoil-Félix Hernández Debut",
       "changes": {
         "power": 170
       },
-      "reason": "OCR-confirmed printed power 170 (catalog had 175); confidence 1.00"
+      "reason": "OCR-confirmed printed power 170 (catalog had 175); hero match"
     },
     {
       "old_bobaId": "FT-66-Game Time-Fire Tracks Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "FT-65-Pauldron-Fire Tracks Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "FT-64-Dunker-Fire Tracks Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "FT-91-Botto-Fire Tracks Battlefoil-First Edition",
+      "changes": {
+        "power": 128
+      },
+      "reason": "OCR-confirmed printed power 128 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "FT-127-Forcefield-Fire Tracks Battlefoil-First Edition",
@@ -1000,161 +1182,182 @@
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "GBF-64-Dunker-Green Battlefoil-John Starks Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GBF-65-Pauldron-Green Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GBF-66-Game Time-Green Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GBF-68-Maverick-Green Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "GBF-67-Butterfly Sting-Green Battlefoil-First Edition",
       "changes": {
         "power": 190
       },
-      "reason": "OCR-confirmed printed power 190 (catalog had 195); confidence 1.00"
+      "reason": "OCR-confirmed printed power 190 (catalog had 195); hero match"
     },
     {
       "old_bobaId": "GBF-69-Mad Scientist-Green Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "GBF-70-Alexander the Great-Green Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "GBF-71-PB Buckets-Green Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "GGL-195-Dunker-Great Grandma's Linoleum Battlefoil-John Starks Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GGL-196-Pauldron-Great Grandma's Linoleum Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GGL-197-Game Time-Great Grandma's Linoleum Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GGL-198-Butterfly Sting-Great Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 190
       },
-      "reason": "OCR-confirmed printed power 190 (catalog had 195); confidence 1.00"
+      "reason": "OCR-confirmed printed power 190 (catalog had 195); hero match"
     },
     {
       "old_bobaId": "GGL-199-Maverick-Great Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "GGL-201-Alexander the Great-Great Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "GGL-200-Mad Scientist-Great Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "GGL-202-PB Buckets-Great Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "GGL-327-Pauldron-Great Grandma's Linoleum Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GGL-326-Dunker-Great Grandma's Linoleum Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GGL-328-Game Time-Great Grandma's Linoleum Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GGL-459-Game Time-Great Grandma's Linoleum Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GGL-458-Pauldron-Great Grandma's Linoleum Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "GGL-457-Dunker-Great Grandma's Linoleum Battlefoil-John Starks Debut",
+      "changes": {
+        "power": 140
+      },
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "GGL-455-Game Over-Great Grandma's Linoleum Battlefoil-Éric Gagné Debut",
+      "changes": {
+        "power": 138
+      },
+      "reason": "OCR-confirmed printed power 138 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "GGL-526-The Kid-Great Grandma's Linoleum Battlefoil-Cover Hero",
       "changes": {
         "power": 202
       },
-      "reason": "OCR-confirmed printed power 202 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 202 (catalog had 185); hero match"
+    },
+    {
+      "old_bobaId": "GGL-588-Dunker-Great Grandma's Linoleum Battlefoil-John Starks Debut",
+      "changes": {
+        "power": 130
+      },
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GGL-589-Pauldron-Great Grandma's Linoleum Battlefoil-Paula Badosa Debut",
@@ -1168,511 +1371,546 @@
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GGL-721-Game Time-Great Grandma's Linoleum Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "GGL-723-Maverick-Great Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "GGL-720-Pauldron-Great Grandma's Linoleum Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "GGL-719-Dunker-Great Grandma's Linoleum Battlefoil-John Starks Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "GGL-725-Alexander the Great-Great Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "GGL-726-PB Buckets-Great Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "GGL-724-Mad Scientist-Great Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "GLBF-43-BoJax-Grandma's Linoleum Battlefoil-Founding Hero Alpha Update",
       "changes": {
         "power": 190
       },
-      "reason": "OCR-confirmed printed power 190 (catalog had 195); confidence 1.00"
+      "reason": "OCR-confirmed printed power 190 (catalog had 195); hero match"
     },
     {
       "old_bobaId": "GLBF-169-BoJax-Grandma's Linoleum Battlefoil-Founding Hero Alpha Update",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 170); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 170); hero match"
     },
     {
       "old_bobaId": "GLBF-195-Dunker-Grandma's Linoleum Battlefoil-John Starks Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GLBF-196-Pauldron-Grandma's Linoleum Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "GLBF-197-Game Time-Grandma's Linoleum Battlefoil-Jim Boeheim Debut",
+      "changes": {
+        "power": 150
+      },
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GLBF-199-Maverick-Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "GLBF-198-Butterfly Sting-Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 190
       },
-      "reason": "OCR-confirmed printed power 190 (catalog had 195); confidence 1.00"
+      "reason": "OCR-confirmed printed power 190 (catalog had 195); hero match"
     },
     {
       "old_bobaId": "GLBF-200-Mad Scientist-Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "GLBF-201-Alexander the Great-Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "GLBF-202-PB Buckets-Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "GLBF-327-Pauldron-Grandma's Linoleum Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GLBF-326-Dunker-Grandma's Linoleum Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GLBF-328-Game Time-Grandma's Linoleum Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "GLBF-457-Dunker-Grandma's Linoleum Battlefoil-John Starks Debut",
+      "changes": {
+        "power": 140
+      },
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GLBF-459-Game Time-Grandma's Linoleum Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GLBF-458-Pauldron-Grandma's Linoleum Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GLBF-590-Game Time-Grandma's Linoleum Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GLBF-589-Pauldron-Grandma's Linoleum Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "GLBF-588-Dunker-Grandma's Linoleum Battlefoil-John Starks Debut",
+      "changes": {
+        "power": 130
+      },
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GLBF-586-Game Over-Grandma's Linoleum Battlefoil-Éric Gagné Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "GLBF-721-Game Time-Grandma's Linoleum Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "GLBF-719-Dunker-Grandma's Linoleum Battlefoil-John Starks Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "GLBF-723-Maverick-Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "GLBF-720-Pauldron-Grandma's Linoleum Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "GLBF-726-PB Buckets-Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "GLBF-725-Alexander the Great-Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "GLBF-724-Mad Scientist-Grandma's Linoleum Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
+    },
+    {
+      "old_bobaId": "GRILL-66-Game Time-Grillin' Battlefoil-Jim Boeheim Debut",
+      "changes": {
+        "power": 140
+      },
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GRILL-65-Pauldron-Grillin' Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "GRILL-64-Dunker-Grillin' Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "IBF-66-Butterfly Sting-Icon Battlefoil-First Edition",
       "changes": {
         "power": 190
       },
-      "reason": "OCR-confirmed printed power 190 (catalog had 195); confidence 1.00"
+      "reason": "OCR-confirmed printed power 190 (catalog had 195); hero match"
     },
     {
       "old_bobaId": "IBF-67-Maverick-Icon Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "IBF-70-PB Buckets-Icon Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "IBF-69-Alexander the Great-Icon Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "IBF-68-Mad Scientist-Icon Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "IBF-193-Action-Icon Battlefoil-2026 Edition",
       "changes": {
         "power": 106
       },
-      "reason": "OCR-confirmed printed power 106 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 106 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "IBF-194-Go-Cart-Icon Battlefoil-First Edition",
       "changes": {
         "power": 106
       },
-      "reason": "OCR-confirmed printed power 106 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 106 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "IBF-328-Mad Scientist-Icon Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "IBF-327-Maverick-Icon Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "IBF-329-Alexander the Great-Icon Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "IBF-330-PB Buckets-Icon Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "IBF-367-JacHammer-Icon Battlefoil-First Edition",
       "changes": {
         "power": 106
       },
-      "reason": "OCR-confirmed printed power 106 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 106 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "JLPA-6-Peppers-Inspired Ink Battlefoil-Julius Peppers Debut",
       "changes": {
         "power": 170
       },
-      "reason": "OCR-confirmed printed power 170 (catalog had 175); confidence 1.00"
+      "reason": "OCR-confirmed printed power 170 (catalog had 175); hero match"
     },
     {
       "old_bobaId": "JKMA-6-Captain Hook-Inspired Ink Battlefoil-Jack Morris Debut",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "LOGO-195-Dunker-Logofoil-John Starks Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "LOGO-201-Alexander the Great-Logofoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "LOGO-198-Butterfly Sting-Logofoil-First Edition",
       "changes": {
         "power": 190
       },
-      "reason": "OCR-confirmed printed power 190 (catalog had 195); confidence 1.00"
+      "reason": "OCR-confirmed printed power 190 (catalog had 195); hero match"
     },
     {
       "old_bobaId": "LOGO-196-Pauldron-Logofoil-Paula Badosa Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "LOGO-200-Mad Scientist-Logofoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "LOGO-197-Game Time-Logofoil-Jim Boeheim Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "LOGO-199-Maverick-Logofoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "LOGO-202-PB Buckets-Logofoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "LOGO-326-Dunker-Logofoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "LOGO-327-Pauldron-Logofoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "LOGO-328-Game Time-Logofoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "LOGO-457-Dunker-Logofoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "LOGO-458-Pauldron-Logofoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "LOGO-459-Game Time-Logofoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "LOGO-589-Pauldron-Logofoil-Paula Badosa Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "LOGO-590-Game Time-Logofoil-Jim Boeheim Debut",
+      "changes": {
+        "power": 130
+      },
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "LOGO-588-Dunker-Logofoil-John Starks Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "LOGO-719-Dunker-Logofoil-John Starks Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "LOGO-720-Pauldron-Logofoil-Paula Badosa Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "LOGO-721-Game Time-Logofoil-Jim Boeheim Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "LOGO-723-Maverick-Logofoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "LOGO-726-PB Buckets-Logofoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "LOGO-724-Mad Scientist-Logofoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "LOGO-725-Alexander the Great-Logofoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MBFA-2-Emmitt-164-Inspired Ink Metallic Battlefoil-Emmitt Smith Debut",
       "changes": {
         "power": 164
       },
-      "reason": "OCR-confirmed printed power 164 (catalog had 170); confidence 1.00"
+      "reason": "OCR-confirmed printed power 164 (catalog had 170); hero match"
     },
     {
       "old_bobaId": "MI-3-Emmitt-164-Miami Ice Battlefoil-Emmitt Smith Debut",
       "changes": {
         "power": 164
       },
-      "reason": "OCR-confirmed printed power 164 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 164 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "MI-65-Pauldron-Miami Ice Battlefoil-Paula Badosa Debut",
@@ -1689,1187 +1927,1425 @@
       "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
     },
     {
+      "old_bobaId": "MI-64-Dunker-Miami Ice Battlefoil-John Starks Debut",
+      "changes": {
+        "power": 140
+      },
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
+    },
+    {
       "old_bobaId": "MIX-2-Magic-Mixtape Battlefoil-Magic Johnson Debut",
       "changes": {
         "power": 220
       },
-      "reason": "OCR-confirmed printed power 220 (catalog had 200); confidence 1.00"
+      "reason": "OCR-confirmed printed power 220 (catalog had 200); hero match"
     },
     {
       "old_bobaId": "MIX-62-Game Over-Mixtape Battlefoil-Éric Gagné Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "MIX-166-Bells-Mixtape Battlefoil-George Bell Debut",
+      "changes": {
+        "power": 185
+      },
+      "reason": "OCR-confirmed printed power 185 (catalog had 165); hero match"
     },
     {
       "old_bobaId": "MIX-165-Mull & Bones-Mixtape Battlefoil-Chris Mullin Debut",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 165); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 165); hero match"
+    },
+    {
+      "old_bobaId": "MIX-169-BoJax-Mixtape Battlefoil-Founding Hero Alpha Update",
+      "changes": {
+        "power": 185
+      },
+      "reason": "OCR-confirmed printed power 185 (catalog had 170); hero match"
+    },
+    {
+      "old_bobaId": "MIX-168-The Red Baron-Mixtape Battlefoil-Rick Sutcliffe Debut",
+      "changes": {
+        "power": 185
+      },
+      "reason": "OCR-confirmed printed power 185 (catalog had 165); hero match"
     },
     {
       "old_bobaId": "MIX-167-Rainestorm-Mixtape Battlefoil-Tim Raines Debut",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 165); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 165); hero match"
     },
     {
       "old_bobaId": "MIX-169-JAW-JAW-Mixtape Battlefoil-Ron Jaworski Debut",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 165); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 165); hero match"
     },
     {
       "old_bobaId": "MIX-170-Gar-Mixtape Battlefoil-Edgar Martinez Debut",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 165); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 165); hero match"
     },
     {
       "old_bobaId": "MIX-187-Perkolator-Mixtape Battlefoil-Sam Perkins Debut",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MIX-189-Ante-de something K-Mixtape Battlefoil-Kostas Antetokounmpo Debut",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MIX-188-Ante-de-something T-Mixtape Battlefoil-Thanasis Antetokounmpo Debut",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MIX-190-Ante-de-something A-Mixtape Battlefoil-Alex Antetokounmpo Debut",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MIX-191-Mr. Clean-Mixtape Battlefoil-Steve Garvey Debut",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MIX-193-Game Over-Mixtape Battlefoil-Éric Gagné Debut",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MIX-192-Rollin'-Mixtape Battlefoil-Scott Rolen Debut",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MIX-194-PG-D3-Mixtape Battlefoil-Pierre Garçon Debut",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MIX-198-Butterfly Sting-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 190
       },
-      "reason": "OCR-confirmed printed power 190 (catalog had 195); confidence 1.00"
+      "reason": "OCR-confirmed printed power 190 (catalog had 195); hero match"
     },
     {
       "old_bobaId": "MIX-199-Maverick-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "MIX-200-Mad Scientist-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "MIX-202-PB Buckets-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "MIX-201-Alexander the Great-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "MIX-203-Maverick-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "MIX-204-Gaveler-Mixtape Battlefoil-2026 Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 140); hero match"
+    },
+    {
+      "old_bobaId": "MIX-205-Victory-Mixtape Battlefoil-2026 Edition",
+      "changes": {
+        "power": 160
+      },
+      "reason": "OCR-confirmed printed power 160 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "MIX-206-Dijon-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "MIX-207-Crosbow-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "MIX-208-Warden-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "MIX-210-Skuba-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "MIX-209-PB Buckets-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "MIX-211-Haliburst-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "MIX-213-Dumper-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "MIX-212-Dart-Board-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "MIX-217-Maxed Out-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "MIX-216-Air Ace-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 130); hero match"
+    },
+    {
+      "old_bobaId": "MIX-215-Cupid-Mixtape Battlefoil-2026 Edition",
+      "changes": {
+        "power": 150
+      },
+      "reason": "OCR-confirmed printed power 150 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "MIX-218-King Tuck-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "MIX-219-Macho-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "MIX-220-Gladiator-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "MIX-237-Bandelero-Mixtape Battlefoil-2026 Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "MIX-257-Bangford-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
+    },
+    {
+      "old_bobaId": "MIX-258-Forcefield-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-259-Amoeba-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-261-Go-Cart-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-260-Action-Mixtape Battlefoil-2026 Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-262-Castler-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-288-Fingers-Mixtape Battlefoil-Rollie Fingers Debut",
       "changes": {
         "power": 165
       },
-      "reason": "OCR-confirmed printed power 165 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 165 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-289-Gator-Mixtape Battlefoil-Steve Spurrier Debut",
       "changes": {
         "power": 165
       },
-      "reason": "OCR-confirmed printed power 165 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 165 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "MIX-290-ECKS-Mixtape Battlefoil-Dennis Eckersley Debut",
+      "changes": {
+        "power": 165
+      },
+      "reason": "OCR-confirmed printed power 165 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-292-Smoltzie-Mixtape Battlefoil-John Smoltz Debut",
       "changes": {
         "power": 165
       },
-      "reason": "OCR-confirmed printed power 165 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 165 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-291-All day-Mixtape Battlefoil-Adrian Peterson Debut",
       "changes": {
         "power": 165
       },
-      "reason": "OCR-confirmed printed power 165 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 165 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-293-Pudge-Mixtape Battlefoil-Carlton Fisk Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-294-Vlad the Impaler-Mixtape Battlefoil-Vladimir Guerrero Sr. Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-305-Aeronaut-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "MIX-308-Bern Baby, Bern-Mixtape Battlefoil-Bernie Williams Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MIX-323-Rollin'-Mixtape Battlefoil-Scott Rolen Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "MIX-325-D-Hop-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-324-Game Over-Mixtape Battlefoil-Éric Gagné Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "MIX-326-Dunker-Mixtape Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-327-Pauldron-Mixtape Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-328-Game Time-Mixtape Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-326-Alien-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-329-Risarcher-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-330-Sarrtillery-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-360-Caliber-Mixtape Battlefoil-2026 Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "MIX-365-Aeronaut-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "MIX-379-Botto-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-380-Lawman-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-381-Barnacle-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-384-Golden Bullet-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-384-Gravedigger-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-383-Lumber-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-385-D-Hop-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-386-Alien-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-388-Bangford-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-387-Bell-Camp-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
+    },
+    {
+      "old_bobaId": "MIX-388-Torque-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
+    },
+    {
+      "old_bobaId": "MIX-390-Amoeba-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-389-Risarcher-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-390-Sarrtillery-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
+    },
+    {
+      "old_bobaId": "MIX-389-Forcefield-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-392-Go-Cart-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-393-Castler-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-421-Lieutenant-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 110); hero match"
+    },
+    {
+      "old_bobaId": "MIX-424-Librarian-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "MIX-424-Pudge-Mixtape Battlefoil-Carlton Fisk Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-426-Sabotage-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "MIX-425-Aeronaut-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "MIX-439-Botto-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-441-Barnacle-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-440-Lawman-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-442-Laviathan-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-443-Breeze-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-444-Gravedigger-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-445-D-Hop-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-446-Alien-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-449-Risarcher-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-450-Sarrtillery-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-457-Dunker-Mixtape Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-458-Pauldron-Mixtape Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-460-Butterfly Sting-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 190
       },
-      "reason": "OCR-confirmed printed power 190 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 190 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "MIX-459-Game Time-Mixtape Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-475-Exterminaber-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 110); hero match"
+    },
+    {
+      "old_bobaId": "MIX-489-Jeanetic-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 145
+      },
+      "reason": "OCR-confirmed printed power 145 (catalog had 115); hero match"
+    },
+    {
+      "old_bobaId": "MIX-491-Caliber-Mixtape Battlefoil-2026 Edition",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "MIX-493-Big-Z-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-496-Sprinkler-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-498-Thomstone-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-497-Foxhole-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
+    },
+    {
+      "old_bobaId": "MIX-499-Botto-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-501-Barnacle-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-500-Lawman-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-502-Laviathan-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-504-Gravedigger-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-503-Breeze-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-514-Lumber-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-513-Zephyr-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-518-Bell-Camp-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-515-Golden Bullet-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-519-Bangford-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-520-Forcefield-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-522-Action-Mixtape Battlefoil-2026 Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-524-Castler-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
+    },
+    {
+      "old_bobaId": "MIX-523-Go-Cart-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
+    },
+    {
+      "old_bobaId": "MIX-555-Pudge-Mixtape Battlefoil-Carlton Fisk Debut",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MIX-583-Ante-de-something A-Mixtape Battlefoil-Alex Antetokounmpo Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "MIX-580-Perkolator-Mixtape Battlefoil-Sam Perkins Debut",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "MIX-589-Pauldron-Mixtape Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-588-Dunker-Mixtape Battlefoil-John Starks Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-590-Game Time-Mixtape Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "MIX-585-Rollin'-Mixtape Battlefoil-Scott Rolen Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 130); hero match"
+    },
+    {
+      "old_bobaId": "MIX-638-Canine-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
+    },
+    {
+      "old_bobaId": "MIX-640-Javalanche-Mixtape Battlefoil-2026 Edition",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-642-Thorn-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-639-Superbaby-Mixtape Battlefoil-2026 Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-644-Zephyr-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
+    },
+    {
+      "old_bobaId": "MIX-650-Bangford-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 85); hero match"
     },
     {
       "old_bobaId": "MIX-645-Lumber-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-649-Bell-Camp-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-646-Golden Bullet-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
+    },
+    {
+      "old_bobaId": "MIX-647-Ozzmosis-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-653-Action-Mixtape Battlefoil-2026 Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 85); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 85); hero match"
     },
     {
       "old_bobaId": "MIX-652-Amoeba-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 85); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 85); hero match"
     },
     {
       "old_bobaId": "MIX-686-Pudge-Mixtape Battlefoil-Carlton Fisk Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "MIX-720-Pauldron-Mixtape Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MIX-719-Dunker-Mixtape Battlefoil-John Starks Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MIX-721-Game Time-Mixtape Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MIX-723-Maverick-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "MIX-724-Mad Scientist-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "MIX-725-Alexander the Great-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MIX-726-PB Buckets-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "MIX-757-Tattoo-Mixtape Battlefoil-2026 Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 95); hero match"
+    },
+    {
+      "old_bobaId": "MIX-758-Brawn-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 130
+      },
+      "reason": "OCR-confirmed printed power 130 (catalog had 95); hero match"
+    },
+    {
+      "old_bobaId": "MIX-760-Courthouse-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 113
+      },
+      "reason": "OCR-confirmed printed power 113 (catalog had 95); hero match"
+    },
+    {
+      "old_bobaId": "MIX-761-Bandelero-Mixtape Battlefoil-2026 Edition",
+      "changes": {
+        "power": 110
+      },
+      "reason": "OCR-confirmed printed power 110 (catalog had 95); hero match"
+    },
+    {
+      "old_bobaId": "MIX-763-JacHammer-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 113
+      },
+      "reason": "OCR-confirmed printed power 113 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-762-Kettle-Bell-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "MIX-764-BaldWing-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 113
       },
-      "reason": "OCR-confirmed printed power 113 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 113 (catalog had 90); hero match"
+    },
+    {
+      "old_bobaId": "MIX-767-Homestead-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 113
+      },
+      "reason": "OCR-confirmed printed power 113 (catalog had 90); hero match"
+    },
+    {
+      "old_bobaId": "MIX-770-Superbaby-Mixtape Battlefoil-2026 Edition",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 85); hero match"
+    },
+    {
+      "old_bobaId": "MIX-768-Scary-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 112
+      },
+      "reason": "OCR-confirmed printed power 112 (catalog had 90); hero match"
+    },
+    {
+      "old_bobaId": "MIX-766-Camera-Mixtape Battlefoil-First Edition",
+      "changes": {
+        "power": 113
+      },
+      "reason": "OCR-confirmed printed power 113 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "MIX-771-Javalanche-Mixtape Battlefoil-2026 Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 85); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 85); hero match"
     },
     {
       "old_bobaId": "MIX-774-Chiller-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 85); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 85); hero match"
     },
     {
       "old_bobaId": "MIX-780-Bell-Camp-Mixtape Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 80); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 80); hero match"
     },
     {
       "old_bobaId": "OBF-64-Dunker-Orange Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "OBF-65-Pauldron-Orange Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "OBF-66-Game Time-Orange Battlefoil-Jim Boeheim Debut",
+      "changes": {
+        "power": 140
+      },
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "OBF-101-Risarcher-Orange Battlefoil-First Edition",
       "changes": {
         "power": 106
       },
-      "reason": "OCR-confirmed printed power 106 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 106 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "OBF-127-Forcefield-Orange Battlefoil-First Edition",
       "changes": {
         "power": 106
       },
-      "reason": "OCR-confirmed printed power 106 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 106 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "PG-64-Dunker-Power Glove Battlefoil-John Starks Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
+    },
+    {
+      "old_bobaId": "PG-65-Pauldron-Power Glove Battlefoil-Paula Badosa Debut",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "PG-66-Game Time-Power Glove Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "PG-68-Maverick-Power Glove Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "PG-70-Alexander the Great-Power Glove Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "PG-69-Mad Scientist-Power Glove Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "PG-71-PB Buckets-Power Glove Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "PG-110-Rook-Power Glove Battlefoil-First Edition",
       "changes": {
         "power": 106
       },
-      "reason": "OCR-confirmed printed power 106 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 106 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "PG-111-Camera-Power Glove Battlefoil-First Edition",
       "changes": {
         "power": 106
       },
-      "reason": "OCR-confirmed printed power 106 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 106 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "PG-125-Bell-Camp-Power Glove Battlefoil-First Edition",
       "changes": {
         "power": 108
       },
-      "reason": "OCR-confirmed printed power 108 (catalog had 80); confidence 1.00"
+      "reason": "OCR-confirmed printed power 108 (catalog had 80); hero match"
+    },
+    {
+      "old_bobaId": "RAD-2-Magic-80's Rad Battlefoil-Magic Johnson Debut",
+      "changes": {
+        "power": 220
+      },
+      "reason": "OCR-confirmed printed power 220 (catalog had 200); hero match"
     },
     {
       "old_bobaId": "RAD-43-BoJax-80's Rad Battlefoil-Founding Hero Alpha Update",
       "changes": {
         "power": 190
       },
-      "reason": "OCR-confirmed printed power 190 (catalog had 195); confidence 1.00"
+      "reason": "OCR-confirmed printed power 190 (catalog had 195); hero match"
     },
     {
       "old_bobaId": "RAD-44-Magic-80's Rad Battlefoil-Magic Johnson Debut",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "RAD-45-Emmitt-164-80's Rad Battlefoil-Emmitt Smith Debut",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "RAD-46-Marino-80's Rad Battlefoil-Dan Marino Debut",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "RAD-47-Barry \"Cutback\" Sanders-80's Rad Battlefoil-Barry Sanders Debut",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "RAD-48-Muggsy-80's Rad Battlefoil-Muggsy Bogues Debut",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
+    },
+    {
+      "old_bobaId": "RAD-50-The Ironman-80's Rad Battlefoil-Cal Ripkin JR Debut",
+      "changes": {
+        "power": 180
+      },
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "RAD-49-Spudnick-80's Rad Battlefoil-Spudd Webb Debut",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
+    },
+    {
+      "old_bobaId": "RAD-51-Peek-A-Boo-80's Rad Battlefoil-Picabo Street Debut",
+      "changes": {
+        "power": 180
+      },
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "RAD-52-Wizard-80's Rad Battlefoil-Ozzie Smith Debut",
       "changes": {
         "power": 175
       },
-      "reason": "OCR-confirmed printed power 175 (catalog had 180); confidence 1.00"
+      "reason": "OCR-confirmed printed power 175 (catalog had 180); hero match"
     },
     {
       "old_bobaId": "RAD-53-Joey Jawz-80's Rad Battlefoil-Joey Chestnut Debut",
       "changes": {
         "power": 175
       },
-      "reason": "OCR-confirmed printed power 175 (catalog had 180); confidence 1.00"
+      "reason": "OCR-confirmed printed power 175 (catalog had 180); hero match"
     },
     {
       "old_bobaId": "RAD-54-Bus-80's Rad Battlefoil-Jerome Bettis Debut",
       "changes": {
         "power": 175
       },
-      "reason": "OCR-confirmed printed power 175 (catalog had 180); confidence 1.00"
+      "reason": "OCR-confirmed printed power 175 (catalog had 180); hero match"
     },
     {
       "old_bobaId": "RAD-55-Chicken Man-80's Rad Battlefoil-Wade Boggs Debut",
       "changes": {
         "power": 175
       },
-      "reason": "OCR-confirmed printed power 175 (catalog had 180); confidence 1.00"
+      "reason": "OCR-confirmed printed power 175 (catalog had 180); hero match"
     },
     {
       "old_bobaId": "RAD-56-HowBout'em-80's Rad Battlefoil-Jimmy Johnson Debut",
       "changes": {
         "power": 175
       },
-      "reason": "OCR-confirmed printed power 175 (catalog had 180); confidence 1.00"
+      "reason": "OCR-confirmed printed power 175 (catalog had 180); hero match"
     },
     {
       "old_bobaId": "RAD-57-Sea-Largent-80's Rad Battlefoil-Steve Largent Debut",
       "changes": {
         "power": 165
       },
-      "reason": "OCR-confirmed printed power 165 (catalog had 175); confidence 1.00"
+      "reason": "OCR-confirmed printed power 165 (catalog had 175); hero match"
     },
     {
       "old_bobaId": "RAD-58-Howietzer-80's Rad Battlefoil-Howie Long Debut",
       "changes": {
         "power": 165
       },
-      "reason": "OCR-confirmed printed power 165 (catalog had 175); confidence 1.00"
+      "reason": "OCR-confirmed printed power 165 (catalog had 175); hero match"
     },
     {
       "old_bobaId": "RAD-59-Goggles-80's Rad Battlefoil-Eric Dickerson Debut",
       "changes": {
         "power": 165
       },
-      "reason": "OCR-confirmed printed power 165 (catalog had 175); confidence 1.00"
+      "reason": "OCR-confirmed printed power 165 (catalog had 175); hero match"
     },
     {
       "old_bobaId": "RAD-60-Steady Eddie-80's Rad Battlefoil-Eddie George Debut",
       "changes": {
         "power": 165
       },
-      "reason": "OCR-confirmed printed power 165 (catalog had 175); confidence 1.00"
+      "reason": "OCR-confirmed printed power 165 (catalog had 175); hero match"
     },
     {
       "old_bobaId": "RAD-61-X.L.-80's Rad Battlefoil-Xavier Legette Alpha Update",
       "changes": {
         "power": 165
       },
-      "reason": "OCR-confirmed printed power 165 (catalog had 175); confidence 1.00"
+      "reason": "OCR-confirmed printed power 165 (catalog had 175); hero match"
     },
     {
       "old_bobaId": "RAD-62-Pet Dog-80's Rad Battlefoil-Ethan Petry Debut",
       "changes": {
         "power": 165
       },
-      "reason": "OCR-confirmed printed power 165 (catalog had 175); confidence 1.00"
+      "reason": "OCR-confirmed printed power 165 (catalog had 175); hero match"
     },
     {
       "old_bobaId": "RAD-64-Boom-80's Rad Battlefoil-Boomer Esiason Debut",
       "changes": {
         "power": 165
       },
-      "reason": "OCR-confirmed printed power 165 (catalog had 175); confidence 1.00"
+      "reason": "OCR-confirmed printed power 165 (catalog had 175); hero match"
     },
     {
       "old_bobaId": "RAD-63-Windmill-80's Rad Battlefoil-Dominique Wilkins Debut",
@@ -2883,1057 +3359,1113 @@
       "changes": {
         "power": 165
       },
-      "reason": "OCR-confirmed printed power 165 (catalog had 175); confidence 1.00"
+      "reason": "OCR-confirmed printed power 165 (catalog had 175); hero match"
     },
     {
       "old_bobaId": "RAD-66-Curaçao Kid-80's Rad Battlefoil-Anduw Jones Debut",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 170); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 170); hero match"
     },
     {
       "old_bobaId": "RAD-67-Sterling-80's Rad Battlefoil-Sterling Sharpe Debut",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 170); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 170); hero match"
     },
     {
       "old_bobaId": "RAD-68-Caveman-80's Rad Battlefoil-Johnny Damon Debut",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 170); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 170); hero match"
     },
     {
       "old_bobaId": "RAD-69-Lady Magic-80's Rad Battlefoil-Nancy Lieberman Debut",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 170); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 170); hero match"
     },
     {
       "old_bobaId": "RAD-70-Hoge-Ball-80's Rad Battlefoil-Merril Hoge Debut",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 165); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 165); hero match"
     },
     {
       "old_bobaId": "RAD-71-InVinceable-80's Rad Battlefoil-Vince Young Debut",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 165); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 165); hero match"
     },
     {
       "old_bobaId": "RAD-72-Slash-80's Rad Battlefoil-Kordell Stewart Debut",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 165); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 165); hero match"
     },
     {
       "old_bobaId": "RAD-74-Bone-80's Rad Battlefoil-Jay Buhner Debut",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 165); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 165); hero match"
     },
     {
       "old_bobaId": "RAD-73-Tikoff-80's Rad Battlefoil-Fred Biletnikoff Debut",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 165); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 165); hero match"
     },
     {
       "old_bobaId": "RAD-75-Kurse-80's Rad Battlefoil-Jevon Kearse Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-76-Deep Freeze-80's Rad Battlefoil-George Gervin Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-77-Woody-80's Rad Battlefoil-Darren Woodson Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-78-Coopanova-80's Rad Battlefoil-Cynthia Cooper Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-79-Hard-Drive-80's Rad Battlefoil-Tim Hardaway Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-80-BuckShot-80's Rad Battlefoil-Buck Showalter Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-81-Haymaker-80's Rad Battlefoil-Spencer Haywood Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-82-Tank-80's Rad Battlefoil-Bo Said So",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "RAD-84-AJax-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "RAD-169-BoJax-80's Rad Battlefoil-Founding Hero Alpha Update",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 170); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 170); hero match"
     },
     {
       "old_bobaId": "RAD-195-Dunker-80's Rad Battlefoil-John Starks Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
+    },
+    {
+      "old_bobaId": "RAD-196-Pauldron-80's Rad Battlefoil-Paula Badosa Debut",
+      "changes": {
+        "power": 150
+      },
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-197-Game Time-80's Rad Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-198-Butterfly Sting-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 190
       },
-      "reason": "OCR-confirmed printed power 190 (catalog had 195); confidence 1.00"
+      "reason": "OCR-confirmed printed power 190 (catalog had 195); hero match"
     },
     {
       "old_bobaId": "RAD-199-Maverick-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "RAD-201-Alexander the Great-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "RAD-200-Mad Scientist-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "RAD-202-PB Buckets-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "RAD-271-LeBoss-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "RAD-272-Merlomes-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "RAD-273-Chosen-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "RAD-274-Midas-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "RAD-276-Wargod-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "RAD-275-Bison-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 140); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "RAD-277-Donny Buckets-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "RAD-278-Warp-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "RAD-279-Harpoon-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "RAD-280-Mustang-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "RAD-282-J-Jetts-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 135); hero match"
+    },
+    {
+      "old_bobaId": "RAD-281-Jaybird-80's Rad Battlefoil-First Edition",
+      "changes": {
+        "power": 130
+      },
+      "reason": "OCR-confirmed printed power 130 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "RAD-283-Merri-Go-Round-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "RAD-284-Shystep-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "RAD-285-Ram-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "RAD-286-Freakshow-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "RAD-287-Lightningrod-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "RAD-288-Bayou-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "RAD-290-Tigre-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "RAD-289-McArmyKnife-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "RAD-292-Spider-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 125); hero match"
+    },
+    {
+      "old_bobaId": "RAD-291-Cheetah-80's Rad Battlefoil-First Edition",
+      "changes": {
+        "power": 120
+      },
+      "reason": "OCR-confirmed printed power 120 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "RAD-294-Unibrow-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "RAD-293-Crews-Missle-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "RAD-296-Bomber-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 115
       },
-      "reason": "OCR-confirmed printed power 115 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 115 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "RAD-295-Exterminaber-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 115
       },
-      "reason": "OCR-confirmed printed power 115 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 115 (catalog had 120); hero match"
+    },
+    {
+      "old_bobaId": "RAD-297-Juice-80's Rad Battlefoil-First Edition",
+      "changes": {
+        "power": 115
+      },
+      "reason": "OCR-confirmed printed power 115 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "RAD-298-Attak-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 115
       },
-      "reason": "OCR-confirmed printed power 115 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 115 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "RAD-299-ChetMate-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 115
       },
-      "reason": "OCR-confirmed printed power 115 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 115 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "RAD-300-Phoenix-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 115
       },
-      "reason": "OCR-confirmed printed power 115 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 115 (catalog had 120); hero match"
+    },
+    {
+      "old_bobaId": "RAD-301-Lieutenant-80's Rad Battlefoil-First Edition",
+      "changes": {
+        "power": 110
+      },
+      "reason": "OCR-confirmed printed power 110 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "RAD-302-Snowbear-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 110
       },
-      "reason": "OCR-confirmed printed power 110 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 110 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "RAD-304-Librarian-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 110
       },
-      "reason": "OCR-confirmed printed power 110 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 110 (catalog had 115); hero match"
+    },
+    {
+      "old_bobaId": "RAD-303-Boltage-80's Rad Battlefoil-First Edition",
+      "changes": {
+        "power": 110
+      },
+      "reason": "OCR-confirmed printed power 110 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "RAD-305-Aeronaut-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 110
       },
-      "reason": "OCR-confirmed printed power 110 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 110 (catalog had 115); hero match"
+    },
+    {
+      "old_bobaId": "RAD-306-Sabotage-80's Rad Battlefoil-First Edition",
+      "changes": {
+        "power": 110
+      },
+      "reason": "OCR-confirmed printed power 110 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "RAD-307-Mic'd Up-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 105
       },
-      "reason": "OCR-confirmed printed power 105 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 105 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "RAD-308-Jambox-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 105
       },
-      "reason": "OCR-confirmed printed power 105 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 105 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "RAD-310-Mr. Irrelevant-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 105
       },
-      "reason": "OCR-confirmed printed power 105 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 105 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "RAD-309-Simon Says-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 105
       },
-      "reason": "OCR-confirmed printed power 105 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 105 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "RAD-312-Rockstar-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 105
       },
-      "reason": "OCR-confirmed printed power 105 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 105 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "RAD-311-Pantera-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 105
       },
-      "reason": "OCR-confirmed printed power 105 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 105 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "RAD-314-Clutch-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 100
       },
-      "reason": "OCR-confirmed printed power 100 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 100 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "RAD-313-Big-Z-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 100
       },
-      "reason": "OCR-confirmed printed power 100 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 100 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "RAD-315-PukaDot-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 100
       },
-      "reason": "OCR-confirmed printed power 100 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 100 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "RAD-316-Sprinkler-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 100
       },
-      "reason": "OCR-confirmed printed power 100 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 100 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "RAD-317-Foxhole-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 100
       },
-      "reason": "OCR-confirmed printed power 100 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 100 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "RAD-318-Thomstone-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 100
       },
-      "reason": "OCR-confirmed printed power 100 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 100 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "RAD-326-Dunker-80's Rad Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-327-Pauldron-80's Rad Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-328-Game Time-80's Rad Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-347-Barreler-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 105
       },
-      "reason": "OCR-confirmed printed power 105 (catalog had 100); confidence 1.00"
+      "reason": "OCR-confirmed printed power 105 (catalog had 100); hero match"
     },
     {
       "old_bobaId": "RAD-348-Barreler-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 100
       },
-      "reason": "OCR-confirmed printed power 100 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 100 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "RAD-349-Barreler-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 100
       },
-      "reason": "OCR-confirmed printed power 100 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 100 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "RAD-457-Dunker-80's Rad Battlefoil-John Starks Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-458-Pauldron-80's Rad Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-459-Game Time-80's Rad Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-580-Perkolator-80's Rad Battlefoil-Sam Perkins Debut",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "RAD-588-Dunker-80's Rad Battlefoil-John Starks Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-589-Pauldron-80's Rad Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-590-Game Time-80's Rad Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "RAD-719-Dunker-80's Rad Battlefoil-John Starks Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "RAD-724-Mad Scientist-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "RAD-720-Pauldron-80's Rad Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "RAD-721-Game Time-80's Rad Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "RAD-723-Maverick-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "RAD-726-PB Buckets-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "RAD-725-Alexander the Great-80's Rad Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "RBF-64-Dunker-Red Battlefoil-John Starks Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "RBF-66-Game Time-Red Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "RBF-65-Pauldron-Red Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "RBF-68-Maverick-Red Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "RBF-70-Alexander the Great-Red Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "RBF-69-Mad Scientist-Red Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 155); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 155); hero match"
     },
     {
       "old_bobaId": "RBF-71-PB Buckets-Red Battlefoil-First Edition",
       "changes": {
         "power": 160
       },
-      "reason": "OCR-confirmed printed power 160 (catalog had 150); confidence 1.00"
+      "reason": "OCR-confirmed printed power 160 (catalog had 150); hero match"
     },
     {
       "old_bobaId": "RBF-121-Lumber-Red Battlefoil-First Edition",
       "changes": {
         "power": 108
       },
-      "reason": "OCR-confirmed printed power 108 (catalog had 80); confidence 1.00"
+      "reason": "OCR-confirmed printed power 108 (catalog had 80); hero match"
     },
     {
       "old_bobaId": "RBF-125-Bell-Camp-Red Battlefoil-First Edition",
       "changes": {
         "power": 108
       },
-      "reason": "OCR-confirmed printed power 108 (catalog had 80); confidence 1.00"
+      "reason": "OCR-confirmed printed power 108 (catalog had 80); hero match"
     },
     {
       "old_bobaId": "RJA-6-Mr. October-Inspired Ink Battlefoil-Reggie Jackson Debut",
       "changes": {
         "power": 155
       },
-      "reason": "OCR-confirmed printed power 155 (catalog had 165); confidence 1.00"
+      "reason": "OCR-confirmed printed power 155 (catalog had 165); hero match"
     },
     {
       "old_bobaId": "SBF-1-LeBoss-Silver Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "SBF-2-Merlomes-Silver Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "SBF-3-Chosen-Silver Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "SBF-4-Midas-Silver Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "SBF-5-Bison-Silver Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "SBF-6-Wargod-Silver Battlefoil-First Edition",
       "changes": {
         "power": 135
       },
-      "reason": "OCR-confirmed printed power 135 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 135 (catalog had 130); hero match"
     },
     {
       "old_bobaId": "SBF-7-Donny Buckets-Silver Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "SBF-8-Warp-Silver Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "SBF-9-Harpoon-Silver Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "SBF-10-Mustang-Silver Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "SBF-11-Jaybird-Silver Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "SBF-12-J-Jetts-Silver Battlefoil-First Edition",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 125); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 125); hero match"
     },
     {
       "old_bobaId": "SBF-14-Shystep-Silver Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "SBF-13-Merri-Go-Round-Silver Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "SBF-15-Ram-Silver Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "SBF-16-Freakshow-Silver Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "SBF-17-Lightningrod-Silver Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "SBF-18-Bayou-Silver Battlefoil-First Edition",
       "changes": {
         "power": 125
       },
-      "reason": "OCR-confirmed printed power 125 (catalog had 120); confidence 1.00"
+      "reason": "OCR-confirmed printed power 125 (catalog had 120); hero match"
     },
     {
       "old_bobaId": "SBF-20-Tigre-Silver Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "SBF-19-McArmyKnife-Silver Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "SBF-21-Cheetah-Silver Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "SBF-22-Spider-Silver Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "SBF-24-Unibrow-Silver Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "SBF-23-Crews-Missle-Silver Battlefoil-First Edition",
       "changes": {
         "power": 120
       },
-      "reason": "OCR-confirmed printed power 120 (catalog had 115); confidence 1.00"
+      "reason": "OCR-confirmed printed power 120 (catalog had 115); hero match"
     },
     {
       "old_bobaId": "SBF-26-Bomber-Silver Battlefoil-First Edition",
       "changes": {
         "power": 115
       },
-      "reason": "OCR-confirmed printed power 115 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 115 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "SBF-25-Exterminaber-Silver Battlefoil-First Edition",
       "changes": {
         "power": 115
       },
-      "reason": "OCR-confirmed printed power 115 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 115 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "SBF-28-Attak-Silver Battlefoil-First Edition",
       "changes": {
         "power": 115
       },
-      "reason": "OCR-confirmed printed power 115 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 115 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "SBF-27-Juice-Silver Battlefoil-First Edition",
       "changes": {
         "power": 115
       },
-      "reason": "OCR-confirmed printed power 115 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 115 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "SBF-29-ChetMate-Silver Battlefoil-First Edition",
       "changes": {
         "power": 115
       },
-      "reason": "OCR-confirmed printed power 115 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 115 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "SBF-30-Phoenix-Silver Battlefoil-First Edition",
       "changes": {
         "power": 115
       },
-      "reason": "OCR-confirmed printed power 115 (catalog had 110); confidence 1.00"
+      "reason": "OCR-confirmed printed power 115 (catalog had 110); hero match"
     },
     {
       "old_bobaId": "SBF-31-Lieutenant-Silver Battlefoil-First Edition",
       "changes": {
         "power": 110
       },
-      "reason": "OCR-confirmed printed power 110 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 110 (catalog had 105); hero match"
+    },
+    {
+      "old_bobaId": "SBF-32-Snowbear-Silver Battlefoil-First Edition",
+      "changes": {
+        "power": 110
+      },
+      "reason": "OCR-confirmed printed power 110 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "SBF-33-Boltage-Silver Battlefoil-First Edition",
       "changes": {
         "power": 110
       },
-      "reason": "OCR-confirmed printed power 110 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 110 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "SBF-34-Librarian-Silver Battlefoil-First Edition",
       "changes": {
         "power": 110
       },
-      "reason": "OCR-confirmed printed power 110 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 110 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "SBF-36-Sabotage-Silver Battlefoil-First Edition",
       "changes": {
         "power": 110
       },
-      "reason": "OCR-confirmed printed power 110 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 110 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "SBF-35-Aeronaut-Silver Battlefoil-First Edition",
       "changes": {
         "power": 110
       },
-      "reason": "OCR-confirmed printed power 110 (catalog had 105); confidence 1.00"
+      "reason": "OCR-confirmed printed power 110 (catalog had 105); hero match"
     },
     {
       "old_bobaId": "SBF-37-Mic'd Up-Silver Battlefoil-First Edition",
       "changes": {
         "power": 105
       },
-      "reason": "OCR-confirmed printed power 105 (catalog had 100); confidence 1.00"
+      "reason": "OCR-confirmed printed power 105 (catalog had 100); hero match"
     },
     {
       "old_bobaId": "SBF-38-Jambox-Silver Battlefoil-First Edition",
       "changes": {
         "power": 105
       },
-      "reason": "OCR-confirmed printed power 105 (catalog had 100); confidence 1.00"
+      "reason": "OCR-confirmed printed power 105 (catalog had 100); hero match"
     },
     {
       "old_bobaId": "SBF-39-Simon Says-Silver Battlefoil-First Edition",
       "changes": {
         "power": 105
       },
-      "reason": "OCR-confirmed printed power 105 (catalog had 100); confidence 1.00"
+      "reason": "OCR-confirmed printed power 105 (catalog had 100); hero match"
     },
     {
       "old_bobaId": "SBF-40-Mr. Irrelevant-Silver Battlefoil-First Edition",
       "changes": {
         "power": 105
       },
-      "reason": "OCR-confirmed printed power 105 (catalog had 100); confidence 1.00"
+      "reason": "OCR-confirmed printed power 105 (catalog had 100); hero match"
     },
     {
       "old_bobaId": "SBF-42-Rockstar-Silver Battlefoil-First Edition",
       "changes": {
         "power": 105
       },
-      "reason": "OCR-confirmed printed power 105 (catalog had 100); confidence 1.00"
+      "reason": "OCR-confirmed printed power 105 (catalog had 100); hero match"
     },
     {
       "old_bobaId": "SBF-41-Pantera-Silver Battlefoil-First Edition",
       "changes": {
         "power": 105
       },
-      "reason": "OCR-confirmed printed power 105 (catalog had 100); confidence 1.00"
+      "reason": "OCR-confirmed printed power 105 (catalog had 100); hero match"
     },
     {
       "old_bobaId": "SBF-43-Big-Z-Silver Battlefoil-First Edition",
       "changes": {
         "power": 100
       },
-      "reason": "OCR-confirmed printed power 100 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 100 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "SBF-44-Clutch-Silver Battlefoil-First Edition",
       "changes": {
         "power": 100
       },
-      "reason": "OCR-confirmed printed power 100 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 100 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "SBF-46-Sprinkler-Silver Battlefoil-First Edition",
       "changes": {
         "power": 100
       },
-      "reason": "OCR-confirmed printed power 100 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 100 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "SBF-47-Foxhole-Silver Battlefoil-First Edition",
       "changes": {
         "power": 100
       },
-      "reason": "OCR-confirmed printed power 100 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 100 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "SBF-45-PukaDot-Silver Battlefoil-First Edition",
       "changes": {
         "power": 100
       },
-      "reason": "OCR-confirmed printed power 100 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 100 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "SBF-48-Eraser-Silver Battlefoil-Alysha Clark Debut",
       "changes": {
         "power": 140
       },
-      "reason": "OCR-confirmed printed power 140 (catalog had 135); confidence 1.00"
+      "reason": "OCR-confirmed printed power 140 (catalog had 135); hero match"
     },
     {
       "old_bobaId": "SBF-48-Thomstone-Silver Battlefoil-First Edition",
       "changes": {
         "power": 100
       },
-      "reason": "OCR-confirmed printed power 100 (catalog had 95); confidence 1.00"
+      "reason": "OCR-confirmed printed power 100 (catalog had 95); hero match"
     },
     {
       "old_bobaId": "SBF-64-Dunker-Silver Battlefoil-John Starks Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "SBF-65-Pauldron-Silver Battlefoil-Paula Badosa Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "SBF-66-Game Time-Silver Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 130
       },
-      "reason": "OCR-confirmed printed power 130 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 130 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "SBF-121-Lumber-Silver Battlefoil-First Edition",
       "changes": {
         "power": 106
       },
-      "reason": "OCR-confirmed printed power 106 (catalog had 90); confidence 1.00"
+      "reason": "OCR-confirmed printed power 106 (catalog had 90); hero match"
     },
     {
       "old_bobaId": "SF-41-Skeee-Superfoil-First Edition",
@@ -3947,70 +4479,77 @@
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "SL-64-Dunker-Slime Battlefoil-John Starks Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "SL-66-Game Time-Slime Battlefoil-Jim Boeheim Debut",
       "changes": {
         "power": 150
       },
-      "reason": "OCR-confirmed printed power 150 (catalog had 160); confidence 1.00"
+      "reason": "OCR-confirmed printed power 150 (catalog had 160); hero match"
     },
     {
       "old_bobaId": "SL-68-Maverick-Slime Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "SL-67-Butterfly Sting-Slime Battlefoil-First Edition",
       "changes": {
         "power": 190
       },
-      "reason": "OCR-confirmed printed power 190 (catalog had 195); confidence 1.00"
+      "reason": "OCR-confirmed printed power 190 (catalog had 195); hero match"
     },
     {
       "old_bobaId": "SL-69-Mad Scientist-Slime Battlefoil-First Edition",
       "changes": {
         "power": 185
       },
-      "reason": "OCR-confirmed printed power 185 (catalog had 190); confidence 1.00"
+      "reason": "OCR-confirmed printed power 185 (catalog had 190); hero match"
     },
     {
       "old_bobaId": "SL-71-PB Buckets-Slime Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
     },
     {
       "old_bobaId": "SL-70-Alexander the Great-Slime Battlefoil-First Edition",
       "changes": {
         "power": 180
       },
-      "reason": "OCR-confirmed printed power 180 (catalog had 185); confidence 1.00"
+      "reason": "OCR-confirmed printed power 180 (catalog had 185); hero match"
+    },
+    {
+      "old_bobaId": "SRA-6-Rollin'-Inspired Ink Battlefoil-Scott Rolen Debut",
+      "changes": {
+        "power": 117
+      },
+      "reason": "OCR-confirmed printed power 117 (catalog had 140); hero match"
     },
     {
       "old_bobaId": "SSE-18-Hitstick-Paper & Battlefoil-Sandstorm Edition",
       "changes": {
         "power": 113
       },
-      "reason": "OCR-confirmed printed power 113 (catalog had 130); confidence 1.00"
+      "reason": "OCR-confirmed printed power 113 (catalog had 130); hero match"
     }
   ],
   "stats": {
     "total_inspected": 15691,
     "matches": 14788,
-    "high_conf_mismatches": 572,
-    "low_conf_mismatches": 303,
+    "high_conf_mismatches": 649,
+    "low_conf_mismatches": 226,
     "no_power_extracted": 28,
     "confidence_threshold": 0.85
   }

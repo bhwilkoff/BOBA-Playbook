@@ -2304,7 +2304,8 @@ function pmExecStep(step, ctx, out) {
     }
     case 'mark_future_battle': {
       const side = step.target === 'opponent' ? ctx.opp : ctx.self;
-      pmIntentMarkFutureBattle(side, step.on_reveal_effects || []);
+      const selector = step.selector || 'random';
+      pmIntentMarkFutureBattle(side, step.on_reveal_effects || [], selector);
       out.notifications.push(`Marked a future battle`);
       out.hasEffect = true;
       break;
@@ -3043,15 +3044,83 @@ function pmIntentTransformToHotDog(side) {
   }
 }
 
-function pmIntentMarkFutureBattle(side, onReveal) {
+function pmIntentMarkFutureBattle(side, onReveal, selector) {
   PM._markedBattles = PM._markedBattles || [];
   const candidates = [];
   for (let i = PM.currentBattle + 1; i < PM.battles.length; i++) {
     if (!PM.battles[i].revealed) candidates.push(i);
   }
   if (!candidates.length) return;
+  // Player-pick selector → open chooser modal so the user picks
+  // which Hero to mark (Delayed Recovery: "Choose one of your
+  // unrevealed Heroes"). Default / opponent / unknown selector
+  // falls back to a random pick.
+  if (selector === 'unrevealed_hero_player_pick' && side === 'player') {
+    pmShowFutureBattlePickModal(side, onReveal, candidates);
+    return;
+  }
   const target = candidates[Math.floor(Math.random() * candidates.length)];
   PM._markedBattles.push({ side, battleIdx: target, onReveal });
+}
+
+function pmShowFutureBattlePickModal(side, onReveal, candidates) {
+  document.getElementById('pm-future-pick-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'pm-future-pick-overlay';
+  overlay.className = 'modal-overlay pm-modal-overlay pm-future-pick-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Choose an unrevealed Hero');
+
+  const rowsHTML = candidates.map(idx => {
+    const slot = PM.battles[idx];
+    const card = side === 'player' ? slot.playerCard : slot.cpuCard;
+    const imgUrl = card && card.imageFile ? thumbUrl(card.imageFile) : null;
+    const name = card ? (card.hero || card.name) : 'Unknown hero';
+    const power = card && typeof card.power === 'number' ? `${card.power} POW` : '';
+    const element = card && card.element ? card.element.toUpperCase() : '';
+    return `
+      <button class="pm-future-pick-row" data-battle-idx="${idx}" type="button">
+        <div class="pm-future-pick-img">
+          ${imgUrl ? `<img src="${imgUrl}" alt="${pmEscapeHTML(name)}" onerror="this.style.display='none'">` : ''}
+        </div>
+        <div class="pm-future-pick-info">
+          <div class="pm-future-pick-eyebrow">BATTLE ${idx + 1}</div>
+          <div class="pm-future-pick-name">${pmEscapeHTML(name)}</div>
+          <div class="pm-future-pick-meta">
+            ${power ? `<span class="pm-future-pick-pow">${power}</span>` : ''}
+            ${element ? `<span class="pm-future-pick-element">${element}</span>` : ''}
+          </div>
+        </div>
+        <span class="pm-future-pick-chevron">›</span>
+      </button>`;
+  }).join('');
+
+  overlay.innerHTML = `
+    <div class="pm-future-pick-modal">
+      <h2>Choose an Unrevealed Hero</h2>
+      <p class="pm-future-pick-sub">The card's effect triggers on the chosen Hero's reveal.</p>
+      <div class="pm-future-pick-list">${rowsHTML}</div>
+      <button class="pm-future-pick-cancel" type="button">Cancel</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelectorAll('.pm-future-pick-row').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.battleIdx, 10);
+      if (!isNaN(idx)) {
+        PM._markedBattles = PM._markedBattles || [];
+        PM._markedBattles.push({ side, battleIdx: idx, onReveal });
+        pmEnqueueNotification(`Marked Battle ${idx + 1} — effect triggers on reveal`);
+      }
+      close();
+    });
+  });
+  overlay.querySelector('.pm-future-pick-cancel').addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function escClose(ev) {
+    if (ev.key === 'Escape') { close(); document.removeEventListener('keydown', escClose); }
+  });
 }
 
 function pmIntentPeekHeroDeck(side, count, ctx) {

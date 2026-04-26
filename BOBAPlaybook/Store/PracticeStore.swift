@@ -803,16 +803,28 @@ final class PracticeStore {
                 battles[currentBattle].cpuEffectPower -= cur
             }
 
-        case .markFutureBattle(let side, let onReveal):
-            // Target: random unrevealed future battle
+        case .markFutureBattle(let side, let onReveal, let selector):
+            // Player-pick selector → open a chooser sheet so the
+            // coach selects which unrevealed Hero to mark (Delayed
+            // Recovery's intent). Unknown / random selector → fall
+            // back to a random pick.
             let unrevealed = (currentBattle + 1..<battles.count).filter { !battles[$0].isRevealed }
-            guard let target = unrevealed.randomElement() else { break }
-            markedBattles.append(MarkedBattle(side: side, battleIdx: target, onReveal: onReveal))
-            callouts.append(ActionCallout(
-                message: "Marked Battle \(target + 1) — effect triggers on reveal",
-                icon: "flag.fill",
-                color: "FFD166"
-            ))
+            guard !unrevealed.isEmpty else { break }
+            if selector == "unrevealed_hero_player_pick" && side == .player {
+                pendingFutureBattlePick = FutureBattlePick(
+                    side: side,
+                    onReveal: onReveal,
+                    candidateBattleIndices: unrevealed
+                )
+            } else {
+                guard let target = unrevealed.randomElement() else { break }
+                markedBattles.append(MarkedBattle(side: side, battleIdx: target, onReveal: onReveal))
+                callouts.append(ActionCallout(
+                    message: "Marked Battle \(target + 1) — effect triggers on reveal",
+                    icon: "flag.fill",
+                    color: "FFD166"
+                ))
+            }
 
         case .forceSubstitute(let target, let cost):
             // Force `target` to sub on their next sub phase. Charge cost from target.
@@ -1317,6 +1329,34 @@ final class PracticeStore {
     var pendingPeekedHand: PeekedHandReveal? = nil
 
     func dismissPeekedHand() { pendingPeekedHand = nil }
+
+    /// Delayed Recovery and other "choose one of your unrevealed
+    /// Heroes" cards. Pop the chooser sheet, list the candidate
+    /// battles' heroes, register the marked battle on confirm.
+    struct FutureBattlePick: Identifiable {
+        let id = UUID()
+        let side: PlayExecContext.Side
+        let onReveal: [[String: Any]]
+        let candidateBattleIndices: [Int]
+    }
+    var pendingFutureBattlePick: FutureBattlePick? = nil
+
+    func confirmFutureBattlePick(battleIdx: Int) {
+        guard let pick = pendingFutureBattlePick,
+              pick.candidateBattleIndices.contains(battleIdx) else {
+            pendingFutureBattlePick = nil
+            return
+        }
+        markedBattles.append(MarkedBattle(side: pick.side, battleIdx: battleIdx, onReveal: pick.onReveal))
+        cpuCallouts.append(ActionCallout(
+            message: "Marked Battle \(battleIdx + 1) — effect triggers on reveal",
+            icon: "flag.fill",
+            color: "FFD166"
+        ))
+        pendingFutureBattlePick = nil
+    }
+
+    func cancelFutureBattlePick() { pendingFutureBattlePick = nil }
 
     /// Name of the play card the engine is currently resolving. Set
     /// by the player/CPU play paths immediately before invoking

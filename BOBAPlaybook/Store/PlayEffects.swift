@@ -217,7 +217,7 @@ enum PlayIntent {
     case discardRevealedHero(side: PlayExecContext.Side)
     case discardRevealedPlay(side: PlayExecContext.Side)
     case transformActiveToHotDog(side: PlayExecContext.Side)
-    case markFutureBattle(side: PlayExecContext.Side, onReveal: [[String: Any]])
+    case markFutureBattle(side: PlayExecContext.Side, onReveal: [[String: Any]], selector: String)
     case forceSubstitute(target: PlayExecContext.Side, cost: Int)
     case mirrorPowerEffects(fromSide: PlayExecContext.Side, toSide: PlayExecContext.Side)
     case flipOpponentDebuffs(side: PlayExecContext.Side)
@@ -779,7 +779,13 @@ enum PlayEffectExecutor {
         case "mark_future_battle":
             let side: PlayExecContext.Side = (step["target"] as? String) == "opponent" ? ctx.opp : ctx.self_
             let onReveal = (step["on_reveal_effects"] as? [[String: Any]]) ?? []
-            out.intents.append(.markFutureBattle(side: side, onReveal: onReveal))
+            // Selector controls how the target battle is picked.
+            // "unrevealed_hero_player_pick" → host opens a chooser
+            // (Delayed Recovery: "Choose one of your unrevealed
+            // Heroes"). Default / unknown / opponent side → random
+            // unrevealed pick.
+            let selector = (step["selector"] as? String) ?? "random"
+            out.intents.append(.markFutureBattle(side: side, onReveal: onReveal, selector: selector))
             out.notifications.append("Marked a future battle")
             out.hasEffect = true
 

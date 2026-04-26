@@ -138,6 +138,16 @@ final class PracticeStore {
     var playerPlayDiscard: [Card] = []  // played/discarded play cards
     var playerHotDogs: Int = 10
     var playerHotDogDiscard: Int = 0
+    /// Captured Hot Dog deck cards for visual display in the discard
+    /// inspector. The engine still tracks Hot Dogs as an Int count
+    /// (consumed/recovered at many sites), but the rules treat the
+    /// discard pile as a single zone — heroes, plays, and spent Hot
+    /// Dogs all live there. The inspector shows the first N of these
+    /// cards based on the spent count so coaches see actual Hot Dog
+    /// visuals matching their resolved deck. Initialized at
+    /// startMatch from the resolved hot dog deck (or a 10-card slice
+    /// of the catalog when no resolved deck is in play).
+    var playerHotDogDeckCards: [Card] = []
 
     // MARK: - CPU Resources
     var cpuHeroDeck: [Card] = []
@@ -145,6 +155,7 @@ final class PracticeStore {
     var cpuHeroDiscard: [Card] = []
     var cpuHand: [Card] = []
     var cpuHotDogs: Int = 10
+    var cpuHotDogDeckCards: [Card] = []
     var cpuPlaysRemaining: Int = 30
 
     // MARK: - Cached card pool (for Play Again)
@@ -1986,6 +1997,27 @@ final class PracticeStore {
         } else {
             playerHand = []; playerPlayDeck = []; playerPlayDiscard = []
             cpuHand = []
+        }
+
+        // Hot Dog deck card capture for the discard inspector. Per
+        // Comprehensive Rules Guide §3.1, spent Hot Dogs share the
+        // discard zone. The engine still counts them as an Int, but
+        // we hold onto the actual cards so the inspector can render
+        // their visuals (matching how heroes + plays appear).
+        // Resolved deck → those exact cards. No resolved deck (random)
+        // → grab 10 Hot Dog cards from the catalog so something
+        // useful renders.
+        playerHotDogDeckCards = Array((playerResolvedDeck?.hotDogs ?? []).prefix(10))
+        cpuHotDogDeckCards    = Array((cpuResolvedDeck?.hotDogs    ?? []).prefix(10))
+        if playerHotDogDeckCards.count < 10 {
+            let need = 10 - playerHotDogDeckCards.count
+            let fill = pool.filter { $0.cardType == "HotDog" && !($0.imageFile ?? "").isEmpty }.shuffled().prefix(need)
+            playerHotDogDeckCards.append(contentsOf: fill)
+        }
+        if cpuHotDogDeckCards.count < 10 {
+            let need = 10 - cpuHotDogDeckCards.count
+            let fill = pool.filter { $0.cardType == "HotDog" && !($0.imageFile ?? "").isEmpty }.shuffled().prefix(need)
+            cpuHotDogDeckCards.append(contentsOf: fill)
         }
 
         // Reset scores and state
@@ -4294,6 +4326,7 @@ final class PracticeStore {
         playerHeroDeck = []; cpuHeroDeck = []
         playerBench = []; cpuBench = []
         playerHand = []; cpuHand = []
+        playerHotDogDeckCards = []; cpuHotDogDeckCards = []
         playerPlayDeck = []; playerPlayDiscard = []
         playerHotDogs = 10; cpuHotDogs = 10
         matchOver = false; matchWinner = nil
@@ -4343,6 +4376,10 @@ final class PracticeStore {
         var cpuSubCostTransferFrom: PlayExecContext.Side? = nil
         var markedBattles: [MarkedBattle]? = nil
         var persistents: [PersistentEffect]? = nil
+        // Captured hot dog deck cards for the discard inspector.
+        // Optional so older saves still decode; new saves write them.
+        var playerHotDogDeckCards: [Card]? = nil
+        var cpuHotDogDeckCards: [Card]? = nil
     }
 
     private static var saveURL: URL {
@@ -4378,7 +4415,9 @@ final class PracticeStore {
             playerFreeSub: playerFreeSub, cpuFreeSub: cpuFreeSub,
             playerSubCostTransferFrom: playerSubCostTransferFrom,
             cpuSubCostTransferFrom: cpuSubCostTransferFrom,
-            markedBattles: markedBattles, persistents: persistents
+            markedBattles: markedBattles, persistents: persistents,
+            playerHotDogDeckCards: playerHotDogDeckCards,
+            cpuHotDogDeckCards: cpuHotDogDeckCards
         )
         if let data = try? JSONEncoder().encode(snapshot) {
             try? data.write(to: Self.saveURL, options: .atomic)
@@ -4426,6 +4465,8 @@ final class PracticeStore {
         playerSubCostTransferFrom = snapshot.playerSubCostTransferFrom
         cpuSubCostTransferFrom = snapshot.cpuSubCostTransferFrom
         markedBattles = snapshot.markedBattles ?? []
+        playerHotDogDeckCards = snapshot.playerHotDogDeckCards ?? []
+        cpuHotDogDeckCards    = snapshot.cpuHotDogDeckCards    ?? []
         persistents = snapshot.persistents ?? []
         return true
     }

@@ -777,6 +777,59 @@ def to_markdown(findings: list[Finding], total_cards: int, known_ops_count: int)
 # ─── Entry point ──────────────────────────────────────────────────
 
 
+def _check_write_only_out_fields() -> list[str]:
+    """Static-scan the engine source for `out.X = ...` writes whose
+    field has no corresponding read anywhere downstream. Catches the
+    canonical "op handler sets a flag, nothing reads it" stub bug —
+    real example: `out.cancelOpp = true` for `cancel_opponent_plays`
+    + `cap_opponent_plays` was set but never consumed, so Flame Wall
+    silently allowed the opponent to keep playing cards.
+
+    Returns one diagnostic string per write-only field found.
+    """
+    play_effects = EXECUTOR_PATH.read_text()
+    practice_store = (ROOT / "BOBAPlaybook" / "Store" / "PracticeStore.swift").read_text()
+
+    # Find the PlayExecOut struct body and extract every `var X` decl.
+    m = re.search(r"struct PlayExecOut\s*\{(.*?)\n\}", play_effects, re.DOTALL)
+    if not m:
+        return []
+    fields_block = m.group(1)
+    decls = re.findall(r"^\s*var\s+([A-Za-z_][A-Za-z0-9_]*)\s*[:=]", fields_block, re.M)
+    fields = sorted(set(decls))
+
+    # Debug/diagnostic fields the engine writes for telemetry only
+    # (no game-state consumer expected). Keep this list small and
+    # justified — every entry should be a field whose write-only
+    # nature is intentional.
+    debug_only_fields: set[str] = {
+        "unknownOps",  # diagnostic — logged in dev, not consumed
+        "discards",    # bookkeeping — actual discard happens via intent
+        "hasEffect",   # gates structured-handled; used as a transient marker
+    }
+    notes: list[str] = []
+    haystack = play_effects + "\n" + practice_store
+    for f in fields:
+        if f in debug_only_fields:
+            continue
+        # Writes look like "out.f = " / "out.f += " / "out.f.append" /
+        # "out.f.toggle()". Reads are anything else: "out.f" inside an
+        # expression, "o.f", ".f " etc.
+        # We require at least ONE read OUTSIDE the struct body itself.
+        # The conservative pattern: any of `\.f\b` references that
+        # aren't on the LHS of an assignment.
+        # Easier: count writes vs total references; if total - writes
+        # is 0 (or only-self-reads), flag it.
+        write_re = re.compile(rf"\b(out|o|exec)\.{f}\s*(=|\+=|-=|\.append|\.toggle)")
+        any_re   = re.compile(rf"\b(out|o|exec)\.{f}\b")
+        writes = len(write_re.findall(haystack))
+        any_refs = len(any_re.findall(haystack))
+        reads = any_refs - writes
+        if writes > 0 and reads == 0:
+            notes.append(f"PlayExecOut.{f} is written {writes}× but never read — op handler sets it as a stub, host ignores it")
+    return notes
+
+
 def _check_engine_drift() -> list[str]:
     """Compare the auditor's hardcoded allowlists against the engine
     source. If the engine has a `case "..."` block in a vocab-defining
@@ -831,6 +884,13 @@ def main() -> int:
         for d in drift:
             print(f"   • {d}", file=sys.stderr)
         print("   Update KNOWN_* sets at the top of audit_play_effects.py.\n", file=sys.stderr)
+
+    stub_fields = _check_write_only_out_fields()
+    if stub_fields:
+        print("⚠️ Stub PlayExecOut fields — handlers set flags nothing consumes:", file=sys.stderr)
+        for s in stub_fields:
+            print(f"   • {s}", file=sys.stderr)
+        print("   Either route the op through a real intent or wire a consumer.\n", file=sys.stderr)
 
     entries = load_play_effects()
     catalog = load_catalog()

@@ -513,7 +513,18 @@ enum PlayEffectExecutor {
             out.hasEffect = true
 
         case "cancel_opponent_plays", "cap_opponent_plays":
-            out.cancelOpp = true
+            // Both ops mean "opponent can't run plays this battle" —
+            // route through the same installBlock infrastructure
+            // block_plays uses, scoped to this_battle. The previous
+            // implementation only set out.cancelOpp, which nothing
+            // consumed (Flame Wall's effect was a silent no-op).
+            // cap_opponent_plays is technically a soft cap (N plays
+            // allowed), but the engine doesn't have a cap-N mechanism;
+            // a hard block is the conservative fallback.
+            out.intents.append(.installBlock(side: ctx.opp, kind: "block_plays", scope: "this_battle"))
+            out.notifications.append(op == "cap_opponent_plays"
+                ? "Opponent's play count capped this battle (treated as full block)"
+                : "Opponent can't play any Plays this battle")
             out.hasEffect = true
 
         case "block_sub", "block_plays", "block_draw", "block_hd_recover":

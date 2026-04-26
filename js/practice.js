@@ -3905,7 +3905,16 @@ const PM = {
     if (!transfer && this.playerHD < cost) return false;
 
     const benchCard = this.playerBench[benchIdx];
-    // Per rules: original hero goes to discard, not back to bench
+    // Per rules: original hero goes to discard pile, not back to bench.
+    // Push the displaced active to playerHeroDiscard so cards like
+    // Don't Call It a Comeback (swap_active_with_discard) can pull it
+    // back. iOS has always tracked this; web was dropping the hero on
+    // the floor.
+    const displaced = this.battles[this.currentBattle].playerCard;
+    if (displaced) {
+      PM.playerHeroDiscard = PM.playerHeroDiscard || [];
+      PM.playerHeroDiscard.push(displaced);
+    }
     this.battles[this.currentBattle].playerCard = benchCard;
     this.playerBench.splice(benchIdx, 1); // remove from bench
 

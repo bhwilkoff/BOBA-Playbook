@@ -2015,10 +2015,21 @@ final class PracticeStore {
         }
         if freeSub { playerFreeSub = nil }
 
-        // Draw a new hero from hero deck to replace the bench slot (per rules)
+        // Draw a new hero from hero deck to replace the bench slot
+        // (per Comprehensive Rules Guide §4.2.2 / Glossary "Substitute").
         if let drawn = playerHeroDeck.first {
             playerHeroDeck.removeFirst()
             playerBench.append(drawn)
+        } else {
+            // Deck-empty case is exceptional in a normal 60-card match
+            // but possible in Limited or after enough hero-draining
+            // play cards. Surface a callout (via the shared callout
+            // queue) so the user understands why the bench is shorter.
+            cpuCallouts.append(ActionCallout(
+                message: "Hero deck empty — bench can't refill",
+                icon: "exclamationmark.triangle.fill",
+                color: "FFD166"
+            ))
         }
 
         playerSubstituted = true
@@ -2325,6 +2336,15 @@ final class PracticeStore {
             if let d = displaced { cpuHeroDiscard.append(d) }
             cpuBench.remove(at: bestIdx)
             battles[currentBattle].cpuCard = best
+            // Per Comprehensive Rules Guide §4.2.2 / Glossary
+            // "Substitute": after substituting, the side draws 1
+            // Hero from their Hero Deck to refill the Hero Hand.
+            // Was missing on iOS — CPU's bench permanently shrank
+            // every sub. Web `cpuDoSub` always had this; restoring
+            // platform parity here.
+            if !cpuHeroDeck.isEmpty {
+                cpuBench.append(cpuHeroDeck.removeFirst())
+            }
             if transferFrom == .player {
                 playerHotDogs = max(0, playerHotDogs - effectiveCost)
                 cpuSubCostTransferFrom = nil

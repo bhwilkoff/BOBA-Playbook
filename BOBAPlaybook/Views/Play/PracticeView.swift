@@ -414,77 +414,128 @@ struct PracticeView: View {
     // Coaches can read the whole "what's currently affecting this
     // battle" surface at a glance without opening anything.
     private var activeEffectsBanner: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(store.activeEffectsForUI, id: \.id) { row in
-                    HStack(spacing: 5) {
-                        Image(systemName: row.icon)
-                            .font(.system(size: 11, weight: .bold))
-                        // Source-card eyebrow — when known, the
-                        // banner reads "Baby Phoenix · End-of-turn
-                        // +10" instead of bare "End-of-turn +10".
-                        if !row.sourceCard.isEmpty {
-                            Text(row.sourceCard.uppercased())
-                                .font(Design.Fonts.mono(9, weight: .bold))
-                                .foregroundStyle(Color(hex: row.color).opacity(0.75))
-                                .tracking(0.6)
-                                .lineLimit(1)
-                            Text("·")
-                                .font(Design.Fonts.mono(11, weight: .bold))
-                                .foregroundStyle(Color(hex: row.color).opacity(0.6))
-                        }
-                        Text(row.label)
-                            .font(Design.Fonts.mono(11, weight: .bold))
-                            .lineLimit(1)
-                        if let r = row.remaining, r > 0 {
-                            // UX#11 tick-down — finite-scope effects
-                            // show how many battles they have left so
-                            // coaches can plan around their expiry.
-                            Text("\(r) BTL")
-                                .font(Design.Fonts.mono(9, weight: .bold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 1)
-                                .background(Capsule().fill(Color.black.opacity(0.4)))
-                        } else if row.remaining == nil {
-                            // Unbounded scope (rest_of_game) gets an
-                            // explicit infinity badge so it reads
-                            // distinctly from finite ticks.
-                            Text("∞")
-                                .font(Design.Fonts.mono(11, weight: .bold))
-                                .foregroundStyle(.white.opacity(0.85))
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 1)
-                                .background(Capsule().fill(Color.black.opacity(0.4)))
-                        }
-                    }
-                    .foregroundStyle(Color(hex: row.color))
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 5)
-                    .background(
-                        Capsule()
-                            .fill(Color(hex: row.color).opacity(0.12))
-                            .overlay(Capsule().strokeBorder(Color(hex: row.color).opacity(0.5), lineWidth: 1))
-                    )
-                    .overlay(alignment: .leading) {
-                        // 3pt color tab on the leading edge so the
-                        // owner side reads at-a-glance even when the
-                        // user hasn't read the label.
-                        Capsule()
-                            .fill(row.owner == .player
-                                  ? Design.Colors.bobaCyan
-                                  : Design.Colors.bobaViolet)
-                            .frame(width: 3, height: 14)
-                            .padding(.leading, 1)
+        HStack(spacing: 0) {
+            // Eyebrow label on the leading edge — anchors the band
+            // visually so it reads as "this is the active-effects
+            // strip" instead of an unstyled rectangle. Mirrors the
+            // PracticeTopBar's eyebrow styling for continuity.
+            HStack(spacing: 4) {
+                Image(systemName: "infinity")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaOrange)
+                Text("ACTIVE")
+                    .font(Design.Fonts.mono(9, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaOrange)
+                    .tracking(1.2)
+            }
+            .padding(.leading, Design.Spacing.md)
+            .padding(.trailing, 8)
+
+            // Vertical divider between eyebrow and chip strip.
+            Rectangle()
+                .fill(Design.Colors.bobaOrange.opacity(0.35))
+                .frame(width: 1, height: 22)
+
+            // Scrollable chip strip.
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(store.activeEffectsForUI, id: \.id) { row in
+                        chipPill(row: row)
                     }
                 }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
         }
-        .frame(height: 32)
-        .background(.ultraThinMaterial)
-        .padding(.top, 4)
+        .frame(height: 36)
+        .background(
+            // Layered background that reads as part of the playmat:
+            // surface tone like the top bar, with a subtle orange
+            // wash on the leading edge to tie into the arena's
+            // orange-bordered container below.
+            ZStack {
+                Design.Colors.surface.opacity(0.95)
+                LinearGradient(
+                    colors: [
+                        Design.Colors.bobaOrange.opacity(0.10),
+                        Design.Colors.bobaOrange.opacity(0.02),
+                        .clear,
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            }
+        )
+        .overlay(alignment: .top) {
+            Divider().background(Design.Colors.glass)
+        }
+        .overlay(alignment: .bottom) {
+            // Orange-tinted bottom edge connects visually to the
+            // orange-bordered active battle area below.
+            Rectangle()
+                .fill(Design.Colors.bobaOrange.opacity(0.45))
+                .frame(height: 1)
+        }
+    }
+
+    /// One pill in the active-effects strip — extracted so the body
+    /// stays readable.
+    @ViewBuilder
+    private func chipPill(row: (id: UUID, owner: PlayExecContext.Side, label: String, icon: String, color: String, remaining: Int?, sourceCard: String)) -> some View {
+        HStack(spacing: 5) {
+            // Owner side tab — cyan for you, violet for CPU.
+            Capsule()
+                .fill(row.owner == .player
+                      ? Design.Colors.bobaCyan
+                      : Design.Colors.bobaViolet)
+                .frame(width: 3, height: 14)
+            Image(systemName: row.icon)
+                .font(.system(size: 10, weight: .bold))
+            // Source-card eyebrow when known: "BABY PHOENIX · End-
+            // of-turn +10" reads more clearly than a bare summary.
+            if !row.sourceCard.isEmpty {
+                Text(row.sourceCard.uppercased())
+                    .font(Design.Fonts.mono(9, weight: .bold))
+                    .foregroundStyle(Color(hex: row.color).opacity(0.78))
+                    .tracking(0.6)
+                    .lineLimit(1)
+                Text("·")
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(Color(hex: row.color).opacity(0.55))
+            }
+            Text(row.label)
+                .font(Design.Fonts.mono(11, weight: .bold))
+                .lineLimit(1)
+            if let r = row.remaining, r > 0 {
+                Text("\(r) BTL")
+                    .font(Design.Fonts.mono(9, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Capsule().fill(Color.black.opacity(0.45)))
+            } else if row.remaining == nil {
+                Text("∞")
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Capsule().fill(Color.black.opacity(0.45)))
+            }
+        }
+        .foregroundStyle(Color(hex: row.color))
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
+        .background(
+            Capsule()
+                .fill(Design.Colors.nearBlack.opacity(0.55))
+                .overlay(
+                    Capsule()
+                        .fill(Color(hex: row.color).opacity(0.10))
+                )
+                .overlay(
+                    Capsule().strokeBorder(Color(hex: row.color).opacity(0.55), lineWidth: 1)
+                )
+        )
     }
 
     // MARK: - Match Over Overlay

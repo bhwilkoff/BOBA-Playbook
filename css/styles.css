@@ -5786,15 +5786,52 @@ main {
 .pm-root .pm-active-effects {
   flex: 0 0 auto;
   display: flex;
-  gap: 4px;
-  padding: 4px 8px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  background: rgba(13, 13, 26, 0.7);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  scrollbar-width: thin;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  /* Surface tone matches the top bar; orange wash on the leading
+     edge ties the band into the arena's orange-bordered container
+     below so it reads as part of the playmat instead of an
+     unstyled rectangle. */
+  background:
+    linear-gradient(90deg,
+      rgba(255, 77, 0, 0.10) 0%,
+      rgba(255, 77, 0, 0.02) 35%,
+      transparent 65%),
+    rgba(13, 13, 26, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 77, 0, 0.45);
+  height: 36px;
 }
 .pm-root .pm-active-effects[hidden] { display: none; }
+/* "ACTIVE" eyebrow on the leading edge — anchors the band visually
+   so coaches read it as the active-effects strip. */
+.pm-root .pm-active-effects-eyebrow {
+  display: flex; align-items: center; gap: 4px;
+  flex-shrink: 0;
+  padding: 0 8px 0 14px;
+  border-right: 1px solid rgba(255, 77, 0, 0.35);
+  height: 22px;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--boba-orange, #FF4D00);
+  text-transform: uppercase;
+}
+.pm-root .pm-active-effects-eyebrow svg {
+  width: 9px; height: 9px;
+  stroke: var(--boba-orange, #FF4D00);
+}
+.pm-root .pm-active-effects-strip {
+  flex: 1;
+  display: flex; gap: 6px;
+  align-items: center;
+  padding: 4px 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
 .pm-root .pm-effect-pill {
   display: inline-flex;
   align-items: center;
@@ -5807,8 +5844,11 @@ main {
   font-weight: 700;
   white-space: nowrap;
   color: var(--effect-color, #00F5FF);
-  background: color-mix(in srgb, var(--effect-color, #00F5FF) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--effect-color, #00F5FF) 50%, transparent);
+  /* Layered fill: dark base + colored wash + colored border for
+     contrast against the surface band behind. */
+  background:
+    color-mix(in srgb, var(--effect-color, #00F5FF) 10%, rgba(8, 8, 16, 0.55));
+  border: 1px solid color-mix(in srgb, var(--effect-color, #00F5FF) 55%, transparent);
 }
 .pm-root .pm-effect-pill svg { width: 11px; height: 11px; flex-shrink: 0; }
 .pm-root .pm-effect-pill--you { box-shadow: inset 3px 0 0 #00F5FF; }

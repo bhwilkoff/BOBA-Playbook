@@ -118,6 +118,12 @@ enum PlayEffects {
 /// nested execStep calls.
 final class ExecCounters {
     var cardsDiscardedByThisPlay: Int = 0
+    /// Cost of the play picked by the most recent chooseTopAndKeepBest
+    /// op IN THIS execution. Set by the op handler immediately so
+    /// downstream conditionals in the same effects[] array can read
+    /// the truthful chosen value via `chosen_play_cost`. Resets per
+    /// execution since ExecCounters is built fresh each call.
+    var chosenPlayCost: Int? = nil
 }
 
 struct PlayExecContext {
@@ -132,6 +138,14 @@ struct PlayExecContext {
     var selfHand: [Card]
     var selfDiscard: [Card]
     var selfHeroDeck: [Card]
+    /// The player's remaining playbook draw pile. Empty for CPU side
+    /// (CPU has a single fluid hand/pool, no separate deck). Needed
+    /// by ops that peek the top N plays — `add_chosen_revealed_to_hand
+    /// _discard_rest` reads top N to predict the auto-chosen cost so
+    /// downstream conditionals (Power Pick's "+10 if chosen ≥ 3") can
+    /// read the truthful value at exec time, before the chooser
+    /// intent has actually mutated PM state.
+    var selfPlayDeck: [Card] = []
     var selfWon: Int
     var selfLost: Int
     var selfTied: Int
@@ -243,6 +257,15 @@ enum PlayIntent {
     /// for opp playing a card of cost ≥ the revealed card's cost;
     /// if so, the player gets the revealed card free.
     case revealForConditionalFree(side: PlayExecContext.Side)
+    /// "Reveal top N, keep best 1, discard rest." Auto-picks the
+    /// top-cost play (for kind="play") or top-power hero (for
+    /// kind="hero") since neither side has a usable chooser UI.
+    /// The chosen card moves to hand (plays) or bench (heroes); the
+    /// other (count-1) cards go to the appropriate discard pile. The
+    /// chosen card's cost is stashed on the host so the
+    /// `chosen_play_cost` metric reads the actual chosen value
+    /// (instead of the previous "max in hand" approximation).
+    case chooseTopAndKeepBest(side: PlayExecContext.Side, kind: String, count: Int)
 }
 
 /// One option in a `player_choice` sheet. `label` is the button
@@ -906,7 +929,26 @@ enum PlayEffectExecutor {
             out.hasEffect = true
 
         case "add_chosen_revealed_to_hand_discard_rest":
-            out.notifications.append("Added chosen revealed hero to hand; discarded rest")
+            // Real implementation: emit an intent that actually moves
+            // cards from the playbook deck to hand/discard. Auto-picks
+            // the best card (highest cost for plays, highest power for
+            // heroes) since the player chooser sheet for top-of-deck
+            // picks isn't built. Computes the auto-chosen card cost
+            // immediately and stashes it on counters so any downstream
+            // conditional in the same effects[] array reads the
+            // truthful value via the `chosen_play_cost` metric.
+            let kind = (step["kind"] as? String) ?? "play"
+            let count = (step["count"] as? Int) ?? 3
+            // Predict the auto-pick so chosen_play_cost works at
+            // exec time (the actual state mutation happens later in
+            // applyIntent).
+            if kind == "play" {
+                let topN = Array(ctx.selfPlayDeck.prefix(count))
+                let best = topN.max(by: { ($0.playCost ?? 0) < ($1.playCost ?? 0) })
+                ctx.counters.chosenPlayCost = best?.playCost ?? 0
+            }
+            out.intents.append(.chooseTopAndKeepBest(side: ctx.self_, kind: kind, count: count))
+            out.notifications.append("Picked best of top \(count) from \(kind == "hero" ? "hero deck" : "playbook")")
             out.hasEffect = true
 
         case "name_and_discard":
@@ -1620,7 +1662,12 @@ enum PlayEffectExecutor {
             return ctx.selfHand.first?.playCost ?? 0
 
         case "chosen_play_cost":
-            // Max cost play in hand is the likely "chosen" one
+            // Returns the cost of the play just chosen by an
+            // add_chosen_revealed_to_hand_discard_rest op IN THIS
+            // execution (Power Pick et al.). Falls back to the legacy
+            // "max cost in hand" approximation when no chooser ran in
+            // this exec call.
+            if let chosen = ctx.counters.chosenPlayCost { return chosen }
             return ctx.selfHand.map { $0.playCost ?? 0 }.max() ?? 0
 
         case "discard_pile_heroes":

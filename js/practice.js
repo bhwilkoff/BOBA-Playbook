@@ -1447,6 +1447,11 @@ function pmEvalMetric(metric, args, ctx) {
     case 'revealed_play_cost':
       return (bound.selfHand || [])[0]?.playCost || 0;
     case 'chosen_play_cost': {
+      // Returns the cost of the play just chosen by an
+      // add_chosen_revealed_to_hand_discard_rest op IN THIS execution
+      // (Power Pick et al.). Falls back to "max cost in hand" when no
+      // chooser ran in this exec call.
+      if (typeof ctx._chosenPlayCost === 'number') return ctx._chosenPlayCost;
       const hand = bound.selfHand || [];
       return hand.reduce((m, c) => Math.max(m, c?.playCost || 0), 0);
     }
@@ -2399,10 +2404,55 @@ function pmExecStep(step, ctx, out) {
       out.notifications.push(`Deployed chosen revealed hero`);
       out.hasEffect = true;
       break;
-    case 'add_chosen_revealed_to_hand_discard_rest':
-      out.notifications.push(`Added chosen revealed hero to hand; discarded rest`);
+    case 'add_chosen_revealed_to_hand_discard_rest': {
+      // Real implementation: auto-pick the best card from the top N
+      // of the relevant deck, move it to hand/bench, discard the rest.
+      // Sets ctx._chosenPlayCost so downstream conditionals in the
+      // same effects[] array read the truthful value via
+      // `chosen_play_cost`.
+      const kind = step.kind || 'play';
+      const cnt = step.count || 3;
+      if (kind === 'play' && ctx.self === 'player') {
+        const n = Math.min(cnt, PM.playerPlayDeck.length);
+        if (n > 0) {
+          const topN = PM.playerPlayDeck.splice(0, n);
+          let bestIdx = 0;
+          for (let i = 1; i < topN.length; i++) {
+            if ((topN[i].playCost || 0) > (topN[bestIdx].playCost || 0)) bestIdx = i;
+          }
+          const chosen = topN[bestIdx];
+          PM.playerPlayHand.push(chosen);
+          for (let i = 0; i < topN.length; i++) {
+            if (i !== bestIdx) PM.playerDiscard.push(topN[i]);
+          }
+          ctx._chosenPlayCost = chosen.playCost || 0;
+          out.notifications.push(`Picked ${chosen.name} (${chosen.playCost || 0} HD) — discarded ${topN.length - 1} other${topN.length - 1 === 1 ? '' : 's'}`);
+        }
+      } else if (kind === 'hero') {
+        const deck = ctx.self === 'player' ? PM.playerHeroDeck : PM.cpuHeroDeck;
+        const bench = ctx.self === 'player' ? PM.playerBench : PM.cpuBench;
+        const n = Math.min(cnt, deck.length);
+        if (n > 0) {
+          const topN = deck.splice(0, n);
+          let bestIdx = 0;
+          for (let i = 1; i < topN.length; i++) {
+            if ((topN[i].power || 0) > (topN[bestIdx].power || 0)) bestIdx = i;
+          }
+          const chosen = topN[bestIdx];
+          bench.push(chosen);
+          // CPU has no hero discard pile in current state shape; player does.
+          if (ctx.self === 'player') {
+            PM.playerHeroDiscard = PM.playerHeroDiscard || [];
+            for (let i = 0; i < topN.length; i++) {
+              if (i !== bestIdx) PM.playerHeroDiscard.push(topN[i]);
+            }
+          }
+          out.notifications.push(`Picked ${chosen.hero || chosen.name} (${chosen.power || 0} pow) → bench`);
+        }
+      }
       out.hasEffect = true;
       break;
+    }
     case 'name_and_discard': {
       // Auto-name: pick the highest-cost play in opponent's hand. If they
       // have it (always true when auto-named from their hand), discard it.

@@ -1147,6 +1147,74 @@ final class PracticeStore {
             } else {
                 autoDiscardCpuHand(count: count, into: &callouts)
             }
+
+        case .chooseTopAndKeepBest(let side, let kind, let count):
+            // Real "reveal top N, keep best 1, discard rest" handler.
+            // Auto-picks the best card since the chooser sheet for
+            // top-of-deck picks isn't built. For plays: best = highest
+            // cost; for heroes: best = highest power. CPU side has no
+            // separate playbook deck, so it auto-picks from the hand
+            // pool instead of moving cards anywhere.
+            if kind == "play" {
+                if side == .player {
+                    let n = min(count, playerPlayDeck.count)
+                    guard n > 0 else { break }
+                    let topN = Array(playerPlayDeck.prefix(n))
+                    playerPlayDeck.removeFirst(n)
+                    let bestIdx = topN.enumerated().max(by: { ($0.element.playCost ?? 0) < ($1.element.playCost ?? 0) })?.offset ?? 0
+                    let chosen = topN[bestIdx]
+                    playerHand.append(chosen)
+                    for (i, c) in topN.enumerated() where i != bestIdx {
+                        playerPlayDiscard.append(c)
+                    }
+                    let costLabel = chosen.playCost.map { "\($0) HD" } ?? "?"
+                    callouts.append(ActionCallout(
+                        message: "Picked \(chosen.name) (\(costLabel)) — discarded \(n - 1) other\(n - 1 == 1 ? "" : "s")",
+                        icon: "hand.tap", color: "00F5FF"
+                    ))
+                } else {
+                    // CPU has no separate play deck — no-op visually,
+                    // chosenPlayCost was already predicted at exec time
+                    // from selfPlayDeck (which is empty for CPU, so
+                    // CPU-side conditional reads default 0).
+                    callouts.append(ActionCallout(
+                        message: "CPU picked best play (no deck mutation)",
+                        icon: "hand.tap", color: "8B00FF"
+                    ))
+                }
+            } else if kind == "hero" {
+                if side == .player {
+                    let n = min(count, playerHeroDeck.count)
+                    guard n > 0 else { break }
+                    let topN = Array(playerHeroDeck.prefix(n))
+                    playerHeroDeck.removeFirst(n)
+                    let bestIdx = topN.enumerated().max(by: { ($0.element.power ?? 0) < ($1.element.power ?? 0) })?.offset ?? 0
+                    let chosen = topN[bestIdx]
+                    playerBench.append(chosen)
+                    for (i, c) in topN.enumerated() where i != bestIdx {
+                        playerHeroDiscard.append(c)
+                    }
+                    let powLabel = chosen.power.map { "\($0) pow" } ?? "?"
+                    callouts.append(ActionCallout(
+                        message: "Picked \(chosen.hero.isEmpty ? chosen.name : chosen.hero) (\(powLabel)) → bench",
+                        icon: "hand.tap", color: "00F5FF"
+                    ))
+                } else if !cpuHeroDeck.isEmpty {
+                    let n = min(count, cpuHeroDeck.count)
+                    let topN = Array(cpuHeroDeck.prefix(n))
+                    cpuHeroDeck.removeFirst(n)
+                    let bestIdx = topN.enumerated().max(by: { ($0.element.power ?? 0) < ($1.element.power ?? 0) })?.offset ?? 0
+                    let chosen = topN[bestIdx]
+                    cpuBench.append(chosen)
+                    for (i, c) in topN.enumerated() where i != bestIdx {
+                        cpuHeroDiscard.append(c)
+                    }
+                    callouts.append(ActionCallout(
+                        message: "CPU picked \(chosen.hero.isEmpty ? chosen.name : chosen.hero) → bench",
+                        icon: "hand.tap", color: "8B00FF"
+                    ))
+                }
+            }
         }
     }
 
@@ -3010,6 +3078,10 @@ final class PracticeStore {
             return d
         }
 
+        // Player's playbook draw pile — empty for CPU side (CPU has
+        // a single fluid hand/pool with no separate draw deck).
+        let selfPlayDeck: [Card] = selfIsPlayer ? playerPlayDeck : []
+
         return PlayExecContext(
             self_: self_,
             selfCard: selfCard, oppCard: oppCard,
@@ -3018,6 +3090,7 @@ final class PracticeStore {
             selfHand: selfHand,
             selfDiscard: selfDiscard,
             selfHeroDeck: selfHeroDeck,
+            selfPlayDeck: selfPlayDeck,
             selfWon: won, selfLost: lost, selfTied: tied,
             playsUsedThisBattle: playsUsed,
             battleIdx: currentBattle,

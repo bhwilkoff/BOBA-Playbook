@@ -5106,9 +5106,15 @@ function pmSetRootClass() {
   // Dynamic button labels — reveal has two states like iOS
   const b = PM.battles[PM.currentBattle];
   const revealLabel = (b && b.revealed) ? 'PLAY PHASE →' : 'REVEAL →';
+  // Final-battle action: B7 or once a side has clinched 4 wins.
+  // The next press will end the match, so don't promise a battle
+  // that doesn't exist.
+  const isFinalAction = (PM.playerScore >= 4) || (PM.cpuScore >= 4) || (PM.currentBattle >= 6);
+  const resolutionLabel = isFinalAction ? 'FINISH MATCH' : 'NEXT →';
+  const cleanupLabel    = isFinalAction ? 'FINISH MATCH' : 'NEXT BATTLE →';
   const btnLabels = {
     sub: 'SKIP SUBS →', reveal: revealLabel, play: 'END TURN →',
-    resolution: 'NEXT →', cleanup: 'NEXT BATTLE →', over: 'PLAY AGAIN',
+    resolution: resolutionLabel, cleanup: cleanupLabel, over: 'PLAY AGAIN',
   };
 
   const phaseIcons = {

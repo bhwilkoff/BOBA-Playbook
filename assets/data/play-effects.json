@@ -1282,8 +1282,8 @@
         },
         {
           "if": {
-            "type": "hd_count_compare",
-            "comparison": "opp_gt_self"
+            "type": "opp_gt_self",
+            "metric": "hd_count"
           },
           "then": [
             {
@@ -1676,8 +1676,7 @@
       "effects": [
         {
           "op": "copy_last_play",
-          "target": "self",
-          "scope": "self_last"
+          "target": "self"
         }
       ]
     },
@@ -5265,9 +5264,9 @@
       "effects": [
         {
           "if": {
-            "type": "hand_count_compare",
-            "kind": "play",
-            "comparison": "opp_gt_self"
+            "type": "opp_gt_self",
+            "metric": "hand_count",
+            "kind": "play"
           },
           "then": [
             {
@@ -5924,7 +5923,7 @@
         {
           "op": "block_draw",
           "target": "opponent",
-          "scope": "until_opp_wins"
+          "scope": "rest_of_game"
         }
       ]
     },
@@ -6852,8 +6851,7 @@
               ],
               "effect": []
             }
-          ],
-          "aggregate": "repeat_until_stop"
+          ]
         }
       ]
     },

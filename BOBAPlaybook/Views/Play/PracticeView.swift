@@ -116,6 +116,16 @@ struct PracticeView: View {
                     )) { state in
                         ScareRevealChooserSheet(store: store, pool: state.pool)
                     }
+                    // Pre-Game Spy / peek_opponent_hand reveal — shows
+                    // the actual cards in a dismissible sheet rather
+                    // than a 2s toast that vanished before coaches
+                    // could read both names.
+                    .sheet(item: Binding(
+                        get: { store.pendingPeekedHand },
+                        set: { newValue in if newValue == nil { store.dismissPeekedHand() } }
+                    )) { reveal in
+                        PeekedHandSheet(store: store, reveal: reveal)
+                    }
                     // Rules-clarification alert (handoff §6.A): warns
                     // when Recycle / Reload / Return from the Depths
                     // would clear active rest_of_game effects.
@@ -1772,5 +1782,114 @@ struct ScareRevealChooserSheet: View {
             }
         }
         .buttonStyle(.plain)
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - PeekedHandSheet
+// ════════════════════════════════════════════════════════════════
+//
+// Pre-Game Spy and other peek_opponent_hand cards. Shows the
+// revealed cards as full visuals (image + cost + ability text)
+// instead of the previous 2-second toast that was unreadable
+// before it disappeared.
+
+struct PeekedHandSheet: View {
+    let store: PracticeStore
+    let reveal: PracticeStore.PeekedHandReveal
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: Design.Spacing.md) {
+                    if !reveal.sourceCard.isEmpty {
+                        Text(reveal.sourceCard.uppercased())
+                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .tracking(2.0)
+                    }
+                    Text("Opponent's Hand")
+                        .font(Design.Fonts.display(22))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                    Text("\(reveal.cards.count) play\(reveal.cards.count == 1 ? "" : "s") revealed.")
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textSecondary)
+
+                    ForEach(reveal.cards) { card in
+                        peekedCard(card: card)
+                    }
+                }
+                .padding(Design.Spacing.lg)
+                .frame(maxWidth: .infinity)
+            }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        store.dismissPeekedHand()
+                        dismiss()
+                    }
+                    .font(Design.Fonts.mono(13, weight: .bold))
+                }
+            }
+        }
+    }
+
+    private func peekedCard(card: Card) -> some View {
+        HStack(alignment: .top, spacing: Design.Spacing.md) {
+            // Card image — fixed 5:7 box matches PlayReviewSheet.
+            Group {
+                if let file = card.imageFile, !file.isEmpty {
+                    CachedAsyncCardImage(url: CDN.full(for: file), contentMode: .fill)
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Design.Colors.glass)
+                        .overlay(
+                            Image(systemName: "questionmark.square.dashed")
+                                .font(.system(size: 24))
+                                .foregroundStyle(Design.Colors.textMuted)
+                        )
+                }
+            }
+            .frame(width: 100, height: 140)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(Design.Colors.bobaCyan.opacity(0.4), lineWidth: 1.5)
+            )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(card.name)
+                    .font(Design.Fonts.display(16))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                    .lineLimit(2)
+                if let cost = card.playCost {
+                    Text(cost == 0 ? "FREE" : "\(cost) HD")
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Design.Colors.bobaCyan.opacity(0.7)))
+                }
+                if let ability = card.playAbility, !ability.isEmpty {
+                    Text(ability)
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(Design.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: Design.Radius.md)
+                .fill(Design.Colors.surface.opacity(0.85))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Design.Radius.md)
+                        .strokeBorder(Design.Colors.glass, lineWidth: 1)
+                )
+        )
     }
 }

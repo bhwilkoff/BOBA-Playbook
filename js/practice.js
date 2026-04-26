@@ -3105,11 +3105,62 @@ function pmIntentRevealTopHeroes(side, count) {
 function pmIntentPeekOpponentHand(side, count, mode) {
   const pool = side === 'player' ? PM.cpuPlayPool : PM.playerPlayHand;
   const selected = mode === 'random' ? [...pool].sort(() => Math.random() - 0.5).slice(0, count) : pool.slice(0, count);
-  const names = selected.map(c => c.name).join(', ');
-  if (names) {
+  if (!selected.length) return;
+  if (side === 'player') {
+    // Surface as a dismissible modal with full card visuals — the
+    // 2s toast was unreadable for two card names. Pre-Game Spy et al.
+    pmShowPeekedHandModal(selected, PM._currentlyResolvingPlayCard || '');
+  } else {
     PM._peekCallouts = PM._peekCallouts || [];
-    PM._peekCallouts.push(`Opponent's hand: ${names}`);
+    PM._peekCallouts.push(`Opponent's hand: ${selected.map(c => c.name).join(', ')}`);
   }
+}
+
+function pmShowPeekedHandModal(cards, sourceCard) {
+  // Drop any prior overlay so quick-fire reveals don't stack.
+  document.getElementById('pm-peeked-hand-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'pm-peeked-hand-overlay';
+  overlay.className = 'modal-overlay pm-modal-overlay pm-peeked-hand-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', "Opponent's hand revealed");
+
+  const cardsHTML = cards.map(c => {
+    const imgUrl = c.imageFile ? thumbUrl(c.imageFile) : null;
+    const cost = (typeof c.playCost === 'number')
+      ? (c.playCost === 0 ? 'FREE' : `${c.playCost} HD`)
+      : '';
+    return `
+      <div class="pm-peeked-card">
+        <div class="pm-peeked-card-img">
+          ${imgUrl
+            ? `<img src="${imgUrl}" alt="${pmEscapeHTML(c.name)}" onerror="this.style.display='none'">`
+            : ''}
+        </div>
+        <div class="pm-peeked-card-info">
+          <div class="pm-peeked-card-name">${pmEscapeHTML(c.name)}</div>
+          ${cost ? `<div class="pm-peeked-card-cost">${cost}</div>` : ''}
+          ${c.playAbility ? `<div class="pm-peeked-card-ability">${pmEscapeHTML(c.playAbility)}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  overlay.innerHTML = `
+    <div class="pm-peeked-hand-modal">
+      ${sourceCard ? `<div class="pm-peeked-source">${pmEscapeHTML(sourceCard.toUpperCase())}</div>` : ''}
+      <h2>Opponent's Hand</h2>
+      <p class="pm-peeked-sub">${cards.length} play${cards.length === 1 ? '' : 's'} revealed.</p>
+      <div class="pm-peeked-cards">${cardsHTML}</div>
+      <button class="pm-peeked-done" type="button">Done</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector('.pm-peeked-done').addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function escClose(ev) {
+    if (ev.key === 'Escape') { close(); document.removeEventListener('keydown', escClose); }
+  });
 }
 
 function pmIntentSearchPlaybook(side, filter, action, ctx) {
@@ -4048,6 +4099,10 @@ const PM = {
     if (entry && (hasEffectsBlock || hasPersistentBlock)) {
       const ctx = pmMakeExecContext('player');
       ctx._sourceCard = card.name || '';
+      // Make the source name available to intent handlers that don't
+      // get the ctx (e.g. pmIntentPeekOpponentHand needs it for the
+      // PeekedHand modal eyebrow).
+      PM._currentlyResolvingPlayCard = card.name || '';
       const out = pmExecStructured(entry, ctx);
       // Mark handled whenever a JSON entry exists with effects OR
       // persistent — even when out.hasEffect is false. Two failure
@@ -4287,6 +4342,7 @@ const PM = {
       if (entry && (cpuHasEffects || cpuHasPersistent)) {
         const ctx = pmMakeExecContext('cpu');
         ctx._sourceCard = card.name || '';
+        PM._currentlyResolvingPlayCard = card.name || '';
         const out = pmExecStructured(entry, ctx);
         // Flip perspective back to queue's player/cpu convention
         effect.playerDelta = out.oppDelta;

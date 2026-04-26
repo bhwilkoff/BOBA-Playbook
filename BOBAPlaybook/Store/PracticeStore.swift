@@ -914,13 +914,26 @@ final class PracticeStore {
             } else {
                 selected = Array(pool.prefix(count))
             }
-            let names = selected.map { $0.name }.joined(separator: ", ")
-            if !names.isEmpty {
-                callouts.append(ActionCallout(
-                    message: "Opponent's hand: \(names)",
-                    icon: "eye",
-                    color: "00F5FF"
-                ))
+            if !selected.isEmpty {
+                if side == .player {
+                    // Surface the actual cards in a dismissible sheet
+                    // (Pre-Game Spy et al.). The 2s toast was too
+                    // fleeting — coaches couldn't read more than one
+                    // card name before it vanished.
+                    pendingPeekedHand = PeekedHandReveal(
+                        cards: selected,
+                        sourceCard: lastResolvingPlayCard
+                    )
+                } else {
+                    // CPU peeking the player's hand — keep the toast
+                    // since there's no UI surface to dismiss for CPU.
+                    let names = selected.map { $0.name }.joined(separator: ", ")
+                    callouts.append(ActionCallout(
+                        message: "Opponent's hand: \(names)",
+                        icon: "eye",
+                        color: "00F5FF"
+                    ))
+                }
             }
 
         case .searchPlaybook(let side, _, let action):
@@ -1291,6 +1304,25 @@ final class PracticeStore {
         let count: Int
     }
     var pendingHandDiscard: HandDiscardChoice? = nil
+
+    /// Pre-Game Spy / peek_opponent_hand reveal. The card "shows"
+    /// you N opponent plays — previously a 2-second toast, now a
+    /// dismissible sheet so coaches actually see the cards.
+    struct PeekedHandReveal: Identifiable {
+        let id = UUID()
+        let cards: [Card]
+        /// Source card name for the sheet eyebrow ("PRE-GAME SPY").
+        let sourceCard: String
+    }
+    var pendingPeekedHand: PeekedHandReveal? = nil
+
+    func dismissPeekedHand() { pendingPeekedHand = nil }
+
+    /// Name of the play card the engine is currently resolving. Set
+    /// by the player/CPU play paths immediately before invoking
+    /// applyIntents, cleared after. Used by peek/reveal sheets to
+    /// label themselves with the source card name.
+    private var lastResolvingPlayCard: String = ""
 
     /// Called by the chooser sheet when the user confirms their
     /// selection. Removes the chosen cards from hand into discard.
@@ -2267,7 +2299,9 @@ final class PracticeStore {
                     installPersistent(owner: .player, spec: p, sourceCard: card.name)
                 }
             }
+            lastResolvingPlayCard = card.name
             let notes = applyIntents(out, actingSide: .player)
+            lastResolvingPlayCard = ""
             if !notes.isEmpty {
                 pendingPlayerNotes = notes
             }
@@ -2636,7 +2670,9 @@ final class PracticeStore {
                         installPersistent(owner: .cpu, spec: p, sourceCard: card.name)
                     }
                 }
+                lastResolvingPlayCard = card.name
                 let notes = applyIntents(out, actingSide: .cpu)
+                lastResolvingPlayCard = ""
                 cpuLastPlayNotes = notes
             }
             if !structuredHandled {

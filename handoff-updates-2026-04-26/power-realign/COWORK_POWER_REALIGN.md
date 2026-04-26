@@ -9,8 +9,8 @@ catalog's `power` to match the print.
 
 - Total Hero records inspected:        **15,691**
 - Catalog already correct:             **14,788**
-- Mismatches (high-confidence, patched): **572**
-- Mismatches (low-confidence, queued for review): **303**
+- Mismatches (high-confidence, patched): **649**
+- Mismatches (low-confidence, queued for review): **226**
 - OCR returned no power (queued for review): **28**
 - Confidence threshold for auto-patch:  `0.85`
 
@@ -20,58 +20,65 @@ catalog's `power` to match the print.
 |---:|---:|
 | -40 | 5 |
 | -36 | 1 |
-| -30 | 50 |
+| -35 | 1 |
+| -30 | 60 |
 | -25 | 1 |
+| -23 | 1 |
+| -22 | 1 |
 | -21 | 1 |
-| -20 | 65 |
+| -20 | 72 |
 | -17 | 1 |
-| -15 | 1 |
-| -10 | 57 |
+| -15 | 2 |
+| -10 | 60 |
 | -6 | 1 |
-| -5 | 114 |
-| +5 | 85 |
-| +10 | 48 |
-| +15 | 24 |
+| -5 | 125 |
+| -2 | 2 |
+| +5 | 90 |
+| +10 | 52 |
+| +15 | 27 |
 | +16 | 10 |
 | +17 | 1 |
-| +20 | 21 |
-| +23 | 1 |
+| +18 | 1 |
+| +20 | 26 |
+| +22 | 1 |
+| +23 | 4 |
 | +24 | 1 |
-| +25 | 33 |
+| +25 | 36 |
 | +28 | 3 |
-| +30 | 24 |
-| +35 | 21 |
+| +30 | 31 |
+| +33 | 1 |
+| +35 | 28 |
 | +40 | 3 |
 
 ## Per-cardNumber-prefix counts (patched rows only)
 
 | Prefix | rows |
 |---|---:|
-| MIX | 137 |
-| RAD | 109 |
-| BF | 53 |
-| SBF | 52 |
-| GLBF | 24 |
-| ABF | 23 |
-| GGL | 23 |
-| LOGO | 23 |
-| CBF | 22 |
-| BLBF | 17 |
+| MIX | 165 |
+| RAD | 119 |
+| BF | 59 |
+| SBF | 53 |
+| ABF | 27 |
+| GLBF | 27 |
+| GGL | 26 |
+| BLBF | 25 |
+| LOGO | 24 |
+| CBF | 23 |
 | IBF | 12 |
+| PG | 10 |
 | GBF | 9 |
-| PG | 9 |
 | RBF | 9 |
 | SL | 8 |
-| FT | 4 |
-| OBF | 4 |
-| BGA | 3 |
-| CHILL | 3 |
-| CJ | 3 |
-| MI | 3 |
-| BBF | 2 |
-| BFA | 2 |
+| FT | 5 |
+| OBF | 5 |
+| BFA | 4 |
+| BGA | 4 |
+| CHILL | 4 |
+| CJ | 4 |
+| MI | 4 |
+| BBF | 3 |
+| GRILL | 3 |
 | FHA | 2 |
-| GRILL | 2 |
 | 24 | 1 |
 | ADPA | 1 |
 | BBFA | 1 |
@@ -81,7 +88,7 @@ catalog's `power` to match the print.
 ## Files
 
 - `patch.json` — apply via `scripts/apply_power_realign.py`
-  - md5: `476e458e1e8c3ecc568d6ce4d69bfb2c`
+  - md5: `3892f49545e894c12a1bc3d377ecb716`
 - `needs_review.json` — low-confidence rows (OCR was uncertain) and
   rows where OCR couldn't extract a power at all. Operator to spot
   check or skip.

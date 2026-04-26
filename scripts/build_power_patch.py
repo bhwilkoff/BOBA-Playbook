@@ -294,14 +294,32 @@ def main():
             record["reason_filtered"] = "hero_mismatch_likely_wrong_image"
             needs_review.append(record)
             continue
-        if conf >= args.confidence:
+        # Decide whether to patch.
+        #
+        # The original gate was confidence ≥ 0.85, which silently dropped
+        # legitimate fixes like BBF-66 Game Time (conf 0.30, but OCR
+        # candidates were a clean ["GAME TIME", "140"] — Vision was
+        # just humble about the stylized glyphs, not actually wrong).
+        #
+        # New gate: hero_match is the discriminator. If the OCR
+        # confirmed the catalog's hero is on the printed art, the
+        # power digits are trustworthy regardless of Vision's
+        # confidence number. Confidence is only required when the
+        # OCR gave us no hero text either way (hero_match is None) —
+        # in that case we have no signal that we're looking at the
+        # right card, so a high-conf clean read is the only safety net.
+        should_patch = (hero_match is True) or (
+            hero_match is None and conf >= args.confidence
+        )
+        if should_patch:
+            note = "hero match" if hero_match is True else f"confidence {conf:.2f}"
             patch_modify.append(
                 {
                     "old_bobaId": bid,
                     "changes": {"power": ocr},
                     "reason": (
                         f"OCR-confirmed printed power {ocr} "
-                        f"(catalog had {cat}); confidence {conf:.2f}"
+                        f"(catalog had {cat}); {note}"
                     ),
                 }
             )
@@ -309,6 +327,7 @@ def main():
                 delta_hist[delta] += 1
             prefix_changes[prefix] += 1
         else:
+            record["reason_filtered"] = "no_hero_match_and_low_confidence"
             needs_review.append(record)
 
     # Write the patch.

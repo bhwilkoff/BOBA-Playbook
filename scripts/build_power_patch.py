@@ -96,22 +96,42 @@ def hero_in_candidates(catalog_hero, candidates):
     for cand in candidates:
         c = cand.upper().strip()
         letters = _letters_only(c)
-        if len(letters) < 3:
+        # Allow very-short letter strings (catalog has 2-letter heroes
+        # like "A.I." / "X.L." whose letters-only form is just "AI"
+        # or "XL"). The substring check below remains meaningful on
+        # those — and skipping at <3 was causing legitimate matches
+        # to fall through into the "wrong-image" bucket. Single-char
+        # fragments are still skipped — too noisy.
+        if len(letters) < 2:
             continue
         saw_alpha = True
         # 1. Direct substring on letters-only forms — handles missing
-        #    apostrophes/hyphens/spaces ("MICDUP" vs "MIC'D UP").
+        #    apostrophes/hyphens/spaces ("MICDUP" vs "MIC'D UP",
+        #    "AI" vs "AI" for "A.I.").
         if target_letters and (
             target_letters in letters or letters in target_letters
         ):
             return True
-        # 2. Levenshtein on letters-only — handles single-char OCR
-        #    substitutions (CLUTCH/ELUTCH, BARNACLE/BARHACLE) plus
-        #    one inserted glyph from frame artifacts.
-        if target_letters and len(target_letters) >= 4 and len(letters) >= 4:
-            tolerance = 2 if len(target_letters) >= 6 else 1
+        # 2. Levenshtein on letters-only — handles multi-char OCR
+        #    substitutions on stylized BoBA art ("GIGANTE" / "CIGANII"
+        #    differs by 3 chars, "PEEK-A-BOO" / "PHEK" by ~6, etc.).
+        #    Tolerance scales with hero length so short heroes stay
+        #    strict while long ones absorb more noise — without that,
+        #    char-substitution cards on Mixtape/Miami Ice art pile
+        #    into the wrong-image bucket as false positives.
+        if target_letters and len(target_letters) >= 3 and len(letters) >= 3:
+            tolerance = max(1, len(target_letters) // 3)
             if _edit_distance(target_letters, letters, cap=tolerance) <= tolerance:
                 return True
+            # Same comparison with the shorter side wrapped — if the
+            # OCR captured only a prefix of the hero (truncation), we
+            # want a partial match. Compute distance from the OCR
+            # candidate to the corresponding-length prefix of the
+            # target.
+            if len(letters) < len(target_letters):
+                trunc_target = target_letters[: len(letters)]
+                if _edit_distance(trunc_target, letters, cap=tolerance) <= tolerance:
+                    return True
         # 3. Token-level: catalog-hero word in candidate word with
         #    prefix-overlap or containment.
         cand_tokens = {t for t in c.split() if len(t) >= 3 and any(ch.isalpha() for ch in t)}

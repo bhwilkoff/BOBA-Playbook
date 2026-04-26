@@ -1,7 +1,7 @@
 {
   "sets": {
     "Griffey Edition": {
-      "count": 10017,
+      "count": 10033,
       "subSets": [
         "2024 Release",
         "2025 Release",
@@ -55,7 +55,7 @@
       ]
     },
     "Alpha Update": {
-      "count": 3792,
+      "count": 3805,
       "subSets": [
         "2024 Release",
         "2025 Release",
@@ -133,7 +133,7 @@
       ]
     },
     "Alpha Blast": {
-      "count": 1356,
+      "count": 1386,
       "subSets": [
         "Blast"
       ],
@@ -142,6 +142,7 @@
         "Bubble Gum Blast",
         "Green Blast",
         "Home Team Discount",
+        "Hot Dog",
         "Orange Blast",
         "Pink Blast",
         "Silver Blast"
@@ -759,6 +760,21 @@
         "CBA-8-Big Geo-Inspired Ink Metallic Battlefoil-Craig Biggio Debut"
       ]
     },
+    "Hot Dog": {
+      "count": 129,
+      "elements": [
+        "FIRE",
+        "HEX",
+        "ICE"
+      ],
+      "sampleBobaIds": [
+        "HD-1-Dirty Water Dan-Hot Dog-",
+        "HD-1-Dirty Water Dan-Hot Dog-Alpha Update",
+        "HD-1-Dirty Water Dan-Hot Dog-Griffey Edition",
+        "HD-10-Frank-Hot Dog-",
+        "HD-10-Frank-Hot Dog-Alpha Update"
+      ]
+    },
     "Bubble Gum Battlefoil": {
       "count": 128,
       "elements": [
@@ -827,21 +843,6 @@
         "S-03/100-BoJax-Paper-Starter",
         "S-04/100-Chosen-Paper-Starter",
         "S-05/100-Chosen-Paper-Starter"
-      ]
-    },
-    "Hot Dog": {
-      "count": 70,
-      "elements": [
-        "FIRE",
-        "HEX",
-        "ICE"
-      ],
-      "sampleBobaIds": [
-        "HD-1-Dirty Water Dan-Hot Dog-",
-        "HD-10-Frank-Hot Dog-",
-        "HD-11-Willy B-Hot Dog-",
-        "HD-12-Vincent Van Dough-Hot Dog-",
-        "HD-13-Twirly Girl-Hot Dog-"
       ]
     },
     "Home Team Discount": {
@@ -6862,7 +6863,7 @@
   "cardTypes": {
     "Hero": 17235,
     "Play": 505,
-    "HotDog": 70,
+    "HotDog": 129,
     "Sealed Product": 45
   },
   "dbsTiers": {
@@ -6885,6 +6886,6 @@
     "HTD": 60,
     "Standard": 370
   },
-  "totalCards": 17855,
-  "totalWithImages": 16285
+  "totalCards": 17914,
+  "totalWithImages": 16314
 }

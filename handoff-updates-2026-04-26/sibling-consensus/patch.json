@@ -1,0 +1,10 @@
+{
+  "schema_decision": "Sibling-consensus power patch. Each modify entry sets the row's power to match its (hero, treatment, element) siblings' unanimous power.",
+  "modify": [],
+  "stats": {
+    "scanned": 254,
+    "patched": 0,
+    "confirmed_ok": 0,
+    "no_consensus": 254
+  }
+}

@@ -1,0 +1,308 @@
+[
+  {
+    "bobaId": "ABF-149-Destroya-Alpha Battlefoil-Patrick Ewing Debut",
+    "power": 175,
+    "consensus": 175,
+    "share": 0.833
+  },
+  {
+    "bobaId": "ABF-455-Game Over-Alpha Battlefoil-Éric Gagné Debut",
+    "power": 140,
+    "consensus": 140,
+    "share": 0.8
+  },
+  {
+    "bobaId": "BBFA-39-Thurmanator-Silver Blast-Thuman Thomas Debut",
+    "power": 160,
+    "consensus": 160,
+    "share": 0.838
+  },
+  {
+    "bobaId": "BBFA-61-Blockhale-Silver Blast-Kevin McHale Debut",
+    "power": 165,
+    "consensus": 165,
+    "share": 0.769
+  },
+  {
+    "bobaId": "BFA-64-Thurmanator-Inspired Ink Battlefoil-Thuman Thomas Debut",
+    "power": 160,
+    "consensus": 160,
+    "share": 0.733
+  },
+  {
+    "bobaId": "BFA-96-Pet Dog-Inspired Ink Battlefoil-Ethan Petry Debut",
+    "power": 165,
+    "consensus": 165,
+    "share": 0.861
+  },
+  {
+    "bobaId": "BFA-97-Windmill-Inspired Ink Battlefoil-Dominique Wilkins Debut",
+    "power": 165,
+    "consensus": 165,
+    "share": 0.769
+  },
+  {
+    "bobaId": "BLBF-96-Jeanetic-Blizzard Battlefoil-First Edition",
+    "power": 165,
+    "consensus": 165,
+    "share": 0.75
+  },
+  {
+    "bobaId": "BLBF-162-Pudge-Blizzard Battlefoil-Carlton Fisk Debut",
+    "power": 170,
+    "consensus": 170,
+    "share": 0.792
+  },
+  {
+    "bobaId": "CHILL-10-Rocket-Chillin' Battlefoil-Roger Clemens Debut",
+    "power": 180,
+    "consensus": 180,
+    "share": 0.792
+  },
+  {
+    "bobaId": "CHILL-22-Mr. October-Chillin' Battlefoil-Reggie Jackson Debut",
+    "power": 165,
+    "consensus": 165,
+    "share": 0.786
+  },
+  {
+    "bobaId": "CHILL-18-Destroya-Chillin' Battlefoil-Patrick Ewing Debut",
+    "power": 165,
+    "consensus": 165,
+    "share": 0.762
+  },
+  {
+    "bobaId": "CHILL-4-Freakshow-Chillin' Battlefoil-Giannis Antetokounmpo Unmasked",
+    "power": 185,
+    "consensus": 185,
+    "share": 0.774
+  },
+  {
+    "bobaId": "CHILL-23-Tigre-Chillin' Battlefoil-Miguel Cabrera Unmasked",
+    "power": 165,
+    "consensus": 165,
+    "share": 0.72
+  },
+  {
+    "bobaId": "CHILL-27-Gator-Chillin' Battlefoil-Steve Spurrier Debut",
+    "power": 160,
+    "consensus": 160,
+    "share": 0.786
+  },
+  {
+    "bobaId": "GGL-149-Destroya-Great Grandma's Linoleum Battlefoil-Patrick Ewing Debut",
+    "power": 175,
+    "consensus": 175,
+    "share": 0.844
+  },
+  {
+    "bobaId": "GGL-301-Gar-Great Grandma's Linoleum Battlefoil-Edgar Martinez Debut",
+    "power": 155,
+    "consensus": 155,
+    "share": 0.871
+  },
+  {
+    "bobaId": "GGL-170-Gar-Great Grandma's Linoleum Battlefoil-Edgar Martinez Debut",
+    "power": 165,
+    "consensus": 165,
+    "share": 0.879
+  },
+  {
+    "bobaId": "GLBF-108-Timmy-Grandma's Linoleum Battlefoil-Tim Brown Debut",
+    "power": 155,
+    "consensus": 155,
+    "share": 0.818
+  },
+  {
+    "bobaId": "GLBF-63-Thurmanator-Grandma's Linoleum Battlefoil-Thuman Thomas Debut",
+    "power": 160,
+    "consensus": 160,
+    "share": 0.833
+  },
+  {
+    "bobaId": "GLBF-103-Blockhale-Grandma's Linoleum Battlefoil-Kevin McHale Debut",
+    "power": 155,
+    "consensus": 155,
+    "share": 0.75
+  },
+  {
+    "bobaId": "GLBF-301-Gar-Grandma's Linoleum Battlefoil-Edgar Martinez Debut",
+    "power": 155,
+    "consensus": 155,
+    "share": 0.812
+  },
+  {
+    "bobaId": "GLBF-170-Gar-Grandma's Linoleum Battlefoil-Edgar Martinez Debut",
+    "power": 165,
+    "consensus": 165,
+    "share": 0.895
+  },
+  {
+    "bobaId": "GLBF-238-Attak-Grandma's Linoleum Battlefoil-First Edition",
+    "power": 165,
+    "consensus": 165,
+    "share": 0.75
+  },
+  {
+    "bobaId": "IBF-30-Jeanetic-Icon Battlefoil-First Edition",
+    "power": 165,
+    "consensus": 165,
+    "share": 0.708
+  },
+  {
+    "bobaId": "GRILL-39-Gar-Grillin' Battlefoil-Edgar Martinez Debut",
+    "power": 155,
+    "consensus": 155,
+    "share": 0.938
+  },
+  {
+    "bobaId": "LA-4-MVFREE-Paper & Battlefoil-World Champion Debut",
+    "power": 185,
+    "consensus": 185,
+    "share": 0.867
+  },
+  {
+    "bobaId": "JBNA-5-Burner-Inspired Ink Battlefoil-Jalen Brunson Unmasked",
+    "power": 185,
+    "consensus": 185,
+    "share": 0.811
+  },
+  {
+    "bobaId": "LOGO-55-Joystick-Logofoil-Dante Hall Debut",
+    "power": 165,
+    "consensus": 165,
+    "share": 1.0
+  },
+  {
+    "bobaId": "MI-3-Dr. J-Miami Ice Battlefoil-Julius Erving Debut",
+    "power": 185,
+    "consensus": 185,
+    "share": 1.0
+  },
+  {
+    "bobaId": "MI-18-Destroya-Miami Ice Battlefoil-Patrick Ewing Debut",
+    "power": 165,
+    "consensus": 165,
+    "share": 0.769
+  },
+  {
+    "bobaId": "MI-15-King Felix-Miami Ice Battlefoil-Félix Hernández Debut",
+    "power": 175,
+    "consensus": 175,
+    "share": 0.88
+  },
+  {
+    "bobaId": "MI-7-Unanimous Sandman-Miami Ice Battlefoil-Mariano Rivera Debut",
+    "power": 180,
+    "consensus": 180,
+    "share": 0.723
+  },
+  {
+    "bobaId": "MI-15-Sea-Largent-Miami Ice Battlefoil-Steve Largent Debut",
+    "power": 165,
+    "consensus": 165,
+    "share": 0.968
+  },
+  {
+    "bobaId": "MI-31-Pudge-Miami Ice Battlefoil-Carlton Fisk Debut",
+    "power": 160,
+    "consensus": 160,
+    "share": 0.783
+  },
+  {
+    "bobaId": "MI-32-Bone-Miami Ice Battlefoil-Jay Buhner Debut",
+    "power": 155,
+    "consensus": 155,
+    "share": 0.848
+  },
+  {
+    "bobaId": "MI-24-Senior-Miami Ice Battlefoil-Ken Griffey Sr. Debut",
+    "power": 165,
+    "consensus": 165,
+    "share": 0.968
+  },
+  {
+    "bobaId": "MI-28-Hoge-Ball-Miami Ice Battlefoil-Merril Hoge Debut",
+    "power": 155,
+    "consensus": 155,
+    "share": 0.903
+  },
+  {
+    "bobaId": "MI-29-InVinceable-Miami Ice Battlefoil-Vince Young Debut",
+    "power": 155,
+    "consensus": 155,
+    "share": 0.714
+  },
+  {
+    "bobaId": "MI-31-Tikoff-Miami Ice Battlefoil-Fred Biletnikoff Debut",
+    "power": 155,
+    "consensus": 155,
+    "share": 0.857
+  },
+  {
+    "bobaId": "MI-36-Rainestorm-Miami Ice Battlefoil-Tim Raines Debut",
+    "power": 155,
+    "consensus": 155,
+    "share": 0.857
+  },
+  {
+    "bobaId": "MIX-39-Gar-Mixtape Battlefoil-Edgar Martinez Debut",
+    "power": 175,
+    "consensus": 175,
+    "share": 0.824
+  },
+  {
+    "bobaId": "MI-62-Game Over-Miami Ice Battlefoil-Éric Gagné Debut",
+    "power": 140,
+    "consensus": 140,
+    "share": 1.0
+  },
+  {
+    "bobaId": "MI-38-JAW-JAW-Miami Ice Battlefoil-Ron Jaworski Debut",
+    "power": 155,
+    "consensus": 155,
+    "share": 0.966
+  },
+  {
+    "bobaId": "MIX-140-HowBout'em-Mixtape Battlefoil-Jimmy Johnson Debut",
+    "power": 175,
+    "consensus": 175,
+    "share": 0.714
+  },
+  {
+    "bobaId": "MIX-301-Gar-Mixtape Battlefoil-Edgar Martinez Debut",
+    "power": 155,
+    "consensus": 155,
+    "share": 0.9
+  },
+  {
+    "bobaId": "OBF-7-Spudnick-Orange Battlefoil-Spudd Webb Debut",
+    "power": 180,
+    "consensus": 180,
+    "share": 0.75
+  },
+  {
+    "bobaId": "PEA-4-Destroya-Inspired Ink Battlefoil-Patrick Ewing Debut",
+    "power": 175,
+    "consensus": 175,
+    "share": 0.703
+  },
+  {
+    "bobaId": "SL-31-Pudge-Slime Battlefoil-Carlton Fisk Debut",
+    "power": 170,
+    "consensus": 170,
+    "share": 0.714
+  },
+  {
+    "bobaId": "SF-81-Simon Says-Superfoil-First Edition",
+    "power": 155,
+    "consensus": 155,
+    "share": 0.792
+  },
+  {
+    "bobaId": "SSE-4-XL-Paper & Battlefoil-Sandstorm Edition",
+    "power": 185,
+    "consensus": 185,
+    "share": 0.769
+  }
+]

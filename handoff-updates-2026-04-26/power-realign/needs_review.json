@@ -1,0 +1,4552 @@
+{
+  "low_conf_mismatches": [
+    {
+      "bobaId": "49-Tattoo-Base Set-First Edition",
+      "catalogPower": 120,
+      "ocrPower": 203,
+      "confidence": 0.5,
+      "delta": 83,
+      "candidates": [
+        "TATTUU",
+        "ABST ERTOR",
+        "203"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "120-Sarrtillery-Base Set-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 100,
+      "confidence": 0.3,
+      "delta": 10,
+      "candidates": [
+        ":06",
+        "100EI Da"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "225-Javalanche-Base Set-2026 Edition",
+      "catalogPower": 85,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 117,
+      "candidates": [
+        "JAVALANCHE",
+        "202% EAMV"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "ABF-149-Destroya-Alpha Battlefoil-Patrick Ewing Debut",
+      "catalogPower": 175,
+      "ocrPower": 75,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "DESTROYA",
+        "757",
+        "DESTROYA",
+        "РАГИСК ГИНА МРО",
+        "175g",
+        "75",
+        "DEqRDYA",
+        "DESIRDYA"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "ABF-162-Pudge-Alpha Battlefoil-Carlton Fisk Debut",
+      "catalogPower": 170,
+      "ocrPower": 217,
+      "confidence": 1,
+      "delta": 47,
+      "candidates": [
+        "PUDGE",
+        "CARLTON FISK DEBUT",
+        "·170-",
+        "PUDGE",
+        "CARLTON FISK DEBUT",
+        "M70",
+        "2",
+        "2170g",
+        "PUDGE",
+        "PUDGE"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "ABF-260-Action-Alpha Battlefoil-2026 Edition",
+      "catalogPower": 95,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 107,
+      "candidates": [
+        "ACTION",
+        "202% EMNDV"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "ABF-324-Game Over-Alpha Battlefoil-Éric Gagné Debut",
+      "catalogPower": 140,
+      "ocrPower": 105,
+      "confidence": 0.3,
+      "delta": -35,
+      "candidates": [
+        "GAME OVER",
+        "DAN GAON BRNT",
+        "105 18203 247",
+        "GAME OVER",
+        "t4",
+        "GINEOUER"
+      ]
+    },
+    {
+      "bobaId": "ABF-333-PB Buckets-Alpha Battlefoil-First Edition",
+      "catalogPower": 175,
+      "ocrPower": 75,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "PB BUCKETS",
+        "75"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "ABF-455-Game Over-Alpha Battlefoil-Éric Gagné Debut",
+      "catalogPower": 140,
+      "ocrPower": 205,
+      "confidence": 0.3,
+      "delta": 65,
+      "candidates": [
+        "GAME OVER",
+        "taw cacef sar",
+        "38",
+        "205 8003 A7",
+        "GAME OVER",
+        "GJJIEO¥"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "ABF-588-Dunker-Alpha Battlefoil-John Starks Debut",
+      "catalogPower": 160,
+      "ocrPower": 130,
+      "confidence": 0.3,
+      "delta": -30,
+      "candidates": [
+        "DUNKER",
+        "130₫"
+      ]
+    },
+    {
+      "bobaId": "ABF-586-Game Over-Alpha Battlefoil-Éric Gagné Debut",
+      "catalogPower": 130,
+      "ocrPower": 61,
+      "confidence": 0.5,
+      "delta": -69,
+      "candidates": [
+        "GAME OVER",
+        "tercoretaan",
+        "GAME OVER",
+        "61JIEUfiR",
+        "GJJIEOVER"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "ABF-595-PB Buckets-Alpha Battlefoil-First Edition",
+      "catalogPower": 160,
+      "ocrPower": 91,
+      "confidence": 1,
+      "delta": -69,
+      "candidates": [
+        ":09l",
+        "PB BUCKETS",
+        "091",
+        "PB BUCKETS",
+        "09l",
+        "PBBUIKtt",
+        "PBBU"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "ABF-720-Pauldron-Alpha Battlefoil-Paula Badosa Debut",
+      "catalogPower": 150,
+      "ocrPower": 120,
+      "confidence": 0.5,
+      "delta": -30,
+      "candidates": [
+        "PAULURUN",
+        "120"
+      ]
+    },
+    {
+      "bobaId": "ABF-726-PB Buckets-Alpha Battlefoil-First Edition",
+      "catalogPower": 150,
+      "ocrPower": 160,
+      "confidence": 0.5,
+      "delta": 10,
+      "candidates": [
+        "PB BUCKETS",
+        "160"
+      ]
+    },
+    {
+      "bobaId": "BBF-66-Game Time-Blue Battlefoil-Jim Boeheim Debut",
+      "catalogPower": 160,
+      "ocrPower": 140,
+      "confidence": 0.3,
+      "delta": -20,
+      "candidates": [
+        "GAME TIME",
+        "140"
+      ]
+    },
+    {
+      "bobaId": "BBF-83-Pantera-Blue Battlefoil-First Edition",
+      "catalogPower": 105,
+      "ocrPower": 88,
+      "confidence": 1,
+      "delta": -17,
+      "candidates": [
+        "PANTERA",
+        "88",
+        "105"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "BBF-129-Action-Blue Battlefoil-2026 Edition",
+      "catalogPower": 90,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 112,
+      "candidates": [
+        "ACTION",
+        "2026 ENT0Y"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "BBFA-39-Thurmanator-Silver Blast-Thuman Thomas Debut",
+      "catalogPower": 160,
+      "ocrPower": 60,
+      "confidence": 0.5,
+      "delta": -100,
+      "candidates": [
+        "THURMANATOR",
+        "I60"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "BBFA-61-Blockhale-Silver Blast-Kevin McHale Debut",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "BLOCKHALE",
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "BBFA-94-Bojax-Silver Blast-Founding Hero Alpha Update",
+      "catalogPower": 195,
+      "ocrPower": 105,
+      "confidence": 1,
+      "delta": -90,
+      "candidates": [
+        "BOJAX",
+        "105."
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "BBFA-103-Wizard-Silver Blast-Ozzie Smith Debut",
+      "catalogPower": 180,
+      "ocrPower": 85,
+      "confidence": 1,
+      "delta": -95,
+      "candidates": [
+        "WIZARD",
+        "X/ 25",
+        "X/85",
+        "WIZARD",
+        "WIWD",
+        "WIZAR"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "BBFA-154-Boom-Silver Blast-Boomer Esiason Debut",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "BOOM",
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "BF-66-Wargod-Battlefoil-First Edition",
+      "catalogPower": 140,
+      "ocrPower": 150,
+      "confidence": 0.5,
+      "delta": 10,
+      "candidates": [
+        "WARGOD",
+        "150"
+      ]
+    },
+    {
+      "bobaId": "BF-99-Simon Says-Battlefoil-First Edition",
+      "catalogPower": 110,
+      "ocrPower": 125,
+      "confidence": 0.5,
+      "delta": 15,
+      "candidates": [
+        "SIMON SAYS",
+        "125"
+      ]
+    },
+    {
+      "bobaId": "BF-100-Mr. Irrelevant-Battlefoil-First Edition",
+      "catalogPower": 110,
+      "ocrPower": 155,
+      "confidence": 1,
+      "delta": 45,
+      "candidates": [
+        "MR. IRRELEVANT",
+        "MaST ARE",
+        "155-"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "BF-103-Big-Z-Battlefoil-First Edition",
+      "catalogPower": 105,
+      "ocrPower": 140,
+      "confidence": 0.5,
+      "delta": 35,
+      "candidates": [
+        "BIGZ",
+        "140"
+      ]
+    },
+    {
+      "bobaId": "BF-109-Botto-Battlefoil-First Edition",
+      "catalogPower": 100,
+      "ocrPower": 135,
+      "confidence": 0.5,
+      "delta": 35,
+      "candidates": [
+        "BOTTO",
+        "135}"
+      ]
+    },
+    {
+      "bobaId": "BF-116-Alien-Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 130,
+      "confidence": 0.5,
+      "delta": 35,
+      "candidates": [
+        "ALIEN",
+        "130]"
+      ]
+    },
+    {
+      "bobaId": "BF-120-Sarrtillery-Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 130,
+      "confidence": 0.3,
+      "delta": 35,
+      "candidates": [
+        "SARRTILLERY",
+        "130]"
+      ]
+    },
+    {
+      "bobaId": "BF-240-Sarrtillery-Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 100,
+      "confidence": 0.3,
+      "delta": 10,
+      "candidates": [
+        ":06",
+        "100EI Da"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "BF-298-Action-Battlefoil-2026 Edition",
+      "catalogPower": 85,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 117,
+      "candidates": [
+        "ACTION",
+        "202% ENT0N"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "BF-345-Javalanche-Battlefoil-First Edition",
+      "catalogPower": 85,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 117,
+      "candidates": [
+        "JAVALANCHE",
+        "202% EAMV"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "BFA-40-Magic-Inspired Ink Battlefoil-Magic Johnson Debut",
+      "catalogPower": 190,
+      "ocrPower": 125,
+      "confidence": 1,
+      "delta": -65,
+      "candidates": [
+        "ЛАБІЄ",
+        "2 190g",
+        "1/25"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "BFA-64-Thurmanator-Inspired Ink Battlefoil-Thuman Thomas Debut",
+      "catalogPower": 160,
+      "ocrPower": 60,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "THURMANATOR",
+        "I60]"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "BFA-71-Kurse-Inspired Ink Battlefoil-Jevon Kearse Debut",
+      "catalogPower": 160,
+      "ocrPower": 150,
+      "confidence": 0.5,
+      "delta": -10,
+      "candidates": [
+        "KURSE",
+        "ETARIE CRBИT",
+        "1(505",
+        "7/25",
+        "LARJO BMYEI eul",
+        "MUASE",
+        "1E",
+        "7/25",
+        "XURSE",
+        "[1ik"
+      ]
+    },
+    {
+      "bobaId": "BFA-86-Wizard-Inspired Ink Battlefoil-Ozzie Smith Debut",
+      "catalogPower": 175,
+      "ocrPower": 75,
+      "confidence": 0.3,
+      "delta": -100,
+      "candidates": [
+        "WIZARD",
+        "75."
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "BFA-96-Pet Dog-Inspired Ink Battlefoil-Ethan Petry Debut",
+      "catalogPower": 165,
+      "ocrPower": 59,
+      "confidence": 1,
+      "delta": -106,
+      "candidates": [
+        "(59L)",
+        "900-20"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "BFA-97-Windmill-Inspired Ink Battlefoil-Dominique Wilkins Debut",
+      "catalogPower": 165,
+      "ocrPower": 56,
+      "confidence": 1,
+      "delta": -109,
+      "candidates": [
+        "05/ 6E"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "BFA-102-Blockhale-Inspired Ink Battlefoil-Kevin McHale Debut",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "BLOCKHALE",
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "BFA-129-Sea-Largent-Inspired Ink Battlefoil-Steve Largent Debut",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "SEA-LARGENT",
+        "STEVE LARGENT DEBUT",
+        "165",
+        "49/50",
+        "SEA-LARGENT",
+        "STEVE LARGENT DEBUT",
+        "49/50",
+        "POSEB",
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "BFA-130-Howietzer-Inspired Ink Battlefoil-Howie Long Debut",
+      "catalogPower": 165,
+      "ocrPower": 163,
+      "confidence": 0.3,
+      "delta": -2,
+      "candidates": [
+        "AENIETZER",
+        "DЛEHE DIУNO DESTTE",
+        "163г",
+        "28/50",
+        "28/50"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "BGA-12-Bus-Inspired Ink Bubble Gum Battlefoil-Jerome Bettis Debut",
+      "catalogPower": 190,
+      "ocrPower": 175,
+      "confidence": 0.5,
+      "delta": -15,
+      "candidates": [
+        "BUS",
+        "BURH ROUTE",
+        "175฿"
+      ]
+    },
+    {
+      "bobaId": "BGBF-2-Skeee-Bubble Gum Battlefoil-First Edition",
+      "catalogPower": 195,
+      "ocrPower": 185,
+      "confidence": 1,
+      "delta": -10,
+      "candidates": [
+        "MATATA",
+        "185"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "BL-S133-Ram-Silver Blast-First Edition",
+      "catalogPower": 120,
+      "ocrPower": 121,
+      "confidence": 0.5,
+      "delta": 1,
+      "candidates": [
+        "121E"
+      ]
+    },
+    {
+      "bobaId": "BLBF-95-Jeesaw-Blizzard Battlefoil-First Edition",
+      "catalogPower": 115,
+      "ocrPower": 170,
+      "confidence": 1,
+      "delta": 55,
+      "candidates": [
+        "D-HARP",
+        "f3 Chwe",
+        "170-"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "BLBF-96-Jeanetic-Blizzard Battlefoil-First Edition",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "JEANETIC",
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "BLBF-120-Bandelero-Blizzard Battlefoil-First Edition",
+      "catalogPower": 110,
+      "ocrPower": 145,
+      "confidence": 1,
+      "delta": 35,
+      "candidates": [
+        "ZEPHYR",
+        "145"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "BLBF-162-Pudge-Blizzard Battlefoil-Carlton Fisk Debut",
+      "catalogPower": 170,
+      "ocrPower": 70,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "PUDGE",
+        "CARLTEN RISK DERST",
+        "PUDGE",
+        "(ATEE ESE NBST",
+        "170g",
+        "70-",
+        "PUDGE",
+        "PUDGE"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "BLBF-174-Shepherd-Blizzard Battlefoil-First Edition",
+      "catalogPower": 105,
+      "ocrPower": 160,
+      "confidence": 1,
+      "delta": 55,
+      "candidates": [
+        "HIGHWAY TO HELTON",
+        "160"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "BLBF-200-Mad Scientist-Blizzard Battlefoil-First Edition",
+      "catalogPower": 190,
+      "ocrPower": 185,
+      "confidence": 0.3,
+      "delta": -5,
+      "candidates": [
+        "MAD SCIENTIST",
+        "185"
+      ]
+    },
+    {
+      "bobaId": "BLBF-201-Alexander the Great-Blizzard Battlefoil-First Edition",
+      "catalogPower": 185,
+      "ocrPower": 180,
+      "confidence": 0.5,
+      "delta": -5,
+      "candidates": [
+        "ALEXANDER THE GREAT",
+        "180"
+      ]
+    },
+    {
+      "bobaId": "BLBF-317-Joystick-Blizzard Battlefoil-Dante Hall Debut",
+      "catalogPower": 145,
+      "ocrPower": 82,
+      "confidence": 1,
+      "delta": -63,
+      "candidates": [
+        "JOYSTICK",
+        "1453",
+        "82"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "BLBF-326-Dunker-Blizzard Battlefoil-John Starks Debut",
+      "catalogPower": 160,
+      "ocrPower": 140,
+      "confidence": 0.5,
+      "delta": -20,
+      "candidates": [
+        "DUNKER",
+        "140"
+      ]
+    },
+    {
+      "bobaId": "BLBF-588-Dunker-Blizzard Battlefoil-John Starks Debut",
+      "catalogPower": 160,
+      "ocrPower": 130,
+      "confidence": 0.5,
+      "delta": -30,
+      "candidates": [
+        "DUNKER",
+        "130₫"
+      ]
+    },
+    {
+      "bobaId": "BLBF-639-Superbaby-Blizzard Battlefoil-2026 Edition",
+      "catalogPower": 95,
+      "ocrPower": 212,
+      "confidence": 0.3,
+      "delta": 117,
+      "candidates": [
+        "SUPERBABY",
+        "SUPERBABY",
+        "212 1907",
+        "SVPERBABY",
+        "SUPERBABY"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "BLBF-723-Maverick-Blizzard Battlefoil-First Edition",
+      "catalogPower": 155,
+      "ocrPower": 160,
+      "confidence": 0.3,
+      "delta": 5,
+      "candidates": [
+        "MAVERICK",
+        "160"
+      ]
+    },
+    {
+      "bobaId": "BLBF-724-Mad Scientist-Blizzard Battlefoil-First Edition",
+      "catalogPower": 155,
+      "ocrPower": 160,
+      "confidence": 0.5,
+      "delta": 5,
+      "candidates": [
+        "MAD SCIENTIST",
+        "160"
+      ]
+    },
+    {
+      "bobaId": "BLBF-721-Game Time-Blizzard Battlefoil-Jim Boeheim Debut",
+      "catalogPower": 150,
+      "ocrPower": 120,
+      "confidence": 0.5,
+      "delta": -30,
+      "candidates": [
+        "GAME TIME",
+        "120"
+      ]
+    },
+    {
+      "bobaId": "BLBF-726-PB Buckets-Blizzard Battlefoil-First Edition",
+      "catalogPower": 150,
+      "ocrPower": 160,
+      "confidence": 0.3,
+      "delta": 10,
+      "candidates": [
+        "PB BUCKETS",
+        "160"
+      ]
+    },
+    {
+      "bobaId": "CBF-199-Maverick-Colosseum Battlefoil-First Edition",
+      "catalogPower": 190,
+      "ocrPower": 185,
+      "confidence": 1,
+      "delta": -5,
+      "candidates": [
+        "MÁVERICK EO",
+        "1853"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "CBF-588-Dunker-Colosseum Battlefoil-John Starks Debut",
+      "catalogPower": 160,
+      "ocrPower": 130,
+      "confidence": 0.5,
+      "delta": -30,
+      "candidates": [
+        "DUNKER",
+        "AWW STANES NRT",
+        "130"
+      ]
+    },
+    {
+      "bobaId": "CBF-761-Bandelero-Colosseum Battlefoil-2026 Edition",
+      "catalogPower": 95,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 107,
+      "candidates": [
+        "BANDELERO",
+        "202% ERIT0И",
+        "951"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "CBF-770-Superbaby-Colosseum Battlefoil-2026 Edition",
+      "catalogPower": 85,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 117,
+      "candidates": [
+        "SUPERBABY",
+        "2026 Ea00и",
+        "851",
+        "16"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "CFA-4-Pudge-Inspired Ink Battlefoil-Carlton Fisk Debut",
+      "catalogPower": 170,
+      "ocrPower": 75,
+      "confidence": 0.3,
+      "delta": -95,
+      "candidates": [
+        "7U5"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "CHILL-4-Freakshow-Chillin' Battlefoil-Giannis Antetokounmpo Unmasked",
+      "catalogPower": 185,
+      "ocrPower": 85,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "FREAKSHOU",
+        "85"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "CHILL-10-Rocket-Chillin' Battlefoil-Roger Clemens Debut",
+      "catalogPower": 180,
+      "ocrPower": 80,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "ROCKET",
+        "VER GE",
+        "80"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "CHILL-18-Destroya-Chillin' Battlefoil-Patrick Ewing Debut",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "DESTROYA",
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "CHILL-20-Bags-Chillin' Battlefoil-Jeff Bagwell Debut",
+      "catalogPower": 165,
+      "ocrPower": 143,
+      "confidence": 0.3,
+      "delta": -22,
+      "candidates": [
+        "BAGS",
+        "AН 143W"
+      ]
+    },
+    {
+      "bobaId": "CHILL-23-Tigre-Chillin' Battlefoil-Miguel Cabrera Unmasked",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "TIGRE",
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "CHILL-22-Mr. October-Chillin' Battlefoil-Reggie Jackson Debut",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "MR. UCTUBER",
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "CHILL-21-Goofin' Off-Chillin' Battlefoil-Adrián Beltré Debut",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "GOOHIN OFF",
+        "29",
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "CHILL-27-Gator-Chillin' Battlefoil-Steve Spurrier Debut",
+      "catalogPower": 160,
+      "ocrPower": 60,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "GATOR",
+        "STEVE SPO",
+        "60"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "CHILL-33-Billhook-Chillin' Battlefoil-Chauncey Billups Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "BILLHOOL",
+        "55"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "CHILL-41-Captain Hook-Chillin' Battlefoil-Jack Morris Debut",
+      "catalogPower": 150,
+      "ocrPower": 215,
+      "confidence": 1,
+      "delta": 65,
+      "candidates": [
+        "CAPTAIN HOOK",
+        "JACK MORRIS DEBL",
+        "150",
+        "CAPTAIN HOOK",
+        "JACK MORRIS DEBI",
+        "150",
+        "2150",
+        "(APfAIN",
+        "OOK",
+        "(APfA",
+        "OOK"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "CHILL-54-Santa-Moss-Chillin' Battlefoil-Santana Moss Debut",
+      "catalogPower": 145,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -90,
+      "candidates": [
+        "SANTA-MOSS",
+        "SANTA-MU55"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "CHILL-63-PG-D3-Chillin' Battlefoil-Pierre Garçon Debut",
+      "catalogPower": 140,
+      "ocrPower": 85,
+      "confidence": 1,
+      "delta": -55,
+      "candidates": [
+        "PG-D3",
+        "PIgeE Lung",
+        "40",
+        "85"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "CHILL-71-PB Buckets-Chillin' Battlefoil-First Edition",
+      "catalogPower": 175,
+      "ocrPower": 75,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "PB BUCKETS",
+        "75"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "CHILL-70-Alexander the Great-Chillin' Battlefoil-First Edition",
+      "catalogPower": 175,
+      "ocrPower": 75,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "ALEXANDER THE GREAT",
+        "F3STE",
+        "75"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "CHILL-76-Crosbow-Chillin' Battlefoil-First Edition",
+      "catalogPower": 135,
+      "ocrPower": 205,
+      "confidence": 0.5,
+      "delta": 70,
+      "candidates": [
+        "CROSBOW",
+        "205B01",
+        "00",
+        "ry"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "CHILL-101-Generator-Chillin' Battlefoil-First Edition",
+      "catalogPower": 115,
+      "ocrPower": 171,
+      "confidence": 0.3,
+      "delta": 56,
+      "candidates": [
+        "GENERATOR",
+        "171"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "CHILL-106-Bandelero-Chillin' Battlefoil-2026 Edition",
+      "catalogPower": 110,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 92,
+      "candidates": [
+        "BANDELERO",
+        "2026 480",
+        "10"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "CHILL-110-Rook-Chillin' Battlefoil-First Edition",
+      "catalogPower": 105,
+      "ocrPower": 158,
+      "confidence": 0.3,
+      "delta": 53,
+      "candidates": [
+        "Á 1589",
+        "N00X"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "CHILL-116-Javalanche-Chillin' Battlefoil-2026 Edition",
+      "catalogPower": 100,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 102,
+      "candidates": [
+        "JAVALANCHE",
+        "20262800",
+        "0U"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "CJ-4-CJ Maddux-Battlefoil-First Edition",
+      "catalogPower": 195,
+      "ocrPower": 190,
+      "confidence": 0.5,
+      "delta": -5,
+      "candidates": [
+        "CJ MADDUX",
+        "190"
+      ]
+    },
+    {
+      "bobaId": "DHA-4-Joystick-Inspired Ink Battlefoil-Dante Hall Debut",
+      "catalogPower": 155,
+      "ocrPower": 82,
+      "confidence": 1,
+      "delta": -73,
+      "candidates": [
+        "JOYSTICK",
+        "82"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "EMA-6-Gar-Inspired Ink Battlefoil-Edgar Martinez Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "GẢI",
+        "SAGAR MAARTINEZ DEBUT",
+        "PONER",
+        "155",
+        "42/50",
+        "GAR",
+        "155",
+        "42/50",
+        "PONER",
+        "55"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "FT-91-Botto-Fire Tracks Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 128,
+      "confidence": 0.3,
+      "delta": 33,
+      "candidates": [
+        "BOTTO",
+        "128ST 28109",
+        "951"
+      ]
+    },
+    {
+      "bobaId": "FT-129-Action-Fire Tracks Battlefoil-2026 Edition",
+      "catalogPower": 90,
+      "ocrPower": 106,
+      "confidence": 1,
+      "delta": 16,
+      "candidates": [
+        "106",
+        "HOLDE"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "GBF-41-Skeee-Green Battlefoil-First Edition",
+      "catalogPower": 185,
+      "ocrPower": 130,
+      "confidence": 1,
+      "delta": -55,
+      "candidates": [
+        "COBRA",
+        "130"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "GGL-149-Destroya-Great Grandma's Linoleum Battlefoil-Patrick Ewing Debut",
+      "catalogPower": 175,
+      "ocrPower": 75,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "DESTROYA",
+        "DESTROYA",
+        "PATACY TWIRE DERUT",
+        "75g",
+        "75"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "GGL-163-Vlad the Impaler-Great Grandma's Linoleum Battlefoil-Vladimir Guerrero Sr. Debut",
+      "catalogPower": 170,
+      "ocrPower": 70,
+      "confidence": 0.3,
+      "delta": -100,
+      "candidates": [
+        "MLAUHHEMPALCH",
+        "70-"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "GGL-170-Gar-Great Grandma's Linoleum Battlefoil-Edgar Martinez Debut",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 0.3,
+      "delta": -100,
+      "candidates": [
+        "GAR",
+        "65."
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "GGL-301-Gar-Great Grandma's Linoleum Battlefoil-Edgar Martinez Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 0.5,
+      "delta": -100,
+      "candidates": [
+        "GAR",
+        "ERGAR MARTİNEZ BERIT",
+        "GAR",
+        "55"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "GGL-424-Pudge-Great Grandma's Linoleum Battlefoil-Carlton Fisk Debut",
+      "catalogPower": 160,
+      "ocrPower": 60,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "PUDGE",
+        "CARLTON FISK DEBUT",
+        "60",
+        "PUDGE",
+        "CARLTON FISK DEBUT",
+        "PUDGE",
+        "PUDGE"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "GGL-457-Dunker-Great Grandma's Linoleum Battlefoil-John Starks Debut",
+      "catalogPower": 160,
+      "ocrPower": 140,
+      "confidence": 0.5,
+      "delta": -20,
+      "candidates": [
+        "DUNKER",
+        "140]"
+      ]
+    },
+    {
+      "bobaId": "GGL-455-Game Over-Great Grandma's Linoleum Battlefoil-Éric Gagné Debut",
+      "catalogPower": 140,
+      "ocrPower": 138,
+      "confidence": 0.5,
+      "delta": -2,
+      "candidates": [
+        "GAME OVER",
+        "tak cucefnrer",
+        "GAME OVER",
+        "1,38"
+      ]
+    },
+    {
+      "bobaId": "GGL-484-Fungi-Great Grandma's Linoleum Battlefoil-2026 Edition",
+      "catalogPower": 120,
+      "ocrPower": 201,
+      "confidence": 1,
+      "delta": 81,
+      "candidates": [
+        "FUNGI",
+        "20.",
+        "FUNGI",
+        "203",
+        "201",
+        "FUK61",
+        "FUK61"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "GGL-588-Dunker-Great Grandma's Linoleum Battlefoil-John Starks Debut",
+      "catalogPower": 160,
+      "ocrPower": 130,
+      "confidence": 0.3,
+      "delta": -30,
+      "candidates": [
+        "DUNKER",
+        "130]"
+      ]
+    },
+    {
+      "bobaId": "GGL-586-Game Over-Great Grandma's Linoleum Battlefoil-Éric Gagné Debut",
+      "catalogPower": 130,
+      "ocrPower": 68,
+      "confidence": 0.5,
+      "delta": -62,
+      "candidates": [
+        "GAME OVER",
+        "ÉRIC GAGNÉ DEBUT",
+        "38",
+        "GAME OVER",
+        "ERIC GAGNÉ DEBUT",
+        "38",
+        "Ucr",
+        "GAME OVER",
+        "GAME OVER",
+        "IRIC6AGMÈDE8ur"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "GGL-653-Action-Great Grandma's Linoleum Battlefoil-2026 Edition",
+      "catalogPower": 85,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 117,
+      "candidates": [
+        "ACTION",
+        "202 IaT0N"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "GGL-709-Santa-Moss-Great Grandma's Linoleum Battlefoil-Santana Moss Debut",
+      "catalogPower": 125,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -70,
+      "candidates": [
+        "SANTA-MU55",
+        "SANTANE NOSS NENT",
+        "125"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "GGL-771-Javalanche-Great Grandma's Linoleum Battlefoil-2026 Edition",
+      "catalogPower": 85,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 117,
+      "candidates": [
+        "JAVALANCHE",
+        "2026 кa0r"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "GGL-770-Superbaby-Great Grandma's Linoleum Battlefoil-2026 Edition",
+      "catalogPower": 85,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 117,
+      "candidates": [
+        "SUPERBABY",
+        "202% E3/007"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "GGL-780-Bell-Camp-Great Grandma's Linoleum Battlefoil-First Edition",
+      "catalogPower": 80,
+      "ocrPower": 82,
+      "confidence": 1,
+      "delta": 2,
+      "candidates": [
+        ":08",
+        "82",
+        "BELL-CAMP",
+        "ANSTERMTON"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "GLBF-41-Skeee-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogPower": 195,
+      "ocrPower": 190,
+      "confidence": 1,
+      "delta": -5,
+      "candidates": [
+        "IMON-RA",
+        "190"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "GLBF-41-Captain Hook-Grandma's Linoleum Battlefoil-Jack Morris Debut",
+      "catalogPower": 170,
+      "ocrPower": 71,
+      "confidence": 0.3,
+      "delta": -99,
+      "candidates": [
+        "CAPTAIN HOOK",
+        "JACK MORRS RENT",
+        "AU:",
+        "LAPTAIN HOUK",
+        "NCE MONOS AINT",
+        "71)",
+        "tAFrAINHDDK",
+        "tAFrAIKHDDK"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "GLBF-63-Thurmanator-Grandma's Linoleum Battlefoil-Thuman Thomas Debut",
+      "catalogPower": 160,
+      "ocrPower": 210,
+      "confidence": 0.3,
+      "delta": 50,
+      "candidates": [
+        "THURMANATOR",
+        "sgau2s 100845 VE850"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "GLBF-83-Skeee-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogPower": 185,
+      "ocrPower": 160,
+      "confidence": 1,
+      "delta": -25,
+      "candidates": [
+        "MEAN-JOE",
+        "160•"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "GLBF-103-Blockhale-Grandma's Linoleum Battlefoil-Kevin McHale Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "BLOCKHALE",
+        "55"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "GLBF-108-Timmy-Grandma's Linoleum Battlefoil-Tim Brown Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "TIMMY",
+        "55"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "GLBF-125-Skeee-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogPower": 180,
+      "ocrPower": 140,
+      "confidence": 1,
+      "delta": -40,
+      "candidates": [
+        "RODDER",
+        "140g"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "GLBF-167-Skeee-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogPower": 180,
+      "ocrPower": 140,
+      "confidence": 1,
+      "delta": -40,
+      "candidates": [
+        "BURROCIOUS",
+        "140"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "GLBF-170-Gar-Grandma's Linoleum Battlefoil-Edgar Martinez Debut",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "GAR",
+        "653",
+        "GAR",
+        "ESGAR AATTİNZ MRST",
+        "65%",
+        "65-"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "GLBF-197-Game Time-Grandma's Linoleum Battlefoil-Jim Boeheim Debut",
+      "catalogPower": 160,
+      "ocrPower": 150,
+      "confidence": 0.3,
+      "delta": -10,
+      "candidates": [
+        "GAME TIME",
+        "150"
+      ]
+    },
+    {
+      "bobaId": "GLBF-209-Skeee-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogPower": 165,
+      "ocrPower": 125,
+      "confidence": 1,
+      "delta": -40,
+      "candidates": [
+        "CRUZE-CONTROL",
+        "125"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "GLBF-238-Attak-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "ATTAK",
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "GLBF-301-Gar-Grandma's Linoleum Battlefoil-Edgar Martinez Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 0.3,
+      "delta": -100,
+      "candidates": [
+        "GAR",
+        "ERGAR MARTINIZ BERST",
+        "55-"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "GLBF-308-Bern Baby, Bern-Grandma's Linoleum Battlefoil-Bernie Williams Debut",
+      "catalogPower": 150,
+      "ocrPower": 75,
+      "confidence": 1,
+      "delta": -75,
+      "candidates": [
+        "BERN BABY, BERN",
+        "BERN BABY, BERN",
+        "75",
+        "750-",
+        "BEHNBABY,",
+        "BERNBABY ItRN"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "GLBF-324-Game Over-Grandma's Linoleum Battlefoil-Éric Gagné Debut",
+      "catalogPower": 140,
+      "ocrPower": 183,
+      "confidence": 0.3,
+      "delta": 43,
+      "candidates": [
+        "GAME OVER",
+        "far cucelren",
+        "18330 38579 303",
+        "GAME OVER"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "GLBF-333-PB Buckets-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogPower": 175,
+      "ocrPower": 75,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "PB BUCKETS",
+        "75"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "GLBF-353-Fungi-Grandma's Linoleum Battlefoil-2026 Edition",
+      "catalogPower": 120,
+      "ocrPower": 61,
+      "confidence": 0.5,
+      "delta": -59,
+      "candidates": [
+        "FUNGI",
+        "20.",
+        "FUNGI",
+        "26ENTA",
+        "203",
+        "20!",
+        "FUK61",
+        "FUKGI"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "GLBF-457-Dunker-Grandma's Linoleum Battlefoil-John Starks Debut",
+      "catalogPower": 160,
+      "ocrPower": 140,
+      "confidence": 0.5,
+      "delta": -20,
+      "candidates": [
+        "DUNKER",
+        "140]"
+      ]
+    },
+    {
+      "bobaId": "GLBF-484-Fungi-Grandma's Linoleum Battlefoil-2026 Edition",
+      "catalogPower": 120,
+      "ocrPower": 203,
+      "confidence": 0.3,
+      "delta": 83,
+      "candidates": [
+        "FUNGI",
+        "203"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "GLBF-588-Dunker-Grandma's Linoleum Battlefoil-John Starks Debut",
+      "catalogPower": 160,
+      "ocrPower": 130,
+      "confidence": 0.3,
+      "delta": -30,
+      "candidates": [
+        "DUNKER",
+        "130]"
+      ]
+    },
+    {
+      "bobaId": "GLBF-770-Superbaby-Grandma's Linoleum Battlefoil-2026 Edition",
+      "catalogPower": 85,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 117,
+      "candidates": [
+        "SUPERBABY",
+        "202% ESD0N"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "GRILL-39-Gar-Grillin' Battlefoil-Edgar Martinez Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 0.5,
+      "delta": -100,
+      "candidates": [
+        "GAR",
+        "ERGAI MARTIEZ BENT",
+        "GAR",
+        "55฿"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "GRILL-66-Game Time-Grillin' Battlefoil-Jim Boeheim Debut",
+      "catalogPower": 160,
+      "ocrPower": 140,
+      "confidence": 0.5,
+      "delta": -20,
+      "candidates": [
+        "GAME TIME",
+        "AИ нЕОRОN QUNT",
+        "140"
+      ]
+    },
+    {
+      "bobaId": "HBF-43-Canine-Headlines Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 92,
+      "confidence": 0.3,
+      "delta": -3,
+      "candidates": [
+        "MICTCO92",
+        "CANINE",
+        "78."
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "HBF-58-Action-Headlines Battlefoil-2026 Edition",
+      "catalogPower": 85,
+      "ocrPower": 153,
+      "confidence": 0.3,
+      "delta": 68,
+      "candidates": [
+        "out",
+        "ACTION",
+        "CHECAY",
+        "aticreo oy",
+        "853",
+        "7 20",
+        ":S8",
+        "0083R2",
+        "1o DO5311"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "IBF-30-Jeanetic-Icon Battlefoil-First Edition",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "JEANETIC",
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "IBF-35-Generator-Icon Battlefoil-First Edition",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "GENERATOR",
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "IBF-309-Superbaby-Icon Battlefoil-2026 Edition",
+      "catalogPower": 95,
+      "ocrPower": 212,
+      "confidence": 0.3,
+      "delta": 117,
+      "candidates": [
+        "SUPERBABY",
+        "SUPERBABY",
+        "2N1RT2E",
+        "5VPERBABY",
+        "5UPERBABY"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "JBNA-5-Burner-Inspired Ink Battlefoil-Jalen Brunson Unmasked",
+      "catalogPower": 185,
+      "ocrPower": 85,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "BURNER",
+        "85",
+        "1/50"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "JKMA-5-Captain Hook-Inspired Ink Battlefoil-Jack Morris Debut",
+      "catalogPower": 150,
+      "ocrPower": 250,
+      "confidence": 1,
+      "delta": 100,
+      "candidates": [
+        "CAPTAIN HOOK",
+        "JACK MORRIS DEBUT",
+        "250",
+        "38 / 50",
+        "CAPTAIN HOOK",
+        "JACK MORRIS DEBUT",
+        "38/50",
+        "3RE0",
+        "(APTAIN HOOK",
+        "(APTAIN HOOK"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "KHA-5-Nice Game Pretty Boy-Inspired Ink Battlefoil-Keith Hernández Debut",
+      "catalogPower": 175,
+      "ocrPower": 250,
+      "confidence": 1,
+      "delta": 75,
+      "candidates": [
+        "NICE GAME PRETTY BOY",
+        "KEITH HERNÄNDEZ DEBUTe",
+        "1751",
+        "32/50",
+        "1Z",
+        "NICE GAME PRETTY BOY",
+        "KEITH HERNÄNDEZ DEBUTe",
+        "32/50",
+        "17",
+        "NICE GAMEPR",
+        "BOY",
+        "NICE GAME PR",
+        "*Eifi NER*A*Df • OEFLII",
+        "BOY"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "LA-4-MVFREE-Paper & Battlefoil-World Champion Debut",
+      "catalogPower": 185,
+      "ocrPower": 85,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "MUFREE",
+        "LNOE SRUÉRTO BCA",
+        "85"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "LOGO-51-Boston Stongboy-Logofoil-Jim Rice Debut",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "BOSTON STRONGBOY",
+        "AN BKTRLRIT",
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "LOGO-55-Joystick-Logofoil-Dante Hall Debut",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "JOYSTICK",
+        "BARTE BACE SERST",
+        "JUYSTICK",
+        "MARTE BACE BERIT",
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "LOGO-162-Pudge-Logofoil-Carlton Fisk Debut",
+      "catalogPower": 170,
+      "ocrPower": 70,
+      "confidence": 0.5,
+      "delta": -100,
+      "candidates": [
+        "÷02",
+        "PUDGE",
+        "PUDGE",
+        "CORLTEN ASE AORTT",
+        "70-"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "LOGO-177-Bern Baby, Bern-Logofoil-Bernie Williams Debut",
+      "catalogPower": 160,
+      "ocrPower": 60,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "BERN BABY, BERN",
+        "BEEKE MLLIENS NRİT",
+        "60 р"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "LOGO-260-Action-Logofoil-2026 Edition",
+      "catalogPower": 95,
+      "ocrPower": 180,
+      "confidence": 0.3,
+      "delta": 85,
+      "candidates": [
+        "ACTION",
+        "282% 18ST0N",
+        "951"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "LOGO-281-Big Geo-Logofoil-Craig Biggio Debut",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "BIG GEO",
+        "GOD 2EST",
+        "ENG GEO",
+        "N0N NIM",
+        "65",
+        "165"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "LOGO-294-Vlad the Impaler-Logofoil-Vladimir Guerrero Sr. Debut",
+      "catalogPower": 160,
+      "ocrPower": 91,
+      "confidence": 1,
+      "delta": -69,
+      "candidates": [
+        ":091",
+        "LN 85802"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "LOGO-353-Fungi-Logofoil-2026 Edition",
+      "catalogPower": 120,
+      "ocrPower": 201,
+      "confidence": 1,
+      "delta": 81,
+      "candidates": [
+        "FUNGI",
+        "202% ERTИ",
+        "201"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "LOGO-391-Action-Logofoil-2026 Edition",
+      "catalogPower": 90,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 112,
+      "candidates": [
+        "ACTION",
+        "202% 1aNT0N"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "LOGO-464-PB Buckets-Logofoil-First Edition",
+      "catalogPower": 175,
+      "ocrPower": 75,
+      "confidence": 0.5,
+      "delta": -100,
+      "candidates": [
+        "PB BUCKETS",
+        "PB BUCKRE",
+        "75"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "LOGO-494-Generator-Logofoil-First Edition",
+      "catalogPower": 115,
+      "ocrPower": 172,
+      "confidence": 1,
+      "delta": 57,
+      "candidates": [
+        "GENERATOR",
+        "FIRST EDU",
+        "1721",
+        "GENE ATOLY",
+        "FIRST ED",
+        "05r",
+        "15",
+        "GE",
+        ".GE"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "LOGO-590-Game Time-Logofoil-Jim Boeheim Debut",
+      "catalogPower": 160,
+      "ocrPower": 130,
+      "confidence": 0.5,
+      "delta": -30,
+      "candidates": [
+        "GAME TIME",
+        "AN HENEM BERUT",
+        "130"
+      ]
+    },
+    {
+      "bobaId": "LOGO-625-Generator-Logofoil-First Edition",
+      "catalogPower": 110,
+      "ocrPower": 77,
+      "confidence": 1,
+      "delta": -33,
+      "candidates": [
+        "GENERATOR:",
+        "FIRST EDLT",
+        "ChO",
+        "777",
+        "GENERATO",
+        "FIRST EDTD",
+        "$10",
+        "77",
+        "DLL",
+        "GE",
+        "1771",
+        "GE",
+        "17,71"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "LOGO-653-Action-Logofoil-2026 Edition",
+      "catalogPower": 85,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 117,
+      "candidates": [
+        "ACTION",
+        "202% ET0N"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "LOGO-761-Bandelero-Logofoil-2026 Edition",
+      "catalogPower": 95,
+      "ocrPower": 250,
+      "confidence": 0.3,
+      "delta": 155,
+      "candidates": [
+        "BANDELERO",
+        "2825 LAT0N"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "LOGO-784-Action-Logofoil-2026 Edition",
+      "catalogPower": 75,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 127,
+      "candidates": [
+        "ACTION",
+        "2026 1a100x"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MI-3-Dr. J-Miami Ice Battlefoil-Julius Erving Debut",
+      "catalogPower": 185,
+      "ocrPower": 85,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "85",
+        "185"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MI-7-Unanimous Sandman-Miami Ice Battlefoil-Mariano Rivera Debut",
+      "catalogPower": 180,
+      "ocrPower": 80,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "HOUSSANDHAN",
+        "80:",
+        "MAN",
+        "80:"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MI-14-HowBout'em-Miami Ice Battlefoil-Jimmy Johnson Debut",
+      "catalogPower": 175,
+      "ocrPower": 115,
+      "confidence": 1,
+      "delta": -60,
+      "candidates": [
+        "POWBCUTTH",
+        "115"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MI-15-Sea-Largent-Miami Ice Battlefoil-Steve Largent Debut",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MI-14-Big Papi-Miami Ice Battlefoil-David Ortiz Debut",
+      "catalogPower": 175,
+      "ocrPower": 115,
+      "confidence": 1,
+      "delta": -60,
+      "candidates": [
+        "BIC P.",
+        "115",
+        "BIGPAPL"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MI-15-King Felix-Miami Ice Battlefoil-Félix Hernández Debut",
+      "catalogPower": 175,
+      "ocrPower": 75,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "CH",
+        "KINGHAUX",
+        "75"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MI-18-Destroya-Miami Ice Battlefoil-Patrick Ewing Debut",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "DESTRI",
+        "CESTROYA",
+        "65",
+        "65-",
+        "tf511"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MI-24-Senior-Miami Ice Battlefoil-Ken Griffey Sr. Debut",
+      "catalogPower": 165,
+      "ocrPower": 65,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "SENIOR",
+        "65"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MI-27-Gator-Miami Ice Battlefoil-Steve Spurrier Debut",
+      "catalogPower": 160,
+      "ocrPower": 60,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "CATOF",
+        "60"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MI-28-Hoge-Ball-Miami Ice Battlefoil-Merril Hoge Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "POGE BAI",
+        "55"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MI-29-InVinceable-Miami Ice Battlefoil-Vince Young Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "INVINGTABIF",
+        "55"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MI-30-Slash-Miami Ice Battlefoil-Kordell Stewart Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "SIASE",
+        "55"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MI-32-Bone-Miami Ice Battlefoil-Jay Buhner Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "BONI",
+        "5",
+        "BONI",
+        "55"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MI-31-Tikoff-Miami Ice Battlefoil-Fred Biletnikoff Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "TIKCE",
+        "5",
+        "TIKCEF",
+        "1",
+        "55"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MI-31-Pudge-Miami Ice Battlefoil-Carlton Fisk Debut",
+      "catalogPower": 160,
+      "ocrPower": 116,
+      "confidence": 1,
+      "delta": -44,
+      "candidates": [
+        "PUDCE",
+        "Debut",
+        "1160",
+        "PUDCE",
+        "deDcbut",
+        "116",
+        "ar,'•"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MI-36-Rainestorm-Miami Ice Battlefoil-Tim Raines Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "PAINES",
+        "3Р",
+        "55"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MI-35-Bells-Miami Ice Battlefoil-George Bell Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "BEHS",
+        "BELISI",
+        "55",
+        "155"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MI-38-JAW-JAW-Miami Ice Battlefoil-Ron Jaworski Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "55"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MI-64-Dunker-Miami Ice Battlefoil-John Starks Debut",
+      "catalogPower": 160,
+      "ocrPower": 140,
+      "confidence": 1,
+      "delta": -20,
+      "candidates": [
+        "DUNI",
+        "CUNKI",
+        "1401",
+        "4",
+        "LO:"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "MIX-6-Muggsy-Mixtape Battlefoil-Muggsy Bogues Debut",
+      "catalogPower": 195,
+      "ocrPower": 146,
+      "confidence": 1,
+      "delta": -49,
+      "candidates": [
+        "1461",
+        "20S0 SBAOS ASASAN",
+        "1599w"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-28-Hoge-Ball-Mixtape Battlefoil-Merril Hoge Debut",
+      "catalogPower": 175,
+      "ocrPower": 113,
+      "confidence": 0.3,
+      "delta": -62,
+      "candidates": [
+        "sлelo No 183",
+        "11-30H"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-33-Billhook-Mixtape Battlefoil-Chauncey Billups Debut",
+      "catalogPower": 175,
+      "ocrPower": 118,
+      "confidence": 1,
+      "delta": -57,
+      "candidates": [
+        "I75]",
+        "CKIT NWWN NIVT",
+        "x00#1118"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-35-Bells-Mixtape Battlefoil-George Bell Debut",
+      "catalogPower": 175,
+      "ocrPower": 113,
+      "confidence": 1,
+      "delta": -62,
+      "candidates": [
+        "AASSO TA MON",
+        "$1138",
+        "175",
+        "irg"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-39-Gar-Mixtape Battlefoil-Edgar Martinez Debut",
+      "catalogPower": 175,
+      "ocrPower": 115,
+      "confidence": 0.5,
+      "delta": -60,
+      "candidates": [
+        "GAR",
+        "FOSAE NAPT-7 OEVT",
+        "115"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-43-BoJax-Mixtape Battlefoil-Founding Hero Alpha Update",
+      "catalogPower": 195,
+      "ocrPower": 120,
+      "confidence": 1,
+      "delta": -75,
+      "candidates": [
+        "BOJAX",
+        "OYAOS VIGO ALPVA VWD",
+        "120 ш",
+        "RMAL T",
+        "40-"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-44-Magic-Mixtape Battlefoil-Magic Johnson Debut",
+      "catalogPower": 190,
+      "ocrPower": 110,
+      "confidence": 1,
+      "delta": -80,
+      "candidates": [
+        "MAGIC",
+        "AAOICJORNSON DERUT",
+        "120 L",
+        "RMALT",
+        "1103"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-60-Mr. Clean-Mixtape Battlefoil-Steve Garvey Debut",
+      "catalogPower": 160,
+      "ocrPower": 109,
+      "confidence": 0.3,
+      "delta": -51,
+      "candidates": [
+        "1091",
+        "MR. (LEAN",
+        "CEVE SAPVEY PIV"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-76-Crosbow-Mixtape Battlefoil-First Edition",
+      "catalogPower": 185,
+      "ocrPower": 198,
+      "confidence": 1,
+      "delta": 13,
+      "candidates": [
+        "1981",
+        "•OUN0) 1507"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "MIX-85-Air Ace-Mixtape Battlefoil-First Edition",
+      "catalogPower": 175,
+      "ocrPower": 115,
+      "confidence": 0.3,
+      "delta": -60,
+      "candidates": [
+        "AIR ACE",
+        "115"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-86-Magic-Mixtape Battlefoil-Magic Johnson Debut",
+      "catalogPower": 185,
+      "ocrPower": 118,
+      "confidence": 0.3,
+      "delta": -67,
+      "candidates": [
+        "MAGIC",
+        "*AOICJOWNSON OFE",
+        "120 1",
+        "RMAL 1",
+        "11851"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-106-Bandelero-Mixtape Battlefoil-2026 Edition",
+      "catalogPower": 160,
+      "ocrPower": 109,
+      "confidence": 1,
+      "delta": -51,
+      "candidates": [
+        "BANDELERO",
+        "тоrо соттоn",
+        "1091"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-127-BoJax-Mixtape Battlefoil-Founding Hero Alpha Update",
+      "catalogPower": 190,
+      "ocrPower": 120,
+      "confidence": 1,
+      "delta": -70,
+      "candidates": [
+        "BOJAX",
+        "tovwpiep WEP AIPHA VPIHIL",
+        "120 ш",
+        "RMAL f"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-140-HowBout'em-Mixtape Battlefoil-Jimmy Johnson Debut",
+      "catalogPower": 175,
+      "ocrPower": 75,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "HOWBOUTEM",
+        "I75 g"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MIX-149-Destroya-Mixtape Battlefoil-Patrick Ewing Debut",
+      "catalogPower": 175,
+      "ocrPower": 120,
+      "confidence": 1,
+      "delta": -55,
+      "candidates": [
+        "DESTROYA",
+        "PATPiO SwinO PEEVy",
+        "120 ul",
+        "MALT"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-166-Bells-Mixtape Battlefoil-George Bell Debut",
+      "catalogPower": 165,
+      "ocrPower": 185,
+      "confidence": 0.3,
+      "delta": 20,
+      "candidates": [
+        "BELLS",
+        "SEOPER BVL PERVT",
+        "185}",
+        "RMAL T"
+      ]
+    },
+    {
+      "bobaId": "MIX-164-Billhook-Mixtape Battlefoil-Chauncey Billups Debut",
+      "catalogPower": 165,
+      "ocrPower": 118,
+      "confidence": 1,
+      "delta": -47,
+      "candidates": [
+        "LAR SOMN ADMTR",
+        "x00H1118",
+        "185]",
+        "120 u",
+        "RMAL1"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-169-BoJax-Mixtape Battlefoil-Founding Hero Alpha Update",
+      "catalogPower": 170,
+      "ocrPower": 185,
+      "confidence": 0.3,
+      "delta": 15,
+      "candidates": [
+        "BOJAX",
+        "COUROTAS VEPO AIPVA UPPATL",
+        "1120 u",
+        "RMALF",
+        "185"
+      ]
+    },
+    {
+      "bobaId": "MIX-168-The Red Baron-Mixtape Battlefoil-Rick Sutcliffe Debut",
+      "catalogPower": 165,
+      "ocrPower": 185,
+      "confidence": 0.5,
+      "delta": 20,
+      "candidates": [
+        "THE RED BARON",
+        "PE SUTQIEFE PIRVT",
+        "185",
+        ":120 us",
+        "MALT"
+      ]
+    },
+    {
+      "bobaId": "MIX-205-Victory-Mixtape Battlefoil-2026 Edition",
+      "catalogPower": 140,
+      "ocrPower": 160,
+      "confidence": 0.3,
+      "delta": 20,
+      "candidates": [
+        "VICTORY",
+        "Tore covTon",
+        "120 ui",
+        "RMALT",
+        "160%"
+      ]
+    },
+    {
+      "bobaId": "MIX-211-LeBoss-Mixtape Battlefoil-First Edition",
+      "catalogPower": 185,
+      "ocrPower": 83,
+      "confidence": 1,
+      "delta": -102,
+      "candidates": [
+        ":481",
+        "SS0831"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "MIX-214-Switchblade-Mixtape Battlefoil-First Edition",
+      "catalogPower": 135,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -80,
+      "candidates": [
+        "SWITCHBLADE",
+        "FIRST EDITION",
+        "155",
+        "STE",
+        "BOBA:",
+        "RMAL",
+        "SWITCHBLADE",
+        "FIRST EDITION",
+        "55",
+        ":120 ~",
+        "RMAL",
+        "STE",
+        "BOBA:",
+        "POWER",
+        "55",
+        "£wIT(14PLAPE",
+        "8T",
+        "wIT(IlPLAPE",
+        "F)p<rFPtrio",
+        "8T"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "MIX-215-Cupid-Mixtape Battlefoil-2026 Edition",
+      "catalogPower": 130,
+      "ocrPower": 150,
+      "confidence": 0.5,
+      "delta": 20,
+      "candidates": [
+        "(UPID",
+        "Tore CоvTon",
+        "150%",
+        "120 ш",
+        "RMALI"
+      ]
+    },
+    {
+      "bobaId": "MIX-258-Forcefield-Mixtape Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 120,
+      "confidence": 0.3,
+      "delta": 25,
+      "candidates": [
+        "FOR(EFIELD",
+        "RMAL",
+        "951",
+        "FOR(EFIELD",
+        "120 uл",
+        "MAL",
+        "951",
+        "951",
+        "FOP(EFIFLP",
+        "FOP(EFIELP"
+      ]
+    },
+    {
+      "bobaId": "MIX-276-Big Papi-Mixtape Battlefoil-David Ortiz Debut",
+      "catalogPower": 175,
+      "ocrPower": 115,
+      "confidence": 0.5,
+      "delta": -60,
+      "candidates": [
+        "BIG PAPI",
+        "DAND OPN DINT",
+        "115",
+        "BIGPAPY",
+        "120 uл",
+        "RMAL F"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-290-ECKS-Mixtape Battlefoil-Dennis Eckersley Debut",
+      "catalogPower": 160,
+      "ocrPower": 165,
+      "confidence": 1,
+      "delta": 5,
+      "candidates": [
+        "E(KS",
+        "ORANIS EOFRSHY DEEUT",
+        "1651",
+        "120 ul",
+        "RMALT"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "MIX-301-Gar-Mixtape Battlefoil-Edgar Martinez Debut",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "GAR",
+        "FOSAO MAPTÍ-I OEEVT",
+        "551",
+        "GAR",
+        "(OSAPM1PTi-(7C88VT",
+        "55",
+        "55%",
+        "6AP",
+        "8T",
+        "6AP",
+        "8T"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MIX-335-Bison-Mixtape Battlefoil-First Edition",
+      "catalogPower": 135,
+      "ocrPower": 120,
+      "confidence": 0.5,
+      "delta": -15,
+      "candidates": [
+        "BPSTOTO",
+        "N0S18",
+        "120 u",
+        "RMAY"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "MIX-388-Torque-Mixtape Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 120,
+      "confidence": 0.3,
+      "delta": 30,
+      "candidates": [
+        "TORQUE",
+        "10 KƯNG",
+        "RMAL T",
+        "901",
+        "TORQUE",
+        "pasr(wr-",
+        "120 к(и2)",
+        "RMAL T",
+        "901",
+        "SHHRНNE",
+        "901",
+        "TOPQvE",
+        "8T",
+        "TOPQvE",
+        "8T"
+      ]
+    },
+    {
+      "bobaId": "MIX-390-Amoeba-Mixtape Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 120,
+      "confidence": 0.3,
+      "delta": 30,
+      "candidates": [
+        "AMOEBA",
+        "901",
+        "120 C.",
+        "RMAL1"
+      ]
+    },
+    {
+      "bobaId": "MIX-389-Forcefield-Mixtape Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 120,
+      "confidence": 0.3,
+      "delta": 30,
+      "candidates": [
+        "FOR(EFIELD",
+        "901",
+        "120 u",
+        "RMAL1"
+      ]
+    },
+    {
+      "bobaId": "MIX-406-Nice Game Pretty Boy-Mixtape Battlefoil-Keith Hernández Debut",
+      "catalogPower": 175,
+      "ocrPower": 75,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "NICE GAME PRETTY BOY |75/",
+        "120 ш",
+        "RMAL F"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "MIX-424-Librarian-Mixtape Battlefoil-First Edition",
+      "catalogPower": 110,
+      "ocrPower": 120,
+      "confidence": 0.5,
+      "delta": 10,
+      "candidates": [
+        "LBRARIAN",
+        "120",
+        "RMAT"
+      ]
+    },
+    {
+      "bobaId": "MIX-489-Jeanetic-Mixtape Battlefoil-First Edition",
+      "catalogPower": 115,
+      "ocrPower": 145,
+      "confidence": 0.5,
+      "delta": 30,
+      "candidates": [
+        "VEANETIC",
+        "ropsTeon",
+        "145%"
+      ]
+    },
+    {
+      "bobaId": "MIX-491-Caliber-Mixtape Battlefoil-2026 Edition",
+      "catalogPower": 115,
+      "ocrPower": 120,
+      "confidence": 0.3,
+      "delta": 5,
+      "candidates": [
+        "CALIBER",
+        "Tore ovTos",
+        "15%",
+        "120 uм",
+        "RMAL HE"
+      ]
+    },
+    {
+      "bobaId": "MIX-499-Botto-Mixtape Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 120,
+      "confidence": 0.5,
+      "delta": 30,
+      "candidates": [
+        "вOTTO",
+        "pesgfornon",
+        "120 u",
+        "RMALI",
+        "903"
+      ]
+    },
+    {
+      "bobaId": "MIX-516-Ozzmosis-Mixtape Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 120,
+      "confidence": 1,
+      "delta": 25,
+      "candidates": [
+        "saues o",
+        "SISOW2ZO",
+        "120 uл",
+        "RMALI",
+        "951"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "MIX-523-Go-Cart-Mixtape Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 120,
+      "confidence": 0.3,
+      "delta": 30,
+      "candidates": [
+        "GO-(ART",
+        "901",
+        "120 uл",
+        "RMAL F"
+      ]
+    },
+    {
+      "bobaId": "MIX-555-Pudge-Mixtape Battlefoil-Carlton Fisk Debut",
+      "catalogPower": 150,
+      "ocrPower": 120,
+      "confidence": 0.5,
+      "delta": -30,
+      "candidates": [
+        "PUDGE",
+        "CAPITON PISY PIPVT",
+        "RMAL1",
+        "PUDGE",
+        "ZACATON FY PIV",
+        "120 uN",
+        "RMAL T",
+        "PVPfrE",
+        "8TI",
+        "PUPfrE"
+      ]
+    },
+    {
+      "bobaId": "MIX-614-BrockNess-Mixtape Battlefoil-First Edition",
+      "catalogPower": 115,
+      "ocrPower": 89,
+      "confidence": 1,
+      "delta": -26,
+      "candidates": [
+        "BROCKNESS",
+        "115",
+        "89",
+        "120 uл",
+        "RMALT"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "MIX-638-Canine-Mixtape Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 120,
+      "confidence": 0.3,
+      "delta": 25,
+      "candidates": [
+        "CANINE",
+        "fPSTCONTO",
+        "120",
+        "RM",
+        "951"
+      ]
+    },
+    {
+      "bobaId": "MIX-640-Javalanche-Mixtape Battlefoil-2026 Edition",
+      "catalogPower": 95,
+      "ocrPower": 120,
+      "confidence": 0.3,
+      "delta": 25,
+      "candidates": [
+        "JAVALANCHE",
+        "tor6 rovno-dl",
+        "951",
+        "120 ш",
+        "RMAL F",
+        "21"
+      ]
+    },
+    {
+      "bobaId": "MIX-643-Chiller-Mixtape Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 228,
+      "confidence": 0.3,
+      "delta": 133,
+      "candidates": [
+        "CHILLER",
+        "951",
+        "2°28",
+        "120 u",
+        "RMAL F"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-650-Bangford-Mixtape Battlefoil-First Edition",
+      "catalogPower": 85,
+      "ocrPower": 120,
+      "confidence": 0.3,
+      "delta": 35,
+      "candidates": [
+        "BANGFORD",
+        "851",
+        "120 ш",
+        "RMAL F"
+      ]
+    },
+    {
+      "bobaId": "MIX-647-Ozzmosis-Mixtape Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 120,
+      "confidence": 0.3,
+      "delta": 30,
+      "candidates": [
+        "OZZOSIS",
+        "mpst fornoa",
+        "901",
+        "120 ш",
+        "RMALI"
+      ]
+    },
+    {
+      "bobaId": "MIX-689-Mull & Bones-Mixtape Battlefoil-Chris Mullin Debut",
+      "catalogPower": 135,
+      "ocrPower": 198,
+      "confidence": 1,
+      "delta": 63,
+      "candidates": [
+        "ITVINE",
+        "in OFC",
+        "t wiтsо4 34007",
+        "1981"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-758-Brawn-Mixtape Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 130,
+      "confidence": 0.3,
+      "delta": 35,
+      "candidates": [
+        "BRAWN",
+        "POST (OVTO-",
+        "130 ui",
+        "EMALT",
+        "951"
+      ]
+    },
+    {
+      "bobaId": "MIX-760-Courthouse-Mixtape Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 113,
+      "confidence": 0.3,
+      "delta": 18,
+      "candidates": [
+        "COURTHOUSE",
+        "951",
+        "1130 шi",
+        "MALT"
+      ]
+    },
+    {
+      "bobaId": "MIX-759-Cicada-Mixtape Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 212,
+      "confidence": 0.5,
+      "delta": 117,
+      "candidates": [
+        "(ICADA",
+        "951",
+        "2120 шi",
+        "RMAL F"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-761-Bandelero-Mixtape Battlefoil-2026 Edition",
+      "catalogPower": 95,
+      "ocrPower": 110,
+      "confidence": 0.5,
+      "delta": 15,
+      "candidates": [
+        "BANDELERO",
+        "того сотом",
+        "110 ui",
+        "RMALT",
+        "951"
+      ]
+    },
+    {
+      "bobaId": "MIX-763-JacHammer-Mixtape Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 113,
+      "confidence": 0.3,
+      "delta": 23,
+      "candidates": [
+        "JACHAMMER",
+        "901",
+        "1130 ui",
+        "RMAL!"
+      ]
+    },
+    {
+      "bobaId": "MIX-767-Homestead-Mixtape Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 113,
+      "confidence": 0.3,
+      "delta": 23,
+      "candidates": [
+        "HOMESTED",
+        "901",
+        "1130 ш",
+        "RMAL F",
+        "Б"
+      ]
+    },
+    {
+      "bobaId": "MIX-765-Rook-Mixtape Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 212,
+      "confidence": 0.5,
+      "delta": 122,
+      "candidates": [
+        "ROOK",
+        "POST (OVTO",
+        "901",
+        "2120",
+        "RMAL 1"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-770-Superbaby-Mixtape Battlefoil-2026 Edition",
+      "catalogPower": 85,
+      "ocrPower": 120,
+      "confidence": 0.3,
+      "delta": 35,
+      "candidates": [
+        "SUPERBABY",
+        "tore CovTon",
+        "851",
+        "120 uA",
+        "EMALT",
+        "16"
+      ]
+    },
+    {
+      "bobaId": "MIX-768-Scary-Mixtape Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 112,
+      "confidence": 0.3,
+      "delta": 22,
+      "candidates": [
+        "S(ARY",
+        "901",
+        "1120 ш",
+        "RMAL F"
+      ]
+    },
+    {
+      "bobaId": "MIX-766-Camera-Mixtape Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 113,
+      "confidence": 0.3,
+      "delta": 23,
+      "candidates": [
+        "CAMERA",
+        "901",
+        "1130 ui",
+        "RMAL1"
+      ]
+    },
+    {
+      "bobaId": "MIX-773-Thorn-Mixtape Battlefoil-First Edition",
+      "catalogPower": 85,
+      "ocrPower": 120,
+      "confidence": 1,
+      "delta": 35,
+      "candidates": [
+        "851",
+        "120 ui",
+        "RMALT"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "MIX-775-Zephyr-Mixtape Battlefoil-First Edition",
+      "catalogPower": 80,
+      "ocrPower": 212,
+      "confidence": 0.3,
+      "delta": 132,
+      "candidates": [
+        "ZEPHYR",
+        "2120 шi",
+        "RMAL 1",
+        "801"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-776-Lumber-Mixtape Battlefoil-First Edition",
+      "catalogPower": 80,
+      "ocrPower": 130,
+      "confidence": 1,
+      "delta": 50,
+      "candidates": [
+        "LUMBER",
+        "801",
+        "130 ui",
+        "MALT"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-779-DeKap-Mixtape Battlefoil-First Edition",
+      "catalogPower": 80,
+      "ocrPower": 130,
+      "confidence": 1,
+      "delta": 50,
+      "candidates": [
+        "DEKAP",
+        "(PУT (OVTON",
+        "801",
+        "130 ui",
+        "RMAL"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-778-Ozzmosis-Mixtape Battlefoil-First Edition",
+      "catalogPower": 80,
+      "ocrPower": 213,
+      "confidence": 0.5,
+      "delta": 133,
+      "candidates": [
+        "OZZOSS",
+        "801",
+        "2130 uil",
+        "RMAL F"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-777-Golden Bullet-Mixtape Battlefoil-First Edition",
+      "catalogPower": 80,
+      "ocrPower": 130,
+      "confidence": 1,
+      "delta": 50,
+      "candidates": [
+        "GOLDEN BULLET",
+        "801",
+        "130 ui",
+        "RMALT"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-782-Forcefield-Mixtape Battlefoil-First Edition",
+      "catalogPower": 75,
+      "ocrPower": 151,
+      "confidence": 1,
+      "delta": 76,
+      "candidates": [
+        "FOR(EFIELD",
+        "1220",
+        "RMA",
+        "151"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-781-Bangford-Mixtape Battlefoil-First Edition",
+      "catalogPower": 75,
+      "ocrPower": 151,
+      "confidence": 1,
+      "delta": 76,
+      "candidates": [
+        "BANGFORD",
+        "151",
+        "120 ui",
+        "RMALF"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-785-Go-Cart-Mixtape Battlefoil-First Edition",
+      "catalogPower": 75,
+      "ocrPower": 151,
+      "confidence": 1,
+      "delta": 76,
+      "candidates": [
+        "GO-(ART",
+        "151",
+        "32",
+        "1110 ui",
+        "RMALT"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-783-Amoeba-Mixtape Battlefoil-First Edition",
+      "catalogPower": 75,
+      "ocrPower": 151,
+      "confidence": 1,
+      "delta": 76,
+      "candidates": [
+        "AMOEBA",
+        "151",
+        "20 uл",
+        "RMALI"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-784-Action-Mixtape Battlefoil-2026 Edition",
+      "catalogPower": 75,
+      "ocrPower": 151,
+      "confidence": 1,
+      "delta": 76,
+      "candidates": [
+        "ACTION",
+        "ToRE (OVTON",
+        "151",
+        "130 шi",
+        "RMAL I"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "MIX-786-Castler-Mixtape Battlefoil-First Edition",
+      "catalogPower": 75,
+      "ocrPower": 151,
+      "confidence": 1,
+      "delta": 76,
+      "candidates": [
+        "(ASTLER",
+        "151",
+        "120 шi",
+        "(MALT"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "OBF-7-Spudnick-Orange Battlefoil-Spudd Webb Debut",
+      "catalogPower": 180,
+      "ocrPower": 80,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "SPUDNICK",
+        "80฿"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "OBF-41-Skeee-Orange Battlefoil-First Edition",
+      "catalogPower": 180,
+      "ocrPower": 125,
+      "confidence": 1,
+      "delta": -55,
+      "candidates": [
+        "COSRA",
+        "125"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "OBF-66-Game Time-Orange Battlefoil-Jim Boeheim Debut",
+      "catalogPower": 160,
+      "ocrPower": 140,
+      "confidence": 0.3,
+      "delta": -20,
+      "candidates": [
+        "GAME TIME",
+        "140м"
+      ]
+    },
+    {
+      "bobaId": "OBF-102-Sarrtillery-Orange Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 190,
+      "confidence": 0.3,
+      "delta": 100,
+      "candidates": [
+        "SARRTILLERY",
+        "RRST IDTON",
+        "SARRTILLERY",
+        "FASI 1903",
+        "SARRVlliflY",
+        "SARRTILLtRY"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "OBF-129-Action-Orange Battlefoil-2026 Edition",
+      "catalogPower": 90,
+      "ocrPower": 206,
+      "confidence": 0.3,
+      "delta": 116,
+      "candidates": [
+        "MEUWIRN",
+        "ACTION",
+        "ACTION",
+        "2061130",
+        ":06",
+        ":06"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "P-1-The Kid-Prize & Promos-2026 Release Day Promo",
+      "catalogPower": 150,
+      "ocrPower": 250,
+      "confidence": 1,
+      "delta": 100,
+      "candidates": [
+        "250",
+        "Autograph",
+        "a va"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "PBF-41-Skeee-Pink Battlefoil-First Edition",
+      "catalogPower": 195,
+      "ocrPower": 175,
+      "confidence": 1,
+      "delta": -20,
+      "candidates": [
+        "COBRA",
+        "175"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "PEA-4-Destroya-Inspired Ink Battlefoil-Patrick Ewing Debut",
+      "catalogPower": 175,
+      "ocrPower": 75,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "DESTROYA",
+        "75:"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "PG-65-Pauldron-Power Glove Battlefoil-Paula Badosa Debut",
+      "catalogPower": 150,
+      "ocrPower": 120,
+      "confidence": 0.5,
+      "delta": -30,
+      "candidates": [
+        "IOÉT",
+        "PAULORON",
+        "DET",
+        "PAULOADN",
+        "I20!",
+        "iaoi",
+        "PAULQff DN",
+        "120'."
+      ]
+    },
+    {
+      "bobaId": "PGA-6-PG-D3-Inspired Ink Battlefoil-Pierre Garçon Debut",
+      "catalogPower": 140,
+      "ocrPower": 85,
+      "confidence": 1,
+      "delta": -55,
+      "candidates": [
+        "8",
+        "85"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "RAD-2-Magic-80's Rad Battlefoil-Magic Johnson Debut",
+      "catalogPower": 200,
+      "ocrPower": 220,
+      "confidence": 0.3,
+      "delta": 20,
+      "candidates": [
+        "MAGIC",
+        "2az200:"
+      ]
+    },
+    {
+      "bobaId": "RAD-41-Skeee-80's Rad Battlefoil-First Edition",
+      "catalogPower": 195,
+      "ocrPower": 190,
+      "confidence": 1,
+      "delta": -5,
+      "candidates": [
+        "AMON....",
+        "190"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "RAD-50-The Ironman-80's Rad Battlefoil-Cal Ripkin JR Debut",
+      "catalogPower": 185,
+      "ocrPower": 180,
+      "confidence": 0.3,
+      "delta": -5,
+      "candidates": [
+        "THE IRONMAN",
+        "180g"
+      ]
+    },
+    {
+      "bobaId": "RAD-51-Peek-A-Boo-80's Rad Battlefoil-Picabo Street Debut",
+      "catalogPower": 185,
+      "ocrPower": 180,
+      "confidence": 0.5,
+      "delta": -5,
+      "candidates": [
+        "PEEK-A-BOO",
+        "PICASD STRSET SERST",
+        "180"
+      ]
+    },
+    {
+      "bobaId": "RAD-83-Skeee-80's Rad Battlefoil-First Edition",
+      "catalogPower": 185,
+      "ocrPower": 160,
+      "confidence": 1,
+      "delta": -25,
+      "candidates": [
+        "MEAN-JOE",
+        "75",
+        "160"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "RAD-125-Skeee-80's Rad Battlefoil-First Edition",
+      "catalogPower": 180,
+      "ocrPower": 140,
+      "confidence": 1,
+      "delta": -40,
+      "candidates": [
+        "RODDER",
+        "140"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "RAD-162-Pudge-80's Rad Battlefoil-Carlton Fisk Debut",
+      "catalogPower": 170,
+      "ocrPower": 70,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "PUDGE",
+        "CARLTEN RSK DERST",
+        "/",
+        "PUDGE",
+        "KRRERSSO3T",
+        "3702",
+        "70-",
+        "PUDGE",
+        "PUD6E"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "RAD-167-Skeee-80's Rad Battlefoil-First Edition",
+      "catalogPower": 180,
+      "ocrPower": 140,
+      "confidence": 1,
+      "delta": -40,
+      "candidates": [
+        "BURROCIOUS",
+        "140"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "RAD-196-Pauldron-80's Rad Battlefoil-Paula Badosa Debut",
+      "catalogPower": 160,
+      "ocrPower": 150,
+      "confidence": 0.5,
+      "delta": -10,
+      "candidates": [
+        "PAULDRON",
+        "150"
+      ]
+    },
+    {
+      "bobaId": "RAD-209-Skeee-80's Rad Battlefoil-First Edition",
+      "catalogPower": 165,
+      "ocrPower": 125,
+      "confidence": 1,
+      "delta": -40,
+      "candidates": [
+        "CRUZE-CONTROL",
+        "125"
+      ],
+      "reason_filtered": "hero_mismatch_likely_wrong_image"
+    },
+    {
+      "bobaId": "RAD-281-Jaybird-80's Rad Battlefoil-First Edition",
+      "catalogPower": 135,
+      "ocrPower": 130,
+      "confidence": 0.5,
+      "delta": -5,
+      "candidates": [
+        "JAYBIRD",
+        "130₫"
+      ]
+    },
+    {
+      "bobaId": "RAD-291-Cheetah-80's Rad Battlefoil-First Edition",
+      "catalogPower": 125,
+      "ocrPower": 120,
+      "confidence": 0.5,
+      "delta": -5,
+      "candidates": [
+        "CHEETAH",
+        "RAST TNTEN",
+        "120"
+      ]
+    },
+    {
+      "bobaId": "RAD-297-Juice-80's Rad Battlefoil-First Edition",
+      "catalogPower": 120,
+      "ocrPower": 115,
+      "confidence": 0.3,
+      "delta": -5,
+      "candidates": [
+        "JUICE",
+        "RAST INTIN",
+        "115"
+      ]
+    },
+    {
+      "bobaId": "RAD-301-Lieutenant-80's Rad Battlefoil-First Edition",
+      "catalogPower": 115,
+      "ocrPower": 110,
+      "confidence": 0.3,
+      "delta": -5,
+      "candidates": [
+        "LIEUTENANT",
+        "FRST LA0IEN",
+        "110"
+      ]
+    },
+    {
+      "bobaId": "RAD-303-Boltage-80's Rad Battlefoil-First Edition",
+      "catalogPower": 115,
+      "ocrPower": 110,
+      "confidence": 0.5,
+      "delta": -5,
+      "candidates": [
+        "BOLTAGE",
+        "RAST R",
+        "110"
+      ]
+    },
+    {
+      "bobaId": "RAD-306-Sabotage-80's Rad Battlefoil-First Edition",
+      "catalogPower": 115,
+      "ocrPower": 110,
+      "confidence": 0.5,
+      "delta": -5,
+      "candidates": [
+        "SABOTAGE",
+        "1103"
+      ]
+    },
+    {
+      "bobaId": "RAD-319-Botto-80's Rad Battlefoil-First Edition",
+      "catalogPower": 100,
+      "ocrPower": 95,
+      "confidence": 1,
+      "delta": -5,
+      "candidates": [
+        "BOTTO",
+        "RIST ENTN",
+        "95฿"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "RAD-320-Lawman-80's Rad Battlefoil-First Edition",
+      "catalogPower": 100,
+      "ocrPower": 95,
+      "confidence": 1,
+      "delta": -5,
+      "candidates": [
+        "LAWMAN",
+        "FIRST EDITION",
+        "POWER",
+        "95",
+        "LAWMAN",
+        "FIRST EDITION",
+        "POWER",
+        "95",
+        "POWER",
+        "95",
+        "LAWMAN",
+        "LAWMAN"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "RAD-322-Laviathan-80's Rad Battlefoil-First Edition",
+      "catalogPower": 100,
+      "ocrPower": 95,
+      "confidence": 1,
+      "delta": -5,
+      "candidates": [
+        "LAVIATHAN",
+        "RAST (ANON",
+        "95฿"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "RAD-321-Barnacle-80's Rad Battlefoil-First Edition",
+      "catalogPower": 100,
+      "ocrPower": 95,
+      "confidence": 1,
+      "delta": -5,
+      "candidates": [
+        "BARNACLE",
+        "RAST INEN",
+        "95฿"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "RAD-323-Breeze-80's Rad Battlefoil-First Edition",
+      "catalogPower": 100,
+      "ocrPower": 95,
+      "confidence": 0.3,
+      "delta": -5,
+      "candidates": [
+        "BREEZE",
+        "95฿"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "RAD-324-Gravedigger-80's Rad Battlefoil-First Edition",
+      "catalogPower": 100,
+      "ocrPower": 95,
+      "confidence": 1,
+      "delta": -5,
+      "candidates": [
+        "GRAVEDIGGER",
+        "GRAVEDIGGER",
+        "/",
+        "95฿",
+        "95฿",
+        "GRAYEDIGGER",
+        "GRAVEDIGGER"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "RAD-326-Alien-80's Rad Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 90,
+      "confidence": 0.5,
+      "delta": -5,
+      "candidates": [
+        "ALIEN",
+        "FIBST (ATON",
+        "ALIEN",
+        "RasT zacTie",
+        ":06",
+        "90฿",
+        "AIIEN",
+        "ALIEN"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "RAD-325-D-Hop-80's Rad Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 90,
+      "confidence": 1,
+      "delta": -5,
+      "candidates": [
+        "D-HOP",
+        "FIRST EDITION",
+        "POWER",
+        "90",
+        "D-HOP",
+        "FIRST EDITION",
+        "POWER",
+        "90",
+        "POWER",
+        "90",
+        "D-HOP",
+        "D-HOP",
+        "llJ"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "RAD-327-Portalize-80's Rad Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 90,
+      "confidence": 0.3,
+      "delta": -5,
+      "candidates": [
+        "PORTALIZE",
+        "FAST IAOEN",
+        "PORTALIZE",
+        "90₴",
+        ":06",
+        "PORTALllE",
+        "PORTALV£E"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "RAD-328-Torque-80's Rad Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 90,
+      "confidence": 1,
+      "delta": -5,
+      "candidates": [
+        "TORQUE",
+        "FIRST EDITION",
+        "90",
+        "20",
+        "•",
+        "TORQUE",
+        "FIRST EDITION",
+        "POWER",
+        "90",
+        "L",
+        "POWER",
+        "90",
+        "TORQUE",
+        "TORQUE"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "RAD-329-Risarcher-80's Rad Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 90,
+      "confidence": 1,
+      "delta": -5,
+      "candidates": [
+        "RISARCHER",
+        "RAST INOIN",
+        "90-"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "RAD-330-Sarrtillery-80's Rad Battlefoil-First Edition",
+      "catalogPower": 95,
+      "ocrPower": 90,
+      "confidence": 1,
+      "delta": -5,
+      "candidates": [
+        "SARRTILLERY",
+        "RRST ENTEN",
+        "90-"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "RAD-350-Barreler-80's Rad Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 95,
+      "confidence": 0.5,
+      "delta": 5,
+      "candidates": [
+        "BARRELER",
+        "RRST ERITON",
+        "95"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "RAD-386-Alien-80's Rad Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 180,
+      "confidence": 0.3,
+      "delta": 90,
+      "candidates": [
+        "ALIEN",
+        "FIBST 18T0N"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "RAD-639-Superbaby-80's Rad Battlefoil-2026 Edition",
+      "catalogPower": 95,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 107,
+      "candidates": [
+        "SUPERBABY",
+        "202% TAT2Y",
+        "953"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "RAD-653-Action-80's Rad Battlefoil-2026 Edition",
+      "catalogPower": 85,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 117,
+      "candidates": [
+        "ACTION",
+        "202G ER0DN",
+        "853"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "RAD-771-Javalanche-80's Rad Battlefoil-2026 Edition",
+      "catalogPower": 85,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 117,
+      "candidates": [
+        "JAVALANCHE,",
+        "202% ESITDR",
+        "853"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "RAD-770-Superbaby-80's Rad Battlefoil-2026 Edition",
+      "catalogPower": 85,
+      "ocrPower": 202,
+      "confidence": 0.3,
+      "delta": 117,
+      "candidates": [
+        "SUPERBABY",
+        "202% F232N",
+        "853",
+        "6"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "RHBF-41-Homestead-Red Headlines Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 93,
+      "confidence": 0.3,
+      "delta": 3,
+      "candidates": [
+        "mered 93",
+        "HOMESTEAD",
+        "RIRST ERITIOY",
+        "ASC",
+        "Б"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "RHBF-59-Go-Cart-Red Headlines Battlefoil-First Edition",
+      "catalogPower": 75,
+      "ocrPower": 78,
+      "confidence": 0.5,
+      "delta": 3,
+      "candidates": [
+        "out",
+        "GO-CART",
+        "FIST ERITIN",
+        "78.",
+        "32"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "SBF-32-Snowbear-Silver Battlefoil-First Edition",
+      "catalogPower": 105,
+      "ocrPower": 110,
+      "confidence": 0.5,
+      "delta": 5,
+      "candidates": [
+        "SNOWBEAR",
+        "20",
+        "110k"
+      ]
+    },
+    {
+      "bobaId": "SBF-44-Stitcher-Silver Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 200,
+      "confidence": 0.3,
+      "delta": 110,
+      "candidates": [
+        "STITCHER",
+        "ANSTZRTON",
+        "28",
+        "STITCHER",
+        "ANST 2aM00",
+        "901",
+        ":06",
+        "SVmER",
+        "STmER"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "SBF-50-Lawman-Silver Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 95,
+      "confidence": 1,
+      "delta": 5,
+      "candidates": [
+        "LAWMAN",
+        "LAWMAM",
+        "PRSTINTDN",
+        "95฿",
+        "953"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "SBF-49-Botto-Silver Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 95,
+      "confidence": 1,
+      "delta": 5,
+      "candidates": [
+        "BOTTO",
+        "BOTTO",
+        "FAST INTAR",
+        "95฿",
+        "BOnO",
+        "BOTto"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "SBF-52-Laviathan-Silver Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 95,
+      "confidence": 1,
+      "delta": 5,
+      "candidates": [
+        "LAVIATHAN",
+        "95"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "SBF-53-Breeze-Silver Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 95,
+      "confidence": 0.5,
+      "delta": 5,
+      "candidates": [
+        "BREEZE",
+        "95฿"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "SBF-51-Barnacle-Silver Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 95,
+      "confidence": 1,
+      "delta": 5,
+      "candidates": [
+        "BARNACLE",
+        "ANST ENTON",
+        "95"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "SBF-54-Gravedigger-Silver Battlefoil-First Edition",
+      "catalogPower": 90,
+      "ocrPower": 95,
+      "confidence": 1,
+      "delta": 5,
+      "candidates": [
+        "GRAVEDIGGER",
+        "14",
+        "95"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "SBF-55-D-Hop-Silver Battlefoil-First Edition",
+      "catalogPower": 85,
+      "ocrPower": 90,
+      "confidence": 1,
+      "delta": 5,
+      "candidates": [
+        "D-HOP",
+        "FIRST EDITION",
+        "POWER",
+        "90",
+        "D-HOP",
+        "FIRST EDITION",
+        "POWER",
+        "90",
+        "POWER",
+        "90",
+        "D-HOP",
+        "D-HOP"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "SBF-56-Alien-Silver Battlefoil-First Edition",
+      "catalogPower": 85,
+      "ocrPower": 90,
+      "confidence": 1,
+      "delta": 5,
+      "candidates": [
+        "ALIEN",
+        "FIRST EDITION",
+        "90",
+        "POWER",
+        "5",
+        "ALIEN",
+        "FIRST EDITION",
+        "POWER",
+        "90",
+        "POWER",
+        "90",
+        "ALIEN",
+        "ALIEN"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "SBF-57-Portalize-Silver Battlefoil-First Edition",
+      "catalogPower": 85,
+      "ocrPower": 90,
+      "confidence": 0.3,
+      "delta": 5,
+      "candidates": [
+        "PORTALIZE",
+        "90₫"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "SBF-59-Risarcher-Silver Battlefoil-First Edition",
+      "catalogPower": 85,
+      "ocrPower": 90,
+      "confidence": 1,
+      "delta": 5,
+      "candidates": [
+        "RISARCHER",
+        "FIRST EDITION",
+        "POWER",
+        "90",
+        "RISARCHER",
+        "FIRST EDITION",
+        "POWER",
+        "90",
+        "POWER",
+        "90",
+        "RISAR(HER",
+        "RISAR(HER"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "SBF-58-Torque-Silver Battlefoil-First Edition",
+      "catalogPower": 85,
+      "ocrPower": 90,
+      "confidence": 1,
+      "delta": 5,
+      "candidates": [
+        "TORQUE",
+        "FIRST EDITION",
+        "90",
+        "TORQUE",
+        "FIRST EDITION",
+        "POWER",
+        "90",
+        "POWER",
+        "90",
+        "TORQUE",
+        "TORQUE"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "SBF-60-Sarrtillery-Silver Battlefoil-First Edition",
+      "catalogPower": 85,
+      "ocrPower": 90,
+      "confidence": 1,
+      "delta": 5,
+      "candidates": [
+        "SARRTILLERY",
+        "FIRST EDITION",
+        "90",
+        "SARRTILLERY",
+        "FIRST EDITION",
+        "90",
+        "HEMOD",
+        "POWER",
+        "90",
+        "SARRTILLERY",
+        "SARRTILLERY"
+      ],
+      "reason_filtered": "ocr_below_floor"
+    },
+    {
+      "bobaId": "SF-81-Simon Says-Superfoil-First Edition",
+      "catalogPower": 155,
+      "ocrPower": 55,
+      "confidence": 1,
+      "delta": -100,
+      "candidates": [
+        "SIMON SAYS",
+        "SST LATIN",
+        "55",
+        "ONE & ONE"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    },
+    {
+      "bobaId": "SL-31-Pudge-Slime Battlefoil-Carlton Fisk Debut",
+      "catalogPower": 170,
+      "ocrPower": 217,
+      "confidence": 1,
+      "delta": 47,
+      "candidates": [
+        "PUDGE",
+        "\"TER FSE BERUT",
+        "21703"
+      ],
+      "reason_filtered": "delta_above_threshold"
+    },
+    {
+      "bobaId": "SRA-6-Rollin'-Inspired Ink Battlefoil-Scott Rolen Debut",
+      "catalogPower": 140,
+      "ocrPower": 117,
+      "confidence": 0.3,
+      "delta": -23,
+      "candidates": [
+        "E117",
+        "ROLLN"
+      ]
+    },
+    {
+      "bobaId": "SSE-4-XL-Paper & Battlefoil-Sandstorm Edition",
+      "catalogPower": 185,
+      "ocrPower": 85,
+      "confidence": 0.5,
+      "delta": -100,
+      "candidates": [
+        "85",
+        "24"
+      ],
+      "reason_filtered": "leading_digit_drop"
+    }
+  ],
+  "no_power_extracted": [
+    {
+      "bobaId": "ABF-686-Pudge-Alpha Battlefoil-Carlton Fisk Debut",
+      "catalogPower": 140,
+      "candidates": [
+        "PUDGE",
+        "CARLTON FISK DEBUT",
+        "PUDGE",
+        "CAALTON FISK DESUT",
+        "PUDGE",
+        "PUDGE"
+      ]
+    },
+    {
+      "bobaId": "BBFA-181-Wizard-Silver Blast-Ozzie Smith Debut",
+      "catalogPower": 175,
+      "candidates": [
+        "WIZARD",
+        "OZZIE SMITH DEBUT",
+        "Auod",
+        "S/X",
+        "WIZARD",
+        "OZZIE SMITH DEBUT",
+        "X/5",
+        "WIZARD",
+        "WIZARD"
+      ]
+    },
+    {
+      "bobaId": "BL-B72-Cupid-Blue Blast-First Edition",
+      "catalogPower": 95,
+      "candidates": [
+        "CUPID",
+        "FIRST EDIT",
+        "9",
+        "CUPID",
+        "FIRST EDIT",
+        "EJl"
+      ]
+    },
+    {
+      "bobaId": "BL-B131-Merri-Go-Round-Blue Blast-First Edition",
+      "catalogPower": 125,
+      "candidates": [
+        "MERRI-GO-ROUND",
+        "TON",
+        "-MERRI-GO-RUUND"
+      ]
+    },
+    {
+      "bobaId": "BL-G106-Slash-Green Blast-Kordell Stewart Debut",
+      "catalogPower": 165,
+      "candidates": [
+        "SLASH",
+        "KORDELL STEWART DEBUT",
+        "SLASH",
+        "KORDELL STEWART DEBUT",
+        "I XA5"
+      ]
+    },
+    {
+      "bobaId": "BLBF-101-Generator-Blizzard Battlefoil-First Edition",
+      "catalogPower": 165,
+      "candidates": [
+        "GENERATOR",
+        "FIRST EDITION",
+        "965",
+        "GENERATOR",
+        "FIRST EDITION.",
+        "965",
+        "465",
+        "GENERATOR",
+        "GENERATOR"
+      ]
+    },
+    {
+      "bobaId": "BLBF-238-Torque-Blizzard Battlefoil-First Edition",
+      "catalogPower": 90,
+      "candidates": [
+        "TORQUE",
+        "FIRST EDITION",
+        "POWER",
+        "TORQUE",
+        "FIRST EDITION",
+        "POWER",
+        "POWER",
+        "TORQUE",
+        "TORQUE"
+      ]
+    },
+    {
+      "bobaId": "BLBF-345-Switchblade-Blizzard Battlefoil-First Edition",
+      "catalogPower": 130,
+      "candidates": [
+        "SWITCHBLADE",
+        "FIRST EDITION",
+        "I30",
+        "SWITCHBLADE",
+        "FIRST EDITION",
+        "0",
+        "POWER",
+        "POWER",
+        "SWIT(HBLADE",
+        "SWIT(HBLADE"
+      ]
+    },
+    {
+      "bobaId": "BLBF-644-Zephyr-Blizzard Battlefoil-First Edition",
+      "catalogPower": 90,
+      "candidates": [
+        "ZEPHYR",
+        "FIRST EDI",
+        "ST",
+        "ZEPHYR*",
+        "FIRST EDITION",
+        "POWER",
+        "POWER",
+        "ZEPHY",
+        "ZEPHY"
+      ]
+    },
+    {
+      "bobaId": "BOJA-3-Bojax-Inspired Ink Bubble Gum Battlefoil-2026 Founding Hero",
+      "catalogPower": 200,
+      "candidates": []
+    },
+    {
+      "bobaId": "GGL-162-Pudge-Great Grandma's Linoleum Battlefoil-Carlton Fisk Debut",
+      "catalogPower": 170,
+      "candidates": [
+        "PUDGE",
+        "CARLTON FISK DEBUT",
+        ":",
+        "PUDGE",
+        "CARLTON FISK DEBUT",
+        "PUDGE",
+        "PUDGE"
+      ]
+    },
+    {
+      "bobaId": "GGL-294-Vlad the Impaler-Great Grandma's Linoleum Battlefoil-Vladimir Guerrero Sr. Debut",
+      "catalogPower": 160,
+      "candidates": [
+        "THE IMPALER",
+        "GUERRERO SR. DEBUT",
+        "D",
+        "THE IMPALER",
+        "UERRERO SR. DEBUT",
+        "THE IMPALER",
+        "A*RD5A.",
+        "THE IMPALER"
+      ]
+    },
+    {
+      "bobaId": "GGL-308-Bern Baby, Bern-Great Grandma's Linoleum Battlefoil-Bernie Williams Debut",
+      "catalogPower": 150,
+      "candidates": [
+        "BERN BABY, BERN",
+        "BERNIE WILLIAMS DEBUT",
+        "450",
+        "BERN BABY, BERN",
+        "BERNIE WILLIAMS DEBUT",
+        "450",
+        "450)",
+        "BERN BABY, BERN",
+        "BERN BABY, BERN"
+      ]
+    },
+    {
+      "bobaId": "GGL-345-Switchblade-Great Grandma's Linoleum Battlefoil-First Edition",
+      "catalogPower": 130,
+      "candidates": [
+        "SWITCHBLADE",
+        "FIRST EDITION",
+        "$30",
+        "SWITCHBLADE",
+        "FIRST EDITION",
+        "POWER",
+        "SWIT(HBLADE",
+        "SWIT(HBLADE"
+      ]
+    },
+    {
+      "bobaId": "GLBF-162-Pudge-Grandma's Linoleum Battlefoil-Carlton Fisk Debut",
+      "catalogPower": 170,
+      "candidates": [
+        "PUDGE",
+        "CARLTON FISK DEBUT",
+        "370-",
+        "PUDGE",
+        "CARLTON FISK DEBUT",
+        "PUDGE",
+        "PUDGE"
+      ]
+    },
+    {
+      "bobaId": "GLBF-294-Vlad the Impaler-Grandma's Linoleum Battlefoil-Vladimir Guerrero Sr. Debut",
+      "catalogPower": 160,
+      "candidates": [
+        "THE IMPALER",
+        "TUERRERO SR. DEBUT",
+        "THE IMPALER",
+        "UERRERO SR. DEBUT",
+        "THE IMPALER",
+        "THE IMPALER",
+        "A*RLISR. OE&LII"
+      ]
+    },
+    {
+      "bobaId": "GLBF-345-Switchblade-Grandma's Linoleum Battlefoil-First Edition",
+      "catalogPower": 130,
+      "candidates": [
+        "SWITCHBLADE",
+        "FIRST EDITION",
+        "SWITCHBLADER",
+        "FIRST EDITION",
+        "P O.W:",
+        "SWIT(HBLADE",
+        "SWIT(HBIADE"
+      ]
+    },
+    {
+      "bobaId": "GRILL-32-Vlad the Impaler-Grillin' Battlefoil-Vladimir Guerrero Sr. Debut",
+      "catalogPower": 160,
+      "candidates": [
+        "VLAD THE IMPALER",
+        "VLADIMIR GUERRERO SR. DEBUT",
+        "VLAD THE IMPALER",
+        "IVLADIMIR GUERRERO SR. DEBUT",
+        "D THE IMPALER",
+        "AD THE IMPALER"
+      ]
+    },
+    {
+      "bobaId": "HBF-55-D-Hop-Headlines Battlefoil-First Edition",
+      "catalogPower": 85,
+      "candidates": [
+        "NO. 313",
+        "D-HOP",
+        "FIRST EDITION",
+        "gmatic figui",
+        "issault)",
+        "POWER",
+        "a, Gaveler, and",
+        "Sh",
+        "saue and fought back",
+        "terious assail",
+        "Hescendec",
+        "atsville",
+        "NO. 313",
+        "Lhi-",
+        "D-HOP",
+        "FIRST EDITION",
+        "gmatic figui",
+        "iSsault)",
+        "POWER",
+        "ita, Gaveler, and",
+        "Sh",
+        "saue and fought back",
+        "ierious assai!",
+        "tescendec",
+        "atsville",
+        "POWER",
+        "Isa",
+        "D-HOP",
+        "D-HOP"
+      ]
+    },
+    {
+      "bobaId": "HLA-6-King Henrik-Inspired Ink Battlefoil-Henrik Lundqvist Debut",
+      "catalogPower": 175,
+      "candidates": [
+        "FNENRIK",
+        "30",
+        "-NENRIK",
+        "9/50",
+        "30",
+        "EMRIK",
+        "<'IFyI"
+      ]
+    },
+    {
+      "bobaId": "IBF-314-Zephyr-Icon Battlefoil-First Edition",
+      "catalogPower": 90,
+      "candidates": [
+        "ZEPHYRG",
+        "FIRST EDITION",
+        "POWER",
+        "ST",
+        "ZEPHYRS",
+        "FIRST EDITION",
+        "POWER",
+        "POWER",
+        "ZEP",
+        "ZEP"
+      ]
+    },
+    {
+      "bobaId": "LOGO-339-Warden-Logofoil-First Edition",
+      "catalogPower": 135,
+      "candidates": [
+        "WARDEN",
+        "FIRST EDITION",
+        "35",
+        "WARDEN",
+        "FIRST EDITION",
+        "WARDE",
+        "WARDE"
+      ]
+    },
+    {
+      "bobaId": "MI-7-Spudnick-Miami Ice Battlefoil-Spudd Webb Debut",
+      "catalogPower": 180,
+      "candidates": [
+        "SPUDNICH",
+        "bud Webb Debut",
+        "ISO",
+        "POWEI",
+        "SPUDNICK",
+        "Webb Debut",
+        "1SO",
+        "PORWER",
+        "1SO",
+        "SPbt)Ni"
+      ]
+    },
+    {
+      "bobaId": "MI-62-Game Over-Miami Ice Battlefoil-Éric Gagné Debut",
+      "catalogPower": 140,
+      "candidates": [
+        "CAME OVER",
+        "40",
+        "38",
+        "СAMEOVER",
+        "cbat",
+        "38",
+        "HL P О.NY"
+      ]
+    },
+    {
+      "bobaId": "RAD-555-Pudge-80's Rad Battlefoil-Carlton Fisk Debut",
+      "catalogPower": 150,
+      "candidates": [
+        "PUDGE",
+        "CARLTON FISK DEBUT",
+        "PUDGE",
+        "CARLTON FISK DEBUT",
+        "PUDGE",
+        "PUDGE"
+      ]
+    },
+    {
+      "bobaId": "SF-30-Pudge-Superfoil-Carlton Fisk Debut",
+      "catalogPower": 180,
+      "candidates": [
+        "PUDGE",
+        "CARLTON FISK DEBUT",
+        "PUDGE",
+        "CARLTON FISK DEBUT",
+        "PUDGE",
+        "PUDGE"
+      ]
+    },
+    {
+      "bobaId": "SRA-7-Rollin'-Inspired Ink Battlefoil-Scott Rolen Debut",
+      "catalogPower": 130,
+      "candidates": [
+        "ROLLIN'",
+        "SCOTT RALEN DEBUT",
+        "POWER",
+        ",30",
+        "ROLLIN",
+        "SCOTT RALEN DEBUT",
+        "30",
+        "3M0₫",
+        "POWER",
+        ",30",
+        "ROLIIN'"
+      ]
+    },
+    {
+      "bobaId": "T-26/50-LeBoss-Paper-Trainer",
+      "catalogPower": 90,
+      "candidates": [
+        "STARTER",
+        "JU",
+        "STARTER",
+        "JU",
+        "JU",
+        "SWT*I"
+      ]
+    }
+  ]
+}

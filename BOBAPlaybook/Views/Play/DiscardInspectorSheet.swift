@@ -69,10 +69,16 @@ struct DiscardInspectorSheet: View {
                     if hotDogs > 0 {
                         sectionHeader("\(hotDogs) HOT DOG\(hotDogs == 1 ? "" : "S") SPENT",
                                       color: Color(hex: "4CAF50"))
-                        Text("Spent Hot Dogs share the discard zone per the rules; they don't render individually since they're tracked as a count.")
-                            .font(Design.Fonts.mono(11))
-                            .foregroundStyle(Design.Colors.textMuted)
-                            .fixedSize(horizontal: false, vertical: true)
+                        // Show N actual Hot Dog cards from the
+                        // captured deck. Engine tracks Hot Dogs as
+                        // an Int count (not which specific card was
+                        // spent), so we render the deck's first N
+                        // entries — gives coaches real card visuals
+                        // matching the heroes + plays sections.
+                        let spent = Array(store.playerHotDogDeckCards.prefix(hotDogs))
+                        ForEach(Array(spent.enumerated()), id: \.offset) { _, card in
+                            cardRow(card: card)
+                        }
                     }
                 }
                 .padding(Design.Spacing.lg)

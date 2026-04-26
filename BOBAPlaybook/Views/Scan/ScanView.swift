@@ -305,14 +305,55 @@ struct ScanView: View {
     }
 
     private func configureAndStart() {
-        // Seed Vision with all card numbers as custom vocabulary
+        // Seed Vision with all card numbers as custom vocabulary.
         let numbers = cardStore.displayCards.map { $0.cardNumber.uppercased() }
         scanner.setCardNumbers(numbers)
+
+        // Also seed the recognizer with hero + play names. Vision's
+        // customWords nudges it toward known vocabulary when glyphs are
+        // ambiguous, which is the wedge for the "MAHOMES → MERLOMES" and
+        // "ROLLER DOGS truncated" misreads — the recognizer was inventing
+        // plausible-but-wrong words because it had no signal that the
+        // intended words were valid card vocabulary. Heroes + plays only:
+        // sealed product names, set names, and treatment names are not
+        // printed prominently on cards and would just dilute the boost.
+        let names = scanVocabularyNames(from: cardStore.displayCards)
+        scanner.setVocabularyNames(names)
 
         scanner.onCardObservation = { [self] observation in
             handleDetected(observation: observation)
         }
         scanner.start()
+    }
+
+    /// Collect the printed-text vocabulary that Vision should treat as
+    /// known words. Hero names (the big top-left text on a Hero card)
+    /// and Play card names (the title across the top of a Play). Each
+    /// word is added separately AND each multi-word phrase is added as
+    /// a single token, so Vision can match either tokenization. Capped
+    /// at a generous limit just in case the customWords array has a
+    /// soft size limit on older iOS versions.
+    private func scanVocabularyNames(from cards: [Card]) -> [String] {
+        var bag: Set<String> = []
+        for card in cards {
+            switch card.cardType {
+            case "Hero":
+                let h = card.hero.uppercased().trimmingCharacters(in: .whitespaces)
+                if !h.isEmpty { bag.insert(h) }
+                for w in h.components(separatedBy: .whitespaces) where w.count >= 3 {
+                    bag.insert(w)
+                }
+            case "Play":
+                let n = card.name.uppercased().trimmingCharacters(in: .whitespaces)
+                if !n.isEmpty { bag.insert(n) }
+                for w in n.components(separatedBy: .whitespaces) where w.count >= 3 {
+                    bag.insert(w)
+                }
+            default:
+                continue
+            }
+        }
+        return Array(bag)
     }
 
     private func updateROI(in geo: GeometryProxy) {
@@ -336,16 +377,60 @@ struct ScanView: View {
 
         let scored = candidates
             .map { (card: $0, score: matchScore($0, observation: observation)) }
-        guard let best = scored.max(by: { $0.score < $1.score })?.card else { return }
+            .sorted { $0.score > $1.score }
+        guard let best = scored.first?.card else { return }
 
-        detectedCard = best
+        // Image-similarity disambiguation (Phase 2). Engages when
+        // multiple candidates share the same card number AND the top
+        // OCR score is within 2 points of the runner-up — that's the
+        // "RAD-352 Brockness vs Spider, both 120 power" case where
+        // textual signal can't pick a winner.
+        //
+        // The chip is DEFERRED until tiebreak completes — we never
+        // commit OCR's first guess only to overwrite it 100ms later.
+        // Single commit point eliminates the wrong-card-flash UX. The
+        // tiebreak path takes ~80–150ms in practice; non-tiebreak
+        // scans commit instantly.
+        let needsTiebreak = scored.count >= 2 &&
+                            (scored[0].score - scored[1].score) <= 2
+        if needsTiebreak,
+           let cgImage = observation.cgImage,
+           FeaturePrintIndex.shared.isLoaded {
+            let candidateBobaIds = Set(candidates.map { $0.id })
+            Task {
+                let nearest = await FeaturePrintIndex.shared
+                    .searchNearest(in: cgImage, topK: 10)
+                // Walk top-K in distance-ascending order; take the
+                // first entry that's also one of our cardNumber
+                // candidates. Fall back to OCR's pick if no candidate
+                // is in the index (singleton cardNumber + multi-only
+                // index, OR cgImage capture/index lookup failure).
+                let refined: Card
+                if let refinedId = nearest
+                    .first(where: { candidateBobaIds.contains($0.bobaId) })?.bobaId,
+                   let r = candidates.first(where: { $0.id == refinedId }) {
+                    refined = r
+                } else {
+                    refined = best
+                }
+                commitDetected(refined)
+            }
+        } else {
+            commitDetected(best)
+        }
+    }
 
+    /// Single commit path for a detected card. Assigns `detectedCard`,
+    /// shows the chip, and (in multi mode) queues + schedules dismiss.
+    /// Called either synchronously (no tiebreak) or from the async
+    /// tiebreak Task — never both for the same observation.
+    private func commitDetected(_ card: Card) {
+        detectedCard = card
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
             chipVisible = true
         }
-
         if scanStore.isMultiCardMode {
-            scanStore.addToQueue(best)
+            scanStore.addToQueue(card)
             chipDismissTask?.cancel()
             chipDismissTask = Task {
                 try? await Task.sleep(for: .seconds(1.5))

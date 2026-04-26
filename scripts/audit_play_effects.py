@@ -84,11 +84,20 @@ def load_known_ops() -> set[str]:
     return set(re.findall(r'"([^"]+)"', body))
 
 
-# Triggers the engine actually fires. Persistent entries with any
-# other trigger value silently install but never run their effect.
-# These are the strings the engine passes to firePersistentTriggers
-# (in PracticeStore.swift) plus the special-case scopes
-# applyContinuousPersistents accepts.
+# ─── Engine vocabulary ───────────────────────────────────────────
+#
+# Every value the engine recognizes for: triggers, scopes, condition
+# types, metrics, comparisons, branch aggregates. Any JSON entry that
+# uses a value outside these sets compiles fine but produces no
+# runtime effect — the persistent never fires, the condition always
+# evaluates false, the formula computes 0, etc.
+#
+# These lists are mirrored from PracticeStore.swift (isScopeActive,
+# firePersistentTriggers) and PlayEffects.swift (evalCondition,
+# evalMetric, the coin_flip / dice_roll branch handlers). When the
+# engine adds a new case, also add it here OR run with --check-engine
+# to print a diff.
+
 KNOWN_TRIGGERS: set[str] = {
     "continuous",
     "battle_start",       # legacy alias of on_battle_start; handled by applyContinuousPersistents
@@ -98,6 +107,84 @@ KNOWN_TRIGGERS: set[str] = {
     "on_plays_resolved",
     "on_opp_play",        # dice_gate
     "on_turn_end",        # auto_lose_battle
+}
+
+# PracticeStore.isScopeActive — anything else returns false.
+# Plus op-level scopes used by CostMod / weapon transform / honors:
+#   `next_play_self` — single-use cost mod (effectiveCost line 465)
+KNOWN_SCOPES: set[str] = {
+    "rest_of_game",
+    "this_battle",
+    "current",            # legacy alias of this_battle
+    "next_battle",
+    "this_and_next",
+    "next_2_battles",
+    "next_N_battles",     # uses spec.n
+    "battles_4_7",
+    "prev_battle",        # retrospective; never active going forward
+    "next_play_self",     # op-level scope on play_cost_delta — single-use
+    # battle_1 … battle_7 literal scopes are accepted via prefix match
+    # — handled separately by KNOWN_BATTLE_LITERAL_PREFIX.
+}
+KNOWN_BATTLE_LITERAL_PREFIX = "battle_"  # battle_1 … battle_7
+
+# PlayEffects.evalCondition — extracted from the case dispatch.
+KNOWN_CONDITION_TYPES: set[str] = {
+    "all", "any", "not",
+    "battle_losing", "battle_num", "battle_tied", "battle_winning",
+    "battle_won_nth", "battles_lost", "battles_lost_first_n",
+    "battles_won", "battles_won_streak",
+    "discard_count", "discarded_hero_weapon_matches_active",
+    "hand_count", "hand_count_compare",
+    "hd_count", "hd_count_compare",
+    "hero", "hero_name", "honors", "hot_dog", "lost",
+    "metric_compare", "next_hero_power_gt", "next_hero_weapon_equals",
+    "opp_gt_self", "opp_lt_self", "opponent_played_weapon_match",
+    "play", "plays_used", "power_threshold", "prev_battle",
+    "previous_and_current_share_weapon",
+    "previous_two_heroes_share_weapon",
+    "self_gt_opp", "self_lt_opp",
+    "substituted_this_battle",
+    "tied",
+    "weapon", "weapon_different", "weapon_same", "weapon_streak",
+    "won",
+    # Logical sugar that may appear in nested conditions.
+    "and", "or", "eq",
+}
+
+# PlayEffects.evalMetric — formula deltas reading any other metric
+# silently compute to 0.
+KNOWN_METRICS: set[str] = {
+    "battles_lost", "battles_lost_streak", "battles_remaining",
+    "battles_tied", "battles_won",
+    "cards_discarded_by_this_play", "chosen_play_cost",
+    "current_power", "discard_count",
+    "discard_pile_count_excluding_hd", "discard_pile_heroes",
+    "discard_pile_heroes_weapon_match", "discarded_plays_cost_gte",
+    "distinct_weapons_revealed", "drawn_hero_power", "drawn_play_cost",
+    "hand_count", "hd_count", "hd_count_before_cost",
+    "hd_discarded_this_battle",
+    "heroes_revealed_total", "heroes_used_total",
+    "opponent_hd_used_this_battle",
+    "plays_in_hand_before_shuffle", "plays_used_this_battle",
+    "plays_used_total",
+    "revealed_hero_power", "revealed_play_cost",
+    # Used by `kind:` filters in some metrics — accepted as-is.
+    "hero", "play", "hot_dog", "starting_power",
+}
+
+# Numeric-comparison operators. Anything else fails closed in `cmp`.
+KNOWN_COMPARISONS: set[str] = {"gte", "gt", "lte", "lt", "eq", "neq"}
+
+# coin_flip + dice_roll branch aggregates. Any other aggregate in a
+# branch never fires.
+KNOWN_AGGREGATES: set[str] = {
+    "all_heads", "all_tails",
+    "at_least_n_heads", "at_least_n_tails",
+    "exact_heads",
+    "per_head", "per_tail",
+    "sum",     # dice_roll default for count > 1
+    "else",    # branch sentinel
 }
 
 
@@ -235,6 +322,93 @@ def all_deltas(entry: dict) -> tuple[list[int], bool]:
                 walk(v)
     walk(entry)
     return literals, has_formula
+
+
+# ─── Vocabulary check ─────────────────────────────────────────────
+
+
+def _is_known_scope(scope: str) -> bool:
+    if scope in KNOWN_SCOPES:
+        return True
+    if scope.startswith(KNOWN_BATTLE_LITERAL_PREFIX):
+        rest = scope[len(KNOWN_BATTLE_LITERAL_PREFIX):]
+        return rest.isdigit() and 1 <= int(rest) <= 7
+    return False
+
+
+def _check_vocabulary(card: str, entry: dict) -> list[Finding]:
+    """Walk the entire entry tree and flag any vocabulary value the
+    engine doesn't recognize. Each context gets its own finding
+    category so fixes are easy to target."""
+    out: list[Finding] = []
+
+    def walk(node: Any, path: str, in_condition: bool):
+        if isinstance(node, dict):
+            # scope on persistent / scope on cost mod / scope on op
+            scope = node.get("scope")
+            if isinstance(scope, str) and not _is_known_scope(scope):
+                out.append(Finding(card, "warning", "unknown_scope",
+                    f"Unknown scope '{scope}' at {path}.scope — "
+                    f"persistent or scoped op will never apply. "
+                    f"Allowed: {sorted(KNOWN_SCOPES)} + battle_1..battle_7"))
+
+            # comparison everywhere
+            cmp_v = node.get("comparison")
+            if isinstance(cmp_v, str) and cmp_v not in KNOWN_COMPARISONS:
+                out.append(Finding(card, "warning", "unknown_comparison",
+                    f"Unknown comparison '{cmp_v}' at {path}.comparison — "
+                    f"the cmp helper fails closed → condition always false. "
+                    f"Allowed: {sorted(KNOWN_COMPARISONS)}"))
+
+            # condition `type` — only meaningful when nested under a
+            # condition keyword (if / requires / of / and / or / not).
+            if in_condition:
+                t = node.get("type")
+                if isinstance(t, str) and t not in KNOWN_CONDITION_TYPES:
+                    out.append(Finding(card, "warning", "unknown_condition_type",
+                        f"Unknown condition type '{t}' at {path}.type — "
+                        f"evalCondition returns false → branch never enters. "
+                        f"Allowed sample: {sorted(list(KNOWN_CONDITION_TYPES))[:8]}…"))
+
+            # metric — appears as `metric: "name"` directly, or as
+            # `delta: { metric: {type: "name"}, factor: N }` for
+            # formula deltas. Both shapes mean "evaluate this metric
+            # at exec time."
+            m = node.get("metric")
+            if isinstance(m, str) and m not in KNOWN_METRICS:
+                out.append(Finding(card, "warning", "unknown_metric",
+                    f"Unknown metric '{m}' at {path}.metric — "
+                    f"evalMetric returns 0 → formula delta = 0. "
+                    f"Allowed sample: {sorted(list(KNOWN_METRICS))[:8]}…"))
+            if isinstance(m, dict):
+                t = m.get("type")
+                if isinstance(t, str) and t not in KNOWN_METRICS:
+                    out.append(Finding(card, "warning", "unknown_metric",
+                        f"Unknown metric '{t}' at {path}.metric.type — "
+                        f"formula delta will compute to 0. "
+                        f"Allowed sample: {sorted(list(KNOWN_METRICS))[:8]}…"))
+
+            # branch aggregate (coin_flip / dice_roll)
+            agg = node.get("aggregate")
+            if isinstance(agg, str) and agg not in KNOWN_AGGREGATES:
+                out.append(Finding(card, "warning", "unknown_aggregate",
+                    f"Unknown aggregate '{agg}' at {path}.aggregate — "
+                    f"branch will never fire. "
+                    f"Allowed: {sorted(KNOWN_AGGREGATES)}"))
+
+            # Recurse with awareness of which keys open a condition
+            # context so `type` is only validated where it means a
+            # condition type.
+            for k, v in node.items():
+                opens_cond = k in ("if", "requires", "of", "and", "or", "not", "all", "any")
+                walk(v, f"{path}.{k}", in_condition or opens_cond)
+
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                walk(v, f"{path}[{i}]", in_condition)
+
+    walk(entry, "", False)
+    return out
 
 
 # ─── Per-card audits ──────────────────────────────────────────────
@@ -486,6 +660,18 @@ def audit_card(name: str, entry: dict, card: dict | None,
                                    f"`choice` op has {len(opts)} option(s); collapse to direct ops "
                                    f"or add real alternatives"))
 
+    # ── Comprehensive vocabulary sweep ───────────────────────────
+    # Walks the entire entry tree and flags any value the engine
+    # doesn't recognize. Catches the silent-no-op classes:
+    #   - unknown scope (persistent never matches isScopeActive)
+    #   - unknown condition type (evalCondition returns false)
+    #   - unknown metric (evalMetric returns 0; formula delta = 0)
+    #   - unknown comparison (cmp fails closed; condition always false)
+    #   - unknown aggregate (coin/dice branch never fires)
+    # Each finding names the exact field + value so the JSON author
+    # can fix it without tracing through engine source.
+    fnd.extend(_check_vocabulary(name, entry))
+
     # ── Unknown persistent trigger ───────────────────────────────
     # A persistent with an unrecognized trigger string silently
     # installs but never fires. Real example: Overcommited used
@@ -591,10 +777,60 @@ def to_markdown(findings: list[Finding], total_cards: int, known_ops_count: int)
 # ─── Entry point ──────────────────────────────────────────────────
 
 
+def _check_engine_drift() -> list[str]:
+    """Compare the auditor's hardcoded allowlists against the engine
+    source. If the engine has a `case "..."` block in a vocab-defining
+    function that the allowlist doesn't know about, the auditor's
+    coverage is lying — a real "no-op" risk could pass the audit
+    because the auditor doesn't know about the case.
+
+    Returns a list of human-readable mismatches; empty list = in sync.
+    """
+    src_play_effects = EXECUTOR_PATH.read_text()
+    src_practice_store = (ROOT / "BOBAPlaybook" / "Store" / "PracticeStore.swift").read_text()
+    notes: list[str] = []
+
+    def cases_in(src: str, fn_name_pattern: str) -> set[str]:
+        m = re.search(fn_name_pattern + r".*?(?=\n    private static func|\n    static func |\n    func |\n}\n)", src, re.DOTALL)
+        if not m: return set()
+        return set(re.findall(r'^\s+case "([^"]+)"', m.group(0), re.M))
+
+    # evalCondition cases vs KNOWN_CONDITION_TYPES
+    cond_cases = cases_in(src_play_effects, r"static func evalCondition\(")
+    missing = cond_cases - KNOWN_CONDITION_TYPES
+    if missing:
+        notes.append(f"evalCondition has cases not in KNOWN_CONDITION_TYPES: {sorted(missing)}")
+
+    # evalMetric cases vs KNOWN_METRICS
+    metric_cases = cases_in(src_play_effects, r"private static func evalMetric\(")
+    missing = metric_cases - KNOWN_METRICS
+    if missing:
+        notes.append(f"evalMetric has cases not in KNOWN_METRICS: {sorted(missing)}")
+
+    # isScopeActive cases vs KNOWN_SCOPES
+    scope_cases = cases_in(src_practice_store, r"static func isScopeActive\(")
+    missing = scope_cases - KNOWN_SCOPES
+    if missing:
+        notes.append(f"isScopeActive has cases not in KNOWN_SCOPES: {sorted(missing)}")
+
+    return notes
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--json", action="store_true", help="Print raw JSON to stdout")
     args = p.parse_args()
+
+    # Sanity check that the auditor's allowlists are still in sync
+    # with the engine source. If the engine adds new vocabulary
+    # without the auditor learning about it, this surfaces it before
+    # a card silently no-ops in production.
+    drift = _check_engine_drift()
+    if drift:
+        print("⚠️ Engine vocabulary drift — auditor allowlists are stale:", file=sys.stderr)
+        for d in drift:
+            print(f"   • {d}", file=sys.stderr)
+        print("   Update KNOWN_* sets at the top of audit_play_effects.py.\n", file=sys.stderr)
 
     entries = load_play_effects()
     catalog = load_catalog()

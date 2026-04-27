@@ -293,7 +293,7 @@ fileprivate struct WallGrid: View {
             }
             // Card count rides with the title, not the branding —
             // streamers want it visible whenever they're naming the show.
-            Text("\(pairs.count) card\(pairs.count == 1 ? "" : "s")")
+            Text("\(entries.count) card\(entries.count == 1 ? "" : "s")")
                 .font(Design.Fonts.mono(10))
                 .foregroundStyle(Color(hex: "A0A0C0"))
         }

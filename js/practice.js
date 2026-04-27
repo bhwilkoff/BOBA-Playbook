@@ -1959,6 +1959,9 @@ function pmExecStep(step, ctx, out) {
       const faces = results.map(h => h ? 'HEADS' : 'TAILS');
       const glyphs = '🪙'.repeat(results.length);
       out.notifications.push(`${glyphs} ${faces.join(' · ')}`);
+      // Surface the per-flip outcomes so the dice/coin reveal overlay
+      // can animate the result. Mirrors iOS RevealState.coinFlips.
+      out.coinFlips = (out.coinFlips || []).concat(faces);
       out.hasEffect = true;
       break;
     }
@@ -2000,6 +2003,7 @@ function pmExecStep(step, ctx, out) {
       out.notifications.push(rolls.length > 1
         ? `🎲 ${pretty.join(' · ')} (sum ${sum})`
         : `🎲 ${pretty[0]}`);
+      out.diceRolls = (out.diceRolls || []).concat(rolls);
       // Surface a clear "no power added" callout when the roll missed
       // and the else branch was empty/absent. Without this, the user
       // sees the dice glyph and wonders why nothing happened (Fire
@@ -4343,6 +4347,17 @@ const PM = {
         b.cpuBreakdown.push({ label: card.name, delta: effect.cpuDelta, cardRef: card });
       }
     }
+    // Dice/coin reveal — fire a center-screen overlay when the play
+    // rolled dice or flipped coins. Pulled from out.diceRolls /
+    // out.coinFlips populated by pmExecStep. Mirrors iOS DiceCoinRevealOverlay.
+    if (out.firedDiceOrCoin && (out.diceRolls?.length || out.coinFlips?.length)) {
+      pmShowDiceCoinReveal({
+        side: 'player',
+        sourceLabel: card.name,
+        diceRolls: out.diceRolls || [],
+        coinFlips: out.coinFlips || [],
+      });
+    }
     // Build description for the toast (combines HD recovery + power delta when both apply)
     const ability = (card.playAbility || '').toLowerCase();
     let desc = '';
@@ -4583,6 +4598,15 @@ const PM = {
       if (effect.playerDelta) {
         b.playerBreakdown = b.playerBreakdown || [];
         b.playerBreakdown.push({ label: card.name, delta: effect.playerDelta, cardRef: card });
+      }
+      // Mirror player-side dice/coin reveal trigger for CPU plays.
+      if (out.firedDiceOrCoin && (out.diceRolls?.length || out.coinFlips?.length)) {
+        pmShowDiceCoinReveal({
+          side: 'cpu',
+          sourceLabel: card.name,
+          diceRolls: out.diceRolls || [],
+          coinFlips: out.coinFlips || [],
+        });
       }
       // Track CPU plays on the battle slot (for copy_last_play, metrics, etc.)
       b.cpuPlaysPlayed = b.cpuPlaysPlayed || [];
@@ -5463,6 +5487,27 @@ function pmRenderBattleSlotContent(slot, card, revealed, isOpp, battle) {
   }
 }
 
+// Detect if the active battle is being decided by SUPER weapon
+// tiebreaker per Rules §4.5: Playmaker mode, totals tied, exactly one
+// side has SUPER as effective weapon. Returns { winnerName, total }
+// when applicable, otherwise null. Mirrors ActiveBattleView.swift:161.
+function pmDetectSuperTiebreaker(b) {
+  if (!PM.matchOver && PM.mode !== 'playmaker') return null;
+  if (PM.mode && PM.mode !== 'playmaker') return null;
+  if (!b || b.result == null || b.result === 'tie') return null;
+  const playerTotal = (b.playerCard?.power || 0) + (b.playerEffectPower || 0);
+  const cpuTotal    = (b.cpuCard?.power    || 0) + (b.cpuEffectPower    || 0);
+  if (playerTotal !== cpuTotal) return null;
+  const playerWeapon = PM.effectiveWeapon ? PM.effectiveWeapon(b.playerCard, 'player') : (b.playerCard?.element || '');
+  const cpuWeapon    = PM.effectiveWeapon ? PM.effectiveWeapon(b.cpuCard,    'cpu')    : (b.cpuCard?.element    || '');
+  if ((playerWeapon === 'SUPER') === (cpuWeapon === 'SUPER')) return null;
+  const winner = b.result === 'win' ? b.playerCard : b.cpuCard;
+  return {
+    winnerName: winner?.hero || winner?.name || 'SUPER hero',
+    total: playerTotal,
+  };
+}
+
 // Render the iOS-faithful ActiveBattleView layout into the column for
 // the active battle. Wide horizontal layout: player card (left) → VS
 // indicator (center) → CPU card (right), with the breakdown panel
@@ -5471,18 +5516,30 @@ function pmRenderBattleSlotContent(slot, card, revealed, isOpp, battle) {
 // tier visibly pixelates. Mirrors ActiveBattleView.swift:68–136.
 function pmRenderActiveBattleColumn(col, b) {
   const isResolved = b.result !== null;
+  // Pulse heroes whose effect power changed since last render. Mirrors
+  // iOS ActiveBattleView's .task(id: playerPulseTrigger) / cpuPulseTrigger.
+  const lastPlayerEff = col._lastPlayerEff;
+  const lastCpuEff    = col._lastCpuEff;
+  const playerPulse = lastPlayerEff !== undefined && lastPlayerEff !== (b.playerEffectPower || 0);
+  const cpuPulse    = lastCpuEff    !== undefined && lastCpuEff    !== (b.cpuEffectPower    || 0);
+  col._lastPlayerEff = (b.playerEffectPower || 0);
+  col._lastCpuEff    = (b.cpuEffectPower    || 0);
+
+  const superTie = pmDetectSuperTiebreaker(b);
+
   col.innerHTML = `
     <div class="pm-bc-active-inner">
       <div class="pm-bc-active-header">BATTLE ${b.id + 1}</div>
       ${isResolved ? pmRenderBreakdownPanel(b) : ''}
+      ${superTie ? pmRenderSuperTiebreakerBanner(superTie) : ''}
       <div class="pm-bc-active-row">
-        ${pmRenderActiveHero(b.playerCard, true,  b, false)}
+        ${pmRenderActiveHero(b.playerCard, true,  b, false, playerPulse)}
         <div class="pm-bc-active-vs ${isResolved ? 'pm-bc-active-vs--' + b.result : ''}">
           ${isResolved
             ? (b.result === 'win' ? 'WIN' : b.result === 'lose' ? 'LOSS' : 'TIE')
             : 'VS'}
         </div>
-        ${pmRenderActiveHero(b.cpuCard, false, b, !(b.revealed || isResolved))}
+        ${pmRenderActiveHero(b.cpuCard, false, b, !(b.revealed || isResolved), cpuPulse)}
       </div>
     </div>
   `;
@@ -5504,8 +5561,9 @@ function pmRenderActiveBattleColumn(col, b) {
   });
 }
 
-function pmRenderActiveHero(card, isPlayer, b, isFaceDown) {
+function pmRenderActiveHero(card, isPlayer, b, isFaceDown, pulse) {
   const sideClass = isPlayer ? 'pm-active-hero--player' : 'pm-active-hero--cpu';
+  const pulseClass = pulse ? ' pm-active-hero--pulse' : '';
   if (!card) {
     return `<div class="pm-active-hero ${sideClass} pm-active-hero--empty"><span>—</span></div>`;
   }
@@ -5516,7 +5574,7 @@ function pmRenderActiveHero(card, isPlayer, b, isFaceDown) {
       ? `<span class="pm-active-hero-pending" style="color:${pending > 0 ? '#C0392B' : '#00F5FF'}">${pending > 0 ? '+' : ''}${pending}</span>`
       : '';
     return `
-      <div class="pm-active-hero ${sideClass} pm-active-hero--facedown">
+      <div class="pm-active-hero ${sideClass} pm-active-hero--facedown${pulseClass}">
         <div class="pm-active-hero-card pm-active-hero-card-back">
           <svg viewBox="0 0 60 84" aria-hidden="true">
             <rect x="3" y="3" width="54" height="78" rx="6" fill="rgba(192,57,43,0.12)" stroke="rgba(192,57,43,0.65)" stroke-width="2"/>
@@ -5535,7 +5593,16 @@ function pmRenderActiveHero(card, isPlayer, b, isFaceDown) {
   // Full-res tier for the active battle hero — the card renders large
   // and the 200px thumb visibly pixelates here.
   const imgUrl  = card.imageFile ? fullUrl(card.imageFile) : null;
-  const elColor = card.element ? pmElementColor(card.element) : 'rgba(255,255,255,0.2)';
+
+  // Effective weapon (resolves through the persistent_weapon_transform
+  // stack so e.g. "Only Steel" makes the badge read STEEL with a ⟲
+  // marker). Mirrors ActiveBattleView.weaponBadge.
+  const printed = card.element || '';
+  const effectiveWeapon = PM.effectiveWeapon ? PM.effectiveWeapon(card, isPlayer ? 'player' : 'cpu') : printed;
+  const isTransformed = !!effectiveWeapon && effectiveWeapon !== printed;
+  const weaponText = effectiveWeapon || printed;
+  const weaponColor = isTransformed ? '#8B00FF' : (weaponText ? pmElementColor(weaponText) : 'rgba(255,255,255,0.2)');
+  const elColor = printed ? pmElementColor(printed) : 'rgba(255,255,255,0.2)';
 
   const bonusHtml = eff !== 0
     ? `<span class="pm-active-hero-bonus" style="color:${eff > 0 ? '#00F5FF' : '#C0392B'}">${eff > 0 ? '+' : ''}${eff}</span>`
@@ -5545,15 +5612,33 @@ function pmRenderActiveHero(card, isPlayer, b, isFaceDown) {
     ? `<img class="pm-active-hero-img" src="${imgUrl}" alt="${card.hero || card.name}" loading="lazy" onerror="this.style.display='none'">`
     : '';
 
+  // Border color follows effective weapon when transformed so the
+  // visual state ("Only Steel" → steel-bordered card) matches iOS.
+  const borderColor = isTransformed ? weaponColor : elColor;
+
   return `
-    <div class="pm-active-hero ${sideClass}">
-      <div class="pm-active-hero-card" style="border-color:${elColor}">
+    <div class="pm-active-hero ${sideClass}${pulseClass}">
+      <div class="pm-active-hero-card" style="border-color:${borderColor}">
         ${imgHtml}
         <span class="pm-active-hero-power">${effPow}</span>
         ${bonusHtml}
       </div>
       <div class="pm-active-hero-name">${(card.hero || card.name || '').substring(0, 22)}</div>
-      ${card.element ? `<div class="pm-active-hero-weapon" style="background:${elColor}1a;border-color:${elColor};color:${elColor}">${card.element}</div>` : ''}
+      ${weaponText ? `<div class="pm-active-hero-weapon" style="background:${weaponColor}1a;border-color:${weaponColor};color:${weaponColor}">${isTransformed ? '↻ ' : ''}${weaponText}</div>` : ''}
+    </div>
+  `;
+}
+
+// Full-width banner shown post-resolution when SUPER weapon decided
+// the battle (Rules §4.5). Mirrors ActiveBattleView.swift:176-208.
+function pmRenderSuperTiebreakerBanner(info) {
+  return `
+    <div class="pm-super-tiebreaker-banner">
+      <span class="pm-super-tiebreaker-bolt">⚡</span>
+      <div class="pm-super-tiebreaker-text">
+        <div class="pm-super-tiebreaker-title">SUPER WEAPON BREAKS TIE</div>
+        <div class="pm-super-tiebreaker-body">Both heroes tied at ${info.total} power. ${info.winnerName}'s SUPER weapon wins automatically (Rules §4.5).</div>
+      </div>
     </div>
   `;
 }
@@ -5715,6 +5800,67 @@ function pmRenderPlaysUsedRow(col, b) {
       const card = arr && arr[idx];
       if (card) pmShowPlayReviewSheet(card);
     });
+  });
+}
+
+// Animated reveal for dice rolls and coin flips. Mirrors iOS
+// DiceCoinRevealOverlay — large glyphs spin briefly, settle on the
+// real result, then auto-dismiss after ~1.6s (or tap to dismiss
+// once settled).
+function pmShowDiceCoinReveal({ side, sourceLabel, diceRolls, coinFlips }) {
+  // Don't stack multiple reveals — replace any in-flight one.
+  document.getElementById('pm-dice-coin-overlay')?.remove();
+
+  const accent = side === 'player' ? '#00F5FF' : '#C77DFF';
+  const dieFaces = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+  const titleParts = [];
+  if (coinFlips.length) titleParts.push(coinFlips.length > 1 ? 'COIN FLIPS' : 'COIN FLIP');
+  if (diceRolls.length) titleParts.push(diceRolls.length > 1 ? 'DICE ROLL' : 'DIE ROLL');
+  const title = titleParts.join(' + ') || 'ROLL';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'pm-dice-coin-overlay';
+  overlay.className = 'pm-dice-coin-overlay';
+  overlay.setAttribute('role', 'alert');
+  overlay.setAttribute('aria-label', title);
+
+  const diceHtml = diceRolls.map(r => {
+    const face = (r >= 1 && r <= 6) ? dieFaces[r - 1] : '?';
+    return `<div class="pm-dice-coin-die" data-final="${r}" style="color:${accent};border-color:${accent}">
+              <span class="pm-dice-coin-glyph">${face}</span>
+              <span class="pm-dice-coin-value">${r}</span>
+            </div>`;
+  }).join('');
+  const coinsHtml = coinFlips.map(f => {
+    return `<div class="pm-dice-coin-coin" data-final="${f}" style="color:${accent};border-color:${accent}">
+              <span class="pm-dice-coin-coin-glyph">🪙</span>
+              <span class="pm-dice-coin-coin-label">${f}</span>
+            </div>`;
+  }).join('');
+
+  overlay.innerHTML = `
+    <div class="pm-dice-coin-card">
+      ${sourceLabel ? `<div class="pm-dice-coin-source">${pmEscapeHTML(sourceLabel).toUpperCase()}</div>` : ''}
+      <div class="pm-dice-coin-title" style="color:${accent}">${title}</div>
+      <div class="pm-dice-coin-row">${coinsHtml}${diceHtml}</div>
+      <div class="pm-dice-coin-hint">Tap to continue</div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  let settled = false;
+  // After the spin animation, mark settled so taps can dismiss.
+  const spinDuration = 850;
+  setTimeout(() => {
+    settled = true;
+    overlay.classList.add('pm-dice-coin-overlay--settled');
+  }, spinDuration);
+  // Auto-dismiss after a reasonable hold.
+  const autoDismiss = setTimeout(() => overlay.remove(), spinDuration + 1100);
+  overlay.addEventListener('click', () => {
+    if (!settled) return;
+    clearTimeout(autoDismiss);
+    overlay.remove();
   });
 }
 

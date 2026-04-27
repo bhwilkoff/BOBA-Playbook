@@ -6726,6 +6726,116 @@ main {
 .pm-root .pm-bc-active-vs--lose { color: #C0392B; text-shadow: 0 0 12px rgba(192,57,43,0.6); }
 .pm-root .pm-bc-active-vs--tie  { color: #FFD700; text-shadow: 0 0 12px rgba(255,215,0,0.5); }
 
+/* Hero pulse — fires when effect power changes since the last render.
+   Spring-ish scale + cyan/violet glow, matching iOS .task(id:) pulse. */
+@keyframes pm-hero-pulse-player {
+  0%   { transform: scale(1);    box-shadow: 0 6px 18px rgba(0,0,0,0.4), 0 0 0   rgba(0,245,255,0); }
+  35%  { transform: scale(1.06); box-shadow: 0 6px 18px rgba(0,0,0,0.4), 0 0 18px rgba(0,245,255,0.85); }
+  100% { transform: scale(1);    box-shadow: 0 6px 18px rgba(0,0,0,0.4), 0 0 0   rgba(0,245,255,0); }
+}
+@keyframes pm-hero-pulse-cpu {
+  0%   { transform: scale(1);    box-shadow: 0 6px 18px rgba(0,0,0,0.4), 0 0 0   rgba(199,125,255,0); }
+  35%  { transform: scale(1.06); box-shadow: 0 6px 18px rgba(0,0,0,0.4), 0 0 18px rgba(199,125,255,0.85); }
+  100% { transform: scale(1);    box-shadow: 0 6px 18px rgba(0,0,0,0.4), 0 0 0   rgba(199,125,255,0); }
+}
+.pm-root .pm-active-hero--pulse.pm-active-hero--player .pm-active-hero-card {
+  animation: pm-hero-pulse-player 0.62s ease-out;
+}
+.pm-root .pm-active-hero--pulse.pm-active-hero--cpu .pm-active-hero-card {
+  animation: pm-hero-pulse-cpu 0.62s ease-out;
+}
+
+/* SUPER weapon tiebreaker banner — Rules §4.5 explanation, post-
+   resolution only when applicable. Mirrors iOS superTiebreakerBanner. */
+.pm-root .pm-super-tiebreaker-banner {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 0, 255, 0.10);
+  border: 1px solid rgba(255, 0, 255, 0.45);
+  flex-shrink: 0;
+}
+.pm-root .pm-super-tiebreaker-bolt {
+  font-size: 1.1rem; line-height: 1.2;
+  flex-shrink: 0;
+}
+.pm-root .pm-super-tiebreaker-text { flex: 1; min-width: 0; }
+.pm-root .pm-super-tiebreaker-title {
+  font-family: var(--font-mono, monospace); font-size: 0.7rem; font-weight: 700;
+  color: #FF00FF; letter-spacing: 1.0px; line-height: 1.3;
+}
+.pm-root .pm-super-tiebreaker-body {
+  font-family: var(--font-mono, monospace); font-size: 0.62rem;
+  color: rgba(255,255,255,0.7); margin-top: 2px; line-height: 1.4;
+}
+
+/* DICE / COIN REVEAL OVERLAY — animated reveal for coin flips and
+   dice rolls. Mirrors iOS DiceCoinRevealOverlay. Glyphs cycle during
+   spin then settle on the actual result. */
+.pm-dice-coin-overlay {
+  position: fixed; inset: 0; z-index: 999;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.55);
+  animation: pm-dice-fade-in 0.18s ease-out;
+}
+@keyframes pm-dice-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.pm-dice-coin-card {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 20px 28px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(13,13,26,0.95), rgba(8,8,16,0.98));
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+  min-width: 260px;
+}
+.pm-dice-coin-source {
+  font-family: var(--font-mono, monospace); font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 2px; color: rgba(255,255,255,0.4);
+}
+.pm-dice-coin-title {
+  font-family: var(--font-display, sans-serif); font-size: 1.4rem;
+  letter-spacing: 1.5px;
+}
+.pm-dice-coin-row {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
+}
+.pm-dice-coin-die,
+.pm-dice-coin-coin {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 16px; min-width: 76px;
+  border: 2px solid; border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  animation: pm-dice-spin 0.85s ease-out;
+}
+@keyframes pm-dice-spin {
+  0%   { transform: rotateY(0deg) scale(0.85);   filter: blur(2px); }
+  60%  { transform: rotateY(720deg) scale(1.02); filter: blur(0); }
+  100% { transform: rotateY(720deg) scale(1);    filter: blur(0); }
+}
+.pm-dice-coin-glyph {
+  font-size: 2.6rem; line-height: 1;
+}
+.pm-dice-coin-value {
+  font-family: var(--font-display, sans-serif); font-size: 1.1rem;
+  color: #fff;
+}
+.pm-dice-coin-coin-glyph {
+  font-size: 2rem; line-height: 1;
+}
+.pm-dice-coin-coin-label {
+  font-family: var(--font-display, sans-serif); font-size: 0.95rem; letter-spacing: 1.2px;
+  color: #fff;
+}
+.pm-dice-coin-hint {
+  font-family: var(--font-mono, monospace); font-size: 0.55rem;
+  color: rgba(255,255,255,0.35); letter-spacing: 1.5px; opacity: 0;
+  transition: opacity 0.2s ease-in;
+}
+.pm-dice-coin-overlay--settled .pm-dice-coin-hint { opacity: 1; }
+
 /* BREAKDOWN PANEL — itemized power contributions, rendered post-resolution */
 .pm-root .pm-breakdown-panel {
   display: grid; grid-template-columns: 1fr 1fr; gap: 8px;

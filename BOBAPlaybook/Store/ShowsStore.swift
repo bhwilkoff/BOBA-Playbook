@@ -93,6 +93,19 @@ final class ShowsStore {
         }
     }
 
+    /// Flip a row's big-hit flag and refresh local state so the wall
+    /// composer + the star button update immediately. Network call
+    /// runs first so the UI never optimistically shows a state we
+    /// failed to persist.
+    func setBigHit(showId: UUID, cardId: UUID, isBigHit: Bool) async throws {
+        try await client.setShowCardBigHit(id: cardId, isBigHit: isBigHit)
+        if var rows = cardsByShowId[showId],
+           let idx = rows.firstIndex(where: { $0.id == cardId }) {
+            rows[idx].isBigHit = isBigHit
+            cardsByShowId[showId] = rows
+        }
+    }
+
     func removeCard(showId: UUID, cardId: UUID) async throws {
         try await client.deleteShowCard(id: cardId)
         if var rows = cardsByShowId[showId] {

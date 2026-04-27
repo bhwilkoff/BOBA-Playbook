@@ -300,6 +300,12 @@ CREATE TABLE show_cards (
   boba_id             text NOT NULL,
   sort_order          int  NOT NULL DEFAULT 0,
   excluded_from_total boolean NOT NULL DEFAULT false,
+  -- Streamer marks a card as a "big hit" — wall generator promotes it
+  -- to a hero-row tile that's much larger than the standard grid
+  -- thumbnails. Layout flows responsively: 1 big hit alone in a wide
+  -- row, 2–3 big hits sharing one row, 4+ split across multiple
+  -- big-hit rows above the standard grid.
+  is_big_hit          boolean NOT NULL DEFAULT false,
   added_at            timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_show_cards_show_id ON show_cards (show_id);

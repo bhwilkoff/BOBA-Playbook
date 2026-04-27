@@ -705,7 +705,7 @@ final class SupabaseClient {
     /// All cards in a given show, ordered by the streamer's sort_order.
     func fetchShowCards(showId: UUID) async throws -> [ShowCard] {
         let url = try makeURL(path:
-            "/rest/v1/show_cards?show_id=eq.\(showId)&select=id,show_id,boba_id,sort_order,excluded_from_total,added_at&order=sort_order.asc")
+            "/rest/v1/show_cards?show_id=eq.\(showId)&select=id,show_id,boba_id,sort_order,excluded_from_total,is_big_hit,added_at&order=sort_order.asc")
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         addHeaders(&request, authenticated: true)
@@ -752,6 +752,20 @@ final class SupabaseClient {
         request.httpMethod = "PATCH"
         addHeaders(&request, authenticated: true)
         let body: [String: Any] = ["excluded_from_total": excluded]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        try await voidExecute(request)
+    }
+
+    /// Flip the big-hit flag on a single show_cards row. Used by the
+    /// star/flame button in the show detail view; the wall composer
+    /// reads the resulting flag to render a much larger tile for the
+    /// flagged card.
+    func setShowCardBigHit(id: UUID, isBigHit: Bool) async throws {
+        let url = try makeURL(path: "/rest/v1/show_cards?id=eq.\(id)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        addHeaders(&request, authenticated: true)
+        let body: [String: Any] = ["is_big_hit": isBigHit]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         try await voidExecute(request)
     }

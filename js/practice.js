@@ -4599,15 +4599,12 @@ const PM = {
         b.playerBreakdown = b.playerBreakdown || [];
         b.playerBreakdown.push({ label: card.name, delta: effect.playerDelta, cardRef: card });
       }
-      // Mirror player-side dice/coin reveal trigger for CPU plays.
-      if (out.firedDiceOrCoin && (out.diceRolls?.length || out.coinFlips?.length)) {
-        pmShowDiceCoinReveal({
-          side: 'cpu',
-          sourceLabel: card.name,
-          diceRolls: out.diceRolls || [],
-          coinFlips: out.coinFlips || [],
-        });
-      }
+      // CPU plays are surfaced via the existing pm-cpu-overlay queue,
+      // which shows each card with its effect text. Firing a separate
+      // dice/coin reveal during cpuDoPlay() races the queue and pops a
+      // full-screen overlay before the user sees what the CPU played.
+      // The dice values are already in entry.notifications and the
+      // toast pipeline. Skip the synchronous fullscreen reveal for CPU.
       // Track CPU plays on the battle slot (for copy_last_play, metrics, etc.)
       b.cpuPlaysPlayed = b.cpuPlaysPlayed || [];
       b.cpuPlaysPlayed.push(card);
@@ -5493,8 +5490,7 @@ function pmRenderBattleSlotContent(slot, card, revealed, isOpp, battle) {
 // side has SUPER as effective weapon. Returns { winnerName, total }
 // when applicable, otherwise null. Mirrors ActiveBattleView.swift:161.
 function pmDetectSuperTiebreaker(b) {
-  if (!PM.matchOver && PM.mode !== 'playmaker') return null;
-  if (PM.mode && PM.mode !== 'playmaker') return null;
+  if (PM.mode !== 'playmaker') return null;
   if (!b || b.result == null || b.result === 'tie') return null;
   const playerTotal = (b.playerCard?.power || 0) + (b.playerEffectPower || 0);
   const cpuTotal    = (b.cpuCard?.power    || 0) + (b.cpuEffectPower    || 0);
@@ -5517,6 +5513,22 @@ function pmDetectSuperTiebreaker(b) {
 // tier visibly pixelates. Mirrors ActiveBattleView.swift:68–136.
 function pmRenderActiveBattleColumn(col, b) {
   const isResolved = b.result !== null;
+  // Hash the state that actually affects the rendered output. If
+  // nothing's changed since the last render we skip the innerHTML
+  // rebuild — which on a busy phase transition was reloading the
+  // full-res card images several times in a row, causing input lag
+  // that read as "clicks delayed and not related to the interface".
+  const stateHash = [
+    b.playerCard?.bobaId || '',
+    b.cpuCard?.bobaId || '',
+    b.playerEffectPower || 0,
+    b.cpuEffectPower || 0,
+    b.revealed ? 1 : 0,
+    b.result || '',
+    (b.playerBreakdown || []).length,
+    (b.cpuBreakdown || []).length,
+    PM.mode || '',
+  ].join('|');
   // Pulse heroes whose effect power changed since last render. Mirrors
   // iOS ActiveBattleView's .task(id: playerPulseTrigger) / cpuPulseTrigger.
   const lastPlayerEff = col._lastPlayerEff;
@@ -5525,6 +5537,9 @@ function pmRenderActiveBattleColumn(col, b) {
   const cpuPulse    = lastCpuEff    !== undefined && lastCpuEff    !== (b.cpuEffectPower    || 0);
   col._lastPlayerEff = (b.playerEffectPower || 0);
   col._lastCpuEff    = (b.cpuEffectPower    || 0);
+
+  if (col._lastStateHash === stateHash && !playerPulse && !cpuPulse) return;
+  col._lastStateHash = stateHash;
 
   const superTie = pmDetectSuperTiebreaker(b);
 
@@ -5747,9 +5762,16 @@ function pmUpdateBattleCols() {
     }
   }
 
-  // Auto-scroll the active battle into view (mirrors the iOS
-  // ScrollViewReader.scrollTo on currentBattle change).
-  pmScrollActiveIntoView();
+  // Auto-scroll the active battle into view ONLY when the active
+  // battle changes — firing every render kicked off a smooth-scroll
+  // animation on every state update, which on touch devices defers
+  // the next click and made the UI feel disconnected from input.
+  // Mirrors iOS ScrollViewReader.scrollTo(_, anchor:.center) which
+  // also only fires on currentBattle change.
+  if (pmUpdateBattleCols._lastActive !== PM.currentBattle) {
+    pmUpdateBattleCols._lastActive = PM.currentBattle;
+    pmScrollActiveIntoView();
+  }
 }
 
 function pmScrollActiveIntoView() {
@@ -5757,9 +5779,6 @@ function pmScrollActiveIntoView() {
   if (!arena) return;
   const active = arena.querySelector('.pm-bc.active');
   if (!active) return;
-  // scrollIntoView with behavior:'smooth' centers the active column
-  // in its scroll parent — same effect as iOS's proxy.scrollTo(_,
-  // anchor:.center).
   active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
 }
 

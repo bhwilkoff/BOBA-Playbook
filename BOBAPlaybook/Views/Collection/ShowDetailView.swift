@@ -209,12 +209,41 @@ struct ShowDetailView: View {
             }
             .frame(maxWidth: .infinity).padding(.vertical, Design.Spacing.xxl)
         } else {
-            LazyVStack(spacing: 6) {
-                ForEach(resolved, id: \.row.id) { pair in
-                    cardRow(row: pair.row, card: pair.card)
+            VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                rowLegend
+                LazyVStack(spacing: 6) {
+                    ForEach(resolved, id: \.row.id) { pair in
+                        cardRow(row: pair.row, card: pair.card)
+                    }
                 }
             }
         }
+    }
+
+    /// One-line legend above the cards explaining the two per-row toggles.
+    /// The icons appeared without labels and users couldn't tell that the
+    /// star drove big-hit emphasis in the generated wall.
+    private var rowLegend: some View {
+        HStack(spacing: Design.Spacing.md) {
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark.square.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+                Text("Include in total")
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(Design.Colors.textSecondary)
+            }
+            HStack(spacing: 4) {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color(hex: "FFD700"))
+                Text("Big hit (larger in wall)")
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(Design.Colors.textSecondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Design.Spacing.xs)
     }
 
     private func cardRow(row: ShowCard, card: Card) -> some View {

@@ -221,11 +221,18 @@ struct HintBanner: View {
     }
 
     private var bannerBackground: some View {
+        // Opaque dark surface + faint gold wash so the message reads
+        // cleanly over busy practice content (cards, glows, animations).
+        // The gold border still carries the visual accent.
         RoundedRectangle(cornerRadius: Design.Radius.sm)
-            .fill(Color(hex: "FFD700").opacity(0.08))
+            .fill(Color(hex: "12121C"))
             .overlay(
                 RoundedRectangle(cornerRadius: Design.Radius.sm)
-                    .strokeBorder(Color(hex: "FFD700").opacity(0.4), lineWidth: 1)
+                    .fill(Color(hex: "FFD700").opacity(0.06))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Design.Radius.sm)
+                    .strokeBorder(Color(hex: "FFD700").opacity(0.55), lineWidth: 1)
             )
     }
 

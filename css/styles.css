@@ -6598,16 +6598,22 @@ main {
 .pm-root .pm-active-hero {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   min-width: 0; min-height: 0;
-  flex: 1 1 0;     /* equal share of row width, like iOS frame(maxWidth:.infinity) */
+  flex: 1 1 0;
 }
 .pm-root .pm-active-hero-card {
   position: relative;
-  /* Fill the cell — iOS uses frame(maxWidth: .infinity) and lets
-     contentMode: .fill on the image crop as needed. The image inside
-     uses object-position: top so the hero's face stays visible when
-     the cell is cropped on the bottom. */
-  flex: 1 1 auto;
-  width: 100%;
+  /* Lock to the BoBA card aspect ratio so the frame stays card-shaped
+     (taller than wide) regardless of cell shape. height: 100% +
+     aspect-ratio derives width from height; max-width: 100% caps
+     width if the cell isn't tall enough to fit the height-derived
+     width. The browser picks the constraining dimension and the card
+     centers in any leftover space. */
+  flex: 0 1 auto;
+  height: 100%;
+  width: auto;
+  aspect-ratio: 60 / 84;
+  max-width: 100%;
+  max-height: 100%;
   min-height: 0;
   border-radius: 10px; border: 2px solid rgba(255,255,255,0.2);
   background: #080810; overflow: hidden;

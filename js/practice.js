@@ -6055,7 +6055,18 @@ function pmUpdateMatchOverlay() {
   };
   const trophyStrip = (PM.battles || []).map(trophy).join('');
 
-  // Per-battle summary — hero + plays for each side. Mirrors iOS battleSummaryRow.
+  // Per-battle summary — hero + plays for each side. Plays are
+  // rendered as tappable chips so the user can open the PlayReviewSheet
+  // to see the card's full effect text. Mirrors iOS battleSummaryRow
+  // + tap-to-review behavior on each chip.
+  const playChips = (cards, side, battleId) => {
+    if (!cards || !cards.length) {
+      return `<div class="pm-summary-plays pm-summary-plays--empty">(no plays)</div>`;
+    }
+    return `<div class="pm-summary-plays">${cards.map((c, i) =>
+      `<button type="button" class="pm-summary-play-chip" data-battle="${battleId}" data-side="${side}" data-idx="${i}">${pmEscapeHTML(c.name || '')}</button>`
+    ).join('')}</div>`;
+  };
   const summaryRow = (b) => {
     const verdictText =
       b.result === 'win'  ? 'YOU WON' :
@@ -6067,8 +6078,6 @@ function pmUpdateMatchOverlay() {
       b.result === 'tie'  ? 'tie' : 'muted';
     const playerFinal = (b.playerCard?.power || 0) + (b.playerEffectPower || 0);
     const cpuFinal    = (b.cpuCard?.power    || 0) + (b.cpuEffectPower    || 0);
-    const playerPlays = (b.playerPlaysPlayed || []).map(c => c.name).join(', ');
-    const cpuPlays    = (b.cpuPlaysPlayed    || b.cpuPlaysRan || []).map(c => c.name).join(', ');
     const playerHero  = b.playerCard?.hero || b.playerCard?.name || '';
     const cpuHero     = b.cpuCard?.hero    || b.cpuCard?.name    || '';
     return `
@@ -6083,14 +6092,14 @@ function pmUpdateMatchOverlay() {
           <span class="pm-summary-side-label">YOU</span>
           <div class="pm-summary-side-body">
             ${playerHero ? `<div class="pm-summary-hero">${pmEscapeHTML(playerHero)}</div>` : ''}
-            <div class="pm-summary-plays ${playerPlays ? '' : 'pm-summary-plays--empty'}">${playerPlays ? pmEscapeHTML(playerPlays) : '(no plays)'}</div>
+            ${playChips(b.playerPlaysPlayed, 'player', b.id)}
           </div>
         </div>
         <div class="pm-summary-side">
           <span class="pm-summary-side-label">CPU</span>
           <div class="pm-summary-side-body">
             ${cpuHero ? `<div class="pm-summary-hero">${pmEscapeHTML(cpuHero)}</div>` : ''}
-            <div class="pm-summary-plays ${cpuPlays ? '' : 'pm-summary-plays--empty'}">${cpuPlays ? pmEscapeHTML(cpuPlays) : '(no plays)'}</div>
+            ${playChips(b.cpuPlaysPlayed || b.cpuPlaysRan, 'cpu', b.id)}
           </div>
         </div>
       </div>`;
@@ -6122,6 +6131,26 @@ function pmUpdateMatchOverlay() {
   });
   $('pm-exit-match')?.addEventListener('click', () => {
     if (typeof pmExitPlaymat === 'function') pmExitPlaymat();
+  });
+
+  // Wire summary play chips to open the PlayReviewSheet. Mirrors iOS
+  // — taps open the played card's full effect detail.
+  overlay.querySelectorAll('.pm-summary-play-chip').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const battleId = parseInt(btn.dataset.battle, 10);
+      const side = btn.dataset.side;
+      const idx = parseInt(btn.dataset.idx, 10);
+      const b = PM.battles[battleId];
+      if (!b) return;
+      const arr = side === 'player'
+        ? (b.playerPlaysPlayed || [])
+        : (b.cpuPlaysPlayed || b.cpuPlaysRan || []);
+      const card = arr[idx];
+      if (card && typeof pmShowPlayReviewSheet === 'function') {
+        pmShowPlayReviewSheet(card);
+      }
+    });
   });
 }
 
@@ -6473,7 +6502,21 @@ function pmShowPlayCardPopup(handIdx) {
   const cost       = pmEffectiveCost(card, 'player');
   const canAfford  = PM.playerHD >= cost;
   const canUse     = pmIsPlayable(card, 'player');
-  const playable   = canAfford && canUse;
+  // Phase / global play-block check — without this, the popup would
+  // light up "Play Card" while playerPlayCard() silently rejects the
+  // click (wrong phase, Restricted-List cap, block_plays persistent).
+  // Mirrors the gates in PracticeStore.playerPlayCard.
+  const inPlayPhase = PM.phase === 'play';
+  const cap = PM._playerPlayCapThisBattle;
+  const used = (PM.battles[PM.currentBattle]?.playerPlaysPlayed || []).length;
+  const overCap = cap != null && used >= cap;
+  const blocked = pmIsBlocked('player', 'block_plays');
+  const phaseWarn =
+    !inPlayPhase ? 'Wait for the Play phase' :
+    blocked      ? 'Plays are blocked this battle' :
+    overCap      ? `Play limit reached (${cap})` :
+    '';
+  const playable   = canAfford && canUse && inPlayPhase && !blocked && !overCap;
   const imgUrl     = card.imageFile ? fullUrl(card.imageFile) : null;
   const entry     = pmGetPlayEntry(card);
   // play-effects.json is authoritative for ability text (covers cards where
@@ -6499,6 +6542,7 @@ function pmShowPlayCardPopup(handIdx) {
           <span class="pm-play-popup-cost-pill${!canAfford ? ' cannot-afford' : ''}">${costLabel}</span>
           ${!canAfford ? `<span class="pm-play-popup-afford-warn">Not enough Hot Dogs</span>` : ''}
           ${canAfford && !canUse ? `<span class="pm-play-popup-afford-warn">Can't be played this Battle</span>` : ''}
+          ${canAfford && canUse && phaseWarn ? `<span class="pm-play-popup-afford-warn">${phaseWarn}</span>` : ''}
         </div>
         <div class="pm-play-popup-divider"></div>
         <div class="pm-play-popup-effect-label">EFFECT</div>
@@ -6903,22 +6947,36 @@ function pmShowSingleCpuPlay(entry, done) {
 
   overlay.hidden = false;
 
+  // Single dismiss path — replace the OK button AND wire tap-anywhere
+  // on the overlay backdrop. Without the backdrop tap, users who fling
+  // clicks at the playmat (expecting to advance the phase) get them
+  // silently swallowed by the overlay until they hunt for the OK
+  // button.
+  const dismiss = () => {
+    const deferred = (entry && entry.deferredPersistents) || [];
+    for (const p of deferred) {
+      PM.installPersistent('cpu', p, { sourceCard: card?.name });
+    }
+    overlay.hidden = true;
+    overlay.removeEventListener('click', backdropClick);
+    pmUpdateAll();
+    done();
+  };
+  function backdropClick(e) {
+    // Only react when the click is on the overlay scrim itself, not
+    // on bubbled events from the inner card or OK button (those have
+    // their own handlers / don't need duplicates).
+    if (e.target === overlay) dismiss();
+  }
+  overlay.addEventListener('click', backdropClick);
+
   const dismissBtn = $('pm-cpu-overlay-dismiss');
   if (dismissBtn) {
     const newBtn = dismissBtn.cloneNode(true);
     dismissBtn.parentNode.replaceChild(newBtn, dismissBtn);
-    newBtn.addEventListener('click', () => {
-      // Install any persistents this play deferred until the user
-      // saw it. Without deferring, the active-effects banner would
-      // expose persistents from CPU plays the user hasn't dismissed
-      // yet — spoiling the queue.
-      const deferred = (entry && entry.deferredPersistents) || [];
-      for (const p of deferred) {
-        PM.installPersistent('cpu', p, { sourceCard: card?.name });
-      }
-      overlay.hidden = true;
-      pmUpdateAll();
-      done();
+    newBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dismiss();
     });
   }
 }

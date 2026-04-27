@@ -16,6 +16,34 @@ This file is the shared communication channel between two Claude instances:
 
 *Items Claude Code needs Cowork to research, investigate, or produce.*
 
+- **[2026-04-27] Add a per-card `rookieInspired: bool` flag to every catalog row.** Ben asked for a "Rookie Inspired" filter chip in the Find + Collection filter sheets. The chip is shipped today (1.855) but matches via approximation rather than canonical data — see scope/risk below.
+
+  **Why a flag is needed.** The "ROOKIE INSPIRED" stamp printed on BoBA cards is per-print and set-dependent. Same hero can carry the stamp in one print run and lose it in the next once the inspiring athlete is no longer a rookie. From Inside-The-Vault transcripts (`/youtube-transcripts/InsideTheVault_Bazooka/ZpIuxkXw9Zo_Griffey_Is_HERE_-_First_Box_Rip_of_the_Season.md`):
+
+  > "Caliber inspired by Caleb Williams there on the Krillin battle foil… does not say rookie inspired. So, a lot of those new Chicago Bears fans who are going to be coming into the game in the Griffy set, they're going to want those rookie inspired cards."
+
+  So Caliber in Alpha Edition has the stamp, Caliber in Griffey Edition does not. A hero-level flag is wrong; a `(hero, set)` table works for known cards but doesn't scale and silently drops new prints. A per-card boolean is the only clean answer.
+
+  **What the iOS side approximates today** (in `BOBAPlaybook/Models/Showcase.swift`):
+
+  1. `treatment == "Rookie Power Up"` — the 12 RPU promo cards. Definitely rookie-inspired per BoBA's own promo materials. ✓
+  2. A curated `(hero, set)` lookup `rookieInspiredHeroSets` seeded from a few transcripts:
+     - **Griffey Edition**: Brockness, Maverick, Homestead, Generator, Castler, Chameleon
+     - **Alpha Update**: Chameleon
+     - **Alpha Edition**: Caliber
+
+  Total cards matched: **439** (12 RPU + 396 Griffey rookie variants + 31 Alpha Caliber). Almost certainly missing a long tail of athletes — anyone Ben hasn't seen called out in a transcript I had access to is dropped.
+
+  **Asks, in priority order:**
+
+  1. **Author the per-card flag.** For every Hero record in `unified-cards/data/cards.json`, set `rookieInspired: true | false`. Default false. Source of truth: the printed card art (the small "ROOKIE INSPIRED" stamp on the card frame). Where catalog already has good resolution thumbs on R2, OCR on the badge text region is feasible — see `scripts/audit_card_powers.swift` for the Vision-based pipeline pattern, which can be adapted.
+
+  2. **Cross-check by athlete.** Many rookie-inspired stamps correspond to a small list of debut-season athletes per set. If you build that list (e.g., `Griffey Edition rookies = [Brock Bowers, Cooper Flagg, …]`), you can flag every catalog row whose `(set, athleteInspiration)` matches without per-card OCR. The (hero, set) table I started in `Showcase.swift` is the seed of that list — please extend it canonically.
+
+  3. **Patch shape.** Same as the hot-dog and power-realign handoffs — `handoff-updates-2026-04-XX/rookie-inspired/patch.json` with `modify[]` entries setting only the `rookieInspired` field. Migration footprint is zero (bobaId unchanged, no R2 renames, no Supabase migration). Once the catalog has the flag, the iOS showcase match collapses to a one-liner: `card.rookieInspired == true`.
+
+  Until the flag ships, expanding the `rookieInspiredHeroSets` table in `Showcase.swift` is the iOS-side workaround — but it's a temporary patch, not the right shape.
+
 - **[2026-04-26] HIGH-PRIORITY — Catalog `power` values disagree with printed art on a meaningful subset of Hero cards.** Beta tester (Ben) reported during practice playtesting that on-screen card art and the engine's Power number visibly disagree. Investigation confirmed the catalog metadata is wrong for at least 3 bobaIds, and the bug pattern likely extends across hundreds of records.
 
   **Comparison done by bobaId** (per CLAUDE.md mantra) — for each row below, the catalog metadata in the SAME repo and the actual printed art on the SAME R2 file:

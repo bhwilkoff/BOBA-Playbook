@@ -77,7 +77,7 @@ enum ShowWallComposer {
     ) async -> UIImage? {
         guard !cards.isEmpty else { return nil }
 
-        let images = await fetchThumbs(for: cards)
+        let images = await fetchFullImages(for: cards)
         // Pad bigHits to match cards length (defensive against
         // mismatched call sites).
         let flags: [Bool] = (0..<cards.count).map { i in
@@ -107,14 +107,18 @@ enum ShowWallComposer {
         return renderer.uiImage
     }
 
-    /// Fetch every card's thumbnail as a UIImage. Missing images fall
-    /// back to a placeholder tile so the grid stays visually aligned.
+    /// Fetch every card's full-resolution image as a UIImage. Big-hit
+    /// tiles render at hundreds of points wide on a 3×-rendered canvas,
+    /// so the 200px thumb tier visibly pixelates — the wall is the one
+    /// surface where we always pay for the ≤1200px tier. Missing
+    /// images fall back to a placeholder tile so the grid stays
+    /// visually aligned.
     @MainActor
-    private static func fetchThumbs(for cards: [Card]) async -> [UIImage?] {
+    private static func fetchFullImages(for cards: [Card]) async -> [UIImage?] {
         // Resolve URLs on the main actor up front so the @Sendable
         // group.addTask closure only captures Sendable scalars (Int, URL?)
         // — Swift 6 strict concurrency rejects capturing the Card.
-        let urls: [URL?] = cards.map { CDN.thumbURL(for: $0) }
+        let urls: [URL?] = cards.map { CDN.fullURL(for: $0) }
         return await withTaskGroup(of: (Int, UIImage?).self) { group in
             for (i, url) in urls.enumerated() {
                 group.addTask {

@@ -2464,7 +2464,11 @@ function pmExecStep(step, ctx, out) {
     case 'play_revealed_free':
     case 'play_top_of_playbook_free': {
       pmIntentPlayTopOfPlaybookFree(ctx.self, ctx);
-      out.notifications.push(op === 'play_revealed_free' ? `Played revealed card free` : `Played top of Playbook free`);
+      // Screen-perspective actor label so "you" / "CPU" matches the
+      // rest of the UI rather than the executor's "self" frame.
+      const actorLabel = ctx.self === 'player' ? 'You' : 'CPU';
+      const action = op === 'play_revealed_free' ? 'played the revealed card free' : 'played the top of the Playbook free';
+      out.notifications.push(`${actorLabel} ${action}`);
       out.hasEffect = true;
       break;
     }
@@ -2737,9 +2741,18 @@ function pmExecStep(step, ctx, out) {
       out.revealLabel = 'VERSUS ROLL';
       const tied = selfRoll === oppRoll;
       const selfWins = selfRoll > oppRoll;
+      // Notification text is screen-perspective: "you" = the human
+      // player, regardless of which side played the card. Without this
+      // rewrite, a CPU-played versus card reads "you 6, opponent 3 —
+      // YOU WIN" using "you" to mean "CPU's self," which contradicts
+      // every other label on screen.
+      const isPlayerActor = ctx.self === 'player';
+      const youRoll = isPlayerActor ? selfRoll : oppRoll;
+      const cpuRoll = isPlayerActor ? oppRoll  : selfRoll;
+      const playerWon = isPlayerActor ? selfWins : !selfWins;
       const outcome = tied ? 'TIE — no effect'
-                           : (selfWins ? 'YOU WIN the roll' : 'OPPONENT WINS the roll');
-      out.notifications.push(`Versus roll: you ${selfRoll}, opponent ${oppRoll} — ${outcome}`);
+                           : (playerWon ? 'YOU win the roll' : 'CPU wins the roll');
+      out.notifications.push(`Versus roll: you ${youRoll}, CPU ${cpuRoll} — ${outcome}`);
       if (!tied && Array.isArray(step.winner_effect)) {
         for (const effect of step.winner_effect) {
           const rewritten = Object.assign({}, effect);

@@ -6600,15 +6600,25 @@ function pmShowBenchCardPopup(benchIdx) {
   const athlete = card.athleteInspiration ? card.athleteInspiration : '';
   const setLine = [card.set, card.subSet, card.treatment].filter(Boolean).join(' · ');
 
-  // SUB enable conditions match iOS PracticeBenchPanel.
-  const canSub = PM.phase === 'sub' && !PM.playerSubstituted && PM.playerHD >= 2;
-  const subWarn = !canSub && PM.phase !== 'sub'
-    ? "Subs only happen in the Sub phase"
-    : !canSub && PM.playerSubstituted
-      ? "You've already subbed this Battle"
-      : !canSub && PM.playerHD < 2
-        ? "Need 2 Hot Dogs to substitute"
-        : '';
+  // The substitute action only makes sense in the sub phase. Outside
+  // it, the popup is read-only ("inspect this bench hero") so the
+  // "Substitute (2 HD)" button doesn't confuse the user during play.
+  const inSubPhase = PM.phase === 'sub';
+  const canSub = inSubPhase && !PM.playerSubstituted && PM.playerHD >= 2;
+  const subWarn = !canSub && inSubPhase && PM.playerSubstituted
+    ? "You've already subbed this Battle"
+    : !canSub && inSubPhase && PM.playerHD < 2
+      ? "Need 2 Hot Dogs to substitute"
+      : '';
+
+  // Action button: in sub phase show the Substitute CTA; otherwise
+  // collapse to a single Close button.
+  const actionsHtml = inSubPhase
+    ? `<button class="pm-play-popup-cancel">Cancel</button>
+       <button class="pm-play-popup-play${canSub ? '' : ' cannot-afford'}"${canSub ? '' : ' disabled'}>
+         Substitute (2 HD)
+       </button>`
+    : `<button class="pm-play-popup-cancel" style="flex:1">Close</button>`;
 
   const popup = document.createElement('div');
   popup.id = 'pm-play-popup';
@@ -6629,21 +6639,20 @@ function pmShowBenchCardPopup(benchIdx) {
         ${athlete ? `<div class="pm-play-popup-effect-label">INSPIRED BY</div><div class="pm-play-popup-effect">${pmEscapeHTML(athlete)}</div>` : ''}
         ${setLine ? `<div class="pm-play-popup-effect-label" style="margin-top:10px">PRINT</div><div class="pm-play-popup-effect">${pmEscapeHTML(setLine)}</div>` : ''}
         <div class="pm-play-popup-actions">
-          <button class="pm-play-popup-cancel">Cancel</button>
-          <button class="pm-play-popup-play${canSub ? '' : ' cannot-afford'}"${canSub ? '' : ' disabled'}>
-            Substitute (2 HD)
-          </button>
+          ${actionsHtml}
         </div>
       </div>
     </div>`;
 
-  popup.querySelector('.pm-play-popup-play').addEventListener('click', () => {
-    if (!canSub) return;
-    if (PM.playerSub(benchIdx)) {
-      popup.remove();
-      pmUpdateAll();
-    }
-  });
+  if (inSubPhase) {
+    popup.querySelector('.pm-play-popup-play').addEventListener('click', () => {
+      if (!canSub) return;
+      if (PM.playerSub(benchIdx)) {
+        popup.remove();
+        pmUpdateAll();
+      }
+    });
+  }
   popup.querySelector('.pm-play-popup-cancel').addEventListener('click', () => popup.remove());
   popup.addEventListener('click', e => { if (e.target === popup) popup.remove(); });
 

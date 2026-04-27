@@ -20,6 +20,9 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
     let dbsTier: String?              // "Low" | "Medium" | "High" | "Very High" (Plays only)
     let athleteInspiration: String?
     let isInspiredInk: Bool
+    /// True when the hero's inspiration athlete was in their rookie season
+    /// at print time. Non-Hero rows decode as false.
+    let rookieInspired: Bool
     let imageFile: String?
     let imageSource: String?
     let imageAvailable: Bool
@@ -117,6 +120,7 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
         dbsTier            = try c.decodeIfPresent(String.self,    forKey: .dbsTier)
         athleteInspiration = try c.decodeIfPresent(String.self,    forKey: .athleteInspiration)
         isInspiredInk      = try c.decodeIfPresent(Bool.self,      forKey: .isInspiredInk) ?? false
+        rookieInspired     = try c.decodeIfPresent(Bool.self,      forKey: .rookieInspired) ?? false
         let file           = try c.decodeIfPresent(String.self,    forKey: .imageFile)
         imageFile          = file
         imageSource        = try c.decodeIfPresent(String.self,    forKey: .imageSource)

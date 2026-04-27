@@ -55,6 +55,13 @@
       description: "Women of BOBA — heroes inspired by legendary female athletes.",
       match: (card) => WOBA_HEROES.has(card.hero),
     },
+    {
+      id: "rookie_inspired",
+      name: "Rookie Inspired",
+      searchTokens: ["rookie", "rookie inspired", "rookies"],
+      description: "Cards whose hero is inspired by an athlete in their rookie season at print time.",
+      match: (card) => card.rookieInspired === true,
+    },
     ...Object.entries(SPORT_ATHLETES).map(([label, athletes]) => ({
       id: `sport_${label.toLowerCase()}`,
       name: label,

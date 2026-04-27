@@ -6563,12 +6563,16 @@ main {
 /* ACTIVE BATTLE COLUMN — replaces the inline mini layout when a column
    is the focal battle. Wide horizontal layout: player card (left) → VS
    indicator (center) → CPU card (right), with breakdown panel above
-   when resolved. Mirrors iOS ActiveBattleView. */
+   when resolved. Mirrors iOS ActiveBattleView. The width is derived
+   from the available height: each card stays in 60:84 aspect ratio,
+   so the column fits 2 cards + VS gap + padding wide. */
 .pm-root .pm-bc.active {
-  /* iOS uses geo.size.width * 0.82 for the active card; web caps the
-     width so on very wide screens the layout doesn't sprawl. */
   flex: 0 0 auto !important;
-  width: clamp(280px, 80vw, 760px) !important;
+  /* iOS uses 82% of arena width for the active card; the arena fills
+     the available horizontal space minus the player + opponent zones.
+     On web we mirror that proportionally with min(82vw, 760px), then
+     fall back to a sensible min so cards never get cramped. */
+  width: clamp(320px, 82vw, 760px) !important;
   max-width: none !important;
   scroll-snap-align: center;
   align-items: stretch;
@@ -6580,42 +6584,54 @@ main {
   background: rgba(255, 77, 0, 0.06);
   border: 2px solid rgba(255, 77, 0, 0.4);
   min-height: 0; min-width: 0;
+  box-sizing: border-box;
 }
 .pm-root .pm-bc-active-header {
   font-family: var(--font-display, sans-serif); font-size: 0.95rem;
   color: #FF4D00; letter-spacing: 1.5px; text-align: center;
-  padding-top: 2px;
+  padding-top: 2px; flex-shrink: 0;
 }
 .pm-root .pm-bc-active-row {
-  flex: 1; display: grid; grid-template-columns: 1fr 44px 1fr;
-  align-items: stretch; gap: 6px; min-height: 0;
+  flex: 1 1 auto; min-height: 0;
+  display: flex; align-items: stretch; justify-content: center; gap: 8px;
 }
 .pm-root .pm-active-hero {
-  display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-width: 0; min-height: 0;
+  flex: 1 1 0;     /* equal share of row width, like iOS frame(maxWidth:.infinity) */
 }
 .pm-root .pm-active-hero-card {
-  position: relative; flex: 1; width: 100%; min-height: 0;
+  position: relative;
+  /* Fill the cell — iOS uses frame(maxWidth: .infinity) and lets
+     contentMode: .fill on the image crop as needed. The image inside
+     uses object-position: top so the hero's face stays visible when
+     the cell is cropped on the bottom. */
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
   border-radius: 10px; border: 2px solid rgba(255,255,255,0.2);
   background: #080810; overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
   box-shadow: 0 6px 18px rgba(0,0,0,0.4);
 }
 .pm-root .pm-active-hero-img {
-  width: 100%; height: 100%; object-fit: cover; display: block;
+  width: 100%; height: 100%; object-fit: cover; object-position: center top;
+  display: block;
 }
 .pm-root .pm-active-hero-power {
   position: absolute; bottom: 6px; right: 8px;
-  font-family: var(--font-display, sans-serif); font-size: 2rem;
-  color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.85), 0 0 4px rgba(0,0,0,0.9);
+  font-family: var(--font-display, sans-serif); font-size: 1.85rem;
+  color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.9);
+  padding: 2px 8px; border-radius: 999px;
+  background: rgba(0,0,0,0.65);
 }
 .pm-root .pm-active-hero-bonus {
   position: absolute; top: 6px; right: 8px;
-  font-family: var(--font-display, sans-serif); font-size: 1.1rem; font-weight: 700;
+  font-family: var(--font-mono, monospace); font-size: 0.85rem; font-weight: 700;
   text-shadow: 0 1px 4px rgba(0,0,0,0.85);
 }
 .pm-root .pm-active-hero-pending {
   position: absolute; top: 6px; right: 8px;
-  font-family: var(--font-display, sans-serif); font-size: 1rem;
+  font-family: var(--font-mono, monospace); font-size: 0.85rem;
   text-shadow: 0 1px 4px rgba(0,0,0,0.85);
 }
 .pm-root .pm-active-hero-card-back {
@@ -6623,14 +6639,17 @@ main {
 }
 .pm-root .pm-active-hero-card-back svg { width: 70%; height: 70%; }
 .pm-root .pm-active-hero-name {
-  font-family: var(--font-display, sans-serif); font-size: 0.85rem;
-  color: #fff; text-align: center; letter-spacing: 0.5px;
+  font-family: var(--font-mono, monospace); font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.5px; color: rgba(255,255,255,0.85);
+  text-transform: uppercase;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  flex-shrink: 0;
 }
 .pm-root .pm-active-hero-weapon {
   font-family: var(--font-mono, monospace); font-size: 0.5rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 1px;
   padding: 2px 8px; border-radius: 999px; border: 1px solid;
+  flex-shrink: 0;
 }
 .pm-root .pm-active-hero--empty {
   align-items: center; justify-content: center;
@@ -6638,8 +6657,8 @@ main {
 }
 .pm-root .pm-bc-active-vs {
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-display, sans-serif); font-size: 1.2rem; color: rgba(255,255,255,0.5);
-  letter-spacing: 2px;
+  font-family: var(--font-display, sans-serif); font-size: 1.4rem; color: rgba(255,255,255,0.55);
+  letter-spacing: 2px; flex: 0 0 44px;
 }
 .pm-root .pm-bc-active-vs--win  { color: #4CAF50; text-shadow: 0 0 12px rgba(76,175,80,0.6); }
 .pm-root .pm-bc-active-vs--lose { color: #C0392B; text-shadow: 0 0 12px rgba(192,57,43,0.6); }

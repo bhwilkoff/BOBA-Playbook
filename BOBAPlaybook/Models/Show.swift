@@ -27,6 +27,12 @@ struct ShowCard: Identifiable, Codable, Sendable {
     var bobaId: String
     var sortOrder: Int
     var excludedFromTotal: Bool
+    /// Streamer-flagged "big hit" — promoted to a hero-row tile in the
+    /// wall image at much larger size than the standard grid. Default
+    /// false so existing rows decode cleanly. See ShowWallComposer for
+    /// the responsive layout (1, 2–3, or 4+ big hits each lay out
+    /// differently).
+    var isBigHit: Bool
     let addedAt: Date?
 
     enum CodingKeys: String, CodingKey {
@@ -35,7 +41,22 @@ struct ShowCard: Identifiable, Codable, Sendable {
         case bobaId            = "boba_id"
         case sortOrder         = "sort_order"
         case excludedFromTotal = "excluded_from_total"
+        case isBigHit          = "is_big_hit"
         case addedAt           = "added_at"
+    }
+
+    /// Custom init so legacy rows decoded before `is_big_hit` shipped
+    /// (or rows from an older app build cached locally) default to
+    /// false instead of throwing a missing-key error.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id                = try c.decode(UUID.self,    forKey: .id)
+        showId            = try c.decode(UUID.self,    forKey: .showId)
+        bobaId            = try c.decode(String.self,  forKey: .bobaId)
+        sortOrder         = try c.decode(Int.self,     forKey: .sortOrder)
+        excludedFromTotal = try c.decode(Bool.self,    forKey: .excludedFromTotal)
+        isBigHit          = try c.decodeIfPresent(Bool.self, forKey: .isBigHit) ?? false
+        addedAt           = try c.decodeIfPresent(Date.self, forKey: .addedAt)
     }
 }
 

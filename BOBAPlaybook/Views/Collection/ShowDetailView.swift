@@ -219,6 +219,7 @@ struct ShowDetailView: View {
 
     private func cardRow(row: ShowCard, card: Card) -> some View {
         let excluded = row.excludedFromTotal
+        let bigHit = row.isBigHit
         return HStack(spacing: Design.Spacing.md) {
             // Exclusion toggle — primary new interaction this view adds.
             Button {
@@ -229,6 +230,21 @@ struct ShowDetailView: View {
                     .foregroundStyle(excluded ? Design.Colors.textMuted : Design.Colors.bobaCyan)
             }
             .buttonStyle(.plain)
+
+            // Big-hit star — promotes this card to a much larger tile in
+            // the wall image. Filled gold star when on, outline grey
+            // when off. Tap toggles; we await the network call before
+            // mutating local state so a failed PATCH never leaves the
+            // UI showing a state we couldn't persist.
+            Button {
+                Task { await toggleBigHit(row: row) }
+            } label: {
+                Image(systemName: bigHit ? "star.fill" : "star")
+                    .font(.system(size: 20))
+                    .foregroundStyle(bigHit ? Color(hex: "FFD700") : Design.Colors.textMuted)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(bigHit ? "Remove big-hit emphasis" : "Mark as big hit")
 
             CardImageView(card: card, size: .thumb)
                 .frame(width: 40, height: 56)
@@ -502,6 +518,12 @@ struct ShowDetailView: View {
         } catch { actionError = error.localizedDescription }
     }
 
+    private func toggleBigHit(row: ShowCard) async {
+        do {
+            try await shows.setBigHit(showId: show.id, cardId: row.id, isBigHit: !row.isBigHit)
+        } catch { actionError = error.localizedDescription }
+    }
+
     private func removeCard(row: ShowCard) async {
         do { try await shows.removeCard(showId: show.id, cardId: row.id) }
         catch { actionError = error.localizedDescription }
@@ -563,9 +585,11 @@ struct ShowDetailView: View {
         isGeneratingWall = true
         defer { isGeneratingWall = false }
         let cards = resolved.map { $0.card }
+        let bigHits = resolved.map { $0.row.isBigHit }
         guard !cards.isEmpty else { return }
         wallImage = await ShowWallComposer.compose(
             cards: cards,
+            bigHits: bigHits,
             title: show.name,
             options: wallOptions,
             prices: wallOptions.includePrices ? prices : [:]

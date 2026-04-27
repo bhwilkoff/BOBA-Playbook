@@ -33,11 +33,12 @@ struct ShowWallOptions: Sendable {
 
 enum ShowWallComposer {
 
-    /// Choose a column count that keeps each thumbnail readable without
-    /// making the wall ridiculously tall. The Whatnot / Discord message
-    /// preview generally displays ≈1:1 → 4:3, so biasing to a near-
-    /// square grid keeps thumbnails reasonably sized.
-    private static func columnCount(for count: Int) -> Int {
+    /// Choose a column count for the regular (non-big-hit) grid that
+    /// keeps each thumbnail readable without making the wall
+    /// ridiculously tall. The Whatnot / Discord message preview
+    /// generally displays ≈1:1 → 4:3, so biasing to a near-square
+    /// grid keeps thumbnails reasonably sized.
+    fileprivate static func columnCount(for count: Int) -> Int {
         switch count {
         case 0...1:  return 1
         case 2...4:  return 2
@@ -52,6 +53,13 @@ enum ShowWallComposer {
     /// main actor because ImageRenderer requires it. Returns nil if
     /// all image fetches fail (unlikely — thumbs are on R2).
     ///
+    /// `bigHits` is the parallel array of is_big_hit flags. Big hits
+    /// land in a hero row at the top of the wall at much larger size;
+    /// the rest fill a standard grid below. The split is responsive:
+    ///   1 big hit  → one wide hero tile alone
+    ///   2-3 hits   → side-by-side hero row
+    ///   4+ hits    → multiple hero rows of up to 3 each
+    ///
     /// `prices` is optional — only consulted when `options.includePrices`
     /// is true. Pass an empty dict if you don't have prices yet; the
     /// composer falls back to "—" per tile.
@@ -62,6 +70,7 @@ enum ShowWallComposer {
     @MainActor
     static func compose(
         cards: [Card],
+        bigHits: [Bool],
         title: String,
         options: ShowWallOptions,
         prices: [String: Decimal]
@@ -69,13 +78,27 @@ enum ShowWallComposer {
         guard !cards.isEmpty else { return nil }
 
         let images = await fetchThumbs(for: cards)
-        let cols = columnCount(for: cards.count)
+        // Pad bigHits to match cards length (defensive against
+        // mismatched call sites).
+        let flags: [Bool] = (0..<cards.count).map { i in
+            i < bigHits.count ? bigHits[i] : false
+        }
+        let entries: [WallGrid.Entry] = (0..<cards.count).map { i in
+            WallGrid.Entry(card: cards[i], image: images[i], isBigHit: flags[i])
+        }
+        let regularCount = entries.filter { !$0.isBigHit }.count
+        // When the show is all-big-hits (no standard grid below), the
+        // canvas would otherwise collapse to a 1-column-wide column
+        // count and the hero rows would be cramped. Force a minimum
+        // of 4 grid columns in that case so big-hit tiles render at
+        // a respectable size.
+        let cols = regularCount == 0 ? 4 : columnCount(for: regularCount)
 
         let content = WallGrid(
             title: title,
             columns: cols,
             options: options,
-            pairs: zip(cards, images).map { ($0, $1) },
+            entries: entries,
             prices: prices
         )
         let renderer = ImageRenderer(content: content)
@@ -122,16 +145,32 @@ enum ShowWallComposer {
 // renderer sees a deterministic tree (no async work, no environment
 // lookups).
 
-private struct WallGrid: View {
+fileprivate struct WallGrid: View {
     let title: String
+    /// Column count for the standard (non-big-hit) grid.
     let columns: Int
     let options: ShowWallOptions
-    let pairs: [(Card, UIImage?)]
+    let entries: [Entry]
     let prices: [String: Decimal]
 
-    /// Tile edge. Larger tiles look better shared at native phone
-    /// resolution (ImageRenderer scale=3 multiplies this).
+    struct Entry {
+        let card: Card
+        let image: UIImage?
+        let isBigHit: Bool
+    }
+
+    /// Tile edge for the standard grid. Larger tiles look better
+    /// shared at native phone resolution (ImageRenderer scale=3
+    /// multiplies this).
     private let tileWidth: CGFloat = 170
+    private let gridSpacing: CGFloat = 10
+
+    /// Total canvas width — derived from the regular grid's column
+    /// count so the standard tiles fill the wall and the big-hit
+    /// rows match the same width.
+    private var canvasWidth: CGFloat {
+        CGFloat(columns) * (tileWidth + gridSpacing) + 36
+    }
 
     /// Resolved big-text line. Custom text wins; otherwise show name;
     /// otherwise nothing. Driven by both options + non-empty checks.
@@ -143,27 +182,60 @@ private struct WallGrid: View {
     }
 
     /// Whether anything renders in the header slot — used to suppress
-    /// empty top padding when the streamer turned everything off. Card
-    /// count alone isn't enough to keep the header visible; if both
-    /// branding and title are off, we hide the slot entirely.
+    /// empty top padding when the streamer turned everything off.
     private var hasHeader: Bool {
         options.includeBranding || resolvedTitle != nil
     }
 
+    /// Big hits, in their original order (so the streamer's row
+    /// ordering controls who appears first).
+    private var bigHits: [Entry] { entries.filter { $0.isBigHit } }
+    private var regulars: [Entry] { entries.filter { !$0.isBigHit } }
+
+    /// Group big hits into rows. The user spec:
+    ///   1 hit:   one row, single tile spanning the row
+    ///   2 hits:  one row, side-by-side
+    ///   3 hits:  one row, three across
+    ///   4+ hits: multiple rows of up to 3 (last row may have fewer)
+    private var bigHitRows: [[Entry]] {
+        let hits = bigHits
+        guard !hits.isEmpty else { return [] }
+        if hits.count <= 3 { return [hits] }
+        // 4+ hits: chunk into rows of 3
+        var rows: [[Entry]] = []
+        var cursor = 0
+        while cursor < hits.count {
+            let end = min(cursor + 3, hits.count)
+            rows.append(Array(hits[cursor..<end]))
+            cursor = end
+        }
+        return rows
+    }
+
     var body: some View {
-        let gridCols = Array(repeating: GridItem(.fixed(tileWidth), spacing: 10), count: columns)
         VStack(spacing: 14) {
             if hasHeader { header }
-            LazyVGrid(columns: gridCols, spacing: 10) {
-                ForEach(Array(pairs.enumerated()), id: \.offset) { _, pair in
-                    tile(for: pair.0, image: pair.1)
-                }
+            // Big-hit hero rows at the top.
+            ForEach(Array(bigHitRows.enumerated()), id: \.offset) { _, row in
+                bigHitRow(row)
             }
-            .padding(.horizontal, 18)
+            // Standard grid below for non-big-hit cards.
+            if !regulars.isEmpty {
+                let gridCols = Array(
+                    repeating: GridItem(.fixed(tileWidth), spacing: gridSpacing),
+                    count: columns
+                )
+                LazyVGrid(columns: gridCols, spacing: gridSpacing) {
+                    ForEach(Array(regulars.enumerated()), id: \.offset) { _, entry in
+                        tile(for: entry, width: tileWidth)
+                    }
+                }
+                .padding(.horizontal, 18)
+            }
             if options.includeBranding { footer }
         }
         .padding(.vertical, hasHeader ? 22 : 14)
-        .frame(width: CGFloat(columns) * (tileWidth + 10) + 36)
+        .frame(width: canvasWidth)
         .background(
             LinearGradient(
                 colors: [
@@ -173,6 +245,30 @@ private struct WallGrid: View {
                 startPoint: .top, endPoint: .bottom
             )
         )
+    }
+
+    /// Render one hero row of big hits. Tile width derives from how
+    /// many sit in the row so the row always fills the canvas width.
+    /// One hit gets a tile capped at ~70% of canvas (otherwise a single
+    /// big hit on a narrow wall reads as a giant standalone splash).
+    @ViewBuilder
+    private func bigHitRow(_ row: [Entry]) -> some View {
+        let availableWidth = canvasWidth - 36
+        let interTileSpacing: CGFloat = 14
+        let totalGap = interTileSpacing * CGFloat(max(0, row.count - 1))
+        let perTileFull = (availableWidth - totalGap) / CGFloat(row.count)
+        // Cap the single-hit tile a bit — fully-stretched looks gawky
+        // when the wall has many regular cards below at 170px.
+        let perTile: CGFloat = row.count == 1
+            ? min(perTileFull, max(tileWidth * 2.2, 380))
+            : perTileFull
+        HStack(spacing: interTileSpacing) {
+            ForEach(Array(row.enumerated()), id: \.offset) { _, entry in
+                tile(for: entry, width: perTile)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 18)
     }
 
     private var header: some View {
@@ -211,34 +307,53 @@ private struct WallGrid: View {
             .foregroundStyle(Color(hex: "606088"))
     }
 
-    private func tile(for card: Card, image: UIImage?) -> some View {
-        ZStack(alignment: .bottomLeading) {
-            if let img = image {
+    private func tile(for entry: Entry, width: CGFloat) -> some View {
+        let isBig = entry.isBigHit
+        let card = entry.card
+        // Price font scales with tile size — a 10pt overlay reads as
+        // tiny on a 380px hero tile; bumping it keeps the chip visible
+        // against bigger card art.
+        let priceFontSize: CGFloat = isBig ? 16 : 10
+        // Border + corner scale with tile size for visual coherence.
+        let cornerRadius: CGFloat = isBig ? 14 : 8
+        return ZStack(alignment: .bottomLeading) {
+            if let img = entry.image {
                 Image(uiImage: img).resizable().scaledToFill()
             } else {
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: cornerRadius)
                     .fill(Color(hex: "1A1A28"))
                     .overlay(
                         Text(String((card.hero.isEmpty ? card.name : card.hero).prefix(2)).uppercased())
-                            .font(Design.Fonts.display(22))
+                            .font(Design.Fonts.display(isBig ? 36 : 22))
                             .foregroundStyle(Color(hex: "FF4D00"))
                     )
             }
-            // Optional price chip — only when the streamer asked for it.
             if options.includePrices {
                 Text(formatPrice(prices[card.id] ?? 0))
-                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .font(Design.Fonts.mono(priceFontSize, weight: .bold))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 5).padding(.vertical, 2)
+                    .padding(.horizontal, isBig ? 8 : 5)
+                    .padding(.vertical, isBig ? 4 : 2)
                     .background(Capsule().fill(Color.black.opacity(0.7)))
-                    .padding(5)
+                    .padding(isBig ? 8 : 5)
             }
         }
-        .frame(width: tileWidth, height: tileWidth * 7 / 5)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .frame(width: width, height: width * 7 / 5)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: cornerRadius)
+                .strokeBorder(
+                    isBig ? Color(hex: "FFD700").opacity(0.85) : Color.white.opacity(0.12),
+                    lineWidth: isBig ? 3 : 0.5
+                )
+        )
+        // Subtle gold glow under big-hit tiles so they read as "premium"
+        // even when the row has just one or two cards. No-op for
+        // standard tiles.
+        .shadow(
+            color: isBig ? Color(hex: "FFD700").opacity(0.4) : .clear,
+            radius: isBig ? 16 : 0,
+            x: 0, y: 0
         )
     }
 

@@ -26,6 +26,12 @@ struct ShowDetailView: View {
     @State private var prices: [String: Decimal] = [:]
     @State private var priceKey: String = ""
     @State private var isLoadingPrices = false
+    /// Bumped on each refreshPrices call. The fetch only commits its
+    /// results (and clears the spinner) if the generation it captured
+    /// at the start still matches — otherwise a stale fetch finishing
+    /// after a newer one started would flash isLoadingPrices off and
+    /// clobber fresh prices with stale ones.
+    @State private var pricingGeneration: Int = 0
     @State private var selectedCardForDetail: Card?
     @State private var showWallOptions = false
     @State private var wallOptions = ShowWallOptions.default
@@ -567,8 +573,9 @@ struct ShowDetailView: View {
         let key = "\(horizon.days):\(cards.map(\.id).joined(separator: ","))"
         if !force && key == priceKey && !prices.isEmpty { return }
         priceKey = key
+        pricingGeneration &+= 1
+        let myGen = pricingGeneration
         isLoadingPrices = true
-        defer { isLoadingPrices = false }
 
         let days = horizon.days
         await withTaskGroup(of: (String, Decimal).self) { group in
@@ -605,7 +612,11 @@ struct ShowDetailView: View {
             }
             var next: [String: Decimal] = [:]
             for await (id, avg) in group { next[id] = avg }
+            // Only commit if a newer refresh hasn't superseded us.
+            // Otherwise a slow stale fetch would clobber fresh prices.
+            guard pricingGeneration == myGen else { return }
             prices = next
+            isLoadingPrices = false
         }
     }
 

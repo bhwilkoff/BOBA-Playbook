@@ -5849,17 +5849,21 @@ function pmShowDiceCoinReveal({ side, sourceLabel, diceRolls, coinFlips }) {
   `;
   document.body.appendChild(overlay);
 
-  let settled = false;
-  // After the spin animation, mark settled so taps can dismiss.
+  // Settled state shows the "Tap to continue" hint, but the overlay is
+  // dismissable on tap from the moment it appears — blocking input
+  // during the spin caused next-phase / play-card buttons underneath
+  // to swallow taps. Auto-dismiss kicks in if the user isn't paying
+  // attention.
   const spinDuration = 850;
-  setTimeout(() => {
-    settled = true;
+  const settledTimer = setTimeout(() => {
     overlay.classList.add('pm-dice-coin-overlay--settled');
   }, spinDuration);
-  // Auto-dismiss after a reasonable hold.
-  const autoDismiss = setTimeout(() => overlay.remove(), spinDuration + 1100);
+  const autoDismiss = setTimeout(() => {
+    clearTimeout(settledTimer);
+    overlay.remove();
+  }, spinDuration + 1400);
   overlay.addEventListener('click', () => {
-    if (!settled) return;
+    clearTimeout(settledTimer);
     clearTimeout(autoDismiss);
     overlay.remove();
   });
@@ -6537,6 +6541,72 @@ function pmShowPlayCardPopup(handIdx) {
   if (mat) mat.appendChild(popup);
 }
 
+// Inspect-and-substitute popup for bench heroes. Mirrors iOS
+// PracticeBenchPanel — always inspectable; the SUB button is enabled
+// only during the sub phase when the player has 2 HD and hasn't
+// substituted yet this battle.
+function pmShowBenchCardPopup(benchIdx) {
+  const card = PM.playerBench[benchIdx];
+  if (!card) return;
+  document.getElementById('pm-play-popup')?.remove();
+
+  const imgUrl = card.imageFile ? fullUrl(card.imageFile) : null;
+  const element = card.element || '';
+  const power = card.power != null ? card.power : '—';
+  const athlete = card.athleteInspiration ? card.athleteInspiration : '';
+  const setLine = [card.set, card.subSet, card.treatment].filter(Boolean).join(' · ');
+
+  // SUB enable conditions match iOS PracticeBenchPanel.
+  const canSub = PM.phase === 'sub' && !PM.playerSubstituted && PM.playerHD >= 2;
+  const subWarn = !canSub && PM.phase !== 'sub'
+    ? "Subs only happen in the Sub phase"
+    : !canSub && PM.playerSubstituted
+      ? "You've already subbed this Battle"
+      : !canSub && PM.playerHD < 2
+        ? "Need 2 Hot Dogs to substitute"
+        : '';
+
+  const popup = document.createElement('div');
+  popup.id = 'pm-play-popup';
+  popup.className = 'pm-play-popup';
+  popup.innerHTML = `
+    <div class="pm-play-popup-inner">
+      ${imgUrl ? `<div class="pm-play-popup-img-wrap"><img class="pm-play-popup-img" src="${imgUrl}" alt="${card.hero||card.name||''}" onerror="this.parentElement.style.display='none'"></div>` : ''}
+      <div class="pm-play-popup-body">
+        <div class="pm-play-popup-header">
+          <div class="pm-play-popup-name">${card.hero || card.name || ''}</div>
+          ${element ? `<div class="pm-play-popup-element" data-element="${element}">${element}</div>` : ''}
+        </div>
+        <div class="pm-play-popup-cost-row">
+          <span class="pm-play-popup-cost-pill">${power} POWER</span>
+          ${subWarn ? `<span class="pm-play-popup-afford-warn">${subWarn}</span>` : ''}
+        </div>
+        <div class="pm-play-popup-divider"></div>
+        ${athlete ? `<div class="pm-play-popup-effect-label">INSPIRED BY</div><div class="pm-play-popup-effect">${pmEscapeHTML(athlete)}</div>` : ''}
+        ${setLine ? `<div class="pm-play-popup-effect-label" style="margin-top:10px">PRINT</div><div class="pm-play-popup-effect">${pmEscapeHTML(setLine)}</div>` : ''}
+        <div class="pm-play-popup-actions">
+          <button class="pm-play-popup-cancel">Cancel</button>
+          <button class="pm-play-popup-play${canSub ? '' : ' cannot-afford'}"${canSub ? '' : ' disabled'}>
+            Substitute (2 HD)
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  popup.querySelector('.pm-play-popup-play').addEventListener('click', () => {
+    if (!canSub) return;
+    if (PM.playerSub(benchIdx)) {
+      popup.remove();
+      pmUpdateAll();
+    }
+  });
+  popup.querySelector('.pm-play-popup-cancel').addEventListener('click', () => popup.remove());
+  popup.addEventListener('click', e => { if (e.target === popup) popup.remove(); });
+
+  const mat = $('practice-playmat');
+  if (mat) mat.appendChild(popup);
+}
+
 // ── Match persistence (localStorage) ────────────────────────────
 const PM_SAVE_KEY = 'boba_practice_match';
 
@@ -6877,14 +6947,15 @@ function pmInitPlaymat() {
     pmUpdatePlayerZone();
   });
 
-  // Bench card tap → select for substitution
+  // Bench card tap → show detail popup (hero stats + SUB button when
+  // the sub phase allows). Tapping is always permitted so coaches can
+  // inspect a bench hero even outside the sub window — matches iOS
+  // PracticeBenchPanel which always renders the selected card detail.
   $('pm-bench-cards')?.addEventListener('click', e => {
-    const card = e.target.closest('.pm-bench-card');
-    if (!card) return;
-    if (PM.phase !== 'sub' || PM.playerSubstituted) return;
-    const idx = parseInt(card.dataset.benchIdx);
-    PM.selectedBenchIdx = PM.selectedBenchIdx === idx ? null : idx;
-    pmUpdatePlayerZone();
+    const cardEl = e.target.closest('.pm-bench-card');
+    if (!cardEl) return;
+    const idx = parseInt(cardEl.dataset.benchIdx, 10);
+    pmShowBenchCardPopup(idx);
   });
 
   // Substitute button — confirmed sub (auto-advances via playerSub)

@@ -85,6 +85,12 @@ actor PricingService {
     // In-memory cache keyed on "hero_cardNumber_days"
     private var cache: [String: PricingResult] = [:]
     private let cacheLifetime: TimeInterval = 3600  // 1 hour
+    /// Negative cache for cards the Worker reported as having no data.
+    /// Without this, re-opening a show with no-comp cards re-hits the
+    /// slow Worker round-trip every time (the Worker exhausts every
+    /// eBay search variant before giving up).
+    private var emptyAt: [String: Date] = [:]
+    private let emptyLifetime: TimeInterval = 600  // 10 minutes
 
     func pricing(for cardNumber: String,
                  hero: String,
@@ -97,6 +103,9 @@ actor PricingService {
         let key = "\(hero)_\(cardNumber)_\(days)"
         if let cached = cache[key], Date().timeIntervalSince(cached.fetchedAt) < cacheLifetime {
             return cached
+        }
+        if let stamped = emptyAt[key], Date().timeIntervalSince(stamped) < emptyLifetime {
+            throw PricingError.noData
         }
 
         let base = await MainActor.run { WorkerConfig.ebayProxyURL }
@@ -120,18 +129,32 @@ actor PricingService {
         components?.queryItems = queryItems
         guard let url = components?.url else { throw PricingError.notConfigured }
 
-        // Tight per-request timeout — without this, URLSession's 60s
-        // default lets a single hung call freeze sequential walks
-        // (e.g., ShowDetailView) for minutes. The Worker normally
-        // responds in 100–500ms; 12s is well past the long tail.
+        // Tight per-request timeout — the Worker normally responds in
+        // 100–500ms on the happy path. The slow path (no-comp cards
+        // where it exhausts every eBay search variant) measured 30–40s,
+        // which is much longer than any user should wait per card.
+        // 7s is comfortably above the happy path and aborts the slow
+        // tail; the caller catches and treats it as no-data.
         var request = URLRequest(url: url)
-        request.timeoutInterval = 12
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let response  = try JSONDecoder().decode(PricingResponse.self, from: data)
+        request.timeoutInterval = 7
+        let data: Data
+        do {
+            (data, _) = try await URLSession.shared.data(for: request)
+        } catch let urlError as URLError where urlError.code == .timedOut {
+            // A timeout almost always means the Worker was hammering
+            // eBay variants for a card with no comps. Stamp the
+            // negative cache so we don't pay the 7s tax again soon.
+            emptyAt[key] = Date()
+            throw PricingError.noData
+        }
+        let response = try JSONDecoder().decode(PricingResponse.self, from: data)
 
         // Accept the response if any section has data
         let hasDualData = response.sold != nil || response.active != nil
-        guard response.count > 0 || hasDualData else { throw PricingError.noData }
+        guard response.count > 0 || hasDualData else {
+            emptyAt[key] = Date()
+            throw PricingError.noData
+        }
 
         let result = PricingResult(
             low:       response.low,

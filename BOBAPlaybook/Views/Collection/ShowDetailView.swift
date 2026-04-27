@@ -32,6 +32,12 @@ struct ShowDetailView: View {
     /// after a newer one started would flash isLoadingPrices off and
     /// clobber fresh prices with stale ones.
     @State private var pricingGeneration: Int = 0
+    /// "Pricing X of Y" counters so the spinner shows progress instead
+    /// of feeling stuck — slow Worker responses on no-comp cards can
+    /// spend the whole 7s timeout, and a bare ProgressView gives the
+    /// user nothing to tell that apart from a hang.
+    @State private var pricedCount: Int = 0
+    @State private var pricedTotal: Int = 0
     @State private var selectedCardForDetail: Card?
     @State private var showWallOptions = false
     @State private var wallOptions = ShowWallOptions.default
@@ -83,8 +89,15 @@ struct ShowDetailView: View {
                 headerSummary
                 horizonPicker
                 if isLoadingPrices {
-                    HStack { Spacer(); ProgressView().tint(Design.Colors.bobaOrange); Spacer() }
-                        .padding(.vertical, Design.Spacing.md)
+                    HStack(spacing: Design.Spacing.sm) {
+                        Spacer()
+                        ProgressView().tint(Design.Colors.bobaOrange)
+                        Text("Pricing \(pricedCount) of \(pricedTotal)")
+                            .font(Design.Fonts.mono(11))
+                            .foregroundStyle(Design.Colors.textMuted)
+                        Spacer()
+                    }
+                    .padding(.vertical, Design.Spacing.md)
                 }
                 cardRows
                 generateWallButton
@@ -576,6 +589,8 @@ struct ShowDetailView: View {
         pricingGeneration &+= 1
         let myGen = pricingGeneration
         isLoadingPrices = true
+        pricedTotal = cards.count
+        pricedCount = 0
 
         let days = horizon.days
         var next: [String: Decimal] = [:]
@@ -604,6 +619,7 @@ struct ShowDetailView: View {
             }
             guard pricingGeneration == myGen else { return }
             prices = next
+            pricedCount += 1
         }
         guard pricingGeneration == myGen else { return }
         isLoadingPrices = false

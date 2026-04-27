@@ -6560,6 +6560,146 @@ main {
 .pm-root .pm-rc-val { font-family: var(--font-display, sans-serif); font-size: 0.85rem; color: #fff; }
 .pm-root .pm-rc-label { font-family: var(--font-mono, monospace); font-size: 0.45rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.4); }
 
+/* Arena stack — 1v1 active battle on top, 7-column status strip below */
+.pm-root .pm-arena-stack {
+  flex: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; gap: 8px;
+}
+
+/* 1v1 ACTIVE BATTLE VIEW — large hero face-off + post-resolution breakdown.
+   Mirrors iOS ActiveBattleView. */
+.pm-root .pm-active-1v1 {
+  flex: 1 1 auto; min-height: 0; padding: 8px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(13,13,26,0.65) 0%, rgba(8,8,16,0.85) 100%);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.pm-root .pm-active-1v1[hidden] { display: none; }
+.pm-root .pm-1v1-row {
+  flex: 1; display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 12px; min-height: 0;
+}
+.pm-root .pm-1v1-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0;
+}
+.pm-root .pm-1v1-card {
+  position: relative; width: 100%; max-width: 220px; aspect-ratio: 60 / 84;
+  border-radius: 10px; border: 2px solid rgba(255,255,255,0.2);
+  background: #080810; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+}
+.pm-root .pm-1v1-img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.pm-root .pm-1v1-power {
+  position: absolute; bottom: 6px; right: 8px;
+  font-family: var(--font-display, sans-serif); font-size: 1.8rem;
+  color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.85), 0 0 4px rgba(0,0,0,0.9);
+}
+.pm-root .pm-1v1-bonus {
+  position: absolute; top: 6px; right: 8px;
+  font-family: var(--font-display, sans-serif); font-size: 1.05rem; font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.85);
+}
+.pm-root .pm-1v1-pending {
+  position: absolute; top: 6px; right: 8px;
+  font-family: var(--font-display, sans-serif); font-size: 1rem;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.85);
+}
+.pm-root .pm-1v1-card-back {
+  display: flex; align-items: center; justify-content: center;
+}
+.pm-root .pm-1v1-card-back svg { width: 70%; height: 70%; }
+.pm-root .pm-1v1-name {
+  font-family: var(--font-display, sans-serif); font-size: 0.95rem;
+  color: #fff; text-align: center; letter-spacing: 0.5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.pm-root .pm-1v1-weapon {
+  font-family: var(--font-mono, monospace); font-size: 0.55rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px;
+  padding: 2px 8px; border-radius: 999px; border: 1px solid;
+}
+.pm-root .pm-1v1-empty {
+  align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.2); font-size: 1.5rem;
+}
+.pm-root .pm-1v1-vs {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: var(--font-display, sans-serif); font-size: 1.4rem; color: rgba(255,255,255,0.55);
+  letter-spacing: 2px; padding: 0 4px;
+}
+.pm-root .pm-1v1-vs--win  { color: #4CAF50; text-shadow: 0 0 12px rgba(76,175,80,0.6); }
+.pm-root .pm-1v1-vs--lose { color: #C0392B; text-shadow: 0 0 12px rgba(192,57,43,0.6); }
+.pm-root .pm-1v1-vs--tie  { color: #FFD700; text-shadow: 0 0 12px rgba(255,215,0,0.5); }
+.pm-root .pm-1v1-battle-label {
+  font-family: var(--font-mono, monospace); font-size: 0.5rem; font-weight: 700;
+  letter-spacing: 1.5px; color: rgba(255,255,255,0.35); margin-top: 4px;
+}
+
+/* BREAKDOWN PANEL — itemized power contributions, rendered post-resolution */
+.pm-root .pm-breakdown-panel {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  padding: 8px;
+  border-radius: 8px; background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.pm-root .pm-breakdown-col {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px; border-radius: 6px; background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.pm-root .pm-breakdown-col--winner { border-color: rgba(76,175,80,0.5); background: rgba(76,175,80,0.06); }
+.pm-root .pm-breakdown-header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.pm-root .pm-breakdown-side {
+  font-family: var(--font-mono, monospace); font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 1.5px; color: #00F5FF;
+}
+.pm-root .pm-breakdown-col:nth-child(2) .pm-breakdown-side { color: #C0392B; }
+.pm-root .pm-breakdown-base {
+  font-family: var(--font-mono, monospace); font-size: 0.55rem;
+  color: rgba(255,255,255,0.5); letter-spacing: 0.5px;
+}
+.pm-root .pm-breakdown-rows { display: flex; flex-direction: column; gap: 2px; }
+.pm-root .pm-breakdown-empty {
+  font-family: var(--font-mono, monospace); font-size: 0.55rem;
+  color: rgba(255,255,255,0.3); padding: 4px 0;
+}
+.pm-root .pm-breakdown-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 4px 6px; border-radius: 4px; cursor: pointer;
+  background: transparent; border: none;
+  font-family: var(--font-mono, monospace); font-size: 0.65rem;
+  color: rgba(255,255,255,0.85); text-align: left;
+}
+.pm-root .pm-breakdown-row:hover { background: rgba(0,245,255,0.06); }
+.pm-root .pm-breakdown-label {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pm-root .pm-breakdown-delta { font-weight: 700; padding-left: 6px; }
+.pm-root .pm-breakdown-pos { color: #4CAF50; }
+.pm-root .pm-breakdown-neg { color: #C0392B; }
+.pm-root .pm-breakdown-total {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.1);
+  font-family: var(--font-mono, monospace); font-size: 0.6rem;
+  letter-spacing: 1px; color: rgba(255,255,255,0.6);
+}
+.pm-root .pm-breakdown-final {
+  font-family: var(--font-display, sans-serif); font-size: 1.1rem;
+  color: #fff;
+}
+
+/* Compact 7-column status strip — when the 1v1 view sits above, the
+   strip shrinks so it reads as a status / score row rather than the
+   battle arena. */
+.pm-root .pm-arena-stack .pm-arena-zone {
+  flex: 0 0 auto; max-height: 110px;
+}
+
 /* Arena */
 .pm-root .pm-arena-zone {
   flex: 1; display: flex; align-items: stretch; justify-content: center;

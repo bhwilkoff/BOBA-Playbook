@@ -35,6 +35,21 @@ struct PracticeView: View {
     @AppStorage("bp_practiceTutorialSeen_v1") private var tutorialSeen = false
     @State private var showTutorial = false
 
+    /// Tutorial steps trimmed for the active mode. The bench step only
+    /// applies when subs are in play (Substitution + Playmaker); the
+    /// plays step only applies in Playmaker. Without this filter the
+    /// overlay would land on a missing target rect for every skipped
+    /// feature and just display a scrim until the user tapped through.
+    private var tutorialStepsForMode: [PracticeTutorialStep] {
+        [PracticeTutorialStep].practiceDefault.filter { step in
+            switch step.target {
+            case .bench: return store.mode.showBench
+            case .plays: return store.mode.showPlays
+            default:     return true
+            }
+        }
+    }
+
     var body: some View {
         GeometryReader { geo in
             let portrait = geo.size.width < geo.size.height
@@ -204,6 +219,7 @@ struct PracticeView: View {
                                     acc[pair.key] = proxy[pair.value]
                                 }
                                 PracticeTutorialOverlay(
+                                    steps: tutorialStepsForMode,
                                     targetFrames: frames,
                                     containerSize: proxy.size
                                 ) {

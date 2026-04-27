@@ -5219,14 +5219,13 @@ function pmBuildPlaymatHTML() {
         </div>
       </div>
     </div>
-    <div class="pm-arena-stack">
-      <!-- 1v1 ACTIVE BATTLE VIEW — large hero face-off for the focal
-           battle. Shows under-card name + power, with the post-resolution
-           breakdown panel sliding in once the battle resolves. Mirrors
-           iOS ActiveBattleView. -->
-      <div class="pm-active-1v1" id="pm-active-1v1"></div>
-      <div class="pm-arena-zone">${cols}</div>
-    </div>
+    <!-- Horizontal arena: 7 battle columns. The active battle column
+         expands to ~80vw and renders the iOS ActiveBattleView 1v1
+         layout (player left, VS center, CPU right, breakdown panel
+         underneath when resolved). Inactive columns stay narrow with
+         the BattleColumnView layout (CPU top, VS middle, player
+         bottom). Mirrors PracticeView.arenaView. -->
+    <div class="pm-arena-zone">${cols}</div>
   </div>
 
   <!-- PLAYER ZONE -->
@@ -5464,44 +5463,32 @@ function pmRenderBattleSlotContent(slot, card, revealed, isOpp, battle) {
   }
 }
 
-// 1v1 active battle view — large hero face-off for the focal battle.
-// Mirrors the iOS ActiveBattleView; renders cards, power totals, the
-// VS / WIN / LOSS / TIE indicator, and a breakdown panel post-
-// resolution. Falls back to a placeholder for the pre-match state.
-function pmRenderActive1v1() {
-  const host = document.getElementById('pm-active-1v1');
-  if (!host) return;
-  if (PM.matchOver || !PM.battles || !PM.battles.length) {
-    host.innerHTML = '';
-    host.hidden = true;
-    return;
-  }
-  host.hidden = false;
-  const b = PM.battles[PM.currentBattle];
-  if (!b) { host.innerHTML = ''; return; }
-
-  const playerCard = b.playerCard;
-  const cpuCard    = b.cpuCard;
-  const cpuRevealed = b.revealed || b.result !== null;
-  const isResolved  = b.result !== null;
-
-  // Per-side cells.
-  host.innerHTML = `
-    <div class="pm-1v1-row">
-      ${pmRender1v1Cell(playerCard, true,  b, false)}
-      <div class="pm-1v1-vs ${isResolved ? 'pm-1v1-vs--' + b.result : ''}">
-        <span>${isResolved
-          ? (b.result === 'win' ? 'WIN' : b.result === 'lose' ? 'LOSS' : 'TIE')
-          : 'VS'}</span>
-        <span class="pm-1v1-battle-label">Battle ${(b.id || PM.currentBattle) + 1}</span>
+// Render the iOS-faithful ActiveBattleView layout into the column for
+// the active battle. Wide horizontal layout: player card (left) → VS
+// indicator (center) → CPU card (right), with the breakdown panel
+// stacked above when the battle has resolved. Uses the full-resolution
+// CDN tier — the active card is hundreds of pixels wide and the thumb
+// tier visibly pixelates. Mirrors ActiveBattleView.swift:68–136.
+function pmRenderActiveBattleColumn(col, b) {
+  const isResolved = b.result !== null;
+  col.innerHTML = `
+    <div class="pm-bc-active-inner">
+      <div class="pm-bc-active-header">BATTLE ${b.id + 1}</div>
+      ${isResolved ? pmRenderBreakdownPanel(b) : ''}
+      <div class="pm-bc-active-row">
+        ${pmRenderActiveHero(b.playerCard, true,  b, false)}
+        <div class="pm-bc-active-vs ${isResolved ? 'pm-bc-active-vs--' + b.result : ''}">
+          ${isResolved
+            ? (b.result === 'win' ? 'WIN' : b.result === 'lose' ? 'LOSS' : 'TIE')
+            : 'VS'}
+        </div>
+        ${pmRenderActiveHero(b.cpuCard, false, b, !(b.revealed || isResolved))}
       </div>
-      ${pmRender1v1Cell(cpuCard, false, b, !cpuRevealed)}
     </div>
-    ${isResolved ? pmRenderBreakdownPanel(b) : ''}
   `;
 
   // Tap-to-review on breakdown rows (post-resolution).
-  host.querySelectorAll('.pm-breakdown-row[data-card-name]').forEach(btn => {
+  col.querySelectorAll('.pm-breakdown-row[data-card-name]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const name = btn.getAttribute('data-card-name');
@@ -5517,57 +5504,56 @@ function pmRenderActive1v1() {
   });
 }
 
-function pmRender1v1Cell(card, isPlayer, b, isFaceDown) {
-  const sideClass = isPlayer ? 'pm-1v1-player' : 'pm-1v1-cpu';
+function pmRenderActiveHero(card, isPlayer, b, isFaceDown) {
+  const sideClass = isPlayer ? 'pm-active-hero--player' : 'pm-active-hero--cpu';
   if (!card) {
-    return `<div class="pm-1v1-cell ${sideClass} pm-1v1-empty"><span>—</span></div>`;
+    return `<div class="pm-active-hero ${sideClass} pm-active-hero--empty"><span>—</span></div>`;
   }
   if (isFaceDown) {
-    // Show pending-effect hint on the face-down CPU hero so coaches see
-    // installed persistents about to land.
     let pending = 0;
     try { pending = PM.previewPersistentPower(b.id, 'cpu'); } catch (_) {}
     const pendingHtml = pending !== 0
-      ? `<span class="pm-1v1-pending" style="color:${pending > 0 ? '#C0392B' : '#00F5FF'}">${pending > 0 ? '+' : ''}${pending}</span>`
+      ? `<span class="pm-active-hero-pending" style="color:${pending > 0 ? '#C0392B' : '#00F5FF'}">${pending > 0 ? '+' : ''}${pending}</span>`
       : '';
     return `
-      <div class="pm-1v1-cell ${sideClass} pm-1v1-facedown">
-        <div class="pm-1v1-card pm-1v1-card-back">
+      <div class="pm-active-hero ${sideClass} pm-active-hero--facedown">
+        <div class="pm-active-hero-card pm-active-hero-card-back">
           <svg viewBox="0 0 60 84" aria-hidden="true">
-            <rect x="3" y="3" width="54" height="78" rx="6" fill="rgba(192,57,43,0.12)" stroke="rgba(192,57,43,0.6)" stroke-width="2"/>
-            <rect x="9" y="9" width="42" height="66" rx="3" stroke="rgba(192,57,43,0.32)" stroke-width="1.2"/>
-            <circle cx="30" cy="42" r="10" stroke="rgba(192,57,43,0.3)" stroke-width="1.2"/>
+            <rect x="3" y="3" width="54" height="78" rx="6" fill="rgba(192,57,43,0.12)" stroke="rgba(192,57,43,0.65)" stroke-width="2"/>
+            <rect x="9" y="9" width="42" height="66" rx="3" stroke="rgba(192,57,43,0.35)" stroke-width="1.2"/>
+            <circle cx="30" cy="42" r="10" stroke="rgba(192,57,43,0.32)" stroke-width="1.2"/>
           </svg>
           ${pendingHtml}
         </div>
-        <div class="pm-1v1-name">CPU</div>
+        <div class="pm-active-hero-name">CPU</div>
       </div>
     `;
   }
   const eff     = isPlayer ? (b.playerEffectPower || 0) : (b.cpuEffectPower || 0);
   const basePow = card.power || 0;
   const effPow  = basePow + eff;
-  const imgUrl  = card.imageFile ? thumbUrl(card.imageFile) : null;
+  // Full-res tier for the active battle hero — the card renders large
+  // and the 200px thumb visibly pixelates here.
+  const imgUrl  = card.imageFile ? fullUrl(card.imageFile) : null;
   const elColor = card.element ? pmElementColor(card.element) : 'rgba(255,255,255,0.2)';
 
-  // Active bonus pill (cyan = +, red = –).
   const bonusHtml = eff !== 0
-    ? `<span class="pm-1v1-bonus" style="color:${eff > 0 ? '#00F5FF' : '#C0392B'}">${eff > 0 ? '+' : ''}${eff}</span>`
+    ? `<span class="pm-active-hero-bonus" style="color:${eff > 0 ? '#00F5FF' : '#C0392B'}">${eff > 0 ? '+' : ''}${eff}</span>`
     : '';
 
   const imgHtml = imgUrl
-    ? `<img class="pm-1v1-img" src="${imgUrl}" alt="${card.hero || card.name}" loading="lazy" onerror="this.style.display='none'">`
+    ? `<img class="pm-active-hero-img" src="${imgUrl}" alt="${card.hero || card.name}" loading="lazy" onerror="this.style.display='none'">`
     : '';
 
   return `
-    <div class="pm-1v1-cell ${sideClass}">
-      <div class="pm-1v1-card" style="border-color:${elColor}">
+    <div class="pm-active-hero ${sideClass}">
+      <div class="pm-active-hero-card" style="border-color:${elColor}">
         ${imgHtml}
-        <span class="pm-1v1-power">${effPow}</span>
+        <span class="pm-active-hero-power">${effPow}</span>
         ${bonusHtml}
       </div>
-      <div class="pm-1v1-name">${(card.hero || card.name || '').substring(0, 18)}</div>
-      ${card.element ? `<div class="pm-1v1-weapon" style="background:${elColor}1a;border-color:${elColor};color:${elColor}">${card.element}</div>` : ''}
+      <div class="pm-active-hero-name">${(card.hero || card.name || '').substring(0, 22)}</div>
+      ${card.element ? `<div class="pm-active-hero-weapon" style="background:${elColor}1a;border-color:${elColor};color:${elColor}">${card.element}</div>` : ''}
     </div>
   `;
 }
@@ -5618,6 +5604,18 @@ function pmRenderBreakdownColumn(label, base, contribs, finalPow, side, isWinner
   `;
 }
 
+// Static mini-column DOM for an inactive battle. Re-applied whenever
+// a column transitions FROM active back to inactive so the column
+// owns the right child structure.
+function pmResetMiniColumnDOM(col, idx) {
+  col.innerHTML = `
+    <span class="pm-bc-number">B${idx + 1}</span>
+    <div class="pm-bc-opp"></div>
+    <div class="pm-bc-vs"><span>·</span></div>
+    <div class="pm-bc-player"></div>
+  `;
+}
+
 function pmUpdateBattleCols() {
   for (let idx = 0; idx < 7; idx++) {
     const col = document.querySelector(`#practice-playmat .pm-bc[data-battle="${idx}"]`);
@@ -5628,34 +5626,55 @@ function pmUpdateBattleCols() {
     const isActive  = idx === PM.currentBattle && !PM.matchOver;
     const isDone    = b.result !== null;
     const isPending = !isDone && !isActive;
+    const wasActive = col.classList.contains('active');
 
     col.className = 'pm-bc' +
       (isActive  ? ' active'  : '') +
       (isDone ? (b.result === 'win' ? ' won' : b.result === 'lose' ? ' lost' : ' tied') : '') +
       (isPending ? ' pending' : '');
 
-    // VS bar
-    const vsBar = col.querySelector('.pm-bc-vs');
-    if (vsBar) {
-      vsBar.className = 'pm-bc-vs' + (b.result === 'win' ? ' win' : b.result === 'lose' ? ' lose' : b.result === 'tie' ? ' tied' : '');
-      const s = vsBar.querySelector('span');
-      if (s) s.textContent = b.result === 'win' ? 'WIN' : b.result === 'lose' ? 'LOSS' : b.result === 'tie' ? 'TIE' : isActive ? 'VS' : '·';
+    if (isActive) {
+      // Replace the column body with the iOS-faithful 1v1 layout +
+      // breakdown panel (post-resolution).
+      pmRenderActiveBattleColumn(col, b);
+    } else {
+      // Restore mini-column DOM if this column was previously active.
+      if (wasActive || !col.querySelector('.pm-bc-vs')) {
+        pmResetMiniColumnDOM(col, idx);
+      }
+
+      // VS bar
+      const vsBar = col.querySelector('.pm-bc-vs');
+      if (vsBar) {
+        vsBar.className = 'pm-bc-vs' + (b.result === 'win' ? ' win' : b.result === 'lose' ? ' lose' : b.result === 'tie' ? ' tied' : '');
+        const s = vsBar.querySelector('span');
+        if (s) s.textContent = b.result === 'win' ? 'WIN' : b.result === 'lose' ? 'LOSS' : b.result === 'tie' ? 'TIE' : '·';
+      }
+
+      // Opponent slot
+      const oppSlot = col.querySelector('.pm-bc-opp');
+      if (oppSlot) pmRenderBattleSlotContent(oppSlot, b.cpuCard, b.revealed || isDone, true, b);
+
+      // Player slot
+      const playerSlot = col.querySelector('.pm-bc-player');
+      if (playerSlot) pmRenderBattleSlotContent(playerSlot, b.playerCard, true, false, b);
     }
-
-    // Opponent slot
-    const oppSlot = col.querySelector('.pm-bc-opp');
-    if (oppSlot) pmRenderBattleSlotContent(oppSlot, b.cpuCard, b.revealed || isDone, true, b);
-
-    // Player slot
-    const playerSlot = col.querySelector('.pm-bc-player');
-    if (playerSlot) pmRenderBattleSlotContent(playerSlot, b.playerCard, true, false, b);
-
-    // UX#1 — plays-used row on the active battle column. Renders a
-    // small chip strip per side under the hero slots showing every
-    // play used this battle plus a running count. Helps coaches
-    // verify Play Booster / 10 Per Play / No Huddle math.
-    if (isActive) pmRenderPlaysUsedRow(col, b);
   }
+
+  // Auto-scroll the active battle into view (mirrors the iOS
+  // ScrollViewReader.scrollTo on currentBattle change).
+  pmScrollActiveIntoView();
+}
+
+function pmScrollActiveIntoView() {
+  const arena = document.querySelector('#practice-playmat .pm-arena-zone');
+  if (!arena) return;
+  const active = arena.querySelector('.pm-bc.active');
+  if (!active) return;
+  // scrollIntoView with behavior:'smooth' centers the active column
+  // in its scroll parent — same effect as iOS's proxy.scrollTo(_,
+  // anchor:.center).
+  active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
 }
 
 function pmRenderPlaysUsedRow(col, b) {
@@ -5880,7 +5899,6 @@ function pmUpdateAll() {
   pmSetRootClass();
   pmUpdateScoreboard();
   pmUpdateBattleCols();
-  pmRenderActive1v1();
   pmUpdateOpponentZone();
   pmUpdatePlayerZone();
   pmUpdateActiveEffectsBanner();

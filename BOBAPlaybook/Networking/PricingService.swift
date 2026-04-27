@@ -120,7 +120,13 @@ actor PricingService {
         components?.queryItems = queryItems
         guard let url = components?.url else { throw PricingError.notConfigured }
 
-        let (data, _) = try await URLSession.shared.data(from: url)
+        // Tight per-request timeout — without this, URLSession's 60s
+        // default lets a single hung call freeze sequential walks
+        // (e.g., ShowDetailView) for minutes. The Worker normally
+        // responds in 100–500ms; 12s is well past the long tail.
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 12
+        let (data, _) = try await URLSession.shared.data(for: request)
         let response  = try JSONDecoder().decode(PricingResponse.self, from: data)
 
         // Accept the response if any section has data

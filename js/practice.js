@@ -6574,26 +6574,44 @@ function pmShowPlayCardPopup(handIdx) {
       </div>
     </div>`;
 
+  // Diagnose any silent rejection so the user gets feedback instead
+  // of an inert button. Mirrors the gate set in PracticeStore.playerPlayCard.
+  const explainRejection = () => {
+    if (PM.phase !== 'play')                                   return 'Play phase has ended — wait for the next one.';
+    if (pmIsBlocked('player', 'block_plays'))                  return 'Plays are blocked this battle.';
+    if (PM._playerPlayCapThisBattle != null) {
+      const used = (PM.battles[PM.currentBattle]?.playerPlaysPlayed || []).length;
+      if (used >= PM._playerPlayCapThisBattle)                 return `Play limit reached (${PM._playerPlayCapThisBattle} per battle).`;
+    }
+    const c = PM.playerPlayHand[handIdx];
+    if (!c)                                                    return 'Card no longer in hand.';
+    const cost = pmEffectiveCost(c, 'player');
+    if (PM.playerHD < cost)                                    return `Not enough Hot Dogs (${PM.playerHD} / ${cost}).`;
+    if (!pmIsPlayable(c, 'player'))                            return "This card's requirements aren't met.";
+    return 'Play rejected.';
+  };
+
+  const tryPlay = () => {
+    if (PM.playerPlayCard(handIdx)) {
+      popup.remove();
+      pmUpdateAll();
+      if (PM.lastEffectResult) pmShowEffectToast(PM.lastEffectResult);
+    } else {
+      // Surface why so the click isn't silently swallowed.
+      pmEnqueueNotification(explainRejection());
+    }
+  };
+
   popup.querySelector('.pm-play-popup-play').addEventListener('click', () => {
     // Rules-clarification (handoff §6.A): warn before Recycle/Reload
     // clear active rest_of_game effects.
     const card = PM.playerPlayHand[handIdx];
     if (pmIsRecyclePlay(card) && pmPlayerHasRestOfGameEffects()) {
       const summary = pmPlayerRestOfGameEffectSummary();
-      pmConfirmRecycle(summary, () => {
-        if (PM.playerPlayCard(handIdx)) {
-          popup.remove();
-          pmUpdateAll();
-          if (PM.lastEffectResult) pmShowEffectToast(PM.lastEffectResult);
-        }
-      });
+      pmConfirmRecycle(summary, tryPlay);
       return;
     }
-    if (PM.playerPlayCard(handIdx)) {
-      popup.remove();
-      pmUpdateAll();
-      if (PM.lastEffectResult) pmShowEffectToast(PM.lastEffectResult);
-    }
+    tryPlay();
   });
   popup.querySelector('.pm-play-popup-cancel').addEventListener('click', () => popup.remove());
   popup.addEventListener('click', e => { if (e.target === popup) popup.remove(); });

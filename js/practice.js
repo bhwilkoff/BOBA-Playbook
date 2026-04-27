@@ -4794,12 +4794,12 @@ const PM = {
     // instead of two visually-identical pills.
     const trigger = (spec && spec.trigger) || '';
     const prefix = (
-      trigger === 'on_battle_win'     ? 'if win → ' :
-      trigger === 'on_battle_loss'    ? 'if loss → ' :
-      trigger === 'on_plays_resolved' ? 'end of plays → ' :
-      trigger === 'on_battle_start'   ? 'battle start → ' :
-      trigger === 'on_opp_play'       ? 'on opp play → ' :
-      trigger === 'on_turn_end'       ? 'turn end → ' :
+      trigger === 'on_battle_win'     ? 'On win: ' :
+      trigger === 'on_battle_loss'    ? 'On loss: ' :
+      trigger === 'on_plays_resolved' ? 'After plays: ' :
+      trigger === 'on_battle_start'   ? 'Battle start: ' :
+      trigger === 'on_opp_play'       ? 'On opponent play: ' :
+      trigger === 'on_turn_end'       ? 'End of turn: ' :
       ''
     );
     const wrap = body => prefix ? `${prefix}${body}` : body;
@@ -4844,7 +4844,12 @@ const PM = {
         return wrap(`${who} draw ${n} ${kind}${n === 1 ? '' : 's'} ${scope}`);
       }
       default:
-        return wrap(`${who} installed ${op.replace(/_/g, ' ')} ${scope}`);
+        // Don't surface unmapped ops as cryptic "you installed
+        // some_op_name" pills. Returning null suppresses the pill
+        // entirely; the engine still applies the effect, the user
+        // just doesn't see a confusing label for it. Better silence
+        // than jargon.
+        return null;
     }
   },
 
@@ -6576,7 +6581,7 @@ function pmUpdateActiveEffectsBanner() {
     const tickHTML = (r.remaining != null && r.remaining > 0)
       ? `<span class="pm-effect-pill-tick">${r.remaining}</span>`
       : '';
-    return `<span class="pm-effect-pill ${ownerClass}" style="--effect-color:${r.color}">${iconHTML}<span>${r.label}</span>${tickHTML}</span>`;
+    return `<span class="pm-effect-pill ${ownerClass}" style="--effect-color:${r.color}">${iconHTML}<span>${pmEscapeHTML(r.label)}</span>${tickHTML}</span>`;
   }).join('');
   el.innerHTML = `${eyebrow}<div class="pm-active-effects-strip">${pillsHTML}</div>`;
 }

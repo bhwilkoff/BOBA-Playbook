@@ -208,14 +208,15 @@ struct ScanView: View {
             }
 
             // Mode row — Single / Multi (+ Show when the user is a
-            // streamer). Show Mode queues cards into a Show (Whatnot
-            // prep) rather than the collection; the Save All button in
-            // the queue adapts its destination accordingly.
+            // streamer AND the scanner wasn't launched from the deck
+            // builder). In a deck-builder session the destination is
+            // always the in-progress deck (with optional collection
+            // mirror) — Show Mode there has no meaningful destination.
             HStack {
                 Spacer()
                 modePill(for: .single, label: "SINGLE", icon: "rectangle.on.rectangle")
                 modePill(for: .multi,  label: "MULTI",  icon: "rectangle.stack.fill")
-                if auth.isStreamer {
+                if auth.isStreamer && scanStore.source != .deckBuilder {
                     modePill(for: .show, label: "SHOW", icon: "dot.radiowaves.up.forward")
                 }
             }

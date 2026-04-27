@@ -578,46 +578,35 @@ struct ShowDetailView: View {
         isLoadingPrices = true
 
         let days = horizon.days
-        await withTaskGroup(of: (String, Decimal).self) { group in
-            for c in cards {
-                // Same Swift-6 strict-concurrency dance as
-                // ScanQueueView.refreshShowPrices — pre-extract every
-                // value so the @Sendable group.addTask closure doesn't
-                // capture the MainActor-bound Card.
-                let id        = c.id
-                let cardNum   = c.cardNumber
-                let hero      = c.hero
-                let set       = c.set
-                let element   = c.element
-                let power     = c.power
-                let radishUrl = c.resolvedRadishUrlString
-                let treatment = c.treatment
-                group.addTask {
-                    do {
-                        let p = try await PricingService.shared.pricing(
-                            for: cardNum,
-                            hero: hero,
-                            set: set,
-                            element: element,
-                            power: power,
-                            radishUrl: radishUrl,
-                            days: days,
-                            treatment: treatment
-                        )
-                        return (id, p.average)
-                    } catch {
-                        return (id, Decimal(0))
-                    }
-                }
+        var next: [String: Decimal] = [:]
+        // Sequential walk — same pattern as CollectionStore.recalculateAllValues.
+        // Fanning out parallel network calls against the Cloudflare Worker
+        // produces hangs/rate-limits when a show has 20+ cards; one-at-a-time
+        // is fast enough and keeps the worker happy. Commit incrementally
+        // so the included-total ticker animates as prices arrive.
+        for card in cards {
+            // Bail if a newer refresh has superseded us mid-walk.
+            guard pricingGeneration == myGen else { return }
+            do {
+                let p = try await PricingService.shared.pricing(
+                    for: card.cardNumber,
+                    hero: card.hero,
+                    set: card.set,
+                    element: card.element,
+                    power: card.power,
+                    radishUrl: card.resolvedRadishUrlString,
+                    days: days,
+                    treatment: card.treatment
+                )
+                next[card.id] = p.average
+            } catch {
+                next[card.id] = 0
             }
-            var next: [String: Decimal] = [:]
-            for await (id, avg) in group { next[id] = avg }
-            // Only commit if a newer refresh hasn't superseded us.
-            // Otherwise a slow stale fetch would clobber fresh prices.
             guard pricingGeneration == myGen else { return }
             prices = next
-            isLoadingPrices = false
         }
+        guard pricingGeneration == myGen else { return }
+        isLoadingPrices = false
     }
 
     @MainActor

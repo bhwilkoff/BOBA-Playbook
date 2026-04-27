@@ -141,11 +141,16 @@ final class HintsManager {
 
     init() {
         let dflt = UserDefaults.standard
-        // Default to DISABLED when the key has never been written.
-        // Coaches who want the hint system can flip it on from
-        // Settings; making them opt in keeps the practice mat
-        // uncluttered for the common case (and stops banners from
-        // pushing actionable controls off-screen on small phones).
+        // One-time migration: earlier builds defaulted hints to ON and
+        // wrote `true` to UserDefaults on first launch, so the new
+        // default-OFF behavior wouldn't reach upgraders — their stored
+        // `true` survived the policy change. Force-clear the key once
+        // so the new default applies, then mark the migration done.
+        let migrationKey = "hints.default_off_migration_v1"
+        if !dflt.bool(forKey: migrationKey) {
+            dflt.removeObject(forKey: "hints.enabled")
+            dflt.set(true, forKey: migrationKey)
+        }
         self.hintsEnabled = dflt.object(forKey: "hints.enabled") as? Bool ?? false
         var initial: Set<String> = []
         for id in HintID.allCases where dflt.bool(forKey: id.rawValue) {

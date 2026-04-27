@@ -2155,10 +2155,12 @@ function pmExecStep(step, ctx, out) {
       for (const t of targets) {
         const side = t === 'self' ? ctx.self : ctx.opp;
         if (side === 'player' && (step.kind || 'play') === 'play') {
-          out.playsInHandBeforeShuffle = PM.playerPlayHand.length;
+          const n = PM.playerPlayHand.length;
+          out.playsInHandBeforeShuffle = n;
           PM.playerPlayDeck.push(...PM.playerPlayHand);
           PM.playerPlayDeck = shuffle(PM.playerPlayDeck);
           PM.playerPlayHand = [];
+          if (n > 0) out.notifications.push(`Shuffled ${n} play${n === 1 ? '' : 's'} from your hand back into the Playbook`);
         }
       }
       out.hasEffect = true;
@@ -2227,12 +2229,14 @@ function pmExecStep(step, ctx, out) {
             ctx._discardedByThisPlay = (ctx._discardedByThisPlay || 0) + heroes.length;
             PM.playerDiscard.push(...heroes);
             PM.playerPlayHand = PM.playerPlayHand.filter(c => c.cardType !== 'Hero');
+            out.notifications.push(`Discarded ${heroes.length} hero${heroes.length === 1 ? '' : 'es'} from your hand`);
           }
         } else {
           const n = PM.playerPlayHand.length;
           ctx._discardedByThisPlay = (ctx._discardedByThisPlay || 0) + n;
           PM.playerDiscard.push(...PM.playerPlayHand);
           PM.playerPlayHand = [];
+          if (n > 0) out.notifications.push(`Discarded your entire hand (${n} play${n === 1 ? '' : 's'})`);
         }
       } else {
         // CPU side: cpuPlayPool only contains plays in this codepath,
@@ -2241,6 +2245,7 @@ function pmExecStep(step, ctx, out) {
           const n = PM.cpuPlayPool.length;
           ctx._discardedByThisPlay = (ctx._discardedByThisPlay || 0) + n;
           PM.cpuPlayPool = [];
+          if (n > 0) out.notifications.push(`Discarded CPU's entire hand (${n} play${n === 1 ? '' : 's'})`);
         }
       }
       out.hasEffect = true;
@@ -6028,7 +6033,8 @@ function pmUpdatePlayerZone() {
       const imgHtml = imgUrl
         ? `<img class="pm-bc-sub-img" src="${imgUrl}" alt="" loading="lazy" onerror="this.style.display='none'">`
         : `<span class="pm-bc-sub-initials">${(card.hero||card.name||'??').substring(0,2).toUpperCase()}</span>`;
-      return `<div class="pm-bench-card${isSel ? ' selected' : ''}" data-bench-idx="${idx}" title="${card.hero||card.name||''} (${el} ${card.power||0})">
+      const safeBenchTitle = pmEscapeHTML(`${card.hero||card.name||''} (${el} ${card.power||0})`);
+      return `<div class="pm-bench-card${isSel ? ' selected' : ''}" data-bench-idx="${idx}" title="${safeBenchTitle}">
         ${imgHtml}
         <div class="pm-bc-sub-overlay">
           <div class="pm-bc-sub-el" style="background:${elCol}"></div>
@@ -6063,11 +6069,13 @@ function pmUpdatePlayerZone() {
       const bonusBadge = isBonusPlay
         ? `<span class="pm-pc-bonus-tag">★ BONUS</span>` : '';
       const cardClass = `pm-play-card${!canAfford ? ' cannot-afford' : ''}${isBonusPlay ? ' is-bonus' : ''}`;
-      return `<div class="${cardClass}" data-hand-idx="${idx}" title="${card.name||''} — tap to view">
+      const safeTitle = pmEscapeHTML(`${card.name || ''} — tap to view`);
+      const safeName = pmEscapeHTML(name);
+      return `<div class="${cardClass}" data-hand-idx="${idx}" title="${safeTitle}">
         ${imgHtml}
         ${bonusBadge}
         <div class="pm-pc-header">
-          <span class="pm-pc-name">${name}</span>
+          <span class="pm-pc-name">${safeName}</span>
           ${costHtml}
         </div>
       </div>`;
@@ -6617,12 +6625,14 @@ function pmShowPlayCardPopup(handIdx) {
   const popup = document.createElement('div');
   popup.id = 'pm-play-popup';
   popup.className = 'pm-play-popup';
+  const safeName = pmEscapeHTML(card.name || '');
+  const safeAbility = pmEscapeHTML(ability);
   popup.innerHTML = `
     <div class="pm-play-popup-inner">
-      ${imgUrl ? `<div class="pm-play-popup-img-wrap"><img class="pm-play-popup-img" src="${imgUrl}" alt="${card.name||''}" onerror="this.parentElement.style.display='none'"></div>` : ''}
+      ${imgUrl ? `<div class="pm-play-popup-img-wrap"><img class="pm-play-popup-img" src="${imgUrl}" alt="${safeName}" onerror="this.parentElement.style.display='none'"></div>` : ''}
       <div class="pm-play-popup-body">
         <div class="pm-play-popup-header">
-          <div class="pm-play-popup-name">${card.name || ''}</div>
+          <div class="pm-play-popup-name">${safeName}</div>
           ${element ? `<div class="pm-play-popup-element" data-element="${element}">${element}</div>` : ''}
         </div>
         <div class="pm-play-popup-cost-row">
@@ -6633,7 +6643,7 @@ function pmShowPlayCardPopup(handIdx) {
         </div>
         <div class="pm-play-popup-divider"></div>
         <div class="pm-play-popup-effect-label">EFFECT</div>
-        <div class="pm-play-popup-effect">${ability}</div>
+        <div class="pm-play-popup-effect">${safeAbility}</div>
         ${partial ? `<div class="pm-play-popup-partial-note">⚠ Some effects not yet simulated</div>` : ''}
         <div class="pm-play-popup-actions">
           <button class="pm-play-popup-cancel">Cancel</button>
@@ -7013,10 +7023,15 @@ function pmShowEffectToast(result) {
       const toast = document.createElement('div');
       toast.id = 'pm-effect-toast';
       toast.className = 'pm-effect-toast';
+      // Escape dynamic strings — name and description are concatenations
+      // of card titles, ability text, and notifications. Even if the
+      // catalog is currently clean, raw innerHTML interpolation makes
+      // any future angle-bracket or quote content silently break the
+      // surrounding markup.
       toast.innerHTML = `
         <span class="pm-effect-toast-icon">${icon}</span>
-        <span class="pm-effect-toast-name" style="color:${color}">${name}</span>
-        <span class="pm-effect-toast-desc">${description}</span>`;
+        <span class="pm-effect-toast-name" style="color:${color}">${pmEscapeHTML(name)}</span>
+        <span class="pm-effect-toast-desc">${pmEscapeHTML(description)}</span>`;
       const mat = $('practice-playmat');
       if (mat) mat.appendChild(toast);
       // Force reflow then animate in

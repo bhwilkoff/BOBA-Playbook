@@ -229,7 +229,7 @@ struct ShowDetailView: View {
                 Image(systemName: "checkmark.square.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(Design.Colors.bobaCyan)
-                Text("Include in total")
+                Text("Include")
                     .font(Design.Fonts.mono(10))
                     .foregroundStyle(Design.Colors.textSecondary)
             }
@@ -237,7 +237,7 @@ struct ShowDetailView: View {
                 Image(systemName: "star.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(Color(hex: "FFD700"))
-                Text("Big hit (larger in wall)")
+                Text("Highlight")
                     .font(Design.Fonts.mono(10))
                     .foregroundStyle(Design.Colors.textSecondary)
             }

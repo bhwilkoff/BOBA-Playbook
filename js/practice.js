@@ -2470,19 +2470,19 @@ function pmExecStep(step, ctx, out) {
     case 'play_top_of_playbook_free': {
       // Honor step.target — versus_dice_roll rewrites this to
       // "opponent" when the actor lost the roll, meaning the OTHER
-      // side gets the free play. Without this resolution the CPU
-      // (ctx.self) would always be the actor even when the player
-      // won the dice gate, producing notifications like "CPU played
-      // the top of the Playbook free" right after "YOU win the roll".
+      // side gets the free play.
       const target = step.target || 'self';
       const actorSide = target === 'opponent' ? ctx.opp : ctx.self;
-      pmIntentPlayTopOfPlaybookFree(actorSide, ctx);
-      const actorLabel = actorSide === 'player' ? 'You' : 'CPU';
-      const verb = actorSide === 'player' ? 'play' : 'plays';
-      const action = op === 'play_revealed_free'
-        ? `${verb} the revealed card free`
-        : `${verb} the top of the Playbook free`;
-      out.notifications.push(`${actorLabel} ${action}`);
+      const fired = pmIntentPlayTopOfPlaybookFree(actorSide, ctx);
+      if (fired) {
+        const subject = actorSide === 'player' ? 'You' : 'CPU';
+        const verb    = actorSide === 'player' ? 'get' : 'gets';
+        const cardName = fired.name || 'a card';
+        // Natural-English phrasing including the card that fired.
+        // "You get a free bonus play: Edge Rush." rather than
+        // "You play the top of the Playbook free."
+        out.notifications.push(`${subject} ${verb} a free bonus play: ${cardName}`);
+      }
       out.hasEffect = true;
       break;
     }
@@ -3374,12 +3374,14 @@ function pmIntentPlayTopOfPlaybookFree(side, ctx) {
   // Pop from the relevant deck and exec its entry. `side` is the
   // ACTOR — the side that gets to play for free — which may differ
   // from ctx.self when versus_dice_roll rewrote target to "opponent".
+  // Returns the card that fired (or null) so the caller can name it
+  // in the notification.
   const top = side === 'player'
     ? PM.playerPlayDeck[0]
     : (PM.cpuPlayPool && PM.cpuPlayPool[0]);
-  if (!top) return;
+  if (!top) return null;
   const entry = pmGetPlayEntry(top);
-  if (!entry) return;
+  if (!entry) return null;
   // Build a context whose `self` matches the actor side so deltas
   // get attributed correctly (selfDelta/oppDelta are relative to
   // ctx.self in pmExecStep). Using the original ctx would credit the
@@ -3405,6 +3407,7 @@ function pmIntentPlayTopOfPlaybookFree(side, ctx) {
   } else if (PM.cpuPlayPool) {
     PM.cpuPlayPool.shift();
   }
+  return top;
 }
 
 function pmIntentTaxPerHeroInHand(target, perDelta, fallbackDiscards) {

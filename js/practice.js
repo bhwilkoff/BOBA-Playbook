@@ -2468,11 +2468,20 @@ function pmExecStep(step, ctx, out) {
     }
     case 'play_revealed_free':
     case 'play_top_of_playbook_free': {
-      pmIntentPlayTopOfPlaybookFree(ctx.self, ctx);
-      // Screen-perspective actor label so "you" / "CPU" matches the
-      // rest of the UI rather than the executor's "self" frame.
-      const actorLabel = ctx.self === 'player' ? 'You' : 'CPU';
-      const action = op === 'play_revealed_free' ? 'played the revealed card free' : 'played the top of the Playbook free';
+      // Honor step.target — versus_dice_roll rewrites this to
+      // "opponent" when the actor lost the roll, meaning the OTHER
+      // side gets the free play. Without this resolution the CPU
+      // (ctx.self) would always be the actor even when the player
+      // won the dice gate, producing notifications like "CPU played
+      // the top of the Playbook free" right after "YOU win the roll".
+      const target = step.target || 'self';
+      const actorSide = target === 'opponent' ? ctx.opp : ctx.self;
+      pmIntentPlayTopOfPlaybookFree(actorSide, ctx);
+      const actorLabel = actorSide === 'player' ? 'You' : 'CPU';
+      const verb = actorSide === 'player' ? 'play' : 'plays';
+      const action = op === 'play_revealed_free'
+        ? `${verb} the revealed card free`
+        : `${verb} the top of the Playbook free`;
       out.notifications.push(`${actorLabel} ${action}`);
       out.hasEffect = true;
       break;
@@ -3362,18 +3371,39 @@ function pmIntentCopyLastPlay(side, ctx) {
 }
 
 function pmIntentPlayTopOfPlaybookFree(side, ctx) {
-  if (side !== 'player') return;
-  const top = PM.playerPlayDeck[0];
+  // Pop from the relevant deck and exec its entry. `side` is the
+  // ACTOR — the side that gets to play for free — which may differ
+  // from ctx.self when versus_dice_roll rewrote target to "opponent".
+  const top = side === 'player'
+    ? PM.playerPlayDeck[0]
+    : (PM.cpuPlayPool && PM.cpuPlayPool[0]);
   if (!top) return;
   const entry = pmGetPlayEntry(top);
   if (!entry) return;
-  const inner = pmExecStructured(entry, ctx);
+  // Build a context whose `self` matches the actor side so deltas
+  // get attributed correctly (selfDelta/oppDelta are relative to
+  // ctx.self in pmExecStep). Using the original ctx would credit the
+  // wrong side with the inner play's effect.
+  const innerCtx = pmMakeExecContext(side);
+  const inner = pmExecStructured(entry, innerCtx);
   if (inner.hasEffect) {
     const b = PM.battles[PM.currentBattle];
     if (b) {
-      b.playerEffectPower = (b.playerEffectPower || 0) + (inner.selfDelta || 0);
-      b.cpuEffectPower    = (b.cpuEffectPower    || 0) + (inner.oppDelta  || 0);
+      if (side === 'player') {
+        b.playerEffectPower = (b.playerEffectPower || 0) + (inner.selfDelta || 0);
+        b.cpuEffectPower    = (b.cpuEffectPower    || 0) + (inner.oppDelta  || 0);
+      } else {
+        b.cpuEffectPower    = (b.cpuEffectPower    || 0) + (inner.selfDelta || 0);
+        b.playerEffectPower = (b.playerEffectPower || 0) + (inner.oppDelta  || 0);
+      }
     }
+  }
+  // Move the consumed top card off its source so it isn't replayed.
+  if (side === 'player') {
+    PM.playerPlayDeck.shift();
+    PM.playerDiscard.push(top);
+  } else if (PM.cpuPlayPool) {
+    PM.cpuPlayPool.shift();
   }
 }
 
@@ -7069,16 +7099,18 @@ function pmShowSingleCpuPlay(entry, done) {
 
   const notifs = (entry.notifications || []);
   const notifsHtml = notifs.length
-    ? `<div class="pm-cpu-card-notifs">${notifs.map(n => `<span>${n}</span>`).join('')}</div>`
+    ? `<div class="pm-cpu-card-notifs">${notifs.map(n => `<span>${pmEscapeHTML(n)}</span>`).join('')}</div>`
     : '';
 
+  const safeCardName = pmEscapeHTML(card.name || 'Play Card');
+  const safeAbility = pmEscapeHTML(ability);
   const cardEl = $('pm-cpu-overlay-card');
   if (cardEl) {
     cardEl.innerHTML = `
-      ${imgUrl ? `<img class="pm-cpu-card-img" src="${imgUrl}" alt="${card.name||''}" onerror="this.style.display='none'">` : ''}
-      <div class="pm-cpu-card-name">${card.name || 'Play Card'}</div>
+      ${imgUrl ? `<img class="pm-cpu-card-img" src="${imgUrl}" alt="${safeCardName}" onerror="this.style.display='none'">` : ''}
+      <div class="pm-cpu-card-name">${safeCardName}</div>
       <div class="pm-cpu-card-cost">${costLabel}</div>
-      ${ability ? `<div class="pm-cpu-card-effect">${ability}</div>` : ''}
+      ${ability ? `<div class="pm-cpu-card-effect">${safeAbility}</div>` : ''}
       <div class="pm-cpu-card-deltas">${deltasHtml}</div>
       ${notifsHtml}`;
   }

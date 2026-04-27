@@ -62,6 +62,58 @@ enum Showcases {
         Showcases.wobaHeroes.contains(card.hero)
     }
 
+    // MARK: - Rookie Inspired
+    //
+    // BoBA prints a "ROOKIE INSPIRED" stamp on cards whose hero is
+    // inspired by an athlete in their rookie season at print time. The
+    // designation is set-dependent — Caliber (Caleb Williams) carried
+    // the stamp in Alpha Edition but lost it in Griffey Edition once
+    // Williams was no longer a rookie. The catalog does not currently
+    // carry a per-print `rookieInspired` flag, so this showcase
+    // approximates with two signals:
+    //
+    //   1. `treatment == "Rookie Power Up"` — the 12 RPU promo cards,
+    //      which BoBA's promo materials describe as "the main rookie
+    //      inspired heroes from the set." These are unambiguous.
+    //
+    //   2. Hero name in `rookieInspiredHeroes` AND set in a known
+    //      rookie-print set for that hero. Curated from BoBA Inside-
+    //      The-Vault transcripts; expand the list as more rookie cards
+    //      are documented. Until Cowork adds a per-card flag, this is
+    //      the cleanest catalog-side approximation.
+
+    /// Hero name → set(s) where that hero's print is rookie-inspired.
+    /// Set-scoped because a hero like "Caliber" is rookie inspired in
+    /// Alpha Edition but not in Griffey Edition.
+    nonisolated static let rookieInspiredHeroSets: [String: Set<String>] = [
+        // Confirmed in Griffey Edition transcripts:
+        "Brockness":    ["Griffey Edition"],
+        "Maverick":     ["Griffey Edition"],
+        "Homestead":    ["Griffey Edition"],
+        "Generator":    ["Griffey Edition"],
+        "Castler":      ["Griffey Edition"],
+        "Chameleon":    ["Griffey Edition", "Alpha Update"],
+        // Confirmed in Alpha Edition transcripts:
+        "Caliber":      ["Alpha Edition"],
+        // Add more here as they're documented; the showcase filter
+        // intersects on (hero, set) so partial lists are safe.
+    ]
+
+    nonisolated static let rookieInspired = Showcase(
+        id: "rookie_inspired",
+        name: "Rookie Inspired",
+        searchTokens: ["rookie", "rookie inspired", "rookies"],
+        description: "Cards whose hero is inspired by an athlete in their rookie season at print time — RPU promos plus the per-set rookie stamps.",
+        countLabel: ""
+    ) { card in
+        // RPU promo cards always qualify.
+        if card.treatment == "Rookie Power Up" { return true }
+        // Otherwise match (hero, set) against the curated table.
+        guard let allowedSets = Showcases.rookieInspiredHeroSets[card.hero]
+        else { return false }
+        return allowedSets.contains(card.set)
+    }
+
     // MARK: - Sports
 
     /// Sport → canonical athleteInspiration list. Keep the lists
@@ -117,7 +169,7 @@ enum Showcases {
     /// All showcases visible as filter chips / searchable terms, in the
     /// order they should appear. New community or team-specific
     /// showcases (Cardinals, Red Sox, etc.) slot in here.
-    nonisolated static let all: [Showcase] = [woba] + sports
+    nonisolated static let all: [Showcase] = [woba, rookieInspired] + sports
 
     /// Look up a showcase by its id.
     static func byId(_ id: String) -> Showcase? {

@@ -4257,6 +4257,9 @@ const PM = {
     let effect = { playerDelta: 0, cpuDelta: 0 };
     let hdRecovery = 0;
     let extraNotifs = [];
+    let firedDiceOrCoinFlag = false;
+    let diceRollsForReveal = [];
+    let coinFlipsForReveal = [];
     const entry = pmGetPlayEntry(card);
     let structuredHandled = false;
     const hasEffectsBlock    = entry && Array.isArray(entry.effects) && entry.effects.length > 0;
@@ -4269,6 +4272,9 @@ const PM = {
       // PeekedHand modal eyebrow).
       PM._currentlyResolvingPlayCard = card.name || '';
       const out = pmExecStructured(entry, ctx);
+      firedDiceOrCoinFlag = !!out.firedDiceOrCoin;
+      diceRollsForReveal = out.diceRolls || [];
+      coinFlipsForReveal = out.coinFlips || [];
       // Mark handled whenever a JSON entry exists with effects OR
       // persistent — even when out.hasEffect is false. Two failure
       // modes the legacy regex resolver causes when this gate is
@@ -4348,14 +4354,17 @@ const PM = {
       }
     }
     // Dice/coin reveal — fire a center-screen overlay when the play
-    // rolled dice or flipped coins. Pulled from out.diceRolls /
-    // out.coinFlips populated by pmExecStep. Mirrors iOS DiceCoinRevealOverlay.
-    if (out.firedDiceOrCoin && (out.diceRolls?.length || out.coinFlips?.length)) {
+    // rolled dice or flipped coins. The captured locals are populated
+    // inside the structured-exec block above; referencing `out` here
+    // would be a scope error (it lives only inside that block) and
+    // would silently throw mid-play, leaving the popup open and the
+    // played card never appended to b.playerPlaysPlayed.
+    if (firedDiceOrCoinFlag && (diceRollsForReveal.length || coinFlipsForReveal.length)) {
       pmShowDiceCoinReveal({
         side: 'player',
         sourceLabel: card.name,
-        diceRolls: out.diceRolls || [],
-        coinFlips: out.coinFlips || [],
+        diceRolls: diceRollsForReveal,
+        coinFlips: coinFlipsForReveal,
       });
     }
     // Build description for the toast (combines HD recovery + power delta when both apply)

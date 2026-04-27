@@ -138,6 +138,28 @@
   }
   sidebarOverlay.addEventListener('click', closeSidebar);
 
+  /* Desktop sidebar collapse toggle — shrinks the sidebar to icon-only
+     width and reclaims the horizontal space for main content. State
+     persists across reloads via localStorage. */
+  const COLLAPSE_KEY = 'boba.sidebarCollapsed';
+  const collapseToggle = $('sidebar-collapse-toggle');
+  if (collapseToggle) {
+    const initial = localStorage.getItem(COLLAPSE_KEY) === '1';
+    if (initial) document.body.classList.add('sidebar-collapsed');
+    const syncAria = () => {
+      const collapsed = document.body.classList.contains('sidebar-collapsed');
+      collapseToggle.setAttribute('aria-expanded', String(!collapsed));
+      collapseToggle.setAttribute('aria-label',
+        collapsed ? 'Expand navigation' : 'Collapse navigation');
+    };
+    syncAria();
+    collapseToggle.addEventListener('click', () => {
+      const collapsed = document.body.classList.toggle('sidebar-collapsed');
+      localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
+      syncAria();
+    });
+  }
+
   /* ================================================================
      FILTER PANEL TOGGLE (mobile)
   ================================================================ */

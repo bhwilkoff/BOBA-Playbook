@@ -52,6 +52,7 @@
 
   /* Layout */
   --sidebar-w: 240px;
+  --sidebar-w-collapsed: 64px;
   --header-h:  52px;
 
   /* Scanline overlay (subtle retro-futurism) */
@@ -190,7 +191,8 @@ select { cursor: pointer; }
   display: flex; flex-direction: column;
   overflow-y: auto;
   transform: translateX(-100%);
-  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1),
+              width 0.2s cubic-bezier(0.4,0,0.2,1);
 }
 .channels-sidebar.open { transform: translateX(0); }
 /* On mobile, push sidebar content below the sticky header so it isn't obscured. */
@@ -198,6 +200,55 @@ select { cursor: pointer; }
   .channels-sidebar { padding-top: var(--header-h); }
 }
 @media (min-width: 768px) { .channels-sidebar { transform: translateX(0); } }
+
+/* Desktop collapse toggle — hidden on mobile (mobile uses the header
+   hamburger to open/close the overlay sidebar). */
+.sidebar-collapse-toggle { display: none; }
+@media (min-width: 768px) {
+  .sidebar-collapse-toggle {
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    gap: 4px;
+    position: absolute; top: 12px; right: 12px;
+    width: 32px; height: 32px; padding: 0;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    z-index: 5;
+  }
+  .sidebar-collapse-toggle:hover {
+    background: rgba(255,77,0,0.12);
+    border-color: rgba(255,77,0,0.4);
+  }
+  .sidebar-collapse-toggle span {
+    display: block; width: 16px; height: 2px;
+    background: var(--boba-text-2); border-radius: 1px;
+    transition: background 0.15s;
+  }
+  .sidebar-collapse-toggle:hover span { background: var(--boba-orange); }
+}
+
+/* Collapsed sidebar — wordmark, tagline, and nav-item labels disappear;
+   only the toggle and icons remain visible. Main content gets the
+   reclaimed horizontal space. */
+@media (min-width: 768px) {
+  body.sidebar-collapsed .channels-sidebar { width: var(--sidebar-w-collapsed); }
+  body.sidebar-collapsed main { margin-left: var(--sidebar-w-collapsed); }
+  body.sidebar-collapsed .sidebar-header { display: none; }
+  body.sidebar-collapsed .sidebar-collapse-toggle {
+    position: relative; top: auto; right: auto;
+    margin: 12px auto 8px;
+  }
+  body.sidebar-collapsed .sidebar-nav-item {
+    justify-content: center;
+    padding: 12px 0;
+  }
+  body.sidebar-collapsed .sidebar-nav-item > span { display: none; }
+  body.sidebar-collapsed .sidebar-nav-item .nav-icon {
+    width: 20px; height: 20px;
+  }
+}
 
 /* Sidebar brand */
 .sidebar-header {

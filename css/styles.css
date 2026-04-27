@@ -7314,11 +7314,23 @@ main {
   color: rgba(255,255,255,0.7);
 }
 .pm-root .pm-summary-plays {
+  display: flex; flex-wrap: wrap; gap: 4px;
   font-family: var(--font-mono, monospace); font-size: 0.6rem;
-  color: #00F5FF; line-height: 1.4;
-  word-wrap: break-word;
+  line-height: 1.4;
 }
 .pm-root .pm-summary-plays--empty { color: rgba(255,255,255,0.3); }
+.pm-root .pm-summary-play-chip {
+  font-family: var(--font-mono, monospace); font-size: 0.58rem;
+  font-weight: 700; letter-spacing: 0.3px;
+  color: #00F5FF; background: rgba(0, 245, 255, 0.08);
+  border: 1px solid rgba(0, 245, 255, 0.3); border-radius: 999px;
+  padding: 2px 8px; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.pm-root .pm-summary-play-chip:hover {
+  background: rgba(0, 245, 255, 0.18);
+  border-color: rgba(0, 245, 255, 0.55);
+}
 
 /* CPU play overlay */
 .pm-cpu-overlay {

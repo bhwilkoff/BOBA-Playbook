@@ -202,20 +202,25 @@ select { cursor: pointer; }
 @media (min-width: 768px) { .channels-sidebar { transform: translateX(0); } }
 
 /* Desktop collapse toggle — hidden on mobile (mobile uses the header
-   hamburger to open/close the overlay sidebar). */
+   hamburger to open/close the overlay sidebar). Sits inline at the
+   left of the sidebar header so it stacks vertically with the nav
+   icons below it (rather than floating in the top-right corner). */
 .sidebar-collapse-toggle { display: none; }
 @media (min-width: 768px) {
+  .sidebar-header-row {
+    display: flex; align-items: center; gap: var(--sp-3);
+    width: 100%;
+  }
   .sidebar-collapse-toggle {
     display: flex; flex-direction: column; justify-content: center; align-items: center;
     gap: 4px;
-    position: absolute; top: 12px; right: 12px;
+    flex: 0 0 auto;
     width: 32px; height: 32px; padding: 0;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 6px;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
-    z-index: 5;
   }
   .sidebar-collapse-toggle:hover {
     background: rgba(255,77,0,0.12);
@@ -227,6 +232,9 @@ select { cursor: pointer; }
     transition: background 0.15s;
   }
   .sidebar-collapse-toggle:hover span { background: var(--boba-orange); }
+  .sidebar-header-row .sidebar-wordmark {
+    flex: 1; min-width: 0;
+  }
 }
 
 /* Collapsed sidebar — wordmark, tagline, and nav-item labels disappear;
@@ -235,11 +243,19 @@ select { cursor: pointer; }
 @media (min-width: 768px) {
   body.sidebar-collapsed .channels-sidebar { width: var(--sidebar-w-collapsed); }
   body.sidebar-collapsed main { margin-left: var(--sidebar-w-collapsed); }
-  body.sidebar-collapsed .sidebar-header { display: none; }
-  body.sidebar-collapsed .sidebar-collapse-toggle {
-    position: relative; top: auto; right: auto;
-    margin: 12px auto 8px;
+  body.sidebar-collapsed .sidebar-header {
+    /* Keep just the toggle row visible; trim padding so the toggle
+       sits at the same vertical rhythm as the nav icons below. */
+    padding: var(--sp-3) 0;
+    border-bottom: 1px solid var(--boba-glass-border);
   }
+  body.sidebar-collapsed .sidebar-header::after { display: none; }
+  body.sidebar-collapsed .sidebar-header-row {
+    justify-content: center;
+    gap: 0;
+  }
+  body.sidebar-collapsed .sidebar-wordmark { display: none; }
+  body.sidebar-collapsed .sidebar-tagline { display: none; }
   body.sidebar-collapsed .sidebar-nav-item {
     justify-content: center;
     padding: 12px 0;

@@ -398,20 +398,38 @@ struct PracticeView: View {
     // MARK: - Rotate Prompt
 
     private var rotatePrompt: some View {
-        VStack(spacing: Design.Spacing.xl) {
-            Image(systemName: "iphone.gen3")
-                .font(.system(size: 56))
-                .foregroundStyle(Design.Colors.bobaOrange)
-                .rotationEffect(.degrees(90))
-            Text("ROTATE TO PLAY")
-                .font(Design.Fonts.display(28))
-                .foregroundStyle(Design.Colors.textPrimary)
-            Text("Practice Battle requires landscape orientation")
-                .font(Design.Fonts.mono(13))
-                .foregroundStyle(Design.Colors.textSecondary)
-                .multilineTextAlignment(.center)
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: Design.Spacing.xl) {
+                Image(systemName: "iphone.gen3")
+                    .font(.system(size: 56))
+                    .foregroundStyle(Design.Colors.bobaOrange)
+                    .rotationEffect(.degrees(90))
+                Text("ROTATE TO PLAY")
+                    .font(Design.Fonts.display(28))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                Text("Practice Battle requires landscape orientation")
+                    .font(Design.Fonts.mono(13))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Bail without rotating. The landscape-only exit flow forces
+            // a coach who opened practice by accident to physically
+            // rotate the device twice (in to landscape to tap exit, back
+            // to portrait to dismiss); this short-circuits that.
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(Color.white.opacity(0.85))
+                    .shadow(color: .black.opacity(0.5), radius: 4)
+                    .padding(Design.Spacing.md)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close practice battle")
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Exit Rotate Prompt

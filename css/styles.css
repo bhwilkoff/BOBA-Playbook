@@ -7544,10 +7544,15 @@ body.practice-active:not(.practice-rotate-dismissed) .practice-rotate-hint {
 .pm-root.phase-cleanup .pm-hand-area { opacity: 0.4; pointer-events: none; }
 .pm-root.phase-play .pm-hand-area { opacity: 1; pointer-events: auto; }
 
-.pm-root.phase-reveal .pm-btn-sub,
-.pm-root.phase-play .pm-btn-sub,
-.pm-root.phase-resolution .pm-btn-sub,
-.pm-root.phase-cleanup .pm-btn-sub { opacity: 0.3; pointer-events: none; }
+/* Phase-aware sub/plays button — shown only when actionable; the JS
+   sets `hidden` on it directly. The CHOOSE PLAYS variant uses cyan
+   to match the iOS bobaCyan styling for that phase's CTA. */
+.pm-root .pm-btn-sub[data-phase="play"] {
+  background: rgba(0, 245, 255, 0.16);
+  border-color: rgba(0, 245, 255, 0.55);
+  color: #00F5FF;
+}
+.pm-root .pm-btn-sub[data-phase="play"]:hover { background: rgba(0, 245, 255, 0.26); }
 
 /* Deck builder card detail popup */
 .db-card-popup {

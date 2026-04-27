@@ -6021,11 +6021,28 @@ function pmUpdatePlayerZone() {
     discEl.textContent = heroes + plays + hotdogs;
   }
 
-  // Sub button — enabled only when a bench card is selected and conditions met
+  // Phase-aware secondary action button. Mirrors the iOS bottom
+  // toolbar: CHOOSE SUBS in sub phase, CHOOSE PLAYS in play phase,
+  // hidden in reveal / resolution / cleanup. Web's bench + plays are
+  // always visible so the click just brings the relevant zone into
+  // view (visual nudge, not a panel toggle like iOS).
   const subBtn = $('pm-btn-sub');
   if (subBtn) {
-    const canSub = PM.phase === 'sub' && !PM.playerSubstituted && PM.playerHD >= 2 && PM.selectedBenchIdx !== null;
-    subBtn.disabled = !canSub;
+    if (PM.phase === 'sub' && PM.mode !== 'rookie') {
+      const canSub = !PM.playerSubstituted && PM.playerHD >= 2 && PM.selectedBenchIdx !== null;
+      subBtn.innerHTML = `CHOOSE SUBS<br><span style="font-size:0.35rem;opacity:0.7">2 HD</span>`;
+      subBtn.disabled = !canSub;
+      subBtn.hidden = false;
+      subBtn.dataset.phase = 'sub';
+    } else if (PM.phase === 'play' && PM.mode === 'playmaker') {
+      subBtn.innerHTML = `CHOOSE PLAYS`;
+      subBtn.disabled = false;
+      subBtn.hidden = false;
+      subBtn.dataset.phase = 'play';
+    } else {
+      subBtn.hidden = true;
+      subBtn.dataset.phase = '';
+    }
   }
 }
 
@@ -7025,10 +7042,24 @@ function pmInitPlaymat() {
     pmShowBenchCardPopup(idx);
   });
 
-  // Substitute button — confirmed sub (auto-advances via playerSub)
+  // Phase-aware secondary action button. Mirrors iOS PracticeBottom-
+  // Toolbar: in the sub phase it confirms a substitute (when a bench
+  // card is selected) or otherwise scrolls the bench area into view;
+  // in the play phase it scrolls the plays hand into view as a visual
+  // nudge ("here's where to act"). The legacy "auto-confirm sub on
+  // tap" path stays so coaches who've selected a bench card can still
+  // execute the sub from this button.
   $('pm-btn-sub')?.addEventListener('click', () => {
-    if (PM.selectedBenchIdx === null) return;
-    if (PM.playerSub(PM.selectedBenchIdx)) pmUpdateAll();
+    const phase = PM.phase;
+    if (phase === 'sub') {
+      if (PM.selectedBenchIdx !== null && PM.playerSub(PM.selectedBenchIdx)) {
+        pmUpdateAll();
+      } else {
+        $('pm-bench-cards')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    } else if (phase === 'play') {
+      $('pm-hand-cards')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   });
 
   // CPU overlay dismiss — handled dynamically by pmShowSingleCpuPlay via the queue

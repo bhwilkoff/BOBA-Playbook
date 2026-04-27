@@ -4054,6 +4054,13 @@ const PM = {
         cpuEffectPower: 0,
         playerPlaysPlayed: [],
         cpuPlaysPlayed: [],
+        // Per-side power-contribution log used by the 1v1 view's
+        // breakdown panel. Entries are { label, delta, cardRef? } —
+        // appended whenever an effect changes effective power, which
+        // means the post-resolution panel can show "base + each delta
+        // = final" without re-walking effects after the fact.
+        playerBreakdown: [],
+        cpuBreakdown: [],
         result: null,
         revealed: false,
         playerTransformedToHotDog: false,
@@ -4325,6 +4332,16 @@ const PM = {
     if (b) {
       b.playerEffectPower = (b.playerEffectPower || 0) + (effect.playerDelta || 0);
       b.cpuEffectPower = (b.cpuEffectPower || 0) + (effect.cpuDelta || 0);
+      // Log this play's contribution to each side's breakdown so the
+      // post-resolution 1v1 panel can render "Base + N + M = final".
+      if (effect.playerDelta) {
+        b.playerBreakdown = b.playerBreakdown || [];
+        b.playerBreakdown.push({ label: card.name, delta: effect.playerDelta, cardRef: card });
+      }
+      if (effect.cpuDelta) {
+        b.cpuBreakdown = b.cpuBreakdown || [];
+        b.cpuBreakdown.push({ label: card.name, delta: effect.cpuDelta, cardRef: card });
+      }
     }
     // Build description for the toast (combines HD recovery + power delta when both apply)
     const ability = (card.playAbility || '').toLowerCase();
@@ -4557,6 +4574,16 @@ const PM = {
       if (hdRecovery > 0) this.cpuHD = Math.min(10, this.cpuHD + hdRecovery);
       b.cpuEffectPower = (b.cpuEffectPower || 0) + (effect.cpuDelta || 0);
       b.playerEffectPower = (b.playerEffectPower || 0) + (effect.playerDelta || 0);
+      // Mirror player-side breakdown logging so the 1v1 panel can show
+      // CPU's contributions too.
+      if (effect.cpuDelta) {
+        b.cpuBreakdown = b.cpuBreakdown || [];
+        b.cpuBreakdown.push({ label: card.name, delta: effect.cpuDelta, cardRef: card });
+      }
+      if (effect.playerDelta) {
+        b.playerBreakdown = b.playerBreakdown || [];
+        b.playerBreakdown.push({ label: card.name, delta: effect.playerDelta, cardRef: card });
+      }
       // Track CPU plays on the battle slot (for copy_last_play, metrics, etc.)
       b.cpuPlaysPlayed = b.cpuPlaysPlayed || [];
       b.cpuPlaysPlayed.push(card);
@@ -5192,7 +5219,14 @@ function pmBuildPlaymatHTML() {
         </div>
       </div>
     </div>
-    <div class="pm-arena-zone">${cols}</div>
+    <div class="pm-arena-stack">
+      <!-- 1v1 ACTIVE BATTLE VIEW — large hero face-off for the focal
+           battle. Shows under-card name + power, with the post-resolution
+           breakdown panel sliding in once the battle resolves. Mirrors
+           iOS ActiveBattleView. -->
+      <div class="pm-active-1v1" id="pm-active-1v1"></div>
+      <div class="pm-arena-zone">${cols}</div>
+    </div>
   </div>
 
   <!-- PLAYER ZONE -->
@@ -5428,6 +5462,160 @@ function pmRenderBattleSlotContent(slot, card, revealed, isOpp, battle) {
     bar.style.background = pmElementColor(card.element);
     slot.appendChild(bar);
   }
+}
+
+// 1v1 active battle view — large hero face-off for the focal battle.
+// Mirrors the iOS ActiveBattleView; renders cards, power totals, the
+// VS / WIN / LOSS / TIE indicator, and a breakdown panel post-
+// resolution. Falls back to a placeholder for the pre-match state.
+function pmRenderActive1v1() {
+  const host = document.getElementById('pm-active-1v1');
+  if (!host) return;
+  if (PM.matchOver || !PM.battles || !PM.battles.length) {
+    host.innerHTML = '';
+    host.hidden = true;
+    return;
+  }
+  host.hidden = false;
+  const b = PM.battles[PM.currentBattle];
+  if (!b) { host.innerHTML = ''; return; }
+
+  const playerCard = b.playerCard;
+  const cpuCard    = b.cpuCard;
+  const cpuRevealed = b.revealed || b.result !== null;
+  const isResolved  = b.result !== null;
+
+  // Per-side cells.
+  host.innerHTML = `
+    <div class="pm-1v1-row">
+      ${pmRender1v1Cell(playerCard, true,  b, false)}
+      <div class="pm-1v1-vs ${isResolved ? 'pm-1v1-vs--' + b.result : ''}">
+        <span>${isResolved
+          ? (b.result === 'win' ? 'WIN' : b.result === 'lose' ? 'LOSS' : 'TIE')
+          : 'VS'}</span>
+        <span class="pm-1v1-battle-label">Battle ${(b.id || PM.currentBattle) + 1}</span>
+      </div>
+      ${pmRender1v1Cell(cpuCard, false, b, !cpuRevealed)}
+    </div>
+    ${isResolved ? pmRenderBreakdownPanel(b) : ''}
+  `;
+
+  // Tap-to-review on breakdown rows (post-resolution).
+  host.querySelectorAll('.pm-breakdown-row[data-card-name]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const name = btn.getAttribute('data-card-name');
+      const side = btn.getAttribute('data-side');
+      const arr = side === 'player'
+        ? (b.playerPlaysPlayed || [])
+        : (b.cpuPlaysPlayed || b.cpuPlaysRan || []);
+      const card = arr.find(c => c.name === name);
+      if (card && typeof pmShowPlayReviewSheet === 'function') {
+        pmShowPlayReviewSheet(card);
+      }
+    });
+  });
+}
+
+function pmRender1v1Cell(card, isPlayer, b, isFaceDown) {
+  const sideClass = isPlayer ? 'pm-1v1-player' : 'pm-1v1-cpu';
+  if (!card) {
+    return `<div class="pm-1v1-cell ${sideClass} pm-1v1-empty"><span>—</span></div>`;
+  }
+  if (isFaceDown) {
+    // Show pending-effect hint on the face-down CPU hero so coaches see
+    // installed persistents about to land.
+    let pending = 0;
+    try { pending = PM.previewPersistentPower(b.id, 'cpu'); } catch (_) {}
+    const pendingHtml = pending !== 0
+      ? `<span class="pm-1v1-pending" style="color:${pending > 0 ? '#C0392B' : '#00F5FF'}">${pending > 0 ? '+' : ''}${pending}</span>`
+      : '';
+    return `
+      <div class="pm-1v1-cell ${sideClass} pm-1v1-facedown">
+        <div class="pm-1v1-card pm-1v1-card-back">
+          <svg viewBox="0 0 60 84" aria-hidden="true">
+            <rect x="3" y="3" width="54" height="78" rx="6" fill="rgba(192,57,43,0.12)" stroke="rgba(192,57,43,0.6)" stroke-width="2"/>
+            <rect x="9" y="9" width="42" height="66" rx="3" stroke="rgba(192,57,43,0.32)" stroke-width="1.2"/>
+            <circle cx="30" cy="42" r="10" stroke="rgba(192,57,43,0.3)" stroke-width="1.2"/>
+          </svg>
+          ${pendingHtml}
+        </div>
+        <div class="pm-1v1-name">CPU</div>
+      </div>
+    `;
+  }
+  const eff     = isPlayer ? (b.playerEffectPower || 0) : (b.cpuEffectPower || 0);
+  const basePow = card.power || 0;
+  const effPow  = basePow + eff;
+  const imgUrl  = card.imageFile ? thumbUrl(card.imageFile) : null;
+  const elColor = card.element ? pmElementColor(card.element) : 'rgba(255,255,255,0.2)';
+
+  // Active bonus pill (cyan = +, red = –).
+  const bonusHtml = eff !== 0
+    ? `<span class="pm-1v1-bonus" style="color:${eff > 0 ? '#00F5FF' : '#C0392B'}">${eff > 0 ? '+' : ''}${eff}</span>`
+    : '';
+
+  const imgHtml = imgUrl
+    ? `<img class="pm-1v1-img" src="${imgUrl}" alt="${card.hero || card.name}" loading="lazy" onerror="this.style.display='none'">`
+    : '';
+
+  return `
+    <div class="pm-1v1-cell ${sideClass}">
+      <div class="pm-1v1-card" style="border-color:${elColor}">
+        ${imgHtml}
+        <span class="pm-1v1-power">${effPow}</span>
+        ${bonusHtml}
+      </div>
+      <div class="pm-1v1-name">${(card.hero || card.name || '').substring(0, 18)}</div>
+      ${card.element ? `<div class="pm-1v1-weapon" style="background:${elColor}1a;border-color:${elColor};color:${elColor}">${card.element}</div>` : ''}
+    </div>
+  `;
+}
+
+// Two-column itemized power-contribution panel rendered after a battle
+// resolves. Each row shows the contributing play's name + delta; tapping
+// a row opens the play-review sheet. Mirrors the iOS breakdown panel.
+function pmRenderBreakdownPanel(b) {
+  const playerBase = b.playerCard ? (b.playerCard.power || 0) : 0;
+  const cpuBase    = b.cpuCard    ? (b.cpuCard.power    || 0) : 0;
+  const playerFinal = playerBase + (b.playerEffectPower || 0);
+  const cpuFinal    = cpuBase    + (b.cpuEffectPower    || 0);
+  const playerWon = b.result === 'win';
+  const cpuWon    = b.result === 'lose';
+
+  return `
+    <div class="pm-breakdown-panel">
+      ${pmRenderBreakdownColumn('YOU', playerBase, b.playerBreakdown || [], playerFinal, 'player', playerWon)}
+      ${pmRenderBreakdownColumn('CPU', cpuBase,    b.cpuBreakdown    || [], cpuFinal,    'cpu',    cpuWon)}
+    </div>
+  `;
+}
+
+function pmRenderBreakdownColumn(label, base, contribs, finalPow, side, isWinner) {
+  const rows = contribs.map(c => {
+    const delta = c.delta || 0;
+    const sign = delta > 0 ? '+' : '';
+    const cls  = delta > 0 ? 'pm-breakdown-pos' : 'pm-breakdown-neg';
+    return `
+      <button type="button" class="pm-breakdown-row" data-card-name="${(c.label || '').replace(/"/g, '&quot;')}" data-side="${side}">
+        <span class="pm-breakdown-label">${c.label || '—'}</span>
+        <span class="pm-breakdown-delta ${cls}">${sign}${delta}</span>
+      </button>
+    `;
+  }).join('');
+  return `
+    <div class="pm-breakdown-col ${isWinner ? 'pm-breakdown-col--winner' : ''}">
+      <div class="pm-breakdown-header">
+        <span class="pm-breakdown-side">${label}</span>
+        <span class="pm-breakdown-base">Base ${base}</span>
+      </div>
+      <div class="pm-breakdown-rows">${rows || '<div class="pm-breakdown-empty">No effects</div>'}</div>
+      <div class="pm-breakdown-total">
+        <span>Total</span>
+        <span class="pm-breakdown-final">${finalPow}</span>
+      </div>
+    </div>
+  `;
 }
 
 function pmUpdateBattleCols() {
@@ -5692,6 +5880,7 @@ function pmUpdateAll() {
   pmSetRootClass();
   pmUpdateScoreboard();
   pmUpdateBattleCols();
+  pmRenderActive1v1();
   pmUpdateOpponentZone();
   pmUpdatePlayerZone();
   pmUpdateActiveEffectsBanner();

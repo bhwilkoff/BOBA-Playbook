@@ -5213,6 +5213,7 @@ function pmBuildPlaymatHTML() {
       <div class="pm-phase-indicator" id="pm-phase-label"><i data-lucide="eye" class="pm-icon pm-phase-icon" id="pm-phase-icon"></i>REVEAL</div>
       <div class="pm-honors-badge" id="pm-honors"><i data-lucide="star" class="pm-icon pm-icon-sm" style="color:#FFD700"></i> YOU HAVE HONORS</div>
     </div>
+    <button class="pm-top-help" id="pm-help-btn" aria-label="Replay walkthrough" title="Replay walkthrough">?</button>
     <button class="pm-top-exit" id="pm-exit-btn" aria-label="Exit practice"><i data-lucide="x" class="pm-icon"></i></button>
   </div>
 
@@ -6027,18 +6028,97 @@ function pmUpdatePlayerZone() {
 function pmUpdateMatchOverlay() {
   const overlay = $('pm-match-over');
   if (!overlay) return;
-  if (PM.phase === 'over') {
-    overlay.hidden = false;
-    const title = $('pm-result-title');
-    const score = $('pm-result-score');
-    if (title) {
-      title.className = `pm-result-title ${PM.matchWinner === 'player' ? 'win' : PM.matchWinner === 'cpu' ? 'lose' : 'tie'}`;
-      title.textContent = PM.matchWinner === 'player' ? 'VICTORY!' : PM.matchWinner === 'cpu' ? 'DEFEAT' : 'SUDDEN DEATH';
-    }
-    if (score) score.textContent = `${PM.playerScore} — ${PM.cpuScore}`;
-  } else {
+  if (PM.phase !== 'over') {
     overlay.hidden = true;
+    return;
   }
+  overlay.hidden = false;
+
+  const verdict =
+    PM.matchWinner === 'player' ? { title: 'VICTORY!',     sub: 'You won the match',  cls: 'win' } :
+    PM.matchWinner === 'cpu'    ? { title: 'DEFEAT',       sub: 'CPU won the match',  cls: 'lose' } :
+                                  { title: 'SUDDEN DEATH', sub: 'The match ended in a tie', cls: 'tie' };
+
+  // Trophy strip — one icon per battle. Mirrors iOS trophyStrip.
+  const trophy = (b) => {
+    const cls = b.result === 'win' ? 'win' : b.result === 'lose' ? 'lose' : b.result === 'tie' ? 'tie' : 'pending';
+    const glyph = b.result === 'win' ? '🏆' : b.result === 'lose' ? '✗' : b.result === 'tie' ? '=' : '○';
+    return `
+      <div class="pm-trophy pm-trophy--${cls}">
+        <div class="pm-trophy-glyph">${glyph}</div>
+        <div class="pm-trophy-num">${b.id + 1}</div>
+      </div>`;
+  };
+  const trophyStrip = (PM.battles || []).map(trophy).join('');
+
+  // Per-battle summary — hero + plays for each side. Mirrors iOS battleSummaryRow.
+  const summaryRow = (b) => {
+    const verdictText =
+      b.result === 'win'  ? 'YOU WON' :
+      b.result === 'lose' ? 'CPU WON' :
+      b.result === 'tie'  ? 'TIE' : '—';
+    const verdictCls =
+      b.result === 'win'  ? 'win' :
+      b.result === 'lose' ? 'lose' :
+      b.result === 'tie'  ? 'tie' : 'muted';
+    const playerFinal = (b.playerCard?.power || 0) + (b.playerEffectPower || 0);
+    const cpuFinal    = (b.cpuCard?.power    || 0) + (b.cpuEffectPower    || 0);
+    const playerPlays = (b.playerPlaysPlayed || []).map(c => c.name).join(', ');
+    const cpuPlays    = (b.cpuPlaysPlayed    || b.cpuPlaysRan || []).map(c => c.name).join(', ');
+    const playerHero  = b.playerCard?.hero || b.playerCard?.name || '';
+    const cpuHero     = b.cpuCard?.hero    || b.cpuCard?.name    || '';
+    return `
+      <div class="pm-summary-row">
+        <div class="pm-summary-row-head">
+          <span class="pm-summary-battle">BATTLE ${b.id + 1}</span>
+          <span class="pm-summary-dot">·</span>
+          <span class="pm-summary-verdict pm-summary-verdict--${verdictCls}">${verdictText}</span>
+          <span class="pm-summary-power">${playerFinal} — ${cpuFinal}</span>
+        </div>
+        <div class="pm-summary-side">
+          <span class="pm-summary-side-label">YOU</span>
+          <div class="pm-summary-side-body">
+            ${playerHero ? `<div class="pm-summary-hero">${pmEscapeHTML(playerHero)}</div>` : ''}
+            <div class="pm-summary-plays ${playerPlays ? '' : 'pm-summary-plays--empty'}">${playerPlays ? pmEscapeHTML(playerPlays) : '(no plays)'}</div>
+          </div>
+        </div>
+        <div class="pm-summary-side">
+          <span class="pm-summary-side-label">CPU</span>
+          <div class="pm-summary-side-body">
+            ${cpuHero ? `<div class="pm-summary-hero">${pmEscapeHTML(cpuHero)}</div>` : ''}
+            <div class="pm-summary-plays ${cpuPlays ? '' : 'pm-summary-plays--empty'}">${cpuPlays ? pmEscapeHTML(cpuPlays) : '(no plays)'}</div>
+          </div>
+        </div>
+      </div>`;
+  };
+  const summary = (PM.battles || []).filter(b => b.result !== null).map(summaryRow).join('');
+
+  overlay.innerHTML = `
+    <div class="pm-match-over-card">
+      <div class="pm-result-title pm-result-title--${verdict.cls}">${verdict.title}</div>
+      <div class="pm-result-sub">${verdict.sub}</div>
+      <div class="pm-result-score">${PM.playerScore} — ${PM.cpuScore}</div>
+      <div class="pm-trophy-section">
+        <div class="pm-trophy-label">BATTLE PROGRESSION</div>
+        <div class="pm-trophy-strip">${trophyStrip}</div>
+      </div>
+      <div class="pm-summary-scroll">${summary}</div>
+      <div class="pm-result-btns">
+        <button class="pm-result-btn" id="pm-restart">PLAY AGAIN</button>
+        <button class="pm-result-btn secondary" id="pm-exit-match">EXIT</button>
+      </div>
+    </div>
+  `;
+
+  // Re-bind buttons since we replaced their nodes — wire into the
+  // canonical handlers used at view-init time.
+  $('pm-restart')?.addEventListener('click', () => {
+    PM.startMatch(PM.allCards, PM._lastOpts || {});
+    pmUpdateAll();
+  });
+  $('pm-exit-match')?.addEventListener('click', () => {
+    if (typeof pmExitPlaymat === 'function') pmExitPlaymat();
+  });
 }
 
 function pmUpdateAll() {
@@ -6843,6 +6923,7 @@ function pmInitPlaymat() {
 
   // Exit / restart buttons
   $('pm-exit-btn')?.addEventListener('click', pmExitPlaymat);
+  $('pm-help-btn')?.addEventListener('click', pmReplayTutorial);
   $('pm-exit-match')?.addEventListener('click', pmExitPlaymat);
   $('pm-restart')?.addEventListener('click', () => {
     PM.startMatch(PM.allCards, PM._lastOpts || {});
@@ -7174,27 +7255,43 @@ function pmShowSetupHonorsRoll() {
 // Fires once per browser (localStorage['bp_practiceTutorialSeen_v1']).
 
 const PM_TUTORIAL_STEPS = [
-  { title: 'Battle Score',
+  { key: 'scoreboard',
+    title: 'Battle Score',
     message: "Your wins vs. the CPU's. First to 4 Battles wins the match. If it's 3–3 after Battle 7, Sudden Death decides the game.",
     selector: '.pm-scoreboard',
     placement: 'bottom' },
-  { title: 'The Active Battle',
+  { key: 'activeBattle',
+    title: 'The Active Battle',
     message: "Your Hero faces the CPU's. Higher Power wins this Battle. If Power is tied, a Hero with a Super Weapon wins — otherwise the Battle is a draw (no trophy).",
-    selector: '.pm-bc[data-battle="0"]',
+    selector: '.pm-bc.active',
     placement: 'right' },
-  { title: 'Your Bench',
+  { key: 'bench',
+    title: 'Your Bench',
     message: "Before Heroes are revealed, the Honors player may spend 2 Hot Dogs to swap their face-down Hero for one from the Bench. One Sub per Battle.",
     selector: '.pm-bench-area',
     placement: 'top' },
-  { title: 'Your Plays',
+  { key: 'plays',
+    title: 'Your Plays',
     message: "After Heroes reveal, the Honors player goes first. Play any number of Plays (paying Hot Dogs) or pass — each player gets one turn to play Plays per Battle.",
     selector: '.pm-hand-area',
     placement: 'top' },
-  { title: 'Advance the Battle',
+  { key: 'advance',
+    title: 'Advance the Battle',
     message: "Each Battle runs: Substitute → Reveal → Play → Resolve. After the Battle, both players draw 1 Play and the winner takes Honors next. Tap here to advance.",
     selector: '#pm-btn-done',
     placement: 'top' }
 ];
+
+// Mode-aware step list. Mirrors iOS PracticeView.tutorialStepsForMode:
+// Rookie skips bench + plays; Substitution keeps bench but skips plays.
+function pmTutorialStepsForCurrentMode() {
+  const mode = PM.mode || 'playmaker';
+  return PM_TUTORIAL_STEPS.filter(step => {
+    if (step.key === 'bench') return mode !== 'rookie';
+    if (step.key === 'plays') return mode === 'playmaker';
+    return true;
+  });
+}
 
 function pmMaybeShowTutorial() {
   try {
@@ -7203,13 +7300,21 @@ function pmMaybeShowTutorial() {
   pmShowTutorial(0);
 }
 
+// Re-fire the tutorial from step 0 regardless of seen state. Used by
+// the "?" button in the top bar so coaches can replay the walkthrough.
+function pmReplayTutorial() {
+  try { localStorage.removeItem('bp_practiceTutorialSeen_v1'); } catch (_) {}
+  pmShowTutorial(0);
+}
+
 function pmShowTutorial(stepIdx) {
   document.getElementById('pm-tutorial')?.remove();
 
-  const step = PM_TUTORIAL_STEPS[stepIdx];
+  const steps = pmTutorialStepsForCurrentMode();
+  const step = steps[stepIdx];
   if (!step) return;
-  const isLast = stepIdx >= PM_TUTORIAL_STEPS.length - 1;
-  const total = PM_TUTORIAL_STEPS.length;
+  const isLast = stepIdx >= steps.length - 1;
+  const total = steps.length;
 
   const target = document.querySelector(step.selector);
   if (!target) {
@@ -7223,7 +7328,7 @@ function pmShowTutorial(stepIdx) {
   overlay.id = 'pm-tutorial';
   overlay.className = 'pm-tutorial';
 
-  const dots = PM_TUTORIAL_STEPS.map((_, i) =>
+  const dots = steps.map((_, i) =>
     `<span class="pm-tutorial-dot${i === stepIdx ? ' active' : ''}"></span>`
   ).join('');
 

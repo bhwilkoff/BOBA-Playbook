@@ -5829,11 +5829,21 @@ main {
   background: rgba(255,215,0,0.12); border: 1px solid rgba(255,215,0,0.25); color: #FFD700;
   display: flex; align-items: center; gap: 3px;
 }
-.pm-root .pm-top-exit {
+.pm-root .pm-top-exit,
+.pm-root .pm-top-help {
   flex-shrink: 0; background: none; border: none; color: rgba(255,255,255,0.3);
-  cursor: pointer; padding: 6px; display: flex; align-items: center; font-size: 1.1rem; line-height: 1;
+  cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; line-height: 1;
 }
-.pm-root .pm-top-exit:hover { color: #fff; }
+.pm-root .pm-top-exit:hover,
+.pm-root .pm-top-help:hover { color: #fff; }
+.pm-root .pm-top-help {
+  font-family: var(--font-display, sans-serif);
+  font-weight: 700; width: 26px; height: 26px;
+  border-radius: 50%; border: 1px solid rgba(255,255,255,0.2);
+  font-size: 0.85rem;
+}
+.pm-root .pm-top-help:hover { border-color: rgba(255,77,0,0.5); color: #FF4D00; }
 
 /* Active persistent-effects banner — horizontally-scrolling pill
    strip that sits between the top bar and the play area. Hidden when
@@ -7212,6 +7222,103 @@ main {
 }
 .pm-root .pm-result-btn:hover { background: rgba(255,77,0,0.35); }
 .pm-root .pm-result-btn.secondary { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.5); }
+
+/* Match-over card — surface for the verdict + trophy strip + per-
+   battle summary list. Mirrors iOS matchOverOverlay. */
+.pm-root .pm-match-over-card {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 80px);
+  padding: 24px 22px 20px;
+  border-radius: 20px;
+  background: var(--boba-surface);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.pm-root .pm-result-title--win  { color: #4CAF50; }
+.pm-root .pm-result-title--lose { color: #C0392B; }
+.pm-root .pm-result-title--tie  { color: #FF4D00; }
+.pm-root .pm-result-sub {
+  font-family: var(--font-mono, monospace); font-size: 0.85rem;
+  color: rgba(255,255,255,0.65); margin-top: -6px;
+}
+
+/* Trophy strip — one icon per battle. */
+.pm-root .pm-trophy-section {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 100%;
+}
+.pm-root .pm-trophy-label {
+  font-family: var(--font-mono, monospace); font-size: 0.55rem; font-weight: 700;
+  letter-spacing: 1.5px; color: rgba(255,255,255,0.4);
+}
+.pm-root .pm-trophy-strip {
+  display: flex; gap: 6px; justify-content: center;
+}
+.pm-root .pm-trophy {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 28px;
+}
+.pm-root .pm-trophy-glyph {
+  font-size: 1.3rem; line-height: 1;
+}
+.pm-root .pm-trophy-num {
+  font-family: var(--font-mono, monospace); font-size: 0.55rem; font-weight: 700;
+  color: rgba(255,255,255,0.4);
+}
+.pm-root .pm-trophy--win .pm-trophy-glyph     { color: #4CAF50; filter: drop-shadow(0 0 6px rgba(76,175,80,0.5)); }
+.pm-root .pm-trophy--lose .pm-trophy-glyph    { color: #C0392B; }
+.pm-root .pm-trophy--tie .pm-trophy-glyph     { color: #FF4D00; }
+.pm-root .pm-trophy--pending .pm-trophy-glyph { color: rgba(255,255,255,0.2); }
+
+/* Per-battle summary scroll — capped height so 7 battles never push
+   the buttons off-screen. */
+.pm-root .pm-summary-scroll {
+  width: 100%;
+  max-height: 260px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 4px 2px;
+}
+.pm-root .pm-summary-row {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.pm-root .pm-summary-row-head {
+  display: flex; align-items: baseline; gap: 6px;
+  font-family: var(--font-mono, monospace); font-size: 0.6rem; font-weight: 700;
+}
+.pm-root .pm-summary-battle { color: #fff; letter-spacing: 1px; }
+.pm-root .pm-summary-dot { color: rgba(255,255,255,0.4); }
+.pm-root .pm-summary-verdict--win   { color: #4CAF50; }
+.pm-root .pm-summary-verdict--lose  { color: #C0392B; }
+.pm-root .pm-summary-verdict--tie   { color: #FF4D00; }
+.pm-root .pm-summary-verdict--muted { color: rgba(255,255,255,0.4); }
+.pm-root .pm-summary-power {
+  margin-left: auto;
+  color: rgba(255,255,255,0.55); font-weight: 400;
+}
+.pm-root .pm-summary-side {
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.pm-root .pm-summary-side-label {
+  font-family: var(--font-mono, monospace); font-size: 0.55rem; font-weight: 700;
+  color: rgba(255,255,255,0.4); width: 28px; letter-spacing: 1px;
+  padding-top: 2px;
+}
+.pm-root .pm-summary-side-body { flex: 1; min-width: 0; }
+.pm-root .pm-summary-hero {
+  font-family: var(--font-mono, monospace); font-size: 0.6rem; font-weight: 700;
+  color: rgba(255,255,255,0.7);
+}
+.pm-root .pm-summary-plays {
+  font-family: var(--font-mono, monospace); font-size: 0.6rem;
+  color: #00F5FF; line-height: 1.4;
+  word-wrap: break-word;
+}
+.pm-root .pm-summary-plays--empty { color: rgba(255,255,255,0.3); }
 
 /* CPU play overlay */
 .pm-cpu-overlay {

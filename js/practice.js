@@ -4119,10 +4119,33 @@ const PM = {
 
   advance() {
     if (this.matchOver) return;
+    // In-flight guard. The button handler that calls advance() also
+    // calls pmUpdateAll() which may queue CPU overlays / phase
+    // banners. The user can fire a second click before any of that
+    // settles. With pmNotifQueue.clear() removed from the body of
+    // advance(), the queue is now durable across phases — but a
+    // double-click during an inflight transition still risks the
+    // resolution / cleanup case running before the player has
+    // dismissed the CPU plays from the previous phase. Drop the
+    // second click on the floor.
+    if (this._advanceInFlight) return;
+    this._advanceInFlight = true;
+    try {
+      this._advance();
+    } finally {
+      this._advanceInFlight = false;
+    }
+  },
+
+  _advance() {
     const b = this.battles[this.currentBattle];
 
-    // Clear any pending notifications before phase transition
-    pmNotifQueue.clear();
+    // NOTE: We deliberately do NOT clear pmNotifQueue here. The
+    // previous version wiped any in-flight CPU plays / phase banners
+    // mid-animation, which is the root of the user's "things appear
+    // and disappear" / "notifications are out of order" complaints.
+    // The queue is FIFO; let it drain naturally as new entries are
+    // appended for this phase's events.
 
     switch (this.phase) {
       case 'sub':
@@ -4473,8 +4496,14 @@ const PM = {
 
   cpuDoPlay() {
     if (this.cpuPassedPlays) return;
+    // Set the passed flag at the TOP, before any work runs. Any re-
+    // entry — synchronous or otherwise — bails on the guard above
+    // instead of populating cpuPlayQueue twice. The original code
+    // set this at the bottom (line ~4641) which left a window where
+    // another caller could pass the guard while the first call was
+    // still mid-loop.
+    this.cpuPassedPlays = true;
     if (pmIsBlocked('cpu', 'block_plays')) {
-      this.cpuPassedPlays = true;
       return;
     }
     const b = this.battles[this.currentBattle];
@@ -4638,7 +4667,7 @@ const PM = {
         deferredPersistents: deferredPersistents || [],
       });
     }
-    this.cpuPassedPlays = true;
+    // (cpuPassedPlays already set at top — re-entry guard.)
   },
 
   // Dry-run: compute the pending power delta that installed continuous/battle_start
@@ -6962,8 +6991,11 @@ function pmQueueCpuPlays() {
 
 /** Show a brief toast with the effect result after playing a card */
 function pmShowEffectToast(result) {
-  // Remove any existing toast
-  document.getElementById('pm-effect-toast')?.remove();
+  // Route through pmNotifQueue so the toast appears in the correct
+  // order relative to CPU play overlays and phase banners that
+  // pmSetRootClass enqueues on the same tick. Without the queue, the
+  // toast was appending directly to the DOM and could overlap or be
+  // overlapped by CPU overlays unpredictably.
   const { card, playerDelta, cpuDelta, description } = result;
   const name = card?.name || 'Play';
   const isPositive = playerDelta > 0 || cpuDelta < 0;
@@ -6975,24 +7007,30 @@ function pmShowEffectToast(result) {
   else if (ability.includes('steal')) icon = '⚡';
   else if (ability.includes('swap')) icon = '🔄';
 
-  const toast = document.createElement('div');
-  toast.id = 'pm-effect-toast';
-  toast.className = 'pm-effect-toast';
-  toast.innerHTML = `
-    <span class="pm-effect-toast-icon">${icon}</span>
-    <span class="pm-effect-toast-name" style="color:${color}">${name}</span>
-    <span class="pm-effect-toast-desc">${description}</span>`;
-
-  const mat = $('practice-playmat');
-  if (mat) mat.appendChild(toast);
-
-  // Force reflow then animate in
-  toast.offsetHeight;
-  toast.classList.add('visible');
-  setTimeout(() => {
-    toast.classList.remove('visible');
-    setTimeout(() => toast.remove(), 400);
-  }, 2500);
+  pmNotifQueue.push({
+    show(done) {
+      document.getElementById('pm-effect-toast')?.remove();
+      const toast = document.createElement('div');
+      toast.id = 'pm-effect-toast';
+      toast.className = 'pm-effect-toast';
+      toast.innerHTML = `
+        <span class="pm-effect-toast-icon">${icon}</span>
+        <span class="pm-effect-toast-name" style="color:${color}">${name}</span>
+        <span class="pm-effect-toast-desc">${description}</span>`;
+      const mat = $('practice-playmat');
+      if (mat) mat.appendChild(toast);
+      // Force reflow then animate in
+      toast.offsetHeight;
+      toast.classList.add('visible');
+      pmNotifQueue._timer = setTimeout(() => {
+        toast.classList.remove('visible');
+        pmNotifQueue._timer = setTimeout(() => {
+          toast.remove();
+          done();
+        }, 400);
+      }, 1800);
+    }
+  });
 }
 
 // Show a single CPU play card overlay; calls done() when user dismisses

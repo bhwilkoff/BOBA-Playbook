@@ -5,9 +5,11 @@
 ## Current State
 
 - **Active work**: Purchase view (Whatnot upcoming-shows feed + Find a Store) + nav restructure (Find / Learn / Decks / Collection / Purchase). Find tab is the default landing surface and renders larger than the others.
-- **Catalog**: 17,914 cards · ~92% image coverage on R2. Cumulative power-realign audit landed 831 corrections across 15,691 Hero records.
+- **Catalog**: 17,968 cards (+54 OKC Thunder World Champions, 2026-04-28) · ~90% image coverage on R2 (OKC art still pending source). Cumulative power-realign audit landed 831 corrections across 15,691 Hero records.
 - **Open questions**:
   - Whatnot Worker — three-layer extraction (DOM regex + Apollo SSR + `__NEXT_DATA__`); see Cowork's `handoff-updates-2026-04-27/whatnot-shows-worker/` for the full plan.
+  - **Chetmate vs ChetMate casing** — OKC handoff added 6 records as "Chetmate"; pre-existing 46 records use "ChetMate" (CamelCase). BoBA's published checklist says "Chetmate". Renaming the 46 would change their bobaIds and orphan user_cards rows; deferring until Cowork can pair the rename with a Supabase migration.
+  - **OKC art sourcing** — all 54 OKC records ship with `imageFile=null`. When BoBA publishes the OKC- art (likely on bobattlearena.com/explore/world-champions or the card source), trigger a BV scrape pass scoped to OKC- pages.
 
 ---
 

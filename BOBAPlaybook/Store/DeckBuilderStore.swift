@@ -911,6 +911,38 @@ final class DeckBuilderStore {
         "\"\(s.replacingOccurrences(of: "\"", with: "\"\""))\""
     }
 
+    /// Full-deck CSV export per bobaleagues handoff §6. Carries Heroes
+    /// + Hot Dogs + Playbook + Bonus Plays in a single roundtrip-safe
+    /// file. Distinct from the legacy `deckListCSV` exporter (which
+    /// only emits the Playbook in the format the official BoBA deck
+    /// builder accepts) — keep both until the bobaleagues import path
+    /// is verified end-to-end (Ben TODO in the handoff).
+    ///
+    /// Header: `id,name,type,release,number,cost,dbs,ability,bonus`
+    /// Type values: HERO | PL | BPL | HD
+    var deckListCSVv2: String {
+        var rows = ["id,name,type,release,number,cost,dbs,ability,bonus"]
+        func row(_ c: Card, type: String) -> String {
+            let cost = c.playCost.map { String($0) } ?? ""
+            let dbs  = c.dbs.map      { String($0) } ?? ""
+            return [
+                csvEscape(c.id),
+                csvEscape(c.name),
+                type,
+                csvEscape(c.release),
+                csvEscape(c.cardNumber),
+                cost, dbs,
+                csvEscape(c.playAbility ?? ""),
+                String(c.isBonusPlay == true)
+            ].joined(separator: ",")
+        }
+        for h in heroes     { rows.append(row(h, type: "HERO")) }
+        for h in hotDogs    { rows.append(row(h, type: "HD"))   }
+        for p in plays      { rows.append(row(p, type: "PL"))   }
+        for b in bonusPlays { rows.append(row(b, type: "BPL"))  }
+        return rows.joined(separator: "\r\n")
+    }
+
     /// Parse a deck CSV string and replace the current Playbook + Bonus Plays.
     /// Returns (importedPlays, importedBonusPlays, unresolvedCardNumbers).
     /// Heroes + Hot Dogs are NOT touched — coaches keep whatever they have.
@@ -924,6 +956,11 @@ final class DeckBuilderStore {
     ///      the first Play with that name wins.
     @discardableResult
     func importDeckCSV(_ csv: String, allCards: [Card]) -> (plays: Int, bonus: Int, unresolved: [String]) {
+        // v2 detection — header starts with "id,". v2 carries the full
+        // deck (Heroes/HotDogs/Plays/BonusPlays); v1 is Playbook-only.
+        if csv.lowercased().hasPrefix("id,") {
+            return importDeckCSVv2(csv, allCards: allCards)
+        }
         let setByPrefix = Dictionary(uniqueKeysWithValues: Self.setPrefixMap.map { ($0.value, $0.key) })
 
         // Primary: (set, cardNumber) → Card  (exact match)
@@ -1017,6 +1054,109 @@ final class DeckBuilderStore {
             return (setByPrefix[prefix], num)
         }
         return (nil, raw)
+    }
+
+    /// Tolerant v2 importer per bobaleagues handoff §6. Walks the
+    /// header row to map column-name variations
+    /// (id/Card ID, name/Play Name, type/Card Type, etc.) and resolves
+    /// each row in priority order:
+    ///   1. id (bobaId-style)
+    ///   2. release + cardNumber  (or release + name)
+    ///   3. release + name match
+    ///   4. name-only match (warn if multiple releases)
+    ///   5. cardNumber-only match
+    ///   6. skip with diagnostic
+    private func importDeckCSVv2(_ csv: String, allCards: [Card]) -> (plays: Int, bonus: Int, unresolved: [String]) {
+        let lines = csv.split(whereSeparator: { $0 == "\n" || $0 == "\r" })
+            .map { String($0) }.filter { !$0.isEmpty }
+        guard let headerLine = lines.first else { return (0, 0, []) }
+        let header = parseCSVLine(headerLine).map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+        func col(_ aliases: [String]) -> Int? {
+            for (i, h) in header.enumerated() where aliases.contains(h) { return i }
+            return nil
+        }
+        let cId      = col(["id", "card id", "card_id", "bobaid"])
+        let cName    = col(["name", "play name", "card name"])
+        let cType    = col(["type", "card type", "card_type"])
+        let cRelease = col(["release", "set"])
+        let cNumber  = col(["number", "cardnumber", "card#", "card #", "card_number"])
+        let cBonus   = col(["bonus", "is_bonus", "bonusplay"])
+
+        // Indexes
+        var byId:        [String: Card] = [:]
+        var byRelNum:    [String: Card] = [:]
+        var byRelName:   [String: Card] = [:]
+        var byName:      [String: [Card]] = [:]
+        var byNumberOnly:[String: Card] = [:]
+        for c in allCards {
+            byId[c.id] = c
+            if !c.release.isEmpty { byRelNum["\(c.release)|\(c.cardNumber)"] = c }
+            if !c.release.isEmpty { byRelName["\(c.release)|\(c.name.lowercased())"] = c }
+            byName[c.name.lowercased(), default: []].append(c)
+            byNumberOnly[c.cardNumber] = c
+        }
+
+        var newHeroes: [Card] = []
+        var newHotDogs: [Card] = []
+        var newPlays: [Card] = []
+        var newBonus: [Card] = []
+        var unresolved: [String] = []
+
+        for line in lines.dropFirst() {
+            let f = parseCSVLine(line)
+            guard !f.isEmpty else { continue }
+            func at(_ i: Int?) -> String {
+                guard let i = i, i < f.count else { return "" }
+                return f[i].trimmingCharacters(in: .whitespaces)
+            }
+            let id      = at(cId)
+            let name    = at(cName)
+            let type    = at(cType).uppercased()
+            let release = at(cRelease)
+            let number  = at(cNumber)
+            let bonus   = at(cBonus).lowercased() == "true"
+
+            var resolved: Card? = nil
+            if !id.isEmpty            { resolved = byId[id] }
+            if resolved == nil, !release.isEmpty, !number.isEmpty {
+                resolved = byRelNum["\(release)|\(number)"]
+            }
+            if resolved == nil, !release.isEmpty, !name.isEmpty {
+                resolved = byRelName["\(release)|\(name.lowercased())"]
+            }
+            if resolved == nil, !name.isEmpty,
+               let cands = byName[name.lowercased()], !cands.isEmpty {
+                resolved = cands.first
+            }
+            if resolved == nil, !number.isEmpty {
+                resolved = byNumberOnly[number]
+            }
+            guard let card = resolved else {
+                if !id.isEmpty || !name.isEmpty {
+                    unresolved.append(name.isEmpty ? id : name)
+                }
+                continue
+            }
+
+            switch type {
+            case "HERO":              newHeroes.append(card)
+            case "HD", "HOTDOG":      newHotDogs.append(card)
+            case "BPL":               newBonus.append(card)
+            case "PL", "":            if bonus { newBonus.append(card) } else { newPlays.append(card) }
+            default:                  newPlays.append(card)
+            }
+        }
+
+        // Apply
+        if !newHeroes.isEmpty   { heroes = newHeroes }
+        if !newHotDogs.isEmpty  { hotDogs = newHotDogs }
+        plays      = newPlays
+        bonusPlays = newBonus
+        if (!newPlays.isEmpty || !newBonus.isEmpty) && !format.needsPlaybook {
+            format = .playmaker
+        }
+        print("[DeckBuilder] v2 CSV import → heroes=\(newHeroes.count), hotDogs=\(newHotDogs.count), plays=\(newPlays.count), bonus=\(newBonus.count), unresolved=\(unresolved.count)")
+        return (plays: newPlays.count, bonus: newBonus.count, unresolved: unresolved)
     }
 
     // MARK: - Legality audit (evaluate deck vs every preset)

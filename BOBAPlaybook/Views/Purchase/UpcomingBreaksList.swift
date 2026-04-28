@@ -107,10 +107,13 @@ struct UpcomingBreaksList: View {
                     .foregroundStyle(Design.Colors.bobaCyan)
                     .lineLimit(1)
                 Spacer(minLength: 0)
-                if !show.isLiveShow, !show.scheduledTimeText.isEmpty {
-                    Text(show.scheduledTimeText)
-                        .font(Design.Fonts.mono(10, weight: .bold))
-                        .foregroundStyle(Design.Colors.bobaOrange)
+                if !show.isLiveShow {
+                    let local = Self.localTimeText(for: show)
+                    if !local.isEmpty {
+                        Text(local)
+                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                    }
                 }
             }
             Text(show.title)
@@ -181,6 +184,25 @@ struct UpcomingBreaksList: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity).padding(.vertical, Design.Spacing.lg)
+    }
+
+    /// Renders the show's start time in the device's local timezone.
+    /// Worker returns `scheduledTimeText` pre-formatted in PT; we
+    /// re-derive from the timestamp fields so coaches in other zones
+    /// don't see the wrong clock time.
+    private static func localTimeText(for show: WhatnotShow) -> String {
+        guard let date = show.scheduledDate else { return show.scheduledTimeText }
+        let cal = Calendar.current
+        let timeFmt = DateFormatter()
+        timeFmt.locale = .current
+        timeFmt.dateFormat = "h:mm a"
+        let timeStr = timeFmt.string(from: date)
+        if cal.isDateInToday(date)    { return "Today \(timeStr)" }
+        if cal.isDateInTomorrow(date) { return "Tomorrow \(timeStr)" }
+        let dayFmt = DateFormatter()
+        dayFmt.locale = .current
+        dayFmt.dateFormat = "EEE h:mm a"
+        return dayFmt.string(from: date)
     }
 
     private func load(force: Bool) async {

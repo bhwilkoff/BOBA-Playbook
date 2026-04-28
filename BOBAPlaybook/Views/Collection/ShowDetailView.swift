@@ -406,13 +406,13 @@ struct ShowDetailView: View {
         }
     }
 
-    /// Shows the system share sheet with both a JPEG file and the
-    /// UIImage payload. The JPEG file gives Whatnot / Discord / Files
-    /// / camera roll a real image with a sane filename; the UIImage
-    /// fallback ensures Save to Photos appears even when the JPEG
-    /// representation isn't requested by the activity.
+    /// Shows the system share sheet with the wall image. We pass a
+    /// SINGLE item — preferring the JPEG file URL when we can write
+    /// one, falling back to the UIImage. The earlier version passed
+    /// both, which caused some target apps (e.g. Messages, Mail)
+    /// to attach the image twice.
     private func shareWall(_ img: UIImage) {
-        var items: [Any] = [img]
+        var items: [Any] = []
         if let jpeg = img.jpegData(compressionQuality: 0.92) {
             let safe = show.name
                 .replacingOccurrences(of: "/", with: "-")
@@ -421,8 +421,12 @@ struct ShowDetailView: View {
                 .appendingPathComponent("BOBA_\(safe).jpg")
             do {
                 try jpeg.write(to: url, options: .atomic)
-                items.insert(url, at: 0)   // file first → preview shows the image with a filename
-            } catch { /* fall back to UIImage-only */ }
+                items = [url]   // file URL gives a sane filename + Save to Photos
+            } catch {
+                items = [img]
+            }
+        } else {
+            items = [img]
         }
         // Reuse the existing ActivityShareSheet wrapper; presented via
         // the topmost UIWindow scene because we're inside a SwiftUI

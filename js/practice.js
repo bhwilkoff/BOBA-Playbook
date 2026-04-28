@@ -487,6 +487,34 @@ const DB = {
     return rows.join('\r\n');
   },
 
+  // ── Full-deck CSV export per bobaleagues handoff §6 ──────────────
+  // Header: id,name,type,release,number,cost,dbs,ability,bonus
+  // Carries Heroes + Hot Dogs + Playbook + Bonus Plays in one file
+  // (importCSV detects the header automatically and routes here).
+  exportCSVv2() {
+    function s(x) { return `"${String(x ?? '').replace(/"/g, '""')}"`; }
+    const rows = ['id,name,type,release,number,cost,dbs,ability,bonus'];
+    function row(c, type) {
+      const cost = c.playCost != null ? c.playCost : '';
+      const dbs  = c.dbs != null ? c.dbs : '';
+      return [
+        s(c.bobaId || c.cardNumber),
+        s(c.name),
+        type,
+        s(c.release || c.set || ''),
+        s(c.cardNumber),
+        cost, dbs,
+        s(c.description || c.playAbility || ''),
+        String(c.isBonusPlay === true)
+      ].join(',');
+    }
+    for (const h of this.heroes)     rows.push(row(h, 'HERO'));
+    for (const h of this.hotDogs)    rows.push(row(h, 'HD'));
+    for (const p of this.plays)      rows.push(row(p, 'PL'));
+    for (const b of this.bonusPlays) rows.push(row(b, 'BPL'));
+    return rows.join('\r\n');
+  },
+
   clear() {
     this.heroes = []; this.plays = []; this.bonusPlays = []; this.hotDogs = [];
     this.deckName = 'New Deck';
@@ -498,6 +526,9 @@ const DB = {
   // bonusPlays by slot; leaves heroes + hot dogs untouched so the
   // coach keeps whatever they have.
   importCSV(csvText, allCards) {
+    // v2 detection — header begins "id,". v2 carries the full deck
+    // (Heroes/HotDogs/Plays/BonusPlays); v1 is Playbook-only.
+    if (/^id,/i.test(csvText)) return this._importCSVv2(csvText, allCards);
     const SET_BY_PREFIX = {
       'A': 'Alpha Edition',
       'U': 'Alpha Update',
@@ -530,6 +561,63 @@ const DB = {
     }
 
     this.plays = newPlays;
+    this.bonusPlays = newBonus;
+    return { plays: newPlays.length, bonus: newBonus.length, unresolved };
+  },
+
+  // Tolerant v2 importer per bobaleagues handoff §6.
+  _importCSVv2(csvText, allCards) {
+    const lines = csvText.split(/\r?\n/).filter(Boolean);
+    if (!lines.length) return { plays: 0, bonus: 0, unresolved: [] };
+    const header = this._parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+    const col = (aliases) => header.findIndex(h => aliases.includes(h));
+    const cId      = col(['id','card id','card_id','bobaid']);
+    const cName    = col(['name','play name','card name']);
+    const cType    = col(['type','card type','card_type']);
+    const cRelease = col(['release','set']);
+    const cNumber  = col(['number','cardnumber','card#','card #','card_number']);
+    const cBonus   = col(['bonus','is_bonus','bonusplay']);
+    const byId      = new Map();
+    const byRelNum  = new Map();
+    const byRelName = new Map();
+    const byName    = new Map();
+    const byNumber  = new Map();
+    for (const c of allCards) {
+      if (c.bobaId) byId.set(c.bobaId, c);
+      const rel = c.release || c.set || '';
+      if (rel) byRelNum.set(`${rel}|${c.cardNumber}`, c);
+      if (rel) byRelName.set(`${rel}|${(c.name||'').toLowerCase()}`, c);
+      const k = (c.name||'').toLowerCase();
+      if (!byName.has(k)) byName.set(k, []);
+      byName.get(k).push(c);
+      byNumber.set(c.cardNumber, c);
+    }
+    const newHeroes = [], newHotDogs = [], newPlays = [], newBonus = [], unresolved = [];
+    for (const line of lines.slice(1)) {
+      const f = this._parseCSVLine(line);
+      if (!f.length) continue;
+      const at = (i) => (i >= 0 && i < f.length) ? (f[i] || '').trim() : '';
+      const id = at(cId), name = at(cName), type = at(cType).toUpperCase();
+      const release = at(cRelease), number = at(cNumber);
+      const bonus = at(cBonus).toLowerCase() === 'true';
+      let card = (id && byId.get(id))
+              || (release && number && byRelNum.get(`${release}|${number}`))
+              || (release && name && byRelName.get(`${release}|${name.toLowerCase()}`))
+              || (name && byName.get(name.toLowerCase())?.[0])
+              || (number && byNumber.get(number))
+              || null;
+      if (!card) { if (id || name) unresolved.push(name || id); continue; }
+      switch (type) {
+        case 'HERO':              newHeroes.push(card);  break;
+        case 'HD': case 'HOTDOG': newHotDogs.push(card); break;
+        case 'BPL':               newBonus.push(card);   break;
+        case 'PL': case '':       (bonus ? newBonus : newPlays).push(card); break;
+        default:                  newPlays.push(card);
+      }
+    }
+    if (newHeroes.length)  this.heroes  = newHeroes;
+    if (newHotDogs.length) this.hotDogs = newHotDogs;
+    this.plays      = newPlays;
     this.bonusPlays = newBonus;
     return { plays: newPlays.length, bonus: newBonus.length, unresolved };
   },

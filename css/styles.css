@@ -335,55 +335,6 @@ select { cursor: pointer; }
   background: rgba(255,77,0,0.08);
   border-left-color: var(--boba-orange);
 }
-/* Find — primary entry. Bigger than the other nav rows: larger
-   icon, taller padding, more pronounced glassy orange bubble. The
-   sibling rows feel small next to it, which is the point. */
-.sidebar-nav-item--primary {
-  margin: var(--sp-3) var(--sp-3);
-  padding: 22px var(--sp-4);
-  border-left: 0;
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(255,77,0,0.30) 0%, rgba(255,77,0,0.10) 100%);
-  border: 1.5px solid rgba(255,77,0,0.55);
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.06) inset,
-    0 8px 28px rgba(255,77,0,0.32),
-    0 0 60px rgba(255,77,0,0.12);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  color: var(--boba-orange);
-  font-size: 1.15rem;
-  letter-spacing: 0.10em;
-  font-weight: 800;
-  width: auto;
-  gap: 14px;
-}
-.sidebar-nav-item--primary .nav-icon {
-  width: 32px; height: 32px; stroke-width: 2.6;
-  filter: drop-shadow(0 0 8px rgba(255,77,0,0.5));
-}
-.sidebar-nav-item--primary:hover {
-  background: linear-gradient(135deg, rgba(255,77,0,0.42) 0%, rgba(255,77,0,0.16) 100%);
-  border-color: rgba(255,77,0,0.75);
-  color: #fff;
-  transform: translateY(-1px);
-}
-.sidebar-nav-item--primary.active {
-  background: linear-gradient(135deg, rgba(255,77,0,0.45) 0%, rgba(255,77,0,0.18) 100%);
-  border-color: var(--boba-orange);
-  color: var(--boba-orange);
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.10) inset,
-    0 10px 32px rgba(255,77,0,0.45),
-    0 0 80px rgba(255,77,0,0.18);
-}
-body.sidebar-collapsed .sidebar-nav-item--primary {
-  margin: var(--sp-3) auto;
-  padding: 16px 0;
-  width: calc(var(--sidebar-w-collapsed) - var(--sp-2) * 2);
-  justify-content: center;
-}
-
 .nav-icon { width: 16px; height: 16px; flex-shrink: 0; }
 
 /* ================================================================
@@ -404,17 +355,6 @@ body.sidebar-collapsed .sidebar-nav-item--primary {
   font-family: var(--font-mono); font-size: 0.85rem;
   color: var(--boba-text-2); margin: 0;
 }
-.purchase-section { display: flex; flex-direction: column; gap: var(--sp-4); }
-.purchase-section-head { display: flex; flex-direction: column; gap: 4px; }
-.purchase-section-title {
-  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
-  letter-spacing: 2px; color: var(--boba-orange); margin: 0;
-}
-.purchase-section-sub {
-  font-family: var(--font-mono); font-size: 0.78rem;
-  color: var(--boba-text-muted); margin: 0;
-}
-
 /* Show list — 2-column grid on wider screens, single column on
    narrow. Thumbnails are portrait (Whatnot serves them at ~5:7 to
    match trading-card art) so we keep that aspect rather than
@@ -518,27 +458,6 @@ body.sidebar-collapsed .sidebar-nav-item--primary {
   letter-spacing: 2px; color: var(--boba-text-muted);
   padding-top: var(--sp-3);
   border-top: 1px solid var(--boba-glass-border);
-}
-
-/* Find-a-store quick link */
-.purchase-store-link {
-  display: flex; align-items: center; gap: var(--sp-4);
-  padding: var(--sp-4); border-radius: 14px;
-  background: var(--boba-surface); border: 1px solid var(--boba-glass-border);
-  cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
-  color: inherit; text-align: left; width: 100%;
-}
-.purchase-store-link:hover {
-  border-color: rgba(255,77,0,0.45);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-}
-.purchase-store-link svg { color: var(--boba-orange); flex-shrink: 0; }
-.purchase-store-link-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-.purchase-store-link-title {
-  font-family: var(--font-display); font-size: 1rem; color: var(--boba-text);
-}
-.purchase-store-link-sub {
-  font-family: var(--font-mono); font-size: 0.7rem; color: var(--boba-text-muted);
 }
 
 /* ================================================================

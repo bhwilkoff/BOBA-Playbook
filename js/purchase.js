@@ -136,9 +136,6 @@
   function init() {
     if (initialized) return;
     initialized = true;
-    document.getElementById('purchase-go-stores')?.addEventListener('click', () => {
-      if (typeof window.showView === 'function') window.showView('stores');
-    });
     render();
   }
 

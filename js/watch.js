@@ -341,7 +341,15 @@ const Watch = (() => {
     const channel = document.getElementById('watch-player-channel');
     const desc    = document.getElementById('watch-player-description');
 
-    iframe.src = `https://www.youtube.com/embed/${encodeURIComponent(v.videoId)}?autoplay=1&playsinline=1&modestbranding=1&rel=0`;
+    // youtube-nocookie + enablejsapi + origin/widget_referrer is the
+    // post-July-2025 incantation that avoids Error 152/153 in
+    // restricted embed contexts. Mirrors the iOS YouTubePlayerView
+    // setup so both platforms share the same embed shape.
+    const origin = encodeURIComponent(window.location.origin || 'https://bobaplaybook.com');
+    iframe.src =
+      `https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.videoId)}` +
+      `?autoplay=1&playsinline=1&modestbranding=1&rel=0&enablejsapi=1` +
+      `&origin=${origin}&widget_referrer=${origin}`;
     title.textContent   = v.title || '';
     channel.textContent = v.channelTitle || '';
     if (desc) {

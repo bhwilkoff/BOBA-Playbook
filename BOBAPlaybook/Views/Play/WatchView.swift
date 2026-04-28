@@ -130,18 +130,18 @@ struct WatchView: View {
         .refreshable { await feed.loadAll() }
     }
 
-    /// Vertical-recorded — 3-column 9:16 grid. Catches both Shorts
-    /// and phone-edition cuts of longer shows. We pin the column
-    /// count explicitly (instead of `.adaptive(minimum:maximum:)`)
-    /// because the adaptive sizing was collapsing to a single
-    /// column on iPhone widths once the outer Lg padding was
-    /// subtracted. Three flexible columns gives the dense
-    /// Shorts-grid feel users expect.
+    /// Vertical-recorded — 2-column 9:16 grid. Three was too dense
+    /// on iPhone (titles got truncated past readability); two leaves
+    /// each tile wide enough that the title comfortably wraps to
+    /// two lines. Cards use a center-cropped 9:16 thumbnail (the
+    /// custom thumbnails creators upload for vertical content like
+    /// Radish's 📱 daily-show edition are usually 16:9, so the crop
+    /// gives a vertical slice rather than letterboxing — which the
+    /// user explicitly preferred over horizontal letterboxing).
     private var verticalGrid: some View {
         ScrollView {
             LazyVGrid(
                 columns: [
-                    GridItem(.flexible(), spacing: Design.Spacing.sm),
                     GridItem(.flexible(), spacing: Design.Spacing.sm),
                     GridItem(.flexible(), spacing: Design.Spacing.sm),
                 ],
@@ -152,7 +152,7 @@ struct WatchView: View {
                         .onTapGesture { playing = video }
                 }
             }
-            .padding(Design.Spacing.md)
+            .padding(Design.Spacing.lg)
         }
         .refreshable { await feed.loadAll() }
     }
@@ -335,27 +335,19 @@ private struct ThumbnailView: View {
     let url: String?
     let aspect: CGFloat
 
-    /// YouTube's API ships every video's `maxres` thumbnail at 16:9
-    /// regardless of source orientation, so vertical cards (9:16
-    /// frame) need the image to letterbox inside the frame rather
-    /// than scale-to-fill (which would crop the horizontal art into
-    /// an awkward middle slice). We pick `.fit` for vertical frames
-    /// and `.fill` for horizontal frames where the thumbnail's
-    /// native shape already matches.
-    private var imageContentMode: ContentMode {
-        aspect < 1 ? .fit : .fill
-    }
-
     var body: some View {
         ZStack {
-            // Black background so the letterbox bars on vertical
-            // cards read as intentional rather than transparent gaps.
-            RoundedRectangle(cornerRadius: 8).fill(Color.black)
+            RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface2)
             if let urlString = url, let url = URL(string: urlString) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):
-                        img.resizable().aspectRatio(contentMode: imageContentMode)
+                        // .fill = center-crop. For vertical cards
+                        // (aspect < 1) this gives a vertical slice
+                        // of the 16:9 source thumbnail, which reads
+                        // better than letterboxing per the user's
+                        // direction (2026-04-28).
+                        img.resizable().aspectRatio(contentMode: .fill)
                     default:
                         Image(systemName: "play.rectangle.fill")
                             .font(.system(size: 28))
@@ -497,9 +489,67 @@ private struct VideoPlayerSheet: View {
                         .font(Design.Fonts.mono(13, weight: .bold))
                         .foregroundStyle(Design.Colors.bobaOrange)
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    OpenInYouTubeButton(videoId: video.videoId)
+                }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
     }
+}
+
+// MARK: - Open-in-YouTube fallback
+//
+// The IFrame embed works for ~95% of videos, but a small fraction
+// (creator-disabled, age-gated, region-locked, music rights) error
+// out with code 152/153 and surface YouTube's "Watch video on
+// YouTube" CTA inside the iframe. A user-visible escape hatch in
+// the player sheet header gives the same CTA the same prominence
+// without forcing the user to tap into the broken iframe first.
+//
+// Routing prefers the YouTube app via the `youtube://` URL scheme
+// when installed (zero-friction continuation); falls back to
+// SFSafariViewController otherwise. SFSafariViewController shares
+// cookies with mobile Safari so any creator-required age/region
+// gates handle naturally.
+private struct OpenInYouTubeButton: View {
+    let videoId: String
+    @State private var safariURL: URL? = nil
+
+    var body: some View {
+        Button {
+            openOnYouTube()
+        } label: {
+            Image(systemName: "arrow.up.forward.app")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Design.Colors.bobaCyan)
+        }
+        .accessibilityLabel("Open in YouTube")
+        .sheet(item: $safariURL) { url in
+            SafariView(url: url)
+                .ignoresSafeArea()
+        }
+    }
+
+    private func openOnYouTube() {
+        let appURL = URL(string: "youtube://watch?v=\(videoId)")!
+        let webURL = URL(string: "https://www.youtube.com/watch?v=\(videoId)")!
+        if UIApplication.shared.canOpenURL(appURL) {
+            UIApplication.shared.open(appURL)
+        } else {
+            // SFSafariViewController as the in-app fallback per
+            // Apple HIG; shares cookies with Safari so any auth
+            // gating works.
+            safariURL = webURL
+        }
+    }
+}
+
+// Identifiable conformance so the .sheet(item:) presenter accepts
+// a URL directly. Local-scoped to keep the helper close to the
+// only view that uses it; if Safari sheets become a pattern we
+// can promote this into Components.
+extension URL: @retroactive Identifiable {
+    public var id: String { absoluteString }
 }

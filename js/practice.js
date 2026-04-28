@@ -696,13 +696,16 @@ function dbRenderDeckList() {
   }
 }
 
-// Template metadata + key mapping to template-decks.json
+// Template metadata + key mapping to template-decks.json. Replaced
+// 2026-04-27 per bobaleagues handoff §7 — the new five reflect
+// frequency analysis of community top-tier decks under the post-patch
+// DBS budget. Old keys (fire-aggro / ice-control / etc.) are gone.
 const DB_TEMPLATES = [
-  { id: 'fire',  key: 'fire-aggro',          name: 'Fire Aggro',          desc: 'Aggressive tempo — Fire weapon synergies' },
-  { id: 'ice',   key: 'ice-control',          name: 'Ice Control',         desc: 'Defensive control — deny and outlast' },
-  { id: 'steel', key: 'steel-wall',           name: 'Steel Wall',          desc: 'Durable defense — Steel weapon cards' },
-  { id: 'mixed', key: 'mixed-toolbox',        name: 'Mixed Toolbox',       desc: 'Flexible answers for every situation' },
-  { id: 'eco',   key: 'economy-attrition',    name: 'Economy / Attrition', desc: 'Starve opponent of Hot Dogs' },
+  { id: 'lockdown', key: 'lockdown-locker', name: 'Lockdown Locker', desc: 'Steel-anchored disruption — high-DBS lockouts close out mid-game.' },
+  { id: 'frozen',   key: 'frozen-tempo',    name: 'Frozen Tempo',    desc: 'Ice synergy + Substitution control + economy denial.' },
+  { id: 'draw',     key: 'draw-and-adapt',  name: 'Draw and Adapt',  desc: 'Engine-first. Maximum draw and situational answers.' },
+  { id: 'glow',     key: 'glow-sacrifice',  name: 'Glow Sacrifice',  desc: 'Spec format: discard-fuel + Glow synergy.' },
+  { id: 'brawl',    key: 'brawl-beatdown',  name: 'Brawl Beatdown',  desc: 'Aggro tempo. Win the first 3–4 battles.' },
 ];
 
 // Fetched once at initDeckBuilder time; keyed by template key

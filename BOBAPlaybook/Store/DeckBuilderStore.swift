@@ -1168,13 +1168,18 @@ struct DeckTemplate: Identifiable {
     let bonusPlayIds: [String]
     let hotDogIds: [String]
 
-    // Metadata for the 5 archetypes — IDs loaded from TemplateDeck.json bundle file
+    // Metadata for the 5 archetypes — IDs loaded from TemplateDeck.json bundle file.
+    // Replaced 2026-04-27 per the bobaleagues handoff §7 design briefs.
+    // The previous 5 (Fire Aggro / Ice Control / Steel Wall / Mixed Toolbox /
+    // Economy-Attrition) were reasoned-from-first-principles archetypes; the
+    // new five are informed by frequency analysis of community top-tier decks
+    // (handoff §8) under the post-2026-04-27 DBS rebalance.
     private static let metadata: [(id: String, name: String, description: String)] = [
-        ("fire-aggro",        "Fire Aggro",          "Aggressive tempo deck focused on Fire weapon synergies. Play fast, burn resources, win battles before your opponent can set up."),
-        ("ice-control",       "Ice Control",         "Defensive control deck using Ice plays to deny your opponent's strategies and outlast them over 7 battles."),
-        ("steel-wall",        "Steel Wall",           "Durable defense focused on Steel weapon cards. Build consistent power advantages with protective plays."),
-        ("mixed-toolbox",     "Mixed Toolbox",        "Flexible all-elements deck with answers for every situation. Adapt to your opponent's strategy."),
-        ("economy-attrition", "Economy / Attrition",  "Resource denial archetype. Starve your opponent of Hot Dogs while conserving your own."),
+        ("lockdown-locker", "Lockdown Locker", "Steel-anchored disruption. Build hot-dog economy early, then close mid-game with high-DBS lockout plays. Teaches when to hold lockouts for late-battle swings."),
+        ("frozen-tempo",    "Frozen Tempo",    "Ice synergy + Substitution control + economy denial. Teaches Substitution as a strategic axis, not just a panic button."),
+        ("draw-and-adapt",  "Draw and Adapt",  "Engine-first deck. Maximum draw, situational answers, recovery loops. Teaches how draw advantage compounds across 7 battles."),
+        ("glow-sacrifice",  "Glow Sacrifice",  "Spec format: discard-fuel + Glow weapon synergy + bonus-play toolbox. Teaches Spec format constraints + discard-as-fuel pattern."),
+        ("brawl-beatdown",  "Brawl Beatdown",  "Aggro tempo. Brawl/Fire mix, front-loaded power, win the first 3-4 battles. Teaches tempo-aggro counter-strategy."),
     ]
 
     // Loaded once from TemplateDeck.json bundled resource

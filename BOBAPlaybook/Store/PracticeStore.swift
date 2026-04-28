@@ -1834,18 +1834,22 @@ final class PracticeStore {
         guard !pool.isEmpty else { return [] }
         PlayEffects.loadIfNeeded()
 
-        // Resolve each card's play-effects category. Cards with no
-        // entry (very rare — auditor catches these) get "unknown."
         func categoryOf(_ c: Card) -> String {
             (PlayEffects.entry(for: c.name)?["category"] as? String) ?? "unknown"
         }
 
-        // Bucket by triad role:
-        //   recovery: economy + value (HD recovery, card draw)
-        //   buffs:    tempo + conditional + persistent (power swings)
-        //   utility:  utility (search / swap / reorder)
-        //   denial:   disruption (debuffs, blocks, force-discards)
-        // Bonus plays are handled separately under the 6-card cap.
+        // Composition rebalanced 2026-04-27 per the bobaleagues meta
+        // analysis (handoff §8) AFTER BoBA's same-day DBS rebalance:
+        //   ~10 draw/recovery       (economy + value)
+        //   ~6  buffs               (tempo / conditional / persistent)
+        //   ~3  utility             (search / swap / reorder)
+        //   ~3  denial              (disruption)
+        //   ~2  high-DBS lockout finishers (≥80 DBS post-patch)
+        //   ~6  bonus plays         (cap: 15 per BoBA rules; default 6
+        //                            preserves the prior tuning)
+        // Triple "Champion's Lasso" / "Dog Gone Inflation" / "No
+        // Huddle" are guaranteed when present in the pool — they
+        // appeared in 4/4 captured top decks.
         let regular = pool.filter { $0.isBonusPlay != true }
         let bonus   = pool.filter { $0.isBonusPlay == true }.shuffled()
 
@@ -1860,42 +1864,54 @@ final class PracticeStore {
             default:                             byRole["other",    default: []].append(c)
             }
         }
-        // Shuffle each bucket
         for k in byRole.keys { byRole[k] = byRole[k]?.shuffled() }
 
-        // Target: 8 recovery, 8 buffs, 4 utility, 4 denial,
-        // up to 6 bonus = 30 total. Adjust if any bucket is thin.
+        // High-DBS lockout finishers — sorted descending so we always
+        // draw the most expensive ones first. The 80-DBS floor is
+        // post-patch (Reload, Flash Sale, Steel Defense, etc.).
+        let lockouts = regular
+            .filter { ($0.dbs ?? 0) >= 80 }
+            .sorted { ($0.dbs ?? 0) > ($1.dbs ?? 0) }
+
+        // Community staples — guaranteed inclusion when present.
+        let stapleNames: Set<String> = [
+            "The Champion's Lasso",
+            "Dog Gone Inflation",
+            "No Huddle",
+        ]
+        let staples = regular.filter { stapleNames.contains($0.name) }
+
         var deck: [Card] = []
         var deckIDs: Set<String> = []
+        func tryAdd(_ c: Card) {
+            guard !deckIDs.contains(c.id), deck.count < 30 else { return }
+            deck.append(c); deckIDs.insert(c.id)
+        }
         func draw(_ key: String, _ count: Int) {
             var taken = 0
             for c in byRole[key] ?? [] where taken < count {
-                if !deckIDs.contains(c.id) {
-                    deck.append(c); deckIDs.insert(c.id); taken += 1
-                }
+                if !deckIDs.contains(c.id) { tryAdd(c); taken += 1 }
             }
         }
-        draw("recovery", 8)
-        draw("buffs",    8)
-        draw("utility",  4)
-        draw("denial",   4)
-        // Bonus plays — capped at 6 per handoff guidance ("Never
-        // more than 6 bonus plays — too many cards dilutes your
-        // Playbook.").
+
+        // 1. Lockouts first (2 if available)
+        for c in lockouts.prefix(2) { tryAdd(c) }
+        // 2. Community staples (guaranteed if in pool)
+        for c in staples { tryAdd(c) }
+        // 3. Triad — counts include any staples already added in those roles.
+        draw("recovery", 10)
+        draw("buffs",    6)
+        draw("utility",  3)
+        draw("denial",   3)
+        // 4. Bonus plays — default 6, capped at 15 (rule limit).
         var bonusTaken = 0
         for c in bonus where bonusTaken < 6 && deck.count < 30 {
-            if !deckIDs.contains(c.id) {
-                deck.append(c); deckIDs.insert(c.id); bonusTaken += 1
-            }
+            if !deckIDs.contains(c.id) { tryAdd(c); bonusTaken += 1 }
         }
-        // Backfill any shortage from any role (still excludes
-        // duplicate IDs).
+        // 5. Backfill any shortage.
         if deck.count < 30 {
-            let backfill = regular.shuffled()
-            for c in backfill where deck.count < 30 {
-                if !deckIDs.contains(c.id) {
-                    deck.append(c); deckIDs.insert(c.id)
-                }
+            for c in regular.shuffled() where deck.count < 30 {
+                if !deckIDs.contains(c.id) { tryAdd(c) }
             }
         }
         return deck.shuffled()

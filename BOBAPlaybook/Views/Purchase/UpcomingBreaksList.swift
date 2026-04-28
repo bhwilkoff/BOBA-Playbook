@@ -2,10 +2,10 @@
 //  UpcomingBreaksList.swift
 //  BOBAPlaybook
 //
-//  Renders the Whatnot upcoming-shows feed as a vertical stack of
-//  large card tiles (image + host + scheduled time + title +
-//  viewer count). Tap → open whatnot.com/live/{id} in the system
-//  browser.
+//  Renders the Whatnot live + upcoming feed as a 2-column grid of
+//  card-shape (5:7 portrait) tiles. Each tile links out to
+//  whatnot.com/live/{id}. Live shows display a pulsing red LIVE
+//  pill in the top-left of the thumbnail.
 //
 
 import SwiftUI
@@ -36,90 +36,15 @@ struct UpcomingBreaksList: View {
                 }
             }
         }
-        .task {
-            await load(force: false)
-        }
-        .refreshable {
-            await load(force: true)
-        }
+        .task { await load(force: false) }
+        .refreshable { await load(force: true) }
     }
 
     private func showCard(_ show: WhatnotShow) -> some View {
         Link(destination: URL(string: show.showUrl) ?? URL(string: "https://whatnot.com")!) {
             VStack(alignment: .leading, spacing: 0) {
-                // Card-shape thumbnail (5:7 portrait — matches Whatnot's
-                // trading-card-shaped images so we don't aggressively
-                // crop the show art).
-                ZStack(alignment: .topLeading) {
-                    AsyncImage(url: URL(string: show.thumbnailUrl)) { phase in
-                        switch phase {
-                        case .empty:
-                            Rectangle().fill(Design.Colors.surface)
-                        case .success(let image):
-                            image.resizable().scaledToFill()
-                        case .failure:
-                            Rectangle().fill(Design.Colors.surface)
-                                .overlay(Image(systemName: "tv")
-                                    .font(.system(size: 36))
-                                    .foregroundStyle(Design.Colors.textMuted))
-                        @unknown default:
-                            Rectangle().fill(Design.Colors.surface)
-                        }
-                    }
-                    .aspectRatio(5.0/7.0, contentMode: .fill)
-                    .clipped()
-
-                    // LIVE pill — pulsing red badge for currently-streaming shows.
-                    if show.isLiveShow {
-                        HStack(spacing: 4) {
-                            Circle().fill(.white).frame(width: 6, height: 6)
-                            Text("LIVE")
-                                .font(Design.Fonts.mono(9, weight: .bold))
-                                .foregroundStyle(.white)
-                                .tracking(1)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(Color(hex: "C0392B")))
-                        .padding(8)
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 6) {
-                        Text("@\(show.host)")
-                            .font(Design.Fonts.mono(10, weight: .bold))
-                            .foregroundStyle(Design.Colors.bobaCyan)
-                            .lineLimit(1)
-                        Spacer(minLength: 0)
-                        if !show.isLiveShow, !show.scheduledTimeText.isEmpty {
-                            Text(show.scheduledTimeText)
-                                .font(Design.Fonts.mono(10, weight: .bold))
-                                .foregroundStyle(Design.Colors.bobaOrange)
-                        }
-                    }
-                    Text(show.title)
-                        .font(Design.Fonts.display(13))
-                        .foregroundStyle(Design.Colors.textPrimary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    HStack(spacing: 8) {
-                        if !show.categoryName.isEmpty {
-                            Text(show.categoryName.uppercased())
-                                .font(Design.Fonts.mono(8, weight: .bold))
-                                .foregroundStyle(Design.Colors.textMuted)
-                                .tracking(1)
-                        }
-                        if show.viewerCount > 0 {
-                            Text("\(show.viewerCount) \(show.isLiveShow ? "watching" : "interested")")
-                                .font(Design.Fonts.mono(8))
-                                .foregroundStyle(Design.Colors.textMuted)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                }
-                .padding(Design.Spacing.sm)
+                thumbnail(show)
+                cardFooter(show)
             }
             .background(
                 RoundedRectangle(cornerRadius: Design.Radius.md)
@@ -130,13 +55,99 @@ struct UpcomingBreaksList: View {
         .buttonStyle(.plain)
     }
 
+    @ViewBuilder
+    private func thumbnail(_ show: WhatnotShow) -> some View {
+        // 5:7 portrait container; image fills via overlay so it can
+        // never overflow the cell. Using `.aspectRatio(.fill)` directly
+        // on AsyncImage caused the intrinsic image dimensions (~414×640)
+        // to dictate the layout and the cards overlapped each other.
+        Color.clear
+            .aspectRatio(5.0/7.0, contentMode: .fit)
+            .overlay(
+                AsyncImage(url: URL(string: show.thumbnailUrl)) { phase in
+                    switch phase {
+                    case .empty:
+                        Rectangle().fill(Design.Colors.surface)
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    case .failure:
+                        Rectangle().fill(Design.Colors.surface)
+                            .overlay(Image(systemName: "tv")
+                                .font(.system(size: 36))
+                                .foregroundStyle(Design.Colors.textMuted))
+                    @unknown default:
+                        Rectangle().fill(Design.Colors.surface)
+                    }
+                }
+            )
+            .clipped()
+            .overlay(alignment: .topLeading) {
+                if show.isLiveShow {
+                    HStack(spacing: 4) {
+                        Circle().fill(.white).frame(width: 6, height: 6)
+                        Text("LIVE")
+                            .font(Design.Fonts.mono(9, weight: .bold))
+                            .foregroundStyle(.white)
+                            .tracking(1)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Color(hex: "C0392B")))
+                    .padding(8)
+                }
+            }
+    }
+
+    @ViewBuilder
+    private func cardFooter(_ show: WhatnotShow) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                Text("@\(show.host)")
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                if !show.isLiveShow, !show.scheduledTimeText.isEmpty {
+                    Text(show.scheduledTimeText)
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                }
+            }
+            Text(show.title)
+                .font(Design.Fonts.display(13))
+                .foregroundStyle(Design.Colors.textPrimary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 8) {
+                if !show.categoryName.isEmpty {
+                    Text(show.categoryName.uppercased())
+                        .font(Design.Fonts.mono(8, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .tracking(1)
+                }
+                if show.viewerCount > 0 {
+                    Text("\(show.viewerCount) \(show.isLiveShow ? "watching" : "interested")")
+                        .font(Design.Fonts.mono(8))
+                        .foregroundStyle(Design.Colors.textMuted)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(Design.Spacing.sm)
+    }
+
     private var placeholder: some View {
-        VStack(spacing: Design.Spacing.md) {
-            ForEach(0..<2, id: \.self) { _ in
-                RoundedRectangle(cornerRadius: Design.Radius.md)
-                    .fill(Design.Colors.surface)
-                    .frame(height: 240)
+        LazyVGrid(columns: gridColumns, spacing: Design.Spacing.sm) {
+            ForEach(0..<4, id: \.self) { _ in
+                Color.clear
+                    .aspectRatio(5.0/7.0, contentMode: .fit)
                     .overlay(ProgressView().tint(Design.Colors.bobaOrange))
+                    .background(
+                        RoundedRectangle(cornerRadius: Design.Radius.md)
+                            .fill(Design.Colors.surface)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
             }
         }
     }

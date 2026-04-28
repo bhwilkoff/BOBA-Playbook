@@ -182,6 +182,13 @@ struct DeckBuilderView: View {
         }
         .overlayPreferenceValue(DeckBuilderAnchorKey.self) { anchors in
             if showDeckTutorial {
+                // GeometryReader.ignoresSafeArea() so the proxy's local
+                // origin sits at the top of the screen (above the nav
+                // bar) instead of below it. Toolbar items report
+                // anchors in screen-relative space; without this
+                // adjustment those anchors translate into negative-Y
+                // coordinates relative to the proxy, causing the
+                // highlight ring to render off-screen.
                 GeometryReader { proxy in
                     let frames: [DeckBuilderTutorialTarget: CGRect] = anchors.reduce(into: [:]) { acc, pair in
                         acc[pair.key] = proxy[pair.value]
@@ -196,6 +203,7 @@ struct DeckBuilderView: View {
                         }
                     }
                 }
+                .ignoresSafeArea()
             }
         }
         .sheet(isPresented: $showDeckManagement) {

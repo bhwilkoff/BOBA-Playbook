@@ -29,7 +29,8 @@
     const url = new URL(workerBase());
     url.pathname = '/whatnot/upcoming';
     url.searchParams.set('query', WHATNOT_QUERY);
-    url.searchParams.set('status', 'CREATED');
+    // No status param — the Worker defaults to CREATED+PLAYING so live
+    // streams appear alongside upcoming ones.
     const resp = await fetch(url.toString(), { method: 'GET' });
     if (!resp.ok) throw new Error(`worker returned ${resp.status}`);
     const data = await resp.json();

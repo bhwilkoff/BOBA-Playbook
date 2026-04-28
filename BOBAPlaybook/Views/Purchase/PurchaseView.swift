@@ -2,87 +2,76 @@
 //  PurchaseView.swift
 //  BOBAPlaybook
 //
-//  Two sections:
-//    1. Upcoming Breaks — Whatnot upcoming-shows feed for "Bo Jackson
-//       Battle Arena", served by the boba-whatnot-shows Worker. Each
-//       show renders as a large card (image + host + scheduled time +
-//       title + viewer count) and taps through to whatnot.com.
-//    2. Find a Store — moved here from inside Collection. Embeds the
-//       existing StoreLocatorView.
+//  Two sub-modes (segmented picker, matching CollectionView's mode picker):
+//    1. Upcoming Breaks — Whatnot live + upcoming feed for "Bo Jackson
+//       Battle Arena", served by the boba-ebay-proxy Worker.
+//    2. Find a Store — embeds StoreLocatorView (moved here from Collection).
 //
 
 import SwiftUI
 
 struct PurchaseView: View {
+    enum PurchaseMode: String, CaseIterable, Identifiable {
+        case breaks = "Upcoming Breaks"
+        case stores = "Find a Store"
+        var id: String { rawValue }
+    }
+
+    @State private var mode: PurchaseMode = .breaks
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Design.Spacing.xl) {
-                    upcomingBreaksSection
-                    findStoreSection
+            VStack(spacing: 0) {
+                modePicker
+                    .padding(.horizontal, Design.Spacing.md)
+                    .padding(.vertical, Design.Spacing.sm)
+
+                switch mode {
+                case .breaks:
+                    breaksScroll
+                case .stores:
+                    StoreLocatorView()
                 }
-                .padding(.horizontal, Design.Spacing.lg)
-                .padding(.vertical, Design.Spacing.lg)
             }
             .background(Design.Colors.nearBlack)
-            .navigationTitle("Purchase")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    BOBAWordmark()
+                }
+            }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 
-    private var upcomingBreaksSection: some View {
-        VStack(alignment: .leading, spacing: Design.Spacing.md) {
-            sectionHeader(title: "UPCOMING BREAKS",
-                          subtitle: "Live community streams featuring Bo Jackson Battle Arena")
-            UpcomingBreaksList()
+    private var modePicker: some View {
+        Picker("Mode", selection: $mode) {
+            ForEach(PurchaseMode.allCases) { m in
+                Text(m.rawValue).tag(m)
+            }
         }
+        .pickerStyle(.segmented)
     }
 
-    private var findStoreSection: some View {
-        VStack(alignment: .leading, spacing: Design.Spacing.md) {
-            sectionHeader(title: "FIND A STORE",
-                          subtitle: "Local card shops carrying BoBA")
-            NavigationLink {
-                StoreLocatorView()
-            } label: {
-                HStack(spacing: Design.Spacing.md) {
-                    Image(systemName: "map.fill")
-                        .font(.system(size: 22))
+    private var breaksScroll: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Design.Spacing.md) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("UPCOMING BREAKS")
+                        .font(Design.Fonts.mono(11, weight: .bold))
                         .foregroundStyle(Design.Colors.bobaOrange)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Open the store map")
-                            .font(Design.Fonts.display(15))
-                            .foregroundStyle(Design.Colors.textPrimary)
-                        Text("Independent retailers + big-box (filterable)")
-                            .font(Design.Fonts.mono(11))
-                            .foregroundStyle(Design.Colors.textMuted)
-                    }
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
+                        .tracking(2)
+                    Text("Live community streams featuring Bo Jackson Battle Arena")
+                        .font(Design.Fonts.mono(12))
                         .foregroundStyle(Design.Colors.textMuted)
                 }
-                .padding(Design.Spacing.md)
-                .background(
-                    RoundedRectangle(cornerRadius: Design.Radius.md)
-                        .fill(Design.Colors.surface)
-                )
+                UpcomingBreaksList()
             }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private func sectionHeader(title: String, subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(Design.Fonts.mono(11, weight: .bold))
-                .foregroundStyle(Design.Colors.bobaOrange)
-                .tracking(2)
-            Text(subtitle)
-                .font(Design.Fonts.mono(12))
-                .foregroundStyle(Design.Colors.textMuted)
+            .padding(.horizontal, Design.Spacing.lg)
+            .padding(.top, Design.Spacing.md)
+            .padding(.bottom, Design.Spacing.xl)
         }
     }
 }

@@ -8,65 +8,37 @@ import UIKit
 // advertise what's coming up in the show. Uses ImageRenderer (iOS 17+)
 // against a SwiftUI layout so the output inherits the app's styling
 // automatically — no separate Core Graphics composition.
+//
+// Sizing rule (user ask 2026-04-27): the wall is always laid out to a
+// fixed PORTRAIT-CARD ASPECT (5:7) at a social-media-friendly canvas
+// size. Cards inside keep their own 5:7 aspect; columns and rows are
+// chosen responsively so every card fits without making the canvas
+// taller than the target. Big-hit cards still get a gold-border /
+// glow accent but no longer get their own oversized hero row — that
+// was the source of "the wall keeps getting longer."
 
 // MARK: - Wall options
-//
-// Options the streamer can toggle in the Wall Options sheet before
-// generating. Defaults match the previous unconfigurable behavior
-// so an "always tap Generate Wall" flow is unchanged.
-//
-// Sendable so its `static let default` can be referenced from any
-// isolation context — without it, Swift 6 inferred MainActor isolation
-// from the file's SwiftUI imports and rejected the access.
 struct ShowWallOptions: Sendable {
     var includeBranding: Bool = true   // BOBA PLAYBOOK header tag
     var includeTitle:    Bool = true   // Show name as the big header
-    var customText:      String = ""   // Replaces / adds to the title — see WallGrid
+    var customText:      String = ""   // Replaces / adds to the title
     var includePrices:   Bool = false  // Per-tile price overlay
 
-    /// Computed (not stored) so the initializer expression isn't evaluated
-    /// in the file's inferred MainActor context — Swift 6 was flagging
-    /// `static let default = ShowWallOptions()` as MainActor-isolated even
-    /// after the struct was marked Sendable.
     static var `default`: ShowWallOptions { ShowWallOptions() }
 }
 
 enum ShowWallComposer {
 
-    /// Choose a column count for the regular (non-big-hit) grid that
-    /// keeps each thumbnail readable without making the wall
-    /// ridiculously tall. The Whatnot / Discord message preview
-    /// generally displays ≈1:1 → 4:3, so biasing to a near-square
-    /// grid keeps thumbnails reasonably sized.
-    fileprivate static func columnCount(for count: Int) -> Int {
-        switch count {
-        case 0...1:  return 1
-        case 2...4:  return 2
-        case 5...9:  return 3
-        case 10...16: return 4
-        case 17...36: return 6
-        default:      return 8
-        }
-    }
+    /// Target canvas size — 5:7 portrait, sized for clean rendering
+    /// at 3× scale on Whatnot / Discord / Instagram / X. 1080 × 1512
+    /// is also small enough that JPEG output stays under typical
+    /// social-share size limits (≤2 MB at q=0.92).
+    static let canvasWidth:  CGFloat = 1080
+    static let canvasHeight: CGFloat = 1512   // 1080 × 7/5
 
     /// Produce a UIImage from the cards' CDN thumbnails. Runs on the
     /// main actor because ImageRenderer requires it. Returns nil if
-    /// all image fetches fail (unlikely — thumbs are on R2).
-    ///
-    /// `bigHits` is the parallel array of is_big_hit flags. Big hits
-    /// land in a hero row at the top of the wall at much larger size;
-    /// the rest fill a standard grid below. The split is responsive:
-    ///   1 big hit  → one wide hero tile alone
-    ///   2-3 hits   → side-by-side hero row
-    ///   4+ hits    → multiple hero rows of up to 3 each
-    ///
-    /// `prices` is optional — only consulted when `options.includePrices`
-    /// is true. Pass an empty dict if you don't have prices yet; the
-    /// composer falls back to "—" per tile.
-    /// Caller must always pass `options` explicitly. Default parameter
-    /// values are evaluated at the call site's isolation, and Swift 6
-    /// flagged `= .default` here as a MainActor crossing — the actual
-    /// caller (ShowDetailView.generateWall) already supplies a value.
+    /// there are no cards to compose.
     @MainActor
     static func compose(
         cards: [Card],
@@ -78,46 +50,30 @@ enum ShowWallComposer {
         guard !cards.isEmpty else { return nil }
 
         let images = await fetchFullImages(for: cards)
-        // Pad bigHits to match cards length (defensive against
-        // mismatched call sites).
         let flags: [Bool] = (0..<cards.count).map { i in
             i < bigHits.count ? bigHits[i] : false
         }
         let entries: [WallGrid.Entry] = (0..<cards.count).map { i in
             WallGrid.Entry(card: cards[i], image: images[i], isBigHit: flags[i])
         }
-        let regularCount = entries.filter { !$0.isBigHit }.count
-        // When the show is all-big-hits (no standard grid below), the
-        // canvas would otherwise collapse to a 1-column-wide column
-        // count and the hero rows would be cramped. Force a minimum
-        // of 4 grid columns in that case so big-hit tiles render at
-        // a respectable size.
-        let cols = regularCount == 0 ? 4 : columnCount(for: regularCount)
 
         let content = WallGrid(
             title: title,
-            columns: cols,
             options: options,
             entries: entries,
             prices: prices
         )
         let renderer = ImageRenderer(content: content)
-        renderer.scale = 3.0
+        renderer.scale = 2.5
         renderer.isOpaque = true
         return renderer.uiImage
     }
 
-    /// Fetch every card's full-resolution image as a UIImage. Big-hit
-    /// tiles render at hundreds of points wide on a 3×-rendered canvas,
-    /// so the 200px thumb tier visibly pixelates — the wall is the one
-    /// surface where we always pay for the ≤1200px tier. Missing
+    /// Fetch every card's full-resolution image as a UIImage. Missing
     /// images fall back to a placeholder tile so the grid stays
     /// visually aligned.
     @MainActor
     private static func fetchFullImages(for cards: [Card]) async -> [UIImage?] {
-        // Resolve URLs on the main actor up front so the @Sendable
-        // group.addTask closure only captures Sendable scalars (Int, URL?)
-        // — Swift 6 strict concurrency rejects capturing the Card.
         let urls: [URL?] = cards.map { CDN.fullURL(for: $0) }
         return await withTaskGroup(of: (Int, UIImage?).self) { group in
             for (i, url) in urls.enumerated() {
@@ -144,15 +100,9 @@ enum ShowWallComposer {
 }
 
 // MARK: - Grid layout
-//
-// Plain SwiftUI layout fed to ImageRenderer. Kept separate so the
-// renderer sees a deterministic tree (no async work, no environment
-// lookups).
 
 fileprivate struct WallGrid: View {
     let title: String
-    /// Column count for the standard (non-big-hit) grid.
-    let columns: Int
     let options: ShowWallOptions
     let entries: [Entry]
     let prices: [String: Decimal]
@@ -163,21 +113,19 @@ fileprivate struct WallGrid: View {
         let isBigHit: Bool
     }
 
-    /// Tile edge for the standard grid. Larger tiles look better
-    /// shared at native phone resolution (ImageRenderer scale=3
-    /// multiplies this).
-    private let tileWidth: CGFloat = 170
-    private let gridSpacing: CGFloat = 10
+    /// Edge insets + spacing for the layout calculation.
+    private let sidePadding: CGFloat = 24
+    private let gap: CGFloat = 8
+    private let topGap: CGFloat = 12
+    private let bottomGap: CGFloat = 12
 
-    /// Total canvas width — derived from the regular grid's column
-    /// count so the standard tiles fill the wall and the big-hit
-    /// rows match the same width.
-    private var canvasWidth: CGFloat {
-        CGFloat(columns) * (tileWidth + gridSpacing) + 36
-    }
+    /// Reserved vertical space for header + footer (estimates — within
+    /// ~10pt of the rendered chrome). Used to size the grid area.
+    private var headerHeight: CGFloat { hasHeader ? 80 : 0 }
+    private var footerHeight: CGFloat { options.includeBranding ? 28 : 0 }
 
     /// Resolved big-text line. Custom text wins; otherwise show name;
-    /// otherwise nothing. Driven by both options + non-empty checks.
+    /// otherwise nothing.
     private var resolvedTitle: String? {
         let trimmed = options.customText.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty { return trimmed }
@@ -185,141 +133,135 @@ fileprivate struct WallGrid: View {
         return nil
     }
 
-    /// Whether anything renders in the header slot — used to suppress
-    /// empty top padding when the streamer turned everything off.
     private var hasHeader: Bool {
         options.includeBranding || resolvedTitle != nil
     }
 
-    /// Big hits, in their original order (so the streamer's row
-    /// ordering controls who appears first).
-    private var bigHits: [Entry] { entries.filter { $0.isBigHit } }
-    private var regulars: [Entry] { entries.filter { !$0.isBigHit } }
+    /// Layout result: cols, computed tile width.
+    private struct Layout {
+        let cols: Int
+        let tileWidth: CGFloat
+    }
 
-    /// Group big hits into rows. The user spec:
-    ///   1 hit:   one row, single tile spanning the row
-    ///   2 hits:  one row, side-by-side
-    ///   3 hits:  one row, three across
-    ///   4+ hits: multiple rows of up to 3 (last row may have fewer)
-    private var bigHitRows: [[Entry]] {
-        let hits = bigHits
-        guard !hits.isEmpty else { return [] }
-        if hits.count <= 3 { return [hits] }
-        // 4+ hits: chunk into rows of 3
-        var rows: [[Entry]] = []
-        var cursor = 0
-        while cursor < hits.count {
-            let end = min(cursor + 3, hits.count)
-            rows.append(Array(hits[cursor..<end]))
-            cursor = end
+    /// Pick the smallest column count that lets every entry fit
+    /// inside the reserved grid area — that maximizes per-tile size.
+    /// Tie cards keep their own 5:7 aspect; rows = ceil(N/cols).
+    private func computeLayout() -> Layout {
+        let n = entries.count
+        guard n > 0 else { return Layout(cols: 1, tileWidth: 0) }
+        let canvasW = ShowWallComposer.canvasWidth
+        let canvasH = ShowWallComposer.canvasHeight
+        let availableW = canvasW - sidePadding * 2
+        let availableH = canvasH - headerHeight - footerHeight - topGap - bottomGap
+
+        // Try cols 1...n, pick the smallest one that fits both:
+        //   • per-tile size readable (tile_width ≥ ~70 at canvas scale)
+        //   • computed rows × tile_height fits within availableH
+        // The smallest cols that fits gives the LARGEST tiles.
+        var best: Layout? = nil
+        for cols in 1...n {
+            let tileW = (availableW - gap * CGFloat(cols - 1)) / CGFloat(cols)
+            let tileH = tileW * 7.0 / 5.0
+            let rows  = Int((Double(n) / Double(cols)).rounded(.up))
+            let needed = CGFloat(rows) * tileH + CGFloat(rows - 1) * gap
+            if needed <= availableH {
+                best = Layout(cols: cols, tileWidth: tileW)
+                break   // smallest fitting cols wins (= largest tiles)
+            }
         }
-        return rows
+        // Fallback: every cols overflowed (huge N). Use a high cols
+        // and let the grid scale down past readability — better to
+        // ship a too-dense wall than no wall.
+        if best == nil {
+            let cols = Int(ceil(sqrt(Double(n) * 5.0 / 7.0)))
+            let tileW = (availableW - gap * CGFloat(cols - 1)) / CGFloat(cols)
+            best = Layout(cols: cols, tileWidth: tileW)
+        }
+        return best!
     }
 
     var body: some View {
-        VStack(spacing: 14) {
-            if hasHeader { header }
-            // Big-hit hero rows at the top.
-            ForEach(Array(bigHitRows.enumerated()), id: \.offset) { _, row in
-                bigHitRow(row)
+        let layout = computeLayout()
+        let cols = layout.cols
+        let tileW = layout.tileWidth
+
+        VStack(spacing: 0) {
+            if hasHeader {
+                header
+                    .frame(height: headerHeight)
             }
-            // Standard grid below for non-big-hit cards.
-            if !regulars.isEmpty {
+            Spacer().frame(height: topGap)
+            // Center the grid in the remaining vertical space so a
+            // smaller card count doesn't leave a giant gap at the bottom.
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
                 let gridCols = Array(
-                    repeating: GridItem(.fixed(tileWidth), spacing: gridSpacing),
-                    count: columns
+                    repeating: GridItem(.fixed(tileW), spacing: gap),
+                    count: cols
                 )
-                LazyVGrid(columns: gridCols, spacing: gridSpacing) {
-                    ForEach(Array(regulars.enumerated()), id: \.offset) { _, entry in
-                        tile(for: entry, width: tileWidth)
+                LazyVGrid(columns: gridCols, spacing: gap) {
+                    ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
+                        tile(for: entry, width: tileW)
                     }
                 }
-                .padding(.horizontal, 18)
+                Spacer(minLength: 0)
             }
-            if options.includeBranding { footer }
+            .frame(maxHeight: .infinity)
+            Spacer().frame(height: bottomGap)
+            if options.includeBranding {
+                footer.frame(height: footerHeight)
+            }
         }
-        .padding(.vertical, hasHeader ? 22 : 14)
-        .frame(width: canvasWidth)
+        .frame(width: ShowWallComposer.canvasWidth,
+               height: ShowWallComposer.canvasHeight)
         .background(
             LinearGradient(
-                colors: [
-                    Color(hex: "0D0D1A"),
-                    Color(hex: "080810"),
-                ],
+                colors: [Color(hex: "0D0D1A"), Color(hex: "080810")],
                 startPoint: .top, endPoint: .bottom
             )
         )
     }
 
-    /// Render one hero row of big hits. Tile width derives from how
-    /// many sit in the row so the row always fills the canvas width.
-    /// One hit gets a tile capped at ~70% of canvas (otherwise a single
-    /// big hit on a narrow wall reads as a giant standalone splash).
-    @ViewBuilder
-    private func bigHitRow(_ row: [Entry]) -> some View {
-        let availableWidth = canvasWidth - 36
-        let interTileSpacing: CGFloat = 14
-        let totalGap = interTileSpacing * CGFloat(max(0, row.count - 1))
-        let perTileFull = (availableWidth - totalGap) / CGFloat(row.count)
-        // Cap the single-hit tile a bit — fully-stretched looks gawky
-        // when the wall has many regular cards below at 170px.
-        let perTile: CGFloat = row.count == 1
-            ? min(perTileFull, max(tileWidth * 2.2, 380))
-            : perTileFull
-        HStack(spacing: interTileSpacing) {
-            ForEach(Array(row.enumerated()), id: \.offset) { _, entry in
-                tile(for: entry, width: perTile)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 18)
-    }
-
     private var header: some View {
-        // VStack(spacing: 2) collapses to its single visible child when
-        // only one block renders, so a title-only configuration shows the
-        // show name in the same prominent position as the full branding
-        // block. Card count is treated as belonging to whatever's at the
-        // top of the wall — it shows when there's any header content,
-        // not only when branding is on.
         VStack(spacing: 4) {
             if options.includeBranding {
                 Text("BOBA PLAYBOOK")
-                    .font(Design.Fonts.mono(9, weight: .bold))
-                    .tracking(2)
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .tracking(2.5)
                     .foregroundStyle(Color(hex: "FF4D00"))
             }
             if let title = resolvedTitle {
                 Text(title)
-                    .font(Design.Fonts.display(28))
+                    .font(Design.Fonts.display(34))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .padding(.horizontal, sidePadding)
             }
-            // Card count rides with the title, not the branding —
-            // streamers want it visible whenever they're naming the show.
             Text("\(entries.count) card\(entries.count == 1 ? "" : "s")")
-                .font(Design.Fonts.mono(10))
+                .font(Design.Fonts.mono(11))
                 .foregroundStyle(Color(hex: "A0A0C0"))
         }
-        .padding(.bottom, 4)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 16)
     }
 
     private var footer: some View {
         Text("bobaplaybook.com")
-            .font(Design.Fonts.mono(9, weight: .bold))
+            .font(Design.Fonts.mono(11, weight: .bold))
             .tracking(1.5)
             .foregroundStyle(Color(hex: "606088"))
+            .frame(maxWidth: .infinity)
+            .padding(.bottom, 12)
     }
 
     private func tile(for entry: Entry, width: CGFloat) -> some View {
         let isBig = entry.isBigHit
         let card = entry.card
-        // Price font scales with tile size — a 10pt overlay reads as
-        // tiny on a 380px hero tile; bumping it keeps the chip visible
-        // against bigger card art.
-        let priceFontSize: CGFloat = isBig ? 16 : 10
-        // Border + corner scale with tile size for visual coherence.
-        let cornerRadius: CGFloat = isBig ? 14 : 8
+        // Corner + price font scale with tile size so a small grid of
+        // huge tiles still reads well.
+        let cornerRadius: CGFloat = max(6, width * 0.06)
+        let priceFontSize: CGFloat = max(10, width * 0.085)
         return ZStack(alignment: .bottomLeading) {
             if let img = entry.image {
                 Image(uiImage: img).resizable().scaledToFill()
@@ -328,7 +270,7 @@ fileprivate struct WallGrid: View {
                     .fill(Color(hex: "1A1A28"))
                     .overlay(
                         Text(String((card.hero.isEmpty ? card.name : card.hero).prefix(2)).uppercased())
-                            .font(Design.Fonts.display(isBig ? 36 : 22))
+                            .font(Design.Fonts.display(max(18, width * 0.18)))
                             .foregroundStyle(Color(hex: "FF4D00"))
                     )
             }
@@ -336,10 +278,10 @@ fileprivate struct WallGrid: View {
                 Text(formatPrice(prices[card.id] ?? 0))
                     .font(Design.Fonts.mono(priceFontSize, weight: .bold))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, isBig ? 8 : 5)
-                    .padding(.vertical, isBig ? 4 : 2)
+                    .padding(.horizontal, max(4, width * 0.04))
+                    .padding(.vertical, max(2, width * 0.02))
                     .background(Capsule().fill(Color.black.opacity(0.7)))
-                    .padding(isBig ? 8 : 5)
+                    .padding(max(4, width * 0.035))
             }
         }
         .frame(width: width, height: width * 7 / 5)
@@ -348,16 +290,12 @@ fileprivate struct WallGrid: View {
             RoundedRectangle(cornerRadius: cornerRadius)
                 .strokeBorder(
                     isBig ? Color(hex: "FFD700").opacity(0.85) : Color.white.opacity(0.12),
-                    lineWidth: isBig ? 3 : 0.5
+                    lineWidth: isBig ? max(2, width * 0.025) : 0.5
                 )
         )
-        // Subtle gold glow under big-hit tiles so they read as "premium"
-        // even when the row has just one or two cards. No-op for
-        // standard tiles.
         .shadow(
             color: isBig ? Color(hex: "FFD700").opacity(0.4) : .clear,
-            radius: isBig ? 16 : 0,
-            x: 0, y: 0
+            radius: isBig ? max(8, width * 0.12) : 0
         )
     }
 
@@ -366,16 +304,12 @@ fileprivate struct WallGrid: View {
         let f = NumberFormatter()
         f.numberStyle = .currency
         f.currencyCode = "USD"
-        // Drop trailing zero cents on round numbers ($25 not $25.00)
-        // for tighter overlay text. Mirrors how prices read on Whatnot.
         f.maximumFractionDigits = (value.rounded() == value) ? 0 : 2
         return f.string(from: value as NSDecimalNumber) ?? "$\(value)"
     }
 }
 
 extension Decimal {
-    /// Rounded-to-zero-fraction-digits comparison helper for the price
-    /// overlay's "drop trailing zeros" formatting decision.
     fileprivate func rounded() -> Decimal {
         var src = self
         var out = Decimal()

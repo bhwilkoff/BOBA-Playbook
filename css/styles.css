@@ -8962,12 +8962,55 @@ body.db-rules-open { overflow: hidden; }
 .learn-mode-panel { display: block; }
 .learn-mode-panel[hidden] { display: none; }
 
-/* ── Watch tabs (Live / Shorts / Videos) ──────────────────────── */
+/* ── Watch tabs row (Live / Shorts / Videos + refresh button) ─── */
+.watch-tabs-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+}
 .watch-tabs {
   display: flex;
   gap: var(--sp-2);
-  margin: 0 0 var(--sp-4);
   flex-wrap: wrap;
+  flex: 1;
+}
+.watch-refresh-btn {
+  flex-shrink: 0;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 77, 0, 0.12);
+  border: 1px solid rgba(255, 77, 0, 0.35);
+  color: var(--boba-orange);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.2s;
+}
+.watch-refresh-btn:hover { background: rgba(255, 77, 0, 0.22); }
+.watch-refresh-btn--spinning svg { animation: watch-spin 0.8s linear infinite; }
+@keyframes watch-spin { to { transform: rotate(360deg); } }
+
+/* Pull-to-refresh indicator — fades in as the user drags down. */
+.watch-pull-indicator {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  height: 32px;
+  margin-top: -32px;
+  margin-bottom: var(--sp-2);
+  opacity: 0;
+  transform: translateY(0);
+  transition: opacity 0.15s, transform 0.2s;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--boba-text-muted, #707088);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.watch-pull-indicator--active { opacity: 1 !important; transform: translateY(8px) !important; }
+.watch-pull-spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255, 77, 0, 0.25);
+  border-top-color: var(--boba-orange);
+  border-radius: 50%;
+  animation: watch-spin 0.8s linear infinite;
 }
 .watch-tab {
   display: inline-flex; align-items: center; gap: 6px;

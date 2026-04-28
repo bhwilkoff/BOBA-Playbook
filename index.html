@@ -1711,16 +1711,32 @@
 
       <!-- ══ WATCH PANEL — YouTube feeds (Live | Shorts | Videos) ════ -->
       <div id="learn-panel-watch" class="learn-mode-panel" role="tabpanel" aria-labelledby="learn-mode-watch" hidden>
-        <div class="watch-tabs" role="tablist" aria-label="Watch feed">
-          <button class="watch-tab active" data-watch-tab="live" role="tab" aria-selected="true">
-            Live <span class="watch-tab-count" id="watch-count-live">0</span>
+        <div class="watch-tabs-row">
+          <div class="watch-tabs" role="tablist" aria-label="Watch feed">
+            <button class="watch-tab active" data-watch-tab="live" role="tab" aria-selected="true">
+              Live <span class="watch-tab-count" id="watch-count-live">0</span>
+            </button>
+            <button class="watch-tab" data-watch-tab="shorts" role="tab" aria-selected="false">
+              Shorts <span class="watch-tab-count" id="watch-count-shorts">0</span>
+            </button>
+            <button class="watch-tab" data-watch-tab="videos" role="tab" aria-selected="false">
+              Videos <span class="watch-tab-count" id="watch-count-videos">0</span>
+            </button>
+          </div>
+          <button class="watch-refresh-btn" id="watch-refresh-btn" aria-label="Refresh feed">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="23 4 23 10 17 10"/>
+              <polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
           </button>
-          <button class="watch-tab" data-watch-tab="shorts" role="tab" aria-selected="false">
-            Shorts <span class="watch-tab-count" id="watch-count-shorts">0</span>
-          </button>
-          <button class="watch-tab" data-watch-tab="videos" role="tab" aria-selected="false">
-            Videos <span class="watch-tab-count" id="watch-count-videos">0</span>
-          </button>
+        </div>
+
+        <!-- Pull-to-refresh indicator — fades in as the user drags
+             down at the top of the watch panel on touch devices. -->
+        <div id="watch-pull-indicator" class="watch-pull-indicator" aria-hidden="true">
+          <span class="watch-pull-spinner"></span>
+          <span class="watch-pull-label">Pull to refresh</span>
         </div>
 
         <div id="watch-panel-live" class="watch-panel watch-panel-live"></div>

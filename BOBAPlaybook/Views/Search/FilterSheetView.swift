@@ -101,6 +101,22 @@ struct FilterSheetView: View {
                 }
                 .listRowBackground(Design.Colors.surface2)
 
+                // MARK: Release
+                Section {
+                    Picker("Release", selection: $store.selectedRelease) {
+                        Text("All Releases").tag(String?.none)
+                        ForEach(store.releases, id: \.self) { r in
+                            Text(r).tag(Optional(r))
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+                    .font(Design.Fonts.mono(14))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                } header: {
+                    sectionHeader("Release")
+                }
+                .listRowBackground(Design.Colors.surface2)
+
                 // MARK: Power range
                 Section {
                     HStack(spacing: Design.Spacing.sm) {

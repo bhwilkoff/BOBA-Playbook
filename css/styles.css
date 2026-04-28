@@ -2149,6 +2149,11 @@ main {
   background: rgba(0,245,255,0.12);
   border-radius: 100px;
 }
+.ccard-qty-here {
+  font-weight: 400;
+  color: var(--boba-text-dim);
+  margin-left: 2px;
+}
 .ccard-stat-strip {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
   margin-top: 1px;

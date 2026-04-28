@@ -603,6 +603,13 @@ struct CollectionView: View {
         let catalog = cardStore.displayCards.first { $0.id == identifier }
                    ?? cardStore.displayCards.first { $0.cardNumber == identifier }
         let copies = collection.entries(forBobaId: identifier).filter { $0.designation == selectedDesignation }
+        // Total copies of this card across EVERY designation. The
+        // quantity badge reflects the entire collection so a coach
+        // browsing the For Sale tab can still see they own 3 total
+        // (one for sale, two personal). Without this, the per-tab
+        // count looks like "I only have one" when there are actually
+        // copies sitting in other tabs.
+        let totalCopiesAllDesignations = collection.entries(forBobaId: identifier).count
         // Market value — sum of estimatedValue across all copies in this
         // designation. Each physical copy has an independently refreshed
         // estimate; summing reflects what the row is worth in aggregate.
@@ -627,13 +634,19 @@ struct CollectionView: View {
             VStack(alignment: .leading, spacing: 3) {
                 // Title + qty pill on the same row so the count stays
                 // visible on long names (lineLimit(1) was clipping it).
+                // Pill shows total across ALL designations; if some of
+                // those copies live elsewhere, append "(N here)" so the
+                // current-tab share is still readable at a glance.
                 HStack(spacing: Design.Spacing.xs) {
                     Text(catalog?.name ?? catalog?.cardNumber ?? identifier)
                         .font(Design.Fonts.display(15))
                         .foregroundStyle(Design.Colors.textPrimary)
                         .lineLimit(1)
-                    if copies.count > 1 {
-                        Text("×\(copies.count)")
+                    if totalCopiesAllDesignations > 1 {
+                        let label = totalCopiesAllDesignations == copies.count
+                            ? "×\(totalCopiesAllDesignations)"
+                            : "×\(totalCopiesAllDesignations) (\(copies.count) here)"
+                        Text(label)
                             .font(Design.Fonts.mono(10, weight: .bold))
                             .foregroundStyle(Design.Colors.bobaCyan)
                             .padding(.horizontal, 5)

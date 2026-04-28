@@ -298,12 +298,15 @@
       <div class="view-inner play-view">
         <h2 class="view-heading">Learn</h2>
 
-        <!-- Top-level tab pills: Setup | Rules | Strategy | Browse | Collect | Tournament -->
+        <!-- Top-level tab pills: Rules | Strategy | Browse | Collect | Tournament -->
+        <!-- Setup was retired 2026-04-28 — its match-flow walkthrough -->
+        <!-- duplicated the per-mode Setup blocks inside Rules, and its -->
+        <!-- "Reading the Playmat" / Common Edge Cases sections leaned on -->
+        <!-- the practice-battle UI that most users can't access. The     -->
+        <!-- rule-flavored bits got merged into Rules' Edge Cases block. -->
         <div class="play-tabs" role="tablist" aria-label="Play sections">
-          <button class="play-tab active" data-tab="setup" role="tab"
-                  aria-selected="true" aria-controls="play-panel-setup" id="play-tab-setup">Setup</button>
-          <button class="play-tab" data-tab="rules" role="tab"
-                  aria-selected="false" aria-controls="play-panel-rules" id="play-tab-rules">Rules</button>
+          <button class="play-tab active" data-tab="rules" role="tab"
+                  aria-selected="true" aria-controls="play-panel-rules" id="play-tab-rules">Rules</button>
           <button class="play-tab" data-tab="strategy" role="tab"
                   aria-selected="false" aria-controls="play-panel-strategy" id="play-tab-strategy">Strategy</button>
           <button class="play-tab" data-tab="browse" role="tab"
@@ -314,56 +317,8 @@
                   aria-selected="false" aria-controls="play-panel-tournament" id="play-tab-tournament">Tournament</button>
         </div>
 
-        <!-- ══ SETUP PANEL — match flow + rules edge cases ════════════ -->
-        <div id="play-panel-setup" class="play-panel" role="tabpanel" aria-labelledby="play-tab-setup">
-          <section class="setup-section">
-            <h3 class="setup-h3">Before Battle 1</h3>
-            <ul class="setup-list">
-              <li><strong>Roll for Honors.</strong> Each player rolls one die. High roll wins initial Honors — the right to act first in every phase of Battle 1. Re-roll on a tie. Practice replays this roll on screen.</li>
-              <li><strong>Hero deck.</strong> Shuffle your 60-card Hero Deck and place 7 face-down in your Battle row — one per battle slot.</li>
-              <li><strong>Bench draw.</strong> After your 7 are placed, draw 4 more Heroes from the top of the deck for your Bench. The Bench is hidden from your opponent.</li>
-              <li><strong>Hot Dogs.</strong> Both players start with 10 Hot Dogs. The count is always public.</li>
-              <li><strong>Playbook (Playmaker only).</strong> 30-card deck shuffled face-down. Draw 5 plays for your starting hand. Bonus Plays draw automatically when their trigger fires (gold ★ BONUS tag in your hand).</li>
-            </ul>
-          </section>
-
-          <section class="setup-section">
-            <h3 class="setup-h3">Each Battle Has 5 Phases</h3>
-            <ol class="setup-list">
-              <li><strong>Substitution.</strong> Honors player decides first. Pay 2 Hot Dogs to swap your face-down Hero for one from the Bench. Cost is always 2 — even when a play modifier inflates other costs.</li>
-              <li><strong>Reveal.</strong> Both players flip their Hero. Element-triggered Bonus Plays fire automatically.</li>
-              <li><strong>Play Window.</strong> Players alternate plays, each paying its Hot Dog cost. Pass when done. Both must pass to advance.</li>
-              <li><strong>Resolution.</strong> Powers are compared. Higher wins. Equal power = tie unless one Hero is Super-weapon (Playmaker only). The on-mat power breakdown shows every modifier that contributed.</li>
-              <li><strong>Cleanup.</strong> Both players draw 1 Play. Honors moves to the battle winner. Scope-limited effects tick down.</li>
-            </ol>
-          </section>
-
-          <section class="setup-section">
-            <h3 class="setup-h3">Common Edge Cases</h3>
-            <ul class="setup-list">
-              <li><strong>Substitution cost is always 2.</strong> Cost-modifier plays like Dog On Inflation (+2 to plays) do <em>not</em> affect Substitution.</li>
-              <li><strong>Pull The Plug only cancels rest-of-game effects.</strong> Persistent effects scoped to specific battles (next 2 battles, battle 7, etc.) survive. After playing it, the on-mat banner shows a CANCELLED / UNCHANGED breakdown.</li>
-              <li><strong>Recycle clears attached effects.</strong> When a play is shuffled out of your discard back into your Playbook, any rest-of-game effect it had stops applying.</li>
-              <li><strong>Play Booster recounts every time.</strong> Play Booster's draw amount = plays used this battle, including itself. Played twice in the same battle? The recount includes the previous Play Booster.</li>
-              <li><strong>Deck exhaustion auto-reshuffles.</strong> Playbook hits 0 → discard pile shuffles back in automatically with a notification.</li>
-              <li><strong>Bonus Plays don't count against the 30-card limit.</strong> Cards with the gold ★ BONUS tag are extras — they enter the deck through element triggers.</li>
-            </ul>
-          </section>
-
-          <section class="setup-section">
-            <h3 class="setup-h3">Reading the Playmat</h3>
-            <ul class="setup-list">
-              <li><strong>Persistent-effects banner (top).</strong> Every active effect with its scope and remaining battles. Cyan tab = your effect, violet tab = opponent's. The number badge ticks down each battle.</li>
-              <li><strong>Plays-used row (active battle column).</strong> Every play used this battle, in order, per side. Drives Play Booster / 10 Per Play / No Huddle math.</li>
-              <li><strong>Effective-cost display (in hand).</strong> Plays whose cost has been modified show <s>3</s>→<strong>5</strong> with the original struck through. Green = discounted, amber = inflated, red = unaffordable.</li>
-              <li><strong>Power breakdown (after resolution).</strong> Itemized list of every modifier that contributed: base, each played card, each persistent. Footings to the engine's verdict so you can audit the math.</li>
-              <li><strong>Discard inspector.</strong> Tap your DISCARD chip in the bottom toolbar (or the play count next to CPU info) to see the full list of cards used so far.</li>
-            </ul>
-          </section>
-        </div>
-
         <!-- ══ RULES PANEL ══════════════════════════════════════════ -->
-        <div id="play-panel-rules" class="play-panel" role="tabpanel" aria-labelledby="play-tab-rules" hidden>
+        <div id="play-panel-rules" class="play-panel" role="tabpanel" aria-labelledby="play-tab-rules">
 
           <!-- Battle Flow Diagram — static, all phases always shown -->
           <div class="battle-flow" aria-label="Battle sequence — all phases">
@@ -396,10 +351,17 @@
                 <div class="battle-step-desc">Higher Power wins</div>
                 <span class="battle-step-mode" style="color:#4CAF50;background:rgba(76,175,80,0.12);border-color:rgba(76,175,80,0.3)">All modes</span>
               </div>
+              <div class="battle-step-arrow">›</div>
+              <div class="battle-step">
+                <div class="battle-step-num" style="background:#8B00FF">5</div>
+                <div class="battle-step-name" style="color:#8B00FF">CLEANUP</div>
+                <div class="battle-step-desc">Honors moves; draw 1 Play</div>
+                <span class="battle-step-mode" style="color:#8B00FF;background:rgba(139,0,255,0.12);border-color:rgba(139,0,255,0.3)">All modes</span>
+              </div>
             </div>
             <div class="battle-flow-honors">
               <span class="battle-flow-honors-star">★</span>
-              Honors (right to act first) passes to the battle winner. A single die roll decides Honors for Battle 1.
+              Honors (right to act first) passes to the battle winner. A single die roll decides Honors for Battle 1; high roll wins.
             </div>
           </div>
 
@@ -462,7 +424,7 @@
               <ul class="rules-list">
                 <li>Each player shuffles their 60-card Hero Deck and places it face-down.</li>
                 <li>Each player places 7 Heroes face-down in a row — these are the 7 Battle Slots.</li>
-                <li>Flip a coin to determine first <strong>Honors</strong> — the right to act first each battle.</li>
+                <li>Each player rolls one die. High roll wins initial <strong>Honors</strong> — the right to act first each battle. Re-roll on a tie.</li>
               </ul>
             </div>
             <div class="rules-section">
@@ -746,6 +708,23 @@
               <li><span class="zone-label">Hot Dog Pile</span><span class="zone-desc">Count is always public information</span></li>
               <li><span class="zone-label">Hot Dog Discard</span><span class="zone-desc">Spent Hot Dogs</span></li>
               <li><span class="zone-label">Abyss</span><span class="zone-desc">Removed permanently — cannot be retrieved</span></li>
+            </ul>
+          </div>
+
+          <!-- EDGE CASES — corner-case rulings veteran players reach for -->
+          <!-- at the table. Sourced from the corner-case audit that used -->
+          <!-- to live in the retired Setup tab. Practice-UI references   -->
+          <!-- were stripped so these read as physical-game rulings.       -->
+          <div class="rules-section">
+            <h3 class="rules-section-heading">Edge Cases</h3>
+            <ul class="rules-list">
+              <li><strong>Substitution cost is always 2.</strong> Cost-modifier plays (e.g., Dog On Inflation, +2 to plays) do <em>not</em> affect Substitution. Substitution always costs 2 Hot Dogs regardless of active modifiers.</li>
+              <li><strong>Pull The Plug only cancels rest-of-game effects.</strong> Persistent effects scoped to specific battles (next 2 battles, battle 7, etc.) survive Pull The Plug. Only effects that would otherwise apply for the rest of the game are cancelled.</li>
+              <li><strong>Recycle clears attached effects.</strong> When a Play is shuffled out of your discard back into your Playbook, any rest-of-game effect it had stops applying. Recycling Flash Sale removes its −1 cost discount on future plays.</li>
+              <li><strong>Play Booster recounts every time.</strong> Play Booster's draw amount equals the number of plays used this battle, including itself. Played twice in the same battle? The second recount includes the first Play Booster.</li>
+              <li><strong>Deck exhaustion auto-reshuffles.</strong> If your Playbook runs out, shuffle the discard pile back into the Playbook and continue. The same applies to the Hero Deck during Sudden Death — shuffle the Discard back if needed.</li>
+              <li><strong>Bonus Plays don't count against the 30-card limit.</strong> Bonus Plays (gold-treatment cards) are extras — they enter through element-trigger effects mid-game and don't count against the 30-Play deckbuilding cap.</li>
+              <li><strong>Tied battle keeps Honors.</strong> If both Heroes have equal Power and no Super-weapon tiebreaker applies, the battle is a draw. No trophy is awarded; Honors stays with the same player who had it going in.</li>
             </ul>
           </div>
 

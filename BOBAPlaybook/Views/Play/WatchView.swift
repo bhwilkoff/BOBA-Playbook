@@ -130,24 +130,37 @@ struct WatchView: View {
         .refreshable { await feed.loadAll() }
     }
 
-    /// Vertical-recorded — single-column feed of 9:16 cards. After
-    /// five attempts at a 2-column LazyVGrid that all rendered as
-    /// "the same" on Ben's TestFlight build, falling back to Option
-    /// B from his original ask: "a single column that matches the
-    /// horizontal video feed." A LazyVStack of full-width cards has
-    /// zero grid-sizing variables to go wrong; if this still looks
-    /// identical, the build pipeline is the culprit, not the code.
+    /// Vertical-recorded — 2-column 9:16 grid with the thumbnail on
+    /// top of each card and the info block underneath. Confirmed-
+    /// working approach: compute the column width ONCE at the grid
+    /// level via GeometryReader, then pass it as an explicit Int
+    /// down to the card so AsyncImage's load state has no chance
+    /// to leak intrinsic-size signals into the grid math. (Same
+    /// principle that made the single-column rev work — fixed
+    /// pixel widths, not flex-column inference.)
     private var verticalGrid: some View {
-        ScrollView {
-            LazyVStack(spacing: Design.Spacing.md) {
-                ForEach(currentItems) { video in
-                    VerticalCard(video: video)
-                        .onTapGesture { playing = video }
+        GeometryReader { proxy in
+            let outerPad: CGFloat = Design.Spacing.lg
+            let gap: CGFloat      = Design.Spacing.md
+            let columnWidth = max(120, (proxy.size.width - outerPad * 2 - gap) / 2)
+            ScrollView {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.fixed(columnWidth), spacing: gap, alignment: .top),
+                        GridItem(.fixed(columnWidth), spacing: gap, alignment: .top),
+                    ],
+                    alignment: .leading,
+                    spacing: Design.Spacing.lg
+                ) {
+                    ForEach(currentItems) { video in
+                        VerticalCard(video: video, width: columnWidth)
+                            .onTapGesture { playing = video }
+                    }
                 }
+                .padding(outerPad)
             }
-            .padding(Design.Spacing.lg)
+            .refreshable { await feed.loadAll() }
         }
-        .refreshable { await feed.loadAll() }
     }
 
     /// Horizontal-recorded — 16:9 grid, two columns on phones.
@@ -282,15 +295,19 @@ private struct UpcomingCard: View {
 
 private struct VerticalCard: View {
     let video: YouTubeVideo
+    /// Explicit pixel width handed down from the grid. Pinning this
+    /// instead of relying on LazyVGrid to size flexibly was what
+    /// made the single-column rev work — same principle here.
+    let width: CGFloat
 
     var body: some View {
-        HStack(alignment: .top, spacing: Design.Spacing.md) {
-            // 9:16 thumbnail on the left — locked-width via `.frame`
-            // so AsyncImage's load state can't push it wider. ~140pt
-            // wide × ~250pt tall reads as a phone-style portrait
-            // tile alongside the title block.
-            ThumbnailImage(url: video.thumbnail)
-                .frame(width: 140, height: 140 * 16 / 9)
+        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+            // Thumbnail on top — 9:16, fixed pixel size from grid.
+            // Tries the original-aspect-ratio URL first (vertical
+            // for true Shorts / phone-edition uploads); falls back
+            // to the worker-supplied thumb if that 404s.
+            VerticalThumbnail(video: video)
+                .frame(width: width, height: width * 16 / 9)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(alignment: .bottomTrailing) {
                     if let dur = video.durationLabel {
@@ -298,18 +315,69 @@ private struct VerticalCard: View {
                     }
                 }
 
-            VStack(alignment: .leading, spacing: Design.Spacing.xs) {
-                Text(video.title)
-                    .font(Design.Fonts.display(15))
-                    .foregroundStyle(Design.Colors.textPrimary)
-                    .lineLimit(4)
-                    .multilineTextAlignment(.leading)
-                CardSubtitle(video: video)
-                Spacer(minLength: 0)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            // Info block UNDERNEATH the thumbnail.
+            Text(video.title)
+                .font(Design.Fonts.mono(11, weight: .bold))
+                .foregroundStyle(Design.Colors.textPrimary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .frame(width: width, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+            CardSubtitle(video: video, compact: true)
+                .frame(width: width, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(width: width, alignment: .leading)
+    }
+}
+
+/// Thumbnail variant that prefers the YouTube-served original-
+/// aspect-ratio image (`oardefault.jpg`) so vertical videos render
+/// with their actual portrait first-frame instead of a center-
+/// cropped slice of the creator's 16:9 custom thumbnail. Falls
+/// back to the worker-supplied thumb on 404 / decode failure
+/// (which covers regular landscape uploads where the OAR variant
+/// doesn't exist).
+private struct VerticalThumbnail: View {
+    let video: YouTubeVideo
+    @State private var oarFailed = false
+
+    var body: some View {
+        ZStack {
+            Color.black
+            if !oarFailed,
+               let oarURL = URL(string: "https://i.ytimg.com/vi/\(video.videoId)/oardefault.jpg") {
+                AsyncImage(url: oarURL) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img.resizable().aspectRatio(contentMode: .fill)
+                    case .failure:
+                        Color.clear.onAppear { oarFailed = true }
+                    case .empty:
+                        Color.clear
+                    @unknown default:
+                        Color.clear
+                    }
+                }
+                .clipped()
+            } else if let urlString = video.thumbnail,
+                      let imageURL = URL(string: urlString) {
+                AsyncImage(url: imageURL) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img.resizable().aspectRatio(contentMode: .fill)
+                    default:
+                        Image(systemName: "play.rectangle.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
+                }
+                .clipped()
+            } else {
+                Image(systemName: "play.rectangle.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+        }
     }
 }
 

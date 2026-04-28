@@ -130,32 +130,40 @@ struct WatchView: View {
         .refreshable { await feed.loadAll() }
     }
 
-    /// Vertical-recorded — 2-column 9:16 grid. Sizing is computed
-    /// explicitly via GeometryReader rather than relying on
-    /// `.flexible()` columns: the first card was rendering full-
-    /// width because AsyncImage's pre-load placeholder reported an
-    /// intrinsic size that bubbled up through ZStack and made
-    /// LazyVGrid's flexible-column heuristic collapse to a single
-    /// column. Fixed column widths sidestep that entirely.
+    /// Vertical-recorded — 2-column 9:16 grid built from explicit
+    /// HStack pairs, NOT LazyVGrid. We tried fixed-width LazyVGrid
+    /// columns first and the first row was still rendering with
+    /// a single oversized cell on iPhone. Hand-rolling the rows
+    /// guarantees every pair gets `(columnWidth, gap, columnWidth)`
+    /// pixel-for-pixel with no chance of grid-internal layout
+    /// magic interfering with our explicit cell sizing.
     private var verticalGrid: some View {
         GeometryReader { proxy in
             let outerPad: CGFloat = Design.Spacing.lg
-            let gap: CGFloat      = Design.Spacing.sm
+            let gap: CGFloat      = Design.Spacing.md
             let columnWidth = max(80, (proxy.size.width - outerPad * 2 - gap) / 2)
+            let rows = stride(from: 0, to: currentItems.count, by: 2).map { i in
+                Array(currentItems[i..<min(i + 2, currentItems.count)])
+            }
             ScrollView {
-                LazyVGrid(
-                    columns: [
-                        GridItem(.fixed(columnWidth), spacing: gap),
-                        GridItem(.fixed(columnWidth), spacing: gap),
-                    ],
-                    spacing: Design.Spacing.md
-                ) {
-                    ForEach(currentItems) { video in
-                        VerticalCard(video: video, width: columnWidth)
-                            .onTapGesture { playing = video }
+                LazyVStack(spacing: Design.Spacing.md) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { _, pair in
+                        HStack(alignment: .top, spacing: gap) {
+                            ForEach(pair) { video in
+                                VerticalCard(video: video, width: columnWidth)
+                                    .onTapGesture { playing = video }
+                            }
+                            if pair.count == 1 {
+                                // Keep the lone trailing card pinned
+                                // to the leading column instead of
+                                // letting the HStack center it.
+                                Color.clear.frame(width: columnWidth)
+                            }
+                        }
                     }
                 }
                 .padding(outerPad)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .refreshable { await feed.loadAll() }
         }

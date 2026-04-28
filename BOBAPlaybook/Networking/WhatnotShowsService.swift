@@ -16,6 +16,8 @@ struct WhatnotShow: Identifiable, Codable, Sendable, Hashable {
     let title: String
     let host: String
     let hostUrl: String
+    let status: String?            // "PLAYING" | "CREATED"
+    let isLive: Bool?
     let scheduledTimeText: String
     let scheduledTimeIso: String?
     let startTimeMs: Int64?
@@ -26,6 +28,7 @@ struct WhatnotShow: Identifiable, Codable, Sendable, Hashable {
     let thumbnailUrl: String
 
     var id: String { showId }
+    var isLiveShow: Bool { isLive == true }
 
     var scheduledDate: Date? {
         if let ms = startTimeMs { return Date(timeIntervalSince1970: TimeInterval(ms) / 1000.0) }

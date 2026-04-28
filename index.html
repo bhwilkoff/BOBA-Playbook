@@ -298,6 +298,26 @@
       <div class="view-inner play-view">
         <h2 class="view-heading">Learn</h2>
 
+        <!-- Read / Watch top-level toggle. Read carries the existing -->
+        <!-- reference content (Rules / Strategy / Browse / Collect /  -->
+        <!-- Tournament). Watch routes to the YouTube feeds the         -->
+        <!-- boba-youtube-feed Worker aggregates from BoBA channels +   -->
+        <!-- a community-wide search.                                   -->
+        <div class="learn-mode-toggle" role="tablist" aria-label="Learn mode">
+          <button class="learn-mode-btn active" data-mode="read" role="tab"
+                  aria-selected="true" aria-controls="learn-panel-read">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 2h-7v18h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-9 0H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h5V2z"/></svg>
+            Read
+          </button>
+          <button class="learn-mode-btn" data-mode="watch" role="tab"
+                  aria-selected="false" aria-controls="learn-panel-watch">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+            Watch
+          </button>
+        </div>
+
+      <div id="learn-panel-read" class="learn-mode-panel" role="tabpanel" aria-labelledby="learn-mode-read">
+
         <!-- Top-level tab pills: Rules | Strategy | Browse | Collect | Tournament -->
         <!-- Setup was retired 2026-04-28 — its match-flow walkthrough -->
         <!-- duplicated the per-mode Setup blocks inside Rules, and its -->
@@ -1687,6 +1707,40 @@
 
         </div><!-- /play-panel-tournament -->
 
+      </div><!-- /learn-panel-read -->
+
+      <!-- ══ WATCH PANEL — YouTube feeds (Live | Shorts | Videos) ════ -->
+      <div id="learn-panel-watch" class="learn-mode-panel" role="tabpanel" aria-labelledby="learn-mode-watch" hidden>
+        <div class="watch-tabs" role="tablist" aria-label="Watch feed">
+          <button class="watch-tab active" data-watch-tab="live" role="tab" aria-selected="true">
+            Live <span class="watch-tab-count" id="watch-count-live">0</span>
+          </button>
+          <button class="watch-tab" data-watch-tab="shorts" role="tab" aria-selected="false">
+            Shorts <span class="watch-tab-count" id="watch-count-shorts">0</span>
+          </button>
+          <button class="watch-tab" data-watch-tab="videos" role="tab" aria-selected="false">
+            Videos <span class="watch-tab-count" id="watch-count-videos">0</span>
+          </button>
+        </div>
+
+        <div id="watch-panel-live" class="watch-panel watch-panel-live"></div>
+        <div id="watch-panel-shorts" class="watch-panel watch-panel-shorts" hidden></div>
+        <div id="watch-panel-videos" class="watch-panel watch-panel-videos" hidden></div>
+      </div><!-- /learn-panel-watch -->
+
+      <!-- Player overlay — single iframe host that swaps src on tile tap. -->
+      <div id="watch-player-overlay" class="watch-player-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="watch-player-title">
+        <div class="watch-player-backdrop" data-watch-close></div>
+        <div class="watch-player-frame">
+          <button class="watch-player-close" data-watch-close aria-label="Close player">×</button>
+          <div class="watch-player-iframe-wrap"><iframe id="watch-player-iframe" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+          <div class="watch-player-meta">
+            <h3 id="watch-player-title"></h3>
+            <p id="watch-player-channel"></p>
+          </div>
+        </div>
+      </div>
+
       </div><!-- /play-view -->
 
       <!-- Floating action buttons for Deck Builder and Practice -->
@@ -2217,6 +2271,7 @@
   <script src="js/showcases.js"></script>
   <script src="js/store-locator.js"></script>
   <script src="js/purchase.js"></script>
+  <script src="js/watch.js"></script>
   <script src="js/app.js"></script>
   <script>
     // Render Lucide icons in static HTML (deck builder buttons, etc.)

@@ -192,6 +192,14 @@ const Collection = (() => {
     // group is an array of entries that share bobaId + designation.
     const first = group[0];
     const qty   = group.length;
+    // Count copies across EVERY designation, not just the active tab,
+    // so a coach on the For Sale tab still sees "×3" if they own three
+    // total (one for sale + two personal). Without this the badge
+    // implies they only have a single copy when the rest are sitting
+    // a tab over.
+    const groupKeyOf = c => c.boba_id || c.card_number;
+    const thisKey = groupKeyOf(first);
+    const totalCopiesAllDesignations = _cards.filter(c => groupKeyOf(c) === thisKey).length;
     const designLabel = DESIGNATIONS.find(d => d.key === first.designation)?.label || first.designation;
     // Prefer bobaId lookup for exact card matching; fall back to card_number for legacy rows
     const catalogCard = (_bobaIdLookup && first.boba_id)
@@ -240,7 +248,11 @@ const Collection = (() => {
         <div class="ccard-body">
           <div class="ccard-name-row">
             <span class="ccard-name">${esc(cardName)}</span>
-            ${qty > 1 ? `<span class="ccard-qty">×${qty}</span>` : ''}
+            ${totalCopiesAllDesignations > 1
+              ? `<span class="ccard-qty">×${totalCopiesAllDesignations}${
+                  totalCopiesAllDesignations !== qty ? ` <span class="ccard-qty-here">(${qty} here)</span>` : ''
+                }</span>`
+              : ''}
           </div>
           <div class="ccard-stat-strip">
             ${element && element !== 'NONE' ? `<span class="ccard-stat ccard-element" data-element="${esc(element)}">${esc(element)}</span>` : ''}

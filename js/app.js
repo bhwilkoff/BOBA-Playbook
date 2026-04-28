@@ -186,7 +186,7 @@
   /* ================================================================
      VIEW SYSTEM
   ================================================================ */
-  const viewIds = ['search', 'scan', 'rules', 'decks', 'practice', 'stores', 'collection', 'profile'];
+  const viewIds = ['search', 'scan', 'rules', 'decks', 'practice', 'stores', 'collection', 'purchase', 'profile'];
   const navBtnIds = {
     search:        'nav-search-btn',
     scan:          'nav-scan-btn',
@@ -195,6 +195,7 @@
     practice:      'nav-practice-btn',
     stores:        'nav-stores-btn',
     collection:    'nav-collection-btn',
+    purchase:      'nav-purchase-btn',
     profile:       'nav-profile-btn',
   };
 
@@ -336,6 +337,9 @@
     if (name === 'stores' && window.BOBAStoreLocator?.init) {
       window.BOBAStoreLocator.init();
     }
+    if (name === 'purchase' && window.PurchaseView?.init) {
+      window.PurchaseView.init();
+    }
 
     if (!fromHistory) {
       history.pushState({ view: name }, '', buildSearchURL());
@@ -346,6 +350,9 @@
     const btn = $(btnId);
     if (btn) btn.addEventListener('click', () => showView(view));
   });
+
+  // Expose showView for ad-hoc calls (purchase.js → "Open the store map" link).
+  window.showView = showView;
 
   // Admin-only UI visibility. Any element marked [data-admin-only]
   // stays hidden until the cached role is "admin" — practice mode is

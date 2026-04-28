@@ -10,15 +10,12 @@ struct ContentView: View {
     @Environment(AuthManager.self) private var auth
 
     var body: some View {
-        // Nav: Find, Learn, Decks, Collection. The historical Play tab is
-        // gated to admins only and reachable through the Profile screen
-        // (an icon next to the role badge). Non-admin builds never see
-        // the practice surface from here.
+        // Nav order: Learn · Decks · Find · Collection · Purchase. Find is
+        // the default landing surface and sits centered in the rail; the
+        // SF Symbol "magnifyingglass.circle.fill" is rendered larger via
+        // .symbolRenderingMode(.hierarchical) + the orange tint to read
+        // as the primary entry point.
         TabView(selection: $selectedTab) {
-            SearchView()
-                .tabItem { Label("Find", systemImage: "magnifyingglass") }
-                .tag(0)
-
             LearnView()
                 .tabItem { Label("Learn", systemImage: "book.pages.fill") }
                 .tag(1)
@@ -27,9 +24,19 @@ struct ContentView: View {
                 .tabItem { Label("Decks", systemImage: "rectangle.stack.badge.plus") }
                 .tag(3)
 
+            SearchView()
+                .tabItem {
+                    Label("Find", systemImage: "magnifyingglass.circle.fill")
+                }
+                .tag(0)
+
             CollectionView()
                 .tabItem { Label("Collection", systemImage: "square.grid.2x2") }
                 .tag(4)
+
+            PurchaseView()
+                .tabItem { Label("Purchase", systemImage: "cart.fill") }
+                .tag(5)
         }
         .tint(Design.Colors.bobaOrange)
     }

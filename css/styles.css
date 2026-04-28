@@ -335,7 +335,158 @@ select { cursor: pointer; }
   background: rgba(255,77,0,0.08);
   border-left-color: var(--boba-orange);
 }
+/* Find — primary entry. Larger icon + a glassy orange-tinted bubble
+   that reads as the focal nav item. */
+.sidebar-nav-item--primary {
+  margin: var(--sp-2) var(--sp-4);
+  padding: 14px var(--sp-4);
+  border-left: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255,77,0,0.18) 0%, rgba(255,77,0,0.06) 100%);
+  border: 1px solid rgba(255,77,0,0.35);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 4px 16px rgba(255,77,0,0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--boba-text-2);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  width: auto;
+}
+.sidebar-nav-item--primary .nav-icon { width: 22px; height: 22px; stroke-width: 2.4; }
+.sidebar-nav-item--primary:hover {
+  background: linear-gradient(135deg, rgba(255,77,0,0.28) 0%, rgba(255,77,0,0.10) 100%);
+  border-color: rgba(255,77,0,0.55);
+  color: #fff;
+}
+.sidebar-nav-item--primary.active {
+  background: linear-gradient(135deg, rgba(255,77,0,0.32) 0%, rgba(255,77,0,0.12) 100%);
+  border-color: var(--boba-orange);
+  color: var(--boba-orange);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset, 0 6px 22px rgba(255,77,0,0.35);
+}
+body.sidebar-collapsed .sidebar-nav-item--primary {
+  margin: var(--sp-2) auto;
+  padding: 12px 0;
+  width: calc(var(--sidebar-w-collapsed) - var(--sp-3) * 2);
+  justify-content: center;
+}
+
 .nav-icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* ================================================================
+   PURCHASE VIEW
+================================================================ */
+.purchase-view-inner {
+  max-width: 880px; margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-7);
+  display: flex; flex-direction: column; gap: var(--sp-7);
+}
+.purchase-header { display: flex; flex-direction: column; gap: var(--sp-2); }
+.purchase-title {
+  font-family: var(--font-arena); font-size: 2.4rem; color: var(--boba-orange);
+  letter-spacing: 0.04em; text-transform: uppercase; margin: 0;
+  text-shadow: 0 0 16px rgba(255,77,0,0.35);
+}
+.purchase-tagline {
+  font-family: var(--font-mono); font-size: 0.85rem;
+  color: var(--boba-text-2); margin: 0;
+}
+.purchase-section { display: flex; flex-direction: column; gap: var(--sp-4); }
+.purchase-section-head { display: flex; flex-direction: column; gap: 4px; }
+.purchase-section-title {
+  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 2px; color: var(--boba-orange); margin: 0;
+}
+.purchase-section-sub {
+  font-family: var(--font-mono); font-size: 0.78rem;
+  color: var(--boba-text-muted); margin: 0;
+}
+
+/* Show list */
+.purchase-shows-list { display: flex; flex-direction: column; gap: var(--sp-4); }
+.purchase-shows-loading,
+.purchase-shows-empty,
+.purchase-shows-error {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: var(--sp-7) var(--sp-4);
+  background: var(--boba-surface); border-radius: 14px;
+  border: 1px solid var(--boba-glass-border);
+  font-family: var(--font-mono); color: var(--boba-text-muted); font-size: 0.8rem;
+}
+.purchase-shows-empty-icon { font-size: 2rem; }
+.purchase-shows-empty-title { font-family: var(--font-display); font-size: 1rem; color: var(--boba-text-2); }
+.purchase-shows-empty-sub  { font-size: 0.75rem; }
+.purchase-shows-retry {
+  margin-top: var(--sp-3);
+  padding: 8px 16px; border-radius: 8px;
+  background: rgba(255,77,0,0.18); border: 1px solid rgba(255,77,0,0.5);
+  color: var(--boba-orange); font-family: var(--font-mono); font-weight: 700;
+  letter-spacing: 0.06em; cursor: pointer; transition: all 0.15s;
+}
+.purchase-shows-retry:hover { background: rgba(255,77,0,0.32); }
+
+/* Show card */
+.pshow-card {
+  display: flex; flex-direction: column;
+  background: var(--boba-surface); border-radius: 14px;
+  border: 1px solid var(--boba-glass-border);
+  overflow: hidden; text-decoration: none; color: inherit;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.pshow-card:hover {
+  border-color: rgba(255,77,0,0.45);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,77,0,0.1);
+  transform: translateY(-1px);
+}
+.pshow-thumb-wrap {
+  width: 100%; aspect-ratio: 16 / 9;
+  background: rgba(255,255,255,0.03);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.pshow-thumb { width: 100%; height: 100%; object-fit: cover; }
+.pshow-thumb-fallback { font-size: 3rem; opacity: 0.4; }
+.pshow-body {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: var(--sp-4) var(--sp-4) var(--sp-5);
+}
+.pshow-meta {
+  display: flex; flex-wrap: wrap; gap: var(--sp-3);
+  font-family: var(--font-mono); font-size: 0.7rem;
+}
+.pshow-host  { color: var(--boba-cyan); font-weight: 700; }
+.pshow-time  { color: var(--boba-orange); font-weight: 700; }
+.pshow-title {
+  font-family: var(--font-display); font-size: 1.05rem;
+  color: var(--boba-text); line-height: 1.3;
+}
+.pshow-foot {
+  display: flex; flex-wrap: wrap; gap: var(--sp-3);
+  font-family: var(--font-mono); font-size: 0.65rem;
+  color: var(--boba-text-muted);
+}
+.pshow-cat { letter-spacing: 1px; font-weight: 700; }
+
+/* Find-a-store quick link */
+.purchase-store-link {
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding: var(--sp-4); border-radius: 14px;
+  background: var(--boba-surface); border: 1px solid var(--boba-glass-border);
+  cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
+  color: inherit; text-align: left; width: 100%;
+}
+.purchase-store-link:hover {
+  border-color: rgba(255,77,0,0.45);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+.purchase-store-link svg { color: var(--boba-orange); flex-shrink: 0; }
+.purchase-store-link-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.purchase-store-link-title {
+  font-family: var(--font-display); font-size: 1rem; color: var(--boba-text);
+}
+.purchase-store-link-sub {
+  font-family: var(--font-mono); font-size: 0.7rem; color: var(--boba-text-muted);
+}
 
 /* ================================================================
    MAIN LAYOUT

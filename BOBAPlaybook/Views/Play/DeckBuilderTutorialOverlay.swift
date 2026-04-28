@@ -38,9 +38,18 @@ struct DeckBuilderAnchorKey: PreferenceKey {
 }
 
 extension View {
+    /// Register this view as the highlight target for `target`.
+    ///
+    /// Uses `transformAnchorPreference` rather than `anchorPreference` so
+    /// the child's contribution merges into the dict rolled up from
+    /// descendants instead of replacing it. The original
+    /// `anchorPreference` form drops sibling/descendant entries — that
+    /// caused the cardBrowser-wrapping `.deckBuilderTutorialTarget(.browser)`
+    /// to wipe out anchors set on inner buttons (collectionToggle, etc.),
+    /// which manifested as the walkthrough silently skipping those steps.
     func deckBuilderTutorialTarget(_ target: DeckBuilderTutorialTarget) -> some View {
-        anchorPreference(key: DeckBuilderAnchorKey.self, value: .bounds) {
-            [target: $0]
+        transformAnchorPreference(key: DeckBuilderAnchorKey.self, value: .bounds) { dict, anchor in
+            dict[target] = anchor
         }
     }
 }
@@ -120,7 +129,7 @@ struct DeckBuilderTutorialOverlay: View {
                 .contentShape(Rectangle())
                 .onTapGesture { advance() }
 
-            if let rect = targetRect {
+            if let rect = targetRect, isOnScreen(rect) {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .strokeBorder(Design.Colors.bobaOrange, lineWidth: 2)
                     .background(
@@ -133,9 +142,39 @@ struct DeckBuilderTutorialOverlay: View {
                     .allowsHitTesting(false)
 
                 tooltipView(for: rect)
+            } else {
+                // Anchor missing or off-screen — render the tooltip
+                // centered with no highlight ring so the user still
+                // sees the step's title + message instead of a blank
+                // dimmed page.
+                centeredTooltip
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.88), value: index)
+    }
+
+    /// True when the rect lives within the proxy bounds with at least
+    /// some pixels visible. A rect that lands fully off-screen (e.g.,
+    /// because an anchor lives in a coordinate space the proxy doesn't
+    /// cover) would otherwise produce a highlight ring no one can see.
+    private func isOnScreen(_ rect: CGRect) -> Bool {
+        guard rect.width > 0, rect.height > 0 else { return false }
+        let visible = CGRect(x: 0, y: 0,
+                             width: containerSize.width,
+                             height: containerSize.height)
+        return visible.intersects(rect)
+    }
+
+    private var centeredTooltip: some View {
+        cardBody
+            .frame(width: min(360, containerSize.width - 32))
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Design.Colors.surface)
+                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Design.Colors.bobaCyan.opacity(0.35), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.5), radius: 18, y: 6)
+            )
+            .position(x: containerSize.width / 2, y: containerSize.height / 2)
     }
 
     // MARK: - Tooltip layout

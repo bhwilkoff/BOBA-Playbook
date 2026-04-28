@@ -15,8 +15,13 @@ struct UpcomingBreaksList: View {
     @State private var isLoading = false
     @State private var loadError: String?
 
+    private let gridColumns = [
+        GridItem(.flexible(), spacing: Design.Spacing.sm),
+        GridItem(.flexible(), spacing: Design.Spacing.sm),
+    ]
+
     var body: some View {
-        VStack(alignment: .leading, spacing: Design.Spacing.md) {
+        Group {
             if isLoading && shows.isEmpty {
                 placeholder
             } else if let loadError, shows.isEmpty {
@@ -24,8 +29,10 @@ struct UpcomingBreaksList: View {
             } else if shows.isEmpty {
                 emptyState
             } else {
-                ForEach(shows) { show in
-                    showCard(show)
+                LazyVGrid(columns: gridColumns, spacing: Design.Spacing.sm) {
+                    ForEach(shows) { show in
+                        showCard(show)
+                    }
                 }
             }
         }
@@ -40,73 +47,79 @@ struct UpcomingBreaksList: View {
     private func showCard(_ show: WhatnotShow) -> some View {
         Link(destination: URL(string: show.showUrl) ?? URL(string: "https://whatnot.com")!) {
             VStack(alignment: .leading, spacing: 0) {
-                // Hero image
-                AsyncImage(url: URL(string: show.thumbnailUrl)) { phase in
-                    switch phase {
-                    case .empty:
-                        Rectangle().fill(Design.Colors.surface)
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    case .failure:
-                        Rectangle().fill(Design.Colors.surface)
-                            .overlay(Image(systemName: "tv")
-                                .font(.system(size: 36))
-                                .foregroundStyle(Design.Colors.textMuted))
-                    @unknown default:
-                        Rectangle().fill(Design.Colors.surface)
+                // Card-shape thumbnail (5:7 portrait — matches Whatnot's
+                // trading-card-shaped images so we don't aggressively
+                // crop the show art).
+                ZStack(alignment: .topLeading) {
+                    AsyncImage(url: URL(string: show.thumbnailUrl)) { phase in
+                        switch phase {
+                        case .empty:
+                            Rectangle().fill(Design.Colors.surface)
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        case .failure:
+                            Rectangle().fill(Design.Colors.surface)
+                                .overlay(Image(systemName: "tv")
+                                    .font(.system(size: 36))
+                                    .foregroundStyle(Design.Colors.textMuted))
+                        @unknown default:
+                            Rectangle().fill(Design.Colors.surface)
+                        }
+                    }
+                    .aspectRatio(5.0/7.0, contentMode: .fill)
+                    .clipped()
+
+                    // LIVE pill — pulsing red badge for currently-streaming shows.
+                    if show.isLiveShow {
+                        HStack(spacing: 4) {
+                            Circle().fill(.white).frame(width: 6, height: 6)
+                            Text("LIVE")
+                                .font(Design.Fonts.mono(9, weight: .bold))
+                                .foregroundStyle(.white)
+                                .tracking(1)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(Color(hex: "C0392B")))
+                        .padding(8)
                     }
                 }
-                .frame(height: 180)
-                .clipped()
 
-                // Footer
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 6) {
-                        Image(systemName: "person.circle.fill")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Design.Colors.bobaCyan)
-                        Text(show.host)
-                            .font(Design.Fonts.mono(11, weight: .bold))
+                        Text("@\(show.host)")
+                            .font(Design.Fonts.mono(10, weight: .bold))
                             .foregroundStyle(Design.Colors.bobaCyan)
                             .lineLimit(1)
                         Spacer(minLength: 0)
-                        if !show.scheduledTimeText.isEmpty {
-                            Image(systemName: "clock.fill")
-                                .font(.system(size: 10))
-                                .foregroundStyle(Design.Colors.bobaOrange)
+                        if !show.isLiveShow, !show.scheduledTimeText.isEmpty {
                             Text(show.scheduledTimeText)
-                                .font(Design.Fonts.mono(11, weight: .bold))
+                                .font(Design.Fonts.mono(10, weight: .bold))
                                 .foregroundStyle(Design.Colors.bobaOrange)
                         }
                     }
-
                     Text(show.title)
-                        .font(Design.Fonts.display(16))
+                        .font(Design.Fonts.display(13))
                         .foregroundStyle(Design.Colors.textPrimary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
-
-                    HStack(spacing: 10) {
+                    HStack(spacing: 8) {
                         if !show.categoryName.isEmpty {
                             Text(show.categoryName.uppercased())
-                                .font(Design.Fonts.mono(9, weight: .bold))
+                                .font(Design.Fonts.mono(8, weight: .bold))
                                 .foregroundStyle(Design.Colors.textMuted)
                                 .tracking(1)
                         }
                         if show.viewerCount > 0 {
-                            HStack(spacing: 3) {
-                                Image(systemName: "person.2.fill")
-                                    .font(.system(size: 9))
-                                Text("\(show.viewerCount) interested")
-                                    .font(Design.Fonts.mono(10))
-                            }
-                            .foregroundStyle(Design.Colors.textMuted)
+                            Text("\(show.viewerCount) \(show.isLiveShow ? "watching" : "interested")")
+                                .font(Design.Fonts.mono(8))
+                                .foregroundStyle(Design.Colors.textMuted)
                         }
                         Spacer(minLength: 0)
                     }
                 }
-                .padding(Design.Spacing.md)
+                .padding(Design.Spacing.sm)
             }
             .background(
                 RoundedRectangle(cornerRadius: Design.Radius.md)

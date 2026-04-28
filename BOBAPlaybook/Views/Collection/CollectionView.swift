@@ -22,7 +22,7 @@ struct CollectionView: View {
     @State private var viewMode: CollectionViewMode = .myCards
     @State private var isRecalculating = false
     @State private var recalcProgress: (current: Int, total: Int)? = nil
-    @State private var showingStoreLocator = false
+
     @State private var showingFilters      = false
     @State private var exportShareURL: URL?    = nil
 
@@ -68,9 +68,6 @@ struct CollectionView: View {
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .navigationDestination(isPresented: $showingStoreLocator) {
-                StoreLocatorView()
-            }
         }
         .sheet(isPresented: $showingSignIn) {
             SignInView()
@@ -204,11 +201,7 @@ struct CollectionView: View {
             }
             .disabled(isRecalculating)
 
-            Button {
-                showingStoreLocator = true
-            } label: {
-                Label("Find a Store", systemImage: "mappin.and.ellipse")
-            }
+            // (Find a Store moved to the Purchase tab.)
 
             // Last item — matches user spec. Writes CSV to a tmp file
             // named with today's date, then presents the share sheet

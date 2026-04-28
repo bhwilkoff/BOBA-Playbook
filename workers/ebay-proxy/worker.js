@@ -1006,6 +1006,7 @@ export default {
     if (request.method === "POST" && url.pathname.endsWith("/discord/token"))   return handleDiscordToken(request, env);
     if (request.method === "POST" && url.pathname.endsWith("/discord/refresh")) return handleDiscordRefresh(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/discord/messages")) return handleDiscordMessages(request, env);
+    if (request.method === "GET"  && url.pathname.endsWith("/whatnot/upcoming")) return handleWhatnotUpcoming(request, env);
     const { searchParams } = url;
     const cardNumber = searchParams.get("cardNumber");
     const hero       = searchParams.get("hero") || "";
@@ -1224,4 +1225,354 @@ function sampleAcrossRange(sortedByPrice, maxCount = 10) {
   return Array.from({ length: maxCount }, (_, i) =>
     sortedByPrice[Math.round(i * step)]
   );
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * WHATNOT UPCOMING SHOWS — three-layer extractor over the public
+ * search HTML at https://www.whatnot.com/search?searchVertical=LIVESTREAM.
+ * Spec + reference patterns: handoff-updates-2026-04-27/whatnot-shows-worker.
+ *
+ * Routes:
+ *   GET /whatnot/upcoming?query=...&status=CREATED|LIVE
+ *
+ * Returns:
+ *   { query, status, count, fetchedAtIso, shows: [WhatnotShow] }
+ *
+ * Extraction layers (one suffices most of the time, three combined is
+ * resilient to Whatnot template tweaks):
+ *   1. DOM regex on /live/{uuid} anchor pairs (always runs)
+ *   2. Apollo SSR streaming pushes (rich data: viewer count, time)
+ *   3. __NEXT_DATA__ script tag (currently absent; kept as fallback)
+ * ════════════════════════════════════════════════════════════════════ */
+
+const WHATNOT_BASE = "https://www.whatnot.com";
+const WHATNOT_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
+    "(KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+  "Accept":
+    "text/html,application/xhtml+xml,application/xml;q=0.9," +
+    "image/avif,image/webp,image/apng,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Cache-Control": "no-cache",
+  "Sec-Fetch-Dest": "document",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Site": "none",
+  "Sec-Fetch-User": "?1",
+  "Upgrade-Insecure-Requests": "1",
+};
+
+const WHATNOT_CACHE_TTL = 5 * 60; // 5 minutes — shows update slowly
+
+async function handleWhatnotUpcoming(request, _env) {
+  const url   = new URL(request.url);
+  const query = url.searchParams.get("query")  || "bo Jackson battle arena";
+  const status = (url.searchParams.get("status") || "CREATED").toUpperCase();
+
+  // Edge cache
+  const cache = caches.default;
+  const cacheKey = new Request(
+    `https://boba-cache.internal/whatnot/v1/${encodeURIComponent(status)}/${encodeURIComponent(query.toLowerCase())}`,
+    { method: "GET" }
+  );
+  const hit = await cache.match(cacheKey);
+  if (hit) {
+    const body = await hit.json();
+    return json(body, 200, { "X-Cache": "HIT" });
+  }
+
+  const searchUrl = buildWhatnotSearchUrl(query, status);
+  let resp;
+  try {
+    resp = await fetch(searchUrl, { headers: WHATNOT_HEADERS, redirect: "follow" });
+  } catch (err) {
+    return json({ error: `whatnot fetch failed: ${err.message}`, searchUrl }, 502);
+  }
+  if (!resp.ok) {
+    return json({ error: `whatnot returned ${resp.status}`, searchUrl }, 502);
+  }
+  const html = await resp.text();
+
+  const shows = whatnotExtractShows(html, query);
+  const payload = {
+    query,
+    status,
+    count: shows.length,
+    fetchedAtIso: new Date().toISOString(),
+    shows,
+  };
+
+  const respBody = json(payload, 200, {
+    "Cache-Control": `public, max-age=${WHATNOT_CACHE_TTL}`,
+  });
+  // Stash in edge cache for the next caller.
+  try {
+    await cache.put(cacheKey, respBody.clone());
+  } catch (_) { /* edge cache write failures are non-fatal */ }
+  return respBody;
+}
+
+function buildWhatnotSearchUrl(query, status) {
+  const filter = encodeURIComponent(JSON.stringify([{ field: "status", values: [status] }]));
+  return `${WHATNOT_BASE}/search?query=${encodeURIComponent(query)}&searchVertical=LIVESTREAM&referringSource=typed&filter=${filter}`;
+}
+
+// ─── Extraction ──────────────────────────────────────────────────────
+
+const WN_THUMB_RE =
+  /<a[^>]*href="(\/live\/([a-f0-9-]{36}))"[^>]*>[\s\S]{0,1500}?<img[^>]*alt="Thumbnail for live show"[^>]*>/gi;
+const WN_TITLE_RE =
+  /<a[^>]*href="\/live\/([a-f0-9-]{36})"[^>]*>[\s\S]{0,400}?<(?:strong|span)[^>]*>([^<]{4,300})<\/(?:strong|span)>/gi;
+const WN_HOST_NEAR_SHOW_RE =
+  /<a[^>]*href="\/user\/([A-Za-z0-9_-]+)"[^>]*>[\s\S]{0,2500}?<a[^>]*href="\/live\/([a-f0-9-]{36})"/gi;
+const WN_APOLLO_PUSH_RE =
+  /ApolloSSRDataTransport[^;]{0,200}?\.push\(\s*(\{)/g;
+const WN_NEXT_DATA_RE =
+  /<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/;
+
+function whatnotExtractShows(html, query) {
+  const byId = new Map();
+
+  // Layer 1: anchor pairs
+  for (const m of html.matchAll(WN_THUMB_RE)) {
+    const showId = m[2];
+    if (!byId.has(showId)) {
+      byId.set(showId, { showId, showUrl: `${WHATNOT_BASE}/live/${showId}` });
+    }
+  }
+  for (const m of html.matchAll(WN_TITLE_RE)) {
+    const showId = m[1];
+    const cur = byId.get(showId);
+    if (cur && !cur.title) cur.title = wnDecodeHtml(m[2]).trim();
+  }
+  for (const m of html.matchAll(WN_HOST_NEAR_SHOW_RE)) {
+    const host = m[1];
+    const showId = m[2];
+    const cur = byId.get(showId);
+    if (cur && !cur.host) {
+      cur.host = host;
+      cur.hostUrl = `${WHATNOT_BASE}/user/${host}`;
+    }
+  }
+
+  // Layer 2: Apollo SSR pushes
+  whatnotEnrichFromApolloPushes(html, byId);
+
+  // Layer 3: __NEXT_DATA__
+  whatnotEnrichFromNextData(html, byId);
+
+  // Per-card sweep around each anchor for time / viewer / category /
+  // thumbnail.
+  whatnotEnrichFromDomNeighborhood(html, byId);
+
+  // Finalize
+  const fetchedAtIso = new Date().toISOString();
+  const shows = [];
+  for (const partial of byId.values()) {
+    if (!partial.showId || !partial.title) continue;
+    shows.push({
+      showId:            partial.showId,
+      showUrl:           partial.showUrl || `${WHATNOT_BASE}/live/${partial.showId}`,
+      title:             partial.title,
+      host:              partial.host || "",
+      hostUrl:           partial.hostUrl || "",
+      scheduledTimeText: partial.scheduledTimeText || "",
+      scheduledTimeIso:  null, // client formats from text — see handoff §6
+      viewerCount:       partial.viewerCount ?? 0,
+      categoryName:      partial.categoryName || "",
+      categorySlug:      partial.categorySlug || "",
+      tags:              partial.tags || [],
+      thumbnailUrl:      partial.thumbnailUrl || "",
+      source:            "whatnot-search",
+      query,
+      fetchedAtIso,
+    });
+  }
+  // Sort: have-a-time first (by raw text alphabetic — "Today" sorts before
+  // "Tomorrow" before weekday labels — close enough for upcoming feed).
+  shows.sort((a, b) => {
+    const ka = a.scheduledTimeText || "~";
+    const kb = b.scheduledTimeText || "~";
+    return ka.localeCompare(kb);
+  });
+  return shows;
+}
+
+function whatnotEnrichFromApolloPushes(html, byId) {
+  for (const m of html.matchAll(WN_APOLLO_PUSH_RE)) {
+    const start = m.index + m[0].length - 1;
+    const end = wnFindMatchingBrace(html, start);
+    if (end <= start) continue;
+    const raw = html.slice(start, end + 1);
+    const obj = wnParseLooseJson(raw);
+    if (!obj) continue;
+    wnWalkShowNodes(obj, (node) => {
+      const id = wnPickShowId(node);
+      if (!id) return;
+      const cur = byId.get(id);
+      if (!cur) return;
+      if (!cur.title)             cur.title = wnPickString(node, ["title"]) || cur.title;
+      if (!cur.thumbnailUrl)      cur.thumbnailUrl = wnPickImageUrl(node) || cur.thumbnailUrl;
+      if (!cur.viewerCount)       cur.viewerCount = wnPickInt(node, ["viewerCount", "currentViewers", "interestedCount"]) || 0;
+      if (!cur.scheduledTimeText) cur.scheduledTimeText = wnPickString(node, ["scheduledStartText", "startTimeText"]) || "";
+      if (!cur.categoryName)      cur.categoryName = wnPickString(node, ["categoryName", "category"]) || "";
+      if (!cur.tags?.length)      cur.tags = wnPickArray(node, ["tags", "tagNames"]) || [];
+    });
+  }
+}
+
+function whatnotEnrichFromNextData(html, byId) {
+  const m = WN_NEXT_DATA_RE.exec(html);
+  if (!m) return;
+  const data = wnParseLooseJson(m[1]);
+  if (!data) return;
+  wnWalkShowNodes(data, (node) => {
+    const id = wnPickShowId(node);
+    if (!id) return;
+    const cur = byId.get(id) || {};
+    if (!cur.showId) cur.showId = id;
+    if (!cur.title)  cur.title  = wnPickString(node, ["title"]) || cur.title;
+    byId.set(id, cur);
+  });
+}
+
+function whatnotEnrichFromDomNeighborhood(html, byId) {
+  for (const [showId, cur] of byId.entries()) {
+    const idx = html.indexOf(`/live/${showId}`);
+    if (idx < 0) continue;
+    const win = html.slice(Math.max(0, idx - 500), idx + 3000);
+
+    if (!cur.scheduledTimeText) {
+      const t = /(?:Today|Tomorrow|Yesterday|Mon|Tue|Wed|Thu|Fri|Sat|Sun|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}(?::\d{2})?\s*(?:AM|PM)?/i.exec(win);
+      if (t) cur.scheduledTimeText = t[0].trim();
+    }
+    if (!cur.viewerCount) {
+      const v = /Bookmark this show[\s\S]{0,500}?<span[^>]*>(\d{1,5})<\/span>/i.exec(win);
+      if (v) cur.viewerCount = parseInt(v[1], 10);
+    }
+    if (!cur.categoryName) {
+      const c = /<a[^>]*href="\/tag\/([^"]+)"[^>]*>[\s\S]{0,200}?<(?:strong|span)[^>]*>([^<]+)<\/(?:strong|span)>/i.exec(win);
+      if (c) {
+        cur.categorySlug = c[1];
+        cur.categoryName = wnDecodeHtml(c[2]).trim();
+      }
+    }
+    if (!cur.thumbnailUrl) {
+      const i = /<img[^>]*alt="Thumbnail for live show"[^>]*src(?:set)?="([^"]+)"/i.exec(win);
+      if (i) cur.thumbnailUrl = wnPickHighestSrc(i[1]);
+    }
+  }
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────
+
+function wnFindMatchingBrace(s, start) {
+  if (s[start] !== "{") return -1;
+  let depth = 0, i = start, inStr = false, quote = "";
+  while (i < s.length) {
+    const ch = s[i];
+    if (inStr) {
+      if (ch === "\\") { i += 2; continue; }
+      if (ch === quote) inStr = false;
+    } else {
+      if (ch === '"' || ch === "'") { inStr = true; quote = ch; }
+      else if (ch === "{") depth++;
+      else if (ch === "}") { depth--; if (depth === 0) return i; }
+    }
+    i++;
+  }
+  return -1;
+}
+
+function wnParseLooseJson(raw) {
+  try { return JSON.parse(raw); } catch (_) {}
+  const sanitized = raw.replace(
+    /([:,\[]\s*)(undefined|NaN|-?Infinity)(\s*[,\]\}])/g,
+    "$1null$3"
+  );
+  try { return JSON.parse(sanitized); } catch (_) { return null; }
+}
+
+function wnWalkShowNodes(obj, fn, depth = 0) {
+  if (depth > 30 || !obj) return;
+  if (Array.isArray(obj)) { for (const v of obj) wnWalkShowNodes(v, fn, depth + 1); return; }
+  if (typeof obj !== "object") return;
+  const t = obj.__typename || obj.type;
+  if (t && /LiveStream|Livestream|Show/i.test(String(t))) fn(obj);
+  else if (obj.id && (obj.title || obj.name) && (obj.url || obj.permalink || obj.slug)) fn(obj);
+  for (const v of Object.values(obj)) wnWalkShowNodes(v, fn, depth + 1);
+}
+
+function wnPickShowId(node) {
+  const url = wnPickString(node, ["url", "permalink", "shareUrl", "path", "href"]);
+  if (url) {
+    const m = /\/live\/([a-f0-9-]{36})/.exec(url);
+    if (m) return m[1];
+  }
+  const id = wnPickString(node, ["id", "uuid", "globalId", "showId", "livestreamId"]);
+  if (id && /^[a-f0-9-]{36}$/.test(id)) return id;
+  return null;
+}
+
+function wnPickString(node, keys) {
+  for (const k of keys) {
+    const v = node?.[k];
+    if (typeof v === "string" && v) return v;
+  }
+  return null;
+}
+
+function wnPickInt(node, keys) {
+  for (const k of keys) {
+    const v = node?.[k];
+    if (typeof v === "number" && Number.isFinite(v)) return Math.floor(v);
+  }
+  return null;
+}
+
+function wnPickArray(node, keys) {
+  for (const k of keys) {
+    const v = node?.[k];
+    if (Array.isArray(v)) {
+      const out = v.map(x => typeof x === "string" ? x : (x?.name ?? x?.label)).filter(Boolean);
+      if (out.length) return out;
+    }
+  }
+  return null;
+}
+
+function wnPickImageUrl(node) {
+  for (const k of ["thumbnailUrl", "imageUrl", "image", "thumbnail"]) {
+    const v = node[k];
+    if (typeof v === "string" && v.startsWith("http")) return v;
+    if (v && typeof v === "object") {
+      for (const kk of ["url", "src"]) {
+        if (typeof v[kk] === "string" && v[kk].startsWith("http")) return v[kk];
+      }
+    }
+  }
+  return null;
+}
+
+function wnPickHighestSrc(srcsetOrSrc) {
+  const parts = srcsetOrSrc.split(",").map(s => s.trim());
+  let bestUrl = "", bestScore = 0;
+  for (const part of parts) {
+    const [url, descriptor] = part.split(/\s+/);
+    const n = descriptor ? parseFloat(descriptor) : 0;
+    if (n >= bestScore) { bestScore = n; bestUrl = url; }
+  }
+  return bestUrl || srcsetOrSrc;
+}
+
+function wnDecodeHtml(s) {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&nbsp;/g, " ");
 }

@@ -34,7 +34,12 @@ struct WhatnotShow: Identifiable, Codable, Sendable, Hashable {
     }
 }
 
-private struct WhatnotShowsResponse: Codable {
+// `Sendable` (and the explicit `Codable` body) keeps Swift 6's
+// default MainActor inference from attaching to the conformance —
+// otherwise `JSONDecoder().decode(WhatnotShowsResponse.self, …)`
+// inside the actor errors with "main actor-isolated conformance
+// cannot be used in actor-isolated context."
+private struct WhatnotShowsResponse: Codable, Sendable {
     let shows: [WhatnotShow]
     let count: Int?
     let fetchedAtIso: String?

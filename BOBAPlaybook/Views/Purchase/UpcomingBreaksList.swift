@@ -21,20 +21,36 @@ struct UpcomingBreaksList: View {
     ]
 
     var body: some View {
-        Group {
-            if isLoading && shows.isEmpty {
-                placeholder
-            } else if let loadError, shows.isEmpty {
-                errorState(loadError)
-            } else if shows.isEmpty {
-                emptyState
-            } else {
-                LazyVGrid(columns: gridColumns, spacing: Design.Spacing.sm) {
-                    ForEach(shows) { show in
-                        showCard(show)
+        // The ScrollView lives INSIDE this view so `.refreshable`
+        // attaches to the same scroll context that contains the
+        // grid. The previous structure put the ScrollView in
+        // PurchaseView and this view inside it, which intermittently
+        // failed to propagate the refresh gesture in iOS 26.
+        ScrollView {
+            VStack(alignment: .leading, spacing: Design.Spacing.md) {
+                Text("Live community streams featuring Bo Jackson Battle Arena")
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+
+                if isLoading && shows.isEmpty {
+                    placeholder
+                } else if let loadError, shows.isEmpty {
+                    errorState(loadError)
+                } else if shows.isEmpty {
+                    emptyState
+                } else {
+                    LazyVGrid(columns: gridColumns, spacing: Design.Spacing.sm) {
+                        ForEach(shows) { show in
+                            showCard(show)
+                        }
                     }
                 }
             }
+            .padding(.horizontal, Design.Spacing.lg)
+            .padding(.top, Design.Spacing.md)
+            .padding(.bottom, Design.Spacing.xl)
         }
         .task { await load(force: false) }
         .refreshable { await load(force: true) }

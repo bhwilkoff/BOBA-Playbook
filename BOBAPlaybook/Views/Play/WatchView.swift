@@ -130,31 +130,35 @@ struct WatchView: View {
         .refreshable { await feed.loadAll() }
     }
 
-    /// Vertical-recorded — 2-column 9:16 grid. Three was too dense
-    /// on iPhone (titles got truncated past readability); two leaves
-    /// each tile wide enough that the title comfortably wraps to
-    /// two lines. Cards use a center-cropped 9:16 thumbnail (the
-    /// custom thumbnails creators upload for vertical content like
-    /// Radish's 📱 daily-show edition are usually 16:9, so the crop
-    /// gives a vertical slice rather than letterboxing — which the
-    /// user explicitly preferred over horizontal letterboxing).
+    /// Vertical-recorded — 2-column 9:16 grid. Sizing is computed
+    /// explicitly via GeometryReader rather than relying on
+    /// `.flexible()` columns: the first card was rendering full-
+    /// width because AsyncImage's pre-load placeholder reported an
+    /// intrinsic size that bubbled up through ZStack and made
+    /// LazyVGrid's flexible-column heuristic collapse to a single
+    /// column. Fixed column widths sidestep that entirely.
     private var verticalGrid: some View {
-        ScrollView {
-            LazyVGrid(
-                columns: [
-                    GridItem(.flexible(), spacing: Design.Spacing.sm),
-                    GridItem(.flexible(), spacing: Design.Spacing.sm),
-                ],
-                spacing: Design.Spacing.md
-            ) {
-                ForEach(currentItems) { video in
-                    VerticalCard(video: video)
-                        .onTapGesture { playing = video }
+        GeometryReader { proxy in
+            let outerPad: CGFloat = Design.Spacing.lg
+            let gap: CGFloat      = Design.Spacing.sm
+            let columnWidth = max(80, (proxy.size.width - outerPad * 2 - gap) / 2)
+            ScrollView {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.fixed(columnWidth), spacing: gap),
+                        GridItem(.fixed(columnWidth), spacing: gap),
+                    ],
+                    spacing: Design.Spacing.md
+                ) {
+                    ForEach(currentItems) { video in
+                        VerticalCard(video: video, width: columnWidth)
+                            .onTapGesture { playing = video }
+                    }
                 }
+                .padding(outerPad)
             }
-            .padding(Design.Spacing.lg)
+            .refreshable { await feed.loadAll() }
         }
-        .refreshable { await feed.loadAll() }
     }
 
     /// Horizontal-recorded — 16:9 grid, two columns on phones.
@@ -289,11 +293,17 @@ private struct UpcomingCard: View {
 
 private struct VerticalCard: View {
     let video: YouTubeVideo
+    /// Explicit column width passed down from the grid's
+    /// GeometryReader. We pin every layout dimension to it so
+    /// AsyncImage's pre-load intrinsic size can't bubble up and
+    /// expand the cell.
+    let width: CGFloat
 
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.xs) {
             ZStack(alignment: .bottomTrailing) {
                 ThumbnailView(url: video.thumbnail, aspect: 9.0/16.0)
+                    .frame(width: width, height: width * 16 / 9)
                 if let dur = video.durationLabel {
                     durationBadge(dur).padding(6)
                 }
@@ -302,8 +312,12 @@ private struct VerticalCard: View {
                 .font(Design.Fonts.mono(11, weight: .bold))
                 .foregroundStyle(Design.Colors.textPrimary)
                 .lineLimit(2)
+                .frame(width: width, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
             CardSubtitle(video: video, compact: true)
+                .frame(width: width, alignment: .leading)
         }
+        .frame(width: width)
     }
 }
 
@@ -354,6 +368,12 @@ private struct ThumbnailView: View {
                             .foregroundStyle(Design.Colors.textMuted)
                     }
                 }
+                // .clipped() on the image phase prevents the
+                // pre-load placeholder OR a freshly-loaded large
+                // source bitmap from leaking its intrinsic size up
+                // to the parent ZStack, which is what was making
+                // LazyVGrid expand the first cell to full width.
+                .clipped()
             } else {
                 Image(systemName: "play.rectangle.fill")
                     .font(.system(size: 28))

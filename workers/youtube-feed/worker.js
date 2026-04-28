@@ -48,16 +48,25 @@
 // MARK: - Config
 // ════════════════════════════════════════════════════════════════
 
-// Priority order matters. Lower priority value = surfaces first when
-// videos are equally fresh. radishdijital is the most active community
-// reviewer per Ben — pinned to priority 0 so it leads.
+// `priority: 0` means the channel's NEW videos pin to the top of
+// each feed — that surface treatment is reserved for the single most
+// active community reviewer (currently RadishDijital). Adding a new
+// priority channel later is a one-line edit.
+//
+// `priority: 5` means we pull the channel's uploads into the feed
+// (so the dedupe attaches a sourceChannel tag if the same video
+// also shows up in the search results) but the items sort by date
+// alongside community search hits — no artificial elevation.
+//
+// `priority: 9` (search-sourced) is set inline when we merge search
+// results in `refreshFeeds`.
 const KNOWN_CHANNELS = [
   { handle: "radishdijital",          priority: 0 },
-  { handle: "BoBattleArena",          priority: 1 },
-  { handle: "InsideTheVault_Bazooka", priority: 1 },
-  { handle: "BattleArenaLeague",      priority: 1 },
-  { handle: "blokpax",                priority: 1 },
-  { handle: "PullsAndPars",           priority: 1 },
+  { handle: "BoBattleArena",          priority: 5 },
+  { handle: "InsideTheVault_Bazooka", priority: 5 },
+  { handle: "BattleArenaLeague",      priority: 5 },
+  { handle: "blokpax",                priority: 5 },
+  { handle: "PullsAndPars",           priority: 5 },
 ];
 
 const YT_API = "https://www.googleapis.com/youtube/v3";
@@ -486,14 +495,15 @@ function sortByPriorityAndDate(priorityFreshDays) {
     const bLive = b.liveBroadcastContent === "live" ? 0 : 1;
     if (aLive !== bLive) return aLive - bLive;
 
-    // Priority channels surface first WHILE FRESH. Past the
-    // freshness window everyone falls back to date order so a
-    // brand-new community video isn't buried under a 2-year-old
-    // priority upload.
-    const aFresh = (a.priority < 9) && (new Date(a.publishedAt).getTime() >= freshCutoff);
-    const bFresh = (b.priority < 9) && (new Date(b.publishedAt).getTime() >= freshCutoff);
-    if (aFresh !== bFresh) return bFresh - aFresh;
-    if (aFresh && bFresh && a.priority !== b.priority) return a.priority - b.priority;
+    // Top-priority channels (priority === 0, currently just
+    // RadishDijital) pin their FRESH videos to the top of the feed.
+    // Outside the freshness window they fall back to date order so a
+    // 2-year-old Radish upload doesn't outrank a brand-new community
+    // video. Non-priority channels (priority 5) and search-sourced
+    // (priority 9) items skip this boost and sort by date only.
+    const aPin = (a.priority === 0) && (new Date(a.publishedAt).getTime() >= freshCutoff);
+    const bPin = (b.priority === 0) && (new Date(b.publishedAt).getTime() >= freshCutoff);
+    if (aPin !== bPin) return bPin - aPin;
 
     // Default: newest first.
     return (b.publishedAt || "").localeCompare(a.publishedAt || "");

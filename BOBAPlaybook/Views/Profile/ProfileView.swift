@@ -127,6 +127,20 @@ struct ProfileView: View {
                                     .background(auth.isAdmin ? Design.Colors.bobaOrange : Design.Colors.bobaCyan)
                                     .clipShape(RoundedRectangle(cornerRadius: 3))
                             }
+                            // Admin-only practice access. The historical
+                            // bottom-nav Play tab was removed pending an
+                            // IP review with BoBA; this icon keeps the
+                            // surface available for testing without
+                            // exposing it to other roles.
+                            if auth.isAdmin {
+                                NavigationLink(destination: PlayView()) {
+                                    Image(systemName: "bolt.square.fill")
+                                        .font(.system(size: 18))
+                                        .foregroundStyle(Design.Colors.bobaOrange)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Practice (admin only)")
+                            }
                         }
                     }
                 }

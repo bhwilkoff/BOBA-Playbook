@@ -8,21 +8,6 @@ The list below is grouped by surface so testers can divide and conquer. Items ma
 
 ---
 
-## Practice Battle (biggest new surface) — **NEW**
-
-A full M4 Play implementation landed since build 62. This is the area most likely to surface bugs.
-
-- **Full Playmaker game**: 7 battles, first to 4 wins. Hero deck + Hot Dogs + Playbook. Verify the post-game summary trophy strip and per-battle play list look right.
-- **Other modes**: Rookie (hero only) and Substitution (hero + Hot Dogs).
-- **Persistent effects**: weapon transforms (Only Fire / Frost-Hardened / Molten Steel), `on_battle_win` / `on_battle_loss`, multi-battle scopes — confirm the active-effects banner pills tick down correctly.
-- **Power breakdown**: tap any contribution row on the Resolution screen → opens PlayReviewSheet with the played card's image.
-- **Dice / coin overlays**: per-card timing, swipe to dismiss, versus rolls (Honors).
-- **Discard inspector**: tap the discard chip on either side; Hot Dog cards now render with real art.
-- **First-run walkthrough**: on by default for first-time coaches; the **?** button in the top bar replays it.
-- **Sudden Death**: trigger a 3–3 split and confirm Battle 8 fires.
-- **NEW: X button on the "Rotate to Play" screen** (top right) — bails out without forcing a device rotation.
-- **Pre-Game Spy** card: verify the dismissible reveal works.
-
 ## Deck Builder — **NEW**
 
 - **Formats**: Standard, SPEC, SPEC+, Limited, Elite. The legality audit panel should call out which Nationals events the deck qualifies for.
@@ -63,7 +48,6 @@ A full M4 Play implementation landed since build 62. This is the area most likel
 ## Settings
 
 - **App icon picker**: 8 weapon colors (FIRE / ICE / HEX / STEEL / BRAWL / GLOW / GUM / SUPER).
-- **Practice hints**: now **default OFF** — verify upgraders also see the toggle off after the migration. Banner should be opaque and legible; "Reset hints" replays them.
 
 ## Catalog quality
 
@@ -93,7 +77,7 @@ A full M4 Play implementation landed since build 62. This is the area most likel
 
 ## How to file feedback
 
-Concise repro steps + screenshot or screen recording is gold. Tag with the surface (e.g. "Practice — Substitution"), the build number from Settings, and one of: bug · UX · perf · catalog data.
+Concise repro steps + screenshot or screen recording is gold. Tag with the surface (e.g. "Find — Filters"), the build number from Settings, and one of: bug · UX · perf · catalog data.
 
 ---
 
@@ -102,8 +86,6 @@ Concise repro steps + screenshot or screen recording is gold. Tag with the surfa
 > 🎮 **BOBA Playbook — Big Beta Update Coming**
 >
 > Last build you tested was 1.61. The new build has ~80 builds of work on top of it. Highlights:
->
-> 🏟️ **Practice Battle (NEW)** — Full M4 Play. Pick a deck, battle CPU through 7 rounds, all play-card effects simulate, persistent effects + weapon transforms work, dice/coin overlays, Sudden Death extends to Battle 8.
 >
 > 🃏 **Deck Builder (NEW)** — All 5 formats (Standard / SPEC / SPEC+ / Limited / Elite). CSV import/export matches the official BoBA deckbuilder. Auto-save, format-legality audit, scanner integration.
 >

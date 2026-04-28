@@ -9,9 +9,9 @@ import Foundation
 @MainActor
 @Observable
 final class YouTubeFeedService {
-    var live:    [YouTubeVideo] = []
-    var shorts:  [YouTubeVideo] = []
-    var regular: [YouTubeVideo] = []
+    var upcoming:   [YouTubeVideo] = []
+    var vertical:   [YouTubeVideo] = []
+    var horizontal: [YouTubeVideo] = []
     var writtenAt: String?      = nil
     var isLoading: Bool         = false
     var loadError: String?      = nil
@@ -38,10 +38,10 @@ final class YouTubeFeedService {
         do {
             let (data, _) = try await session.data(from: url)
             let bundle = try JSONDecoder().decode(YouTubeFeedBundle.self, from: data)
-            self.live      = bundle.live
-            self.shorts    = bundle.short
-            self.regular   = bundle.regular
-            self.writtenAt = bundle.writtenAt
+            self.upcoming   = bundle.upcoming
+            self.vertical   = bundle.vertical
+            self.horizontal = bundle.horizontal
+            self.writtenAt  = bundle.writtenAt
         } catch {
             loadError = error.localizedDescription
         }

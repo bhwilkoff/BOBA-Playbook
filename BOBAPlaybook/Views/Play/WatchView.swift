@@ -2,29 +2,34 @@ import SwiftUI
 
 // MARK: - WatchView
 //
-// Renders the three YouTube feeds (Live / Shorts / Videos) the
-// `boba-youtube-feed` Worker hands us. Each feed has a slightly
-// different layout because the underlying media has different
-// natural geometry:
+// Renders the three YouTube feeds the `boba-youtube-feed` Worker
+// hands us, organized around a creator's two real distribution
+// orientations (landscape for desktop / portrait for phone) plus a
+// dedicated upcoming-live tab so coaches can find the next show:
 //
-//   - Live → big 16:9 cards stacked, with a "LIVE NOW" badge for
-//     active broadcasts and a relative-time tag for replays.
-//   - Shorts → vertical 9:16 grid (2 columns on phones, 4 on iPad).
-//   - Videos → 16:9 grid, two columns.
+//   - Upcoming Live → currently-live + scheduled streams + recent
+//     replays (within 7 days). Sorted chronologically by the
+//     ACTUAL stream time (actualStartTime || scheduledStartTime),
+//     not the publishedAt timestamp YouTube stamps when the event
+//     placeholder was first created. Big 16:9 cards.
+//   - Vertical → previously-recorded vertical content. Catches both
+//     YouTube Shorts AND longer phone-edition cuts (e.g. Radish's
+//     daily show 📱 variant). 9:16 grid.
+//   - Horizontal → previously-recorded landscape content. 16:9 grid.
 //
 // Tapping any tile presents a sheet hosting `YouTubePlayerView` so
 // playback stays in-app via the YouTube IFrame Player API.
 
 enum WatchTab: String, CaseIterable, Identifiable {
-    case live    = "Live"
-    case shorts  = "Shorts"
-    case videos  = "Videos"
+    case upcoming   = "Upcoming Live"
+    case vertical   = "Vertical"
+    case horizontal = "Horizontal"
     var id: String { rawValue }
 }
 
 struct WatchView: View {
     @State private var feed = YouTubeFeedService()
-    @State private var tab: WatchTab = .live
+    @State private var tab: WatchTab = .upcoming
     @State private var playing: YouTubeVideo? = nil
 
     var body: some View {
@@ -47,7 +52,7 @@ struct WatchView: View {
             }
         }
         .task {
-            if feed.live.isEmpty && feed.shorts.isEmpty && feed.regular.isEmpty {
+            if feed.upcoming.isEmpty && feed.vertical.isEmpty && feed.horizontal.isEmpty {
                 await feed.loadAll()
             }
         }
@@ -58,9 +63,9 @@ struct WatchView: View {
 
     private var currentItems: [YouTubeVideo] {
         switch tab {
-        case .live:   return feed.live
-        case .shorts: return feed.shorts
-        case .videos: return feed.regular
+        case .upcoming:   return feed.upcoming
+        case .vertical:   return feed.vertical
+        case .horizontal: return feed.horizontal
         }
     }
 
@@ -92,9 +97,9 @@ struct WatchView: View {
 
     private func count(for t: WatchTab) -> Int {
         switch t {
-        case .live:   return feed.live.count
-        case .shorts: return feed.shorts.count
-        case .videos: return feed.regular.count
+        case .upcoming:   return feed.upcoming.count
+        case .vertical:   return feed.vertical.count
+        case .horizontal: return feed.horizontal.count
         }
     }
 
@@ -103,19 +108,20 @@ struct WatchView: View {
     @ViewBuilder
     private var contentView: some View {
         switch tab {
-        case .live:   liveList
-        case .shorts: shortsGrid
-        case .videos: videosGrid
+        case .upcoming:   upcomingList
+        case .vertical:   verticalGrid
+        case .horizontal: horizontalGrid
         }
     }
 
-    /// Live feed — single-column, larger cards. LIVE NOW broadcasts
-    /// always sit at the top; replays follow in date order.
-    private var liveList: some View {
+    /// Upcoming/live feed — single-column, larger 16:9 cards.
+    /// LIVE NOW broadcasts and the next-soonest scheduled streams
+    /// surface at the top; recent replays follow.
+    private var upcomingList: some View {
         ScrollView {
             LazyVStack(spacing: Design.Spacing.md) {
                 ForEach(currentItems) { video in
-                    LiveCard(video: video)
+                    UpcomingCard(video: video)
                         .onTapGesture { playing = video }
                 }
             }
@@ -124,16 +130,16 @@ struct WatchView: View {
         .refreshable { await feed.loadAll() }
     }
 
-    /// Shorts — 9:16 vertical grid. Two columns on phones; iPads can
-    /// flow more naturally with `.adaptive` minimum width.
-    private var shortsGrid: some View {
+    /// Vertical-recorded — 9:16 grid. Catches both Shorts and
+    /// phone-edition cuts of longer shows.
+    private var verticalGrid: some View {
         ScrollView {
             LazyVGrid(
                 columns: [GridItem(.adaptive(minimum: 140, maximum: 200), spacing: Design.Spacing.sm)],
                 spacing: Design.Spacing.md
             ) {
                 ForEach(currentItems) { video in
-                    ShortCard(video: video)
+                    VerticalCard(video: video)
                         .onTapGesture { playing = video }
                 }
             }
@@ -142,15 +148,15 @@ struct WatchView: View {
         .refreshable { await feed.loadAll() }
     }
 
-    /// Regular videos — 16:9 grid, two columns on phones.
-    private var videosGrid: some View {
+    /// Horizontal-recorded — 16:9 grid, two columns on phones.
+    private var horizontalGrid: some View {
         ScrollView {
             LazyVGrid(
                 columns: [GridItem(.adaptive(minimum: 240, maximum: 400), spacing: Design.Spacing.md)],
                 spacing: Design.Spacing.md
             ) {
                 ForEach(currentItems) { video in
-                    VideoCard(video: video)
+                    HorizontalCard(video: video)
                         .onTapGesture { playing = video }
                 }
             }
@@ -195,16 +201,16 @@ struct WatchView: View {
 
     private var emptyView: some View {
         VStack(spacing: Design.Spacing.md) {
-            Image(systemName: tab == .live ? "dot.radiowaves.left.and.right" :
-                  tab == .shorts ? "rectangle.portrait" : "play.rectangle")
+            Image(systemName: tab == .upcoming ? "dot.radiowaves.left.and.right" :
+                              tab == .vertical ? "rectangle.portrait" : "play.rectangle")
                 .font(.system(size: 32))
                 .foregroundStyle(Design.Colors.textMuted)
-            Text(tab == .live ? "No live shows right now" :
-                 tab == .shorts ? "No new Shorts yet" :
-                                  "No videos in this feed yet")
+            Text(tab == .upcoming   ? "No upcoming or live shows right now" :
+                 tab == .vertical   ? "No vertical videos yet" :
+                                      "No horizontal videos yet")
                 .font(Design.Fonts.display(15))
                 .foregroundStyle(Design.Colors.textMuted)
-            Text("Refreshes every 4 hours.")
+            Text("Refreshes every 4 hours. Pull down to refresh now.")
                 .font(Design.Fonts.mono(11))
                 .foregroundStyle(Design.Colors.textMuted)
         }
@@ -216,7 +222,7 @@ struct WatchView: View {
 // MARK: - Card variants
 // ════════════════════════════════════════════════════════════════
 
-private struct LiveCard: View {
+private struct UpcomingCard: View {
     let video: YouTubeVideo
 
     var body: some View {
@@ -232,8 +238,16 @@ private struct LiveCard: View {
                         .padding(.vertical, 4)
                         .background(Capsule().fill(Color(hex: "C0392B")))
                         .padding(8)
+                } else if video.isUpcoming {
+                    Text("UPCOMING")
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(Design.Colors.bobaCyan.opacity(0.85)))
+                        .padding(8)
                 } else {
-                    Text("LIVE REPLAY")
+                    Text("REPLAY")
                         .font(Design.Fonts.mono(10, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 8)
@@ -250,13 +264,26 @@ private struct LiveCard: View {
                     .font(Design.Fonts.display(15))
                     .foregroundStyle(Design.Colors.textPrimary)
                     .lineLimit(2)
+                // Stream-time line — surfaced ABOVE the channel/views
+                // subtitle for upcoming and live cards. Uses
+                // streamTime (actual || scheduled), not publishedAt.
+                if let when = video.streamTimeLabel {
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(video.isLiveNow ? Color(hex: "C0392B") : Design.Colors.bobaCyan)
+                        Text(when)
+                            .font(Design.Fonts.mono(11, weight: .bold))
+                            .foregroundStyle(video.isLiveNow ? Color(hex: "C0392B") : Design.Colors.bobaCyan)
+                    }
+                }
                 CardSubtitle(video: video)
             }
         }
     }
 }
 
-private struct ShortCard: View {
+private struct VerticalCard: View {
     let video: YouTubeVideo
 
     var body: some View {
@@ -276,7 +303,7 @@ private struct ShortCard: View {
     }
 }
 
-private struct VideoCard: View {
+private struct HorizontalCard: View {
     let video: YouTubeVideo
 
     var body: some View {

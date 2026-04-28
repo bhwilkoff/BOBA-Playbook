@@ -15,14 +15,14 @@ const Watch = (() => {
     || 'https://boba-youtube-feed.benwilkoff.workers.dev';
 
   const PANELS = {
-    live:   () => document.getElementById('watch-panel-live'),
-    shorts: () => document.getElementById('watch-panel-shorts'),
-    videos: () => document.getElementById('watch-panel-videos'),
+    upcoming:   () => document.getElementById('watch-panel-upcoming'),
+    vertical:   () => document.getElementById('watch-panel-vertical'),
+    horizontal: () => document.getElementById('watch-panel-horizontal'),
   };
   const COUNTS = {
-    live:   () => document.getElementById('watch-count-live'),
-    shorts: () => document.getElementById('watch-count-shorts'),
-    videos: () => document.getElementById('watch-count-videos'),
+    upcoming:   () => document.getElementById('watch-count-upcoming'),
+    vertical:   () => document.getElementById('watch-count-vertical'),
+    horizontal: () => document.getElementById('watch-count-horizontal'),
   };
 
   let _bundle  = null;
@@ -158,22 +158,22 @@ const Watch = (() => {
   async function loadAll() {
     if (_loading) return;
     _loading = true;
-    renderLoadingState('live');
-    renderLoadingState('shorts');
-    renderLoadingState('videos');
+    renderLoadingState('upcoming');
+    renderLoadingState('vertical');
+    renderLoadingState('horizontal');
     try {
       const resp = await fetch(WORKER_URL + '/');
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       _bundle = await resp.json();
       _loaded = true;
-      renderTab('live',   _bundle.live    || []);
-      renderTab('shorts', _bundle.short   || []);
-      renderTab('videos', _bundle.regular || []);
+      renderTab('upcoming',   _bundle.upcoming   || []);
+      renderTab('vertical',   _bundle.vertical   || []);
+      renderTab('horizontal', _bundle.horizontal || []);
     } catch (err) {
       console.error('Watch loadAll failed:', err);
-      renderErrorState('live',   err.message);
-      renderErrorState('shorts', err.message);
-      renderErrorState('videos', err.message);
+      renderErrorState('upcoming',   err.message);
+      renderErrorState('vertical',   err.message);
+      renderErrorState('horizontal', err.message);
     } finally {
       _loading = false;
     }
@@ -190,17 +190,17 @@ const Watch = (() => {
 
     if (!items.length) {
       panel.innerHTML = `<div class="watch-empty">${
-        name === 'live'   ? 'No live shows right now.' :
-        name === 'shorts' ? 'No new Shorts yet.' :
-                            'No videos in this feed yet.'
-      }<br><span class="watch-empty-sub">Refreshes every 4 hours.</span></div>`;
+        name === 'upcoming' ? 'No upcoming or live shows right now.' :
+        name === 'vertical' ? 'No vertical videos yet.' :
+                              'No horizontal videos yet.'
+      }<br><span class="watch-empty-sub">Refreshes every 4 hours. Pull down to refresh now.</span></div>`;
       return;
     }
 
     const cardHtml = items.map(v =>
-      name === 'live'   ? liveCard(v)   :
-      name === 'shorts' ? shortCard(v)  :
-                          videoCard(v)
+      name === 'upcoming' ? upcomingCard(v)   :
+      name === 'vertical' ? verticalCard(v)   :
+                            horizontalCard(v)
     ).join('');
     panel.innerHTML = `<div class="watch-grid watch-grid-${name}">${cardHtml}</div>`;
 
@@ -232,25 +232,33 @@ const Watch = (() => {
 
   /* ================================================================
      CARD HTML — one per category to honor the underlying media's
-     natural aspect ratio (16:9 for live + regular, 9:16 for Shorts).
+     natural aspect ratio (16:9 for upcoming + horizontal, 9:16 for
+     vertical) and to surface stream times on Upcoming Live cards.
   ================================================================ */
-  function liveCard(v) {
-    const isLive = v.liveBroadcastContent === 'live';
+  function upcomingCard(v) {
+    const isLive     = v.liveBroadcastContent === 'live';
+    const isUpcoming = v.liveBroadcastContent === 'upcoming';
+    const badgeClass = isLive ? 'watch-badge-live' :
+                       isUpcoming ? 'watch-badge-upcoming' : 'watch-badge-replay';
+    const badgeText  = isLive ? 'LIVE NOW' :
+                       isUpcoming ? 'UPCOMING' : 'REPLAY';
+    const when = streamTimeLabel(v);
     return `
-      <article class="watch-card watch-card-live" data-video-id="${esc(v.videoId)}" tabindex="0">
+      <article class="watch-card watch-card-upcoming" data-video-id="${esc(v.videoId)}" tabindex="0">
         <div class="watch-thumb watch-thumb-16x9">
           ${thumbImg(v)}
-          <span class="watch-badge ${isLive ? 'watch-badge-live' : 'watch-badge-replay'}">
-            ${isLive ? 'LIVE NOW' : 'LIVE REPLAY'}
-          </span>
+          <span class="watch-badge ${badgeClass}">${badgeText}</span>
           ${durationBadge(v)}
         </div>
         <h4 class="watch-card-title">${esc(v.title)}</h4>
+        ${when ? `<div class="watch-card-streamtime${isLive ? ' watch-card-streamtime-live' : ''}">
+          <span class="watch-card-streamtime-icon" aria-hidden="true">⏱</span> ${esc(when)}
+        </div>` : ''}
         ${cardSubtitle(v)}
       </article>`;
   }
 
-  function shortCard(v) {
+  function verticalCard(v) {
     return `
       <article class="watch-card watch-card-short" data-video-id="${esc(v.videoId)}" tabindex="0">
         <div class="watch-thumb watch-thumb-9x16">
@@ -262,7 +270,7 @@ const Watch = (() => {
       </article>`;
   }
 
-  function videoCard(v) {
+  function horizontalCard(v) {
     return `
       <article class="watch-card watch-card-video" data-video-id="${esc(v.videoId)}" tabindex="0">
         <div class="watch-thumb watch-thumb-16x9">
@@ -272,6 +280,33 @@ const Watch = (() => {
         <h4 class="watch-card-title">${esc(v.title)}</h4>
         ${cardSubtitle(v)}
       </article>`;
+  }
+
+  /// "Today at 1:00 PM" / "Tomorrow at 1:00 PM" / "Wed at 1:00 PM" /
+  /// "Apr 30 at 1:00 PM". Reads streamTime (actualStartTime ||
+  /// scheduledStartTime), NOT publishedAt.
+  function streamTimeLabel(v) {
+    const iso = v.streamTime || v.scheduledStartTime || v.actualStartTime;
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    const now  = new Date();
+    const dDay = new Date(d.getFullYear(),   d.getMonth(),   d.getDate());
+    const nDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diff = Math.round((dDay - nDay) / 86400000);
+    const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    if (diff ===  0) return `Today at ${time}`;
+    if (diff ===  1) return `Tomorrow at ${time}`;
+    if (diff === -1) return `Yesterday at ${time}`;
+    if (diff > 1 && diff < 7) {
+      const dow = d.toLocaleDateString([], { weekday: 'short' });
+      return `${dow} at ${time}`;
+    }
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    if (d.getFullYear() === now.getFullYear()) {
+      return `${months[d.getMonth()]} ${d.getDate()} at ${time}`;
+    }
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} at ${time}`;
   }
 
   function thumbImg(v) {

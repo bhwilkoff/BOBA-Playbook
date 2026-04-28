@@ -236,12 +236,12 @@ const Watch = (() => {
      vertical) and to surface stream times on Upcoming Live cards.
   ================================================================ */
   function upcomingCard(v) {
-    const isLive     = v.liveBroadcastContent === 'live';
-    const isUpcoming = v.liveBroadcastContent === 'upcoming';
-    const badgeClass = isLive ? 'watch-badge-live' :
-                       isUpcoming ? 'watch-badge-upcoming' : 'watch-badge-replay';
-    const badgeText  = isLive ? 'LIVE NOW' :
-                       isUpcoming ? 'UPCOMING' : 'REPLAY';
+    // Upcoming feed carries live + scheduled streams only (the worker
+    // routes replays to vertical/horizontal). Two badge variants:
+    // red LIVE NOW for active broadcasts, cyan UPCOMING for the rest.
+    const isLive = v.liveBroadcastContent === 'live';
+    const badgeClass = isLive ? 'watch-badge-live' : 'watch-badge-upcoming';
+    const badgeText  = isLive ? 'LIVE NOW' : 'UPCOMING';
     const when = streamTimeLabel(v);
     return `
       <article class="watch-card watch-card-upcoming" data-video-id="${esc(v.videoId)}" tabindex="0">

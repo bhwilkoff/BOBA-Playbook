@@ -65,23 +65,26 @@
     const title = show.title || 'Untitled show';
     const time = show.scheduledTimeText || '';
     const cat = show.categoryName || '';
-    const viewers = (typeof show.viewerCount === 'number' && show.viewerCount > 0)
-      ? `${show.viewerCount} interested` : '';
+    const isLive = !!show.isLive;
+    const viewerLabel = isLive
+      ? (show.viewerCount > 0 ? `${show.viewerCount} watching` : '')
+      : (show.viewerCount > 0 ? `${show.viewerCount} interested` : '');
     const thumbHtml = thumb
       ? `<img class="pshow-thumb" src="${escapeHTML(thumb)}" alt="" loading="lazy" onerror="this.style.display='none'">`
       : '<div class="pshow-thumb pshow-thumb-fallback">📺</div>';
+    const livePill = isLive ? '<span class="pshow-live-pill">LIVE</span>' : '';
     return `
       <a class="pshow-card" href="${escapeHTML(href)}" target="_blank" rel="noopener">
-        <div class="pshow-thumb-wrap">${thumbHtml}</div>
+        <div class="pshow-thumb-wrap">${thumbHtml}${livePill}</div>
         <div class="pshow-body">
           <div class="pshow-meta">
             ${host ? `<span class="pshow-host">@${escapeHTML(host)}</span>` : ''}
-            ${time ? `<span class="pshow-time">⏰ ${escapeHTML(time)}</span>` : ''}
+            ${!isLive && time ? `<span class="pshow-time">⏰ ${escapeHTML(time)}</span>` : ''}
           </div>
           <div class="pshow-title">${escapeHTML(title)}</div>
           <div class="pshow-foot">
             ${cat ? `<span class="pshow-cat">${escapeHTML(cat).toUpperCase()}</span>` : ''}
-            ${viewers ? `<span class="pshow-viewers">👥 ${escapeHTML(viewers)}</span>` : ''}
+            ${viewerLabel ? `<span class="pshow-viewers">👥 ${escapeHTML(viewerLabel)}</span>` : ''}
           </div>
         </div>
       </a>`;
@@ -96,7 +99,15 @@
     try {
       const shows = await fetchUpcomingShows({ force });
       if (!shows.length) { renderEmpty(host); return; }
-      host.innerHTML = shows.map(showCardHTML).join('');
+      const live = shows.filter(s => s.isLive);
+      const upcoming = shows.filter(s => !s.isLive);
+      const parts = [];
+      if (live.length)     parts.push(...live.map(showCardHTML));
+      if (live.length && upcoming.length) {
+        parts.push('<div class="purchase-shows-section-divider">UPCOMING</div>');
+      }
+      if (upcoming.length) parts.push(...upcoming.map(showCardHTML));
+      host.innerHTML = parts.join('');
     } catch (err) {
       renderError(host, err.message || 'Network error');
     }

@@ -1267,14 +1267,19 @@ const WHATNOT_CACHE_TTL = 5 * 60; // 5 minutes — shows update slowly
 async function handleWhatnotUpcoming(request, _env) {
   const url   = new URL(request.url);
   const query = url.searchParams.get("query")  || "bo Jackson battle arena";
-  const status = (url.searchParams.get("status") || "CREATED").toUpperCase();
+  // Default includes BOTH live and upcoming so the Purchase view shows
+  // streams that are happening right now alongside the upcoming feed.
+  // Override with ?status=CREATED or ?status=PLAYING for one or the
+  // other; comma-separated for an explicit list.
+  const rawStatus = (url.searchParams.get("status") || "CREATED,PLAYING").toUpperCase();
+  const statuses = rawStatus.split(",").map(s => s.trim()).filter(Boolean);
 
   const debug = url.searchParams.get("debug") === "1";
 
   // Edge cache (skipped when debug=1 so we can iterate)
   const cache = caches.default;
   const cacheKey = new Request(
-    `https://boba-cache.internal/whatnot/v1/${encodeURIComponent(status)}/${encodeURIComponent(query.toLowerCase())}`,
+    `https://boba-cache.internal/whatnot/v4/${encodeURIComponent(statuses.join(","))}/${encodeURIComponent(query.toLowerCase())}`,
     { method: "GET" }
   );
   if (!debug) {
@@ -1285,26 +1290,60 @@ async function handleWhatnotUpcoming(request, _env) {
     }
   }
 
-  const searchUrl = buildWhatnotSearchUrl(query, status);
-  let resp;
-  try {
-    resp = await fetch(searchUrl, { headers: WHATNOT_HEADERS, redirect: "follow" });
-  } catch (err) {
-    return json({ error: `whatnot fetch failed: ${err.message}`, searchUrl }, 502);
+  // Whatnot's search results are paginated at ~24 shows per page. If
+  // we ask for [CREATED, PLAYING] in one call and there are 25+ live
+  // shows, the upcoming ones get pushed off the first page entirely.
+  // Fetch each status sequentially and merge so we always see both
+  // live + upcoming. (Parallel fetches of the same external host can
+  // race on Whatnot's anti-bot heuristics; sequential is reliable.)
+  const seen = new Map();
+  const fetchErrors = [];
+  // Live ("PLAYING") shows in Whatnot's search match by tag/category
+  // not just title — so a "BoBA Singles" tag pulls in shows whose
+  // titles never mention BoBA. Tighten the filter so live results
+  // must include the BoBA name in the title; CREATED results are
+  // already author-keyword specific and don't need the filter.
+  const titleNeedles = ["bo jackson battle arena", "boba"];
+  const matchesTitleFilter = (s) => {
+    const t = (s.title || "").toLowerCase();
+    return titleNeedles.some(n => t.includes(n));
+  };
+  for (const s of statuses) {
+    const url = buildWhatnotSearchUrl(query, [s]);
+    try {
+      const resp = await fetch(url, { headers: WHATNOT_HEADERS, redirect: "follow" });
+      if (!resp.ok) { fetchErrors.push({ status: s, code: resp.status }); continue; }
+      const html = await resp.text();
+      const extracted = whatnotExtractShows(html, query);
+      const isLiveStatus = s === "PLAYING";
+      for (const item of extracted) {
+        if (seen.has(item.showId)) continue;
+        if (isLiveStatus && !matchesTitleFilter(item)) continue;
+        seen.set(item.showId, item);
+      }
+    } catch (err) {
+      fetchErrors.push({ status: s, error: err.message });
+    }
   }
-  if (!resp.ok) {
-    return json({ error: `whatnot returned ${resp.status}`, searchUrl }, 502);
-  }
-  const html = await resp.text();
-
-
-  const shows = whatnotExtractShows(html, query);
+  const shows = Array.from(seen.values());
+  // Re-sort the merged list with the same rules
+  // (live first, then by viewer count, then upcoming by start time).
+  shows.sort((a, b) => {
+    if (a.isLive && !b.isLive) return -1;
+    if (!a.isLive && b.isLive) return 1;
+    if (a.isLive && b.isLive) return (b.viewerCount || 0) - (a.viewerCount || 0);
+    if (a.startTimeMs && b.startTimeMs) return a.startTimeMs - b.startTimeMs;
+    if (a.startTimeMs) return -1;
+    if (b.startTimeMs) return 1;
+    return 0;
+  });
   const payload = {
     query,
-    status,
+    status: statuses.join(","),
     count: shows.length,
     fetchedAtIso: new Date().toISOString(),
     shows,
+    fetchErrors: fetchErrors.length ? fetchErrors : undefined,
   };
 
   const respBody = json(payload, 200, {
@@ -1317,8 +1356,10 @@ async function handleWhatnotUpcoming(request, _env) {
   return respBody;
 }
 
-function buildWhatnotSearchUrl(query, status) {
-  const filter = encodeURIComponent(JSON.stringify([{ field: "status", values: [status] }]));
+function buildWhatnotSearchUrl(query, statuses) {
+  // statuses is an array; Whatnot accepts multiple values per filter.
+  const arr = Array.isArray(statuses) ? statuses : [statuses];
+  const filter = encodeURIComponent(JSON.stringify([{ field: "status", values: arr }]));
   return `${WHATNOT_BASE}/search?query=${encodeURIComponent(query)}&searchVertical=LIVESTREAM&referringSource=typed&filter=${filter}`;
 }
 
@@ -1388,6 +1429,8 @@ function whatnotExtractShows(html, query) {
       title:             partial.title,
       host:              partial.host || "",
       hostUrl:           partial.hostUrl || "",
+      status:            (partial.status || "").toUpperCase(), // CREATED | PLAYING
+      isLive:            (partial.status || "").toUpperCase() === "PLAYING",
       scheduledTimeText: timeText,
       scheduledTimeIso:  partial.scheduledTimeIso || null,
       startTimeMs:       partial.startTimeMs || null,
@@ -1401,8 +1444,12 @@ function whatnotExtractShows(html, query) {
       fetchedAtIso,
     });
   }
-  // Sort soonest-first using the absolute startTime when available.
+  // Sort: LIVE shows first (descending by viewers, popular ones up
+  // top), then upcoming sorted soonest-first.
   shows.sort((a, b) => {
+    if (a.isLive && !b.isLive) return -1;
+    if (!a.isLive && b.isLive) return 1;
+    if (a.isLive && b.isLive) return (b.viewerCount || 0) - (a.viewerCount || 0);
     if (a.startTimeMs && b.startTimeMs) return a.startTimeMs - b.startTimeMs;
     if (a.startTimeMs) return -1;
     if (b.startTimeMs) return 1;
@@ -1427,6 +1474,10 @@ function whatnotEnrichFromApolloPushes(html, byId) {
 
       // Title from the LiveStream node.
       if (!cur.title) cur.title = wnPickString(node, ["title"]) || cur.title;
+
+      // Status — LIVE shows render differently in the UI (red dot,
+      // "LIVE NOW" pill, current viewer count instead of interested).
+      if (!cur.status) cur.status = wnPickString(node, ["status"]) || "";
 
       // Host: nested under `user`. Fall back to `seller` if Whatnot
       // ever renames the field.
@@ -1468,9 +1519,10 @@ function whatnotEnrichFromApolloPushes(html, byId) {
       // Viewer count — for upcoming shows this is the watchlist
       // (interested) count, for live shows it's the active viewers.
       if (!cur.viewerCount) {
+        const isLive = (cur.status || "").toUpperCase() === "PLAYING";
         const watchlist = wnPickInt(node, ["totalWatchlistUsers"]);
         const active    = wnPickInt(node, ["activeViewers", "currentViewers"]);
-        cur.viewerCount = watchlist || active || 0;
+        cur.viewerCount = isLive ? (active || watchlist || 0) : (watchlist || active || 0);
       }
 
       // Category — `categoryNodes[0].label` is the most consistent.

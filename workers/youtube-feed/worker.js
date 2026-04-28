@@ -99,11 +99,13 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-// Live-replay window — broadcasts that ended within this many days
-// are surfaced in the upcoming/live feed alongside scheduled streams
-// (sorted to the bottom, since they've already happened). Keeps
-// yesterday's daily-show replay one tap away from the live tab.
-const LIVE_REPLAY_DAYS = 7;
+// Stale-upcoming grace period — any "upcoming" event whose
+// scheduledStartTime is more than this many hours in the past with
+// no actualStartTime stamped gets reclassified as a recorded upload
+// (almost always an abandoned placeholder YouTube doesn't auto-
+// clean). 24h covers broadcasts that drift slightly past their
+// scheduled start without YouTube updating actualStartTime yet.
+const STALE_UPCOMING_HOURS = 24;
 
 // ════════════════════════════════════════════════════════════════
 // MARK: - HTTP entry
@@ -539,29 +541,25 @@ function categorize(item) {
   // Scheduled to start in the future. Filter out abandoned events
   // (scheduled in the past but never went live) — YouTube doesn't
   // auto-clean them, so they'd otherwise camp at the top of the
-  // feed forever. We allow a 24h grace period to cover broadcasts
-  // that drift slightly past their scheduled start time without
-  // having an actualStartTime stamped yet.
+  // feed forever. The STALE_UPCOMING_HOURS grace period covers
+  // broadcasts that drift slightly past their scheduled start time
+  // without YouTube updating actualStartTime yet.
   if (item.liveBroadcastContent === "upcoming") {
     const sched = item.scheduledStartTime
       ? new Date(item.scheduledStartTime).getTime()
       : null;
-    if (sched && sched < Date.now() - 24 * 3600 * 1000) {
-      // Treat as a recorded upload instead — the event was never
-      // actually live, so there's no replay to surface.
+    if (sched && sched < Date.now() - STALE_UPCOMING_HOURS * 3600 * 1000) {
       return item.isVertical ? "vertical" : "horizontal";
     }
     return "upcoming";
   }
 
-  // Recently-ended live replays surface alongside upcoming so a
-  // viewer who missed yesterday's break can find it one tap away.
-  const ended = item.actualEndTime;
-  if (ended) {
-    const ageDays = (Date.now() - new Date(ended).getTime()) / (1000 * 60 * 60 * 24);
-    if (ageDays <= LIVE_REPLAY_DAYS) return "upcoming";
-  }
-
+  // Everything else — including ended live broadcasts (replays) —
+  // routes into vertical/horizontal based on orientation. Per Ben
+  // (2026-04-28): "Upcoming Live" is for current + future only;
+  // replays belong in their orientation feed. A coach who wants to
+  // catch up on yesterday's daily show finds it under Horizontal
+  // (or Vertical for the 📱 phone edition).
   return item.isVertical ? "vertical" : "horizontal";
 }
 

@@ -230,6 +230,9 @@ private struct UpcomingCard: View {
             ZStack(alignment: .topLeading) {
                 ThumbnailView(url: video.thumbnail, aspect: 16.0/9.0)
 
+                // Upcoming feed only carries live + scheduled streams
+                // (replays now route to Vertical/Horizontal). LIVE NOW
+                // is red, UPCOMING is cyan to differentiate at a glance.
                 if video.isLiveNow {
                     Text("LIVE NOW")
                         .font(Design.Fonts.mono(10, weight: .bold))
@@ -238,21 +241,13 @@ private struct UpcomingCard: View {
                         .padding(.vertical, 4)
                         .background(Capsule().fill(Color(hex: "C0392B")))
                         .padding(8)
-                } else if video.isUpcoming {
+                } else {
                     Text("UPCOMING")
                         .font(Design.Fonts.mono(10, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(Capsule().fill(Design.Colors.bobaCyan.opacity(0.85)))
-                        .padding(8)
-                } else {
-                    Text("REPLAY")
-                        .font(Design.Fonts.mono(10, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(Color.black.opacity(0.6)))
                         .padding(8)
                 }
                 if let dur = video.durationLabel {

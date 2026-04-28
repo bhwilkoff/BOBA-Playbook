@@ -30,9 +30,10 @@ const Watch = (() => {
   let _loading = false;
 
   /* ================================================================
-     PUBLIC: init — wire the tab pills + player overlay listeners.
-     Lazy on first show (LearnView calls Watch.show() when the user
-     flips the Read/Watch toggle to Watch).
+     PUBLIC: init — wire the tab pills, refresh button, pull-to-
+     refresh gesture, and player overlay listeners. Lazy on first
+     show (LearnView calls Watch.show() when the user flips the
+     Read/Watch toggle to Watch).
   ================================================================ */
   function init() {
     document.querySelectorAll('.watch-tab').forEach(btn => {
@@ -47,6 +48,101 @@ const Watch = (() => {
         closePlayer();
       }
     });
+    // Tap the refresh button → force a fresh fetch.
+    document.getElementById('watch-refresh-btn')?.addEventListener('click', refresh);
+    // Pull-to-refresh on touch devices — listeners attach to the
+    // shared scroll container (#main-content) and ignore drags when
+    // we're not actually on the Watch panel.
+    initPullToRefresh();
+  }
+
+  /* ================================================================
+     PULL-TO-REFRESH — mirrors the Live-Breaks (Purchase view) flow.
+     Listeners live on #main-content (the only scrollable surface
+     in our flex-column layout); a guard rejects drags when the
+     Watch panel isn't the active panel.
+  ================================================================ */
+  const PULL_THRESHOLD = 80;
+  let _ptrStartY    = null;
+  let _ptrDistance  = 0;
+  let _ptrRefreshing = false;
+
+  function watchPanelVisible() {
+    const panel = document.getElementById('learn-panel-watch');
+    return panel && !panel.hidden;
+  }
+
+  function scrollContainer() {
+    return document.getElementById('main-content') || document.body;
+  }
+
+  function setRefreshing(on) {
+    _ptrRefreshing = on;
+    document.getElementById('watch-refresh-btn')?.classList.toggle('watch-refresh-btn--spinning', on);
+    const ind = document.getElementById('watch-pull-indicator');
+    if (ind) {
+      ind.classList.toggle('watch-pull-indicator--active', on);
+      if (on) ind.querySelector('.watch-pull-label').textContent = 'Refreshing…';
+    }
+  }
+
+  async function refresh() {
+    if (_ptrRefreshing || _loading) return;
+    setRefreshing(true);
+    try { await loadAll(); }
+    finally {
+      setRefreshing(false);
+      const ind = document.getElementById('watch-pull-indicator');
+      if (ind) {
+        ind.style.transform = '';
+        ind.style.opacity = '';
+        ind.querySelector('.watch-pull-label').textContent = 'Pull to refresh';
+      }
+    }
+  }
+
+  function onTouchStart(e) {
+    if (!watchPanelVisible() || _ptrRefreshing) return;
+    if (scrollContainer().scrollTop > 0) { _ptrStartY = null; return; }
+    _ptrStartY = e.touches?.[0]?.clientY ?? null;
+    _ptrDistance = 0;
+  }
+
+  function onTouchMove(e) {
+    if (_ptrStartY == null || _ptrRefreshing || !watchPanelVisible()) return;
+    const y = e.touches?.[0]?.clientY ?? _ptrStartY;
+    _ptrDistance = Math.max(0, y - _ptrStartY);
+    if (_ptrDistance > 5) {
+      const ind = document.getElementById('watch-pull-indicator');
+      if (!ind) return;
+      const dragRatio = Math.min(1, _ptrDistance / PULL_THRESHOLD);
+      ind.style.opacity = String(dragRatio);
+      ind.style.transform = `translateY(${Math.min(_ptrDistance * 0.5, 40)}px)`;
+      ind.querySelector('.watch-pull-label').textContent =
+        _ptrDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh';
+    }
+  }
+
+  function onTouchEnd() {
+    if (_ptrStartY == null) return;
+    const triggered = _ptrDistance >= PULL_THRESHOLD;
+    _ptrStartY = null;
+    _ptrDistance = 0;
+    const ind = document.getElementById('watch-pull-indicator');
+    if (triggered) {
+      refresh();
+    } else if (ind) {
+      ind.style.transform = '';
+      ind.style.opacity = '';
+    }
+  }
+
+  function initPullToRefresh() {
+    const sc = scrollContainer();
+    sc.addEventListener('touchstart',  onTouchStart, { passive: true });
+    sc.addEventListener('touchmove',   onTouchMove,  { passive: true });
+    sc.addEventListener('touchend',    onTouchEnd);
+    sc.addEventListener('touchcancel', onTouchEnd);
   }
 
   /* ================================================================

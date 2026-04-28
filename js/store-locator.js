@@ -67,6 +67,13 @@
     filtered:       [],
     manifest:       null,
     searchText:     '',
+    /// Set when the user typed a 5-digit US ZIP and we successfully
+    /// geocoded it. We treat ZIP entries as a proximity origin
+    /// (recenter map, sort by distance) instead of a substring match —
+    /// the dataset's postCodes are ZIP+4 so literal substring matches
+    /// almost always miss, which is what made the search feel broken.
+    zipCoord:       null,
+    zipLabel:       '',
     selectedState:  '',
     includeBigBox:  false,
     userCoord:      null,
@@ -74,6 +81,26 @@
     markerLayer:    null,
     userMarker:     null,
   };
+
+  const ZIP_RE = /^\d{5}$/;
+  const zipCache = new Map();
+  /// Free, CORS-enabled ZIP→lat/lng lookup. No auth, no signup, public
+  /// data. We cache responses in-memory for the session.
+  async function geocodeZip(zip) {
+    if (zipCache.has(zip)) return zipCache.get(zip);
+    const resp = await fetch(`https://api.zippopotam.us/us/${zip}`);
+    if (!resp.ok) throw new Error(`ZIP ${zip} not found`);
+    const data = await resp.json();
+    const place = data?.places?.[0];
+    if (!place) throw new Error(`ZIP ${zip} not found`);
+    const coord = {
+      lat: parseFloat(place.latitude),
+      lng: parseFloat(place.longitude),
+      label: `${place['place name']}, ${place['state abbreviation']}`,
+    };
+    zipCache.set(zip, coord);
+    return coord;
+  }
 
   const $ = (id) => document.getElementById(id);
 
@@ -119,10 +146,27 @@
     let debounceTimer;
     search?.addEventListener('input', (e) => {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        state.searchText = e.target.value.trim().toLowerCase();
+      debounceTimer = setTimeout(async () => {
+        const raw = e.target.value.trim();
+        state.searchText = raw.toLowerCase();
+        if (ZIP_RE.test(raw)) {
+          try {
+            const coord = await geocodeZip(raw);
+            state.zipCoord = { lat: coord.lat, lng: coord.lng };
+            state.zipLabel = coord.label;
+            if (state.map) {
+              state.map.setView([coord.lat, coord.lng], 10);
+            }
+          } catch (_) {
+            state.zipCoord = null;
+            state.zipLabel = '';
+          }
+        } else {
+          state.zipCoord = null;
+          state.zipLabel = '';
+        }
         applyFilter();
-      }, 120);
+      }, 200);
     });
 
     stateSelect?.addEventListener('change', (e) => {
@@ -172,12 +216,36 @@
   /* -----------------------------------------------------------------
      Filtering
   ----------------------------------------------------------------- */
+  /// Count of big-box stores that WOULD match the current search if
+  /// the user enabled "Include big box". Used by the empty-state hint.
+  function countBigBoxMatches() {
+    const q = state.searchText;
+    const origin = state.zipCoord || state.userCoord;
+    return state.stores.filter(s => {
+      if (!isBigBox(s)) return false;
+      if (state.selectedState && s.address?.stateShort !== state.selectedState) return false;
+      if (state.zipCoord && origin) {
+        return milesBetween(s.location, origin) <= 50;
+      }
+      if (!q) return true;
+      const a = s.address || {};
+      return (s.name || '').toLowerCase().includes(q)
+          || (a.city || '').toLowerCase().includes(q)
+          || (a.street || '').toLowerCase().includes(q)
+          || (a.postCode || '').toLowerCase().includes(q);
+    }).length;
+  }
+
   function applyFilter() {
     const q = state.searchText;
+    const isZipQuery = !!state.zipCoord;
     let rows = state.stores.filter((s) => {
       if (!state.includeBigBox && isBigBox(s)) return false;
       if (state.selectedState && s.address?.stateShort !== state.selectedState) return false;
-      if (!q) return true;
+      // ZIP query: skip the substring filter — proximity sort below
+      // handles relevance. Substring matching against ZIP+4 postcodes
+      // is what made entering "97203" return zero hits.
+      if (isZipQuery || !q) return true;
       const a = s.address || {};
       return (s.name || '').toLowerCase().includes(q)
           || (a.city || '').toLowerCase().includes(q)
@@ -185,10 +253,17 @@
           || (a.postCode || '').toLowerCase().includes(q);
     });
 
-    if (state.userCoord) {
+    const origin = state.zipCoord || state.userCoord;
+    if (origin) {
       rows.sort((a, b) =>
-        distance(a.location, state.userCoord) - distance(b.location, state.userCoord)
+        distance(a.location, origin) - distance(b.location, origin)
       );
+      // For ZIP queries, only show stores within ~50mi of the ZIP so
+      // the list is genuinely "near here" rather than the full catalog
+      // sorted by distance.
+      if (isZipQuery) {
+        rows = rows.filter(s => milesBetween(s.location, origin) <= 50);
+      }
     } else {
       rows.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }
@@ -234,7 +309,10 @@
     const hidden  = state.stores.filter(isBigBox).length;
 
     let line;
-    if (!state.includeBigBox) {
+    if (state.zipCoord) {
+      const where = state.zipLabel || `ZIP ${state.searchText}`;
+      line = `${showing} ${state.includeBigBox ? 'retailers' : 'independents'} within 50 mi of ${where}`;
+    } else if (!state.includeBigBox) {
       line = `${showing} independent retailers${hidden ? `  ·  ${hidden.toLocaleString()} big box hidden` : ''}`;
     } else {
       line = `${showing} of ${total} authorized retailers`;
@@ -246,14 +324,25 @@
     const el = $('store-list');
     if (!el) return;
     if (!state.filtered.length) {
+      // If big-box is hidden and there ARE big-box matches in the
+      // current query, surface that — without the hint a search like
+      // "97203" returns empty even though there's a Target two blocks
+      // away, which is what made the search feel broken.
+      const wouldMatchBigBox = state.includeBigBox ? 0 : countBigBoxMatches();
+      const bigBoxHint = wouldMatchBigBox > 0
+        ? `<p class="store-empty-hint">${wouldMatchBigBox} big-box stores nearby — toggle “Include big box” above to show them.</p>`
+        : '';
       el.innerHTML = `
         <div class="store-empty">
-          <p>No stores match your search.</p>
+          <p>No independent shops match your search.</p>
+          ${bigBoxHint}
           <button type="button" id="store-clear-filters" class="store-clear-btn">Clear filters</button>
         </div>`;
       $('store-clear-filters')?.addEventListener('click', () => {
         state.searchText = '';
         state.selectedState = '';
+        state.zipCoord = null;
+        state.zipLabel = '';
         const s = $('store-search-input'); if (s) s.value = '';
         const ss = $('store-state-filter'); if (ss) ss.value = '';
         applyFilter();

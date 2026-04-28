@@ -1,137 +1,5 @@
 {
   "sets": {
-    "Griffey Edition": {
-      "count": 10033,
-      "subSets": [
-        "2024 Release",
-        "2025 Release",
-        "2025 Update",
-        "2026 Release"
-      ],
-      "treatments": [
-        "80's Rad Battlefoil",
-        "Alpha Battlefoil",
-        "Base Set",
-        "Battlefoil",
-        "Billy Cameo Alt Arts",
-        "Blaster Box",
-        "Blizzard Battlefoil",
-        "Blue Battlefoil",
-        "Blue Headlines Battlefoil",
-        "Bonus Plays",
-        "Bubble Gum Battlefoil",
-        "Case",
-        "Chillin' Battlefoil",
-        "Colosseum Battlefoil",
-        "Double Mega Box",
-        "Fire Tracks Battlefoil",
-        "Grandma's Linoleum Battlefoil",
-        "Great Grandma's Linoleum Battlefoil",
-        "Green Battlefoil",
-        "Grillin' Battlefoil",
-        "Headlines Battlefoil",
-        "Hobby Box",
-        "Hot Dog",
-        "Icon Battlefoil",
-        "Inspired Ink Battlefoil",
-        "Inspired Ink Bubble Gum Battlefoil",
-        "Inspired Ink Metallic Battlefoil",
-        "Inspired Ink Superfoil",
-        "Jumbo Hobby Box",
-        "Logofoil",
-        "Miami Ice Battlefoil",
-        "Mixtape Battlefoil",
-        "Orange Battlefoil",
-        "Orange Headlines Battlefoil",
-        "Pink Battlefoil",
-        "Plays",
-        "Power Glove Battlefoil",
-        "Red Battlefoil",
-        "Red Headlines Battlefoil",
-        "Sidekicks",
-        "Silver Battlefoil",
-        "Slime Battlefoil",
-        "Superfoil"
-      ]
-    },
-    "Alpha Update": {
-      "count": 3805,
-      "subSets": [
-        "2024 Release",
-        "2025 Release",
-        "2025 Update"
-      ],
-      "treatments": [
-        "80's Rad Battlefoil",
-        "Base Set",
-        "Battlefoil",
-        "Blaster Box",
-        "Blizzard Battlefoil",
-        "Blue Battlefoil",
-        "Blue Headlines Battlefoil",
-        "Bubble Gum Battlefoil",
-        "Case",
-        "Collector Booster Box",
-        "Fire Tracks Battlefoil",
-        "Grandma's Linoleum Battlefoil",
-        "Green Battlefoil",
-        "Headlines Battlefoil",
-        "Hobby Box",
-        "Hot Dog",
-        "Inspired Ink Battlefoil",
-        "Inspired Ink Bubble Gum Battlefoil",
-        "Inspired Ink Metallic Battlefoil",
-        "Inspired Ink Superfoil",
-        "Jumbo Hobby Box",
-        "Miami Ice Battlefoil",
-        "Mixtape Battlefoil",
-        "Orange Battlefoil",
-        "Pink Battlefoil",
-        "Plays",
-        "Red Headlines Battlefoil",
-        "Sidekicks",
-        "Silver Battlefoil",
-        "Superfoil"
-      ]
-    },
-    "Alpha Edition": {
-      "count": 2301,
-      "subSets": [
-        "2024 Release",
-        "2025 Release",
-        "2025 Update"
-      ],
-      "treatments": [
-        "80's Rad Battlefoil",
-        "Base Set",
-        "Battle Trainer Kit",
-        "Battlefoil",
-        "Blast Box",
-        "Blaster Box",
-        "Blizzard Battlefoil",
-        "Blue Battlefoil",
-        "Bonus Plays",
-        "Bundle",
-        "Case",
-        "Collector Booster Box",
-        "Grandma's Linoleum Battlefoil",
-        "Green Battlefoil",
-        "Headlines Battlefoil",
-        "Hobby Box",
-        "Hot Dog",
-        "Inspired Ink Battlefoil",
-        "Inspired Ink Bubble Gum Battlefoil",
-        "Inspired Ink Metallic Battlefoil",
-        "Inspired Ink Superfoil",
-        "Jumbo Hobby Box",
-        "Orange Battlefoil",
-        "Paper",
-        "Pink Battlefoil",
-        "Plays",
-        "Silver Battlefoil",
-        "Superfoil"
-      ]
-    },
     "Alpha Blast": {
       "count": 1386,
       "subSets": [
@@ -148,6 +16,131 @@
         "Silver Blast"
       ]
     },
+    "Alpha Edition": {
+      "count": 2301,
+      "subSets": [
+        "2024 Release",
+        "2025 Release",
+        "2025 Update"
+      ],
+      "treatments": [
+        "80's Rad Battlefoil",
+        "Base Set",
+        "Battlefoil",
+        "Blizzard Battlefoil",
+        "Blue Battlefoil",
+        "Bonus Plays",
+        "Grandma's Linoleum Battlefoil",
+        "Green Battlefoil",
+        "Headlines Battlefoil",
+        "Hot Dog",
+        "Inspired Ink Battlefoil",
+        "Inspired Ink Bubble Gum Battlefoil",
+        "Inspired Ink Metallic Battlefoil",
+        "Inspired Ink Superfoil",
+        "Orange Battlefoil",
+        "Paper",
+        "Pink Battlefoil",
+        "Plays",
+        "Silver Battlefoil",
+        "Superfoil"
+      ]
+    },
+    "Alpha Update": {
+      "count": 3805,
+      "subSets": [
+        "2024 Release",
+        "2025 Release",
+        "2025 Update"
+      ],
+      "treatments": [
+        "80's Rad Battlefoil",
+        "Base Set",
+        "Battlefoil",
+        "Blizzard Battlefoil",
+        "Blue Battlefoil",
+        "Blue Headlines Battlefoil",
+        "Bubble Gum Battlefoil",
+        "Fire Tracks Battlefoil",
+        "Grandma's Linoleum Battlefoil",
+        "Green Battlefoil",
+        "Headlines Battlefoil",
+        "Hot Dog",
+        "Inspired Ink Battlefoil",
+        "Inspired Ink Bubble Gum Battlefoil",
+        "Inspired Ink Metallic Battlefoil",
+        "Inspired Ink Superfoil",
+        "Miami Ice Battlefoil",
+        "Mixtape Battlefoil",
+        "Orange Battlefoil",
+        "Pink Battlefoil",
+        "Plays",
+        "Red Headlines Battlefoil",
+        "Sidekicks",
+        "Silver Battlefoil",
+        "Superfoil"
+      ]
+    },
+    "Big League Chew": {
+      "count": 16,
+      "subSets": [
+        "2025 Release"
+      ],
+      "treatments": [
+        "Blue Raspberry",
+        "Grape",
+        "Sour Apple"
+      ]
+    },
+    "Griffey Edition": {
+      "count": 10033,
+      "subSets": [
+        "2024 Release",
+        "2025 Release",
+        "2025 Update",
+        "2026 Release"
+      ],
+      "treatments": [
+        "80's Rad Battlefoil",
+        "Alpha Battlefoil",
+        "Base Set",
+        "Battlefoil",
+        "Billy Cameo Alt Arts",
+        "Blizzard Battlefoil",
+        "Blue Battlefoil",
+        "Blue Headlines Battlefoil",
+        "Bonus Plays",
+        "Bubble Gum Battlefoil",
+        "Chillin' Battlefoil",
+        "Colosseum Battlefoil",
+        "Fire Tracks Battlefoil",
+        "Grandma's Linoleum Battlefoil",
+        "Great Grandma's Linoleum Battlefoil",
+        "Green Battlefoil",
+        "Grillin' Battlefoil",
+        "Headlines Battlefoil",
+        "Hot Dog",
+        "Icon Battlefoil",
+        "Inspired Ink Battlefoil",
+        "Inspired Ink Bubble Gum Battlefoil",
+        "Inspired Ink Metallic Battlefoil",
+        "Inspired Ink Superfoil",
+        "Logofoil",
+        "Miami Ice Battlefoil",
+        "Mixtape Battlefoil",
+        "Orange Battlefoil",
+        "Orange Headlines Battlefoil",
+        "Pink Battlefoil",
+        "Plays",
+        "Power Glove Battlefoil",
+        "Red Battlefoil",
+        "Red Headlines Battlefoil",
+        "Sidekicks",
+        "Silver Battlefoil",
+        "Slime Battlefoil",
+        "Superfoil"
+      ]
+    },
     "National Starter Set": {
       "count": 128,
       "subSets": [
@@ -158,12 +151,10 @@
         "Battlefoil",
         "Hot Dog",
         "Inspired Ink Battlefoil",
-        "Pack",
         "Paper",
         "Paper Serialized",
         "Plays",
-        "Serialized Battlefoil",
-        "Starter Kit"
+        "Serialized Battlefoil"
       ]
     },
     "Promo Cards": {
@@ -185,22 +176,6 @@
         "Rookie Power Up"
       ]
     },
-    "World Champions": {
-      "count": 94,
-      "subSets": [
-        "2024 - LA Dodgers",
-        "2024 Release",
-        "2025 Release"
-      ],
-      "treatments": [
-        "Battlefoil",
-        "Event Box",
-        "Hot Dog",
-        "Kanjifoil",
-        "Paper & Battlefoil",
-        "Plays"
-      ]
-    },
     "Superfan Series": {
       "count": 36,
       "subSets": [
@@ -212,20 +187,7 @@
         "Hot Dog",
         "Inspired Ink Battlefoil",
         "Paper & Battlefoil",
-        "Plays",
-        "Super Fan Box"
-      ]
-    },
-    "Big League Chew": {
-      "count": 16,
-      "subSets": [
-        "2025 Release"
-      ],
-      "treatments": [
-        "Blaster Box",
-        "Blue Raspberry",
-        "Grape",
-        "Sour Apple"
+        "Plays"
       ]
     },
     "Tecmo Bowl Edition": {
@@ -233,32 +195,26 @@
       "subSets": [
         "2026 Release"
       ],
+      "treatments": []
+    },
+    "World Champions": {
+      "count": 148,
+      "subSets": [
+        "2024 - LA Dodgers",
+        "2024 Release",
+        "2025 - OKC Thunder",
+        "2025 Release"
+      ],
       "treatments": [
-        "Case",
-        "Double Mega Box",
-        "Hobby Box"
+        "Battlefoil",
+        "Hot Dog",
+        "Kanjifoil",
+        "Paper & Battlefoil",
+        "Plays"
       ]
     }
   },
   "treatments": {
-    "Grandma's Linoleum Battlefoil": {
-      "count": 1690,
-      "elements": [
-        "BRAWL",
-        "FIRE",
-        "GLOW",
-        "HEX",
-        "ICE",
-        "STEEL"
-      ],
-      "sampleBobaIds": [
-        "CJ-10-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
-        "CJ-11-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
-        "CJ-12-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
-        "CJ-8-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
-        "CJ-9-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo"
-      ]
-    },
     "80's Rad Battlefoil": {
       "count": 1690,
       "elements": [
@@ -277,6 +233,74 @@
         "CJ-17-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo"
       ]
     },
+    "Alpha Battlefoil": {
+      "count": 786,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "ABF-1-Bojax-Alpha Battlefoil-2026 Founding Hero",
+        "ABF-2-The Kid-Alpha Battlefoil-Cover Hero",
+        "ABF-3-Dr. J-Alpha Battlefoil-Julius Erving Debut",
+        "ABF-4-Freakshow-Alpha Battlefoil-Giannis Antetokounmpo Unmasked",
+        "ABF-5-Cruze Control-Alpha Battlefoil-Elly De La Cruz Unmasked"
+      ]
+    },
+    "Base Set": {
+      "count": 555,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "1-LeBoss-Base Set-First Edition",
+        "1-Showtime-Base Set-First Edition",
+        "1-Maverick-Base Set-First Edition",
+        "2-Merlomes-Base Set-First Edition",
+        "2-Showtime-Base Set-First Edition"
+      ]
+    },
+    "Battlefoil": {
+      "count": 1028,
+      "elements": [
+        "ALT",
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "GUM",
+        "HEX",
+        "ICE",
+        "STEEL",
+        "SUPER"
+      ],
+      "sampleBobaIds": [
+        "BF-1-LeBoss-Battlefoil-First Edition",
+        "BF-1-Showtime-Battlefoil-First Edition",
+        "BF-1-Maverick-Battlefoil-First Edition",
+        "BF-2-Merlomes-Battlefoil-First Edition",
+        "BF-2-Showtime-Battlefoil-First Edition"
+      ]
+    },
+    "Billy Cameo Alt Arts": {
+      "count": 5,
+      "elements": [
+        "ALT"
+      ],
+      "sampleBobaIds": [
+        "ALT-1-Hello Boys!-Billy Cameo Alt Arts-Randy Quaid (Co-Starring Billy)",
+        "ALT-2-Flav-Billy Cameo Alt Arts-Flavor Flav (Co-Starring Billy)",
+        "ALT-3-Johnny Heckler-Billy Cameo Alt Arts-Randy Quaid (Co-Starring Billy)",
+        "ALT-4-X.L.-Billy Cameo Alt Arts-Huntin' W/CJ & Billy",
+        "ALT-5-Sensei-Billy Cameo Alt Arts-Billy BOBA KAI"
+      ]
+    },
     "Blizzard Battlefoil": {
       "count": 1311,
       "elements": [
@@ -288,11 +312,411 @@
         "STEEL"
       ],
       "sampleBobaIds": [
-        "BLBF-1-Bojax-Blizzard Battlefoil-2026 Founding Hero",
         "BLBF-1-LeBoss-Blizzard Battlefoil-First Edition",
         "BLBF-1-Showtime-Blizzard Battlefoil-First Edition",
-        "BLBF-10-Matata-Blizzard Battlefoil-First Edition",
-        "BLBF-10-Mustang-Blizzard Battlefoil-First Edition"
+        "BLBF-1-Bojax-Blizzard Battlefoil-2026 Founding Hero",
+        "BLBF-2-Merlomes-Blizzard Battlefoil-First Edition",
+        "BLBF-2-Showtime-Blizzard Battlefoil-First Edition"
+      ]
+    },
+    "Blue Battlefoil": {
+      "count": 308,
+      "elements": [
+        "ICE"
+      ],
+      "sampleBobaIds": [
+        "BBF-1-Bojax-Blue Battlefoil-2026 Founding Hero",
+        "BBF-1-A.I.-Blue Battlefoil-Allen Iverson Debut",
+        "BBF-2-Magic-Blue Battlefoil-Magic Johnson Debut",
+        "BBF-2-Young-Gunner-Blue Battlefoil-Steve Young Debut",
+        "BBF-2-The Kid-Blue Battlefoil-Cover Hero"
+      ]
+    },
+    "Blue Blast": {
+      "count": 181,
+      "elements": [
+        "ICE"
+      ],
+      "sampleBobaIds": [
+        "Billy-26-Billy-Blue Blast-First Edition",
+        "BL-B1-Bojax-Blue Blast-Founding Hero",
+        "BL-B2-A.I.-Blue Blast-Allen Iverson Debut",
+        "BL-B3-Young-Gunner-Blue Blast-Steve Young Debut",
+        "BL-B4-Leducky-Blue Blast-Brandi Chastain Debut"
+      ]
+    },
+    "Blue Headlines Battlefoil": {
+      "count": 120,
+      "elements": [
+        "ICE"
+      ],
+      "sampleBobaIds": [
+        "BHBF-1-LeBoss-Blue Headlines Battlefoil-First Edition",
+        "BHBF-1-Maverick-Blue Headlines Battlefoil-First Edition",
+        "BHBF-2-Merlomes-Blue Headlines Battlefoil-First Edition",
+        "BHBF-2-Gaveler-Blue Headlines Battlefoil-2026 Edition",
+        "BHBF-3-Chosen-Blue Headlines Battlefoil-First Edition"
+      ]
+    },
+    "Blue Raspberry": {
+      "count": 5,
+      "elements": [
+        "ALT"
+      ],
+      "sampleBobaIds": [
+        "BLC-3-BoJax-Blue Raspberry-First Edition",
+        "BLC-6-BoJax-Blue Raspberry-First Edition",
+        "BLC-10-Young-Gunner-Blue Raspberry-First Edition",
+        "BLC-12-Emmitt-164-Blue Raspberry-First Edition",
+        "BLC-14-Barry \"Cutback\" Sanders-Blue Raspberry-First Edition"
+      ]
+    },
+    "Bonus Plays": {
+      "count": 50,
+      "elements": [],
+      "sampleBobaIds": [
+        "BPL-1-Member Bounce-Bonus Plays-First Edition",
+        "BPL-1-Hot Dog Thief-Bonus Plays-First Edition",
+        "BPL-2-The 12th Man-Bonus Plays-First Edition",
+        "BPL-2-Drought-Bonus Plays-First Edition",
+        "BPL-3-The Heroes Favorite Hot Dogs-Bonus Plays-First Edition"
+      ]
+    },
+    "Bubble Gum Battlefoil": {
+      "count": 128,
+      "elements": [
+        "GUM"
+      ],
+      "sampleBobaIds": [
+        "BGBF-1-Tank-Bubble Gum Battlefoil-Bo Said So",
+        "BGBF-1-Butterfly Sting-Bubble Gum Battlefoil-First Edition",
+        "BGBF-2-Skeee-Bubble Gum Battlefoil-First Edition",
+        "BGBF-2-Maverick-Bubble Gum Battlefoil-First Edition",
+        "BGBF-3-AJax-Bubble Gum Battlefoil-First Edition"
+      ]
+    },
+    "Bubble Gum Blast": {
+      "count": 181,
+      "elements": [
+        "GUM"
+      ],
+      "sampleBobaIds": [
+        "Billy-24-Billy-Bubble Gum Blast-First Edition",
+        "BL-BG1-Bojax-Bubble Gum Blast-Founding Hero",
+        "BL-BG2-A.I.-Bubble Gum Blast-Allen Iverson Debut",
+        "BL-BG3-Young-Gunner-Bubble Gum Blast-Steve Young Debut",
+        "BL-BG4-Leducky-Bubble Gum Blast-Brandi Chastain Debut"
+      ]
+    },
+    "Chillin' Battlefoil": {
+      "count": 131,
+      "elements": [
+        "ICE"
+      ],
+      "sampleBobaIds": [
+        "CHILL-1-Bojax-Chillin' Battlefoil-2026 Founding Hero",
+        "CHILL-2-The Kid-Chillin' Battlefoil-Cover Hero",
+        "CHILL-3-Dr. J-Chillin' Battlefoil-Julius Erving Debut",
+        "CHILL-4-Freakshow-Chillin' Battlefoil-Giannis Antetokounmpo Unmasked",
+        "CHILL-5-Cruze Control-Chillin' Battlefoil-Elly De La Cruz Unmasked"
+      ]
+    },
+    "Colosseum Battlefoil": {
+      "count": 786,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "CBF-1-Bojax-Colosseum Battlefoil-2026 Founding Hero",
+        "CBF-2-The Kid-Colosseum Battlefoil-Cover Hero",
+        "CBF-3-Dr. J-Colosseum Battlefoil-Julius Erving Debut",
+        "CBF-4-Freakshow-Colosseum Battlefoil-Giannis Antetokounmpo Unmasked",
+        "CBF-5-Cruze Control-Colosseum Battlefoil-Elly De La Cruz Unmasked"
+      ]
+    },
+    "Cyber": {
+      "count": 28,
+      "elements": [
+        "CYBER"
+      ],
+      "sampleBobaIds": [
+        "CYB-1-BoJax-Cyber-2025 Cyber Promo",
+        "CYB-2-BoJax-Cyber-2025 Cyber Promo",
+        "CYB-3-Young-Gunner-Cyber-2025 Cyber Promo",
+        "CYB-4-Brandi-Cyber-2025 Cyber Promo",
+        "CYB-5-The Kid-Cyber-2025 Cyber Promo"
+      ]
+    },
+    "Fire Tracks Battlefoil": {
+      "count": 232,
+      "elements": [
+        "FIRE"
+      ],
+      "sampleBobaIds": [
+        "FT-1-Bojax-Fire Tracks Battlefoil-2026 Founding Hero",
+        "FT-2-Magic-Fire Tracks Battlefoil-Magic Johnson Debut",
+        "FT-2-The Kid-Fire Tracks Battlefoil-Cover Hero",
+        "FT-3-Emmitt-164-Fire Tracks Battlefoil-Emmitt Smith Debut",
+        "FT-3-Dr. J-Fire Tracks Battlefoil-Julius Erving Debut"
+      ]
+    },
+    "Grandma's Linoleum Battlefoil": {
+      "count": 1690,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "CJ-8-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
+        "CJ-9-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
+        "CJ-10-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
+        "CJ-11-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
+        "CJ-12-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo"
+      ]
+    },
+    "Grape": {
+      "count": 5,
+      "elements": [
+        "ALT"
+      ],
+      "sampleBobaIds": [
+        "BLC-1-BoJax-Grape-First Edition",
+        "BLC-4-BoJax-Grape-First Edition",
+        "BLC-8-Magic-Grape-First Edition",
+        "BLC-9-Brandi-Grape-First Edition",
+        "BLC-15-Amon-Ra-Grape-First Edition"
+      ]
+    },
+    "Great Grandma's Linoleum Battlefoil": {
+      "count": 786,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "GGL-1-Bojax-Great Grandma's Linoleum Battlefoil-2026 Founding Hero",
+        "GGL-2-The Kid-Great Grandma's Linoleum Battlefoil-Cover Hero",
+        "GGL-3-Dr. J-Great Grandma's Linoleum Battlefoil-Julius Erving Debut",
+        "GGL-4-Freakshow-Great Grandma's Linoleum Battlefoil-Giannis Antetokounmpo Unmasked",
+        "GGL-5-Cruze Control-Great Grandma's Linoleum Battlefoil-Elly De La Cruz Unmasked"
+      ]
+    },
+    "Green Battlefoil": {
+      "count": 308,
+      "elements": [
+        "GLOW"
+      ],
+      "sampleBobaIds": [
+        "GBF-1-Bojax-Green Battlefoil-2026 Founding Hero",
+        "GBF-1-A.I.-Green Battlefoil-Allen Iverson Debut",
+        "GBF-2-Magic-Green Battlefoil-Magic Johnson Debut",
+        "GBF-2-Young-Gunner-Green Battlefoil-Steve Young Debut",
+        "GBF-2-The Kid-Green Battlefoil-Cover Hero"
+      ]
+    },
+    "Green Blast": {
+      "count": 181,
+      "elements": [
+        "GLOW"
+      ],
+      "sampleBobaIds": [
+        "Billy-25-Billy-Green Blast-First Edition",
+        "BL-G1-Bojax-Green Blast-Founding Hero",
+        "BL-G2-A.I.-Green Blast-Allen Iverson Debut",
+        "BL-G3-Young-Gunner-Green Blast-Steve Young Debut",
+        "BL-G4-Leducky-Green Blast-Brandi Chastain Debut"
+      ]
+    },
+    "Grillin' Battlefoil": {
+      "count": 131,
+      "elements": [
+        "FIRE"
+      ],
+      "sampleBobaIds": [
+        "GRILL-1-Bojax-Grillin' Battlefoil-2026 Founding Hero",
+        "GRILL-2-The Kid-Grillin' Battlefoil-Cover Hero",
+        "GRILL-3-Dr. J-Grillin' Battlefoil-Julius Erving Debut",
+        "GRILL-4-Freakshow-Grillin' Battlefoil-Giannis Antetokounmpo Unmasked",
+        "GRILL-5-Cruze Control-Grillin' Battlefoil-Elly De La Cruz Unmasked"
+      ]
+    },
+    "Headlines Battlefoil": {
+      "count": 165,
+      "elements": [
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "HBF-1-LeBoss-Headlines Battlefoil-First Edition",
+        "HBF-1-Showtime-Headlines Battlefoil-First Edittion",
+        "HBF-1-Maverick-Headlines Battlefoil-First Edition",
+        "HBF-2-Merlomes-Headlines Battlefoil-First Edition",
+        "HBF-2-Matata-Headlines Battlefoil-First Edittion"
+      ]
+    },
+    "Home Team Discount": {
+      "count": 60,
+      "elements": [],
+      "sampleBobaIds": [
+        "HTD-1-Gavel of Justice-Home Team Discount-",
+        "HTD-2-Heads I Win, Tails You Lose-Home Team Discount-",
+        "HTD-3-Only Upside-Home Team Discount-",
+        "HTD-4-3rd Time Charm-Home Team Discount-",
+        "HTD-5-Only Fire-Home Team Discount-"
+      ]
+    },
+    "Hot Dog": {
+      "count": 137,
+      "elements": [
+        "FIRE",
+        "HEX",
+        "ICE"
+      ],
+      "sampleBobaIds": [
+        "HD-1-Dirty Water Dan-Hot Dog-",
+        "HD-2-Grillbert-Hot Dog-",
+        "HD-3-Sammy Sausage-Hot Dog-",
+        "HD-4-Dijon Don-Hot Dog-Griffey Edition",
+        "HD-5-Coney Carl-Hot Dog-Griffey Edition"
+      ]
+    },
+    "Icon Battlefoil": {
+      "count": 390,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "IBF-1-Butterfly Sting-Icon Battlefoil-First Edition",
+        "IBF-2-Maverick-Icon Battlefoil-First Edition",
+        "IBF-3-Mad Scientist-Icon Battlefoil-First Edition",
+        "IBF-4-Alexander the Great-Icon Battlefoil-First Edition",
+        "IBF-5-PB Buckets-Icon Battlefoil-First Edition"
+      ]
+    },
+    "Inspired Ink Battlefoil": {
+      "count": 756,
+      "elements": [
+        "ALT",
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "GUM",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "AAA-12-Ante-de-something A-Inspired Ink Battlefoil-Alex Antetokounmpo Debut",
+        "ABA-3-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut",
+        "ABA-4-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut",
+        "ABA-5-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut",
+        "ABA-6-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut"
+      ]
+    },
+    "Inspired Ink Bubble Gum Battlefoil": {
+      "count": 102,
+      "elements": [
+        "GUM",
+        "HEX"
+      ],
+      "sampleBobaIds": [
+        "ABA-2-Goofin' Off-Inspired Ink Bubble Gum Battlefoil-Adri\u00e1n Beltr\u00e9 Debut",
+        "ACA-2-Eraser-Inspired Ink Bubble Gum Battlefoil-Alysha Clark Debut",
+        "ADPA-2-All day-Inspired Ink Bubble Gum Battlefoil-Adrian Peterson Debut",
+        "BGA-1-BoJax-Inspired Ink Bubble Gum Battlefoil-Founding Hero Alpha Update",
+        "BGA-2-Magic-Inspired Ink Bubble Gum Battlefoil-Magic Johnson Debut"
+      ]
+    },
+    "Inspired Ink Metallic Battlefoil": {
+      "count": 130,
+      "elements": [
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "ABA-8-Goofin' Off-Inspired Ink Metallic Battlefoil-Adri\u00e1n Beltr\u00e9 Debut",
+        "ACA-8-Eraser-Inspired Ink Metallic Battlefoil-Alysha Clark Debut",
+        "ADPA-8-All day-Inspired Ink Metallic Battlefoil-Adrian Peterson Debut",
+        "BWA-8-Bern Baby, Bern-Inspired Ink Metallic Battlefoil-Bernie Williams Debut",
+        "CBA-8-Big Geo-Inspired Ink Metallic Battlefoil-Craig Biggio Debut"
+      ]
+    },
+    "Inspired Ink Superfoil": {
+      "count": 134,
+      "elements": [
+        "SUPER"
+      ],
+      "sampleBobaIds": [
+        "AAA-1-Ante-de-something A-Inspired Ink Superfoil-Alex Antetokounmpo Debut",
+        "ABA-1-Goofin' Off-Inspired Ink Superfoil-Adri\u00e1n Beltr\u00e9 Debut",
+        "ACA-1-Eraser-Inspired Ink Superfoil-Alysha Clark Debut",
+        "ADPA-1-All day-Inspired Ink Superfoil-Adrian Peterson Debut",
+        "BWA-1-Bern Baby, Bern-Inspired Ink Superfoil-Bernie Williams Debut"
+      ]
+    },
+    "Kanjifoil": {
+      "count": 6,
+      "elements": [
+        "ALT",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "LA-30-\u4e8c\u767e-Kanjifoil-Champions Kanji Variation",
+        "LA-31-\u767e\u516b\u5341\u4e94-Kanjifoil-Champions Kanji Variation",
+        "LA-32-\u767e\u56db\u5341-Kanjifoil-Champions Kanji Variation",
+        "LA-33-\u767e\u4e09\u5341\u4e94-Kanjifoil-Champions Kanji Variation",
+        "LA-34-\u767e\u4e09\u5341\u4e94-Kanjifoil-Champions Kanji Variation"
+      ]
+    },
+    "Logofoil": {
+      "count": 786,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "LOGO-1-Bojax-Logofoil-2026 Founding Hero",
+        "LOGO-2-The Kid-Logofoil-Cover Hero",
+        "LOGO-3-Dr. J-Logofoil-Julius Erving Debut",
+        "LOGO-4-Freakshow-Logofoil-Giannis Antetokounmpo Unmasked",
+        "LOGO-5-Cruze Control-Logofoil-Elly De La Cruz Unmasked"
+      ]
+    },
+    "Miami Ice Battlefoil": {
+      "count": 232,
+      "elements": [
+        "ICE"
+      ],
+      "sampleBobaIds": [
+        "MI-1-Bojax-Miami Ice Battlefoil-2026 Founding Hero",
+        "MI-2-Magic-Miami Ice Battlefoil-Magic Johnson Debut",
+        "MI-2-The Kid-Miami Ice Battlefoil-Cover Hero",
+        "MI-3-Emmitt-164-Miami Ice Battlefoil-Emmitt Smith Debut",
+        "MI-3-Dr. J-Miami Ice Battlefoil-Julius Erving Debut"
       ]
     },
     "Mixtape Battlefoil": {
@@ -313,334 +737,17 @@
         "CJ-22-CJ Maddux-Mixtape Battlefoil-2025 CJ Maddux Promo"
       ]
     },
-    "Battlefoil": {
-      "count": 992,
-      "elements": [
-        "ALT",
-        "BRAWL",
-        "FIRE",
-        "GLOW",
-        "GUM",
-        "HEX",
-        "ICE",
-        "STEEL",
-        "SUPER"
-      ],
-      "sampleBobaIds": [
-        "BF-1-LeBoss-Battlefoil-First Edition",
-        "BF-1-Maverick-Battlefoil-First Edition",
-        "BF-1-Showtime-Battlefoil-First Edition",
-        "BF-10-Dart-Board-Battlefoil-First Edition",
-        "BF-10-Matata-Battlefoil-First Edition"
-      ]
-    },
-    "Alpha Battlefoil": {
-      "count": 786,
-      "elements": [
-        "BRAWL",
-        "FIRE",
-        "GLOW",
-        "HEX",
-        "ICE",
-        "STEEL"
-      ],
-      "sampleBobaIds": [
-        "ABF-1-Bojax-Alpha Battlefoil-2026 Founding Hero",
-        "ABF-10-Rocket-Alpha Battlefoil-Roger Clemens Debut",
-        "ABF-100-J-Cam-Alpha Battlefoil-First Edition",
-        "ABF-101-Generator-Alpha Battlefoil-First Edition",
-        "ABF-102-Tattoo-Alpha Battlefoil-2026 Edition"
-      ]
-    },
-    "Colosseum Battlefoil": {
-      "count": 786,
-      "elements": [
-        "BRAWL",
-        "FIRE",
-        "GLOW",
-        "HEX",
-        "ICE",
-        "STEEL"
-      ],
-      "sampleBobaIds": [
-        "CBF-1-Bojax-Colosseum Battlefoil-2026 Founding Hero",
-        "CBF-10-Rocket-Colosseum Battlefoil-Roger Clemens Debut",
-        "CBF-100-J-Cam-Colosseum Battlefoil-First Edition",
-        "CBF-101-Generator-Colosseum Battlefoil-First Edition",
-        "CBF-102-Tattoo-Colosseum Battlefoil-2026 Edition"
-      ]
-    },
-    "Great Grandma's Linoleum Battlefoil": {
-      "count": 786,
-      "elements": [
-        "BRAWL",
-        "FIRE",
-        "GLOW",
-        "HEX",
-        "ICE",
-        "STEEL"
-      ],
-      "sampleBobaIds": [
-        "GGL-1-Bojax-Great Grandma's Linoleum Battlefoil-2026 Founding Hero",
-        "GGL-10-Rocket-Great Grandma's Linoleum Battlefoil-Roger Clemens Debut",
-        "GGL-100-J-Cam-Great Grandma's Linoleum Battlefoil-First Edition",
-        "GGL-101-Generator-Great Grandma's Linoleum Battlefoil-First Edition",
-        "GGL-102-Tattoo-Great Grandma's Linoleum Battlefoil-2026 Edition"
-      ]
-    },
-    "Logofoil": {
-      "count": 786,
-      "elements": [
-        "BRAWL",
-        "FIRE",
-        "GLOW",
-        "HEX",
-        "ICE",
-        "STEEL"
-      ],
-      "sampleBobaIds": [
-        "LOGO-1-Bojax-Logofoil-2026 Founding Hero",
-        "LOGO-10-Rocket-Logofoil-Roger Clemens Debut",
-        "LOGO-100-J-Cam-Logofoil-First Edition",
-        "LOGO-101-Generator-Logofoil-First Edition",
-        "LOGO-102-Tattoo-Logofoil-2026 Edition"
-      ]
-    },
-    "Inspired Ink Battlefoil": {
-      "count": 756,
-      "elements": [
-        "ALT",
-        "BRAWL",
-        "FIRE",
-        "GLOW",
-        "GUM",
-        "HEX",
-        "ICE",
-        "STEEL"
-      ],
-      "sampleBobaIds": [
-        "AAA-12-Ante-de-something A-Inspired Ink Battlefoil-Alex Antetokounmpo Debut",
-        "ABA-12-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut",
-        "ABA-3-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut",
-        "ABA-4-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut",
-        "ABA-5-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut"
-      ]
-    },
-    "Base Set": {
-      "count": 555,
-      "elements": [
-        "BRAWL",
-        "FIRE",
-        "ICE",
-        "STEEL"
-      ],
-      "sampleBobaIds": [
-        "1-LeBoss-Base Set-First Edition",
-        "1-Maverick-Base Set-First Edition",
-        "1-Showtime-Base Set-First Edition",
-        "10-Burrocious-Base Set-First Edition",
-        "10-Dart-Board-Base Set-First Edition"
-      ]
-    },
-    "Plays": {
-      "count": 395,
-      "elements": [],
-      "sampleBobaIds": [
-        "BPL-1-Copycat-Plays-First Edition",
-        "BPL-10-Steel Pressure-Plays-First Edition",
-        "BPL-11-Glow-Up-Plays-First Edition",
-        "BPL-12-Lineup Randomizer-Plays-First Edition",
-        "BPL-13-Play Lockdown-Plays-First Edition"
-      ]
-    },
-    "Silver Blast": {
-      "count": 391,
-      "elements": [
-        "FIRE",
-        "GLOW",
-        "ICE",
-        "STEEL"
-      ],
-      "sampleBobaIds": [
-        "BBFA-1-A.I.-Silver Blast-Allen Iverson Debut",
-        "BBFA-10-Boz-Silver Blast-Brian Bosworth Debut",
-        "BBFA-100-Spudnick-Silver Blast-Spudd Webb Debut",
-        "BBFA-101-The Ironman-Silver Blast-Cal Ripkin JR Debut",
-        "BBFA-102-Peek-A-Boo-Silver Blast-Picabo Street Debut"
-      ]
-    },
-    "Icon Battlefoil": {
-      "count": 390,
-      "elements": [
-        "BRAWL",
-        "FIRE",
-        "GLOW",
-        "HEX",
-        "ICE",
-        "STEEL"
-      ],
-      "sampleBobaIds": [
-        "IBF-1-Butterfly Sting-Icon Battlefoil-First Edition",
-        "IBF-10-Crosbow-Icon Battlefoil-First Edition",
-        "IBF-100-Generator-Icon Battlefoil-First Edition",
-        "IBF-101-Tattoo-Icon Battlefoil-2026 Edition",
-        "IBF-102-Brawn-Icon Battlefoil-First Edition"
-      ]
-    },
-    "Superfoil": {
-      "count": 309,
-      "elements": [
-        "SUPER"
-      ],
-      "sampleBobaIds": [
-        "BILLY-1-Billy-Superfoil-First Edition",
-        "SF-1-A.I.-Superfoil-Allen Iverson Debut",
-        "SF-1-BoJax-Superfoil-Founding Hero Alpha Update",
-        "SF-1-The Kid-Superfoil-Cover Hero",
-        "SF-10-Troy of Dallas-Superfoil-Troy Aikman Debut"
-      ]
-    },
-    "Blue Battlefoil": {
-      "count": 308,
-      "elements": [
-        "ICE"
-      ],
-      "sampleBobaIds": [
-        "BBF-1-A.I.-Blue Battlefoil-Allen Iverson Debut",
-        "BBF-1-Bojax-Blue Battlefoil-2026 Founding Hero",
-        "BBF-10-Rocket-Blue Battlefoil-Roger Clemens Debut",
-        "BBF-10-Waddler-Blue Battlefoil-Jaylen Waddle Debut",
-        "BBF-10-Wizard-Blue Battlefoil-Ozzie Smith Debut"
-      ]
-    },
-    "Green Battlefoil": {
-      "count": 308,
-      "elements": [
-        "GLOW"
-      ],
-      "sampleBobaIds": [
-        "GBF-1-A.I.-Green Battlefoil-Allen Iverson Debut",
-        "GBF-1-Bojax-Green Battlefoil-2026 Founding Hero",
-        "GBF-10-Rocket-Green Battlefoil-Roger Clemens Debut",
-        "GBF-10-Waddler-Green Battlefoil-Jaylen Waddle Debut",
-        "GBF-10-Wizard-Green Battlefoil-Ozzie Smith Debut"
-      ]
-    },
     "Orange Battlefoil": {
       "count": 308,
       "elements": [
         "FIRE"
       ],
       "sampleBobaIds": [
-        "OBF-1-A.I.-Orange Battlefoil-Allen Iverson Debut",
         "OBF-1-Bojax-Orange Battlefoil-2026 Founding Hero",
-        "OBF-10-Rocket-Orange Battlefoil-Roger Clemens Debut",
-        "OBF-10-Waddler-Orange Battlefoil-Jaylen Waddle Debut",
-        "OBF-10-Wizard-Orange Battlefoil-Ozzie Smith Debut"
-      ]
-    },
-    "Pink Battlefoil": {
-      "count": 308,
-      "elements": [
-        "HEX"
-      ],
-      "sampleBobaIds": [
-        "PBF-1-A.I.-Pink Battlefoil-Allen Iverson Debut",
-        "PBF-1-Bojax-Pink Battlefoil-2026 Founding Hero",
-        "PBF-10-Rocket-Pink Battlefoil-Roger Clemens Debut",
-        "PBF-10-Waddler-Pink Battlefoil-Jaylen Waddle Debut",
-        "PBF-10-Wizard-Pink Battlefoil-Ozzie Smith Debut"
-      ]
-    },
-    "Silver Battlefoil": {
-      "count": 236,
-      "elements": [
-        "STEEL"
-      ],
-      "sampleBobaIds": [
-        "SBF-1-Bojax-Silver Battlefoil-2026 Founding Hero",
-        "SBF-1-LeBoss-Silver Battlefoil-First Edition",
-        "SBF-1-Showtime-Silver Battlefoil-First Edition",
-        "SBF-10-Doublecheck-Silver Battlefoil-First Edition",
-        "SBF-10-Mustang-Silver Battlefoil-First Edition"
-      ]
-    },
-    "Fire Tracks Battlefoil": {
-      "count": 232,
-      "elements": [
-        "FIRE"
-      ],
-      "sampleBobaIds": [
-        "FT-1-Bojax-Fire Tracks Battlefoil-2026 Founding Hero",
-        "FT-10-Rocket-Fire Tracks Battlefoil-Roger Clemens Debut",
-        "FT-10-Wizard-Fire Tracks Battlefoil-Ozzie Smith Debut",
-        "FT-100-J-Cam-Fire Tracks Battlefoil-First Edition",
-        "FT-100-Torque-Fire Tracks Battlefoil-First Edition"
-      ]
-    },
-    "Miami Ice Battlefoil": {
-      "count": 232,
-      "elements": [
-        "ICE"
-      ],
-      "sampleBobaIds": [
-        "MI-1-Bojax-Miami Ice Battlefoil-2026 Founding Hero",
-        "MI-10-Rocket-Miami Ice Battlefoil-Roger Clemens Debut",
-        "MI-10-Wizard-Miami Ice Battlefoil-Ozzie Smith Debut",
-        "MI-100-J-Cam-Miami Ice Battlefoil-First Edition",
-        "MI-100-Torque-Miami Ice Battlefoil-First Edition"
-      ]
-    },
-    "Pink Blast": {
-      "count": 181,
-      "elements": [
-        "HEX"
-      ],
-      "sampleBobaIds": [
-        "BL-P1-Bojax-Pink Blast-Founding Hero",
-        "BL-P10-Amon-Ra-Pink Blast-Amon-Ra St. Brown Debut",
-        "BL-P100-Curaçao Kid-Pink Blast-Anduw Jones Debut",
-        "BL-P101-Sterling-Pink Blast-Sterling Sharpe Debut",
-        "BL-P102-Caveman-Pink Blast-Johnny Damon Debut"
-      ]
-    },
-    "Bubble Gum Blast": {
-      "count": 181,
-      "elements": [
-        "GUM"
-      ],
-      "sampleBobaIds": [
-        "BL-BG1-Bojax-Bubble Gum Blast-Founding Hero",
-        "BL-BG10-Amon-Ra-Bubble Gum Blast-Amon-Ra St. Brown Debut",
-        "BL-BG100-Curaçao Kid-Bubble Gum Blast-Anduw Jones Debut",
-        "BL-BG101-Sterling-Bubble Gum Blast-Sterling Sharpe Debut",
-        "BL-BG102-Caveman-Bubble Gum Blast-Johnny Damon Debut"
-      ]
-    },
-    "Green Blast": {
-      "count": 181,
-      "elements": [
-        "GLOW"
-      ],
-      "sampleBobaIds": [
-        "BL-G1-Bojax-Green Blast-Founding Hero",
-        "BL-G10-Amon-Ra-Green Blast-Amon-Ra St. Brown Debut",
-        "BL-G100-Curaçao Kid-Green Blast-Anduw Jones Debut",
-        "BL-G101-Sterling-Green Blast-Sterling Sharpe Debut",
-        "BL-G102-Caveman-Green Blast-Johnny Damon Debut"
-      ]
-    },
-    "Blue Blast": {
-      "count": 181,
-      "elements": [
-        "ICE"
-      ],
-      "sampleBobaIds": [
-        "BL-B1-Bojax-Blue Blast-Founding Hero",
-        "BL-B10-Amon-Ra-Blue Blast-Amon-Ra St. Brown Debut",
-        "BL-B100-Curaçao Kid-Blue Blast-Anduw Jones Debut",
-        "BL-B101-Sterling-Blue Blast-Sterling Sharpe Debut",
-        "BL-B102-Caveman-Blue Blast-Johnny Damon Debut"
+        "OBF-1-A.I.-Orange Battlefoil-Allen Iverson Debut",
+        "OBF-2-Magic-Orange Battlefoil-Magic Johnson Debut",
+        "OBF-2-Young-Gunner-Orange Battlefoil-Steve Young Debut",
+        "OBF-2-The Kid-Orange Battlefoil-Cover Hero"
       ]
     },
     "Orange Blast": {
@@ -649,184 +756,24 @@
         "FIRE"
       ],
       "sampleBobaIds": [
+        "Billy-27-Billy-Orange Blast-First Edition",
         "BL-O1-Bojax-Orange Blast-Founding Hero",
-        "BL-O10-Amon-Ra-Orange Blast-Amon-Ra St. Brown Debut",
-        "BL-O100-Curaçao Kid-Orange Blast-Anduw Jones Debut",
-        "BL-O101-Sterling-Orange Blast-Sterling Sharpe Debut",
-        "BL-O102-Caveman-Orange Blast-Johnny Damon Debut"
+        "BL-O2-A.I.-Orange Blast-Allen Iverson Debut",
+        "BL-O3-Young-Gunner-Orange Blast-Steve Young Debut",
+        "BL-O4-Leducky-Orange Blast-Brandi Chastain Debut"
       ]
     },
-    "Headlines Battlefoil": {
-      "count": 165,
-      "elements": [
-        "STEEL"
-      ],
-      "sampleBobaIds": [
-        "HBF-1-LeBoss-Headlines Battlefoil-First Edition",
-        "HBF-1-Maverick-Headlines Battlefoil-First Edition",
-        "HBF-1-Showtime-Headlines Battlefoil-First Edittion",
-        "HBF-10-Dart-Board-Headlines Battlefoil-First Edition",
-        "HBF-10-Doublecheck-Headlines Battlefoil-First Edittion"
-      ]
-    },
-    "Inspired Ink Superfoil": {
-      "count": 134,
-      "elements": [
-        "SUPER"
-      ],
-      "sampleBobaIds": [
-        "AAA-1-Ante-de-something A-Inspired Ink Superfoil-Alex Antetokounmpo Debut",
-        "ABA-1-Goofin' Off-Inspired Ink Superfoil-Adrián Beltré Debut",
-        "ACA-1-Eraser-Inspired Ink Superfoil-Alysha Clark Debut",
-        "ADPA-1-All day-Inspired Ink Superfoil-Adrian Peterson Debut",
-        "BWA-1-Bern Baby, Bern-Inspired Ink Superfoil-Bernie Williams Debut"
-      ]
-    },
-    "Chillin' Battlefoil": {
-      "count": 131,
-      "elements": [
-        "ICE"
-      ],
-      "sampleBobaIds": [
-        "CHILL-1-Bojax-Chillin' Battlefoil-2026 Founding Hero",
-        "CHILL-10-Rocket-Chillin' Battlefoil-Roger Clemens Debut",
-        "CHILL-100-J-Cam-Chillin' Battlefoil-First Edition",
-        "CHILL-101-Generator-Chillin' Battlefoil-First Edition",
-        "CHILL-102-Tattoo-Chillin' Battlefoil-2026 Edition"
-      ]
-    },
-    "Grillin' Battlefoil": {
-      "count": 131,
+    "Orange Headlines Battlefoil": {
+      "count": 60,
       "elements": [
         "FIRE"
       ],
       "sampleBobaIds": [
-        "GRILL-1-Bojax-Grillin' Battlefoil-2026 Founding Hero",
-        "GRILL-10-Rocket-Grillin' Battlefoil-Roger Clemens Debut",
-        "GRILL-100-J-Cam-Grillin' Battlefoil-First Edition",
-        "GRILL-101-Generator-Grillin' Battlefoil-First Edition",
-        "GRILL-102-Tattoo-Grillin' Battlefoil-2026 Edition"
-      ]
-    },
-    "Power Glove Battlefoil": {
-      "count": 131,
-      "elements": [
-        "BRAWL"
-      ],
-      "sampleBobaIds": [
-        "PG-1-Bojax-Power Glove Battlefoil-2026 Founding Hero",
-        "PG-10-Rocket-Power Glove Battlefoil-Roger Clemens Debut",
-        "PG-100-J-Cam-Power Glove Battlefoil-First Edition",
-        "PG-101-Generator-Power Glove Battlefoil-First Edition",
-        "PG-102-Tattoo-Power Glove Battlefoil-2026 Edition"
-      ]
-    },
-    "Red Battlefoil": {
-      "count": 131,
-      "elements": [
-        "BRAWL"
-      ],
-      "sampleBobaIds": [
-        "RBF-1-Bojax-Red Battlefoil-2026 Founding Hero",
-        "RBF-10-Rocket-Red Battlefoil-Roger Clemens Debut",
-        "RBF-100-J-Cam-Red Battlefoil-First Edition",
-        "RBF-101-Generator-Red Battlefoil-First Edition",
-        "RBF-102-Tattoo-Red Battlefoil-2026 Edition"
-      ]
-    },
-    "Slime Battlefoil": {
-      "count": 131,
-      "elements": [
-        "GLOW"
-      ],
-      "sampleBobaIds": [
-        "SL-1-Bojax-Slime Battlefoil-2026 Founding Hero",
-        "SL-10-Rocket-Slime Battlefoil-Roger Clemens Debut",
-        "SL-100-J-Cam-Slime Battlefoil-First Edition",
-        "SL-101-Generator-Slime Battlefoil-First Edition",
-        "SL-102-Tattoo-Slime Battlefoil-2026 Edition"
-      ]
-    },
-    "Inspired Ink Metallic Battlefoil": {
-      "count": 130,
-      "elements": [
-        "STEEL"
-      ],
-      "sampleBobaIds": [
-        "ABA-8-Goofin' Off-Inspired Ink Metallic Battlefoil-Adrián Beltré Debut",
-        "ACA-8-Eraser-Inspired Ink Metallic Battlefoil-Alysha Clark Debut",
-        "ADPA-8-All day-Inspired Ink Metallic Battlefoil-Adrian Peterson Debut",
-        "BWA-8-Bern Baby, Bern-Inspired Ink Metallic Battlefoil-Bernie Williams Debut",
-        "CBA-8-Big Geo-Inspired Ink Metallic Battlefoil-Craig Biggio Debut"
-      ]
-    },
-    "Hot Dog": {
-      "count": 129,
-      "elements": [
-        "FIRE",
-        "HEX",
-        "ICE"
-      ],
-      "sampleBobaIds": [
-        "HD-1-Dirty Water Dan-Hot Dog-",
-        "HD-1-Dirty Water Dan-Hot Dog-Alpha Update",
-        "HD-1-Dirty Water Dan-Hot Dog-Griffey Edition",
-        "HD-10-Frank-Hot Dog-",
-        "HD-10-Frank-Hot Dog-Alpha Update"
-      ]
-    },
-    "Bubble Gum Battlefoil": {
-      "count": 128,
-      "elements": [
-        "GUM"
-      ],
-      "sampleBobaIds": [
-        "BGBF-1-Butterfly Sting-Bubble Gum Battlefoil-First Edition",
-        "BGBF-1-Tank-Bubble Gum Battlefoil-Bo Said So",
-        "BGBF-10-Crosbow-Bubble Gum Battlefoil-First Edition",
-        "BGBF-10-Donny Buckets-Bubble Gum Battlefoil-First Edition",
-        "BGBF-11-Warden-Bubble Gum Battlefoil-First Edition"
-      ]
-    },
-    "Blue Headlines Battlefoil": {
-      "count": 120,
-      "elements": [
-        "ICE"
-      ],
-      "sampleBobaIds": [
-        "BHBF-1-LeBoss-Blue Headlines Battlefoil-First Edition",
-        "BHBF-1-Maverick-Blue Headlines Battlefoil-First Edition",
-        "BHBF-10-Dart-Board-Blue Headlines Battlefoil-First Edition",
-        "BHBF-10-Mustang-Blue Headlines Battlefoil-First Edition",
-        "BHBF-11-Dumper-Blue Headlines Battlefoil-First Edition"
-      ]
-    },
-    "Red Headlines Battlefoil": {
-      "count": 120,
-      "elements": [
-        "BRAWL",
-        "FIRE"
-      ],
-      "sampleBobaIds": [
-        "RHBF-1-LeBoss-Red Headlines Battlefoil-First Edition",
-        "RHBF-1-Maverick-Red Headlines Battlefoil-First Edition",
-        "RHBF-10-Dart-Board-Red Headlines Battlefoil-First Edition",
-        "RHBF-10-Mustang-Red Headlines Battlefoil-First Edition",
-        "RHBF-11-Dumper-Red Headlines Battlefoil-First Edition"
-      ]
-    },
-    "Inspired Ink Bubble Gum Battlefoil": {
-      "count": 102,
-      "elements": [
-        "GUM",
-        "HEX"
-      ],
-      "sampleBobaIds": [
-        "ABA-2-Goofin' Off-Inspired Ink Bubble Gum Battlefoil-Adrián Beltré Debut",
-        "ACA-2-Eraser-Inspired Ink Bubble Gum Battlefoil-Alysha Clark Debut",
-        "ADPA-2-All day-Inspired Ink Bubble Gum Battlefoil-Adrian Peterson Debut",
-        "BGA-1-BoJax-Inspired Ink Bubble Gum Battlefoil-Founding Hero Alpha Update",
-        "BGA-10-Wizard-Inspired Ink Bubble Gum Battlefoil-Ozzie Smith Debut"
+        "OHBF-1-Maverick-Orange Headlines Battlefoil-First Edition",
+        "OHBF-2-Gaveler-Orange Headlines Battlefoil-2026 Edition",
+        "OHBF-3-Victory-Orange Headlines Battlefoil-2026 Edition",
+        "OHBF-4-Dijon-Orange Headlines Battlefoil-First Edition",
+        "OHBF-5-Crosbow-Orange Headlines Battlefoil-First Edition"
       ]
     },
     "Paper": {
@@ -845,41 +792,6 @@
         "S-05/100-Chosen-Paper-Starter"
       ]
     },
-    "Home Team Discount": {
-      "count": 60,
-      "elements": [],
-      "sampleBobaIds": [
-        "HTD-1-Gavel of Justice-Home Team Discount-",
-        "HTD-10-Steel Defense-Home Team Discount-",
-        "HTD-11-Curveball-Home Team Discount-",
-        "HTD-12-Loan Sharked-Home Team Discount-",
-        "HTD-13-Shooters Shoot-Home Team Discount-"
-      ]
-    },
-    "Orange Headlines Battlefoil": {
-      "count": 60,
-      "elements": [
-        "FIRE"
-      ],
-      "sampleBobaIds": [
-        "OHBF-1-Maverick-Orange Headlines Battlefoil-First Edition",
-        "OHBF-10-Dart-Board-Orange Headlines Battlefoil-First Edition",
-        "OHBF-11-Dumper-Orange Headlines Battlefoil-First Edition",
-        "OHBF-12-Switchblade-Orange Headlines Battlefoil-First Edition",
-        "OHBF-13-Cupid-Orange Headlines Battlefoil-2026 Edition"
-      ]
-    },
-    "Bonus Plays": {
-      "count": 50,
-      "elements": [],
-      "sampleBobaIds": [
-        "BPL-1-Hot Dog Thief-Bonus Plays-First Edition",
-        "BPL-1-Member Bounce-Bonus Plays-First Edition",
-        "BPL-10-Dumpster Battle-Bonus Plays-First Edition",
-        "BPL-10-Hero's Resolve-Bonus Plays-First Edition",
-        "BPL-11-Head Start-Bonus Plays-First Edition"
-      ]
-    },
     "Paper & Battlefoil": {
       "count": 30,
       "elements": [
@@ -890,24 +802,74 @@
         "STEEL"
       ],
       "sampleBobaIds": [
-        "LA-10-MVFREE-Paper & Battlefoil-World Champion Debut",
-        "LA-11-Showtime-Paper & Battlefoil-World Champion Debut",
-        "LA-12-Gambler-Paper & Battlefoil-World Champion Debut",
-        "LA-13-MVFREE-Paper & Battlefoil-World Champion Debut",
-        "LA-14-Showtime-Paper & Battlefoil-World Champion Debut"
+        "LA-4-MVFREE-Paper & Battlefoil-World Champion Debut",
+        "LA-5-Showtime-Paper & Battlefoil-World Champion Debut",
+        "LA-6-Gambler-Paper & Battlefoil-World Champion Debut",
+        "LA-7-MVFREE-Paper & Battlefoil-World Champion Debut",
+        "LA-8-Showtime-Paper & Battlefoil-World Champion Debut"
       ]
     },
-    "Cyber": {
-      "count": 28,
+    "Paper Serialized": {
+      "count": 3,
       "elements": [
-        "CYBER"
+        "FIRE",
+        "ICE",
+        "STEEL"
       ],
       "sampleBobaIds": [
-        "CYB-1-BoJax-Cyber-2025 Cyber Promo",
-        "CYB-10-Marino-Cyber-2025 Cyber Promo",
-        "CYB-11-Grand-Ma-Ma-Cyber-2025 Cyber Promo",
-        "CYB-12-C.C.-Cyber-2025 Cyber Promo",
-        "CYB-13-Emmitt-164-Cyber-2025 Cyber Promo"
+        "S-01/100-BoJax-Paper Serialized-Starter",
+        "S-02/100-Bojax-Paper Serialized-Starter",
+        "S-03/100-BoJax-Paper Serialized-Starter"
+      ]
+    },
+    "Pink Battlefoil": {
+      "count": 308,
+      "elements": [
+        "HEX"
+      ],
+      "sampleBobaIds": [
+        "PBF-1-Bojax-Pink Battlefoil-2026 Founding Hero",
+        "PBF-1-A.I.-Pink Battlefoil-Allen Iverson Debut",
+        "PBF-2-Magic-Pink Battlefoil-Magic Johnson Debut",
+        "PBF-2-Young-Gunner-Pink Battlefoil-Steve Young Debut",
+        "PBF-2-The Kid-Pink Battlefoil-Cover Hero"
+      ]
+    },
+    "Pink Blast": {
+      "count": 181,
+      "elements": [
+        "HEX"
+      ],
+      "sampleBobaIds": [
+        "Billy-23-Billy-Pink Blast-First Edition",
+        "BL-P1-Bojax-Pink Blast-Founding Hero",
+        "BL-P2-A.I.-Pink Blast-Allen Iverson Debut",
+        "BL-P3-Young-Gunner-Pink Blast-Steve Young Debut",
+        "BL-P4-Leducky-Pink Blast-Brandi Chastain Debut"
+      ]
+    },
+    "Plays": {
+      "count": 405,
+      "elements": [],
+      "sampleBobaIds": [
+        "BPL-1-Copycat-Plays-First Edition",
+        "BPL-2-My Idol-Plays-First Edition",
+        "BPL-3-Student Loan-Plays-First Edition",
+        "BPL-4-Ghost Dog-Plays-First Edition",
+        "BPL-5-Incendiary Dog-Plays-First Edition"
+      ]
+    },
+    "Power Glove Battlefoil": {
+      "count": 131,
+      "elements": [
+        "BRAWL"
+      ],
+      "sampleBobaIds": [
+        "PG-1-Bojax-Power Glove Battlefoil-2026 Founding Hero",
+        "PG-2-The Kid-Power Glove Battlefoil-Cover Hero",
+        "PG-3-Dr. J-Power Glove Battlefoil-Julius Erving Debut",
+        "PG-4-Freakshow-Power Glove Battlefoil-Giannis Antetokounmpo Unmasked",
+        "PG-5-Cruze Control-Power Glove Battlefoil-Elly De La Cruz Unmasked"
       ]
     },
     "Prize & Promos": {
@@ -924,10 +886,63 @@
       ],
       "sampleBobaIds": [
         "P-1-The Kid-Prize & Promos-2026 Release Day Promo",
-        "P-10-The Kid-Prize & Promos-2026 Release Day Promo",
-        "P-11-Bojax-Prize & Promos-PSA Magazine Baseball",
-        "P-12-Bojax-Prize & Promos-PSA Magazine Baseball",
-        "P-13-Bojax-Prize & Promos-PSA Magazine Baseball"
+        "P-2-The Kid-Prize & Promos-2026 Release Day Promo",
+        "P-3-The Kid-Prize & Promos-2026 Release Day Promo",
+        "P-4-The Kid-Prize & Promos-2026 Release Day Promo",
+        "P-5-The Kid-Prize & Promos-2026 Release Day Promo"
+      ]
+    },
+    "Red Battlefoil": {
+      "count": 131,
+      "elements": [
+        "BRAWL"
+      ],
+      "sampleBobaIds": [
+        "RBF-1-Bojax-Red Battlefoil-2026 Founding Hero",
+        "RBF-2-The Kid-Red Battlefoil-Cover Hero",
+        "RBF-3-Dr. J-Red Battlefoil-Julius Erving Debut",
+        "RBF-4-Freakshow-Red Battlefoil-Giannis Antetokounmpo Unmasked",
+        "RBF-5-Cruze Control-Red Battlefoil-Elly De La Cruz Unmasked"
+      ]
+    },
+    "Red Headlines Battlefoil": {
+      "count": 120,
+      "elements": [
+        "BRAWL",
+        "FIRE"
+      ],
+      "sampleBobaIds": [
+        "RHBF-1-LeBoss-Red Headlines Battlefoil-First Edition",
+        "RHBF-1-Maverick-Red Headlines Battlefoil-First Edition",
+        "RHBF-2-Merlomes-Red Headlines Battlefoil-First Edition",
+        "RHBF-2-Gaveler-Red Headlines Battlefoil-2026 Edition",
+        "RHBF-3-Chosen-Red Headlines Battlefoil-First Edition"
+      ]
+    },
+    "Rookie Power Up": {
+      "count": 12,
+      "elements": [
+        "ALT"
+      ],
+      "sampleBobaIds": [
+        "RPU-1-Skeee-Rookie Power Up-2025 Rookie Power Up Promo",
+        "RPU-2-C.C.-Rookie Power Up-2025 Rookie Power Up Promo",
+        "RPU-3-Jaybird-Rookie Power Up-2025 Rookie Power Up Promo",
+        "RPU-4-Phoenix-Rookie Power Up-2025 Rookie Power Up Promo",
+        "RPU-5-Victory-Rookie Power Up-2025 Rookie Power Up Promo"
+      ]
+    },
+    "Serialized Battlefoil": {
+      "count": 7,
+      "elements": [
+        "GLOW"
+      ],
+      "sampleBobaIds": [
+        "S-101/100-Bojax-Serialized Battlefoil-Secret Starter",
+        "S-102/100-LeBoss-Serialized Battlefoil-Secret Starter",
+        "S-103/100-Freakshow-Serialized Battlefoil-Secret Starter",
+        "S-104/100-Merlomes-Serialized Battlefoil-Secret Starter",
+        "S-105/100-McArmyKnife-Serialized Battlefoil-Secret Starter"
       ]
     },
     "Sidekicks": {
@@ -944,103 +959,53 @@
         "SUPER"
       ],
       "sampleBobaIds": [
-        "ALTA-01-Billy the Kid-Sidekicks-Emilio Estevez (Co-Starring Bily)",
         "Alt-1-Billy the Kid-Sidekicks-Emilio Estevez (Co-Starring Bily)",
+        "ALTA-01-Billy the Kid-Sidekicks-Emilio Estevez (Co-Starring Bily)",
         "FFA-1-Flavor Flav-Sidekicks-Flavor Flav Debut",
         "FFA-2-Flavor Flav-Sidekicks-Flavor Flav Debut",
         "FFA-3-Flavor Flav-Sidekicks-Flavor Flav Debut"
       ]
     },
-    "Case": {
-      "count": 16,
-      "elements": [],
-      "sampleBobaIds": [
-        "SEALED-alpha-battle-trainer-kit-case-Alpha Edition Battle Trainer Kit Case--Case",
-        "SEALED-alpha-blaster-case-Alpha Edition Blaster Case--Case",
-        "SEALED-alpha-collector-booster-case-Alpha Edition Collector Booster Case--Case",
-        "SEALED-alpha-hobby-case-Alpha Edition Hobby Case--Case",
-        "SEALED-alpha-jumbo-hobby-case-Alpha Edition Jumbo Hobby Case--Case"
-      ]
-    },
-    "Rookie Power Up": {
-      "count": 12,
+    "Silver Battlefoil": {
+      "count": 236,
       "elements": [
-        "ALT"
+        "STEEL"
       ],
       "sampleBobaIds": [
-        "RPU-1-Skeee-Rookie Power Up-2025 Rookie Power Up Promo",
-        "RPU-10-Caliber-Rookie Power Up-2025 Rookie Power Up Promo",
-        "RPU-11-Marverati-Rookie Power Up-2025 Rookie Power Up Promo",
-        "RPU-12-Merri-Go-Round-Rookie Power Up-2025 Rookie Power Up Promo",
-        "RPU-2-C.C.-Rookie Power Up-2025 Rookie Power Up Promo"
+        "SBF-1-LeBoss-Silver Battlefoil-First Edition",
+        "SBF-1-Showtime-Silver Battlefoil-First Edition",
+        "SBF-1-Bojax-Silver Battlefoil-2026 Founding Hero",
+        "SBF-2-Merlomes-Silver Battlefoil-First Edition",
+        "SBF-2-Matata-Silver Battlefoil-First Edition"
       ]
     },
-    "Serialized Battlefoil": {
-      "count": 7,
+    "Silver Blast": {
+      "count": 391,
       "elements": [
-        "GLOW"
-      ],
-      "sampleBobaIds": [
-        "S-101/100-Bojax-Serialized Battlefoil-Secret Starter",
-        "S-102/100-LeBoss-Serialized Battlefoil-Secret Starter",
-        "S-103/100-Freakshow-Serialized Battlefoil-Secret Starter",
-        "S-104/100-Merlomes-Serialized Battlefoil-Secret Starter",
-        "S-105/100-McArmyKnife-Serialized Battlefoil-Secret Starter"
-      ]
-    },
-    "Kanjifoil": {
-      "count": 6,
-      "elements": [
-        "ALT",
         "FIRE",
         "GLOW",
-        "HEX",
         "ICE",
         "STEEL"
       ],
       "sampleBobaIds": [
-        "LA-30-二百-Kanjifoil-Champions Kanji Variation",
-        "LA-31-百八十五-Kanjifoil-Champions Kanji Variation",
-        "LA-32-百四十-Kanjifoil-Champions Kanji Variation",
-        "LA-33-百三十五-Kanjifoil-Champions Kanji Variation",
-        "LA-34-百三十五-Kanjifoil-Champions Kanji Variation"
+        "BBFA-1-A.I.-Silver Blast-Allen Iverson Debut",
+        "BBFA-2-A.I.-Silver Blast-Allen Iverson Debut",
+        "BBFA-3-A.I.-Silver Blast-Allen Iverson Debut",
+        "BBFA-4-Young-Gunner-Silver Blast-Steve Young Debut",
+        "BBFA-5-Young-Gunner-Silver Blast-Steve Young Debut"
       ]
     },
-    "Event Box": {
-      "count": 6,
-      "elements": [],
-      "sampleBobaIds": [
-        "SEALED-la-world-champions-alt-art-box-LA World Champions Alt Art Box--Event Box",
-        "SEALED-la-world-champions-box-LA World Champions Box--Event Box",
-        "SEALED-okc-world-champions-alt-art-box-OKC World Champions Alt Art Box--Event Box",
-        "SEALED-okc-world-champions-box-OKC World Champions Box--Event Box",
-        "SEALED-philly-world-champions-alt-art-box-Philly World Champions Alt Art Box--Event Box"
-      ]
-    },
-    "Billy Cameo Alt Arts": {
-      "count": 5,
+    "Slime Battlefoil": {
+      "count": 131,
       "elements": [
-        "ALT"
+        "GLOW"
       ],
       "sampleBobaIds": [
-        "ALT-1-Hello Boys!-Billy Cameo Alt Arts-Randy Quaid (Co-Starring Billy)",
-        "ALT-2-Flav-Billy Cameo Alt Arts-Flavor Flav (Co-Starring Billy)",
-        "ALT-3-Johnny Heckler-Billy Cameo Alt Arts-Randy Quaid (Co-Starring Billy)",
-        "ALT-4-X.L.-Billy Cameo Alt Arts-Huntin' W/CJ & Billy",
-        "ALT-5-Sensei-Billy Cameo Alt Arts-Billy BOBA KAI"
-      ]
-    },
-    "Grape": {
-      "count": 5,
-      "elements": [
-        "ALT"
-      ],
-      "sampleBobaIds": [
-        "BLC-1-BoJax-Grape-First Edition",
-        "BLC-15-Amon-Ra-Grape-First Edition",
-        "BLC-4-BoJax-Grape-First Edition",
-        "BLC-8-Magic-Grape-First Edition",
-        "BLC-9-Brandi-Grape-First Edition"
+        "SL-1-Bojax-Slime Battlefoil-2026 Founding Hero",
+        "SL-2-The Kid-Slime Battlefoil-Cover Hero",
+        "SL-3-Dr. J-Slime Battlefoil-Julius Erving Debut",
+        "SL-4-Freakshow-Slime Battlefoil-Giannis Antetokounmpo Unmasked",
+        "SL-5-Cruze Control-Slime Battlefoil-Elly De La Cruz Unmasked"
       ]
     },
     "Sour Apple": {
@@ -1049,172 +1014,84 @@
         "ALT"
       ],
       "sampleBobaIds": [
-        "BLC-11-Boz-Sour Apple-First Edition",
-        "BLC-13-Marino-Sour Apple-First Edition",
         "BLC-2-BoJax-Sour Apple-First Edition",
         "BLC-5-BoJax-Sour Apple-First Edition",
-        "BLC-7-A.I.-Sour Apple-First Edition"
+        "BLC-7-A.I.-Sour Apple-First Edition",
+        "BLC-11-Boz-Sour Apple-First Edition",
+        "BLC-13-Marino-Sour Apple-First Edition"
       ]
     },
-    "Blue Raspberry": {
-      "count": 5,
+    "Superfoil": {
+      "count": 309,
       "elements": [
-        "ALT"
+        "SUPER"
       ],
       "sampleBobaIds": [
-        "BLC-10-Young-Gunner-Blue Raspberry-First Edition",
-        "BLC-12-Emmitt-164-Blue Raspberry-First Edition",
-        "BLC-14-Barry \"Cutback\" Sanders-Blue Raspberry-First Edition",
-        "BLC-3-BoJax-Blue Raspberry-First Edition",
-        "BLC-6-BoJax-Blue Raspberry-First Edition"
-      ]
-    },
-    "Blaster Box": {
-      "count": 5,
-      "elements": [],
-      "sampleBobaIds": [
-        "SEALED-alpha-blaster-box-Alpha Edition Blaster Box--Blaster Box",
-        "SEALED-blc-blaster-box-Big League Chew Blaster Box--Blaster Box",
-        "SEALED-griffey-blaster-box-Griffey Edition Blaster Box--Blaster Box",
-        "SEALED-griffey-release-day-blaster-Griffey Edition Release Day Blaster Box--Blaster Box",
-        "SEALED-update-blaster-box-Alpha Update Blaster Box--Blaster Box"
-      ]
-    },
-    "Hobby Box": {
-      "count": 4,
-      "elements": [],
-      "sampleBobaIds": [
-        "SEALED-alpha-hobby-box-Alpha Edition Hobby Box--Hobby Box",
-        "SEALED-griffey-hobby-box-Griffey Edition Hobby Box--Hobby Box",
-        "SEALED-tecmo-hobby-box-Tecmo Bowl Edition Hobby Box--Hobby Box",
-        "SEALED-update-hobby-box-Alpha Update Hobby Box--Hobby Box"
-      ]
-    },
-    "Paper Serialized": {
-      "count": 3,
-      "elements": [
-        "FIRE",
-        "ICE",
-        "STEEL"
-      ],
-      "sampleBobaIds": [
-        "S-01/100-BoJax-Paper Serialized-Starter",
-        "S-02/100-Bojax-Paper Serialized-Starter",
-        "S-03/100-BoJax-Paper Serialized-Starter"
-      ]
-    },
-    "Jumbo Hobby Box": {
-      "count": 3,
-      "elements": [],
-      "sampleBobaIds": [
-        "SEALED-alpha-jumbo-hobby-box-Alpha Edition Jumbo Hobby Box--Jumbo Hobby Box",
-        "SEALED-griffey-jumbo-hobby-box-Griffey Edition Jumbo Hobby Box--Jumbo Hobby Box",
-        "SEALED-update-jumbo-hobby-box-Alpha Update Jumbo Hobby Box--Jumbo Hobby Box"
-      ]
-    },
-    "Collector Booster Box": {
-      "count": 2,
-      "elements": [],
-      "sampleBobaIds": [
-        "SEALED-alpha-collector-booster-box-Alpha Edition Collector Booster Box--Collector Booster Box",
-        "SEALED-update-collector-booster-box-Alpha Update Collector Booster Box--Collector Booster Box"
-      ]
-    },
-    "Double Mega Box": {
-      "count": 2,
-      "elements": [],
-      "sampleBobaIds": [
-        "SEALED-griffey-double-mega-box-Griffey Edition Double-Mega Box--Double Mega Box",
-        "SEALED-tecmo-double-mega-box-Tecmo Bowl Edition Double-Mega Box--Double Mega Box"
-      ]
-    },
-    "Pack": {
-      "count": 2,
-      "elements": [],
-      "sampleBobaIds": [
-        "SEALED-national24-gold-pack-National '24 Gold Pack--Pack",
-        "SEALED-national24-silver-pack-National '24 Silver Pack--Pack"
-      ]
-    },
-    "Battle Trainer Kit": {
-      "count": 1,
-      "elements": [],
-      "sampleBobaIds": [
-        "SEALED-alpha-battle-trainer-kit-Alpha Edition Battle Trainer Kit--Battle Trainer Kit"
-      ]
-    },
-    "Blast Box": {
-      "count": 1,
-      "elements": [],
-      "sampleBobaIds": [
-        "SEALED-alpha-blast-box-Alpha Blast Box--Blast Box"
-      ]
-    },
-    "Bundle": {
-      "count": 1,
-      "elements": [],
-      "sampleBobaIds": [
-        "SEALED-alpha-launch-day-bundle-Alpha Edition Launch Day Bundle--Bundle"
-      ]
-    },
-    "Starter Kit": {
-      "count": 1,
-      "elements": [],
-      "sampleBobaIds": [
-        "SEALED-national24-starter-kit-National '24 Starter Kit--Starter Kit"
-      ]
-    },
-    "Super Fan Box": {
-      "count": 1,
-      "elements": [],
-      "sampleBobaIds": [
-        "SEALED-sandstorm-super-fan-box-Sandstorm Super Fan Box--Super Fan Box"
+        "BILLY-1-Billy-Superfoil-First Edition",
+        "SF-1-BoJax-Superfoil-Founding Hero Alpha Update",
+        "SF-1-A.I.-Superfoil-Allen Iverson Debut",
+        "SF-1-The Kid-Superfoil-Cover Hero",
+        "SF-2-Magic-Superfoil-Magic Johnson Debut"
       ]
     }
   },
   "elements": {
-    "ICE": {
-      "count": 3246,
-      "rarity": "Rare SP"
-    },
-    "FIRE": {
-      "count": 3228,
-      "rarity": "Rare SP"
-    },
-    "STEEL": {
-      "count": 2968,
-      "rarity": "Common"
-    },
-    "GLOW": {
-      "count": 2690,
-      "rarity": "Ultra Rare"
-    },
-    "HEX": {
-      "count": 2470,
-      "rarity": "Elite"
+    "ALT": {
+      "count": 47,
+      "rarity": "Champion Alt"
     },
     "BRAWL": {
       "count": 1619,
       "rarity": "Common"
     },
+    "CYBER": {
+      "count": 28,
+      "rarity": "Common"
+    },
+    "FIRE": {
+      "count": 3234,
+      "rarity": "Common"
+    },
+    "GLOW": {
+      "count": 2696,
+      "rarity": "Ultra Rare"
+    },
     "GUM": {
       "count": 493,
-      "rarity": "Secret Rare"
+      "rarity": "Ultra Ultra Rare"
+    },
+    "HEX": {
+      "count": 2476,
+      "rarity": "Super Ultra Rare"
+    },
+    "ICE": {
+      "count": 3252,
+      "rarity": "Rare SP"
+    },
+    "STEEL": {
+      "count": 2974,
+      "rarity": "Common"
     },
     "SUPER": {
       "count": 455,
-      "rarity": "Unique 1/1"
-    },
-    "ALT": {
-      "count": 41,
-      "rarity": "Unknown"
-    },
-    "CYBER": {
-      "count": 28,
-      "rarity": "Unknown"
+      "rarity": "Mythic"
     }
   },
   "heroes": {
+    "A.C.": {
+      "count": 6,
+      "athletes": [
+        "Alex Caruso"
+      ],
+      "bobaIds": [
+        "OKC-10-A.C.-Battlefoil-World Champion Debut",
+        "OKC-15-A.C.-Battlefoil-World Champion Debut",
+        "OKC-20-A.C.-Battlefoil-World Champion Debut",
+        "OKC-25-A.C.-Battlefoil-World Champion Debut",
+        "OKC-30-A.C.-Battlefoil-World Champion Debut",
+        "OKC-5-A.C.-Battlefoil-World Champion Debut"
+      ]
+    },
     "A.I.": {
       "count": 33,
       "athletes": [
@@ -1320,7 +1197,7 @@
         "BBF-70-Alexander the Great-Blue Battlefoil-First Edition",
         "BGBF-4-Alexander the Great-Bubble Gum Battlefoil-First Edition",
         "BLBF-201-Alexander the Great-Blizzard Battlefoil-First Edition",
-        "BLBF-332-Alexander the Great-Blizzard Battlefoil-First Edition"
+        "BLBF-70-Alexander the Great-Blizzard Battlefoil-First Edition"
       ]
     },
     "Alien": {
@@ -1354,9 +1231,9 @@
         "ABF-553-All day-Alpha Battlefoil-Adrian Peterson Debut",
         "ABF-684-All day-Alpha Battlefoil-Adrian Peterson Debut",
         "ADPA-1-All day-Inspired Ink Superfoil-Adrian Peterson Debut",
-        "ADPA-12-All day-Inspired Ink Battlefoil-Adrian Peterson Debut",
         "ADPA-2-All day-Inspired Ink Bubble Gum Battlefoil-Adrian Peterson Debut",
-        "ADPA-3-All day-Inspired Ink Battlefoil-Adrian Peterson Debut"
+        "ADPA-3-All day-Inspired Ink Battlefoil-Adrian Peterson Debut",
+        "ADPA-4-All day-Inspired Ink Battlefoil-Adrian Peterson Debut"
       ]
     },
     "Allenwrench": {
@@ -1392,7 +1269,7 @@
         "BBF-47-Altitude-Blue Battlefoil-Jozy Altidore Debut",
         "BLBF-178-Altitude-Blizzard Battlefoil-Jozy Altidore Debut",
         "BLBF-309-Altitude-Blizzard Battlefoil-Jozy Altidore Debut",
-        "BLBF-440-Altitude-Blizzard Battlefoil-Jozy Altidore Debut"
+        "BLBF-47-Altitude-Blizzard Battlefoil-Jozy Altidore Debut"
       ]
     },
     "Amoeba": {
@@ -1459,7 +1336,7 @@
         "BBF-58-Ante-de something K-Blue Battlefoil-Kostas Antetokounmpo Debut",
         "BLBF-189-Ante-de something K-Blizzard Battlefoil-Kostas Antetokounmpo Debut",
         "BLBF-320-Ante-de something K-Blizzard Battlefoil-Kostas Antetokounmpo Debut",
-        "BLBF-451-Ante-de something K-Blizzard Battlefoil-Kostas Antetokounmpo Debut"
+        "BLBF-58-Ante-de something K-Blizzard Battlefoil-Kostas Antetokounmpo Debut"
       ]
     },
     "Ante-de-something A": {
@@ -1477,7 +1354,7 @@
         "ABF-59-Ante-de-something A-Alpha Battlefoil-Alex Antetokounmpo Debut",
         "ABF-714-Ante-de-something A-Alpha Battlefoil-Alex Antetokounmpo Debut",
         "BBF-59-Ante-de-something A-Blue Battlefoil-Alex Antetokounmpo Debut",
-        "BLBF-190-Ante-de-something A-Blizzard Battlefoil-Alex Antetokounmpo Debut"
+        "BLBF-59-Ante-de-something A-Blizzard Battlefoil-Alex Antetokounmpo Debut"
       ]
     },
     "Ante-de-something T": {
@@ -1495,7 +1372,7 @@
         "BBF-57-Ante-de-something T-Blue Battlefoil-Thanasis Antetokounmpo Debut",
         "BLBF-188-Ante-de-something T-Blizzard Battlefoil-Thanasis Antetokounmpo Debut",
         "BLBF-319-Ante-de-something T-Blizzard Battlefoil-Thanasis Antetokounmpo Debut",
-        "BLBF-450-Ante-de-something T-Blizzard Battlefoil-Thanasis Antetokounmpo Debut"
+        "BLBF-57-Ante-de-something T-Blizzard Battlefoil-Thanasis Antetokounmpo Debut"
       ]
     },
     "Attak": {
@@ -1730,7 +1607,7 @@
         "BBF-49-Belladonna-Blue Battlefoil-Elena Delle Donne Debut",
         "BLBF-180-Belladonna-Blizzard Battlefoil-Elena Delle Donne Debut",
         "BLBF-311-Belladonna-Blizzard Battlefoil-Elena Delle Donne Debut",
-        "BLBF-442-Belladonna-Blizzard Battlefoil-Elena Delle Donne Debut"
+        "BLBF-49-Belladonna-Blizzard Battlefoil-Elena Delle Donne Debut"
       ]
     },
     "Bells": {
@@ -1766,7 +1643,7 @@
         "BBF-46-Bern Baby, Bern-Blue Battlefoil-Bernie Williams Debut",
         "BLBF-177-Bern Baby, Bern-Blizzard Battlefoil-Bernie Williams Debut",
         "BLBF-308-Bern Baby, Bern-Blizzard Battlefoil-Bernie Williams Debut",
-        "BLBF-439-Bern Baby, Bern-Blizzard Battlefoil-Bernie Williams Debut"
+        "BLBF-46-Bern Baby, Bern-Blizzard Battlefoil-Bernie Williams Debut"
       ]
     },
     "Big Geo": {
@@ -1955,9 +1832,9 @@
         "ABF-525-Bojax-Alpha Battlefoil-2026 Founding Hero",
         "ABF-656-Bojax-Alpha Battlefoil-2026 Founding Hero",
         "BBF-1-Bojax-Blue Battlefoil-2026 Founding Hero",
-        "BBFA-133-Bojax-Silver Blast-Founding Hero Alpha Update",
-        "BBFA-172-Bojax-Silver Blast-Founding Hero Alpha Update",
-        "BBFA-91-Bojax-Silver Blast-Founding Hero"
+        "BBFA-91-Bojax-Silver Blast-Founding Hero",
+        "BBFA-92-Bojax-Silver Blast-Founding Hero",
+        "BBFA-93-Bojax-Silver Blast-Founding Hero"
       ]
     },
     "Boltage": {
@@ -1992,9 +1869,9 @@
         "BL-SK5-Bombeezy-Orange Blast-Emillio Estevez Debut",
         "BL-SK6-Bombeezy-Silver Blast-Emillio Estevez Debut",
         "SK-1-Bombeezy-Grandma's Linoleum Battlefoil-Emilio Estevez Debut",
-        "SK-10-Bombeezy-80's Rad Battlefoil-Emilio Estevez Debut",
-        "SK-11-Bombeezy-Mixtape Battlefoil-Emilio Estevez Debut",
-        "SK-12-Bombeezy-Mixtape Battlefoil-Emilio Estevez Debut"
+        "SK-2-Bombeezy-Grandma's Linoleum Battlefoil-Emilio Estevez Debut",
+        "SK-3-Bombeezy-Grandma's Linoleum Battlefoil-Emilio Estevez Debut",
+        "SK-4-Bombeezy-Grandma's Linoleum Battlefoil-Emilio Estevez Debut"
       ]
     },
     "Bomber": {
@@ -2084,7 +1961,7 @@
         "BBF-51-Boston Stongboy-Blue Battlefoil-Jim Rice Debut",
         "BLBF-182-Boston Stongboy-Blizzard Battlefoil-Jim Rice Debut",
         "BLBF-313-Boston Stongboy-Blizzard Battlefoil-Jim Rice Debut",
-        "BLBF-444-Boston Stongboy-Blizzard Battlefoil-Jim Rice Debut"
+        "BLBF-51-Boston Stongboy-Blizzard Battlefoil-Jim Rice Debut"
       ]
     },
     "Botto": {
@@ -2243,7 +2120,7 @@
         "ABF-530-Burner-Alpha Battlefoil-Jalen Brunson Unmasked",
         "ABF-6-Burner-Alpha Battlefoil-Jalen Brunson Unmasked",
         "ABF-661-Burner-Alpha Battlefoil-Jalen Brunson Unmasked",
-        "BBF-44-Burner-Blue Battlefoil-First Edition"
+        "BBF-6-Burner-Blue Battlefoil-Jalen Brunson Unmasked"
       ]
     },
     "Burrocious": {
@@ -2297,7 +2174,7 @@
         "BBF-67-Butterfly Sting-Blue Battlefoil-First Edition",
         "BGBF-1-Butterfly Sting-Bubble Gum Battlefoil-First Edition",
         "BLBF-198-Butterfly Sting-Blizzard Battlefoil-First Edition",
-        "BLBF-329-Butterfly Sting-Blizzard Battlefoil-First Edition"
+        "BLBF-67-Butterfly Sting-Blizzard Battlefoil-First Edition"
       ]
     },
     "C.C.": {
@@ -2326,14 +2203,14 @@
       "bobaIds": [
         "CJ-1-CJ Maddux-Battlefoil-First Edition",
         "CJ-10-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
-        "CJ-11-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
-        "CJ-12-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
-        "CJ-13-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo",
-        "CJ-14-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo",
-        "CJ-15-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo",
-        "CJ-16-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo",
-        "CJ-17-CJ Maddux-80's Rad Battlefoil-2025 CJ Maddux Promo",
-        "CJ-18-CJ Maddux-Mixtape Battlefoil-2025 CJ Maddux Promo"
+        "CJ-2-CJ Maddux-Battlefoil-First Edition",
+        "CJ-3-CJ Maddux-Battlefoil-First Edition",
+        "CJ-4-CJ Maddux-Battlefoil-First Edition",
+        "CJ-5-CJ Maddux-Battlefoil-First Edition",
+        "CJ-6-CJ Maddux-Battlefoil-First Edition",
+        "CJ-7-CJ Maddux-Battlefoil-First Edition",
+        "CJ-8-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo",
+        "CJ-9-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo"
       ]
     },
     "Caliber": {
@@ -2351,7 +2228,7 @@
         "87-Caliber-Base Set-2026 Edition",
         "ABF-229-Caliber-Alpha Battlefoil-2026 Edition",
         "ABF-360-Caliber-Alpha Battlefoil-2026 Edition",
-        "ABF-491-Caliber-Alpha Battlefoil-2026 Edition"
+        "ABF-98-Caliber-Alpha Battlefoil-2026 Edition"
       ]
     },
     "Cameleon": {
@@ -2552,6 +2429,20 @@
         "BGBF-32-ChetMate-Bubble Gum Battlefoil-First Edition"
       ]
     },
+    "Chetmate": {
+      "count": 6,
+      "athletes": [
+        "Chet Holmgren"
+      ],
+      "bobaIds": [
+        "OKC-12-Chetmate-Battlefoil-World Champion Debut",
+        "OKC-17-Chetmate-Battlefoil-World Champion Debut",
+        "OKC-2-Chetmate-Battlefoil-World Champion Debut",
+        "OKC-22-Chetmate-Battlefoil-World Champion Debut",
+        "OKC-27-Chetmate-Battlefoil-World Champion Debut",
+        "OKC-7-Chetmate-Battlefoil-World Champion Debut"
+      ]
+    },
     "Chicken Man": {
       "count": 39,
       "athletes": [
@@ -2730,7 +2621,7 @@
         "BBF-9-Cousin-Blue Battlefoil-Randy Quaid Debut",
         "BLBF-140-Cousin-Blizzard Battlefoil-Randy Quaid Debut",
         "BLBF-271-Cousin-Blizzard Battlefoil-Randy Quaid Debut",
-        "BLBF-402-Cousin-Blizzard Battlefoil-Randy Quaid Debut"
+        "BLBF-9-Cousin-Blizzard Battlefoil-Randy Quaid Debut"
       ]
     },
     "Cowboy": {
@@ -2820,7 +2711,7 @@
         "BBF-5-Cruze Control-Blue Battlefoil-Elly De La Cruz Unmasked",
         "BLBF-136-Cruze Control-Blizzard Battlefoil-Elly De La Cruz Unmasked",
         "BLBF-267-Cruze Control-Blizzard Battlefoil-Elly De La Cruz Unmasked",
-        "BLBF-398-Cruze Control-Blizzard Battlefoil-Elly De La Cruz Unmasked"
+        "BLBF-5-Cruze Control-Blizzard Battlefoil-Elly De La Cruz Unmasked"
       ]
     },
     "Cruze-Control": {
@@ -2856,25 +2747,25 @@
         "73-Cupid-Base Set-2026 Edition",
         "ABF-215-Cupid-Alpha Battlefoil-2026 Edition",
         "ABF-346-Cupid-Alpha Battlefoil-2026 Edition",
-        "ABF-477-Cupid-Alpha Battlefoil-2026 Edition"
+        "ABF-84-Cupid-Alpha Battlefoil-2026 Edition"
       ]
     },
-    "Curaçao Kid": {
+    "Cura\u00e7ao Kid": {
       "count": 39,
       "athletes": [
         "Anduw Jones"
       ],
       "bobaIds": [
-        "BBF-24-Curaçao Kid-Blue Battlefoil-Anduw Jones Debut",
-        "BBFA-117-Curaçao Kid-Silver Blast-Anduw Jones Debut",
-        "BBFA-156-Curaçao Kid-Silver Blast-Anduw Jones Debut",
-        "BBFA-195-Curaçao Kid-Silver Blast-Anduw Jones Debut",
-        "BFA-100-Curaçao Kid-Inspired Ink Battlefoil-Anduw Jones Debut",
-        "BFA-138-Curaçao Kid-Inspired Ink Battlefoil-Anduw Jones Debut",
-        "BFA-176-Curaçao Kid-Inspired Ink Battlefoil-Anduw Jones Debut",
-        "BFA-24-Curaçao Kid-Inspired Ink Battlefoil-Anduw Jones Debut",
-        "BFA-62-Curaçao Kid-Inspired Ink Battlefoil-Anduw Jones Debut",
-        "BGA-24-Curaçao Kid-Inspired Ink Bubble Gum Battlefoil-Anduw Jones Debut"
+        "BBF-24-Cura\u00e7ao Kid-Blue Battlefoil-Anduw Jones Debut",
+        "BBFA-117-Cura\u00e7ao Kid-Silver Blast-Anduw Jones Debut",
+        "BBFA-156-Cura\u00e7ao Kid-Silver Blast-Anduw Jones Debut",
+        "BBFA-195-Cura\u00e7ao Kid-Silver Blast-Anduw Jones Debut",
+        "BFA-100-Cura\u00e7ao Kid-Inspired Ink Battlefoil-Anduw Jones Debut",
+        "BFA-138-Cura\u00e7ao Kid-Inspired Ink Battlefoil-Anduw Jones Debut",
+        "BFA-176-Cura\u00e7ao Kid-Inspired Ink Battlefoil-Anduw Jones Debut",
+        "BFA-24-Cura\u00e7ao Kid-Inspired Ink Battlefoil-Anduw Jones Debut",
+        "BFA-62-Cura\u00e7ao Kid-Inspired Ink Battlefoil-Anduw Jones Debut",
+        "BGA-24-Cura\u00e7ao Kid-Inspired Ink Bubble Gum Battlefoil-Anduw Jones Debut"
       ]
     },
     "D-Harp": {
@@ -3082,7 +2973,7 @@
         "86-Doublecheck-Base Set-2026 Edition",
         "ABF-228-Doublecheck-Alpha Battlefoil-2026 Edition",
         "ABF-359-Doublecheck-Alpha Battlefoil-2026 Edition",
-        "ABF-490-Doublecheck-Alpha Battlefoil-2026 Edition"
+        "ABF-97-Doublecheck-Alpha Battlefoil-2026 Edition"
       ]
     },
     "Dr. J": {
@@ -3154,7 +3045,7 @@
         "BBF-64-Dunker-Blue Battlefoil-John Starks Debut",
         "BLBF-195-Dunker-Blizzard Battlefoil-John Starks Debut",
         "BLBF-326-Dunker-Blizzard Battlefoil-John Starks Debut",
-        "BLBF-457-Dunker-Blizzard Battlefoil-John Starks Debut"
+        "BLBF-64-Dunker-Blizzard Battlefoil-John Starks Debut"
       ]
     },
     "ECKS": {
@@ -3224,9 +3115,9 @@
         "ABF-572-Eraser-Alpha Battlefoil-Alysha Clark Debut",
         "ABF-703-Eraser-Alpha Battlefoil-Alysha Clark Debut",
         "ACA-1-Eraser-Inspired Ink Superfoil-Alysha Clark Debut",
-        "ACA-12-Eraser-Inspired Ink Battlefoil-Alysha Clark Debut",
         "ACA-2-Eraser-Inspired Ink Bubble Gum Battlefoil-Alysha Clark Debut",
-        "ACA-3-Eraser-Inspired Ink Battlefoil-Alysha Clark Debut"
+        "ACA-3-Eraser-Inspired Ink Battlefoil-Alysha Clark Debut",
+        "ACA-4-Eraser-Inspired Ink Battlefoil-Alysha Clark Debut"
       ]
     },
     "Escape Artist": {
@@ -3292,13 +3183,13 @@
         "ALT-2-Flav-Billy Cameo Alt Arts-Flavor Flav (Co-Starring Billy)",
         "CYB-28-Flav-Cyber-2025 Cyber Promo",
         "SK-1-Flav-Grandma's Linoleum Battlefoil-Flavor Flav Debut",
-        "SK-10-Flav-80's Rad Battlefoil-Flavor Flav Debut",
-        "SK-11-Flav-Mixtape Battlefoil-Flavor Flav Debut",
-        "SK-12-Flav-Mixtape Battlefoil-Flavor Flav Debut",
-        "SK-13-Flav-Mixtape Battlefoil-Flavor Flav Debut",
-        "SK-14-Flav-Mixtape Battlefoil-Flavor Flav Debut",
-        "SK-15-Flav-Mixtape Battlefoil-Flavor Flav Debut",
-        "SK-2-Flav-Grandma's Linoleum Battlefoil-Flavor Flav Debut"
+        "SK-2-Flav-Grandma's Linoleum Battlefoil-Flavor Flav Debut",
+        "SK-3-Flav-Grandma's Linoleum Battlefoil-Flavor Flav Debut",
+        "SK-4-Flav-Grandma's Linoleum Battlefoil-Flavor Flav Debut",
+        "SK-5-Flav-Grandma's Linoleum Battlefoil-Flavor Flav Debut",
+        "SK-6-Flav-80's Rad Battlefoil-Flavor Flav Debut",
+        "SK-7-Flav-80's Rad Battlefoil-Flavor Flav Debut",
+        "SK-8-Flav-80's Rad Battlefoil-Flavor Flav Debut"
       ]
     },
     "Flavor Flav": {
@@ -3406,7 +3297,7 @@
         "BGA-21-Frostbite-Inspired Ink Battlefoil-Trae Young Debut",
         "CYB-25-Frostbite-Cyber-2025 Cyber Promo",
         "GBF-20-Frostbite-Green Battlefoil-Trae Young Debut",
-        "GLBF-100-Frostbite-Grandma's Linoleum Battlefoil-Trae Young Debut"
+        "GLBF-96-Frostbite-Grandma's Linoleum Battlefoil-Trae Young Debut"
       ]
     },
     "Frostebite": {
@@ -3441,7 +3332,7 @@
         "99-Fungi-Base Set-First Edition",
         "ABF-222-Fungi-Alpha Battlefoil-2026 Edition",
         "ABF-353-Fungi-Alpha Battlefoil-2026 Edition",
-        "ABF-484-Fungi-Alpha Battlefoil-2026 Edition"
+        "ABF-91-Fungi-Alpha Battlefoil-2026 Edition"
       ]
     },
     "Gambler": {
@@ -3465,19 +3356,19 @@
     "Game Over": {
       "count": 70,
       "athletes": [
-        "Éric Gagné"
+        "\u00c9ric Gagn\u00e9"
       ],
       "bobaIds": [
-        "ABF-193-Game Over-Alpha Battlefoil-Éric Gagné Debut",
-        "ABF-324-Game Over-Alpha Battlefoil-Éric Gagné Debut",
-        "ABF-455-Game Over-Alpha Battlefoil-Éric Gagné Debut",
-        "ABF-586-Game Over-Alpha Battlefoil-Éric Gagné Debut",
-        "ABF-62-Game Over-Alpha Battlefoil-Éric Gagné Debut",
-        "ABF-717-Game Over-Alpha Battlefoil-Éric Gagné Debut",
-        "BBF-62-Game Over-Blue Battlefoil-Éric Gagné Debut",
-        "BLBF-193-Game Over-Blizzard Battlefoil-Éric Gagné Debut",
-        "BLBF-324-Game Over-Blizzard Battlefoil-Éric Gagné Debut",
-        "BLBF-455-Game Over-Blizzard Battlefoil-Éric Gagné Debut"
+        "ABF-193-Game Over-Alpha Battlefoil-\u00c9ric Gagn\u00e9 Debut",
+        "ABF-324-Game Over-Alpha Battlefoil-\u00c9ric Gagn\u00e9 Debut",
+        "ABF-455-Game Over-Alpha Battlefoil-\u00c9ric Gagn\u00e9 Debut",
+        "ABF-586-Game Over-Alpha Battlefoil-\u00c9ric Gagn\u00e9 Debut",
+        "ABF-62-Game Over-Alpha Battlefoil-\u00c9ric Gagn\u00e9 Debut",
+        "ABF-717-Game Over-Alpha Battlefoil-\u00c9ric Gagn\u00e9 Debut",
+        "BBF-62-Game Over-Blue Battlefoil-\u00c9ric Gagn\u00e9 Debut",
+        "BLBF-193-Game Over-Blizzard Battlefoil-\u00c9ric Gagn\u00e9 Debut",
+        "BLBF-324-Game Over-Blizzard Battlefoil-\u00c9ric Gagn\u00e9 Debut",
+        "BLBF-62-Game Over-Blizzard Battlefoil-\u00c9ric Gagn\u00e9 Debut"
       ]
     },
     "Game Time": {
@@ -3495,7 +3386,7 @@
         "BBF-66-Game Time-Blue Battlefoil-Jim Boeheim Debut",
         "BLBF-197-Game Time-Blizzard Battlefoil-Jim Boeheim Debut",
         "BLBF-328-Game Time-Blizzard Battlefoil-Jim Boeheim Debut",
-        "BLBF-459-Game Time-Blizzard Battlefoil-Jim Boeheim Debut"
+        "BLBF-66-Game Time-Blizzard Battlefoil-Jim Boeheim Debut"
       ]
     },
     "Gar": {
@@ -3549,7 +3440,7 @@
         "9-Gaveler-Base Set-First Edition",
         "ABF-204-Gaveler-Alpha Battlefoil-2026 Edition",
         "ABF-335-Gaveler-Alpha Battlefoil-2026 Edition",
-        "ABF-466-Gaveler-Alpha Battlefoil-2026 Edition"
+        "ABF-73-Gaveler-Alpha Battlefoil-2026 Edition"
       ]
     },
     "Generator": {
@@ -3573,19 +3464,19 @@
     "Gigante": {
       "count": 70,
       "athletes": [
-        "Pedro Martínez"
+        "Pedro Mart\u00ednez"
       ],
       "bobaIds": [
-        "ABF-139-Gigante-Alpha Battlefoil-Pedro Martínez Debut",
-        "ABF-270-Gigante-Alpha Battlefoil-Pedro Martínez Debut",
-        "ABF-401-Gigante-Alpha Battlefoil-Pedro Martínez Debut",
-        "ABF-532-Gigante-Alpha Battlefoil-Pedro Martínez Debut",
-        "ABF-663-Gigante-Alpha Battlefoil-Pedro Martínez Debut",
-        "ABF-8-Gigante-Alpha Battlefoil-Pedro Martínez Debut",
-        "BBF-8-Gigante-Blue Battlefoil-Pedro Martínez Debut",
-        "BLBF-139-Gigante-Blizzard Battlefoil-Pedro Martínez Debut",
-        "BLBF-270-Gigante-Blizzard Battlefoil-Pedro Martínez Debut",
-        "BLBF-401-Gigante-Blizzard Battlefoil-Pedro Martínez Debut"
+        "ABF-139-Gigante-Alpha Battlefoil-Pedro Mart\u00ednez Debut",
+        "ABF-270-Gigante-Alpha Battlefoil-Pedro Mart\u00ednez Debut",
+        "ABF-401-Gigante-Alpha Battlefoil-Pedro Mart\u00ednez Debut",
+        "ABF-532-Gigante-Alpha Battlefoil-Pedro Mart\u00ednez Debut",
+        "ABF-663-Gigante-Alpha Battlefoil-Pedro Mart\u00ednez Debut",
+        "ABF-8-Gigante-Alpha Battlefoil-Pedro Mart\u00ednez Debut",
+        "BBF-8-Gigante-Blue Battlefoil-Pedro Mart\u00ednez Debut",
+        "BLBF-139-Gigante-Blizzard Battlefoil-Pedro Mart\u00ednez Debut",
+        "BLBF-270-Gigante-Blizzard Battlefoil-Pedro Mart\u00ednez Debut",
+        "BLBF-8-Gigante-Blizzard Battlefoil-Pedro Mart\u00ednez Debut"
       ]
     },
     "Gigawitt": {
@@ -3676,19 +3567,19 @@
     "Goofin' Off": {
       "count": 70,
       "athletes": [
-        "Adrián Beltré"
+        "Adri\u00e1n Beltr\u00e9"
       ],
       "bobaIds": [
-        "ABA-1-Goofin' Off-Inspired Ink Superfoil-Adrián Beltré Debut",
-        "ABA-12-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut",
-        "ABA-2-Goofin' Off-Inspired Ink Bubble Gum Battlefoil-Adrián Beltré Debut",
-        "ABA-3-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut",
-        "ABA-4-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut",
-        "ABA-5-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut",
-        "ABA-6-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut",
-        "ABA-7-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut",
-        "ABA-8-Goofin' Off-Inspired Ink Metallic Battlefoil-Adrián Beltré Debut",
-        "ABF-152-Goofin' Off-Alpha Battlefoil-Adrián Beltré Debut"
+        "ABA-1-Goofin' Off-Inspired Ink Superfoil-Adri\u00e1n Beltr\u00e9 Debut",
+        "ABA-12-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut",
+        "ABA-2-Goofin' Off-Inspired Ink Bubble Gum Battlefoil-Adri\u00e1n Beltr\u00e9 Debut",
+        "ABA-3-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut",
+        "ABA-4-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut",
+        "ABA-5-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut",
+        "ABA-6-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut",
+        "ABA-7-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut",
+        "ABA-8-Goofin' Off-Inspired Ink Metallic Battlefoil-Adri\u00e1n Beltr\u00e9 Debut",
+        "ABF-21-Goofin' Off-Alpha Battlefoil-Adri\u00e1n Beltr\u00e9 Debut"
       ]
     },
     "Grand-Ma-Ma": {
@@ -3871,6 +3762,20 @@
         "BGBF-12-Harpoon-Bubble Gum Battlefoil-First Edition"
       ]
     },
+    "Hartbreaker": {
+      "count": 6,
+      "athletes": [
+        "Isaiah Hartenstein"
+      ],
+      "bobaIds": [
+        "OKC-13-Hartbreaker-Battlefoil-World Champion Debut",
+        "OKC-18-Hartbreaker-Battlefoil-World Champion Debut",
+        "OKC-23-Hartbreaker-Battlefoil-World Champion Debut",
+        "OKC-28-Hartbreaker-Battlefoil-World Champion Debut",
+        "OKC-3-Hartbreaker-Battlefoil-World Champion Debut",
+        "OKC-8-Hartbreaker-Battlefoil-World Champion Debut"
+      ]
+    },
     "Haymaker": {
       "count": 39,
       "athletes": [
@@ -3913,7 +3818,7 @@
         "BBF-45-Herro-Blue Battlefoil-Tyler Herro Debut",
         "BLBF-176-Herro-Blizzard Battlefoil-Tyler Herro Debut",
         "BLBF-307-Herro-Blizzard Battlefoil-Tyler Herro Debut",
-        "BLBF-438-Herro-Blizzard Battlefoil-Tyler Herro Debut"
+        "BLBF-45-Herro-Blizzard Battlefoil-Tyler Herro Debut"
       ]
     },
     "Highway to Helton": {
@@ -4054,6 +3959,20 @@
         "ABF-493-J-Cam-Alpha Battlefoil-First Edition",
         "ABF-624-J-Cam-Alpha Battlefoil-First Edition",
         "ABF-755-J-Cam-Alpha Battlefoil-First Edition"
+      ]
+    },
+    "J-Dub^2": {
+      "count": 6,
+      "athletes": [
+        "Jalen Williams"
+      ],
+      "bobaIds": [
+        "OKC-14-J-Dub^2-Battlefoil-World Champion Debut",
+        "OKC-19-J-Dub^2-Battlefoil-World Champion Debut",
+        "OKC-24-J-Dub^2-Battlefoil-World Champion Debut",
+        "OKC-29-J-Dub^2-Battlefoil-World Champion Debut",
+        "OKC-4-J-Dub^2-Battlefoil-World Champion Debut",
+        "OKC-9-J-Dub^2-Battlefoil-World Champion Debut"
       ]
     },
     "J-Jetts": {
@@ -4278,7 +4197,7 @@
         "BBF-55-Joystick-Blue Battlefoil-Dante Hall Debut",
         "BLBF-186-Joystick-Blizzard Battlefoil-Dante Hall Debut",
         "BLBF-317-Joystick-Blizzard Battlefoil-Dante Hall Debut",
-        "BLBF-448-Joystick-Blizzard Battlefoil-Dante Hall Debut"
+        "BLBF-55-Joystick-Blizzard Battlefoil-Dante Hall Debut"
       ]
     },
     "Juice": {
@@ -4338,19 +4257,19 @@
     "King Felix": {
       "count": 70,
       "athletes": [
-        "Félix Hernández"
+        "F\u00e9lix Hern\u00e1ndez"
       ],
       "bobaIds": [
-        "ABF-146-King Felix-Alpha Battlefoil-Félix Hernández Debut",
-        "ABF-15-King Felix-Alpha Battlefoil-Félix Hernández Debut",
-        "ABF-277-King Felix-Alpha Battlefoil-Félix Hernández Debut",
-        "ABF-408-King Felix-Alpha Battlefoil-Félix Hernández Debut",
-        "ABF-539-King Felix-Alpha Battlefoil-Félix Hernández Debut",
-        "ABF-670-King Felix-Alpha Battlefoil-Félix Hernández Debut",
-        "BBF-15-King Felix-Blue Battlefoil-Félix Hernández Debut",
-        "BLBF-146-King Felix-Blizzard Battlefoil-Félix Hernández Debut",
-        "BLBF-15-King Felix-Blizzard Battlefoil-Félix Hernández Debut",
-        "BLBF-277-King Felix-Blizzard Battlefoil-Félix Hernández Debut"
+        "ABF-146-King Felix-Alpha Battlefoil-F\u00e9lix Hern\u00e1ndez Debut",
+        "ABF-15-King Felix-Alpha Battlefoil-F\u00e9lix Hern\u00e1ndez Debut",
+        "ABF-277-King Felix-Alpha Battlefoil-F\u00e9lix Hern\u00e1ndez Debut",
+        "ABF-408-King Felix-Alpha Battlefoil-F\u00e9lix Hern\u00e1ndez Debut",
+        "ABF-539-King Felix-Alpha Battlefoil-F\u00e9lix Hern\u00e1ndez Debut",
+        "ABF-670-King Felix-Alpha Battlefoil-F\u00e9lix Hern\u00e1ndez Debut",
+        "BBF-15-King Felix-Blue Battlefoil-F\u00e9lix Hern\u00e1ndez Debut",
+        "BLBF-146-King Felix-Blizzard Battlefoil-F\u00e9lix Hern\u00e1ndez Debut",
+        "BLBF-15-King Felix-Blizzard Battlefoil-F\u00e9lix Hern\u00e1ndez Debut",
+        "BLBF-277-King Felix-Blizzard Battlefoil-F\u00e9lix Hern\u00e1ndez Debut"
       ]
     },
     "King Henrik": {
@@ -4636,7 +4555,7 @@
         "BBF-69-Mad Scientist-Blue Battlefoil-First Edition",
         "BGBF-3-Mad Scientist-Bubble Gum Battlefoil-First Edition",
         "BLBF-200-Mad Scientist-Blizzard Battlefoil-First Edition",
-        "BLBF-331-Mad Scientist-Blizzard Battlefoil-First Edition"
+        "BLBF-69-Mad Scientist-Blizzard Battlefoil-First Edition"
       ]
     },
     "Magic": {
@@ -4761,8 +4680,8 @@
         "ABF-203-Maverick-Alpha Battlefoil-First Edition",
         "ABF-330-Maverick-Alpha Battlefoil-First Edition",
         "ABF-334-Maverick-Alpha Battlefoil-First Edition",
-        "ABF-461-Maverick-Alpha Battlefoil-First Edition",
-        "ABF-465-Maverick-Alpha Battlefoil-First Edition"
+        "ABF-68-Maverick-Alpha Battlefoil-First Edition",
+        "ABF-72-Maverick-Alpha Battlefoil-First Edition"
       ]
     },
     "Maxed Out": {
@@ -4907,7 +4826,7 @@
         "BBF-60-Mr. Clean-Blue Battlefoil-Steve Garvey Debut",
         "BLBF-191-Mr. Clean-Blizzard Battlefoil-Steve Garvey Debut",
         "BLBF-322-Mr. Clean-Blizzard Battlefoil-Steve Garvey Debut",
-        "BLBF-453-Mr. Clean-Blizzard Battlefoil-Steve Garvey Debut"
+        "BLBF-60-Mr. Clean-Blizzard Battlefoil-Steve Garvey Debut"
       ]
     },
     "Mr. Irrelevant": {
@@ -5003,19 +4922,19 @@
     "Nice Game Pretty Boy": {
       "count": 70,
       "athletes": [
-        "Keith Hernández"
+        "Keith Hern\u00e1ndez"
       ],
       "bobaIds": [
-        "ABF-13-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hernández Debut",
-        "ABF-144-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hernández Debut",
-        "ABF-275-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hernández Debut",
-        "ABF-406-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hernández Debut",
-        "ABF-537-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hernández Debut",
-        "ABF-668-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hernández Debut",
-        "BBF-13-Nice Game Pretty Boy-Blue Battlefoil-Keith Hernández Debut",
-        "BLBF-13-Nice Game Pretty Boy-Blizzard Battlefoil-Keith Hernández Debut",
-        "BLBF-144-Nice Game Pretty Boy-Blizzard Battlefoil-Keith Hernández Debut",
-        "BLBF-275-Nice Game Pretty Boy-Blizzard Battlefoil-Keith Hernández Debut"
+        "ABF-13-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hern\u00e1ndez Debut",
+        "ABF-144-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hern\u00e1ndez Debut",
+        "ABF-275-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hern\u00e1ndez Debut",
+        "ABF-406-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hern\u00e1ndez Debut",
+        "ABF-537-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hern\u00e1ndez Debut",
+        "ABF-668-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hern\u00e1ndez Debut",
+        "BBF-13-Nice Game Pretty Boy-Blue Battlefoil-Keith Hern\u00e1ndez Debut",
+        "BLBF-13-Nice Game Pretty Boy-Blizzard Battlefoil-Keith Hern\u00e1ndez Debut",
+        "BLBF-144-Nice Game Pretty Boy-Blizzard Battlefoil-Keith Hern\u00e1ndez Debut",
+        "BLBF-275-Nice Game Pretty Boy-Blizzard Battlefoil-Keith Hern\u00e1ndez Debut"
       ]
     },
     "Ollie": {
@@ -5068,26 +4987,26 @@
         "ABF-209-PB Buckets-Alpha Battlefoil-First Edition",
         "ABF-333-PB Buckets-Alpha Battlefoil-First Edition",
         "ABF-340-PB Buckets-Alpha Battlefoil-First Edition",
-        "ABF-464-PB Buckets-Alpha Battlefoil-First Edition",
-        "ABF-471-PB Buckets-Alpha Battlefoil-First Edition"
+        "ABF-71-PB Buckets-Alpha Battlefoil-First Edition",
+        "ABF-78-PB Buckets-Alpha Battlefoil-First Edition"
       ]
     },
     "PG-D3": {
       "count": 70,
       "athletes": [
-        "Pierre Garçon"
+        "Pierre Gar\u00e7on"
       ],
       "bobaIds": [
-        "ABF-194-PG-D3-Alpha Battlefoil-Pierre Garçon Debut",
-        "ABF-325-PG-D3-Alpha Battlefoil-Pierre Garçon Debut",
-        "ABF-456-PG-D3-Alpha Battlefoil-Pierre Garçon Debut",
-        "ABF-587-PG-D3-Alpha Battlefoil-Pierre Garçon Debut",
-        "ABF-63-PG-D3-Alpha Battlefoil-Pierre Garçon Debut",
-        "ABF-718-PG-D3-Alpha Battlefoil-Pierre Garçon Debut",
-        "BBF-63-PG-D3-Blue Battlefoil-Pierre Garçon Debut",
-        "BLBF-194-PG-D3-Blizzard Battlefoil-Pierre Garçon Debut",
-        "BLBF-325-PG-D3-Blizzard Battlefoil-Pierre Garçon Debut",
-        "BLBF-456-PG-D3-Blizzard Battlefoil-Pierre Garçon Debut"
+        "ABF-194-PG-D3-Alpha Battlefoil-Pierre Gar\u00e7on Debut",
+        "ABF-325-PG-D3-Alpha Battlefoil-Pierre Gar\u00e7on Debut",
+        "ABF-456-PG-D3-Alpha Battlefoil-Pierre Gar\u00e7on Debut",
+        "ABF-587-PG-D3-Alpha Battlefoil-Pierre Gar\u00e7on Debut",
+        "ABF-63-PG-D3-Alpha Battlefoil-Pierre Gar\u00e7on Debut",
+        "ABF-718-PG-D3-Alpha Battlefoil-Pierre Gar\u00e7on Debut",
+        "BBF-63-PG-D3-Blue Battlefoil-Pierre Gar\u00e7on Debut",
+        "BLBF-194-PG-D3-Blizzard Battlefoil-Pierre Gar\u00e7on Debut",
+        "BLBF-325-PG-D3-Blizzard Battlefoil-Pierre Gar\u00e7on Debut",
+        "BLBF-63-PG-D3-Blizzard Battlefoil-Pierre Gar\u00e7on Debut"
       ]
     },
     "Palmer": {
@@ -5141,7 +5060,7 @@
         "BBF-65-Pauldron-Blue Battlefoil-Paula Badosa Debut",
         "BLBF-196-Pauldron-Blizzard Battlefoil-Paula Badosa Debut",
         "BLBF-327-Pauldron-Blizzard Battlefoil-Paula Badosa Debut",
-        "BLBF-458-Pauldron-Blizzard Battlefoil-Paula Badosa Debut"
+        "BLBF-65-Pauldron-Blizzard Battlefoil-Paula Badosa Debut"
       ]
     },
     "Peek-A-Boo": {
@@ -5195,7 +5114,7 @@
         "BBF-56-Perkolator-Blue Battlefoil-Sam Perkins Debut",
         "BLBF-187-Perkolator-Blizzard Battlefoil-Sam Perkins Debut",
         "BLBF-318-Perkolator-Blizzard Battlefoil-Sam Perkins Debut",
-        "BLBF-449-Perkolator-Blizzard Battlefoil-Sam Perkins Debut"
+        "BLBF-56-Perkolator-Blizzard Battlefoil-Sam Perkins Debut"
       ]
     },
     "Pet Dog": {
@@ -5416,7 +5335,7 @@
         "BBF-53-Robin Hood-Blue Battlefoil-Robin Yount Debut",
         "BLBF-184-Robin Hood-Blizzard Battlefoil-Robin Yount Debut",
         "BLBF-315-Robin Hood-Blizzard Battlefoil-Robin Yount Debut",
-        "BLBF-446-Robin Hood-Blizzard Battlefoil-Robin Yount Debut"
+        "BLBF-53-Robin Hood-Blizzard Battlefoil-Robin Yount Debut"
       ]
     },
     "Rocket": {
@@ -5488,7 +5407,7 @@
         "BBF-61-Rollin'-Blue Battlefoil-Scott Rolen Debut",
         "BLBF-192-Rollin'-Blizzard Battlefoil-Scott Rolen Debut",
         "BLBF-323-Rollin'-Blizzard Battlefoil-Scott Rolen Debut",
-        "BLBF-454-Rollin'-Blizzard Battlefoil-Scott Rolen Debut"
+        "BLBF-61-Rollin'-Blizzard Battlefoil-Scott Rolen Debut"
       ]
     },
     "Rook": {
@@ -5556,7 +5475,7 @@
         "BBF-54-Santa-Moss-Blue Battlefoil-Santana Moss Debut",
         "BLBF-185-Santa-Moss-Blizzard Battlefoil-Santana Moss Debut",
         "BLBF-316-Santa-Moss-Blizzard Battlefoil-Santana Moss Debut",
-        "BLBF-447-Santa-Moss-Blizzard Battlefoil-Santana Moss Debut"
+        "BLBF-54-Santa-Moss-Blizzard Battlefoil-Santana Moss Debut"
       ]
     },
     "Sarrtillery": {
@@ -5655,7 +5574,7 @@
         "BBF-50-Shells-Blue Battlefoil-Donnie Shell Debut",
         "BLBF-181-Shells-Blizzard Battlefoil-Donnie Shell Debut",
         "BLBF-312-Shells-Blizzard Battlefoil-Donnie Shell Debut",
-        "BLBF-443-Shells-Blizzard Battlefoil-Donnie Shell Debut"
+        "BLBF-50-Shells-Blizzard Battlefoil-Donnie Shell Debut"
       ]
     },
     "Shepherd": {
@@ -5713,7 +5632,7 @@
       ]
     },
     "Shystep": {
-      "count": 50,
+      "count": 62,
       "athletes": [
         "Shai Gilgeous-Alexander"
       ],
@@ -6058,7 +5977,7 @@
       "count": 119,
       "athletes": [
         "Fernando Tatis Jr.",
-        "Fernando Tatís Jr."
+        "Fernando Tat\u00eds Jr."
       ],
       "bobaIds": [
         "151-Tattoo-Base Set-2026 Edition",
@@ -6323,7 +6242,7 @@
         "BBF-44-Tommy G-Blue Battlefoil-Tom Glavine Debut",
         "BLBF-175-Tommy G-Blizzard Battlefoil-Tom Glavine Debut",
         "BLBF-306-Tommy G-Blizzard Battlefoil-Tom Glavine Debut",
-        "BLBF-437-Tommy G-Blizzard Battlefoil-Tom Glavine Debut"
+        "BLBF-44-Tommy G-Blizzard Battlefoil-Tom Glavine Debut"
       ]
     },
     "Tongue-Twister": {
@@ -6431,7 +6350,7 @@
         "BBF-7-Unanimous Sandman-Blue Battlefoil-Mariano Rivera Debut",
         "BLBF-138-Unanimous Sandman-Blizzard Battlefoil-Mariano Rivera Debut",
         "BLBF-269-Unanimous Sandman-Blizzard Battlefoil-Mariano Rivera Debut",
-        "BLBF-400-Unanimous Sandman-Blizzard Battlefoil-Mariano Rivera Debut"
+        "BLBF-7-Unanimous Sandman-Blizzard Battlefoil-Mariano Rivera Debut"
       ]
     },
     "Unibrow": {
@@ -6486,7 +6405,7 @@
         "63-Victory-Base Set-2026 Edition",
         "ABF-205-Victory-Alpha Battlefoil-2026 Edition",
         "ABF-336-Victory-Alpha Battlefoil-2026 Edition",
-        "ABF-467-Victory-Alpha Battlefoil-2026 Edition"
+        "ABF-74-Victory-Alpha Battlefoil-2026 Edition"
       ]
     },
     "Vlad the Impaler": {
@@ -6540,7 +6459,7 @@
         "BBF-52-Walk The Plank-Blue Battlefoil-Doug Plank Debut",
         "BLBF-183-Walk The Plank-Blizzard Battlefoil-Doug Plank Debut",
         "BLBF-314-Walk The Plank-Blizzard Battlefoil-Doug Plank Debut",
-        "BLBF-445-Walk The Plank-Blizzard Battlefoil-Doug Plank Debut"
+        "BLBF-52-Walk The Plank-Blizzard Battlefoil-Doug Plank Debut"
       ]
     },
     "Warden": {
@@ -6755,8 +6674,8 @@
         "SSA-6-XL-Inspired Ink Battlefoil-Xavier Leggette Debut",
         "SSE-1-XL-Battlefoil-Sandstorm Edition",
         "SSE-10-XL-Paper & Battlefoil-Sandstorm Edition",
-        "SSE-13-XL-Paper & Battlefoil-Sandstorm Edition",
-        "SSE-16-XL-Paper & Battlefoil-Sandstorm Edition"
+        "SSE-4-XL-Paper & Battlefoil-Sandstorm Edition",
+        "SSE-7-XL-Paper & Battlefoil-Sandstorm Edition"
       ]
     },
     "Yeti": {
@@ -6813,79 +6732,79 @@
         "ABF-775-Zephyr-Alpha Battlefoil-First Edition"
       ]
     },
-    "二百": {
+    "\u4e8c\u767e": {
       "count": 1,
       "athletes": [
         "Shohei Ohtani"
       ],
       "bobaIds": [
-        "LA-30-二百-Kanjifoil-Champions Kanji Variation"
+        "LA-30-\u4e8c\u767e-Kanjifoil-Champions Kanji Variation"
       ]
     },
-    "百三十": {
+    "\u767e\u4e09\u5341": {
       "count": 1,
       "athletes": [
         "Shohei Ohtani"
       ],
       "bobaIds": [
-        "LA-35-百三十-Kanjifoil-Champions Kanji Variation"
+        "LA-35-\u767e\u4e09\u5341-Kanjifoil-Champions Kanji Variation"
       ]
     },
-    "百三十五": {
+    "\u767e\u4e09\u5341\u4e94": {
       "count": 2,
       "athletes": [
         "Shohei Ohtani"
       ],
       "bobaIds": [
-        "LA-33-百三十五-Kanjifoil-Champions Kanji Variation",
-        "LA-34-百三十五-Kanjifoil-Champions Kanji Variation"
+        "LA-33-\u767e\u4e09\u5341\u4e94-Kanjifoil-Champions Kanji Variation",
+        "LA-34-\u767e\u4e09\u5341\u4e94-Kanjifoil-Champions Kanji Variation"
       ]
     },
-    "百八十五": {
+    "\u767e\u516b\u5341\u4e94": {
       "count": 1,
       "athletes": [
         "Shohei Ohtani"
       ],
       "bobaIds": [
-        "LA-31-百八十五-Kanjifoil-Champions Kanji Variation"
+        "LA-31-\u767e\u516b\u5341\u4e94-Kanjifoil-Champions Kanji Variation"
       ]
     },
-    "百四十": {
+    "\u767e\u56db\u5341": {
       "count": 1,
       "athletes": [
         "Shohei Ohtani"
       ],
       "bobaIds": [
-        "LA-32-百四十-Kanjifoil-Champions Kanji Variation"
+        "LA-32-\u767e\u56db\u5341-Kanjifoil-Champions Kanji Variation"
       ]
     }
   },
   "cardTypes": {
-    "Hero": 17235,
-    "Play": 505,
-    "HotDog": 129,
+    "Hero": 17271,
+    "Play": 515,
+    "HotDog": 137,
     "Sealed Product": 45
   },
   "dbsTiers": {
-    "Low": 364,
-    "Medium": 107,
-    "High": 21,
-    "Very High": 13
+    "Low": 319,
+    "Medium": 141,
+    "High": 40,
+    "Very High": 15
   },
   "hdCosts": {
-    "0": 131,
-    "1": 161,
-    "2": 135,
-    "3": 50,
+    "0": 134,
+    "1": 164,
+    "2": 137,
+    "3": 52,
     "4": 19,
     "5": 6,
     "6": 3
   },
   "playSubtypes": {
+    "Standard": 380,
     "BonusPlay": 75,
-    "HTD": 60,
-    "Standard": 370
+    "HTD": 60
   },
-  "totalCards": 17914,
+  "totalCards": 17968,
   "totalWithImages": 16159
 }

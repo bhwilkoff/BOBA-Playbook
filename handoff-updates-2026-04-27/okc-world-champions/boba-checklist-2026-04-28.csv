@@ -1,0 +1,55 @@
+Card #,Hero,Variation,Treatment,Weapon,Notation,Power,Athlete Inspiration,Play Cost,Play Ability
+OKC-1,Shystep,World Champion Debut,Battlefoil,Super,,200,Shai Gilgeous-Alexander,0,
+OKC-2,Chetmate,World Champion Debut,Battlefoil,Super,,200,Chet Holmgren,0,
+OKC-3,Hartbreaker,World Champion Debut,Battlefoil,Super,,200,Isaiah Hartenstein,0,
+OKC-4,J-Dub^2,World Champion Debut,Battlefoil,Super,,200,Jalen Williams,0,
+OKC-5,A.C.,World Champion Debut,Battlefoil,Super,,200,Alex Caruso,0,
+OKC-6,Shystep,World Champion Debut,Battlefoil,Hex,,185,Shai Gilgeous-Alexander,0,
+OKC-7,Chetmate,World Champion Debut,Battlefoil,Hex,,185,Chet Holmgren,0,
+OKC-8,Hartbreaker,World Champion Debut,Battlefoil,Hex,,185,Isaiah Hartenstein,0,
+OKC-9,J-Dub^2,World Champion Debut,Battlefoil,Hex,,185,Jalen Williams,0,
+OKC-10,A.C.,World Champion Debut,Battlefoil,Hex,,185,Alex Caruso,0,
+OKC-11,Shystep,World Champion Debut,Battlefoil,Glow,,140,Shai Gilgeous-Alexander,0,
+OKC-12,Chetmate,World Champion Debut,Battlefoil,Glow,,140,Chet Holmgren,0,
+OKC-13,Hartbreaker,World Champion Debut,Battlefoil,Glow,,140,Isaiah Hartenstein,0,
+OKC-14,J-Dub^2,World Champion Debut,Battlefoil,Glow,,140,Jalen Williams,0,
+OKC-15,A.C.,World Champion Debut,Battlefoil,Glow,,140,Alex Caruso,0,
+OKC-16,Shystep,World Champion Debut,Battlefoil,Fire,,135,Shai Gilgeous-Alexander,0,
+OKC-17,Chetmate,World Champion Debut,Battlefoil,Fire,,135,Chet Holmgren,0,
+OKC-18,Hartbreaker,World Champion Debut,Battlefoil,Fire,,135,Isaiah Hartenstein,0,
+OKC-19,J-Dub^2,World Champion Debut,Battlefoil,Fire,,135,Jalen Williams,0,
+OKC-20,A.C.,World Champion Debut,Battlefoil,Fire,,135,Alex Caruso,0,
+OKC-21,Shystep,World Champion Debut,Battlefoil,Ice,,135,Shai Gilgeous-Alexander,0,
+OKC-22,Chetmate,World Champion Debut,Battlefoil,Ice,,135,Chet Holmgren,0,
+OKC-23,Hartbreaker,World Champion Debut,Battlefoil,Ice,,135,Isaiah Hartenstein,0,
+OKC-24,J-Dub^2,World Champion Debut,Battlefoil,Ice,,135,Jalen Williams,0,
+OKC-25,A.C.,World Champion Debut,Battlefoil,Ice,,135,Alex Caruso,0,
+OKC-26,Shystep,World Champion Debut,Battlefoil,Steel,,130,Shai Gilgeous-Alexander,0,
+OKC-27,Chetmate,World Champion Debut,Battlefoil,Steel,,130,Chet Holmgren,0,
+OKC-28,Hartbreaker,World Champion Debut,Battlefoil,Steel,,130,Isaiah Hartenstein,0,
+OKC-29,J-Dub^2,World Champion Debut,Battlefoil,Steel,,130,Jalen Williams,0,
+OKC-30,A.C.,World Champion Debut,Battlefoil,Steel,,130,Alex Caruso,0,
+OKC-31,Shystep,Champions Alt Variation,Battlefoil,ALT,,200,Shai Gilgeous-Alexander,0,
+OKC-32,Shystep,Champions Alt Variation,Battlefoil,HEX,,185,Shai Gilgeous-Alexander,0,
+OKC-33,Shystep,Champions Alt Variation,Battlefoil,GLOW,,140,Shai Gilgeous-Alexander,0,
+OKC-34,Shystep,Champions Alt Variation,Battlefoil,FIRE,,135,Shai Gilgeous-Alexander,0,
+OKC-35,Shystep,Champions Alt Variation,Battlefoil,ICE,,135,Shai Gilgeous-Alexander,0,
+OKC-36,Shystep,Champions Alt Variation,Battlefoil,STEEL,,130,Shai Gilgeous-Alexander,0,
+OKC-37,MVP & Final's MVP,World Champion Debut,Plays,,"""Mutually Assured Dogstruction"" for official play",0,,0,You and your opponent each discard 2 Hot Dogs.
+OKC-38,"Out With The Old Big 3, In With The New",World Champion Debut,Plays,,"""Discard Rebate"" for official play",0,,0,Shuffle a Hero from your Discard Pile back into your Hero Deck.
+OKC-39,Getting Over The Hump,World Champion Debut,Plays,,"""Cursed Coin"" for official play",0,,2,Flip a coin 3 times; opponent's Hero gets -10 each time the coin lands on heads.
+OKC-40,Down But Never Out,World Champion Debut,Plays,,"""Forced Substitution"" for official play",0,,3,Your opponent must pay 2 Hot Dogs and Substitute next Battle.
+OKC-41,The Young Core,World Champion Debut,Plays,,"""Brothers In Arms"" for official play",0,,2,"If your opponent has played a Hero with the same weapon type as yours, your Hero gets +20."
+OKC-42,Unlikely Heroes,World Champion Debut,Plays,,"""Might Of The Underdog"" for official play",0,,1,"Draw the top Hero of your Hero Deck and Reveal it to your opponent. If its Power is 120 or lower, your Hero gets +30."
+OKC-43,All In On The Rebuild,World Champion Debut,Plays,,"""Feast Or Famine"" for official play",0,,0,"If you win this Battle, Recover 2 Hot Dogs. If you lose, Discard 1 Hot Dog."
+OKC-44,Trades For The Future,World Champion Debut,Plays,,"""Double Replacement"" for official play",0,,1,Discard one Hero from your hand. Draw 2 new Heroes.
+OKC-45,Game 7,World Champion Debut,Plays,,"""Big Win Energy"" for official play",0,,3,"If you win this Battle, your next Hero gets +40."
+OKC-46,Heading To Oklahoma,World Champion Debut,Plays,,"""Cheap Addition"" for official play",0,,1,Reveal the top 5 Plays of your Playbook. Add one to your hand and shuffle the rest back into your Playbook.
+OKC-47,Greaser Dog,World Champion Debut,Hot Dog,,,0,,0,
+OKC-48,Stormchaser,World Champion Debut,Hot Dog,,,0,,0,
+OKC-49,Stormchaser,World Champion Debut,Hot Dog,,,0,,0,
+OKC-50,Stormchaser,World Champion Debut,Hot Dog,,,0,,0,
+OKC-51,Stormchaser,World Champion Debut,Hot Dog,,,0,,0,
+OKC-52,Stormchaser,World Champion Debut,Hot Dog,,,0,,0,
+OKC-53,Stormchaser,World Champion Debut,Hot Dog,,,0,,0,
+OKC-54,Stormchaser,World Champion Debut,Hot Dog,,,0,,0,

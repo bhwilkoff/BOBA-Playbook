@@ -4,23 +4,24 @@ import WebKit
 
 // MARK: - YouTubePlayerView
 //
-// Embeds the YouTube IFrame Player API inside a WKWebView so videos
-// play inside the app without bouncing out to Safari. This is
-// YouTube's officially-supported embed path (per
-// developers.google.com/youtube/iframe_api_reference) — the WKWebView
-// is just a thin native shell around the same iframe a webpage would
-// host. Apple's archived `youtube-ios-player-helper` did the exact
-// same thing.
+// Embeds the YouTube IFrame Player inside a WKWebView so videos play
+// inside the app without bouncing out to Safari. This is YouTube's
+// officially-supported embed path; the WKWebView is just a thin
+// native shell around the same iframe a webpage would host.
 //
-// `playsinline` keeps the video confined to the host view rather than
-// auto-presenting full-screen on first play; users get a full-screen
-// button on the player controls when they want it.
+// IMPLEMENTATION NOTE — we load the embed URL directly
+// (`https://www.youtube.com/embed/{id}?...`) rather than wrapping
+// the IFrame Player JS API inside a `loadHTMLString` doc. The
+// HTMLString approach trips a "Video unavailable / Error 152" page
+// for some otherwise-embeddable videos because `window.location.
+// origin` is `null` when WKWebView loads inline HTML, and YouTube's
+// player rejects the embed under that origin. Loading the embed URL
+// natively gives the iframe a real https://www.youtube.com origin
+// so the player's referrer/origin checks pass.
 //
-// The web view loads a self-contained HTML doc (no remote page) so we
-// don't pay a navigation roundtrip on every present, and so the
-// YouTube cookie surface stays minimal. The `baseURL` we hand
-// loadHTMLString is `https://www.youtube.com` so the embedded iframe
-// passes referrer checks correctly.
+// `playsinline=1` keeps the video confined to the host view rather
+// than auto-presenting full-screen on first play; users still get a
+// full-screen button on the player controls.
 struct YouTubePlayerView: UIViewRepresentable {
     let videoId: String
     /// When true, the player starts playing as soon as the view loads.
@@ -50,13 +51,15 @@ struct YouTubePlayerView: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-        // Only reload when the video id actually changes — re-running
-        // loadHTMLString with the same id resets playback.
+        // Only reload when the video id actually changes — re-firing
+        // load() with the same id would reset playback mid-watch.
         if context.coordinator.lastVideoId == videoId { return }
         context.coordinator.lastVideoId = videoId
 
-        let html = Self.makeEmbedHTML(videoId: videoId, autoplay: autoplay)
-        webView.loadHTMLString(html, baseURL: URL(string: "https://www.youtube.com"))
+        guard let url = Self.makeEmbedURL(videoId: videoId, autoplay: autoplay) else {
+            return
+        }
+        webView.load(URLRequest(url: url))
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -65,44 +68,21 @@ struct YouTubePlayerView: UIViewRepresentable {
         var lastVideoId: String? = nil
     }
 
-    /// Single-page HTML doc that boots the IFrame API. Keeping it
-    /// inline (as opposed to a remote page) means: zero extra network
-    /// hop, no caching weirdness, and easy iteration when we want to
-    /// expose more player controls (next/prev, currentTime bridge,
-    /// etc.) later.
-    private static func makeEmbedHTML(videoId: String, autoplay: Bool) -> String {
-        return """
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            html, body { width: 100%; height: 100%; background: black; overflow: hidden; }
-            #player-wrap { width: 100%; height: 100%; position: relative; }
-            #player { position: absolute; inset: 0; width: 100%; height: 100%; }
-          </style>
-        </head>
-        <body>
-          <div id="player-wrap"><div id="player"></div></div>
-          <script>
-            var tag = document.createElement('script');
-            tag.src = "https://www.youtube.com/iframe_api";
-            document.head.appendChild(tag);
-            function onYouTubeIframeAPIReady() {
-              new YT.Player('player', {
-                videoId: '\(videoId)',
-                playerVars: {
-                  playsinline:    1,
-                  modestbranding: 1,
-                  rel:            0,
-                  autoplay:       \(autoplay ? 1 : 0)
-                }
-              });
-            }
-          </script>
-        </body>
-        </html>
-        """
+    /// Build the canonical YouTube embed URL with the player tuned
+    /// for in-app playback (inline, no related videos, low-chrome
+    /// branding). Adopting the embed URL directly — instead of
+    /// constructing a script-driven IFrame inside `loadHTMLString` —
+    /// is the workaround for the "Video unavailable / Error 152"
+    /// error that hits otherwise-embeddable videos when the
+    /// origin is null.
+    private static func makeEmbedURL(videoId: String, autoplay: Bool) -> URL? {
+        var comps = URLComponents(string: "https://www.youtube.com/embed/\(videoId)")
+        comps?.queryItems = [
+            URLQueryItem(name: "playsinline",    value: "1"),
+            URLQueryItem(name: "modestbranding", value: "1"),
+            URLQueryItem(name: "rel",            value: "0"),
+            URLQueryItem(name: "autoplay",       value: autoplay ? "1" : "0"),
+        ]
+        return comps?.url
     }
 }

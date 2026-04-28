@@ -12,7 +12,7 @@ import SwiftUI
 
 struct PurchaseView: View {
     enum PurchaseMode: String, CaseIterable, Identifiable {
-        case breaks = "Upcoming Breaks"
+        case breaks = "Live Breaks"
         case stores = "Find a Store"
         var id: String { rawValue }
     }
@@ -58,15 +58,11 @@ struct PurchaseView: View {
     private var breaksScroll: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Design.Spacing.md) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("UPCOMING BREAKS")
-                        .font(Design.Fonts.mono(11, weight: .bold))
-                        .foregroundStyle(Design.Colors.bobaOrange)
-                        .tracking(2)
-                    Text("Live community streams featuring Bo Jackson Battle Arena")
-                        .font(Design.Fonts.mono(12))
-                        .foregroundStyle(Design.Colors.textMuted)
-                }
+                Text("Live community streams featuring Bo Jackson Battle Arena")
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
                 UpcomingBreaksList()
             }
             .padding(.horizontal, Design.Spacing.lg)

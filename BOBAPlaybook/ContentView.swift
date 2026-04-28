@@ -10,30 +10,31 @@ struct ContentView: View {
     @Environment(AuthManager.self) private var auth
 
     var body: some View {
-        // Native TabView. SwiftUI clamps every .tabItem to a uniform
-        // size — there's no API to elevate one. The "Find" tab leans on
-        // a filled SF Symbol (`magnifyingglass.circle.fill`) so it reads
-        // visually weightier than the line-style siblings.
+        // iOS 26 Tab API. Using `Tab(value:)` (instead of the deprecated
+        // .tabItem modifier) opts the tab bar into the system's
+        // floating "Liquid Glass" appearance — larger icons, pill-shaped
+        // active state, the look the old build had before the .tabItem
+        // refactor regressed it.
         TabView(selection: $selectedTab) {
-            LearnView()
-                .tabItem { Label("Learn", systemImage: "book.pages.fill") }
-                .tag(1)
+            Tab("Learn", systemImage: "book.pages.fill", value: 1) {
+                LearnView()
+            }
 
-            DecksView()
-                .tabItem { Label("Decks", systemImage: "rectangle.stack.badge.plus") }
-                .tag(3)
+            Tab("Decks", systemImage: "rectangle.stack.badge.plus", value: 3) {
+                DecksView()
+            }
 
-            SearchView()
-                .tabItem { Label("Find", systemImage: "magnifyingglass.circle.fill") }
-                .tag(0)
+            Tab("Find", systemImage: "magnifyingglass", value: 0) {
+                SearchView()
+            }
 
-            CollectionView()
-                .tabItem { Label("Collection", systemImage: "square.grid.2x2") }
-                .tag(4)
+            Tab("Collection", systemImage: "square.grid.2x2", value: 4) {
+                CollectionView()
+            }
 
-            PurchaseView()
-                .tabItem { Label("Purchase", systemImage: "cart.fill") }
-                .tag(5)
+            Tab("Purchase", systemImage: "cart.fill", value: 5) {
+                PurchaseView()
+            }
         }
         .tint(Design.Colors.bobaOrange)
     }

@@ -19,6 +19,15 @@
 			</array>
 		</dict>
 	</array>
+	<!-- canOpenURL allowlist. Each scheme listed here can be probed
+	     before opening; without the entry canOpenURL silently
+	     returns false. Currently used by the Watch tab's
+	     OpenInYouTubeButton to deep-link into the YouTube app when
+	     installed (else it falls back to SFSafariViewController). -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>youtube</string>
+	</array>
 	<key>CFBundleIcons</key>
 	<dict>
 		<key>CFBundlePrimaryIcon</key>

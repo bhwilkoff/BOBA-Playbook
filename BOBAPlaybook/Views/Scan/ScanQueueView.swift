@@ -120,6 +120,15 @@ struct ScanQueueView: View {
 
             Spacer(minLength: 0)
 
+            // Quantity stepper — beta-tester ask. Tap −/+ to set how
+            // many physical copies of this card the user owns.
+            // Defaults to 1; auto-bumps when the same card is
+            // re-scanned. Hidden in show-mode (single-stream prep
+            // workflow doesn't need quantity tallying).
+            if !scanStore.isShowMode {
+                quantityStepper(for: queued)
+            }
+
             // Show-mode price (30d avg) lives at the trailing edge.
             if scanStore.isShowMode {
                 Text(formatCurrency(showPrices[queued.card.id] ?? 0))
@@ -151,6 +160,56 @@ struct ScanQueueView: View {
                         .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)
                 )
         )
+    }
+
+    /// −/+ quantity stepper for a queued card. Compact pill design that
+    /// fits inside the queue row trailing edge.
+    private func quantityStepper(for queued: ScanStore.QueuedCard) -> some View {
+        HStack(spacing: 4) {
+            Button {
+                scanStore.setQuantity(id: queued.id, quantity: queued.quantity - 1)
+            } label: {
+                Image(systemName: "minus")
+                    .font(.system(size: 12, weight: .bold))
+                    .frame(width: 22, height: 22)
+                    .foregroundStyle(queued.quantity <= 1
+                                     ? Design.Colors.textMuted
+                                     : Design.Colors.textPrimary)
+            }
+            .buttonStyle(.plain)
+            .disabled(queued.quantity <= 1)
+
+            Text("\(queued.quantity)")
+                .font(Design.Fonts.mono(13, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaOrange)
+                .frame(minWidth: 22, alignment: .center)
+                .monospacedDigit()
+
+            Button {
+                scanStore.setQuantity(id: queued.id, quantity: queued.quantity + 1)
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 12, weight: .bold))
+                    .frame(width: 22, height: 22)
+                    .foregroundStyle(queued.quantity >= 99
+                                     ? Design.Colors.textMuted
+                                     : Design.Colors.textPrimary)
+            }
+            .buttonStyle(.plain)
+            .disabled(queued.quantity >= 99)
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 2)
+        .background(
+            RoundedRectangle(cornerRadius: Design.Radius.sm)
+                .fill(Design.Colors.surface2)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Design.Radius.sm)
+                        .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)
+                )
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Quantity \(queued.quantity)")
     }
 
     // MARK: - Deck-builder routing
@@ -400,7 +459,10 @@ struct ScanQueueView: View {
     private func saveAllToDeckBuilder() async {
         isSavingAll = true
         saveError = nil
-        let cards = scanStore.queuedCards.map(\.card)
+        // Expand the queue's quantity field — N copies → N entries.
+        let cards: [Card] = scanStore.queuedCards.flatMap { queued in
+            Array(repeating: queued.card, count: max(1, queued.quantity))
+        }
         var firstError: String?
 
         // 1. Hand the cards back to the deck-builder presenter via
@@ -449,13 +511,17 @@ struct ScanQueueView: View {
         var firstError: String?
 
         for queued in scanStore.queuedCards {
-            let entry = NewUserCard(
-                cardNumber: queued.card.cardNumber,
-                bobaId: queued.card.id,
-                designation: .personal
-            )
-            do { try await collectionStore.addCard(entry) }
-            catch { if firstError == nil { firstError = error.localizedDescription } }
+            // Save `quantity` distinct user_card rows for this scan.
+            // Each represents one physical copy the user owns.
+            for _ in 0..<max(1, queued.quantity) {
+                let entry = NewUserCard(
+                    cardNumber: queued.card.cardNumber,
+                    bobaId: queued.card.id,
+                    designation: .personal
+                )
+                do { try await collectionStore.addCard(entry) }
+                catch { if firstError == nil { firstError = error.localizedDescription } }
+            }
         }
 
         isSavingAll = false

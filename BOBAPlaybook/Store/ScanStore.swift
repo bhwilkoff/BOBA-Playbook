@@ -10,6 +10,11 @@ final class ScanStore {
         let id = UUID()
         let card: Card
         let scannedAt = Date()
+        /// How many physical copies of this card the user owns. Bumped
+        /// automatically when the same card is re-scanned, also editable
+        /// via the queue's stepper. Beta-tester ask: "5 silver
+        /// battlefoils — scan once, enter 5, save 5." (1…99 clamp).
+        var quantity: Int = 1
     }
 
     /// Scanner destination mode. `single` and `multi` keep the existing
@@ -86,10 +91,22 @@ final class ScanStore {
 
     // MARK: - Queue operations
 
-    /// Adds a card to the queue. Silently ignores if the same cardNumber is already queued.
+    /// Adds a card to the queue. Re-scanning the same cardNumber bumps
+    /// its quantity instead of dropping the duplicate — so a stack of
+    /// identical battlefoils can be tallied by repeated scans.
     func addToQueue(_ card: Card) {
-        guard !queuedCards.contains(where: { $0.card.cardNumber == card.cardNumber }) else { return }
+        if let idx = queuedCards.firstIndex(where: { $0.card.cardNumber == card.cardNumber }) {
+            queuedCards[idx].quantity = min(queuedCards[idx].quantity + 1, 99)
+            return
+        }
         queuedCards.append(QueuedCard(card: card))
+    }
+
+    /// Manually set the quantity for a queued card (queue-row stepper).
+    /// Clamped 1…99; setting to 0 has no effect — use removeFromQueue.
+    func setQuantity(id: UUID, quantity: Int) {
+        guard let idx = queuedCards.firstIndex(where: { $0.id == id }) else { return }
+        queuedCards[idx].quantity = max(1, min(99, quantity))
     }
 
     func removeFromQueue(at offsets: IndexSet) {

@@ -18,6 +18,9 @@ struct ScanView: View {
     @State private var selectedCard:    Card?
     @State private var showQueueView    = false
     @State private var chipDismissTask: Task<Void, Never>?
+    /// Brief "Saved N to collection" toast after a quick-save in
+    /// single-scan mode. nil = hidden.
+    @State private var quickSaveToast: String?
 
     @State private var cameraPermission =
         AVCaptureDevice.authorizationStatus(for: .video)
@@ -50,6 +53,33 @@ struct ScanView: View {
         }
         .sheet(isPresented: $showQueueView) {
             ScanQueueView()
+        }
+        .overlay(alignment: .top) {
+            if let msg = quickSaveToast {
+                HStack(spacing: 8) {
+                    Image(systemName: msg.hasPrefix("Save failed")
+                                       ? "exclamationmark.triangle.fill"
+                                       : "checkmark.circle.fill")
+                        .foregroundStyle(msg.hasPrefix("Save failed")
+                                          ? Color(hex: "C0392B")
+                                          : Color(hex: "4CAF50"))
+                    Text(msg)
+                        .font(Design.Fonts.mono(13, weight: .bold))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                }
+                .padding(.horizontal, Design.Spacing.md)
+                .padding(.vertical, Design.Spacing.sm)
+                .background(
+                    RoundedRectangle(cornerRadius: Design.Radius.md)
+                        .fill(Design.Colors.surface.opacity(0.95))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Design.Radius.md)
+                                .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)
+                        )
+                )
+                .padding(.top, 110)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
     }
 
@@ -189,12 +219,19 @@ struct ScanView: View {
 
             // Detection chip — swipe down to dismiss
             if chipVisible, let card = detectedCard {
-                ScanDetectionChipView(card: card) {
-                    selectedCard = card
-                    if !scanStore.isMultiCardMode {
-                        scanner.resetDetection()
+                ScanDetectionChipView(
+                    card: card,
+                    isSingleMode: !scanStore.isMultiCardMode,
+                    onTap: {
+                        selectedCard = card
+                        if !scanStore.isMultiCardMode {
+                            scanner.resetDetection()
+                        }
+                    },
+                    onQuickSave: { quantity in
+                        Task { await quickSaveToCollection(card: card, quantity: quantity) }
                     }
-                }
+                )
                 .highPriorityGesture(
                     DragGesture(minimumDistance: 15)
                         .onEnded { value in
@@ -553,6 +590,41 @@ struct ScanView: View {
         }
         if let n = Int(current) { result.insert(n) }
         return result
+    }
+
+    // MARK: - Quick-save (single scan)
+
+    /// Single-scan quick-save: writes `quantity` user_card rows for
+    /// the detected card to the user's Collection (designation
+    /// .personal), dismisses the chip, and surfaces a brief toast.
+    /// Triggered from the chip's "Add to Collection" button.
+    private func quickSaveToCollection(card: Card, quantity: Int) async {
+        let n = max(1, min(99, quantity))
+        var firstError: String?
+        for _ in 0..<n {
+            let entry = NewUserCard(
+                cardNumber: card.cardNumber,
+                bobaId: card.id,
+                designation: .personal
+            )
+            do { try await collectionStore.addCard(entry) }
+            catch { if firstError == nil { firstError = error.localizedDescription } }
+        }
+        if let err = firstError {
+            quickSaveToast = "Save failed: \(err)"
+        } else {
+            quickSaveToast = "Saved \(n) to collection"
+        }
+        // Dismiss chip + scanner detection so the user can scan the next card.
+        withAnimation(.easeOut(duration: 0.25)) { chipVisible = false }
+        scanner.softReset()
+        // Auto-hide the toast after a moment.
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.25)) { quickSaveToast = nil }
+            }
+        }
     }
 }
 

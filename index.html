@@ -1817,6 +1817,19 @@
                 <div class="db-saved-decks-empty">Loading…</div>
               </div>
             </div>
+            <!-- Export output — anchored at the top of the deck-list
+                 sidebar so the import/export controls are immediately
+                 visible when the export panel opens. -->
+            <div class="db-export-out" id="db-export-out" hidden>
+              <textarea class="db-export-text" id="db-export-text" readonly aria-label="Deck list export"></textarea>
+              <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap">
+                <button class="db-copy-btn" id="db-copy-btn">Copy Text</button>
+                <button class="db-copy-btn" id="db-csv-btn">Download CSV</button>
+                <button class="db-copy-btn" id="db-import-btn">Import CSV</button>
+                <input type="file" id="db-import-file" accept=".csv,text/csv,text/plain" hidden>
+              </div>
+              <div class="db-import-banner" id="db-import-banner" hidden></div>
+            </div>
             <div class="db-section" id="db-section-heroes">
               <div class="db-section-title">HERO DECK (<span id="db-hero-count">0</span>/60)</div>
               <div class="db-section-cards" id="db-heroes-list"></div>
@@ -1832,17 +1845,6 @@
             <div class="db-section-templates">
               <div class="db-section-title">STARTER DECKS</div>
               <div class="db-templates" id="db-templates"></div>
-            </div>
-            <!-- Export output -->
-            <div class="db-export-out" id="db-export-out" hidden>
-              <textarea class="db-export-text" id="db-export-text" readonly aria-label="Deck list export"></textarea>
-              <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap">
-                <button class="db-copy-btn" id="db-copy-btn">Copy Text</button>
-                <button class="db-copy-btn" id="db-csv-btn">Download CSV</button>
-                <button class="db-copy-btn" id="db-import-btn">Import CSV</button>
-                <input type="file" id="db-import-file" accept=".csv,text/csv,text/plain" hidden>
-              </div>
-              <div class="db-import-banner" id="db-import-banner" hidden></div>
             </div>
           </div>
         </div>

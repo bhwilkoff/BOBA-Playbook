@@ -30,6 +30,17 @@ private enum PlaySection: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// Top-level Read/Watch toggle for the Learn tab. "Read" carries the
+/// existing reference content (Rules / Strategy / Browse / Collect /
+/// Glossary / Tournament). "Watch" routes to the YouTube feeds the
+/// `boba-youtube-feed` Worker aggregates from BoBA-focused channels +
+/// a community-wide search.
+private enum LearnMode: String, CaseIterable, Identifiable {
+    case read  = "Read"
+    case watch = "Watch"
+    var id: String { rawValue }
+}
+
 // ════════════════════════════════════════════════════════════════
 // MARK: - LearnView
 // ════════════════════════════════════════════════════════════════
@@ -37,21 +48,33 @@ private enum PlaySection: String, CaseIterable, Identifiable {
 struct LearnView: View {
     @Environment(CardStore.self) private var cardStore
     @State private var selectedSection: PlaySection = .rules
+    @State private var mode: LearnMode = .read
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                PlaySectionPicker(selected: $selectedSection)
-                    .padding(.vertical, Design.Spacing.sm)
+                ReadWatchToggle(mode: $mode)
+                    .padding(.horizontal, Design.Spacing.lg)
+                    .padding(.top, Design.Spacing.sm)
+                    .padding(.bottom, Design.Spacing.xs)
                     .background(Design.Colors.surface)
 
-                switch selectedSection {
-                case .rules:      RulesView()
-                case .strategy:   StrategyView()
-                case .browse:     BrowseView()
-                case .collect:    CollectView()
-                case .glossary:   GlossaryView()
-                case .tournament: TournamentView()
+                switch mode {
+                case .read:
+                    PlaySectionPicker(selected: $selectedSection)
+                        .padding(.vertical, Design.Spacing.sm)
+                        .background(Design.Colors.surface)
+
+                    switch selectedSection {
+                    case .rules:      RulesView()
+                    case .strategy:   StrategyView()
+                    case .browse:     BrowseView()
+                    case .collect:    CollectView()
+                    case .glossary:   GlossaryView()
+                    case .tournament: TournamentView()
+                    }
+                case .watch:
+                    WatchView()
                 }
             }
             .frame(maxWidth: .infinity)
@@ -63,6 +86,37 @@ struct LearnView: View {
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+        }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - Read/Watch toggle
+// ════════════════════════════════════════════════════════════════
+
+private struct ReadWatchToggle: View {
+    @Binding var mode: LearnMode
+
+    var body: some View {
+        HStack(spacing: Design.Spacing.xs) {
+            ForEach(LearnMode.allCases) { m in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { mode = m }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: m == .read ? "book.fill" : "play.tv.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(m.rawValue)
+                            .font(Design.Fonts.display(15))
+                    }
+                    .foregroundStyle(mode == m ? Design.Colors.nearBlack : Design.Colors.textSecondary)
+                    .padding(.horizontal, Design.Spacing.lg)
+                    .frame(height: 36)
+                    .frame(maxWidth: .infinity)
+                    .background(Capsule().fill(mode == m ? Design.Colors.bobaOrange : Design.Colors.glass))
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 }

@@ -414,6 +414,27 @@
     if (playViewInitialized) return;
     playViewInitialized = true;
 
+    // Read / Watch top-level toggle. Read defaults to visible (active
+    // class set in HTML); Watch is hidden until the user flips the
+    // pill, at which point we lazy-load the YouTube feed.
+    const learnModeBtns   = document.querySelectorAll('.learn-mode-btn');
+    const learnModePanels = document.querySelectorAll('.learn-mode-panel');
+    learnModeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.mode;
+        learnModeBtns.forEach(b => {
+          b.classList.toggle('active', b.dataset.mode === target);
+          b.setAttribute('aria-selected', String(b.dataset.mode === target));
+        });
+        learnModePanels.forEach(p => {
+          p.hidden = p.id !== `learn-panel-${target}`;
+        });
+        if (target === 'watch' && window.Watch) {
+          window.Watch.show();
+        }
+      });
+    });
+
     // Top-level tab pills: Rules ↔ Strategy
     const tabs   = document.querySelectorAll('.play-tab');
     const panels = document.querySelectorAll('.play-panel');

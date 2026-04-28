@@ -12,7 +12,11 @@ enum SupabaseConfig {
 // Fill in after deploying workers/ebay-proxy/ to Cloudflare.
 // Format: "https://boba-ebay-proxy.<your-subdomain>.workers.dev"
 enum WorkerConfig {
-    static let ebayProxyURL = "https://boba-ebay-proxy.benwilkoff.workers.dev"
+    static let ebayProxyURL    = "https://boba-ebay-proxy.benwilkoff.workers.dev"
+    /// boba-youtube-feed — aggregates BoBA YouTube content into 3
+    /// categorized feeds (live / short / regular) refreshed every 4h.
+    /// See workers/youtube-feed/README.md.
+    static let youtubeFeedURL  = "https://boba-youtube-feed.benwilkoff.workers.dev"
 }
 
 // MARK: - Discord — Trade Room

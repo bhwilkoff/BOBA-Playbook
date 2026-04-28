@@ -264,7 +264,7 @@ private struct SetupView: View {
                 RulesSectionHeader(title: "Before Battle 1")
                 RuleCard(lines: [
                     .init(label: "Roll for Honors",
-                          body: "Each player rolls one die. High roll wins initial Honors — the right to act first in every phase of Battle 1. Re-roll on a tie. The practice mode replays this roll on screen so you see who won and why."),
+                          body: "Each player rolls one die. High roll wins initial Honors — the right to act first in every phase of Battle 1. Re-roll on a tie."),
                     .init(label: "Direction (table-only)",
                           body: "In a physical match the Honors player picks the direction the Hero lineup reads (left-to-right or right-to-left). The app uses one consistent visual convention so this step is invisible."),
                     .init(label: "Hero deck",
@@ -2044,7 +2044,7 @@ private struct ParallelsSection: View {
          "The Playbook subsystem — non-Hero cards used during Battle to modify outcomes. Tracked separately from Heroes for deck-building purposes.",
          Design.Colors.bobaViolet),
         ("BPL",  "Bonus Plays",
-         "Element-triggered Plays that don't count against the 30-card Playbook limit. Drawn automatically when their trigger fires; surfaced with a gold ★ BONUS tag in the practice playmat.",
+         "Element-triggered Plays that don't count against the 30-card Playbook limit. Drawn automatically when their trigger fires.",
          Color(hex: "FFD700")),
         ("P",    "Prize & Promo",
          "Prize cards (tournament rewards) and Promo cards (event/release exclusives). Limited distribution; not part of standard pack rotation.",

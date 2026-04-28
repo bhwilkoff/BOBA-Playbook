@@ -194,14 +194,14 @@ header { flex-shrink: 0; position: relative; }
 
 ## Navigation
 
-**iOS tabs:** Find · Learn · Play · Decks · Collection
-- **Find** — card search (formerly "Search"). Scan shortcut lives inside the search bar (right edge). Profile opens as a sheet from a toolbar icon (left of the BOBA wordmark).
-- **Learn** — rules, strategy, browse-by-athlete lists, collecting guide, tournament reference. Sub-sections: Setup (match flow + edge cases + reading the playmat) · Rules · Strategy · Browse · Collect · Glossary · Tournament.
-- **Play** — practice battle setup/playmat.
+**iOS tabs:** Find · Learn · Decks · Collection · Purchase
+- **Find** — card search (formerly "Search"). Scan shortcut lives inside the search bar (right edge). Profile opens as a sheet from a toolbar icon (left of the BOBA wordmark). Default landing tab; rendered larger than the others to signal that.
+- **Learn** — rules, strategy, browse-by-athlete lists, collecting guide, tournament reference. Sub-sections: Setup (match flow + edge cases) · Rules · Strategy · Browse · Collect · Glossary · Tournament.
 - **Decks** — deck builder.
 - **Collection** — owned cards + Rainbow + Shows (streamer-only).
+- **Purchase** — Upcoming Breaks (Whatnot feed) + Find a Store.
 
-**Web sidebar:** Search Cards · Scan · Learn · Deck Builder · Practice · Find a Store · My Collection · Profile (Practice, Decks, Find a Store split out — iOS bundles them inside Play / Decks / Collection-menu).
+**Web sidebar:** Learn · Decks · Find · Collection · Purchase · Profile.
 
 **iOS app display name:** `CFBundleDisplayName = "Playbook"` (under the icon on the home screen). In-app wordmark + App Store listing still read "BOBA Playbook." See DECISIONS.md #032.
 

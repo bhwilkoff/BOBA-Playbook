@@ -307,6 +307,11 @@
   }
 
   function showView(name, fromHistory = false) {
+    // Practice is gated to admin only — bounce non-admins back to
+    // search if they hit a deep-link or stale history entry.
+    if (name === 'practice' && API.getCachedRole?.() !== 'admin') {
+      name = 'search';
+    }
     currentView = name;
     viewIds.forEach(id => {
       const el = $(`view-${id}`);
@@ -341,6 +346,21 @@
     const btn = $(btnId);
     if (btn) btn.addEventListener('click', () => showView(view));
   });
+
+  // Admin-only UI visibility. Any element marked [data-admin-only]
+  // stays hidden until the cached role is "admin" — practice mode is
+  // currently the only consumer.
+  function applyRoleVisibility() {
+    const isAdmin = API.getCachedRole?.() === 'admin';
+    document.querySelectorAll('[data-admin-only]').forEach(el => {
+      el.hidden = !isAdmin;
+    });
+    // If the currently visible view is admin-only and the role flips
+    // back to non-admin (sign out), bounce to search.
+    if (!isAdmin && currentView === 'practice') showView('search');
+  }
+  applyRoleVisibility();
+  document.addEventListener('auth-change', applyRoleVisibility);
 
   window.addEventListener('popstate', () => {
     const params = new URLSearchParams(window.location.search);

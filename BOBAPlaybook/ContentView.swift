@@ -7,11 +7,13 @@ import SwiftUI
 
 struct ContentView: View {
     @Binding var selectedTab: Int
+    @Environment(AuthManager.self) private var auth
 
     var body: some View {
-        // Nav refactor: 5 tabs — Find, Learn, Play, Decks, Collection.
-        // Scan moved into the Find tab's search bar (right-edge button).
-        // Profile moved to a toolbar icon on the Find tab (left of wordmark).
+        // Nav: Find, Learn, Decks, Collection. The historical Play tab is
+        // gated to admins only and reachable through the Profile screen
+        // (an icon next to the role badge). Non-admin builds never see
+        // the practice surface from here.
         TabView(selection: $selectedTab) {
             SearchView()
                 .tabItem { Label("Find", systemImage: "magnifyingglass") }
@@ -20,10 +22,6 @@ struct ContentView: View {
             LearnView()
                 .tabItem { Label("Learn", systemImage: "book.pages.fill") }
                 .tag(1)
-
-            PlayView()
-                .tabItem { Label("Play", systemImage: "bolt.square.fill") }
-                .tag(2)
 
             DecksView()
                 .tabItem { Label("Decks", systemImage: "rectangle.stack.badge.plus") }

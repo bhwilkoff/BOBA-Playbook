@@ -231,7 +231,6 @@ async function refreshFeeds(env) {
   const upcoming   = [];
   const vertical   = [];
   const horizontal = [];
-  const priorityFreshDays = parseInt(env.PRIORITY_FRESH_DAYS || "30", 10);
 
   for (const id of allIds) {
     const base    = byId.get(id);
@@ -245,12 +244,19 @@ async function refreshFeeds(env) {
   }
 
   // Upcoming/live: chronological by stream start (soonest live → next
-  // scheduled → recent replays). Recorded feeds keep the existing
-  // priority-pinned-then-date ordering.
+  // scheduled → recent replays).
   upcoming.sort(sortByStreamTime);
-  const recordedSort = sortByPriorityAndDate(priorityFreshDays);
-  vertical.sort(recordedSort);
-  horizontal.sort(recordedSort);
+
+  // Recorded feeds: pin only the TOP-3 most-recent priority-0
+  // (RadishDijital today) videos to the top of the feed; everything
+  // else sorts by publishedAt desc. Per Ben (2026-04-28): "we
+  // shouldn't have the full radish catalog at the top of each view.
+  // Rather, it should only show the latest 3 items from radish and
+  // then mix in the most recent videos from other creators."
+  pinTopPriorityItems(vertical,   3);
+  pinTopPriorityItems(horizontal, 3);
+  vertical.sort(sortByPinnedAndDate);
+  horizontal.sort(sortByPinnedAndDate);
 
   // 6. Cap each feed and write to KV.
   const cap = parseInt(env.MAX_ITEMS_PER_FEED || "120", 10);
@@ -472,6 +478,7 @@ function mergeItem(base, details) {
     liveBroadcastContent: details.liveBroadcastContent,
     liveStreamingDetails: details.liveStreamingDetails,
     priority:      base.priority,
+    pinned:        false,  // set later by pinTopPriorityItems
     sourceChannel: base.sourceChannel,
     url:          `https://www.youtube.com/watch?v=${base.videoId}`,
     embedUrl:     `https://www.youtube.com/embed/${base.videoId}`,
@@ -538,17 +545,22 @@ function categorize(item) {
   // Live now — currently broadcasting.
   if (item.liveBroadcastContent === "live") return "upcoming";
 
-  // Scheduled to start in the future. Filter out abandoned events
-  // (scheduled in the past but never went live) — YouTube doesn't
-  // auto-clean them, so they'd otherwise camp at the top of the
-  // feed forever. The STALE_UPCOMING_HOURS grace period covers
-  // broadcasts that drift slightly past their scheduled start time
-  // without YouTube updating actualStartTime yet.
+  // Scheduled to start in the future. Filter out two flavors of
+  // zombie placeholder that YouTube doesn't auto-clean:
+  //   (a) "upcoming" with no scheduledStartTime at all — almost
+  //       always a generic Live Stream placeholder a creator made
+  //       months ago and never used. We can't even surface a
+  //       "starts at" line for these, so they'd be useless cards.
+  //   (b) "upcoming" with a scheduledStartTime more than
+  //       STALE_UPCOMING_HOURS in the past — abandoned event.
+  // Both fall through to vertical/horizontal so they're not lost
+  // entirely (a coach who finds them via search still sees them).
   if (item.liveBroadcastContent === "upcoming") {
-    const sched = item.scheduledStartTime
-      ? new Date(item.scheduledStartTime).getTime()
-      : null;
-    if (sched && sched < Date.now() - STALE_UPCOMING_HOURS * 3600 * 1000) {
+    if (!item.scheduledStartTime) {
+      return item.isVertical ? "vertical" : "horizontal";
+    }
+    const sched = new Date(item.scheduledStartTime).getTime();
+    if (sched < Date.now() - STALE_UPCOMING_HOURS * 3600 * 1000) {
       return item.isVertical ? "vertical" : "horizontal";
     }
     return "upcoming";
@@ -557,9 +569,7 @@ function categorize(item) {
   // Everything else — including ended live broadcasts (replays) —
   // routes into vertical/horizontal based on orientation. Per Ben
   // (2026-04-28): "Upcoming Live" is for current + future only;
-  // replays belong in their orientation feed. A coach who wants to
-  // catch up on yesterday's daily show finds it under Horizontal
-  // (or Vertical for the 📱 phone edition).
+  // replays belong in their orientation feed.
   return item.isVertical ? "vertical" : "horizontal";
 }
 
@@ -575,22 +585,27 @@ function parseISODurationSec(iso) {
 // MARK: - Sort
 // ════════════════════════════════════════════════════════════════
 
-function sortByPriorityAndDate(priorityFreshDays) {
-  const freshCutoff = Date.now() - priorityFreshDays * 86400 * 1000;
-  return (a, b) => {
-    // Top-priority channels (priority === 0, currently just
-    // RadishDijital) pin their FRESH videos to the top of the feed.
-    // Outside the freshness window they fall back to date order so a
-    // 2-year-old Radish upload doesn't outrank a brand-new community
-    // video. Non-priority channels (priority 5) and search-sourced
-    // (priority 9) items skip this boost and sort by date only.
-    const aPin = (a.priority === 0) && (new Date(a.publishedAt).getTime() >= freshCutoff);
-    const bPin = (b.priority === 0) && (new Date(b.publishedAt).getTime() >= freshCutoff);
-    if (aPin !== bPin) return bPin - aPin;
+/// Mark the top-N most-recent priority-0 (top-tier) items in a feed
+/// with `pinned: true`. Everything else (including older priority-0
+/// items) gets `pinned: false`. The sort below uses the flag.
+function pinTopPriorityItems(items, capN) {
+  const candidates = items
+    .filter(v => v.priority === 0)
+    .sort((a, b) => (b.publishedAt || "").localeCompare(a.publishedAt || ""))
+    .slice(0, capN);
+  const pinnedSet = new Set(candidates.map(v => v.videoId));
+  for (const v of items) {
+    v.pinned = pinnedSet.has(v.videoId);
+  }
+}
 
-    // Default: newest first.
-    return (b.publishedAt || "").localeCompare(a.publishedAt || "");
-  };
+/// Pinned items first (sorted by date desc among themselves), then
+/// the rest by date desc. Lets the top-priority channel's most recent
+/// uploads anchor each feed without burying everyone else's fresh
+/// content beneath the entire priority-channel back-catalog.
+function sortByPinnedAndDate(a, b) {
+  if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+  return (b.publishedAt || "").localeCompare(a.publishedAt || "");
 }
 
 /// Upcoming-live sort: live now first (sorted by actualStartTime so

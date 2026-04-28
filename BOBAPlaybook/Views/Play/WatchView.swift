@@ -130,12 +130,21 @@ struct WatchView: View {
         .refreshable { await feed.loadAll() }
     }
 
-    /// Vertical-recorded — 9:16 grid. Catches both Shorts and
-    /// phone-edition cuts of longer shows.
+    /// Vertical-recorded — 3-column 9:16 grid. Catches both Shorts
+    /// and phone-edition cuts of longer shows. We pin the column
+    /// count explicitly (instead of `.adaptive(minimum:maximum:)`)
+    /// because the adaptive sizing was collapsing to a single
+    /// column on iPhone widths once the outer Lg padding was
+    /// subtracted. Three flexible columns gives the dense
+    /// Shorts-grid feel users expect.
     private var verticalGrid: some View {
         ScrollView {
             LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 140, maximum: 200), spacing: Design.Spacing.sm)],
+                columns: [
+                    GridItem(.flexible(), spacing: Design.Spacing.sm),
+                    GridItem(.flexible(), spacing: Design.Spacing.sm),
+                    GridItem(.flexible(), spacing: Design.Spacing.sm),
+                ],
                 spacing: Design.Spacing.md
             ) {
                 ForEach(currentItems) { video in
@@ -143,7 +152,7 @@ struct WatchView: View {
                         .onTapGesture { playing = video }
                 }
             }
-            .padding(Design.Spacing.lg)
+            .padding(Design.Spacing.md)
         }
         .refreshable { await feed.loadAll() }
     }
@@ -326,14 +335,27 @@ private struct ThumbnailView: View {
     let url: String?
     let aspect: CGFloat
 
+    /// YouTube's API ships every video's `maxres` thumbnail at 16:9
+    /// regardless of source orientation, so vertical cards (9:16
+    /// frame) need the image to letterbox inside the frame rather
+    /// than scale-to-fill (which would crop the horizontal art into
+    /// an awkward middle slice). We pick `.fit` for vertical frames
+    /// and `.fill` for horizontal frames where the thumbnail's
+    /// native shape already matches.
+    private var imageContentMode: ContentMode {
+        aspect < 1 ? .fit : .fill
+    }
+
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface2)
+            // Black background so the letterbox bars on vertical
+            // cards read as intentional rather than transparent gaps.
+            RoundedRectangle(cornerRadius: 8).fill(Color.black)
             if let urlString = url, let url = URL(string: urlString) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):
-                        img.resizable().aspectRatio(contentMode: .fill)
+                        img.resizable().aspectRatio(contentMode: imageContentMode)
                     default:
                         Image(systemName: "play.rectangle.fill")
                             .font(.system(size: 28))
@@ -403,6 +425,29 @@ private func durationBadge(_ text: String) -> some View {
         .background(Capsule().fill(Color.black.opacity(0.7)))
 }
 
+/// Wrap every URL in a description with an AttributedString `.link`
+/// attribute so SwiftUI's Text renders it as a tappable link. Uses
+/// NSDataDetector for URL identification — covers http/https/etc.,
+/// trailing punctuation, and unicode without us reinventing the
+/// regex. `.tint` on the Text view colors the links, and the system
+/// handles tap → SFSafariViewController routing.
+private func linkify(_ source: String) -> AttributedString {
+    var attributed = AttributedString(source)
+    guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else {
+        return attributed
+    }
+    let nsRange = NSRange(source.startIndex..<source.endIndex, in: source)
+    detector.enumerateMatches(in: source, options: [], range: nsRange) { match, _, _ in
+        guard let match = match, let url = match.url,
+              let range = Range(match.range, in: source),
+              let attrRange = Range(range, in: attributed)
+        else { return }
+        attributed[attrRange].link = url
+        attributed[attrRange].underlineStyle = .single
+    }
+    return attributed
+}
+
 // ════════════════════════════════════════════════════════════════
 // MARK: - Player sheet
 // ════════════════════════════════════════════════════════════════
@@ -427,9 +472,16 @@ private struct VideoPlayerSheet: View {
                         CardSubtitle(video: video)
                         if let desc = video.description, !desc.isEmpty {
                             Divider().background(Design.Colors.glassBorder)
-                            Text(desc)
+                            // Linkified description — every URL in
+                            // the string becomes a tappable link.
+                            // SwiftUI's Text renders an
+                            // AttributedString natively when the
+                            // attribute set includes `.link`.
+                            Text(linkify(desc))
                                 .font(Design.Fonts.mono(13))
                                 .foregroundStyle(Design.Colors.textSecondary)
+                                .tint(Design.Colors.bobaCyan)
+                                .textSelection(.enabled)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }

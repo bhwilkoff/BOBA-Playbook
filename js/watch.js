@@ -339,12 +339,47 @@ const Watch = (() => {
     const iframe  = document.getElementById('watch-player-iframe');
     const title   = document.getElementById('watch-player-title');
     const channel = document.getElementById('watch-player-channel');
+    const desc    = document.getElementById('watch-player-description');
 
     iframe.src = `https://www.youtube.com/embed/${encodeURIComponent(v.videoId)}?autoplay=1&playsinline=1&modestbranding=1&rel=0`;
     title.textContent   = v.title || '';
     channel.textContent = v.channelTitle || '';
+    if (desc) {
+      // Linkified description — URLs in YouTube descriptions become
+      // tappable anchors. innerHTML is safe here because linkifyDesc
+      // escapes every non-URL chunk before reassembling the string.
+      desc.innerHTML = v.description ? linkifyDesc(v.description) : '';
+    }
     overlay.hidden = false;
     document.body.classList.add('watch-player-open');
+  }
+
+  /// Convert plain-text URLs to anchor tags while escaping the rest
+  /// of the string. Splits on URL matches, escapes the in-between
+  /// segments, and wraps each match in `<a target="_blank" rel=...>`
+  /// so taps open in a new tab and don't navigate the embed away.
+  function linkifyDesc(text) {
+    const urlRegex = /\b(https?:\/\/[^\s<>"']+)/g;
+    let out = '';
+    let lastEnd = 0;
+    text.replace(urlRegex, (match, url, offset) => {
+      out += esc(text.slice(lastEnd, offset));
+      // Strip trailing punctuation that's almost always sentence
+      // terminators rather than part of the URL.
+      let cleaned = url;
+      let trailing = '';
+      while (/[.,!?;:)\]]$/.test(cleaned)) {
+        trailing = cleaned.slice(-1) + trailing;
+        cleaned  = cleaned.slice(0, -1);
+      }
+      out += `<a href="${esc(cleaned)}" target="_blank" rel="noopener noreferrer">${esc(cleaned)}</a>${esc(trailing)}`;
+      lastEnd = offset + match.length;
+      return match;
+    });
+    out += esc(text.slice(lastEnd));
+    // Preserve newlines as <br> so the description keeps its
+    // multi-paragraph shape.
+    return out.replace(/\n/g, '<br>');
   }
 
   function closePlayer() {

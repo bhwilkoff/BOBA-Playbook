@@ -9247,5 +9247,23 @@ body.db-rules-open { overflow: hidden; }
   font-size: 0.8rem;
   color: var(--boba-cyan);
 }
+.watch-player-description {
+  margin-top: 12px !important;
+  color: var(--boba-text-secondary, #a0a0b0) !important;
+  font-size: 0.78rem !important;
+  line-height: 1.55;
+  max-height: 240px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.watch-player-description a {
+  color: var(--boba-cyan);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.watch-player-description a:hover {
+  color: var(--boba-orange);
+}
 
 body.watch-player-open { overflow: hidden; }

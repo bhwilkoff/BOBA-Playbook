@@ -28,7 +28,10 @@ struct PurchaseView: View {
 
                 switch mode {
                 case .breaks:
-                    breaksScroll
+                    // UpcomingBreaksList owns its own ScrollView so the
+                    // `.refreshable` gesture attaches directly to the
+                    // grid's scroll context.
+                    UpcomingBreaksList()
                 case .stores:
                     StoreLocatorView()
                 }
@@ -55,19 +58,4 @@ struct PurchaseView: View {
         .pickerStyle(.segmented)
     }
 
-    private var breaksScroll: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Design.Spacing.md) {
-                Text("Live community streams featuring Bo Jackson Battle Arena")
-                    .font(Design.Fonts.mono(12))
-                    .foregroundStyle(Design.Colors.textMuted)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                UpcomingBreaksList()
-            }
-            .padding(.horizontal, Design.Spacing.lg)
-            .padding(.top, Design.Spacing.md)
-            .padding(.bottom, Design.Spacing.xl)
-        }
-    }
 }

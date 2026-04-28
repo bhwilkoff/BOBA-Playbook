@@ -9045,9 +9045,8 @@ body.db-rules-open { overflow: hidden; }
   display: grid;
   gap: var(--sp-3);
 }
-.watch-grid-live    { grid-template-columns: 1fr; }
-.watch-grid-videos  { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-.watch-grid-shorts  { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+/* Per-tab grid templates live further down with the tab-rename
+   block (.watch-grid-upcoming / -vertical / -horizontal). */
 
 /* ── Watch cards ──────────────────────────────────────────────── */
 .watch-card {
@@ -9094,8 +9093,27 @@ body.db-rules-open { overflow: hidden; }
   letter-spacing: 0.06em;
   color: white;
 }
-.watch-badge-live   { background: #C0392B; }
-.watch-badge-replay { background: rgba(0, 0, 0, 0.7); }
+.watch-badge-live     { background: #C0392B; }
+.watch-badge-upcoming { background: rgba(0, 245, 255, 0.85); color: var(--boba-near-black); }
+.watch-badge-replay   { background: rgba(0, 0, 0, 0.7); }
+
+/* Stream-time line on Upcoming Live cards — sits between title and
+   the channel/views subtitle. Cyan for scheduled, red for live. */
+.watch-card-streamtime {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--boba-cyan);
+  margin-top: -2px;
+}
+.watch-card-streamtime-live { color: #ff5544; }
+.watch-card-streamtime-icon { font-size: 0.9rem; }
+
+/* Update grid class names for new tabs. */
+.watch-grid-upcoming   { grid-template-columns: 1fr; }
+.watch-grid-horizontal { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.watch-grid-vertical   { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 
 .watch-duration {
   position: absolute; bottom: 6px; right: 6px;

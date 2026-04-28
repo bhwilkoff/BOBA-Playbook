@@ -71,10 +71,23 @@ const KNOWN_CHANNELS = [
 
 const YT_API = "https://www.googleapis.com/youtube/v3";
 
+// Restructured 2026-04-28 from {live, short, regular} to
+// {upcoming, vertical, horizontal} after Ben asked for orientation-
+// based filtering instead of "Shorts vs everything else." The new
+// shape:
+//   - upcoming    → scheduled + currently-live broadcasts (sort by
+//                   streamTime asc, the actual broadcast time, NOT
+//                   the publishedAt that gets stamped when the
+//                   creator first set up the YouTube event).
+//   - vertical    → previously-recorded vertical content. Includes
+//                   Shorts AND any non-Shorts upload with a vertical
+//                   thumbnail (Radish posts both phone + desktop
+//                   versions of their daily show).
+//   - horizontal  → previously-recorded landscape content.
 const FEED_KEYS = {
-  live:    "boba_videos:live",
-  short:   "boba_videos:short",
-  regular: "boba_videos:regular",
+  upcoming:   "boba_videos:upcoming",
+  vertical:   "boba_videos:vertical",
+  horizontal: "boba_videos:horizontal",
 };
 
 const HANDLE_CACHE_KEY = "boba_videos:channel_handles";
@@ -86,9 +99,10 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-// Live-replay window — anything that ended within this many days is
-// still surfaced in the live feed. Keeps yesterday's break replay
-// front-and-center while letting older replays flow into "regular".
+// Live-replay window — broadcasts that ended within this many days
+// are surfaced in the upcoming/live feed alongside scheduled streams
+// (sorted to the bottom, since they've already happened). Keeps
+// yesterday's daily-show replay one tap away from the live tab.
 const LIVE_REPLAY_DAYS = 7;
 
 // ════════════════════════════════════════════════════════════════
@@ -127,17 +141,17 @@ export default {
     const type = (url.searchParams.get("type") || "all").toLowerCase();
 
     if (type === "all") {
-      const [live, short, regular, meta] = await Promise.all([
-        env.YT_KV.get(FEED_KEYS.live, "json"),
-        env.YT_KV.get(FEED_KEYS.short, "json"),
-        env.YT_KV.get(FEED_KEYS.regular, "json"),
+      const [upcoming, vertical, horizontal, meta] = await Promise.all([
+        env.YT_KV.get(FEED_KEYS.upcoming,   "json"),
+        env.YT_KV.get(FEED_KEYS.vertical,   "json"),
+        env.YT_KV.get(FEED_KEYS.horizontal, "json"),
         env.YT_KV.get(META_KEY, "json"),
       ]);
       return jsonOk({
-        live:    live?.items    || [],
-        short:   short?.items   || [],
-        regular: regular?.items || [],
-        writtenAt: meta?.lastRefresh || null,
+        upcoming:   upcoming?.items   || [],
+        vertical:   vertical?.items   || [],
+        horizontal: horizontal?.items || [],
+        writtenAt:  meta?.lastRefresh || null,
       });
     }
 
@@ -212,9 +226,9 @@ async function refreshFeeds(env) {
   const detailsById = await fetchVideoDetails(apiKey, allIds);
 
   // 5. Categorize + sort.
-  const live    = [];
-  const short   = [];
-  const regular = [];
+  const upcoming   = [];
+  const vertical   = [];
+  const horizontal = [];
   const priorityFreshDays = parseInt(env.PRIORITY_FRESH_DAYS || "30", 10);
 
   for (const id of allIds) {
@@ -223,15 +237,18 @@ async function refreshFeeds(env) {
     if (!details) continue;
     const item = mergeItem(base, details);
     const cat  = categorize(item);
-    if      (cat === "live")  live.push(item);
-    else if (cat === "short") short.push(item);
-    else                      regular.push(item);
+    if      (cat === "upcoming")   upcoming.push(item);
+    else if (cat === "vertical")   vertical.push(item);
+    else                           horizontal.push(item);
   }
 
-  const sortFeed = sortByPriorityAndDate(priorityFreshDays);
-  live.sort(sortFeed);
-  short.sort(sortFeed);
-  regular.sort(sortFeed);
+  // Upcoming/live: chronological by stream start (soonest live → next
+  // scheduled → recent replays). Recorded feeds keep the existing
+  // priority-pinned-then-date ordering.
+  upcoming.sort(sortByStreamTime);
+  const recordedSort = sortByPriorityAndDate(priorityFreshDays);
+  vertical.sort(recordedSort);
+  horizontal.sort(recordedSort);
 
   // 6. Cap each feed and write to KV.
   const cap = parseInt(env.MAX_ITEMS_PER_FEED || "120", 10);
@@ -243,15 +260,19 @@ async function refreshFeeds(env) {
   });
 
   await Promise.all([
-    env.YT_KV.put(FEED_KEYS.live,    JSON.stringify(pack(live))),
-    env.YT_KV.put(FEED_KEYS.short,   JSON.stringify(pack(short))),
-    env.YT_KV.put(FEED_KEYS.regular, JSON.stringify(pack(regular))),
+    env.YT_KV.put(FEED_KEYS.upcoming,   JSON.stringify(pack(upcoming))),
+    env.YT_KV.put(FEED_KEYS.vertical,   JSON.stringify(pack(vertical))),
+    env.YT_KV.put(FEED_KEYS.horizontal, JSON.stringify(pack(horizontal))),
     env.YT_KV.put(META_KEY, JSON.stringify({
       lastRefresh: writtenAt,
       lastStartedAt: startedAt,
       durationMs: Date.now() - new Date(startedAt).getTime(),
       seenVideoCount: allIds.length,
-      categorized: { live: live.length, short: short.length, regular: regular.length },
+      categorized: {
+        upcoming:   upcoming.length,
+        vertical:   vertical.length,
+        horizontal: horizontal.length,
+      },
     })),
   ]);
 }
@@ -413,21 +434,34 @@ function toInt(v) { return v == null ? null : parseInt(v, 10); }
 
 function mergeItem(base, details) {
   const durationSec = parseISODurationSec(details.durationISO);
-  const thumb =
-    details.thumbnails?.maxres?.url ||
-    details.thumbnails?.high?.url   ||
-    details.thumbnails?.medium?.url ||
-    base.thumbnails?.high?.url      ||
-    base.thumbnails?.default?.url;
+  const thumb = pickThumbnail(details.thumbnails, base.thumbnails);
+
+  // Stream-time semantics: the user wants the actual broadcast start,
+  // NOT the publishedAt timestamp YouTube stamps when the creator
+  // first creates the event placeholder. Pick scheduledStartTime for
+  // upcoming streams, actualStartTime for currently-live or already-
+  // started streams. Falls back to publishedAt for non-live videos.
+  const lsd = details.liveStreamingDetails || {};
+  const streamTime =
+    lsd.actualStartTime    ||
+    lsd.scheduledStartTime ||
+    null;
 
   return {
     videoId:     base.videoId,
     title:       details.title       || base.title,
     description: details.description || base.description,
-    publishedAt: base.publishedAt    || details.liveStreamingDetails?.actualStartTime,
+    publishedAt: base.publishedAt,
+    streamTime,
+    scheduledStartTime: lsd.scheduledStartTime || null,
+    actualStartTime:    lsd.actualStartTime    || null,
+    actualEndTime:      lsd.actualEndTime      || null,
     channelId:    details.channelId    || base.channelId,
     channelTitle: details.channelTitle || base.channelTitle,
-    thumbnail:   thumb,
+    thumbnail:    thumb.url,
+    thumbnailWidth:  thumb.width  || null,
+    thumbnailHeight: thumb.height || null,
+    isVertical:   isVerticalVideo(thumb, durationSec, details.title, details.description),
     durationSec,
     viewCount:    details.viewCount,
     likeCount:    details.likeCount,
@@ -442,36 +476,93 @@ function mergeItem(base, details) {
   };
 }
 
-function categorize(item) {
-  // Live now — broadcast is currently happening.
-  if (item.liveBroadcastContent === "live") return "live";
-
-  // Live replay within the rolling window — surfaced in live feed.
-  const ended = item.liveStreamingDetails?.actualEndTime;
-  if (ended) {
-    const ageDays = (Date.now() - new Date(ended).getTime()) / (1000 * 60 * 60 * 24);
-    if (ageDays <= LIVE_REPLAY_DAYS) return "live";
+/// Pick the highest-resolution thumbnail available, returning both
+/// the URL and its dimensions so downstream code can detect the
+/// source video's orientation. Each YouTube thumbnail object is
+/// `{url, width, height}`.
+function pickThumbnail(detailsThumbs, baseThumbs) {
+  const order = ["maxres", "standard", "high", "medium", "default"];
+  for (const key of order) {
+    if (detailsThumbs?.[key]) return detailsThumbs[key];
   }
-
-  // Shorts heuristic — YouTube doesn't expose an isShort flag. The
-  // duration ≤ 60s + #shorts marker combo catches ~99% of real
-  // Shorts without false-positiving on a normal 30-second creator
-  // intro clip.
-  if (looksLikeShort(item)) return "short";
-
-  return "regular";
+  for (const key of order) {
+    if (baseThumbs?.[key]) return baseThumbs[key];
+  }
+  return { url: null, width: null, height: null };
 }
 
-function looksLikeShort(item) {
-  if (item.durationSec == null) return false;
-  if (item.durationSec > 65) return false; // small slack for rounding
-  const text = `${item.title || ""} ${item.description || ""}`.toLowerCase();
-  if (text.includes("#shorts") || text.includes("#short")) return true;
-  // Tight duration alone is a strong signal — most ≤60s YouTube
-  // uploads on the platform today are Shorts. Loose marker keeps us
-  // honest for the rare creator who genuinely posts a 45-second
-  // teaser as a regular landscape upload.
-  return item.durationSec <= 60;
+/// True when a recorded video is vertically oriented. The YouTube
+/// Data API doesn't surface source video dimensions — `maxres`
+/// thumbnails come back as 16:9 (1280×720) for both vertical and
+/// horizontal source uploads — so we have to lean on creator-side
+/// signals that telegraph orientation:
+///
+///   1. The 📱 emoji in the title — Radish marks their daily show's
+///      phone-edition cuts this way ("9 Minute Edition 📱").
+///   2. Explicit "phone" / "mobile" / "vertical" / "portrait"
+///      keywords in the title or description.
+///   3. The #shorts hashtag, which by definition implies vertical.
+///   4. Duration ≤ 65s — virtually every YouTube upload that short
+///      is a Short these days, regardless of explicit tagging.
+///   5. A vertical thumbnail (height > width). Currently rare in
+///      practice because YouTube re-encodes everything to 16:9
+///      thumbs, but kept as a forward-looking signal for the day
+///      that changes (or for a creator who supplies a native
+///      vertical thumb).
+function isVerticalVideo(thumb, durationSec, title, description) {
+  if (thumb?.width && thumb?.height && thumb.height > thumb.width) {
+    return true;
+  }
+  const titleStr = title || "";
+  if (titleStr.includes("📱")) return true;
+
+  const text = `${titleStr} ${description || ""}`.toLowerCase();
+  const verticalMarkers = [
+    "#shorts", "#short",
+    "phone edition", "phone version",
+    "mobile edition", "mobile version",
+    "vertical edition", "vertical version",
+    "portrait edition", "portrait version",
+  ];
+  for (const marker of verticalMarkers) {
+    if (text.includes(marker)) return true;
+  }
+
+  if (durationSec != null && durationSec > 0 && durationSec <= 65) return true;
+  return false;
+}
+
+function categorize(item) {
+  // Live now — currently broadcasting.
+  if (item.liveBroadcastContent === "live") return "upcoming";
+
+  // Scheduled to start in the future. Filter out abandoned events
+  // (scheduled in the past but never went live) — YouTube doesn't
+  // auto-clean them, so they'd otherwise camp at the top of the
+  // feed forever. We allow a 24h grace period to cover broadcasts
+  // that drift slightly past their scheduled start time without
+  // having an actualStartTime stamped yet.
+  if (item.liveBroadcastContent === "upcoming") {
+    const sched = item.scheduledStartTime
+      ? new Date(item.scheduledStartTime).getTime()
+      : null;
+    if (sched && sched < Date.now() - 24 * 3600 * 1000) {
+      // Treat as a recorded upload instead — the event was never
+      // actually live, so there's no replay to surface.
+      return item.isVertical ? "vertical" : "horizontal";
+    }
+    return "upcoming";
+  }
+
+  // Recently-ended live replays surface alongside upcoming so a
+  // viewer who missed yesterday's break can find it one tap away.
+  const ended = item.actualEndTime;
+  if (ended) {
+    const ageDays = (Date.now() - new Date(ended).getTime()) / (1000 * 60 * 60 * 24);
+    if (ageDays <= LIVE_REPLAY_DAYS) return "upcoming";
+  }
+
+  return item.isVertical ? "vertical" : "horizontal";
 }
 
 function parseISODurationSec(iso) {
@@ -489,12 +580,6 @@ function parseISODurationSec(iso) {
 function sortByPriorityAndDate(priorityFreshDays) {
   const freshCutoff = Date.now() - priorityFreshDays * 86400 * 1000;
   return (a, b) => {
-    // Live items beat everything within their feed (the live feed
-    // can carry live + replay; live should always lead).
-    const aLive = a.liveBroadcastContent === "live" ? 0 : 1;
-    const bLive = b.liveBroadcastContent === "live" ? 0 : 1;
-    if (aLive !== bLive) return aLive - bLive;
-
     // Top-priority channels (priority === 0, currently just
     // RadishDijital) pin their FRESH videos to the top of the feed.
     // Outside the freshness window they fall back to date order so a
@@ -508,4 +593,36 @@ function sortByPriorityAndDate(priorityFreshDays) {
     // Default: newest first.
     return (b.publishedAt || "").localeCompare(a.publishedAt || "");
   };
+}
+
+/// Upcoming-live sort: live now first (sorted by actualStartTime so
+/// the longest-running stream sits at top), then scheduled streams
+/// chronologically (soonest first), then recently-ended replays
+/// reverse-chronologically. Tiebreaker: priority → date.
+function sortByStreamTime(a, b) {
+  const aBucket = streamBucket(a);
+  const bBucket = streamBucket(b);
+  if (aBucket !== bBucket) return aBucket - bBucket;
+  const aTime = streamSortKey(a);
+  const bTime = streamSortKey(b);
+  // For "upcoming" bucket, ascending (soonest first). For "live" and
+  // "replay" buckets, descending (most recent first).
+  if (aBucket === 1) return aTime - bTime;
+  return bTime - aTime;
+}
+
+function streamBucket(item) {
+  if (item.liveBroadcastContent === "live") return 0;     // live now
+  if (item.liveBroadcastContent === "upcoming") return 1; // scheduled
+  return 2;                                                // ended replay
+}
+
+function streamSortKey(item) {
+  const t =
+    item.actualStartTime    ||
+    item.scheduledStartTime ||
+    item.actualEndTime      ||
+    item.publishedAt        ||
+    null;
+  return t ? new Date(t).getTime() : 0;
 }

@@ -1,7 +1,42 @@
 import SwiftUI
 
+/// Sort options that only make sense in the Collection context
+/// (date acquired, market value, paid price). Kept separate from
+/// CardSortOrder so the Find tab's sort menu doesn't get cluttered
+/// with options that depend on user-collection state.
+enum CollectionSortOrder: String, CaseIterable, Identifiable {
+    case nameAsc        = "name_asc"
+    case nameDesc       = "name_desc"
+    case dateAddedDesc  = "added_desc"
+    case dateAddedAsc   = "added_asc"
+    case priceDesc      = "price_desc"
+    case priceAsc       = "price_asc"
+    case paidDesc       = "paid_desc"
+    case paidAsc        = "paid_asc"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .nameAsc:       return "Name A → Z"
+        case .nameDesc:      return "Name Z → A"
+        case .dateAddedDesc: return "Recently Added"
+        case .dateAddedAsc:  return "Oldest Added"
+        case .priceDesc:     return "Market Value: High → Low"
+        case .priceAsc:      return "Market Value: Low → High"
+        case .paidDesc:      return "Paid: High → Low"
+        case .paidAsc:       return "Paid: Low → High"
+        }
+    }
+}
+
 struct FilterSheetView: View {
     @Bindable var store: CardStore
+    /// Optional binding for the Collection-only sort axis. When non-nil,
+    /// the sheet renders an additional sort section above the catalog
+    /// sort. The Find tab passes nil, so collection-specific options
+    /// (date added, paid, market value) stay scoped to Collection.
+    var collectionSort: Binding<CollectionSortOrder>? = nil
     @Environment(\.dismiss) private var dismiss
 
     // Local power input strings — convert to Int? on commit
@@ -12,20 +47,41 @@ struct FilterSheetView: View {
         NavigationStack {
             List {
 
-                // MARK: Sort
-                Section {
-                    Picker("Sort", selection: $store.sortOrder) {
-                        ForEach(CardSortOrder.allCases) { order in
-                            Text(order.label).tag(order)
+                // MARK: Collection sort (only when invoked from Collection)
+                if let collectionSort = collectionSort {
+                    Section {
+                        Picker("Sort", selection: collectionSort) {
+                            ForEach(CollectionSortOrder.allCases) { order in
+                                Text(order.label).tag(order)
+                            }
                         }
+                        .pickerStyle(.navigationLink)
+                        .font(Design.Fonts.mono(14))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                    } header: {
+                        sectionHeader("Sort Collection")
+                    } footer: {
+                        Text("Date added and price sorts are scoped to your collection.")
+                            .font(Design.Fonts.mono(11))
+                            .foregroundStyle(Design.Colors.textMuted)
                     }
-                    .pickerStyle(.navigationLink)
-                    .font(Design.Fonts.mono(14))
-                    .foregroundStyle(Design.Colors.textPrimary)
-                } header: {
-                    sectionHeader("Sort Order")
+                    .listRowBackground(Design.Colors.surface2)
+                } else {
+                    // MARK: Sort (catalog)
+                    Section {
+                        Picker("Sort", selection: $store.sortOrder) {
+                            ForEach(CardSortOrder.allCases) { order in
+                                Text(order.label).tag(order)
+                            }
+                        }
+                        .pickerStyle(.navigationLink)
+                        .font(Design.Fonts.mono(14))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                    } header: {
+                        sectionHeader("Sort Order")
+                    }
+                    .listRowBackground(Design.Colors.surface2)
                 }
-                .listRowBackground(Design.Colors.surface2)
 
                 // MARK: Card Type
                 Section {

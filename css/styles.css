@@ -922,6 +922,21 @@ main {
   background: rgba(0,245,255,0.08);
   box-shadow: 0 0 8px var(--boba-cyan-glow);
 }
+/* Clear-all action row inside the filter panel */
+.filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: var(--sp-2);
+}
+.filter-clear-all {
+  color: var(--boba-orange);
+  border-color: rgba(255,77,0,0.45);
+}
+.filter-clear-all:hover {
+  background: rgba(255,77,0,0.08);
+  box-shadow: 0 0 8px rgba(255,77,0,0.4);
+}
 
 /* ================================================================
    CARD GRID
@@ -2120,6 +2135,81 @@ main {
   transition: color 0.15s, background 0.15s;
 }
 .ccard-delete-btn:hover { color: #ff6b6b; background: rgba(255,107,107,0.1); }
+
+/* Enriched collection row — quantity, weapon/power strip, treatment,
+   value/paid breakdown, date added. Mirrors the iOS collection row.   */
+.ccard-name-row {
+  display: flex; align-items: baseline; gap: var(--sp-2); min-width: 0;
+}
+.ccard-qty {
+  flex-shrink: 0;
+  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+  color: var(--boba-cyan);
+  padding: 1px 6px;
+  background: rgba(0,245,255,0.12);
+  border-radius: 100px;
+}
+.ccard-stat-strip {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin-top: 1px;
+}
+.ccard-stat {
+  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+}
+.ccard-stat.ccard-element[data-element="FIRE"]  { color: var(--el-FIRE);  }
+.ccard-stat.ccard-element[data-element="ICE"]   { color: var(--el-ICE);   }
+.ccard-stat.ccard-element[data-element="HEX"]   { color: var(--el-HEX);   }
+.ccard-stat.ccard-element[data-element="STEEL"] { color: var(--el-STEEL); }
+.ccard-stat.ccard-element[data-element="BRAWL"] { color: var(--el-BRAWL); }
+.ccard-stat.ccard-element[data-element="GLOW"]  { color: var(--el-GLOW);  }
+.ccard-stat.ccard-element[data-element="GUM"]   { color: var(--el-GUM);   }
+.ccard-stat.ccard-element[data-element="SUPER"] { color: var(--el-SUPER); }
+.ccard-stat.ccard-power {
+  color: var(--boba-text-secondary);
+}
+.ccard-treatment {
+  font-family: var(--font-mono); font-size: 0.68rem;
+  color: var(--boba-text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ccard-price-tag {
+  font-family: var(--font-mono); font-size: 0.55rem; font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--boba-text-dim);
+  margin-left: 4px;
+}
+.ccard-price-paid {
+  font-family: var(--font-mono); font-size: 0.6rem;
+  color: var(--boba-text-dim);
+  margin-left: 6px;
+}
+.ccard-price-value { color: var(--boba-orange); font-weight: 700; }
+.ccard-added {
+  font-family: var(--font-mono); font-size: 0.6rem;
+  color: var(--boba-text-dim);
+}
+
+/* Sort dropdown that appears between the designation tabs and the
+   list. Lives only on the Collection view; the Find tab uses its own
+   sort select inside the filter panel. */
+.collection-toolbar {
+  display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+}
+.collection-sort-label {
+  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--boba-text-muted);
+}
+.collection-sort-select {
+  padding: 6px 10px;
+  font-family: var(--font-mono); font-size: 0.78rem;
+  color: var(--boba-text);
+  background: var(--boba-surface-2);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
 
 /* Designation badge (inline label) */
 .desig-badge {
@@ -4152,6 +4242,13 @@ main {
   text-transform: uppercase;
   color: var(--boba-text-muted);
   margin-bottom: var(--sp-4);
+}
+.strategy-section-note {
+  font-size: 0.86rem;
+  color: var(--boba-text-secondary);
+  line-height: 1.55;
+  margin: calc(-1 * var(--sp-2)) 0 var(--sp-4) 0;
+  max-width: 70ch;
 }
 
 /* ── Strategy summary title + subtitle ── */

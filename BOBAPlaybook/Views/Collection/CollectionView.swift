@@ -25,6 +25,10 @@ struct CollectionView: View {
 
     @State private var showingFilters      = false
     @State private var exportShareURL: URL?    = nil
+    /// Collection-only sort axis. Persisted across app launches because
+    /// it's a personal preference (a coach who likes "Recently Added"
+    /// doesn't want it reset every time they open the app).
+    @AppStorage("bp_collectionSortOrder_v1") private var collectionSortRaw: String = CollectionSortOrder.dateAddedDesc.rawValue
 
     enum CollectionViewMode: String, CaseIterable, Identifiable {
         case myCards = "My Cards"
@@ -73,7 +77,16 @@ struct CollectionView: View {
             SignInView()
         }
         .sheet(isPresented: $showingFilters) {
-            FilterSheetView(store: cardStore)
+            // Bind the @AppStorage-backed raw string through a custom
+            // Binding so the sort picker reads/writes the typed enum
+            // while the persistence layer keeps a plain String.
+            FilterSheetView(
+                store: cardStore,
+                collectionSort: Binding(
+                    get: { CollectionSortOrder(rawValue: collectionSortRaw) ?? .dateAddedDesc },
+                    set: { collectionSortRaw = $0.rawValue }
+                )
+            )
         }
         .sheet(item: $selectedCard) { wrapper in
             CollectionCardDetailView(bobaId: wrapper.id)
@@ -527,16 +540,15 @@ struct CollectionView: View {
                 Text(row.hero)
                     .font(Design.Fonts.display(16))
                     .foregroundStyle(Design.Colors.textPrimary)
-                // Segmented progress bar — each cell = one treatment.
-                // Filled = owned, dim = still needed.
-                HStack(spacing: 2) {
-                    ForEach(0..<row.total, id: \.self) { i in
-                        Rectangle()
-                            .fill(i < row.owned ? Design.Colors.bobaCyan : Design.Colors.glass)
-                            .frame(height: 4)
-                    }
-                }
-                .clipShape(Capsule())
+                // Progress bar — segmented when there are few treatments
+                // (one cell per treatment, easy to count at a glance), and
+                // a continuous fill when the hero has dozens of treatments
+                // (e.g. Maverick at 150). The segmented variant blew out
+                // the row width past the screen edge once we crossed ~60
+                // segments because the per-cell spacing alone exceeded
+                // available width.
+                rainbowProgressBar(row: row)
+                    .frame(height: 4)
                 Text("\(row.owned) of \(row.total) treatments")
                     .font(Design.Fonts.mono(11))
                     .foregroundStyle(Design.Colors.textMuted)
@@ -552,13 +564,53 @@ struct CollectionView: View {
         .contentShape(Rectangle())
     }
 
+    /// 60 is the largest count where 1pt-spaced 2pt-wide segments still
+    /// fit comfortably on an iPhone Mini's row width. Above that we drop
+    /// to a continuous fill — the per-treatment cell loses meaning at
+    /// that density anyway, and a single bar restores the row to the
+    /// expected geometry.
+    @ViewBuilder
+    private func rainbowProgressBar(row: RainbowProgress) -> some View {
+        if row.total <= 60 {
+            GeometryReader { proxy in
+                let spacing: CGFloat = 1
+                let totalSpacing = spacing * CGFloat(max(0, row.total - 1))
+                let segWidth = max(2, (proxy.size.width - totalSpacing) / CGFloat(max(1, row.total)))
+                HStack(spacing: spacing) {
+                    ForEach(0..<row.total, id: \.self) { i in
+                        Rectangle()
+                            .fill(i < row.owned ? Design.Colors.bobaCyan : Design.Colors.glass)
+                            .frame(width: segWidth)
+                    }
+                }
+                .clipShape(Capsule())
+            }
+        } else {
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Design.Colors.glass)
+                    Capsule()
+                        .fill(Design.Colors.bobaCyan)
+                        .frame(width: proxy.size.width * row.percent)
+                }
+            }
+        }
+    }
+
     private func collectionRow(identifier: String) -> some View {
         // identifier is a bobaId (e.g. "BOJ-123-BoJax-Base") for new entries,
         // or a plain cardNumber for legacy entries without a bobaId stored.
         let catalog = cardStore.displayCards.first { $0.id == identifier }
                    ?? cardStore.displayCards.first { $0.cardNumber == identifier }
         let copies = collection.entries(forBobaId: identifier).filter { $0.designation == selectedDesignation }
+        // Market value — sum of estimatedValue across all copies in this
+        // designation. Each physical copy has an independently refreshed
+        // estimate; summing reflects what the row is worth in aggregate.
+        let estimatedTotal = copies.compactMap { $0.estimatedValue }.reduce(Decimal(0), +)
         let totalPaid = copies.compactMap { $0.purchasePrice }.reduce(Decimal(0), +)
+        // Earliest acquired date wins — that's the "first added" anchor
+        // most coaches think of when they say "when did I get this card".
+        let earliestAdded = copies.map { $0.acquiredAt }.min()
 
         return HStack(spacing: Design.Spacing.md) {
             // Thumbnail
@@ -572,25 +624,53 @@ struct CollectionView: View {
                     .frame(width: 44, height: 62)
             }
 
-            VStack(alignment: .leading, spacing: Design.Spacing.xs) {
-                Text(catalog?.name ?? catalog?.cardNumber ?? identifier)
-                    .font(Design.Fonts.display(15))
-                    .foregroundStyle(Design.Colors.textPrimary)
-                    .lineLimit(1)
+            VStack(alignment: .leading, spacing: 3) {
+                // Title + qty pill on the same row so the count stays
+                // visible on long names (lineLimit(1) was clipping it).
                 HStack(spacing: Design.Spacing.xs) {
-                    if let element = catalog?.element {
+                    Text(catalog?.name ?? catalog?.cardNumber ?? identifier)
+                        .font(Design.Fonts.display(15))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                        .lineLimit(1)
+                    if copies.count > 1 {
+                        Text("×\(copies.count)")
+                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Capsule().fill(Design.Colors.bobaCyan.opacity(0.15)))
+                    }
+                }
+                // Stat strip: weapon · power · card #
+                HStack(spacing: Design.Spacing.xs) {
+                    if let element = catalog?.element, !element.isEmpty {
                         Text(element)
                             .font(Design.Fonts.mono(10, weight: .bold))
                             .foregroundStyle(Design.Colors.element(element))
                     }
+                    if let power = catalog?.power, power > 0 {
+                        Text("⚡\(power)")
+                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .foregroundStyle(Design.Colors.textSecondary)
+                    }
                     Text(catalog?.cardNumber ?? identifier)
-                        .font(Design.Fonts.mono(11))
+                        .font(Design.Fonts.mono(10))
                         .foregroundStyle(Design.Colors.textMuted)
                 }
-                if copies.count > 1 {
-                    Text("\(copies.count) copies")
-                        .font(Design.Fonts.mono(11))
-                        .foregroundStyle(Design.Colors.bobaCyan)
+                // Treatment — separate line so long treatments wrap
+                // gracefully without crowding the stat strip.
+                if let treatment = catalog?.treatment, !treatment.isEmpty {
+                    Text(treatment)
+                        .font(Design.Fonts.mono(10))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .lineLimit(1)
+                }
+                // Date added — small relative-date hint so coaches know
+                // how recently they acquired the card.
+                if let added = earliestAdded {
+                    Text("Added \(formatAddedDate(added))")
+                        .font(Design.Fonts.mono(9))
+                        .foregroundStyle(Design.Colors.textMuted)
                 }
             }
 
@@ -602,7 +682,15 @@ struct CollectionView: View {
                 // coaches don't read any purchase-price field on a
                 // wishlist entry as money actually spent.
                 if selectedDesignation.isOwned {
-                    if totalPaid > 0 {
+                    if estimatedTotal > 0 {
+                        Text(formatCurrency(estimatedTotal))
+                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                        Text("VALUE")
+                            .font(Design.Fonts.mono(8))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .tracking(1)
+                    } else if totalPaid > 0 {
                         Text(formatCurrency(totalPaid))
                             .font(Design.Fonts.mono(13, weight: .bold))
                             .foregroundStyle(Design.Colors.textPrimary)
@@ -613,6 +701,11 @@ struct CollectionView: View {
                     } else {
                         Text("$—")
                             .font(Design.Fonts.mono(13))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
+                    if estimatedTotal > 0 && totalPaid > 0 {
+                        Text("paid \(formatCurrency(totalPaid))")
+                            .font(Design.Fonts.mono(8))
                             .foregroundStyle(Design.Colors.textMuted)
                     }
                 } else {
@@ -636,6 +729,25 @@ struct CollectionView: View {
                         .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)
                 )
         )
+    }
+
+    /// Short, glanceable acquired-on label. Today/Yesterday for
+    /// fresh adds, "3d ago" for the same week, "Mar 14" for the same
+    /// year, and "Mar 14, 2025" for older entries.
+    private func formatAddedDate(_ date: Date) -> String {
+        let now = Date()
+        let cal = Calendar.current
+        if cal.isDateInToday(date)     { return "today" }
+        if cal.isDateInYesterday(date) { return "yesterday" }
+        let days = cal.dateComponents([.day], from: date, to: now).day ?? 0
+        if days < 7 { return "\(days)d ago" }
+        let f = DateFormatter()
+        if cal.component(.year, from: date) == cal.component(.year, from: now) {
+            f.dateFormat = "MMM d"
+        } else {
+            f.dateFormat = "MMM d, yyyy"
+        }
+        return f.string(from: date)
     }
 
     // MARK: - Trade Room FAB
@@ -733,10 +845,82 @@ struct CollectionView: View {
     // search bar. Filters are the dial for Collection; searchbar stays
     // on Find.
     private func collectionIdentifiers(for designation: UserCard.Designation) -> [String] {
-        let owned = collection.uniqueBobaIds(for: designation)
-        guard cardStore.activeFilterCount > 0 else { return owned }
-        let allowed = Set(cardStore.filteredCards.map(\.id))
-        return owned.filter { allowed.contains($0) }
+        var owned = collection.uniqueBobaIds(for: designation)
+        if cardStore.activeFilterCount > 0 {
+            let allowed = Set(cardStore.filteredCards.map(\.id))
+            owned = owned.filter { allowed.contains($0) }
+        }
+        return sortIdentifiers(owned, designation: designation)
+    }
+
+    /// Apply the active CollectionSortOrder. Sort keys are derived from
+    /// either the catalog (name) or the user's own copies (date added,
+    /// price, paid). Tiebreakers fall back to bobaId so the order is
+    /// stable across renders.
+    private func sortIdentifiers(_ ids: [String], designation: UserCard.Designation) -> [String] {
+        let order = CollectionSortOrder(rawValue: collectionSortRaw) ?? .dateAddedDesc
+        // Pre-resolve metadata once per id so the sort comparator is O(1).
+        struct Sortable {
+            let id: String
+            let name: String
+            let added: Date
+            let value: Decimal
+            let paid: Decimal
+        }
+        let metas: [Sortable] = ids.map { id in
+            let catalog = cardStore.displayCards.first { $0.id == id }
+                       ?? cardStore.displayCards.first { $0.cardNumber == id }
+            let copies = collection.entries(forBobaId: id).filter { $0.designation == designation }
+            let added = copies.map { $0.acquiredAt }.min() ?? .distantPast
+            let value = copies.compactMap { $0.estimatedValue }.reduce(Decimal(0), +)
+            let paid  = copies.compactMap { $0.purchasePrice }.reduce(Decimal(0), +)
+            return Sortable(
+                id: id,
+                name: catalog?.name ?? catalog?.cardNumber ?? id,
+                added: added,
+                value: value,
+                paid: paid
+            )
+        }
+        let sorted: [Sortable] = {
+            switch order {
+            case .nameAsc:
+                return metas.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            case .nameDesc:
+                return metas.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedDescending }
+            case .dateAddedDesc:
+                return metas.sorted { lhs, rhs in
+                    if lhs.added != rhs.added { return lhs.added > rhs.added }
+                    return lhs.id < rhs.id
+                }
+            case .dateAddedAsc:
+                return metas.sorted { lhs, rhs in
+                    if lhs.added != rhs.added { return lhs.added < rhs.added }
+                    return lhs.id < rhs.id
+                }
+            case .priceDesc:
+                return metas.sorted { lhs, rhs in
+                    if lhs.value != rhs.value { return lhs.value > rhs.value }
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                }
+            case .priceAsc:
+                return metas.sorted { lhs, rhs in
+                    if lhs.value != rhs.value { return lhs.value < rhs.value }
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                }
+            case .paidDesc:
+                return metas.sorted { lhs, rhs in
+                    if lhs.paid != rhs.paid { return lhs.paid > rhs.paid }
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                }
+            case .paidAsc:
+                return metas.sorted { lhs, rhs in
+                    if lhs.paid != rhs.paid { return lhs.paid < rhs.paid }
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                }
+            }
+        }()
+        return sorted.map(\.id)
     }
 
     // MARK: - Helpers

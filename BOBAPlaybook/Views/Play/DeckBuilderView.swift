@@ -59,6 +59,10 @@ struct DeckBuilderView: View {
     @State private var selectedBrowserCard: Card? = nil
     @State private var elementFilter = ""
     @Environment(\.dismiss) private var dismiss
+    /// Focus state for the deck-builder card search field. Drives the
+    /// keyboard-accessory Done button so coaches can dismiss the keyboard
+    /// without committing a search.
+    @FocusState private var browserSearchFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -101,25 +105,20 @@ struct DeckBuilderView: View {
                         }
                         .deckBuilderTutorialTarget(.deckMenu)
 
-                        // Collection-only toggle — restricts the card
-                        // picker pool to cards the user owns. Matches
-                        // the Collection tab icon for a visible link
-                        // between the two surfaces.
+                        // Walkthrough re-launcher. Lives directly to the
+                        // left of the wordmark so coaches can find it
+                        // when they want a refresher. Tapping it
+                        // re-opens the deck-builder tutorial regardless
+                        // of whether it was previously dismissed.
                         Button {
-                            collectionOnly.toggle()
+                            showDeckTutorial = true
                         } label: {
-                            Image(systemName: "square.grid.2x2")
-                                .font(.system(size: 18))
-                                .foregroundStyle(collectionOnly ? Design.Colors.nearBlack : Design.Colors.bobaCyan)
-                                .padding(4)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .fill(collectionOnly ? Design.Colors.bobaCyan : Color.clear)
-                                )
+                            Image(systemName: "questionmark.circle")
+                                .font(.system(size: 20))
+                                .foregroundStyle(Design.Colors.bobaCyan)
                         }
-                        .accessibilityLabel(collectionOnly ? "Showing my collection only" : "Show only cards I own")
-                        .disabled(!auth.isAuthenticated)
-                        .opacity(auth.isAuthenticated ? 1 : 0.4)
+                        .accessibilityLabel("Show deck-builder walkthrough")
+                        .deckBuilderTutorialTarget(.helpButton)
                     }
                 }
                 ToolbarItem(placement: .principal) {
@@ -141,6 +140,7 @@ struct DeckBuilderView: View {
                                 .foregroundStyle(Design.Colors.bobaCyan)
                         }
                         .accessibilityLabel("Legality audit")
+                        .deckBuilderTutorialTarget(.legalityButton)
                         Button {
                             showRulesSheet = true
                         } label: {
@@ -166,6 +166,15 @@ struct DeckBuilderView: View {
                                 .foregroundStyle(Design.Colors.bobaOrange)
                         }
                     }
+                }
+                // Done key on the keyboard accessory bar — same purpose
+                // as on Find: lets a coach dismiss the keyboard if they
+                // tapped the search field by mistake.
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { browserSearchFocused = false }
+                        .font(Design.Fonts.mono(13, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
                 }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
@@ -534,11 +543,38 @@ struct DeckBuilderView: View {
 
             // Search + scan shortcut. Mirrors SearchView's layout: text
             // field on the left in a glass capsule, orange "SCAN" pill
-            // on the right. Tapping scan launches a deck-builder
-            // scanner session — scanned cards default to the in-progress
-            // deck with optional fan-out to other saved decks and the
-            // Collection (selected in the queue).
+            // on the right. The collection-only toggle now sits to the
+            // left of the field (was previously a top-bar leading
+            // button) — its proximity to the picker makes the link
+            // between "what I'm browsing" and "my collection" clearer.
+            // Tapping scan launches a deck-builder scanner session —
+            // scanned cards default to the in-progress deck with
+            // optional fan-out to other saved decks and the Collection
+            // (selected in the queue).
             HStack(spacing: Design.Spacing.sm) {
+                Button {
+                    collectionOnly.toggle()
+                } label: {
+                    Image(systemName: "square.grid.2x2")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(collectionOnly ? Design.Colors.nearBlack : Design.Colors.bobaCyan)
+                        .padding(.horizontal, 10)
+                        .frame(height: 36)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(collectionOnly ? Design.Colors.bobaCyan : Design.Colors.bobaCyan.opacity(0.12))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .strokeBorder(Design.Colors.bobaCyan.opacity(collectionOnly ? 0 : 0.4), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(collectionOnly ? "Showing my collection only" : "Show only cards I own")
+                .disabled(!auth.isAuthenticated)
+                .opacity(auth.isAuthenticated ? 1 : 0.4)
+                .deckBuilderTutorialTarget(.collectionToggle)
+
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(Design.Colors.textMuted)
@@ -547,6 +583,7 @@ struct DeckBuilderView: View {
                         .font(Design.Fonts.mono(14))
                         .foregroundStyle(Design.Colors.textPrimary)
                         .autocorrectionDisabled()
+                        .focused($browserSearchFocused)
                     if !store.browserSearch.isEmpty {
                         Button { store.browserSearch = "" } label: {
                             Image(systemName: "xmark.circle.fill")

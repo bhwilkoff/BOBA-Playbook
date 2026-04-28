@@ -24,6 +24,9 @@ enum DeckBuilderTutorialTarget: Hashable {
     case browser
     case deckList
     case deckMenu
+    case helpButton
+    case collectionToggle
+    case legalityButton
 }
 
 struct DeckBuilderAnchorKey: PreferenceKey {
@@ -61,16 +64,25 @@ extension Array where Element == DeckBuilderTutorialStep {
               message: "Apex (no power cap), Spec (≤160), Elite (8,250 total with no Trainers), or SPEC+ (up to 70 heroes with tiered 175-200 slots). Each shapes what you can build.",
               placement: .below),
         .init(target: .rulesButton, title: "Rule Sets + Divisions",
-              message: "Pick a preset from the 2026 Nationals events (Apex Playmaker, Brawl, Blast, Tecmo Bowl, Granny's Gum…) — or start casual. Toggle individual rules like 6-per-hero or DBS enforcement any time.",
+              message: "Pick a preset from the 2026 Nationals events (Apex Playmaker, Brawl, Blast, Tecmo Bowl, Granny's Gum…) — or start casual. Toggle individual rules like 6-per-hero, per-power caps, or DBS enforcement any time.",
+              placement: .below),
+        .init(target: .legalityButton, title: "Legality at a Glance",
+              message: "Tap the seal to see exactly which rule each card breaks (or passes) under the active format + divisions. The badge in the stats bar flips between LEGAL and ILLEGAL in real time as you build.",
               placement: .below),
         .init(target: .browser, title: "Browse the Catalog",
               message: "Search 17k+ cards, filter by weapon, switch tabs for Heroes / Plays / Hot Dogs. Tap a card to preview — or flip Quick-Add to tap-to-add instantly.",
               placement: .above),
+        .init(target: .collectionToggle, title: "Build From What You Own",
+              message: "Toggle the grid icon next to the search field to restrict the picker to cards already in your Collection. Great for figuring out what's actually playable from your binder right now.",
+              placement: .below),
         .init(target: .deckList, title: "Your Deck",
               message: "Cards land here as you build. Tap the chevron to expand each section, edit the deck name any time, and watch the legality + DBS chips update in real time.",
               placement: .above),
         .init(target: .deckMenu, title: "Save, Load, Import",
               message: "Save your deck to the cloud, reload a saved deck, or import one from a CSV exported from the official deck builder. Your work auto-saves when you leave — you won't lose it.",
+              placement: .below),
+        .init(target: .helpButton, title: "Replay This Walkthrough",
+              message: "Tap the question mark any time to see this tour again. We added new bits when the legality auditor and per-power caps shipped — pop back in if you want a refresher.",
               placement: .below)
     ]
 }

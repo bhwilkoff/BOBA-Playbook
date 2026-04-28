@@ -83,9 +83,10 @@ actor WhatnotShowsService {
 
         var components = URLComponents(string: base)
         components?.path = "/whatnot/upcoming"
+        // No `status` param — let the Worker default to CREATED+PLAYING
+        // so the Purchase view shows live streams alongside upcoming ones.
         components?.queryItems = [
             URLQueryItem(name: "query", value: query),
-            URLQueryItem(name: "status", value: "CREATED"),
         ]
         guard let url = components?.url else { return [] }
 

@@ -103,6 +103,14 @@ final class PracticeStore {
     var mode: PracticeMode = .rookie
     var playerDeckSource: DeckSource = .random
     var cpuDeckSource: DeckSource = .random
+    /// CPU difficulty for Elo accounting — defaults to Standard (1000
+    /// reference rating). Surfaced in the practice setup picker;
+    /// match results route this profile to EloStore on matchOver.
+    var cpuProfile: CPUProfile = .standard
+    /// Set after a match resolves and EloStore is updated. Lets the
+    /// post-game summary surface "+18 rating → Brawl 1018".
+    var lastEloDelta: Int? = nil
+    var lastEloRating: Int? = nil
 
     enum DeckSource {
         case template(DeckTemplate)
@@ -3214,7 +3222,30 @@ final class PracticeStore {
         // After B7 with a tied score → Sudden Death extends. Don't
         // mark matchOver here; moveToNextBattle handles the slot
         // append + advance.
+
+        // On match end, run Elo bookkeeping (handoff §2 Phase D).
+        // Single-player practice → per-match update routed to the
+        // user's (mode, practice-ai, era) record.
+        if matchOver, let eloMode = EloMode(mode) {
+            let outcome: EloOutcome
+            switch matchWinner {
+            case .player: outcome = .win
+            case .cpu:    outcome = .loss
+            case .none:   outcome = .tie
+            }
+            let store = PracticeStore.eloStore
+            let delta = store.applyPracticeResult(mode: eloMode,
+                                                   cpuProfile: cpuProfile,
+                                                   outcome: outcome)
+            lastEloDelta  = delta
+            lastEloRating = store.record(mode: eloMode).rating
+        }
     }
+
+    /// Process-wide Elo store. Practice is single-device so a
+    /// shared instance is fine; if PvP arrives, this lifts to
+    /// `@Environment(EloStore.self)` injected from the App scene.
+    static let eloStore = EloStore()
 
     private func moveToNextBattle() {
         battles[currentBattle].isActive = false
@@ -4499,5 +4530,237 @@ final class PracticeStore {
 private extension Array {
     mutating func removeFirst(where predicate: (Element) -> Bool) {
         if let idx = firstIndex(where: predicate) { remove(at: idx) }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - Elo system (Phase D, bobaleagues handoff §2)
+//
+// Standard chess-Elo (K=32, start=1000, ties=0.5). Per-mode +
+// per-source independence so Rookie / Sub / Playmaker each carry
+// their own rating, and so practice-AI ratings stay separate from
+// future PvP ratings without rework.
+//
+// Inlined here (not a standalone file) per the project's Xcode
+// synchronized-group reliability note — new files intermittently
+// fail to register with the index even after a clean build.
+// ════════════════════════════════════════════════════════════════
+
+enum EloMode: String, Codable, CaseIterable, Sendable, Identifiable {
+    case rookie, substitution, playmaker
+    var id: String { rawValue }
+
+    init?(_ practice: PracticeMode) {
+        switch practice {
+        case .rookie:       self = .rookie
+        case .substitution: self = .substitution
+        case .playmaker:    self = .playmaker
+        }
+    }
+}
+
+enum EloSource: String, Codable, Sendable {
+    case practiceAI = "practice-ai"
+    case pvp        = "pvp"
+}
+
+/// CPU profile = a fixed reference rating that the user's rating
+/// adjusts against. Higher difficulty profiles start higher, so
+/// beating them earns more points.
+enum CPUProfile: String, Codable, CaseIterable, Sendable, Identifiable {
+    case rookie    = "rookie"
+    case standard  = "standard"
+    case expert    = "expert"
+    case champion  = "champion"
+    case master    = "master"
+    var id: String { rawValue }
+
+    var referenceRating: Int {
+        switch self {
+        case .rookie:   return 800
+        case .standard: return 1000
+        case .expert:   return 1200
+        case .champion: return 1500
+        case .master:   return 1700
+        }
+    }
+}
+
+enum EloOutcome: String, Codable, Sendable { case win = "W", loss = "L", tie = "T" }
+
+struct RatingPoint: Codable, Hashable, Sendable {
+    let at: Date
+    let rating: Int
+    let delta: Int
+    let opponent: String?
+    let outcome: EloOutcome
+    let matchRef: String?
+}
+
+/// One bucket per (mode, source, era). Rating, peak, history, W/L/T.
+struct EloRecord: Codable, Hashable, Sendable, Identifiable {
+    var mode: EloMode
+    var source: EloSource
+    var era: String
+    var rating: Int
+    var peakRating: Int
+    var matches: Int
+    var wins: Int
+    var losses: Int
+    var ties: Int
+    var history: [RatingPoint]
+    var updatedAt: Date
+
+    var id: String { "\(era)|\(source.rawValue)|\(mode.rawValue)" }
+
+    static let startingRating = 1000
+
+    static func empty(mode: EloMode, source: EloSource, era: String) -> EloRecord {
+        EloRecord(mode: mode, source: source, era: era,
+                  rating: Self.startingRating, peakRating: Self.startingRating,
+                  matches: 0, wins: 0, losses: 0, ties: 0,
+                  history: [], updatedAt: Date())
+    }
+
+    /// Tier name derived live from the current rating. Never stored —
+    /// tier-tag drift would lie to the user when boundaries get tuned.
+    var tier: String { EloEngine.tier(for: rating) }
+}
+
+enum EloEngine {
+    static let kFactor = 32.0
+    static let tieScore = 0.5
+
+    /// 200-point bands per handoff §2. Live-derived from rating.
+    static let tierBands: [(name: String, floor: Int)] = [
+        ("Brawl",  0),
+        ("Steel",  1000),
+        ("Ice",    1200),
+        ("Fire",   1400),
+        ("Glow",   1600),
+        ("Hex",    1800),
+        ("Gum",    2000),
+        ("Super",  2200),
+    ]
+
+    static func tier(for rating: Int) -> String {
+        var name = tierBands[0].name
+        for band in tierBands where rating >= band.floor { name = band.name }
+        return name
+    }
+
+    /// Standard Elo expected-score formula. Higher opponent → lower
+    /// expected score → bigger delta on a win.
+    static func expectedScore(player: Int, opponent: Int) -> Double {
+        1.0 / (1.0 + pow(10.0, Double(opponent - player) / 400.0))
+    }
+
+    /// Apply one match outcome to a record. Returns the rating delta
+    /// (signed). Mutates the record in place.
+    @discardableResult
+    static func applyMatch(_ record: inout EloRecord,
+                           opponentRating: Int,
+                           outcome: EloOutcome,
+                           opponentLabel: String?,
+                           matchRef: String? = nil) -> Int {
+        let actual: Double
+        switch outcome {
+        case .win:  actual = 1.0
+        case .loss: actual = 0.0
+        case .tie:  actual = tieScore
+        }
+        let expected = expectedScore(player: record.rating, opponent: opponentRating)
+        let delta = Int((kFactor * (actual - expected)).rounded())
+        record.rating += delta
+        record.peakRating = max(record.peakRating, record.rating)
+        record.matches  += 1
+        switch outcome {
+        case .win:  record.wins   += 1
+        case .loss: record.losses += 1
+        case .tie:  record.ties   += 1
+        }
+        record.history.append(RatingPoint(at: Date(), rating: record.rating,
+                                          delta: delta, opponent: opponentLabel,
+                                          outcome: outcome, matchRef: matchRef))
+        record.updatedAt = Date()
+        return delta
+    }
+}
+
+/// UserDefaults-backed storage for the user's Elo records. A flat
+/// dictionary keyed by `EloRecord.id`. Practice is single-device
+/// today, so local persistence is enough — ports cleanly to a
+/// Supabase table when PvP arrives.
+@MainActor
+@Observable
+final class EloStore {
+    /// Era id is a label we control (handoff §2). Bumped manually
+    /// when we want to start a fresh ladder season.
+    static let currentEra = "alpha-2026"
+
+    private let storageKey = "elo_records_v1"
+    private(set) var records: [String: EloRecord] = [:]
+
+    init() { load() }
+
+    /// Fetch the (mode, source, era) record, creating an empty one
+    /// at the starting rating if it doesn't exist.
+    func record(mode: EloMode,
+                source: EloSource = .practiceAI,
+                era: String = EloStore.currentEra) -> EloRecord {
+        let key = "\(era)|\(source.rawValue)|\(mode.rawValue)"
+        if let r = records[key] { return r }
+        let fresh = EloRecord.empty(mode: mode, source: source, era: era)
+        records[key] = fresh
+        return fresh
+    }
+
+    /// Apply a finished practice match against a CPU profile.
+    /// Returns the rating delta so callers can surface it in UI.
+    @discardableResult
+    func applyPracticeResult(mode: EloMode,
+                             cpuProfile: CPUProfile,
+                             outcome: EloOutcome,
+                             matchRef: String? = nil) -> Int {
+        let key = "\(EloStore.currentEra)|\(EloSource.practiceAI.rawValue)|\(mode.rawValue)"
+        var rec = records[key] ?? EloRecord.empty(mode: mode,
+                                                  source: .practiceAI,
+                                                  era: EloStore.currentEra)
+        let delta = EloEngine.applyMatch(&rec,
+                                          opponentRating: cpuProfile.referenceRating,
+                                          outcome: outcome,
+                                          opponentLabel: "CPU \(cpuProfile.rawValue.capitalized)",
+                                          matchRef: matchRef)
+        records[key] = rec
+        save()
+        return delta
+    }
+
+    private func load() {
+        guard let data = UserDefaults.standard.data(forKey: storageKey),
+              let decoded = try? JSONDecoder.iso8601.decode([String: EloRecord].self, from: data)
+        else { return }
+        records = decoded
+    }
+
+    private func save() {
+        guard let data = try? JSONEncoder.iso8601.encode(records) else { return }
+        UserDefaults.standard.set(data, forKey: storageKey)
+    }
+}
+
+private extension JSONDecoder {
+    static var iso8601: JSONDecoder {
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .iso8601
+        return d
+    }
+}
+
+private extension JSONEncoder {
+    static var iso8601: JSONEncoder {
+        let e = JSONEncoder()
+        e.dateEncodingStrategy = .iso8601
+        return e
     }
 }

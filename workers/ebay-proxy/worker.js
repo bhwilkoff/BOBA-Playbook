@@ -1269,16 +1269,20 @@ async function handleWhatnotUpcoming(request, _env) {
   const query = url.searchParams.get("query")  || "bo Jackson battle arena";
   const status = (url.searchParams.get("status") || "CREATED").toUpperCase();
 
-  // Edge cache
+  const debug = url.searchParams.get("debug") === "1";
+
+  // Edge cache (skipped when debug=1 so we can iterate)
   const cache = caches.default;
   const cacheKey = new Request(
     `https://boba-cache.internal/whatnot/v1/${encodeURIComponent(status)}/${encodeURIComponent(query.toLowerCase())}`,
     { method: "GET" }
   );
-  const hit = await cache.match(cacheKey);
-  if (hit) {
-    const body = await hit.json();
-    return json(body, 200, { "X-Cache": "HIT" });
+  if (!debug) {
+    const hit = await cache.match(cacheKey);
+    if (hit) {
+      const body = await hit.json();
+      return json(body, 200, { "X-Cache": "HIT" });
+    }
   }
 
   const searchUrl = buildWhatnotSearchUrl(query, status);
@@ -1292,6 +1296,7 @@ async function handleWhatnotUpcoming(request, _env) {
     return json({ error: `whatnot returned ${resp.status}`, searchUrl }, 502);
   }
   const html = await resp.text();
+
 
   const shows = whatnotExtractShows(html, query);
   const payload = {
@@ -1370,14 +1375,22 @@ function whatnotExtractShows(html, query) {
   const shows = [];
   for (const partial of byId.values()) {
     if (!partial.showId || !partial.title) continue;
+    // Derive the human-readable time string from startTimeMs when the
+    // Apollo data gave it to us; fall back to whatever DOM scrape
+    // produced (rare).
+    let timeText = partial.scheduledTimeText || "";
+    if (!timeText && partial.startTimeMs) {
+      timeText = whatnotFormatRelativeTime(new Date(partial.startTimeMs));
+    }
     shows.push({
       showId:            partial.showId,
       showUrl:           partial.showUrl || `${WHATNOT_BASE}/live/${partial.showId}`,
       title:             partial.title,
       host:              partial.host || "",
       hostUrl:           partial.hostUrl || "",
-      scheduledTimeText: partial.scheduledTimeText || "",
-      scheduledTimeIso:  null, // client formats from text — see handoff §6
+      scheduledTimeText: timeText,
+      scheduledTimeIso:  partial.scheduledTimeIso || null,
+      startTimeMs:       partial.startTimeMs || null,
       viewerCount:       partial.viewerCount ?? 0,
       categoryName:      partial.categoryName || "",
       categorySlug:      partial.categorySlug || "",
@@ -1388,12 +1401,12 @@ function whatnotExtractShows(html, query) {
       fetchedAtIso,
     });
   }
-  // Sort: have-a-time first (by raw text alphabetic — "Today" sorts before
-  // "Tomorrow" before weekday labels — close enough for upcoming feed).
+  // Sort soonest-first using the absolute startTime when available.
   shows.sort((a, b) => {
-    const ka = a.scheduledTimeText || "~";
-    const kb = b.scheduledTimeText || "~";
-    return ka.localeCompare(kb);
+    if (a.startTimeMs && b.startTimeMs) return a.startTimeMs - b.startTimeMs;
+    if (a.startTimeMs) return -1;
+    if (b.startTimeMs) return 1;
+    return (a.scheduledTimeText || "~").localeCompare(b.scheduledTimeText || "~");
   });
   return shows;
 }
@@ -1411,14 +1424,110 @@ function whatnotEnrichFromApolloPushes(html, byId) {
       if (!id) return;
       const cur = byId.get(id);
       if (!cur) return;
-      if (!cur.title)             cur.title = wnPickString(node, ["title"]) || cur.title;
-      if (!cur.thumbnailUrl)      cur.thumbnailUrl = wnPickImageUrl(node) || cur.thumbnailUrl;
-      if (!cur.viewerCount)       cur.viewerCount = wnPickInt(node, ["viewerCount", "currentViewers", "interestedCount"]) || 0;
-      if (!cur.scheduledTimeText) cur.scheduledTimeText = wnPickString(node, ["scheduledStartText", "startTimeText"]) || "";
-      if (!cur.categoryName)      cur.categoryName = wnPickString(node, ["categoryName", "category"]) || "";
-      if (!cur.tags?.length)      cur.tags = wnPickArray(node, ["tags", "tagNames"]) || [];
+
+      // Title from the LiveStream node.
+      if (!cur.title) cur.title = wnPickString(node, ["title"]) || cur.title;
+
+      // Host: nested under `user`. Fall back to `seller` if Whatnot
+      // ever renames the field.
+      if (!cur.host) {
+        const user = node.user || node.seller || node.host;
+        const handle = user && wnPickString(user, ["username", "handle", "slug"]);
+        if (handle) {
+          cur.host = handle;
+          cur.hostUrl = `${WHATNOT_BASE}/user/${handle}`;
+        }
+      }
+
+      // Thumbnail: nested under `thumbnail` with biggerImage / smallImage.
+      if (!cur.thumbnailUrl) {
+        const t = node.thumbnail;
+        if (t && typeof t === "object") {
+          cur.thumbnailUrl = t.biggerImage || t.smallImage || t.url || cur.thumbnailUrl;
+        } else {
+          cur.thumbnailUrl = wnPickImageUrl(node) || cur.thumbnailUrl;
+        }
+      }
+
+      // Start time — Unix epoch milliseconds. Convert to ISO + a
+      // human-readable label in user-local terms (we use UTC-anchored
+      // ISO and let the client format).
+      if (!cur.startTimeMs) {
+        const startMs = wnPickInt(node, ["startTime", "startsAt", "scheduledStart"]);
+        if (startMs && startMs > 1_000_000_000_000) {
+          // milliseconds — store both for the client
+          cur.startTimeMs = startMs;
+          cur.scheduledTimeIso = new Date(startMs).toISOString();
+        } else if (startMs && startMs > 1_000_000_000) {
+          // seconds (defensive — older schema)
+          cur.startTimeMs = startMs * 1000;
+          cur.scheduledTimeIso = new Date(startMs * 1000).toISOString();
+        }
+      }
+
+      // Viewer count — for upcoming shows this is the watchlist
+      // (interested) count, for live shows it's the active viewers.
+      if (!cur.viewerCount) {
+        const watchlist = wnPickInt(node, ["totalWatchlistUsers"]);
+        const active    = wnPickInt(node, ["activeViewers", "currentViewers"]);
+        cur.viewerCount = watchlist || active || 0;
+      }
+
+      // Category — `categoryNodes[0].label` is the most consistent.
+      if (!cur.categoryName) {
+        const nodes = node.livestreamCategories || node.categoryNodes;
+        if (Array.isArray(nodes) && nodes.length) {
+          const first = nodes[0];
+          cur.categoryName = wnPickString(first, ["label", "name"]) || "";
+          cur.categorySlug = wnPickString(first, ["type", "slug"]) || "";
+        }
+      }
+
+      // Tags — `tags[].label`.
+      if (!cur.tags?.length) {
+        const t = node.tags;
+        if (Array.isArray(t)) {
+          cur.tags = t.map(x => wnPickString(x, ["label", "name"])).filter(Boolean);
+        }
+      }
     });
   }
+}
+
+// Format a JS Date (UTC) into a Whatnot-style "Today / Tomorrow /
+// Wed 6:30 PM" string in America/Los_Angeles local time. The Worker
+// produces this so the client doesn't have to know Whatnot's
+// rendering convention.
+function whatnotFormatRelativeTime(date) {
+  if (!(date instanceof Date) || isNaN(date.getTime())) return "";
+  const tz = "America/Los_Angeles";
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, weekday: "short", month: "short", day: "numeric",
+    hour: "numeric", minute: "2-digit", year: "numeric",
+  });
+  const parts = {};
+  for (const p of dtf.formatToParts(date)) parts[p.type] = p.value;
+  // "Now" parts in same TZ for relative-day classification.
+  const nowParts = {};
+  const ndtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, weekday: "short", month: "short", day: "numeric", year: "numeric",
+  });
+  for (const p of ndtf.formatToParts(new Date())) nowParts[p.type] = p.value;
+
+  const dateKey = `${parts.year}-${parts.month}-${parts.day}`;
+  const nowKey  = `${nowParts.year}-${nowParts.month}-${nowParts.day}`;
+  const tmrw = new Date(Date.now() + 86400000);
+  const tparts = {};
+  for (const p of ndtf.formatToParts(tmrw)) tparts[p.type] = p.value;
+  const tmrwKey = `${tparts.year}-${tparts.month}-${tparts.day}`;
+
+  const time = `${parts.hour}:${parts.minute} ${parts.dayPeriod || ""}`.trim();
+  if (dateKey === nowKey)  return `Today ${time}`;
+  if (dateKey === tmrwKey) return `Tomorrow ${time}`;
+  // Within 7 days → weekday; else month-day
+  const diffDays = Math.floor((date.getTime() - Date.now()) / 86400000);
+  if (diffDays >= 0 && diffDays < 7) return `${parts.weekday} ${time}`;
+  return `${parts.month} ${parts.day} ${time}`;
 }
 
 function whatnotEnrichFromNextData(html, byId) {

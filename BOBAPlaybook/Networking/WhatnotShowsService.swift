@@ -18,6 +18,7 @@ struct WhatnotShow: Identifiable, Codable, Sendable, Hashable {
     let hostUrl: String
     let scheduledTimeText: String
     let scheduledTimeIso: String?
+    let startTimeMs: Int64?
     let viewerCount: Int
     let categoryName: String
     let categorySlug: String
@@ -27,6 +28,7 @@ struct WhatnotShow: Identifiable, Codable, Sendable, Hashable {
     var id: String { showId }
 
     var scheduledDate: Date? {
+        if let ms = startTimeMs { return Date(timeIntervalSince1970: TimeInterval(ms) / 1000.0) }
         guard let iso = scheduledTimeIso, !iso.isEmpty else { return nil }
         return ISO8601DateFormatter().date(from: iso)
     }

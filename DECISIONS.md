@@ -213,3 +213,60 @@ Two parallel state arrays on `PracticeStore` drive every persistent effect:
 `INFOPLIST_KEY_CFBundleDisplayName = Playbook` in both Debug + Release configs. The full "BOBA Playbook" name still appears in `BOBAWordmark` everywhere inside the app, in `CFBundleName` (Settings → iPhone Storage), and on the App Store listing.
 
 **Why**: "BOBA Playbook" truncates to "BOBA Pl…" under the icon on every iPhone home screen tested. Truncation reads as broken; the shorter name is intentional. The XOXO icon already carries enough brand to identify the app — the under-icon label only needs to disambiguate from other apps the user has installed.
+
+## 033 — Open questions deferred to BoBA / real-world data
+*2026-04-27*
+Three items from the bobaleagues handoff (and the 2026-04-27 BoBA DBS
+update) are blocked on either the BoBA team or real-world signal we
+don't yet have. Cementing them here so they don't get lost between
+handoffs.
+
+**(a) `LA - 20 — Series MVP Award` anomaly.** One row in BoBA's
+2026-04-27 DBS update PDF reads `LA - 20  Series MVP Award  0  If
+MVFree is your Hero in the current Battle he gets +30.  6`. The `LA`
+prefix doesn't match any other release in our catalog (A / U / G / HTD
+all map to existing sets; LA does not). Three live possibilities:
+
+1. PDF parser glitch — should be `U - PL-20` or similar
+2. A new "Limited Alpha" / promo subset that arrived with this patch
+3. A Legendary-Alt or hero-bonus card tied specifically to "MVFree"
+
+The card text references *MVFree*, which appears to be a hero name we
+don't currently have in `cards.json`. Until BoBA confirms what `LA` is
+and whether MVFree exists as a hero record, the row is intentionally
+skipped from the DBS merge — it's the only one of 411 update rows that
+didn't land. **Ben TODO**: ask the BoBA team directly. Once resolved,
+rerun `dbs_merge.py` with the corrected mapping (and add MVFree as a
+hero record if needed).
+
+**(b) bobaleagues CSV roundtrip verification.** Phase C shipped a v2
+CSV format (`id,name,type,release,number,cost,dbs,ability,bonus`) per
+handoff §6, alongside the legacy v1 format (`Slot,Card#,...`) that's
+designed to load into bobaleagues' deck-builder upload form. The
+verification step is unblocked but unfinished: **Ben TODO** is to
+build a real Playbook on bobaleagues, export a CSV from there, and
+drop it in the recon folder so we can adjust our exporter shape to
+match if anything drifts. Until then we keep both v1 + v2 export
+paths — v1 stays untouched for bobaleagues compat, v2 is the
+canonical full-deck format for in-app roundtrips.
+
+**(c) Elo tier-band tuning.** The Phase D rating system uses 200-pt
+bands keyed to BoBA's weapon vocabulary (Brawl 0–999, Steel 1000–1199,
+Ice 1200–1399, Fire 1400–1599, Glow 1600–1799, Hex 1800–1999, Gum
+2000–2199, Super 2200+). The bands are live-derived from rating —
+never stored — so we can re-tune without lying about historical state.
+But the tuning itself needs **real practice-distribution data** before
+we have signal: a K=32 ladder seeded at 1000 will pile up around
+800–1200 for most users, and the question is whether band widths
+should narrow at the bottom (so most users see at least 2–3 tier-up
+moments early) or stay uniform (so the climb to Super means
+something). Revisit once we have ~1k practice matches in production.
+
+**Why deferring is right**: All three are blocked on something we
+don't control — BoBA's confirmation, a Ben-side artifact, or
+production data. Fabricating answers now would mean either guessing
+about LA-20 (and silently drifting from the canonical list), shipping
+a CSV that doesn't actually roundtrip with bobaleagues (breaking the
+courtesy interop), or tier-band tuning against synthetic data (which
+won't predict where real users cluster). The cost of waiting is zero;
+the cost of guessing is silent drift.

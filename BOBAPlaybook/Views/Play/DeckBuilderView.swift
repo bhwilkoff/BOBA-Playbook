@@ -513,6 +513,17 @@ struct DeckBuilderView: View {
             .padding(.vertical, Design.Spacing.xs)
             .background(Design.Colors.surface)
 
+            // Per-tab status banner — count + DBS budget + the
+            // validation errors scoped to this section. Three-pane
+            // editor refactor (handoff §4b): each role-tab surfaces
+            // its own progress + compliance state alongside the
+            // browser, instead of bundling everything into the
+            // expand-all-decks banner at the bottom.
+            browserTabStatusBanner
+                .padding(.horizontal, Design.Spacing.md)
+                .padding(.vertical, Design.Spacing.xs)
+                .background(Design.Colors.surface)
+
             // Element filter pills (heroes only)
             if store.browserTab == .hero {
                 elementFilterPills
@@ -628,6 +639,72 @@ struct DeckBuilderView: View {
                     : Design.Colors.glass.opacity(0.4), lineWidth: 1))
         }
         .buttonStyle(.plain)
+    }
+
+    /// Per-tab status banner — surfaces count progress, DBS budget
+    /// (Plays tab only), and any validation errors scoped to the
+    /// current role. Returns an empty view when there's nothing to
+    /// say so the picker row collapses cleanly.
+    @ViewBuilder
+    private var browserTabStatusBanner: some View {
+        let role = store.browserTab
+        let scopedErrors = store.validationErrors.filter { $0.section == role }
+        let summary: String? = browserTabSummaryText(for: role)
+        if summary != nil || !scopedErrors.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                if let line = summary {
+                    HStack(spacing: 6) {
+                        Image(systemName: scopedErrors.isEmpty
+                                          ? "checkmark.circle.fill"
+                                          : "info.circle.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(scopedErrors.isEmpty
+                                              ? Design.Colors.bobaCyan
+                                              : Design.Colors.bobaOrange)
+                        Text(line)
+                            .font(Design.Fonts.mono(11, weight: .bold))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                    }
+                }
+                ForEach(scopedErrors) { err in
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                        Text(err.message)
+                            .font(Design.Fonts.mono(10))
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// One-line progress summary per role. Plays tab gets the
+    /// DBS-budget tracker tagged on (the user's biggest constraint
+    /// post-2026-04-27 patch).
+    private func browserTabSummaryText(for role: DeckCardRole) -> String? {
+        switch role {
+        case .hero:
+            guard store.format.heroTarget > 0 else { return nil }
+            return "Heroes \(store.heroes.count)/\(store.format.heroTarget)"
+        case .play:
+            guard store.format.needsPlaybook else { return nil }
+            let dbsTag = store.effectiveEnforceDBS
+                ? "  ·  DBS \(store.totalDBS)/\(store.effectiveDBSBudget)"
+                : ""
+            return "Plays \(store.plays.count)/30\(dbsTag)"
+        case .bonusPlay:
+            guard store.format.needsPlaybook else { return nil }
+            return "Bonus plays \(store.bonusPlays.count)/15"
+        case .hotDog:
+            guard store.format.needsHotDogs else { return nil }
+            return "Hot Dogs \(store.hotDogs.count)/10"
+        case .sideboard:
+            return nil
+        }
     }
 
     private var browserTabPicker: some View {

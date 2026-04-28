@@ -3533,42 +3533,6 @@ main {
   /* no extra margin — sections inside handle spacing */
 }
 
-/* Setup-tab content — match flow + edge cases. Plain readable list
-   styling, no card frames, since the content is dense reference text
-   that should read like a manual page rather than a card grid. */
-.setup-section {
-  margin: 0 0 28px;
-  padding: 16px;
-  background: var(--boba-surface, #0D0D1A);
-  border: 1px solid var(--boba-glass-border, rgba(255, 255, 255, 0.1));
-  border-radius: 10px;
-}
-.setup-h3 {
-  margin: 0 0 12px;
-  font-family: 'Russo One', sans-serif;
-  font-size: 14px;
-  letter-spacing: 0.08em;
-  color: var(--boba-orange, #FF4D00);
-  text-transform: uppercase;
-}
-.setup-list {
-  margin: 0;
-  padding-left: 20px;
-  font-family: 'Chakra Petch', monospace;
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--boba-text-secondary, #a0a0b0);
-}
-.setup-list li { margin-bottom: 10px; }
-.setup-list li strong {
-  color: var(--boba-text, #e6e6f0);
-  font-weight: 700;
-}
-.setup-list li s {
-  color: rgba(255, 255, 255, 0.5);
-  text-decoration-thickness: 1.5px;
-}
-
 /* ── Mode tabs (Rookie / Substitution / Playmaker) ── */
 .rules-mode-tabs {
   display: flex;

@@ -15,7 +15,12 @@ import SwiftUI
 // ════════════════════════════════════════════════════════════════
 
 private enum PlaySection: String, CaseIterable, Identifiable {
-    case setup      = "Setup"
+    // Setup was retired 2026-04-28: its match-flow walkthrough was a
+    // duplicate of the per-mode Setup blocks inside Rules, and its
+    // "Reading the Playmat" / "Common Edge Cases" sections were tied
+    // to the practice-battle UI that most users can't access. The
+    // rule-flavored bits got merged into Rules' Edge Cases section;
+    // the practice-UI references were dropped.
     case rules      = "Rules"
     case strategy   = "Strategy"
     case browse     = "Browse"
@@ -41,7 +46,6 @@ struct LearnView: View {
                     .background(Design.Colors.surface)
 
                 switch selectedSection {
-                case .setup:      SetupView()
                 case .rules:      RulesView()
                 case .strategy:   StrategyView()
                 case .browse:     BrowseView()
@@ -248,88 +252,6 @@ private enum GameMode: String, CaseIterable, Hashable {
     case playmaker    = "Playmaker"
 }
 
-// ════════════════════════════════════════════════════════════════
-// MARK: - Setup & Edge Cases
-// ════════════════════════════════════════════════════════════════
-//
-// Step-by-step match setup walkthrough + the rules edge cases that
-// veteran players debate at the table. Sourced from the Brad+Rob
-// 160-Spec tutorial transcript and Cowork's UI handoff §4 + §6.
-private struct SetupView: View {
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Design.Spacing.lg) {
-
-                // ── Pre-match flow ──────────────────────────────
-                RulesSectionHeader(title: "Before Battle 1")
-                RuleCard(lines: [
-                    .init(label: "Roll for Honors",
-                          body: "Each player rolls one die. High roll wins initial Honors — the right to act first in every phase of Battle 1. Re-roll on a tie."),
-                    .init(label: "Direction (table-only)",
-                          body: "In a physical match the Honors player picks the direction the Hero lineup reads (left-to-right or right-to-left). The app uses one consistent visual convention so this step is invisible."),
-                    .init(label: "Hero deck",
-                          body: "Shuffle your 60-card Hero Deck and place 7 face-down in your Battle row — one per battle slot."),
-                    .init(label: "Bench draw",
-                          body: "After your 7 are placed, draw 4 more Heroes from the top of the deck for your Bench. The Bench is hidden from your opponent."),
-                    .init(label: "Hot Dogs",
-                          body: "Both players start with 10 Hot Dogs in their pool. The count is always public information — your opponent can see how many you have at any time."),
-                    .init(label: "Playbook (Playmaker only)",
-                          body: "Your 30-card Playbook is shuffled and placed face-down. Draw 5 plays for your starting hand. Bonus Plays draw automatically when their trigger fires (gold border in your hand)."),
-                ])
-
-                // ── Battle loop ──────────────────────────────────
-                RulesSectionHeader(title: "Each Battle Has 5 Phases")
-                RuleCard(lines: [
-                    .init(label: "1. Substitution",
-                          body: "Honors player decides first. Pay 2 Hot Dogs to swap your face-down Hero for one from the Bench. Cost is always 2 — even when a play modifier inflates other costs."),
-                    .init(label: "2. Reveal",
-                          body: "Both players flip their Hero simultaneously. Element-triggered Bonus Plays fire automatically (e.g., a Glow hero reveal triggers Glow Bonus draws)."),
-                    .init(label: "3. Play Window",
-                          body: "Players alternate plays, each paying its Hot Dog cost. Pass when you're done. Both must pass to advance to Resolution."),
-                    .init(label: "4. Resolution",
-                          body: "Powers are compared. Higher wins. Equal power = tie unless one Hero is a Super-weapon type (Playmaker only — Super wins ties). The on-mat power breakdown shows every modifier that contributed."),
-                    .init(label: "5. Cleanup",
-                          body: "Both players draw 1 Play. Honors moves to the battle winner. Scope-limited effects tick down. The next battle begins automatically."),
-                ])
-
-                // ── Edge cases ──────────────────────────────────
-                RulesSectionHeader(title: "Common Edge Cases")
-                RuleCard(lines: [
-                    .init(label: "Substitution cost is always 2",
-                          body: "Cost-modifier plays like Dog On Inflation (+2 to plays) do NOT affect Substitution. The Substitute button always shows 2 HD regardless of active modifiers."),
-                    .init(label: "Pull The Plug only cancels rest-of-game effects",
-                          body: "Persistent effects scoped to specific battles (next 2 battles, battle 7, etc.) survive Pull The Plug. After playing it, you'll see a CANCELLED / UNCHANGED breakdown so you know exactly what was hit."),
-                    .init(label: "Recycle clears attached effects",
-                          body: "When a play is shuffled out of your discard back into your Playbook, any rest-of-game effect it had stops applying. If Flash Sale is active, recycling it removes the −1 cost discount."),
-                    .init(label: "Play Booster recounts every time",
-                          body: "Play Booster's draw amount = plays used this battle, including itself. If you play it again later in the same battle, the recount includes the previous Play Booster."),
-                    .init(label: "Deck exhaustion auto-reshuffles",
-                          body: "When your Playbook hits 0 cards, the discard pile shuffles back in automatically. You'll see a brief 'Playbook reshuffled · N cards back into deck' notification."),
-                    .init(label: "Bonus Plays don't count against the 30-card limit",
-                          body: "Cards with the gold ★ BONUS tag are extras — they enter the deck through element triggers and don't count against the 30-Play deckbuilding cap. They're surfaced visually so you can plan around them."),
-                ])
-
-                // ── Reading the playmat ─────────────────────────
-                RulesSectionHeader(title: "Reading the Playmat")
-                RuleCard(lines: [
-                    .init(label: "Persistent-effects banner (top)",
-                          body: "Every active effect with its scope and remaining battles. Cyan tab = your effect, violet tab = opponent's. The number badge ticks down every battle."),
-                    .init(label: "Plays-used row (under each Hero)",
-                          body: "Every play used this battle, in order. Drives Play Booster / 10 Per Play / No Huddle math you can verify visually."),
-                    .init(label: "Effective-cost display (in hand)",
-                          body: "Plays whose cost has been modified show 3→5 with the original struck through. Green = discounted, amber = inflated but affordable, red = unaffordable."),
-                    .init(label: "Power breakdown (after resolution)",
-                          body: "Itemized list of every modifier that contributed: base power, each played card, each persistent. Footings to the engine's verdict so you can audit the math."),
-                    .init(label: "Discard inspector (tap discard chip)",
-                          body: "Tap the DISCARD chip in the bottom toolbar (or the play count next to CPU) to see the full list of cards used so far."),
-                ])
-            }
-            .padding(Design.Spacing.lg)
-        }
-        .background(Design.Colors.nearBlack)
-    }
-}
-
 private struct RulesView: View {
     @State private var selectedMode: GameMode = .rookie
 
@@ -375,6 +297,7 @@ private struct RulesView: View {
 
                     CardZonesSection()
                     DeckbuildingSection()
+                    EdgeCasesSection()
                 }
                 .frame(maxWidth: .infinity)
                 .padding(Design.Spacing.lg)
@@ -445,6 +368,7 @@ private struct StaticBattleFlowView: View {
         Phase(number: "2", label: "REVEAL",  desc: "Flip both Heroes face-up",     modes: "All modes",  color: Design.Colors.bobaOrange),
         Phase(number: "3", label: "PLAYS",   desc: "Play cards from hand",         modes: "PM only",    color: Design.Colors.bobaCyan),
         Phase(number: "4", label: "RESOLVE", desc: "Higher Power wins",            modes: "All modes",  color: Color(hex: "4CAF50")),
+        Phase(number: "5", label: "CLEANUP", desc: "Honors moves; draw 1 Play",    modes: "All modes",  color: Color(hex: "8B00FF")),
     ]
 
     var body: some View {
@@ -493,7 +417,7 @@ private struct StaticBattleFlowView: View {
 
             HStack(spacing: Design.Spacing.xs) {
                 Image(systemName: "star.fill").font(.system(size: 10)).foregroundStyle(.yellow)
-                Text("Honors (right to act first) passes to the battle winner. Coin flip decides Honors for Battle 1.")
+                Text("Honors (right to act first) passes to the battle winner. A single die roll decides Honors for Battle 1; high roll wins.")
                     .font(Design.Fonts.mono(11))
                     .foregroundStyle(Design.Colors.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -753,7 +677,7 @@ private struct RookieRulesContent: View {
             RuleCard(lines: [
                 .init(label: "Hero Deck",    body: "Shuffle your 60-card Hero Deck and place it face-down."),
                 .init(label: "Battle Slots", body: "Place 7 Heroes face-down in a row — one per Battle slot."),
-                .init(label: "Honors",       body: "Flip a coin. Winner earns Honors — the right to act first each battle."),
+                .init(label: "Honors",       body: "Each player rolls one die. High roll wins initial Honors — the right to act first each battle. Re-roll on a tie."),
             ])
             RulesSectionHeader(title: "Winning")
             RuleCard(lines: [
@@ -870,6 +794,38 @@ private struct DeckbuildingSection: View {
                 .init(label: "Hero copies",   body: "Up to 6 total copies of the same hero name across all variations."),
                 .init(label: "Hot Dog Deck",  body: "Exactly 10 cards. Duplicates are allowed."),
                 .init(label: "Playbook",      body: "Exactly 30 Plays, all unique names. Bonus Plays (special treatment) may be added beyond 30."),
+            ])
+        }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - Edge Cases (corner-case rulings)
+// ════════════════════════════════════════════════════════════════
+//
+// Rulings veteran players reach for at the table — what survives a
+// reset, how cost modifiers actually interact, what counts toward
+// deckbuilding caps. Sourced from the corner-case audit that used to
+// live in the retired Setup tab.
+private struct EdgeCasesSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            RulesSectionHeader(title: "Edge Cases")
+            RuleCard(lines: [
+                .init(label: "Substitution cost is always 2",
+                      body: "Cost-modifier plays (e.g., Dog On Inflation, +2 to plays) do NOT affect Substitution. Substitution always costs 2 Hot Dogs regardless of active modifiers."),
+                .init(label: "Pull The Plug only cancels rest-of-game effects",
+                      body: "Persistent effects scoped to specific battles (next 2 battles, battle 7, etc.) survive Pull The Plug. Only effects that would otherwise apply for the rest of the game are cancelled."),
+                .init(label: "Recycle clears attached effects",
+                      body: "When a Play is shuffled out of your discard back into your Playbook, any rest-of-game effect it had stops applying. Recycling Flash Sale removes its −1 cost discount on future plays."),
+                .init(label: "Play Booster recounts every time",
+                      body: "Play Booster's draw amount equals the number of plays used this battle, including itself. Played twice in the same battle? The second recount includes the first Play Booster."),
+                .init(label: "Deck exhaustion auto-reshuffles",
+                      body: "If your Playbook runs out, shuffle the discard pile back into the Playbook and continue. The same applies to the Hero Deck during Sudden Death — shuffle the Discard back if needed."),
+                .init(label: "Bonus Plays don't count against the 30-card limit",
+                      body: "Bonus Plays (gold-treatment cards) are extras. They enter through element-trigger effects mid-game and don't count against the 30-Play deckbuilding cap."),
+                .init(label: "Tied battle keeps Honors",
+                      body: "If both Heroes have equal Power and no Super-weapon tiebreaker applies, the battle is a draw. No trophy is awarded; Honors stays with the same player who had it going in."),
             ])
         }
     }

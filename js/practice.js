@@ -942,14 +942,22 @@ function initDeckBuilder(allCards) {
       for (const c of allCards) { if (c.bobaId) byId[c.bobaId] = c; }
       const tpl = data[meta.key];
       if (!tpl) return;
+      // Preserve the user's chosen format — DON'T overwrite to
+      // 'playmaker'. Starter decks ship universally-legal cards
+      // (heroes ≤160 power, ≤8200 total, ≤1000 DBS) so any format
+      // accepts them; the load just trims to the active format's
+      // hero max (Limited = 40, others = 60).
       DB.clear();
-      DB.format = 'playmaker';
-      view.querySelectorAll('.db-format-btn').forEach(b => b.classList.toggle('active', b.dataset.format === 'playmaker'));
       DB.deckName = meta.name;
-      DB.heroes    = tpl.heroIds.map(id => byId[id]).filter(Boolean);
-      DB.plays     = tpl.playIds.map(id => byId[id]).filter(Boolean);
-      DB.bonusPlays = (tpl.bonusPlayIds || []).map(id => byId[id]).filter(Boolean);
-      DB.hotDogs   = tpl.hotDogIds.map(id => byId[id]).filter(Boolean);
+      const fmt = DB.currentFormat;
+      const heroMax = fmt.heroMax || fmt.heroMaximum || 60;
+      const allHeroes = tpl.heroIds.map(id => byId[id]).filter(Boolean);
+      DB.heroes    = allHeroes.slice(0, heroMax);
+      DB.plays     = fmt.needsPlays ? tpl.playIds.map(id => byId[id]).filter(Boolean) : [];
+      DB.bonusPlays = fmt.needsPlays
+                        ? (tpl.bonusPlayIds || []).map(id => byId[id]).filter(Boolean)
+                        : [];
+      DB.hotDogs   = fmt.needsHD ? tpl.hotDogIds.map(id => byId[id]).filter(Boolean) : [];
       dbRender(allCards);
     }
 

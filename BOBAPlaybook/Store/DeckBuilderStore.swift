@@ -766,15 +766,26 @@ final class DeckBuilderStore {
 
     // MARK: - Load Template
 
+    /// Load a starter deck without throwing away the user's chosen
+    /// rule set. The template intentionally ships universally-legal
+    /// cards (heroes ≤160 power, total power ≤8200, ≤1000 DBS) so
+    /// any active format accepts them — we just trim the hero count
+    /// to the active format's max (Limited = 40, others = 60). The
+    /// user's selected format and active rule preset stay intact.
     func loadTemplate(_ template: DeckTemplate, allCards: [Card]) {
         clearDeck()
         deckName = template.name
-        format = template.format
+        // NOTE: format is intentionally NOT overwritten. The user
+        // picked a rule set; honor it.
         let byId = Dictionary(uniqueKeysWithValues: allCards.map { ($0.id, $0) })
-        heroes = template.heroIds.compactMap { byId[$0] }
-        plays = template.playIds.compactMap { byId[$0] }
-        bonusPlays = template.bonusPlayIds.compactMap { byId[$0] }
-        hotDogs = template.hotDogIds.compactMap { byId[$0] }
+        let allHeroes  = template.heroIds.compactMap { byId[$0] }
+        let allPlays   = template.playIds.compactMap { byId[$0] }
+        let allBonus   = template.bonusPlayIds.compactMap { byId[$0] }
+        let allHotDogs = template.hotDogIds.compactMap { byId[$0] }
+        heroes      = Array(allHeroes.prefix(format.heroMaximum))
+        plays       = format.needsPlaybook ? allPlays   : []
+        bonusPlays  = format.needsPlaybook ? allBonus   : []
+        hotDogs     = format.needsHotDogs  ? allHotDogs : []
     }
 
     // MARK: - Draft persistence (local)

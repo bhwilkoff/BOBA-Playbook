@@ -1,0 +1,43 @@
+name               = "boba-youtube-feed"
+main               = "worker.js"
+compatibility_date = "2024-09-01"
+
+# ────────────────────────────────────────────────────────────────
+# Secrets — set via `wrangler secret put <NAME>` from this dir.
+# Never paste the value into this file (it ships in the repo).
+#
+#   wrangler secret put YOUTUBE_API_KEY
+#       Google Cloud Console → APIs & Services → Credentials.
+#       Restrict to "YouTube Data API v3" only. Daily quota 10k
+#       units, default cost: search 100 / playlistItems 1 /
+#       videos 1 per 50 ids. Worker uses ~120 units per refresh.
+# ────────────────────────────────────────────────────────────────
+
+# KV namespace for cached feed payloads. Create with:
+#   wrangler kv:namespace create YT_KV
+# then paste the returned id here.
+[[kv_namespaces]]
+binding = "YT_KV"
+id      = ""   # ← REPLACE with the id printed by `kv:namespace create`
+
+# Refresh every 4 hours. Worker runs ~120 quota units per refresh =
+# 720/day, leaving ~93% of the daily budget free for ad-hoc admin
+# refreshes and quota for Search-API recategorization spikes.
+[triggers]
+crons = ["0 */4 * * *"]
+
+# Tunable knobs — bump via `wrangler vars put` if needed.
+[vars]
+# Free-text search query that joins channel-specific feeds. Default
+# is the full canonical name; quoted in the URL automatically.
+SEARCH_QUERY            = "Bo Jackson Battle Arena"
+
+# Max items kept per feed in KV. Plenty of headroom for the iOS /
+# web grids; older items naturally fall off as new ones land.
+MAX_ITEMS_PER_FEED      = "120"
+
+# Minimum publish recency to surface a "priority" channel item at
+# the top of its feed. Older priority items still appear, sorted by
+# date alongside everything else — this stops a stale 2-year-old
+# Radish video from outranking a fresh search hit.
+PRIORITY_FRESH_DAYS     = "30"

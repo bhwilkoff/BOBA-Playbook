@@ -130,20 +130,16 @@ struct WatchView: View {
         .refreshable { await feed.loadAll() }
     }
 
-    /// Vertical-recorded — 2-column 9:16 grid using the canonical
-    /// SwiftUI pattern (per the swiftui-layout-components skill):
-    /// `LazyVGrid` with `.flexible(minimum:)` columns. The earlier
-    /// attempts (GeometryReader-driven explicit widths, hand-rolled
-    /// HStack pairs) over-engineered the geometry — the simple
-    /// canonical pattern works correctly when the card view doesn't
-    /// itself try to dictate width.
+    /// Vertical-recorded — single-column feed of 9:16 cards. After
+    /// five attempts at a 2-column LazyVGrid that all rendered as
+    /// "the same" on Ben's TestFlight build, falling back to Option
+    /// B from his original ask: "a single column that matches the
+    /// horizontal video feed." A LazyVStack of full-width cards has
+    /// zero grid-sizing variables to go wrong; if this still looks
+    /// identical, the build pipeline is the culprit, not the code.
     private var verticalGrid: some View {
-        let columns = [
-            GridItem(.flexible(minimum: 120), spacing: Design.Spacing.md),
-            GridItem(.flexible(minimum: 120), spacing: Design.Spacing.md),
-        ]
-        return ScrollView {
-            LazyVGrid(columns: columns, spacing: Design.Spacing.md) {
+        ScrollView {
+            LazyVStack(spacing: Design.Spacing.md) {
                 ForEach(currentItems) { video in
                     VerticalCard(video: video)
                         .onTapGesture { playing = video }
@@ -288,29 +284,32 @@ private struct VerticalCard: View {
     let video: YouTubeVideo
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
-            // Thumbnail wrapper — `.aspectRatio` on the wrapping
-            // view (NOT inside ThumbnailView) lets the cell take
-            // whatever width LazyVGrid hands it and compute the
-            // matching 9:16 height. The `.clipped()` is critical:
-            // without it, AsyncImage's pre-load placeholder
-            // intrinsic size can leak up and expand the cell.
+        HStack(alignment: .top, spacing: Design.Spacing.md) {
+            // 9:16 thumbnail on the left — locked-width via `.frame`
+            // so AsyncImage's load state can't push it wider. ~140pt
+            // wide × ~250pt tall reads as a phone-style portrait
+            // tile alongside the title block.
             ThumbnailImage(url: video.thumbnail)
-                .aspectRatio(9.0/16.0, contentMode: .fit)
+                .frame(width: 140, height: 140 * 16 / 9)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(alignment: .bottomTrailing) {
                     if let dur = video.durationLabel {
                         durationBadge(dur).padding(6)
                     }
                 }
-            Text(video.title)
-                .font(Design.Fonts.mono(11, weight: .bold))
-                .foregroundStyle(Design.Colors.textPrimary)
-                .lineLimit(2)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            CardSubtitle(video: video, compact: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+                Text(video.title)
+                    .font(Design.Fonts.display(15))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                    .lineLimit(4)
+                    .multilineTextAlignment(.leading)
+                CardSubtitle(video: video)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

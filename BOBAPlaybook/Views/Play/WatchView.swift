@@ -130,43 +130,28 @@ struct WatchView: View {
         .refreshable { await feed.loadAll() }
     }
 
-    /// Vertical-recorded — 2-column 9:16 grid built from explicit
-    /// HStack pairs, NOT LazyVGrid. We tried fixed-width LazyVGrid
-    /// columns first and the first row was still rendering with
-    /// a single oversized cell on iPhone. Hand-rolling the rows
-    /// guarantees every pair gets `(columnWidth, gap, columnWidth)`
-    /// pixel-for-pixel with no chance of grid-internal layout
-    /// magic interfering with our explicit cell sizing.
+    /// Vertical-recorded — 2-column 9:16 grid using the canonical
+    /// SwiftUI pattern (per the swiftui-layout-components skill):
+    /// `LazyVGrid` with `.flexible(minimum:)` columns. The earlier
+    /// attempts (GeometryReader-driven explicit widths, hand-rolled
+    /// HStack pairs) over-engineered the geometry — the simple
+    /// canonical pattern works correctly when the card view doesn't
+    /// itself try to dictate width.
     private var verticalGrid: some View {
-        GeometryReader { proxy in
-            let outerPad: CGFloat = Design.Spacing.lg
-            let gap: CGFloat      = Design.Spacing.md
-            let columnWidth = max(80, (proxy.size.width - outerPad * 2 - gap) / 2)
-            let rows = stride(from: 0, to: currentItems.count, by: 2).map { i in
-                Array(currentItems[i..<min(i + 2, currentItems.count)])
-            }
-            ScrollView {
-                LazyVStack(spacing: Design.Spacing.md) {
-                    ForEach(Array(rows.enumerated()), id: \.offset) { _, pair in
-                        HStack(alignment: .top, spacing: gap) {
-                            ForEach(pair) { video in
-                                VerticalCard(video: video, width: columnWidth)
-                                    .onTapGesture { playing = video }
-                            }
-                            if pair.count == 1 {
-                                // Keep the lone trailing card pinned
-                                // to the leading column instead of
-                                // letting the HStack center it.
-                                Color.clear.frame(width: columnWidth)
-                            }
-                        }
-                    }
+        let columns = [
+            GridItem(.flexible(minimum: 120), spacing: Design.Spacing.md),
+            GridItem(.flexible(minimum: 120), spacing: Design.Spacing.md),
+        ]
+        return ScrollView {
+            LazyVGrid(columns: columns, spacing: Design.Spacing.md) {
+                ForEach(currentItems) { video in
+                    VerticalCard(video: video)
+                        .onTapGesture { playing = video }
                 }
-                .padding(outerPad)
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .refreshable { await feed.loadAll() }
+            .padding(Design.Spacing.lg)
         }
+        .refreshable { await feed.loadAll() }
     }
 
     /// Horizontal-recorded — 16:9 grid, two columns on phones.
@@ -301,31 +286,31 @@ private struct UpcomingCard: View {
 
 private struct VerticalCard: View {
     let video: YouTubeVideo
-    /// Explicit column width passed down from the grid's
-    /// GeometryReader. We pin every layout dimension to it so
-    /// AsyncImage's pre-load intrinsic size can't bubble up and
-    /// expand the cell.
-    let width: CGFloat
 
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.xs) {
-            ZStack(alignment: .bottomTrailing) {
-                ThumbnailView(url: video.thumbnail, aspect: 9.0/16.0)
-                    .frame(width: width, height: width * 16 / 9)
-                if let dur = video.durationLabel {
-                    durationBadge(dur).padding(6)
+            // Thumbnail wrapper — `.aspectRatio` on the wrapping
+            // view (NOT inside ThumbnailView) lets the cell take
+            // whatever width LazyVGrid hands it and compute the
+            // matching 9:16 height. The `.clipped()` is critical:
+            // without it, AsyncImage's pre-load placeholder
+            // intrinsic size can leak up and expand the cell.
+            ThumbnailImage(url: video.thumbnail)
+                .aspectRatio(9.0/16.0, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(alignment: .bottomTrailing) {
+                    if let dur = video.durationLabel {
+                        durationBadge(dur).padding(6)
+                    }
                 }
-            }
             Text(video.title)
                 .font(Design.Fonts.mono(11, weight: .bold))
                 .foregroundStyle(Design.Colors.textPrimary)
                 .lineLimit(2)
-                .frame(width: width, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
             CardSubtitle(video: video, compact: true)
-                .frame(width: width, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: width)
     }
 }
 
@@ -353,22 +338,21 @@ private struct HorizontalCard: View {
 // MARK: - Shared card pieces
 // ════════════════════════════════════════════════════════════════
 
-private struct ThumbnailView: View {
+/// Aspect-ratio-agnostic thumbnail. Fills whatever frame its parent
+/// gives it; the parent (a card) is responsible for the aspect
+/// ratio via its own `.aspectRatio` modifier. AsyncImage is
+/// `.clipped()` so its pre-load placeholder intrinsic size can't
+/// leak up to the parent and break LazyVGrid's column sizing.
+private struct ThumbnailImage: View {
     let url: String?
-    let aspect: CGFloat
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface2)
-            if let urlString = url, let url = URL(string: urlString) {
-                AsyncImage(url: url) { phase in
+            Color.black
+            if let urlString = url, let imageURL = URL(string: urlString) {
+                AsyncImage(url: imageURL) { phase in
                     switch phase {
                     case .success(let img):
-                        // .fill = center-crop. For vertical cards
-                        // (aspect < 1) this gives a vertical slice
-                        // of the 16:9 source thumbnail, which reads
-                        // better than letterboxing per the user's
-                        // direction (2026-04-28).
                         img.resizable().aspectRatio(contentMode: .fill)
                     default:
                         Image(systemName: "play.rectangle.fill")
@@ -376,11 +360,6 @@ private struct ThumbnailView: View {
                             .foregroundStyle(Design.Colors.textMuted)
                     }
                 }
-                // .clipped() on the image phase prevents the
-                // pre-load placeholder OR a freshly-loaded large
-                // source bitmap from leaking its intrinsic size up
-                // to the parent ZStack, which is what was making
-                // LazyVGrid expand the first cell to full width.
                 .clipped()
             } else {
                 Image(systemName: "play.rectangle.fill")
@@ -388,8 +367,23 @@ private struct ThumbnailView: View {
                     .foregroundStyle(Design.Colors.textMuted)
             }
         }
-        .aspectRatio(aspect, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+/// Backwards-compatible shim — the existing UpcomingCard /
+/// HorizontalCard call sites still construct ThumbnailView with an
+/// explicit aspect. They get the same flexible body but the
+/// aspect modifier is reapplied here for those sites; vertical
+/// cards now route through ThumbnailImage directly so they don't
+/// double-apply aspect.
+private struct ThumbnailView: View {
+    let url: String?
+    let aspect: CGFloat
+
+    var body: some View {
+        ThumbnailImage(url: url)
+            .aspectRatio(aspect, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 

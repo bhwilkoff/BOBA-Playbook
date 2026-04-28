@@ -330,37 +330,29 @@ private struct VerticalCard: View {
     }
 }
 
-/// Thumbnail variant that prefers the YouTube-served original-
-/// aspect-ratio image (`oardefault.jpg`) so vertical videos render
-/// with their actual portrait first-frame instead of a center-
-/// cropped slice of the creator's 16:9 custom thumbnail. Falls
-/// back to the worker-supplied thumb on 404 / decode failure
-/// (which covers regular landscape uploads where the OAR variant
-/// doesn't exist).
+/// Thumbnail used in the vertical feed. Originally tried to fetch
+/// YouTube's `oardefault.jpg` (the original-aspect-ratio variant)
+/// to get a true portrait first-frame for vertical content — but
+/// that URL only reliably exists for genuine Shorts. Most of the
+/// videos in our vertical bucket are regular 16:9 uploads tagged
+/// with the 📱 emoji (Radish's phone-edition daily show), so
+/// YouTube serves a generic gray placeholder for the OAR variant
+/// instead of returning 404, and AsyncImage's .failure phase
+/// never fires.
+///
+/// Pragmatic resolution: just use the worker-supplied thumbnail
+/// (always populated, always real) and let `.scaledToFill` center-
+/// crop it into the 9:16 frame. The cropped slice shows the
+/// vertical center of the 16:9 art — for Radish's daily show
+/// that's the player figure, which reads cleanly.
 private struct VerticalThumbnail: View {
     let video: YouTubeVideo
-    @State private var oarFailed = false
 
     var body: some View {
         ZStack {
             Color.black
-            if !oarFailed,
-               let oarURL = URL(string: "https://i.ytimg.com/vi/\(video.videoId)/oardefault.jpg") {
-                AsyncImage(url: oarURL) { phase in
-                    switch phase {
-                    case .success(let img):
-                        img.resizable().aspectRatio(contentMode: .fill)
-                    case .failure:
-                        Color.clear.onAppear { oarFailed = true }
-                    case .empty:
-                        Color.clear
-                    @unknown default:
-                        Color.clear
-                    }
-                }
-                .clipped()
-            } else if let urlString = video.thumbnail,
-                      let imageURL = URL(string: urlString) {
+            if let urlString = video.thumbnail,
+               let imageURL = URL(string: urlString) {
                 AsyncImage(url: imageURL) { phase in
                     switch phase {
                     case .success(let img):

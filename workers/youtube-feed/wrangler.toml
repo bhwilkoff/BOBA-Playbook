@@ -13,12 +13,10 @@ compatibility_date = "2024-09-01"
 #       videos 1 per 50 ids. Worker uses ~120 units per refresh.
 # ────────────────────────────────────────────────────────────────
 
-# KV namespace for cached feed payloads. Create with:
-#   wrangler kv:namespace create YT_KV
-# then paste the returned id here.
+# KV namespace for cached feed payloads.
 [[kv_namespaces]]
 binding = "YT_KV"
-id      = ""   # ← REPLACE with the id printed by `kv:namespace create`
+id      = "dd72d10392a04bcc8b2257227cf8ed0d"
 
 # Refresh every 4 hours. Worker runs ~120 quota units per refresh =
 # 720/day, leaving ~93% of the daily budget free for ad-hoc admin

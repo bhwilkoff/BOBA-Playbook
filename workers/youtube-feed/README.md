@@ -7,8 +7,16 @@ the result in Workers KV, and serves it to the iOS + web Watch tab.
 ## Architecture
 
 - **Cron** (`0 */4 * * *`) refreshes feeds every 4 hours.
-- **Sources** merged: 6 priority channels' uploads + a free-text
-  "Bo Jackson Battle Arena" search.
+- **Sources** merged:
+  - **Top-priority channels** (`priority: 0`) — currently just
+    RadishDijital. Their FRESH uploads (within `PRIORITY_FRESH_DAYS`,
+    default 30) are pinned to the top of each feed.
+  - **Standard channels** (`priority: 5`) — BoBattleArena,
+    InsideTheVault_Bazooka, BattleArenaLeague, blokpax, PullsAndPars.
+    We pull their full uploads list so the feed has rich BoBA-only
+    coverage, but items sort by date alongside everything else.
+  - **Free-text "Bo Jackson Battle Arena" search** (`priority: 9`)
+    catches community videos from creators outside the channel list.
 - **Categorization**: `liveBroadcastContent` → live / live replay /
   Shorts (≤60s + #shorts heuristic) / regular.
 - **KV keys**: `boba_videos:{live|short|regular}` and

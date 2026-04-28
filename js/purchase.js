@@ -59,12 +59,31 @@
     document.getElementById('purchase-shows-retry')?.addEventListener('click', () => render({ force: true }));
   }
 
+  // Worker formats `scheduledTimeText` in PT; re-derive from the
+  // timestamp fields so the user sees their own local clock time.
+  function localTimeText(show) {
+    const ms = show.startTimeMs
+        || (show.scheduledTimeIso ? Date.parse(show.scheduledTimeIso) : NaN);
+    if (!Number.isFinite(ms)) return show.scheduledTimeText || '';
+    const d = new Date(ms);
+    const now = new Date();
+    const sameDay = (a, b) => a.getFullYear() === b.getFullYear()
+                           && a.getMonth() === b.getMonth()
+                           && a.getDate() === b.getDate();
+    const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+    const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    if (sameDay(d, now))      return `Today ${time}`;
+    if (sameDay(d, tomorrow)) return `Tomorrow ${time}`;
+    const day = d.toLocaleDateString([], { weekday: 'short' });
+    return `${day} ${time}`;
+  }
+
   function showCardHTML(show) {
     const href = show.showUrl || `https://www.whatnot.com/live/${show.showId}`;
     const thumb = show.thumbnailUrl || '';
     const host = show.host || '';
     const title = show.title || 'Untitled show';
-    const time = show.scheduledTimeText || '';
+    const time = localTimeText(show);
     const cat = show.categoryName || '';
     const isLive = !!show.isLive;
     const viewerLabel = isLive

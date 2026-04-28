@@ -133,9 +133,90 @@
     }
   }
 
+  // ── Pull-to-refresh ─────────────────────────────────────────────
+  // Mobile gesture: when the user is at the top of the Purchase view's
+  // scroll container and drags down past the threshold, fire a forced
+  // re-fetch so the worker pulls fresh streams.
+  const PULL_THRESHOLD = 80;
+  let isRefreshing = false;
+  let pullStartY = null;
+  let pullDistance = 0;
+
+  function scrollContainer() {
+    return document.getElementById('main-content') || document.body;
+  }
+
+  function setRefreshing(on) {
+    isRefreshing = on;
+    document.getElementById('purchase-refresh-btn')?.classList.toggle('purchase-refresh-btn--spinning', on);
+    const ind = document.getElementById('purchase-pull-indicator');
+    if (ind) {
+      ind.classList.toggle('purchase-pull-indicator--active', on);
+      if (on) ind.querySelector('.purchase-pull-label').textContent = 'Refreshing…';
+    }
+  }
+
+  async function refresh() {
+    if (isRefreshing) return;
+    setRefreshing(true);
+    try { await render({ force: true }); }
+    finally {
+      setRefreshing(false);
+      // Snap the indicator back after a brief pause.
+      const ind = document.getElementById('purchase-pull-indicator');
+      if (ind) {
+        ind.style.transform = '';
+        ind.style.opacity = '';
+        ind.querySelector('.purchase-pull-label').textContent = 'Pull to refresh';
+      }
+    }
+  }
+
+  function onTouchStart(e) {
+    if (isRefreshing) return;
+    if (scrollContainer().scrollTop > 0) { pullStartY = null; return; }
+    pullStartY = e.touches?.[0]?.clientY ?? null;
+    pullDistance = 0;
+  }
+
+  function onTouchMove(e) {
+    if (pullStartY == null || isRefreshing) return;
+    const y = e.touches?.[0]?.clientY ?? pullStartY;
+    pullDistance = Math.max(0, y - pullStartY);
+    if (pullDistance > 5) {
+      const ind = document.getElementById('purchase-pull-indicator');
+      if (!ind) return;
+      const dragRatio = Math.min(1, pullDistance / PULL_THRESHOLD);
+      ind.style.opacity = String(dragRatio);
+      ind.style.transform = `translateY(${Math.min(pullDistance * 0.5, 40)}px)`;
+      ind.querySelector('.purchase-pull-label').textContent =
+        pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh';
+    }
+  }
+
+  function onTouchEnd() {
+    if (pullStartY == null) return;
+    const triggered = pullDistance >= PULL_THRESHOLD;
+    pullStartY = null;
+    pullDistance = 0;
+    const ind = document.getElementById('purchase-pull-indicator');
+    if (triggered) {
+      refresh();
+    } else if (ind) {
+      ind.style.transform = '';
+      ind.style.opacity = '';
+    }
+  }
+
   function init() {
     if (initialized) return;
     initialized = true;
+    document.getElementById('purchase-refresh-btn')?.addEventListener('click', refresh);
+    const sc = scrollContainer();
+    sc.addEventListener('touchstart', onTouchStart, { passive: true });
+    sc.addEventListener('touchmove',  onTouchMove,  { passive: true });
+    sc.addEventListener('touchend',   onTouchEnd);
+    sc.addEventListener('touchcancel', onTouchEnd);
     render();
   }
 

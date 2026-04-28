@@ -210,6 +210,7 @@ const DB = {
       if (this.plays.length < (this.currentFormat.playsTarget || 30)) this.plays.push(card);
     } else if (tab === 'bonus') {
       if (this.bonusPlays.some(c => c.bobaId === card.bobaId)) return;
+      if (this.bonusPlays.length >= 15) return;  // BoBA rule: 15 bonus play cap
       this.bonusPlays.push(card);
     } else if (tab === 'hotdog') {
       if (this.hotDogs.length < 10) this.hotDogs.push(card);
@@ -324,6 +325,10 @@ const DB = {
       const pd = pt - this.plays.length;
       if (pd > 0) errors.push(`Need ${pd} more plays (${this.plays.length}/${pt})`);
       if (pd < 0) errors.push(`Too many plays (${this.plays.length}/${pt})`);
+      // Bonus-play hard cap: 15 per BoBA rules (handoff §4(a)).
+      if (this.bonusPlays.length > 15) {
+        errors.push(`Too many bonus plays (${this.bonusPlays.length}/15) — remove ${this.bonusPlays.length - 15}`);
+      }
     }
 
     // DBS budget (Playmaker divisions only)
@@ -3754,33 +3759,55 @@ function pmBuildRandomPlaybook(pool) {
   }
   for (const k of Object.keys(byRole)) byRole[k] = shuffle(byRole[k]);
 
+  // Composition rebalanced 2026-04-27 per the bobaleagues meta
+  // analysis (handoff §8) after BoBA's same-day DBS rebalance:
+  //   ~2 high-DBS lockout finishers (≥80 DBS post-patch)
+  //   ~3 community staples (4/4 top decks: Champion's Lasso,
+  //     Dog Gone Inflation, No Huddle)
+  //   10 draw/recovery, 6 buffs, 3 utility, 3 denial, 6 bonus.
+  const lockouts = regular
+    .filter(c => (c.dbs ?? 0) >= 80)
+    .sort((a, b) => (b.dbs ?? 0) - (a.dbs ?? 0));
+  const stapleNames = new Set([
+    "The Champion's Lasso",
+    "Dog Gone Inflation",
+    "No Huddle",
+  ]);
+  const staples = regular.filter(c => stapleNames.has(c.name));
+
   const deck = [];
   const deckIDs = new Set();
+  function tryAdd(c) {
+    if (!c || deckIDs.has(c.bobaId) || deck.length >= 30) return;
+    deck.push(c); deckIDs.add(c.bobaId);
+  }
   function draw(key, count) {
     let taken = 0;
     for (const c of byRole[key]) {
       if (taken >= count) break;
       if (deckIDs.has(c.bobaId)) continue;
-      deck.push(c); deckIDs.add(c.bobaId); taken++;
+      tryAdd(c); taken++;
     }
   }
-  draw('recovery', 8);
-  draw('buffs',    8);
-  draw('utility',  4);
-  draw('denial',   4);
-  // Bonus plays — capped at 6 per practice-battle UI handoff §11.
+
+  for (const c of lockouts.slice(0, 2)) tryAdd(c);
+  for (const c of staples) tryAdd(c);
+  draw('recovery', 10);
+  draw('buffs',     6);
+  draw('utility',   3);
+  draw('denial',    3);
+  // Bonus plays — default 6, capped at 15 (BoBA rule limit).
   let bonusTaken = 0;
   for (const c of bonus) {
     if (bonusTaken >= 6 || deck.length >= 30) break;
     if (deckIDs.has(c.bobaId)) continue;
-    deck.push(c); deckIDs.add(c.bobaId); bonusTaken++;
+    tryAdd(c); bonusTaken++;
   }
   if (deck.length < 30) {
-    const backfill = shuffle(regular);
-    for (const c of backfill) {
+    for (const c of shuffle(regular)) {
       if (deck.length >= 30) break;
       if (deckIDs.has(c.bobaId)) continue;
-      deck.push(c); deckIDs.add(c.bobaId);
+      tryAdd(c);
     }
   }
   return shuffle(deck);

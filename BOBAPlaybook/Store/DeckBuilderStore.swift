@@ -546,6 +546,15 @@ final class DeckBuilderStore {
             } else if plays.count > 30 {
                 errors.append(.init(section: .play, message: "Too many plays (\(plays.count)/30)"))
             }
+            // Bonus-play hard cap: 15 per the BoBA rules. Confirmed in
+            // both community deck data and the bobaleagues handoff §4(a).
+            // Previously unbounded — a deck with 25 bonuses would pass
+            // validation and get an unfair "extra slot" advantage.
+            if bonusPlays.count > 15 {
+                let over = bonusPlays.count - 15
+                errors.append(.init(section: .bonusPlay,
+                                     message: "Too many bonus plays (\(bonusPlays.count)/15) — remove \(over)"))
+            }
             // Play name uniqueness
             var playNames: Set<String> = []
             for card in plays + bonusPlays {
@@ -722,12 +731,14 @@ final class DeckBuilderStore {
         case .play:
             guard !plays.contains(card) && !bonusPlays.contains(card) else { return }
             if card.cardNumber.hasPrefix("BPL") || card.treatment == "Bonus Plays" {
+                guard bonusPlays.count < 15 else { return }
                 bonusPlays.append(card)
             } else {
                 plays.append(card)
             }
         case .bonusPlay:
             guard !bonusPlays.contains(card) && !plays.contains(card) else { return }
+            guard bonusPlays.count < 15 else { return }
             bonusPlays.append(card)
         case .hotDog:
             if hotDogs.count < 10 { hotDogs.append(card) }

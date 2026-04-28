@@ -34,15 +34,28 @@ struct WhatnotShow: Identifiable, Codable, Sendable, Hashable {
     }
 }
 
-// `Sendable` (and the explicit `Codable` body) keeps Swift 6's
-// default MainActor inference from attaching to the conformance —
-// otherwise `JSONDecoder().decode(WhatnotShowsResponse.self, …)`
-// inside the actor errors with "main actor-isolated conformance
-// cannot be used in actor-isolated context."
-private struct WhatnotShowsResponse: Codable, Sendable {
+// Decoded inside the WhatnotShowsService actor. Swift 6's default
+// MainActor inference attaches to a synthesized Decodable
+// conformance, which then can't be used from a non-MainActor
+// context. An explicit `nonisolated init(from:)` opts the
+// conformance out of that inference so the actor can decode it
+// directly.
+private struct WhatnotShowsResponse: Sendable {
     let shows: [WhatnotShow]
     let count: Int?
     let fetchedAtIso: String?
+}
+
+extension WhatnotShowsResponse: Decodable {
+    enum CodingKeys: String, CodingKey {
+        case shows, count, fetchedAtIso
+    }
+    nonisolated init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.shows = try c.decode([WhatnotShow].self, forKey: .shows)
+        self.count = try c.decodeIfPresent(Int.self, forKey: .count)
+        self.fetchedAtIso = try c.decodeIfPresent(String.self, forKey: .fetchedAtIso)
+    }
 }
 
 actor WhatnotShowsService {

@@ -15,6 +15,11 @@ struct SearchView: View {
     @State private var quickAdd = false
     @State private var quickAddToast: String? = nil
     @State private var quickAddError: String? = nil
+    /// Drives the keyboard-toolbar Done button. SwiftUI's only built-in
+    /// way to dismiss the keyboard from the field is via a focus binding,
+    /// so the search field needs its own @FocusState even though we don't
+    /// otherwise route focus into it.
+    @FocusState private var searchFocused: Bool
     /// Mirror of the Settings → App Icon choice. The profile icon's tint
     /// follows this so the accent stays consistent with the user's chosen
     /// icon color.
@@ -68,6 +73,16 @@ struct SearchView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     filterButton
+                }
+                // "Done" key on the keyboard accessory bar — gives an
+                // out for the case where the user taps the search field
+                // by mistake and doesn't want to commit a search just to
+                // dismiss the keyboard.
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { searchFocused = false }
+                        .font(Design.Fonts.mono(13, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
                 }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
@@ -223,6 +238,7 @@ struct SearchView: View {
                     .foregroundStyle(Design.Colors.textPrimary)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
+                    .focused($searchFocused)
                 if !store.searchText.isEmpty {
                     Button {
                         store.searchText = ""

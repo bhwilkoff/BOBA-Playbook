@@ -98,6 +98,7 @@
   const hasImageCheckbox = document.getElementById('has-image-checkbox');
   const loadSentinel    = $('load-sentinel');
   const clearFiltersBtn = $('clear-filters-btn');
+  const filterClearAllBtn = $('filter-clear-all-btn');
   const powerMinInput  = $('power-min');
   const powerMaxInput  = $('power-max');
   const filterToggleBtn = $('filter-toggle-btn');
@@ -1341,6 +1342,7 @@
   });
 
   clearFiltersBtn?.addEventListener('click', resetFilters);
+  filterClearAllBtn?.addEventListener('click', resetFilters);
 
   // Quick Add — toggle click, and auth-change listener so the pill
   // disappears on sign-out. Auth module dispatches 'auth-change' with

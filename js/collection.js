@@ -85,9 +85,20 @@ const Collection = (() => {
       </button>`).join('');
 
     const activeCards = _cards.filter(c => c.designation === _activeTab);
-    const listHtml = activeCards.length === 0
+    // Group by bobaId (or cardNumber for legacy rows) so multiple physical
+    // copies render as a single stack with a quantity badge — mirrors the
+    // iOS layout and matches the way collectors think about their binders.
+    const groupKey = c => c.boba_id || c.card_number;
+    const groups = activeCards.reduce((acc, c) => {
+      const k = groupKey(c);
+      (acc[k] = acc[k] || []).push(c);
+      return acc;
+    }, {});
+    const groupArray = Object.values(groups);
+    const sortedGroups = sortCollectionGroups(groupArray);
+    const listHtml = sortedGroups.length === 0
       ? `<p class="collection-empty">No cards in ${esc(DESIGNATIONS.find(d => d.key === _activeTab)?.label)} yet.</p>`
-      : activeCards.map(buildCollectionCardHtml).join('');
+      : sortedGroups.map(buildCollectionCardHtml).join('');
 
     view.innerHTML = `
       <div class="collection-view">
@@ -117,6 +128,19 @@ const Collection = (() => {
         <div class="desig-tabs" role="tablist" aria-label="Collection designations">
           ${tabsHtml}
         </div>
+        <div class="collection-toolbar">
+          <label class="collection-sort-label" for="collection-sort">Sort</label>
+          <select class="collection-sort-select" id="collection-sort" aria-label="Sort collection">
+            <option value="added_desc"${_collectionSort==='added_desc'?' selected':''}>Recently Added</option>
+            <option value="added_asc"${_collectionSort==='added_asc'?' selected':''}>Oldest Added</option>
+            <option value="price_desc"${_collectionSort==='price_desc'?' selected':''}>Market Value: High → Low</option>
+            <option value="price_asc"${_collectionSort==='price_asc'?' selected':''}>Market Value: Low → High</option>
+            <option value="paid_desc"${_collectionSort==='paid_desc'?' selected':''}>Paid: High → Low</option>
+            <option value="paid_asc"${_collectionSort==='paid_asc'?' selected':''}>Paid: Low → High</option>
+            <option value="name_asc"${_collectionSort==='name_asc'?' selected':''}>Name A → Z</option>
+            <option value="name_desc"${_collectionSort==='name_desc'?' selected':''}>Name Z → A</option>
+          </select>
+        </div>
         <div class="collection-card-list" role="list">
           ${listHtml}
         </div>
@@ -127,6 +151,10 @@ const Collection = (() => {
         _activeTab = tab.dataset.tab;
         renderCollectionView();
       });
+    });
+
+    view.querySelector('#collection-sort')?.addEventListener('change', (e) => {
+      setCollectionSort(e.target.value);
     });
 
     // Open detail on card item click (not on delete button)
@@ -160,15 +188,20 @@ const Collection = (() => {
     });
   }
 
-  function buildCollectionCardHtml(entry) {
-    const designLabel = DESIGNATIONS.find(d => d.key === entry.designation)?.label || entry.designation;
+  function buildCollectionCardHtml(group) {
+    // group is an array of entries that share bobaId + designation.
+    const first = group[0];
+    const qty   = group.length;
+    const designLabel = DESIGNATIONS.find(d => d.key === first.designation)?.label || first.designation;
     // Prefer bobaId lookup for exact card matching; fall back to card_number for legacy rows
-    const catalogCard = (_bobaIdLookup && entry.boba_id)
-      ? _bobaIdLookup(entry.boba_id)
-      : (_cardLookup ? _cardLookup(entry.card_number) : null);
-    const cardName    = catalogCard?.name || entry.card_number;
+    const catalogCard = (_bobaIdLookup && first.boba_id)
+      ? _bobaIdLookup(first.boba_id)
+      : (_cardLookup ? _cardLookup(first.card_number) : null);
+    const cardName    = catalogCard?.name || first.card_number;
     const imageFile   = catalogCard?.imageFile;
     const element     = catalogCard?.element || 'NONE';
+    const power       = catalogCard?.power;
+    const treatment   = catalogCard?.treatment;
 
     const imgHtml = imageFile
       ? `<img class="ccard-thumb" src="${esc(API.thumbUrl(imageFile))}"
@@ -177,23 +210,52 @@ const Collection = (() => {
            <span class="placeholder-brand">BOBA<br>PB</span>
          </div>`;
 
+    // Sums + earliest acquired + condition summary across the stack.
+    const totalPaid     = group.reduce((s, c) => s + (c.purchase_price ? Number(c.purchase_price) : 0), 0);
+    const totalEstimate = group.reduce((s, c) => s + (c.estimated_value ? Number(c.estimated_value) : 0), 0);
+    const earliestAdded = group.reduce((min, c) => {
+      const ts = c.acquired_at || c.created_at;
+      if (!ts) return min;
+      return (!min || ts < min) ? ts : min;
+    }, null);
+    const conditions = Array.from(new Set(group.map(c => c.condition).filter(Boolean)));
+    const conditionLabel = conditions.length === 1
+      ? conditions[0].replace('_', ' ')
+      : conditions.length > 1 ? 'Mixed' : '';
+
+    const valueRow = totalEstimate > 0
+      ? `<div class="ccard-price ccard-price-value">$${totalEstimate.toFixed(2)} <span class="ccard-price-tag">VALUE</span>${
+          totalPaid > 0 ? `<span class="ccard-price-paid">paid $${totalPaid.toFixed(2)}</span>` : ''
+        }</div>`
+      : (totalPaid > 0
+          ? `<div class="ccard-price">$${totalPaid.toFixed(2)} <span class="ccard-price-tag">PAID</span></div>`
+          : '');
+
     return `
       <div class="collection-card-item" role="listitem" data-element="${esc(element)}"
-           data-detail-num="${esc(entry.boba_id || entry.card_number)}"
+           data-detail-num="${esc(first.boba_id || first.card_number)}"
            style="cursor:pointer" title="View detail"
            tabindex="0" aria-label="View ${esc(cardName)} detail">
         ${imgHtml}
         <div class="ccard-body">
-          <div class="ccard-name">${esc(cardName)}</div>
-          <div class="ccard-num">#${esc(entry.card_number || '—')}</div>
-          <div class="ccard-badges">
-            <span class="desig-badge desig-${esc(entry.designation || '')}">${esc(designLabel)}</span>
-            ${entry.condition ? `<span class="ccard-condition">${esc(entry.condition.replace('_',' '))}${entry.grade ? ` · ${esc(entry.grade)}` : ''}</span>` : ''}
+          <div class="ccard-name-row">
+            <span class="ccard-name">${esc(cardName)}</span>
+            ${qty > 1 ? `<span class="ccard-qty">×${qty}</span>` : ''}
           </div>
-          ${entry.purchase_price ? `<div class="ccard-price">$${Number(entry.purchase_price).toFixed(2)}</div>` : ''}
-          ${entry.notes ? `<div class="ccard-notes">${esc(entry.notes)}</div>` : ''}
+          <div class="ccard-stat-strip">
+            ${element && element !== 'NONE' ? `<span class="ccard-stat ccard-element" data-element="${esc(element)}">${esc(element)}</span>` : ''}
+            ${power ? `<span class="ccard-stat ccard-power">⚡${esc(String(power))}</span>` : ''}
+            <span class="ccard-stat ccard-num">#${esc(first.card_number || '—')}</span>
+          </div>
+          ${treatment ? `<div class="ccard-treatment">${esc(treatment)}</div>` : ''}
+          <div class="ccard-badges">
+            <span class="desig-badge desig-${esc(first.designation || '')}">${esc(designLabel)}</span>
+            ${conditionLabel ? `<span class="ccard-condition">${esc(conditionLabel)}${conditions.length === 1 && group[0].grade ? ` · ${esc(group[0].grade)}` : ''}</span>` : ''}
+          </div>
+          ${valueRow}
+          ${earliestAdded ? `<div class="ccard-added">Added ${esc(formatAddedDate(earliestAdded))}</div>` : ''}
         </div>
-        <button class="ccard-delete-btn" data-delete-id="${esc(entry.id)}" aria-label="Remove from collection">
+        <button class="ccard-delete-btn" data-delete-id="${esc(first.id)}" aria-label="Remove from collection">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                width="16" height="16" aria-hidden="true">
             <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
@@ -201,6 +263,76 @@ const Collection = (() => {
         </button>
       </div>`;
   }
+
+  /// Short, glanceable acquired-on label. today / yesterday / Nd ago /
+  /// Mon DD or Mon DD, YYYY for older entries. Matches the iOS row.
+  function formatAddedDate(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const now = new Date();
+    const startOfDay = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+    const dayDiff = Math.round((startOfDay(now) - startOfDay(d)) / 86400000);
+    if (dayDiff === 0) return 'today';
+    if (dayDiff === 1) return 'yesterday';
+    if (dayDiff > 1 && dayDiff < 7) return `${dayDiff}d ago`;
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const sameYear = d.getFullYear() === now.getFullYear();
+    return sameYear
+      ? `${months[d.getMonth()]} ${d.getDate()}`
+      : `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+
+  /// Collection-only sort. Mirrors CollectionSortOrder in iOS:
+  /// added_desc / added_asc / price_desc / price_asc / paid_desc /
+  /// paid_asc / name_asc / name_desc.
+  let _collectionSort = (typeof localStorage !== 'undefined'
+    ? localStorage.getItem('bp_collectionSort_v1')
+    : null) || 'added_desc';
+
+  function sortCollectionGroups(groups) {
+    const meta = (group) => {
+      const first = group[0];
+      const card = (_bobaIdLookup && first.boba_id)
+        ? _bobaIdLookup(first.boba_id)
+        : (_cardLookup ? _cardLookup(first.card_number) : null);
+      const name = (card?.name || first.card_number || '').toLowerCase();
+      const added = group.reduce((min, c) => {
+        const ts = c.acquired_at || c.created_at || '';
+        return (!min || (ts && ts < min)) ? ts : min;
+      }, null) || '';
+      const value = group.reduce((s, c) => s + (c.estimated_value ? Number(c.estimated_value) : 0), 0);
+      const paid  = group.reduce((s, c) => s + (c.purchase_price ? Number(c.purchase_price) : 0), 0);
+      return { name, added, value, paid };
+    };
+    const cache = new Map(groups.map(g => [g, meta(g)]));
+    const cmp = (a, b, k, dir) => {
+      const av = cache.get(a)[k];
+      const bv = cache.get(b)[k];
+      if (av < bv) return dir;
+      if (av > bv) return -dir;
+      return cache.get(a).name.localeCompare(cache.get(b).name);
+    };
+    const list = groups.slice();
+    switch (_collectionSort) {
+      case 'name_asc':    list.sort((a, b) => cache.get(a).name.localeCompare(cache.get(b).name)); break;
+      case 'name_desc':   list.sort((a, b) => cache.get(b).name.localeCompare(cache.get(a).name)); break;
+      case 'added_desc':  list.sort((a, b) => cmp(a, b, 'added', -1)); break;
+      case 'added_asc':   list.sort((a, b) => cmp(a, b, 'added',  1)); break;
+      case 'price_desc':  list.sort((a, b) => cmp(a, b, 'value', -1)); break;
+      case 'price_asc':   list.sort((a, b) => cmp(a, b, 'value',  1)); break;
+      case 'paid_desc':   list.sort((a, b) => cmp(a, b, 'paid',  -1)); break;
+      case 'paid_asc':    list.sort((a, b) => cmp(a, b, 'paid',   1)); break;
+      default:            list.sort((a, b) => cmp(a, b, 'added', -1));
+    }
+    return list;
+  }
+
+  function setCollectionSort(value) {
+    _collectionSort = value;
+    try { localStorage.setItem('bp_collectionSort_v1', value); } catch (_) { /* noop */ }
+    renderCollectionView();
+  }
+  function getCollectionSort() { return _collectionSort; }
 
   /* ================================================================
      PROFILE VIEW
@@ -1526,5 +1658,7 @@ const Collection = (() => {
     setCardLookup:    fn => { _cardLookup    = fn; },
     setBobaIdLookup:  fn => { _bobaIdLookup  = fn; },
     setVariantLookup: fn => { _variantLookup = fn; },
+    setSortOrder:     setCollectionSort,
+    getSortOrder:     getCollectionSort,
   };
 })();

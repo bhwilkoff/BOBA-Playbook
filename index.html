@@ -268,6 +268,12 @@
               <button class="power-preset" data-min="165" data-max="">Elite</button>
             </div>
           </div>
+
+          <div class="filter-actions">
+            <button class="btn-ghost-sm filter-clear-all" id="filter-clear-all-btn" type="button">
+              Clear all filters
+            </button>
+          </div>
         </div>
       </div>
 
@@ -925,90 +931,96 @@
 
           <section class="strategy-section">
             <h3 class="strategy-section-heading">Starter Decks</h3>
+            <p class="strategy-section-note">
+              Five meta-informed decks you can load straight into the deck builder.
+              Each is legal under every rule set (Apex, Spec, Spec+, Elite) and
+              respects the per-power 6-copy cap. Pick a starting point, then build
+              your own from there.
+            </p>
             <div class="archetype-grid">
 
-              <div class="archetype-card" data-element="FIRE">
+              <div class="archetype-card" data-element="STEEL">
                 <div class="archetype-header">
-                  <div class="archetype-dot" style="background:var(--el-FIRE)"></div>
-                  <div class="archetype-name">Fire Aggro</div>
+                  <div class="archetype-dot" style="background:var(--el-STEEL)"></div>
+                  <div class="archetype-name">Lockdown Locker</div>
                 </div>
-                <p class="archetype-tagline">Stack Fire synergies early; lock opponents with Flame Wall.</p>
-                <p class="archetype-strategy">Establish Fire Boost and Fire Crew for a persistent +10 power bump on every FIRE Hero. Flame Wall prevents the opponent from neutralizing your type advantage. Close games with Burning Fever and Eternal Flame. Requires a deep FIRE Hero roster.</p>
+                <p class="archetype-tagline">Steel-anchored disruption; close mid-game with high-DBS lockouts.</p>
+                <p class="archetype-strategy">60 STEEL Heroes (85–160 power) build hot-dog economy early, then pivot to Steel-stacked battles where lockout Plays end the round before your opponent can swing back. Teaches when to hold lockouts for late-battle swings rather than burning them on a bad matchup.</p>
                 <div class="archetype-key-plays">
                   <span class="archetype-label">Key Plays</span>
-                  <div class="archetype-plays-list">Fire Boost · Fire Crew · Flame Wall · Burning Fever · Eternal Flame · Smitty</div>
+                  <div class="archetype-plays-list">Molten Steel · Frost-Hardened · Frozen Resolve · Hero Reset · Crystal Ball · Discard Rebate</div>
                 </div>
                 <div class="archetype-weakness">
                   <span class="archetype-label">Weakness</span>
-                  Fire Extinguisher · Fire Hose · Only Ice
+                  Stain-Less-Steel · early aggro before lockouts come online
                 </div>
               </div>
 
               <div class="archetype-card" data-element="ICE">
                 <div class="archetype-header">
                   <div class="archetype-dot" style="background:var(--el-ICE)"></div>
-                  <div class="archetype-name">Ice Control</div>
+                  <div class="archetype-name">Frozen Tempo</div>
                 </div>
-                <p class="archetype-tagline">Deny substitutions; protect your Heroes behind layers of ice.</p>
-                <p class="archetype-strategy">Icy Shield and Unbreakable Ice make Heroes impossible to substitute against. Frozen Lineup locks opponent Heroes in place. ICE Control wins through attrition — be patient, preserve Hot Dogs, and outlast your opponent over 7 battles.</p>
+                <p class="archetype-tagline">Ice synergy + substitution control + economy denial.</p>
+                <p class="archetype-strategy">60 ICE Heroes (75–160 power) anchor a substitution-heavy game plan. Forced Substitution and Blind Substitution flip matchups; Icy Shield prevents your Heroes from being subbed out. Teaches Substitution as a strategic axis, not just a panic button.</p>
                 <div class="archetype-key-plays">
                   <span class="archetype-label">Key Plays</span>
-                  <div class="archetype-plays-list">Ice Boost · Ice Crew · Icy Shield · Frozen Resolve · Frozen Lineup · Unbreakable Ice</div>
+                  <div class="archetype-plays-list">Forced Substitution · Blind Substitution · Icy Shield · Frozen Resolve · Deep In The Playbook · Hero Reset</div>
                 </div>
                 <div class="archetype-weakness">
                   <span class="archetype-label">Weakness</span>
-                  Ice Pick · Icevantage · Frost-Hardened
-                </div>
-              </div>
-
-              <div class="archetype-card" data-element="STEEL">
-                <div class="archetype-header">
-                  <div class="archetype-dot" style="background:var(--el-STEEL)"></div>
-                  <div class="archetype-name">Steel Wall</div>
-                </div>
-                <p class="archetype-tagline">Layer Steel protections to make Heroes nearly invulnerable.</p>
-                <p class="archetype-strategy">Stack Steel Defense, Shield, and Chrome Will until opponents can't remove your Heroes effectively. Steel Cage prevents removal entirely. Mid-range STEEL Heroes become formidable threats with enough protection stacked.</p>
-                <div class="archetype-key-plays">
-                  <span class="archetype-label">Key Plays</span>
-                  <div class="archetype-plays-list">Steel Boost · Steel Crew · Steel Defense · Steel Shield · Chrome Will · Steel Cage</div>
-                </div>
-                <div class="archetype-weakness">
-                  <span class="archetype-label">Weakness</span>
-                  Stain-Less-Steel · Rusted Edge · Molten Steel
+                  Ice Pick · Icevantage · opponents who don't substitute
                 </div>
               </div>
 
               <div class="archetype-card" data-element="NONE">
                 <div class="archetype-header">
                   <div class="archetype-dot" style="background:var(--el-NONE)"></div>
-                  <div class="archetype-name">Mixed Toolbox</div>
+                  <div class="archetype-name">Draw and Adapt</div>
                 </div>
-                <p class="archetype-tagline">Adapt to any opponent; maximum flexibility, no single weakness.</p>
-                <p class="archetype-strategy">Weapon-agnostic Plays adapt to any matchup. Edge Rush and Deadline Deal let you react to any power level. Brothers In Arms rewards diverse Hero rosters. No weakness to weapon-specific hate, but also no dominant synergy engine.</p>
+                <p class="archetype-tagline">Engine-first deck; maximum draw and situational answers.</p>
+                <p class="archetype-strategy">12 Heroes each across FIRE / ICE / STEEL / GLOW / HEX gives you an answer for any matchup. The Plays package leans on draw, recovery, and lineup pressure rather than weapon synergy. Teaches how draw advantage compounds across 7 battles — every extra Play you see is leverage.</p>
                 <div class="archetype-key-plays">
                   <span class="archetype-label">Key Plays</span>
-                  <div class="archetype-plays-list">Weapon Mixer · Weapon Tangle · Brothers In Arms · Different Leagues · Edge Rush</div>
+                  <div class="archetype-plays-list">First Draw · Crystal Ball · Lineup Pressure · Frozen Lineup · Hero Reset · Jump Ball</div>
                 </div>
                 <div class="archetype-weakness">
                   <span class="archetype-label">Weakness</span>
-                  No single synergy as powerful as a focused build
+                  No single dominant synergy; loses to focused weapon-stacks early
                 </div>
               </div>
 
               <div class="archetype-card" data-element="GLOW">
                 <div class="archetype-header">
                   <div class="archetype-dot" style="background:var(--el-GLOW)"></div>
-                  <div class="archetype-name">Economy / Attrition</div>
+                  <div class="archetype-name">Glow Sacrifice</div>
                 </div>
-                <p class="archetype-tagline">Recover Hot Dogs faster than your opponent can spend them.</p>
-                <p class="archetype-strategy">Continuously refresh your Hot Dog supply while draining your opponent's. Bun Shortage limits their recovery. Mutually Assured Dogstruction resets both piles — play it when you're already low to equalize. Win in the late game when they're resource-starved.</p>
+                <p class="archetype-tagline">Discard-as-fuel + GLOW synergy + bonus-play toolbox.</p>
+                <p class="archetype-strategy">60 GLOW Heroes (95–160 power) feed a discard engine that turns spent Plays into power. Flip & Glow and Glowaway recycle resources; Lost Plays punishes opponents who hoard. Built around the SPEC format constraints (≤160 power) where every discard counts as a tempo move.</p>
                 <div class="archetype-key-plays">
                   <span class="archetype-label">Key Plays</span>
-                  <div class="archetype-plays-list">Trash Bandit · Victory Dinner · Make Up Meal · Too Full To Fight · Bun Shortage · Mutually Assured Dogstruction</div>
+                  <div class="archetype-plays-list">Flip & Glow · Glowaway · Lost Plays · Frozen Resolve · Discard Rebate · Hero Reset</div>
                 </div>
                 <div class="archetype-weakness">
                   <span class="archetype-label">Weakness</span>
-                  Loses quickly to fast aggro when Hot Dog recovery stalls
+                  GLOW-counter Plays · empty hand mid-engine
+                </div>
+              </div>
+
+              <div class="archetype-card" data-element="BRAWL">
+                <div class="archetype-header">
+                  <div class="archetype-dot" style="background:var(--el-BRAWL)"></div>
+                  <div class="archetype-name">Brawl Beatdown</div>
+                </div>
+                <p class="archetype-tagline">Aggro tempo. BRAWL/FIRE mix; win the first 3–4 battles.</p>
+                <p class="archetype-strategy">30 BRAWL + 30 FIRE Heroes (80–160 power) front-load the curve. Add Firepower, Burn To Burn, and Banked Power push damage early; Flame Wall protects your tempo lead. Teaches tempo-aggro counter-strategy — you don't need to win all 7 battles, just the first four.</p>
+                <div class="archetype-key-plays">
+                  <span class="archetype-label">Key Plays</span>
+                  <div class="archetype-plays-list">Add Firepower · Burn To Burn · Banked Power · Fire Crew · Flame Wall · Molten Steel</div>
+                </div>
+                <div class="archetype-weakness">
+                  <span class="archetype-label">Weakness</span>
+                  Late-game stall · economy decks that survive the first wave
                 </div>
               </div>
 

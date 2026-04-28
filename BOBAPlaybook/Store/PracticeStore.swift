@@ -4696,7 +4696,10 @@ enum EloEngine {
 final class EloStore {
     /// Era id is a label we control (handoff §2). Bumped manually
     /// when we want to start a fresh ladder season.
-    static let currentEra = "alpha-2026"
+    /// Marked `nonisolated` so it's reachable from default-parameter
+    /// expressions (which evaluate in a nonisolated context per
+    /// Swift 6 strict concurrency).
+    nonisolated static let currentEra = "alpha-2026"
 
     private let storageKey = "elo_records_v1"
     private(set) var records: [String: EloRecord] = [:]

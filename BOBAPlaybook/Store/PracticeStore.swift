@@ -4764,3 +4764,481 @@ private extension JSONEncoder {
         return e
     }
 }
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - Tournament engine (Phase E, bobaleagues handoff §3)
+//
+// In-app brackets only. Local-only, single-device. No external sync,
+// no commissioner workflows, no prize logistics. Engine generates
+// schedules, tracks results, declares champions.
+//
+// Inlined here per the project's Xcode synchronized-group note.
+// ════════════════════════════════════════════════════════════════
+
+enum TournamentFormat: String, Codable, CaseIterable, Sendable, Identifiable {
+    case roundRobin     = "round-robin"
+    case swiss          = "swiss"
+    case singleElim     = "single-elim"
+    case swissPlayoff   = "swiss-playoff"
+    case rrPlayoff      = "rr-playoff"
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .roundRobin:   return "Round Robin"
+        case .swiss:        return "Swiss"
+        case .singleElim:   return "Single Elimination"
+        case .swissPlayoff: return "Swiss + Playoff"
+        case .rrPlayoff:    return "Round Robin + Playoff"
+        }
+    }
+}
+
+enum TournamentDeckRules: String, Codable, Sendable {
+    case apex, spec
+}
+
+enum TournamentStatus: String, Codable, Sendable {
+    case setup, running, completed
+}
+
+enum TournamentParticipantType: String, Codable, Sendable {
+    case user, cpu
+}
+
+enum TournamentParticipantStatus: String, Codable, Sendable {
+    case active, eliminated, dropped
+}
+
+enum TournamentMatchStatus: String, Codable, Sendable {
+    case scheduled, inProgress, completed
+}
+
+enum TournamentReportLevel: String, Codable, Sendable {
+    case winnerOnly = "winner-only"
+    case games     = "games"
+    case battles   = "battles"
+}
+
+enum TournamentRoundPhase: String, Codable, Sendable {
+    case group, playoff
+}
+
+struct TournamentParticipant: Codable, Hashable, Sendable, Identifiable {
+    var id: String
+    var displayName: String
+    var type: TournamentParticipantType
+    var cpuProfile: CPUProfile?
+    var deckId: String
+    var status: TournamentParticipantStatus = .active
+}
+
+struct GameResult: Codable, Hashable, Sendable {
+    var winnerId: String?     // nil = tie
+    var player1Score: Int     // battles won (Bo7)
+    var player2Score: Int
+}
+
+struct TournamentBattleResult: Codable, Hashable, Sendable {
+    var index: Int
+    var winnerId: String?     // nil = tied battle
+}
+
+struct TournamentMatch: Codable, Hashable, Sendable, Identifiable {
+    var id: String
+    var participant1Id: String
+    var participant2Id: String?  // nil → BYE for participant1
+    var status: TournamentMatchStatus = .scheduled
+    var player1Score: Int? = nil
+    var player2Score: Int? = nil
+    var games: [GameResult]? = nil
+    var battles: [[TournamentBattleResult]]? = nil  // per-game battle records
+    var winnerId: String? = nil
+
+    var isBye: Bool { participant2Id == nil }
+}
+
+struct TournamentRound: Codable, Hashable, Sendable, Identifiable {
+    var index: Int
+    var phase: TournamentRoundPhase = .group
+    var matches: [TournamentMatch]
+    var id: String { "\(phase.rawValue)-\(index)" }
+}
+
+struct Tournament: Codable, Hashable, Sendable, Identifiable {
+    var id: String
+    var name: String
+    var mode: EloMode
+    var format: TournamentFormat
+    var deckRules: TournamentDeckRules
+    var maxPlayers: Int
+    var status: TournamentStatus = .setup
+    var participants: [TournamentParticipant] = []
+    var rounds: [TournamentRound] = []
+    var champion: String? = nil
+    var createdAt: Date = Date()
+    /// How fine-grained the match reports get. Set at create time;
+    /// drives whether reportMatch expects games / battles fields.
+    var reportLevel: TournamentReportLevel = .winnerOnly
+
+    /// Number of bracket players to cut to after a Swiss/RR season
+    /// when format includes a playoff phase. Default 8.
+    var playoffCut: Int = 8
+}
+
+/// Standalone engine over Tournament value types. No instance state —
+/// every operation takes the tournament value, mutates a local copy,
+/// returns the new value. Tests run against the engine directly.
+enum TournamentEngine {
+    // ─── Creation ─────────────────────────────────────────────────────
+
+    static func create(name: String,
+                       mode: EloMode,
+                       format: TournamentFormat,
+                       deckRules: TournamentDeckRules = .apex,
+                       maxPlayers: Int = 16,
+                       reportLevel: TournamentReportLevel = .winnerOnly) -> Tournament {
+        Tournament(id: UUID().uuidString,
+                   name: name,
+                   mode: mode,
+                   format: format,
+                   deckRules: deckRules,
+                   maxPlayers: maxPlayers,
+                   reportLevel: reportLevel)
+    }
+
+    // ─── Roster ───────────────────────────────────────────────────────
+
+    static func addParticipant(_ t: inout Tournament, participant: TournamentParticipant) {
+        guard t.status == .setup else { return }
+        guard t.participants.count < t.maxPlayers else { return }
+        guard !t.participants.contains(where: { $0.id == participant.id }) else { return }
+        t.participants.append(participant)
+    }
+
+    // ─── Schedule generation ──────────────────────────────────────────
+
+    @discardableResult
+    static func generateSchedule(_ t: inout Tournament) -> Bool {
+        guard t.status == .setup, t.participants.count >= 2 else { return false }
+        switch t.format {
+        case .roundRobin, .rrPlayoff:
+            t.rounds = roundRobinRounds(active: t.participants.filter { $0.status == .active })
+        case .swiss, .swissPlayoff:
+            // Swiss round 1: random pairing.
+            t.rounds = [swissRoundOne(active: t.participants.filter { $0.status == .active })]
+        case .singleElim:
+            t.rounds = singleElimRounds(active: t.participants.filter { $0.status == .active },
+                                        phase: .playoff)
+        }
+        t.status = .running
+        return true
+    }
+
+    /// Round-robin scheduler — circle method. Every player plays every
+    /// other exactly once. With N players we get (N-1) rounds and N/2
+    /// matches per round (one BYE per round when N is odd).
+    private static func roundRobinRounds(active: [TournamentParticipant]) -> [TournamentRound] {
+        var roster = active
+        if roster.count % 2 == 1 {
+            // Insert a sentinel BYE participant for odd counts.
+            roster.append(.init(id: "__bye__", displayName: "BYE",
+                                type: .cpu, cpuProfile: nil, deckId: ""))
+        }
+        let n = roster.count
+        var rounds: [TournamentRound] = []
+        var ids = roster.map { $0.id }
+        for r in 0..<(n - 1) {
+            var matches: [TournamentMatch] = []
+            for i in 0..<(n / 2) {
+                let p1 = ids[i]
+                let p2 = ids[n - 1 - i]
+                let real1 = p1 != "__bye__" ? p1 : nil
+                let real2 = p2 != "__bye__" ? p2 : nil
+                guard let realP1 = real1 else {
+                    if let realP2 = real2 {
+                        matches.append(TournamentMatch(id: UUID().uuidString,
+                                                       participant1Id: realP2,
+                                                       participant2Id: nil))
+                    }
+                    continue
+                }
+                matches.append(TournamentMatch(id: UUID().uuidString,
+                                               participant1Id: realP1,
+                                               participant2Id: real2))
+            }
+            rounds.append(TournamentRound(index: r, phase: .group, matches: matches))
+            // Rotate everyone except index 0 (standard circle method).
+            let last = ids.removeLast()
+            ids.insert(last, at: 1)
+        }
+        return rounds
+    }
+
+    private static func swissRoundOne(active: [TournamentParticipant]) -> TournamentRound {
+        var roster = active.shuffled()
+        var matches: [TournamentMatch] = []
+        while roster.count >= 2 {
+            let a = roster.removeFirst()
+            let b = roster.removeFirst()
+            matches.append(TournamentMatch(id: UUID().uuidString,
+                                           participant1Id: a.id, participant2Id: b.id))
+        }
+        if let bye = roster.first {
+            matches.append(TournamentMatch(id: UUID().uuidString,
+                                           participant1Id: bye.id, participant2Id: nil))
+        }
+        return TournamentRound(index: 0, phase: .group, matches: matches)
+    }
+
+    /// Single-elim bracket with BYEs for non-power-of-two counts.
+    /// Higher-seed (lower index) gets the BYE on the first round.
+    private static func singleElimRounds(active: [TournamentParticipant],
+                                         phase: TournamentRoundPhase) -> [TournamentRound] {
+        guard !active.isEmpty else { return [] }
+        var bracketSize = 1
+        while bracketSize < active.count { bracketSize *= 2 }
+        var slots: [String?] = active.map { $0.id }
+        slots.append(contentsOf: Array(repeating: nil, count: bracketSize - active.count))
+        var matches: [TournamentMatch] = []
+        for i in stride(from: 0, to: slots.count, by: 2) {
+            let a = slots[i]; let b = slots[i + 1]
+            switch (a, b) {
+            case let (.some(p1), .some(p2)):
+                matches.append(.init(id: UUID().uuidString,
+                                     participant1Id: p1, participant2Id: p2))
+            case let (.some(p1), .none):
+                matches.append(.init(id: UUID().uuidString,
+                                     participant1Id: p1, participant2Id: nil))
+            case let (.none, .some(p2)):
+                matches.append(.init(id: UUID().uuidString,
+                                     participant1Id: p2, participant2Id: nil))
+            case (.none, .none):
+                continue  // shouldn't happen — bracket size already matches
+            }
+        }
+        return [TournamentRound(index: 0, phase: phase, matches: matches)]
+    }
+
+    // ─── Match reporting ──────────────────────────────────────────────
+
+    /// Winner-only report. Sets winnerId, marks the match completed.
+    /// Higher-granularity reports (games, battles) are accepted via
+    /// the `games` / `battles` parameters; the engine uses them to
+    /// derive the winner if unset.
+    @discardableResult
+    static func reportMatch(_ t: inout Tournament,
+                            matchId: String,
+                            winnerId: String? = nil,
+                            games: [GameResult]? = nil,
+                            battles: [[TournamentBattleResult]]? = nil) -> Bool {
+        guard let (rIdx, mIdx) = locateMatch(t, id: matchId) else { return false }
+        var match = t.rounds[rIdx].matches[mIdx]
+
+        // BYE: auto-advance to the present player.
+        if match.isBye {
+            match.winnerId = match.participant1Id
+            match.status = .completed
+            t.rounds[rIdx].matches[mIdx] = match
+            return true
+        }
+
+        // Derive winner from games tally if not provided directly.
+        var resolvedWinner = winnerId
+        if resolvedWinner == nil, let games = games, !games.isEmpty {
+            let p1Wins = games.filter { $0.winnerId == match.participant1Id }.count
+            let p2Wins = games.filter { $0.winnerId == match.participant2Id }.count
+            if p1Wins > p2Wins        { resolvedWinner = match.participant1Id }
+            else if p2Wins > p1Wins   { resolvedWinner = match.participant2Id }
+            // tied → leave nil; caller can re-report once decided
+            match.player1Score = p1Wins
+            match.player2Score = p2Wins
+        }
+        match.winnerId = resolvedWinner
+        match.games    = games
+        match.battles  = battles
+        match.status   = (resolvedWinner != nil) ? .completed : .inProgress
+        t.rounds[rIdx].matches[mIdx] = match
+        return true
+    }
+
+    private static func locateMatch(_ t: Tournament, id: String) -> (Int, Int)? {
+        for (r, round) in t.rounds.enumerated() {
+            if let m = round.matches.firstIndex(where: { $0.id == id }) {
+                return (r, m)
+            }
+        }
+        return nil
+    }
+
+    // ─── Round / bracket advancement ──────────────────────────────────
+
+    /// True when every match in the current round has a winner (or
+    /// is a BYE that was auto-resolved).
+    static func isCurrentRoundComplete(_ t: Tournament) -> Bool {
+        guard let last = t.rounds.last else { return false }
+        return last.matches.allSatisfy { $0.status == .completed }
+    }
+
+    /// Append the next round of the tournament. Returns the new
+    /// round, or nil when the tournament is complete (e.g., bracket
+    /// championship match was the last one).
+    @discardableResult
+    static func advance(_ t: inout Tournament) -> TournamentRound? {
+        guard t.status == .running else { return nil }
+        guard isCurrentRoundComplete(t) else { return nil }
+
+        switch t.format {
+        case .roundRobin:
+            // Round-robin pre-scheduled all rounds at generateSchedule.
+            // If the last scheduled round is done, declare champion.
+            if let next = t.rounds.first(where: {
+                $0.matches.contains(where: { $0.status != .completed })
+            }) {
+                return next
+            }
+            declareChampionByRecord(&t)
+            return nil
+
+        case .rrPlayoff:
+            // Same as RR until the round-robin season ends; then cut
+            // to top N and run a single-elim bracket.
+            if t.rounds.allSatisfy({ $0.phase != .playoff })
+               && t.rounds.contains(where: { $0.matches.contains { $0.status != .completed } }) {
+                return nil  // RR still in progress
+            }
+            return openOrAdvancePlayoff(&t)
+
+        case .swiss:
+            return swissNextRoundOrFinish(&t, withPlayoff: false)
+
+        case .swissPlayoff:
+            return swissNextRoundOrFinish(&t, withPlayoff: true)
+
+        case .singleElim:
+            return singleElimAdvance(&t)
+        }
+    }
+
+    /// Swiss schedule: keep generating new rounds until each player
+    /// has played a configurable number of rounds (default ceil(log2(N)) + 1).
+    /// Pair winners-vs-winners by current standings without rematches
+    /// where possible.
+    private static func swissNextRoundOrFinish(_ t: inout Tournament,
+                                               withPlayoff: Bool) -> TournamentRound? {
+        let target = swissTargetRounds(t)
+        let groupRounds = t.rounds.filter { $0.phase == .group }.count
+        if groupRounds < target {
+            // Pair by current standings.
+            let standings = orderedStandings(t)
+            let played: Set<String> = Set(t.rounds.flatMap { round in
+                round.matches.flatMap { m -> [String] in
+                    guard let p2 = m.participant2Id else { return [] }
+                    return ["\(m.participant1Id)|\(p2)", "\(p2)|\(m.participant1Id)"]
+                }
+            })
+            var queue = standings
+            var matches: [TournamentMatch] = []
+            while !queue.isEmpty {
+                let a = queue.removeFirst()
+                if let bIdx = queue.firstIndex(where: { played.contains("\(a)|\($0)") == false })
+                    ?? (queue.indices.first.map { Int($0) }) {
+                    let b = queue.remove(at: bIdx)
+                    matches.append(TournamentMatch(id: UUID().uuidString,
+                                                   participant1Id: a, participant2Id: b))
+                } else {
+                    matches.append(TournamentMatch(id: UUID().uuidString,
+                                                   participant1Id: a, participant2Id: nil))
+                }
+            }
+            let next = TournamentRound(index: groupRounds, phase: .group, matches: matches)
+            t.rounds.append(next)
+            return next
+        }
+        // Swiss season done.
+        if withPlayoff {
+            return openOrAdvancePlayoff(&t)
+        }
+        declareChampionByRecord(&t)
+        return nil
+    }
+
+    /// Standard Swiss round count: ceil(log2(N)) + 1 (matches the
+    /// community convention used in the captured S2 bracket).
+    private static func swissTargetRounds(_ t: Tournament) -> Int {
+        let n = t.participants.count
+        if n <= 2 { return 1 }
+        let log2n = Int(ceil(log2(Double(n))))
+        return log2n + 1
+    }
+
+    private static func openOrAdvancePlayoff(_ t: inout Tournament) -> TournamentRound? {
+        // First playoff round: cut the field, build the bracket.
+        if !t.rounds.contains(where: { $0.phase == .playoff }) {
+            let standings = orderedStandings(t)
+            let cut = Array(standings.prefix(t.playoffCut))
+            let bracketRoster = cut.compactMap { id in
+                t.participants.first(where: { $0.id == id })
+            }
+            // Mark non-cut participants eliminated.
+            for i in t.participants.indices where !cut.contains(t.participants[i].id) {
+                t.participants[i].status = .eliminated
+            }
+            let initial = singleElimRounds(active: bracketRoster, phase: .playoff)
+            t.rounds.append(contentsOf: initial)
+            return initial.first
+        }
+        return singleElimAdvance(&t)
+    }
+
+    /// Advance the single-elim bracket. Promotes winners into the
+    /// next round; declares champion when only one match remains and
+    /// it's been reported.
+    private static func singleElimAdvance(_ t: inout Tournament) -> TournamentRound? {
+        guard let last = t.rounds.last,
+              last.phase == .playoff else { return nil }
+        let winners = last.matches.compactMap { $0.winnerId }
+        if winners.count == 1 {
+            t.champion = winners[0]
+            t.status   = .completed
+            return nil
+        }
+        guard winners.count >= 2 else { return nil }
+        var matches: [TournamentMatch] = []
+        for i in stride(from: 0, to: winners.count, by: 2) {
+            let a = winners[i]
+            let b = i + 1 < winners.count ? winners[i + 1] : nil
+            matches.append(TournamentMatch(id: UUID().uuidString,
+                                           participant1Id: a, participant2Id: b))
+        }
+        let next = TournamentRound(index: last.index + 1, phase: .playoff, matches: matches)
+        t.rounds.append(next)
+        return next
+    }
+
+    /// Standings: count wins across all completed matches; tie-break
+    /// by ties (counted as half wins). Returns participant ids in
+    /// best-first order.
+    static func orderedStandings(_ t: Tournament) -> [String] {
+        var score: [String: Double] = [:]
+        for r in t.rounds {
+            for m in r.matches where m.status == .completed {
+                if let w = m.winnerId {
+                    score[w, default: 0] += 1
+                } else if !m.isBye {
+                    score[m.participant1Id, default: 0] += 0.5
+                    if let p2 = m.participant2Id { score[p2, default: 0] += 0.5 }
+                }
+            }
+        }
+        return t.participants
+            .map { $0.id }
+            .sorted { (score[$0] ?? 0) > (score[$1] ?? 0) }
+    }
+
+    private static func declareChampionByRecord(_ t: inout Tournament) {
+        let standings = orderedStandings(t)
+        if let id = standings.first { t.champion = id }
+        t.status = .completed
+    }
+}

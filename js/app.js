@@ -67,6 +67,7 @@
     element:  '',
     set:      '',
     treatment:'',
+    release:  '',
     hasImage: false,
     powerMin: null,
     powerMax: null,
@@ -93,6 +94,7 @@
   let quickAddMode = false;
   const setFilter       = $('set-filter');
   const treatmentFilter = $('treatment-filter');
+  const releaseFilter   = $('release-filter');
   const hasImageCheckbox = document.getElementById('has-image-checkbox');
   const loadSentinel    = $('load-sentinel');
   const clearFiltersBtn = $('clear-filters-btn');
@@ -174,6 +176,7 @@
     if (filters.element)                                count++;
     if (filters.set)                                    count++;
     if (filters.treatment)                              count++;
+    if (filters.release)                                count++;
     if (filters.powerMin !== null || filters.powerMax !== null) count++;
     if (filters.hasImage)                               count++;
     if (filterBadge) {
@@ -222,6 +225,7 @@
     if (filters.element)                   p.set('element', filters.element);
     if (filters.set)                       p.set('set', filters.set);
     if (filters.treatment)                 p.set('treatment', filters.treatment);
+    if (filters.release)                   p.set('release', filters.release);
     if (filters.hasImage)                  p.set('has_image', '1');
     if (filters.powerMin != null)          p.set('power_min', String(filters.powerMin));
     if (filters.powerMax != null)          p.set('power_max', String(filters.powerMax));
@@ -250,6 +254,7 @@
     filters.element   = params.get('element') || '';
     filters.set       = params.get('set') || '';
     filters.treatment = params.get('treatment') || '';
+    filters.release   = params.get('release') || '';
     filters.hasImage  = params.get('has_image') === '1';
     filters.powerMin  = params.has('power_min') ? Number(params.get('power_min')) : null;
     filters.powerMax  = params.has('power_max') ? Number(params.get('power_max')) : null;
@@ -269,6 +274,7 @@
     if (setFilter) setFilter.value = filters.set;
     buildTreatmentFilter(filters.set);
     if (treatmentFilter) treatmentFilter.value = filters.treatment;
+    if (releaseFilter)   releaseFilter.value   = filters.release;
 
     if (hasImageCheckbox) hasImageCheckbox.checked = filters.hasImage;
 
@@ -1018,6 +1024,12 @@
       resultIds = resultIds === null ? s : intersect(resultIds, s);
     }
 
+    // Release filter (Alpha / Alpha Update / Griffey / Alpha Blast / etc.)
+    if (filters.release) {
+      const s = new Set((searchIndex.byRelease[filters.release] || []).map(String));
+      resultIds = resultIds === null ? s : intersect(resultIds, s);
+    }
+
     // Has image filter
     if (filters.hasImage) {
       const s = new Set((searchIndex.hasImage || []).map(String));
@@ -1238,6 +1250,19 @@
     }
   }
 
+  function buildReleaseFilter() {
+    if (!releaseFilter || !searchIndex?.byRelease) return;
+    while (releaseFilter.options.length > 1) releaseFilter.remove(1);
+    const releases = Object.keys(searchIndex.byRelease)
+      .sort((a, b) => searchIndex.byRelease[b].length - searchIndex.byRelease[a].length);
+    for (const rel of releases) {
+      const opt = document.createElement('option');
+      opt.value = rel;
+      opt.textContent = `${rel} (${searchIndex.byRelease[rel].length.toLocaleString()})`;
+      releaseFilter.appendChild(opt);
+    }
+  }
+
   function buildTreatmentFilter(selectedSet) {
     while (treatmentFilter.options.length > 1) treatmentFilter.remove(1);
     const all = selectedSet
@@ -1267,6 +1292,11 @@
 
   treatmentFilter.addEventListener('change', () => {
     filters.treatment = treatmentFilter.value;
+    applyFilters();
+  });
+
+  releaseFilter?.addEventListener('change', () => {
+    filters.release = releaseFilter.value;
     applyFilters();
   });
 
@@ -1379,6 +1409,7 @@
     filters.element = '';
     filters.set = '';
     filters.treatment = '';
+    filters.release = '';
     filters.hasImage = false;
     filters.powerMin = null;
     filters.powerMax = null;
@@ -1388,6 +1419,7 @@
     searchClear.hidden = true;
     setFilter.value = '';
     buildTreatmentFilter('');
+    if (releaseFilter) releaseFilter.value = '';
     // Clear any active showcase chip so the filter sheet matches state.
     showcaseFilters?.querySelectorAll('.showcase-pill').forEach(p => {
       p.classList.remove('active');
@@ -2366,6 +2398,7 @@
     buildShowcaseFilters();
     buildElementFilters();
     buildSetFilter();
+    buildReleaseFilter();
 
     // Apply URL params now that filter UI is fully built (element pills, dropdowns,
     // and categories are all available). This is the single source of truth for

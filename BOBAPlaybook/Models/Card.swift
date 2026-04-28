@@ -10,6 +10,12 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
     let subSet: String?
     let variation: String?
     let treatment: String?
+    /// Canonical release label, normalized from `set` (drops the
+    /// "Edition" suffix where applicable). Matches the names used in
+    /// BoBA's published DBS update and the bobaleagues CSV format
+    /// (Alpha / Alpha Update / Griffey / Alpha Blast / Promo / etc.).
+    /// Empty string for legacy records that haven't been re-bundled.
+    let release: String
     let element: String       // "NONE" for sealed products
     let power: Int?
     let playCost: Int?
@@ -102,6 +108,7 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
         subSet             = try c.decodeIfPresent(String.self,    forKey: .subSet)
         variation          = try c.decodeIfPresent(String.self,    forKey: .variation)
         treatment          = try c.decodeIfPresent(String.self,    forKey: .treatment)
+        release            = try c.decodeIfPresent(String.self,    forKey: .release) ?? ""
         element            = try c.decodeIfPresent(String.self,    forKey: .element)   ?? "NONE"
         power              = try c.decodeIfPresent(Int.self,       forKey: .power)
         // playCost is an Int for Play cards (0–6 Hot Dogs) but sealed products

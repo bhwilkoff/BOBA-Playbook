@@ -54,12 +54,14 @@ final class CardStore {
     private(set) var elements: [String] = []
     private(set) var sets: [String] = []
     private(set) var treatments: [String] = []
+    private(set) var releases: [String] = []
 
     // MARK: - Filter state
     var searchText = ""             { didSet { scheduleFilter() } }
     var selectedElements: Set<String> = [] { didSet { scheduleFilter() } }
     var selectedSet: String?        { didSet { scheduleFilter() } }
     var selectedTreatment: String?  { didSet { scheduleFilter() } }
+    var selectedRelease: String?    { didSet { scheduleFilter() } }
     var powerMin: Int?              { didSet { scheduleFilter() } }
     var powerMax: Int?              { didSet { scheduleFilter() } }
     var hasImageOnly = false        { didSet { scheduleFilter() } }
@@ -74,6 +76,7 @@ final class CardStore {
         (selectedElements.isEmpty ? 0 : 1)
         + (selectedSet   == nil ? 0 : 1)
         + (selectedTreatment == nil ? 0 : 1)
+        + (selectedRelease == nil ? 0 : 1)
         + ((powerMin != nil || powerMax != nil) ? 1 : 0)
         + (hasImageOnly ? 1 : 0)
         + (sortOrder != .default ? 1 : 0)
@@ -204,11 +207,13 @@ final class CardStore {
             let elementList = Array(Set(cards.map { $0.element }).filter { !$0.isEmpty && $0 != "NONE" }).sorted()
             let setList     = Array(Set(cards.map { $0.set     }).filter { !$0.isEmpty }).sorted()
             let treatList   = Array(Set(cards.compactMap { $0.treatment }).filter { !$0.isEmpty }).sorted()
+            let releaseList = Array(Set(cards.map { $0.release }).filter { !$0.isEmpty }).sorted()
 
             displayCards  = cards
             elements      = elementList
             sets          = setList
             treatments    = treatList
+            releases      = releaseList
             isLoading     = false
             isLoadingMore = false
             applyFilters()
@@ -237,6 +242,7 @@ final class CardStore {
         let elements  = selectedElements
         let set       = selectedSet
         let treatment = selectedTreatment
+        let release   = selectedRelease
         let pMin      = powerMin
         let pMax      = powerMax
         let imgOnly   = hasImageOnly
@@ -271,6 +277,7 @@ final class CardStore {
             if !elements.isEmpty && !elements.contains(card.element) { return false }
             if let s = set,       !s.isEmpty, card.set      != s     { return false }
             if let t = treatment, !t.isEmpty, card.treatment != t    { return false }
+            if let r = release,   !r.isEmpty, card.release   != r    { return false }
             if let min = pMin, let p = card.power, p < min           { return false }
             if let max = pMax, let p = card.power, p > max           { return false }
             if !search.isEmpty && !isShowcaseSearch {
@@ -324,6 +331,7 @@ final class CardStore {
         selectedElements   = []
         selectedSet        = nil
         selectedTreatment  = nil
+        selectedRelease    = nil
         powerMin           = nil
         powerMax           = nil
         hasImageOnly       = false

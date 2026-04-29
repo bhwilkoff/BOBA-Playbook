@@ -1843,6 +1843,15 @@
     return `https://www.ebay.com/sch/i.html?${params}`;
   }
 
+  // Radish is case-sensitive and uses different canonical spellings
+  // for a handful of heroes than our catalog does. Without this
+  // remap the URL 404s. Add new entries when the smoketest
+  // (scripts/probe_radish_urls.py) reports a mismatch.
+  const RADISH_HERO_ALIASES = {
+    ChetMate: 'Chetmate',
+    BoJax:    'Bojax',
+  };
+
   function buildRadishUrl(card) {
     if (card.radishUrl) return card.radishUrl;
     // Sealed Products land on Radish's sealed-sales index — no
@@ -1850,15 +1859,30 @@
     if (card.cardType === 'Sealed Product') {
       return 'https://radishpriceguide.com/boba/sealed';
     }
+    // Verified URL shape (Ben supplied two working examples):
+    //   /boba/2025/Alpha_Blast/Mean-Joe/BL-B18
+    //   /boba/2025/World_Champions/Chetmate/OKC-27
     // Programmatic fallback — mirrors iOS Card+Radish.swift.
     const [year, slug] = SET_SLUG_MAP[card.set] || ['2024', 'Alpha_Edition'];
+    // cardNumber prefix remap so LOGO-/RAD-/MIX- in the catalog
+    // become Logo-/Rad-/Mix- in the URL.
+    const prefixRemap = { LOGO: 'Logo', RAD: 'Rad', MIX: 'Mix' };
+    let cardNum = card.cardNumber || '';
+    for (const [ours, theirs] of Object.entries(prefixRemap)) {
+      if (cardNum.startsWith(ours + '-')) {
+        cardNum = theirs + cardNum.slice(ours.length);
+        break;
+      }
+    }
     // Plays + Hot Dogs put their card name in the `hero` field
     // (per One-ID-per-Card), so the same formula works for all
-    // three cardTypes. cardNumber is intentionally NOT in the URL.
-    const raw  = card.hero || card.name || '';
-    if (!raw) return null;
-    const name = encodeURIComponent(raw);
-    return `https://radishpriceguide.com/boba/${year}/${slug}/${name}`;
+    // three cardTypes.
+    const raw = card.hero || card.name || '';
+    if (!raw || !cardNum) return null;
+    const radishHero = RADISH_HERO_ALIASES[raw] || raw;
+    const heroEnc = encodeURIComponent(radishHero);
+    const numEnc  = encodeURIComponent(cardNum);
+    return `https://radishpriceguide.com/boba/${year}/${slug}/${heroEnc}/${numEnc}`;
   }
 
   function loadPricing(card) {

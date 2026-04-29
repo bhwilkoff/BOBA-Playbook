@@ -498,17 +498,54 @@ function isExactMatch(title, aspects, cardNumber, hero, power) {
  *
  * Returns an array of normalised items, or null on failure.
  */
-async function fetchRadishSales(radishUrl, days) {
+async function fetchRadishHTML(url) {
   try {
-    const res = await fetch(radishUrl, {
+    const res = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
         "Accept":     "text/html,application/xhtml+xml",
       },
     });
     if (!res.ok) return null;
+    return await res.text();
+  } catch {
+    return null;
+  }
+}
 
-    const html  = await res.text();
+function stripCardNumberFromRadishURL(url) {
+  // Drop the last path segment so /boba/{year}/{slug}/{hero}/{num}
+  // becomes /boba/{year}/{slug}/{hero}. Returns null when the URL
+  // doesn't match that shape (e.g. /boba/sealed has no cardNumber).
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split("/").filter(Boolean);
+    if (parts.length < 5) return null;
+    parts.pop();
+    u.pathname = "/" + parts.join("/");
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchRadishSales(radishUrl, days) {
+  try {
+    let html = await fetchRadishHTML(radishUrl);
+    if (html === null) {
+      // Primary URL 404'd. Fall back to the hero-only page —
+      // /boba/{year}/{slug}/{hero}/{cardNumber} →
+      // /boba/{year}/{slug}/{hero}. The hero page aggregates every
+      // print of that hero, which gives more comp matches when
+      // Radish hasn't built a card-detail page for this specific
+      // print yet.
+      const fallback = stripCardNumberFromRadishURL(radishUrl);
+      if (fallback && fallback !== radishUrl) {
+        html = await fetchRadishHTML(fallback);
+      }
+    }
+    if (!html) return null;
+
     const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">([^<]+)<\/script>/);
     if (!match) return null;
 

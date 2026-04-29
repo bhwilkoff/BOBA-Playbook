@@ -28,6 +28,12 @@ struct ScanView: View {
     // Reference to the preview layer for ROI computation after layout
     @State private var previewLayer: AVCaptureVideoPreviewLayer?
 
+    /// DEBUG-only — long-pressing the SINGLE/MULTI/SHOW mode bar opens
+    /// the Grid Detector test harness. Lets Ben validate accuracy on
+    /// the 4 bundled HEIC fixtures before Grid mode is exposed to
+    /// users via the regular mode picker.
+    @State private var showGridTestHarness = false
+
     // MARK: - Body
 
     var body: some View {
@@ -249,6 +255,11 @@ struct ScanView: View {
             // builder). In a deck-builder session the destination is
             // always the in-progress deck (with optional collection
             // mirror) — Show Mode there has no meaningful destination.
+            //
+            // DEBUG: long-press the row to open the Grid Detector test
+            // harness. Hidden in release builds. Once the harness
+            // confirms ≥36 of 36 across the 4 fixtures, GRID gets
+            // promoted to a real pill in the row.
             HStack {
                 Spacer()
                 modePill(for: .single, label: "SINGLE", icon: "rectangle.on.rectangle")
@@ -259,7 +270,17 @@ struct ScanView: View {
             }
             .padding(.trailing, Design.Spacing.lg)
             .padding(.bottom, 90)
+            #if DEBUG
+            .onLongPressGesture(minimumDuration: 0.6) {
+                showGridTestHarness = true
+            }
+            #endif
         }
+        #if DEBUG
+        .sheet(isPresented: $showGridTestHarness) {
+            GridTestHarnessView()
+        }
+        #endif
     }
 
     /// One pill in the scanner's mode row. Tap selects that mode; the

@@ -1,0 +1,6 @@
+# Repo-root PNG copies of the Grid test fixtures are 28MB each (vs
+# 2.3MB HEIC). HEIC is the iPhone-native format the production scan
+# path receives anyway, so we bundle just HEIC into the iOS app at
+# BOBAPlaybook/Resources/GridTestFixtures/ and ignore the PNG dupes
+# kept here as developer-side reference copies.
+*.png

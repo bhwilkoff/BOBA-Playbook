@@ -20,10 +20,13 @@ final class ScanStore {
     /// Scanner destination mode. `single` and `multi` keep the existing
     /// behavior (dismiss after one card vs. queue many). `show` is a
     /// streamer-only third mode that queues cards bound for a Show
-    /// (Whatnot prep) instead of the collection. The queue itself is
-    /// the same array — the mode flag dictates what "Save all" does.
+    /// (Whatnot prep) instead of the collection. `grid` takes a single
+    /// photo of up to 9 cards laid out in a 3×N grid (3×1, 3×2, or
+    /// 3×3) and dumps each detected card into the queue in one shot.
+    /// The queue itself is the same array — the mode flag dictates
+    /// what "Save all" does.
     enum Mode: String {
-        case single, multi, show
+        case single, multi, show, grid
     }
 
     /// Where the scanner was opened from. The save-all path branches on

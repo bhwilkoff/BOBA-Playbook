@@ -2,6 +2,7 @@ import AVFoundation
 import Vision
 import CoreImage
 import Accelerate
+import UIKit
 
 // MARK: - ScanObservation
 
@@ -624,6 +625,120 @@ extension CardScanner: AVCaptureVideoDataOutputSampleBufferDelegate {
         }
 
         return nil
+    }
+}
+
+// MARK: - Still-image scan path (used by Grid mode)
+
+extension CardScanner {
+
+    /// Run the OCR + cardNumber-extraction pipeline on a single
+    /// pre-cropped UIImage. Used by Grid scan mode where the input
+    /// has already been split into N card-shaped sub-images (via
+    /// `GridCardDetector`) and each one needs to be OCR'd
+    /// independently. No frame-stability check (we have one shot,
+    /// not a stream) and no commit cooldown.
+    ///
+    /// The scanner instance must already be initialized with
+    /// `setCardNumbers` and ideally `setVocabularyNames` so the
+    /// catalog is loaded; otherwise extraction can only succeed
+    /// via the strict regex path.
+    ///
+    /// Returns nil when no card number is extracted from the image.
+    func scanStillImage(_ image: UIImage) async -> ScanObservation? {
+        guard let ciImage = CIImage(image: image) else { return nil }
+        // Pre-extract Sendable scalars; processingQueue is a serial
+        // dispatch queue and we cap its capture.
+        return await withCheckedContinuation { (cont: CheckedContinuation<ScanObservation?, Never>) in
+            processingQueue.async { [weak self] in
+                guard let self else { cont.resume(returning: nil); return }
+                let result = self.runOCRSync(on: ciImage)
+                cont.resume(returning: result)
+            }
+        }
+    }
+
+    /// Synchronous OCR worker — must be called on `processingQueue`
+    /// because it touches `cardNumberSet` and `customWordsCache`.
+    /// Mirrors the per-frame logic from `processFrame` but skips the
+    /// stability-counter and cooldown checks. Sentinel-only — do not
+    /// call directly from outside the queue.
+    private func runOCRSync(on ciImage: CIImage) -> ScanObservation? {
+        // Same enhancement chain as processFrame — gamma lift + grayscale +
+        // contrast + unsharp mask. Tuned for OCR on dark BoBA card art.
+        let enhanced = ciImage
+            .applyingFilter("CIGammaAdjust", parameters: [ "inputPower": Float(0.65) ])
+            .applyingFilter("CIColorControls", parameters: [
+                "inputSaturation": Float(0.0),
+                "inputContrast":   Float(1.25),
+            ])
+            .applyingFilter("CIUnsharpMask", parameters: [
+                "inputRadius":    Float(2.5),
+                "inputIntensity": Float(0.5),
+            ])
+
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel       = .accurate
+        request.usesLanguageCorrection = false
+        request.recognitionLanguages   = ["en-US"]
+        // Whole image — Grid crops are already card-shaped, no ROI.
+        request.regionOfInterest       = CGRect(x: 0, y: 0, width: 1, height: 1)
+        request.minimumTextHeight      = 0.015
+        if !customWordsCache.isEmpty {
+            request.customWords = customWordsCache
+        }
+
+        let handler = VNImageRequestHandler(ciImage: enhanced, options: [:])
+        guard (try? handler.perform([request])) != nil,
+              let observations = request.results else { return nil }
+
+        var topLeft:     [String] = []
+        var topRight:    [String] = []
+        var bottomLeft:  [String] = []
+        var bottomRight: [String] = []
+        var all:         [String] = []
+
+        for obs in observations {
+            guard let candidate = obs.topCandidates(1).first,
+                  candidate.confidence > 0.3 else { continue }
+            let text = candidate.string.uppercased()
+            all.append(text)
+            switch (obs.boundingBox.midX < 0.5, obs.boundingBox.midY > 0.5) {
+            case (true,  true):  topLeft.append(text)
+            case (false, true):  topRight.append(text)
+            case (true,  false): bottomLeft.append(text)
+            case (false, false): bottomRight.append(text)
+            }
+        }
+
+        let fullText       = all.joined(separator: " ")
+        let bottomLeftText = bottomLeft.joined(separator: " ")
+
+        // Same waterfall as processFrame: bottom-left first (where the
+        // card number is printed), full-frame fallback for cards where
+        // the bottom-left text is partially obscured or the crop slightly
+        // off-center.
+        let extracted = extractCardNumber(from: bottomLeftText, catalogFallback: true)
+                     ?? extractCardNumber(from: fullText,       catalogFallback: false)
+
+        guard let number = extracted,
+              cardNumberSet.isEmpty || cardNumberSet.contains(number) else {
+            return nil
+        }
+
+        // Render the (un-enhanced) image to CGImage for any future
+        // image-similarity disambiguation step. Inexpensive at one
+        // image per Grid cell, ~9 cells max per capture.
+        let captured = Self.ciContext.createCGImage(ciImage, from: ciImage.extent)
+
+        return ScanObservation(
+            cardNumber:   number,
+            rawName:      topLeft.joined(separator: " "),
+            rawPower:     topRight.joined(separator: " "),
+            rawVariation: bottomRight.joined(separator: " "),
+            fullText:     fullText,
+            cgImage:      captured
+        )
     }
 }
 

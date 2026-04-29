@@ -312,6 +312,12 @@ final class CollectionStore {
             try? await Task.sleep(nanoseconds: 400_000_000)
         }
         await MainActor.run { progress(total, total) }
+        // Notify every open PricingSection (card detail, show queue,
+        // scanner) to re-fetch. The per-card forceRefresh calls
+        // already bumped the pulse for owned cards; this final bump
+        // makes sure any view that's keyed on the pulse picks up a
+        // change even if it loaded BEFORE recalc started.
+        await PricingService.shared.bumpAll()
     }
 
     // MARK: - Private

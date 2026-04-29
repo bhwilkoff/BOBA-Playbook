@@ -436,21 +436,25 @@ struct CollectionView: View {
                     // for every owned card (same work the toolbar's
                     // "Refresh market values" button kicks off).
                     //
+                    // CRITICAL: wrap the call in `Task { ... }.value`
+                    // to detach from .refreshable's cancellation. The
+                    // recalc loop's progress callback flips @State
+                    // (recalcProgress, isRecalculating) which causes
+                    // SwiftUI to re-render the host view tree —
+                    // SwiftUI then cancels the .refreshable Task as
+                    // a side effect, which makes URLSession.data and
+                    // Task.sleep fail-fast for every remaining card.
+                    // Result: 20-card recalc "speedran" in <1s with
+                    // no real fetches. Task.init creates an
+                    // unstructured task that doesn't inherit the
+                    // refreshable Task's cancellation, so the work
+                    // runs to completion. The outer await keeps the
+                    // pull spinner attached until it's done.
+                    //
                     // We deliberately do NOT call loadCollection()
-                    // here. loadCollection() flips
-                    // collection.isLoading to true, which swaps this
-                    // ScrollView for a generic ProgressView (see the
-                    // `cardList` body) — and that swap destroys the
-                    // ScrollView the .refreshable spinner is hosted
-                    // on, truncating the pull animation mid-frame
-                    // and triggering an unwanted reload of every
-                    // CardImageView's AsyncImage. Recalc updates
-                    // each row's estimatedValue in place via
-                    // updateUserCard → apply(), so the rows refresh
-                    // their VALUE numbers without a full reload and
-                    // the spinner stays attached for the full
-                    // duration.
-                    await recalculateAll()
+                    // here either — it flips collection.isLoading
+                    // which would unmount this whole ScrollView.
+                    await Task { await recalculateAll() }.value
                 }
             }
         }

@@ -583,18 +583,28 @@ async function fetchRadishSales(radishUrl, days) {
     }
   }
 
-  // Track the freshest stale-fallback we've seen. When no in-window
-  // candidate exists, we surface this as a single-item stale comp.
+  // Fire every candidate probe in parallel. Sequential walk took
+  // 4-5s on cold cache (11 namespaces × 2 URLs each × ~400ms),
+  // which intermittently exceeded iOS's 7s URLSession timeout
+  // (DeKap GGL-779, Crosbow FT-76). Stamping a 10-min negative
+  // cache then meant the card stayed blank in the app even though
+  // the worker would have eventually returned data. Promise.allSettled
+  // collapses the wallclock cost to a single round-trip (~500ms)
+  // and well under Cloudflare's 50-subrequest cap.
+  const settled = await Promise.allSettled(
+    candidates.map(url => tryRadishURL(url, days))
+  );
+  // Walk results in original priority order so the catalog-hinted
+  // namespace wins ties.
   let staleBest = null;  // { item, url }
-  for (const url of candidates) {
-    const result = await tryRadishURL(url, days);
-    if (!result) continue;  // 404 or non-card page
+  for (let i = 0; i < candidates.length; i++) {
+    const url = candidates[i];
+    const s   = settled[i];
+    const result = s.status === "fulfilled" ? s.value : null;
+    if (!result) continue;  // 404, network error, or non-card page
     if (result.inWindow.length > 0) {
       return { items: result.inWindow, resolvedUrl: url, stale: false };
     }
-    // No in-window sales but the page does carry historical sales.
-    // Remember the most recent one across all candidates so we can
-    // pick the freshest stale comp if nothing better turns up.
     const newest = result.allItems[0];
     if (newest) {
       const newestMs = new Date(newest.date).getTime();
@@ -1261,12 +1271,13 @@ export default {
     if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) return json({ error: "EBAY_APP_ID and EBAY_CERT_ID secrets required" }, 500);
 
     // ── Cache ─────────────────────────────────────────────────────────────────
-    // v14: cards with truly no sales now get a soldSection populated
-    // from Radish's Market Est. API (comp-based estimate). v13
-    // caches don't carry the `estimated` flag and would otherwise be
-    // displayed as if they were real sales without the EST. label.
+    // v15: namespace sweep is now parallel (Promise.allSettled) and
+    // the price waterfall is Radish sales → eBay sold → Market Est.
+    // (was Radish → Market Est. → eBay). v14 responses can have the
+    // wrong tier in the soldSection (Market Est. where eBay sold
+    // would now win), so a fresh fetch is required.
     const cache    = caches.default;
-    const cacheURL = `https://boba-cache.internal/v14/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
+    const cacheURL = `https://boba-cache.internal/v15/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
     const cacheKey = new Request(cacheURL);
     const cached   = await cache.match(cacheKey);
     if (cached) {
@@ -1315,45 +1326,6 @@ export default {
         // really a 30-day average.
         ...(radishStale ? { stale: true } : {}),
       };
-    }
-
-    // ── Market Est. fallback ──────────────────────────────────────────────────
-    // When the card has truly no sales of its own (no in-window AND
-    // no historical), fall back to Radish's Market Est. — a range
-    // computed from comparable cards (same hero / weapon / power
-    // across other parallels). Coverage > recency: better to anchor
-    // a never-sold card with a comp-based estimate than ship no
-    // price at all. The midpoint of the range becomes the headline
-    // figure, with low/high as the price-cell tri-grid.
-    if (!soldSection && radishUrl) {
-      try {
-        // Prefer the namespace `fetchRadishSales` already validated
-        // (radishResolvedUrl) — that's the namespace where a real
-        // Radish card page exists, so the card_id lookup will land
-        // on the first try. Without this, no-sales cards spend two
-        // extra subrequests on a sweep we already paid for. Fall
-        // back to the catalog-hinted URL only when the sales sweep
-        // didn't validate any namespace.
-        const probeUrl = radishResolvedUrl || radishUrl;
-        const est = await fetchRadishMarketEst(probeUrl);
-        if (est && est.mid > 0) {
-          soldSection = {
-            low:     est.low,
-            average: est.mid,
-            high:    est.high,
-            count:   0,        // no actual sales — just an estimate
-            items:   [],       // nothing to link to
-            estimated: true,
-            estimatedSource: est.source,  // "comps" | "own_sales"
-          };
-          // Promote the resolved URL too so the Radish button lands
-          // on the page we sourced the estimate from.
-          if (!radishResolvedUrl) radishResolvedUrl = est.resolvedUrl;
-        }
-      } catch {
-        // Estimate is best-effort. Silent failure preserves the
-        // existing eBay-active-only path.
-      }
     }
 
     // ── eBay API calls (require OAuth token) ──────────────────────────────────
@@ -1451,14 +1423,53 @@ export default {
         browseError = activeErr;
       }
     } else {
-      // Token fetch failed — surface as error only if Radish also failed
-      if (!soldSection) {
-        return json({ error: String(tokenResult.reason), count: 0, low: 0, average: 0, high: 0, priceType: "sold", items: [] }, 502);
+      // Token fetch failed — soldSection might still come from Radish
+      // sales or, below, Market Est. Don't bail yet; let the Market
+      // Est. fallback have a shot at producing a number.
+    }
+
+    // ── Market Est. fallback (final tier) ─────────────────────────────────────
+    // Reached when neither Radish sales (in-window or stale) nor
+    // eBay sold history produced a soldSection. This is the third
+    // tier of the price waterfall: Radish sales → eBay sold →
+    // Radish Market Est. (range computed from comparable cards on
+    // Radish's side). Better to ship a comp-based estimate than no
+    // number at all, since most users just want a market anchor.
+    if (!soldSection && radishUrl) {
+      try {
+        // Prefer the namespace fetchRadishSales already validated
+        // (radishResolvedUrl) — that's where a real Radish card page
+        // exists, so the card_id lookup lands on the first try. Falls
+        // back to the catalog-hinted URL when the sweep didn't
+        // validate any namespace. Targeted single-namespace lookup
+        // keeps us under Cloudflare's 50-subrequest cap.
+        const probeUrl = radishResolvedUrl || radishUrl;
+        const est = await fetchRadishMarketEst(probeUrl);
+        if (est && est.mid > 0) {
+          soldSection = {
+            low:     est.low,
+            average: est.mid,
+            high:    est.high,
+            count:   0,
+            items:   [],
+            estimated: true,
+            estimatedSource: est.source,
+          };
+          if (!radishResolvedUrl) radishResolvedUrl = est.resolvedUrl;
+        }
+      } catch {
+        // Estimate is best-effort. Silent failure preserves the
+        // active-only path below.
       }
     }
 
     if (!soldSection && !activeSection) {
       if (browseError) return json({ error: browseError, count: 0, low: 0, average: 0, high: 0, priceType: "sold", items: [] }, 502);
+      // Token-fetch failure is only fatal if every other tier also
+      // failed (Radish sales, eBay sold, Market Est., active listings).
+      if (tokenResult.status !== "fulfilled") {
+        return json({ error: String(tokenResult.reason), count: 0, low: 0, average: 0, high: 0, priceType: "sold", items: [] }, 502);
+      }
       return json({ count: 0, low: 0, average: 0, high: 0, priceType: "sold", items: [] });
     }
 

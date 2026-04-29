@@ -146,6 +146,14 @@ struct ShowDetailView: View {
         .onChange(of: showCards.map(\.bobaId).joined()) { _, _ in
             Task { await refreshPrices(force: false) }
         }
+        // Cross-surface refresh: when Collection's "Refresh market
+        // values" or pull-to-refresh wipes the pricing cache, this
+        // open ShowDetail re-fetches its prices automatically. Same
+        // when an individual card-detail forced a refresh — every
+        // surface stays in sync via PricingPulse.
+        .onChange(of: PricingPulse.shared.version) { _, _ in
+            Task { await refreshPrices(force: false) }
+        }
         .sheet(item: $selectedCardForDetail) { card in
             CardDetailView(card: card)
         }
@@ -376,11 +384,20 @@ struct ShowDetailView: View {
             NavigationStack {
                 ZStack {
                     Color.black.ignoresSafeArea()
-                    ScrollView([.horizontal, .vertical]) {
-                        Image(uiImage: img)
-                            .resizable()
-                            .scaledToFit()
-                    }
+                    // Plain Image (no enclosing ScrollView). The
+                    // dual-axis ScrollView used to give the Image
+                    // unbounded width AND height, so .scaledToFit
+                    // had no parent dimension to fit AGAINST and
+                    // the wall rendered at its native 1080×1512
+                    // pixel size — which on a phone showed the
+                    // top-left ~10% of the wall, looking "100%
+                    // zoomed in" to the user. Fitting to the
+                    // ZStack's filled frame is what they expect.
+                    Image(uiImage: img)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(Design.Spacing.md)
                 }
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
@@ -615,7 +632,8 @@ struct ShowDetailView: View {
                     power: card.power,
                     radishUrl: card.resolvedRadishUrlString,
                     days: days,
-                    treatment: card.treatment
+                    treatment: card.treatment,
+                    forceRefresh: force
                 )
                 next[card.id] = p.average
             } catch {

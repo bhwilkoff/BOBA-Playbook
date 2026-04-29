@@ -127,14 +127,17 @@ struct PricingSection: View {
                 }
             }
         }
-        .task {
+        .task(id: PricingPulse.shared.version) {
+            // Re-runs when:
+            //   - The view first appears (initial id matches)
+            //   - PricingService invalidates (Collection refresh,
+            //     Show queue scanner, individual show "Refresh
+            //     Prices", or per-card forceRefresh) bumps the
+            //     pulse — every open PricingSection re-fetches.
+            //
             // Probe Radish for the right URL before kicking off the
             // pricing Worker request. The resolver caches per-bobaId
-            // so this is a one-time HEAD per card per session. If
-            // the probe lands a different URL than card.resolvedRadishURL
-            // (e.g. fell back from /hero/cardNumber → /hero), we
-            // re-fetch with the corrected URL so the pricing Worker
-            // scrapes the same page the user's button now points at.
+            // so this is a one-time HEAD per card per session.
             let probed = await RadishURLResolver.shared.resolve(for: card)
             if probed != resolvedRadishURL {
                 resolvedRadishURL = probed

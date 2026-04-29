@@ -51,6 +51,10 @@ struct GridTestHarnessView: View {
         let crop: UIImage
         let observation: ScanObservation?
         let matchedCard: Card?
+        /// Detector confidence (0..1). Helps diagnose whether OCR
+        /// failures cluster around low-confidence rectangles
+        /// (spurious/mis-cropped detections) or hit clean ones too.
+        let detectionConfidence: Float
     }
 
     var body: some View {
@@ -182,9 +186,14 @@ struct GridTestHarnessView: View {
                 .frame(maxHeight: 110)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
             VStack(alignment: .leading, spacing: 2) {
-                Text("[\(detected.row),\(detected.column)]")
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Text("[\(detected.row),\(detected.column)]")
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Text(String(format: "%.2f", detected.detectionConfidence))
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(detected.detectionConfidence >= 0.8 ? .secondary : .orange)
+                }
                 if let card = detected.matchedCard {
                     Text(card.cardNumber)
                         .font(.system(.caption, design: .monospaced).weight(.bold))
@@ -285,7 +294,8 @@ struct GridTestHarnessView: View {
                     column:     d.column,
                     crop:       d.image,
                     observation: observation,
-                    matchedCard: matched
+                    matchedCard: matched,
+                    detectionConfidence: d.confidence
                 ))
             }
 

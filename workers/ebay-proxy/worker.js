@@ -530,20 +530,28 @@ function stripCardNumberFromRadishURL(url) {
 }
 
 async function fetchRadishSales(radishUrl, days) {
-  try {
-    let html = await fetchRadishHTML(radishUrl);
-    if (html === null) {
-      // Primary URL 404'd. Fall back to the hero-only page —
-      // /boba/{year}/{slug}/{hero}/{cardNumber} →
-      // /boba/{year}/{slug}/{hero}. The hero page aggregates every
-      // print of that hero, which gives more comp matches when
-      // Radish hasn't built a card-detail page for this specific
-      // print yet.
-      const fallback = stripCardNumberFromRadishURL(radishUrl);
-      if (fallback && fallback !== radishUrl) {
-        html = await fetchRadishHTML(fallback);
-      }
+  // Try primary → hero-only fallback. Returns { items, resolvedUrl }
+  // so the caller can pass `resolvedUrl` back to the iOS / web
+  // client; the Radish-button link should point at whichever URL
+  // actually carried data, not whichever URL we constructed first.
+  // Empty pages (200 OK with no sales aggregated) trigger fallback
+  // too, not just 404s.
+  const candidates = [radishUrl];
+  const fallback = stripCardNumberFromRadishURL(radishUrl);
+  if (fallback && fallback !== radishUrl) candidates.push(fallback);
+
+  for (const url of candidates) {
+    const items = await tryRadishURL(url, days);
+    if (items && items.length > 0) {
+      return { items, resolvedUrl: url };
     }
+  }
+  return { items: null, resolvedUrl: null };
+}
+
+async function tryRadishURL(url, days) {
+  try {
+    const html = await fetchRadishHTML(url);
     if (!html) return null;
 
     const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">([^<]+)<\/script>/);
@@ -1090,7 +1098,10 @@ export default {
 
     // ── Build sold section from Radish ────────────────────────────────────────
     let soldSection  = null;
-    const radishItems = radishResult.status === "fulfilled" ? radishResult.value : null;
+    let radishResolvedUrl = null;
+    const radishPayload = radishResult.status === "fulfilled" ? radishResult.value : null;
+    const radishItems = radishPayload?.items ?? null;
+    radishResolvedUrl = radishPayload?.resolvedUrl ?? null;
     if (radishItems && radishItems.length > 0) {
       const sorted = [...radishItems].sort((a, b) => a.price - b.price);
       const prices = sorted.map(i => i.price);
@@ -1221,6 +1232,12 @@ export default {
     const result = {
       ...(soldSection   ? { sold:   soldSection }   : {}),
       ...(activeSection ? { active: activeSection } : {}),
+      // The Radish URL that actually carried data — clients use this
+      // for the "Radish Guide" button so it lands on a page with
+      // listings rather than a 200-OK shell with no comps. Null
+      // when neither the primary nor the hero-only fallback had any
+      // sales (the client falls back to its own constructed URL).
+      ...(radishResolvedUrl ? { radishResolvedUrl } : {}),
       // Legacy backward-compat fields
       low:       primary?.low       ?? 0,
       average:   primary?.average   ?? 0,

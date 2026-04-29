@@ -361,7 +361,7 @@ struct PricingSection: View {
                 // (and failed) to scrape the original 404 — wasting
                 // the Radish lookup on every pricing fetch.
                 let radishStr = (resolvedRadishURL ?? card.resolvedRadishURL)?.absoluteString
-                result = try await PricingService.shared.pricing(
+                let pricingResult = try await PricingService.shared.pricing(
                     for: card.cardNumber,
                     hero: card.hero,
                     set: card.set,
@@ -371,6 +371,20 @@ struct PricingSection: View {
                     days: selectedDays,
                     treatment: card.treatment
                 )
+                result = pricingResult
+                // Snap the Radish button to whichever URL actually
+                // returned data. The Worker tried the cardNumber-
+                // specific page first, fell back to the hero-only
+                // page, and reported back which one had real
+                // listings. Stronger signal than a bare HEAD probe
+                // (which can't tell a 200-OK shell from a 200-OK
+                // page with sales).
+                if let workerURL = pricingResult.radishResolvedUrl,
+                   let url = URL(string: workerURL),
+                   url != resolvedRadishURL {
+                    resolvedRadishURL = url
+                    RadishURLResolver.shared.cacheURL(url, for: card)
+                }
             } catch PricingService.PricingError.noData {
                 fetchError = "No eBay listings found for the last \(selectedDays) days."
             } catch PricingService.PricingError.notConfigured {

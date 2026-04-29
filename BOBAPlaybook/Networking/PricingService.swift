@@ -67,6 +67,12 @@ actor PricingService {
         // New dual-section fields (nil when Worker returns legacy shape)
         let sold:      PricingBucket?
         let active:    PricingBucket?
+        /// Worker-validated Radish URL — present when the Worker
+        /// actually pulled sales data. Clients should prefer this
+        /// for the user-facing "Radish Guide" button so the link
+        /// lands on a page that has listings instead of a 200-OK
+        /// shell with no comps.
+        let radishResolvedUrl: String?
 
         var isSold: Bool { priceType == "sold" }
     }
@@ -165,7 +171,8 @@ actor PricingService {
             items:     response.items,
             fetchedAt: Date(),
             sold:      response.sold,
-            active:    response.active
+            active:    response.active,
+            radishResolvedUrl: response.radishResolvedUrl
         )
         cache[key] = result
         return result
@@ -184,5 +191,8 @@ actor PricingService {
         // New dual-section fields
         let sold:      PricingBucket?
         let active:    PricingBucket?
+        // Worker-validated Radish URL (present when the Worker
+        // actually scraped sales data, nil otherwise).
+        let radishResolvedUrl: String?
     }
 }

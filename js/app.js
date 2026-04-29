@@ -1938,6 +1938,15 @@
         const res  = await fetch(`${WORKER_URL}?${params}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
+        // Snap the Radish button to whichever URL the Worker
+        // actually scraped sales from. The Worker tried the
+        // cardNumber-specific page first, fell back to the
+        // hero-only page, and reported back which one carried
+        // listings. Stronger signal than any client-side probe.
+        if (data.radishResolvedUrl) {
+          const radishLink = section.querySelector('.btn-pricing-radish');
+          if (radishLink) radishLink.href = data.radishResolvedUrl;
+        }
         renderPricingData(section, data);
       } catch {
         const body = section.querySelector('.pricing-body');

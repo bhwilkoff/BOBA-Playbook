@@ -258,31 +258,99 @@ struct PricingSection: View {
     // MARK: - Helpers
 
     private func bucketView(_ bucket: PricingService.PricingBucket, label: String, isActive: Bool) -> some View {
-        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
-            Text(label)
-                .font(Design.Fonts.mono(8, weight: .bold))
-                .foregroundStyle(isActive ? Design.Colors.bobaOrange : Design.Colors.textMuted)
-                .tracking(1.5)
-
-            HStack(spacing: 0) {
-                priceCell(label: "LOW",  value: bucket.low,     isActive: isActive)
-                Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
-                priceCell(label: "AVG",  value: bucket.average, isActive: isActive)
-                Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
-                priceCell(label: "HIGH", value: bucket.high,    isActive: isActive)
+        // When sold-comp data is "stale" (the Worker only found a
+        // single sale older than the requested window), we prefer to
+        // show that sale as a market anchor rather than nothing at
+        // all — but the UI has to make clear it's not a {days}-day
+        // average. Only the sold bucket carries the stale flag.
+        let isStale = !isActive && (bucket.stale ?? false)
+        let staleSale = isStale ? bucket.items.first : nil
+        return VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+            HStack(spacing: 6) {
+                Text(label)
+                    .font(Design.Fonts.mono(8, weight: .bold))
+                    .foregroundStyle(isActive ? Design.Colors.bobaOrange : Design.Colors.textMuted)
+                    .tracking(1.5)
+                if isStale {
+                    Text("STALE")
+                        .font(Design.Fonts.mono(8, weight: .bold))
+                        .foregroundStyle(Color(hex: "E0A000"))
+                        .tracking(1.0)
+                        .padding(.horizontal, 5).padding(.vertical, 1)
+                        .background(Capsule().fill(Color(hex: "E0A000").opacity(0.12))
+                            .overlay(Capsule().strokeBorder(Color(hex: "E0A000").opacity(0.45), lineWidth: 0.7)))
+                }
             }
-            .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
 
-            let typeLabel = isActive ? "listing" : "sold"
-            let plural    = bucket.count != 1 ? "s" : ""
-            Text("\(bucket.count) \(typeLabel)\(plural) · last \(selectedDays)d")
-                .font(Design.Fonts.mono(10))
-                .foregroundStyle(Design.Colors.textMuted)
+            if isStale, let sale = staleSale {
+                // Single-cell layout — the one stale sale IS the
+                // market anchor. No low/avg/high tri-cell since
+                // there's only one data point.
+                HStack {
+                    Spacer()
+                    VStack(spacing: 4) {
+                        Text("LAST SOLD")
+                            .font(Design.Fonts.mono(8, weight: .bold))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .tracking(1.2)
+                        Text(sale.price, format: .currency(code: "USD"))
+                            .font(Design.Fonts.mono(16, weight: .bold))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                    }
+                    Spacer()
+                }
+                .padding(.vertical, Design.Spacing.md)
+                .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
+
+                if let staleLabel = staleAgeLabel(sale.date) {
+                    Text("Sale \(staleLabel) · older than \(selectedDays)d window")
+                        .font(Design.Fonts.mono(10))
+                        .foregroundStyle(Design.Colors.textMuted)
+                } else {
+                    Text("Older than \(selectedDays)d window")
+                        .font(Design.Fonts.mono(10))
+                        .foregroundStyle(Design.Colors.textMuted)
+                }
+            } else {
+                HStack(spacing: 0) {
+                    priceCell(label: "LOW",  value: bucket.low,     isActive: isActive)
+                    Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
+                    priceCell(label: "AVG",  value: bucket.average, isActive: isActive)
+                    Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
+                    priceCell(label: "HIGH", value: bucket.high,    isActive: isActive)
+                }
+                .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
+
+                let typeLabel = isActive ? "listing" : "sold"
+                let plural    = bucket.count != 1 ? "s" : ""
+                Text("\(bucket.count) \(typeLabel)\(plural) · last \(selectedDays)d")
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
 
             if !bucket.items.isEmpty {
                 itemsList(bucket.items, isSold: !isActive)
             }
         }
+    }
+
+    /// Human-readable age string for a stale sale. Used on the
+    /// "Sale {age} · older than {days}d window" caption. Falls back
+    /// to nil when the date can't be parsed (UI then drops the age
+    /// portion of the caption).
+    private func staleAgeLabel(_ iso: String) -> String? {
+        guard !iso.isEmpty else { return nil }
+        let fmt = ISO8601DateFormatter()
+        fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let date = fmt.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
+        guard let date else { return nil }
+        let days = Int(Date().timeIntervalSince(date) / 86400)
+        if days < 0  { return nil }
+        if days < 60 { return "\(days)d ago" }
+        let months = days / 30
+        if months < 12 { return "\(months)mo ago" }
+        let years = days / 365
+        return "\(years)y ago"
     }
 
     private func priceCell(label: String, value: Decimal, isActive: Bool) -> some View {

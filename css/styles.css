@@ -3273,6 +3273,24 @@ main {
 .pricing-section-active .pricing-items-label { color: var(--boba-orange); }
 .pricing-val-active { color: var(--boba-orange); }
 
+/* Stale fallback — only one sale, older than the requested window.
+   Single-cell grid + amber STALE pill in the header so users know
+   the price is a market anchor, not a recent transaction. */
+.pricing-grid-single { grid-template-columns: 1fr; }
+.pricing-stale-pill {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 1px 5px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #E0A000;
+  background: rgba(224, 160, 0, 0.12);
+  border: 1px solid rgba(224, 160, 0, 0.45);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
 /* ── Scan candidates picker ───────────────────────────────────────────────── */
 
 .scan-candidates {

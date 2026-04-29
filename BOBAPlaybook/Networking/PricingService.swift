@@ -48,9 +48,14 @@ actor PricingService {
         /// alongside the confirmed ones. Nil for active listings and
         /// legacy responses.
         let countProbable: Int?
+        /// Sold-only: true when the only available comp is a single
+        /// sale older than the requested window. UI surfaces it as
+        /// "Last sold {date}" instead of "{days}-day avg" since one
+        /// stale sale isn't really a window-based aggregate.
+        let stale: Bool?
 
         enum CodingKeys: String, CodingKey {
-            case low, average, high, count, items
+            case low, average, high, count, items, stale
             case countProbable = "count_probable"
         }
     }

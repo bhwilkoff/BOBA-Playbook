@@ -555,10 +555,11 @@ async function fetchRadishSales(radishUrl, days) {
   // most useful data:
   //   - First preference: a URL with items inside the requested
   //     date window (these become the sold-comp data).
-  //   - Second preference: a URL whose page HAS aggregated sales
-  //     historically but none in the window — surface that URL on
-  //     the Radish button so the user lands on a real card page
-  //     (Showtime/2 has sold many times but maybe not in 30 days).
+  //   - Second preference: a URL with sales aggregated but none in
+  //     the window — surface the single most recent sale as a
+  //     stale comp so the card still gets a price. We'd rather show
+  //     a 90-day-old sale than nothing at all, since most users
+  //     just want a market-value anchor.
   //   - Last resort: nothing carried any data; return null and the
   //     client falls back to its constructed URL.
   const parsed = parseRadishURL(radishUrl);
@@ -582,19 +583,30 @@ async function fetchRadishSales(radishUrl, days) {
     }
   }
 
-  let fallbackUrl = null;
+  // Track the freshest stale-fallback we've seen. When no in-window
+  // candidate exists, we surface this as a single-item stale comp.
+  let staleBest = null;  // { item, url }
   for (const url of candidates) {
     const result = await tryRadishURL(url, days);
     if (!result) continue;  // 404 or non-card page
-    if (result.items.length > 0) {
-      return { items: result.items, resolvedUrl: url };
+    if (result.inWindow.length > 0) {
+      return { items: result.inWindow, resolvedUrl: url, stale: false };
     }
-    // Page exists with allSales aggregated but nothing within the
-    // requested window. Hold the URL as a fallback in case nothing
-    // better turns up; keep walking for an in-window hit.
-    if (result.hasAllSales && !fallbackUrl) fallbackUrl = url;
+    // No in-window sales but the page does carry historical sales.
+    // Remember the most recent one across all candidates so we can
+    // pick the freshest stale comp if nothing better turns up.
+    const newest = result.allItems[0];
+    if (newest) {
+      const newestMs = new Date(newest.date).getTime();
+      if (!staleBest || newestMs > new Date(staleBest.item.date).getTime()) {
+        staleBest = { item: newest, url };
+      }
+    }
   }
-  return { items: null, resolvedUrl: fallbackUrl };
+  if (staleBest) {
+    return { items: [staleBest.item], resolvedUrl: staleBest.url, stale: true };
+  }
+  return { items: null, resolvedUrl: null, stale: false };
 }
 
 /// Pull (year, slug, hero, cardNumber) out of a Radish card URL.
@@ -620,15 +632,13 @@ function parseRadishURL(url) {
 }
 
 async function tryRadishURL(url, days) {
-  // Returns { items, hasAllSales } where:
-  //   items        — sales filtered to the requested date window
-  //   hasAllSales  — page had ANY aggregated sales (even outside
-  //                  the window). Lets the caller pick this URL
-  //                  for the user-facing button when no candidate
-  //                  has in-window data — at least the link
-  //                  lands on a real card page rather than 404ing.
+  // Returns { inWindow, allItems } where:
+  //   inWindow  — sales within the requested days window
+  //   allItems  — every aggregated sale (newest-first), used to
+  //               surface a stale-but-real comp when the window
+  //               has nothing.
   // Returns null only when the URL itself doesn't exist or doesn't
-  // carry the Next.js allSales structure (unrecognized page).
+  // carry the Next.js allSales structure.
   try {
     const html = await fetchRadishHTML(url);
     if (!html) return null;
@@ -640,11 +650,8 @@ async function tryRadishURL(url, days) {
     const allSales = nextData?.props?.pageProps?.allSales;
     if (!Array.isArray(allSales) || allSales.length === 0) return null;
 
-    const cutoff = new Date();
-    cutoff.setUTCDate(cutoff.getUTCDate() - days);
-
-    const items = allSales
-      .filter(s => !s.hide && s.sold_date && new Date(s.sold_date) >= cutoff)
+    const visible = allSales
+      .filter(s => !s.hide && s.sold_date)
       .map(s => ({
         title: s.title ?? s.card_name ?? "",
         price: parseFloat(s.price ?? "0"),
@@ -652,7 +659,16 @@ async function tryRadishURL(url, days) {
         url:   s.link ?? "",
       }))
       .filter(i => i.price > 0 && i.title);
-    return { items, hasAllSales: true };
+    if (visible.length === 0) return null;
+
+    const cutoffMs = Date.now() - days * 86400 * 1000;
+    const inWindow = visible.filter(i => new Date(i.date).getTime() >= cutoffMs);
+    // allItems sorted newest-first so the caller can pick [0] for
+    // "most recent sale of any age."
+    const allItems = [...visible].sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    return { inWindow, allItems };
   } catch {
     return null;
   }
@@ -1144,13 +1160,12 @@ export default {
     if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) return json({ error: "EBAY_APP_ID and EBAY_CERT_ID secrets required" }, 500);
 
     // ── Cache ─────────────────────────────────────────────────────────────────
-    // v12: Radish URL resolver now sweeps every (year, slug) combo
-    // instead of trusting the catalog's set hint, AND surfaces the
-    // resolvedUrl when a candidate has any aggregated sales (not
-    // just sales within the days-window). v11 caches don't have
-    // `radishResolvedUrl`, so bumping the key forces a fresh fetch.
+    // v13: when no in-window comps exist, we now surface the single
+    // most recent sale (any age) as a stale fallback with stale:true
+    // on the sold section. v12 caches lack the stale flag and would
+    // otherwise be displayed without the "Last sold" age annotation.
     const cache    = caches.default;
-    const cacheURL = `https://boba-cache.internal/v12/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
+    const cacheURL = `https://boba-cache.internal/v13/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
     const cacheKey = new Request(cacheURL);
     const cached   = await cache.match(cacheKey);
     if (cached) {
@@ -1182,6 +1197,7 @@ export default {
     let radishResolvedUrl = null;
     const radishPayload = radishResult.status === "fulfilled" ? radishResult.value : null;
     const radishItems = radishPayload?.items ?? null;
+    const radishStale = radishPayload?.stale ?? false;
     radishResolvedUrl = radishPayload?.resolvedUrl ?? null;
     if (radishItems && radishItems.length > 0) {
       const sorted = [...radishItems].sort((a, b) => a.price - b.price);
@@ -1192,6 +1208,11 @@ export default {
         high:    round2(prices[prices.length - 1]),
         count:   radishItems.length,
         items:   radishItems.slice(0, 10),   // already newest-first from fetchRadishSales
+        // When stale=true the only "comp" is a single sale older than
+        // `days`. UI surfaces it as "Last sold {date}" instead of the
+        // window-based average copy, since one stale sale is not
+        // really a 30-day average.
+        ...(radishStale ? { stale: true } : {}),
       };
     }
 

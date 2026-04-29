@@ -506,7 +506,20 @@ async function fetchRadishHTML(url) {
         "Accept":     "text/html,application/xhtml+xml",
       },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // CRITICAL: drain the body even when we don't want it.
+      // Cloudflare Workers warn ("stalled HTTP response was
+      // canceled to prevent deadlock") and start cancelling other
+      // in-flight requests when too many fetch() calls have
+      // un-consumed bodies in flight at once. With the parallel
+      // namespace sweep firing ~30 requests at a time and most
+      // returning 404, leaking those bodies caused subsequent
+      // legitimate calls (e.g. the Market Est. card_id lookup)
+      // to be cancelled mid-flight — silently breaking pricing
+      // for cards that should have produced an estimate.
+      await res.body?.cancel();
+      return null;
+    }
     return await res.text();
   } catch {
     return null;
@@ -575,11 +588,29 @@ async function fetchRadishSales(radishUrl, days) {
       [hintYear, hintSlug],
       ...RADISH_NAMESPACES.filter(([y, s]) => y !== hintYear || s !== hintSlug),
     ];
+    // Hero-name variants. Our catalog stores hyphenated names
+    // (Mean-Joe, Bell-Camp, Maxed-Out) but Radish is inconsistent —
+    // some live at hyphen-form ("Mean-Joe"), some at space-form
+    // ("Maxed Out"). Try both shapes. Capped at 2 variants total
+    // because Cloudflare's 50-subrequest-per-invocation cap means
+    // 11 namespaces × N variants × 1 cardNumber URL + 11 hero-only
+    // URLs has to stay under ~45 to leave headroom for eBay calls.
+    const heroVariants = Array.from(new Set([
+      hero,
+      hero.includes("-") ? hero.replaceAll("-", " ") : null,
+      hero.includes(" ") ? hero.replaceAll(" ", "-") : null,
+    ].filter(Boolean)));
     candidates = [];
     for (const [year, slug] of namespaceOrder) {
-      const base = `https://radishpriceguide.com/boba/${year}/${slug}/${encodeURIComponent(hero)}`;
-      if (cardNumber) candidates.push(`${base}/${encodeURIComponent(cardNumber)}`);
-      candidates.push(base);
+      for (const heroVariant of heroVariants) {
+        const base = `https://radishpriceguide.com/boba/${year}/${slug}/${encodeURIComponent(heroVariant)}`;
+        if (cardNumber) candidates.push(`${base}/${encodeURIComponent(cardNumber)}`);
+      }
+      // One hero-only fallback per namespace, using the canonical
+      // (catalog) hero spelling. Hero pages exist whenever Radish
+      // has any sales for that hero in that set, regardless of
+      // which exact card_number we asked about.
+      candidates.push(`https://radishpriceguide.com/boba/${year}/${slug}/${encodeURIComponent(hero)}`);
     }
   }
 
@@ -729,15 +760,27 @@ async function fetchRadishCardId(year, slug, hero, cardNumber) {
   const buildId = await getRadishBuildId();
   if (!buildId) return null;
   const path = `${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}.json`;
-  const url  = `https://radishpriceguide.com/_next/data/${buildId}/boba/${year}/${slug}/${path}`;
+  const buildUrl = (id) =>
+    `https://radishpriceguide.com/_next/data/${id}/boba/${year}/${slug}/${path}`;
   try {
-    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
-    if (!res.ok) {
-      // Stale buildId is the most likely cause of a 404. Bust the
-      // cache once per request so the next probe re-scrapes.
-      if (res.status === 404) RADISH_BUILD_ID_CACHE = { value: null, fetchedAt: 0 };
-      return null;
+    let res = await fetch(buildUrl(buildId), { headers: { "User-Agent": "Mozilla/5.0" } });
+    if (res.status === 404) {
+      // Stale buildId is the most likely cause of a 404 on this
+      // endpoint (Radish redeploys rotate the value, our 24h
+      // in-memory cache lags reality). Bust the cache and refetch
+      // immediately so this request still produces a card_id —
+      // otherwise Market Est. silently no-ops every time the
+      // buildId rotates, even though the card exists.
+      await res.body?.cancel();   // drain stale 404 before reassigning
+      RADISH_BUILD_ID_CACHE = { value: null, fetchedAt: 0 };
+      const fresh = await getRadishBuildId();
+      if (fresh && fresh !== buildId) {
+        res = await fetch(buildUrl(fresh), { headers: { "User-Agent": "Mozilla/5.0" } });
+      } else {
+        return null;  // couldn't get a fresh buildId — give up
+      }
     }
+    if (!res.ok) { await res.body?.cancel(); return null; }
     const data = await res.json();
     return data?.pageProps?.card?.id ?? null;
   } catch {
@@ -762,7 +805,7 @@ async function fetchRadishMarketEst(radishUrl) {
   try {
     const apiUrl = `https://radishpriceguide.com/api/boba/estimated-value?card_id=${cardId}`;
     const res = await fetch(apiUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
-    if (!res.ok) return null;
+    if (!res.ok) { await res.body?.cancel(); return null; }
     const json = await res.json();
     const value  = parseFloat(json?.marketEstimatedValue ?? "0");
     const low    = parseFloat(json?.marketEstimatedValueLow ?? "0");
@@ -1271,13 +1314,16 @@ export default {
     if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) return json({ error: "EBAY_APP_ID and EBAY_CERT_ID secrets required" }, 500);
 
     // ── Cache ─────────────────────────────────────────────────────────────────
-    // v15: namespace sweep is now parallel (Promise.allSettled) and
-    // the price waterfall is Radish sales → eBay sold → Market Est.
-    // (was Radish → Market Est. → eBay). v14 responses can have the
-    // wrong tier in the soldSection (Market Est. where eBay sold
-    // would now win), so a fresh fetch is required.
+    // v17: Cloudflare's stalled-HTTP-response auto-cancel was
+    // killing the Radish card_id lookup mid-flight when ~33
+    // parallel namespace probes leaked their 404 bodies. Now we
+    // drain bodies on every non-200 (await res.body?.cancel()),
+    // so Market Est. actually reaches the API. Plus a one-shot
+    // buildId-rotation retry. v16 caches lock in the old broken
+    // responses (NO_DATA where there should be data), so a
+    // version bump is the only way to evict.
     const cache    = caches.default;
-    const cacheURL = `https://boba-cache.internal/v15/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
+    const cacheURL = `https://boba-cache.internal/v17/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
     const cacheKey = new Request(cacheURL);
     const cached   = await cache.match(cacheKey);
     if (cached) {

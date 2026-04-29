@@ -3307,6 +3307,25 @@ main {
   vertical-align: middle;
 }
 
+/* COMC asking-price strip — sits beneath the eBay BUY NOW bucket
+   on the BUY NOW panel. Cyan accent so users immediately see this
+   is a different source, and "asking" pill makes it clear these
+   are list prices not transacted prices. */
+.pricing-comc-label { color: var(--boba-cyan); }
+.pricing-comc-pill {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 1px 5px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--boba-cyan);
+  background: rgba(0, 245, 255, 0.10);
+  border: 1px solid rgba(0, 245, 255, 0.40);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
 /* ── Scan candidates picker ───────────────────────────────────────────────── */
 
 .scan-candidates {

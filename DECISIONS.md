@@ -270,3 +270,34 @@ a CSV that doesn't actually roundtrip with bobaleagues (breaking the
 courtesy interop), or tier-band tuning against synthetic data (which
 won't predict where real users cluster). The cost of waiting is zero;
 the cost of guessing is silent drift.
+
+## 034 — COMC asking-price as second BUY NOW source (NOT in sold-comp waterfall)
+*2026-04-29*
+Per Cowork's `handoff-updates-2026-04-29/comc-feasibility/`, COMC.com
+exposes 931 BoBA listings with cardNumbers matching cards.json
+exactly. Wired up as a parallel source to the BUY NOW panel
+(alongside eBay active listings) on both iOS (`ComcService.swift` →
+`PricingSection.comcStrip`) and web (`fetchComcListings` →
+`renderComcStrip`).
+
+**Critical: COMC asking prices stay OUT of the sold-comp waterfall.**
+The Radish sales → eBay sold → Market Est. chain that produces the
+"what's this card worth" number measures TRANSACTED prices. Mixing
+COMC's asking prices in would inflate the estimate (asking runs
+~10-25% above sold for trading cards). COMC is purely additive on
+the BUY NOW panel where the question is "where can I buy this card
+right now," not "what's the market value."
+
+Each COMC row carries a "COMC asking · Ungraded NM" pill so users
+read the number as a list price, not a transaction. Tap-through
+opens the COMC detail page — no in-app purchase flow.
+
+**Turnstile caveat (live state 2026-04-29)**: COMC turned on
+Cloudflare's managed JS challenge hours after Cowork's recon.
+The worker (`boba-comc-proxy`) is fully wired and detects the
+challenge as `challenged: true`, returning `count: 0` so clients
+soft-fail to "no COMC items." Bypass options when revisiting:
+Cloudflare Browser Rendering API, Playwright runner, or
+out-of-band cf_clearance cookie persistence. Defer until COMC's
+WAF stance changes or COMC integration becomes a higher priority
+than the cost of bypass tooling.

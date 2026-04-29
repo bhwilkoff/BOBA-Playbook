@@ -9,6 +9,7 @@
 - **Open questions**:
   - Whatnot Worker — three-layer extraction (DOM regex + Apollo SSR + `__NEXT_DATA__`); see Cowork's `handoff-updates-2026-04-27/whatnot-shows-worker/` for the full plan.
   - **OKC art sourcing** — all 54 OKC records ship with `imageFile=null`. Spawning a research agent to confirm what's currently published on bobattlearena.com / the card source / Radish; once located, trigger a BV-scrape pass scoped to OKC- pages.
+  - **COMC Cloudflare Turnstile** — `boba-comc-proxy` (workers/comc-proxy/) is wired into iOS+web BUY NOW panel per Cowork's `handoff-updates-2026-04-29/comc-feasibility/`. Hours after the recon, COMC turned on a Cloudflare-managed JS challenge for all anonymous browsers (residential IPs too). Worker currently returns `count: 0, challenged: true` and clients soft-fail to no COMC items. Bypass requires Cloudflare Browser Rendering API or migrating to a Playwright runner — defer until COMC's WAF stance changes or we decide it's worth the cost.
 
 ---
 

@@ -1796,38 +1796,38 @@
   /* ================================================================
      PRICING
   ================================================================ */
-  // Set name → Radish URL slug. Radish dropped the year segment
-  // from URLs around 2026-04 — the new shape is
-  // `/boba/{slug}/{name}/{num}`. Old `/boba/{year}/{slug}/...`
-  // returns 404 universally now (Heroes, Plays, Hot Dogs alike),
-  // which is why Plays + Hot Dog links in particular were
-  // 404-ing for users.
+  // Set name → [year, slug]. Radish URLs are
+  // /boba/{year}/{slug}/{name} for Heroes / Plays / Hot Dogs and
+  // /boba/sealed for Sealed Products. The cardNumber is NOT in
+  // the URL — earlier attempts to include it landed on Radish's
+  // filter route which renders an empty cardNumber-echo page
+  // instead of the hero detail page with sales data.
   const SET_SLUG_MAP = {
-    'Alpha':                         'Alpha_Edition',
-    'Alpha Edition':                 'Alpha_Edition',
-    'alpha-edition':                 'Alpha_Edition',
-    'Alpha Update':                  'Alpha_Update',
-    'alpha-update':                  'Alpha_Update',
-    'Alpha Blast':                   'Alpha_Blast',
-    'Griffey':                       'Griffey_Edition',
-    'Griffey Edition':               'Griffey_Edition',
-    'griffey-edition':               'Griffey_Edition',
-    'National Starter Set':          'National_24_Starter_Set',
-    '2024 National Show Starter Set': 'National_24_Starter_Set',
-    "National '24":                  'National_24_Starter_Set',
-    'National 24 Starter Set':       'National_24_Starter_Set',
-    'World Champions':               'World_Champions',
-    'world-champions':               'World_Champions',
-    'World Champions 2024':          'World_Champions',
-    'World Champions 2025':          'World_Champions',
-    'Battle Trainer Kit':            'Battle_Trainer_Kit',
-    'Superfan Series':               'Alpha_Edition',
-    'Tecmo Bowl Edition':            'Tecmo_Bowl',
-    'tecmo-bowl':                    'Tecmo_Bowl',
-    'Promo Cards':                   'Promo_Cards',
-    'Big League Chew':               'Big_League_Chew',
-    'big-league-chew':               'Big_League_Chew',
-    'sandstorm':                     'Sandstorm',
+    'Alpha':                         ['2024', 'Alpha_Edition'],
+    'Alpha Edition':                 ['2024', 'Alpha_Edition'],
+    'alpha-edition':                 ['2024', 'Alpha_Edition'],
+    'Alpha Update':                  ['2025', 'Alpha_Update'],
+    'alpha-update':                  ['2025', 'Alpha_Update'],
+    'Alpha Blast':                   ['2025', 'Alpha_Blast'],
+    'Griffey':                       ['2026', 'Griffey_Edition'],
+    'Griffey Edition':               ['2026', 'Griffey_Edition'],
+    'griffey-edition':               ['2026', 'Griffey_Edition'],
+    'National Starter Set':          ['2024', 'National_24_Starter_Set'],
+    '2024 National Show Starter Set': ['2024', 'National_24_Starter_Set'],
+    "National '24":                  ['2024', 'National_24_Starter_Set'],
+    'National 24 Starter Set':       ['2024', 'National_24_Starter_Set'],
+    'World Champions':               ['2024', 'World_Champions'],
+    'world-champions':               ['2024', 'World_Champions'],
+    'World Champions 2024':          ['2024', 'World_Champions'],
+    'World Champions 2025':          ['2025', 'World_Champions'],
+    'Battle Trainer Kit':            ['2024', 'Battle_Trainer_Kit'],
+    'Superfan Series':               ['2024', 'Alpha_Edition'],
+    'Tecmo Bowl Edition':            ['2025', 'Tecmo_Bowl'],
+    'tecmo-bowl':                    ['2025', 'Tecmo_Bowl'],
+    'Promo Cards':                   ['2025', 'Promo_Cards'],
+    'Big League Chew':               ['2025', 'Big_League_Chew'],
+    'big-league-chew':               ['2025', 'Big_League_Chew'],
+    'sandstorm':                     ['2025', 'Sandstorm'],
   };
 
   function buildEbayUrl(card) {
@@ -1845,22 +1845,20 @@
 
   function buildRadishUrl(card) {
     if (card.radishUrl) return card.radishUrl;
-    // Programmatic fallback — mirrors iOS Card+Radish.swift
-    const prefixRemap = { LOGO: 'Logo', RAD: 'Rad', MIX: 'Mix' };
-    let cardNum = card.cardNumber || '';
-    for (const [ours, theirs] of Object.entries(prefixRemap)) {
-      if (cardNum.startsWith(ours + '-')) {
-        cardNum = theirs + cardNum.slice(ours.length);
-        break;
-      }
+    // Sealed Products land on Radish's sealed-sales index — no
+    // per-product detail page exists.
+    if (card.cardType === 'Sealed Product') {
+      return 'https://radishpriceguide.com/boba/sealed';
     }
-    const slug = SET_SLUG_MAP[card.set] || 'Alpha_Edition';
-    // Plays + Hot Dogs use the play/hot-dog name (which lives in
-    // the catalog's `hero` field) in the URL the same way Heroes
-    // do — Radish has no separate path segment for card type.
-    const name = encodeURIComponent(card.hero || '');
-    const num  = encodeURIComponent(cardNum);
-    return `https://radishpriceguide.com/boba/${slug}/${name}/${num}`;
+    // Programmatic fallback — mirrors iOS Card+Radish.swift.
+    const [year, slug] = SET_SLUG_MAP[card.set] || ['2024', 'Alpha_Edition'];
+    // Plays + Hot Dogs put their card name in the `hero` field
+    // (per One-ID-per-Card), so the same formula works for all
+    // three cardTypes. cardNumber is intentionally NOT in the URL.
+    const raw  = card.hero || card.name || '';
+    if (!raw) return null;
+    const name = encodeURIComponent(raw);
+    return `https://radishpriceguide.com/boba/${year}/${slug}/${name}`;
   }
 
   function loadPricing(card) {

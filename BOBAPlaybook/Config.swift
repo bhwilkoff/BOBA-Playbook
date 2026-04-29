@@ -17,6 +17,11 @@ enum WorkerConfig {
     /// categorized feeds (live / short / regular) refreshed every 4h.
     /// See workers/youtube-feed/README.md.
     static let youtubeFeedURL  = "https://boba-youtube-feed.benwilkoff.workers.dev"
+    /// boba-comc-proxy — surfaces COMC.com asking-price listings as a
+    /// second source alongside eBay active listings in the BUY NOW
+    /// panel. See workers/comc-proxy/src/index.ts (note the Turnstile
+    /// caveat: live data depends on COMC's WAF allowing the worker).
+    static let comcProxyURL    = "https://boba-comc-proxy.benwilkoff.workers.dev"
 }
 
 // MARK: - Discord — Trade Room

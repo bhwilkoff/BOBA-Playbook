@@ -521,6 +521,11 @@
      SCAN VIEW
   ================================================================ */
   const WORKER_URL = 'https://boba-ebay-proxy.benwilkoff.workers.dev';
+  // boba-comc-proxy — surfaces COMC.com asking-price listings as a
+  // second source on the BUY NOW panel alongside eBay active listings.
+  // Soft-fails to "no COMC items" when blocked by Cloudflare Turnstile
+  // (current state per 2026-04-29 — see workers/comc-proxy/src/index.ts).
+  const COMC_PROXY_URL = 'https://boba-comc-proxy.benwilkoff.workers.dev';
   let scanStream      = null;
   let _scanQRInterval = null;  // regenerate QR every 30s to track refresh token rotation
 
@@ -1935,7 +1940,13 @@
           ...(card.treatment       ? { treatment: card.treatment }       : {}),
           ...(radishUrl            ? { radishUrl }                        : {}),
         });
-        const res  = await fetch(`${WORKER_URL}?${params}`);
+        // Fire eBay-pricing + COMC-listings in parallel. COMC is
+        // additive (BUY NOW second source); soft-fails to [] so a
+        // failure doesn't block the eBay/Radish pricing render.
+        const [res, comcResp] = await Promise.all([
+          fetch(`${WORKER_URL}?${params}`),
+          fetchComcListings(card.cardNumber),
+        ]);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         // Snap the Radish button to whichever URL the Worker
@@ -1947,7 +1958,7 @@
           const radishLink = section.querySelector('.btn-pricing-radish');
           if (radishLink) radishLink.href = data.radishResolvedUrl;
         }
-        renderPricingData(section, data, { days });
+        renderPricingData(section, data, { days, comcListings: comcResp });
       } catch {
         const body = section.querySelector('.pricing-body');
         if (body) body.innerHTML = '<p class="pricing-error">Pricing unavailable</p>';
@@ -1955,6 +1966,60 @@
     }
 
     fetchAndRender();
+  }
+
+  /// COMC.com asking-price listings, fetched alongside the eBay /
+  /// Radish pricing call. Soft-fails to [] on any error — additive
+  /// to the BUY NOW panel, never blocks the eBay render. Returns
+  /// the listings array (already cheapest-first from the worker).
+  async function fetchComcListings(cardNumber) {
+    if (!cardNumber) return [];
+    const url = `${COMC_PROXY_URL}/listings?cardNumber=${encodeURIComponent(cardNumber)}`;
+    try {
+      const r = await fetch(url);
+      if (!r.ok) return [];
+      const j = await r.json();
+      return Array.isArray(j.listings) ? j.listings : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /// Element-prefix stripping for the hero string. Some COMC
+  /// listings render as "Glow - Showtime"; our catalog stores
+  /// the hero plainly. Per handoff open-question #2.
+  function stripElementPrefix(hero) {
+    if (!hero) return hero;
+    const match = hero.match(/^(Glow|Steel|Fire|Ice|Hex|Brawl|Gum|Super) - (.+)$/);
+    return match ? match[2] : hero;
+  }
+
+  /// Renders the COMC asking-price strip beneath the eBay BUY NOW
+  /// bucket. Takes top 3 cheapest. Each row links out to the COMC
+  /// listing detail page in a new tab.
+  function renderComcStrip(listings) {
+    if (!Array.isArray(listings) || listings.length === 0) return '';
+    const fmt = n => Number.isFinite(n) && n > 0 ? `$${n.toFixed(2)}` : '—';
+    const top = listings.slice(0, 3);
+    const rows = top.map(l => {
+      const heroDisplay = stripElementPrefix(l.hero || '');
+      const condParts = [l.grading, l.condition].filter(Boolean).join(' ');
+      const pillSuffix = condParts ? ` · ${escHtml(condParts)}` : '';
+      return `
+        <a href="${escHtml(l.comc_url)}" target="_blank" rel="noopener" class="pricing-item-row pricing-comc-row">
+          <span class="pricing-item-price">${fmt(l.asking_price_usd)}</span>
+          <span class="pricing-item-title">
+            ${escHtml(l.cardNumber || '')} ${escHtml(heroDisplay)}
+            <span class="pricing-comc-pill">COMC asking${pillSuffix}</span>
+          </span>
+          <span class="pricing-item-arrow">↗</span>
+        </a>`;
+    }).join('');
+    return `
+      <div class="pricing-section pricing-section-comc">
+        <p class="pricing-items-label pricing-comc-label">COMC ASKING</p>
+        <div class="pricing-items">${rows}</div>
+      </div>`;
   }
 
   // Plain-English labels for the match-reason signals the Worker emits
@@ -2109,6 +2174,12 @@
       const parts = [];
       if (data.sold)   parts.push(renderPricingSection('RECENT SALES', data.sold, true,  opts));
       if (data.active) parts.push(renderPricingSection('BUY NOW',      data.active, false, opts));
+      // COMC asking-price strip — additive, only renders when we
+      // actually have listings (current state with Cloudflare
+      // Turnstile on COMC's side: empty array, nothing renders).
+      if (Array.isArray(opts.comcListings) && opts.comcListings.length > 0) {
+        parts.push(renderComcStrip(opts.comcListings));
+      }
       body.innerHTML = parts.join('');
       return;
     }

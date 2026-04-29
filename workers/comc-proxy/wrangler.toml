@@ -1,0 +1,29 @@
+# boba-comc-proxy — Cloudflare Worker for COMC.com data proxying.
+#
+# Deploy:
+#   wrangler kv:namespace create COMC_CACHE              # capture the id
+#   # paste the id into the [[kv_namespaces]] block below
+#   wrangler secret put SWEEP_SECRET                     # arbitrary string
+#   wrangler deploy
+#
+# Verify:
+#   curl https://boba-comc-proxy.benwilkoff.workers.dev/health
+#   curl 'https://boba-comc-proxy.benwilkoff.workers.dev/listings?cardNumber=MBFA-31' | jq
+
+name = "boba-comc-proxy"
+main = "src/index.ts"
+compatibility_date = "2026-04-29"
+
+# Free-tier observability is enough for the traffic shape we expect.
+[observability]
+enabled = true
+
+# Cache namespace — bump CACHE_TTL_LISTINGS_S in src/index.ts if 30min
+# windows turn out too short or too long.
+[[kv_namespaces]]
+binding = "COMC_CACHE"
+id = "498c14da03ee4010a3b987ed1d48f50b"
+
+# Daily sweep harvest at 06:00 UTC. Adjust frequency vs. catalog volatility.
+[triggers]
+crons = ["0 6 * * *"]

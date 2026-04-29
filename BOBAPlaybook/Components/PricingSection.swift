@@ -25,6 +25,11 @@ struct PricingSection: View {
     /// sync (we don't want the button to point one place while the
     /// Worker scrapes a different page).
     @State private var resolvedRadishURL: URL?
+    /// COMC.com asking-price listings, fetched in parallel with the
+    /// eBay/Radish pricing call. Additive to the BUY NOW panel —
+    /// stays empty when COMC's WAF blocks the worker (current state
+    /// per 2026-04-29). Soft-fail by design.
+    @State private var comcListings: [ComcService.Listing] = []
 
     private let dayOptions = [7, 30, 90]
 
@@ -61,6 +66,13 @@ struct PricingSection: View {
                         }
                         if showActiveListings, let active = result.active {
                             bucketView(active, label: "BUY NOW", isActive: true)
+                        }
+                        // COMC asking-price strip lives below the eBay
+                        // BUY NOW bucket. Renders only when COMC has
+                        // listings; absent (Turnstile blocked, no
+                        // inventory) means nothing shows.
+                        if showActiveListings, !comcListings.isEmpty {
+                            comcStrip(comcListings)
                         }
                     } else {
                         // Legacy single-section layout
@@ -356,6 +368,111 @@ struct PricingSection: View {
         }
     }
 
+    /// Renders COMC asking-price listings beneath the eBay BUY NOW
+    /// bucket. Same row shape as eBay's `itemRow` — price + title
+    /// + tap-out arrow — with a cyan "COMC asking" pill on each
+    /// row to make the source obvious. Asking prices ARE NOT
+    /// transacted prices, so labelling matters per the handoff's
+    /// open-question #1.
+    private func comcStrip(_ listings: [ComcService.Listing]) -> some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+            Text("COMC ASKING")
+                .font(Design.Fonts.mono(8, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaCyan)
+                .tracking(1.5)
+
+            VStack(spacing: 1) {
+                // Top 3 cheapest — matches the handoff's recommended
+                // surface area. The Worker already returns them
+                // sorted cheapest-first, so we just take the prefix.
+                ForEach(Array(listings.prefix(3))) { listing in
+                    Button {
+                        if let url = URL(string: listing.comcUrl) {
+                            selectedItemURL = IdentifiableURL(url: url)
+                        }
+                    } label: {
+                        comcRow(listing)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
+            .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+        }
+    }
+
+    private func comcRow(_ listing: ComcService.Listing) -> some View {
+        HStack(spacing: Design.Spacing.sm) {
+            if let price = listing.askingPriceUsd {
+                Text(price, format: .currency(code: "USD"))
+                    .font(Design.Fonts.mono(13, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaOrange)
+                    .frame(width: 64, alignment: .leading)
+            } else {
+                Text("—")
+                    .font(Design.Fonts.mono(13))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .frame(width: 64, alignment: .leading)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                // Display hero with leading element-prefix stripped —
+                // some COMC listings render as "Glow - Showtime"; our
+                // catalog stores the hero plainly. Per handoff
+                // open-question #2.
+                Text(displayTitle(for: listing))
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .lineLimit(1)
+                comcSourcePill(condition: listing.condition, grading: listing.grading)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 10))
+                .foregroundStyle(Design.Colors.textMuted)
+        }
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.sm)
+        .background(Design.Colors.surface2)
+    }
+
+    private func comcSourcePill(condition: String, grading: String) -> some View {
+        // "COMC asking · Ungraded NM" — clarifies that the price is
+        // an asking, not a sale; condition+grading provide signal
+        // about what the buyer would actually receive.
+        let suffix: String = {
+            let parts = [grading, condition].filter { !$0.isEmpty }
+            return parts.isEmpty ? "" : " · \(parts.joined(separator: " "))"
+        }()
+        return Text("COMC asking\(suffix)")
+            .font(Design.Fonts.mono(8, weight: .bold))
+            .tracking(0.5)
+            .foregroundStyle(Design.Colors.bobaCyan)
+            .padding(.horizontal, 5).padding(.vertical, 2)
+            .background(Capsule().fill(Design.Colors.bobaCyan.opacity(0.10))
+                .overlay(Capsule().strokeBorder(Design.Colors.bobaCyan.opacity(0.40), lineWidth: 0.7)))
+    }
+
+    private func displayTitle(for listing: ComcService.Listing) -> String {
+        // COMC sometimes prefixes hero with element ("Glow - Showtime").
+        // Strip a known-element prefix for cleaner display; fall
+        // through to the raw hero string if no prefix matches.
+        let elements = ["Glow", "Steel", "Fire", "Ice", "Hex", "Brawl", "Gum", "Super"]
+        var hero = listing.hero
+        for el in elements {
+            let prefix = "\(el) - "
+            if hero.hasPrefix(prefix) {
+                hero = String(hero.dropFirst(prefix.count))
+                break
+            }
+        }
+        // "{cardNumber} {hero} ({set})" — concise enough to fit one
+        // line, distinct enough to confirm the listing matches the
+        // card the user is looking at.
+        return "\(listing.cardNumber) \(hero)"
+    }
+
     /// Caption for the Market Est. row. "comps" means the range came
     /// from comparable cards; "own_sales" means it came from the
     /// card's own historical sales (rare for the estimated path —
@@ -454,6 +571,17 @@ struct PricingSection: View {
         isLoading  = true
         fetchError = nil
         result     = nil
+        comcListings = []
+        // COMC fires in parallel with the pricing waterfall — it's an
+        // additive source on the BUY NOW panel, never blocks the
+        // primary fetch. Soft-fails to [] when the Worker is blocked
+        // by Cloudflare Turnstile (current state) or any other error.
+        if showActiveListings {
+            Task {
+                let resp = await ComcService.shared.listings(cardNumber: card.cardNumber)
+                comcListings = resp.listings
+            }
+        }
         Task {
             do {
                 // Send the RESOLVED URL, not the raw constructed

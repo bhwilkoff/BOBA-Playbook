@@ -529,27 +529,106 @@ function stripCardNumberFromRadishURL(url) {
   }
 }
 
-async function fetchRadishSales(radishUrl, days) {
-  // Try primary → hero-only fallback. Returns { items, resolvedUrl }
-  // so the caller can pass `resolvedUrl` back to the iOS / web
-  // client; the Radish-button link should point at whichever URL
-  // actually carried data, not whichever URL we constructed first.
-  // Empty pages (200 OK with no sales aggregated) trigger fallback
-  // too, not just 404s.
-  const candidates = [radishUrl];
-  const fallback = stripCardNumberFromRadishURL(radishUrl);
-  if (fallback && fallback !== radishUrl) candidates.push(fallback);
+// Every year/slug pair Radish actually serves. Built from
+// curl 'https://radishpriceguide.com/boba'. Cards in our catalog
+// can live under a different (year, slug) than their `set`
+// suggests — e.g. LeBoss-1 has set="Alpha Edition" in our data but
+// Radish hosts him under /2025/Alpha_Update/. So when the catalog-
+// hinted URL has no data, we sweep all known (year, slug) pairs.
+const RADISH_NAMESPACES = [
+  ["2026", "Griffey_Edition"],
+  ["2025", "Alpha_Update"],
+  ["2025", "Alpha_Blast"],
+  ["2025", "World_Champions"],
+  ["2025", "Big_League_Chew"],
+  ["2025", "Promo_Cards"],
+  ["2024", "Alpha_Edition"],
+  ["2024", "World_Champions"],
+  ["2024", "National_24_Starter_Set"],
+  ["2024", "Battle_Trainer_Kit"],
+  ["2024", "Promo_Cards"],
+  ["2026", "Promo_Cards"],
+];
 
-  for (const url of candidates) {
-    const items = await tryRadishURL(url, days);
-    if (items && items.length > 0) {
-      return { items, resolvedUrl: url };
+async function fetchRadishSales(radishUrl, days) {
+  // Walk a list of candidate URLs and pick whichever one has the
+  // most useful data:
+  //   - First preference: a URL with items inside the requested
+  //     date window (these become the sold-comp data).
+  //   - Second preference: a URL whose page HAS aggregated sales
+  //     historically but none in the window — surface that URL on
+  //     the Radish button so the user lands on a real card page
+  //     (Showtime/2 has sold many times but maybe not in 30 days).
+  //   - Last resort: nothing carried any data; return null and the
+  //     client falls back to its constructed URL.
+  const parsed = parseRadishURL(radishUrl);
+  let candidates;
+  if (!parsed) {
+    // Unrecognized shape (e.g. /boba/sealed). Just probe the
+    // original URL once.
+    candidates = [radishUrl];
+  } else {
+    const { hero, cardNumber, year: hintYear, slug: hintSlug } = parsed;
+    // Catalog-hinted (year, slug) first, then every other namespace.
+    const namespaceOrder = [
+      [hintYear, hintSlug],
+      ...RADISH_NAMESPACES.filter(([y, s]) => y !== hintYear || s !== hintSlug),
+    ];
+    candidates = [];
+    for (const [year, slug] of namespaceOrder) {
+      const base = `https://radishpriceguide.com/boba/${year}/${slug}/${encodeURIComponent(hero)}`;
+      if (cardNumber) candidates.push(`${base}/${encodeURIComponent(cardNumber)}`);
+      candidates.push(base);
     }
   }
-  return { items: null, resolvedUrl: null };
+
+  let fallbackUrl = null;
+  for (const url of candidates) {
+    const result = await tryRadishURL(url, days);
+    if (!result) continue;  // 404 or non-card page
+    if (result.items.length > 0) {
+      return { items: result.items, resolvedUrl: url };
+    }
+    // Page exists with allSales aggregated but nothing within the
+    // requested window. Hold the URL as a fallback in case nothing
+    // better turns up; keep walking for an in-window hit.
+    if (result.hasAllSales && !fallbackUrl) fallbackUrl = url;
+  }
+  return { items: null, resolvedUrl: fallbackUrl };
+}
+
+/// Pull (year, slug, hero, cardNumber) out of a Radish card URL.
+/// Returns null when the URL doesn't have the four-segment shape
+/// (e.g. /boba/sealed or already a hero-only path).
+function parseRadishURL(url) {
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split("/").filter(Boolean);
+    // Expecting ["boba", year, slug, hero, cardNumber?]
+    if (parts.length < 4 || parts[0] !== "boba") return null;
+    const [, year, slug, heroEnc, cardNumberEnc] = parts;
+    if (!/^\d{4}$/.test(year)) return null;
+    return {
+      year,
+      slug,
+      hero: decodeURIComponent(heroEnc),
+      cardNumber: cardNumberEnc ? decodeURIComponent(cardNumberEnc) : null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function tryRadishURL(url, days) {
+  // Returns { items, hasAllSales } where:
+  //   items        — sales filtered to the requested date window
+  //   hasAllSales  — page had ANY aggregated sales (even outside
+  //                  the window). Lets the caller pick this URL
+  //                  for the user-facing button when no candidate
+  //                  has in-window data — at least the link
+  //                  lands on a real card page rather than 404ing.
+  // Returns null only when the URL itself doesn't exist or doesn't
+  // carry the Next.js allSales structure (unrecognized page).
   try {
     const html = await fetchRadishHTML(url);
     if (!html) return null;
@@ -564,7 +643,7 @@ async function tryRadishURL(url, days) {
     const cutoff = new Date();
     cutoff.setUTCDate(cutoff.getUTCDate() - days);
 
-    return allSales
+    const items = allSales
       .filter(s => !s.hide && s.sold_date && new Date(s.sold_date) >= cutoff)
       .map(s => ({
         title: s.title ?? s.card_name ?? "",
@@ -573,6 +652,7 @@ async function tryRadishURL(url, days) {
         url:   s.link ?? "",
       }))
       .filter(i => i.price > 0 && i.title);
+    return { items, hasAllSales: true };
   } catch {
     return null;
   }
@@ -1064,12 +1144,13 @@ export default {
     if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) return json({ error: "EBAY_APP_ID and EBAY_CERT_ID secrets required" }, 500);
 
     // ── Cache ─────────────────────────────────────────────────────────────────
-    // v11: enriched sold-comp matcher adds per-item matchConfidence /
-    // matchReasons + count_probable on the sold section. v10 cached
-    // responses don't have those fields, so bumping the key forces a
-    // fresh fetch on first access under the new Worker.
+    // v12: Radish URL resolver now sweeps every (year, slug) combo
+    // instead of trusting the catalog's set hint, AND surfaces the
+    // resolvedUrl when a candidate has any aggregated sales (not
+    // just sales within the days-window). v11 caches don't have
+    // `radishResolvedUrl`, so bumping the key forces a fresh fetch.
     const cache    = caches.default;
-    const cacheURL = `https://boba-cache.internal/v11/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
+    const cacheURL = `https://boba-cache.internal/v12/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
     const cacheKey = new Request(cacheURL);
     const cached   = await cache.match(cacheKey);
     if (cached) {

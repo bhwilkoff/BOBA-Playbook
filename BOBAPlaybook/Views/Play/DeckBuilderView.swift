@@ -58,6 +58,7 @@ struct DeckBuilderView: View {
     @State private var quickAdd = false
     @State private var selectedBrowserCard: Card? = nil
     @State private var elementFilter = ""
+    @State private var confirmingClearDeck = false
     @Environment(\.dismiss) private var dismiss
     /// Focus state for the deck-builder card search field. Drives the
     /// keyboard-accessory Done button so coaches can dismiss the keyboard
@@ -208,6 +209,16 @@ struct DeckBuilderView: View {
         }
         .sheet(isPresented: $showDeckManagement) {
             DeckManagementSheet(store: store, cards: cardStore.displayCards)
+        }
+        .alert("Clear deck?", isPresented: $confirmingClearDeck) {
+            Button("Cancel", role: .cancel) {}
+            Button("Clear deck", role: .destructive) {
+                store.clearDeck()
+                store.discardDraft()
+                showTemplates = true
+            }
+        } message: {
+            Text("Removes every Hero, Play, and Hot Dog. Your deck name and rule overrides stay. The starter-deck splash returns so you can pick a fresh template.")
         }
         .sheet(isPresented: $showRulesSheet) {
             DeckRulesSheet(store: store)
@@ -530,16 +541,11 @@ struct DeckBuilderView: View {
             .padding(.vertical, Design.Spacing.xs)
             .background(Design.Colors.surface)
 
-            // Per-tab status banner — count + DBS budget + the
-            // validation errors scoped to this section. Three-pane
-            // editor refactor (handoff §4b): each role-tab surfaces
-            // its own progress + compliance state alongside the
-            // browser, instead of bundling everything into the
-            // expand-all-decks banner at the bottom.
-            browserTabStatusBanner
-                .padding(.horizontal, Design.Spacing.md)
-                .padding(.vertical, Design.Spacing.xs)
-                .background(Design.Colors.surface)
+            // Per-tab status banner removed 2026-04-29 — the count
+            // + DBS strip duplicated the stats bar above the format
+            // picker, and the error list duplicated the deck-panel
+            // validation block. Both surfaces fight for screen space
+            // in a builder that's already crowded.
 
             // Element filter pills (heroes only)
             if store.browserTab == .hero {
@@ -686,45 +692,16 @@ struct DeckBuilderView: View {
         .buttonStyle(.plain)
     }
 
-    /// Per-tab status banner — surfaces count progress, DBS budget
-    /// (Plays tab only), and any validation errors scoped to the
-    /// current role. Returns an empty view when there's nothing to
-    /// say so the picker row collapses cleanly.
-    @ViewBuilder
+    /// Per-tab status banner. Was previously a duplicate surface
+    /// for validation errors (also shown in the deck panel) AND a
+    /// duplicate for the X/N counts in the stats bar. Both halves
+    /// got pruned 2026-04-29: errors live only in the deck panel
+    /// now, counts live only in the stats bar at the top of the
+    /// builder. The banner returns EmptyView so the call site
+    /// (`browserTabStatusBanner` in cardBrowser) collapses with
+    /// zero layout cost.
     private var browserTabStatusBanner: some View {
-        let role = store.browserTab
-        let scopedErrors = store.validationErrors.filter { $0.section == role }
-        let summary: String? = browserTabSummaryText(for: role)
-        if summary != nil || !scopedErrors.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
-                if let line = summary {
-                    HStack(spacing: 6) {
-                        Image(systemName: scopedErrors.isEmpty
-                                          ? "checkmark.circle.fill"
-                                          : "info.circle.fill")
-                            .font(.system(size: 11))
-                            .foregroundStyle(scopedErrors.isEmpty
-                                              ? Design.Colors.bobaCyan
-                                              : Design.Colors.bobaOrange)
-                        Text(line)
-                            .font(Design.Fonts.mono(11, weight: .bold))
-                            .foregroundStyle(Design.Colors.textPrimary)
-                    }
-                }
-                ForEach(scopedErrors) { err in
-                    HStack(spacing: 6) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 10))
-                            .foregroundStyle(Design.Colors.bobaOrange)
-                        Text(err.message)
-                            .font(Design.Fonts.mono(10))
-                            .foregroundStyle(Design.Colors.bobaOrange)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
+        EmptyView()
     }
 
     /// One-line progress summary per role. Plays tab gets the
@@ -855,7 +832,7 @@ struct DeckBuilderView: View {
         VStack(spacing: 0) {
             // Deck header — always visible
             VStack(spacing: 2) {
-                // Section label + collapsible toggle — makes deck name row context explicit
+                // Section label + clear-deck button + collapsible toggle.
                 HStack {
                     Text("CURRENT CARDS")
                         .font(Design.Fonts.mono(10, weight: .bold))
@@ -875,6 +852,23 @@ struct DeckBuilderView: View {
                                 .font(Design.Fonts.mono(10))
                                 .foregroundStyle(Design.Colors.textMuted)
                         }
+                    }
+                    // Clear-deck button — destructive, gated behind a
+                    // confirmation alert so an accidental tap doesn't
+                    // wipe an in-progress build. Only enabled when the
+                    // deck has actual cards in it.
+                    if !store.heroes.isEmpty || !store.plays.isEmpty || !store.hotDogs.isEmpty || !store.bonusPlays.isEmpty {
+                        Button {
+                            confirmingClearDeck = true
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Design.Colors.bobaOrange)
+                                .frame(width: 28, height: 24)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Clear deck")
                     }
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) { showDeckList.toggle() }
@@ -909,8 +903,12 @@ struct DeckBuilderView: View {
             if showDeckList {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        // Validation errors
-                        if !store.validationErrors.isEmpty {
+                        // Validation errors. We hide "Need X more"
+                        // count-style errors here because the stats
+                        // bar at the top already shows X/N for every
+                        // role; surfacing the same gap as a warning
+                        // bubble underneath duplicates the signal.
+                        if !visibleValidationErrors.isEmpty {
                             validationSection
                         }
                         // Hero Deck section
@@ -1000,7 +998,7 @@ struct DeckBuilderView: View {
 
     private var validationSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            ForEach(store.validationErrors) { err in
+            ForEach(visibleValidationErrors) { err in
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 11))
@@ -1014,6 +1012,19 @@ struct DeckBuilderView: View {
         .padding(Design.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Design.Colors.bobaOrange.opacity(0.08))
+    }
+
+    /// Validation errors surfaced in the deck panel's warning bubble.
+    /// "Need X more {hero|play|hot dog}" rows are dropped because the
+    /// stats bar at the top already shows X/N for each role; emitting
+    /// them as warnings underneath duplicates the gap signal. The
+    /// underlying `store.validationErrors` is unchanged so the
+    /// LegalityReportSheet (which is the place users go to audit the
+    /// full ruleset) still sees them.
+    private var visibleValidationErrors: [DeckValidationError] {
+        store.validationErrors.filter { err in
+            !err.message.hasPrefix("Need ")
+        }
     }
 
     private var groupedHeroes: [(power: Int, cards: [Card])] {

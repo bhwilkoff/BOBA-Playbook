@@ -255,11 +255,6 @@ struct ScanView: View {
             // builder). In a deck-builder session the destination is
             // always the in-progress deck (with optional collection
             // mirror) — Show Mode there has no meaningful destination.
-            //
-            // DEBUG: long-press the row to open the Grid Detector test
-            // harness. Hidden in release builds. Once the harness
-            // confirms ≥36 of 36 across the 4 fixtures, GRID gets
-            // promoted to a real pill in the row.
             HStack {
                 Spacer()
                 modePill(for: .single, label: "SINGLE", icon: "rectangle.on.rectangle")
@@ -270,13 +265,29 @@ struct ScanView: View {
             }
             .padding(.trailing, Design.Spacing.lg)
             .padding(.bottom, 90)
-            #if DEBUG
-            .onLongPressGesture(minimumDuration: 0.6) {
-                showGridTestHarness = true
-            }
-            #endif
         }
+        // DEBUG-only test harness for the new Grid scan mode. Floats
+        // top-left over the camera, well clear of all other tap
+        // targets. Hidden in release builds. Promote Grid to a real
+        // mode pill once the harness reports 36/36 across all four
+        // bundled fixtures.
         #if DEBUG
+        .overlay(alignment: .topLeading) {
+            Button {
+                showGridTestHarness = true
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "testtube.2").font(.system(size: 13))
+                    Text("GRID TEST").font(Design.Fonts.mono(10, weight: .bold)).tracking(0.5)
+                }
+                .foregroundStyle(Design.Colors.bobaCyan)
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(Capsule().fill(Color.black.opacity(0.55))
+                    .overlay(Capsule().strokeBorder(Design.Colors.bobaCyan.opacity(0.6), lineWidth: 1)))
+            }
+            .padding(.top, 60)
+            .padding(.leading, 16)
+        }
         .sheet(isPresented: $showGridTestHarness) {
             GridTestHarnessView()
         }

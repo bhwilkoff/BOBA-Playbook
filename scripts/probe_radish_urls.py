@@ -54,29 +54,37 @@ SET_MAP = {
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
 
 
+HERO_ALIASES = {"ChetMate": "Chetmate", "BoJax": "Bojax"}
+PREFIX_REMAP = {"LOGO": "Logo", "RAD": "Rad", "MIX": "Mix"}
+
+
 def build_url(card: dict) -> str | None:
     """Mirror the production URL builder.
-
-    Cards split three ways:
-      - Sealed Product → /boba/sealed (Radish has no per-product
-        detail page; the sealed-sales index is the closest match).
-      - Hero / Play / HotDog → /boba/{year}/{slug}/{hero}. Plays and
-        HotDogs put their card name in the `hero` field, so the same
-        formula works without a card-type segment in the path.
-      - Anything missing a hero/name OR a known set → no URL (caller
-        hides the Radish button rather than 404 the user).
-    """
+       /boba/{year}/{slug}/{hero}/{cardNumber}
+       /boba/sealed for Sealed Products."""
     if card.get("cardType") == "Sealed Product":
         return "https://radishpriceguide.com/boba/sealed"
     set_name = card.get("set") or ""
     if set_name not in SET_MAP:
         return None
     year, slug = SET_MAP[set_name]
-    name = card.get("hero") or card.get("name") or ""
-    if not name:
+
+    raw_hero = card.get("hero") or card.get("name") or ""
+    if not raw_hero:
         return None
-    enc = urllib.parse.quote(name, safe="")
-    return f"https://radishpriceguide.com/boba/{year}/{slug}/{enc}"
+    radish_hero = HERO_ALIASES.get(raw_hero, raw_hero)
+
+    card_num = card.get("cardNumber") or ""
+    for ours, theirs in PREFIX_REMAP.items():
+        if card_num.startswith(ours + "-"):
+            card_num = theirs + card_num[len(ours):]
+            break
+    if not card_num:
+        return None
+
+    return (f"https://radishpriceguide.com/boba/{year}/{slug}/"
+            f"{urllib.parse.quote(radish_hero, safe='')}/"
+            f"{urllib.parse.quote(card_num, safe='')}")
 
 
 def has_real_data(html: str) -> bool:

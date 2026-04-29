@@ -18,6 +18,13 @@ struct PricingSection: View {
     @State private var showRadish = false
     @State private var showEbay = false
     @State private var selectedItemURL: IdentifiableURL?
+    /// HEAD-probed Radish URL — populated on appear by the resolver.
+    /// Falls back to `card.resolvedRadishURL` while the probe is in
+    /// flight or if both options 404. The Radish button + the
+    /// pricing-Worker request both read from this so they stay in
+    /// sync (we don't want the button to point one place while the
+    /// Worker scrapes a different page).
+    @State private var resolvedRadishURL: URL?
 
     private let dayOptions = [7, 30, 90]
 
@@ -120,7 +127,20 @@ struct PricingSection: View {
                 }
             }
         }
-        .onAppear { fetch() }
+        .task {
+            // Probe Radish for the right URL before kicking off the
+            // pricing Worker request. The resolver caches per-bobaId
+            // so this is a one-time HEAD per card per session. If
+            // the probe lands a different URL than card.resolvedRadishURL
+            // (e.g. fell back from /hero/cardNumber → /hero), we
+            // re-fetch with the corrected URL so the pricing Worker
+            // scrapes the same page the user's button now points at.
+            let probed = await RadishURLResolver.shared.resolve(for: card)
+            if probed != resolvedRadishURL {
+                resolvedRadishURL = probed
+            }
+            fetch()
+        }
         .onChange(of: selectedDays) { fetch() }
         .sheet(isPresented: $showEbay)   { SafariView(url: ebayURL) }
         .sheet(isPresented: $showRadish) { SafariView(url: radishURL) }
@@ -320,7 +340,9 @@ struct PricingSection: View {
     // validated sold data, not just the one iOS users tap through to.
 
     private var radishURL: URL {
-        card.resolvedRadishURL ?? URL(string: "https://radishpriceguide.com/boba")!
+        resolvedRadishURL
+            ?? card.resolvedRadishURL
+            ?? URL(string: "https://radishpriceguide.com/boba")!
     }
 
     // MARK: - Fetch
@@ -332,13 +354,20 @@ struct PricingSection: View {
         result     = nil
         Task {
             do {
+                // Send the RESOLVED URL, not the raw constructed
+                // one. Without this, a card whose primary URL
+                // 404s would have its button point to the
+                // hero-only fallback while the Worker still tried
+                // (and failed) to scrape the original 404 — wasting
+                // the Radish lookup on every pricing fetch.
+                let radishStr = (resolvedRadishURL ?? card.resolvedRadishURL)?.absoluteString
                 result = try await PricingService.shared.pricing(
                     for: card.cardNumber,
                     hero: card.hero,
                     set: card.set,
                     element: card.element,
                     power: card.power,
-                    radishUrl: card.resolvedRadishUrlString,
+                    radishUrl: radishStr,
                     days: selectedDays,
                     treatment: card.treatment
                 )

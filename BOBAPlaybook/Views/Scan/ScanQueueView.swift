@@ -49,7 +49,14 @@ struct ScanQueueView: View {
                 saveError = "Saved to \(showName)"   // repurpose the slot for a green-ish line
             }
         }
-        .task(id: scanStore.queuedCards.map(\.card.id).joined()) {
+        // The id concatenates the queued card list AND the global
+        // pricing pulse — so prices refresh both when the queue
+        // changes (new card scanned) AND when any other surface
+        // invalidates the pricing cache (Collection toolbar refresh,
+        // Show detail "Refresh Prices" button, individual card
+        // forceRefresh). PricingPulse keeps the scanner in sync
+        // without each surface needing its own coordination logic.
+        .task(id: "\(scanStore.queuedCards.map(\.card.id).joined())|\(PricingPulse.shared.version)") {
             if scanStore.isShowMode { await refreshShowPrices() }
         }
         .onChange(of: scanStore.mode) { _, newValue in

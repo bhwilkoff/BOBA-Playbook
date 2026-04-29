@@ -1,5 +1,19 @@
 import Foundation
 
+/// Cross-surface pricing-cache pulse. SwiftUI views observe
+/// `version` via `.task(id:)` so any cache invalidation (per-card
+/// or wholesale) re-runs their pricing fetch automatically. The
+/// actor below bumps this whenever it drops cache entries; views
+/// don't need to know about each other.
+@MainActor
+@Observable
+final class PricingPulse {
+    static let shared = PricingPulse()
+    var version: Int = 0
+    private init() {}
+    fileprivate func bump() { version &+= 1 }
+}
+
 actor PricingService {
     static let shared = PricingService()
     private init() {}
@@ -110,7 +124,48 @@ actor PricingService {
     /// slow Worker round-trip every time (the Worker exhausts every
     /// eBay search variant before giving up).
     private var emptyAt: [String: Date] = [:]
-    private let emptyLifetime: TimeInterval = 600  // 10 minutes
+    /// Shortened from 600s (10min) → 120s (2min) on 2026-04-29.
+    /// Worker is now sub-second on cache hits and ~1s on cold cache
+    /// after the parallel namespace sweep, so a long backoff just
+    /// traps users in a blank pricing pane when the worker recovers.
+    private let emptyLifetime: TimeInterval = 120
+
+    // ── Cross-surface invalidation broadcaster ────────────────────────────────
+    //
+    // PricingSection (and any other surface that displays pricing)
+    // can observe `cacheVersion` via `.task(id:)`. Whenever any
+    // refresh path drops cache entries (per-card or wholesale), it
+    // bumps the version, and every observer re-runs its fetch.
+    //
+    // Without this, refreshes from one surface (e.g. Collection's
+    // "Refresh Market Values" button) silently updated the
+    // PricingService cache but the user's open card-detail view
+    // kept showing whatever it loaded a moment earlier — they had
+    // to dismiss and re-open to see the new number.
+    private(set) var cacheVersion: Int = 0
+
+    /// Drop the cached entry for one card and bump the version so
+    /// observers re-fetch. Use this when an explicit per-card
+    /// refresh happens (e.g. show queue scanner stepping past a
+    /// card it just refreshed).
+    func invalidate(cardNumber: String, hero: String) async {
+        let prefix = "\(hero)_\(cardNumber)_"
+        cache = cache.filter { !$0.key.hasPrefix(prefix) }
+        emptyAt = emptyAt.filter { !$0.key.hasPrefix(prefix) }
+        cacheVersion &+= 1
+        await MainActor.run { PricingPulse.shared.bump() }
+    }
+
+    /// Drop every cached entry and bump the version. Used by the
+    /// Collection-level "Refresh market values" button after the
+    /// recalc loop completes — every card surface in the app
+    /// re-fetches on next render.
+    func bumpAll() async {
+        cache.removeAll()
+        emptyAt.removeAll()
+        cacheVersion &+= 1
+        await MainActor.run { PricingPulse.shared.bump() }
+    }
 
     func pricing(for cardNumber: String,
                  hero: String,
@@ -139,6 +194,8 @@ actor PricingService {
         if forceRefresh {
             cache.removeValue(forKey: key)
             emptyAt.removeValue(forKey: key)
+            cacheVersion &+= 1
+            await MainActor.run { PricingPulse.shared.bump() }
         }
 
         let base = await MainActor.run { WorkerConfig.ebayProxyURL }

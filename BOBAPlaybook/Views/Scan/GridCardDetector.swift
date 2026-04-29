@@ -36,6 +36,11 @@ enum GridCardDetector {
         /// Original quad in normalized (0..1) image coords — useful for
         /// drawing the detected outline back over the source image.
         let quad: VNRectangleObservation
+        /// Vision's rectangle-detection confidence (0..1). Surfaced so
+        /// the test harness can correlate "OCR failed" cells with
+        /// detector confidence to figure out whether OCR is failing
+        /// on real cards or on weak/spurious detections.
+        let confidence: Float
     }
 
     enum DetectionError: Error {
@@ -80,11 +85,12 @@ enum GridCardDetector {
                 orientation: orientation
             ) {
                 results.append(DetectedCard(
-                    gridIndex: index,
-                    row:       item.row,
-                    column:    item.column,
-                    image:     cropped,
-                    quad:      item.observation
+                    gridIndex:  index,
+                    row:        item.row,
+                    column:     item.column,
+                    image:      cropped,
+                    quad:       item.observation,
+                    confidence: item.observation.confidence
                 ))
             }
         }
@@ -98,11 +104,13 @@ enum GridCardDetector {
         orientation: CGImagePropertyOrientation
     ) async throws -> [VNRectangleObservation] {
         // First pass with reasonable confidence + a tight aspect-ratio
-        // band. If we get back fewer than 6 rectangles (covers any
-        // 3×N grid we promise to support), fall back to a much looser
-        // pass and merge — better to over-detect and let the
-        // grid-clustering step filter out noise than under-detect
-        // and silently lose half the user's cards.
+        // band. Only fall back when the primary pass returns fewer
+        // rectangles than the largest grid we support (9). When
+        // primary already finds 9+, the fallback would just inject
+        // lower-quality rectangles that pollute downstream OCR —
+        // observed in the 2026-04-29 fixture run where IMG_5229 went
+        // from 9 detected → 9/9 detected but 4/9 matched because
+        // a spurious mid-row rectangle clipped through two cards.
         let primary = try await performRectangleRequest(
             on: ciImage,
             orientation: orientation,
@@ -113,7 +121,7 @@ enum GridCardDetector {
             quadratureTolerance: 30,
             maximumObservations: 30
         )
-        if primary.count >= 6 {
+        if primary.count >= 9 {
             return primary
         }
         // Permissive fallback. Drops confidence to 0.3 and widens the
@@ -252,7 +260,11 @@ enum GridCardDetector {
 
     /// Use the rectangle's four corners to perspective-correct it into
     /// an upright crop. Coordinates are denormalized to image space,
-    /// then handed to CIPerspectiveCorrection.
+    /// then handed to CIPerspectiveCorrection. Each corner is pushed
+    /// outward by `bleedPercent` along both axes so the OCR pass
+    /// receives the full card edge — Vision's detected corners often
+    /// land 1-2% inside the card border, which would otherwise clip
+    /// the bottom-left card number we depend on for catalog lookup.
     private static func perspectiveCorrect(
         ciImage: CIImage,
         observation: VNRectangleObservation,
@@ -264,19 +276,42 @@ enum GridCardDetector {
         let oriented = ciImage.oriented(orientation)
         let extent = oriented.extent
 
+        // 4% bleed = nudge each corner outward 4% of the rectangle
+        // diagonal away from its center. Picked empirically: smaller
+        // values still clipped card numbers on toploader-encased
+        // cards (where the toploader inset eats a few percent of
+        // the card edge); larger values started pulling neighboring
+        // cards' edges into the crop.
+        let bleed: CGFloat = 0.04
+        let center = CGPoint(x: observation.boundingBox.midX,
+                             y: observation.boundingBox.midY)
+        func bled(_ p: CGPoint) -> CGPoint {
+            CGPoint(
+                x: p.x + (p.x - center.x) * bleed,
+                y: p.y + (p.y - center.y) * bleed
+            )
+        }
         func denorm(_ p: CGPoint) -> CIVector {
+            // Clamp to [0,1] before denorm so a card that already
+            // sits flush against the image edge doesn't sample
+            // beyond the source extent (which would produce black
+            // bars and confuse OCR).
+            let clamped = CGPoint(
+                x: min(max(p.x, 0), 1),
+                y: min(max(p.y, 0), 1)
+            )
             return CIVector(
-                x: p.x * extent.width  + extent.origin.x,
-                y: p.y * extent.height + extent.origin.y
+                x: clamped.x * extent.width  + extent.origin.x,
+                y: clamped.y * extent.height + extent.origin.y
             )
         }
 
         let filter = CIFilter(name: "CIPerspectiveCorrection")!
         filter.setValue(oriented, forKey: kCIInputImageKey)
-        filter.setValue(denorm(observation.topLeft),     forKey: "inputTopLeft")
-        filter.setValue(denorm(observation.topRight),    forKey: "inputTopRight")
-        filter.setValue(denorm(observation.bottomLeft),  forKey: "inputBottomLeft")
-        filter.setValue(denorm(observation.bottomRight), forKey: "inputBottomRight")
+        filter.setValue(denorm(bled(observation.topLeft)),     forKey: "inputTopLeft")
+        filter.setValue(denorm(bled(observation.topRight)),    forKey: "inputTopRight")
+        filter.setValue(denorm(bled(observation.bottomLeft)),  forKey: "inputBottomLeft")
+        filter.setValue(denorm(bled(observation.bottomRight)), forKey: "inputBottomRight")
         guard let corrected = filter.outputImage else { return nil }
         guard let cgImage = ciContext.createCGImage(corrected, from: corrected.extent) else {
             return nil

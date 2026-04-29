@@ -1986,9 +1986,46 @@
 
   function renderPricingSection(label, sectionData, isSold, opts = {}) {
     const fmt = n => n > 0 ? `$${n.toFixed(2)}` : '—';
-    const { low, average, high, count, count_probable = 0, items = [], stale = false } = sectionData;
+    const {
+      low, average, high, count, count_probable = 0, items = [],
+      stale = false, estimated = false, estimatedSource = null
+    } = sectionData;
     const typeStr = isSold ? 'sold' : 'active listing';
     const days    = opts.days ?? 30;
+
+    // Estimated path: no real sales — Market Est. range from
+    // comparable cards. Render as "MARKET EST." with the same
+    // tri-cell shape (EST. LOW / EST. MID / EST. HIGH) plus a
+    // subtitle explaining where the range came from.
+    if (isSold && estimated) {
+      const sourceCaption = estimatedSource === 'comps'
+        ? 'Estimated from comparable cards'
+        : estimatedSource === 'own_sales'
+          ? 'Estimated from prior sales'
+          : 'Estimated value';
+      return `
+        <div class="pricing-section pricing-section-estimated">
+          <p class="pricing-items-label">
+            MARKET EST.
+            <span class="pricing-est-pill">EST</span>
+          </p>
+          <div class="pricing-grid">
+            <div class="pricing-stat">
+              <span class="pricing-label">EST. LOW</span>
+              <span class="pricing-val">${fmt(low)}</span>
+            </div>
+            <div class="pricing-stat pricing-stat-center">
+              <span class="pricing-label">EST. MID</span>
+              <span class="pricing-val pricing-val-avg">${fmt(average)}</span>
+            </div>
+            <div class="pricing-stat">
+              <span class="pricing-label">EST. HIGH</span>
+              <span class="pricing-val">${fmt(high)}</span>
+            </div>
+          </div>
+          <p class="pricing-sale-count">${sourceCaption}</p>
+        </div>`;
+    }
 
     const itemsHtml = items.length === 0 ? '' : `
       <div class="pricing-items">

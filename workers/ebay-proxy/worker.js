@@ -674,6 +674,107 @@ async function tryRadishURL(url, days) {
   }
 }
 
+// ── Radish Market Est. fallback ───────────────────────────────────────────────
+//
+// When a card has no in-window sales AND no historical sales of its
+// own, Radish's UI surfaces a "Market Est." range computed from
+// comparable cards (same hero / same weapon / same power, across
+// other parallels and treatments). The midpoint of that range is a
+// reasonable market anchor for cards that have never sold.
+//
+// Implementation:
+//   1. Hit the Next.js static-data endpoint for the card URL to
+//      learn Radish's internal integer card_id (the public
+//      catalog uses card_number + hero, but the estimated-value API
+//      keys on card_id).
+//   2. Hit /api/boba/estimated-value?card_id={id} which returns
+//      {marketEstimatedValue, marketEstimatedValueLow,
+//       marketEstimatedValueHigh, marketEstimatedValueSource}.
+//   3. When marketEstimatedValueSource is "comps" or "own_sales" and
+//      the value is positive, return it as the estimate.
+//
+// The Next.js buildId rotates on every Radish redeploy, so we scrape
+// it on-demand from any rendered page and cache it for 24h.
+
+let RADISH_BUILD_ID_CACHE = { value: null, fetchedAt: 0 };
+const RADISH_BUILD_ID_TTL_MS = 86400 * 1000;
+
+async function getRadishBuildId() {
+  if (
+    RADISH_BUILD_ID_CACHE.value &&
+    Date.now() - RADISH_BUILD_ID_CACHE.fetchedAt < RADISH_BUILD_ID_TTL_MS
+  ) {
+    return RADISH_BUILD_ID_CACHE.value;
+  }
+  // Any page works — sealed index is the lightest.
+  const html = await fetchRadishHTML("https://radishpriceguide.com/boba/sealed");
+  if (!html) return RADISH_BUILD_ID_CACHE.value;  // serve stale on probe failure
+  const m = html.match(/"buildId":"([^"]+)"/);
+  if (!m) return RADISH_BUILD_ID_CACHE.value;
+  RADISH_BUILD_ID_CACHE = { value: m[1], fetchedAt: Date.now() };
+  return m[1];
+}
+
+async function fetchRadishCardId(year, slug, hero, cardNumber) {
+  const buildId = await getRadishBuildId();
+  if (!buildId) return null;
+  const path = `${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}.json`;
+  const url  = `https://radishpriceguide.com/_next/data/${buildId}/boba/${year}/${slug}/${path}`;
+  try {
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
+    if (!res.ok) {
+      // Stale buildId is the most likely cause of a 404. Bust the
+      // cache once per request so the next probe re-scrapes.
+      if (res.status === 404) RADISH_BUILD_ID_CACHE = { value: null, fetchedAt: 0 };
+      return null;
+    }
+    const data = await res.json();
+    return data?.pageProps?.card?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchRadishMarketEst(radishUrl) {
+  // Targeted lookup, not a sweep — Cloudflare Workers cap each
+  // invocation at 50 subrequests, and `fetchRadishSales` already
+  // burned a chunk walking every namespace. Just probe the single
+  // (year, slug, hero, cardNumber) tuple the caller passes in. If
+  // the caller needs to retry under a different namespace, they
+  // should call us again with the corrected URL.
+  const parsed = parseRadishURL(radishUrl);
+  if (!parsed) return null;
+  const { hero, cardNumber, year, slug } = parsed;
+  if (!cardNumber) return null;  // hero-only URLs don't map to a card_id
+
+  const cardId = await fetchRadishCardId(year, slug, hero, cardNumber);
+  if (!cardId) return null;
+  try {
+    const apiUrl = `https://radishpriceguide.com/api/boba/estimated-value?card_id=${cardId}`;
+    const res = await fetch(apiUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const value  = parseFloat(json?.marketEstimatedValue ?? "0");
+    const low    = parseFloat(json?.marketEstimatedValueLow ?? "0");
+    const high   = parseFloat(json?.marketEstimatedValueHigh ?? "0");
+    const source = json?.marketEstimatedValueSource ?? null;
+    if (!source || !(value > 0 || (low > 0 && high > 0))) return null;
+    // Prefer the explicit `marketEstimatedValue` (Radish's chosen
+    // mid). Fall back to (low+high)/2 when the API returned a range
+    // but no single mid value.
+    const mid = value > 0 ? value : (low + high) / 2;
+    return {
+      mid:     round2(mid),
+      low:     low > 0  ? round2(low)  : round2(mid),
+      high:    high > 0 ? round2(high) : round2(mid),
+      source,  // "comps" | "own_sales"
+      resolvedUrl: `https://radishpriceguide.com/boba/${year}/${slug}/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}`,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ── AI image verification ─────────────────────────────────────────────────────
 
 /**
@@ -1160,12 +1261,12 @@ export default {
     if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) return json({ error: "EBAY_APP_ID and EBAY_CERT_ID secrets required" }, 500);
 
     // ── Cache ─────────────────────────────────────────────────────────────────
-    // v13: when no in-window comps exist, we now surface the single
-    // most recent sale (any age) as a stale fallback with stale:true
-    // on the sold section. v12 caches lack the stale flag and would
-    // otherwise be displayed without the "Last sold" age annotation.
+    // v14: cards with truly no sales now get a soldSection populated
+    // from Radish's Market Est. API (comp-based estimate). v13
+    // caches don't carry the `estimated` flag and would otherwise be
+    // displayed as if they were real sales without the EST. label.
     const cache    = caches.default;
-    const cacheURL = `https://boba-cache.internal/v13/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
+    const cacheURL = `https://boba-cache.internal/v14/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
     const cacheKey = new Request(cacheURL);
     const cached   = await cache.match(cacheKey);
     if (cached) {
@@ -1214,6 +1315,45 @@ export default {
         // really a 30-day average.
         ...(radishStale ? { stale: true } : {}),
       };
+    }
+
+    // ── Market Est. fallback ──────────────────────────────────────────────────
+    // When the card has truly no sales of its own (no in-window AND
+    // no historical), fall back to Radish's Market Est. — a range
+    // computed from comparable cards (same hero / weapon / power
+    // across other parallels). Coverage > recency: better to anchor
+    // a never-sold card with a comp-based estimate than ship no
+    // price at all. The midpoint of the range becomes the headline
+    // figure, with low/high as the price-cell tri-grid.
+    if (!soldSection && radishUrl) {
+      try {
+        // Prefer the namespace `fetchRadishSales` already validated
+        // (radishResolvedUrl) — that's the namespace where a real
+        // Radish card page exists, so the card_id lookup will land
+        // on the first try. Without this, no-sales cards spend two
+        // extra subrequests on a sweep we already paid for. Fall
+        // back to the catalog-hinted URL only when the sales sweep
+        // didn't validate any namespace.
+        const probeUrl = radishResolvedUrl || radishUrl;
+        const est = await fetchRadishMarketEst(probeUrl);
+        if (est && est.mid > 0) {
+          soldSection = {
+            low:     est.low,
+            average: est.mid,
+            high:    est.high,
+            count:   0,        // no actual sales — just an estimate
+            items:   [],       // nothing to link to
+            estimated: true,
+            estimatedSource: est.source,  // "comps" | "own_sales"
+          };
+          // Promote the resolved URL too so the Radish button lands
+          // on the page we sourced the estimate from.
+          if (!radishResolvedUrl) radishResolvedUrl = est.resolvedUrl;
+        }
+      } catch {
+        // Estimate is best-effort. Silent failure preserves the
+        // existing eBay-active-only path.
+      }
     }
 
     // ── eBay API calls (require OAuth token) ──────────────────────────────────

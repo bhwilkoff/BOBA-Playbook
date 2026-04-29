@@ -301,7 +301,13 @@ final class CollectionStore {
         for (index, cardNumber) in ownedNumbers.enumerated() {
             await MainActor.run { progress(index + 1, total) }
             guard let card = cardStore.displayCards.first(where: { $0.cardNumber == cardNumber }) else { continue }
-            await fetchAndStorePricing(for: cardNumber, card: card)
+            // Force-refresh bypasses the in-memory PricingService
+            // cache so an explicit user-triggered refresh actually
+            // re-hits the Worker (and the Worker's edge cache) for
+            // every owned card. Without this, "Refresh market values"
+            // and pull-to-refresh would silently no-op for any card
+            // viewed in the last hour.
+            await fetchAndStorePricing(for: cardNumber, card: card, forceRefresh: true)
             // Light throttle so we don't flood the worker
             try? await Task.sleep(nanoseconds: 400_000_000)
         }
@@ -316,7 +322,7 @@ final class CollectionStore {
         return Date().timeIntervalSince(latest) > 86400  // 24 hours
     }
 
-    private func fetchAndStorePricing(for cardNumber: String, card: Card) async {
+    private func fetchAndStorePricing(for cardNumber: String, card: Card, forceRefresh: Bool = false) async {
         guard !WorkerConfig.ebayProxyURL.isEmpty else { return }
         do {
             let pricing = try await PricingService.shared.pricing(
@@ -327,7 +333,8 @@ final class CollectionStore {
                 power: card.power,
                 radishUrl: card.resolvedRadishUrlString,
                 days: 30,
-                treatment: card.treatment
+                treatment: card.treatment,
+                forceRefresh: forceRefresh
             )
             let fields = UpdateUserCard(
                 estimatedValue: pricing.average,

@@ -53,10 +53,19 @@ actor PricingService {
         /// "Last sold {date}" instead of "{days}-day avg" since one
         /// stale sale isn't really a window-based aggregate.
         let stale: Bool?
+        /// Sold-only: true when the bucket carries no real sales —
+        /// just Radish's Market Est. range (low/avg/high) computed
+        /// from comparable cards. UI surfaces it as "MARKET EST."
+        /// instead of "RECENT SALES" so users know the figure is a
+        /// model estimate, not a transaction.
+        let estimated: Bool?
+        /// "comps" or "own_sales" — only meaningful when estimated=true.
+        let estimatedSource: String?
 
         enum CodingKeys: String, CodingKey {
-            case low, average, high, count, items, stale
-            case countProbable = "count_probable"
+            case low, average, high, count, items, stale, estimated
+            case countProbable   = "count_probable"
+            case estimatedSource = "estimatedSource"
         }
     }
 
@@ -110,13 +119,26 @@ actor PricingService {
                  power: Int?,
                  radishUrl: String?,
                  days: Int,
-                 treatment: String? = nil) async throws -> PricingResult {
+                 treatment: String? = nil,
+                 forceRefresh: Bool = false) async throws -> PricingResult {
         let key = "\(hero)_\(cardNumber)_\(days)"
-        if let cached = cache[key], Date().timeIntervalSince(cached.fetchedAt) < cacheLifetime {
+        if !forceRefresh,
+           let cached = cache[key],
+           Date().timeIntervalSince(cached.fetchedAt) < cacheLifetime {
             return cached
         }
-        if let stamped = emptyAt[key], Date().timeIntervalSince(stamped) < emptyLifetime {
+        if !forceRefresh,
+           let stamped = emptyAt[key],
+           Date().timeIntervalSince(stamped) < emptyLifetime {
             throw PricingError.noData
+        }
+        // Force-refresh path also drops any prior negative cache so a
+        // card that previously returned no-data gets a real second
+        // chance (e.g. once Market Est. fallback is wired up, a card
+        // that had truly nothing now has an estimated price).
+        if forceRefresh {
+            cache.removeValue(forKey: key)
+            emptyAt.removeValue(forKey: key)
         }
 
         let base = await MainActor.run { WorkerConfig.ebayProxyURL }

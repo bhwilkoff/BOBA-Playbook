@@ -97,6 +97,57 @@ enum GridCardDetector {
         on ciImage: CIImage,
         orientation: CGImagePropertyOrientation
     ) async throws -> [VNRectangleObservation] {
+        // First pass with reasonable confidence + a tight aspect-ratio
+        // band. If we get back fewer than 6 rectangles (covers any
+        // 3×N grid we promise to support), fall back to a much looser
+        // pass and merge — better to over-detect and let the
+        // grid-clustering step filter out noise than under-detect
+        // and silently lose half the user's cards.
+        let primary = try await performRectangleRequest(
+            on: ciImage,
+            orientation: orientation,
+            minimumConfidence: 0.6,
+            minimumAspectRatio: 0.50,
+            maximumAspectRatio: 0.90,
+            minimumSize: 0.05,
+            quadratureTolerance: 30,
+            maximumObservations: 30
+        )
+        if primary.count >= 6 {
+            return primary
+        }
+        // Permissive fallback. Drops confidence to 0.3 and widens the
+        // aspect-ratio window — picks up cards whose edges are low-
+        // contrast against the background or whose perspective is
+        // skewed enough to push them past the tight pass. Cards in
+        // toploaders on glossy wood are the canonical failure mode
+        // the first pass misses.
+        let fallback = try await performRectangleRequest(
+            on: ciImage,
+            orientation: orientation,
+            minimumConfidence: 0.3,
+            minimumAspectRatio: 0.40,
+            maximumAspectRatio: 1.00,
+            minimumSize: 0.04,
+            quadratureTolerance: 40,
+            maximumObservations: 50
+        )
+        // Merge primary + fallback, deduplicating overlapping detections.
+        // Primary's higher-confidence rectangles win ties via the
+        // existing dedup pass downstream.
+        return primary + fallback
+    }
+
+    private static func performRectangleRequest(
+        on ciImage: CIImage,
+        orientation: CGImagePropertyOrientation,
+        minimumConfidence: Float,
+        minimumAspectRatio: Float,
+        maximumAspectRatio: Float,
+        minimumSize: Float,
+        quadratureTolerance: Float,
+        maximumObservations: Int
+    ) async throws -> [VNRectangleObservation] {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<[VNRectangleObservation], Error>) in
             let request = VNDetectRectanglesRequest { req, err in
                 if let err {
@@ -106,25 +157,12 @@ enum GridCardDetector {
                 let rects = (req.results as? [VNRectangleObservation]) ?? []
                 cont.resume(returning: rects)
             }
-            // Trading-card aspect ratio is ~0.71 (2.5 × 3.5 inch).
-            // Allow a generous window to absorb perspective distortion
-            // when the photo isn't taken perfectly square-on.
-            request.minimumAspectRatio = 0.55
-            request.maximumAspectRatio = 0.85
-            // 8% of the image's smaller dimension. Filters out small
-            // background rectangles (table grain, etc.) without
-            // rejecting individual cards in a tight 3×3.
-            request.minimumSize = 0.08
-            request.minimumConfidence = 0.7
-            // Up to 18 raw observations — we'll filter to 9. Extra
-            // headroom because toploader-encased cards sometimes
-            // produce both an inner (card) and outer (sleeve)
-            // detection that we need to deduplicate.
-            request.maximumObservations = 18
-            // Allows up to ~22° of skew correction at the rectangle
-            // level. Helps when cards aren't perfectly aligned to the
-            // camera frame.
-            request.quadratureTolerance = 22
+            request.minimumAspectRatio   = minimumAspectRatio
+            request.maximumAspectRatio   = maximumAspectRatio
+            request.minimumSize          = minimumSize
+            request.minimumConfidence    = minimumConfidence
+            request.maximumObservations  = maximumObservations
+            request.quadratureTolerance  = quadratureTolerance
 
             let handler = VNImageRequestHandler(ciImage: ciImage, orientation: orientation)
             do {
@@ -187,7 +225,13 @@ enum GridCardDetector {
         _ observations: [VNRectangleObservation]
     ) -> [VNRectangleObservation] {
         // Keep observations sorted by descending confidence so the
-        // higher-confidence one survives a duplicate pair.
+        // higher-confidence one survives a duplicate pair. Threshold
+        // tightened from 5% → 3% so the fallback (looser) pass's
+        // rectangles aren't collapsed into the primary pass's
+        // rectangles unless they're really at the same spot. In a
+        // 3×3 grid each card center sits ~33% apart on each axis,
+        // so 3% is comfortably tight enough to keep separate cards
+        // separate but still merge inner/outer toploader detections.
         let byConfidence = observations.sorted { $0.confidence > $1.confidence }
         var kept: [VNRectangleObservation] = []
         for obs in byConfidence {
@@ -195,7 +239,7 @@ enum GridCardDetector {
             let isDuplicate = kept.contains { other in
                 let dx = abs(other.boundingBox.midX - center.x)
                 let dy = abs(other.boundingBox.midY - center.y)
-                return dx < 0.05 && dy < 0.05
+                return dx < 0.03 && dy < 0.03
             }
             if !isDuplicate { kept.append(obs) }
         }

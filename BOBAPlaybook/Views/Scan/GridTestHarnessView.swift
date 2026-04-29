@@ -39,6 +39,8 @@ struct GridTestHarnessView: View {
         let totalDetected: Int
         let matchCount: Int
         let elapsedMs: Int
+        /// Set when the run errored before producing any detections.
+        let errorMessage: String?
     }
 
     struct DetectedResult: Identifiable {
@@ -131,9 +133,24 @@ struct GridTestHarnessView: View {
                 Text(result.fixtureName)
                     .font(.system(.headline, design: .monospaced))
                 Spacer()
-                Text("\(result.matchCount)/\(result.totalDetected) matched · \(result.elapsedMs)ms")
+                // Detected/9 first because that's the bottleneck —
+                // OCR + match works ~83% of the time when detection
+                // succeeds. Color-codes a tap warning when fewer
+                // than 9 cards are detected (i.e. the photographer
+                // had a 3×3 layout but the detector missed some).
+                let detectedColor: Color = result.totalDetected >= 9 ? .green : .orange
+                Text("\(result.totalDetected)/9 detected")
+                    .font(.system(.caption, design: .monospaced).weight(.bold))
+                    .foregroundStyle(detectedColor)
+                Text("· \(result.matchCount)/\(result.totalDetected) matched · \(result.elapsedMs)ms")
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
+            }
+            if let err = result.errorMessage {
+                Text(err)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.red)
+                    .padding(.vertical, 4)
             }
 
             // Source thumbnail (small) so we can eyeball orientation/lighting
@@ -224,6 +241,15 @@ struct GridTestHarnessView: View {
         for name in fixtureNames {
             status = "Processing \(name)…"
             guard let image = loadFixture(name: name) else {
+                results.append(FixtureResult(
+                    fixtureName: name,
+                    sourceImage: UIImage(),
+                    detectedCards: [],
+                    totalDetected: 0,
+                    matchCount: 0,
+                    elapsedMs: 0,
+                    errorMessage: "Fixture not found in bundle (\(name).HEIC)"
+                ))
                 continue
             }
             let started = Date()
@@ -231,7 +257,15 @@ struct GridTestHarnessView: View {
             do {
                 detected = try await GridCardDetector.detect(in: image)
             } catch {
-                status = "\(name): \(error)"
+                results.append(FixtureResult(
+                    fixtureName: name,
+                    sourceImage: image,
+                    detectedCards: [],
+                    totalDetected: 0,
+                    matchCount: 0,
+                    elapsedMs: Int(Date().timeIntervalSince(started) * 1000),
+                    errorMessage: "Detector error: \(error)"
+                ))
                 continue
             }
 
@@ -263,7 +297,8 @@ struct GridTestHarnessView: View {
                 detectedCards:  perCard,
                 totalDetected:  detected.count,
                 matchCount:     matches,
-                elapsedMs:      elapsedMs
+                elapsedMs:      elapsedMs,
+                errorMessage:   nil
             ))
         }
 

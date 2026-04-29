@@ -1947,7 +1947,7 @@
           const radishLink = section.querySelector('.btn-pricing-radish');
           if (radishLink) radishLink.href = data.radishResolvedUrl;
         }
-        renderPricingData(section, data);
+        renderPricingData(section, data, { days });
       } catch {
         const body = section.querySelector('.pricing-body');
         if (body) body.innerHTML = '<p class="pricing-error">Pricing unavailable</p>';
@@ -1984,10 +1984,11 @@
     return `Matched by ${positive.slice(0, -1).join(', ')} and ${positive[positive.length - 1]}.`;
   }
 
-  function renderPricingSection(label, sectionData, isSold) {
+  function renderPricingSection(label, sectionData, isSold, opts = {}) {
     const fmt = n => n > 0 ? `$${n.toFixed(2)}` : '—';
-    const { low, average, high, count, count_probable = 0, items = [] } = sectionData;
+    const { low, average, high, count, count_probable = 0, items = [], stale = false } = sectionData;
     const typeStr = isSold ? 'sold' : 'active listing';
+    const days    = opts.days ?? 30;
 
     const itemsHtml = items.length === 0 ? '' : `
       <div class="pricing-items">
@@ -2009,6 +2010,29 @@
             </a>`;
         }).join('')}
       </div>`;
+
+    // Stale path: only one sale, older than the requested window.
+    // Surface that single sale as the market anchor with a "STALE"
+    // pill + "Sale {age} ago · older than {days}d window" caption.
+    if (isSold && stale && items.length > 0) {
+      const sale = items[0];
+      const ageStr = relativeDate(sale.date) || '';
+      return `
+        <div class="pricing-section pricing-section-stale">
+          <p class="pricing-items-label">
+            ${label}
+            <span class="pricing-stale-pill">STALE</span>
+          </p>
+          <div class="pricing-grid pricing-grid-single">
+            <div class="pricing-stat">
+              <span class="pricing-label">LAST SOLD</span>
+              <span class="pricing-val">${fmt(sale.price)}</span>
+            </div>
+          </div>
+          <p class="pricing-sale-count">${ageStr ? `Sale ${escHtml(ageStr)} · ` : ''}older than ${days}d window</p>
+          ${itemsHtml}
+        </div>`;
+    }
 
     // Probable-count footnote — only shown when the Worker reported at
     // least one badge-only match that isn't contributing to the totals.
@@ -2038,7 +2062,7 @@
       </div>`;
   }
 
-  function renderPricingData(section, data) {
+  function renderPricingData(section, data, opts = {}) {
     const body = section.querySelector('.pricing-body');
     if (!body) return;
     const fmt = n => n > 0 ? `$${n.toFixed(2)}` : '—';
@@ -2046,8 +2070,8 @@
     // New dual-section format
     if (data.sold || data.active) {
       const parts = [];
-      if (data.sold)   parts.push(renderPricingSection('RECENT SALES', data.sold, true));
-      if (data.active) parts.push(renderPricingSection('BUY NOW', data.active, false));
+      if (data.sold)   parts.push(renderPricingSection('RECENT SALES', data.sold, true,  opts));
+      if (data.active) parts.push(renderPricingSection('BUY NOW',      data.active, false, opts));
       body.innerHTML = parts.join('');
       return;
     }

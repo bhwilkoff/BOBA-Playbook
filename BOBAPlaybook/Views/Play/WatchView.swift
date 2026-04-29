@@ -91,8 +91,8 @@ struct WatchView: View {
                 }
                 .buttonStyle(.plain)
             }
-            Spacer()
         }
+        .frame(maxWidth: .infinity, alignment: .center)
     }
 
     private func count(for t: WatchTab) -> Int {

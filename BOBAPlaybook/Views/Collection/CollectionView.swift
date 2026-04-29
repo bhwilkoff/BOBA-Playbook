@@ -417,7 +417,19 @@ struct CollectionView: View {
                     }
                 }
                 .refreshable {
+                    // Pull-to-refresh = full reload. Reload the
+                    // collection rows AND re-fetch market values for
+                    // every owned card so the per-row VALUE numbers
+                    // and the summary header tick to fresh prices,
+                    // matching the toolbar's "Refresh market values"
+                    // action. Sequential awaits (not Task.detached)
+                    // so the .refreshable spinner stays up the entire
+                    // time the work is in flight — `await` defers
+                    // the spinner's dismissal until both calls
+                    // resolve, which is exactly the "don't truncate"
+                    // behavior the user asked for.
                     await collection.loadCollection()
+                    await recalculateAll()
                 }
             }
         }

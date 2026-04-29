@@ -258,16 +258,20 @@ struct PricingSection: View {
     // MARK: - Helpers
 
     private func bucketView(_ bucket: PricingService.PricingBucket, label: String, isActive: Bool) -> some View {
-        // When sold-comp data is "stale" (the Worker only found a
-        // single sale older than the requested window), we prefer to
-        // show that sale as a market anchor rather than nothing at
-        // all — but the UI has to make clear it's not a {days}-day
-        // average. Only the sold bucket carries the stale flag.
-        let isStale = !isActive && (bucket.stale ?? false)
+        // Three sold-bucket modes:
+        //   - estimated: Market Est. range (no real sales). Show as
+        //     "MARKET EST." with low/avg/high tri-grid, no items list.
+        //   - stale:     single sale older than requested window. Show
+        //                as "LAST SOLD" single cell with age caption.
+        //   - default:   real in-window sales. Show standard tri-grid.
+        // Only the sold bucket carries the stale/estimated flags.
+        let isEstimated = !isActive && (bucket.estimated ?? false)
+        let isStale = !isActive && !isEstimated && (bucket.stale ?? false)
         let staleSale = isStale ? bucket.items.first : nil
+        let displayLabel = isEstimated ? "MARKET EST." : label
         return VStack(alignment: .leading, spacing: Design.Spacing.xs) {
             HStack(spacing: 6) {
-                Text(label)
+                Text(displayLabel)
                     .font(Design.Fonts.mono(8, weight: .bold))
                     .foregroundStyle(isActive ? Design.Colors.bobaOrange : Design.Colors.textMuted)
                     .tracking(1.5)
@@ -279,6 +283,15 @@ struct PricingSection: View {
                         .padding(.horizontal, 5).padding(.vertical, 1)
                         .background(Capsule().fill(Color(hex: "E0A000").opacity(0.12))
                             .overlay(Capsule().strokeBorder(Color(hex: "E0A000").opacity(0.45), lineWidth: 0.7)))
+                }
+                if isEstimated {
+                    Text("EST")
+                        .font(Design.Fonts.mono(8, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                        .tracking(1.0)
+                        .padding(.horizontal, 5).padding(.vertical, 1)
+                        .background(Capsule().fill(Design.Colors.bobaCyan.opacity(0.12))
+                            .overlay(Capsule().strokeBorder(Design.Colors.bobaCyan.opacity(0.45), lineWidth: 0.7)))
                 }
             }
 
@@ -313,24 +326,42 @@ struct PricingSection: View {
                 }
             } else {
                 HStack(spacing: 0) {
-                    priceCell(label: "LOW",  value: bucket.low,     isActive: isActive)
+                    priceCell(label: isEstimated ? "EST. LOW"  : "LOW",  value: bucket.low,     isActive: isActive)
                     Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
-                    priceCell(label: "AVG",  value: bucket.average, isActive: isActive)
+                    priceCell(label: isEstimated ? "EST. MID"  : "AVG",  value: bucket.average, isActive: isActive)
                     Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
-                    priceCell(label: "HIGH", value: bucket.high,    isActive: isActive)
+                    priceCell(label: isEstimated ? "EST. HIGH" : "HIGH", value: bucket.high,    isActive: isActive)
                 }
                 .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
 
-                let typeLabel = isActive ? "listing" : "sold"
-                let plural    = bucket.count != 1 ? "s" : ""
-                Text("\(bucket.count) \(typeLabel)\(plural) · last \(selectedDays)d")
-                    .font(Design.Fonts.mono(10))
-                    .foregroundStyle(Design.Colors.textMuted)
+                if isEstimated {
+                    Text(estimatedCaption(source: bucket.estimatedSource))
+                        .font(Design.Fonts.mono(10))
+                        .foregroundStyle(Design.Colors.textMuted)
+                } else {
+                    let typeLabel = isActive ? "listing" : "sold"
+                    let plural    = bucket.count != 1 ? "s" : ""
+                    Text("\(bucket.count) \(typeLabel)\(plural) · last \(selectedDays)d")
+                        .font(Design.Fonts.mono(10))
+                        .foregroundStyle(Design.Colors.textMuted)
+                }
             }
 
             if !bucket.items.isEmpty {
                 itemsList(bucket.items, isSold: !isActive)
             }
+        }
+    }
+
+    /// Caption for the Market Est. row. "comps" means the range came
+    /// from comparable cards; "own_sales" means it came from the
+    /// card's own historical sales (rare for the estimated path —
+    /// usually means no in-window sales but some historical ones).
+    private func estimatedCaption(source: String?) -> String {
+        switch source {
+        case "comps":     return "Estimated from comparable cards"
+        case "own_sales": return "Estimated from prior sales"
+        default:          return "Estimated value"
         }
     }
 

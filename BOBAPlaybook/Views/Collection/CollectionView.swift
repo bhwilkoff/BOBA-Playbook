@@ -155,11 +155,19 @@ struct CollectionView: View {
         // firing the refresh on the wrong surface. Each inner ScrollView
         // (cardList / rainbowList) attaches its own .refreshable so the
         // pull-to-refresh gesture lives where the refresh actually shows.
+        //
+        // The recalc progress banner renders as a TOP overlay on the
+        // ZStack (NOT as the first child of the VStack) — inserting it
+        // into the layout flow used to push every sibling down when
+        // isRecalculating flipped true, which re-mounted the cardList
+        // ScrollView and cancelled its .refreshable Task. Cancellation
+        // makes URLSession.data fail-fast and Task.sleep return
+        // immediately, so the loop "speedran" through every owned
+        // card in <1s without doing real work. Overlay keeps the
+        // ScrollView identity stable so the .refreshable Task runs
+        // to completion.
         ZStack(alignment: .bottomTrailing) {
             VStack(spacing: 0) {
-                if isRecalculating, let p = recalcProgress {
-                    recalcProgressBanner(current: p.current, total: p.total)
-                }
                 modePicker
                     .padding(.horizontal, Design.Spacing.md)
                     .padding(.vertical, Design.Spacing.sm)
@@ -180,6 +188,13 @@ struct CollectionView: View {
 
             // tradeRoomFAB — hidden until Discord bot is added to server
         }
+        .overlay(alignment: .top) {
+            if isRecalculating, let p = recalcProgress {
+                recalcProgressBanner(current: p.current, total: p.total)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: isRecalculating)
         .sheet(isPresented: $showTradeRoom) {
             TradeRoomSheet(discord: discord)
         }

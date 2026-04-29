@@ -3291,6 +3291,22 @@ main {
   vertical-align: middle;
 }
 
+/* Market Est. — no real sales, range from comparable cards. Cyan
+   pill differentiates it from stale (amber) and confirmed sales. */
+.pricing-est-pill {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 1px 5px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--boba-cyan);
+  background: rgba(0, 245, 255, 0.10);
+  border: 1px solid rgba(0, 245, 255, 0.40);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
 /* ── Scan candidates picker ───────────────────────────────────────────────── */
 
 .scan-candidates {

@@ -137,11 +137,20 @@ struct ScanQueueView: View {
             }
 
             // Show-mode price (30d avg) lives at the trailing edge.
+            // Render "—" for cards we couldn't fetch a price for —
+            // distinguishes "no data yet" from a literal $0.00 card.
             if scanStore.isShowMode {
-                Text(formatCurrency(showPrices[queued.card.id] ?? 0))
-                    .font(Design.Fonts.mono(13, weight: .bold))
-                    .foregroundStyle(Design.Colors.bobaOrange)
-                    .frame(minWidth: 56, alignment: .trailing)
+                if let p = showPrices[queued.card.id] {
+                    Text(formatCurrency(p))
+                        .font(Design.Fonts.mono(13, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                        .frame(minWidth: 56, alignment: .trailing)
+                } else {
+                    Text("—")
+                        .font(Design.Fonts.mono(13))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .frame(minWidth: 56, alignment: .trailing)
+                }
             }
 
             // Quick-delete shortcut — per feature brief: the queue
@@ -542,42 +551,47 @@ struct ScanQueueView: View {
 
     // MARK: - Show-mode price fetch
 
-    /// Parallel 30-day average fetch for every queued card — mirrors
-    /// ShowDetailView.refreshPrices. Default horizon is 30 days per the
-    /// feature brief.
+    /// Sequential 30-day average fetch for every queued card —
+    /// mirrors `ShowDetailView.refreshPrices`. Was a parallel
+    /// `TaskGroup` with one fetch per card, which on shows with
+    /// 14+ cards exceeded URLSession's default 4-connections-per-host
+    /// limit. The queued requests then often hit the 7s timeout,
+    /// returned `noData`, and the UI rendered $0 — even when the
+    /// Worker was returning real data. Sequential fetches each get
+    /// a clean connection and a fresh 7s budget; total time is
+    /// ~14 × 0.5s ≈ 7s for a typical show, fast enough to ride
+    /// through any pull-to-refresh window.
+    ///
+    /// Failed cards are intentionally left absent from
+    /// `showPrices` — the UI renders "—" for nil entries (instead
+    /// of the misleading "$0.00") and the next refresh re-attempts
+    /// every absent card.
     private func refreshShowPrices() async {
         let cards = scanStore.queuedCards.map(\.card)
         guard !cards.isEmpty else { showPrices = [:]; return }
         isLoadingShowPrices = true
         defer { isLoadingShowPrices = false }
-        await withTaskGroup(of: (String, Decimal).self) { group in
-            for c in cards {
-                // Pre-extract Sendable scalars so the @Sendable
-                // group.addTask closure doesn't capture `c` (which
-                // SwiftUI views push through a MainActor-isolated
-                // capture and trip Swift 6 strict concurrency on).
-                let id        = c.id
-                let cardNum   = c.cardNumber
-                let hero      = c.hero
-                let set       = c.set
-                let element   = c.element
-                let power     = c.power
-                let radishUrl = c.resolvedRadishUrlString
-                let treatment = c.treatment
-                group.addTask {
-                    do {
-                        let p = try await PricingService.shared.pricing(
-                            for: cardNum, hero: hero, set: set, element: element,
-                            power: power, radishUrl: radishUrl,
-                            days: 30, treatment: treatment
-                        )
-                        return (id, p.average)
-                    } catch { return (id, Decimal(0)) }
-                }
+        var next: [String: Decimal] = [:]
+        for c in cards {
+            do {
+                let p = try await PricingService.shared.pricing(
+                    for: c.cardNumber,
+                    hero: c.hero,
+                    set: c.set,
+                    element: c.element,
+                    power: c.power,
+                    radishUrl: c.resolvedRadishUrlString,
+                    days: 30,
+                    treatment: c.treatment
+                )
+                next[c.id] = p.average
+                // Commit incrementally so the running total ticks
+                // up as prices arrive instead of dropping in all
+                // at once at the end.
+                showPrices = next
+            } catch {
+                // Leave card absent from showPrices — UI shows "—".
             }
-            var next: [String: Decimal] = [:]
-            for await (id, avg) in group { next[id] = avg }
-            showPrices = next
         }
     }
 

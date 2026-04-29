@@ -231,10 +231,15 @@ actor PricingService {
         do {
             (data, _) = try await URLSession.shared.data(for: request)
         } catch let urlError as URLError where urlError.code == .timedOut {
-            // A timeout almost always means the Worker was hammering
-            // eBay variants for a card with no comps. Stamp the
-            // negative cache so we don't pay the 7s tax again soon.
-            emptyAt[key] = Date()
+            // Timeout used to stamp emptyAt for 600s (later 120s),
+            // which trapped users in a blank pricing pane any time
+            // a single cold-cache request blew past 7s — even
+            // though the Worker was returning real data on retry.
+            // The parallel namespace sweep (worker.js fetchRadishSales)
+            // dropped cold-path latency from 4-5s → 0.9-1.5s, so a
+            // 7s timeout is now a genuine network/server hiccup
+            // worth retrying immediately, not caching as no-data.
+            // Per-card retries already happen on next view appearance.
             throw PricingError.noData
         }
         let response = try JSONDecoder().decode(PricingResponse.self, from: data)

@@ -605,7 +605,13 @@ struct ShowDetailView: View {
         let cards = resolved.map { $0.card }
         guard !cards.isEmpty else { return }
         let key = "\(horizon.days):\(cards.map(\.id).joined(separator: ","))"
-        if !force && key == priceKey && !prices.isEmpty { return }
+        // Early-return only when we already priced EVERY card — a
+        // partial result (some succeeded, some failed → absent)
+        // should retry the missing ones on next view appearance.
+        // Old guard `!prices.isEmpty` would early-return after a
+        // single successful fetch and leave the rest blank forever.
+        let alreadyComplete = key == priceKey && prices.count == cards.count
+        if !force && alreadyComplete { return }
         priceKey = key
         pricingGeneration &+= 1
         let myGen = pricingGeneration
@@ -614,12 +620,18 @@ struct ShowDetailView: View {
         pricedCount = 0
 
         let days = horizon.days
-        var next: [String: Decimal] = [:]
+        // Seed `next` with whatever prices we already have so the
+        // UI doesn't flash to "—" for cards that succeeded last time
+        // while we re-attempt the missing ones. The fetch loop
+        // overwrites successful cards and leaves failures absent.
+        var next: [String: Decimal] = prices
         // Sequential walk — same pattern as CollectionStore.recalculateAllValues.
         // Fanning out parallel network calls against the Cloudflare Worker
-        // produces hangs/rate-limits when a show has 20+ cards; one-at-a-time
-        // is fast enough and keeps the worker happy. Commit incrementally
-        // so the included-total ticker animates as prices arrive.
+        // exceeds URLSession's default 4-connections-per-host on shows
+        // with 14+ cards (queued requests then hit the 7s timeout and
+        // come back as no-data). Sequential fetches each get a clean
+        // connection and a fresh budget. Commit incrementally so the
+        // running total ticks up as prices arrive.
         for card in cards {
             // Bail if a newer refresh has superseded us mid-walk.
             guard pricingGeneration == myGen else { return }
@@ -637,7 +649,12 @@ struct ShowDetailView: View {
                 )
                 next[card.id] = p.average
             } catch {
-                next[card.id] = 0
+                // Don't store 0 — leaving the card absent from
+                // `prices` makes the UI render "—" instead of
+                // "$0.00". $0 looked indistinguishable from a
+                // worthless card and got included in totals;
+                // "—" makes "we couldn't fetch this one" obvious
+                // and re-attempts on the next view appearance.
             }
             guard pricingGeneration == myGen else { return }
             prices = next

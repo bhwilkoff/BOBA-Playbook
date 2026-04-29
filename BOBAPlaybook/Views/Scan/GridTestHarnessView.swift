@@ -1,12 +1,16 @@
-#if DEBUG
 import SwiftUI
 import UIKit
 
-/// DEBUG-only view that loads the bundled HEIC test fixtures and runs
-/// the full Grid pipeline (detector → still-image OCR → catalog match)
-/// against each. Used to verify "all 9 cards detected and identified
-/// correctly across 4 fixtures" before enabling Grid scan in
-/// production. Reachable via long-press on the Scan tab title.
+/// Verification view that loads the bundled HEIC test fixtures and
+/// runs the full Grid pipeline (detector → still-image OCR → catalog
+/// match) against each. Used to confirm "all 9 cards detected and
+/// identified correctly across 4 fixtures" before promoting Grid
+/// scan to a real mode in the user-facing scanner. Reachable via the
+/// "GRID TEST HARNESS" button at the top of the Scan tab.
+///
+/// Strip the entry point + this file before App Store submission
+/// once Grid mode is shipped — fixtures bundle ~10MB which we don't
+/// want in release builds long-term.
 ///
 /// Once the harness shows ≥36 of 36 (or ≥34 of 36 with documented
 /// false-misses) across all four fixtures, flip the feature gate
@@ -280,4 +284,3 @@ struct GridTestHarnessView: View {
         return image
     }
 }
-#endif

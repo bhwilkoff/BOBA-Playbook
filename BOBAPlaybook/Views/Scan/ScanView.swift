@@ -266,32 +266,31 @@ struct ScanView: View {
             .padding(.trailing, Design.Spacing.lg)
             .padding(.bottom, 90)
         }
-        // DEBUG-only test harness for the new Grid scan mode. Floats
-        // top-left over the camera, well clear of all other tap
-        // targets. Hidden in release builds. Promote Grid to a real
-        // mode pill once the harness reports 36/36 across all four
-        // bundled fixtures.
-        #if DEBUG
-        .overlay(alignment: .topLeading) {
+        // Temporary test harness for the new Grid scan mode. Visible
+        // in EVERY build configuration (Debug + Release/TestFlight)
+        // so Ben can validate accuracy regardless of how the build
+        // got onto the phone. Strip this overlay + sheet before
+        // App Store submission once Grid mode is promoted to a real
+        // pill in the mode picker.
+        .overlay(alignment: .top) {
             Button {
                 showGridTestHarness = true
             } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "testtube.2").font(.system(size: 13))
-                    Text("GRID TEST").font(Design.Fonts.mono(10, weight: .bold)).tracking(0.5)
+                HStack(spacing: 6) {
+                    Image(systemName: "square.grid.3x3.fill").font(.system(size: 14))
+                    Text("GRID TEST HARNESS").font(Design.Fonts.mono(11, weight: .bold)).tracking(0.5)
                 }
-                .foregroundStyle(Design.Colors.bobaCyan)
-                .padding(.horizontal, 10).padding(.vertical, 6)
-                .background(Capsule().fill(Color.black.opacity(0.55))
-                    .overlay(Capsule().strokeBorder(Design.Colors.bobaCyan.opacity(0.6), lineWidth: 1)))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14).padding(.vertical, 8)
+                .background(Capsule().fill(Design.Colors.bobaCyan.opacity(0.9))
+                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.4), lineWidth: 1)))
+                .shadow(color: .black.opacity(0.4), radius: 6)
             }
-            .padding(.top, 60)
-            .padding(.leading, 16)
+            .padding(.top, 70)
         }
         .sheet(isPresented: $showGridTestHarness) {
             GridTestHarnessView()
         }
-        #endif
     }
 
     /// One pill in the scanner's mode row. Tap selects that mode; the

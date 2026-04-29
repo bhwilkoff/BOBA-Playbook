@@ -179,6 +179,16 @@ final class RadishURLResolver {
         return primary
     }
 
+    /// Promote a Worker-validated URL into the cache. When the
+    /// pricing response includes a `radishResolvedUrl`, that's a
+    /// strictly stronger signal than our HEAD probe — the Worker
+    /// already pulled real sales data from that URL, so it's
+    /// proven to host listings. Bypassing the HEAD probe here
+    /// also avoids racing against the resolver's primary attempt.
+    func cacheURL(_ url: URL, for card: Card) {
+        cache[card.id] = url
+    }
+
     private func urlIsReachable(_ url: URL) async -> Bool {
         var req = URLRequest(url: url)
         req.httpMethod = "HEAD"

@@ -134,9 +134,7 @@ struct GridScanView: View {
 
     private var sourcePromptView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "square.grid.3x3")
-                .font(.system(size: 64))
-                .foregroundStyle(Design.Colors.bobaCyan)
+            cardShapedGridIcon
             Text("Photograph up to 9 cards in a 3×N grid.\nTake a new picture or choose one from your library.")
                 .font(Design.Fonts.mono(13))
                 .foregroundStyle(.white.opacity(0.8))
@@ -171,6 +169,27 @@ struct GridScanView: View {
                 }
             }
             .padding(.horizontal, 24)
+        }
+    }
+
+    /// 3×3 grid of cyan card-shaped rectangles. Replaces the SF Symbol
+    /// `square.grid.3x3` so the prompt makes it visually clear we're
+    /// photographing CARDS — the SF Symbol's square cells looked like
+    /// generic boxes and didn't communicate the trading-card aspect.
+    private var cardShapedGridIcon: some View {
+        let cellW: CGFloat = 22
+        let cellH: CGFloat = cellW / 0.714
+        let spacing: CGFloat = 4
+        return VStack(spacing: spacing) {
+            ForEach(0..<3, id: \.self) { _ in
+                HStack(spacing: spacing) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Design.Colors.bobaCyan)
+                            .frame(width: cellW, height: cellH)
+                    }
+                }
+            }
         }
     }
 
@@ -291,31 +310,23 @@ struct GridScanView: View {
         var out: [GridResult] = []
         for d in detected {
             let r = await scanner.scanGridImage(d.image)
-            var matched: Card?
-            if let cn = r.cardNumber {
-                let observation = ScanObservation(
-                    cardNumber:   cn,
-                    rawName:      r.topLeftText,
-                    rawPower:     r.topRightText,
-                    rawVariation: r.bottomRightText,
-                    fullText:     r.allText,
-                    cgImage:      r.cgImage
-                )
-                let candidates = cardStore.displayCards.filter {
-                    $0.cardNumber.uppercased() == cn
-                }
-                matched = await ScanMatching.resolve(
-                    observation: observation,
-                    candidates:  candidates
-                )
-            }
-            if matched == nil {
-                matched = ScanMatching.matchByHero(
-                    allText:     r.allText,
-                    topLeftText: r.topLeftText,
-                    candidates:  cardStore.displayCards
-                )
-            }
+            // resolveGrid handles cardNumber filter, FeaturePrintIndex
+            // override (catches OCR misreads where the bare digit
+            // matched the wrong card), and hero-name fallback in one
+            // pass. Pass empty cardNumber when extraction failed —
+            // the resolver still runs FP + hero fallback.
+            let observation = ScanObservation(
+                cardNumber:   r.cardNumber ?? "",
+                rawName:      r.topLeftText,
+                rawPower:     r.topRightText,
+                rawVariation: r.bottomRightText,
+                fullText:     r.allText,
+                cgImage:      r.cgImage
+            )
+            let matched = await ScanMatching.resolveGrid(
+                observation: observation,
+                allCards:    cardStore.displayCards
+            )
             out.append(GridResult(
                 row: d.row, column: d.column,
                 crop: d.image, matched: matched,
@@ -348,7 +359,16 @@ struct GridScanView: View {
             }
         }
         dismiss()
-        onAddedToQueue()
+        // Defer the queue-review presentation until after the
+        // fullScreenCover dismissal animation completes. SwiftUI
+        // suppresses a sheet presentation while another presentation
+        // is animating, which silently no-op'd `showQueueView = true`
+        // when set inside the same call frame as `dismiss()`. ~450ms
+        // covers the standard fullScreenCover dismissal.
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 450_000_000)
+            onAddedToQueue()
+        }
     }
 }
 
@@ -356,13 +376,22 @@ struct GridScanView: View {
 
 extension UIImage {
     /// Re-render the image in `.up` orientation. UIImagePickerController
-    /// (camera capture) often returns images whose underlying
-    /// CGImage is sideways with EXIF metadata indicating .right; CIImage
-    /// + Vision then process the raw pixels and ignore the metadata,
-    /// which makes the detector think the cards are sideways. Drawing
-    /// the UIImage into a context bakes the orientation in.
+    /// (camera capture) returns images whose underlying CGImage is in
+    /// raw sensor orientation (landscape) with EXIF metadata flagging
+    /// .right; CIImage + Vision then process the raw pixels and ignore
+    /// the metadata, which makes the detector think cards are sideways.
+    /// JPEG round-trip is the most reliable bake — it consistently
+    /// produces a UIImage whose pixels match what's displayed on
+    /// screen, across iOS versions and source apps. UIGraphicsImage-
+    /// Renderer is kept as a fallback for the rare case where JPEG
+    /// encoding fails (e.g., extremely large images on memory-tight
+    /// devices).
     func orientationCorrected() -> UIImage {
         if imageOrientation == .up { return self }
+        if let data = jpegData(compressionQuality: 0.95),
+           let baked = UIImage(data: data) {
+            return baked
+        }
         let format = UIGraphicsImageRendererFormat()
         format.scale = scale
         let renderer = UIGraphicsImageRenderer(size: size, format: format)

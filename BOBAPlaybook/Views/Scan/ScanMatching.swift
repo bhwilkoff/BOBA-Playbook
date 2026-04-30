@@ -50,6 +50,79 @@ enum ScanMatching {
         return best
     }
 
+    /// Hero-name fallback for Grid mode when OCR fails to extract
+    /// a cardNumber but DOES read the hero text at the top of the
+    /// card. Used when the cardNumber on a specific card is
+    /// physically unreadable (tiny low-contrast badges on certain
+    /// First-Edition cards) but "WATTAGE" / "PB BUCKETS" / etc.
+    /// reads cleanly.
+    ///
+    /// Searches the catalog for entries whose hero name (or
+    /// `name`) appears as a word in the OCR text. Scores by
+    /// match in topLeftText (where the hero is printed) ×3 plus
+    /// any-region match ×1. Returns the highest-scoring entry,
+    /// or nil if no hero word produces any catalog hit.
+    static func matchByHero(
+        allText: String,
+        topLeftText: String,
+        candidates: [Card]
+    ) -> Card? {
+        guard !candidates.isEmpty else { return nil }
+        let stopWords: Set<String> = [
+            "FIRST", "EDITION", "EDITON", "EDTON", "EDITVON", "EDITIDN",
+            "BATTLE", "ARENA", "BATTTE", "TARENA", "POWER", "ROOKIE",
+            "INSPIRED", "INSPIREO", "BATTLEFOIL", "BATTL", "BATTI",
+            "GLOW", "HEX", "FIRE", "ICE", "BRAWL", "STEEL", "SUPER",
+            "GUM", "FRE", "JACKSON", "JAEKSON", "JACISON", "IRIKSON",
+            "IAIKSUN", "IKSUN", "BO", "COST", "PLAY", "REVEAL",
+            "DISCARD", "REBATE", "SHUFFLE", "HAND", "DECK", "PLAYBOOK",
+            "HERO", "HEROS",
+        ]
+        func wordsFor(_ text: String) -> [String] {
+            text.components(separatedBy: .whitespacesAndNewlines)
+                .map { $0.trimmingCharacters(in: .punctuationCharacters).uppercased() }
+                .filter { $0.count >= 4 && !stopWords.contains($0) }
+        }
+        let allWords = wordsFor(allText)
+        let topLeftWords = wordsFor(topLeftText)
+        var best: (card: Card, score: Int)?
+        for card in candidates {
+            let hero = card.hero.uppercased()
+            guard hero.count >= 4 else { continue }
+            var score = 0
+            for w in allWords {
+                if heroWordMatches(hero, w) { score += 1 }
+            }
+            for w in topLeftWords {
+                if heroWordMatches(hero, w) { score += 3 }
+            }
+            if let cur = best {
+                if score > cur.score { best = (card, score) }
+            } else if score >= 1 {
+                best = (card, score)
+            }
+        }
+        return best?.card
+    }
+
+    private static func heroWordMatches(_ hero: String, _ word: String) -> Bool {
+        if hero == word { return true }
+        if hero.contains(word) { return true }
+        if word.contains(hero) { return true }
+        let minLen = min(hero.count, word.count)
+        guard minLen >= 4 else { return false }
+        let heroPref = String(hero.prefix(minLen))
+        let wordPref = String(word.prefix(minLen))
+        if heroPref == wordPref { return true }
+        if minLen >= 5 {
+            let h = Array(hero.prefix(minLen))
+            let w = Array(word.prefix(minLen))
+            let diffs = zip(h, w).filter { $0 != $1 }.count
+            if diffs <= 1 { return true }
+        }
+        return false
+    }
+
     /// Synchronous score-only version. Picks the highest-scoring
     /// candidate without the Phase-2 image-similarity tiebreak.
     /// Use `resolve(observation:candidates:)` when the caller has

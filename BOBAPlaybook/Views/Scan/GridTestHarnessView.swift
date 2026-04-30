@@ -293,24 +293,41 @@ struct GridTestHarnessView: View {
 
             var perCard: [DetectedResult] = []
             for d in detected {
-                let observation = await scanner.scanStillImage(d.image)
-                // Same matching pipeline as ScanView.handleDetected
-                // for a single-card scan: catalog filter → matchScore
-                // → Phase-2 FeaturePrintIndex tiebreak when OCR
-                // candidates are too close. Each Grid cell receives
-                // exactly the same treatment as a single-card scan
-                // would.
-                let matched: Card?
+                // Multi-pass OCR: 4 enhancement variants + focused-
+                // region pass + observation merge. Always returns a
+                // result so hero-name fallback can run when no
+                // cardNumber was extractable.
+                let r = await scanner.scanGridImage(d.image)
+                var matched: Card?
+                let observation: ScanObservation? = r.cardNumber.map { cn in
+                    ScanObservation(
+                        cardNumber:   cn,
+                        rawName:      r.topLeftText,
+                        rawPower:     r.topRightText,
+                        rawVariation: r.bottomRightText,
+                        fullText:     r.allText,
+                        cgImage:      r.cgImage)
+                }
                 if let obs = observation {
                     let candidates = cardStore.displayCards.filter {
                         $0.cardNumber.uppercased() == obs.cardNumber
                     }
                     matched = await ScanMatching.resolve(
                         observation: obs,
-                        candidates: candidates
+                        candidates:  candidates
                     )
-                } else {
-                    matched = nil
+                }
+                // Hero-name fallback: when no cardNumber could be
+                // extracted (tiny badge text, low contrast, etc.),
+                // search the catalog by hero. Catches Wattage-style
+                // cases where the badge is OCR-unreadable but the
+                // hero name at the top of the card reads cleanly.
+                if matched == nil {
+                    matched = ScanMatching.matchByHero(
+                        allText:     r.allText,
+                        topLeftText: r.topLeftText,
+                        candidates:  cardStore.displayCards
+                    )
                 }
                 perCard.append(DetectedResult(
                     gridIndex:  d.gridIndex,

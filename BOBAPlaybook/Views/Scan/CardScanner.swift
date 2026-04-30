@@ -717,7 +717,10 @@ extension CardScanner {
         ]
         var allObs: [(text: String, midX: CGFloat, midY: CGFloat)] = []
         for p in passes {
-            let r = runSingleOCRPass(ciImage: ciImage, params: p)
+            let r = runSingleOCRPass(
+                ciImage: ciImage,
+                params: (mt: p.mt, c: p.c, g: p.g, s: p.s)
+            )
             if let cn = r.cardNumber {
                 return GridOCRResult(
                     cardNumber: cn,

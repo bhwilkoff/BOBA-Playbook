@@ -258,6 +258,7 @@ struct ScanView: View {
                 Spacer()
                 modePill(for: .single, label: "SINGLE", icon: "rectangle.on.rectangle")
                 modePill(for: .multi,  label: "MULTI",  icon: "rectangle.stack.fill")
+                gridPill
                 if auth.isStreamer && scanStore.source != .deckBuilder {
                     modePill(for: .show, label: "SHOW", icon: "dot.radiowaves.up.forward")
                 }
@@ -266,27 +267,36 @@ struct ScanView: View {
             .padding(.bottom, 90)
         }
         .fullScreenCover(isPresented: $showGridScan) {
-            GridScanView()
+            // After Grid scan completes the user lands back here.
+            // If they added cards to the queue, surface the queue
+            // review interface so they can confirm pricing and
+            // route to collection / show before saving.
+            GridScanView(onAddedToQueue: {
+                showQueueView = true
+            })
         }
-        // User-facing Grid scan button — pinned at the top of the
-        // camera view so it's impossible to miss. Tap → photo source
-        // picker (camera capture or photo library) → multi-card OCR
-        // pipeline → review + queue.
-        .overlay(alignment: .top) {
-            Button {
-                showGridScan = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "square.grid.3x3.fill").font(.system(size: 14))
-                    Text("GRID SCAN").font(Design.Fonts.mono(11, weight: .bold)).tracking(0.5)
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14).padding(.vertical, 8)
-                .background(Capsule().fill(Design.Colors.bobaCyan.opacity(0.9))
-                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.4), lineWidth: 1)))
-                .shadow(color: .black.opacity(0.4), radius: 6)
+    }
+
+    /// GRID pill — same visual style as the other mode pills, but
+    /// instead of switching scanStore.mode it presents GridScanView
+    /// as a fullScreenCover. Single/Multi/Show stay live behind it.
+    private var gridPill: some View {
+        Button {
+            showGridScan = true
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "square.grid.3x3").font(.system(size: 12))
+                Text("GRID").font(Design.Fonts.mono(11, weight: .bold)).tracking(0.5)
             }
-            .padding(.top, 70)
+            .foregroundStyle(.white.opacity(0.7))
+            .padding(.horizontal, Design.Spacing.sm + 2)
+            .padding(.vertical, Design.Spacing.sm - 1)
+            .background(
+                Capsule()
+                    .fill(Color.white.opacity(0.12))
+                    .overlay(Capsule().strokeBorder(
+                        Color.white.opacity(0.25), lineWidth: 1))
+            )
         }
     }
 

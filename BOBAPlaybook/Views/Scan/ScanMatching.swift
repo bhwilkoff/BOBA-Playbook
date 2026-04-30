@@ -50,30 +50,46 @@ enum ScanMatching {
         return best
     }
 
-    /// Grid-specific resolver. Same OCR-then-image-similarity
-    /// pipeline as `resolve(observation:candidates:)`, but with two
-    /// crucial extensions:
+    /// Grid-specific resolver. Combines three independent signals —
+    /// OCR cardNumber, hero-name text search, and FeaturePrintIndex
+    /// image similarity — and picks the card with the most
+    /// corroboration. The Grid pipeline benefits enormously from
+    /// cross-checking because each signal fails in different
+    /// conditions:
     ///
-    ///   1. FeaturePrintIndex runs on the **full catalog**, not just
-    ///      cardNumber-filtered candidates. When OCR misreads a
-    ///      cardNumber (bare digit like "38" matching the wrong base
-    ///      card when the physical card was the prefixed "BGBF-38"
-    ///      treatment, or noise-extracted "80" from a Marksman crop
-    ///      whose actual cardNumber is "GBF-94"), image similarity
-    ///      can override the OCR pick by recognizing the actual card
-    ///      art.
+    ///   • OCR cardNumber misreads when the bottom-left badge is
+    ///     glare-blocked, partially cropped, or near-impossible to
+    ///     read at small scale (Wattage 141, PB Buckets 7). It can
+    ///     also pick up a NEIGHBORING card's number when the crop is
+    ///     slightly off-center, which is what produced the
+    ///     Cicada→"Phoenix BF-30", Castler→"Go-Cart BLBF-785", and
+    ///     Jachammer→"Gunner 202" misreads in real-world testing.
     ///
-    ///   2. Hero-name fallback runs against the full catalog when
-    ///      both OCR cardNumber extraction AND image similarity fail
-    ///      to land — preserves the existing matchByHero behavior as
-    ///      a tertiary fallback.
+    ///   • Hero-name search misses on cards where the hero text is
+    ///     stylized or partially obscured (rare).
     ///
-    /// Override threshold for FP vs OCR: FP top must be either the
-    /// only candidate in top-K (very strong "OCR was wrong" signal)
-    /// or have a distance ≤60% of the closest cardNumber-candidate's
-    /// distance. Both bars are conservative — when OCR was correct
-    /// AND the image is in the index, the FP top will land in the
-    /// candidate set and the override never fires.
+    ///   • Image similarity misses on cards that aren't in the FP
+    ///     index (~17% of the catalog has no R2 image).
+    ///
+    /// Decision tree:
+    ///
+    ///   Stage 1. FP top ∈ cardNumber candidates → use it. Image
+    ///            confirms OCR. Highest-confidence outcome.
+    ///
+    ///   Stage 2. OCR best's hero matches FP top's hero OR matches
+    ///            heroSearch's hero → use OCR best. cardNumber +
+    ///            either independent signal agrees.
+    ///
+    ///   Stage 3. FP top's hero matches heroSearch's hero (and OCR
+    ///            best disagrees) → use FP top. Image AND text
+    ///            agree on hero, OCR alone is contradicted.
+    ///
+    ///   Stage 4. FP top distance ≤ 85% of best-cand-in-FP distance
+    ///            → override to FP top. Image is meaningfully closer
+    ///            than the OCR pick (loosened from the original 60%
+    ///            threshold based on real-world distance distributions).
+    ///
+    ///   Stage 5. Fall back: ocrBest ?? heroBest ?? fpTop.
     @MainActor
     static func resolveGrid(
         observation: ScanObservation,
@@ -91,49 +107,83 @@ enum ScanMatching {
             .sorted { $0.1 > $1.1 }
             .first?.0
 
-        if let cgImage = observation.cgImage,
-           FeaturePrintIndex.shared.isLoaded {
-            let nearest = await FeaturePrintIndex.shared
-                .searchNearest(in: cgImage, topK: 25)
-            if let absoluteTop = nearest.first {
-                let candidateIds = Set(candidates.map { $0.id })
-                if candidateIds.contains(absoluteTop.bobaId),
-                   let card = cardsByBobaId[absoluteTop.bobaId] {
-                    return card
-                }
-                let bestCandInFP = nearest.first { candidateIds.contains($0.bobaId) }
-                if !candidates.isEmpty {
-                    // OCR gave us candidates. Override OCR only when
-                    // image similarity strongly disagrees — when no
-                    // candidate even appears in the FP top-K, the
-                    // most likely explanation is that the card just
-                    // isn't covered by our index (~17% of the catalog
-                    // has no R2 image), NOT that OCR was wrong, so
-                    // we trust OCR's filter.
-                    if let bcip = bestCandInFP {
-                        if absoluteTop.distance < bcip.distance * 0.6,
-                           let overrideCard = cardsByBobaId[absoluteTop.bobaId] {
-                            return overrideCard
-                        }
-                        if let c = cardsByBobaId[bcip.bobaId] { return c }
-                    }
-                    // No candidate in top-K — fall through to ocrBest.
-                } else {
-                    // No OCR cardNumber → FP top is our best signal.
-                    if let overrideCard = cardsByBobaId[absoluteTop.bobaId] {
-                        return overrideCard
-                    }
-                }
-            }
-        }
-
-        if let best = ocrBest { return best }
-
-        return matchByHero(
+        // Hero-name search across the full catalog. Used as an
+        // independent confirmation signal even when OCR successfully
+        // extracted a cardNumber — when the printed hero name
+        // disagrees with the OCR cardNumber's hero, that's a strong
+        // "OCR misread the cardNumber" signal.
+        let heroBest: Card? = matchByHero(
             allText:     observation.fullText,
             topLeftText: observation.rawName,
             candidates:  allCards
         )
+
+        // FP top + a few neighbors for tiebreak distance comparison.
+        var fpTop: Card?
+        var fpTopDistance: Float = .greatestFiniteMagnitude
+        var bestCandInFPDistance: Float = .greatestFiniteMagnitude
+        if let cgImage = observation.cgImage,
+           FeaturePrintIndex.shared.isLoaded {
+            let nearest = await FeaturePrintIndex.shared
+                .searchNearest(in: cgImage, topK: 25)
+            if let top = nearest.first {
+                fpTop = cardsByBobaId[top.bobaId]
+                fpTopDistance = top.distance
+            }
+            let candidateIds = Set(candidates.map { $0.id })
+            if let bcip = nearest.first(where: { candidateIds.contains($0.bobaId) }) {
+                bestCandInFPDistance = bcip.distance
+            }
+        }
+
+        let candidateIds = Set(candidates.map { $0.id })
+
+        // Stage 1: FP top is also an OCR candidate. Image confirms OCR.
+        if let fp = fpTop, candidateIds.contains(fp.id) {
+            return fp
+        }
+
+        // Hero comparison helper — matches across treatments. Two cards
+        // share a "hero identity" if their `hero` fields agree (case-
+        // insensitive, trimmed). Sealed products fall back to `name`.
+        func heroIdentity(_ card: Card) -> String {
+            let h = card.hero.uppercased()
+            return h.isEmpty ? card.name.uppercased() : h
+        }
+
+        // Stage 2: OCR is corroborated by hero text or by FP image.
+        if let ocr = ocrBest {
+            let ocrHero = heroIdentity(ocr)
+            if let hb = heroBest, heroIdentity(hb) == ocrHero {
+                return ocr
+            }
+            if let fp = fpTop, heroIdentity(fp) == ocrHero {
+                return ocr
+            }
+        }
+
+        // Stage 3: FP image AND hero text agree on a hero, OCR
+        // disagrees. Strongest "OCR cardNumber was wrong" signal.
+        if let fp = fpTop, let hb = heroBest,
+           heroIdentity(fp) == heroIdentity(hb) {
+            return fp
+        }
+
+        // Stage 4: FP is meaningfully closer than the OCR pick.
+        // 0.85 threshold (loosened from 0.6) — empirical observation
+        // is that real-photo same-card FP distances are within
+        // 30–60% of different-card distances, so 0.85 catches the
+        // wrong-OCR cases without overriding correct ones.
+        if let fp = fpTop,
+           bestCandInFPDistance != .greatestFiniteMagnitude,
+           fpTopDistance < bestCandInFPDistance * 0.85 {
+            return fp
+        }
+
+        // Stage 5: fallbacks in priority order.
+        if let ocr = ocrBest { return ocr }
+        if let hb = heroBest { return hb }
+        return fpTop
     }
 
     /// Hero-name fallback for Grid mode when OCR fails to extract

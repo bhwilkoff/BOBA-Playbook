@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import PhotosUI
+import AVFoundation
 
 /// User-facing Grid scan mode. Shows a single image (camera capture
 /// or photo library selection) and runs it through the full Grid
@@ -86,7 +87,15 @@ struct GridScanView: View {
             get: { sourcePickerMode == .camera },
             set: { if !$0 && sourcePickerMode == .camera { sourcePickerMode = .none } }
         )) {
-            CameraImagePicker { image in
+            // Direct AVFoundation capture — bypasses UIImagePickerController
+            // entirely, which on triple-camera iPhones spammed
+            // `FigCaptureSourceRemote err=-17281` and "unsupported device
+            // (BackTriple)" errors and routinely returned a degraded image
+            // that only resolved 1–2 cards out of 9. Once we have the
+            // UIImage, the path is identical to the photo-library flow:
+            // hand it to `loadAndProcess` → GridCardDetector → multi-pass
+            // OCR → ScanMatching.resolveGrid.
+            GridCameraCaptureView { image in
                 sourcePickerMode = .none
                 if let image {
                     Task { await loadAndProcess(image) }
@@ -398,40 +407,233 @@ extension UIImage {
     }
 }
 
-// MARK: - Camera image picker (UIImagePickerController wrapper)
+// MARK: - AVFoundation still capture (replaces UIImagePickerController)
 
-/// Simple UIImagePickerController-backed camera capture. SwiftUI's
-/// native PhotosPicker doesn't support camera input directly, so
-/// we wrap UIKit for that path. Library selection uses
-/// PhotosPicker on the parent view.
-struct CameraImagePicker: UIViewControllerRepresentable {
-    let onImage: (UIImage?) -> Void
+/// Direct AVFoundation camera UI for Grid mode. Replaces
+/// UIImagePickerController because, on triple-camera iPhones, the
+/// system picker fails to auto-select a usable lens — the console
+/// fills with `Attempted to change to mode Portrait with an
+/// unsupported device (BackTriple)` and `FigCaptureSourceRemote
+/// err=-17281`, the camera takes 4–6 seconds to load, and the
+/// returned UIImage is degraded enough that the Grid detector only
+/// resolves 1–2 cards out of 9. Pinning explicitly to
+/// `.builtInWideAngleCamera` (the standard 1× lens that every iPhone
+/// model has) sidesteps the auto-select failure entirely. Same
+/// device that `CardScanner` uses for streaming scans.
+///
+/// After capture, the UIImage flows into the same `loadAndProcess`
+/// path as a photo-library selection — there's no separate camera-
+/// only pipeline, which is what the user explicitly asked for.
+struct GridCameraCaptureView: View {
+    @StateObject private var camera = GridStillCamera()
+    @State private var capturing = false
+    @State private var failed = false
+    let onCaptured: (UIImage?) -> Void
 
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = UIImagePickerController.isSourceTypeAvailable(.camera)
-            ? .camera : .photoLibrary
-        picker.delegate = context.coordinator
-        return picker
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            GridCameraPreviewView(session: camera.session)
+                .ignoresSafeArea()
+            VStack {
+                HStack {
+                    Button("Cancel") { onCaptured(nil) }
+                        .font(Design.Fonts.mono(15, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 10)
+                        .background(.black.opacity(0.45), in: Capsule())
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                Spacer()
+                if failed {
+                    Text("Camera unavailable.\nUse 'From Library' instead.")
+                        .font(Design.Fonts.mono(13))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .padding()
+                        .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 8))
+                        .padding(.bottom, 36)
+                } else {
+                    Button {
+                        Task { await capture() }
+                    } label: {
+                        ZStack {
+                            Circle().stroke(.white, lineWidth: 4)
+                                .frame(width: 78, height: 78)
+                            Circle().fill(.white)
+                                .frame(width: 64, height: 64)
+                                .opacity(capturing ? 0.5 : 1.0)
+                        }
+                    }
+                    .disabled(capturing)
+                    .padding(.bottom, 36)
+                }
+            }
+        }
+        .task {
+            // Authorization check + start. CardScanner already requests
+            // camera access for the streaming scanner, so by the time
+            // the user reaches Grid mode we're typically authorized —
+            // but a fresh install via deep-link could land here without
+            // permission, hence the explicit guard.
+            let granted = await camera.ensureAuthorized()
+            if granted {
+                await camera.start()
+            } else {
+                failed = true
+            }
+        }
+        .onDisappear {
+            // Background-dispatched stop. AVCaptureSession.stopRunning
+            // is a blocking call; running it on the main actor produces
+            // the `unsafeForcedSync called from Swift Concurrent context`
+            // warning seen previously.
+            camera.stop()
+        }
     }
 
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    private func capture() async {
+        guard !capturing else { return }
+        capturing = true
+        let image = await camera.captureStill()
+        capturing = false
+        onCaptured(image)
+    }
+}
 
-    func makeCoordinator() -> Coordinator { Coordinator(onImage: onImage) }
+/// Owns the AVCaptureSession + AVCapturePhotoOutput for the Grid
+/// camera flow. Configured once on first start, reused for the
+/// view's lifetime. All mutating access (session start/stop,
+/// continuation install/resume) is funneled through a single
+/// private serial queue so the main actor never blocks on
+/// AVFoundation's blocking start/stop calls and the continuation
+/// is never raced.
+final class GridStillCamera: NSObject, ObservableObject, @unchecked Sendable {
+    let session = AVCaptureSession()
+    private let photoOutput = AVCapturePhotoOutput()
+    private let configQueue = DispatchQueue(
+        label: "GridStillCamera.config", qos: .userInitiated)
+    /// Both written and read only on `configQueue`.
+    private var imageContinuation: CheckedContinuation<UIImage?, Never>?
+    private var configured = false
 
-    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let onImage: (UIImage?) -> Void
-        init(onImage: @escaping (UIImage?) -> Void) { self.onImage = onImage }
-        func imagePickerController(
-            _ picker: UIImagePickerController,
-            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]
-        ) {
-            onImage(info[.originalImage] as? UIImage)
-            picker.dismiss(animated: true)
+    func ensureAuthorized() async -> Bool {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:    return true
+        case .notDetermined: return await AVCaptureDevice.requestAccess(for: .video)
+        default:             return false
         }
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            onImage(nil)
-            picker.dismiss(animated: true)
+    }
+
+    func start() async {
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            configQueue.async { [self] in
+                if !configured {
+                    configureSessionOnQueue()
+                    configured = true
+                }
+                if !session.isRunning { session.startRunning() }
+                cont.resume()
+            }
+        }
+    }
+
+    func stop() {
+        configQueue.async { [self] in
+            if session.isRunning { session.stopRunning() }
+        }
+    }
+
+    func captureStill() async -> UIImage? {
+        await withCheckedContinuation { (cont: CheckedContinuation<UIImage?, Never>) in
+            configQueue.async { [self] in
+                // Defensive: if a previous capture is still pending
+                // (rapid double-tap), resume it with nil before
+                // installing the new continuation.
+                imageContinuation?.resume(returning: nil)
+                imageContinuation = cont
+                let settings = AVCapturePhotoSettings()
+                settings.flashMode = .auto
+                photoOutput.capturePhoto(with: settings, delegate: self)
+            }
+        }
+    }
+
+    /// Must run on `configQueue`. Pins explicitly to the wide-angle
+    /// camera — `.default(for: .video)` would pick the device's
+    /// preferred virtual camera (Auto / Triple / Dual) which is
+    /// exactly what breaks on Pro phones (BackTriple/BackAuto
+    /// "Auto device unsupported" errors).
+    private func configureSessionOnQueue() {
+        guard let device = AVCaptureDevice.default(
+                .builtInWideAngleCamera, for: .video, position: .back),
+              let input = try? AVCaptureDeviceInput(device: device)
+        else { return }
+        session.beginConfiguration()
+        session.sessionPreset = .photo
+        if session.canAddInput(input) { session.addInput(input) }
+        if session.canAddOutput(photoOutput) { session.addOutput(photoOutput) }
+        session.commitConfiguration()
+        try? device.lockForConfiguration()
+        if device.isFocusModeSupported(.continuousAutoFocus) {
+            device.focusMode = .continuousAutoFocus
+        }
+        if device.isExposureModeSupported(.continuousAutoExposure) {
+            device.exposureMode = .continuousAutoExposure
+        }
+        device.unlockForConfiguration()
+    }
+}
+
+extension GridStillCamera: AVCapturePhotoCaptureDelegate {
+    /// AVFoundation calls this on its internal queue. We hop to
+    /// `configQueue` to read/clear the continuation, keeping all
+    /// mutable-state access on a single serial queue.
+    func photoOutput(
+        _ output: AVCapturePhotoOutput,
+        didFinishProcessingPhoto photo: AVCapturePhoto,
+        error: Error?
+    ) {
+        // fileDataRepresentation() encodes the photo as JPEG with
+        // EXIF orientation set; UIImage(data:) decodes into upright
+        // pixels with imageOrientation properly applied.
+        let image: UIImage? = {
+            guard error == nil,
+                  let data = photo.fileDataRepresentation(),
+                  let img = UIImage(data: data)
+            else { return nil }
+            return img
+        }()
+        configQueue.async { [self] in
+            imageContinuation?.resume(returning: image)
+            imageContinuation = nil
+        }
+    }
+}
+
+/// AVCaptureVideoPreviewLayer wrapper. Backing layer is set as the
+/// view's main layer (via `layerClass`) so the preview fills the
+/// view bounds automatically without manual frame management on
+/// rotation or layout changes.
+struct GridCameraPreviewView: UIViewRepresentable {
+    let session: AVCaptureSession
+
+    func makeUIView(context: Context) -> PreviewUIView {
+        let view = PreviewUIView()
+        view.previewLayer.session = session
+        view.previewLayer.videoGravity = .resizeAspectFill
+        return view
+    }
+
+    func updateUIView(_ uiView: PreviewUIView, context: Context) {}
+
+    final class PreviewUIView: UIView {
+        override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
+        var previewLayer: AVCaptureVideoPreviewLayer {
+            layer as! AVCaptureVideoPreviewLayer
         }
     }
 }

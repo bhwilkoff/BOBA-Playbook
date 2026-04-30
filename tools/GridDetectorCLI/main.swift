@@ -89,35 +89,45 @@ struct GridGeometry {
         let rowLanesTopFirst = rowLanes.sorted(by: >)
         let colLanesLeftFirst = columnLanes.sorted()
 
-        // Card dimensions derived from GRID SPACING, not individual
-        // anchor sizes. Vision's anchors are noisy — partial detections
-        // come back smaller than the real card, the "whole grid"
-        // detection gets filtered, etc. Lane spacing is a more stable
-        // signal because it averages over multiple anchors.
+        // Card dimensions derived from GRID LANE SPACING. This is
+        // the most reliable signal we have:
+        //   cardHeight = rowSpacing × fillFactor
+        //   cardWidth  = colSpacing × fillFactor
         //
-        // Formula:
-        //   cardHeight = rowSpacing × FILL_FACTOR  (fits the lane)
-        //   cardWidth  = cardHeight × cardAspectRatio  (enforces shape)
+        // We deliberately DON'T enforce a strict 0.714 aspect ratio
+        // here — perspective compression on tilted photos makes the
+        // apparent card shape vary from the physical 2.5×3.5" ratio,
+        // sometimes by as much as ±15%. Using both lane spacings
+        // gives the crop the actual SHAPE of the cards as photographed.
+        // The aspect ratio is checked only as a sanity bound: if the
+        // computed crop drifts more than 30% from card aspect, we
+        // assume one of the spacings is wrong and clamp.
         //
-        // FILL_FACTOR = 0.95 — leaves a tiny gap so adjacent cards
-        // don't bleed into each other's crops.
-        let fillFactor: CGFloat = 0.95
-        let colSpacing = meanSpacing(of: colLanesLeftFirst) ?? (medianWidth * 1.05)
-        let rowSpacing = meanSpacing(of: rowLanesTopFirst) ?? (medianHeight * 1.05)
-        // Use row spacing as the primary height anchor — it's
-        // perpendicular to the cards' long axis and less affected by
-        // perspective compression than column spacing.
-        let cardHeight = rowSpacing * fillFactor
-        // Width derived from the aspect ratio. We DON'T trust the
-        // measured column spacing for width — perspective skew can
-        // make cards on the right side appear narrower than the left.
-        // The aspect-ratio constraint sidesteps that entirely.
-        var cardWidth = cardHeight * cardAspectRatio
-        // Sanity: don't let the synthesized card exceed lane spacing.
-        // If aspect-ratio width exceeds lane spacing, the lanes are
-        // tighter than expected (very stacked grid) — fall back to
-        // lane-spacing × fill factor for width.
-        cardWidth = min(cardWidth, colSpacing * fillFactor)
+        // FILL_FACTOR = 0.98 — leaves a tiny gap so adjacent cards
+        // don't bleed across cell boundaries.
+        let fillFactor: CGFloat = 0.98
+        let colSpacing = meanSpacing(of: colLanesLeftFirst) ?? (medianWidth  * 1.05)
+        let rowSpacing = meanSpacing(of: rowLanesTopFirst)  ?? (medianHeight * 1.05)
+        var cardHeight = rowSpacing * fillFactor
+        var cardWidth  = colSpacing * fillFactor
+        // Sanity: aspect should be in [0.5, 1.0] for cards photographed
+        // roughly portrait. If wildly off, assume one spacing is wrong
+        // and snap to aspect-ratio-derived width.
+        let measuredAspect = cardWidth / cardHeight
+        if measuredAspect < 0.50 || measuredAspect > 1.00 {
+            cardWidth = cardHeight * cardAspectRatio
+        }
+        // For single-row/column inputs (only one lane in that axis,
+        // so spacing was the fallback medianX × 1.05), the fallback
+        // dimension can be too small. Inflate to at least anchor-
+        // derived size.
+        if colLanesLeftFirst.count == 1 {
+            cardWidth = max(cardWidth, medianWidth * 1.10)
+        }
+        if rowLanesTopFirst.count == 1 {
+            cardHeight = max(cardHeight, medianHeight * 1.10)
+        }
+        _ = cardAspectRatio  // kept for sanity-clamp branch above
 
         var cells: [Cell] = []
         for (rowIdx, y) in rowLanesTopFirst.enumerated() {
@@ -240,28 +250,37 @@ func detect(in ciImage: CIImage, orientation: CGImagePropertyOrientation, params
     guard let geometry = GridGeometry.infer(from: anchors, params: params) else {
         return DetectionResult(anchors: anchors, cells: [])
     }
+    // ALWAYS use axis-aligned crops at lane-derived cell rects.
+    // Why not perspective-correct from anchors?
+    //   Vision's anchors are systematically smaller than the
+    //   actual cards — bare-card photos showed anchor height
+    //   0.21 vs measured card height 0.27, a 22% under-detection.
+    //   Perspective-correcting from those anchors then clips the
+    //   bottom-left of the card where the cardNumber lives.
+    //   Lane intersections + lane-derived dimensions place the
+    //   crop at the right CENTER and the right SIZE — even when
+    //   no anchor exists for that cell.
+    //   We lose perspective dewarping, but OCR tolerates ±5° of
+    //   skew (verified on the toploader fixtures), and the
+    //   alternative was "perfectly rectified but clipped" which
+    //   was missing the cardNumber entirely.
     var cells: [DetectedCell] = []
-    let tolerance = geometry.medianWidth / 2
     for cell in geometry.cells {
-        let nearest = anchors.min { lhs, rhs in
-            let l = CGPoint(x: lhs.boundingBox.midX, y: lhs.boundingBox.midY)
-            let r = CGPoint(x: rhs.boundingBox.midX, y: rhs.boundingBox.midY)
-            return distance(l, cell.center) < distance(r, cell.center)
-        }
-        if let nearest,
-           distance(CGPoint(x: nearest.boundingBox.midX, y: nearest.boundingBox.midY), cell.center) < tolerance {
-            if let cg = perspectiveCorrect(oriented: oriented, observation: nearest, bleed: params.bleed) {
-                cells.append(DetectedCell(
-                    row: cell.row, column: cell.column,
-                    image: cg, confidence: nearest.confidence, synthesized: false
-                ))
-                continue
-            }
+        // Note whether any real anchor sits near this cell — used
+        // only for the synthesized/anchor-based label in the
+        // harness, doesn't change crop behavior.
+        let tolerance = geometry.medianWidth / 2
+        let nearest = anchors.first { obs in
+            let dx = obs.boundingBox.midX - cell.center.x
+            let dy = obs.boundingBox.midY - cell.center.y
+            return (dx * dx + dy * dy).squareRoot() < tolerance
         }
         if let cg = axisAlignedCrop(oriented: oriented, cellRect: cell.rect) {
             cells.append(DetectedCell(
                 row: cell.row, column: cell.column,
-                image: cg, confidence: 0, synthesized: true
+                image: cg,
+                confidence: nearest?.confidence ?? 0,
+                synthesized: nearest == nil
             ))
         }
     }
@@ -398,6 +417,7 @@ struct OCRResult {
     let allText: String
     let bottomLeftText: String
     let matched: CatalogEntry?
+    let observations: [(text: String, midX: CGFloat, midY: CGFloat, conf: Float)]
 }
 
 func ocrCrop(_ image: CGImage, catalog: Catalog) async -> OCRResult {
@@ -416,10 +436,12 @@ func ocrCrop(_ image: CGImage, catalog: Catalog) async -> OCRResult {
             let observations = (req.results as? [VNRecognizedTextObservation]) ?? []
             var topLeft: [String] = [], bottomLeft: [String] = []
             var all: [String] = []
+            var obsList: [(text: String, midX: CGFloat, midY: CGFloat, conf: Float)] = []
             for obs in observations {
                 guard let cand = obs.topCandidates(1).first, cand.confidence > 0.3 else { continue }
                 let text = cand.string.uppercased()
                 all.append(text)
+                obsList.append((text, obs.boundingBox.midX, obs.boundingBox.midY, cand.confidence))
                 if obs.boundingBox.midY > 0.5 {
                     if obs.boundingBox.midX < 0.5 { topLeft.append(text) }
                 } else {
@@ -433,10 +455,6 @@ func ocrCrop(_ image: CGImage, catalog: Catalog) async -> OCRResult {
             let topLeftText = topLeft.joined(separator: " ")
             let matched: CatalogEntry?
             if let num = extracted {
-                // Multiple cards may share the same cardNumber across
-                // treatments / parallels. Score each candidate by how
-                // well its hero name + power match what OCR saw, pick
-                // the best — same logic as iOS ScanMatching.bestMatch.
                 let candidates = catalog.cards.filter { $0.cardNumber.uppercased() == num }
                 matched = bestMatch(candidates: candidates, allText: allText, topLeftText: topLeftText)
             } else { matched = nil }
@@ -444,7 +462,8 @@ func ocrCrop(_ image: CGImage, catalog: Catalog) async -> OCRResult {
                 cardNumber:     extracted,
                 allText:        allText,
                 bottomLeftText: blText,
-                matched:        matched
+                matched:        matched,
+                observations:   obsList
             ))
         }
         req.recognitionLevel = .accurate
@@ -779,6 +798,12 @@ struct GridDetectorCLI {
 
         print("=== \(basename) ===")
         print("anchors=\(result.anchors.count) cells=\(result.cells.count) elapsed=\(ms)ms")
+        for a in result.anchors {
+            print(String(format: "  anchor x=%.2f y=%.2f w=%.2f h=%.2f conf=%.2f",
+                         a.boundingBox.midX, a.boundingBox.midY,
+                         a.boundingBox.width, a.boundingBox.height,
+                         a.confidence))
+        }
 
         // Load catalog if present so we can run the full OCR + match
         // pipeline locally. Falls back to detection-only output when
@@ -799,9 +824,20 @@ struct GridDetectorCLI {
                 } else if let num = r.cardNumber {
                     status = "△ \(num) (no catalog match)"
                 } else {
-                    status = "✗ no number  bl=\"\(r.bottomLeftText.prefix(40))\"  all=\"\(r.allText.prefix(60))\""
+                    status = "✗ no number  bl=\"\(r.bottomLeftText.prefix(40))\"  all=\"\(r.allText.prefix(80))\""
                 }
                 print("  [\(cell.row),\(cell.column)] \(label)  \(status)")
+                // For failed cells, print every OCR observation with
+                // its position so we can see WHERE the cardNumber-like
+                // text actually lives on the card. Helps figure out
+                // whether the crop is positioned wrong vs. the
+                // cardNumber is just unrecognizable.
+                if r.matched == nil {
+                    for o in r.observations {
+                        print(String(format: "       obs: \"%@\" @ (%.2f, %.2f) conf=%.2f",
+                                     o.text, o.midX, o.midY, o.conf))
+                    }
+                }
             }
             print("matched=\(matched)/\(result.cells.count)")
         }

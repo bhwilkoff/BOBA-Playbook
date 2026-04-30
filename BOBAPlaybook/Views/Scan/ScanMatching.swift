@@ -112,11 +112,17 @@ enum ScanMatching {
         // extracted a cardNumber — when the printed hero name
         // disagrees with the OCR cardNumber's hero, that's a strong
         // "OCR misread the cardNumber" signal.
-        let heroBest: Card? = matchByHero(
+        let heroBestPair = matchByHeroWithScore(
             allText:     observation.fullText,
             topLeftText: observation.rawName,
             candidates:  allCards
         )
+        let heroBest: Card? = heroBestPair?.card
+        // Score ≥ 3 means the hero name appeared in topLeftText (the
+        // top of the card — the most legible printed text). That's
+        // the strongest single OCR signal available; we trust it
+        // even when it contradicts ocrBest's cardNumber.
+        let heroIsStrong = (heroBestPair?.score ?? 0) >= 3
 
         // FP top + a few neighbors for tiebreak distance comparison.
         var fpTop: Card?
@@ -138,11 +144,6 @@ enum ScanMatching {
 
         let candidateIds = Set(candidates.map { $0.id })
 
-        // Stage 1: FP top is also an OCR candidate. Image confirms OCR.
-        if let fp = fpTop, candidateIds.contains(fp.id) {
-            return fp
-        }
-
         // Hero comparison helper — matches across treatments. Two cards
         // share a "hero identity" if their `hero` fields agree (case-
         // insensitive, trimmed). Sealed products fall back to `name`.
@@ -151,39 +152,122 @@ enum ScanMatching {
             return h.isEmpty ? card.name.uppercased() : h
         }
 
-        // Stage 2: OCR is corroborated by hero text or by FP image.
-        if let ocr = ocrBest {
-            let ocrHero = heroIdentity(ocr)
-            if let hb = heroBest, heroIdentity(hb) == ocrHero {
-                return ocr
-            }
-            if let fp = fpTop, heroIdentity(fp) == ocrHero {
-                return ocr
-            }
+        let ocrHero = ocrBest.map(heroIdentity)
+        let heroBestHero = heroBest.map(heroIdentity)
+        let fpHero = fpTop.map(heroIdentity)
+
+        // Stage 1: cardNumber + hero text + FP image all agree on
+        // hero. Triple-confirmed; ocrBest is the most specific
+        // (matched cardNumber). This is the happy path for correctly
+        // identified cards.
+        if let oh = ocrHero, oh == heroBestHero, oh == fpHero,
+           let ocr = ocrBest {
+            return ocr
         }
 
-        // Stage 3: FP image AND hero text agree on a hero, OCR
-        // disagrees. Strongest "OCR cardNumber was wrong" signal.
-        if let fp = fpTop, let hb = heroBest,
-           heroIdentity(fp) == heroIdentity(hb) {
+        // Stage 2: cardNumber + hero text agree. OCR confirmed by the
+        // most legible single OCR signal (hero name printed at top).
+        if let oh = ocrHero, oh == heroBestHero, let ocr = ocrBest {
+            return ocr
+        }
+
+        // Stage 3: FP image + hero text agree on a hero (and OCR's
+        // cardNumber points to a different hero). Strongest "OCR
+        // cardNumber was wrong" signal — the printed hero name and
+        // the card art both contradict OCR. Catches the common
+        // "neighbor crop bled into mine" failure where OCR pulled a
+        // cardNumber from an adjacent grid cell.
+        if let fh = fpHero, fh == heroBestHero, let fp = fpTop {
             return fp
         }
 
-        // Stage 4: FP is meaningfully closer than the OCR pick.
-        // 0.85 threshold (loosened from 0.6) — empirical observation
-        // is that real-photo same-card FP distances are within
-        // 30–60% of different-card distances, so 0.85 catches the
-        // wrong-OCR cases without overriding correct ones.
+        // Stage 4: cardNumber + FP image agree on hero (hero text was
+        // unreliable or didn't read clearly).
+        if let oh = ocrHero, oh == fpHero, let ocr = ocrBest {
+            return ocr
+        }
+
+        // Stage 5: hero text is strong (appeared in topLeftText) but
+        // OCR and FP both disagree with it AND with each other. Trust
+        // the printed hero name. Find the best variant of that hero
+        // by matchScore (which weighs treatment / power text).
+        // Catches the Courthouse → "Sprinkler FT-88" failure where
+        // OCR misread a neighbor's cardNumber AND FP was confused by
+        // a partial / glare-affected crop.
+        if heroIsStrong, let hh = heroBestHero {
+            let inHero = allCards.filter { heroIdentity($0) == hh }
+            if let bestVariant = inHero
+                .map({ ($0, matchScore($0, observation: observation)) })
+                .max(by: { $0.1 < $1.1 })?.0 {
+                return bestVariant
+            }
+        }
+
+        // Stage 6: FP image is meaningfully closer than the OCR pick.
+        // Catches OCR cardNumber misreads where hero text was missing.
         if let fp = fpTop,
            bestCandInFPDistance != .greatestFiniteMagnitude,
            fpTopDistance < bestCandInFPDistance * 0.85 {
             return fp
         }
 
-        // Stage 5: fallbacks in priority order.
+        // Stage 7: FP top happens to be in OCR candidates (image
+        // confirms OCR even without hero corroboration).
+        if let fp = fpTop, candidateIds.contains(fp.id) {
+            return fp
+        }
+
+        // Stage 8: fallbacks in priority order.
         if let ocr = ocrBest { return ocr }
         if let hb = heroBest { return hb }
         return fpTop
+    }
+
+    /// Hero-name match with the score returned alongside the card,
+    /// so callers can gate decisions on confidence. Score 3+ means
+    /// the hero appeared at least once in topLeftText (the +3 weight).
+    /// Score 1–2 is a less confident allText-only hit.
+    static func matchByHeroWithScore(
+        allText: String,
+        topLeftText: String,
+        candidates: [Card]
+    ) -> (card: Card, score: Int)? {
+        guard !candidates.isEmpty else { return nil }
+        let stopWords: Set<String> = [
+            "FIRST", "EDITION", "EDITON", "EDTON", "EDITVON", "EDITIDN",
+            "BATTLE", "ARENA", "BATTTE", "TARENA", "POWER", "ROOKIE",
+            "INSPIRED", "INSPIREO", "BATTLEFOIL", "BATTL", "BATTI",
+            "GLOW", "HEX", "FIRE", "ICE", "BRAWL", "STEEL", "SUPER",
+            "GUM", "FRE", "JACKSON", "JAEKSON", "JACISON", "IRIKSON",
+            "IAIKSUN", "IKSUN", "BO", "COST", "PLAY", "REVEAL",
+            "DISCARD", "REBATE", "SHUFFLE", "HAND", "DECK", "PLAYBOOK",
+            "HERO", "HEROS",
+        ]
+        func wordsFor(_ text: String) -> [String] {
+            text.components(separatedBy: .whitespacesAndNewlines)
+                .map { $0.trimmingCharacters(in: .punctuationCharacters).uppercased() }
+                .filter { $0.count >= 4 && !stopWords.contains($0) }
+        }
+        let allWords = wordsFor(allText)
+        let topLeftWords = wordsFor(topLeftText)
+        var best: (card: Card, score: Int)?
+        for card in candidates {
+            let hero = card.hero.uppercased()
+            guard hero.count >= 4 else { continue }
+            var score = 0
+            for w in allWords {
+                if heroWordMatches(hero, w) { score += 1 }
+            }
+            for w in topLeftWords {
+                if heroWordMatches(hero, w) { score += 3 }
+            }
+            if let cur = best {
+                if score > cur.score { best = (card, score) }
+            } else if score >= 1 {
+                best = (card, score)
+            }
+        }
+        return best
     }
 
     /// Hero-name fallback for Grid mode when OCR fails to extract

@@ -118,51 +118,36 @@ enum GridCardDetector {
             throw DetectionError.noAnchors
         }
 
-        // Generate uniform card-shaped crops at each predicted cell.
+        // ALWAYS use axis-aligned crops at lane-derived cell rects.
+        //
+        // Why not perspective-correct from anchors? Vision's anchor
+        // rectangles are systematically smaller than the actual cards
+        // — bare-card photos showed anchor height 0.21 vs measured
+        // card height 0.27, a 22% under-detection. Perspective-
+        // correcting from those anchors clips the bottom-left of the
+        // card where the cardNumber lives. Lane intersections + lane-
+        // derived dimensions place the crop at the right CENTER and
+        // the right SIZE — even when no anchor exists for that cell.
+        // We lose perspective dewarping, but OCR tolerates ±5° of
+        // skew; the alternative was "rectified but clipped" which
+        // was missing the cardNumber entirely on Plays/Hot Dogs.
         var results: [DetectedCard] = []
+        let tolerance = geometry.medianWidth / 2
         for (gridIndex, cell) in geometry.cells.enumerated() {
-            // Find the closest anchor to this cell's predicted
-            // center. If it's within tolerance, use its quad for
-            // perspective correction (preserves any tilt visible
-            // in the photo). Otherwise axis-align — still gives
-            // OCR a card-shaped crop at the right spot.
-            let nearestAnchor = anchors.min { lhs, rhs in
-                let l = CGPoint(x: lhs.boundingBox.midX, y: lhs.boundingBox.midY)
-                let r = CGPoint(x: rhs.boundingBox.midX, y: rhs.boundingBox.midY)
-                return distance(l, cell.center) < distance(r, cell.center)
+            let nearest = anchors.first { obs in
+                let dx = obs.boundingBox.midX - cell.center.x
+                let dy = obs.boundingBox.midY - cell.center.y
+                return (dx * dx + dy * dy).squareRoot() < tolerance
             }
-            // Tolerance = half the median card half-width. Anything
-            // farther than that is "too far to count as the same
-            // card" and we use the synthesized axis-aligned crop.
-            let tolerance = geometry.medianWidth / 2
-            let crop: UIImage?
-            let confidence: Float
-            let synthesized: Bool
-            if let anchor = nearestAnchor,
-               distance(CGPoint(x: anchor.boundingBox.midX, y: anchor.boundingBox.midY), cell.center) < tolerance {
-                crop = perspectiveCorrect(
-                    oriented: oriented,
-                    observation: anchor,
-                    bleed: 0.04
-                )
-                confidence = anchor.confidence
-                synthesized = false
-            } else {
-                crop = axisAlignedCrop(
-                    oriented: oriented,
-                    cellRect: cell.rect
-                )
-                confidence = 0
-                synthesized = true
-            }
-            guard let crop else { continue }
+            guard let crop = axisAlignedCrop(oriented: oriented, cellRect: cell.rect)
+            else { continue }
             results.append(DetectedCard(
                 gridIndex:   gridIndex,
                 row:         cell.row,
                 column:      cell.column,
                 image:       crop,
-                confidence:  confidence,
-                synthesized: synthesized
+                confidence:  nearest?.confidence ?? 0,
+                synthesized: nearest == nil
             ))
         }
         return results
@@ -396,33 +381,39 @@ private struct GridGeometry {
 
         guard !columnLanes.isEmpty, !rowLanes.isEmpty else { return nil }
 
-        // 4. Card dimensions — derived from grid spacing, not from
-        //    individual Vision anchors. Anchors are noisy: partial
-        //    detections come back smaller than the real card; the
-        //    "whole grid" detection gets filtered. Lane spacing
-        //    averages over many anchors and is much more stable.
+        // 4. Card dimensions — derived from grid LANE SPACING in
+        //    BOTH axes. Cards as photographed don't always match
+        //    the physical 0.714 aspect ratio (perspective compresses
+        //    rows in tilted shots), so using both spacings gives the
+        //    actual SHAPE of the cards on this image. We sanity-check
+        //    against the 0.714 aspect only to catch wildly wrong
+        //    inputs — most real photos drift ±15% from physical.
         //
-        //    Trading cards are 2.5×3.5" → aspect ratio 0.714. We
-        //    treat that as a HARD CONSTRAINT — every synthesized
-        //    crop is sized to match exactly so OCR sees a properly
-        //    proportioned card regardless of which anchors Vision
-        //    happened to find.
+        //    fillFactor 0.98 — cells nearly fill their lanes so the
+        //    bottom-left card-number area isn't clipped.
         let cardAspectRatio: CGFloat = 0.714
-        let fillFactor:      CGFloat = 0.95
+        let fillFactor:      CGFloat = 0.98
         let rowLanesTopFirst = rowLanes.sorted(by: >)
         let colLanesLeftFirst = columnLanes.sorted()
         let colSpacing = meanSpacing(of: colLanesLeftFirst) ?? (medianWidth  * 1.05)
         let rowSpacing = meanSpacing(of: rowLanesTopFirst)  ?? (medianHeight * 1.05)
-        // Row spacing is perpendicular to the cards' long axis and
-        // less affected by perspective compression than column
-        // spacing — use it as the primary height anchor, then
-        // derive width from the aspect ratio.
-        let cardHeight = rowSpacing * fillFactor
-        var cardWidth  = cardHeight * cardAspectRatio
-        // If aspect-ratio width exceeds available column spacing,
-        // the grid is unusually tight — clamp so adjacent cells
-        // don't overlap.
-        cardWidth = min(cardWidth, colSpacing * fillFactor)
+        var cardHeight = rowSpacing * fillFactor
+        var cardWidth  = colSpacing * fillFactor
+        // Sanity bound — if the measured aspect drifts wildly
+        // (single-row inputs where colSpacing fell back to the
+        // anchor median, very tight grids, etc.), snap width to
+        // aspect-ratio-derived value.
+        let measuredAspect = cardWidth / cardHeight
+        if measuredAspect < 0.50 || measuredAspect > 1.00 {
+            cardWidth = cardHeight * cardAspectRatio
+        }
+        if colLanesLeftFirst.count == 1 {
+            cardWidth = max(cardWidth, medianWidth * 1.10)
+        }
+        if rowLanesTopFirst.count == 1 {
+            cardHeight = max(cardHeight, medianHeight * 1.10)
+        }
+        _ = cardAspectRatio
 
         // 5. Generate a Cell at every (row × column) intersection.
         //    Vision normalized coords use bottom-left origin, so

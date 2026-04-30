@@ -124,14 +124,24 @@ enum ScanMatching {
         // even when it contradicts ocrBest's cardNumber.
         let heroIsStrong = (heroBestPair?.score ?? 0) >= 3
 
-        // FP top + a few neighbors for tiebreak distance comparison.
+        // FP top + neighbors. Keep the full top-K accessible so later
+        // stages can look up the FP distance for arbitrary card ids
+        // (e.g. comparing ocrBest's image distance against fpTop's
+        // when both belong to the same hero).
         var fpTop: Card?
         var fpTopDistance: Float = .greatestFiniteMagnitude
         var bestCandInFPDistance: Float = .greatestFiniteMagnitude
+        var fpDistanceById: [String: Float] = [:]
         if let cgImage = observation.cgImage,
            FeaturePrintIndex.shared.isLoaded {
+            // topK = 50: large enough that several variants of the
+            // identified hero (base + Battlefoils + Inspired Ink, etc.)
+            // typically all land in the results, which lets later
+            // stages pick the right variant by image distance even
+            // when the OCR-derived pick is the wrong treatment.
             let nearest = await FeaturePrintIndex.shared
-                .searchNearest(in: cgImage, topK: 25)
+                .searchNearest(in: cgImage, topK: 50)
+            for entry in nearest { fpDistanceById[entry.bobaId] = entry.distance }
             if let top = nearest.first {
                 fpTop = cardsByBobaId[top.bobaId]
                 fpTopDistance = top.distance
@@ -157,16 +167,39 @@ enum ScanMatching {
         let fpHero = fpTop.map(heroIdentity)
 
         // Stage 1: cardNumber + hero text + FP image all agree on
-        // hero. Triple-confirmed; ocrBest is the most specific
-        // (matched cardNumber). This is the happy path for correctly
-        // identified cards.
+        // hero. Within that hero group, prefer FP's specific variant
+        // when it's a meaningfully better image match than OCR's
+        // cardNumber-derived pick. Catches the "right hero, wrong
+        // variant" failure where OCR extracts a bare digit ("38",
+        // "135", "34") that maps to a real-but-wrong variant of the
+        // identified hero, OR a glyph-confused prefix (CBF→GBF, etc).
         if let oh = ocrHero, oh == heroBestHero, oh == fpHero,
-           let ocr = ocrBest {
+           let ocr = ocrBest, let fp = fpTop {
+            // Same exact card: image confirms OCR.
+            if fp.id == ocr.id { return fp }
+            // Bare-digit cardNumber suggests OCR lost the prefix
+            // (typical OCR partial read on stylized treatment badges).
+            // The FP-identified variant of the same hero is more
+            // likely correct than the catalog's bare-digit base
+            // variant.
+            let isBareDigit = ocr.cardNumber.allSatisfy { $0.isNumber }
+                              && !ocr.cardNumber.isEmpty
+            if isBareDigit { return fp }
+            // Different variants, prefixed cardNumber. Compare image
+            // distances: if FP top is meaningfully closer to the
+            // captured image than OCR's pick, FP got the right
+            // variant.
+            let ocrFPDist = fpDistanceById[ocr.id] ?? .greatestFiniteMagnitude
+            if fpTopDistance < ocrFPDist * 0.85 {
+                return fp
+            }
             return ocr
         }
 
-        // Stage 2: cardNumber + hero text agree. OCR confirmed by the
-        // most legible single OCR signal (hero name printed at top).
+        // Stage 2: cardNumber + hero text agree (FP unavailable or
+        // disagreed on hero). Same bare-digit check as Stage 1, but
+        // without an FP variant to fall back to — leave ocrBest alone
+        // unless we can do better.
         if let oh = ocrHero, oh == heroBestHero, let ocr = ocrBest {
             return ocr
         }
@@ -189,13 +222,20 @@ enum ScanMatching {
 
         // Stage 5: hero text is strong (appeared in topLeftText) but
         // OCR and FP both disagree with it AND with each other. Trust
-        // the printed hero name. Find the best variant of that hero
-        // by matchScore (which weighs treatment / power text).
-        // Catches the Courthouse → "Sprinkler FT-88" failure where
-        // OCR misread a neighbor's cardNumber AND FP was confused by
-        // a partial / glare-affected crop.
+        // the printed hero name. Within that hero's group, prefer the
+        // card with the smallest FP distance (best image match) — that
+        // disambiguates variants more reliably than matchScore (which
+        // is text-based and can't tell treatments apart). Falls back
+        // to matchScore when no hero-group card lands in FP top-K.
         if heroIsStrong, let hh = heroBestHero {
             let inHero = allCards.filter { heroIdentity($0) == hh }
+            let inHeroByFP = inHero.compactMap { card -> (Card, Float)? in
+                guard let d = fpDistanceById[card.id] else { return nil }
+                return (card, d)
+            }
+            if let closest = inHeroByFP.min(by: { $0.1 < $1.1 })?.0 {
+                return closest
+            }
             if let bestVariant = inHero
                 .map({ ($0, matchScore($0, observation: observation)) })
                 .max(by: { $0.1 < $1.1 })?.0 {

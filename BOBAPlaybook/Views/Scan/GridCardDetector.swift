@@ -72,21 +72,51 @@ enum GridCardDetector {
             orientation: orientation
         )
 
-        // Filter to plausibly-card-shaped anchors: aspect ratio
-        // close to 0.71 (trading-card 2.5×3.5) and at least 4% of
-        // the image's smaller dimension. Anything outside this
-        // is noise we don't want feeding into geometry inference.
-        let anchors = observations.filter { obs in
+        // Filter to plausibly-card-shaped anchors. Verified against
+        // the bundled HEIC fixtures via Tools/GridDetectorCLI: with
+        // these bounds, all four 3×3 fixtures produce 5–8 real
+        // anchors that are sufficient to anchor a clean grid.
+        //   - aspect 0.50–1.10  (covers perspective-skewed cards)
+        //   - min size 10% of image dim (excludes tiny noise rects)
+        //   - max area 36% of image (excludes "whole grid" rects
+        //     where Vision sees the entire 3×3 as one card)
+        let rawAnchors = observations.filter { obs in
             let aspect = obs.boundingBox.width / obs.boundingBox.height
-            return aspect >= 0.50 && aspect <= 0.95
-                && obs.boundingBox.width >= 0.04
-                && obs.boundingBox.height >= 0.04
+            let area = obs.boundingBox.width * obs.boundingBox.height
+            return aspect >= 0.50 && aspect <= 1.10
+                && obs.boundingBox.width >= 0.10
+                && obs.boundingBox.height >= 0.10
+                && area <= 0.36
         }
-        guard !anchors.isEmpty else { throw DetectionError.noAnchors }
+        // Dedupe overlapping anchors — toploader inner+outer rects,
+        // duplicate detections of the same card, etc. Keep the most
+        // confident one when two centers fall within 5% on both axes.
+        let dedupedAnchors = dedupOverlapping(rawAnchors)
+        guard !dedupedAnchors.isEmpty else { throw DetectionError.noAnchors }
 
-        // Infer grid geometry from the anchors.
-        let geometry = GridGeometry.infer(from: anchors)
-        guard let geometry else { throw DetectionError.noAnchors }
+        // Two-pass geometry inference. Pass 1 builds rough geometry
+        // from all anchors. Pass 2 drops anchors that fall outside
+        // any predicted cell (typical wood-grain false positives) and
+        // re-infers using only the clean ones — without this, a
+        // single stray anchor on the table can shift an entire row's
+        // predicted positions by several percent.
+        let anchors: [VNRectangleObservation]
+        if let rough = GridGeometry.infer(from: dedupedAnchors) {
+            let cellTolerance = max(rough.medianWidth, rough.medianHeight) * 0.7
+            let cleaned = dedupedAnchors.filter { obs in
+                rough.cells.contains { cell in
+                    let dx = obs.boundingBox.midX - cell.center.x
+                    let dy = obs.boundingBox.midY - cell.center.y
+                    return (dx * dx + dy * dy).squareRoot() < cellTolerance
+                }
+            }
+            anchors = cleaned.isEmpty ? dedupedAnchors : cleaned
+        } else {
+            anchors = dedupedAnchors
+        }
+        guard let geometry = GridGeometry.infer(from: anchors) else {
+            throw DetectionError.noAnchors
+        }
 
         // Generate uniform card-shaped crops at each predicted cell.
         var results: [DetectedCard] = []
@@ -144,19 +174,44 @@ enum GridCardDetector {
         on ciImage: CIImage,
         orientation: CGImagePropertyOrientation
     ) async throws -> [VNRectangleObservation] {
-        // One single permissive pass — we only need ANCHORS for
-        // grid geometry, not perfect rectangles. The grid inference
-        // step tolerates extra noise.
+        // Aggressively permissive — we only need ANCHORS for grid
+        // geometry, not perfect rectangles. Verified locally via
+        // Tools/GridDetectorCLI: at confidence 0.1, all 4 bundled
+        // HEIC fixtures yield 5–8 real-card anchors that are enough
+        // to anchor a clean 3×3 grid. The post-detection filters
+        // (aspect / area / dedup / two-pass refinement) reject the
+        // noise this brings in.
         try await performRectangleRequest(
             on: ciImage,
             orientation: orientation,
-            minimumConfidence: 0.4,
-            minimumAspectRatio: 0.45,
-            maximumAspectRatio: 0.95,
-            minimumSize: 0.04,
-            quadratureTolerance: 35,
-            maximumObservations: 50
+            minimumConfidence: 0.1,
+            minimumAspectRatio: 0.40,
+            maximumAspectRatio: 1.10,
+            minimumSize: 0.05,
+            quadratureTolerance: 45,
+            maximumObservations: 150
         )
+    }
+
+    /// Drop overlapping anchors. Keeps the higher-confidence one
+    /// when two centers fall within 5% on both axes — typical of
+    /// toploader inner+outer detections or duplicate Vision hits
+    /// at slightly different aspect ratios.
+    private static func dedupOverlapping(
+        _ anchors: [VNRectangleObservation]
+    ) -> [VNRectangleObservation] {
+        let byConfidence = anchors.sorted { $0.confidence > $1.confidence }
+        var kept: [VNRectangleObservation] = []
+        for a in byConfidence {
+            let center = CGPoint(x: a.boundingBox.midX, y: a.boundingBox.midY)
+            let isDup = kept.contains { other in
+                let dx = abs(other.boundingBox.midX - center.x)
+                let dy = abs(other.boundingBox.midY - center.y)
+                return dx < 0.05 && dy < 0.05
+            }
+            if !isDup { kept.append(a) }
+        }
+        return kept
     }
 
     private static func performRectangleRequest(

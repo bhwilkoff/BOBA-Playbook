@@ -58,6 +58,13 @@ struct GridGeometry {
     let medianWidth: CGFloat
     let medianHeight: CGFloat
 
+    /// Trading cards are 2.5×3.5 inches → aspect ratio 0.714 portrait.
+    /// We treat this as a hard constraint, not an estimate. Every
+    /// generated crop is sized to match exactly so OCR sees a
+    /// proper card shape regardless of how Vision's anchors
+    /// happened to fall.
+    static let cardAspectRatio: CGFloat = 0.714
+
     static func infer(from anchors: [VNRectangleObservation], params: Params) -> GridGeometry? {
         guard !anchors.isEmpty else { return nil }
         let widths = anchors.map { $0.boundingBox.width }.sorted()
@@ -81,14 +88,45 @@ struct GridGeometry {
 
         let rowLanesTopFirst = rowLanes.sorted(by: >)
         let colLanesLeftFirst = columnLanes.sorted()
+
+        // Card dimensions derived from GRID SPACING, not individual
+        // anchor sizes. Vision's anchors are noisy — partial detections
+        // come back smaller than the real card, the "whole grid"
+        // detection gets filtered, etc. Lane spacing is a more stable
+        // signal because it averages over multiple anchors.
+        //
+        // Formula:
+        //   cardHeight = rowSpacing × FILL_FACTOR  (fits the lane)
+        //   cardWidth  = cardHeight × cardAspectRatio  (enforces shape)
+        //
+        // FILL_FACTOR = 0.95 — leaves a tiny gap so adjacent cards
+        // don't bleed into each other's crops.
+        let fillFactor: CGFloat = 0.95
+        let colSpacing = meanSpacing(of: colLanesLeftFirst) ?? (medianWidth * 1.05)
+        let rowSpacing = meanSpacing(of: rowLanesTopFirst) ?? (medianHeight * 1.05)
+        // Use row spacing as the primary height anchor — it's
+        // perpendicular to the cards' long axis and less affected by
+        // perspective compression than column spacing.
+        let cardHeight = rowSpacing * fillFactor
+        // Width derived from the aspect ratio. We DON'T trust the
+        // measured column spacing for width — perspective skew can
+        // make cards on the right side appear narrower than the left.
+        // The aspect-ratio constraint sidesteps that entirely.
+        var cardWidth = cardHeight * cardAspectRatio
+        // Sanity: don't let the synthesized card exceed lane spacing.
+        // If aspect-ratio width exceeds lane spacing, the lanes are
+        // tighter than expected (very stacked grid) — fall back to
+        // lane-spacing × fill factor for width.
+        cardWidth = min(cardWidth, colSpacing * fillFactor)
+
         var cells: [Cell] = []
         for (rowIdx, y) in rowLanesTopFirst.enumerated() {
             for (colIdx, x) in colLanesLeftFirst.enumerated() {
                 let rect = CGRect(
-                    x: x - medianWidth / 2,
-                    y: y - medianHeight / 2,
-                    width:  medianWidth,
-                    height: medianHeight
+                    x: x - cardWidth  / 2,
+                    y: y - cardHeight / 2,
+                    width:  cardWidth,
+                    height: cardHeight
                 )
                 cells.append(Cell(
                     row: rowIdx,
@@ -98,7 +136,17 @@ struct GridGeometry {
                 ))
             }
         }
-        return GridGeometry(cells: cells, medianWidth: medianWidth, medianHeight: medianHeight)
+        return GridGeometry(cells: cells, medianWidth: cardWidth, medianHeight: cardHeight)
+    }
+
+    /// Mean of adjacent-pair gaps in a sorted lane list. Returns nil
+    /// for single-lane (no spacing to compute).
+    private static func meanSpacing(of lanes: [CGFloat]) -> CGFloat? {
+        guard lanes.count >= 2 else { return nil }
+        let sorted = lanes.sorted()
+        var gaps: [CGFloat] = []
+        for i in 1..<sorted.count { gaps.append(sorted[i] - sorted[i - 1]) }
+        return gaps.reduce(0, +) / CGFloat(gaps.count)
     }
 
     private static func clusterCenters(values: [CGFloat], tolerance: CGFloat, maxLanes: Int) -> [CGFloat] {

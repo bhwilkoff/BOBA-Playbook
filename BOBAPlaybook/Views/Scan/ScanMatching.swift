@@ -7,9 +7,54 @@ import Foundation
 /// mode ships and the dual implementations are confirmed equivalent.
 enum ScanMatching {
 
-    /// Picks the best Card from `candidates` for the given OCR
-    /// observation, using the same heuristics as ScanView's private
-    /// matchScore. Returns nil if the candidate list is empty.
+    /// Full single-card matching pipeline as it exists in
+    /// `ScanView.handleDetected`. Each Grid cell goes through this
+    /// to receive identical treatment to a single-card scan:
+    ///
+    ///   1. Filter `candidates` by `observation.cardNumber` (caller
+    ///      supplies the candidates so we can avoid taking a CardStore
+    ///      dependency in this helper).
+    ///   2. Score every candidate via `matchScore` (hero/power/element).
+    ///   3. Phase-2 image-similarity tiebreak when:
+    ///      - 2+ candidates remain after step 1
+    ///      - Top OCR score is within 2 of runner-up
+    ///      - FeaturePrintIndex is loaded
+    ///      - observation.cgImage is non-nil
+    ///      The tiebreak runs `FeaturePrintIndex.searchNearest` and
+    ///      picks the closest indexed card whose bobaId is in our
+    ///      candidate set, falling back to the OCR top pick.
+    @MainActor
+    static func resolve(
+        observation: ScanObservation,
+        candidates: [Card]
+    ) async -> Card? {
+        guard !candidates.isEmpty else { return nil }
+        let scored = candidates
+            .map { (card: $0, score: matchScore($0, observation: observation)) }
+            .sorted { $0.score > $1.score }
+        guard let best = scored.first?.card else { return nil }
+        let needsTiebreak = scored.count >= 2 &&
+                            (scored[0].score - scored[1].score) <= 2
+        if needsTiebreak,
+           let cgImage = observation.cgImage,
+           FeaturePrintIndex.shared.isLoaded {
+            let candidateBobaIds = Set(candidates.map { $0.id })
+            let nearest = await FeaturePrintIndex.shared
+                .searchNearest(in: cgImage, topK: 10)
+            if let refinedId = nearest
+                .first(where: { candidateBobaIds.contains($0.bobaId) })?.bobaId,
+               let refined = candidates.first(where: { $0.id == refinedId }) {
+                return refined
+            }
+        }
+        return best
+    }
+
+    /// Synchronous score-only version. Picks the highest-scoring
+    /// candidate without the Phase-2 image-similarity tiebreak.
+    /// Use `resolve(observation:candidates:)` when the caller has
+    /// the cropped CGImage available — that's the version that
+    /// matches `ScanView.handleDetected`.
     static func bestMatch(
         observation: ScanObservation,
         candidates: [Card]

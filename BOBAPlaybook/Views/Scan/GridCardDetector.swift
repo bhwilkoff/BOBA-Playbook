@@ -392,17 +392,23 @@ private struct GridGeometry {
         //    fillFactor 0.98 — cells nearly fill their lanes so the
         //    bottom-left card-number area isn't clipped.
         let cardAspectRatio: CGFloat = 0.714
-        let fillFactor:      CGFloat = 0.98
+        let fillFactor:      CGFloat = 0.92
         let rowLanesTopFirst = rowLanes.sorted(by: >)
         let colLanesLeftFirst = columnLanes.sorted()
         let colSpacing = meanSpacing(of: colLanesLeftFirst) ?? (medianWidth  * 1.05)
         let rowSpacing = meanSpacing(of: rowLanesTopFirst)  ?? (medianHeight * 1.05)
-        var cardHeight = rowSpacing * fillFactor
-        var cardWidth  = colSpacing * fillFactor
-        // Sanity bound — if the measured aspect drifts wildly
-        // (single-row inputs where colSpacing fell back to the
-        // anchor median, very tight grids, etc.), snap width to
-        // aspect-ratio-derived value.
+        // Cell dimensions = max(anchor-derived, lane-derived).
+        // Lane spacing × fillFactor is the "fits the lane" bound.
+        // Vision anchors are systematically smaller than the real
+        // card (~22% under-detection on bare cards), so anchor
+        // × 1.15 gives an "at-least the visible card" lower bound.
+        // Take the larger so we don't lose card edges when rows
+        // have gaps. Then cap at lane spacing × 0.98 so adjacent
+        // cells don't overlap each other.
+        var cardHeight = max(rowSpacing * fillFactor, medianHeight * 1.15)
+        var cardWidth  = max(colSpacing * fillFactor, medianWidth  * 1.15)
+        cardHeight = min(cardHeight, rowSpacing * 0.98)
+        cardWidth  = min(cardWidth,  colSpacing * 0.98)
         let measuredAspect = cardWidth / cardHeight
         if measuredAspect < 0.50 || measuredAspect > 1.00 {
             cardWidth = cardHeight * cardAspectRatio

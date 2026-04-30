@@ -105,11 +105,20 @@ struct GridGeometry {
         //
         // FILL_FACTOR = 0.98 — leaves a tiny gap so adjacent cards
         // don't bleed across cell boundaries.
-        let fillFactor: CGFloat = 0.98
+        let fillFactor: CGFloat = 0.92
         let colSpacing = meanSpacing(of: colLanesLeftFirst) ?? (medianWidth  * 1.05)
         let rowSpacing = meanSpacing(of: rowLanesTopFirst)  ?? (medianHeight * 1.05)
-        var cardHeight = rowSpacing * fillFactor
-        var cardWidth  = colSpacing * fillFactor
+        // Cell dimensions = max(anchor-derived, lane-derived).
+        // Lane spacing × fillFactor gives a "fits the lane" bound.
+        // Vision anchors are systematically smaller than the real
+        // card (~22% under-detection), so anchor × 1.15 gives an
+        // "at-least the visible card" lower bound. Take the larger
+        // so we don't lose card edges when rows have gaps.
+        var cardHeight = max(rowSpacing * fillFactor, medianHeight * 1.15)
+        var cardWidth  = max(colSpacing * fillFactor, medianWidth  * 1.15)
+        // But don't EXCEED lane spacing (would overlap neighbors).
+        cardHeight = min(cardHeight, rowSpacing * 0.98)
+        cardWidth  = min(cardWidth,  colSpacing * 0.98)
         // Sanity: aspect should be in [0.5, 1.0] for cards photographed
         // roughly portrait. If wildly off, assume one spacing is wrong
         // and snap to aspect-ratio-derived width.
@@ -420,16 +429,303 @@ struct OCRResult {
     let observations: [(text: String, midX: CGFloat, midY: CGFloat, conf: Float)]
 }
 
-func ocrCrop(_ image: CGImage, catalog: Catalog) async -> OCRResult {
+/// Multi-pass OCR strategy: try several enhancement chains, take
+/// the first one that extracts a cardNumber. After all passes fail,
+/// MERGE every pass's observations and re-run cardNumber extraction
+/// on the union — sometimes pass A finds the prefix and pass B
+/// finds the digits separately.
+func ocrCrop(_ image: CGImage, catalog: Catalog, label: String? = nil) async -> OCRResult {
+    let passes = [
+        // Standard
+        (mt: Float(0.015), c: Float(1.25), g: Float(0.65), s: Float(0.5)),
+        // Aggressive small text
+        (mt: Float(0.005), c: Float(1.6),  g: Float(0.55), s: Float(1.0)),
+        // High contrast for low-contrast bare cards
+        (mt: Float(0.008), c: Float(2.0),  g: Float(0.75), s: Float(1.5)),
+        // Lower gamma — for bright cards where standard pass blows
+        // out the highlights
+        (mt: Float(0.01),  c: Float(1.4),  g: Float(0.85), s: Float(0.8)),
+    ]
+    var allResults: [OCRResult] = []
+    for p in passes {
+        let r = await runOCRPass(
+            image: image, catalog: catalog,
+            minTextHeight: p.mt, contrast: p.c, gamma: p.g, sharpen: p.s
+        )
+        if r.cardNumber != nil { return r }
+        allResults.append(r)
+    }
+    // No single pass found a cardNumber. Try a region-focused OCR
+    // pass: crop the bottom-left badge area where the tiny
+    // cardNumbers live on First-Edition cards, upscale, blast
+    // contrast, OCR.
+    let focused = await runFocusedBottomLeftOCR(image: image, catalog: catalog, label: label)
+    if focused.cardNumber != nil { return focused }
+    allResults.append(focused)
+
+    // No single pass found a cardNumber. Merge all observations
+    // and try once more — maybe the prefix and digits came from
+    // different passes.
+    var merged: [(text: String, midX: CGFloat, midY: CGFloat, conf: Float)] = []
+    for r in allResults { merged.append(contentsOf: r.observations) }
+    let allText = merged.map { $0.text }.joined(separator: " ")
+    let blText = merged.filter { $0.midX < 0.5 && $0.midY < 0.5 }
+        .map { $0.text }
+        .joined(separator: " ")
+    let extracted = extractCardNumber(from: blText, catalog: catalog, allowPureNumber: true)
+                 ?? extractCardNumber(from: allText, catalog: catalog, allowPureNumber: false)
+    let topLeftText = merged.filter { $0.midX < 0.5 && $0.midY > 0.5 }
+        .map { $0.text }.joined(separator: " ")
+    var matched: CatalogEntry?
+    var finalCardNumber: String? = extracted
+    if let num = extracted {
+        let candidates = catalog.cards.filter { $0.cardNumber.uppercased() == num }
+        matched = bestMatch(candidates: candidates, allText: allText, topLeftText: topLeftText)
+    }
+    // Hero-name fallback: when no cardNumber could be extracted but
+    // OCR did find a recognizable hero name (Wattage's tiny badge
+    // number is OCR-unreadable but "WATTAGE" reads cleanly at the
+    // top of the card), match by hero + treatment + element + power.
+    // Catalog entries with a unique hero hit win immediately;
+    // otherwise we score and pick the best.
+    if matched == nil {
+        if let heroMatch = matchByHero(allText: allText, topLeftText: topLeftText, catalog: catalog) {
+            matched = heroMatch
+            finalCardNumber = heroMatch.cardNumber
+        }
+    }
+    return OCRResult(
+        cardNumber: finalCardNumber,
+        allText: allText,
+        bottomLeftText: blText,
+        matched: matched,
+        observations: merged
+    )
+}
+
+/// Hero-name fallback: search the catalog for entries whose hero
+/// name (or `name`) appears as a word in the OCR text. Score the
+/// candidates by treatment and element matches against the same
+/// OCR text. Returns nil if no hero word produces any catalog hit.
+///
+/// Used by Grid mode when the cardNumber on a specific card is
+/// physically unreadable (tiny low-contrast text on First-Edition
+/// cards), but the hero name at the top of the card is large and
+/// clearly OCR-recognizable.
+func matchByHero(allText: String, topLeftText: String, catalog: Catalog) -> CatalogEntry? {
+    // OCR words that could plausibly be hero names. Filter out
+    // obvious non-hero noise (FIRST, EDITION, BATTLE, ARENA, etc.).
+    let stopWords: Set<String> = [
+        "FIRST", "EDITION", "EDITON", "EDTON", "EDITVON", "EDITIDN",
+        "BATTLE", "ARENA", "BATTTE", "TARENA", "POWER", "ROOKIE",
+        "INSPIRED", "INSPIREO", "BATTLEFOIL", "BATTL", "BATTI",
+        "GLOW", "HEX", "FIRE", "ICE", "BRAWL", "STEEL", "SUPER",
+        "GUM", "SUM", "FRE", "JACKSON", "JAEKSON", "JACISON",
+        "IRIKSON", "IAIKSUN", "IKSUN", "RKSON", "BO",
+        "COST", "PLAY", "REVEAL", "REWARD", "DISCARD", "REBATE",
+        "SHUFFLE", "HAND", "DECK", "PLAYBOOK", "HERO", "HEROS",
+    ]
+    // Combine all text words; prefer top-left (hero name lives there)
+    let allWords = allText
+        .components(separatedBy: .whitespacesAndNewlines)
+        .map { $0.trimmingCharacters(in: .punctuationCharacters).uppercased() }
+        .filter { $0.count >= 4 && !stopWords.contains($0) }
+    let topLeftWords = topLeftText
+        .components(separatedBy: .whitespacesAndNewlines)
+        .map { $0.trimmingCharacters(in: .punctuationCharacters).uppercased() }
+        .filter { $0.count >= 4 && !stopWords.contains($0) }
+    // Score every catalog entry by how many heroish words match.
+    // We score across all OCR text but give triple weight to the
+    // top-left region where the hero name is printed.
+    var best: (entry: CatalogEntry, score: Int) = (catalog.cards[0], -1)
+    for entry in catalog.cards {
+        let hero = (entry.hero ?? entry.name ?? "").uppercased()
+        guard hero.count >= 4 else { continue }
+        var score = 0
+        // Direct word match — both hero and OCR word must overlap
+        for w in allWords {
+            if heroWordMatch(hero, w) { score += 1 }
+        }
+        for w in topLeftWords {
+            if heroWordMatch(hero, w) { score += 3 }
+        }
+        if score > best.score { best = (entry, score) }
+    }
+    return best.score >= 1 ? best.entry : nil
+}
+
+/// True when a hero name and an OCR word appear to refer to the
+/// same hero. Handles common OCR mistakes: prefix overlap (≥4
+/// chars), single-character substitution, and joined-word splits
+/// (PBBuckets vs PB BUCKETS).
+func heroWordMatch(_ hero: String, _ word: String) -> Bool {
+    if hero == word { return true }
+    if hero.contains(word) { return true }   // PB BUCKETS contains BUCKETS
+    if word.contains(hero) { return true }
+    // Prefix overlap (≥4 chars). Handles WAITAGE/WATTAGE,
+    // BROCK/BROCKNESS, etc.
+    let minLen = min(hero.count, word.count)
+    guard minLen >= 4 else { return false }
+    let heroPref = String(hero.prefix(minLen))
+    let wordPref = String(word.prefix(minLen))
+    if heroPref == wordPref { return true }
+    // 1-character difference within ≥5 char overlap (catches
+    // WAITAGE ↔ WATTAGE, IGBF ↔ BGBF).
+    if minLen >= 5 {
+        let heroArr = Array(hero.prefix(minLen))
+        let wordArr = Array(word.prefix(minLen))
+        let diffs = zip(heroArr, wordArr).filter { $0 != $1 }.count
+        if diffs <= 1 { return true }
+    }
+    return false
+}
+
+/// Binarize an image: convert to pure black/white based on a
+/// luminance threshold. Useful for tiny low-contrast badge text
+/// where standard contrast adjustment isn't enough — pushes the
+/// signal-to-noise ratio for OCR.
+func binarize(_ image: CGImage, invert: Bool = false) -> CGImage? {
     let ci = CIImage(cgImage: image)
-        .applyingFilter("CIGammaAdjust", parameters: ["inputPower": 0.65])
         .applyingFilter("CIColorControls", parameters: [
-            "inputSaturation": 0.0,
-            "inputContrast":   1.25,
+            "inputSaturation": Float(0.0),
+            "inputContrast":   Float(1.5),
+        ])
+    // Custom kernel via CIFilter would be ideal; CICategoryColorEffect
+    // includes CIColorPosterize which limits color levels. Posterize
+    // to 2 levels = black/white.
+    let posterized = ci.applyingFilter("CIColorPosterize", parameters: [
+        "inputLevels": Float(2.0)
+    ])
+    let final: CIImage
+    if invert {
+        final = posterized.applyingFilter("CIColorInvert")
+    } else {
+        final = posterized
+    }
+    return ciContext.createCGImage(final, from: final.extent)
+}
+
+/// Focused OCR pass for tiny horizontal cardNumbers printed in
+/// colored badge tabs at the very bottom-left of the card. Some
+/// First-Edition cards (Wattage 141, PB Buckets 7) put the number
+/// inside a small colored rectangle that's only ~20-30 pixels tall
+/// in the original crop. Standard OCR's minimumTextHeight rejects
+/// it, and contrast normalization across the whole card crop
+/// doesn't bring out the tiny number.
+///
+/// Strategy:
+///   1. Tight crop — just the bottom-left badge area (15% × 12%).
+///   2. Upscale 4×. Vision's text recognizer is much more reliable
+///      on text that's 5%+ of image height; upscaling makes the
+///      tiny badge text effectively that size.
+///   3. Run OCR with very small minimumTextHeight + heavy contrast.
+func runFocusedBottomLeftOCR(
+    image: CGImage, catalog: Catalog, label: String? = nil
+) async -> OCRResult {
+    // Try several crop sizes — different cards put the badge tab
+    // at slightly different positions/widths. First match wins.
+    let cropFractions: [(xMax: CGFloat, yMin: CGFloat, yMax: CGFloat)] = [
+        (0.20, 0.85, 1.00),  // tight badge zone
+        (0.28, 0.80, 1.00),  // a bit wider
+        (0.40, 0.75, 1.00),  // generous
+    ]
+    var best: OCRResult?
+    for frac in cropFractions {
+        let w = CGFloat(image.width), h = CGFloat(image.height)
+        // CGImage uses TOP-LEFT origin. yMin/yMax are fractions
+        // from the top; for the BOTTOM badge area we want yMin
+        // close to 0.85 and yMax = 1.00 (i.e., the bottom 15%
+        // of the card).
+        let rect = CGRect(
+            x: 0,
+            y: h * frac.yMin,
+            width:  w * frac.xMax,
+            height: h * (frac.yMax - frac.yMin)
+        )
+        guard let bl = image.cropping(to: rect),
+              let scaled = upscale(bl, factor: 4.0) else { continue }
+        if let label = label {
+            writeJPEG(scaled, to: "/tmp/grid_out/focus_\(label)_x\(Int(frac.xMax*100))y\(Int(frac.yMin*100)).jpg")
+        }
+        // Try a range of enhancement variants. Different badge tabs
+        // have different background colors / contrast directions:
+        //   - Wattage 141: dark text on LIGHT grey badge → gamma > 1
+        //   - PB Buckets 7: light text on ORANGE badge → gamma < 1
+        //   - Some Hot Dog cards: white text on dark
+        // Lower minimumTextHeight 0.03 → 0.008 because tiny badge
+        // text after 4× upscale still measures ~2% of the image
+        // height.
+        let variants: [(c: Float, g: Float, s: Float)] = [
+            (3.0, 1.50, 2.5),   // dark-on-light, darken
+            (3.0, 0.50, 2.5),   // light-on-dark, lighten
+            (2.0, 1.20, 1.5),   // mild dark-on-light
+            (2.0, 0.80, 1.5),   // mild light-on-dark
+            (4.0, 1.80, 3.0),   // extreme dark-on-light
+            (4.0, 0.40, 3.0),   // extreme light-on-dark
+        ]
+        for v in variants {
+            let r = await runOCRPass(
+                image: scaled, catalog: catalog,
+                minTextHeight: 0.008,
+                contrast: v.c, gamma: v.g, sharpen: v.s
+            )
+            if r.cardNumber != nil { return r }
+            if best == nil || r.observations.count > (best?.observations.count ?? 0) {
+                best = r
+            }
+        }
+        // Binarized variants — last resort for tiny low-contrast
+        // badge text. Tries both polarities (dark text on light,
+        // light text on dark).
+        for invert in [false, true] {
+            guard let bin = binarize(scaled, invert: invert) else { continue }
+            if let label {
+                writeJPEG(bin, to: "/tmp/grid_out/focus_\(label)_bin\(invert ? "Inv" : "").jpg")
+            }
+            let r = await runOCRPass(
+                image: bin, catalog: catalog,
+                minTextHeight: 0.008,
+                contrast: 1.0, gamma: 1.0, sharpen: 0.0
+            )
+            if r.cardNumber != nil { return r }
+            if best == nil || r.observations.count > (best?.observations.count ?? 0) {
+                best = r
+            }
+        }
+    }
+    return best ?? OCRResult(cardNumber: nil, allText: "", bottomLeftText: "",
+                             matched: nil, observations: [])
+}
+
+/// Upscale a CGImage by `factor` using CILanczosScaleTransform —
+/// gives better detail preservation than nearest-neighbor scaling
+/// and makes small text more legible to OCR.
+func upscale(_ image: CGImage, factor: CGFloat) -> CGImage? {
+    let ci = CIImage(cgImage: image)
+        .applyingFilter("CILanczosScaleTransform", parameters: [
+            kCIInputScaleKey:      Float(factor),
+            kCIInputAspectRatioKey: Float(1.0),
+        ])
+    return ciContext.createCGImage(ci, from: ci.extent)
+}
+
+func runOCRPass(
+    image: CGImage,
+    catalog: Catalog,
+    minTextHeight: Float,
+    contrast: Float,
+    gamma: Float,
+    sharpen: Float
+) async -> OCRResult {
+    let ci = CIImage(cgImage: image)
+        .applyingFilter("CIGammaAdjust", parameters: ["inputPower": gamma])
+        .applyingFilter("CIColorControls", parameters: [
+            "inputSaturation": Float(0.0),
+            "inputContrast":   contrast,
         ])
         .applyingFilter("CIUnsharpMask", parameters: [
-            "inputRadius":    2.5,
-            "inputIntensity": 0.5,
+            "inputRadius":    Float(2.5),
+            "inputIntensity": sharpen,
         ])
     return await withCheckedContinuation { (cont: CheckedContinuation<OCRResult, Never>) in
         let req = VNRecognizeTextRequest { req, _ in
@@ -469,7 +765,7 @@ func ocrCrop(_ image: CGImage, catalog: Catalog) async -> OCRResult {
         req.recognitionLevel = .accurate
         req.usesLanguageCorrection = false
         req.recognitionLanguages = ["en-US"]
-        req.minimumTextHeight = 0.015
+        req.minimumTextHeight = minTextHeight
         if !catalog.cardNumbers.isEmpty {
             req.customWords = Array(catalog.cardNumbers) + catalog.allWords
         }
@@ -501,43 +797,56 @@ func extractCardNumber(from text: String, catalog: Catalog, allowPureNumber: Boo
     // prefixes (OBF→DBF, HD→HO). Each entry is bidirectional —
     // try both orientations to recover the catalog cardNumber.
     func substitutePrefixVariants(_ s: String) -> [String] {
-        // Pairs of mutually-confusable characters in prefix
-        // position. Generates 2^N variants where N is how many
-        // pair members the prefix contains.
-        let pairs: [(Character, Character)] = [
-            ("D", "O"),
-            ("Đ", "B"),
-            ("0", "O"),
-            ("8", "B"),
-            ("5", "S"),
-            ("1", "I"),
-            ("2", "Z"),
-            ("6", "G"),
+        // For each character, list every plausible substitute (and
+        // the char itself). Generates all combinations. The previous
+        // pair-list approach broke on chars with multiple confusable
+        // alternates: "I" could swap with "1" OR "B" but we only
+        // generated one or the other depending on pair order, so
+        // "IGBF" → "BGBF" never fired.
+        let alternates: [Character: [Character]] = [
+            "D": ["D", "O", "0"],
+            "O": ["O", "D", "0"],
+            "0": ["0", "O", "D"],
+            "I": ["I", "1", "B", "L"],
+            "1": ["1", "I", "L"],
+            "L": ["L", "I", "1"],
+            "B": ["B", "8", "Đ", "I"],
+            "8": ["8", "B"],
+            "Đ": ["Đ", "B"],
+            "S": ["S", "5"],
+            "5": ["5", "S"],
+            "Z": ["Z", "2"],
+            "2": ["2", "Z"],
+            "G": ["G", "6"],
+            "6": ["6", "G"],
+            "Л": ["Л", "M"],
+            "M": ["M", "N", "Л"],
+            "N": ["N", "M"],
+            "Q": ["Q", "O"],
         ]
-        // Find which positions have a swappable character
-        var positions: [(Int, Character, Character)] = []
-        for (i, ch) in s.enumerated() {
-            for (a, b) in pairs {
-                if ch == a { positions.append((i, a, b)); break }
-                if ch == b { positions.append((i, b, a)); break }
-            }
+        // Build per-position alternate lists. Chars not in the table
+        // have just themselves.
+        let perPosAlts: [[Character]] = s.map { ch in
+            alternates[ch] ?? [ch]
         }
-        guard !positions.isEmpty else { return [s] }
-        // Cap variants — 8 swap positions × 2 = 256 max,
-        // but typical prefixes have ≤3 swaps so usually 8 variants.
-        let maxBits = min(positions.count, 6)
-        var out: [String] = []
-        for mask in 0..<(1 << maxBits) {
-            var arr = Array(s)
-            for k in 0..<maxBits {
-                if mask & (1 << k) != 0 {
-                    let (idx, _, sub) = positions[k]
-                    arr[idx] = sub
+        // Cardinality cap — combinatorial explosion guard. With
+        // typical 4-char prefix and ~3 alternates per char, max is
+        // 81 variants. Capped at 256 just in case.
+        var product = 1
+        for alts in perPosAlts { product *= alts.count }
+        guard product <= 256 else { return [s] }
+        // Generate all combinations.
+        var out: [[Character]] = [[]]
+        for alts in perPosAlts {
+            var next: [[Character]] = []
+            for prev in out {
+                for c in alts {
+                    next.append(prev + [c])
                 }
             }
-            out.append(String(arr))
+            out = next
         }
-        return out
+        return out.map { String($0) }
     }
     let range = NSRange(text.startIndex..., in: text)
     let strict = try! NSRegularExpression(
@@ -814,7 +1123,8 @@ struct GridDetectorCLI {
         var matched = 0
         if let catalog {
             for cell in result.cells {
-                let r = await ocrCrop(cell.image, catalog: catalog)
+                let r = await ocrCrop(cell.image, catalog: catalog,
+                                       label: "\(basename)_r\(cell.row)c\(cell.column)")
                 let label = cell.synthesized ? "GRID" : String(format: "%.2f", cell.confidence)
                 let status: String
                 if let m = r.matched {

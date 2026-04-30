@@ -674,6 +674,203 @@ extension CardScanner {
         }
     }
 
+    /// Multi-pass Grid-mode OCR. Runs four enhancement variants then
+    /// a focused bottom-left-badge pass for tiny low-contrast
+    /// cardNumbers. Always returns a result (with cardNumber=nil
+    /// when unrecoverable), so the caller can run hero-name
+    /// fallback on the populated text fields. Each pass uses the
+    /// same customWords vocab boost that streaming scan uses.
+    func scanGridImage(_ image: UIImage) async -> GridOCRResult {
+        guard let ciImage = CIImage(image: image) else {
+            return GridOCRResult(cardNumber: nil, allText: "", topLeftText: "",
+                                 bottomLeftText: "", topRightText: "",
+                                 bottomRightText: "", cgImage: nil)
+        }
+        return await withCheckedContinuation { (cont: CheckedContinuation<GridOCRResult, Never>) in
+            processingQueue.async { [weak self] in
+                guard let self else {
+                    cont.resume(returning: GridOCRResult(
+                        cardNumber: nil, allText: "", topLeftText: "",
+                        bottomLeftText: "", topRightText: "",
+                        bottomRightText: "", cgImage: nil))
+                    return
+                }
+                let result = self.runMultiPassGridOCR(ciImage: ciImage)
+                cont.resume(returning: result)
+            }
+        }
+    }
+
+    /// 4 enhancement variants + focused-region pass. Returns first
+    /// pass with a card-number hit; otherwise merged observations
+    /// from all passes for hero-name fallback in ScanMatching.
+    private func runMultiPassGridOCR(ciImage: CIImage) -> GridOCRResult {
+        let captured = Self.ciContext.createCGImage(ciImage, from: ciImage.extent)
+        struct PassParams {
+            let mt: Float, c: Float, g: Float, s: Float
+        }
+        let passes: [PassParams] = [
+            PassParams(mt: 0.015, c: 1.25, g: 0.65, s: 0.5),  // standard
+            PassParams(mt: 0.005, c: 1.6,  g: 0.55, s: 1.0),  // small text
+            PassParams(mt: 0.008, c: 2.0,  g: 0.75, s: 1.5),  // high contrast
+            PassParams(mt: 0.01,  c: 1.4,  g: 0.85, s: 0.8),  // bright cards
+        ]
+        var allObs: [(text: String, midX: CGFloat, midY: CGFloat)] = []
+        for p in passes {
+            let r = runSingleOCRPass(ciImage: ciImage, params: p)
+            if let cn = r.cardNumber {
+                return GridOCRResult(
+                    cardNumber: cn,
+                    allText: r.allText, topLeftText: r.topLeftText,
+                    bottomLeftText: r.bottomLeftText,
+                    topRightText: r.topRightText,
+                    bottomRightText: r.bottomRightText,
+                    cgImage: captured)
+            }
+            allObs.append(contentsOf: r.observations)
+        }
+        // Focused-region pass for tiny low-contrast badge cardNumbers
+        // (Wattage 141 et al.). Crops bottom-left 35% × 25% then
+        // upscales 4× before OCR, with multiple gamma/contrast
+        // polarities to handle dark-on-light vs light-on-dark badges.
+        if let focusResult = runFocusedBottomLeftPass(ciImage: ciImage),
+           let cn = focusResult.cardNumber {
+            return GridOCRResult(
+                cardNumber: cn,
+                allText: focusResult.allText, topLeftText: focusResult.topLeftText,
+                bottomLeftText: focusResult.bottomLeftText,
+                topRightText: focusResult.topRightText,
+                bottomRightText: focusResult.bottomRightText,
+                cgImage: captured)
+        }
+        // No pass found a cardNumber. Aggregate observations across
+        // every pass; the hero-name fallback in ScanMatching uses
+        // these to identify the card.
+        let allText = allObs.map { $0.text }.joined(separator: " ")
+        let topLeftText = allObs.filter { $0.midX < 0.5 && $0.midY > 0.5 }
+            .map { $0.text }.joined(separator: " ")
+        let bottomLeftText = allObs.filter { $0.midX < 0.5 && $0.midY <= 0.5 }
+            .map { $0.text }.joined(separator: " ")
+        let topRightText = allObs.filter { $0.midX >= 0.5 && $0.midY > 0.5 }
+            .map { $0.text }.joined(separator: " ")
+        let bottomRightText = allObs.filter { $0.midX >= 0.5 && $0.midY <= 0.5 }
+            .map { $0.text }.joined(separator: " ")
+        return GridOCRResult(
+            cardNumber: nil,
+            allText: allText, topLeftText: topLeftText,
+            bottomLeftText: bottomLeftText,
+            topRightText: topRightText,
+            bottomRightText: bottomRightText,
+            cgImage: captured)
+    }
+
+    private struct SinglePassResult {
+        let cardNumber: String?
+        let allText: String
+        let topLeftText: String
+        let topRightText: String
+        let bottomLeftText: String
+        let bottomRightText: String
+        let observations: [(text: String, midX: CGFloat, midY: CGFloat)]
+    }
+
+    private func runSingleOCRPass(
+        ciImage: CIImage, params: (mt: Float, c: Float, g: Float, s: Float)
+    ) -> SinglePassResult {
+        let enhanced = ciImage
+            .applyingFilter("CIGammaAdjust", parameters: [ "inputPower": params.g ])
+            .applyingFilter("CIColorControls", parameters: [
+                "inputSaturation": Float(0.0),
+                "inputContrast":   params.c,
+            ])
+            .applyingFilter("CIUnsharpMask", parameters: [
+                "inputRadius":    Float(2.5),
+                "inputIntensity": params.s,
+            ])
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel       = .accurate
+        request.usesLanguageCorrection = false
+        request.recognitionLanguages   = ["en-US"]
+        request.minimumTextHeight      = params.mt
+        if !customWordsCache.isEmpty {
+            request.customWords = customWordsCache
+        }
+        let handler = VNImageRequestHandler(ciImage: enhanced, options: [:])
+        guard (try? handler.perform([request])) != nil,
+              let observations = request.results else {
+            return SinglePassResult(cardNumber: nil, allText: "", topLeftText: "",
+                                    topRightText: "", bottomLeftText: "",
+                                    bottomRightText: "", observations: [])
+        }
+        var topLeft: [String] = [], topRight: [String] = []
+        var bottomLeft: [String] = [], bottomRight: [String] = []
+        var all: [String] = []
+        var obsList: [(text: String, midX: CGFloat, midY: CGFloat)] = []
+        for obs in observations {
+            guard let cand = obs.topCandidates(1).first,
+                  cand.confidence > 0.3 else { continue }
+            let text = cand.string.uppercased()
+            all.append(text)
+            obsList.append((text, obs.boundingBox.midX, obs.boundingBox.midY))
+            switch (obs.boundingBox.midX < 0.5, obs.boundingBox.midY > 0.5) {
+            case (true,  true):  topLeft.append(text)
+            case (false, true):  topRight.append(text)
+            case (true,  false): bottomLeft.append(text)
+            case (false, false): bottomRight.append(text)
+            }
+        }
+        let allText = all.joined(separator: " ")
+        let bottomLeftText = bottomLeft.joined(separator: " ")
+        let extracted = extractCardNumber(from: bottomLeftText, catalogFallback: true)
+                     ?? extractCardNumber(from: allText, catalogFallback: false)
+        return SinglePassResult(
+            cardNumber: extracted,
+            allText: allText,
+            topLeftText: topLeft.joined(separator: " "),
+            topRightText: topRight.joined(separator: " "),
+            bottomLeftText: bottomLeftText,
+            bottomRightText: bottomRight.joined(separator: " "),
+            observations: obsList)
+    }
+
+    /// Focused OCR on the bottom-left badge area where small
+    /// stylized cardNumbers live on First-Edition cards.
+    private func runFocusedBottomLeftPass(ciImage: CIImage) -> SinglePassResult? {
+        let extent = ciImage.extent
+        // Try a few crop sizes — the badge tab varies in width
+        // across treatments. CIImage uses bottom-left origin, so
+        // cropping the bottom-left = origin (0,0).
+        let cropFractions: [(xMax: CGFloat, yFrac: CGFloat)] = [
+            (0.20, 0.15), (0.28, 0.20), (0.40, 0.25),
+        ]
+        let variants: [(c: Float, g: Float, s: Float)] = [
+            (3.0, 1.50, 2.5), (3.0, 0.50, 2.5),
+            (2.0, 1.20, 1.5), (2.0, 0.80, 1.5),
+            (4.0, 1.80, 3.0), (4.0, 0.40, 3.0),
+        ]
+        for crop in cropFractions {
+            let cropRect = CGRect(
+                x: extent.minX,
+                y: extent.minY,                    // CIImage Y goes up
+                width:  extent.width  * crop.xMax,
+                height: extent.height * crop.yFrac
+            )
+            let cropped = ciImage.cropped(to: cropRect)
+                .applyingFilter("CILanczosScaleTransform", parameters: [
+                    kCIInputScaleKey:       Float(4.0),
+                    kCIInputAspectRatioKey: Float(1.0),
+                ])
+            for v in variants {
+                let r = runSingleOCRPass(
+                    ciImage: cropped,
+                    params: (mt: 0.008, c: v.c, g: v.g, s: v.s)
+                )
+                if r.cardNumber != nil { return r }
+            }
+        }
+        return nil
+    }
+
     /// Synchronous OCR worker — must be called on `processingQueue`
     /// because it touches `cardNumberSet` and `customWordsCache`.
     /// Mirrors the per-frame logic from `processFrame` but skips the

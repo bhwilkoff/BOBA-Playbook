@@ -63,7 +63,10 @@ actor ComcService {
             return entry.resp
         }
 
-        let base = WorkerConfig.comcProxyURL
+        // WorkerConfig is MainActor-isolated; hop the actor to read
+        // its static property from this non-MainActor actor. Mirrors
+        // the same pattern in PricingService.
+        let base = await MainActor.run { WorkerConfig.comcProxyURL }
         guard !base.isEmpty,
               var components = URLComponents(string: "\(base)/listings") else {
             return Response(count: 0, cardNumber: cardNumber, listings: [], challenged: nil)

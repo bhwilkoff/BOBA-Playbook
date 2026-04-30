@@ -628,6 +628,22 @@ extension CardScanner: AVCaptureVideoDataOutputSampleBufferDelegate {
     }
 }
 
+// MARK: - Grid-mode OCR result
+
+/// Output of `scanGridImage`. Carries every text observation from
+/// the multi-pass OCR pipeline, plus the matched cardNumber when
+/// extraction succeeded. Hero-name fallback (ScanMatching.matchByHero)
+/// uses `allText` and `topLeftText` when `cardNumber` is nil.
+struct GridOCRResult: Sendable {
+    let cardNumber: String?
+    let allText: String
+    let topLeftText: String
+    let bottomLeftText: String
+    let topRightText: String
+    let bottomRightText: String
+    let cgImage: CGImage?
+}
+
 // MARK: - Still-image scan path (used by Grid mode)
 
 extension CardScanner {

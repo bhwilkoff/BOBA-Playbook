@@ -3,96 +3,137 @@ import Vision
 import CoreImage
 
 /// Crops up to 9 cards out of a single photo of a 3×N grid (3×1, 3×2, or 3×3).
-/// Output is row-major (top-left → bottom-right), perspective-corrected
-/// to upright rectangles. Each crop is then run through CardScanner's
-/// still-image OCR path independently — see GridScanView for the wiring.
+/// Output is row-major (top-left → bottom-right). Each crop is then run
+/// through CardScanner's still-image OCR path independently — see
+/// GridScanView for the wiring.
 ///
-/// Design constraints:
-///   - The user is photographing physical cards laid on a table. Vision
-///     framework's `VNDetectRectanglesRequest` finds card-shaped quads
-///     directly; trading-card aspect ratio (2.5×3.5 = 0.71) is tight
-///     enough that rectangle filtering rejects most non-card content.
-///   - Cards in toploaders (clear plastic sleeves) project a slightly
-///     larger rectangle than the card itself. We detect on the
-///     toploader's outline and let the OCR pass tolerate the small
-///     border — VNRecognizeTextRequest already shrugs off frame chrome.
-///   - Photos can be taken at any angle; perspective correction is
-///     applied so each crop is rectified before OCR.
-///   - HEIC source images go through UIImage → CIImage cleanly without
-///     extra format-specific handling.
+/// Approach (rev 3, 2026-04-29):
+///   Vision's `VNDetectRectanglesRequest` is unreliable as a primary
+///   crop source — it under-detects on cards in toploaders and
+///   over-detects spurious rectangles when params are loosened. So
+///   we treat its detections as ANCHORS, not crops:
+///
+///     1. Run rect detection permissively to get whatever it finds.
+///     2. Filter to card-shaped anchors (aspect ~0.71 ± 25%).
+///     3. Cluster anchor X centers into column lanes (1, 2, or 3).
+///        Cluster Y centers into row lanes (1, 2, or 3).
+///     4. Take the median anchor size to set the canonical card
+///        dimensions.
+///     5. For each (row, col) in the inferred grid, compute the
+///        predicted card center using lane positions, then
+///        synthesize a uniform card-shaped crop rectangle at that
+///        position.
+///     6. If a real anchor lands close to a predicted center, use
+///        its quad for perspective correction. Otherwise emit an
+///        axis-aligned crop at the predicted position.
+///
+///   Result: every grid cell gets a uniform card-shaped crop, even
+///   the cells where Vision found nothing. OCR sees consistent
+///   inputs instead of the random rectangles Vision happened to
+///   surface.
 enum GridCardDetector {
 
     /// One detected card-shaped region, ready for OCR.
     struct DetectedCard {
         /// 0-indexed grid position. Row-major: 0=top-left, 1=top-middle,
-        /// 2=top-right, 3=middle-left, ..., 8=bottom-right. Skips
-        /// indexes when fewer than 9 cards detected (e.g. a 3×2 grid
-        /// produces gridIndex 0..5, all in the top two rows).
+        /// 2=top-right, 3=middle-left, ..., 8=bottom-right.
         let gridIndex: Int
         let row: Int
         let column: Int
-        /// Perspective-corrected upright UIImage of just this card.
+        /// Card-shaped upright UIImage. Either perspective-corrected
+        /// from a Vision anchor or axis-aligned at the inferred
+        /// grid position.
         let image: UIImage
-        /// Original quad in normalized (0..1) image coords — useful for
-        /// drawing the detected outline back over the source image.
-        let quad: VNRectangleObservation
-        /// Vision's rectangle-detection confidence (0..1). Surfaced so
-        /// the test harness can correlate "OCR failed" cells with
-        /// detector confidence to figure out whether OCR is failing
-        /// on real cards or on weak/spurious detections.
+        /// Anchor confidence — Vision's rectangle confidence when
+        /// this crop came from a detected anchor; 0 when the crop
+        /// is synthesized from grid inference (no anchor close to
+        /// the predicted position).
         let confidence: Float
+        /// True when the crop is synthesized (no real anchor at
+        /// this grid cell). Useful diagnostic in the test harness.
+        let synthesized: Bool
     }
 
     enum DetectionError: Error {
         case ciImageFailed
         case visionFailed(Error)
-        case noRectangles
+        case noAnchors
     }
 
-    /// Detects up to 9 cards in `image` and returns them in row-major
-    /// order. Throws when the input can't be converted to CIImage; an
-    /// empty rectangle list returns `noRectangles` (the caller usually
-    /// surfaces this as "couldn't find any cards — try again with
-    /// better lighting").
     static func detect(in image: UIImage) async throws -> [DetectedCard] {
         guard let ciImage = CIImage(image: image) else {
             throw DetectionError.ciImageFailed
         }
-        // Apply EXIF orientation so the detector sees the photo the way
-        // the user shot it. Vision's normalized coords are top/bottom
-        // sensitive to orientation; without this, a portrait photo
-        // taken in landscape EXIF mode produces sideways crops.
         let orientation = cgImageOrientation(from: image.imageOrientation)
+        let oriented = ciImage.oriented(orientation)
 
         let observations = try await runRectangleRequest(
             on: ciImage,
             orientation: orientation
         )
-        guard !observations.isEmpty else { throw DetectionError.noRectangles }
 
-        // Sort detected rectangles into 3-column grid order. Cluster
-        // by Y first (rows), then sort columns within each row by X.
-        let sorted = sortIntoGrid(observations)
+        // Filter to plausibly-card-shaped anchors: aspect ratio
+        // close to 0.71 (trading-card 2.5×3.5) and at least 4% of
+        // the image's smaller dimension. Anything outside this
+        // is noise we don't want feeding into geometry inference.
+        let anchors = observations.filter { obs in
+            let aspect = obs.boundingBox.width / obs.boundingBox.height
+            return aspect >= 0.50 && aspect <= 0.95
+                && obs.boundingBox.width >= 0.04
+                && obs.boundingBox.height >= 0.04
+        }
+        guard !anchors.isEmpty else { throw DetectionError.noAnchors }
 
-        // Limit to 9 — the largest grid we promise to support — then
-        // perspective-correct each. Order is preserved so gridIndex
-        // matches the user's mental layout.
+        // Infer grid geometry from the anchors.
+        let geometry = GridGeometry.infer(from: anchors)
+        guard let geometry else { throw DetectionError.noAnchors }
+
+        // Generate uniform card-shaped crops at each predicted cell.
         var results: [DetectedCard] = []
-        for (index, item) in sorted.prefix(9).enumerated() {
-            if let cropped = perspectiveCorrect(
-                ciImage: ciImage,
-                observation: item.observation,
-                orientation: orientation
-            ) {
-                results.append(DetectedCard(
-                    gridIndex:  index,
-                    row:        item.row,
-                    column:     item.column,
-                    image:      cropped,
-                    quad:       item.observation,
-                    confidence: item.observation.confidence
-                ))
+        for (gridIndex, cell) in geometry.cells.enumerated() {
+            // Find the closest anchor to this cell's predicted
+            // center. If it's within tolerance, use its quad for
+            // perspective correction (preserves any tilt visible
+            // in the photo). Otherwise axis-align — still gives
+            // OCR a card-shaped crop at the right spot.
+            let nearestAnchor = anchors.min { lhs, rhs in
+                let l = CGPoint(x: lhs.boundingBox.midX, y: lhs.boundingBox.midY)
+                let r = CGPoint(x: rhs.boundingBox.midX, y: rhs.boundingBox.midY)
+                return distance(l, cell.center) < distance(r, cell.center)
             }
+            // Tolerance = half the median card half-width. Anything
+            // farther than that is "too far to count as the same
+            // card" and we use the synthesized axis-aligned crop.
+            let tolerance = geometry.medianWidth / 2
+            let crop: UIImage?
+            let confidence: Float
+            let synthesized: Bool
+            if let anchor = nearestAnchor,
+               distance(CGPoint(x: anchor.boundingBox.midX, y: anchor.boundingBox.midY), cell.center) < tolerance {
+                crop = perspectiveCorrect(
+                    oriented: oriented,
+                    observation: anchor,
+                    bleed: 0.04
+                )
+                confidence = anchor.confidence
+                synthesized = false
+            } else {
+                crop = axisAlignedCrop(
+                    oriented: oriented,
+                    cellRect: cell.rect
+                )
+                confidence = 0
+                synthesized = true
+            }
+            guard let crop else { continue }
+            results.append(DetectedCard(
+                gridIndex:   gridIndex,
+                row:         cell.row,
+                column:      cell.column,
+                image:       crop,
+                confidence:  confidence,
+                synthesized: synthesized
+            ))
         }
         return results
     }
@@ -103,47 +144,19 @@ enum GridCardDetector {
         on ciImage: CIImage,
         orientation: CGImagePropertyOrientation
     ) async throws -> [VNRectangleObservation] {
-        // First pass with reasonable confidence + a tight aspect-ratio
-        // band. Only fall back when the primary pass returns fewer
-        // rectangles than the largest grid we support (9). When
-        // primary already finds 9+, the fallback would just inject
-        // lower-quality rectangles that pollute downstream OCR —
-        // observed in the 2026-04-29 fixture run where IMG_5229 went
-        // from 9 detected → 9/9 detected but 4/9 matched because
-        // a spurious mid-row rectangle clipped through two cards.
-        let primary = try await performRectangleRequest(
+        // One single permissive pass — we only need ANCHORS for
+        // grid geometry, not perfect rectangles. The grid inference
+        // step tolerates extra noise.
+        try await performRectangleRequest(
             on: ciImage,
             orientation: orientation,
-            minimumConfidence: 0.6,
-            minimumAspectRatio: 0.50,
-            maximumAspectRatio: 0.90,
-            minimumSize: 0.05,
-            quadratureTolerance: 30,
-            maximumObservations: 30
-        )
-        if primary.count >= 9 {
-            return primary
-        }
-        // Permissive fallback. Drops confidence to 0.3 and widens the
-        // aspect-ratio window — picks up cards whose edges are low-
-        // contrast against the background or whose perspective is
-        // skewed enough to push them past the tight pass. Cards in
-        // toploaders on glossy wood are the canonical failure mode
-        // the first pass misses.
-        let fallback = try await performRectangleRequest(
-            on: ciImage,
-            orientation: orientation,
-            minimumConfidence: 0.3,
-            minimumAspectRatio: 0.40,
-            maximumAspectRatio: 1.00,
+            minimumConfidence: 0.4,
+            minimumAspectRatio: 0.45,
+            maximumAspectRatio: 0.95,
             minimumSize: 0.04,
-            quadratureTolerance: 40,
+            quadratureTolerance: 35,
             maximumObservations: 50
         )
-        // Merge primary + fallback, deduplicating overlapping detections.
-        // Primary's higher-confidence rectangles win ties via the
-        // existing dedup pass downstream.
-        return primary + fallback
     }
 
     private static func performRectangleRequest(
@@ -171,7 +184,6 @@ enum GridCardDetector {
             request.minimumConfidence    = minimumConfidence
             request.maximumObservations  = maximumObservations
             request.quadratureTolerance  = quadratureTolerance
-
             let handler = VNImageRequestHandler(ciImage: ciImage, orientation: orientation)
             do {
                 try handler.perform([request])
@@ -181,108 +193,19 @@ enum GridCardDetector {
         }
     }
 
-    // MARK: - Grid sorting
-
-    /// Cluster Y-positions into rows, then sort each row left-to-right.
-    /// Vision returns observations in detector confidence order; we
-    /// need them in reading order so each detected card's gridIndex
-    /// matches the user's mental layout.
-    private static func sortIntoGrid(
-        _ observations: [VNRectangleObservation]
-    ) -> [(observation: VNRectangleObservation, row: Int, column: Int)] {
-        // Deduplicate — toploader-encased cards sometimes produce
-        // overlapping inner+outer detections. Keep the higher-
-        // confidence observation when two centers fall within 5% of
-        // each other on both axes.
-        let deduped = deduplicateOverlapping(observations)
-
-        // Sort by Y descending. Vision normalized coords use the
-        // bottom-left origin, so a higher Y means closer to the
-        // top of the image — matching the user's "row 1" instinct.
-        let byY = deduped.sorted { $0.boundingBox.midY > $1.boundingBox.midY }
-
-        // Cluster into rows. Two observations belong to the same row
-        // when their Y-centers are within `rowTolerance` of each
-        // other. Tolerance is 0.10 (10% of image height) — wide
-        // enough to absorb minor misalignment but tight enough to
-        // distinguish three adjacent rows in a 3×3.
-        let rowTolerance: CGFloat = 0.10
-        var rows: [[VNRectangleObservation]] = []
-        for obs in byY {
-            if let lastRow = rows.last,
-               let lastInRow = lastRow.first,
-               abs(lastInRow.boundingBox.midY - obs.boundingBox.midY) < rowTolerance {
-                rows[rows.count - 1].append(obs)
-            } else {
-                rows.append([obs])
-            }
-        }
-
-        // Sort each row left-to-right and emit (observation, row, col).
-        var output: [(observation: VNRectangleObservation, row: Int, column: Int)] = []
-        for (rowIdx, row) in rows.enumerated() {
-            let sortedCols = row.sorted { $0.boundingBox.midX < $1.boundingBox.midX }
-            for (colIdx, obs) in sortedCols.enumerated() {
-                output.append((obs, rowIdx, colIdx))
-            }
-        }
-        return output
-    }
-
-    private static func deduplicateOverlapping(
-        _ observations: [VNRectangleObservation]
-    ) -> [VNRectangleObservation] {
-        // Keep observations sorted by descending confidence so the
-        // higher-confidence one survives a duplicate pair. Threshold
-        // tightened from 5% → 3% so the fallback (looser) pass's
-        // rectangles aren't collapsed into the primary pass's
-        // rectangles unless they're really at the same spot. In a
-        // 3×3 grid each card center sits ~33% apart on each axis,
-        // so 3% is comfortably tight enough to keep separate cards
-        // separate but still merge inner/outer toploader detections.
-        let byConfidence = observations.sorted { $0.confidence > $1.confidence }
-        var kept: [VNRectangleObservation] = []
-        for obs in byConfidence {
-            let center = CGPoint(x: obs.boundingBox.midX, y: obs.boundingBox.midY)
-            let isDuplicate = kept.contains { other in
-                let dx = abs(other.boundingBox.midX - center.x)
-                let dy = abs(other.boundingBox.midY - center.y)
-                return dx < 0.03 && dy < 0.03
-            }
-            if !isDuplicate { kept.append(obs) }
-        }
-        return kept
-    }
-
-    // MARK: - Perspective correction
+    // MARK: - Perspective correction (anchor → crop)
 
     private static let ciContext = CIContext(options: [.useSoftwareRenderer: false])
 
-    /// Use the rectangle's four corners to perspective-correct it into
-    /// an upright crop. Coordinates are denormalized to image space,
-    /// then handed to CIPerspectiveCorrection. Each corner is pushed
-    /// outward by `bleedPercent` along both axes so the OCR pass
-    /// receives the full card edge — Vision's detected corners often
-    /// land 1-2% inside the card border, which would otherwise clip
-    /// the bottom-left card number we depend on for catalog lookup.
+    /// Perspective-correct a Vision anchor into an upright crop.
+    /// Bleed nudges each corner outward to recover the bottom-left
+    /// cardNumber that Vision's corners often clip past.
     private static func perspectiveCorrect(
-        ciImage: CIImage,
+        oriented: CIImage,
         observation: VNRectangleObservation,
-        orientation: CGImagePropertyOrientation
+        bleed: CGFloat
     ) -> UIImage? {
-        // Apply EXIF orientation to the source so the corner points
-        // (which are in the same orientation Vision reported) line
-        // up with the pixel space CIPerspectiveCorrection samples.
-        let oriented = ciImage.oriented(orientation)
         let extent = oriented.extent
-
-        // 4% bleed = nudge each corner outward 4% of the rectangle
-        // diagonal away from its center. Picked empirically: smaller
-        // values still clipped card numbers on toploader-encased
-        // cards (where the toploader inset eats a few percent of
-        // the card edge); larger values started pulling neighboring
-        // cards' edges into the crop.
-        let bleed: CGFloat = 0.04
         let center = CGPoint(x: observation.boundingBox.midX,
                              y: observation.boundingBox.midY)
         func bled(_ p: CGPoint) -> CGPoint {
@@ -292,10 +215,6 @@ enum GridCardDetector {
             )
         }
         func denorm(_ p: CGPoint) -> CIVector {
-            // Clamp to [0,1] before denorm so a card that already
-            // sits flush against the image edge doesn't sample
-            // beyond the source extent (which would produce black
-            // bars and confuse OCR).
             let clamped = CGPoint(
                 x: min(max(p.x, 0), 1),
                 y: min(max(p.y, 0), 1)
@@ -305,27 +224,50 @@ enum GridCardDetector {
                 y: clamped.y * extent.height + extent.origin.y
             )
         }
-
         let filter = CIFilter(name: "CIPerspectiveCorrection")!
         filter.setValue(oriented, forKey: kCIInputImageKey)
         filter.setValue(denorm(bled(observation.topLeft)),     forKey: "inputTopLeft")
         filter.setValue(denorm(bled(observation.topRight)),    forKey: "inputTopRight")
         filter.setValue(denorm(bled(observation.bottomLeft)),  forKey: "inputBottomLeft")
         filter.setValue(denorm(bled(observation.bottomRight)), forKey: "inputBottomRight")
-        guard let corrected = filter.outputImage else { return nil }
-        guard let cgImage = ciContext.createCGImage(corrected, from: corrected.extent) else {
-            return nil
-        }
+        guard let corrected = filter.outputImage,
+              let cgImage = ciContext.createCGImage(corrected, from: corrected.extent)
+        else { return nil }
+        return UIImage(cgImage: cgImage)
+    }
+
+    /// Generate an axis-aligned crop at the predicted grid cell rect.
+    /// Used when no Vision anchor is close enough to perspective-
+    /// correct from. The crop is always card-shaped because the
+    /// rect comes from the grid inference (which uses the median
+    /// anchor dimensions, themselves card-shaped).
+    private static func axisAlignedCrop(
+        oriented: CIImage,
+        cellRect: CGRect
+    ) -> UIImage? {
+        let extent = oriented.extent
+        // Clamp the rect to the image bounds so cells near the edge
+        // don't sample past the source.
+        let clamped = CGRect(
+            x: max(cellRect.minX, 0),
+            y: max(cellRect.minY, 0),
+            width:  min(cellRect.width,  1 - max(cellRect.minX, 0)),
+            height: min(cellRect.height, 1 - max(cellRect.minY, 0))
+        )
+        let pixelRect = CGRect(
+            x: clamped.minX * extent.width  + extent.origin.x,
+            y: clamped.minY * extent.height + extent.origin.y,
+            width:  clamped.width  * extent.width,
+            height: clamped.height * extent.height
+        )
+        let cropped = oriented.cropped(to: pixelRect)
+        guard let cgImage = ciContext.createCGImage(cropped, from: pixelRect)
+        else { return nil }
         return UIImage(cgImage: cgImage)
     }
 
     // MARK: - Orientation
 
-    /// Map UIImage.Orientation → CGImagePropertyOrientation. Vision
-    /// uses the latter; UIImage carries the former. Without this
-    /// translation, photos taken in portrait mode (which UIKit
-    /// stamps as `.right`) get processed as if landscape — the
-    /// detected rectangles come back rotated 90°.
     private static func cgImageOrientation(
         from uiOrientation: UIImage.Orientation
     ) -> CGImagePropertyOrientation {
@@ -339,6 +281,140 @@ enum GridCardDetector {
         case .leftMirrored:  return .leftMirrored
         case .rightMirrored: return .rightMirrored
         @unknown default:    return .up
+        }
+    }
+
+    private static func distance(_ a: CGPoint, _ b: CGPoint) -> CGFloat {
+        let dx = a.x - b.x, dy = a.y - b.y
+        return (dx * dx + dy * dy).squareRoot()
+    }
+}
+
+// MARK: - GridGeometry
+
+/// Inferred card-grid geometry from a set of Vision anchors.
+/// Computes column lanes, row lanes, median card size, and a
+/// predicted rect for every (row, col) cell.
+private struct GridGeometry {
+    struct Cell {
+        let row: Int
+        let column: Int
+        let center: CGPoint
+        let rect: CGRect
+    }
+    let cells: [Cell]   // row-major, top-to-bottom, left-to-right
+    let medianWidth:  CGFloat
+    let medianHeight: CGFloat
+
+    /// Build geometry from the supplied anchors. Returns nil only
+    /// when there's literally no anchor to work from.
+    static func infer(from anchors: [VNRectangleObservation]) -> GridGeometry? {
+        guard !anchors.isEmpty else { return nil }
+
+        // 1. Median anchor dimensions. Robust to a few outliers
+        //    (toploader rectangles inflated, or partial detections
+        //    that came back smaller than the real card).
+        let widths  = anchors.map { $0.boundingBox.width  }.sorted()
+        let heights = anchors.map { $0.boundingBox.height }.sorted()
+        let medianWidth  = widths[widths.count / 2]
+        let medianHeight = heights[heights.count / 2]
+
+        // 2. Cluster X-centers into 1, 2, or 3 column lanes. We
+        //    cap at 3 columns because that's the largest grid the
+        //    feature spec supports. Tolerance scales with the
+        //    median card width — two anchors are in the same
+        //    column lane when their X-centers are within half a
+        //    card width.
+        let xCenters = anchors.map { $0.boundingBox.midX }
+        let columnLanes = clusterCenters(
+            values: xCenters,
+            tolerance: medianWidth * 0.5,
+            maxLanes: 3
+        )
+        // 3. Cluster Y-centers into row lanes (1..3).
+        let yCenters = anchors.map { $0.boundingBox.midY }
+        let rowLanes = clusterCenters(
+            values: yCenters,
+            tolerance: medianHeight * 0.5,
+            maxLanes: 3
+        )
+
+        guard !columnLanes.isEmpty, !rowLanes.isEmpty else { return nil }
+
+        // 4. Generate a Cell at every (row × column) intersection.
+        //    Vision normalized coords use bottom-left origin, so
+        //    the "top" row in the user's mental model has the
+        //    highest Y value. We sort rowLanes descending to walk
+        //    top-to-bottom.
+        let rowLanesTopFirst = rowLanes.sorted(by: >)
+        let colLanesLeftFirst = columnLanes.sorted()
+        var cells: [Cell] = []
+        for (rowIdx, y) in rowLanesTopFirst.enumerated() {
+            for (colIdx, x) in colLanesLeftFirst.enumerated() {
+                let rect = CGRect(
+                    x: x - medianWidth  / 2,
+                    y: y - medianHeight / 2,
+                    width:  medianWidth,
+                    height: medianHeight
+                )
+                cells.append(Cell(
+                    row:    rowIdx,
+                    column: colIdx,
+                    center: CGPoint(x: x, y: y),
+                    rect:   rect
+                ))
+            }
+        }
+        return GridGeometry(
+            cells:        cells,
+            medianWidth:  medianWidth,
+            medianHeight: medianHeight
+        )
+    }
+
+    /// Cluster a list of normalized 1D coordinates into at most
+    /// `maxLanes` distinct lane centers. Two values belong to the
+    /// same lane when they're within `tolerance` of each other.
+    /// Lanes are returned as the MEAN of the values that joined
+    /// them — gives a stable estimate even when individual
+    /// detections wander a few percent.
+    ///
+    /// When more than `maxLanes` natural clusters appear (bad
+    /// detections far from the real grid), we keep the
+    /// `maxLanes` largest clusters by member count — the user's
+    /// real card grid is the dominant pattern; spurious anchors
+    /// are scattered.
+    private static func clusterCenters(
+        values: [CGFloat],
+        tolerance: CGFloat,
+        maxLanes: Int
+    ) -> [CGFloat] {
+        guard !values.isEmpty else { return [] }
+        let sorted = values.sorted()
+        // Single-link clustering on sorted values.
+        var clusters: [[CGFloat]] = []
+        for v in sorted {
+            if let last = clusters.last,
+               let lastEnd = last.last,
+               (v - lastEnd) < tolerance {
+                clusters[clusters.count - 1].append(v)
+            } else {
+                clusters.append([v])
+            }
+        }
+        // Keep the largest clusters when we exceed maxLanes.
+        let keepers: [[CGFloat]]
+        if clusters.count > maxLanes {
+            keepers = clusters
+                .sorted { $0.count > $1.count }
+                .prefix(maxLanes)
+                .map { $0 }
+        } else {
+            keepers = clusters
+        }
+        // Lane center = mean of cluster members.
+        return keepers.map { cluster in
+            cluster.reduce(0, +) / CGFloat(cluster.count)
         }
     }
 }

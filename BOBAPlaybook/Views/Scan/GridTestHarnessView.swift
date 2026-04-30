@@ -51,10 +51,16 @@ struct GridTestHarnessView: View {
         let crop: UIImage
         let observation: ScanObservation?
         let matchedCard: Card?
-        /// Detector confidence (0..1). Helps diagnose whether OCR
-        /// failures cluster around low-confidence rectangles
-        /// (spurious/mis-cropped detections) or hit clean ones too.
+        /// Anchor confidence (0..1) when the crop came from a
+        /// Vision-detected rectangle. 0 when the crop is
+        /// synthesized at an inferred grid cell.
         let detectionConfidence: Float
+        /// True when no Vision anchor was close enough to this
+        /// grid cell, so we generated an axis-aligned crop at
+        /// the predicted position. Lets the harness label these
+        /// "GRID" so we can see whether the synthesized crops
+        /// are doing their job.
+        let synthesized: Bool
     }
 
     var body: some View {
@@ -190,9 +196,16 @@ struct GridTestHarnessView: View {
                     Text("[\(detected.row),\(detected.column)]")
                         .font(.system(.caption2, design: .monospaced))
                         .foregroundStyle(.secondary)
-                    Text(String(format: "%.2f", detected.detectionConfidence))
-                        .font(.system(.caption2, design: .monospaced))
-                        .foregroundStyle(detected.detectionConfidence >= 0.8 ? .secondary : .orange)
+                    if detected.synthesized {
+                        // Crop came from grid inference, not a Vision anchor.
+                        Text("GRID")
+                            .font(.system(.caption2, design: .monospaced).weight(.bold))
+                            .foregroundStyle(.cyan)
+                    } else {
+                        Text(String(format: "%.2f", detected.detectionConfidence))
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundStyle(detected.detectionConfidence >= 0.8 ? .secondary : .orange)
+                    }
                 }
                 if let card = detected.matchedCard {
                     Text(card.cardNumber)
@@ -295,7 +308,8 @@ struct GridTestHarnessView: View {
                     crop:       d.image,
                     observation: observation,
                     matchedCard: matched,
-                    detectionConfidence: d.confidence
+                    detectionConfidence: d.confidence,
+                    synthesized: d.synthesized
                 ))
             }
 

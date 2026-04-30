@@ -396,21 +396,46 @@ private struct GridGeometry {
 
         guard !columnLanes.isEmpty, !rowLanes.isEmpty else { return nil }
 
-        // 4. Generate a Cell at every (row × column) intersection.
-        //    Vision normalized coords use bottom-left origin, so
-        //    the "top" row in the user's mental model has the
-        //    highest Y value. We sort rowLanes descending to walk
-        //    top-to-bottom.
+        // 4. Card dimensions — derived from grid spacing, not from
+        //    individual Vision anchors. Anchors are noisy: partial
+        //    detections come back smaller than the real card; the
+        //    "whole grid" detection gets filtered. Lane spacing
+        //    averages over many anchors and is much more stable.
+        //
+        //    Trading cards are 2.5×3.5" → aspect ratio 0.714. We
+        //    treat that as a HARD CONSTRAINT — every synthesized
+        //    crop is sized to match exactly so OCR sees a properly
+        //    proportioned card regardless of which anchors Vision
+        //    happened to find.
+        let cardAspectRatio: CGFloat = 0.714
+        let fillFactor:      CGFloat = 0.95
         let rowLanesTopFirst = rowLanes.sorted(by: >)
         let colLanesLeftFirst = columnLanes.sorted()
+        let colSpacing = meanSpacing(of: colLanesLeftFirst) ?? (medianWidth  * 1.05)
+        let rowSpacing = meanSpacing(of: rowLanesTopFirst)  ?? (medianHeight * 1.05)
+        // Row spacing is perpendicular to the cards' long axis and
+        // less affected by perspective compression than column
+        // spacing — use it as the primary height anchor, then
+        // derive width from the aspect ratio.
+        let cardHeight = rowSpacing * fillFactor
+        var cardWidth  = cardHeight * cardAspectRatio
+        // If aspect-ratio width exceeds available column spacing,
+        // the grid is unusually tight — clamp so adjacent cells
+        // don't overlap.
+        cardWidth = min(cardWidth, colSpacing * fillFactor)
+
+        // 5. Generate a Cell at every (row × column) intersection.
+        //    Vision normalized coords use bottom-left origin, so
+        //    the "top" row in the user's mental model has the
+        //    highest Y value (already sorted descending above).
         var cells: [Cell] = []
         for (rowIdx, y) in rowLanesTopFirst.enumerated() {
             for (colIdx, x) in colLanesLeftFirst.enumerated() {
                 let rect = CGRect(
-                    x: x - medianWidth  / 2,
-                    y: y - medianHeight / 2,
-                    width:  medianWidth,
-                    height: medianHeight
+                    x: x - cardWidth  / 2,
+                    y: y - cardHeight / 2,
+                    width:  cardWidth,
+                    height: cardHeight
                 )
                 cells.append(Cell(
                     row:    rowIdx,
@@ -422,9 +447,19 @@ private struct GridGeometry {
         }
         return GridGeometry(
             cells:        cells,
-            medianWidth:  medianWidth,
-            medianHeight: medianHeight
+            medianWidth:  cardWidth,
+            medianHeight: cardHeight
         )
+    }
+
+    /// Mean of adjacent-pair gaps in a sorted lane list. Returns nil
+    /// for single-lane inputs where no spacing can be computed.
+    private static func meanSpacing(of lanes: [CGFloat]) -> CGFloat? {
+        guard lanes.count >= 2 else { return nil }
+        let sorted = lanes.sorted()
+        var gaps: [CGFloat] = []
+        for i in 1..<sorted.count { gaps.append(sorted[i] - sorted[i - 1]) }
+        return gaps.reduce(0, +) / CGFloat(gaps.count)
     }
 
     /// Cluster a list of normalized 1D coordinates into at most

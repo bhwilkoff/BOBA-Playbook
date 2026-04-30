@@ -358,17 +358,14 @@ struct GridScanView: View {
                 scanStore.addToQueue(card)
             }
         }
+        // Signal the parent BEFORE dismissing — the parent's
+        // `.fullScreenCover(... onDismiss:)` reads the flag we set
+        // here AFTER the dismissal animation finishes, then opens
+        // the queue-review sheet. Setting it inside our own dismiss
+        // window (or via Task.sleep) silently no-ops because SwiftUI
+        // suppresses overlapping presentations on the host view.
+        onAddedToQueue()
         dismiss()
-        // Defer the queue-review presentation until after the
-        // fullScreenCover dismissal animation completes. SwiftUI
-        // suppresses a sheet presentation while another presentation
-        // is animating, which silently no-op'd `showQueueView = true`
-        // when set inside the same call frame as `dismiss()`. ~450ms
-        // covers the standard fullScreenCover dismissal.
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 450_000_000)
-            onAddedToQueue()
-        }
     }
 }
 

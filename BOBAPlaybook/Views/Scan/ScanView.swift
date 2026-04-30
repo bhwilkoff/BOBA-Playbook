@@ -32,6 +32,12 @@ struct ScanView: View {
     /// Presented as a fullScreenCover when the user taps the GRID
     /// mode pill. Independent of the streaming AVFoundation pipeline.
     @State private var showGridScan = false
+    /// Set to true by GridScanView's `onAddedToQueue` callback BEFORE
+    /// it dismisses. Read in `.fullScreenCover(... onDismiss:)` so the
+    /// queue-review sheet only opens AFTER the cover has fully closed
+    /// — chained presentations don't work when the second presentation
+    /// is set inside the first's lifetime.
+    @State private var pendingQueueOpen = false
 
     // MARK: - Body
 
@@ -266,14 +272,36 @@ struct ScanView: View {
             .padding(.trailing, Design.Spacing.lg)
             .padding(.bottom, 90)
         }
-        .fullScreenCover(isPresented: $showGridScan) {
-            // After Grid scan completes the user lands back here.
-            // If they added cards to the queue, surface the queue
-            // review interface so they can confirm pricing and
-            // route to collection / show before saving.
-            GridScanView(onAddedToQueue: {
+        .fullScreenCover(isPresented: $showGridScan, onDismiss: {
+            // Restart the streaming scanner — it was paused below in
+            // .onChange when the cover opened so UIImagePickerController
+            // could acquire the camera hardware cleanly.
+            scanner.start()
+            // Open the queue-review sheet only after the fullScreenCover
+            // dismissal animation has fully completed. Setting the sheet
+            // binding inside the cover's lifetime (or in a Task.sleep
+            // after dismiss()) silently no-ops because SwiftUI suppresses
+            // overlapping presentations on the same host view.
+            if pendingQueueOpen {
+                pendingQueueOpen = false
                 showQueueView = true
+            }
+        }) {
+            GridScanView(onAddedToQueue: {
+                pendingQueueOpen = true
             })
+        }
+        // Stop the streaming AVFoundation session whenever the Grid
+        // cover is on top. Without this, two camera consumers fight
+        // for the same hardware (FigCaptureSourceRemote err=-17281,
+        // "Attempted to change to mode Portrait with an unsupported
+        // device" in the console) and UIImagePickerController returns
+        // a degraded image — handheld grid shots only resolved 1–2
+        // cards out of 9 because of this contention.
+        .onChange(of: showGridScan) { _, newValue in
+            if newValue {
+                scanner.stop()
+            }
         }
     }
 

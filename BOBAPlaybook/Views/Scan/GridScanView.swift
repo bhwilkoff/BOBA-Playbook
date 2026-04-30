@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 import PhotosUI
 import AVFoundation
+import Combine
 
 /// User-facing Grid scan mode. Shows a single image (camera capture
 /// or photo library selection) and runs it through the full Grid
@@ -512,6 +513,11 @@ struct GridCameraCaptureView: View {
 /// AVFoundation's blocking start/stop calls and the continuation
 /// is never raced.
 final class GridStillCamera: NSObject, ObservableObject, @unchecked Sendable {
+    /// We don't broadcast any state to SwiftUI; this exists solely to
+    /// satisfy `ObservableObject`, which `@StateObject` requires.
+    /// Without a `@Published` property the protocol's default
+    /// synthesis isn't generated, so we provide the publisher manually.
+    let objectWillChange = ObservableObjectPublisher()
     let session = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
     private let configQueue = DispatchQueue(

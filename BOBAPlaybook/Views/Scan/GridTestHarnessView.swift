@@ -204,7 +204,7 @@ struct GridTestHarnessView: View {
                     } else {
                         Text(String(format: "%.2f", detected.detectionConfidence))
                             .font(.system(.caption2, design: .monospaced))
-                            .foregroundStyle(detected.detectionConfidence >= 0.8 ? .secondary : .orange)
+                            .foregroundStyle(detected.detectionConfidence >= 0.8 ? Color.secondary : Color.orange)
                     }
                 }
                 if let card = detected.matchedCard {

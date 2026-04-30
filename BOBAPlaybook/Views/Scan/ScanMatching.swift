@@ -50,6 +50,92 @@ enum ScanMatching {
         return best
     }
 
+    /// Grid-specific resolver. Same OCR-then-image-similarity
+    /// pipeline as `resolve(observation:candidates:)`, but with two
+    /// crucial extensions:
+    ///
+    ///   1. FeaturePrintIndex runs on the **full catalog**, not just
+    ///      cardNumber-filtered candidates. When OCR misreads a
+    ///      cardNumber (bare digit like "38" matching the wrong base
+    ///      card when the physical card was the prefixed "BGBF-38"
+    ///      treatment, or noise-extracted "80" from a Marksman crop
+    ///      whose actual cardNumber is "GBF-94"), image similarity
+    ///      can override the OCR pick by recognizing the actual card
+    ///      art.
+    ///
+    ///   2. Hero-name fallback runs against the full catalog when
+    ///      both OCR cardNumber extraction AND image similarity fail
+    ///      to land — preserves the existing matchByHero behavior as
+    ///      a tertiary fallback.
+    ///
+    /// Override threshold for FP vs OCR: FP top must be either the
+    /// only candidate in top-K (very strong "OCR was wrong" signal)
+    /// or have a distance ≤60% of the closest cardNumber-candidate's
+    /// distance. Both bars are conservative — when OCR was correct
+    /// AND the image is in the index, the FP top will land in the
+    /// candidate set and the override never fires.
+    @MainActor
+    static func resolveGrid(
+        observation: ScanObservation,
+        allCards: [Card]
+    ) async -> Card? {
+        let cardsByBobaId = Dictionary(uniqueKeysWithValues: allCards.map { ($0.id, $0) })
+
+        let cn = observation.cardNumber
+        let candidates: [Card] = cn.isEmpty
+            ? []
+            : allCards.filter { $0.cardNumber.uppercased() == cn }
+
+        let ocrBest: Card? = candidates
+            .map { ($0, matchScore($0, observation: observation)) }
+            .sorted { $0.1 > $1.1 }
+            .first?.0
+
+        if let cgImage = observation.cgImage,
+           FeaturePrintIndex.shared.isLoaded {
+            let nearest = await FeaturePrintIndex.shared
+                .searchNearest(in: cgImage, topK: 25)
+            if let absoluteTop = nearest.first {
+                let candidateIds = Set(candidates.map { $0.id })
+                if candidateIds.contains(absoluteTop.bobaId),
+                   let card = cardsByBobaId[absoluteTop.bobaId] {
+                    return card
+                }
+                let bestCandInFP = nearest.first { candidateIds.contains($0.bobaId) }
+                if !candidates.isEmpty {
+                    // OCR gave us candidates. Override OCR only when
+                    // image similarity strongly disagrees — when no
+                    // candidate even appears in the FP top-K, the
+                    // most likely explanation is that the card just
+                    // isn't covered by our index (~17% of the catalog
+                    // has no R2 image), NOT that OCR was wrong, so
+                    // we trust OCR's filter.
+                    if let bcip = bestCandInFP {
+                        if absoluteTop.distance < bcip.distance * 0.6,
+                           let overrideCard = cardsByBobaId[absoluteTop.bobaId] {
+                            return overrideCard
+                        }
+                        if let c = cardsByBobaId[bcip.bobaId] { return c }
+                    }
+                    // No candidate in top-K — fall through to ocrBest.
+                } else {
+                    // No OCR cardNumber → FP top is our best signal.
+                    if let overrideCard = cardsByBobaId[absoluteTop.bobaId] {
+                        return overrideCard
+                    }
+                }
+            }
+        }
+
+        if let best = ocrBest { return best }
+
+        return matchByHero(
+            allText:     observation.fullText,
+            topLeftText: observation.rawName,
+            candidates:  allCards
+        )
+    }
+
     /// Hero-name fallback for Grid mode when OCR fails to extract
     /// a cardNumber but DOES read the hero text at the top of the
     /// card. Used when the cardNumber on a specific card is

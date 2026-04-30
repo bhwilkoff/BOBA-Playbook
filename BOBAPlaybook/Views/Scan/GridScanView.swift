@@ -79,7 +79,11 @@ struct GridScanView: View {
             Task {
                 if let data = try? await item.loadTransferable(type: Data.self),
                    let img = UIImage(data: data) {
-                    await loadAndProcess(img)
+                    // Library path is single-frame — no burst available
+                    // for previously-taken photos, so we pass [img] and
+                    // the OCR pipeline degrades gracefully (no cross-
+                    // frame voting, but still gets multi-pass voting).
+                    await loadAndProcess(frames: [img])
                 }
                 photoPickerItem = nil
             }
@@ -96,11 +100,10 @@ struct GridScanView: View {
             // UIImage, the path is identical to the photo-library flow:
             // hand it to `loadAndProcess` → GridCardDetector → multi-pass
             // OCR → ScanMatching.resolveGrid.
-            GridCameraCaptureView { image in
+            GridCameraCaptureView { frames in
                 sourcePickerMode = .none
-                if let image {
-                    Task { await loadAndProcess(image) }
-                }
+                guard !frames.isEmpty else { return }
+                Task { await loadAndProcess(frames: frames) }
             }
             .ignoresSafeArea()
         }
@@ -127,7 +130,9 @@ struct GridScanView: View {
                     .resizable()
                     .scaledToFit()
                 Button {
-                    Task { await processSourceImage() }
+                    if let img = sourceImage {
+                        Task { await processSourceFrames(frames: [img]) }
+                    }
                 } label: {
                     Text("Process")
                         .font(Design.Fonts.mono(14, weight: .bold))
@@ -278,21 +283,28 @@ struct GridScanView: View {
 
     // MARK: - Pipeline
 
-    private func loadAndProcess(_ image: UIImage) async {
-        sourceImage = image
-        await processSourceImage()
+    /// Burst-frame source images. `[0]` is the primary used for
+    /// grid detection / preview display; subsequent frames feed
+    /// cross-frame OCR voting (the still-image analog of the
+    /// streaming scanner's requireConsecutive=2 stability bar).
+    /// Library-picker selections call this with `[singleImage]`
+    /// and degrade gracefully — multi-pass voting still applies
+    /// per cell, just without the cross-frame layer.
+    private func loadAndProcess(frames: [UIImage]) async {
+        guard let primary = frames.first else { return }
+        sourceImage = primary
+        await processSourceFrames(frames: frames)
     }
 
-    private func processSourceImage() async {
-        guard let image = sourceImage else { return }
+    private func processSourceFrames(frames: [UIImage]) async {
         // Camera-captured UIImages can carry an .right or .down
         // EXIF orientation while the underlying CGImage stays in
-        // sensor (landscape) orientation. Re-render to a properly
-        // upright UIImage before handing to the detector — Vision's
-        // results then line up with the visible image regardless of
-        // capture mode.
-        let upright = image.orientationCorrected()
-        sourceImage = upright
+        // sensor (landscape) orientation. Bake orientation on every
+        // frame so the detector and per-frame crops both see upright
+        // pixels.
+        let upright = frames.map { $0.orientationCorrected() }
+        guard let primary = upright.first else { return }
+        sourceImage = primary
         processing = true
         statusMessage = "Detecting cards…"
 
@@ -307,24 +319,38 @@ struct GridScanView: View {
         scanner.setVocabularyNames(names)
         try? await Task.sleep(nanoseconds: 200_000_000)
 
+        // Run detection on the primary frame; the cell rects it
+        // returns are normalized, so we can re-crop the same
+        // physical card location from every burst frame.
         let detected: [GridCardDetector.DetectedCard]
         do {
-            detected = try await GridCardDetector.detect(in: upright)
+            detected = try await GridCardDetector.detect(in: primary)
         } catch {
             statusMessage = "Couldn't find any cards. Try a clearer photo."
             processing = false
             return
         }
-        statusMessage = "Identifying \(detected.count) cards…"
+        statusMessage = upright.count > 1
+            ? "Identifying \(detected.count) cards across \(upright.count) frames…"
+            : "Identifying \(detected.count) cards…"
 
         var out: [GridResult] = []
         for d in detected {
-            let r = await scanner.scanGridImage(d.image)
-            // resolveGrid handles cardNumber filter, FeaturePrintIndex
-            // override (catches OCR misreads where the bare digit
-            // matched the wrong card), and hero-name fallback in one
-            // pass. Pass empty cardNumber when extraction failed —
-            // the resolver still runs FP + hero fallback.
+            // Build the per-frame crop list for this cell. Frame 0
+            // is already cropped (d.image); frames 1..N are cropped
+            // at the same cellRect using the detector's static
+            // helper.
+            var cellCrops: [UIImage] = [d.image]
+            for f in upright.dropFirst() {
+                if let crop = GridCardDetector.cropFrame(
+                    f, cellRect: d.cellRect,
+                    orientation: d.sourceOrientation) {
+                    cellCrops.append(crop)
+                }
+            }
+            // Cross-frame OCR voting. resolveGrid then handles
+            // cardNumber filter, FP override, and hero gate.
+            let r = await scanner.scanGridImageBurst(crops: cellCrops)
             let observation = ScanObservation(
                 cardNumber:   r.cardNumber ?? "",
                 rawName:      r.topLeftText,
@@ -429,7 +455,15 @@ struct GridCameraCaptureView: View {
     @StateObject private var camera = GridStillCamera()
     @State private var capturing = false
     @State private var failed = false
-    let onCaptured: (UIImage?) -> Void
+    /// Hands back the burst frames in capture order. The first
+    /// non-nil frame is the "primary" used for grid detection;
+    /// subsequent frames are used for cross-frame OCR voting.
+    let onCaptured: ([UIImage]) -> Void
+    /// Number of stills captured per shutter tap. 3 frames over
+    /// ~500ms is the sweet spot — enough redundancy for the
+    /// streaming `requireConsecutive` analog without overwhelming
+    /// memory (3 × ~36 MB = ~110 MB peak holding decoded UIImages).
+    private let burstCount = 3
 
     var body: some View {
         ZStack {
@@ -499,9 +533,12 @@ struct GridCameraCaptureView: View {
     private func capture() async {
         guard !capturing else { return }
         capturing = true
-        let image = await camera.captureStill()
+        let frames = await camera.captureBurst(count: burstCount)
         capturing = false
-        onCaptured(image)
+        // Drop nil entries — failed individual captures shouldn't
+        // block downstream processing as long as we got at least one.
+        let valid = frames.compactMap { $0 }
+        onCaptured(valid)
     }
 }
 
@@ -534,8 +571,9 @@ nonisolated final class GridStillCamera: NSObject, ObservableObject, @unchecked 
     private var configured = false
     /// Retains the per-capture delegate so AVCapturePhotoOutput's
     /// weak hold doesn't drop it before didFinishProcessing fires.
-    /// Cleared in the delegate callback.
-    private var activeDelegate: StillCaptureDelegate?
+    /// Cleared in the delegate callback. Typed as NSObject so we
+    /// can hold either single or burst delegates here.
+    private var activeDelegate: NSObject?
 
     func ensureAuthorized() async -> Bool {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -565,31 +603,51 @@ nonisolated final class GridStillCamera: NSObject, ObservableObject, @unchecked 
     }
 
     func captureStill() async -> UIImage? {
-        await withCheckedContinuation { (cont: CheckedContinuation<UIImage?, Never>) in
+        await captureBurst(count: 1).first ?? nil
+    }
+
+    /// Burst-capture `count` full-resolution stills back-to-back.
+    /// Returns the array in capture order (frame 0 = first, etc).
+    /// Failed individual captures are returned as nil entries so
+    /// the caller can preserve frame indexing. The whole burst
+    /// resolves once the last frame's delegate callback fires (or
+    /// errors out) — no Task.sleep gaps; AVCapturePhotoOutput
+    /// serializes captures internally on a `.photo`-preset session.
+    ///
+    /// Why burst (vs Live Photo extraction or video data output):
+    /// each frame is full 12MP (4032×3024). Live Photo movies are
+    /// 1080p at 15fps — too low-res for the small cardNumber
+    /// badges in a 3×N grid where each cell is ~80–150px tall.
+    /// Burst preserves resolution at the cost of ~500ms of wall-
+    /// clock latency, which sits comfortably inside the user's
+    /// processing tolerance.
+    func captureBurst(count: Int) async -> [UIImage?] {
+        guard count > 0 else { return [] }
+        return await withCheckedContinuation { (cont: CheckedContinuation<[UIImage?], Never>) in
             configQueue.async { [self] in
-                // Defensive: if a previous capture is still pending
-                // (rapid double-tap), resume it with nil before
-                // installing the new continuation.
+                // Defensive: cancel any in-flight single capture.
                 imageContinuation?.resume(returning: nil)
-                imageContinuation = cont
-                let settings = AVCapturePhotoSettings()
-                settings.flashMode = .auto
-                // Use a fresh delegate object per capture so the
-                // delegate conformance lives on a fully nonisolated
-                // class. AVCapturePhotoOutput keeps a strong ref to
-                // the delegate for the duration of the capture, then
-                // releases — by retaining it here we guarantee it
-                // survives until didFinishProcessingPhoto fires.
-                let delegate = StillCaptureDelegate { [weak self] image in
+                imageContinuation = nil
+
+                let delegate = BurstCaptureDelegate(expected: count) { [weak self] images in
                     guard let self else { return }
                     self.configQueue.async {
-                        self.imageContinuation?.resume(returning: image)
-                        self.imageContinuation = nil
+                        cont.resume(returning: images)
                         self.activeDelegate = nil
                     }
                 }
                 activeDelegate = delegate
-                photoOutput.capturePhoto(with: settings, delegate: delegate)
+
+                // Each capture needs a fresh AVCapturePhotoSettings —
+                // reusing throws NSInvalidArgumentException. Prefer
+                // `.speed` quality so the burst completes in ~500ms
+                // instead of ~750ms with `.balanced` (default).
+                for _ in 0..<count {
+                    let settings = AVCapturePhotoSettings()
+                    settings.flashMode = .auto
+                    settings.photoQualityPrioritization = .speed
+                    photoOutput.capturePhoto(with: settings, delegate: delegate)
+                }
             }
         }
     }
@@ -620,19 +678,32 @@ nonisolated final class GridStillCamera: NSObject, ObservableObject, @unchecked 
     }
 }
 
-/// Standalone, nonisolated AVCapturePhotoCaptureDelegate. Lives in
-/// its own class because `GridStillCamera` is implicitly @MainActor-
-/// isolated when used as a SwiftUI @StateObject — and Swift 6
-/// disallows passing a MainActor-isolated delegate into a nonisolated
-/// callback context (AVCapturePhotoOutput invokes the delegate on
-/// its internal queue). Keeping the delegate as a separate plain
-/// class with no actor isolation makes the conformance nonisolated.
-private nonisolated final class StillCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
-    let onComplete: (UIImage?) -> Void
-    init(onComplete: @escaping (UIImage?) -> Void) {
+/// AVCapturePhotoCaptureDelegate for burst captures. Accumulates N
+/// processed photos and fires `onComplete([UIImage?])` once the
+/// expected count is reached. Implemented as a standalone
+/// nonisolated class because `GridStillCamera` is implicitly
+/// @MainActor (project default) and Swift 6 disallows passing a
+/// MainActor-isolated delegate into AVFoundation's nonisolated
+/// callback queues.
+///
+/// AVCapturePhotoOutput delivers `didFinishProcessingPhoto`
+/// callbacks in capture submission order on a `.photo` preset
+/// session, so we just append and only need a counter for
+/// completion. Failed individual captures are appended as nil so
+/// the caller can preserve indexing.
+private nonisolated final class BurstCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
+    private let expected: Int
+    private let onComplete: ([UIImage?]) -> Void
+    private let queue = DispatchQueue(label: "BurstCaptureDelegate.accumulator")
+    private var images: [UIImage?] = []
+    private var fired = false
+
+    init(expected: Int, onComplete: @escaping ([UIImage?]) -> Void) {
+        self.expected = expected
         self.onComplete = onComplete
         super.init()
     }
+
     func photoOutput(
         _ output: AVCapturePhotoOutput,
         didFinishProcessingPhoto photo: AVCapturePhoto,
@@ -648,7 +719,14 @@ private nonisolated final class StillCaptureDelegate: NSObject, AVCapturePhotoCa
             else { return nil }
             return img
         }()
-        onComplete(image)
+        queue.async { [self] in
+            guard !fired else { return }
+            images.append(image)
+            if images.count >= expected {
+                fired = true
+                onComplete(images)
+            }
+        }
     }
 }
 

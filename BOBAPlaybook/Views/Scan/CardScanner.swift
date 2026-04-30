@@ -674,6 +674,76 @@ extension CardScanner {
         }
     }
 
+    /// Burst variant — same multi-pass OCR pipeline run on N frames
+    /// of the same physical card cell, with cross-frame voting on
+    /// top of the existing cross-pass voting. This is the still-
+    /// image analog of the streaming scanner's `requireConsecutive
+    /// = 2`: a cardNumber that only appears in one frame (often
+    /// from a transient neighbor-crop bleed caused by hand shake)
+    /// gets rejected when the other frames don't confirm it.
+    ///
+    /// Voting hierarchy:
+    ///   • Each frame independently runs runMultiPassGridOCR (4
+    ///     enhancement passes + per-frame voting).
+    ///   • Across frames, the cardNumber that appeared in the most
+    ///     frames wins (≥2 frames agreeing = strong signal).
+    ///   • If no cardNumber was extracted from any frame, the text
+    ///     observations from frame 0 are returned for hero-name
+    ///     fallback in ScanMatching.
+    ///
+    /// Caller passes one crop per frame (same cellRect across all
+    /// burst frames, cropped via GridCardDetector.cropFrame).
+    func scanGridImageBurst(crops: [UIImage]) async -> GridOCRResult {
+        guard !crops.isEmpty else {
+            return GridOCRResult(
+                cardNumber: nil, allText: "", topLeftText: "",
+                bottomLeftText: "", topRightText: "",
+                bottomRightText: "", cgImage: nil)
+        }
+        // Single-frame fallback — library picker path or burst fail.
+        if crops.count == 1 {
+            return await scanGridImage(crops[0])
+        }
+        return await withCheckedContinuation { (cont: CheckedContinuation<GridOCRResult, Never>) in
+            processingQueue.async { [weak self] in
+                guard let self else {
+                    cont.resume(returning: GridOCRResult(
+                        cardNumber: nil, allText: "", topLeftText: "",
+                        bottomLeftText: "", topRightText: "",
+                        bottomRightText: "", cgImage: nil))
+                    return
+                }
+                var perFrame: [GridOCRResult] = []
+                var votes: [String: Int] = [:]
+                for img in crops {
+                    guard let ci = CIImage(image: img) else { continue }
+                    let result = self.runMultiPassGridOCR(ciImage: ci)
+                    perFrame.append(result)
+                    if let cn = result.cardNumber {
+                        votes[cn, default: 0] += 1
+                    }
+                }
+                // Frame-level winner: cardNumber that appeared in
+                // the most frames. Ties broken by capture order
+                // (frame 0 wins).
+                let frameWinner = votes
+                    .max(by: { $0.value < $1.value })?.key
+                if let winner = frameWinner,
+                   let res = perFrame.first(where: { $0.cardNumber == winner }) {
+                    cont.resume(returning: res)
+                    return
+                }
+                // No cardNumber in any frame — return frame 0's
+                // result so hero-name fallback in ScanMatching has
+                // text observations to work with.
+                cont.resume(returning: perFrame.first ?? GridOCRResult(
+                    cardNumber: nil, allText: "", topLeftText: "",
+                    bottomLeftText: "", topRightText: "",
+                    bottomRightText: "", cgImage: nil))
+            }
+        }
+    }
+
     /// Multi-pass Grid-mode OCR. Runs four enhancement variants then
     /// a focused bottom-left-badge pass for tiny low-contrast
     /// cardNumbers. Always returns a result (with cardNumber=nil

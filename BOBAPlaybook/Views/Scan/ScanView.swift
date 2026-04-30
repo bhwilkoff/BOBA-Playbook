@@ -279,19 +279,18 @@ struct ScanView: View {
         .fullScreenCover(isPresented: $showGridScan) {
             GridScanView()
         }
-        // Temporary test harness for the new Grid scan mode. Visible
-        // in EVERY build configuration (Debug + Release/TestFlight)
-        // so Ben can validate accuracy regardless of how the build
-        // got onto the phone. Strip this overlay + sheet before
-        // App Store submission once Grid mode is promoted to a real
-        // pill in the mode picker.
+        // User-facing Grid scan button — pinned at the top of the
+        // camera view so it's impossible to miss. Tap → photo source
+        // picker (camera capture or photo library) → multi-card OCR
+        // pipeline → review + queue. Long-press in Debug builds opens
+        // the test harness for fixture validation.
         .overlay(alignment: .top) {
             Button {
-                showGridTestHarness = true
+                showGridScan = true
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "square.grid.3x3.fill").font(.system(size: 14))
-                    Text("GRID TEST HARNESS").font(Design.Fonts.mono(11, weight: .bold)).tracking(0.5)
+                    Text("GRID SCAN").font(Design.Fonts.mono(11, weight: .bold)).tracking(0.5)
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, 14).padding(.vertical, 8)
@@ -299,6 +298,11 @@ struct ScanView: View {
                     .overlay(Capsule().strokeBorder(Color.white.opacity(0.4), lineWidth: 1)))
                 .shadow(color: .black.opacity(0.4), radius: 6)
             }
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.6).onEnded { _ in
+                    showGridTestHarness = true
+                }
+            )
             .padding(.top, 70)
         }
         .sheet(isPresented: $showGridTestHarness) {

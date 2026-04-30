@@ -28,12 +28,6 @@ struct ScanView: View {
     // Reference to the preview layer for ROI computation after layout
     @State private var previewLayer: AVCaptureVideoPreviewLayer?
 
-    /// DEBUG-only — long-pressing the SINGLE/MULTI/SHOW mode bar opens
-    /// the Grid Detector test harness. Lets Ben validate accuracy on
-    /// the 4 bundled HEIC fixtures before Grid mode is exposed to
-    /// users via the regular mode picker.
-    @State private var showGridTestHarness = false
-
     /// User-facing Grid scan flow (camera or photo-library input).
     /// Presented as a fullScreenCover when the user taps the GRID
     /// mode pill. Independent of the streaming AVFoundation pipeline.
@@ -264,11 +258,6 @@ struct ScanView: View {
                 Spacer()
                 modePill(for: .single, label: "SINGLE", icon: "rectangle.on.rectangle")
                 modePill(for: .multi,  label: "MULTI",  icon: "rectangle.stack.fill")
-                // Grid mode — single-shot photo of up to 9 cards in
-                // a 3×N grid. Tapping doesn't change scanStore.mode
-                // (live scanner stays in single/multi); it presents
-                // a fullScreenCover with its own image-source flow.
-                gridModePill
                 if auth.isStreamer && scanStore.source != .deckBuilder {
                     modePill(for: .show, label: "SHOW", icon: "dot.radiowaves.up.forward")
                 }
@@ -282,8 +271,7 @@ struct ScanView: View {
         // User-facing Grid scan button — pinned at the top of the
         // camera view so it's impossible to miss. Tap → photo source
         // picker (camera capture or photo library) → multi-card OCR
-        // pipeline → review + queue. Long-press in Debug builds opens
-        // the test harness for fixture validation.
+        // pipeline → review + queue.
         .overlay(alignment: .top) {
             Button {
                 showGridScan = true
@@ -298,39 +286,7 @@ struct ScanView: View {
                     .overlay(Capsule().strokeBorder(Color.white.opacity(0.4), lineWidth: 1)))
                 .shadow(color: .black.opacity(0.4), radius: 6)
             }
-            .simultaneousGesture(
-                LongPressGesture(minimumDuration: 0.6).onEnded { _ in
-                    showGridTestHarness = true
-                }
-            )
             .padding(.top, 70)
-        }
-        .sheet(isPresented: $showGridTestHarness) {
-            GridTestHarnessView()
-        }
-    }
-
-    /// GRID mode pill. Distinct from the standard `modePill` because
-    /// it doesn't change `scanStore.mode` (live scanner stays in
-    /// single/multi); instead it presents `GridScanView` as a
-    /// fullScreenCover for the photo-source + multi-card flow.
-    private var gridModePill: some View {
-        Button {
-            showGridScan = true
-        } label: {
-            HStack(spacing: 5) {
-                Image(systemName: "square.grid.3x3").font(.system(size: 12))
-                Text("GRID").font(Design.Fonts.mono(11, weight: .bold)).tracking(0.5)
-            }
-            .foregroundStyle(Design.Colors.bobaCyan)
-            .padding(.horizontal, Design.Spacing.sm + 2)
-            .padding(.vertical, Design.Spacing.sm - 1)
-            .background(
-                Capsule()
-                    .fill(Design.Colors.bobaCyan.opacity(0.15))
-                    .overlay(Capsule().strokeBorder(
-                        Design.Colors.bobaCyan.opacity(0.45), lineWidth: 1))
-            )
         }
     }
 

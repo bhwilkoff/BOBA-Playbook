@@ -512,7 +512,14 @@ struct GridCameraCaptureView: View {
 /// private serial queue so the main actor never blocks on
 /// AVFoundation's blocking start/stop calls and the continuation
 /// is never raced.
-final class GridStillCamera: NSObject, ObservableObject, @unchecked Sendable {
+/// `nonisolated` is required because the project sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` — without it, the class
+/// (and therefore its conformance to ObservableObject and any
+/// callbacks it interacts with) inherits MainActor isolation, which
+/// Swift 6 then refuses to bridge to AVFoundation's nonisolated
+/// callback queues. All mutable state lives on `configQueue`, so the
+/// class genuinely doesn't need MainActor.
+nonisolated final class GridStillCamera: NSObject, ObservableObject, @unchecked Sendable {
     /// We don't broadcast any state to SwiftUI; this exists solely to
     /// satisfy `ObservableObject`, which `@StateObject` requires.
     /// Without a `@Published` property the protocol's default
@@ -620,7 +627,7 @@ final class GridStillCamera: NSObject, ObservableObject, @unchecked Sendable {
 /// callback context (AVCapturePhotoOutput invokes the delegate on
 /// its internal queue). Keeping the delegate as a separate plain
 /// class with no actor isolation makes the conformance nonisolated.
-private final class StillCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
+private nonisolated final class StillCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
     let onComplete: (UIImage?) -> Void
     init(onComplete: @escaping (UIImage?) -> Void) {
         self.onComplete = onComplete

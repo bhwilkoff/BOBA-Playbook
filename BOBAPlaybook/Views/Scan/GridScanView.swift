@@ -472,7 +472,7 @@ struct GridCameraCaptureView: View {
                 .ignoresSafeArea()
             VStack {
                 HStack {
-                    Button("Cancel") { onCaptured(nil) }
+                    Button("Cancel") { onCaptured([]) }
                         .font(Design.Fonts.mono(15, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 18)
@@ -603,7 +603,10 @@ nonisolated final class GridStillCamera: NSObject, ObservableObject, @unchecked 
     }
 
     func captureStill() async -> UIImage? {
-        await captureBurst(count: 1).first ?? nil
+        // captureBurst returns [UIImage?]; .first gives UIImage?? —
+        // flatMap collapses to UIImage?.
+        let burst = await captureBurst(count: 1)
+        return burst.first.flatMap { $0 }
     }
 
     /// Burst-capture `count` full-resolution stills back-to-back.

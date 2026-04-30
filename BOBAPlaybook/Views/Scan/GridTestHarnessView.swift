@@ -294,13 +294,24 @@ struct GridTestHarnessView: View {
             var perCard: [DetectedResult] = []
             for d in detected {
                 let observation = await scanner.scanStillImage(d.image)
-                let matched: Card? = {
-                    guard let obs = observation else { return nil }
+                // Same matching pipeline as ScanView.handleDetected
+                // for a single-card scan: catalog filter → matchScore
+                // → Phase-2 FeaturePrintIndex tiebreak when OCR
+                // candidates are too close. Each Grid cell receives
+                // exactly the same treatment as a single-card scan
+                // would.
+                let matched: Card?
+                if let obs = observation {
                     let candidates = cardStore.displayCards.filter {
                         $0.cardNumber.uppercased() == obs.cardNumber
                     }
-                    return ScanMatching.bestMatch(observation: obs, candidates: candidates)
-                }()
+                    matched = await ScanMatching.resolve(
+                        observation: obs,
+                        candidates: candidates
+                    )
+                } else {
+                    matched = nil
+                }
                 perCard.append(DetectedResult(
                     gridIndex:  d.gridIndex,
                     row:        d.row,

@@ -317,6 +317,290 @@ func enhanceForEdges(_ ciImage: CIImage) -> CIImage {
         ])
 }
 
+// MARK: - OCR pipeline (mirrors CardScanner.scanStillImage)
+
+struct CatalogEntry: Decodable {
+    let cardNumber: String
+    let hero: String?
+    let name: String?
+    let power: Int?
+    let element: String?
+}
+
+struct Catalog {
+    let cardNumbers: Set<String>
+    let cards: [CatalogEntry]
+    let allWords: [String]
+}
+
+func loadCatalog(_ path: String) throws -> Catalog {
+    let data = try Data(contentsOf: URL(fileURLWithPath: path))
+    let entries = try JSONDecoder().decode([CatalogEntry].self, from: data)
+    let nums = Set(entries.map { $0.cardNumber.uppercased() })
+    var words = Set<String>()
+    for e in entries {
+        if let h = e.hero, h.count >= 3 { words.insert(h.uppercased()) }
+        if let n = e.name, n.count >= 3, n != e.hero { words.insert(n.uppercased()) }
+    }
+    return Catalog(cardNumbers: nums, cards: entries, allWords: Array(words))
+}
+
+struct OCRResult {
+    let cardNumber: String?
+    let allText: String
+    let bottomLeftText: String
+    let matched: CatalogEntry?
+}
+
+func ocrCrop(_ image: CGImage, catalog: Catalog) async -> OCRResult {
+    let ci = CIImage(cgImage: image)
+        .applyingFilter("CIGammaAdjust", parameters: ["inputPower": 0.65])
+        .applyingFilter("CIColorControls", parameters: [
+            "inputSaturation": 0.0,
+            "inputContrast":   1.25,
+        ])
+        .applyingFilter("CIUnsharpMask", parameters: [
+            "inputRadius":    2.5,
+            "inputIntensity": 0.5,
+        ])
+    return await withCheckedContinuation { (cont: CheckedContinuation<OCRResult, Never>) in
+        let req = VNRecognizeTextRequest { req, _ in
+            let observations = (req.results as? [VNRecognizedTextObservation]) ?? []
+            var topLeft: [String] = [], bottomLeft: [String] = []
+            var all: [String] = []
+            for obs in observations {
+                guard let cand = obs.topCandidates(1).first, cand.confidence > 0.3 else { continue }
+                let text = cand.string.uppercased()
+                all.append(text)
+                if obs.boundingBox.midY > 0.5 {
+                    if obs.boundingBox.midX < 0.5 { topLeft.append(text) }
+                } else {
+                    if obs.boundingBox.midX < 0.5 { bottomLeft.append(text) }
+                }
+            }
+            let allText = all.joined(separator: " ")
+            let blText = bottomLeft.joined(separator: " ")
+            let extracted = extractCardNumber(from: blText, catalog: catalog, allowPureNumber: true)
+                         ?? extractCardNumber(from: allText, catalog: catalog, allowPureNumber: false)
+            let topLeftText = topLeft.joined(separator: " ")
+            let matched: CatalogEntry?
+            if let num = extracted {
+                // Multiple cards may share the same cardNumber across
+                // treatments / parallels. Score each candidate by how
+                // well its hero name + power match what OCR saw, pick
+                // the best — same logic as iOS ScanMatching.bestMatch.
+                let candidates = catalog.cards.filter { $0.cardNumber.uppercased() == num }
+                matched = bestMatch(candidates: candidates, allText: allText, topLeftText: topLeftText)
+            } else { matched = nil }
+            cont.resume(returning: OCRResult(
+                cardNumber:     extracted,
+                allText:        allText,
+                bottomLeftText: blText,
+                matched:        matched
+            ))
+        }
+        req.recognitionLevel = .accurate
+        req.usesLanguageCorrection = false
+        req.recognitionLanguages = ["en-US"]
+        req.minimumTextHeight = 0.015
+        if !catalog.cardNumbers.isEmpty {
+            req.customWords = Array(catalog.cardNumbers) + catalog.allWords
+        }
+        let handler = VNImageRequestHandler(ciImage: ci, options: [:])
+        try? handler.perform([req])
+    }
+}
+
+func extractCardNumber(from text: String, catalog: Catalog, allowPureNumber: Bool) -> String? {
+    func ok(_ s: String) -> Bool {
+        catalog.cardNumbers.isEmpty || catalog.cardNumbers.contains(s)
+    }
+    // Substitute common digit-side glyph confusions: Đ→B, B→8, S→5,
+    // I→1, l→1, O→0, D→0. Only applied to the digit half of a
+    // candidate so we don't corrupt prefixes.
+    func substituteDigits(_ s: String) -> String {
+        var out = ""
+        let map: [Character: Character] = [
+            "Đ": "B", "B": "8", "S": "5", "I": "1", "l": "1",
+            "O": "0", "D": "0", "Z": "2", "G": "6"
+        ]
+        for ch in s {
+            if let r = map[ch] { out.append(r) } else { out.append(ch) }
+        }
+        return out
+    }
+    // Substitute letters in the PREFIX side that OCR commonly
+    // misreads. D↔O is the highest-frequency confusion in BoBA
+    // prefixes (OBF→DBF, HD→HO). Each entry is bidirectional —
+    // try both orientations to recover the catalog cardNumber.
+    func substitutePrefixVariants(_ s: String) -> [String] {
+        // Pairs of mutually-confusable characters in prefix
+        // position. Generates 2^N variants where N is how many
+        // pair members the prefix contains.
+        let pairs: [(Character, Character)] = [
+            ("D", "O"),
+            ("Đ", "B"),
+            ("0", "O"),
+            ("8", "B"),
+            ("5", "S"),
+            ("1", "I"),
+            ("2", "Z"),
+            ("6", "G"),
+        ]
+        // Find which positions have a swappable character
+        var positions: [(Int, Character, Character)] = []
+        for (i, ch) in s.enumerated() {
+            for (a, b) in pairs {
+                if ch == a { positions.append((i, a, b)); break }
+                if ch == b { positions.append((i, b, a)); break }
+            }
+        }
+        guard !positions.isEmpty else { return [s] }
+        // Cap variants — 8 swap positions × 2 = 256 max,
+        // but typical prefixes have ≤3 swaps so usually 8 variants.
+        let maxBits = min(positions.count, 6)
+        var out: [String] = []
+        for mask in 0..<(1 << maxBits) {
+            var arr = Array(s)
+            for k in 0..<maxBits {
+                if mask & (1 << k) != 0 {
+                    let (idx, _, sub) = positions[k]
+                    arr[idx] = sub
+                }
+            }
+            out.append(String(arr))
+        }
+        return out
+    }
+    let range = NSRange(text.startIndex..., in: text)
+    let strict = try! NSRegularExpression(
+        pattern: #"#?([A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?)"#
+    )
+    if let m = strict.firstMatch(in: text, range: range),
+       let r = Range(m.range(at: 1), in: text) {
+        let cand = String(text[r])
+        if ok(cand) { return cand }
+    }
+    let permissive = try! NSRegularExpression(
+        pattern: #"([A-Z]{1,6})[\s\-]+([A-Z0-9]{1,5})"#
+    )
+    let perm = permissive.matches(in: text, options: [], range: range)
+    for m in perm {
+        if let pR = Range(m.range(at: 1), in: text),
+           let nR = Range(m.range(at: 2), in: text) {
+            let prefix = String(text[pR])
+            let digits = String(text[nR])
+            for prefixVariant in substitutePrefixVariants(prefix) {
+                for digitsVariant in [digits, substituteDigits(digits)] {
+                    let combined = "\(prefixVariant)-\(digitsVariant)"
+                    if catalog.cardNumbers.contains(combined) { return combined }
+                }
+            }
+        }
+    }
+    let words = text
+        .components(separatedBy: .whitespacesAndNewlines)
+        .map { $0.trimmingCharacters(in: .punctuationCharacters).uppercased() }
+        .filter { !$0.isEmpty }
+    // Prefix glyph-mangled form: word like "BGĐF-38" — try splitting
+    // on dash, run prefix variants on the alphabetic side and digit
+    // substitution on the numeric side.
+    for w in words where w.contains("-") {
+        let parts = w.split(separator: "-").map(String.init)
+        guard parts.count == 2 else { continue }
+        for prefixVariant in substitutePrefixVariants(parts[0]) {
+            for digitsVariant in [parts[1], substituteDigits(parts[1])] {
+                let combined = "\(prefixVariant)-\(digitsVariant)"
+                if catalog.cardNumbers.contains(combined) { return combined }
+            }
+        }
+    }
+    if words.count >= 2, !catalog.cardNumbers.isEmpty {
+        for i in 0..<(words.count - 1) {
+            let p = words[i], n = words[i + 1]
+            guard p.count >= 1, p.count <= 6,
+                  p.allSatisfy({ $0.isLetter || "ĐO".contains($0) })
+            else { continue }
+            for prefixVariant in substitutePrefixVariants(p) {
+                for digitsVariant in [n, substituteDigits(n)] {
+                    let combined = "\(prefixVariant)-\(digitsVariant)"
+                    if catalog.cardNumbers.contains(combined) { return combined }
+                }
+            }
+        }
+    }
+    if allowPureNumber, !catalog.cardNumbers.isEmpty {
+        for w in words {
+            if w.count >= 1, w.count <= 4, w.allSatisfy({ $0.isNumber }),
+               catalog.cardNumbers.contains(w) { return w }
+            let subbed = substituteDigits(w)
+            if subbed != w, subbed.count <= 4, subbed.allSatisfy({ $0.isNumber }),
+               catalog.cardNumbers.contains(subbed) { return subbed }
+        }
+    }
+    return nil
+}
+
+/// Pick the best candidate when multiple cards share a cardNumber.
+/// Mirrors ScanMatching.bestMatch on iOS — scores each candidate by
+/// hero/name presence in the OCR text + power match.
+func bestMatch(candidates: [CatalogEntry], allText: String, topLeftText: String) -> CatalogEntry? {
+    guard !candidates.isEmpty else { return nil }
+    if candidates.count == 1 { return candidates[0] }
+    func score(_ c: CatalogEntry) -> Int {
+        var s = 0
+        let full = allText
+        // Hero / name match — strong signal
+        if let hero = c.hero, !hero.isEmpty {
+            s += heroNameScore(hero.uppercased(), in: full) * 5
+            if !topLeftText.isEmpty {
+                s += heroNameScore(hero.uppercased(), in: topLeftText) * 2
+            }
+        }
+        if let name = c.name, !name.isEmpty,
+           name.uppercased() != (c.hero ?? "").uppercased() {
+            s += heroNameScore(name.uppercased(), in: full) * 3
+        }
+        if let power = c.power, extractIntegers(from: full).contains(power) {
+            s += 3
+        }
+        if let element = c.element, full.contains(element.uppercased()) {
+            s += 2
+        }
+        return s
+    }
+    return candidates.map { ($0, score($0)) }.max { $0.1 < $1.1 }?.0
+}
+
+func heroNameScore(_ name: String, in text: String) -> Int {
+    if text.contains(name) { return 3 }
+    let nameWords = name.components(separatedBy: .whitespaces).filter { $0.count >= 3 }
+    guard !nameWords.isEmpty else { return 0 }
+    let textWords = text.components(separatedBy: .whitespaces)
+    var matches = 0
+    for nw in nameWords {
+        for tw in textWords where tw.count >= 3 {
+            if nw.count >= 5 {
+                let (shorter, longer) = nw.count <= tw.count ? (nw, tw) : (tw, nw)
+                if shorter.count >= 5, longer.hasPrefix(shorter) { matches += 1; break }
+            } else if nw == tw {
+                matches += 1; break
+            }
+        }
+    }
+    return matches
+}
+
+func extractIntegers(from text: String) -> Set<Int> {
+    var result = Set<Int>(), current = ""
+    for ch in text {
+        if ch.isNumber { current.append(ch) }
+        else { if let n = Int(current) { result.insert(n) }; current = "" }
+    }
+    if let n = Int(current) { result.insert(n) }
+    return result
+}
+
 // MARK: - Image I/O
 
 func loadImage(at path: String) -> (CIImage, CGImagePropertyOrientation)? {
@@ -447,20 +731,39 @@ struct GridDetectorCLI {
 
         print("=== \(basename) ===")
         print("anchors=\(result.anchors.count) cells=\(result.cells.count) elapsed=\(ms)ms")
-        for a in result.anchors.prefix(20) {
-            let aspect = a.boundingBox.width / a.boundingBox.height
-            print(String(format: "  anchor conf=%.2f aspect=%.2f x=%.2f y=%.2f w=%.2f h=%.2f",
-                         a.confidence, aspect,
-                         a.boundingBox.midX, a.boundingBox.midY,
-                         a.boundingBox.width, a.boundingBox.height))
+
+        // Load catalog if present so we can run the full OCR + match
+        // pipeline locally. Falls back to detection-only output when
+        // the bundle JSON is missing.
+        let catalogPath = "../../BOBAPlaybook/display-cards.json"
+        let catalog = (try? loadCatalog(catalogPath))
+                   ?? (try? loadCatalog("BOBAPlaybook/display-cards.json"))
+        var matched = 0
+        if let catalog {
+            for cell in result.cells {
+                let r = await ocrCrop(cell.image, catalog: catalog)
+                let label = cell.synthesized ? "GRID" : String(format: "%.2f", cell.confidence)
+                let status: String
+                if let m = r.matched {
+                    let hero = m.hero ?? m.name ?? "?"
+                    status = "✓ \(r.cardNumber!) \(hero)"
+                    matched += 1
+                } else if let num = r.cardNumber {
+                    status = "△ \(num) (no catalog match)"
+                } else {
+                    status = "✗ no number  bl=\"\(r.bottomLeftText.prefix(40))\"  all=\"\(r.allText.prefix(60))\""
+                }
+                print("  [\(cell.row),\(cell.column)] \(label)  \(status)")
+            }
+            print("matched=\(matched)/\(result.cells.count)")
         }
+
         // Save crops
         for cell in result.cells {
             let label = cell.synthesized ? "GRID" : String(format: "anchor%.2f", cell.confidence)
             let outPath = "\(outputDir)/\(basename)__r\(cell.row)c\(cell.column)_\(label).jpg"
             writeJPEG(cell.image, to: outPath)
         }
-        // Annotated source overlay
         writeAnnotatedSource(
             ciImage: ciImage,
             orientation: orientation,

@@ -459,11 +459,21 @@ struct GridCameraCaptureView: View {
     /// non-nil frame is the "primary" used for grid detection;
     /// subsequent frames are used for cross-frame OCR voting.
     let onCaptured: ([UIImage]) -> Void
-    /// Number of stills captured per shutter tap. 3 frames over
-    /// ~500ms is the sweet spot — enough redundancy for the
-    /// streaming `requireConsecutive` analog without overwhelming
-    /// memory (3 × ~36 MB = ~110 MB peak holding decoded UIImages).
-    private let burstCount = 3
+    /// Number of stills captured per shutter tap.
+    ///
+    /// Currently 1 — burst (3 frames) was tried in d6841d5 and
+    /// regressed accuracy. Cross-frame OCR voting uses the cellRect
+    /// from frame 0 to crop frames 1+2; even ~20px of hand shift
+    /// between frames samples a slightly different physical region,
+    /// pulling neighbor-card content into frames 1+2's bottom-left
+    /// edges. Voting then CONFIRMS the wrong cardNumber with
+    /// high confidence (the wrong number appears in 2/3 frames).
+    ///
+    /// Re-enabling burst requires per-frame grid detection so each
+    /// frame's cell rects are aligned to its own pixel content.
+    /// Single-frame multi-pass voting (within `runMultiPassGridOCR`)
+    /// remains the proven stability bar for now.
+    private let burstCount = 1
 
     var body: some View {
         ZStack {
@@ -648,7 +658,14 @@ nonisolated final class GridStillCamera: NSObject, ObservableObject, @unchecked 
                 for _ in 0..<count {
                     let settings = AVCapturePhotoSettings()
                     settings.flashMode = .auto
-                    settings.photoQualityPrioritization = .speed
+                    // `.balanced` (default) keeps deep fusion + multi-
+                    // frame noise reduction enabled, which sharpens
+                    // small printed text. `.speed` disables those and
+                    // visibly hurt OCR recall on stylized cardNumber
+                    // badges. The latency cost is acceptable —
+                    // capture + processing is dominated by OCR, not
+                    // by the photo pipeline.
+                    settings.photoQualityPrioritization = .balanced
                     photoOutput.capturePhoto(with: settings, delegate: delegate)
                 }
             }

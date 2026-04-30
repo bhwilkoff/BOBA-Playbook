@@ -525,6 +525,10 @@ final class GridStillCamera: NSObject, ObservableObject, @unchecked Sendable {
     /// Both written and read only on `configQueue`.
     private var imageContinuation: CheckedContinuation<UIImage?, Never>?
     private var configured = false
+    /// Retains the per-capture delegate so AVCapturePhotoOutput's
+    /// weak hold doesn't drop it before didFinishProcessing fires.
+    /// Cleared in the delegate callback.
+    private var activeDelegate: StillCaptureDelegate?
 
     func ensureAuthorized() async -> Bool {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -563,7 +567,22 @@ final class GridStillCamera: NSObject, ObservableObject, @unchecked Sendable {
                 imageContinuation = cont
                 let settings = AVCapturePhotoSettings()
                 settings.flashMode = .auto
-                photoOutput.capturePhoto(with: settings, delegate: self)
+                // Use a fresh delegate object per capture so the
+                // delegate conformance lives on a fully nonisolated
+                // class. AVCapturePhotoOutput keeps a strong ref to
+                // the delegate for the duration of the capture, then
+                // releases — by retaining it here we guarantee it
+                // survives until didFinishProcessingPhoto fires.
+                let delegate = StillCaptureDelegate { [weak self] image in
+                    guard let self else { return }
+                    self.configQueue.async {
+                        self.imageContinuation?.resume(returning: image)
+                        self.imageContinuation = nil
+                        self.activeDelegate = nil
+                    }
+                }
+                activeDelegate = delegate
+                photoOutput.capturePhoto(with: settings, delegate: delegate)
             }
         }
     }
@@ -594,10 +613,19 @@ final class GridStillCamera: NSObject, ObservableObject, @unchecked Sendable {
     }
 }
 
-extension GridStillCamera: AVCapturePhotoCaptureDelegate {
-    /// AVFoundation calls this on its internal queue. We hop to
-    /// `configQueue` to read/clear the continuation, keeping all
-    /// mutable-state access on a single serial queue.
+/// Standalone, nonisolated AVCapturePhotoCaptureDelegate. Lives in
+/// its own class because `GridStillCamera` is implicitly @MainActor-
+/// isolated when used as a SwiftUI @StateObject — and Swift 6
+/// disallows passing a MainActor-isolated delegate into a nonisolated
+/// callback context (AVCapturePhotoOutput invokes the delegate on
+/// its internal queue). Keeping the delegate as a separate plain
+/// class with no actor isolation makes the conformance nonisolated.
+private final class StillCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
+    let onComplete: (UIImage?) -> Void
+    init(onComplete: @escaping (UIImage?) -> Void) {
+        self.onComplete = onComplete
+        super.init()
+    }
     func photoOutput(
         _ output: AVCapturePhotoOutput,
         didFinishProcessingPhoto photo: AVCapturePhoto,
@@ -613,10 +641,7 @@ extension GridStillCamera: AVCapturePhotoCaptureDelegate {
             else { return nil }
             return img
         }()
-        configQueue.async { [self] in
-            imageContinuation?.resume(returning: image)
-            imageContinuation = nil
-        }
+        onComplete(image)
     }
 }
 

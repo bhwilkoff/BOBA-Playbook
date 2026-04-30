@@ -701,54 +701,91 @@ extension CardScanner {
         }
     }
 
-    /// 4 enhancement variants + focused-region pass. Returns first
-    /// pass with a card-number hit; otherwise merged observations
-    /// from all passes for hero-name fallback in ScanMatching.
+    /// Multi-pass OCR with cross-pass voting. Each cell gets run
+    /// through 4 enhancement variants (and optionally a focused-region
+    /// pass for tiny badges); the cardNumber that appears in the most
+    /// passes wins. This is the still-image analog of the streaming
+    /// scanner's `requiredConsecutive = 2` — a single noisy pass
+    /// (e.g. a misread pulling a number from a neighbor crop's edge)
+    /// gets rejected when subsequent passes don't confirm it.
+    ///
+    /// Tier order:
+    ///   1. Run all 4 enhancement passes; record each pass's
+    ///      cardNumber extraction.
+    ///   2. If ≥2 passes agree on a cardNumber → commit it
+    ///      (high-confidence; matches streaming's stability bar).
+    ///   3. If exactly 1 pass extracts → ALSO run the focused
+    ///      bottom-left pass; if that confirms (or extracts the same
+    ///      number) → commit. Otherwise pass the single-vote
+    ///      cardNumber through and let `ScanMatching.resolveGrid`'s
+    ///      hero-text gate validate it (low-confidence).
+    ///   4. If 0 passes extract → run the focused pass alone for
+    ///      tiny stylized badges (Wattage 141 et al).
+    ///   5. If still nothing → return all observations for
+    ///      hero-name-only matching downstream.
     private func runMultiPassGridOCR(ciImage: CIImage) -> GridOCRResult {
         let captured = Self.ciContext.createCGImage(ciImage, from: ciImage.extent)
         struct PassParams {
             let mt: Float, c: Float, g: Float, s: Float
         }
         let passes: [PassParams] = [
-            PassParams(mt: 0.015, c: 1.25, g: 0.65, s: 0.5),  // standard
+            PassParams(mt: 0.015, c: 1.25, g: 0.65, s: 0.5),  // standard (matches streaming)
             PassParams(mt: 0.005, c: 1.6,  g: 0.55, s: 1.0),  // small text
             PassParams(mt: 0.008, c: 2.0,  g: 0.75, s: 1.5),  // high contrast
             PassParams(mt: 0.01,  c: 1.4,  g: 0.85, s: 0.8),  // bright cards
         ]
+        var passResults: [SinglePassResult] = []
+        var votes: [String: Int] = [:]
         var allObs: [(text: String, midX: CGFloat, midY: CGFloat)] = []
         for p in passes {
             let r = runSingleOCRPass(
                 ciImage: ciImage,
                 params: (mt: p.mt, c: p.c, g: p.g, s: p.s)
             )
-            if let cn = r.cardNumber {
-                return GridOCRResult(
-                    cardNumber: cn,
-                    allText: r.allText, topLeftText: r.topLeftText,
-                    bottomLeftText: r.bottomLeftText,
-                    topRightText: r.topRightText,
-                    bottomRightText: r.bottomRightText,
-                    cgImage: captured)
-            }
+            passResults.append(r)
             allObs.append(contentsOf: r.observations)
+            if let cn = r.cardNumber {
+                votes[cn, default: 0] += 1
+            }
         }
-        // Focused-region pass for tiny low-contrast badge cardNumbers
-        // (Wattage 141 et al.). Crops bottom-left 35% × 25% then
-        // upscales 4× before OCR, with multiple gamma/contrast
-        // polarities to handle dark-on-light vs light-on-dark badges.
-        if let focusResult = runFocusedBottomLeftPass(ciImage: ciImage),
-           let cn = focusResult.cardNumber {
-            return GridOCRResult(
-                cardNumber: cn,
-                allText: focusResult.allText, topLeftText: focusResult.topLeftText,
-                bottomLeftText: focusResult.bottomLeftText,
-                topRightText: focusResult.topRightText,
-                bottomRightText: focusResult.bottomRightText,
-                cgImage: captured)
+
+        // Tier 2: stable agreement across ≥2 passes.
+        let stable = votes.filter { $0.value >= 2 }
+            .max(by: { $0.value < $1.value })?.key
+        if let stable,
+           let stablePass = passResults.first(where: { $0.cardNumber == stable }) {
+            return makeResult(from: stablePass, cardNumber: stable, captured: captured)
         }
-        // No pass found a cardNumber. Aggregate observations across
-        // every pass; the hero-name fallback in ScanMatching uses
-        // these to identify the card.
+
+        // Tier 3: a single pass found a candidate. Try to corroborate
+        // with the focused bottom-left pass before passing it through.
+        let singleVotePass = passResults.first(where: { $0.cardNumber != nil })
+        let focusResult = runFocusedBottomLeftPass(ciImage: ciImage)
+        if let single = singleVotePass, let singleCN = single.cardNumber {
+            // If the focused pass extracted the same number → strong.
+            if let focus = focusResult, focus.cardNumber == singleCN {
+                return makeResult(from: single, cardNumber: singleCN, captured: captured)
+            }
+            // If the focused pass extracted a DIFFERENT number → the
+            // bottom-left badge says one thing and a regular pass says
+            // another. Prefer the focused-region read (it sees only
+            // the badge area, no neighbor crop bleed).
+            if let focus = focusResult, let focusCN = focus.cardNumber,
+               focusCN != singleCN {
+                return makeResult(from: focus, cardNumber: focusCN, captured: captured)
+            }
+            // No focused-region confirmation; pass the single-vote
+            // through. resolveGrid's hero-text gate validates.
+            return makeResult(from: single, cardNumber: singleCN, captured: captured)
+        }
+
+        // Tier 4: no enhancement pass extracted; rely on focused pass.
+        if let focus = focusResult, let focusCN = focus.cardNumber {
+            return makeResult(from: focus, cardNumber: focusCN, captured: captured)
+        }
+
+        // Tier 5: nothing extracted. Aggregate all pass observations
+        // for hero-name-only matching downstream.
         let allText = allObs.map { $0.text }.joined(separator: " ")
         let topLeftText = allObs.filter { $0.midX < 0.5 && $0.midY > 0.5 }
             .map { $0.text }.joined(separator: " ")
@@ -765,6 +802,22 @@ extension CardScanner {
             topRightText: topRightText,
             bottomRightText: bottomRightText,
             cgImage: captured)
+    }
+
+    private func makeResult(
+        from pass: SinglePassResult,
+        cardNumber: String,
+        captured: CGImage?
+    ) -> GridOCRResult {
+        GridOCRResult(
+            cardNumber: cardNumber,
+            allText: pass.allText,
+            topLeftText: pass.topLeftText,
+            bottomLeftText: pass.bottomLeftText,
+            topRightText: pass.topRightText,
+            bottomRightText: pass.bottomRightText,
+            cgImage: captured
+        )
     }
 
     private struct SinglePassResult {

@@ -7,13 +7,19 @@ import PhotosUI
 /// pipeline: GridCardDetector → multi-pass OCR → catalog match
 /// (number + Phase-2 image-similarity tiebreak + hero-name
 /// fallback). Each detected card with a successful match is queued
-/// to ScanStore so it can be saved alongside Single/Multi mode
-/// scans.
+/// to ScanStore so the existing Multi/Show queue interface can
+/// review pricing and route to collection or show.
 @MainActor
 struct GridScanView: View {
     @Environment(\.dismiss)             private var dismiss
     @Environment(CardStore.self)        private var cardStore
     @Environment(ScanStore.self)        private var scanStore
+
+    /// Callback the parent ScanView uses to open the existing queue
+    /// review interface after the user confirms a Grid scan. Lets
+    /// pricing + designation choices flow through the same UI as
+    /// Multi/Show queues.
+    let onAddedToQueue: () -> Void
 
     @State private var sourceImage: UIImage?
     @State private var sourcePickerMode: SourcePickerMode = .none
@@ -22,15 +28,8 @@ struct GridScanView: View {
     @State private var results: [GridResult] = []
     @State private var statusMessage = ""
 
-    enum SourcePickerMode: Identifiable {
+    enum SourcePickerMode {
         case none, camera, library
-        var id: Int {
-            switch self {
-            case .none:    return 0
-            case .camera:  return 1
-            case .library: return 2
-            }
-        }
     }
 
     struct GridResult: Identifiable {
@@ -57,8 +56,10 @@ struct GridScanView: View {
                 }
                 if !results.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Add All") { queueMatchedResults() }
+                        let n = results.filter { $0.matched != nil && $0.includedInQueue }.count
+                        Button("Add \(n) to Queue") { addToQueueAndClose() }
                             .foregroundStyle(Design.Colors.bobaCyan)
+                            .disabled(n == 0)
                     }
                 }
             }
@@ -201,9 +202,13 @@ struct GridScanView: View {
     private func resultCell(_ r: GridResult) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             ZStack(alignment: .topTrailing) {
+                // Trading-card aspect ratio (~0.714) so the preview
+                // matches the actual card shape rather than squaring
+                // out into the grid cell.
                 Image(uiImage: r.crop)
                     .resizable()
-                    .scaledToFit()
+                    .aspectRatio(0.714, contentMode: .fit)
+                    .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: Design.Radius.sm))
                 if r.matched != nil {
                     Button {
@@ -251,12 +256,17 @@ struct GridScanView: View {
 
     private func processSourceImage() async {
         guard let image = sourceImage else { return }
+        // Camera-captured UIImages can carry an .right or .down
+        // EXIF orientation while the underlying CGImage stays in
+        // sensor (landscape) orientation. Re-render to a properly
+        // upright UIImage before handing to the detector — Vision's
+        // results then line up with the visible image regardless of
+        // capture mode.
+        let upright = image.orientationCorrected()
+        sourceImage = upright
         processing = true
         statusMessage = "Detecting cards…"
 
-        // Prepare scanner with catalog vocab — same setup the
-        // streaming scanner uses so customWords and cardNumberSet
-        // are populated before any pass runs.
         let scanner = CardScanner()
         scanner.setCardNumbers(cardStore.displayCards.map { $0.cardNumber.uppercased() })
         let names = cardStore.displayCards.flatMap { card -> [String] in
@@ -270,7 +280,7 @@ struct GridScanView: View {
 
         let detected: [GridCardDetector.DetectedCard]
         do {
-            detected = try await GridCardDetector.detect(in: image)
+            detected = try await GridCardDetector.detect(in: upright)
         } catch {
             statusMessage = "Couldn't find any cards. Try a clearer photo."
             processing = false
@@ -321,13 +331,44 @@ struct GridScanView: View {
         results[idx].includedInQueue.toggle()
     }
 
-    private func queueMatchedResults() {
+    /// Add every checked result to the existing scanStore queue,
+    /// then dismiss this Grid view and let the parent ScanView
+    /// open the standard queue interface (where pricing shows up
+    /// and the user picks collection vs show vs save-all).
+    private func addToQueueAndClose() {
+        // Default the queue to multi mode unless already in show
+        // mode. Grid is fundamentally a "many cards at once" flow
+        // so single mode would defeat the purpose.
+        if scanStore.mode != .show {
+            scanStore.mode = .multi
+        }
         for r in results where r.includedInQueue {
             if let card = r.matched {
                 scanStore.addToQueue(card)
             }
         }
         dismiss()
+        onAddedToQueue()
+    }
+}
+
+// MARK: - UIImage orientation helper
+
+extension UIImage {
+    /// Re-render the image in `.up` orientation. UIImagePickerController
+    /// (camera capture) often returns images whose underlying
+    /// CGImage is sideways with EXIF metadata indicating .right; CIImage
+    /// + Vision then process the raw pixels and ignore the metadata,
+    /// which makes the detector think the cards are sideways. Drawing
+    /// the UIImage into a context bakes the orientation in.
+    func orientationCorrected() -> UIImage {
+        if imageOrientation == .up { return self }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = scale
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        return renderer.image { _ in
+            draw(in: CGRect(origin: .zero, size: size))
+        }
     }
 }
 

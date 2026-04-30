@@ -44,6 +44,15 @@ enum GridCardDetector {
         /// from a Vision anchor or axis-aligned at the inferred
         /// grid position.
         let image: UIImage
+        /// Cell rectangle in normalized CIImage coordinates (bottom-
+        /// left origin, range 0–1). Exposed so burst-capture frames
+        /// can be cropped at the same location as the primary frame
+        /// without re-running geometry inference per frame.
+        let cellRect: CGRect
+        /// Source UIImage's orientation flag, captured at detection
+        /// time. Re-cropping a burst frame requires applying the
+        /// same orientation before sampling the rect.
+        let sourceOrientation: UIImage.Orientation
         /// Anchor confidence — Vision's rectangle confidence when
         /// this crop came from a detected anchor; 0 when the crop
         /// is synthesized from grid inference (no anchor close to
@@ -146,11 +155,30 @@ enum GridCardDetector {
                 row:         cell.row,
                 column:      cell.column,
                 image:       crop,
+                cellRect:    cell.rect,
+                sourceOrientation: image.imageOrientation,
                 confidence:  nearest?.confidence ?? 0,
                 synthesized: nearest == nil
             ))
         }
         return results
+    }
+
+    /// Crop a different (typically burst-capture) frame at the same
+    /// cell rectangle that was inferred from the primary frame.
+    /// `cellRect` is in normalized CIImage coordinates (bottom-left
+    /// origin) — the same form `DetectedCard.cellRect` uses. The
+    /// orientation argument should match the source frame's
+    /// `imageOrientation`. Returns nil if the rect is fully outside
+    /// the image or the CIImage construction fails.
+    static func cropFrame(
+        _ image: UIImage,
+        cellRect: CGRect,
+        orientation: UIImage.Orientation
+    ) -> UIImage? {
+        guard let ci = CIImage(image: image) else { return nil }
+        let oriented = ci.oriented(cgImageOrientation(from: orientation))
+        return axisAlignedCrop(oriented: oriented, cellRect: cellRect)
     }
 
     // MARK: - Vision request

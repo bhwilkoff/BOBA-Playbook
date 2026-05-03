@@ -301,3 +301,64 @@ Cloudflare Browser Rendering API, Playwright runner, or
 out-of-band cf_clearance cookie persistence. Defer until COMC's
 WAF stance changes or COMC integration becomes a higher priority
 than the cost of bypass tooling.
+
+## 035 — Unified card recognition: image fingerprint as primary, OCR as confirmation
+*2026-04-30*
+Every scan mode (single live, multi live, show live, photo-picker
+still, grid burst) now routes through a single recognition function:
+`ScanMatching.resolve(observation:allCards:)`. The previous design
+ran two parallel matchers — `ScanView.handleDetected` filtered by
+OCR cardNumber and tiebroke ties via FP, while `resolveGrid` ran an
+8-stage waterfall with magic thresholds. Both treated the OCR
+cardNumber as the primary key, which is exactly what failed when
+OCR returned a real-but-wrong number (a partial read of "BHBF-37"
+arriving as "20"). The catalog returned a legitimate card at "20"
+(Tigre, base set), the printed hero on the photographed card
+(JacHammer) had no veto, and the wrong card committed.
+
+**The redesign**: image fingerprint (already shipped as
+`feature-prints.bin`) is now the primary identifier. The 9,206-entry
+"shared cardNumber only" filter (built when FP was a tiebreaker) is
+gone — the index now covers all 16,123 imaged cards in a 12.7 MB
+bundle. Every signal contributes BOTH candidates and scores:
+
+  * FP top-30 by L2 distance → ranked candidate pool
+  * OCR cardNumber exact match → +1.0
+  * OCR cardNumber bare-digit suffix match → +0.4 (recovers prefix-stripped reads)
+  * Hero name in top-left quadrant → +1.5
+  * Hero name elsewhere → +0.6
+  * **Hero veto**: when one or more heroes are clearly named in
+    top-left text, ANY candidate whose hero isn't in that set gets
+    −2.0. This is the missing piece — it's why the 8-stage waterfall
+    occasionally trusted an OCR cardNumber match that the printed
+    hero contradicted.
+  * Element + treatment + power → small additives
+
+A confidence floor (1.4) and margin floor (0.3) gate the commit.
+When neither is met, the resolver returns nil ("don't guess") and
+the cell renders as "Not identified" — better UX than a confident
+wrong answer.
+
+**Why this works for every mode, not just grid**: the live scan
+chain `AVCaptureSession → CardScanner → ScanObservation` and the
+grid chain `Photo → GridCardDetector → CardScanner.scanGridImageBurst
+→ ScanObservation` produce the same shape. The unified resolve
+consumes ScanObservation regardless of source. Every improvement —
+better FP coverage, hero veto, perspective-rectified grid crops —
+applies to all five scan entry points simultaneously.
+
+**Why FP is right as the primary**: text OCR fails partially in
+ways that look like success — a real-but-wrong cardNumber matches
+the catalog and silently commits the wrong card. Image fingerprint
+fails completely in ways that look like failure — distance to every
+catalog entry is large, the resolver returns nil, and the user
+retries. The mode of failure is what matters: silent-wrong is the
+worst possible UX for a card-recognition app.
+
+**Grid-cell perspective rectification**: GridCardDetector now
+perspective-corrects from each anchor's quad with an ADAPTIVE
+bleed sized to lane-derived dimensions. The previous "anchors clip
+the bottom-left cardNumber" issue (~22% under-detection) is fixed
+by inflating the quad to match the lane-spacing-derived card size
+before rectifying. Cells without anchors fall back to axis-aligned
+crops at predicted positions.

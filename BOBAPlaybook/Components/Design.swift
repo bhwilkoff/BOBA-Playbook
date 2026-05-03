@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Design Tokens
 // Matches the web design system in css/styles.css
@@ -18,6 +19,16 @@ enum Design {
         static let textMuted    = Color(white: 1, opacity: 0.35)
         static let glass        = Color(white: 1, opacity: 0.08)
         static let glassBorder  = Color(white: 1, opacity: 0.15)
+
+        // UIColor mirrors of the brand tokens. Needed for any code
+        // path that draws into UIGraphics contexts (e.g.,
+        // PricingOverlayComposer in ScanQueueView), where SwiftUI's
+        // Color isn't directly usable. Hex values match the SwiftUI
+        // tokens above; keep them in lockstep when changing brand
+        // colors.
+        static let bobaOrangeUI = UIColor(red: 0xFF/255.0, green: 0x4D/255.0, blue: 0x00/255.0, alpha: 1.0)
+        static let bobaCyanUI   = UIColor(red: 0x00/255.0, green: 0xF5/255.0, blue: 0xFF/255.0, alpha: 1.0)
+        static let nearBlackUI  = UIColor(red: 0x08/255.0, green: 0x08/255.0, blue: 0x10/255.0, alpha: 1.0)
 
         static func element(_ name: String) -> Color {
             switch name.uppercased() {
@@ -253,5 +264,324 @@ struct HintBanner: View {
                 .frame(width: 22, height: 22)
         }
         .buttonStyle(.plain)
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - Feature walkthroughs (DESIGN.md §6.10)
+// ════════════════════════════════════════════════════════════════
+//
+// Inlined alongside HintsManager for the same Xcode synchronized-group
+// reliability reason (DECISIONS.md #031). Walkthroughs are the
+// just-in-time onboarding pattern: anchored multi-step tutorials that
+// fire on first feature use. Distinct from hints — see DESIGN.md §6.10
+// vs §6.8.
+
+enum WalkthroughID: String, CaseIterable {
+    case findTab        = "walkthrough.find_tab"
+    case learnTab       = "walkthrough.learn_tab"
+    case decksTab       = "walkthrough.decks_tab"
+    case collectionTab  = "walkthrough.collection_tab"
+    case purchaseTab    = "walkthrough.purchase_tab"
+    case cardDetail     = "walkthrough.card_detail"
+    case pricingPanels  = "walkthrough.pricing_panels"
+    case wallView       = "walkthrough.wall_view"
+    case scanFromFind   = "walkthrough.scan_from_find"
+    case scanFromDecks  = "walkthrough.scan_from_decks"
+    case scanFromCollection = "walkthrough.scan_from_collection"
+    case multiCardScan  = "walkthrough.multi_card_scan"
+}
+
+@Observable
+final class WalkthroughsManager {
+    static let shared = WalkthroughsManager()
+
+    /// Master toggle — when false, no walkthroughs render.
+    var walkthroughsEnabled: Bool {
+        didSet { UserDefaults.standard.set(walkthroughsEnabled, forKey: "walkthroughs.enabled") }
+    }
+
+    /// Walkthrough IDs the user has dismissed (or completed). Tracked
+    /// stored property so toggling triggers SwiftUI re-render.
+    private(set) var dismissedIDs: Set<String>
+
+    init() {
+        let dflt = UserDefaults.standard
+        // Default ON — first-visit teaching is the whole point. Users
+        // can disable from Profile / Settings.
+        self.walkthroughsEnabled = dflt.object(forKey: "walkthroughs.enabled") as? Bool ?? true
+        var initial: Set<String> = []
+        for id in WalkthroughID.allCases where dflt.bool(forKey: id.rawValue) {
+            initial.insert(id.rawValue)
+        }
+        self.dismissedIDs = initial
+    }
+
+    func isDismissed(_ id: WalkthroughID) -> Bool {
+        dismissedIDs.contains(id.rawValue)
+    }
+
+    func dismiss(_ id: WalkthroughID) {
+        UserDefaults.standard.set(true, forKey: id.rawValue)
+        dismissedIDs.insert(id.rawValue)
+    }
+
+    func shouldShow(_ id: WalkthroughID) -> Bool {
+        walkthroughsEnabled && !isDismissed(id)
+    }
+
+    /// Force a walkthrough to re-fire (used by the "?" toolbar button
+    /// in each surface — DESIGN.md §6.10 re-launchable rule).
+    func relaunch(_ id: WalkthroughID) {
+        UserDefaults.standard.removeObject(forKey: id.rawValue)
+        dismissedIDs.remove(id.rawValue)
+    }
+
+    func resetAll() {
+        for id in WalkthroughID.allCases {
+            UserDefaults.standard.removeObject(forKey: id.rawValue)
+        }
+        dismissedIDs.removeAll()
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - BOBAEmptyState (DESIGN.md §6.7 + §11.1)
+// ════════════════════════════════════════════════════════════════
+
+/// Wrapper around `ContentUnavailableView` with brand voice + a
+/// canonical "productive next action" slot. Replace ad-hoc empty
+/// rendering everywhere.
+struct BOBAEmptyState<Actions: View>: View {
+    let title: String
+    let systemImage: String
+    let message: String?
+    @ViewBuilder let actions: () -> Actions
+
+    init(
+        title: String,
+        systemImage: String,
+        message: String? = nil,
+        @ViewBuilder actions: @escaping () -> Actions = { EmptyView() }
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.message = message
+        self.actions = actions
+    }
+
+    var body: some View {
+        ContentUnavailableView {
+            Label(title, systemImage: systemImage)
+                .font(Design.Fonts.display(18))
+                .foregroundStyle(Design.Colors.textPrimary)
+        } description: {
+            if let message {
+                Text(message)
+                    .font(Design.Fonts.mono(13))
+                    .foregroundStyle(Design.Colors.textSecondary)
+            }
+        } actions: {
+            actions()
+        }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - BOBAErrorBanner (DESIGN.md §6.7 + §11.1)
+// ════════════════════════════════════════════════════════════════
+
+/// Inline error banner for action failures (Save deck, Sync, Pricing
+/// fetch). Distinct from HintBanner (gold) — orange-bordered to signal
+/// attention required. Includes optional retry callback.
+struct BOBAErrorBanner: View {
+    let title: String
+    let message: String
+    let retry: (() -> Void)?
+
+    var body: some View {
+        HStack(alignment: .top, spacing: Design.Spacing.sm) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 13))
+                .foregroundStyle(Design.Colors.bobaOrange)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaOrange)
+                    .tracking(0.6)
+                Text(message)
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+            if let retry {
+                Button("Retry", action: retry)
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaOrange)
+            }
+        }
+        .padding(Design.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: Design.Radius.sm)
+                .fill(Color(hex: "12121C"))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Design.Radius.sm)
+                        .strokeBorder(Design.Colors.bobaOrange.opacity(0.55), lineWidth: 1)
+                )
+        )
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - BOBASignInPrompt (DESIGN.md §6.5 Auth + §11.1)
+// ════════════════════════════════════════════════════════════════
+
+/// Inline "Sign in to do this" row at the point of action. Per
+/// DESIGN.md §6.5, never block exploration on sign-in — surface auth
+/// only when the user attempts a write that requires it.
+struct BOBASignInPrompt: View {
+    let actionDescription: String  // e.g. "save this deck", "designate this card"
+    let onSignIn: () -> Void
+
+    var body: some View {
+        HStack(spacing: Design.Spacing.sm) {
+            Image(systemName: "person.crop.circle.badge.checkmark")
+                .font(.system(size: 16))
+                .foregroundStyle(Design.Colors.bobaCyan)
+            Text("Sign in to \(actionDescription).")
+                .font(Design.Fonts.mono(12))
+                .foregroundStyle(Design.Colors.textPrimary)
+            Spacer(minLength: Design.Spacing.sm)
+            Button("Sign In", action: onSignIn)
+                .font(Design.Fonts.mono(12, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaCyan)
+        }
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: Design.Radius.sm)
+                .fill(Design.Colors.bobaCyan.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Design.Radius.sm)
+                        .strokeBorder(Design.Colors.bobaCyan.opacity(0.35), lineWidth: 1)
+                )
+        )
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - BOBAOfflinePill (DESIGN.md §6.7 + §11.1)
+// ════════════════════════════════════════════════════════════════
+
+/// Subtle "Offline" pill for the nav bar. Tap to surface a sheet
+/// explaining what's degraded (Cloud actions disabled, cached data
+/// shown). Hosting view manages the connectivity check + presentation.
+struct BOBAOfflinePill: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "wifi.slash")
+                .font(.system(size: 10, weight: .bold))
+            Text("OFFLINE")
+                .font(Design.Fonts.mono(10, weight: .bold))
+                .tracking(0.8)
+        }
+        .foregroundStyle(Design.Colors.textMuted)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(
+            Capsule()
+                .fill(Color.white.opacity(0.06))
+                .overlay(
+                    Capsule().strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                )
+        )
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - BOBASectionHeader (DESIGN.md §4.2 typography hierarchy)
+// ════════════════════════════════════════════════════════════════
+
+/// Uppercase Bebas Neue section header. Replaces colored-box section
+/// labels (§4.1 anti-pattern: no background tints on lists).
+struct BOBASectionHeader: View {
+    let title: String
+    let trailing: String?
+
+    init(_ title: String, trailing: String? = nil) {
+        self.title = title
+        self.trailing = trailing
+    }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title.uppercased())
+                .font(Design.Fonts.arena(15))
+                .tracking(1.2)
+                .foregroundStyle(Design.Colors.textSecondary)
+            Spacer(minLength: Design.Spacing.sm)
+            if let trailing {
+                Text(trailing)
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+        }
+        .padding(.horizontal, Design.Spacing.lg)
+        .padding(.vertical, Design.Spacing.xs)
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - BOBASectionRow (DESIGN.md §11.1)
+// ════════════════════════════════════════════════════════════════
+
+/// Single-line row for root list views (Learn root, Profile, Settings).
+/// Title + optional count + chevron. Use NavigationLink wrapped around
+/// this for push navigation.
+struct BOBASectionRow: View {
+    let title: String
+    let subtitle: String?
+    let count: Int?
+    let systemImage: String?
+
+    init(title: String, subtitle: String? = nil, count: Int? = nil, systemImage: String? = nil) {
+        self.title = title
+        self.subtitle = subtitle
+        self.count = count
+        self.systemImage = systemImage
+    }
+
+    var body: some View {
+        HStack(spacing: Design.Spacing.md) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: 18))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+                    .frame(width: 28)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(Design.Fonts.display(16))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(Design.Fonts.mono(12))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .lineLimit(2)
+                }
+            }
+            Spacer(minLength: Design.Spacing.sm)
+            if let count {
+                Text("\(count)")
+                    .font(Design.Fonts.mono(12, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Design.Colors.textMuted)
+        }
+        .padding(.vertical, Design.Spacing.sm)
+        .contentShape(Rectangle())
     }
 }

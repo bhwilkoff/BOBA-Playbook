@@ -58,6 +58,7 @@ struct PurchaseView: View {
                     .accessibilityLabel("Purchase options")
                 }
             }
+            .bobaSidebarTrigger(.purchase)
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .walkthroughOverlay($walkthrough)

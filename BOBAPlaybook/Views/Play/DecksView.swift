@@ -42,12 +42,12 @@ struct DecksView: View {
 
     // MARK: - Sheet + UI state
 
-    /// Persistent bottom sheet — flipped on .onAppear and never dismissed
-    /// (interactiveDismissDisabled). Detents are .height(120) + .medium
-    /// only — .large would cover the navigation toolbar AND tab bar,
-    /// making it impossible to leave the Decks tab without an awkward
-    /// drag-down gesture. .medium gives ample room to inspect the deck
-    /// list while keeping every chrome element reachable.
+    /// Persistent system sheet — uses iOS's native presentationDetents
+    /// API per DESIGN.md §8.3. The trick to keeping the tab bar visible
+    /// underneath is .toolbar(.visible, for: .tabBar) applied to the
+    /// sheet's content (NOT to the host view) — sheet content lives in
+    /// a separate presentation context, so the modifier overrides the
+    /// default modal "hide tab bar" behavior for the sheet specifically.
     @State private var showDeckSheet     = false
     @State private var sheetDetent       : PresentationDetent = .height(120)
 
@@ -107,13 +107,22 @@ struct DecksView: View {
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: "Search · weapon, cost, or hero"
             ) { token in
-                Label(token.label, systemImage: token.systemImageName)
+                // Per-token weapon coloring (user feedback #7) — paint
+                // the icon in the token's tint so a FIRE chip is FIRE-
+                // colored, ICE is ICE-colored, etc.
+                Label {
+                    Text(token.label)
+                } icon: {
+                    Image(systemName: token.systemImageName)
+                        .foregroundStyle(token.tint)
+                }
             }
             .onSubmit(of: .search) { searchFocused = false }
-            // Single persistent bottom sheet — never dismissed. Detents
-            // exclude .large so the nav toolbar + tab bar stay visible
-            // regardless of sheet state (fixes the "no way to exit
-            // Decks" + "Profile button unreliable" bugs).
+            // Persistent bottom sheet — system .sheet with detents per
+            // DESIGN.md §8.3 Maps pattern. .toolbar(.visible, for:
+            // .tabBar) on the sheet CONTENT keeps the TabView's tab
+            // bar visible underneath at every detent so the user can
+            // always navigate to other tabs.
             .sheet(isPresented: $showDeckSheet) {
                 deckSheetContent
                     .presentationDetents(
@@ -125,10 +134,9 @@ struct DecksView: View {
                     .presentationCornerRadius(28)
                     .interactiveDismissDisabled(true)
                     .presentationDragIndicator(.visible)
+                    .toolbar(.visible, for: .tabBar)   // ← keeps tab bar reachable
             }
-            // Single secondary-sheet host attached to the parent (NOT
-            // to the bottom sheet's content). Stacks above the bottom
-            // sheet without state propagation issues.
+            // Single secondary-sheet host attached to the parent.
             .sheet(item: $secondarySheet) { sheet in
                 switch sheet {
                 case .profile:        ProfileView()
@@ -370,7 +378,7 @@ struct DecksView: View {
         }
     }
 
-    // MARK: - Bottom sheet content
+    // MARK: - Bottom sheet content (system .sheet — DESIGN.md §8.3)
 
     @ViewBuilder
     private var deckSheetContent: some View {
@@ -378,7 +386,8 @@ struct DecksView: View {
             sheetHeaderRow
                 .walkthroughAnchor("decks.sheetHandle")
 
-            // .medium and .large get the format chip strip + the deck list.
+            // .medium detent gets the format chip strip + the deck list.
+            // .height(120) shows just the header.
             if sheetDetent != .height(120) {
                 Divider().background(Design.Colors.glass)
                 formatChipStrip
@@ -388,8 +397,6 @@ struct DecksView: View {
             }
         }
         // No .background — let iOS 26 apply Liquid Glass automatically (§3.10).
-        // Secondary sheets are hosted at the parent view via $secondarySheet
-        // so a single .sheet(item:) handles all four destinations reliably.
     }
 
     /// Always-visible header at .height(120) — deck name + per-section counts +

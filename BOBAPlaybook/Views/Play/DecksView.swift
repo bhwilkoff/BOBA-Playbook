@@ -43,8 +43,11 @@ struct DecksView: View {
     // MARK: - Sheet + UI state
 
     /// Persistent bottom sheet — flipped on .onAppear and never dismissed
-    /// (interactiveDismissDisabled). Detent selection drives which sheet
-    /// content blocks render.
+    /// (interactiveDismissDisabled). Detents are .height(120) + .medium
+    /// only — .large would cover the navigation toolbar AND tab bar,
+    /// making it impossible to leave the Decks tab without an awkward
+    /// drag-down gesture. .medium gives ample room to inspect the deck
+    /// list while keeping every chrome element reachable.
     @State private var showDeckSheet     = false
     @State private var sheetDetent       : PresentationDetent = .height(120)
 
@@ -52,14 +55,22 @@ struct DecksView: View {
     @State private var search            = ""
     @State private var tokens            : [BOBAFilterToken] = []
     @State private var collectionOnly    = false
+    /// Per user feedback: defaults to TAP=VIEW (false) so coaches can
+    /// explore a card by tapping. Toggle on in the search-bar pill to
+    /// switch to one-tap deck adding when batch-building. Persisted so
+    /// power users who prefer Quick Add stay in that mode across launches.
+    @AppStorage("bp_deckPoolQuickAdd_v1") private var quickAdd: Bool = false
     @FocusState private var searchFocused: Bool
 
-    // Secondary sheets — all attached inside the deck-sheet content so they
-    // stack above it without dismissing it (per §3.4).
-    @State private var showProfile           = false
-    @State private var showRulesSheet        = false
-    @State private var showLegalityReport    = false
-    @State private var showDeckManagement    = false
+    /// Single secondary-sheet enum so .sheet(item:) hosts ONE modal at
+    /// a time. Replaces the four .sheet(isPresented:) modifiers stacked
+    /// on the bottom-sheet content, which presented unreliably (the
+    /// reported "Profile button doesn't consistently work" bug).
+    enum SecondarySheet: Identifiable {
+        case profile, rules, legality, deckManagement
+        var id: Int { hashValue }
+    }
+    @State private var secondarySheet: SecondarySheet? = nil
     @State private var selectedBrowserCard   : Card? = nil
 
     // Scan + alerts + transient feedback. Scan presentation lives at
@@ -99,11 +110,14 @@ struct DecksView: View {
                 Label(token.label, systemImage: token.systemImageName)
             }
             .onSubmit(of: .search) { searchFocused = false }
-            // Single persistent bottom sheet — never dismissed.
+            // Single persistent bottom sheet — never dismissed. Detents
+            // exclude .large so the nav toolbar + tab bar stay visible
+            // regardless of sheet state (fixes the "no way to exit
+            // Decks" + "Profile button unreliable" bugs).
             .sheet(isPresented: $showDeckSheet) {
                 deckSheetContent
                     .presentationDetents(
-                        [.height(120), .medium, .large],
+                        [.height(120), .medium],
                         selection: $sheetDetent
                     )
                     .presentationBackgroundInteraction(.enabled(upThrough: .medium))
@@ -111,6 +125,17 @@ struct DecksView: View {
                     .presentationCornerRadius(28)
                     .interactiveDismissDisabled(true)
                     .presentationDragIndicator(.visible)
+            }
+            // Single secondary-sheet host attached to the parent (NOT
+            // to the bottom sheet's content). Stacks above the bottom
+            // sheet without state propagation issues.
+            .sheet(item: $secondarySheet) { sheet in
+                switch sheet {
+                case .profile:        ProfileView()
+                case .rules:          DeckRulesSheet(store: store)
+                case .legality:       LegalityReportSheet(store: store)
+                case .deckManagement: DeckManagementSheet(store: store, cards: cardStore.displayCards)
+                }
             }
             // Card-detail (long-press in pool) — independent of the bottom sheet.
             // Lives at the parent level so dismissal returns to the canvas.
@@ -143,7 +168,7 @@ struct DecksView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            Button { showProfile = true } label: {
+            Button { secondarySheet = .profile } label: {
                 Image(systemName: "person.crop.circle")
                     .font(.system(size: 18))
                     .foregroundStyle(Design.Colors.bobaCyan)
@@ -177,19 +202,28 @@ struct DecksView: View {
                 // per §8.3 ("Save / Templates / Import / Export / Delete /
                 // Duplicate / Rules") and adds Scan + Walkthrough.
                 Menu {
+                    // Tap behavior — restores the legacy DeckBuilderView's
+                    // explicit choice between "Tap to view" (default) and
+                    // "Tap to add". Long-press always opens detail in
+                    // either mode.
+                    Picker("Card tap action", selection: $quickAdd) {
+                        Label("Tap to view", systemImage: "eye.fill").tag(false)
+                        Label("Tap to add",  systemImage: "plus.circle.fill").tag(true)
+                    }
+
                     Button {
-                        showDeckManagement = true
+                        secondarySheet = .deckManagement
                     } label: {
                         Label("Saved decks · Templates · Import / Export", systemImage: "tray.full")
                     }
                     Button {
-                        showRulesSheet = true
+                        secondarySheet = .rules
                     } label: {
                         Label(store.ruleOverrides.hasAnyUserOverride ? "Custom rules…" : "Rules…",
                               systemImage: "list.bullet.rectangle")
                     }
                     Button {
-                        showLegalityReport = true
+                        secondarySheet = .legality
                     } label: {
                         Label("Legality audit", systemImage: "checkmark.seal")
                     }
@@ -257,19 +291,21 @@ struct DecksView: View {
                         BrowserCardCell(
                             card: card,
                             store: store,
-                            quickAdd: true                  // pool is "tap to add" per §8.3
+                            quickAdd: quickAdd
                         ) { tappedCard in
-                            // Path is unused (quickAdd=true short-circuits).
+                            // BrowserCardCell calls onSelect when quickAdd
+                            // is OFF — open the card detail sheet for
+                            // exploration. When quickAdd is ON, the cell
+                            // adds directly and onSelect is unused.
                             selectedBrowserCard = tappedCard
                         }
-                        // Long-press → detail sheet. Tap → add (handled inside
-                        // BrowserCardCell via store.addCard when quickAdd).
+                        // Long-press always opens detail (works in either
+                        // mode), so coaches can dig into a card mid-batch
+                        // without flipping the toggle.
                         .simultaneousGesture(
                             LongPressGesture(minimumDuration: 0.4)
                                 .onEnded { _ in selectedBrowserCard = card }
                         )
-                        // Anchor the first cell as the walkthrough target
-                        // for "Tap any card to add it to your deck."
                         .modifier(FirstCellAnchor(isFirst: idx == 0))
                     }
                 }
@@ -352,14 +388,8 @@ struct DecksView: View {
             }
         }
         // No .background — let iOS 26 apply Liquid Glass automatically (§3.10).
-        // Layered sheets attach here so they stack above the bottom sheet
-        // without dismissing it (per §3.4).
-        .sheet(isPresented: $showProfile)        { ProfileView() }
-        .sheet(isPresented: $showRulesSheet)     { DeckRulesSheet(store: store) }
-        .sheet(isPresented: $showLegalityReport) { LegalityReportSheet(store: store) }
-        .sheet(isPresented: $showDeckManagement) {
-            DeckManagementSheet(store: store, cards: cardStore.displayCards)
-        }
+        // Secondary sheets are hosted at the parent view via $secondarySheet
+        // so a single .sheet(item:) handles all four destinations reliably.
     }
 
     /// Always-visible header at .height(120) — deck name + per-section counts +
@@ -463,7 +493,7 @@ struct DecksView: View {
                 if !auth.isAuthenticated && !deckIsEmpty {
                     BOBASignInPrompt(
                         actionDescription: "save this deck and access it on every device",
-                        onSignIn: { showProfile = true }
+                        onSignIn: { secondarySheet = .profile }
                     )
                     .padding(.horizontal, Design.Spacing.md)
                     .padding(.vertical, Design.Spacing.sm)

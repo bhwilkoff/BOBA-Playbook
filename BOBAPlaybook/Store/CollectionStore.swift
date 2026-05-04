@@ -282,6 +282,18 @@ final class CollectionStore {
         userCards.filter { $0.designation.isOwned && $0.estimatedValue != nil }.count
     }
 
+    /// Per DESIGN.md §8.4 / §8.8 — bobaId → summed estimated_value across
+    /// all copies under the given designation. Used by the Collection
+    /// Wall sheet's Price Overlay to render per-tile asking/value chips.
+    func estimatedValuesByBobaId(forDesignation d: UserCard.Designation) -> [String: Decimal] {
+        var out: [String: Decimal] = [:]
+        for entry in userCards where entry.designation == d {
+            guard let bobaId = entry.bobaId, let value = entry.estimatedValue else { continue }
+            out[bobaId, default: 0] += value
+        }
+        return out
+    }
+
     // MARK: - Pricing refresh
 
     /// Updates estimated_value + last_price_check for every entry of `cardNumber`

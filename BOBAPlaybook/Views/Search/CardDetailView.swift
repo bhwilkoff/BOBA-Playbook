@@ -226,8 +226,11 @@ struct CardDetailView: View {
                 // user navigates back to the grid (via dismiss) and
                 // taps another card.
             }
-            .toolbarBackground(.regularMaterial, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            // Hide nav bar background — the artPanel's gradient becomes
+            // the visual top surface; nav bar items float over it.
+            // Music's "Now Playing" pattern. Same modifier on Decks and
+            // Collection card details for consistency.
+            .toolbarBackground(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingAddSheet) {
                 AddToCollectionSheet(card: card)
             }
@@ -410,11 +413,10 @@ struct CardDetailView: View {
 
             CardImageView(card: card, size: .full)
                 .id(card.id)  // force view recreation on card change so loadedImage resets
-                .frame(maxWidth: .infinity)
+                .aspectRatio(5.0/7.0, contentMode: .fit)
                 .frame(height: 380)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
                 .shadow(color: Design.Colors.element(card.element).opacity(0.4), radius: 16, y: 6)
-                .padding(.horizontal, Design.Spacing.xl)
                 .scaleEffect(effectiveScale)
                 .offset(
                     x: offset.width + (scale > 1 ? dragDelta.width : 0),

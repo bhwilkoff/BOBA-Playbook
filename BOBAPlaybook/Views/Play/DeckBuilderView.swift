@@ -1909,7 +1909,7 @@ struct BrowserCardDetailSheet: View {
                 if let file = card.imageFile, !file.isEmpty {
                     CachedAsyncCardImage(url: CDN.full(for: file), contentMode: .fit)
                 } else {
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: 16)
                         .fill(Design.Colors.glass)
                         .aspectRatio(BOBACardCell.aspectRatio, contentMode: .fit)
                         .overlay(Text(card.hero.isEmpty ? card.name : card.hero)
@@ -1917,18 +1917,17 @@ struct BrowserCardDetailSheet: View {
                             .foregroundStyle(Design.Colors.element(card.element)))
                 }
             }
-            .frame(maxWidth: .infinity)
+            .aspectRatio(5.0/7.0, contentMode: .fit)
             .frame(height: 380)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
             .shadow(color: Design.Colors.element(card.element).opacity(0.4), radius: 16, y: 6)
-            .padding(.horizontal, Design.Spacing.xl)
         }
     }
 
     var body: some View {
         navStackIfNeeded {
             ScrollView {
-                VStack(spacing: Design.Spacing.lg) {
+                VStack(spacing: 0) {
                     artPanel
 
                     // Stats
@@ -2021,11 +2020,6 @@ struct BrowserCardDetailSheet: View {
             }
             // STANDARDIZED toolbar setup — IDENTICAL to Find's
             // CardDetailView and Collection's CollectionCardDetailView.
-            // The previous iterations accumulated .toolbarTitleDisplayMode
-            // and .toolbarBackground(.hidden) on Decks/Collection that
-            // Find didn't have, which made Decks's header taller than
-            // the others. Now all three share the exact same modifier
-            // set so headers match.
             .scrollEdgeEffectStyle(.soft, for: .top)
             .background(Design.Colors.nearBlack)
             .navigationTitle("")
@@ -2044,8 +2038,8 @@ struct BrowserCardDetailSheet: View {
                         .lineLimit(1)
                 }
             }
-            .toolbarBackground(.regularMaterial, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            // Hide nav bar background — gradient is the visual top.
+            .toolbarBackground(.hidden, for: .navigationBar)
         }
     }
 }

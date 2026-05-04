@@ -282,12 +282,12 @@ struct CardDetailView: View {
             .walkthroughOverlay($walkthrough)
             .onAppear {
                 // First-visit teaches CardDetail surface anatomy.
-                // After that's dismissed, on a subsequent open, the
-                // pricing-panels script teaches asking-vs-sold (§8.7).
+                // The pricingPanels walkthrough fires from inside
+                // PricingSection.onAppear instead of here — that way
+                // the user has actually scrolled to pricing before the
+                // walkthrough anchors at it (no off-screen text).
                 if WalkthroughsManager.shared.shouldShow(.cardDetail) {
                     walkthrough = .cardDetail
-                } else if WalkthroughsManager.shared.shouldShow(.pricingPanels) {
-                    walkthrough = .pricingPanels
                 }
                 // AddToCollectionIntent (DESIGN.md §7) hint — when the
                 // user invoked the intent from Spotlight/Siri/Shortcuts
@@ -648,6 +648,18 @@ struct CardDetailView: View {
 
             PricingSection(card: card)
                 .walkthroughAnchor("cardDetail.pricing")
+                .onAppear {
+                    // Pricing walkthrough fires here, after the user
+                    // has actually scrolled to (or auto-rendered) the
+                    // pricing panels — guarantees the buyNow / sold
+                    // anchors are on-screen at trigger time. The
+                    // cardDetail walkthrough must be dismissed first
+                    // (one walkthrough per surface, per §6.10).
+                    if walkthrough == nil,
+                       WalkthroughsManager.shared.shouldShow(.pricingPanels) {
+                        walkthrough = .pricingPanels
+                    }
+                }
 
             if !variations.isEmpty {
                 variationsSection

@@ -180,6 +180,13 @@ struct StoreLocatorView: View {
     // MARK: - Map
 
     private var mapSection: some View {
+        // Per user feedback — the map was inset by horizontal +
+        // vertical padding inside a black-background parent, which
+        // produced a black halo around the rounded-rectangle map and
+        // looked clashy when the list scrolled into the gap. Map now
+        // fills edge-to-edge (no rounded corners, no padding) so it
+        // sits flush against the filter bar above and the list below
+        // — like Apple Maps' own Find layout.
         ZStack(alignment: .topTrailing) {
             Map(position: $cameraPosition, selection: .constant(nil)) {
                 ForEach(store.filtered.prefix(500)) { s in
@@ -207,12 +214,6 @@ struct StoreLocatorView: View {
             }
             .mapStyle(.standard(elevation: .flat))
             .frame(height: 240)
-            .clipShape(RoundedRectangle(cornerRadius: Design.Radius.lg))
-            .overlay(
-                RoundedRectangle(cornerRadius: Design.Radius.lg)
-                    .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)
-            )
-            .shadow(color: .black.opacity(0.35), radius: 6, y: 3)
 
             if store.loadState == .loading {
                 ProgressView()
@@ -222,8 +223,6 @@ struct StoreLocatorView: View {
                     .padding(Design.Spacing.sm)
             }
         }
-        .padding(.horizontal, Design.Spacing.md)
-        .padding(.top, Design.Spacing.sm)
         .walkthroughAnchor("purchase.storeMap")  // §6.10.1 walkthrough catalog
     }
 

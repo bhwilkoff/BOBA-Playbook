@@ -60,17 +60,30 @@ struct PricingSection: View {
                         .frame(height: 64)
                 } else if let result {
                     if result.sold != nil || result.active != nil {
-                        // Dual-section layout per DESIGN.md §8.7. Walkthrough
-                        // anchors point at each bucket so the .pricingPanels
-                        // first-visit script can teach the asking-vs-sold
-                        // distinction.
-                        if let sold = result.sold {
-                            bucketView(sold, label: "RECENT SALES", isActive: false)
-                                .walkthroughAnchor("pricing.sold")
+                        // Market-estimate caption per DESIGN.md §8.7 — single
+                        // line above the two sections. Per DECISIONS.md #034,
+                        // asking prices are NEVER folded into this number;
+                        // the basis is exposed so users can audit.
+                        if let sold = result.sold,
+                           let caption = marketEstimateCaption(sold: sold) {
+                            Text(caption)
+                                .font(Design.Fonts.mono(11, weight: .bold))
+                                .foregroundStyle(Design.Colors.textPrimary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
+                        // Dual-section layout per DESIGN.md §8.7 — order is
+                        // BUY NOW (asking, "where can I buy") on top, then
+                        // RECENT SALES (transacted, "what's it worth") below.
+                        // Walkthrough anchors point at each bucket so the
+                        // .pricingPanels script teaches the asking-vs-sold
+                        // distinction.
                         if showActiveListings, let active = result.active {
                             bucketView(active, label: "BUY NOW", isActive: true)
                                 .walkthroughAnchor("pricing.buyNow")
+                        }
+                        if let sold = result.sold {
+                            bucketView(sold, label: "RECENT SALES", isActive: false)
+                                .walkthroughAnchor("pricing.sold")
                         }
                         // COMC asking-price strip lives below the eBay
                         // BUY NOW bucket. Renders only when COMC has
@@ -488,6 +501,28 @@ struct PricingSection: View {
         case "own_sales": return "Estimated from prior sales"
         default:          return "Estimated value"
         }
+    }
+
+    /// Single-line market-estimate caption above the dual price sections
+    /// per DESIGN.md §8.7 — "$24 · based on 8 recent sales". The number
+    /// reflects ONLY transacted prices (sold bucket) per DECISIONS.md
+    /// #034; asking prices are never folded in.
+    private func marketEstimateCaption(sold: PricingService.PricingBucket) -> String? {
+        let est = sold.average
+        guard est > 0 else { return nil }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "USD"
+        formatter.maximumFractionDigits = est >= 100 ? 0 : 2
+        guard let priceStr = formatter.string(from: est as NSDecimalNumber) else { return nil }
+        let isEstimated = sold.estimated ?? false
+        if isEstimated {
+            return "Market est. \(priceStr) · \(estimatedCaption(source: sold.estimatedSource))"
+        }
+        let n = sold.count
+        guard n > 0 else { return "Market est. \(priceStr)" }
+        let plural = n != 1 ? "sales" : "sale"
+        return "~\(priceStr) · based on \(n) recent \(plural)"
     }
 
     /// Human-readable age string for a stale sale. Used on the

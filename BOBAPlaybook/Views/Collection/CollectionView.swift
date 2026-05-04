@@ -431,6 +431,7 @@ struct CollectionView: View {
                         .padding(Design.Spacing.lg)
                     }
                 }
+                .scrollEdgeEffectStyle(.hard, for: .top)  // §5.6 dense scroll
                 .refreshable {
                     // Pull-to-refresh = recalculate market values
                     // for every owned card (same work the toolbar's
@@ -563,6 +564,7 @@ struct CollectionView: View {
                 .padding(Design.Spacing.lg)
             }
         }
+        .scrollEdgeEffectStyle(.hard, for: .top)  // §5.6 dense scroll
         .refreshable {
             await collection.loadCollection()
         }

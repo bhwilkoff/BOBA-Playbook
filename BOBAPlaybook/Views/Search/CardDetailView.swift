@@ -120,6 +120,7 @@ struct CardDetailView: View {
                     infoPanel
                 }
             }
+            .scrollEdgeEffectStyle(.soft, for: .top)  // §5.6 reading content
             .background(Design.Colors.nearBlack)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)

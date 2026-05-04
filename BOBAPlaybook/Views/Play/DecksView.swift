@@ -144,9 +144,14 @@ struct DecksView: View {
             }
             .searchable(
                 text: $search,
+                tokens: $tokens,
+                suggestedTokens: .constant(suggestedTokens),
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: "Search · weapon, cost, or hero"
-            )
+            ) { token in
+                Label(token.label, systemImage: token.systemImageName)
+                    .foregroundStyle(token.tint)
+            }
             .toolbar { toolbarContent }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible,         for: .navigationBar)

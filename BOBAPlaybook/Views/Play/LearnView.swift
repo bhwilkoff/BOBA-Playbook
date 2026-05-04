@@ -155,14 +155,7 @@ struct LearnView: View {
         .sheet(isPresented: $showWatch) {
             WatchView()
         }
-        .overlay {
-            if let script = walkthrough {
-                BOBAWalkthrough(script: script) {
-                    WalkthroughsManager.shared.dismiss(script.id)
-                    walkthrough = nil
-                }
-            }
-        }
+        .walkthroughOverlay($walkthrough)
         .onAppear {
             if WalkthroughsManager.shared.shouldShow(.learnTab) {
                 walkthrough = .learnTab

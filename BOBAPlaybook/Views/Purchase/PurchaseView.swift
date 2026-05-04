@@ -60,14 +60,7 @@ struct PurchaseView: View {
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .overlay {
-                if let script = walkthrough {
-                    BOBAWalkthrough(script: script) {
-                        WalkthroughsManager.shared.dismiss(script.id)
-                        walkthrough = nil
-                    }
-                }
-            }
+            .walkthroughOverlay($walkthrough)
         }
         .onAppear {
             if WalkthroughsManager.shared.shouldShow(.purchaseTab) {

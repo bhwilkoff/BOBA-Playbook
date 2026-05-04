@@ -279,14 +279,7 @@ struct CardDetailView: View {
             // First-visit walkthrough per DESIGN.md §6.10.1 cardDetail
             // catalog. Anchors land on the canonical-6 stats grid, the
             // pricing panels, and the toolbar add-action bar.
-            .overlay {
-                if let script = walkthrough {
-                    BOBAWalkthrough(script: script) {
-                        WalkthroughsManager.shared.dismiss(script.id)
-                        walkthrough = nil
-                    }
-                }
-            }
+            .walkthroughOverlay($walkthrough)
             .onAppear {
                 // First-visit teaches CardDetail surface anatomy.
                 // After that's dismissed, on a subsequent open, the

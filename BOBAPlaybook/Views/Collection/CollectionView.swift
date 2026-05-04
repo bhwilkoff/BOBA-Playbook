@@ -169,14 +169,7 @@ struct CollectionView: View {
         .sheet(item: $selectedCard) { wrapper in
             CollectionCardDetailView(bobaId: wrapper.id)
         }
-        .overlay {
-            if let script = walkthrough {
-                BOBAWalkthrough(script: script) {
-                    WalkthroughsManager.shared.dismiss(script.id)
-                    walkthrough = nil
-                }
-            }
-        }
+        .walkthroughOverlay($walkthrough)
         .task {
             if auth.isAuthenticated {
                 await collection.loadCollection()

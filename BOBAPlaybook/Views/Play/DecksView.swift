@@ -126,14 +126,7 @@ struct DecksView: View {
             } message: {
                 Text("Removes every Hero, Play, Bonus Play, and Hot Dog. Your deck name and rule overrides stay.")
             }
-            .overlay {
-                if let script = walkthrough {
-                    BOBAWalkthrough(script: script) {
-                        WalkthroughsManager.shared.dismiss(script.id)
-                        walkthrough = nil
-                    }
-                }
-            }
+            .walkthroughOverlay($walkthrough)
         }
         .onAppear(perform: handleAppear)
         .onDisappear { store.saveDraft() }

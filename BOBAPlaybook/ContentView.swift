@@ -8,6 +8,8 @@ import SwiftUI
 struct ContentView: View {
     @Binding var selectedTab: Int
     @Environment(AuthManager.self) private var auth
+    @Environment(ScanStore.self) private var scanStore
+    @Environment(ScanCoordinator.self) private var scanCoordinator
 
     var body: some View {
         // iOS 26 Tab API. Using `Tab(value:)` (instead of the deprecated
@@ -21,6 +23,7 @@ struct ContentView: View {
         // and search results take the canvas. SearchView still owns its
         // own .searchable field; the role tells iOS how to render the
         // tab bar slot.
+        @Bindable var coord = scanCoordinator
         TabView(selection: $selectedTab) {
             Tab("Learn", systemImage: "book.pages.fill", value: 1) {
                 LearnView()
@@ -43,6 +46,28 @@ struct ContentView: View {
             }
         }
         .tint(Design.Colors.bobaOrange)
+        // Centralized scan presentation per DESIGN.md §6.5 — single
+        // ScanView modal regardless of which tab invoked it. Tabs call
+        // ScanCoordinator.start(...) with the right destination; the
+        // coordinator drives this fullScreenCover.
+        .fullScreenCover(isPresented: $coord.isPresenting, onDismiss: {
+            scanCoordinator.dismiss(scanStore: scanStore)
+        }) {
+            ZStack(alignment: .topLeading) {
+                ScanView()
+                Button {
+                    coord.isPresenting = false
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(Color.white.opacity(0.85))
+                        .shadow(color: .black.opacity(0.5), radius: 4)
+                        .padding(Design.Spacing.md)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Close scanner")
+            }
+        }
     }
 }
 

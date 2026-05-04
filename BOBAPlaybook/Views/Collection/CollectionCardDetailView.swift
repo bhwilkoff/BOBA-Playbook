@@ -154,8 +154,8 @@ struct CollectionCardDetailView: View {
                     }
                 }
             }
-            .toolbarBackground(.regularMaterial, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            // Hide nav bar background — gradient is the visual top.
+            .toolbarBackground(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingAddSheet) {
                 if let card = catalogCard {
                     AddToCollectionSheet(card: card)
@@ -267,11 +267,10 @@ struct CollectionCardDetailView: View {
             .frame(height: 420)
 
             CardImageView(card: card, size: .full)
-                .frame(maxWidth: .infinity)
+                .aspectRatio(5.0/7.0, contentMode: .fit)
                 .frame(height: 380)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
                 .shadow(color: Design.Colors.element(card.element).opacity(0.4), radius: 16, y: 6)
-                .padding(.horizontal, Design.Spacing.xl)
         }
     }
 

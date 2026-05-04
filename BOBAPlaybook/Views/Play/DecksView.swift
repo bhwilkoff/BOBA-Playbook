@@ -27,6 +27,21 @@
 //
 
 import SwiftUI
+import os
+import QuartzCore
+
+/// Diagnostic logger for the deck-builder drawer interactions.
+///
+/// To capture: connect iPhone to a Mac, open Console.app, select
+/// the device in the sidebar, search for `subsystem:com.boba.playbook
+/// category:drawer` (or just `DRAWER-DIAG`). Drag the drawer up and
+/// down — every drag delta, release, and animation step prints with
+/// timestamp + state values so we can see exactly which transitions
+/// are causing the flash.
+private let drawerLog = Logger(subsystem: "com.boba.playbook", category: "drawer")
+
+/// Helper: monotonic seconds since start, for inter-event timing.
+@inline(__always) private func drawerNow() -> Double { CACurrentMediaTime() }
 
 struct DecksView: View {
 
@@ -120,8 +135,15 @@ struct DecksView: View {
                 let collapsed: CGFloat = Self.drawerCollapsedHeight
                 let large = max(collapsed, proxy.size.height)
                 let liveHeight = max(collapsed, min(large, drawerHeight - drawerDragOffset))
+                // DIAGNOSTIC: log every re-render of the drawer
+                // container so we can see how many frames are
+                // produced per drag and the height at each. Wrap in
+                // `let _` so it runs as a side effect during body
+                // evaluation.
+                let _ = drawerLog.debug("RENDER-DIAG t=\(drawerNow(), format: .fixed(precision: 4)) drawerH=\(drawerHeight, format: .fixed(precision: 1)) offset=\(drawerDragOffset, format: .fixed(precision: 1)) liveH=\(liveHeight, format: .fixed(precision: 1)) proxyH=\(proxy.size.height, format: .fixed(precision: 1))")
 
                 VStack(spacing: 0) {
+                    poolSearchBar  // sits below nav bar, above grid
                     ZStack(alignment: .top) {
                         cardPoolCanvas
                         addedBannerOverlay
@@ -153,35 +175,14 @@ struct DecksView: View {
             // contextual (every weapon, the 0–4 HD costs, hero matches
             // for the current search query). The store's
             // filteredPoolCards reads $tokens to narrow results.
-            .searchable(
-                text: $search,
-                tokens: $tokens,
-                suggestedTokens: .constant(suggestedTokens),
-                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "Search · weapon, cost, or hero"
-            ) { token in
-                // Per-token weapon coloring (user feedback #7) — paint
-                // the icon in the token's tint so a FIRE chip is FIRE-
-                // colored, ICE is ICE-colored, etc.
-                Label {
-                    Text(token.label)
-                } icon: {
-                    Image(systemName: token.systemImageName)
-                        .foregroundStyle(token.tint)
-                }
-            }
-            // Per user feedback #2 — wire .searchFocused so the
-            // keyboard's Done button (in the keyboard ToolbarItemGroup
-            // below) actually dismisses the search keyboard. iOS only
-            // routes Done to a focused TextField when the search field
-            // owns the focus binding.
-            .searchFocused($searchFocused)
-            // Per user feedback #2 — minimize toolbar items during
-            // search instead of replacing them, so the overflow Menu
-            // (Manage Decks, Rules, Scan, Walkthrough, Clear) stays
-            // reachable while the user is typing. iOS 18+ API.
-            .searchToolbarBehavior(.minimize)
-            .onSubmit(of: .search) { searchFocused = false }
+            // Search is intentionally NOT in the nav bar — `.searchable`
+            // (in any placement) made iOS take over the toolbar with a
+            // Cancel button when the field focused, blocking the SAVE
+            // pill and the overflow Menu. Per user feedback #2 the
+            // search lives inside the drawer header now (custom
+            // TextField), which never affects the nav bar at all and
+            // gets a proper Done button on the keyboard via the
+            // .keyboard ToolbarItemGroup below.
             // Single secondary-sheet host attached to the parent.
             .sheet(item: $secondarySheet) { sheet in
                 switch sheet {
@@ -468,31 +469,42 @@ struct DecksView: View {
             // position (with momentum carry from velocity), clamped
             // to [collapsed, large]. No snap-to-nearest — the
             // drawer rests wherever the finger left it.
+            //
+            // DIAGNOSTIC: every drag event logs to the `drawer`
+            // Logger so we can see exactly what's being computed at
+            // each frame. Console.app filter: subsystem
+            // com.boba.playbook category drawer.
             .gesture(
                 DragGesture(minimumDistance: 1)
                     .onChanged { value in
+                        let priorOffset = drawerDragOffset
                         drawerDragOffset = value.translation.height
+                        let liveH = max(bounds.collapsed,
+                                        min(bounds.large, drawerHeight - drawerDragOffset))
+                        drawerLog.debug("DRAG-DIAG t=\(drawerNow(), format: .fixed(precision: 4)) onChanged translation=\(value.translation.height, format: .fixed(precision: 1)) priorOffset=\(priorOffset, format: .fixed(precision: 1)) newOffset=\(drawerDragOffset, format: .fixed(precision: 1)) drawerH=\(drawerHeight, format: .fixed(precision: 1)) liveH=\(liveH, format: .fixed(precision: 1))")
                     }
                     .onEnded { value in
                         // Atomic commit: capture the current live
                         // height, set drawerHeight to it, zero the
                         // offset — all in the SAME render transaction
                         // — then animate from the live position to
-                        // the predicted release position. Without
-                        // this, drawerDragOffset zeroing while
-                        // drawerHeight still held its pre-drag value
-                        // produced a one-frame "snap back" flash.
+                        // the predicted release position.
                         let currentLive = max(
                             bounds.collapsed,
                             min(bounds.large, drawerHeight - drawerDragOffset)
                         )
                         let predicted = drawerHeight - value.predictedEndTranslation.height
                         let clamped = max(bounds.collapsed, min(bounds.large, predicted))
+                        let preDrawerH = drawerHeight
+                        let preOffset = drawerDragOffset
                         drawerHeight = currentLive
                         drawerDragOffset = 0
+                        let postLiveH = max(bounds.collapsed,
+                                            min(bounds.large, drawerHeight - drawerDragOffset))
+                        drawerLog.debug("DRAG-DIAG t=\(drawerNow(), format: .fixed(precision: 4)) onEnded preDrawerH=\(preDrawerH, format: .fixed(precision: 1)) preOffset=\(preOffset, format: .fixed(precision: 1)) currentLive=\(currentLive, format: .fixed(precision: 1)) predicted=\(predicted, format: .fixed(precision: 1)) clamped=\(clamped, format: .fixed(precision: 1)) postCommit drawerH=\(drawerHeight, format: .fixed(precision: 1)) postLiveH=\(postLiveH, format: .fixed(precision: 1))")
                         // Settle to the predicted (momentum-carried)
                         // release position with a quick, well-damped
-                        // spring. No overshoot.
+                        // spring.
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.95)) {
                             drawerHeight = clamped
                         }
@@ -529,7 +541,8 @@ struct DecksView: View {
     }
 
     /// Always-visible header — deck name + per-section counts +
-    /// format badge + legality pill. Used inside DeckPanelView.
+    /// format badge + legality pill. (Search lives ABOVE the canvas,
+    /// not in this header — see `poolSearchBar`.)
     private var sheetHeaderRow: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: Design.Spacing.sm) {
@@ -566,6 +579,48 @@ struct DecksView: View {
         .padding(.horizontal, Design.Spacing.md)
         .padding(.top, Design.Spacing.md)
         .padding(.bottom, Design.Spacing.sm)
+    }
+
+    /// Pool search bar — sits above the card grid, below the nav bar
+    /// (where Find's search bar visually lives). Uses a custom
+    /// TextField NOT `.searchable` so it never takes over the nav bar
+    /// (the wordmark + SAVE + overflow Menu stay reachable while the
+    /// keyboard is open). Done button comes via the .keyboard
+    /// ToolbarItemGroup attached at the body level.
+    private var poolSearchBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 14))
+                .foregroundStyle(Design.Colors.textMuted)
+            TextField("Search · weapon, cost, or hero", text: $search)
+                .font(Design.Fonts.mono(14))
+                .foregroundStyle(Design.Colors.textPrimary)
+                .textFieldStyle(.plain)
+                .submitLabel(.done)
+                .focused($searchFocused)
+                .onSubmit { searchFocused = false }
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+            if !search.isEmpty {
+                Button {
+                    search = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Design.Colors.textMuted)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, Design.Spacing.sm)
+        .frame(height: 36)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Design.Colors.glass)
+        )
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.xs)
     }
 
     private func statCount(label: String, value: Int, target: Int?) -> some View {

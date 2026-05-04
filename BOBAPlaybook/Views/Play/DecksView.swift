@@ -66,19 +66,11 @@ struct DecksView: View {
     /// level stays visible underneath regardless of height.
     private static let drawerCollapsedHeight: CGFloat = 132
 
-    /// Resting height in points (post-release). dragOffset is the
-    /// in-flight drag delta on top.
-    ///
-    /// Switched from @GestureState (which auto-resets to 0 between
-    /// .onEnded and the next render frame) to plain @State so we can
-    /// atomically commit BOTH the new resting height AND the offset
-    /// reset in onEnded. With the @GestureState approach, the offset
-    /// would zero-out before our drawerHeight assignment landed,
-    /// producing a one-frame "snap back to old position" between the
-    /// finger lift and the spring animation start — that was the
-    /// flash the user reported.
+    /// Resting height in points (post-release). The in-flight drag
+    /// delta lives on the DeckDrawer struct (its own @State) so
+    /// DecksView body — including the expensive cardPoolCanvas grid
+    /// — doesn't re-render at gesture rate.
     @State private var drawerHeight: CGFloat = 132
-    @State private var drawerDragOffset: CGFloat = 0
 
     /// Captured tab-content height from the GeometryReader, used by
     /// non-view code paths (the walkthrough stage handler) that need
@@ -129,14 +121,12 @@ struct DecksView: View {
                 // all of the cards" request).
                 let collapsed: CGFloat = Self.drawerCollapsedHeight
                 let large = max(collapsed, proxy.size.height)
-                let liveHeight = max(collapsed, min(large, drawerHeight - drawerDragOffset))
-                // DIAGNOSTIC: log every re-render of the drawer
-                // container so we can see how many frames are
-                // produced per drag and the height at each. Wrap in
-                // `let _` so it runs as a side effect during body
-                // evaluation.
-                let _ = dragDiag(String(format: "RENDER drawerH=%.1f offset=%.1f liveH=%.1f proxyH=%.1f",
-                                        drawerHeight, drawerDragOffset, liveHeight, proxy.size.height))
+                // DIAGNOSTIC: DecksView body re-renders. After the
+                // refactor below this fires on COMMIT only (release),
+                // not on every drag frame — confirming the canvas/
+                // grid no longer re-renders during drag.
+                let _ = dragDiag(String(format: "DECKS-RENDER drawerH=%.1f proxyH=%.1f",
+                                        drawerHeight, proxy.size.height))
 
                 VStack(spacing: 0) {
                     poolSearchBar  // sits below nav bar, above grid
@@ -146,9 +136,27 @@ struct DecksView: View {
                     }
                     .frame(maxHeight: .infinity)
 
-                    deckDrawer(
-                        height: liveHeight,
-                        bounds: (collapsed: collapsed, large: large)
+                    // The drawer is now its own View with its own
+                    // @State drawerDragOffset. DecksView's body never
+                    // reads the drag offset, so the body — including
+                    // the expensive cardPoolCanvas grid — does not
+                    // re-render at gesture rate. Only the drawer
+                    // struct's body re-runs per drag frame, which is
+                    // the cheap part (drag handle + header + clipped
+                    // content).
+                    DeckDrawer(
+                        drawerHeight: $drawerHeight,
+                        bounds: (collapsed: collapsed, large: large),
+                        header: { sheetHeaderRow },
+                        content: {
+                            VStack(spacing: 0) {
+                                Divider().background(Design.Colors.glass)
+                                formatChipStrip
+                                    .walkthroughAnchor("decks.formatChip")
+                                Divider().background(Design.Colors.glass)
+                                deckListScroll
+                            }
+                        }
                     )
                     // Inset from the bottom so the drawer's rounded
                     // corners fully terminate before reaching the tab
@@ -425,119 +433,6 @@ struct DecksView: View {
             .transition(.move(edge: .top).combined(with: .opacity))
             .accessibilityLabel(msg)
         }
-    }
-
-    // MARK: - Bottom sheet content (system .sheet — DESIGN.md §8.3)
-
-    /// Inline drawer at the bottom of the tab content. Drag handle +
-    /// header always visible at the collapsed height; format chips +
-    /// deck list reveal when expanded. Drawer lives INSIDE the tab
-    /// content (not a system .sheet), so the tab bar at the TabView
-    /// level stays visible underneath at all times.
-    @ViewBuilder
-    private func deckDrawer(
-        height: CGFloat,
-        bounds: (collapsed: CGFloat, large: CGFloat)
-    ) -> some View {
-        VStack(spacing: 0) {
-            // Drag handle + header — entire region intercepts the drag
-            // gesture so the user has a generous touch target.
-            VStack(spacing: 0) {
-                Capsule()
-                    .fill(Color.white.opacity(0.45))
-                    .frame(width: 40, height: 5)
-                    .padding(.top, 8)
-                    .padding(.bottom, 4)
-                sheetHeaderRow
-                    .walkthroughAnchor("decks.sheetHandle")
-            }
-            .contentShape(Rectangle())
-            // Tap toggles between the two extremes. Drag is the
-            // primary interaction; tap is a shortcut.
-            .onTapGesture {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                    drawerHeight = drawerHeight <= bounds.collapsed + 1
-                        ? bounds.large
-                        : bounds.collapsed
-                }
-            }
-            // Free drag — release commits to the user's release
-            // position (with momentum carry from velocity), clamped
-            // to [collapsed, large]. No snap-to-nearest — the
-            // drawer rests wherever the finger left it.
-            //
-            // DIAGNOSTIC: every drag event logs to the `drawer`
-            // Logger so we can see exactly what's being computed at
-            // each frame. Console.app filter: subsystem
-            // com.boba.playbook category drawer.
-            .gesture(
-                DragGesture(minimumDistance: 1)
-                    .onChanged { value in
-                        let priorOffset = drawerDragOffset
-                        drawerDragOffset = value.translation.height
-                        let liveH = max(bounds.collapsed,
-                                        min(bounds.large, drawerHeight - drawerDragOffset))
-                        dragDiag(String(format: "DRAG translation=%.1f priorOffset=%.1f newOffset=%.1f drawerH=%.1f liveH=%.1f",
-                                        value.translation.height, priorOffset, drawerDragOffset,
-                                        drawerHeight, liveH))
-                    }
-                    .onEnded { value in
-                        // Atomic commit: capture the current live
-                        // height, set drawerHeight to it, zero the
-                        // offset — all in the SAME render transaction
-                        // — then animate from the live position to
-                        // the predicted release position.
-                        let currentLive = max(
-                            bounds.collapsed,
-                            min(bounds.large, drawerHeight - drawerDragOffset)
-                        )
-                        let predicted = drawerHeight - value.predictedEndTranslation.height
-                        let clamped = max(bounds.collapsed, min(bounds.large, predicted))
-                        let preDrawerH = drawerHeight
-                        let preOffset = drawerDragOffset
-                        drawerHeight = currentLive
-                        drawerDragOffset = 0
-                        let postLiveH = max(bounds.collapsed,
-                                            min(bounds.large, drawerHeight - drawerDragOffset))
-                        dragDiag(String(format: "ENDED preDrawerH=%.1f preOffset=%.1f currentLive=%.1f predicted=%.1f clamped=%.1f postDrawerH=%.1f postLiveH=%.1f",
-                                        preDrawerH, preOffset, currentLive, predicted, clamped,
-                                        drawerHeight, postLiveH))
-                        // Settle to the predicted (momentum-carried)
-                        // release position with a quick, well-damped
-                        // spring.
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.95)) {
-                            drawerHeight = clamped
-                        }
-                    }
-            )
-
-            // Render the full body unconditionally so the drag never
-            // crosses a "now show / now hide" threshold (the prior
-            // conditional caused the flash the user reported). The
-            // outer frame + clipShape clip whatever doesn't fit into
-            // the current height.
-            Divider().background(Design.Colors.glass)
-            formatChipStrip
-                .walkthroughAnchor("decks.formatChip")
-            Divider().background(Design.Colors.glass)
-            deckListScroll
-        }
-        .frame(height: height, alignment: .top)
-        .frame(maxWidth: .infinity)
-        // Liquid Glass via iOS 26's first-party API — GPU-rasterized
-        // once and morphs cleanly with size changes. .background(.regular
-        // Material, in: shape) was being recomputed on every drag
-        // frame, contributing to the flash the user reported.
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        // clipShape clips the inline VStack content (format chips +
-        // deck list) to the drawer's rounded silhouette — overflow
-        // when collapsed is hidden cleanly.
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
-        )
-        .shadow(color: .black.opacity(0.35), radius: 14, y: -3)
     }
 
     /// Always-visible header — deck name + per-section counts +
@@ -1288,5 +1183,106 @@ private struct FirstCellAnchor: ViewModifier {
         } else {
             content
         }
+    }
+}
+
+// MARK: - DeckDrawer
+
+/// Isolated drawer view. Owns its own @State drawerDragOffset so the
+/// in-flight drag delta NEVER causes DecksView's body to re-render —
+/// only this struct's body re-runs at gesture rate, which is much
+/// cheaper than re-rendering the whole tab (toolbar + canvas grid +
+/// search bar + drawer).
+///
+/// DecksView reads only `drawerHeight` (the resting value), and that
+/// only changes on release-commit + animation. The expensive
+/// cardPoolCanvas grid is therefore not invalidated 60+ times per
+/// second during drag — which was the root cause of the flash the
+/// user reported (iOS was throttling drag delivery to ~9Hz because
+/// the body couldn't render any faster).
+private struct DeckDrawer<Header: View, Content: View>: View {
+    @Binding var drawerHeight: CGFloat
+    let bounds: (collapsed: CGFloat, large: CGFloat)
+    @ViewBuilder let header: () -> Header
+    @ViewBuilder let content: () -> Content
+
+    /// In-flight drag delta. Lives HERE, not on DecksView, so DecksView
+    /// body doesn't re-render at gesture rate.
+    @State private var drawerDragOffset: CGFloat = 0
+
+    var body: some View {
+        let liveHeight = max(bounds.collapsed,
+                             min(bounds.large, drawerHeight - drawerDragOffset))
+        // DIAGNOSTIC: this fires on every drag frame. With the
+        // refactor, DECKS-RENDER fires only on commit (release).
+        let _ = dragDiag(String(format: "DRAWER-RENDER drawerH=%.1f offset=%.1f liveH=%.1f",
+                                drawerHeight, drawerDragOffset, liveHeight))
+
+        VStack(spacing: 0) {
+            // Drag handle + caller-provided header — the entire
+            // region is the drag/tap target.
+            VStack(spacing: 0) {
+                Capsule()
+                    .fill(Color.white.opacity(0.45))
+                    .frame(width: 40, height: 5)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+                header()
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    drawerHeight = drawerHeight <= bounds.collapsed + 1
+                        ? bounds.large
+                        : bounds.collapsed
+                }
+            }
+            .gesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        let priorOffset = drawerDragOffset
+                        drawerDragOffset = value.translation.height
+                        let liveH = max(bounds.collapsed,
+                                        min(bounds.large, drawerHeight - drawerDragOffset))
+                        dragDiag(String(format: "DRAG translation=%.1f priorOffset=%.1f newOffset=%.1f drawerH=%.1f liveH=%.1f",
+                                        value.translation.height, priorOffset, drawerDragOffset,
+                                        drawerHeight, liveH))
+                    }
+                    .onEnded { value in
+                        let currentLive = max(bounds.collapsed,
+                                              min(bounds.large, drawerHeight - drawerDragOffset))
+                        let predicted = drawerHeight - value.predictedEndTranslation.height
+                        let clamped = max(bounds.collapsed, min(bounds.large, predicted))
+                        let preDrawerH = drawerHeight
+                        let preOffset = drawerDragOffset
+                        // Atomic commit BEFORE animation: drawerHeight
+                        // = currentLive, offset = 0. liveHeight stays
+                        // continuous through the transition.
+                        drawerHeight = currentLive
+                        drawerDragOffset = 0
+                        dragDiag(String(format: "ENDED preDrawerH=%.1f preOffset=%.1f currentLive=%.1f predicted=%.1f clamped=%.1f postDrawerH=%.1f",
+                                        preDrawerH, preOffset, currentLive, predicted, clamped, drawerHeight))
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.95)) {
+                            drawerHeight = clamped
+                        }
+                    }
+            )
+
+            // Caller-provided body content (format chips + deck list).
+            // Always rendered — outer .frame(height:) + .clipShape clip
+            // overflow when the drawer is collapsed.
+            content()
+        }
+        .frame(height: liveHeight, alignment: .top)
+        .frame(maxWidth: .infinity)
+        // Liquid Glass via iOS 26's first-party API — GPU-rasterized
+        // once, morphs cleanly with size changes.
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.35), radius: 14, y: -3)
     }
 }

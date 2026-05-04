@@ -31,6 +31,15 @@ struct CollectionWallSheet: View {
     @State private var isComposing = false
     @State private var showShare = false
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
+    /// Per user feedback #10 — coaches with large collections need to
+    /// curate the wall: which cards to include, and which to highlight
+    /// (rendered with the gold-glow accent the streamer ShowDetailView
+    /// uses). Both default to "everything in / nothing highlighted" so
+    /// small collections work without explicit selection. `included`
+    /// is a Set of bobaIds; cards not in the set are excluded.
+    /// `bigHits` is a Set of bobaIds for the highlight accent.
+    @State private var included: Set<String> = []
+    @State private var bigHits: Set<String> = []
 
     init(
         designation: UserCard.Designation,
@@ -44,6 +53,9 @@ struct CollectionWallSheet: View {
         self.onDismiss = onDismiss
         _title = State(initialValue: Self.defaultTitle(for: designation))
         _includePrices = State(initialValue: Self.defaultPriceOverlay(for: designation))
+        // Default everything to included so small collections render
+        // out of the box. Coaches can deselect what they don't want.
+        _included = State(initialValue: Set(cards.map(\.id)))
     }
 
     var body: some View {
@@ -56,6 +68,7 @@ struct CollectionWallSheet: View {
                     if let img = wallImage {
                         actionsRow(img: img)
                     }
+                    cardSelector
                 }
                 .padding(Design.Spacing.lg)
             }
@@ -228,10 +241,128 @@ struct CollectionWallSheet: View {
         }
     }
 
+    // MARK: - Card selector (user feedback #10)
+
+    /// Grid of every card under the active designation with two
+    /// per-card toggles: tap to include/exclude (cyan ring when
+    /// included), long-press to mark as a big-hit highlight (gold
+    /// ring + star — same accent the streamer ShowDetailView's wall
+    /// uses to call out chase cards). Coaches with large collections
+    /// can curate exactly what lands on the wall instead of being
+    /// forced to use every card under the designation.
+    @ViewBuilder
+    private var cardSelector: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            HStack {
+                Text("CARDS ON THE WALL")
+                    .font(Design.Fonts.mono(9, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .tracking(1.5)
+                Spacer()
+                Text("\(included.count) of \(cards.count) · ★ \(bigHits.count) highlighted")
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(Design.Colors.textSecondary)
+            }
+            HStack(spacing: Design.Spacing.sm) {
+                Button("Select all") {
+                    included = Set(cards.map(\.id))
+                    Task { await compose() }
+                }
+                .font(Design.Fonts.mono(11, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaCyan)
+                Button("Select none") {
+                    included.removeAll()
+                    bigHits.removeAll()
+                    Task { await compose() }
+                }
+                .font(Design.Fonts.mono(11, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+                Spacer()
+                Text("Tap = include · Long-press = highlight")
+                    .font(Design.Fonts.mono(9))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 70, maximum: 90), spacing: Design.Spacing.sm)],
+                spacing: Design.Spacing.sm
+            ) {
+                ForEach(cards) { card in
+                    selectorTile(card)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func selectorTile(_ card: Card) -> some View {
+        let isIncluded = included.contains(card.id)
+        let isBigHit  = bigHits.contains(card.id)
+        ZStack(alignment: .topTrailing) {
+            BOBACardCell(card: card)
+                .frame(width: 70, height: 98)
+                .overlay(
+                    RoundedRectangle(cornerRadius: BOBACardCell.cornerRadius)
+                        .strokeBorder(
+                            isBigHit ? Color(hex: "FFD700")
+                                     : (isIncluded ? Design.Colors.bobaCyan : Color.white.opacity(0.1)),
+                            lineWidth: isBigHit ? 2.5 : (isIncluded ? 2 : 1)
+                        )
+                )
+                .overlay(
+                    !isIncluded
+                        ? RoundedRectangle(cornerRadius: BOBACardCell.cornerRadius)
+                            .fill(Color.black.opacity(0.55))
+                        : nil
+                )
+                .opacity(isIncluded ? 1 : 0.55)
+            if isBigHit {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color(hex: "FFD700"))
+                    .padding(4)
+                    .background(Circle().fill(Color.black.opacity(0.65)))
+                    .padding(4)
+            } else if isIncluded {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+                    .background(Circle().fill(Design.Colors.nearBlack).padding(2))
+                    .padding(4)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if isIncluded {
+                included.remove(card.id)
+                bigHits.remove(card.id)  // can't be a big-hit if excluded
+            } else {
+                included.insert(card.id)
+            }
+            Task { await compose() }
+        }
+        .onLongPressGesture(minimumDuration: 0.4) {
+            // Long-press toggles big-hit. Auto-includes if not already.
+            if isBigHit {
+                bigHits.remove(card.id)
+            } else {
+                included.insert(card.id)
+                bigHits.insert(card.id)
+            }
+            Task { await compose() }
+        }
+        .accessibilityLabel(card.hero.isEmpty ? card.name : card.hero)
+        .accessibilityValue(isBigHit ? "Highlighted on wall" : (isIncluded ? "Included on wall" : "Excluded"))
+        .accessibilityAddTraits(isIncluded ? .isSelected : [])
+    }
+
     // MARK: - Composition
 
     private func compose() async {
-        guard !cards.isEmpty else { wallImage = nil; return }
+        // Honor the user's card selection — only included cards land
+        // on the wall, big-hits get the gold/glow accent (same as
+        // streamer ShowDetailView's wall flow).
+        let chosen = cards.filter { included.contains($0.id) }
+        guard !chosen.isEmpty else { wallImage = nil; return }
         isComposing = true
         let opts = ShowWallOptions(
             includeBranding: includeBranding,
@@ -239,12 +370,10 @@ struct CollectionWallSheet: View {
             customText: title,
             includePrices: includePrices
         )
-        // No "big hits" semantics outside streamer shows — every tile
-        // gets equal weight.
-        let bigHits = Array(repeating: false, count: cards.count)
+        let bigHitFlags = chosen.map { bigHits.contains($0.id) }
         let img = await ShowWallComposer.compose(
-            cards: cards,
-            bigHits: bigHits,
+            cards: chosen,
+            bigHits: bigHitFlags,
             title: title,
             options: opts,
             prices: includePrices ? prices : [:]

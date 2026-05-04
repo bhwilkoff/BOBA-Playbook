@@ -1889,27 +1889,52 @@ struct BrowserCardDetailSheet: View {
         }
     }
 
+    /// Matches Find's CardDetailView.artPanel — element-tinted gradient
+    /// background that fills the top 420pt edge-to-edge with the card
+    /// art centered inside. Eliminates the zoom-transition "forehead"
+    /// by giving the destination's top a continuous visual surface
+    /// instead of empty horizontal padding around the card.
+    private var artPanel: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Design.Colors.element(card.element).opacity(0.25),
+                    Design.Colors.nearBlack
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
+            .frame(height: 420)
+
+            Group {
+                if let file = card.imageFile, !file.isEmpty {
+                    CachedAsyncCardImage(url: CDN.full(for: file), contentMode: .fit)
+                        .aspectRatio(3.0/4.0, contentMode: .fit)
+                } else {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Design.Colors.glass)
+                        .aspectRatio(3.0/4.0, contentMode: .fit)
+                        .overlay(Text(card.hero.isEmpty ? card.name : card.hero)
+                            .font(Design.Fonts.display(24))
+                            .foregroundStyle(Design.Colors.element(card.element)))
+                }
+            }
+            .frame(height: 380)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(color: Design.Colors.element(card.element).opacity(0.4), radius: 16, y: 6)
+            .padding(.horizontal, Design.Spacing.xl)
+        }
+    }
+
     var body: some View {
         navStackIfNeeded {
             ScrollView {
                 VStack(spacing: Design.Spacing.lg) {
-                    // Full card image
-                    Group {
-                        if let file = card.imageFile, !file.isEmpty {
-                            CachedAsyncCardImage(url: CDN.full(for: file), contentMode: .fit)
-                                .aspectRatio(3.0/4.0, contentMode: .fit)
-                        } else {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Design.Colors.glass)
-                                .aspectRatio(3.0/4.0, contentMode: .fit)
-                                .overlay(Text(card.hero.isEmpty ? card.name : card.hero)
-                                    .font(Design.Fonts.display(24))
-                                    .foregroundStyle(Design.Colors.element(card.element)))
-                        }
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .shadow(color: Design.Colors.element(card.element).opacity(0.4), radius: 16, y: 6)
-                    .padding(.horizontal, Design.Spacing.xl)
+                    // Art panel — matches CardDetailView's pattern. The
+                    // element-tinted gradient fills the top of the
+                    // destination edge-to-edge so the zoom-in animation
+                    // doesn't expose a "forehead" of empty space around
+                    // the card. The image is centered inside.
+                    artPanel
 
                     // Stats
                     VStack(alignment: .leading, spacing: Design.Spacing.sm) {

@@ -37,6 +37,14 @@ struct SearchView: View {
     /// icon color.
     @AppStorage("selectedIconName") private var selectedIconName: String = "default"
 
+    /// Find chrome state. Defaults to COLLAPSED — Music's
+    /// search-first model where the top is just a home icon and the
+    /// canvas + bottom search bar take the screen. Tap the home icon
+    /// to expand chrome (Profile, Scan, overflow Menu); tap it again
+    /// to collapse. Doesn't auto-expand on tab entry — staying
+    /// collapsed is the intended Find feel.
+    @State private var chromeCollapsed = true
+
     // Grid: 2 columns with minimum size
     private let columns = [
         GridItem(.flexible(), spacing: Design.Spacing.sm),
@@ -71,24 +79,78 @@ struct SearchView: View {
                 // Tap the home icon to exit search; full toolbar restores.
                 // Each slot reads `\.isSearching` from the .searchable scope.
                 ToolbarItem(placement: .topBarLeading) {
-                    FindLeadingSlot(showProfile: $showProfile,
-                                    iconColor: AppIconOption.currentColor(for: selectedIconName))
+                    Button {
+                        withAnimation(.snappy(duration: 0.22)) {
+                            chromeCollapsed.toggle()
+                        }
+                    } label: {
+                        Image(systemName: chromeCollapsed ? "house.fill" : "house")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                    }
+                    .accessibilityLabel(chromeCollapsed
+                                        ? "Show Profile, Scan, and options"
+                                        : "Hide Profile, Scan, and options")
+                    .walkthroughAnchor("find.home")
                 }
                 ToolbarItem(placement: .principal) {
-                    FindPrincipalSlot()
+                    BOBAWordmark()
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    FindScanSlot {
-                        scanCoordinator.start(.find, scanStore: scanStore)
+                if !chromeCollapsed {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showProfile = true
+                        } label: {
+                            Image(systemName: "person.crop.circle")
+                                .font(.system(size: 22))
+                                .foregroundStyle(AppIconOption.currentColor(for: selectedIconName))
+                        }
+                        .accessibilityLabel("Profile")
+                        .walkthroughAnchor("find.profile")
                     }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    FindMenuSlot(
-                        showFilters: $showFilters,
-                        showcaseMode: $showcaseMode,
-                        walkthrough: $walkthrough,
-                        activeFilterCount: store.activeFilterCount
-                    )
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            scanCoordinator.start(.find, scanStore: scanStore)
+                        } label: {
+                            Image(systemName: "camera.viewfinder")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(Design.Colors.bobaCyan)
+                        }
+                        .accessibilityLabel("Scan a card")
+                        .walkthroughAnchor("find.scan")
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
+                            Button {
+                                showFilters = true
+                            } label: {
+                                Label("Filters", systemImage: "slider.horizontal.3")
+                            }
+                            Toggle(isOn: $showcaseMode) {
+                                Label("Card Showcases", systemImage: "square.stack.3d.up.fill")
+                            }
+                            Divider()
+                            Button {
+                                WalkthroughsManager.shared.relaunch(.findTab)
+                                walkthrough = .findTab
+                            } label: {
+                                Label("Show walkthrough", systemImage: "questionmark.circle")
+                            }
+                        } label: {
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: "ellipsis.circle")
+                                    .font(.system(size: 17, weight: .medium))
+                                    .foregroundStyle(Design.Colors.textPrimary)
+                                if store.activeFilterCount > 0 {
+                                    Circle()
+                                        .fill(Design.Colors.bobaOrange)
+                                        .frame(width: 8, height: 8)
+                                        .offset(x: 4, y: -4)
+                                }
+                            }
+                        }
+                        .walkthroughAnchor("find.menu")
+                    }
                 }
                 // "Done" key on the keyboard accessory bar — gives an
                 // out for the case where the user taps the search field
@@ -569,115 +631,3 @@ private struct IfFirstAnchor: ViewModifier {
     }
 }
 
-// MARK: - Find toolbar slots
-//
-// Each slot reads `\.isSearching` from the .searchable scope and
-// renders compact (search-active) or full (idle) content. When search
-// is active, the leading slot becomes a "home" icon that exits search
-// (Music's collapsing-nav-during-search behavior); the principal,
-// scan, and overflow-menu slots disappear so the search field can
-// take the canvas.
-
-private struct FindLeadingSlot: View {
-    @Binding var showProfile: Bool
-    let iconColor: Color
-    @Environment(\.isSearching) private var isSearching
-    @Environment(\.dismissSearch) private var dismissSearch
-
-    var body: some View {
-        if isSearching {
-            Button {
-                dismissSearch()
-            } label: {
-                Image(systemName: "house.fill")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Design.Colors.textPrimary)
-            }
-            .accessibilityLabel("Exit search")
-        } else {
-            Button {
-                showProfile = true
-            } label: {
-                Image(systemName: "person.crop.circle")
-                    .font(.system(size: 22))
-                    .foregroundStyle(iconColor)
-            }
-            .accessibilityLabel("Profile")
-            .walkthroughAnchor("find.profile")
-        }
-    }
-}
-
-private struct FindPrincipalSlot: View {
-    @Environment(\.isSearching) private var isSearching
-    var body: some View {
-        if isSearching {
-            EmptyView()
-        } else {
-            BOBAWordmark()
-        }
-    }
-}
-
-private struct FindScanSlot: View {
-    let onTap: () -> Void
-    @Environment(\.isSearching) private var isSearching
-    var body: some View {
-        if isSearching {
-            EmptyView()
-        } else {
-            Button(action: onTap) {
-                Image(systemName: "camera.viewfinder")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(Design.Colors.bobaCyan)
-            }
-            .accessibilityLabel("Scan a card")
-            .walkthroughAnchor("find.scan")
-        }
-    }
-}
-
-private struct FindMenuSlot: View {
-    @Binding var showFilters: Bool
-    @Binding var showcaseMode: Bool
-    @Binding var walkthrough: BOBAWalkthrough.Script?
-    let activeFilterCount: Int
-    @Environment(\.isSearching) private var isSearching
-
-    var body: some View {
-        if isSearching {
-            EmptyView()
-        } else {
-            Menu {
-                Button {
-                    showFilters = true
-                } label: {
-                    Label("Filters", systemImage: "slider.horizontal.3")
-                }
-                Toggle(isOn: $showcaseMode) {
-                    Label("Card Showcases", systemImage: "square.stack.3d.up.fill")
-                }
-                Divider()
-                Button {
-                    WalkthroughsManager.shared.relaunch(.findTab)
-                    walkthrough = .findTab
-                } label: {
-                    Label("Show walkthrough", systemImage: "questionmark.circle")
-                }
-            } label: {
-                ZStack(alignment: .topTrailing) {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(Design.Colors.textPrimary)
-                    if activeFilterCount > 0 {
-                        Circle()
-                            .fill(Design.Colors.bobaOrange)
-                            .frame(width: 8, height: 8)
-                            .offset(x: 4, y: -4)
-                    }
-                }
-            }
-            .walkthroughAnchor("find.menu")
-        }
-    }
-}

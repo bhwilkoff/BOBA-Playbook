@@ -309,22 +309,18 @@ struct BOBAWalkthrough: View {
     /// each edge so all four sides remain visible.
     @ViewBuilder
     private func spotlightRing(rect: CGRect) -> some View {
-        let visible = rect.intersection(CGRect(origin: .zero, size: containerSize))
-        guard visible.width > 4 && visible.height > 4 else {
-            return AnyView(EmptyView())
-        }
-        let pad: CGFloat = 8
         let viewport = CGRect(origin: .zero, size: containerSize)
+        let visible = rect.intersection(viewport)
         // Pad outward, then intersect with viewport to clamp every edge.
-        let clamped = visible.insetBy(dx: -pad, dy: -pad).intersection(viewport)
-        return AnyView(
+        let clamped = visible.insetBy(dx: -8, dy: -8).intersection(viewport)
+        if visible.width > 4 && visible.height > 4 {
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(Design.Colors.bobaCyan, lineWidth: 2)
                 .frame(width: clamped.width, height: clamped.height)
                 .position(x: clamped.midX, y: clamped.midY)
                 .shadow(color: Design.Colors.bobaCyan.opacity(0.7), radius: 10)
                 .allowsHitTesting(false)
-        )
+        }
     }
 
     /// When the current step's anchor is entirely off-screen (e.g., a

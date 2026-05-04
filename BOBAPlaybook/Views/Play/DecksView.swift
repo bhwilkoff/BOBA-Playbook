@@ -70,6 +70,13 @@ struct DecksView: View {
     @State private var drawerHeight: CGFloat = 132
     @State private var drawerDragOffset: CGFloat = 0
 
+    /// Captured tab-content height from the GeometryReader, used by
+    /// non-view code paths (the walkthrough stage handler) that need
+    /// to compute drawer heights without having a proxy in scope.
+    /// Set on .onAppear of the GeometryReader; updated when the
+    /// container resizes (e.g., orientation change).
+    @State private var availableTabHeight: CGFloat = 800
+
     // Pool filters
     @State private var search            = ""
     @State private var tokens            : [BOBAFilterToken] = []
@@ -131,6 +138,10 @@ struct DecksView: View {
                     // chrome (per user feedback).
                     .padding(.horizontal, Design.Spacing.xs)
                     .padding(.bottom, Design.Spacing.xs)
+                }
+                .onAppear { availableTabHeight = proxy.size.height }
+                .onChange(of: proxy.size.height) { _, newHeight in
+                    availableTabHeight = newHeight
                 }
             }
             .toolbar { toolbarContent }
@@ -1190,11 +1201,12 @@ struct DecksView: View {
                 savedDrawerHeightForWalkthrough = drawerHeight
             }
             // Reveal enough drawer for the format chip strip without
-            // covering the whole canvas. ~half the screen height is
-            // a good showcase position.
+            // covering the whole canvas. Use the tab-content height
+            // captured from the GeometryReader (UIScreen.main was
+            // deprecated in iOS 26 in favor of context-derived sizes).
             withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                 drawerHeight = max(Self.drawerCollapsedHeight,
-                                   UIScreen.main.bounds.height * 0.55)
+                                   availableTabHeight * 0.55)
             }
         case nil:
             // Walkthrough ended — restore prior drawer height.

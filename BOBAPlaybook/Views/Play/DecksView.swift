@@ -27,21 +27,16 @@
 //
 
 import SwiftUI
-import os
 import QuartzCore
 
-/// Diagnostic logger for the deck-builder drawer interactions.
-///
-/// To capture: connect iPhone to a Mac, open Console.app, select
-/// the device in the sidebar, search for `subsystem:com.boba.playbook
-/// category:drawer` (or just `DRAWER-DIAG`). Drag the drawer up and
-/// down — every drag delta, release, and animation step prints with
-/// timestamp + state values so we can see exactly which transitions
-/// are causing the flash.
-private let drawerLog = Logger(subsystem: "com.boba.playbook", category: "drawer")
-
-/// Helper: monotonic seconds since start, for inter-event timing.
+/// Diagnostic prints for the deck-builder drawer interactions.
+/// Output goes to the Xcode console (Cmd+Shift+Y to show). Filter by
+/// "DIAG" to isolate. Drag the drawer up and down — every drag delta,
+/// release, and re-render prints with timestamp + state values.
 @inline(__always) private func drawerNow() -> Double { CACurrentMediaTime() }
+@inline(__always) private func dragDiag(_ msg: String) {
+    print("[DIAG]", String(format: "%.4f", drawerNow()), msg)
+}
 
 struct DecksView: View {
 
@@ -140,7 +135,8 @@ struct DecksView: View {
                 // produced per drag and the height at each. Wrap in
                 // `let _` so it runs as a side effect during body
                 // evaluation.
-                let _ = drawerLog.debug("RENDER-DIAG t=\(drawerNow(), format: .fixed(precision: 4)) drawerH=\(drawerHeight, format: .fixed(precision: 1)) offset=\(drawerDragOffset, format: .fixed(precision: 1)) liveH=\(liveHeight, format: .fixed(precision: 1)) proxyH=\(proxy.size.height, format: .fixed(precision: 1))")
+                let _ = dragDiag(String(format: "RENDER drawerH=%.1f offset=%.1f liveH=%.1f proxyH=%.1f",
+                                        drawerHeight, drawerDragOffset, liveHeight, proxy.size.height))
 
                 VStack(spacing: 0) {
                     poolSearchBar  // sits below nav bar, above grid
@@ -481,7 +477,9 @@ struct DecksView: View {
                         drawerDragOffset = value.translation.height
                         let liveH = max(bounds.collapsed,
                                         min(bounds.large, drawerHeight - drawerDragOffset))
-                        drawerLog.debug("DRAG-DIAG t=\(drawerNow(), format: .fixed(precision: 4)) onChanged translation=\(value.translation.height, format: .fixed(precision: 1)) priorOffset=\(priorOffset, format: .fixed(precision: 1)) newOffset=\(drawerDragOffset, format: .fixed(precision: 1)) drawerH=\(drawerHeight, format: .fixed(precision: 1)) liveH=\(liveH, format: .fixed(precision: 1))")
+                        dragDiag(String(format: "DRAG translation=%.1f priorOffset=%.1f newOffset=%.1f drawerH=%.1f liveH=%.1f",
+                                        value.translation.height, priorOffset, drawerDragOffset,
+                                        drawerHeight, liveH))
                     }
                     .onEnded { value in
                         // Atomic commit: capture the current live
@@ -501,7 +499,9 @@ struct DecksView: View {
                         drawerDragOffset = 0
                         let postLiveH = max(bounds.collapsed,
                                             min(bounds.large, drawerHeight - drawerDragOffset))
-                        drawerLog.debug("DRAG-DIAG t=\(drawerNow(), format: .fixed(precision: 4)) onEnded preDrawerH=\(preDrawerH, format: .fixed(precision: 1)) preOffset=\(preOffset, format: .fixed(precision: 1)) currentLive=\(currentLive, format: .fixed(precision: 1)) predicted=\(predicted, format: .fixed(precision: 1)) clamped=\(clamped, format: .fixed(precision: 1)) postCommit drawerH=\(drawerHeight, format: .fixed(precision: 1)) postLiveH=\(postLiveH, format: .fixed(precision: 1))")
+                        dragDiag(String(format: "ENDED preDrawerH=%.1f preOffset=%.1f currentLive=%.1f predicted=%.1f clamped=%.1f postDrawerH=%.1f postLiveH=%.1f",
+                                        preDrawerH, preOffset, currentLive, predicted, clamped,
+                                        drawerHeight, postLiveH))
                         // Settle to the predicted (momentum-carried)
                         // release position with a quick, well-damped
                         // spring.

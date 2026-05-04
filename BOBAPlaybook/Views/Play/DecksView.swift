@@ -42,23 +42,19 @@ struct DecksView: View {
 
     // MARK: - Sheet + UI state
 
-    /// Inline drawer at the bottom of the tab content. Free-drag via
-    /// the pill handle — release commits to wherever the user dropped
-    /// it, clamped to [collapsed, large]. Tap on the header toggles
-    /// between the nearest snap pair (collapsed↔mid or mid↔large)
-    /// for users who prefer click-to-resize over drag.
+    /// Inline drawer at the bottom of the tab content. Truly free
+    /// drag — release commits to wherever the finger left off (with
+    /// a small momentum carry from velocity), clamped only to the
+    /// minimum (header-only collapsed) and the maximum (full tab
+    /// content height — covers all cards). No snap points fighting
+    /// the drag.
     ///
-    /// Three reference snap points:
-    ///   - collapsed (~132pt — header only)
-    ///   - mid       (~55% of available height — common deck-list view)
-    ///   - large     (~88% of available height — full panel use)
+    /// Tap on the header toggles between the two extremes (collapsed
+    /// vs. fully expanded) for users who prefer click-to-resize.
     ///
-    /// The drawer lives INSIDE tab content (not a system .sheet) so
-    /// the tab bar at the TabView level stays visible underneath at
-    /// all heights.
+    /// Drawer lives INSIDE tab content so the tab bar at the TabView
+    /// level stays visible underneath regardless of height.
     private static let drawerCollapsedHeight: CGFloat = 132
-    private static let drawerMidFraction: CGFloat = 0.55
-    private static let drawerLargeFraction: CGFloat = 0.88
 
     /// Resting height in points (post-release). dragOffset is the
     /// in-flight drag delta on top.
@@ -102,9 +98,12 @@ struct DecksView: View {
     var body: some View {
         NavigationStack {
             GeometryReader { proxy in
+                // Bounds: collapsed shows just the header; large fills
+                // the entire tab content area (drawer covers all cards
+                // when fully expanded — per user's "drag it to cover
+                // all of the cards" request).
                 let collapsed: CGFloat = Self.drawerCollapsedHeight
-                let large = max(collapsed, proxy.size.height * Self.drawerLargeFraction)
-                let mid   = max(collapsed, proxy.size.height * Self.drawerMidFraction)
+                let large = max(collapsed, proxy.size.height)
                 let liveHeight = max(collapsed, min(large, drawerHeight - drawerDragOffset))
 
                 VStack(spacing: 0) {
@@ -116,7 +115,7 @@ struct DecksView: View {
 
                     deckDrawer(
                         height: liveHeight,
-                        snapPoints: (collapsed: collapsed, mid: mid, large: large)
+                        bounds: (collapsed: collapsed, large: large)
                     )
                     // Inset from the bottom so the drawer's rounded
                     // corners fully terminate before reaching the tab
@@ -402,7 +401,7 @@ struct DecksView: View {
     @ViewBuilder
     private func deckDrawer(
         height: CGFloat,
-        snapPoints: (collapsed: CGFloat, mid: CGFloat, large: CGFloat)
+        bounds: (collapsed: CGFloat, large: CGFloat)
     ) -> some View {
         VStack(spacing: 0) {
             // Drag handle + header — entire region intercepts the drag
@@ -417,66 +416,55 @@ struct DecksView: View {
                     .walkthroughAnchor("decks.sheetHandle")
             }
             .contentShape(Rectangle())
-            // Tap toggles between the nearest snap pair (collapsed↔mid
-            // when the drawer is small, mid↔large when it's already
-            // expanded). Drag is the primary interaction; tap is a
-            // shortcut for users who don't want to drag.
+            // Tap toggles between the two extremes. Drag is the
+            // primary interaction; tap is a shortcut.
             .onTapGesture {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                    if drawerHeight <= snapPoints.collapsed + 1 {
-                        drawerHeight = snapPoints.mid
-                    } else if drawerHeight >= snapPoints.large - 1 {
-                        drawerHeight = snapPoints.collapsed
-                    } else {
-                        // At mid — go to large.
-                        drawerHeight = snapPoints.large
-                    }
+                    drawerHeight = drawerHeight <= bounds.collapsed + 1
+                        ? bounds.large
+                        : bounds.collapsed
                 }
             }
-            // Free drag — release commits to the nearest snap point.
-            // The user feels continuous drag motion the whole time the
-            // finger is down (drawerDragOffset updates the live
-            // height), then the drawer settles to the closest of the
-            // three snap points on release.
+            // Free drag — release commits to the user's release
+            // position (with momentum carry from velocity), clamped
+            // to [collapsed, large]. No snap-to-nearest — the
+            // drawer rests wherever the finger left it.
             .gesture(
-                DragGesture(minimumDistance: 4)
+                DragGesture(minimumDistance: 1)
                     .updating($drawerDragOffset) { value, state, _ in
                         state = value.translation.height
                     }
                     .onEnded { value in
                         let predicted = drawerHeight - value.predictedEndTranslation.height
-                        let snaps = [snapPoints.collapsed, snapPoints.mid, snapPoints.large]
-                        let nearest = snaps.min(by: { abs($0 - predicted) < abs($1 - predicted) })
-                            ?? snapPoints.collapsed
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                            drawerHeight = nearest
+                        let clamped = max(bounds.collapsed, min(bounds.large, predicted))
+                        // .interactiveSpring is tuned for gesture-end
+                        // momentum continuation — settles smoothly with
+                        // no overshoot or popping.
+                        withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.92)) {
+                            drawerHeight = clamped
                         }
                     }
             )
 
-            // Expanded body — only renders when there's room. The deck
-            // list, format chips, validation banner, and rules access
-            // all live here (same content as the prior DeckPanelView,
-            // now inlined in the drawer).
-            if height > Self.drawerCollapsedHeight + 20 {
-                Divider().background(Design.Colors.glass)
-                formatChipStrip
-                    .walkthroughAnchor("decks.formatChip")
-                Divider().background(Design.Colors.glass)
-                deckListScroll
-            }
+            // Render the full body unconditionally so the drag never
+            // crosses a "now show / now hide" threshold (the prior
+            // conditional caused the flash the user reported). The
+            // outer frame + clipShape clip whatever doesn't fit into
+            // the current height.
+            Divider().background(Design.Colors.glass)
+            formatChipStrip
+                .walkthroughAnchor("decks.formatChip")
+            Divider().background(Design.Colors.glass)
+            deckListScroll
         }
         .frame(height: height, alignment: .top)
         .frame(maxWidth: .infinity)
-        // All four corners rounded — the drawer floats above the tab
-        // bar with a small inset (set by the parent's padding) so the
-        // bottom edge has the same elegant radius as the top, never a
-        // hard line slamming into the navigation chrome. Matches iOS
-        // 26 Liquid Glass treatment for floating panels (think the
-        // Music mini-player + Now Playing morph).
-        .background(.regularMaterial, in:
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-        )
+        // clipShape clips the inline VStack content (format chips +
+        // deck list) to the drawer's rounded silhouette — overflow
+        // when collapsed is hidden cleanly.
+        .background(.regularMaterial,
+                    in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
@@ -1081,11 +1069,12 @@ struct DecksView: View {
             if savedDrawerHeightForWalkthrough == nil {
                 savedDrawerHeightForWalkthrough = drawerHeight
             }
-            // Expand to mid (~55%) — enough to surface the format
-            // chip strip without covering the whole canvas.
+            // Reveal enough drawer for the format chip strip without
+            // covering the whole canvas. ~half the screen height is
+            // a good showcase position.
             withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                let mid = UIScreen.main.bounds.height * Self.drawerMidFraction
-                drawerHeight = max(Self.drawerCollapsedHeight, mid)
+                drawerHeight = max(Self.drawerCollapsedHeight,
+                                   UIScreen.main.bounds.height * 0.55)
             }
         case nil:
             // Walkthrough ended — restore prior drawer height.

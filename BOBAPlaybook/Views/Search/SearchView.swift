@@ -81,88 +81,7 @@ struct SearchView: View {
             )
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                // Per user feedback: when search is active, the Find chrome
-                // collapses to a single home icon (Music-style transformation).
-                // Tap the home icon to exit search; full toolbar restores.
-                // Each slot reads `\.isSearching` from the .searchable scope.
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showProfile = true
-                    } label: {
-                        Image(systemName: "person.crop.circle")
-                            .font(.system(size: 22))
-                            .foregroundStyle(AppIconOption.currentColor(for: selectedIconName))
-                    }
-                    .accessibilityLabel("Profile")
-                    .walkthroughAnchor("find.profile")
-                }
-                ToolbarItem(placement: .principal) {
-                    BOBAWordmark()
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        scanCoordinator.start(.find, scanStore: scanStore)
-                    } label: {
-                        Image(systemName: "camera.viewfinder")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundStyle(Design.Colors.bobaCyan)
-                    }
-                    .accessibilityLabel("Scan a card")
-                    .walkthroughAnchor("find.scan")
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Section("Columns") {
-                            Picker("Columns", selection: $gridColumns) {
-                                Label("1 across", systemImage: "rectangle").tag(1)
-                                Label("2 across", systemImage: "square.grid.2x1").tag(2)
-                                Label("3 across", systemImage: "square.grid.3x1.below.line.grid.1x2").tag(3)
-                            }
-                        }
-                        Section {
-                            Button {
-                                showFilters = true
-                            } label: {
-                                Label("Filters", systemImage: "slider.horizontal.3")
-                            }
-                            Toggle(isOn: $showcaseMode) {
-                                Label("Card Showcases", systemImage: "square.stack.3d.up.fill")
-                            }
-                        }
-                        Divider()
-                        Button {
-                            WalkthroughsManager.shared.relaunch(.findTab)
-                            walkthrough = .findTab
-                        } label: {
-                            Label("Show walkthrough", systemImage: "questionmark.circle")
-                        }
-                    } label: {
-                        ZStack(alignment: .topTrailing) {
-                            Image(systemName: "ellipsis.circle")
-                                .font(.system(size: 17, weight: .medium))
-                                .foregroundStyle(Design.Colors.textPrimary)
-                            if store.activeFilterCount > 0 {
-                                Circle()
-                                    .fill(Design.Colors.bobaOrange)
-                                    .frame(width: 8, height: 8)
-                                    .offset(x: 4, y: -4)
-                            }
-                        }
-                    }
-                    .walkthroughAnchor("find.menu")
-                }
-                // "Done" key on the keyboard accessory bar — gives an
-                // out for the case where the user taps the search field
-                // by mistake and doesn't want to commit a search just to
-                // dismiss the keyboard.
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") { searchFocused = false }
-                        .font(Design.Fonts.mono(13, weight: .bold))
-                        .foregroundStyle(Design.Colors.bobaOrange)
-                }
-            }
+            .toolbar { findToolbar }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .overlay(alignment: .top) {
@@ -302,6 +221,87 @@ struct SearchView: View {
             }
         } catch {
             quickAddError = error.localizedDescription
+        }
+    }
+
+    /// Toolbar extracted to break up the body's expression complexity —
+    /// SwiftUI's type checker times out when the NavigationStack body
+    /// chain grows past ~135 lines (per `unable to type-check this
+    /// expression in reasonable time` error after the v2.050 zoom-
+    /// transition wiring).
+    @ToolbarContentBuilder
+    private var findToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button {
+                showProfile = true
+            } label: {
+                Image(systemName: "person.crop.circle")
+                    .font(.system(size: 22))
+                    .foregroundStyle(AppIconOption.currentColor(for: selectedIconName))
+            }
+            .accessibilityLabel("Profile")
+            .walkthroughAnchor("find.profile")
+        }
+        ToolbarItem(placement: .principal) {
+            BOBAWordmark()
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                scanCoordinator.start(.find, scanStore: scanStore)
+            } label: {
+                Image(systemName: "camera.viewfinder")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+            }
+            .accessibilityLabel("Scan a card")
+            .walkthroughAnchor("find.scan")
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                Section("Columns") {
+                    Picker("Columns", selection: $gridColumns) {
+                        Label("1 across", systemImage: "rectangle").tag(1)
+                        Label("2 across", systemImage: "square.grid.2x1").tag(2)
+                        Label("3 across", systemImage: "square.grid.3x1.below.line.grid.1x2").tag(3)
+                    }
+                }
+                Section {
+                    Button {
+                        showFilters = true
+                    } label: {
+                        Label("Filters", systemImage: "slider.horizontal.3")
+                    }
+                    Toggle(isOn: $showcaseMode) {
+                        Label("Card Showcases", systemImage: "square.stack.3d.up.fill")
+                    }
+                }
+                Divider()
+                Button {
+                    WalkthroughsManager.shared.relaunch(.findTab)
+                    walkthrough = .findTab
+                } label: {
+                    Label("Show walkthrough", systemImage: "questionmark.circle")
+                }
+            } label: {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                    if store.activeFilterCount > 0 {
+                        Circle()
+                            .fill(Design.Colors.bobaOrange)
+                            .frame(width: 8, height: 8)
+                            .offset(x: 4, y: -4)
+                    }
+                }
+            }
+            .walkthroughAnchor("find.menu")
+        }
+        ToolbarItemGroup(placement: .keyboard) {
+            Spacer()
+            Button("Done") { searchFocused = false }
+                .font(Design.Fonts.mono(13, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaOrange)
         }
     }
 

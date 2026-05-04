@@ -84,23 +84,7 @@ struct SearchView: View {
             .toolbar { findToolbar }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .overlay(alignment: .top) {
-                if let toast = quickAddToast {
-                    HStack(spacing: Design.Spacing.sm) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(Color(hex: "4CAF50"))
-                        Text(toast)
-                            .font(Design.Fonts.mono(12, weight: .bold))
-                            .foregroundStyle(Design.Colors.textPrimary)
-                    }
-                    .padding(.horizontal, Design.Spacing.md)
-                    .padding(.vertical, Design.Spacing.sm)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface))
-                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(hex: "4CAF50").opacity(0.4), lineWidth: 1))
-                    .padding(.top, 56)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                }
-            }
+            .overlay(alignment: .top) { quickAddToastOverlay }
             .alert("Couldn't add that card", isPresented: .init(
                 get: { quickAddError != nil },
                 set: { if !$0 { quickAddError = nil } }
@@ -221,6 +205,28 @@ struct SearchView: View {
             }
         } catch {
             quickAddError = error.localizedDescription
+        }
+    }
+
+    /// Quick-add success toast — extracted from the body's .overlay so
+    /// the body's expression chain stays small enough for the type
+    /// checker.
+    @ViewBuilder
+    private var quickAddToastOverlay: some View {
+        if let toast = quickAddToast {
+            HStack(spacing: Design.Spacing.sm) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(Color(hex: "4CAF50"))
+                Text(toast)
+                    .font(Design.Fonts.mono(12, weight: .bold))
+                    .foregroundStyle(Design.Colors.textPrimary)
+            }
+            .padding(.horizontal, Design.Spacing.md)
+            .padding(.vertical, Design.Spacing.sm)
+            .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(hex: "4CAF50").opacity(0.4), lineWidth: 1))
+            .padding(.top, 56)
+            .transition(.move(edge: .top).combined(with: .opacity))
         }
     }
 

@@ -82,6 +82,19 @@ struct UserCard: Codable, Identifiable, Hashable {
             }
         }
 
+        /// Compact label for tight UI surfaces (e.g. a 5-segment iOS
+        /// segmented Picker that needs to fit on an iPhone Mini).
+        /// Drops "For " from the For Sale / For Trade designations.
+        var shortDisplayName: String {
+            switch self {
+            case .personal:  return "Personal"
+            case .for_sale:  return "Sale"
+            case .for_trade: return "Trade"
+            case .wanted:    return "Wanted"
+            case .grails:    return "Grails"
+            }
+        }
+
         var icon: String {
             switch self {
             case .personal:  return "person.fill"

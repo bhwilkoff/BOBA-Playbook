@@ -61,14 +61,18 @@ struct CollectionWallSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
+                // Order per user feedback: select cards FIRST, see the
+                // preview at the bottom. Selecting before previewing
+                // matches the user's mental model — "build the wall,
+                // then see what it looks like."
                 VStack(spacing: Design.Spacing.lg) {
                     titleField
                     overlayToggle
+                    cardSelector
                     wallPreview
                     if let img = wallImage {
                         actionsRow(img: img)
                     }
-                    cardSelector
                 }
                 .padding(Design.Spacing.lg)
             }
@@ -331,25 +335,35 @@ struct CollectionWallSheet: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture {
-            if isIncluded {
-                included.remove(card.id)
-                bigHits.remove(card.id)  // can't be a big-hit if excluded
-            } else {
-                included.insert(card.id)
-            }
-            Task { await compose() }
-        }
-        .onLongPressGesture(minimumDuration: 0.4) {
-            // Long-press toggles big-hit. Auto-includes if not already.
-            if isBigHit {
-                bigHits.remove(card.id)
-            } else {
-                included.insert(card.id)
-                bigHits.insert(card.id)
-            }
-            Task { await compose() }
-        }
+        // Single gesture chain: long-press FIRST (high priority) so
+        // SwiftUI doesn't fire the brief tap-feedback "flash" the user
+        // saw when both .onTapGesture and .onLongPressGesture were
+        // racing on the same view. The tap gesture composes after via
+        // .simultaneousGesture so a quick tap still toggles inclusion.
+        .highPriorityGesture(
+            LongPressGesture(minimumDuration: 0.4)
+                .onEnded { _ in
+                    if isBigHit {
+                        bigHits.remove(card.id)
+                    } else {
+                        included.insert(card.id)
+                        bigHits.insert(card.id)
+                    }
+                    Task { await compose() }
+                }
+        )
+        .simultaneousGesture(
+            TapGesture()
+                .onEnded {
+                    if isIncluded {
+                        included.remove(card.id)
+                        bigHits.remove(card.id)
+                    } else {
+                        included.insert(card.id)
+                    }
+                    Task { await compose() }
+                }
+        )
         .accessibilityLabel(card.hero.isEmpty ? card.name : card.hero)
         .accessibilityValue(isBigHit ? "Highlighted on wall" : (isIncluded ? "Included on wall" : "Excluded"))
         .accessibilityAddTraits(isIncluded ? .isSelected : [])

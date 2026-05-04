@@ -71,6 +71,10 @@ struct DecksView: View {
     /// instead of the previous "drawer on top of drawer" sheet stack.
     @State private var editorPath = NavigationPath()
 
+    /// User-selectable grid density for the card pool (1 / 2 / 3
+    /// across). Persisted per tab so Decks can stay denser than Find.
+    @AppStorage("bp_decksGridColumns_v1") private var gridColumns: Int = 3
+
     /// Routes within the editor's NavigationStack.
     enum EditorRoute: Hashable {
         case deckManagement
@@ -251,10 +255,19 @@ struct DecksView: View {
         }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
-                Button {
-                    presentScanner()
-                } label: {
-                    Label("Scan into deck", systemImage: "camera.viewfinder")
+                Section("Columns") {
+                    Picker("Columns", selection: $gridColumns) {
+                        Label("1 across", systemImage: "rectangle").tag(1)
+                        Label("2 across", systemImage: "square.grid.2x1").tag(2)
+                        Label("3 across", systemImage: "square.grid.3x1.below.line.grid.1x2").tag(3)
+                    }
+                }
+                Section {
+                    Button {
+                        presentScanner()
+                    } label: {
+                        Label("Scan into deck", systemImage: "camera.viewfinder")
+                    }
                 }
                 Divider()
                 Button {
@@ -379,20 +392,17 @@ struct DecksView: View {
                 Color.clear.frame(height: Design.Spacing.xs)
 
                 LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 100, maximum: 130), spacing: Design.Spacing.sm)],
+                    columns: Array(repeating: GridItem(.flexible(), spacing: Design.Spacing.sm),
+                                   count: max(1, min(3, gridColumns))),
                     spacing: Design.Spacing.md
                 ) {
                     ForEach(Array(filtered.prefix(200).enumerated()), id: \.element.id) { idx, card in
-                        BrowserCardCell(
-                            card: card,
-                            store: store,
-                            // quickAdd off — tap always opens detail.
-                            // The add gesture is long-press (handled
-                            // below via .simultaneousGesture).
-                            quickAdd: false
-                        ) { tappedCard in
-                            selectedBrowserCard = tappedCard
+                        Button {
+                            selectedBrowserCard = card
+                        } label: {
+                            BOBACardGridItem(card: card, columnCount: gridColumns)
                         }
+                        .buttonStyle(.plain)
                         // Long-press = add to current deck (per user
                         // feedback #6 + matches the walkthrough copy).
                         // Haptic feedback on success so the user feels

@@ -60,6 +60,39 @@ struct OpenCardIntent: AppIntent {
     }
 }
 
+// MARK: - Add a card to collection
+
+/// Routes through the existing card-detail "Add to Collection" sheet.
+/// Identifies the target card by card number, then opens the app to
+/// the card's detail view with the add sheet auto-presented. The user
+/// confirms designation + designation in the sheet (we don't infer).
+///
+/// Per DESIGN.md §7 — "Add to Collection" is one of the four primary
+/// actions an AppIntent must surface. Per DESIGN.md §6.5, write
+/// actions require auth; if the user isn't signed in, the standard
+/// CardDetailView.AddToCollectionSheet falls through to the inline
+/// sign-in prompt rather than failing silently.
+struct AddToCollectionIntent: AppIntent {
+    static var title: LocalizedStringResource = "Add Card to Collection"
+    static var description = IntentDescription(
+        "Add a BOBA card to your collection by its card number."
+    )
+    static var openAppWhenRun: Bool = true
+
+    @Parameter(title: "Card Number", description: "e.g. RBF-72, IBF-191")
+    var cardNumber: String
+
+    @MainActor
+    func perform() async throws -> some IntentResult & OpensIntent {
+        // Encodes the auto-add hint as a query param the deep-link
+        // handler reads. The card-detail view, on first appearance,
+        // checks the flag and presents the AddToCollection sheet.
+        let encoded = cardNumber.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ""
+        let url = URL(string: "bobaplaybook://card/\(encoded)?action=addToCollection")!
+        return .result(opensIntent: OpenURLIntent(url))
+    }
+}
+
 // MARK: - Start scan
 
 /// Jumps straight into the camera scanner. Most useful via Action Button

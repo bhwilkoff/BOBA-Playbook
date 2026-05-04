@@ -122,6 +122,18 @@ final class CardStore {
     /// pre-populates the search field on tab activation.
     var pendingSearchQuery: String? = nil
 
+    /// Set by the URL handler when a bobaplaybook://learn/{category} URL
+    /// opens the app — DESIGN.md §7.2 stable section IDs (rules, strategy,
+    /// collect, glossary, tournament). LearnView observes this and pushes
+    /// the corresponding category sub-view on tab activation.
+    var pendingLearnCategory: String? = nil
+
+    /// Set when a deep link includes ?action=addToCollection (raised by
+    /// AddToCollectionIntent — DESIGN.md §7). CardDetailView observes
+    /// this on first appearance for the pendingCardNumber's card and
+    /// auto-presents the AddToCollection sheet. Cleared once consumed.
+    var pendingCardAction: String? = nil
+
     // MARK: - Internal
     private var filterTask: Task<Void, Never>?
 

@@ -43,6 +43,18 @@ struct LearnView: View {
     @State private var path = NavigationPath()
     @State private var showWatch = false
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
+    /// Resolves a slug from cardStore.pendingLearnCategory back to a
+    /// LearnCategory and pushes it onto the nav path. Lets external
+    /// deep links (bobaplaybook://learn/strategy) and Universal Links
+    /// (https://bobaplaybook.com/learn/strategy) target a specific
+    /// category without coupling LearnView to URL state.
+    private func handlePendingCategory() {
+        guard let slug = cardStore.pendingLearnCategory,
+              let cat = categories.first(where: { $0.id == slug }) else { return }
+        cardStore.pendingLearnCategory = nil
+        path = NavigationPath()
+        path.append(cat)
+    }
 
     private let categories: [LearnCategory] = [
         LearnCategory(
@@ -154,6 +166,10 @@ struct LearnView: View {
             if WalkthroughsManager.shared.shouldShow(.learnTab) {
                 walkthrough = .learnTab
             }
+            handlePendingCategory()
+        }
+        .onChange(of: cardStore.pendingLearnCategory) { _, _ in
+            handlePendingCategory()
         }
     }
 }

@@ -296,6 +296,20 @@ struct CardDetailView: View {
                 } else if WalkthroughsManager.shared.shouldShow(.pricingPanels) {
                     walkthrough = .pricingPanels
                 }
+                // AddToCollectionIntent (DESIGN.md §7) hint — when the
+                // user invoked the intent from Spotlight/Siri/Shortcuts
+                // and we landed on this card, auto-present the add
+                // sheet. Auth-gated via the existing showingSignIn
+                // route (sheet falls through to BOBASignInPrompt when
+                // unauthenticated).
+                if cardStore.pendingCardAction == "addToCollection" {
+                    cardStore.pendingCardAction = nil
+                    if auth.isAuthenticated {
+                        showingAddSheet = true
+                    } else {
+                        showingSignIn = true
+                    }
+                }
             }
         }
     }

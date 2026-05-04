@@ -118,6 +118,7 @@ struct SearchView: View {
                             }
                         }
                     }
+                    .walkthroughAnchor("find.menu")  // §6.10.1 findTab step 2
                 }
                 // "Done" key on the keyboard accessory bar — gives an
                 // out for the case where the user taps the search field
@@ -393,7 +394,7 @@ struct SearchView: View {
             emptyState
         } else {
             LazyVGrid(columns: columns, spacing: Design.Spacing.sm) {
-                ForEach(store.filteredCards) { card in
+                ForEach(Array(store.filteredCards.enumerated()), id: \.element.id) { idx, card in
                     CardGridItemView(card: card)
                         .aspectRatio(3/4, contentMode: .fit)
                         .onTapGesture {
@@ -403,7 +404,11 @@ struct SearchView: View {
                                 selectedCard = card
                             }
                         }
-                        .walkthroughAnchor("find.cardCell")
+                        // Anchor ONLY the first cell — PreferenceKey
+                        // reduces to "last value wins", so attaching to
+                        // every cell made the spotlight land on a random
+                        // bottom row.
+                        .modifier(IfFirstAnchor(isFirst: idx == 0, key: "find.cardCell"))
                 }
             }
             .padding(.horizontal, Design.Spacing.lg)
@@ -629,5 +634,18 @@ struct SearchView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 80)
+    }
+}
+
+/// PreferenceKey-aware "anchor only the first item" modifier — the
+/// walkthrough anchor PreferenceKey reduces to "last value wins", so
+/// attaching .walkthroughAnchor() to every item in a ForEach makes
+/// the spotlight land on a random item. This wraps the .walkthroughAnchor
+/// call in a check so only `isFirst` carriers contribute.
+private struct IfFirstAnchor: ViewModifier {
+    let isFirst: Bool
+    let key: String
+    func body(content: Content) -> some View {
+        if isFirst { content.walkthroughAnchor(key) } else { content }
     }
 }

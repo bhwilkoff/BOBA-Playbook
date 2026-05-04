@@ -442,11 +442,11 @@ extension BOBAWalkthrough.Script {
     static let findTab = BOBAWalkthrough.Script(
         id: .findTab,
         steps: [
-            .init(anchor: .init("find.search"),    copy: "Search any of 17,968 cards by name, hero, or weapon."),
-            .init(anchor: .init("find.ribbons"),   copy: "Browse by weapon, sport, or featured collections."),
-            .init(anchor: .init("find.cardCell"),  copy: "Tap a card to see details, prices, and decks."),
-            .init(anchor: .init("find.scan"),      copy: "Scan a real card to identify it instantly."),
-            .init(anchor: .init("find.profile"),   copy: "Sign in to save cards to your collection.")
+            .init(anchor: .init("find.search"),   copy: "Search any of 17,968 cards by name, hero, or weapon."),
+            .init(anchor: .init("find.menu"),     copy: "Open the menu for filters and Card Showcases."),
+            .init(anchor: .init("find.cardCell"), copy: "Tap a card to see details, prices, and decks."),
+            .init(anchor: .init("find.scan"),     copy: "Scan a real card to identify it instantly."),
+            .init(anchor: .init("find.profile"),  copy: "Sign in to save cards to your collection.")
         ]
     )
 

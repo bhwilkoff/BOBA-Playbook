@@ -25,6 +25,7 @@ struct CollectionView: View {
 
     @State private var showingFilters      = false
     @State private var exportShareURL: URL?    = nil
+    @State private var walkthrough: BOBAWalkthrough.Script? = nil
     /// Collection-only sort axis. Persisted across app launches because
     /// it's a personal preference (a coach who likes "Recently Added"
     /// doesn't want it reset every time they open the app).
@@ -91,6 +92,14 @@ struct CollectionView: View {
         .sheet(item: $selectedCard) { wrapper in
             CollectionCardDetailView(bobaId: wrapper.id)
         }
+        .overlay {
+            if let script = walkthrough {
+                BOBAWalkthrough(script: script) {
+                    WalkthroughsManager.shared.dismiss(script.id)
+                    walkthrough = nil
+                }
+            }
+        }
         .task {
             if auth.isAuthenticated {
                 await collection.loadCollection()
@@ -104,6 +113,14 @@ struct CollectionView: View {
             // re-trigger onAppear, so in-tab interactions keep the
             // filters the user set this session.
             cardStore.clearAllFilters()
+            // First-visit walkthrough per DESIGN.md §6.10.1
+            // collectionTab catalog. Fires for both signed-in and
+            // signed-out users; signed-out simply sees the cells
+            // anchored on the empty/sign-in surface (the walkthrough
+            // copy still teaches the concept).
+            if WalkthroughsManager.shared.shouldShow(.collectionTab) {
+                walkthrough = .collectionTab
+            }
         }
         .onChange(of: auth.isAuthenticated) { _, isAuthenticated in
             if isAuthenticated {
@@ -231,15 +248,22 @@ struct CollectionView: View {
 
             // (Find a Store moved to the Purchase tab.)
 
-            // Last item — matches user spec. Writes CSV to a tmp file
-            // named with today's date, then presents the share sheet
-            // via the exportShareURL sheet modifier on the body.
             Button {
                 exportCollectionCSV()
             } label: {
                 Label("Export Collection", systemImage: "square.and.arrow.up")
             }
             .disabled(collection.userCards.isEmpty)
+
+            Divider()
+
+            // Walkthrough re-launcher per §6.10.1.
+            Button {
+                WalkthroughsManager.shared.relaunch(.collectionTab)
+                walkthrough = .collectionTab
+            } label: {
+                Label("Show walkthrough", systemImage: "questionmark.circle")
+            }
         } label: {
             if isRecalculating {
                 ProgressView().tint(Design.Colors.bobaOrange)
@@ -248,6 +272,7 @@ struct CollectionView: View {
                     .foregroundStyle(Design.Colors.bobaOrange)
             }
         }
+        .walkthroughAnchor("collection.displayMode")  // sits where future Grid/List/Wall picker will live
     }
 
     // MARK: - Filters button (trailing)
@@ -372,6 +397,7 @@ struct CollectionView: View {
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .frame(height: 58)
         .background(Design.Colors.surface)
+        .walkthroughAnchor("collection.scopeBar")  // §6.10.1 collectionTab
     }
 
     // MARK: - Rainbow intro
@@ -423,9 +449,17 @@ struct CollectionView: View {
                             .frame(maxWidth: .infinity, minHeight: 300)
                     } else {
                         LazyVStack(spacing: Design.Spacing.sm) {
-                            ForEach(identifiers, id: \.self) { identifier in
-                                collectionRow(identifier: identifier)
-                                    .onTapGesture { selectedCard = BobaIdWrapper(id: identifier) }
+                            ForEach(Array(identifiers.enumerated()), id: \.element) { idx, identifier in
+                                // First row anchors the collectionTab walkthrough's
+                                // "Tap to edit designation, valuation, or notes." step.
+                                if idx == 0 {
+                                    collectionRow(identifier: identifier)
+                                        .onTapGesture { selectedCard = BobaIdWrapper(id: identifier) }
+                                        .walkthroughAnchor("collection.cardCell")
+                                } else {
+                                    collectionRow(identifier: identifier)
+                                        .onTapGesture { selectedCard = BobaIdWrapper(id: identifier) }
+                                }
                             }
                         }
                         .padding(Design.Spacing.lg)

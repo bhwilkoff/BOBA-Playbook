@@ -585,3 +585,55 @@ struct BOBASectionRow: View {
         .contentShape(Rectangle())
     }
 }
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - BOBAFilterToken (DESIGN.md §6.4)
+// ════════════════════════════════════════════════════════════════
+
+/// Search-token type for `.searchable(text:tokens:suggestedTokens:)`.
+/// Per DESIGN.md §6.4, tokens replace every "filter pill" row with the
+/// iOS-native chip-in-search-field pattern. Filter axes are
+/// orthogonal; multiple cases of the same axis OR together (FIRE
+/// OR ICE), different axes AND together (FIRE AND 3 HD).
+///
+/// Currently consumed by DecksView's pool filter; ready for re-use
+/// in any future search surface that needs orthogonal filters.
+enum BOBAFilterToken: Identifiable, Hashable {
+    case weapon(String)   // "FIRE", "ICE", "STEEL", etc.
+    case cost(Int)        // 0 = FREE, 1...8 = HD cost
+    case hero(String)     // hero name (e.g. "Maverick")
+
+    var id: String {
+        switch self {
+        case .weapon(let e): return "weapon:\(e)"
+        case .cost(let c):   return "cost:\(c)"
+        case .hero(let h):   return "hero:\(h)"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .weapon(let e): return e.capitalized
+        case .cost(let c):   return c == 0 ? "FREE" : "\(c) HD"
+        case .hero(let h):   return h
+        }
+    }
+
+    var systemImageName: String {
+        switch self {
+        case .weapon: return "circle.fill"
+        case .cost:   return "dollarsign.circle"
+        case .hero:   return "person.fill"
+        }
+    }
+
+    /// All eight canonical weapon tokens.
+    static let weapons: [BOBAFilterToken] = [
+        .weapon("FIRE"), .weapon("ICE"), .weapon("STEEL"), .weapon("BRAWL"),
+        .weapon("GLOW"), .weapon("HEX"), .weapon("GUM"), .weapon("SUPER"),
+    ]
+
+    /// Common play-cost tokens (0 = FREE through 4 HD). Higher costs
+    /// exist but rarely; users can filter via the search text.
+    static let costs: [BOBAFilterToken] = (0...4).map { BOBAFilterToken.cost($0) }
+}

@@ -100,16 +100,16 @@ struct DecksView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
-                ZStack(alignment: .top) {
-                    cardPoolCanvas
-                    addedBannerOverlay
-                }
-                .frame(maxHeight: .infinity)
-                // Reserve room at the bottom for the summary pill so
-                // the last row of cards is reachable.
-                .padding(.bottom, Self.drawerCollapsedHeight)
-
+            ZStack(alignment: .top) {
+                cardPoolCanvas
+                addedBannerOverlay
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // .safeAreaInset auto-sizes the inset to the pill's actual
+            // height (≈60pt) and reflows around the keyboard when search
+            // is active. Replaces the fixed 132pt padding that left a
+            // visible gap below the canvas.
+            .safeAreaInset(edge: .bottom) {
                 DeckSummaryPill(
                     store: store,
                     onTap: { editorOpen = true },
@@ -141,28 +141,10 @@ struct DecksView: View {
             // TextField), which never affects the nav bar at all and
             // gets a proper Done button on the keyboard via the
             // .keyboard ToolbarItemGroup below.
-            // Single secondary-sheet host attached to the parent.
-            .sheet(item: $secondarySheet) { sheet in
-                switch sheet {
-                case .profile:        ProfileView()
-                case .rules:          DeckRulesSheet(store: store)
-                case .legality:       LegalityReportSheet(store: store)
-                case .deckManagement: DeckManagementSheet(store: store, cards: cardStore.displayCards)
-                }
-            }
-            // Card-detail (long-press in pool) — independent of the bottom sheet.
+            // Card-detail (long-press in pool) — independent of editor.
             // Lives at the parent level so dismissal returns to the canvas.
             .sheet(item: $selectedBrowserCard) { card in
                 BrowserCardDetailSheet(card: card, store: store, tab: pickRoleForCard(card))
-            }
-            .alert("Clear deck?", isPresented: $confirmingClearDeck) {
-                Button("Cancel", role: .cancel) {}
-                Button("Clear deck", role: .destructive) {
-                    store.clearDeck()
-                    store.discardDraft()
-                }
-            } message: {
-                Text("Removes every Hero, Play, Bonus Play, and Hot Dog. Your deck name and rule overrides stay.")
             }
             .walkthroughOverlay($walkthrough) { stage in
                 handleWalkthroughStage(stage)
@@ -173,6 +155,13 @@ struct DecksView: View {
             // (sheetHeaderRow, formatChipStrip, deckListScroll) are
             // accessible without needing to extract them into a
             // standalone struct.
+            //
+            // Secondary sheets (Profile / Rules / Legality / Manage)
+            // and the Clear-deck alert are attached INSIDE the cover
+            // so they present on top of the editor. Previously they
+            // were on the parent — iOS would dismiss the cover before
+            // showing them, which broke the "open Manage Decks while
+            // editing" flow.
             .fullScreenCover(isPresented: $editorOpen) {
                 NavigationStack {
                     VStack(spacing: 0) {
@@ -187,6 +176,23 @@ struct DecksView: View {
                     .toolbarBackground(.regularMaterial, for: .navigationBar)
                     .toolbarBackground(.visible, for: .navigationBar)
                     .navigationBarTitleDisplayMode(.inline)
+                    .sheet(item: $secondarySheet) { sheet in
+                        switch sheet {
+                        case .profile:        ProfileView()
+                        case .rules:          DeckRulesSheet(store: store)
+                        case .legality:       LegalityReportSheet(store: store)
+                        case .deckManagement: DeckManagementSheet(store: store, cards: cardStore.displayCards)
+                        }
+                    }
+                    .alert("Clear deck?", isPresented: $confirmingClearDeck) {
+                        Button("Cancel", role: .cancel) {}
+                        Button("Clear deck", role: .destructive) {
+                            store.clearDeck()
+                            store.discardDraft()
+                        }
+                    } message: {
+                        Text("Removes every Hero, Play, Bonus Play, and Hot Dog. Your deck name and rule overrides stay.")
+                    }
                 }
                 .navigationTransition(.zoom(sourceID: "deck-draft", in: deckZoomNamespace))
             }

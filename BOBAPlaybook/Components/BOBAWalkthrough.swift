@@ -46,12 +46,27 @@ extension BOBAWalkthrough {
         /// Where to place the tooltip relative to the anchor. Auto-
         /// resolved when nil — defaults to the side with more space.
         let placement: Placement?
+        /// Optional stage that the host uses to prepare the view
+        /// before the step renders (e.g., expand a drawer, scroll to
+        /// a section). When the step advances or the walkthrough
+        /// dismisses, the host receives `nil` and should restore the
+        /// prior state.
+        let stage: Stage?
 
-        init(anchor: Anchor?, copy: String, placement: Placement? = nil) {
+        init(anchor: Anchor?, copy: String, placement: Placement? = nil, stage: Stage? = nil) {
             self.anchor = anchor
             self.copy = copy
             self.placement = placement
+            self.stage = stage
         }
+    }
+
+    /// Hints the host can act on to prepare the UI for an off-screen
+    /// step. The walkthrough overlay calls onStage(.foo) when the
+    /// step becomes current and onStage(nil) when the walkthrough
+    /// completes — host saves prior state on activate, restores on nil.
+    enum Stage: Equatable, Hashable {
+        case decksDrawerExpanded   // expand the Decks drawer to mid height
     }
 
     /// Anchor identifier — host views attach `anchorPreference`
@@ -106,12 +121,16 @@ extension View {
     /// the host view (the view containing the .walkthroughAnchor()
     /// targets). Reads the anchor preferences via .overlayPreferenceValue
     /// and resolves them through a GeometryReader, then hands resolved
-    /// CGRects to BOBAWalkthrough — which is the only architecture that
-    /// works because preferences only flow through a view's own
-    /// descendants.
+    /// CGRects to BOBAWalkthrough.
+    ///
+    /// `onStage` is the optional prepare/restore callback. Hosts that
+    /// have steps with a `Stage` (e.g., decksDrawerExpanded) implement
+    /// it: on stage activation save current state and reveal the
+    /// anchor; on nil restore prior state.
     @ViewBuilder
     func walkthroughOverlay(
-        _ binding: Binding<BOBAWalkthrough.Script?>
+        _ binding: Binding<BOBAWalkthrough.Script?>,
+        onStage: ((BOBAWalkthrough.Stage?) -> Void)? = nil
     ) -> some View {
         self.overlayPreferenceValue(WalkthroughAnchorKey.self) { anchors in
             if let script = binding.wrappedValue {
@@ -122,7 +141,8 @@ extension View {
                     BOBAWalkthrough(
                         script: script,
                         anchorFrames: frames,
-                        containerSize: proxy.size
+                        containerSize: proxy.size,
+                        onStage: onStage
                     ) {
                         WalkthroughsManager.shared.dismiss(script.id)
                         binding.wrappedValue = nil
@@ -149,6 +169,11 @@ struct BOBAWalkthrough: View {
     /// set on the host's content never reached an overlay tree.
     let anchorFrames: [Anchor: CGRect]
     let containerSize: CGSize
+    /// Optional callback the host implements to prepare the view for a
+    /// step's anchor (e.g., expand a drawer). Called with the new
+    /// step's stage when advancing; called with nil when the
+    /// walkthrough completes so the host can restore prior state.
+    let onStage: ((Stage?) -> Void)?
     let onComplete: () -> Void
 
     @State private var currentStep: Int = 0
@@ -170,6 +195,11 @@ struct BOBAWalkthrough: View {
         }
         .transition(.opacity)
         .accessibilityElement(children: .contain)
+        .onAppear {
+            // First step's stage prepare hook fires on appear so the
+            // host can reveal the very first anchor if it's hidden.
+            onStage?(step?.stage)
+        }
     }
 
     private var step: Step? {
@@ -210,10 +240,21 @@ struct BOBAWalkthrough: View {
     }
 
     private func advance() {
-        if isLastStep { complete() } else { currentStep += 1 }
+        if isLastStep {
+            complete()
+        } else {
+            currentStep += 1
+            // Notify host of the new step's stage so it can prepare
+            // (e.g., expand a drawer to reveal the anchor).
+            onStage?(step?.stage)
+        }
     }
 
-    private func complete() { onComplete() }
+    private func complete() {
+        // Restore prior state before tearing down.
+        onStage?(nil)
+        onComplete()
+    }
 
     /// Renders the 60% black dim with a rounded-rect cutout where the
     /// current anchor sits. The cutout uses .blendMode(.destinationOut)
@@ -225,10 +266,14 @@ struct BOBAWalkthrough: View {
         if let rect = currentAnchorRect, anchorIsVisible(rect) {
             ZStack {
                 Color.black.opacity(0.6)
-                let visible = rect.intersection(CGRect(origin: .zero, size: containerSize))
+                // Cutout matches the spotlight ring exactly — pad
+                // outward 8pt, clamp to viewport so the punched-out
+                // rectangle never overflows the screen edge.
+                let viewport = CGRect(origin: .zero, size: containerSize)
+                let clamped = rect.intersection(viewport).insetBy(dx: -8, dy: -8).intersection(viewport)
                 RoundedRectangle(cornerRadius: 14)
-                    .frame(width: visible.width + 16, height: visible.height + 16)
-                    .position(x: visible.midX, y: visible.midY)
+                    .frame(width: clamped.width, height: clamped.height)
+                    .position(x: clamped.midX, y: clamped.midY)
                     .blendMode(.destinationOut)
             }
             .compositingGroup()
@@ -256,20 +301,30 @@ struct BOBAWalkthrough: View {
         }
     }
 
-    /// Spotlight ring — only renders the visible portion of the anchor
-    /// so an anchor that's been partially scrolled out doesn't draw a
-    /// ring that extends off the screen edge.
+    /// Spotlight ring — only renders the visible portion of the anchor,
+    /// AND clamps the ring's bounding box so its full perimeter stays
+    /// inside the viewport (no edge of the cyan rectangle ever runs
+    /// off-screen). The pad-then-clamp dance: compute the desired
+    /// padded rect, then shrink it by however much it overflows on
+    /// each edge so all four sides remain visible.
     @ViewBuilder
     private func spotlightRing(rect: CGRect) -> some View {
         let visible = rect.intersection(CGRect(origin: .zero, size: containerSize))
-        if visible.width > 4 && visible.height > 4 {
+        guard visible.width > 4 && visible.height > 4 else {
+            return AnyView(EmptyView())
+        }
+        let pad: CGFloat = 8
+        let viewport = CGRect(origin: .zero, size: containerSize)
+        // Pad outward, then intersect with viewport to clamp every edge.
+        let clamped = visible.insetBy(dx: -pad, dy: -pad).intersection(viewport)
+        return AnyView(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(Design.Colors.bobaCyan, lineWidth: 2)
-                .frame(width: visible.width + 16, height: visible.height + 16)
-                .position(x: visible.midX, y: visible.midY)
+                .frame(width: clamped.width, height: clamped.height)
+                .position(x: clamped.midX, y: clamped.midY)
                 .shadow(color: Design.Colors.bobaCyan.opacity(0.7), radius: 10)
                 .allowsHitTesting(false)
-        }
+        )
     }
 
     /// When the current step's anchor is entirely off-screen (e.g., a
@@ -463,6 +518,11 @@ extension BOBAWalkthrough.Script {
         steps: [
             .init(anchor: .init("decks.cardPool"),    copy: "Tap to view a card. Long-press to add to the deck."),
             .init(anchor: .init("decks.sheetHandle"), copy: "Drag up for the full deck, format picker, and rules."),
+            // Drawer auto-expands so the format chip is on-screen for
+            // this step, then collapses back when the walkthrough
+            // dismisses (host implements via onStage).
+            .init(anchor: .init("decks.formatChip"),  copy: "Format shapes the whole deck — pick before you build.",
+                  stage: .decksDrawerExpanded),
             .init(anchor: .init("decks.saveButton"),  copy: "Sign in and Save to sync your deck across devices.")
         ]
     )
@@ -498,7 +558,7 @@ extension BOBAWalkthrough.Script {
     static let pricingPanels = BOBAWalkthrough.Script(
         id: .pricingPanels,
         steps: [
-            .init(anchor: .init("pricing.buyNow"), copy: "Live asking prices from eBay and COMC."),
+            .init(anchor: .init("pricing.buyNow"), copy: "Live asking prices from eBay."),
             .init(anchor: .init("pricing.sold"),   copy: "Recent sales drive the market estimate above.")
         ]
     )

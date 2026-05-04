@@ -176,7 +176,9 @@ struct DecksView: View {
             } message: {
                 Text("Removes every Hero, Play, Bonus Play, and Hot Dog. Your deck name and rule overrides stay.")
             }
-            .walkthroughOverlay($walkthrough)
+            .walkthroughOverlay($walkthrough) { stage in
+                handleWalkthroughStage(stage)
+            }
         }
         .onAppear(perform: handleAppear)
         .onDisappear { store.saveDraft() }
@@ -1057,9 +1059,43 @@ struct DecksView: View {
     }
 
     private func popSheetIfNeeded() {
-        // No-op now that the deck panel is a NavigationLink push rather
-        // than a draggable sheet. Kept as a hook for future "auto-open
-        // deck panel after scan" behavior.
+        // No-op — drawer state is user-controlled via drag/tap. Kept
+        // as a hook for future "auto-open deck panel after scan."
+    }
+
+    /// Saved drawer height before a walkthrough stage expanded it.
+    /// Restored when the walkthrough completes so the user lands back
+    /// where they were.
+    @State private var savedDrawerHeightForWalkthrough: CGFloat? = nil
+
+    /// Walkthrough host hook — currently handles the
+    /// `decksDrawerExpanded` stage by saving the drawer's height,
+    /// expanding it to mid so the format chip is visible, then
+    /// restoring the prior height when the walkthrough ends. Per
+    /// user feedback: "if a feature is not on the screen, the view
+    /// should change to highlight it, then return the user to the
+    /// previous state."
+    private func handleWalkthroughStage(_ stage: BOBAWalkthrough.Stage?) {
+        switch stage {
+        case .decksDrawerExpanded:
+            if savedDrawerHeightForWalkthrough == nil {
+                savedDrawerHeightForWalkthrough = drawerHeight
+            }
+            // Expand to mid (~55%) — enough to surface the format
+            // chip strip without covering the whole canvas.
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                let mid = UIScreen.main.bounds.height * Self.drawerMidFraction
+                drawerHeight = max(Self.drawerCollapsedHeight, mid)
+            }
+        case nil:
+            // Walkthrough ended — restore prior drawer height.
+            if let prior = savedDrawerHeightForWalkthrough {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                    drawerHeight = prior
+                }
+                savedDrawerHeightForWalkthrough = nil
+            }
+        }
     }
 }
 

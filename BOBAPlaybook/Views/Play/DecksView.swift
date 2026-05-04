@@ -1206,21 +1206,26 @@ private struct DeckDrawer<Header: View, Content: View>: View {
     @ViewBuilder let header: () -> Header
     @ViewBuilder let content: () -> Content
 
-    /// In-flight drag delta. Lives HERE, not on DecksView, so DecksView
-    /// body doesn't re-render at gesture rate.
-    @State private var drawerDragOffset: CGFloat = 0
+    /// In-flight drag delta. @GestureState (not @State) gives SwiftUI
+    /// proper gesture identity tracking — it ensures ONE recognizer
+    /// per gesture instead of accumulating duplicates across body
+    /// re-renders. The diagnostic data showed two concurrent
+    /// recognizers fighting (alternating low/high translation values
+    /// from each), which was the actual cause of the flash.
+    @GestureState private var drawerDragOffset: CGFloat = 0
 
     var body: some View {
         let liveHeight = max(bounds.collapsed,
                              min(bounds.large, drawerHeight - drawerDragOffset))
-        // DIAGNOSTIC: this fires on every drag frame. With the
-        // refactor, DECKS-RENDER fires only on commit (release).
         let _ = dragDiag(String(format: "DRAWER-RENDER drawerH=%.1f offset=%.1f liveH=%.1f",
                                 drawerHeight, drawerDragOffset, liveHeight))
 
         VStack(spacing: 0) {
-            // Drag handle + caller-provided header — the entire
-            // region is the drag/tap target.
+            // Drag handle + caller-provided header. NO .onTapGesture
+            // here — competing recognizers (.onTapGesture +
+            // .gesture(DragGesture)) were also a likely contributor
+            // to the dual-recognizer flash. Drag is the only handle
+            // interaction now.
             VStack(spacing: 0) {
                 Capsule()
                     .fill(Color.white.opacity(0.45))
@@ -1230,38 +1235,33 @@ private struct DeckDrawer<Header: View, Content: View>: View {
                 header()
             }
             .contentShape(Rectangle())
-            .onTapGesture {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                    drawerHeight = drawerHeight <= bounds.collapsed + 1
-                        ? bounds.large
-                        : bounds.collapsed
-                }
-            }
             .gesture(
                 DragGesture(minimumDistance: 1)
-                    .onChanged { value in
-                        let priorOffset = drawerDragOffset
-                        drawerDragOffset = value.translation.height
-                        let liveH = max(bounds.collapsed,
-                                        min(bounds.large, drawerHeight - drawerDragOffset))
-                        dragDiag(String(format: "DRAG translation=%.1f priorOffset=%.1f newOffset=%.1f drawerH=%.1f liveH=%.1f",
-                                        value.translation.height, priorOffset, drawerDragOffset,
-                                        drawerHeight, liveH))
+                    .updating($drawerDragOffset) { value, state, _ in
+                        state = value.translation.height
+                        dragDiag(String(format: "DRAG translation=%.1f drawerH=%.1f liveH=%.1f",
+                                        value.translation.height, drawerHeight,
+                                        max(bounds.collapsed, min(bounds.large, drawerHeight - value.translation.height))))
                     }
                     .onEnded { value in
+                        // GestureState auto-resets to 0 after this
+                        // closure returns. Compute everything from
+                        // value.translation directly so we don't
+                        // depend on drawerDragOffset (which is about
+                        // to be reset).
                         let currentLive = max(bounds.collapsed,
-                                              min(bounds.large, drawerHeight - drawerDragOffset))
+                                              min(bounds.large, drawerHeight - value.translation.height))
                         let predicted = drawerHeight - value.predictedEndTranslation.height
                         let clamped = max(bounds.collapsed, min(bounds.large, predicted))
-                        let preDrawerH = drawerHeight
-                        let preOffset = drawerDragOffset
-                        // Atomic commit BEFORE animation: drawerHeight
-                        // = currentLive, offset = 0. liveHeight stays
-                        // continuous through the transition.
+                        // Commit currentLive synchronously — this is
+                        // the position the finger left the screen at.
+                        // After GestureState resets, liveHeight will
+                        // equal drawerHeight (= currentLive), no jump.
                         drawerHeight = currentLive
-                        drawerDragOffset = 0
-                        dragDiag(String(format: "ENDED preDrawerH=%.1f preOffset=%.1f currentLive=%.1f predicted=%.1f clamped=%.1f postDrawerH=%.1f",
-                                        preDrawerH, preOffset, currentLive, predicted, clamped, drawerHeight))
+                        dragDiag(String(format: "ENDED translation=%.1f currentLive=%.1f predicted=%.1f clamped=%.1f postDrawerH=%.1f",
+                                        value.translation.height, currentLive, predicted, clamped, drawerHeight))
+                        // Then animate to the predicted release
+                        // position with momentum.
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.95)) {
                             drawerHeight = clamped
                         }
@@ -1269,8 +1269,6 @@ private struct DeckDrawer<Header: View, Content: View>: View {
             )
 
             // Caller-provided body content (format chips + deck list).
-            // Always rendered — outer .frame(height:) + .clipShape clip
-            // overflow when the drawer is collapsed.
             content()
         }
         .frame(height: liveHeight, alignment: .top)

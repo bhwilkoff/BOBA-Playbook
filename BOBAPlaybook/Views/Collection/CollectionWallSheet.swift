@@ -188,7 +188,9 @@ struct CollectionWallSheet: View {
                         RoundedRectangle(cornerRadius: Design.Radius.md)
                             .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)
                     )
-                    .walkthroughAnchor("wall.aspect")
+                    // wall.aspect anchor removed — there's no aspect
+                    // picker in the new layout. Replaced by wall.selector
+                    // which lives on the always-visible card grid.
             } else {
                 BOBAEmptyState(
                     title: "Couldn't render wall",
@@ -294,6 +296,7 @@ struct CollectionWallSheet: View {
                     selectorTile(card)
                 }
             }
+            .walkthroughAnchor("wall.selector")
         }
     }
 

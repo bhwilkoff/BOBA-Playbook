@@ -502,8 +502,11 @@ struct SearchView: View {
 
     @ViewBuilder
     private func weaponRibbon(element: String, label: String) -> some View {
+        // Per user feedback — drop the "Heroes" suffix. Under the "By
+        // Weapon" section header the noun is implied; the ribbon title
+        // just needs the weapon name.
         ribbon(
-            title: "\(label) Heroes",
+            title: label,
             subtitle: nil,
             tint: Design.Colors.element(element),
             cards: Array(sortedWithArt(store.displayCards.filter { $0.element == element }).prefix(20))

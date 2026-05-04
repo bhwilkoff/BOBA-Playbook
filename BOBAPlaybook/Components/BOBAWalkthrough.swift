@@ -479,9 +479,8 @@ extension BOBAWalkthrough.Script {
     static let purchaseTab = BOBAWalkthrough.Script(
         id: .purchaseTab,
         steps: [
-            .init(anchor: .init("purchase.picker"),  copy: "Upcoming Breaks or Find a Store."),
-            .init(anchor: .init("purchase.showTile"), copy: "Tap a show to open it in Whatnot."),
-            .init(anchor: .init("purchase.storeMap"), copy: "Find indie shops or big-box near you.")
+            .init(anchor: .init("purchase.picker"),   copy: "Switch between Live Breaks and Find a Store."),
+            .init(anchor: .init("purchase.showTile"), copy: "Tap a show to open it in Whatnot.")
         ]
     )
 
@@ -489,11 +488,13 @@ extension BOBAWalkthrough.Script {
         id: .cardDetail,
         steps: [
             .init(anchor: .init("cardDetail.statsGrid"), copy: "Six cells: Card #, Type, Treatment, Weapon, Set, Sub-set."),
-            .init(anchor: .init("cardDetail.pricing"),   copy: "Buy Now is asking; Sold is transacted. Kept separate."),
-            .init(anchor: .init("cardDetail.actionBar"), copy: "Add to Collection, Add to Deck, or Share.")
+            .init(anchor: .init("cardDetail.actionBar"), copy: "Add to Collection, Add to Deck, or Share via the menu.")
         ]
     )
 
+    /// Pricing walkthrough fires when the user actually scrolls to the
+    /// PricingSection (via .onAppear there), not on CardDetailView open
+    /// — so both anchors are guaranteed visible at trigger time.
     static let pricingPanels = BOBAWalkthrough.Script(
         id: .pricingPanels,
         steps: [
@@ -505,9 +506,9 @@ extension BOBAWalkthrough.Script {
     static let wallView = BOBAWalkthrough.Script(
         id: .wallView,
         steps: [
-            .init(anchor: .init("wall.aspect"),  copy: "Pick wallpaper, square, or 16:9 sizing."),
-            .init(anchor: .init("wall.overlay"), copy: "Show prices on each card for sale lists."),
-            .init(anchor: .init("wall.share"),   copy: "Save the image or share it directly.")
+            .init(anchor: .init("wall.overlay"),  copy: "Toggle prices to show on each tile."),
+            .init(anchor: .init("wall.selector"), copy: "Tap to include cards. Long-press to highlight as big-hits."),
+            .init(anchor: .init("wall.share"),    copy: "Save the image or share it once you've picked your cards.")
         ]
     )
 

@@ -472,11 +472,9 @@ extension BOBAWalkthrough.Script {
     static let collectionTab = BOBAWalkthrough.Script(
         id: .collectionTab,
         steps: [
-            .init(anchor: .init("collection.scopeBar"),   copy: "Personal, For Sale, Trade, Wanted, Grails — switch here."),
-            .init(anchor: .init("collection.cardCell"),   copy: "Tap to edit designation, valuation, or notes."),
-            .init(anchor: .init("collection.scan"),       copy: "Scan to bulk-add cards to a designation."),
-            .init(anchor: .init("collection.displayMode"), copy: "Switch to List for triage or Wall for sharing."),
-            .init(anchor: .init("collection.share"),      copy: "Share by URL or as a Wall image.")
+            .init(anchor: .init("collection.scopeBar"),    copy: "Switch between Personal, Sale, Trade, Wanted, and Grails."),
+            .init(anchor: .init("collection.cardCell"),    copy: "Tap a card to view value, designation, and notes."),
+            .init(anchor: .init("collection.displayMode"), copy: "Open the menu for List, Grid, or Wall sharing.")
         ]
     )
 

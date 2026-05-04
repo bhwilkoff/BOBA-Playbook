@@ -96,20 +96,10 @@ struct CollectionView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // Profile gear top-leading per DESIGN.md §6.5 / §6.9.
-                // Auth-aware tabs (Find / Decks / Collection / Purchase
-                // wishlist) all expose Profile here, in matching position
-                // and with the user's selected app-icon accent color.
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showingProfile = true
-                    } label: {
-                        Image(systemName: "person.crop.circle")
-                            .font(.system(size: 22))
-                            .foregroundStyle(AppIconOption.currentColor(for: selectedIconName))
-                    }
-                    .accessibilityLabel("Profile")
-                }
+                // Profile button removed per user feedback — Profile lives
+                // only on the Find tab. Auth-required actions (Save deck,
+                // designate card, etc.) surface inline BOBASignInPrompt
+                // at the point of action.
                 ToolbarItem(placement: .principal) {
                     BOBAWordmark()
                 }
@@ -359,16 +349,10 @@ struct CollectionView: View {
                 }
                 .disabled(collection.userCards.isEmpty)
 
-                Button {
-                    // Per user feedback #11 — routing Share through
-                    // the Wall sheet, which produces an actual
-                    // shareable image (the previous deep-link version
-                    // generated a URL to a public-profile route that
-                    // the web app doesn't yet host).
-                    showingWall = true
-                } label: {
-                    Label("Share as Wall image…", systemImage: "square.and.arrow.up")
-                }
+                // "Share as Wall image…" removed per user feedback —
+                // it duplicated the Display → Wall option (both opened
+                // CollectionWallSheet, which has its own Save/Share
+                // controls inline).
             }
 
             Divider()
@@ -472,48 +456,23 @@ struct CollectionView: View {
 
     // MARK: - Designation picker
 
+    /// Replaces the legacy horizontal scrolling pill row (the
+    /// "scrolling pills" anti-pattern the user flagged across the app)
+    /// with a native segmented Picker. iOS-built-in, no horizontal
+    /// scroll, fits all five designations across the bar at standard
+    /// iPhone widths because the labels are short ("Personal", "Sale",
+    /// "Trade", "Wanted", "Grails").
     private var designationPicker: some View {
-        // Fixed-height row (34pt pill + 12pt × 2 vertical padding = 58).
-        // Without this, the horizontal ScrollView inherits flexible
-        // height from its parent VStack and the pull-to-refresh bounce
-        // from the enclosing `.refreshable` scroll can tug the pill row
-        // up and down, making it feel like the pills scroll vertically.
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Design.Spacing.sm) {
-                ForEach(UserCard.Designation.allCases) { d in
-                    let count = collection.uniqueBobaIds(for: d).count
-                    Button {
-                        selectedDesignation = d
-                    } label: {
-                        HStack(spacing: Design.Spacing.xs) {
-                            Image(systemName: d.icon)
-                                .font(.system(size: 11))
-                            Text(d.displayName)
-                                .font(Design.Fonts.mono(12, weight: selectedDesignation == d ? .bold : .regular))
-                            if count > 0 {
-                                Text("\(count)")
-                                    .font(Design.Fonts.mono(10, weight: .bold))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 1)
-                                    .background(Capsule().fill(selectedDesignation == d ? Color.black.opacity(0.35) : Design.Colors.glass))
-                            }
-                        }
-                        .foregroundStyle(selectedDesignation == d ? .white : Design.Colors.textSecondary)
-                        .padding(.horizontal, Design.Spacing.md)
-                        .frame(height: 34)
-                        .background(selectedDesignation == d ? Design.Colors.bobaOrange : Design.Colors.glass)
-                        .clipShape(Capsule())
-                    }
-                }
+        Picker("Designation", selection: $selectedDesignation) {
+            ForEach(UserCard.Designation.allCases) { d in
+                Text(d.shortDisplayName).tag(d)
             }
-            .padding(.horizontal, Design.Spacing.lg)
-            .padding(.vertical, Design.Spacing.md)
         }
-        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-        .frame(height: 58)
+        .pickerStyle(.segmented)
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.sm)
         .background(Design.Colors.surface)
-        .walkthroughAnchor("collection.scopeBar")  // §6.10.1 collectionTab
+        .walkthroughAnchor("collection.scopeBar")
     }
 
     // MARK: - Rainbow intro

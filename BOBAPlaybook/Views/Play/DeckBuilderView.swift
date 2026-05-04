@@ -2025,15 +2025,15 @@ struct BrowserCardDetailSheet: View {
                 }
                 .padding(.top, Design.Spacing.lg)
             }
-            .background(Design.Colors.nearBlack)
-            // .scrollEdgeEffectStyle controls how the toolbar reserves
-            // height during navigation transitions. WITHOUT it, iOS 26
-            // reserves .large title height initially when pushing onto
-            // a NavigationStack, then collapses to .inline — that's the
-            // "extended header that overlays the card art" the user
-            // reported. Find's CardDetailView has this modifier and
-            // doesn't show the bug; we add it here for parity.
+            // .scrollEdgeEffectStyle MUST be applied directly to the
+            // ScrollView, BEFORE .background — otherwise it wraps a
+            // background-wrapped view and doesn't register on the
+            // underlying scroll view. Find's CardDetailView has this
+            // ordering; Decks/Collection had .background first which
+            // is why the previous attempts to add the modifier had no
+            // effect on the "extended header" forehead bug.
             .scrollEdgeEffectStyle(.soft, for: .top)
+            .background(Design.Colors.nearBlack)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarTitleDisplayMode(.inline)

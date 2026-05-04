@@ -103,15 +103,14 @@ struct CollectionCardDetailView: View {
                     .padding(.bottom, Design.Spacing.lg)
                 }
             }
-            .background(Design.Colors.nearBlack)
-            // .scrollEdgeEffectStyle controls how the toolbar reserves
-            // height during navigation transitions. Without it, iOS 26
-            // briefly reserves .large title height when pushing onto
-            // the NavigationStack — that's the "extended header that
-            // overlays the card art" the user reported. Find's
-            // CardDetailView has this modifier and doesn't show the
-            // bug; adding here for parity.
+            // .scrollEdgeEffectStyle MUST be applied directly to the
+            // ScrollView, BEFORE .background — otherwise it wraps a
+            // background-wrapped view and doesn't register on the
+            // underlying scroll view. Find's CardDetailView has this
+            // ordering; Collection's had .background first, which is
+            // why the previous attempt at this fix had no effect.
             .scrollEdgeEffectStyle(.soft, for: .top)
+            .background(Design.Colors.nearBlack)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarTitleDisplayMode(.inline)

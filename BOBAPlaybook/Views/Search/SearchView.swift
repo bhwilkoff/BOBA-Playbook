@@ -188,6 +188,14 @@ struct SearchView: View {
                 store.pendingScan = false
             }
         }
+        // Deep-link: bobaplaybook://search?q=... — set by SearchCardIntent
+        // (Spotlight / Siri / Action Button per DESIGN.md §7).
+        .onChange(of: store.pendingSearchQuery) { _, q in
+            if let q, !q.isEmpty {
+                store.searchText = q
+                store.pendingSearchQuery = nil
+            }
+        }
         .onAppear {
             // Reset filter state when the tab re-appears — moving
             // between Find ↔ Collection ↔ etc. starts with a clean
@@ -200,6 +208,10 @@ struct SearchView: View {
             if store.pendingScan {
                 scanCoordinator.start(.find, scanStore: scanStore)
                 store.pendingScan = false
+            }
+            if let q = store.pendingSearchQuery, !q.isEmpty {
+                store.searchText = q
+                store.pendingSearchQuery = nil
             }
             if WalkthroughsManager.shared.shouldShow(.findTab) {
                 walkthrough = .findTab

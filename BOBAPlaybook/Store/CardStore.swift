@@ -116,6 +116,12 @@ final class CardStore {
     /// SearchView watches this and presents the ScanView sheet.
     var pendingScan: Bool = false
 
+    /// Set by the URL handler when a bobaplaybook://search?q=... URL opens
+    /// the app — typically from SearchCardIntent (Spotlight / Siri /
+    /// Action Button per DESIGN.md §7). SearchView observes this and
+    /// pre-populates the search field on tab activation.
+    var pendingSearchQuery: String? = nil
+
     // MARK: - Internal
     private var filterTask: Task<Void, Never>?
 

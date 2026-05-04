@@ -67,18 +67,27 @@ struct BOBAPlaybookApp: App {
                     guard url.scheme == "bobaplaybook" else { return }
                     switch url.host {
                     case "scan":
-                        // bobaplaybook://scan — QR code on web opens the scanner
-                        // directly. Post-nav-refactor there's no Scan tab, so
-                        // we jump to Find (tab 0) and flag the scanner sheet
-                        // which SearchView is observing.
+                        // bobaplaybook://scan — also raised by StartScanIntent
+                        // (Spotlight / Siri / Action Button). Jumps to Find
+                        // (tab 0) and flags the scanner sheet which SearchView
+                        // observes.
                         selectedTab = 0
                         cardStore.pendingScan = true
                     case "card":
-                        // bobaplaybook://card/CBF-656 — deep link to a specific card.
+                        // bobaplaybook://card/CBF-656 — also raised by OpenCardIntent.
                         let cardNumber = String(url.path.dropFirst())  // strip leading "/"
                         if !cardNumber.isEmpty {
-                            selectedTab = 0  // switch to Search tab
+                            selectedTab = 0
                             cardStore.pendingCardNumber = cardNumber.uppercased()
+                        }
+                    case "search":
+                        // bobaplaybook://search?q=... — raised by SearchCardIntent.
+                        // Jumps to Find with the query string pre-loaded.
+                        selectedTab = 0
+                        let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+                        let q = comps?.queryItems?.first(where: { $0.name == "q" })?.value ?? ""
+                        if !q.isEmpty {
+                            cardStore.pendingSearchQuery = q
                         }
                     default:
                         authManager.handleDeepLink(url)

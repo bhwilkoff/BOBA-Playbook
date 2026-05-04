@@ -29,12 +29,16 @@ enum DeckFormat: String, CaseIterable, Identifiable, Codable {
 
     var id: String { rawValue }
 
-    /// What shows in the UI picker and stat bars.
+    /// What shows in the UI picker and stat bars. Per user feedback —
+    /// the canonical "Playmaker" format reads as just "Playmaker" (the
+    /// "Apex" prefix is internal taxonomy that confuses coaches who
+    /// just want the standard format). The other Playmaker variants
+    /// keep their qualifier so the difference stays clear.
     var displayName: String {
         switch self {
         case .rookie:       return "Rookie"
         case .substitution: return "Substitution"
-        case .playmaker:    return "Apex Playmaker"
+        case .playmaker:    return "Playmaker"
         case .spec:         return "Spec Playmaker"
         case .elite:        return "Elite Playmaker"
         case .specPlus:     return "SPEC+ Playmaker"

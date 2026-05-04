@@ -2,10 +2,10 @@
 //  PurchaseView.swift
 //  BOBAPlaybook
 //
-//  Two sub-modes (segmented picker, matching CollectionView's mode picker):
-//    1. Upcoming Breaks — Whatnot live + upcoming feed for "Bo Jackson
-//       Battle Arena", served by the boba-ebay-proxy Worker.
-//    2. Find a Store — embeds StoreLocatorView (moved here from Collection).
+//  Per DESIGN.md §8.5 — segmented picker (≤4 segments) at top, two
+//  destinations: Live Breaks + Find a Store. Each owns its own scroll
+//  context (refreshable, etc.). Walkthrough fires on first visit and
+//  re-launches from the overflow Menu.
 //
 
 import SwiftUI
@@ -18,6 +18,7 @@ struct PurchaseView: View {
     }
 
     @State private var mode: PurchaseMode = .breaks
+    @State private var walkthrough: BOBAWalkthrough.Script? = nil
 
     var body: some View {
         NavigationStack {
@@ -25,12 +26,10 @@ struct PurchaseView: View {
                 modePicker
                     .padding(.horizontal, Design.Spacing.md)
                     .padding(.vertical, Design.Spacing.sm)
+                    .walkthroughAnchor("purchase.picker")
 
                 switch mode {
                 case .breaks:
-                    // UpcomingBreaksList owns its own ScrollView so the
-                    // `.refreshable` gesture attaches directly to the
-                    // grid's scroll context.
                     UpcomingBreaksList()
                 case .stores:
                     StoreLocatorView()
@@ -43,9 +42,37 @@ struct PurchaseView: View {
                 ToolbarItem(placement: .principal) {
                     BOBAWordmark()
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            WalkthroughsManager.shared.relaunch(.purchaseTab)
+                            walkthrough = .purchaseTab
+                        } label: {
+                            Label("Show walkthrough", systemImage: "questionmark.circle")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 18))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                    }
+                    .accessibilityLabel("Purchase options")
+                }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .overlay {
+                if let script = walkthrough {
+                    BOBAWalkthrough(script: script) {
+                        WalkthroughsManager.shared.dismiss(script.id)
+                        walkthrough = nil
+                    }
+                }
+            }
+        }
+        .onAppear {
+            if WalkthroughsManager.shared.shouldShow(.purchaseTab) {
+                walkthrough = .purchaseTab
+            }
         }
     }
 
@@ -57,5 +84,4 @@ struct PurchaseView: View {
         }
         .pickerStyle(.segmented)
     }
-
 }

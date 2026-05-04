@@ -42,8 +42,14 @@ struct UpcomingBreaksList: View {
                     emptyState
                 } else {
                     LazyVGrid(columns: gridColumns, spacing: Design.Spacing.sm) {
-                        ForEach(shows) { show in
-                            showCard(show)
+                        ForEach(Array(shows.enumerated()), id: \.element.id) { idx, show in
+                            // First tile is the walkthrough anchor for
+                            // "Tap a show to open it in Whatnot." (§6.10.1)
+                            if idx == 0 {
+                                showCard(show).walkthroughAnchor("purchase.showTile")
+                            } else {
+                                showCard(show)
+                            }
                         }
                     }
                 }
@@ -52,6 +58,7 @@ struct UpcomingBreaksList: View {
             .padding(.top, Design.Spacing.md)
             .padding(.bottom, Design.Spacing.xl)
         }
+        .scrollEdgeEffectStyle(.hard, for: .top)  // §5.6 dense scroll
         .task { await load(force: false) }
         .refreshable { await load(force: true) }
     }

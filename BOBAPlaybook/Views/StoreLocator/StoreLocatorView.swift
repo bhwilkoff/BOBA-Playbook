@@ -224,6 +224,7 @@ struct StoreLocatorView: View {
         }
         .padding(.horizontal, Design.Spacing.md)
         .padding(.top, Design.Spacing.sm)
+        .walkthroughAnchor("purchase.storeMap")  // §6.10.1 walkthrough catalog
     }
 
     // MARK: - List

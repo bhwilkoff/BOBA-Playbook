@@ -390,6 +390,12 @@ struct CardDetailView: View {
     }
 
     // MARK: - Art panel
+    //
+    // Standardized layout shared by Find / Decks / Collection per user
+    // request — same gradient height, same image height, same rounded
+    // corners, same shadow, same horizontal padding. Differences
+    // between the three card-detail surfaces should be in the BODY
+    // BELOW this panel, never in the panel itself.
     private var artPanel: some View {
         ZStack {
             // Element gradient background (orange accent for sealed products)
@@ -406,6 +412,9 @@ struct CardDetailView: View {
                 .id(card.id)  // force view recreation on card change so loadedImage resets
                 .frame(maxWidth: .infinity)
                 .frame(height: 380)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .shadow(color: Design.Colors.element(card.element).opacity(0.4), radius: 16, y: 6)
+                .padding(.horizontal, Design.Spacing.xl)
                 .scaleEffect(effectiveScale)
                 .offset(
                     x: offset.width + (scale > 1 ? dragDelta.width : 0),

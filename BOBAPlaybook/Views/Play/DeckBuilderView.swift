@@ -1889,16 +1889,13 @@ struct BrowserCardDetailSheet: View {
         }
     }
 
-    /// Element-tinted gradient + centered card art. The previous
-    /// version sized the gradient to .frame(height: 420) and the
-    /// image to .frame(height: 380) inside a center-aligned ZStack
-    /// — that left 20pt of empty gradient ABOVE the image, which
-    /// read as a "forehead" during the zoom-in transition.
-    /// Now: ZStack sizes to the image's height; gradient fills
-    /// EXACTLY the ZStack; alignment .top so any leftover space
-    /// goes below the image, never above.
+    /// Standardized art panel — IDENTICAL shape/size/padding/gradient
+    /// across Find / Decks / Collection per user request. Any
+    /// difference between the three card-detail surfaces should live
+    /// in the body BELOW this panel, never in the panel itself.
+    /// Matches CardDetailView.artPanel.
     private var artPanel: some View {
-        ZStack(alignment: .top) {
+        ZStack {
             LinearGradient(
                 colors: [
                     Design.Colors.element(card.element).opacity(0.25),
@@ -1906,6 +1903,7 @@ struct BrowserCardDetailSheet: View {
                 ],
                 startPoint: .top, endPoint: .bottom
             )
+            .frame(height: 420)
 
             Group {
                 if let file = card.imageFile, !file.isEmpty {
@@ -1919,6 +1917,7 @@ struct BrowserCardDetailSheet: View {
                             .foregroundStyle(Design.Colors.element(card.element)))
                 }
             }
+            .frame(maxWidth: .infinity)
             .frame(height: 380)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .shadow(color: Design.Colors.element(card.element).opacity(0.4), radius: 16, y: 6)
@@ -2020,18 +2019,17 @@ struct BrowserCardDetailSheet: View {
                 }
                 .padding(.top, Design.Spacing.lg)
             }
-            // .scrollEdgeEffectStyle MUST be applied directly to the
-            // ScrollView, BEFORE .background — otherwise it wraps a
-            // background-wrapped view and doesn't register on the
-            // underlying scroll view. Find's CardDetailView has this
-            // ordering; Decks/Collection had .background first which
-            // is why the previous attempts to add the modifier had no
-            // effect on the "extended header" forehead bug.
+            // STANDARDIZED toolbar setup — IDENTICAL to Find's
+            // CardDetailView and Collection's CollectionCardDetailView.
+            // The previous iterations accumulated .toolbarTitleDisplayMode
+            // and .toolbarBackground(.hidden) on Decks/Collection that
+            // Find didn't have, which made Decks's header taller than
+            // the others. Now all three share the exact same modifier
+            // set so headers match.
             .scrollEdgeEffectStyle(.soft, for: .top)
             .background(Design.Colors.nearBlack)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 if wrapInNavStack {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -2046,16 +2044,8 @@ struct BrowserCardDetailSheet: View {
                         .lineLimit(1)
                 }
             }
-            // Hide the nav bar BACKGROUND on the destination — the
-            // artPanel's element-tinted gradient provides the visual
-            // top surface, the nav bar items (back chevron + principal
-            // title) just float over it. Music's Now Playing pattern.
-            // This is what eliminates the user's "extended header
-            // overlays the card art" forehead: there's no longer a
-            // distinct header band to be extended (inheriting the
-            // parent's toolbar+search-drawer height) — the gradient
-            // just is the top.
-            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 }

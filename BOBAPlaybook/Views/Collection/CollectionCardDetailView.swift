@@ -100,17 +100,12 @@ struct CollectionCardDetailView: View {
                     .padding(.bottom, Design.Spacing.lg)
                 }
             }
-            // .scrollEdgeEffectStyle MUST be applied directly to the
-            // ScrollView, BEFORE .background — otherwise it wraps a
-            // background-wrapped view and doesn't register on the
-            // underlying scroll view. Find's CardDetailView has this
-            // ordering; Collection's had .background first, which is
-            // why the previous attempt at this fix had no effect.
+            // STANDARDIZED toolbar setup — IDENTICAL to Find's
+            // CardDetailView and Decks's BrowserCardDetailSheet.
             .scrollEdgeEffectStyle(.soft, for: .top)
             .background(Design.Colors.nearBlack)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 if wrapInNavStack {
                     ToolbarItem(placement: .topBarLeading) {
@@ -159,16 +154,8 @@ struct CollectionCardDetailView: View {
                     }
                 }
             }
-            // Hide the nav bar BACKGROUND on the destination — the
-            // artPanel's element-tinted gradient provides the visual
-            // top surface, the nav bar items (back chevron + principal
-            // title) just float over it. Music's Now Playing pattern.
-            // This is what eliminates the user's "extended header
-            // overlays the card art" forehead: there's no longer a
-            // distinct header band to be extended (inheriting the
-            // parent's toolbar+search-drawer height) — the gradient
-            // just is the top.
-            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .sheet(isPresented: $showingAddSheet) {
                 if let card = catalogCard {
                     AddToCollectionSheet(card: card)
@@ -263,13 +250,13 @@ struct CollectionCardDetailView: View {
 
     // MARK: - Card header
 
-    /// Element-tinted gradient + centered card image. ZStack alignment
-    /// is .top and the gradient takes the ZStack's natural size (no
-    /// fixed height) so there's never empty gradient ABOVE the image
-    /// — any leftover space sits below it. Eliminates the zoom-in
-    /// transition "forehead" the user reported on v2.054.
+    /// Standardized art panel — IDENTICAL shape/size/padding/gradient
+    /// across Find / Decks / Collection per user request. Any
+    /// difference between the three card-detail surfaces should live
+    /// in the body BELOW this panel, never in the panel itself.
+    /// Matches CardDetailView.artPanel.
     private func artPanel(for card: Card) -> some View {
-        ZStack(alignment: .top) {
+        ZStack {
             LinearGradient(
                 colors: [
                     Design.Colors.element(card.element).opacity(0.25),
@@ -277,13 +264,13 @@ struct CollectionCardDetailView: View {
                 ],
                 startPoint: .top, endPoint: .bottom
             )
+            .frame(height: 420)
 
             CardImageView(card: card, size: .full)
-                .aspectRatio(BOBACardCell.aspectRatio, contentMode: .fit)
+                .frame(maxWidth: .infinity)
                 .frame(height: 380)
-                .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
                 .shadow(color: Design.Colors.element(card.element).opacity(0.4), radius: 16, y: 6)
-                .elementGlow(card.element)
                 .padding(.horizontal, Design.Spacing.xl)
         }
     }

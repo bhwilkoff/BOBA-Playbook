@@ -1889,13 +1889,16 @@ struct BrowserCardDetailSheet: View {
         }
     }
 
-    /// Matches Find's CardDetailView.artPanel — element-tinted gradient
-    /// background that fills the top 420pt edge-to-edge with the card
-    /// art centered inside. Eliminates the zoom-transition "forehead"
-    /// by giving the destination's top a continuous visual surface
-    /// instead of empty horizontal padding around the card.
+    /// Element-tinted gradient + centered card art. The previous
+    /// version sized the gradient to .frame(height: 420) and the
+    /// image to .frame(height: 380) inside a center-aligned ZStack
+    /// — that left 20pt of empty gradient ABOVE the image, which
+    /// read as a "forehead" during the zoom-in transition.
+    /// Now: ZStack sizes to the image's height; gradient fills
+    /// EXACTLY the ZStack; alignment .top so any leftover space
+    /// goes below the image, never above.
     private var artPanel: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             LinearGradient(
                 colors: [
                     Design.Colors.element(card.element).opacity(0.25),
@@ -1903,16 +1906,14 @@ struct BrowserCardDetailSheet: View {
                 ],
                 startPoint: .top, endPoint: .bottom
             )
-            .frame(height: 420)
 
             Group {
                 if let file = card.imageFile, !file.isEmpty {
                     CachedAsyncCardImage(url: CDN.full(for: file), contentMode: .fit)
-                        .aspectRatio(3.0/4.0, contentMode: .fit)
                 } else {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Design.Colors.glass)
-                        .aspectRatio(3.0/4.0, contentMode: .fit)
+                        .aspectRatio(BOBACardCell.aspectRatio, contentMode: .fit)
                         .overlay(Text(card.hero.isEmpty ? card.name : card.hero)
                             .font(Design.Fonts.display(24))
                             .foregroundStyle(Design.Colors.element(card.element)))

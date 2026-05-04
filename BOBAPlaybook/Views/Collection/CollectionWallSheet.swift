@@ -88,14 +88,7 @@ struct CollectionWallSheet: View {
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .overlay {
-                if let script = walkthrough {
-                    BOBAWalkthrough(script: script) {
-                        WalkthroughsManager.shared.dismiss(script.id)
-                        walkthrough = nil
-                    }
-                }
-            }
+            .walkthroughOverlay($walkthrough)
             .task {
                 await compose()
                 if WalkthroughsManager.shared.shouldShow(.wallView) {

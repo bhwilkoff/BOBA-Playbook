@@ -101,33 +101,71 @@ extension View {
             value: .bounds
         ) { [BOBAWalkthrough.Anchor(key): $0] }
     }
+
+    /// Single-line host wiring for a walkthrough overlay. Place this on
+    /// the host view (the view containing the .walkthroughAnchor()
+    /// targets). Reads the anchor preferences via .overlayPreferenceValue
+    /// and resolves them through a GeometryReader, then hands resolved
+    /// CGRects to BOBAWalkthrough — which is the only architecture that
+    /// works because preferences only flow through a view's own
+    /// descendants.
+    @ViewBuilder
+    func walkthroughOverlay(
+        _ binding: Binding<BOBAWalkthrough.Script?>
+    ) -> some View {
+        self.overlayPreferenceValue(WalkthroughAnchorKey.self) { anchors in
+            if let script = binding.wrappedValue {
+                GeometryReader { proxy in
+                    let frames: [BOBAWalkthrough.Anchor: CGRect] = anchors.reduce(into: [:]) { acc, pair in
+                        acc[pair.key] = proxy[pair.value]
+                    }
+                    BOBAWalkthrough(
+                        script: script,
+                        anchorFrames: frames,
+                        containerSize: proxy.size
+                    ) {
+                        WalkthroughsManager.shared.dismiss(script.id)
+                        binding.wrappedValue = nil
+                    }
+                }
+                .ignoresSafeArea()
+            }
+        }
+    }
 }
 
 // MARK: - The overlay view
 
 struct BOBAWalkthrough: View {
     let script: Script
+    /// Pre-resolved anchor frames (host view's coordinate space) for the
+    /// current view-tree state. Computed at the call site via
+    /// `.overlayPreferenceValue(WalkthroughAnchorKey.self) { anchors in
+    /// GeometryReader { proxy in ... proxy[anchors[key]!] } }` so the
+    /// rects are converted out of `Anchor<CGRect>` and into screen-space
+    /// CGRects before they reach the overlay. The earlier inside-out
+    /// approach (Color.clear .backgroundPreferenceValue) failed because
+    /// preferences only flow through a view's own descendants — anchors
+    /// set on the host's content never reached an overlay tree.
+    let anchorFrames: [Anchor: CGRect]
+    let containerSize: CGSize
     let onComplete: () -> Void
 
     @State private var currentStep: Int = 0
 
     var body: some View {
-        GeometryReader { proxy in
-            ZStack {
-                // Dim the world.
-                Color.black.opacity(0.6)
-                    .ignoresSafeArea()
-                    .onTapGesture { advance() }
+        ZStack {
+            // Dim the world. Cuts a "window" into the dim around the
+            // current anchor so the highlighted UI stays readable.
+            dimWithCutout
 
-                // Reads back the latest anchor frames captured by hosts
-                // and positions the spotlight + tooltip.
-                spotlightAndTooltip(proxy: proxy)
+            // Cyan ring + tooltip on top of the dim.
+            spotlightAndTooltip
 
-                // Bottom controls.
-                VStack {
-                    Spacer()
-                    bottomBar
-                }
+            // Bottom controls.
+            VStack {
+                Spacer()
+                bottomBar
             }
         }
         .transition(.opacity)
@@ -141,50 +179,69 @@ struct BOBAWalkthrough: View {
 
     private var isLastStep: Bool { currentStep == script.steps.count - 1 }
 
+    private var currentAnchorRect: CGRect? {
+        guard let step, let anchorKey = step.anchor else { return nil }
+        return anchorFrames[anchorKey]
+    }
+
     private func advance() {
         if isLastStep { complete() } else { currentStep += 1 }
     }
 
     private func complete() { onComplete() }
 
+    /// Renders the 60% black dim with a rounded-rect cutout where the
+    /// current anchor sits. The cutout uses .blendMode(.destinationOut)
+    /// inside a .compositingGroup so the punched-through region lets the
+    /// anchored UI shine through at full opacity. Without a cutout
+    /// (anchor missing) the dim is uniform.
     @ViewBuilder
-    private func spotlightAndTooltip(proxy: GeometryProxy) -> some View {
-        if let step {
-            // Hidden background that consumes the latest anchor map.
-            Color.clear
-                .backgroundPreferenceValue(WalkthroughAnchorKey.self) { anchors in
-                    GeometryReader { geo in
-                        if let anchorKey = step.anchor,
-                           let anchor = anchors[anchorKey] {
-                            let rect = geo[anchor]
-                            ZStack {
-                                spotlightCutout(rect: rect, in: geo.size)
-                                tooltip(for: step, anchorRect: rect, screen: geo.size)
-                            }
-                        } else {
-                            // Anchor missing — render tooltip centered.
-                            tooltip(for: step, anchorRect: nil, screen: geo.size)
-                        }
-                    }
-                }
+    private var dimWithCutout: some View {
+        if let rect = currentAnchorRect {
+            ZStack {
+                Color.black.opacity(0.6)
+                RoundedRectangle(cornerRadius: 14)
+                    .frame(width: rect.width + 16, height: rect.height + 16)
+                    .position(x: rect.midX, y: rect.midY)
+                    .blendMode(.destinationOut)
+            }
+            .compositingGroup()
+            .ignoresSafeArea()
+            .onTapGesture { advance() }
+        } else {
+            Color.black.opacity(0.6)
+                .ignoresSafeArea()
+                .onTapGesture { advance() }
         }
     }
 
     @ViewBuilder
-    private func spotlightCutout(rect: CGRect, in size: CGSize) -> some View {
-        let inset: CGFloat = 12
-        let cutout = rect.insetBy(dx: -inset, dy: -inset)
-
-        // Cyan ring around the anchor.
-        RoundedRectangle(cornerRadius: 12)
-            .strokeBorder(Design.Colors.bobaCyan, lineWidth: 2)
-            .frame(width: cutout.width, height: cutout.height)
-            .position(x: cutout.midX, y: cutout.midY)
-            .shadow(color: Design.Colors.bobaCyan.opacity(0.6), radius: 8)
+    private var spotlightAndTooltip: some View {
+        if let step {
+            ZStack {
+                if let rect = currentAnchorRect {
+                    spotlightRing(rect: rect)
+                }
+                tooltip(for: step, anchorRect: currentAnchorRect)
+            }
+        }
     }
 
     @ViewBuilder
-    private func tooltip(for step: Step, anchorRect: CGRect?, screen: CGSize) -> some View {
+    private func spotlightRing(rect: CGRect) -> some View {
+        // Cyan ring around the anchor — sits ON TOP of the dim, so even
+        // if the cutout doesn't render the ring still calls out the
+        // target region.
+        RoundedRectangle(cornerRadius: 14)
+            .strokeBorder(Design.Colors.bobaCyan, lineWidth: 2)
+            .frame(width: rect.width + 16, height: rect.height + 16)
+            .position(x: rect.midX, y: rect.midY)
+            .shadow(color: Design.Colors.bobaCyan.opacity(0.7), radius: 10)
+            .allowsHitTesting(false)
+    }
+
+    @ViewBuilder
+    private func tooltip(for step: Step, anchorRect: CGRect?) -> some View {
         let copy = Text(step.copy)
             .font(Design.Fonts.mono(13, weight: .bold))
             .foregroundStyle(Design.Colors.textPrimary)
@@ -200,12 +257,14 @@ struct BOBAWalkthrough: View {
                     )
             )
             .frame(maxWidth: 280)
+            .allowsHitTesting(false)
 
-        let position = tooltipPosition(anchor: anchorRect, screen: screen, step: step)
+        let position = tooltipPosition(anchor: anchorRect, step: step)
         copy.position(x: position.x, y: position.y)
     }
 
-    private func tooltipPosition(anchor: CGRect?, screen: CGSize, step: Step) -> CGPoint {
+    private func tooltipPosition(anchor: CGRect?, step: Step) -> CGPoint {
+        let screen = containerSize
         guard let anchor else {
             return CGPoint(x: screen.width / 2, y: screen.height / 2)
         }
@@ -215,8 +274,8 @@ struct BOBAWalkthrough: View {
             return anchor.midY > screen.height / 2 ? .above : .below
         }()
         switch auto {
-        case .above:    return CGPoint(x: anchor.midX, y: anchor.minY - 60)
-        case .below:    return CGPoint(x: anchor.midX, y: anchor.maxY + 60)
+        case .above:    return CGPoint(x: anchor.midX, y: max(60, anchor.minY - 60))
+        case .below:    return CGPoint(x: anchor.midX, y: min(screen.height - 100, anchor.maxY + 60))
         case .leading:  return CGPoint(x: max(140, anchor.minX - 150), y: anchor.midY)
         case .trailing: return CGPoint(x: min(screen.width - 140, anchor.maxX + 150), y: anchor.midY)
         }

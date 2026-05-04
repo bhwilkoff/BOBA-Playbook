@@ -164,14 +164,7 @@ struct SearchView: View {
         .sheet(item: $selectedCard) { card in
             CardDetailView(card: card, navigationCards: store.filteredCards)
         }
-        .overlay {
-            if let script = walkthrough {
-                BOBAWalkthrough(script: script) {
-                    WalkthroughsManager.shared.dismiss(script.id)
-                    walkthrough = nil
-                }
-            }
-        }
+        .walkthroughOverlay($walkthrough)
         // Deep-link: bobaplaybook://card/{number} sets store.pendingCardNumber.
         // Try to resolve it immediately (cards may already be loaded) and again
         // when the full catalog finishes loading.

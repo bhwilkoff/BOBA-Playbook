@@ -627,6 +627,18 @@ enum BOBAFilterToken: Identifiable, Hashable {
         }
     }
 
+    /// Per-token tint per user feedback — weapon tokens render in
+    /// their canonical element color (FIRE chip is FIRE-colored, ICE
+    /// chip is ICE-colored, etc.) so the eye recognizes them at a
+    /// glance. Cost tokens use cyan, hero tokens orange.
+    var tint: Color {
+        switch self {
+        case .weapon(let e): return Design.Colors.element(e)
+        case .cost:          return Design.Colors.bobaCyan
+        case .hero:          return Design.Colors.bobaOrange
+        }
+    }
+
     /// All eight canonical weapon tokens.
     static let weapons: [BOBAFilterToken] = [
         .weapon("FIRE"), .weapon("ICE"), .weapon("STEEL"), .weapon("BRAWL"),

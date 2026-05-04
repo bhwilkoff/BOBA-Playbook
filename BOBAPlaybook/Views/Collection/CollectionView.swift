@@ -33,7 +33,11 @@ struct CollectionView: View {
     @State private var showingShareSheet   = false
     @State private var shareItems: [Any]   = []
     @AppStorage("selectedIconName") private var selectedIconName: String = "default"
-    @AppStorage("bp_collectionDisplayMode_v1") private var displayModeRaw: String = CollectionDisplayMode.grid.rawValue
+    /// Per user feedback: collectors care most about per-card value
+    /// information — the dense LIST renderer surfaces value/paid/qty
+    /// inline; GRID hides it behind individual card detail. Default
+    /// is now .list with the toolbar Menu picker available to switch.
+    @AppStorage("bp_collectionDisplayMode_v2") private var displayModeRaw: String = CollectionDisplayMode.list.rawValue
     private var displayMode: CollectionDisplayMode {
         get { CollectionDisplayMode(rawValue: displayModeRaw) ?? .grid }
     }
@@ -356,9 +360,14 @@ struct CollectionView: View {
                 .disabled(collection.userCards.isEmpty)
 
                 Button {
-                    presentShareDeepLink()
+                    // Per user feedback #11 — routing Share through
+                    // the Wall sheet, which produces an actual
+                    // shareable image (the previous deep-link version
+                    // generated a URL to a public-profile route that
+                    // the web app doesn't yet host).
+                    showingWall = true
                 } label: {
-                    Label("Share \(selectedDesignation.displayName)", systemImage: "square.and.arrow.up")
+                    Label("Share as Wall image…", systemImage: "square.and.arrow.up")
                 }
             }
 

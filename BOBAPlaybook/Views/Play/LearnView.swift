@@ -238,7 +238,6 @@ struct LearnView: View {
                     .accessibilityLabel("Learn options")
                 }
             }
-            .bobaSidebarTrigger(.learn)
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }

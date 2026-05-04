@@ -17,6 +17,11 @@ struct BOBAPlaybookApp: App {
     @State private var showsStore = ShowsStore()
     @State private var selectedTab = 0
 
+    /// Set of known Learn category slugs — gates the
+    /// bobaplaybook://learn/{category} deep link so a typo doesn't
+    /// silently switch tabs.
+    private static let learnCategories: Set<String> = ["rules", "strategy", "collect", "glossary", "tournament"]
+
     init() {
         // Persist AsyncImage responses across sessions
         URLCache.shared.memoryCapacity = 100 * 1024 * 1024  // 100 MB
@@ -64,35 +69,99 @@ struct BOBAPlaybookApp: App {
                     Task { await authManager.fetchRole() }
                 }
                 .onOpenURL { url in
-                    guard url.scheme == "bobaplaybook" else { return }
-                    switch url.host {
-                    case "scan":
-                        // bobaplaybook://scan — also raised by StartScanIntent
-                        // (Spotlight / Siri / Action Button). Jumps to Find
-                        // (tab 0) and flags the scanner sheet which SearchView
-                        // observes.
-                        selectedTab = 0
-                        cardStore.pendingScan = true
-                    case "card":
-                        // bobaplaybook://card/CBF-656 — also raised by OpenCardIntent.
-                        let cardNumber = String(url.path.dropFirst())  // strip leading "/"
-                        if !cardNumber.isEmpty {
-                            selectedTab = 0
-                            cardStore.pendingCardNumber = cardNumber.uppercased()
-                        }
-                    case "search":
-                        // bobaplaybook://search?q=... — raised by SearchCardIntent.
-                        // Jumps to Find with the query string pre-loaded.
-                        selectedTab = 0
-                        let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
-                        let q = comps?.queryItems?.first(where: { $0.name == "q" })?.value ?? ""
-                        if !q.isEmpty {
-                            cardStore.pendingSearchQuery = q
-                        }
-                    default:
-                        authManager.handleDeepLink(url)
-                    }
+                    handleDeepLink(url)
                 }
+                // Universal Links per DESIGN.md §8.4 — taps on
+                // https://bobaplaybook.com/* land here when the app is
+                // installed (apple-app-site-association on the server
+                // gates which paths route in vs. open the web). Iframed
+                // through the same handler that takes bobaplaybook://
+                // URLs so the routing stays one source of truth.
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                    guard let url = activity.webpageURL else { return }
+                    handleUniversalLink(url)
+                }
+        }
+    }
+
+    /// Single handler for both bobaplaybook:// custom-scheme URLs and
+    /// Universal Link https://bobaplaybook.com/* fallbacks. Routes the
+    /// canonical paths from DESIGN.md (card / search / scan / learn /
+    /// u/{user}/{designation}) and forwards anything else to AuthManager.
+    @MainActor
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme == "bobaplaybook" else { return }
+        switch url.host {
+        case "scan":
+            selectedTab = 0
+            cardStore.pendingScan = true
+        case "card":
+            let cardNumber = String(url.path.dropFirst())
+            if !cardNumber.isEmpty {
+                selectedTab = 0
+                cardStore.pendingCardNumber = cardNumber.uppercased()
+                // Optional ?action=addToCollection hint from
+                // AddToCollectionIntent — CardDetailView reads this
+                // and auto-presents the AddToCollection sheet on
+                // first appearance.
+                let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+                if let action = comps?.queryItems?.first(where: { $0.name == "action" })?.value {
+                    cardStore.pendingCardAction = action
+                }
+            }
+        case "search":
+            selectedTab = 0
+            let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            let q = comps?.queryItems?.first(where: { $0.name == "q" })?.value ?? ""
+            if !q.isEmpty {
+                cardStore.pendingSearchQuery = q
+            }
+        case "learn":
+            // bobaplaybook://learn/{category} — DESIGN.md §7.2 stable
+            // section identifiers (forward-compat for iOS 27 Siri
+            // summaries). Currently switches to the Learn tab; per-
+            // section deep linking lands once the sub-views grow
+            // section-anchor IDs.
+            let slug = String(url.path.dropFirst()).lowercased()
+            selectedTab = 1
+            if !slug.isEmpty, Self.learnCategories.contains(slug) {
+                cardStore.pendingLearnCategory = slug
+            }
+        default:
+            authManager.handleDeepLink(url)
+        }
+    }
+
+    /// https://bobaplaybook.com/{card,search,scan,learn,u/{id}/{designation}}
+    /// path mirror of the custom-scheme URLs above. Translates to the
+    /// custom scheme so a single switch handles both inbound paths.
+    @MainActor
+    private func handleUniversalLink(_ url: URL) {
+        guard url.host == "bobaplaybook.com" else { return }
+        let pathParts = url.path.split(separator: "/").map(String.init)
+        guard let first = pathParts.first?.lowercased() else { return }
+        switch first {
+        case "card" where pathParts.count >= 2:
+            let translated = URL(string: "bobaplaybook://card/\(pathParts[1])")!
+            handleDeepLink(translated)
+        case "scan":
+            handleDeepLink(URL(string: "bobaplaybook://scan")!)
+        case "search":
+            // /search?q=...
+            let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            let q = comps?.queryItems?.first(where: { $0.name == "q" })?.value ?? ""
+            let encoded = q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+            handleDeepLink(URL(string: "bobaplaybook://search?q=\(encoded)")!)
+        case "learn" where pathParts.count >= 2:
+            let cat = pathParts[1]
+            handleDeepLink(URL(string: "bobaplaybook://learn/\(cat)")!)
+        case "u" where pathParts.count >= 3:
+            // /u/{userId}/{designation} — public collection wall.
+            // Currently routes to Collection tab; future work surfaces
+            // the public-designation read-only view.
+            selectedTab = 4
+        default:
+            break
         }
     }
 }

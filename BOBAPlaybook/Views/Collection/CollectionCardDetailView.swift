@@ -250,12 +250,13 @@ struct CollectionCardDetailView: View {
 
     // MARK: - Card header
 
-    /// Find-style art panel — element-tinted gradient + centered card
-    /// image, full width, 420pt tall. Replaces the old HStack
-    /// cardHeader so the zoom-in animation lands on a continuous
-    /// surface instead of empty space.
+    /// Element-tinted gradient + centered card image. ZStack alignment
+    /// is .top and the gradient takes the ZStack's natural size (no
+    /// fixed height) so there's never empty gradient ABOVE the image
+    /// — any leftover space sits below it. Eliminates the zoom-in
+    /// transition "forehead" the user reported on v2.054.
     private func artPanel(for card: Card) -> some View {
-        ZStack {
+        ZStack(alignment: .top) {
             LinearGradient(
                 colors: [
                     Design.Colors.element(card.element).opacity(0.25),
@@ -263,7 +264,6 @@ struct CollectionCardDetailView: View {
                 ],
                 startPoint: .top, endPoint: .bottom
             )
-            .frame(height: 420)
 
             CardImageView(card: card, size: .full)
                 .aspectRatio(BOBACardCell.aspectRatio, contentMode: .fit)

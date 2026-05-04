@@ -88,9 +88,13 @@ struct LearnView: View {
                 .foregroundStyle(Design.Colors.textSecondary)
                 .lineLimit(3)
                 .multilineTextAlignment(.leading)
-            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, minHeight: 160, alignment: .topLeading)
+        // No Spacer + smaller minHeight per user feedback — the prior
+        // 160pt min was forcing trailing whitespace under each tile
+        // (and pushing the 6-tile grid past one screen). Tiles now
+        // size to content with a small floor so an icon-only state
+        // still has presence.
+        .frame(maxWidth: .infinity, minHeight: 110, alignment: .topLeading)
         .padding(Design.Spacing.md)
         .background(
             RoundedRectangle(cornerRadius: Design.Radius.md)

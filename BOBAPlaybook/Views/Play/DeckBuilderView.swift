@@ -1373,14 +1373,19 @@ private struct TemplateCard: View {
     let template: DeckTemplate
     let onSelect: () -> Void
 
+    /// Per-archetype accent — matches the same map used in the
+    /// drawer's empty-state template gallery so the colors stay
+    /// consistent everywhere starter decks render. Updated for the
+    /// 2026-04-27 archetype rename (Lockdown Locker / Frozen Tempo /
+    /// Draw and Adapt / Glow Sacrifice / Brawl Beatdown).
     private var accentColor: Color {
         switch template.id {
-        case "fire-aggro":        return Design.Colors.element("FIRE")
-        case "ice-control":       return Design.Colors.element("ICE")
-        case "steel-wall":        return Design.Colors.element("STEEL")
-        case "mixed-toolbox":     return Design.Colors.bobaCyan
-        case "economy-attrition": return Color(hex: "4CAF50")
-        default:                  return Design.Colors.bobaOrange
+        case "lockdown-locker": return Design.Colors.element("STEEL")
+        case "frozen-tempo":    return Design.Colors.element("ICE")
+        case "draw-and-adapt":  return Design.Colors.bobaCyan
+        case "glow-sacrifice":  return Design.Colors.element("GLOW")
+        case "brawl-beatdown":  return Design.Colors.element("BRAWL")
+        default:                return Design.Colors.bobaOrange
         }
     }
 
@@ -1429,7 +1434,11 @@ struct DeckManagementSheet: View {
     let cards: [Card]
     @Environment(\.dismiss) private var dismiss
 
-    enum Tab: String, CaseIterable { case save = "Save", load = "Load", share = "Import/Export" }
+    /// Save tab removed per user feedback — there's a dedicated Save
+    /// button in the deck-builder toolbar that handles saving the
+    /// current deck. Manage Decks now focuses on Load + Import/Export
+    /// (the destinations that genuinely need this sheet).
+    enum Tab: String, CaseIterable { case load = "Load", share = "Import/Export" }
     @State private var tab: Tab = .load
 
     // My Decks state
@@ -1457,7 +1466,6 @@ struct DeckManagementSheet: View {
 
                 // Tab content
                 switch tab {
-                case .save:  saveTab
                 case .load:  loadTab
                 case .share: shareTab
                 }

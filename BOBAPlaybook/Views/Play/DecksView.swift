@@ -42,24 +42,27 @@ struct DecksView: View {
 
     // MARK: - Sheet + UI state
 
-    /// Inline drawer at the bottom of the tab content. The drawer is a
-    /// regular VStack child inside the tab — NOT a system .sheet. This
-    /// gives us:
-    ///   - Drag-to-expand interaction the user wants (DragGesture +
-    ///     withAnimation, all standard SwiftUI primitives)
-    ///   - Tab bar visible at all times, because the drawer lives
-    ///     INSIDE the tab content. The tab bar sits at the TabView
-    ///     level OUTSIDE tab content; the drawer can never cover it.
-    ///   - No fighting iOS sheet semantics (system sheets always hide
-    ///     the parent tab bar regardless of detent — that's why the
-    ///     prior .sheet implementation broke navigation).
+    /// Inline drawer at the bottom of the tab content. Free-drag via
+    /// the pill handle — release commits to wherever the user dropped
+    /// it, clamped to [collapsed, large]. Tap on the header toggles
+    /// between the nearest snap pair (collapsed↔mid or mid↔large)
+    /// for users who prefer click-to-resize over drag.
     ///
-    /// Two snap heights: collapsed (header only) and expanded (~55%
-    /// of available height — full deck list visible). Drag the handle
-    /// to switch; release snaps to nearest height with a spring.
+    /// Three reference snap points:
+    ///   - collapsed (~132pt — header only)
+    ///   - mid       (~55% of available height — common deck-list view)
+    ///   - large     (~88% of available height — full panel use)
+    ///
+    /// The drawer lives INSIDE tab content (not a system .sheet) so
+    /// the tab bar at the TabView level stays visible underneath at
+    /// all heights.
     private static let drawerCollapsedHeight: CGFloat = 132
-    private static let drawerExpandedFraction: CGFloat = 0.55
-    @State private var drawerExpanded: Bool = false
+    private static let drawerMidFraction: CGFloat = 0.55
+    private static let drawerLargeFraction: CGFloat = 0.88
+
+    /// Resting height in points (post-release). dragOffset is the
+    /// in-flight drag delta on top.
+    @State private var drawerHeight: CGFloat = 132
     @GestureState private var drawerDragOffset: CGFloat = 0
 
     // Pool filters
@@ -99,15 +102,10 @@ struct DecksView: View {
     var body: some View {
         NavigationStack {
             GeometryReader { proxy in
-                let expandedHeight = max(
-                    Self.drawerCollapsedHeight,
-                    proxy.size.height * Self.drawerExpandedFraction
-                )
-                let restingHeight: CGFloat = drawerExpanded ? expandedHeight : Self.drawerCollapsedHeight
-                let liveHeight = max(
-                    Self.drawerCollapsedHeight,
-                    min(expandedHeight, restingHeight - drawerDragOffset)
-                )
+                let collapsed: CGFloat = Self.drawerCollapsedHeight
+                let large = max(collapsed, proxy.size.height * Self.drawerLargeFraction)
+                let mid   = max(collapsed, proxy.size.height * Self.drawerMidFraction)
+                let liveHeight = max(collapsed, min(large, drawerHeight - drawerDragOffset))
 
                 VStack(spacing: 0) {
                     ZStack(alignment: .top) {
@@ -118,8 +116,7 @@ struct DecksView: View {
 
                     deckDrawer(
                         height: liveHeight,
-                        restingHeight: restingHeight,
-                        expandedHeight: expandedHeight
+                        snapPoints: (collapsed: collapsed, mid: mid, large: large)
                     )
                     // Inset from the bottom so the drawer's rounded
                     // corners fully terminate before reaching the tab
@@ -403,8 +400,7 @@ struct DecksView: View {
     @ViewBuilder
     private func deckDrawer(
         height: CGFloat,
-        restingHeight: CGFloat,
-        expandedHeight: CGFloat
+        snapPoints: (collapsed: CGFloat, mid: CGFloat, large: CGFloat)
     ) -> some View {
         VStack(spacing: 0) {
             // Drag handle + header — entire region intercepts the drag
@@ -419,21 +415,39 @@ struct DecksView: View {
                     .walkthroughAnchor("decks.sheetHandle")
             }
             .contentShape(Rectangle())
+            // Tap toggles between the nearest snap pair (collapsed↔mid
+            // when the drawer is small, mid↔large when it's already
+            // expanded). Drag is the primary interaction; tap is a
+            // shortcut for users who don't want to drag.
             .onTapGesture {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                    drawerExpanded.toggle()
+                    if drawerHeight <= snapPoints.collapsed + 1 {
+                        drawerHeight = snapPoints.mid
+                    } else if drawerHeight >= snapPoints.large - 1 {
+                        drawerHeight = snapPoints.collapsed
+                    } else {
+                        // At mid — go to large.
+                        drawerHeight = snapPoints.large
+                    }
                 }
             }
+            // Free drag — release commits to the nearest snap point.
+            // The user feels continuous drag motion the whole time the
+            // finger is down (drawerDragOffset updates the live
+            // height), then the drawer settles to the closest of the
+            // three snap points on release.
             .gesture(
                 DragGesture(minimumDistance: 4)
                     .updating($drawerDragOffset) { value, state, _ in
                         state = value.translation.height
                     }
                     .onEnded { value in
-                        let predicted = restingHeight - value.predictedEndTranslation.height
-                        let midpoint = (Self.drawerCollapsedHeight + expandedHeight) / 2
+                        let predicted = drawerHeight - value.predictedEndTranslation.height
+                        let snaps = [snapPoints.collapsed, snapPoints.mid, snapPoints.large]
+                        let nearest = snaps.min(by: { abs($0 - predicted) < abs($1 - predicted) })
+                            ?? snapPoints.collapsed
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                            drawerExpanded = predicted > midpoint
+                            drawerHeight = nearest
                         }
                     }
             )

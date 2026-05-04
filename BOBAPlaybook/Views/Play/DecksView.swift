@@ -58,18 +58,26 @@ struct DecksView: View {
 
     /// Resting height in points (post-release). dragOffset is the
     /// in-flight drag delta on top.
+    ///
+    /// Switched from @GestureState (which auto-resets to 0 between
+    /// .onEnded and the next render frame) to plain @State so we can
+    /// atomically commit BOTH the new resting height AND the offset
+    /// reset in onEnded. With the @GestureState approach, the offset
+    /// would zero-out before our drawerHeight assignment landed,
+    /// producing a one-frame "snap back to old position" between the
+    /// finger lift and the spring animation start — that was the
+    /// flash the user reported.
     @State private var drawerHeight: CGFloat = 132
-    @GestureState private var drawerDragOffset: CGFloat = 0
+    @State private var drawerDragOffset: CGFloat = 0
 
     // Pool filters
     @State private var search            = ""
     @State private var tokens            : [BOBAFilterToken] = []
     @State private var collectionOnly    = false
-    /// Per user feedback: defaults to TAP=VIEW (false) so coaches can
-    /// explore a card by tapping. Toggle on in the search-bar pill to
-    /// switch to one-tap deck adding when batch-building. Persisted so
-    /// power users who prefer Quick Add stay in that mode across launches.
-    @AppStorage("bp_deckPoolQuickAdd_v1") private var quickAdd: Bool = false
+    /// Tap = open detail; long-press = add to deck. The earlier
+    /// quickAdd toggle was removed because long-press is the
+    /// canonical add gesture now (per user feedback #6) and the
+    /// walkthrough copy already says so.
     @FocusState private var searchFocused: Bool
 
     /// Single secondary-sheet enum so .sheet(item:) hosts ONE modal at
@@ -151,6 +159,17 @@ struct DecksView: View {
                         .foregroundStyle(token.tint)
                 }
             }
+            // Per user feedback #2 — wire .searchFocused so the
+            // keyboard's Done button (in the keyboard ToolbarItemGroup
+            // below) actually dismisses the search keyboard. iOS only
+            // routes Done to a focused TextField when the search field
+            // owns the focus binding.
+            .searchFocused($searchFocused)
+            // Per user feedback #2 — minimize toolbar items during
+            // search instead of replacing them, so the overflow Menu
+            // (Manage Decks, Rules, Scan, Walkthrough, Clear) stays
+            // reachable while the user is typing. iOS 18+ API.
+            .searchToolbarBehavior(.minimize)
             .onSubmit(of: .search) { searchFocused = false }
             // Single secondary-sheet host attached to the parent.
             .sheet(item: $secondarySheet) { sheet in
@@ -201,37 +220,37 @@ struct DecksView: View {
         }
         ToolbarItem(placement: .topBarTrailing) {
             HStack(spacing: Design.Spacing.sm) {
-                // Save — primary action, tinted glass per §5.4.
+                // Save — primary action, tinted glass per §5.4. When
+                // the user isn't signed in, the button morphs to
+                // "SIGN IN" and opens the Profile sheet (which hosts
+                // SignInView). Profile is intentionally NOT in the
+                // Decks toolbar, but the sign-in path is reachable
+                // here so the walkthrough's "sign in and save" copy
+                // is actually true.
                 Button {
-                    Task { await saveDeck() }
+                    if auth.isAuthenticated {
+                        Task { await saveDeck() }
+                    } else {
+                        secondarySheet = .profile
+                    }
                 } label: {
-                    Text("SAVE")
+                    Text(auth.isAuthenticated ? "SAVE" : "SIGN IN")
                         .font(Design.Fonts.mono(11, weight: .bold))
                         .foregroundStyle(saveButtonForeground)
                         .padding(.horizontal, 12)
                         .frame(height: 28)
-                        .background(
-                            Capsule().fill(saveButtonBackground)
-                        )
+                        .background(Capsule().fill(saveButtonBackground))
                 }
                 .buttonStyle(.plain)
-                .disabled(!auth.isAuthenticated || deckIsEmpty || store.isSaving)
+                .disabled((auth.isAuthenticated && deckIsEmpty) || store.isSaving)
                 .walkthroughAnchor("decks.saveButton")
-                .accessibilityLabel("Save deck")
+                .accessibilityLabel(auth.isAuthenticated ? "Save deck" : "Sign in to save")
 
-                // Overflow menu — collapses every secondary destination
-                // per §8.3 ("Save / Templates / Import / Export / Delete /
-                // Duplicate / Rules") and adds Scan + Walkthrough.
+                // Overflow menu — collapses secondary destinations
+                // per §8.3. The "card tap action" picker was removed
+                // — long-press is the canonical add gesture now (per
+                // user feedback #6) and tap always opens detail.
                 Menu {
-                    // Tap behavior — restores the legacy DeckBuilderView's
-                    // explicit choice between "Tap to view" (default) and
-                    // "Tap to add". Long-press always opens detail in
-                    // either mode.
-                    Picker("Card tap action", selection: $quickAdd) {
-                        Label("Tap to view", systemImage: "eye.fill").tag(false)
-                        Label("Tap to add",  systemImage: "plus.circle.fill").tag(true)
-                    }
-
                     Button {
                         secondarySheet = .deckManagement
                     } label: {
@@ -284,11 +303,17 @@ struct DecksView: View {
         }
     }
 
+    /// Save button is enabled when:
+    ///   - signed in + non-empty deck → "SAVE" (orange)
+    ///   - signed out → "SIGN IN" (cyan, always enabled)
+    /// Disabled state is signed-in + empty deck (orange dimmed).
     private var saveButtonForeground: Color {
-        (auth.isAuthenticated && !deckIsEmpty) ? Design.Colors.nearBlack : Design.Colors.textMuted
+        if !auth.isAuthenticated { return Design.Colors.nearBlack }
+        return deckIsEmpty ? Design.Colors.textMuted : Design.Colors.nearBlack
     }
     private var saveButtonBackground: Color {
-        (auth.isAuthenticated && !deckIsEmpty) ? Design.Colors.bobaOrange : Design.Colors.glass
+        if !auth.isAuthenticated { return Design.Colors.bobaCyan }
+        return deckIsEmpty ? Design.Colors.glass : Design.Colors.bobaOrange
     }
 
     // MARK: - Card pool canvas
@@ -312,20 +337,23 @@ struct DecksView: View {
                         BrowserCardCell(
                             card: card,
                             store: store,
-                            quickAdd: quickAdd
+                            // quickAdd off — tap always opens detail.
+                            // The add gesture is long-press (handled
+                            // below via .simultaneousGesture).
+                            quickAdd: false
                         ) { tappedCard in
-                            // BrowserCardCell calls onSelect when quickAdd
-                            // is OFF — open the card detail sheet for
-                            // exploration. When quickAdd is ON, the cell
-                            // adds directly and onSelect is unused.
                             selectedBrowserCard = tappedCard
                         }
-                        // Long-press always opens detail (works in either
-                        // mode), so coaches can dig into a card mid-batch
-                        // without flipping the toggle.
+                        // Long-press = add to current deck (per user
+                        // feedback #6 + matches the walkthrough copy).
+                        // Haptic feedback on success so the user feels
+                        // the add land. Confirmation banner via
+                        // ingestScannedCards' addedBanner pipeline.
                         .simultaneousGesture(
-                            LongPressGesture(minimumDuration: 0.4)
-                                .onEnded { _ in selectedBrowserCard = card }
+                            LongPressGesture(minimumDuration: 0.35)
+                                .onEnded { _ in
+                                    addCardToDeck(card)
+                                }
                         )
                         .modifier(FirstCellAnchor(isFirst: idx == 0))
                     }
@@ -431,16 +459,30 @@ struct DecksView: View {
             // drawer rests wherever the finger left it.
             .gesture(
                 DragGesture(minimumDistance: 1)
-                    .updating($drawerDragOffset) { value, state, _ in
-                        state = value.translation.height
+                    .onChanged { value in
+                        drawerDragOffset = value.translation.height
                     }
                     .onEnded { value in
+                        // Atomic commit: capture the current live
+                        // height, set drawerHeight to it, zero the
+                        // offset — all in the SAME render transaction
+                        // — then animate from the live position to
+                        // the predicted release position. Without
+                        // this, drawerDragOffset zeroing while
+                        // drawerHeight still held its pre-drag value
+                        // produced a one-frame "snap back" flash.
+                        let currentLive = max(
+                            bounds.collapsed,
+                            min(bounds.large, drawerHeight - drawerDragOffset)
+                        )
                         let predicted = drawerHeight - value.predictedEndTranslation.height
                         let clamped = max(bounds.collapsed, min(bounds.large, predicted))
-                        // .interactiveSpring is tuned for gesture-end
-                        // momentum continuation — settles smoothly with
-                        // no overshoot or popping.
-                        withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.92)) {
+                        drawerHeight = currentLive
+                        drawerDragOffset = 0
+                        // Settle to the predicted (momentum-carried)
+                        // release position with a quick, well-damped
+                        // spring. No overshoot.
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.95)) {
                             drawerHeight = clamped
                         }
                     }
@@ -459,11 +501,14 @@ struct DecksView: View {
         }
         .frame(height: height, alignment: .top)
         .frame(maxWidth: .infinity)
+        // Liquid Glass via iOS 26's first-party API — GPU-rasterized
+        // once and morphs cleanly with size changes. .background(.regular
+        // Material, in: shape) was being recomputed on every drag
+        // frame, contributing to the flash the user reported.
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         // clipShape clips the inline VStack content (format chips +
         // deck list) to the drawer's rounded silhouette — overflow
         // when collapsed is hidden cleanly.
-        .background(.regularMaterial,
-                    in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
@@ -820,6 +865,11 @@ struct DecksView: View {
             // Sealed are explicitly out — the deck builder builds player decks.
             guard card.cardType != "Sealed Product" else { return false }
 
+            // Per user feedback #4 — hide cards that aren't legal for
+            // the current format instead of dimming them. The pool now
+            // only shows additions the coach can actually make.
+            guard isFormatEligibleForDeck(card) else { return false }
+
             if collectionOnly,
                !ownedBobaIds.contains(card.id),
                !ownedNumbers.contains(card.cardNumber) {
@@ -835,13 +885,17 @@ struct DecksView: View {
             if !heroTokens.isEmpty, !heroTokens.contains(card.hero.lowercased()) {
                 return false
             }
-            // Free-text search — runs after token filters.
+            // Free-text search — runs after token filters. Adds two
+            // synonyms the user expects (#3): "free" → cost-0 plays,
+            // and treatment-name match (e.g. "battlefoil", "blizzard").
             if !q.isEmpty {
                 let h = card.hero.lowercased().contains(q)
                 let n = card.name.lowercased().contains(q)
                 let c = card.cardNumber.lowercased().contains(q)
                 let e = card.element.lowercased().contains(q)
-                guard h || n || c || e else { return false }
+                let t = (card.treatment ?? "").lowercased().contains(q)
+                let isFree = (q == "free") && (card.playCost == 0)
+                guard h || n || c || e || t || isFree else { return false }
             }
             return true
         }
@@ -858,6 +912,38 @@ struct DecksView: View {
             }
             return a.cardType < b.cardType
         }
+    }
+
+    /// Per user feedback #4 — hide cards that can't legally be in the
+    /// active deck format (Spec heroes > 160 power, etc.) instead of
+    /// dimming. Mirrors DeckBuilderStore's heroWouldViolate checks but
+    /// excludes the "already in deck / dup" predicates so the pool
+    /// shows what's CATEGORICALLY eligible, not what's addable right
+    /// now (the long-press add gesture handles dup-check internally).
+    private func isFormatEligibleForDeck(_ card: Card) -> Bool {
+        let fmt = store.format
+
+        // Banned card types (e.g. Trainer in Elite).
+        if fmt.bannedCardTypes.contains(card.cardType) { return false }
+
+        // Hero-specific eligibility.
+        if card.cardType == "Hero" {
+            guard let power = card.power else { return false }
+            // Per-hero power cap (Spec: 160). SPEC+ allows specific
+            // tiered powers above 160 (165, 170, 175...).
+            if let cap = fmt.heroPowerCap, power > cap {
+                if fmt == .specPlus, fmt.specPlusTieredLimits[power] != nil {
+                    // Allowed in a tiered slot.
+                } else {
+                    return false
+                }
+            }
+            // Absolute ceiling (SPEC+: 200).
+            if let absMax = fmt.absoluteHeroPowerMax, power > absMax {
+                return false
+            }
+        }
+        return true
     }
 
     /// Suggested tokens for the .searchable suggestions list. Default
@@ -1028,6 +1114,40 @@ struct DecksView: View {
             .deck(label: store.deckName, savedDecks: store.savedDecks),
             scanStore: scanStore
         )
+    }
+
+    /// Long-press handler — adds the card to the current deck via
+    /// the store's role-aware addCard, fires haptic feedback, and
+    /// surfaces a transient "Added X" banner. Skips invisible
+    /// rule-violating cards (the format-eligibility filter already
+    /// hides them from the pool, but the dup check happens here).
+    private func addCardToDeck(_ card: Card) {
+        let role = pickRoleForCard(card)
+        let beforeCount = countForRole(role)
+        store.addCard(card, role: role)
+        let afterCount = countForRole(role)
+        // Only show feedback if the card was actually added (the
+        // store silently skips dupes / cap violations).
+        guard afterCount > beforeCount else { return }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        let label = card.hero.isEmpty ? card.name : card.hero
+        withAnimation(.easeOut(duration: 0.25)) {
+            addedBanner = "Added \(label)"
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.5))
+            withAnimation(.easeOut(duration: 0.3)) { addedBanner = nil }
+        }
+    }
+
+    private func countForRole(_ role: DeckCardRole) -> Int {
+        switch role {
+        case .hero:      return store.heroes.count
+        case .play:      return store.plays.count
+        case .bonusPlay: return store.bonusPlays.count
+        case .hotDog:    return store.hotDogs.count
+        case .sideboard: return store.sideboard.count
+        }
     }
 
     private func ingestScannedCards(_ cards: [Card]) {

@@ -804,7 +804,6 @@ struct CollectionView: View {
     /// designation badge in the corner so cards visible across multiple
     /// designations stay scannable from a single grid view.
     @ViewBuilder
-    @ViewBuilder
     private func collectionGridCell(identifier: String) -> some View {
         let catalog = cardStore.displayCards.first { $0.id == identifier }
                    ?? cardStore.displayCards.first { $0.cardNumber == identifier }

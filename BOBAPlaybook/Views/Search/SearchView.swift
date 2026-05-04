@@ -42,6 +42,18 @@ struct SearchView: View {
     /// affecting Decks or Collection.
     @AppStorage("bp_findGridColumns_v1") private var gridColumns: Int = 2
 
+    /// Music-pattern zoom transitions. Each grid cell carries a
+    /// .matchedTransitionSource(id: card.id, in: cardZoomNamespace)
+    /// and the navigationDestination renders CardDetailView with
+    /// .navigationTransition(.zoom(...)) — the destination grows out
+    /// of the tapped cell, all native iOS 18+ APIs.
+    @Namespace private var cardZoomNamespace
+
+    /// Navigation path for the Find NavigationStack. Cell taps push
+    /// onto this so CardDetailView slides in from the right (with the
+    /// tab bar still visible) instead of presenting as a sheet.
+    @State private var navigationPath = NavigationPath()
+
     private var columns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: Design.Spacing.sm),
               count: max(1, min(3, gridColumns)))
@@ -49,7 +61,7 @@ struct SearchView: View {
 
     var body: some View {
         @Bindable var store = store
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             Group {
                 if store.isLoading {
                     loadingView
@@ -178,6 +190,12 @@ struct SearchView: View {
             } message: {
                 Text(quickAddError ?? "")
             }
+            .navigationDestination(for: Card.self) { card in
+                CardDetailView(card: card,
+                               navigationCards: store.filteredCards,
+                               wrapInNavStack: false)
+                    .navigationTransition(.zoom(sourceID: card.id, in: cardZoomNamespace))
+            }
         }
         .sheet(isPresented: $showFilters) {
             FilterSheetView(store: store)
@@ -188,9 +206,6 @@ struct SearchView: View {
         // drives the centralized fullScreenCover.
         .sheet(isPresented: $showProfile) {
             ProfileView()
-        }
-        .sheet(item: $selectedCard) { card in
-            CardDetailView(card: card, navigationCards: store.filteredCards)
         }
         .walkthroughOverlay($walkthrough)
         // Deep-link: bobaplaybook://card/{number} sets store.pendingCardNumber.
@@ -294,7 +309,7 @@ struct SearchView: View {
         guard let cardNum = store.pendingCardNumber,
               !store.displayCards.isEmpty,
               let card = store.displayCards.first(where: { $0.cardNumber == cardNum }) else { return }
-        selectedCard = card
+        navigationPath.append(card)
         store.pendingCardNumber = nil
     }
 
@@ -363,11 +378,12 @@ struct SearchView: View {
                 ForEach(Array(store.filteredCards.enumerated()), id: \.element.id) { idx, card in
                     BOBACardGridItem(card: card, columnCount: gridColumns)
                         .aspectRatio(3/4, contentMode: .fit)
+                        .matchedTransitionSource(id: card.id, in: cardZoomNamespace)
                         .onTapGesture {
                             if quickAdd {
                                 Task { await quickAddCard(card) }
                             } else {
-                                selectedCard = card
+                                navigationPath.append(card)
                             }
                         }
                         // Anchor ONLY the first cell — PreferenceKey
@@ -514,11 +530,12 @@ struct SearchView: View {
                         BOBACardGridItem(card: card, columnCount: gridColumns)
                             .frame(width: 110)
                             .aspectRatio(3/4, contentMode: .fit)
+                            .matchedTransitionSource(id: card.id, in: cardZoomNamespace)
                             .onTapGesture {
                                 if quickAdd {
                                     Task { await quickAddCard(card) }
                                 } else {
-                                    selectedCard = card
+                                    navigationPath.append(card)
                                 }
                             }
                     }

@@ -1873,13 +1873,24 @@ struct BrowserCardDetailSheet: View {
     let card: Card
     let store: DeckBuilderStore
     let tab: DeckCardRole
+    /// Sheet vs. push presentation — see CardDetailView.wrapInNavStack.
+    var wrapInNavStack: Bool = true
     @Environment(\.dismiss) private var dismiss
 
     private var inDeck: Bool { store.isInDeck(card) }
     private var wouldViolate: Bool { tab == .hero && store.heroWouldViolate(card) }
 
+    @ViewBuilder
+    private func navStackIfNeeded<C: View>(@ViewBuilder _ content: () -> C) -> some View {
+        if wrapInNavStack {
+            NavigationStack { content() }
+        } else {
+            content()
+        }
+    }
+
     var body: some View {
-        NavigationStack {
+        navStackIfNeeded {
             ScrollView {
                 VStack(spacing: Design.Spacing.lg) {
                     // Full card image
@@ -1992,9 +2003,11 @@ struct BrowserCardDetailSheet: View {
             .navigationTitle(card.displayName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .foregroundStyle(Design.Colors.bobaOrange)
+                if wrapInNavStack {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") { dismiss() }
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                    }
                 }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)

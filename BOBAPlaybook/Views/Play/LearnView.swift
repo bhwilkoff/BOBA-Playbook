@@ -42,6 +42,11 @@ private struct LearnCategory: Identifiable, Hashable {
 struct LearnView: View {
     @Environment(CardStore.self) private var cardStore
     @State private var path = NavigationPath()
+
+    /// Music-pattern zoom transition — each tile pushes via
+    /// .matchedTransitionSource and the destination's .navigationTransition
+    /// (.zoom(...)) grows out of the tapped tile.
+    @Namespace private var tileZoomNamespace
     // showWatch removed — Watch is now a NavigationLink push.
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
     /// Top-of-page intro — gives Learn a sense of editorial weight
@@ -112,6 +117,7 @@ struct LearnView: View {
         // switch below.
         NavigationLink(value: cat) {
             inner
+                .matchedTransitionSource(id: cat.id, in: tileZoomNamespace)
         }
         .buttonStyle(.plain)
         .walkthroughAnchor(isFirst ? "learn.firstRow" : "learn.row.\(cat.id)")
@@ -207,15 +213,18 @@ struct LearnView: View {
             .background(Design.Colors.nearBlack)
             .scrollEdgeEffectStyle(.soft, for: .top)
             .navigationDestination(for: LearnCategory.self) { cat in
-                switch cat.id {
-                case "rules":      RulesView()
-                case "strategy":   StrategyView()
-                case "collect":    CollectView()
-                case "watch":      WatchView()
-                case "glossary":   GlossaryView()
-                case "tournament": TournamentView()
-                default:           EmptyView()
+                Group {
+                    switch cat.id {
+                    case "rules":      RulesView()
+                    case "strategy":   StrategyView()
+                    case "collect":    CollectView()
+                    case "watch":      WatchView()
+                    case "glossary":   GlossaryView()
+                    case "tournament": TournamentView()
+                    default:           EmptyView()
+                    }
                 }
+                .navigationTransition(.zoom(sourceID: cat.id, in: tileZoomNamespace))
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)

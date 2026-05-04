@@ -67,37 +67,41 @@ struct CollectionCardDetailView: View {
     var body: some View {
         navStackIfNeeded {
             ScrollView {
-                VStack(alignment: .leading, spacing: Design.Spacing.xl) {
+                VStack(spacing: 0) {
+                    // Art panel — flush with top so the zoom-in
+                    // animation lands on a continuous gradient surface
+                    // instead of empty space (the v2.052 "forehead" bug).
                     if let card = catalogCard {
-                        cardHeader(card)
+                        artPanel(for: card)
                     }
 
-                    copiesSection
+                    VStack(alignment: .leading, spacing: Design.Spacing.xl) {
+                        if let card = catalogCard {
+                            cardMetadata(for: card)
+                        }
 
-                    // Saved decks this exact card is in. Silent until
-                    // the list loads. Helps coaches see at a glance
-                    // whether a card is committed to a build before
-                    // they mark it "For Sale."
-                    if auth.isAuthenticated {
-                        decksSection
-                    }
+                        copiesSection
 
-                    if let card = catalogCard, !(card.isSealed) {
-                        // Recent-sale pricing — `showActiveListings: false`
-                        // hides the "Buy Now" bucket per spec (§7). We
-                        // want sold comps, not active asks.
-                        PricingSection(card: card, showActiveListings: false)
-                    }
+                        if auth.isAuthenticated {
+                            decksSection
+                        }
 
-                    if let card = catalogCard, !(card.isSealed) {
-                        externalLinksRow(card: card)
-                    }
+                        if let card = catalogCard, !(card.isSealed) {
+                            PricingSection(card: card, showActiveListings: false)
+                        }
 
-                    if !variations.isEmpty {
-                        variationsSection
+                        if let card = catalogCard, !(card.isSealed) {
+                            externalLinksRow(card: card)
+                        }
+
+                        if !variations.isEmpty {
+                            variationsSection
+                        }
                     }
+                    .padding(.horizontal, Design.Spacing.lg)
+                    .padding(.top, Design.Spacing.lg)
+                    .padding(.bottom, Design.Spacing.lg)
                 }
-                .padding(Design.Spacing.lg)
             }
             .background(Design.Colors.nearBlack)
             .navigationTitle("")
@@ -246,66 +250,85 @@ struct CollectionCardDetailView: View {
 
     // MARK: - Card header
 
-    private func cardHeader(_ card: Card) -> some View {
-        HStack(spacing: Design.Spacing.lg) {
-            CardImageView(card: card, size: .full)
-                .frame(width: 100, height: 140)
-                .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
-                .elementGlow(card.element)
+    /// Find-style art panel — element-tinted gradient + centered card
+    /// image, full width, 420pt tall. Replaces the old HStack
+    /// cardHeader so the zoom-in animation lands on a continuous
+    /// surface instead of empty space.
+    private func artPanel(for card: Card) -> some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Design.Colors.element(card.element).opacity(0.25),
+                    Design.Colors.nearBlack
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
+            .frame(height: 420)
 
-            VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-                Text(card.name)
-                    .font(Design.Fonts.display(18))
-                    .foregroundStyle(Design.Colors.textPrimary)
-                Text(card.cardNumber)
-                    .font(Design.Fonts.mono(12))
-                    .foregroundStyle(Design.Colors.textMuted)
-                HStack(spacing: Design.Spacing.xs) {
-                    Text(card.element)
+            CardImageView(card: card, size: .full)
+                .aspectRatio(BOBACardCell.aspectRatio, contentMode: .fit)
+                .frame(height: 380)
+                .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+                .shadow(color: Design.Colors.element(card.element).opacity(0.4), radius: 16, y: 6)
+                .elementGlow(card.element)
+                .padding(.horizontal, Design.Spacing.xl)
+        }
+    }
+
+    /// The metadata that used to live in cardHeader's right column.
+    /// Now sits below the artPanel as a clean horizontal row.
+    private func cardMetadata(for card: Card) -> some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            Text(card.name)
+                .font(Design.Fonts.display(18))
+                .foregroundStyle(Design.Colors.textPrimary)
+            Text(card.cardNumber)
+                .font(Design.Fonts.mono(12))
+                .foregroundStyle(Design.Colors.textMuted)
+            HStack(spacing: Design.Spacing.xs) {
+                Text(card.element)
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(Design.Colors.element(card.element))
+                    .padding(.horizontal, 8)
+                    .frame(height: 24)
+                    .background(
+                        RoundedRectangle(cornerRadius: Design.Radius.sm)
+                            .fill(Design.Colors.element(card.element).opacity(0.15))
+                            .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                .strokeBorder(Design.Colors.element(card.element).opacity(0.4), lineWidth: 1))
+                    )
+                if let treatment = card.treatment {
+                    Text(treatment)
                         .font(Design.Fonts.mono(11, weight: .bold))
-                        .foregroundStyle(Design.Colors.element(card.element))
+                        .foregroundStyle(Design.Colors.bobaOrange)
                         .padding(.horizontal, 8)
                         .frame(height: 24)
                         .background(
                             RoundedRectangle(cornerRadius: Design.Radius.sm)
-                                .fill(Design.Colors.element(card.element).opacity(0.15))
+                                .fill(Design.Colors.bobaOrange.opacity(0.12))
                                 .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
-                                    .strokeBorder(Design.Colors.element(card.element).opacity(0.4), lineWidth: 1))
+                                    .strokeBorder(Design.Colors.bobaOrange.opacity(0.4), lineWidth: 1))
                         )
-                    if let treatment = card.treatment {
-                        Text(treatment)
-                            .font(Design.Fonts.mono(11, weight: .bold))
-                            .foregroundStyle(Design.Colors.bobaOrange)
-                            .padding(.horizontal, 8)
-                            .frame(height: 24)
-                            .background(
-                                RoundedRectangle(cornerRadius: Design.Radius.sm)
-                                    .fill(Design.Colors.bobaOrange.opacity(0.12))
-                                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
-                                        .strokeBorder(Design.Colors.bobaOrange.opacity(0.4), lineWidth: 1))
-                            )
-                    }
-                    if card.rarityTier > 0 {
-                        Text(card.rarityLabel)
-                            .font(Design.Fonts.mono(11, weight: .bold))
-                            .foregroundStyle(Design.Colors.bobaCyan)
-                            .padding(.horizontal, 8)
-                            .frame(height: 24)
-                            .background(
-                                RoundedRectangle(cornerRadius: Design.Radius.sm)
-                                    .fill(Design.Colors.bobaCyan.opacity(0.10))
-                                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
-                                        .strokeBorder(Design.Colors.bobaCyan.opacity(0.35), lineWidth: 1))
-                            )
-                    }
                 }
-                if let power = card.power {
-                    Text("\(power) POWER")
-                        .font(Design.Fonts.mono(12, weight: .bold))
-                        .foregroundStyle(Design.Colors.textSecondary)
+                if card.rarityTier > 0 {
+                    Text(card.rarityLabel)
+                        .font(Design.Fonts.mono(11, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                        .padding(.horizontal, 8)
+                        .frame(height: 24)
+                        .background(
+                            RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                .fill(Design.Colors.bobaCyan.opacity(0.10))
+                                .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                    .strokeBorder(Design.Colors.bobaCyan.opacity(0.35), lineWidth: 1))
+                        )
                 }
             }
-            Spacer()
+            if let power = card.power {
+                Text("\(power) POWER")
+                    .font(Design.Fonts.mono(12, weight: .bold))
+                    .foregroundStyle(Design.Colors.textSecondary)
+            }
         }
     }
 

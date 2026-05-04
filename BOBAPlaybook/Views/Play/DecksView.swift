@@ -145,7 +145,6 @@ struct DecksView: View {
                 }
             }
             .toolbar { toolbarContent }
-            .bobaSidebarTrigger(.decks)
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible,         for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)

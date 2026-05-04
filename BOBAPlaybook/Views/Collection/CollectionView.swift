@@ -119,7 +119,6 @@ struct CollectionView: View {
                     }
                 }
             }
-            .bobaSidebarTrigger(.collection)
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }

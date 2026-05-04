@@ -100,7 +100,7 @@ struct CollectionCardDetailView: View {
                 .padding(Design.Spacing.lg)
             }
             .background(Design.Colors.nearBlack)
-            .navigationTitle(catalogCard?.name ?? catalogCard?.cardNumber ?? bobaId)
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if wrapInNavStack {
@@ -109,6 +109,12 @@ struct CollectionCardDetailView: View {
                             .font(Design.Fonts.mono(14))
                             .foregroundStyle(Design.Colors.bobaOrange)
                     }
+                }
+                ToolbarItem(placement: .principal) {
+                    Text(catalogCard?.name ?? catalogCard?.cardNumber ?? bobaId)
+                        .font(Design.Fonts.display(14))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                        .lineLimit(1)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     if let card = catalogCard {

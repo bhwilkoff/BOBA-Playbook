@@ -2000,7 +2000,7 @@ struct BrowserCardDetailSheet: View {
                 .padding(.top, Design.Spacing.lg)
             }
             .background(Design.Colors.nearBlack)
-            .navigationTitle(card.displayName)
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if wrapInNavStack {
@@ -2008,6 +2008,12 @@ struct BrowserCardDetailSheet: View {
                         Button("Done") { dismiss() }
                             .foregroundStyle(Design.Colors.bobaOrange)
                     }
+                }
+                ToolbarItem(placement: .principal) {
+                    Text(card.displayName)
+                        .font(Design.Fonts.display(14))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                        .lineLimit(1)
                 }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)

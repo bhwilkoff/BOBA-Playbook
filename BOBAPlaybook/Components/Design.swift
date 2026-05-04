@@ -667,6 +667,11 @@ enum BOBAFilterToken: Identifiable, Hashable {
 /// can each compose differently.
 struct BOBACardCell: View {
     let card: Card
+    /// Image resolution. Default .thumb keeps existing single-card
+    /// callers (rainbow row covers, scan chips, etc.) on the smaller
+    /// 200px WebP. BOBACardGridItem passes .full when the column
+    /// count is dense enough that the thumb pixelates (1- or 2-across).
+    var size: CardImageView.ImageSize = .thumb
 
     /// 5:7 portrait card aspect — matches every BoBA card. Constant
     /// so the small-multiples guarantee holds across surfaces.
@@ -674,7 +679,7 @@ struct BOBACardCell: View {
     static let cornerRadius: CGFloat = Design.Radius.md
 
     var body: some View {
-        CardImageView(card: card, size: .thumb)
+        CardImageView(card: card, size: size)
             .aspectRatio(Self.aspectRatio, contentMode: .fill)
             .clipped()
             .background(Design.Colors.surface)
@@ -715,9 +720,22 @@ struct BOBACardGridItem: View {
     let card: Card
     var columnCount: Int = 2
 
+    /// 1- and 2-across cells render large enough that the 200px thumb
+    /// pixelates noticeably — pull the ≤1200px full WebP at those
+    /// densities. CardImageView handles the loading: NSCache (60MB)
+    /// + URLCache (100MB mem / 500MB disk, configured in App.init)
+    /// dedupe across instances; a 150ms debounce skips fly-by cells
+    /// during fast scrolls; cached thumbs render as a base layer
+    /// while the full image loads, so the user sees the card
+    /// immediately and the high-res replaces it. 3-across stays on
+    /// thumbs to keep network usage proportional to cell area.
+    private var imageSize: CardImageView.ImageSize {
+        columnCount <= 2 ? .full : .thumb
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            BOBACardCell(card: card)
+            BOBACardCell(card: card, size: imageSize)
             caption
         }
     }

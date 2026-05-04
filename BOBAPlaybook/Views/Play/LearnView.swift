@@ -42,12 +42,12 @@ private struct LearnCategory: Identifiable, Hashable {
 struct LearnView: View {
     @Environment(CardStore.self) private var cardStore
     @State private var path = NavigationPath()
-    @State private var showWatch = false
+    // showWatch removed — Watch is now a NavigationLink push.
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
     /// Top-of-page intro — gives Learn a sense of editorial weight
-    /// rather than reading like a settings list. Static copy keyed
-    /// to the Learn purpose; the visual treatment uses the same
-    /// typography hierarchy as a feature article.
+    /// rather than reading like a settings list. The "Pick a path"
+    /// helper line was removed per user feedback (the tile grid
+    /// makes the affordance obvious).
     private var learnHeader: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("LEARN BoBA")
@@ -58,10 +58,6 @@ struct LearnView: View {
                 .font(Design.Fonts.display(28))
                 .foregroundStyle(Design.Colors.textPrimary)
                 .lineSpacing(2)
-            Text("Pick a path. Read or watch — both are first-class.")
-                .font(Design.Fonts.mono(13))
-                .foregroundStyle(Design.Colors.textSecondary)
-                .padding(.top, 2)
         }
         .padding(.horizontal, Design.Spacing.lg)
         .padding(.top, Design.Spacing.md)
@@ -84,9 +80,12 @@ struct LearnView: View {
             Text(cat.title)
                 .font(Design.Fonts.display(20))
                 .foregroundStyle(Design.Colors.textPrimary)
+            // Per user feedback — the cards have headroom so the
+            // subtitle can read at a more legible size. Bumped from
+            // 11pt to 13pt for actual readability.
             Text(cat.subtitle)
-                .font(Design.Fonts.mono(11))
-                .foregroundStyle(Design.Colors.textMuted)
+                .font(Design.Fonts.mono(13))
+                .foregroundStyle(Design.Colors.textSecondary)
                 .lineLimit(3)
                 .multilineTextAlignment(.leading)
             Spacer(minLength: 0)
@@ -102,22 +101,16 @@ struct LearnView: View {
                 )
         )
 
-        if cat.id == "watch" {
-            // No NavigationLink — Watch is a sheet destination
-            // (YouTube playlist viewer). Tapping the tile presents
-            // WatchView directly.
-            Button { showWatch = true } label: {
-                inner
-            }
-            .buttonStyle(.plain)
-            .walkthroughAnchor(isFirst ? "learn.firstRow" : "learn.row.\(cat.id)")
-        } else {
-            NavigationLink(value: cat) {
-                inner
-            }
-            .buttonStyle(.plain)
-            .walkthroughAnchor(isFirst ? "learn.firstRow" : "learn.row.\(cat.id)")
+        // All tiles use NavigationLink push (slides in from the side)
+        // for a consistent transition feel — no more Watch flying up
+        // from the bottom while every other category slides in from
+        // the side. WatchView is wired in the navigationDestination
+        // switch below.
+        NavigationLink(value: cat) {
+            inner
         }
+        .buttonStyle(.plain)
+        .walkthroughAnchor(isFirst ? "learn.firstRow" : "learn.row.\(cat.id)")
     }
 
     /// Resolves a slug from cardStore.pendingLearnCategory back to a
@@ -214,6 +207,7 @@ struct LearnView: View {
                 case "rules":      RulesView()
                 case "strategy":   StrategyView()
                 case "collect":    CollectView()
+                case "watch":      WatchView()
                 case "glossary":   GlossaryView()
                 case "tournament": TournamentView()
                 default:           EmptyView()
@@ -243,9 +237,8 @@ struct LearnView: View {
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
-        .sheet(isPresented: $showWatch) {
-            WatchView()
-        }
+        // Watch is now a NavigationLink push (consistent slide-in
+        // transition with every other Learn category) — no more sheet.
         .walkthroughOverlay($walkthrough)
         .onAppear {
             if WalkthroughsManager.shared.shouldShow(.learnTab) {

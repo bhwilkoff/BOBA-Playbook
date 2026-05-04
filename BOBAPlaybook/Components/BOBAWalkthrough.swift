@@ -453,10 +453,8 @@ extension BOBAWalkthrough.Script {
     static let learnTab = BOBAWalkthrough.Script(
         id: .learnTab,
         steps: [
-            .init(anchor: .init("learn.rootList"),   copy: "Five learning paths, from Rules to Tournament."),
-            .init(anchor: .init("learn.firstRow"),   copy: "Tap to read articles, strategy, and glossary."),
-            .init(anchor: .init("learn.scopeBar"),   copy: "Switch between Rookie, Substitution, and Playmaker views."),
-            .init(anchor: .init("learn.search"),     copy: "Search across every Learn article from here.")
+            .init(anchor: .init("learn.rootList"), copy: "Six paths to learn BoBA — read, watch, or browse."),
+            .init(anchor: .init("learn.firstRow"), copy: "Tap any tile to dive into that path.")
         ]
     )
 

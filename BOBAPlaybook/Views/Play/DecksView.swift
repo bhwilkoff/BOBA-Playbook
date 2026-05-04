@@ -270,9 +270,9 @@ struct DecksView: View {
             Menu {
                 Section("Columns") {
                     Picker("Columns", selection: $gridColumns) {
-                        Label("1 across", systemImage: "rectangle").tag(1)
-                        Label("2 across", systemImage: "square.grid.2x1").tag(2)
-                        Label("3 across", systemImage: "square.grid.3x1.below.line.grid.1x2").tag(3)
+                        Label("1 across", systemImage: "rectangle.portrait").tag(1)
+                        Label("2 across", systemImage: "rectangle.split.2x1").tag(2)
+                        Label("3 across", systemImage: "rectangle.split.3x1").tag(3)
                     }
                 }
                 Section {

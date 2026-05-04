@@ -15,6 +15,17 @@ struct SearchView: View {
     @State private var quickAdd = false
     @State private var quickAddToast: String? = nil
     @State private var quickAddError: String? = nil
+    /// First-visit walkthrough trigger per DESIGN.md §6.10. Activates
+    /// the .findTab script from §6.10.1 when the user opens Find for
+    /// the first time. Re-triggerable via toolbar Menu.
+    @State private var walkthrough: BOBAWalkthrough.Script? = nil
+
+    /// True when the user is actively searching/filtering. When false,
+    /// SearchView shows the featured-ribbons surface (DESIGN.md §8.1
+    /// default state). When true, results grid takes over.
+    private var isSearchingOrFiltering: Bool {
+        !store.searchText.isEmpty || store.activeFilterCount > 0
+    }
     /// Drives the keyboard-toolbar Done button. SwiftUI's only built-in
     /// way to dismiss the keyboard from the field is via a focus binding,
     /// so the search field needs its own @FocusState even though we don't
@@ -67,12 +78,38 @@ struct SearchView: View {
                             .foregroundStyle(AppIconOption.currentColor(for: selectedIconName))
                     }
                     .accessibilityLabel("Profile")
+                    .walkthroughAnchor("find.profile")
                 }
                 ToolbarItem(placement: .principal) {
                     BOBAWordmark()
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    filterButton
+                    Menu {
+                        Button {
+                            showFilters = true
+                        } label: {
+                            Label("Filters", systemImage: "slider.horizontal.3")
+                        }
+                        Divider()
+                        Button {
+                            WalkthroughsManager.shared.relaunch(.findTab)
+                            walkthrough = .findTab
+                        } label: {
+                            Label("Show walkthrough", systemImage: "questionmark.circle")
+                        }
+                    } label: {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.system(size: 17, weight: .medium))
+                                .foregroundStyle(Design.Colors.textPrimary)
+                            if store.activeFilterCount > 0 {
+                                Circle()
+                                    .fill(Design.Colors.bobaOrange)
+                                    .frame(width: 8, height: 8)
+                                    .offset(x: 4, y: -4)
+                            }
+                        }
+                    }
                 }
                 // "Done" key on the keyboard accessory bar — gives an
                 // out for the case where the user taps the search field
@@ -141,6 +178,14 @@ struct SearchView: View {
         .sheet(item: $selectedCard) { card in
             CardDetailView(card: card, navigationCards: store.filteredCards)
         }
+        .overlay {
+            if let script = walkthrough {
+                BOBAWalkthrough(script: script) {
+                    WalkthroughsManager.shared.dismiss(script.id)
+                    walkthrough = nil
+                }
+            }
+        }
         // Deep-link: bobaplaybook://card/{number} sets store.pendingCardNumber.
         // Try to resolve it immediately (cards may already be loaded) and again
         // when the full catalog finishes loading.
@@ -169,6 +214,9 @@ struct SearchView: View {
             if store.pendingScan {
                 showScan = true
                 store.pendingScan = false
+            }
+            if WalkthroughsManager.shared.shouldShow(.findTab) {
+                walkthrough = .findTab
             }
         }
     }
@@ -253,6 +301,7 @@ struct SearchView: View {
             .padding(.horizontal, 10)
             .frame(height: 36)
             .background(RoundedRectangle(cornerRadius: 10).fill(Design.Colors.glass))
+            .walkthroughAnchor("find.search")
 
             // Scan shortcut — tapping here opens the scanner instead of the keyboard.
             Button {
@@ -272,6 +321,7 @@ struct SearchView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Scan a card")
+            .walkthroughAnchor("find.scan")
         }
     }
 
@@ -286,41 +336,183 @@ struct SearchView: View {
     // MARK: - Content
     private var contentView: some View {
         ScrollView {
-            // Results count + Quick Add toggle. Authenticated users get
-            // the toggle; anonymous users just see the count. Mirrors
-            // the deck builder's "Tap to View / Quick Add" pill pattern.
-            HStack {
-                Text("\(store.filteredCards.count) cards")
-                    .font(Design.Fonts.mono(12))
+            // When neither searching nor filtering, show the featured-
+            // ribbons surface (DESIGN.md §8.1 default state). When the
+            // user starts typing or applies a filter, fall through to
+            // the results grid below.
+            if !isSearchingOrFiltering {
+                featuredRibbons
+                    .walkthroughAnchor("find.ribbons")
+                    .padding(.top, Design.Spacing.sm)
+            } else {
+                resultsHeader
+                resultsBody
+            }
+        }
+        .background(Design.Colors.nearBlack)
+        .scrollEdgeEffectStyle(.hard, for: .top)
+    }
+
+    @ViewBuilder
+    private var resultsHeader: some View {
+        // Results count + Quick Add toggle. Authenticated users get
+        // the toggle; anonymous users just see the count.
+        HStack {
+            Text("\(store.filteredCards.count) cards")
+                .font(Design.Fonts.mono(12))
+                .foregroundStyle(Design.Colors.textMuted)
+            Spacer()
+            if auth.isAuthenticated {
+                quickAddToggle
+            }
+        }
+        .padding(.horizontal, Design.Spacing.lg)
+        .padding(.top, Design.Spacing.sm)
+
+        if store.isLoadingMore {
+            HStack(spacing: Design.Spacing.sm) {
+                ProgressView()
+                    .tint(Design.Colors.bobaCyan)
+                    .scaleEffect(0.7)
+                Text("Searching first 500 cards — full catalog loading…")
+                    .font(Design.Fonts.mono(11))
                     .foregroundStyle(Design.Colors.textMuted)
-                Spacer()
-                if auth.isAuthenticated {
-                    quickAddToggle
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Design.Spacing.xs)
+        }
+    }
+
+    @ViewBuilder
+    private var resultsBody: some View {
+        if store.filteredCards.isEmpty {
+            emptyState
+        } else {
+            LazyVGrid(columns: columns, spacing: Design.Spacing.sm) {
+                ForEach(store.filteredCards) { card in
+                    CardGridItemView(card: card)
+                        .aspectRatio(3/4, contentMode: .fit)
+                        .onTapGesture {
+                            if quickAdd {
+                                Task { await quickAddCard(card) }
+                            } else {
+                                selectedCard = card
+                            }
+                        }
+                        .walkthroughAnchor("find.cardCell")
                 }
             }
             .padding(.horizontal, Design.Spacing.lg)
-            .padding(.top, Design.Spacing.sm)
 
-            // Only show partial-catalog notice when user is actively searching/filtering
-            if store.isLoadingMore && (!store.searchText.isEmpty || store.activeFilterCount > 0) {
+            if store.isLoadingMore {
                 HStack(spacing: Design.Spacing.sm) {
                     ProgressView()
-                        .tint(Design.Colors.bobaCyan)
-                        .scaleEffect(0.7)
-                    Text("Searching first 500 cards — full catalog loading…")
-                        .font(Design.Fonts.mono(11))
+                        .tint(Design.Colors.bobaOrange)
+                        .scaleEffect(0.8)
+                    Text("Loading full catalog…")
+                        .font(Design.Fonts.mono(12))
                         .foregroundStyle(Design.Colors.textMuted)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, Design.Spacing.xs)
+                .padding(.vertical, Design.Spacing.lg)
             }
 
-            if store.filteredCards.isEmpty {
-                emptyState
-            } else {
-                LazyVGrid(columns: columns, spacing: Design.Spacing.sm) {
-                    ForEach(store.filteredCards) { card in
+            Spacer().frame(height: Design.Spacing.xl)
+        }
+    }
+
+    // MARK: - Featured ribbons (DESIGN.md §8.1)
+    //
+    // Default state when no search query or filter active. Three
+    // grouped sections: hand-curated Featured Collections, By Weapon,
+    // By Sport. Source data lives in `BrowseFeaturedData` (extracted
+    // from the legacy LearnView.BrowseView during the §8.2 Learn
+    // rebuild). Each ribbon is horizontally-scrolling card cells; tap
+    // a card → CardDetailView push (or quickAdd if toggle is on).
+    @ViewBuilder
+    private var featuredRibbons: some View {
+        LazyVStack(alignment: .leading, spacing: Design.Spacing.xl) {
+            // Featured collections
+            VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                BOBASectionHeader("Featured Collections")
+                ForEach(BrowseFeaturedData.collections) { coll in
+                    featuredCollectionRow(coll)
+                }
+            }
+
+            // By weapon
+            VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                BOBASectionHeader("By Weapon")
+                ForEach(BrowseFeaturedData.weapons, id: \.element) { wf in
+                    weaponRibbon(element: wf.element, label: wf.label)
+                }
+            }
+
+            // By sport
+            VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                BOBASectionHeader("By Sport")
+                ForEach(BrowseFeaturedData.sports, id: \.label) { sf in
+                    sportRibbon(label: sf.label, athletes: sf.athletes)
+                }
+            }
+        }
+        .padding(.bottom, Design.Spacing.xxl)
+    }
+
+    @ViewBuilder
+    private func featuredCollectionRow(_ coll: BrowseFeaturedData.Collection) -> some View {
+        ribbon(
+            title: coll.name,
+            subtitle: coll.description,
+            tint: coll.color,
+            cards: store.displayCards.filter(coll.matches).prefix(20).map { $0 }
+        )
+    }
+
+    @ViewBuilder
+    private func weaponRibbon(element: String, label: String) -> some View {
+        ribbon(
+            title: "\(label) Heroes",
+            subtitle: nil,
+            tint: Design.Colors.element(element),
+            cards: store.displayCards.filter { $0.element == element }.prefix(20).map { $0 }
+        )
+    }
+
+    @ViewBuilder
+    private func sportRibbon(label: String, athletes: Set<String>) -> some View {
+        ribbon(
+            title: label,
+            subtitle: nil,
+            tint: Design.Colors.bobaOrange,
+            cards: store.displayCards.filter { card in
+                guard let insp = card.athleteInspiration else { return false }
+                return athletes.contains(insp)
+            }.prefix(20).map { $0 }
+        )
+    }
+
+    @ViewBuilder
+    private func ribbon(title: String, subtitle: String?, tint: Color, cards: [Card]) -> some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(Design.Fonts.display(15))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .lineLimit(2)
+                }
+            }
+            .padding(.horizontal, Design.Spacing.lg)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Design.Spacing.sm) {
+                    ForEach(cards) { card in
                         CardGridItemView(card: card)
+                            .frame(width: 110)
                             .aspectRatio(3/4, contentMode: .fit)
                             .onTapGesture {
                                 if quickAdd {
@@ -332,25 +524,8 @@ struct SearchView: View {
                     }
                 }
                 .padding(.horizontal, Design.Spacing.lg)
-
-                // Loading more indicator at bottom — only visible on scroll
-                if store.isLoadingMore {
-                    HStack(spacing: Design.Spacing.sm) {
-                        ProgressView()
-                            .tint(Design.Colors.bobaOrange)
-                            .scaleEffect(0.8)
-                        Text("Loading full catalog…")
-                            .font(Design.Fonts.mono(12))
-                            .foregroundStyle(Design.Colors.textMuted)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Design.Spacing.lg)
-                }
-
-                Spacer().frame(height: Design.Spacing.xl)
             }
         }
-        .background(Design.Colors.nearBlack)
     }
 
     // MARK: - Filter button

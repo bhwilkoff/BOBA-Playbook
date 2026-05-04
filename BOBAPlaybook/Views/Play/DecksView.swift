@@ -121,6 +121,12 @@ struct DecksView: View {
                         restingHeight: restingHeight,
                         expandedHeight: expandedHeight
                     )
+                    // Inset from the bottom so the drawer's rounded
+                    // corners fully terminate before reaching the tab
+                    // bar — no flat edge slamming into the navigation
+                    // chrome (per user feedback).
+                    .padding(.horizontal, Design.Spacing.xs)
+                    .padding(.bottom, Design.Spacing.xs)
                 }
             }
             .toolbar { toolbarContent }
@@ -189,14 +195,9 @@ struct DecksView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button { secondarySheet = .profile } label: {
-                Image(systemName: "person.crop.circle")
-                    .font(.system(size: 18))
-                    .foregroundStyle(Design.Colors.bobaCyan)
-            }
-            .accessibilityLabel("Profile")
-        }
+        // Profile button removed per user feedback — Profile lives only
+        // on the Find tab. Other tabs that need auth surface inline
+        // sign-in prompts (BOBASignInPrompt) at the point of action.
         ToolbarItem(placement: .principal) {
             BOBAWordmark()
         }
@@ -236,7 +237,7 @@ struct DecksView: View {
                     Button {
                         secondarySheet = .deckManagement
                     } label: {
-                        Label("Saved decks · Templates · Import / Export", systemImage: "tray.full")
+                        Label("Manage Decks", systemImage: "tray.full")
                     }
                     Button {
                         secondarySheet = .rules
@@ -451,25 +452,20 @@ struct DecksView: View {
         }
         .frame(height: height, alignment: .top)
         .frame(maxWidth: .infinity)
-        .background(.regularMaterial,
-                    in: UnevenRoundedRectangle(
-                        topLeadingRadius: 28,
-                        bottomLeadingRadius: 0,
-                        bottomTrailingRadius: 0,
-                        topTrailingRadius: 28,
-                        style: .continuous
-                    ))
-        .overlay(alignment: .top) {
-            UnevenRoundedRectangle(
-                topLeadingRadius: 28,
-                bottomLeadingRadius: 0,
-                bottomTrailingRadius: 0,
-                topTrailingRadius: 28,
-                style: .continuous
-            )
-            .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
-        }
-        .shadow(color: .black.opacity(0.35), radius: 12, y: -2)
+        // All four corners rounded — the drawer floats above the tab
+        // bar with a small inset (set by the parent's padding) so the
+        // bottom edge has the same elegant radius as the top, never a
+        // hard line slamming into the navigation chrome. Matches iOS
+        // 26 Liquid Glass treatment for floating panels (think the
+        // Music mini-player + Now Playing morph).
+        .background(.regularMaterial, in:
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.35), radius: 14, y: -3)
     }
 
     /// Always-visible header — deck name + per-section counts +
@@ -701,6 +697,19 @@ struct DecksView: View {
         }
     }
 
+    /// Per user feedback — color each starter deck by its archetype's
+    /// dominant weapon so the cards visually telegraph their gameplan.
+    private func templateAccent(for templateId: String) -> Color {
+        switch templateId {
+        case "lockdown-locker": return Design.Colors.element("STEEL")
+        case "frozen-tempo":    return Design.Colors.element("ICE")
+        case "draw-and-adapt":  return Design.Colors.bobaCyan         // engine — generic cyan accent
+        case "glow-sacrifice":  return Design.Colors.element("GLOW")
+        case "brawl-beatdown":  return Design.Colors.element("BRAWL")
+        default:                return Design.Colors.bobaCyan
+        }
+    }
+
     /// Empty-deck state with template gallery as inline actions per §8.3
     /// ("ContentUnavailableView with template gallery as actions").
     private var emptyDeckCTA: some View {
@@ -717,13 +726,14 @@ struct DecksView: View {
                 BOBASectionHeader("START FROM A TEMPLATE")
                     .padding(.horizontal, Design.Spacing.md)
                 ForEach(DeckTemplate.all) { template in
+                    let accent = templateAccent(for: template.id)
                     Button {
                         store.loadTemplate(template, allCards: cardStore.displayCards)
                     } label: {
                         HStack(alignment: .top, spacing: Design.Spacing.md) {
                             Image(systemName: "rectangle.stack.fill")
                                 .font(.system(size: 20))
-                                .foregroundStyle(Design.Colors.bobaCyan)
+                                .foregroundStyle(accent)
                                 .frame(width: 28, height: 28)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(template.name)
@@ -742,9 +752,13 @@ struct DecksView: View {
                         }
                         .padding(Design.Spacing.md)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: Design.Radius.md)
+                                .fill(accent.opacity(0.08))
+                        )
                         .overlay(
                             RoundedRectangle(cornerRadius: Design.Radius.md)
-                                .strokeBorder(Design.Colors.glass, lineWidth: 1)
+                                .strokeBorder(accent.opacity(0.4), lineWidth: 1)
                         )
                     }
                     .buttonStyle(.plain)

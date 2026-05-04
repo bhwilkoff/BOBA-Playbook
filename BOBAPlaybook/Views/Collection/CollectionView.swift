@@ -16,12 +16,12 @@ struct CollectionView: View {
     @State private var showingSignIn    = false
     @State private var showTradeRoom    = false
     @State private var discord          = DiscordService()
-    /// Top-level view mode. Rainbow is a collecting-progress lens across
-    /// all owned heroes — a different axis than the designation tabs,
-    /// which partition cards by intent (Personal / For Sale / Wanted).
-    /// Keeping these on separate toggles so coaches don't confuse "how I'm
-    /// using this card" with "how close am I to completing this hero."
-    @State private var viewMode: CollectionViewMode = .myCards
+    /// NavigationStack path. Push to .rainbow or .shows from the
+    /// toolbar Menu — the My Cards surface is the root and shows by
+    /// default. Replaces the v2.043 viewMode segmented picker per
+    /// user feedback (the picker forced 5 stacked rows of chrome
+    /// before users saw a single card).
+    @State private var navigationPath  = NavigationPath()
     @State private var isRecalculating = false
     @State private var recalcProgress: (current: Int, total: Int)? = nil
 
@@ -50,11 +50,13 @@ struct CollectionView: View {
     /// doesn't want it reset every time they open the app).
     @AppStorage("bp_collectionSortOrder_v1") private var collectionSortRaw: String = CollectionSortOrder.dateAddedDesc.rawValue
 
-    enum CollectionViewMode: String, CaseIterable, Identifiable {
-        case myCards = "My Cards"
-        case rainbow = "Rainbow"
-        case shows   = "My Shows"
-        var id: String { rawValue }
+    /// Toolbar-Menu destinations that push onto the Collection
+    /// NavigationStack. My Cards is the root surface (always shown
+    /// without a push). Rainbow and Shows live behind toolbar Menu
+    /// entries that use NavigationLink-via-path.
+    enum CollectionRoute: Hashable {
+        case rainbow
+        case shows
     }
 
     /// Per DESIGN.md §8.4 — three ways to render the same data set:
@@ -81,15 +83,8 @@ struct CollectionView: View {
         }
     }
 
-    /// Modes visible to the current user. Streamers see all three;
-    /// everyone else sees My Cards + Rainbow. Keeps the picker clean
-    /// for non-streamers without gating elsewhere in the body.
-    private var availableModes: [CollectionViewMode] {
-        auth.isStreamer ? CollectionViewMode.allCases : [.myCards, .rainbow]
-    }
-
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             Group {
                 if !auth.isAuthenticated {
                     unauthenticatedView
@@ -100,24 +95,13 @@ struct CollectionView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // Profile button removed per user feedback — Profile lives
-                // only on the Find tab. Auth-required actions (Save deck,
-                // designate card, etc.) surface inline BOBASignInPrompt
-                // at the point of action.
                 ToolbarItem(placement: .principal) {
                     BOBAWordmark()
                 }
-                // Top-trailing: filter button (when in myCards mode) + the
-                // overflow Menu (Refresh / Export / Walkthrough). Two
-                // toolbar items so the filter dot badge stays visible
-                // beside the ellipsis. Both auth-gated since neither
-                // does anything for signed-out users.
-                if auth.isAuthenticated && viewMode == .myCards {
+                if auth.isAuthenticated {
                     ToolbarItem(placement: .topBarTrailing) {
                         filterButton
                     }
-                }
-                if auth.isAuthenticated {
                     ToolbarItem(placement: .topBarTrailing) {
                         collectionMenu
                     }
@@ -130,6 +114,14 @@ struct CollectionView: View {
             )
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .navigationDestination(for: CollectionRoute.self) { route in
+                switch route {
+                case .rainbow:
+                    rainbowDestination
+                case .shows:
+                    ShowsListView()
+                }
+            }
         }
         .sheet(isPresented: $showingSignIn) {
             SignInView()
@@ -258,21 +250,9 @@ struct CollectionView: View {
         // to completion.
         ZStack(alignment: .bottomTrailing) {
             VStack(spacing: 0) {
-                modePicker
-                    .padding(.horizontal, Design.Spacing.md)
-                    .padding(.vertical, Design.Spacing.sm)
-
-                switch viewMode {
-                case .myCards:
-                    valueSummary
-                    designationPicker
-                    cardList
-                case .rainbow:
-                    rainbowIntro
-                    rainbowList
-                case .shows:
-                    ShowsListView()
-                }
+                valueSummary
+                designationPicker
+                cardList
             }
             .background(Design.Colors.nearBlack)
 
@@ -290,27 +270,46 @@ struct CollectionView: View {
         }
     }
 
-    // MARK: - Top-level view mode picker
+    // MARK: - Pushed destinations (Rainbow / My Shows)
 
-    private var modePicker: some View {
-        Picker("View", selection: $viewMode) {
-            ForEach(availableModes) { mode in
-                Text(mode.rawValue).tag(mode)
-            }
+    /// Rainbow Progress as its own pushed destination (per Option B
+    /// Music-style restructure). Owns its own nav title; reuses the
+    /// existing rainbowIntro + rainbowList helpers from this struct
+    /// since the closure captures self.
+    private var rainbowDestination: some View {
+        VStack(spacing: 0) {
+            rainbowIntro
+            rainbowList
         }
-        .pickerStyle(.segmented)
-        // Snap back to My Cards if the user loses streamer role while
-        // parked on the Shows tab — avoids a view displaying with no
-        // selected segment.
-        .onChange(of: auth.isStreamer) { _, newValue in
-            if !newValue && viewMode == .shows { viewMode = .myCards }
-        }
+        .background(Design.Colors.nearBlack)
+        .navigationTitle("Rainbow Progress")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.regularMaterial, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     // MARK: - Collection menu (toolbar)
 
     private var collectionMenu: some View {
         Menu {
+            // Other collection lenses — push to their own full-screen
+            // surfaces instead of cramming into a top-of-view segmented
+            // picker. Each pushed view has only the chrome it needs.
+            Section {
+                Button {
+                    navigationPath.append(CollectionRoute.rainbow)
+                } label: {
+                    Label("Rainbow Progress", systemImage: "sparkles")
+                }
+                if auth.isStreamer {
+                    Button {
+                        navigationPath.append(CollectionRoute.shows)
+                    } label: {
+                        Label("My Shows", systemImage: "tv.fill")
+                    }
+                }
+            }
+
             // DISPLAY MODE picker per DESIGN.md §8.4 — Grid / List / Wall.
             // Wall is lifted from streamer-only per DECISIONS.md #036.
             // Selecting Wall presents the CollectionWallSheet over the

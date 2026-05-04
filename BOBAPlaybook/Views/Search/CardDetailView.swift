@@ -36,6 +36,8 @@ struct CardDetailView: View {
     @State private var showingShare = false
     @State private var isPreparingShare = false
     @State private var showingModEdit = false
+    /// Per DESIGN.md §6.10 — first-time card-detail walkthrough.
+    @State private var walkthrough: BOBAWalkthrough.Script? = nil
 
     init(card: Card, navigationCards: [Card] = []) {
         self.initialCard = card
@@ -134,42 +136,44 @@ struct CardDetailView: View {
                         .lineLimit(1)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    // Menu (not confirmationDialog) so the popup drops from the
-                    // Add button itself — on iPad the old dialog would anchor
-                    // to the card art, not the touch target.
-                    if auth.isAuthenticated {
-                        Menu {
-                            Section("Add \(card.name)") {
-                                Button {
-                                    showingAddSheet = true
-                                } label: {
-                                    Label("To Collection", systemImage: "folder.badge.plus")
-                                }
-                                if card.isHero || card.isPlay || card.isHotDog {
+                    // Action bar (toolbar Menu form for now; sticky bottom
+                    // glass bar per DESIGN.md §8.6 is a follow-up). Walkthrough
+                    // anchor lives here so the cardDetail.actionBar step
+                    // points at the actual action surface.
+                    Group {
+                        if auth.isAuthenticated {
+                            Menu {
+                                Section("Add \(card.name)") {
                                     Button {
-                                        showingAddToDeck = true
+                                        showingAddSheet = true
                                     } label: {
-                                        Label("To Custom Deck", systemImage: "rectangle.stack.badge.plus")
+                                        Label("To Collection", systemImage: "folder.badge.plus")
+                                    }
+                                    if card.isHero || card.isPlay || card.isHotDog {
+                                        Button {
+                                            showingAddToDeck = true
+                                        } label: {
+                                            Label("To Custom Deck", systemImage: "rectangle.stack.badge.plus")
+                                        }
+                                    }
+                                    // Streamers get a third add destination: a
+                                    // Whatnot/live-show prep list.
+                                    if auth.isStreamer {
+                                        Button {
+                                            showingAddToShow = true
+                                        } label: {
+                                            Label("To Show", systemImage: "dot.radiowaves.up.forward")
+                                        }
                                     }
                                 }
-                                // Streamers get a third add destination: a
-                                // Whatnot/live-show prep list. Separate from
-                                // the collection because show cards don't
-                                // need to be in the user's collection.
-                                if auth.isStreamer {
-                                    Button {
-                                        showingAddToShow = true
-                                    } label: {
-                                        Label("To Show", systemImage: "dot.radiowaves.up.forward")
-                                    }
-                                }
+                            } label: {
+                                addIconLabel
                             }
-                        } label: {
-                            addIconLabel
+                        } else {
+                            Button { showingSignIn = true } label: { addIconLabel }
                         }
-                    } else {
-                        Button { showingSignIn = true } label: { addIconLabel }
                     }
+                    .walkthroughAnchor("cardDetail.actionBar")
                 }
                 if auth.isMod {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -269,6 +273,22 @@ struct CardDetailView: View {
                     confirmationToast(text: "Added to \(name)")
                 } else if let showName = addedToShowName {
                     confirmationToast(text: "Added to \(showName)")
+                }
+            }
+            // First-visit walkthrough per DESIGN.md §6.10.1 cardDetail
+            // catalog. Anchors land on the canonical-6 stats grid, the
+            // pricing panels, and the toolbar add-action bar.
+            .overlay {
+                if let script = walkthrough {
+                    BOBAWalkthrough(script: script) {
+                        WalkthroughsManager.shared.dismiss(script.id)
+                        walkthrough = nil
+                    }
+                }
+            }
+            .onAppear {
+                if WalkthroughsManager.shared.shouldShow(.cardDetail) {
+                    walkthrough = .cardDetail
                 }
             }
         }
@@ -547,6 +567,7 @@ struct CardDetailView: View {
                     dbsStatCell(dbs: dbs, tier: card.dbsTier)
                 }
             }
+            .walkthroughAnchor("cardDetail.statsGrid")
 
             // Per-card format restrictions — only renders when the card
             // actually has one (Spec-ineligible hero, Bonus Play / HTD
@@ -613,6 +634,7 @@ struct CardDetailView: View {
             Divider().background(Design.Colors.glassBorder)
 
             PricingSection(card: card)
+                .walkthroughAnchor("cardDetail.pricing")
 
             if !variations.isEmpty {
                 variationsSection

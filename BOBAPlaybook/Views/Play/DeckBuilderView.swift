@@ -1930,11 +1930,16 @@ struct BrowserCardDetailSheet: View {
         navStackIfNeeded {
             ScrollView {
                 VStack(spacing: Design.Spacing.lg) {
-                    // Art panel — matches CardDetailView's pattern. The
-                    // element-tinted gradient fills the top of the
-                    // destination edge-to-edge so the zoom-in animation
-                    // doesn't expose a "forehead" of empty space around
-                    // the card. The image is centered inside.
+                    // [DIAG] forehead bug
+                    Color.clear
+                        .frame(height: 0)
+                        .background(GeometryReader { proxy in
+                            Color.clear.onAppear {
+                                let f = proxy.frame(in: .global)
+                                let s = proxy.safeAreaInsets
+                                print("[FOREHEAD] DECKS content_top_y=\(f.minY) safeTop=\(s.top) safeBot=\(s.bottom)")
+                            }
+                        })
                     artPanel
 
                     // Stats

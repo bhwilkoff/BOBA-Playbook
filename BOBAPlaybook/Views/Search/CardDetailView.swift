@@ -131,6 +131,18 @@ struct CardDetailView: View {
         navStackIfNeeded {
             ScrollView {
                 VStack(spacing: 0) {
+                    // [DIAG] forehead bug — log content top + safe-area
+                    // insets at destination appearance. Compare Find
+                    // (no forehead) against Decks/Collection in console.
+                    Color.clear
+                        .frame(height: 0)
+                        .background(GeometryReader { proxy in
+                            Color.clear.onAppear {
+                                let f = proxy.frame(in: .global)
+                                let s = proxy.safeAreaInsets
+                                print("[FOREHEAD] FIND content_top_y=\(f.minY) safeTop=\(s.top) safeBot=\(s.bottom)")
+                            }
+                        })
                     artPanel
                     infoPanel
                 }

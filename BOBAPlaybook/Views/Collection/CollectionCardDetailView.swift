@@ -68,6 +68,16 @@ struct CollectionCardDetailView: View {
         navStackIfNeeded {
             ScrollView {
                 VStack(spacing: 0) {
+                    // [DIAG] forehead bug
+                    Color.clear
+                        .frame(height: 0)
+                        .background(GeometryReader { proxy in
+                            Color.clear.onAppear {
+                                let f = proxy.frame(in: .global)
+                                let s = proxy.safeAreaInsets
+                                print("[FOREHEAD] COLLECTION content_top_y=\(f.minY) safeTop=\(s.top) safeBot=\(s.bottom)")
+                            }
+                        })
                     // Art panel — flush with top so the zoom-in
                     // animation lands on a continuous gradient surface
                     // instead of empty space (the v2.052 "forehead" bug).

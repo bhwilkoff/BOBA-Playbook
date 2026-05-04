@@ -44,9 +44,10 @@ struct CardDetailView: View {
     /// Per DESIGN.md §6.10 — first-time card-detail walkthrough.
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
 
-    init(card: Card, navigationCards: [Card] = []) {
+    init(card: Card, navigationCards: [Card] = [], wrapInNavStack: Bool = true) {
         self.initialCard = card
         self.navigationCards = navigationCards
+        self.wrapInNavStack = wrapInNavStack
         _card = State(initialValue: card)
     }
 

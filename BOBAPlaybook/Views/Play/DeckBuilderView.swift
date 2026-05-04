@@ -1432,6 +1432,9 @@ private struct TemplateCard: View {
 struct DeckManagementSheet: View {
     let store: DeckBuilderStore
     let cards: [Card]
+    /// See DeckRulesSheet — wrap in NavigationStack only when used as
+    /// a sheet. Editor pushes pass false.
+    var wrapInNavStack: Bool = true
     @Environment(\.dismiss) private var dismiss
 
     /// Save tab removed per user feedback — there's a dedicated Save
@@ -1455,33 +1458,41 @@ struct DeckManagementSheet: View {
     @State private var importBanner: String?
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // Tab picker
-                Picker("", selection: $tab) {
-                    ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .padding(Design.Spacing.md)
+        if wrapInNavStack {
+            NavigationStack { content }
+        } else {
+            content
+        }
+    }
 
-                // Tab content
-                switch tab {
-                case .load:  loadTab
-                case .share: shareTab
-                }
+    private var content: some View {
+        VStack(spacing: 0) {
+            // Tab picker
+            Picker("", selection: $tab) {
+                ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
             }
-            .background(Design.Colors.nearBlack)
-            .navigationTitle("MANAGE DECKS")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+            .pickerStyle(.segmented)
+            .padding(Design.Spacing.md)
+
+            // Tab content
+            switch tab {
+            case .load:  loadTab
+            case .share: shareTab
+            }
+        }
+        .background(Design.Colors.nearBlack)
+        .navigationTitle("MANAGE DECKS")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if wrapInNavStack {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                         .foregroundStyle(Design.Colors.bobaOrange)
                 }
             }
-            .toolbarBackground(.regularMaterial, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
         }
+        .toolbarBackground(.regularMaterial, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     // MARK: - Save Tab

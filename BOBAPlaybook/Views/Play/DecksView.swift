@@ -65,6 +65,19 @@ struct DecksView: View {
     @State private var editorOpen = false
     @Namespace private var deckZoomNamespace
 
+    /// NavigationStack path INSIDE the editor. Manage Decks / Rules /
+    /// Legality push as destinations so they slide in from the right
+    /// with a back chevron — Music's "drill into next layer" pattern
+    /// instead of the previous "drawer on top of drawer" sheet stack.
+    @State private var editorPath = NavigationPath()
+
+    /// Routes within the editor's NavigationStack.
+    enum EditorRoute: Hashable {
+        case deckManagement
+        case rules
+        case legality
+    }
+
     // Pool filters
     @State private var search            = ""
     @State private var tokens            : [BOBAFilterToken] = []
@@ -163,7 +176,7 @@ struct DecksView: View {
             // showing them, which broke the "open Manage Decks while
             // editing" flow.
             .fullScreenCover(isPresented: $editorOpen) {
-                NavigationStack {
+                NavigationStack(path: $editorPath) {
                     VStack(spacing: 0) {
                         sheetHeaderRow
                         Divider().background(Design.Colors.glass)
@@ -176,9 +189,26 @@ struct DecksView: View {
                     .toolbarBackground(.regularMaterial, for: .navigationBar)
                     .toolbarBackground(.visible, for: .navigationBar)
                     .navigationBarTitleDisplayMode(.inline)
+                    .navigationDestination(for: EditorRoute.self) { route in
+                        switch route {
+                        case .deckManagement:
+                            DeckManagementSheet(store: store, cards: cardStore.displayCards, wrapInNavStack: false)
+                        case .rules:
+                            DeckRulesSheet(store: store, wrapInNavStack: false)
+                        case .legality:
+                            LegalityReportSheet(store: store, wrapInNavStack: false)
+                        }
+                    }
+                    // Profile is the lone exception — stays a sheet
+                    // because SignInView (which Profile hosts) is
+                    // designed as a modal account/auth surface and
+                    // doesn't fit a push back-chevron context.
                     .sheet(item: $secondarySheet) { sheet in
                         switch sheet {
                         case .profile:        ProfileView()
+                        // Other cases retained for compile parity but
+                        // no longer fired from the editor — they push
+                        // via editorPath instead.
                         case .rules:          DeckRulesSheet(store: store)
                         case .legality:       LegalityReportSheet(store: store)
                         case .deckManagement: DeckManagementSheet(store: store, cards: cardStore.displayCards)
@@ -290,18 +320,18 @@ struct DecksView: View {
 
                 Menu {
                     Button {
-                        secondarySheet = .deckManagement
+                        editorPath.append(EditorRoute.deckManagement)
                     } label: {
                         Label("Manage Decks", systemImage: "tray.full")
                     }
                     Button {
-                        secondarySheet = .rules
+                        editorPath.append(EditorRoute.rules)
                     } label: {
                         Label(store.ruleOverrides.hasAnyUserOverride ? "Custom rules…" : "Rules…",
                               systemImage: "list.bullet.rectangle")
                     }
                     Button {
-                        secondarySheet = .legality
+                        editorPath.append(EditorRoute.legality)
                     } label: {
                         Label("Legality audit", systemImage: "checkmark.seal")
                     }

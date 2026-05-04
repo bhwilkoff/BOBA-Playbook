@@ -17,32 +17,47 @@ import SwiftUI
 
 struct DeckRulesSheet: View {
     @Bindable var store: DeckBuilderStore
+    /// Wrap content in a NavigationStack when presented as a sheet.
+    /// Set to false when used as a NavigationDestination push from
+    /// the deck editor — the parent stack already provides the nav
+    /// chrome, and a nested stack creates back-button conflicts.
+    var wrapInNavStack: Bool = true
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            List {
-                presetPickerSection
-                activeRulesSection
-                specialRulesSection
-                toggleableSection
-                footerNote
-            }
-            .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .background(Design.Colors.nearBlack)
-            .navigationTitle("Deck Rules")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+        if wrapInNavStack {
+            NavigationStack { content }
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
+        List {
+            presetPickerSection
+            activeRulesSection
+            specialRulesSection
+            toggleableSection
+            footerNote
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Design.Colors.nearBlack)
+        .navigationTitle("Deck Rules")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // Done button only when presented as a sheet — pushed
+            // mode uses the back chevron instead.
+            if wrapInNavStack {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                 }
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Reset") {
-                        store.ruleOverrides = DeckRuleOverrides()
-                    }
-                    .disabled(!store.ruleOverrides.hasAnyUserOverride)
+            }
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Reset") {
+                    store.ruleOverrides = DeckRuleOverrides()
                 }
+                .disabled(!store.ruleOverrides.hasAnyUserOverride)
             }
         }
     }

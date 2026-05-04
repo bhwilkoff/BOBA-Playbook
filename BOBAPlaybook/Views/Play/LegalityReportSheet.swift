@@ -13,6 +13,9 @@ import SwiftUI
 
 struct LegalityReportSheet: View {
     @Bindable var store: DeckBuilderStore
+    /// See DeckRulesSheet — wrap in NavigationStack only when used as
+    /// a sheet. Editor pushes pass false.
+    var wrapInNavStack: Bool = true
     @Environment(\.dismiss) private var dismiss
 
     /// Computed once on first body evaluation. Not recomputed during the
@@ -27,24 +30,32 @@ struct LegalityReportSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            List {
-                summarySection
-                legalSection
-                illegalSection
-            }
-            .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .background(Design.Colors.nearBlack)
-            .navigationTitle("Legality Report")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+        if wrapInNavStack {
+            NavigationStack { content }
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
+        List {
+            summarySection
+            legalSection
+            illegalSection
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Design.Colors.nearBlack)
+        .navigationTitle("Legality Report")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if wrapInNavStack {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                 }
             }
-            .onAppear { if report.isEmpty { report = store.computeLegalityReport() } }
         }
+        .onAppear { if report.isEmpty { report = store.computeLegalityReport() } }
     }
 
     // MARK: - Sections

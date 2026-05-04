@@ -637,3 +637,46 @@ enum BOBAFilterToken: Identifiable, Hashable {
     /// exist but rarely; users can filter via the search text.
     static let costs: [BOBAFilterToken] = (0...4).map { BOBAFilterToken.cost($0) }
 }
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - BOBACardCell (DESIGN.md §11.1 + §4.3 small multiples)
+// ════════════════════════════════════════════════════════════════
+
+/// Canonical card-image primitive — uniform image aspect, corner
+/// radius, element-tinted border, and element glow. Per DESIGN.md
+/// §11.1 and §4.3, every card cell across Find / Decks / Collection /
+/// Wall composes from this so the eye scans content via invariant
+/// frame.
+///
+/// Usage: wrap with context-specific footers / overlays / gestures.
+/// The cell itself does NOT include name, power, badges, or tap
+/// handling — those are caller-owned so deck-violation greying,
+/// collection multi-designation pills, and find treatment ribbons
+/// can each compose differently.
+struct BOBACardCell: View {
+    let card: Card
+
+    /// 5:7 portrait card aspect — matches every BoBA card. Constant
+    /// so the small-multiples guarantee holds across surfaces.
+    static let aspectRatio: CGFloat = 5.0 / 7.0
+    static let cornerRadius: CGFloat = Design.Radius.md
+
+    var body: some View {
+        CardImageView(card: card, size: .thumb)
+            .aspectRatio(Self.aspectRatio, contentMode: .fill)
+            .clipped()
+            .background(Design.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: Self.cornerRadius)
+                    .strokeBorder(borderColor, lineWidth: 1)
+            )
+            .elementGlow(card.isSealed ? "NONE" : card.element)
+    }
+
+    private var borderColor: Color {
+        card.isSealed
+            ? Design.Colors.bobaOrange.opacity(0.30)
+            : Design.Colors.element(card.element).opacity(0.25)
+    }
+}

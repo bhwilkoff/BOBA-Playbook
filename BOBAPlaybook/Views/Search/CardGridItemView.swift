@@ -5,10 +5,11 @@ struct CardGridItemView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            // Card image
-            CardImageView(card: card, size: .thumb)
-                .aspectRatio(3/4, contentMode: .fill)
-                .clipped()
+            // Image layer is the canonical BOBACardCell primitive
+            // per DESIGN.md §11.1 / §4.3. Find adds the type-specific
+            // footer (element pill / play badge / hot dog) + treatment
+            // ribbon as overlays composed below.
+            BOBACardCell(card: card)
 
             // Bottom info strip
             VStack(alignment: .leading, spacing: 2) {
@@ -114,18 +115,11 @@ struct CardGridItemView: View {
                 .padding(Design.Spacing.xs)
             }
         }
-        .background(Design.Colors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
-        .overlay(
-            RoundedRectangle(cornerRadius: Design.Radius.md)
-                .strokeBorder(
-                    card.isSealed
-                        ? Design.Colors.bobaOrange.opacity(0.30)
-                        : Design.Colors.element(card.element).opacity(0.25),
-                    lineWidth: 1
-                )
-        )
-        .elementGlow(card.isSealed ? "NONE" : card.element)
+        // Re-clip the ZStack so the footer gradient + treatment ribbon
+        // overlays follow BOBACardCell's rounded corners. BOBACardCell
+        // owns the border + element glow; we just need the outer mask
+        // here for the overlays.
+        .clipShape(RoundedRectangle(cornerRadius: BOBACardCell.cornerRadius))
     }
 
     @ViewBuilder

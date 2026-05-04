@@ -1148,26 +1148,29 @@ struct BrowserCardCell: View {
     var body: some View {
         VStack(spacing: 4) {
             ZStack(alignment: .topTrailing) {
-                // Card image
-                Group {
-                    if let file = card.imageFile, !file.isEmpty {
-                        CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
-                    } else {
-                        RoundedRectangle(cornerRadius: 8).fill(Design.Colors.glass)
-                            .overlay(Text(String((card.hero.isEmpty ? card.name : card.hero).prefix(2)).uppercased())
-                                .font(Design.Fonts.display(20))
-                                .foregroundStyle(Design.Colors.element(card.element)))
-                    }
-                }
-                .frame(width: 90, height: 126)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(borderColor, lineWidth: inDeck ? 2.5 : 1.5)
-                )
-                .overlay(
-                    wouldViolate ? RoundedRectangle(cornerRadius: 8).fill(Color.black.opacity(0.5)) : nil
-                )
+                // Image layer: canonical BOBACardCell primitive per
+                // DESIGN.md §11.1. Deck-builder-specific overlays
+                // (in-deck cyan ring, would-violate dim, quick-add +)
+                // layer on top.
+                BOBACardCell(card: card)
+                    .frame(width: 90, height: 126)
+                    .overlay(
+                        // Stronger ring when card is already in deck
+                        // — supplements BOBACardCell's standard
+                        // element-tinted border.
+                        RoundedRectangle(cornerRadius: BOBACardCell.cornerRadius)
+                            .strokeBorder(
+                                inDeck ? Design.Colors.bobaCyan
+                                       : (wouldViolate ? Color(hex: "C0392B").opacity(0.6) : Color.clear),
+                                lineWidth: inDeck ? 2.5 : 1.5
+                            )
+                    )
+                    .overlay(
+                        wouldViolate
+                            ? RoundedRectangle(cornerRadius: BOBACardCell.cornerRadius)
+                                .fill(Color.black.opacity(0.5))
+                            : nil
+                    )
 
                 // Checkmark badge if already in deck
                 if inDeck {

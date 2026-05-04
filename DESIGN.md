@@ -28,7 +28,23 @@ principles and shouldn't change.
 
 ---
 
-## 1. The five binding principles
+## 1. The six binding principles
+
+0. **Native first.** Every interaction should be a built-in iOS API
+   before it is custom code. `.searchable` before custom search bars.
+   `.navigationTransition(.zoom)` before custom modal animation.
+   `.fullScreenCover` + `.matchedTransitionSource` before custom
+   drawers. `Tab(role: .search)` before custom bottom-anchored search
+   pills. If iOS doesn't provide what you want, accept iOS's pattern
+   over building custom — the maintenance cost of a custom component
+   compounds with every iOS update. **The repeated pattern that
+   broke things in this codebase was reaching for custom when native
+   would have done.** When a feature is hard to build natively,
+   first ask: *am I trying to do something iOS isn't supposed to do?*
+   Established 2026-05-04 after the v2.038 custom-drawer-flash
+   debacle (12+ iterations) and the v2.054→v2.061 forehead-bug
+   debacle (10+ iterations). Both bugs vanished the moment we
+   stopped recreating iOS components and used the native equivalent.
 
 1. **Each tab owns one verb.** Find = explore. Learn = understand. Decks
    = build. Collection = own. Purchase = acquire. A feature with a verb
@@ -885,45 +901,67 @@ deep linking / future AI summary targeting (see §7).
 **Verb:** *build*. The card pool inside the builder is *contextual to
 the current deck*, separate from Find's standalone exploration.
 
-**Pattern:** Apple Maps canvas-with-sheet. Card pool = canvas, current
-deck = bottom sheet with detents.
+**Pattern (REVISED 2026-05-04):** Music's mini-player +
+fullScreenCover with hero zoom. Card pool = canvas, current deck =
+non-draggable summary pill at the bottom that zooms into a
+full-screen editor on tap. **The earlier Maps-canvas-with-sheet
+detent pattern was abandoned after 12+ iterations of trying to make
+a custom drawer not flash during drag** — see §1.0 (native first).
+The drag was the problem; tap → zoom-into-editor is the answer.
 
 **Anatomy:**
-- **Canvas:** card pool grid, full-screen. Same `BOBACardCell` as Find.
-  `.scrollEdgeEffectStyle(.hard)`.
-- **Bottom sheet (current deck):** three detents —
-  `[.height(120), .medium, .large]`.
-  - `.height(120)`: deck name + running count + format badge + drag
-    handle. Always visible.
-  - `.medium`: deck list grouped by section (Heroes / Plays / Bonus /
-    Hot Dogs as collapsible sections inside the sheet, not separate
-    pickers).
-  - `.large`: deck stats + legality report + rules editor (the rules
-    editor is a `Form` `Section` *inside* the sheet, not its own modal).
-- **Format picker:** prominent at the top of the sheet's `.medium`
-  detent (foundational input — visible whenever you're inspecting the
-  deck). Not a toolbar row.
-- **Filtering the pool:** all 5 of the current filter rows collapse into
-  `.searchable` with tokens. Format/element/treatment/cost are tokens.
-  Search query goes in the field. Collection-only is a single toggle in
-  the sheet.
-- **Tap card in pool:** *adds it to the deck* (sheet rises a notch with
-  micro-animation). Long-press: card detail (push to `CardDetailView`).
-  Removes the current quick-add toggle entirely — interaction is one
-  consistent rule.
-- **Toolbar:** deck name + Save (tinted glass for primary action) +
-  Menu (Templates, Import, Export, Delete, Duplicate, Rules).
-- **Empty state:** `ContentUnavailableView` with template gallery as
-  actions (built-in templates), not a separate splash screen.
-- **Scan integration:** scan invocation lives in the toolbar Menu, not
-  a separate row. Scanned cards land in the deck via the existing
+- **Canvas:** card pool grid, full-screen. Uses the unified
+  `BOBACardGridItem` (per §11.1 — image on top, name + weapon +
+  power below). `.scrollEdgeEffectStyle(.hard, for: .top)`.
+- **Bottom summary pill:** non-draggable `DeckSummaryPill`
+  positioned via `.safeAreaInset(edge: .bottom)`. Shows the
+  current draft's name + section breakdown
+  (`8/8 H · 30/30 P · 6 BP · 10/10 HD` — sections appropriate to
+  format) + format badge. Empty draft shows "Build a deck · Tap
+  to open the editor."
+- **Tap pill → full-screen editor:** `.fullScreenCover` with
+  `.matchedTransitionSource(id: "deck-draft", in: ns)` on the
+  pill paired with `.navigationTransition(.zoom(sourceID:
+  "deck-draft", in: ns))` on the editor. Photos-app hero zoom.
+- **Editor (full-screen):** `NavigationStack(path: $editorPath)`
+  with the deck header (name field + stat counts), format chip
+  strip, and grouped deck list. Toolbar: Close (X) leading +
+  SAVE/SIGN IN trailing + ⋯ Menu (Manage Decks, Rules, Legality,
+  Clear deck).
+- **Editor secondary surfaces:** Manage Decks / Rules / Legality
+  Audit are **NavigationLink pushes** within the editor's
+  `NavigationStack`, NOT sheets stacked on top. Slide in from
+  the right with native back chevron — Music's "drill into next
+  layer" pattern. Each sheet struct accepts a
+  `wrapInNavStack: Bool = true` parameter so the same struct
+  works as a sheet OR as a destination.
+- **Filtering the pool:** native `.searchable(text:tokens:
+  suggestedTokens:placement:.navigationBarDrawer(.always))` with
+  `BOBAFilterToken` enum (weapon / cost / hero) for chip-style
+  search tokens. Tap the search bar → suggested tokens appear:
+  every weapon + 0–4 HD costs + matching hero names.
+- **Card pool tap:** opens card detail via NavigationLink push +
+  zoom transition (per §8.6). Long-press: adds card to current
+  deck draft (per user feedback — long-press is the canonical
+  add gesture).
+- **Toolbar (pool tab):** wordmark (principal) + ⋯ Menu (column
+  density picker 1/2/3, Scan into deck, walkthrough). NO Save
+  button on the pool toolbar — Save lives in the editor.
+- **Grid density:** user-selectable 1/2/3 columns via
+  `@AppStorage("bp_decksGridColumns_v1")`, defaults to 3. 1/2-
+  across pulls full-size images (per §11.1 BOBACardGridItem).
+- **Empty state:** template gallery in the editor's empty state.
+- **Scan integration:** scan invocation lives in the pool's ⋯
+  Menu. Scanned cards land in the active draft via the existing
   scanStore queue.
-- **Tutorial:** removed as a separate overlay. Replaced with empty-state
-  copy + first-card-added inline coachmark (one tap, dismissed).
 
-**Anti-patterns to avoid:** quick-add toggle (single interaction rule
-instead). Per-tab status banner (already removed 2026-04-29 ✅). The
-4 modal sheets for Save/Load/Share/Rules collapse into one toolbar Menu
+**Anti-patterns to avoid:** custom drawer / draggable bottom sheet
+(the original implementation that flashed; iOS 26 has no native
+drawer pattern that keeps the tab bar visible — accept either the
+fullScreenCover-from-pill pattern OR the standard `.sheet +
+.presentationDetents` that hides the tab bar at large detents).
+Quick-add toggle. Per-tab status banner. Stacking secondary sheets
+on top of the editor — push them as NavigationDestination instead.
 + at most one sheet at a time.
 
 ### 8.4 Collection — the owner
@@ -935,33 +973,47 @@ is also what you may want to show others. The design must treat *display
 how it looks to me* and *display how it looks to others* as first-class
 peers, not afterthoughts.
 
-**Pattern:** `NavigationStack` push from a root grid, with designation
-as a scope bar and a display-mode picker for grid / list / wall.
+**Pattern (REVISED 2026-05-04 — Music Library shape):** Root view is
+**My Cards** (the most common use case — owned cards by designation).
+Rainbow Progress and My Shows are NavigationLink pushes from the
+toolbar ⋯ Menu, NOT a top-of-view segmented mode picker. The previous
+viewMode picker created a 5-row chrome stack (mode picker + designation
+tabs + display picker + filter + search) before the user saw any cards
+— exactly the "stack of interfaces" anti-pattern the design overhaul
+was meant to avoid.
 
 **Anatomy:**
-- **Root:** card grid of owned cards, same `BOBACardCell` shape as
-  everywhere else (small-multiples enforcement, §4.3).
-- **Designation scope bar:** Personal / For Sale / For Trade / Wanted /
-  Grails as `searchScopes`. Filter the grid; don't push to a new view.
-- **Display mode picker** (toolbar Menu, top-trailing — three options):
-  - **Grid** (default): visual scan, card art is the focal point. The
-    iPhone-default density.
-  - **List**: compact rows — name + designation + value + quick
-    designation-edit chip. The power-user density for collectors who
-    just scanned 50 cards and want to triage fast.
+- **Root (My Cards, always shown):** card grid of owned cards, using
+  the unified `BOBACardGridItem` (per §11.1).
+- **Designation segmented Picker:** Personal / Sale / Trade / Wanted /
+  Grails using `UserCard.Designation.shortDisplayName` so all 5
+  options fit on one row (§3.9 — no horizontal-scrolling pill rows).
+- **Native `.searchable`** with `.navigationBarDrawer(displayMode:
+  .always)` — searches owned cards by hero name, card number, hero
+  field. Composes with the active filter and designation scope.
+- **Display mode picker** (toolbar ⋯ Menu, top section "Display" —
+  three options):
+  - **List** (default): compact rows — name + designation + value
+    + quick designation-edit chip.
+  - **Grid**: visual scan, card art is the focal point.
   - **Wall**: renders all visible cards as a single tile-able image,
-    sized for sharing (iPhone wallpaper, Instagram square,
-    Twitter/X 16:9). Toolbar = Save / Share / Copy. Wall view honors
-    the active designation scope, so "share my Grails" generates a
-    Grails-only wall, "share For Sale" generates a For-Sale-only wall.
-- **`.searchable`** within the current designation scope. Tokens for
-  hero / element / treatment / set / value-range. (See §6.4.)
+    sized for sharing.
+- **Grid density:** when display mode = .grid, additional toolbar
+  Menu section "Columns" with 1/2/3 picker via
+  `@AppStorage("bp_collectionGridColumns_v1")`. 1/2-across pulls
+  full-size images.
+- **Other lenses (toolbar ⋯ Menu, top section):**
+  - **Rainbow Progress** — pushes to a full-screen rainbow view with
+    its own chrome (no designation tabs, no display mode picker, no
+    search field competing for space).
+  - **My Shows** (streamer only) — pushes to `ShowsListView`.
+  Each pushed lens has only the chrome it needs.
 - **Each cell shows the designation badge** (tiny corner overlay) so
   multi-designation cards are scannable across scopes — a card that's
   in both Personal and For Sale shows both.
-- **Tap card:** push to `CardDetailView` with collection-edit
-  affordances inline (toggle designations, set valuation, add notes,
-  Share).
+- **Tap card:** NavigationLink push to `CollectionCardDetailView` via
+  the parent NavigationStack's `navigationPath` (also handles
+  Rainbow / Shows routes). Hero zoom transition per §8.6.
 - **Scan invocation:** toolbar Scan button (per §6.5). On invocation,
   brief sheet asks *"Add scanned cards to which designation?"* —
   defaults to Personal, remembers last choice. Then routes accordingly.
@@ -970,7 +1022,8 @@ as a scope bar and a display-mode picker for grid / list / wall.
   the format `bobaplaybook.com/u/{username}/{designation}` and opens
   the iOS app if installed, falls back to the web app if not. The web
   app honors a per-designation public/private toggle (set in Profile).
-- **Profile / sign-in:** sheet from top-leading gear icon (per §6.5).
+- **Profile** is Find-only per `feedback_profile_only_on_find.md`.
+  Collection's auth surfaces are inline `BOBASignInPrompt` rows.
 - **Value summary:** persistent header above the grid, single line, no
   decoration. Total value + designation breakdown. Tap → push to a
   value-history detail (chart of total value over time).
@@ -1013,52 +1066,124 @@ options is within the ≤4 segmented limit.
 
 ### 8.6 Card detail surface — the universal card view
 
-`CardDetailView` is pushed from Find, Decks (browser long-press), and
-Collection (tap). It's the most-visited non-tab surface in the app.
-Because it lives across three contexts, the design must be invariant
-to entry context — same anatomy, same controls, same actions. Only
-the *available actions in the bottom action bar* differ by context.
+The card detail surface is pushed from Find, Decks (pool tap), and
+Collection (cell tap). Because it lives across three contexts, the
+design must be invariant to entry context — same `artPanel`, same
+toolbar setup, same modifier order. Only the body content BELOW
+the artPanel differs by context. Implemented as three structs
+(`CardDetailView`, `BrowserCardDetailSheet`, `CollectionCardDetailView`)
+that share the artPanel + toolbar pattern verbatim.
 
-**Pattern:** scroll view with vertically-stacked sections, all of which
-are present (or sized to zero) regardless of context. Predictability
-beats per-context customization.
+**Pattern:** Music-style hero zoom into a `NavigationLink`-pushed
+view (NOT a sheet). Source cell uses
+`.matchedTransitionSource(id:in:)` as the OUTERMOST modifier;
+destination uses `.navigationTransition(.zoom(sourceID:in:))`.
 
-**Anatomy (top to bottom):**
-1. **Card art**: hero image, full-width, edge-to-edge. Use
-   `.containerBackground` + `.backgroundExtensionEffect()` so card art
-   bleeds under the navigation bar (per §5; honors "card art is the
-   focal point" mantra).
-2. **Stats grid**: the canonical 6-cell 2-column layout per
-   [DECISIONS.md #029](./DECISIONS.md). Card # / Type / Treatment /
-   Weapon / Set / Sub-set. Render *all six* cells always — empty cells
-   show "—" rather than collapsing the row (preserves layout
-   consistency across all card types).
-3. **Cost + DBS** (Plays only, per DECISIONS.md #029): renders BELOW
-   the canonical six. Never interleaved.
-4. **Pricing panels** (§8.7): live Buy Now + Sold history.
-5. **Notes / valuation / designation** (Collection-context only):
-   inline editing chips, no nav level.
-6. **Action bar** (sticky bottom, glass): contextual actions per entry.
+**Canonical artPanel (identical across all three surfaces):**
+```swift
+ZStack {
+    LinearGradient(
+        colors: [Design.Colors.element(card.element).opacity(0.25),
+                 Design.Colors.nearBlack],
+        startPoint: .top, endPoint: .bottom
+    )
+    .frame(height: 420)
 
-**Action bar by context:**
+    CardImageView(card: card, size: .full)
+        .frame(maxWidth: .infinity)
+        .frame(height: 380)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .shadow(color: Design.Colors.element(card.element).opacity(0.4),
+                radius: 16, y: 6)
+        .padding(.horizontal, Design.Spacing.xl)
+}
+```
 
-| Entry from | Action bar contains |
+**Canonical toolbar setup (identical across all three surfaces) —
+modifier ORDER matters:**
+```swift
+.scrollEdgeEffectStyle(.soft, for: .top)        // BEFORE .background!
+.background(Design.Colors.nearBlack)
+.navigationTitle("")                            // empty — title via principal
+.navigationBarTitleDisplayMode(.inline)
+.toolbar { ... + ToolbarItem(.principal) { Text(card.name)... } }
+.toolbarBackground(.regularMaterial, for: .navigationBar)
+.toolbarBackground(.visible, for: .navigationBar)
+```
+
+`.scrollEdgeEffectStyle(_:for:)` MUST come BEFORE `.background(_:)`.
+`.background` returns a wrapped view; applying scrollEdgeEffectStyle
+after it doesn't register on the underlying ScrollView.
+
+**Wrap-in-NavStack pattern.** Each detail struct accepts
+`wrapInNavStack: Bool = true`. Default `true` preserves sheet
+usage (e.g., legacy `DeckBuilderView` still presents
+`BrowserCardDetailSheet` as a sheet from card detail's "Add to
+Custom Deck"); push usage passes `false` so the parent
+NavigationStack provides nav chrome and avoids the nested-stack
+back-button conflict. The Done button is conditionally rendered
+only in sheet mode (push uses native back chevron).
+
+**Anatomy (body content below the artPanel):**
+1. **Stats grid** (canonical 6-cell 2-column per DECISIONS.md #029)
+2. **Cost + DBS** (Plays only)
+3. **Pricing panels** (§8.7)
+4. **Per-context body**: Collection adds copies/decks/variations
+   sections; Decks adds an "Add to Deck" / "Remove" CTA; Find adds
+   the Add menu in the toolbar
+5. **Action bar / toolbar items**: contextual actions per entry
+
+**Action bar by context** (toolbar trailing items, NOT a separate
+sticky bottom bar):
+
+| Entry from | Toolbar contains |
 |---|---|
-| **Find** | Add to Collection · Add to Deck · Share |
-| **Decks (long-press)** | Add to Deck (primary, tinted) · Add to Collection · Share |
-| **Collection (tap)** | Edit Designation · Add to Deck · Share |
+| **Find** | Add menu (Collection / Deck / Show) + Mod-edit (if mod) + Share |
+| **Decks (tap)** | Add to Deck CTA in body |
+| **Collection (tap)** | Edit Designation + Add menu (in body sections) |
 
-The order changes; the *vocabulary* never does. Never invent a new verb
-("Acquire", "Stash", "Collect") when one of {Add to Collection, Add to
-Deck, Share, Edit Designation} fits.
+The vocabulary never changes — `Add to Collection`, `Add to Deck`,
+`Share`, `Edit Designation` are the canonical verbs.
 
-**Toolbar:** wordmark replaced by hero name + cardNumber (`Maverick ·
-RBF-72`). Top-trailing: contextual `Menu` (Report correction, Copy
-deep link, View on web).
+**Anti-patterns:**
+- Per-surface artPanel variants (different gradient height, different
+  image padding, different corner radius). The artPanel is one shape;
+  cleaned up 2026-05-04 after surfaces had drifted.
+- Per-surface toolbar accumulation (`.toolbarTitleDisplayMode(.inline)`,
+  `.toolbarBackground(.hidden)`, etc. added during forehead-iteration
+  guesses). Stick to the canonical toolbar setup above.
+- Sheets for "drill into next layer" content (Manage Decks, Rules,
+  Legality). Use NavigationLink push instead — see §8.3.
+- Prev/next chevrons in the bottom toolbar. Removed 2026-05-04 per
+  user feedback — they cluttered the simple card-detail surface.
 
-**Anti-patterns:** per-tab variants of CardDetailView (different stats
-order, different pricing layout). One source of truth, contextual
-actions only.
+**Hero zoom transition rules** (Music's tap-to-album pattern):
+
+| Where | What |
+|---|---|
+| Source cell | `.matchedTransitionSource(id: <stable-id>, in: ns)` as the OUTERMOST modifier |
+| Destination | `.navigationTransition(.zoom(sourceID: <same-id>, in: <same-ns>))` |
+| Namespace | One `@Namespace` per parent view, shared between source and destination |
+| Push | NavigationLink push or `path.append(<value>)` with `.navigationDestination(for:)` |
+| ID source | `card.id` (Card is Hashable+Identifiable) for Find/Decks, `bobaId: String` for Collection |
+
+**The "nil view" warning** in the iOS console
+(*Starting a zoom transition from a nil view will trigger a fallback
+transition*) means iOS couldn't find a view with the matching source
+ID. Causes encountered:
+- `.matchedTransitionSource` applied to an INNER view that subsequent
+  modifiers (Button label, .overlay, custom .modifier) wrap. **Fix:**
+  apply matchedTransitionSource as the LAST (outermost) modifier on
+  the cell.
+- `.matchedTransitionSource` applied INSIDE a function-returning-view
+  (like `collectionGridCell(identifier:)`). **Fix:** apply it at the
+  call site as the outermost modifier on the function's result.
+
+When iOS uses the fallback transition, the destination's nav bar
+inherits the parent's nav bar height — including any `.searchable`
+drawer — and visually overlays the destination's content as
+"extended header" before collapsing. Avoid the fallback by getting
+the matched source right.
 
 ---
 
@@ -1258,7 +1383,9 @@ primitive = first edit this section.
 
 | Component | Purpose | Used in |
 |---|---|---|
-| `BOBACardCell` | Card thumbnail — uniform aspect, padding, badge placement (§4.3 small multiples) | Find grid / Decks pool / Collection grid / Learn (legacy) / Wall view |
+| `BOBACardCell` | Card thumbnail — uniform aspect, padding, badge placement (§4.3 small multiples). Takes `size: CardImageView.ImageSize = .thumb`; pass `.full` when rendering at densities ≤ 2 across (BOBACardGridItem does this automatically). | Find / Decks / Collection / Wall view + single-card surfaces (rainbow row, scan chip) |
+| `BOBACardGridItem` | Unified grid cell — `BOBACardCell` on top + caption below (hero name + weapon pill + power). Density-adaptive typography via `columnCount: 1 \| 2 \| 3`. Caption uses `textPrimary` text inside an element-tinted capsule so HEX (#8B00FF) stays readable on dark backgrounds. | Find / Decks / Collection card grids — every grid uses the same cell |
+| `DeckSummaryPill` | Bottom-anchored summary pill above the tab bar showing the active deck draft. Tap → zooms into full-screen DeckEditor (matchedTransitionSource + navigationTransition.zoom per §8.6). Replaces the v2.038 custom drawer. | Decks tab — `.safeAreaInset(edge: .bottom)` |
 | `BOBASectionRow` | Single-line list row — title + count + chevron | Learn root / Profile / Settings forms |
 | `BOBASectionHeader` | Typography hierarchy enforcer — uppercase Bebas Neue, no colored block | Every grouped view |
 | `BOBASearchBar` | Wraps `.searchable` with the BOBA token type | Decks / Collection / Learn |

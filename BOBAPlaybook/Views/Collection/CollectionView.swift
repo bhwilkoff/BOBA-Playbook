@@ -816,19 +816,18 @@ struct CollectionView: View {
 
         VStack(spacing: 4) {
             ZStack(alignment: .topTrailing) {
+                // Image layer: canonical BOBACardCell primitive per
+                // DESIGN.md §11.1. Multi-designation badge stack
+                // composes on top.
                 Group {
                     if let card = catalog {
-                        CardImageView(card: card, size: .thumb)
+                        BOBACardCell(card: card)
                     } else {
-                        RoundedRectangle(cornerRadius: 8).fill(Design.Colors.glass)
+                        RoundedRectangle(cornerRadius: BOBACardCell.cornerRadius)
+                            .fill(Design.Colors.glass)
                     }
                 }
                 .frame(width: 90, height: 126)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Design.Colors.element((catalog?.element ?? "NONE")).opacity(0.4), lineWidth: 1.5)
-                )
 
                 // Multi-designation badge — corner pill stack so a card that's
                 // both Personal + For Sale stays scannable.

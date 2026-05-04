@@ -26,6 +26,8 @@ struct CollectionView: View {
     @State private var showingFilters      = false
     @State private var exportShareURL: URL?    = nil
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
+    @State private var showingProfile      = false
+    @AppStorage("selectedIconName") private var selectedIconName: String = "default"
     /// Collection-only sort axis. Persisted across app launches because
     /// it's a personal preference (a coach who likes "Recently Added"
     /// doesn't want it reset every time they open the app).
@@ -57,17 +59,36 @@ struct CollectionView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                if auth.isAuthenticated {
-                    ToolbarItem(placement: .topBarLeading) {
-                        collectionMenu
+                // Profile gear top-leading per DESIGN.md §6.5 / §6.9.
+                // Auth-aware tabs (Find / Decks / Collection / Purchase
+                // wishlist) all expose Profile here, in matching position
+                // and with the user's selected app-icon accent color.
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showingProfile = true
+                    } label: {
+                        Image(systemName: "person.crop.circle")
+                            .font(.system(size: 22))
+                            .foregroundStyle(AppIconOption.currentColor(for: selectedIconName))
                     }
+                    .accessibilityLabel("Profile")
                 }
                 ToolbarItem(placement: .principal) {
                     BOBAWordmark()
                 }
+                // Top-trailing: filter button (when in myCards mode) + the
+                // overflow Menu (Refresh / Export / Walkthrough). Two
+                // toolbar items so the filter dot badge stays visible
+                // beside the ellipsis. Both auth-gated since neither
+                // does anything for signed-out users.
                 if auth.isAuthenticated && viewMode == .myCards {
                     ToolbarItem(placement: .topBarTrailing) {
                         filterButton
+                    }
+                }
+                if auth.isAuthenticated {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        collectionMenu
                     }
                 }
             }
@@ -76,6 +97,9 @@ struct CollectionView: View {
         }
         .sheet(isPresented: $showingSignIn) {
             SignInView()
+        }
+        .sheet(isPresented: $showingProfile) {
+            ProfileView()
         }
         .sheet(isPresented: $showingFilters) {
             // Bind the @AppStorage-backed raw string through a custom

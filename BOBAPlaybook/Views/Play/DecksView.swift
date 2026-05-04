@@ -42,14 +42,19 @@ struct DecksView: View {
 
     // MARK: - Sheet + UI state
 
-    /// Persistent system sheet — uses iOS's native presentationDetents
-    /// API per DESIGN.md §8.3. The trick to keeping the tab bar visible
-    /// underneath is .toolbar(.visible, for: .tabBar) applied to the
-    /// sheet's content (NOT to the host view) — sheet content lives in
-    /// a separate presentation context, so the modifier overrides the
-    /// default modal "hide tab bar" behavior for the sheet specifically.
-    @State private var showDeckSheet     = false
-    @State private var sheetDetent       : PresentationDetent = .height(120)
+    /// Per the user's "tab bar gets hidden" feedback: the system .sheet
+    /// API hides the parent TabView's tab bar whenever a sheet is
+    /// presented (regardless of detent or .toolbar overrides). The
+    /// canonical iOS pattern that DOES preserve the tab bar is a
+    /// NavigationLink push — every system tab in iOS does it this way
+    /// (Notes, Reminders, Mail, Music). So:
+    ///   - The deck STATUS lives in a tappable status banner pinned
+    ///     below the toolbar on the canvas (deck name + counts +
+    ///     format badge + chevron).
+    ///   - Tapping the banner pushes DeckPanelView, which holds the
+    ///     full deck list, format chip strip, validation, etc.
+    ///   - Tab bar stays visible on both views by default — no
+    ///     workarounds needed.
 
     // Pool filters
     @State private var search            = ""
@@ -87,14 +92,28 @@ struct DecksView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .top) {
-                cardPoolCanvas
-                addedBannerOverlay
+            VStack(spacing: 0) {
+                deckStatusBanner          // tap to push DeckPanelView
+                ZStack(alignment: .top) {
+                    cardPoolCanvas
+                    addedBannerOverlay
+                }
             }
             .toolbar { toolbarContent }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible,         for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: DeckPanelDestination.self) { _ in
+                DeckPanelView(
+                    store: store,
+                    cardStore: cardStore,
+                    auth: auth,
+                    onProfile: { secondarySheet = .profile },
+                    onRules: { secondarySheet = .rules },
+                    onLegality: { secondarySheet = .legality },
+                    onDeckManagement: { secondarySheet = .deckManagement }
+                )
+            }
             // Search tokens per DESIGN.md §6.4 — replaces every filter
             // pill row in the legacy view. Suggested tokens are
             // contextual (every weapon, the 0–4 HD costs, hero matches
@@ -118,24 +137,6 @@ struct DecksView: View {
                 }
             }
             .onSubmit(of: .search) { searchFocused = false }
-            // Persistent bottom sheet — system .sheet with detents per
-            // DESIGN.md §8.3 Maps pattern. .toolbar(.visible, for:
-            // .tabBar) on the sheet CONTENT keeps the TabView's tab
-            // bar visible underneath at every detent so the user can
-            // always navigate to other tabs.
-            .sheet(isPresented: $showDeckSheet) {
-                deckSheetContent
-                    .presentationDetents(
-                        [.height(120), .medium],
-                        selection: $sheetDetent
-                    )
-                    .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-                    .presentationContentInteraction(.scrolls)
-                    .presentationCornerRadius(28)
-                    .interactiveDismissDisabled(true)
-                    .presentationDragIndicator(.visible)
-                    .toolbar(.visible, for: .tabBar)   // ← keeps tab bar reachable
-            }
             // Single secondary-sheet host attached to the parent.
             .sheet(item: $secondarySheet) { sheet in
                 switch sheet {
@@ -380,27 +381,62 @@ struct DecksView: View {
 
     // MARK: - Bottom sheet content (system .sheet — DESIGN.md §8.3)
 
+    /// Tappable status banner pinned below the toolbar. Pushes
+    /// DeckPanelView when tapped — that's the destination with the
+    /// full deck list, format chips, validation, and rules access.
+    /// Stays slim (~64pt) so the card pool dominates the canvas.
     @ViewBuilder
-    private var deckSheetContent: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            sheetHeaderRow
-                .walkthroughAnchor("decks.sheetHandle")
-
-            // .medium detent gets the format chip strip + the deck list.
-            // .height(120) shows just the header.
-            if sheetDetent != .height(120) {
-                Divider().background(Design.Colors.glass)
-                formatChipStrip
-                    .walkthroughAnchor("decks.formatChip")
-                Divider().background(Design.Colors.glass)
-                deckListScroll
+    private var deckStatusBanner: some View {
+        NavigationLink(value: DeckPanelDestination()) {
+            HStack(spacing: Design.Spacing.md) {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(store.deckName)
+                            .font(Design.Fonts.display(15))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                            .lineLimit(1)
+                        Text(store.format.displayName)
+                            .font(Design.Fonts.mono(9, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                            .padding(.horizontal, 6)
+                            .frame(height: 18)
+                            .background(Capsule().fill(Design.Colors.bobaOrange.opacity(0.15)))
+                    }
+                    HStack(spacing: Design.Spacing.md) {
+                        statCount(label: "Heroes", value: store.heroes.count, target: store.format.heroTarget)
+                        if store.format.needsPlaybook {
+                            statCount(label: "Plays", value: store.plays.count, target: 30)
+                        }
+                        if store.format.needsHotDogs {
+                            statCount(label: "Hot Dogs", value: store.hotDogs.count, target: 10)
+                        }
+                    }
+                }
+                Spacer()
+                if !deckIsEmpty {
+                    legalityPill
+                }
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Design.Colors.textMuted)
             }
+            .padding(.horizontal, Design.Spacing.md)
+            .padding(.vertical, 10)
+            .background(Design.Colors.surface)
+            .overlay(
+                Rectangle()
+                    .frame(height: 0.5)
+                    .foregroundStyle(Design.Colors.glassBorder),
+                alignment: .bottom
+            )
         }
-        // No .background — let iOS 26 apply Liquid Glass automatically (§3.10).
+        .buttonStyle(.plain)
+        .walkthroughAnchor("decks.sheetHandle")  // anchor name kept for script compat
+        .accessibilityHint("Open the full deck panel")
     }
 
-    /// Always-visible header at .height(120) — deck name + per-section counts +
-    /// format badge + legality pill.
+    /// Always-visible header — deck name + per-section counts +
+    /// format badge + legality pill. Used inside DeckPanelView.
     private var sheetHeaderRow: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: Design.Spacing.sm) {
@@ -646,9 +682,6 @@ struct DecksView: View {
                 ForEach(DeckTemplate.all) { template in
                     Button {
                         store.loadTemplate(template, allCards: cardStore.displayCards)
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                            sheetDetent = .medium
-                        }
                     } label: {
                         HStack(alignment: .top, spacing: Design.Spacing.md) {
                             Image(systemName: "rectangle.stack.fill")
@@ -915,8 +948,6 @@ struct DecksView: View {
         if deckIsEmpty {
             _ = store.restoreDraft(allCards: cardStore.displayCards)
         }
-        // Always present the bottom sheet.
-        if !showDeckSheet { showDeckSheet = true }
         // Walkthrough on first visit.
         if WalkthroughsManager.shared.shouldShow(.decksTab) {
             walkthrough = .decksTab
@@ -961,13 +992,9 @@ struct DecksView: View {
     }
 
     private func popSheetIfNeeded() {
-        // After adding, pop the sheet up a notch so the user sees the deck
-        // change. Only nudges from the smallest detent — never collapses
-        // a user who's already inspecting the deck list.
-        guard sheetDetent == .height(120) else { return }
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-            sheetDetent = .medium
-        }
+        // No-op now that the deck panel is a NavigationLink push rather
+        // than a draggable sheet. Kept as a hook for future "auto-open
+        // deck panel after scan" behavior.
     }
 }
 
@@ -984,5 +1011,247 @@ private struct FirstCellAnchor: ViewModifier {
         } else {
             content
         }
+    }
+}
+
+// MARK: - Deck Panel Destination
+
+/// Type-tagged value for `.navigationDestination(for:)`. Empty struct
+/// — there's only one panel, but the typed-destination API needs a
+/// concrete Hashable type for routing.
+private struct DeckPanelDestination: Hashable {}
+
+/// The full deck-management surface. Pushed via NavigationLink from
+/// DecksView's status banner. Tab bar stays visible because this is
+/// a vanilla NavigationStack push (not a sheet), which is the
+/// canonical iOS pattern for "drill into a detail" inside a tab.
+private struct DeckPanelView: View {
+    @Bindable var store: DeckBuilderStore
+    let cardStore: CardStore
+    let auth: AuthManager
+    let onProfile: () -> Void
+    let onRules: () -> Void
+    let onLegality: () -> Void
+    let onDeckManagement: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            headerRow
+            Divider().background(Design.Colors.glass)
+            formatChipStrip
+            Divider().background(Design.Colors.glass)
+            deckList
+        }
+        .background(Design.Colors.nearBlack)
+        .navigationTitle("Deck")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button { onDeckManagement() } label: {
+                        Label("Saved decks · Templates", systemImage: "tray.full")
+                    }
+                    Button { onRules() } label: {
+                        Label(store.ruleOverrides.hasAnyUserOverride ? "Custom rules…" : "Rules…",
+                              systemImage: "list.bullet.rectangle")
+                    }
+                    Button { onLegality() } label: {
+                        Label("Legality audit", systemImage: "checkmark.seal")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                }
+                .accessibilityLabel("Deck options")
+            }
+        }
+        .toolbarBackground(.regularMaterial, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+    }
+
+    private var headerRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: Design.Spacing.sm) {
+                TextField("Deck name", text: $store.deckName)
+                    .font(Design.Fonts.display(20))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                    .submitLabel(.done)
+                    .textFieldStyle(.plain)
+                Spacer()
+                if !deckIsEmpty {
+                    legalityPill
+                }
+            }
+            HStack(spacing: Design.Spacing.md) {
+                statRow(label: "Heroes", value: store.heroes.count, target: store.format.heroTarget)
+                if store.format.needsPlaybook {
+                    statRow(label: "Plays", value: store.plays.count, target: 30)
+                    if !store.bonusPlays.isEmpty {
+                        statRow(label: "Bonus", value: store.bonusPlays.count, target: nil)
+                    }
+                }
+                if store.format.needsHotDogs {
+                    statRow(label: "Hot Dogs", value: store.hotDogs.count, target: 10)
+                }
+                Spacer()
+            }
+        }
+        .padding(Design.Spacing.md)
+    }
+
+    private var formatChipStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Design.Spacing.xs) {
+                ForEach(DeckFormat.allCases) { fmt in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.18)) { store.format = fmt }
+                    } label: {
+                        Text(fmt.displayName)
+                            .font(Design.Fonts.mono(11, weight: store.format == fmt ? .bold : .regular))
+                            .foregroundStyle(store.format == fmt ? Design.Colors.nearBlack : Design.Colors.textSecondary)
+                            .padding(.horizontal, 10)
+                            .frame(height: 28)
+                            .background(Capsule().fill(store.format == fmt ? Design.Colors.bobaOrange : Design.Colors.glass))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, Design.Spacing.md)
+            .padding(.vertical, Design.Spacing.sm)
+        }
+    }
+
+    @ViewBuilder
+    private var deckList: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                if !auth.isAuthenticated && !deckIsEmpty {
+                    BOBASignInPrompt(
+                        actionDescription: "save this deck and access it on every device",
+                        onSignIn: { onProfile() }
+                    )
+                    .padding(.horizontal, Design.Spacing.md)
+                    .padding(.vertical, Design.Spacing.sm)
+                }
+                if deckIsEmpty {
+                    BOBAEmptyState(
+                        title: "Empty deck",
+                        systemImage: "rectangle.stack.badge.plus",
+                        message: "Tap any card from the pool to add it. Or pick a template from the menu."
+                    ) {
+                        EmptyView()
+                    }
+                    .padding(.top, Design.Spacing.xl)
+                } else {
+                    if !visibleValidationErrors.isEmpty {
+                        validationSection
+                    }
+                    if !store.heroes.isEmpty {
+                        DeckSection(title: "HEROES (\(store.heroes.count)/\(store.format.heroTarget))", isEmpty: false) {
+                            ForEach(groupedHeroes, id: \.power) { group in
+                                HStack {
+                                    Text("PWR \(group.power)")
+                                        .font(Design.Fonts.mono(10, weight: .bold))
+                                        .foregroundStyle(Design.Colors.textMuted)
+                                    Text("(\(group.cards.count)/6)")
+                                        .font(Design.Fonts.mono(10))
+                                        .foregroundStyle(group.cards.count > 6 ? Color(hex: "C0392B") : Design.Colors.textMuted)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, Design.Spacing.md)
+                                .padding(.top, Design.Spacing.xs)
+                                ForEach(group.cards) { card in
+                                    DeckCardRow(card: card) { store.removeCard(card, role: .hero) }
+                                }
+                            }
+                        }
+                    }
+                    if store.format.needsPlaybook && !store.plays.isEmpty {
+                        DeckSection(title: "PLAYS (\(store.plays.count)/30)", isEmpty: false) {
+                            ForEach(store.plays) { card in
+                                DeckCardRow(card: card) { store.removeCard(card, role: .play) }
+                            }
+                        }
+                    }
+                    if store.format.needsPlaybook && !store.bonusPlays.isEmpty {
+                        DeckSection(title: "BONUS PLAYS (\(store.bonusPlays.count))", isEmpty: false) {
+                            ForEach(store.bonusPlays) { card in
+                                DeckCardRow(card: card) { store.removeCard(card, role: .bonusPlay) }
+                            }
+                        }
+                    }
+                    if store.format.needsHotDogs && !store.hotDogs.isEmpty {
+                        DeckSection(title: "HOT DOGS (\(store.hotDogs.count)/10)", isEmpty: false) {
+                            ForEach(store.hotDogs) { card in
+                                DeckCardRow(card: card) { store.removeCard(card, role: .hotDog) }
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.bottom, Design.Spacing.lg)
+        }
+    }
+
+    private var validationSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(visibleValidationErrors) { err in
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                    Text(err.message)
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                }
+            }
+        }
+        .padding(Design.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Design.Colors.bobaOrange.opacity(0.08))
+    }
+
+    private var groupedHeroes: [(power: Int, cards: [Card])] {
+        let groups = Dictionary(grouping: store.heroes) { $0.power ?? 0 }
+        return groups.map { (power: $0.key, cards: $0.value) }.sorted { $0.power > $1.power }
+    }
+
+    private var visibleValidationErrors: [DeckValidationError] {
+        store.validationErrors.filter { !$0.message.hasPrefix("Need ") }
+    }
+
+    private var deckIsEmpty: Bool {
+        store.heroes.isEmpty && store.plays.isEmpty
+            && store.bonusPlays.isEmpty && store.hotDogs.isEmpty
+    }
+
+    private func statRow(label: String, value: Int, target: Int?) -> some View {
+        let ok = target.map { value == $0 } ?? true
+        return HStack(spacing: 3) {
+            Text(label)
+                .font(Design.Fonts.mono(9))
+                .foregroundStyle(Design.Colors.textMuted)
+            if let target {
+                Text("\(value)/\(target)")
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(ok ? Color(hex: "4CAF50") : Design.Colors.textPrimary)
+            } else {
+                Text("\(value)")
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(Design.Colors.textPrimary)
+            }
+        }
+    }
+
+    private var legalityPill: some View {
+        let isLegal = store.validationErrors.isEmpty && !deckIsEmpty
+        return Text(isLegal ? "LEGAL" : "ILLEGAL")
+            .font(Design.Fonts.mono(9, weight: .bold))
+            .foregroundStyle(isLegal ? Color(hex: "4CAF50") : Color(hex: "C0392B"))
+            .padding(.horizontal, 8)
+            .frame(height: 20)
+            .background(Capsule().fill((isLegal ? Color(hex: "4CAF50") : Color(hex: "C0392B")).opacity(0.15)))
     }
 }

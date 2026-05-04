@@ -32,6 +32,7 @@ private struct LearnCategory: Identifiable, Hashable {
     let title: String
     let subtitle: String
     let systemImage: String
+    let accent: Color  // Brand-tinted accent for the tile's icon + border
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -43,6 +44,82 @@ struct LearnView: View {
     @State private var path = NavigationPath()
     @State private var showWatch = false
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
+    /// Top-of-page intro — gives Learn a sense of editorial weight
+    /// rather than reading like a settings list. Static copy keyed
+    /// to the Learn purpose; the visual treatment uses the same
+    /// typography hierarchy as a feature article.
+    private var learnHeader: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("LEARN BoBA")
+                .font(Design.Fonts.mono(10, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaCyan)
+                .tracking(2)
+            Text("Everything we know.\nBuilt for every coach.")
+                .font(Design.Fonts.display(28))
+                .foregroundStyle(Design.Colors.textPrimary)
+                .lineSpacing(2)
+            Text("Pick a path. Read or watch — both are first-class.")
+                .font(Design.Fonts.mono(13))
+                .foregroundStyle(Design.Colors.textSecondary)
+                .padding(.top, 2)
+        }
+        .padding(.horizontal, Design.Spacing.lg)
+        .padding(.top, Design.Spacing.md)
+    }
+
+    /// Single category tile — accent-tinted icon top-left, title
+    /// underneath, subtitle below. Watch tile opens the WatchView
+    /// sheet directly; every other tile pushes via NavigationLink.
+    @ViewBuilder
+    private func categoryTile(_ cat: LearnCategory, isFirst: Bool) -> some View {
+        let inner = VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: cat.systemImage)
+                .font(.system(size: 26, weight: .semibold))
+                .foregroundStyle(cat.accent)
+                .frame(width: 44, height: 44)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(cat.accent.opacity(0.12))
+                )
+            Text(cat.title)
+                .font(Design.Fonts.display(20))
+                .foregroundStyle(Design.Colors.textPrimary)
+            Text(cat.subtitle)
+                .font(Design.Fonts.mono(11))
+                .foregroundStyle(Design.Colors.textMuted)
+                .lineLimit(3)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, minHeight: 160, alignment: .topLeading)
+        .padding(Design.Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: Design.Radius.md)
+                .fill(Design.Colors.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Design.Radius.md)
+                        .strokeBorder(cat.accent.opacity(0.25), lineWidth: 1)
+                )
+        )
+
+        if cat.id == "watch" {
+            // No NavigationLink — Watch is a sheet destination
+            // (YouTube playlist viewer). Tapping the tile presents
+            // WatchView directly.
+            Button { showWatch = true } label: {
+                inner
+            }
+            .buttonStyle(.plain)
+            .walkthroughAnchor(isFirst ? "learn.firstRow" : "learn.row.\(cat.id)")
+        } else {
+            NavigationLink(value: cat) {
+                inner
+            }
+            .buttonStyle(.plain)
+            .walkthroughAnchor(isFirst ? "learn.firstRow" : "learn.row.\(cat.id)")
+        }
+    }
+
     /// Resolves a slug from cardStore.pendingLearnCategory back to a
     /// LearnCategory and pushes it onto the nav path. Lets external
     /// deep links (bobaplaybook://learn/strategy) and Universal Links
@@ -56,61 +133,78 @@ struct LearnView: View {
         path.append(cat)
     }
 
+    /// Six learning paths surfaced as visual tiles. Watch (YouTube) is
+    /// promoted to a first-class category per user feedback #4 — it
+    /// was hidden in the toolbar overflow Menu, which downgraded it
+    /// from a learning surface to an afterthought. Each tile uses an
+    /// accent color so the grid reads as a curated collection rather
+    /// than a generic list of pages.
     private let categories: [LearnCategory] = [
         LearnCategory(
             id: "rules",
             title: "Rules",
             subtitle: "Match flow, card zones, edge cases",
-            systemImage: "book.closed.fill"
+            systemImage: "book.closed.fill",
+            accent: Design.Colors.bobaOrange
         ),
         LearnCategory(
             id: "strategy",
             title: "Strategy",
             subtitle: "Power curve, weapon synergy, archetypes",
-            systemImage: "lightbulb.fill"
+            systemImage: "lightbulb.fill",
+            accent: Color(hex: "FFD700")
         ),
         LearnCategory(
             id: "collect",
             title: "Collect",
             subtitle: "Treatments, parallels, variations",
-            systemImage: "square.stack.3d.up.fill"
+            systemImage: "square.stack.3d.up.fill",
+            accent: Design.Colors.bobaCyan
+        ),
+        LearnCategory(
+            id: "watch",
+            title: "Watch",
+            subtitle: "Tutorials, top plays, deep dives on YouTube",
+            systemImage: "play.rectangle.fill",
+            accent: Color(hex: "FF0000")  // YouTube red
         ),
         LearnCategory(
             id: "glossary",
             title: "Glossary",
             subtitle: "Game terms + trading vocabulary",
-            systemImage: "character.book.closed.fill"
+            systemImage: "character.book.closed.fill",
+            accent: Design.Colors.bobaViolet
         ),
         LearnCategory(
             id: "tournament",
             title: "Tournament",
             subtitle: "Pro Tour formats, modes, penalties",
-            systemImage: "trophy.fill"
+            systemImage: "trophy.fill",
+            accent: Color(hex: "C0C0C0")
         )
     ]
 
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(Array(categories.enumerated()), id: \.element.id) { idx, cat in
-                        NavigationLink(value: cat) {
-                            BOBASectionRow(
-                                title: cat.title,
-                                subtitle: cat.subtitle,
-                                systemImage: cat.systemImage
-                            )
-                            .padding(.horizontal, Design.Spacing.lg)
-                            .walkthroughAnchor(idx == 0 ? "learn.firstRow" : "learn.row.\(cat.id)")
+                VStack(alignment: .leading, spacing: Design.Spacing.lg) {
+                    learnHeader
+
+                    LazyVGrid(
+                        columns: [
+                            GridItem(.flexible(), spacing: Design.Spacing.md),
+                            GridItem(.flexible(), spacing: Design.Spacing.md)
+                        ],
+                        spacing: Design.Spacing.md
+                    ) {
+                        ForEach(Array(categories.enumerated()), id: \.element.id) { idx, cat in
+                            categoryTile(cat, isFirst: idx == 0)
                         }
-                        .buttonStyle(.plain)
-                        Divider()
-                            .background(Design.Colors.glassBorder)
-                            .padding(.leading, Design.Spacing.lg)
                     }
+                    .padding(.horizontal, Design.Spacing.lg)
+                    .walkthroughAnchor("learn.rootList")
                 }
-                .padding(.top, Design.Spacing.md)
-                .walkthroughAnchor("learn.rootList")
+                .padding(.bottom, Design.Spacing.xxl)
             }
             .frame(maxWidth: .infinity)
             .background(Design.Colors.nearBlack)
@@ -131,12 +225,9 @@ struct LearnView: View {
                 ToolbarItem(placement: .principal) { BOBAWordmark() }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Button {
-                            showWatch = true
-                        } label: {
-                            Label("Watch on YouTube", systemImage: "play.rectangle.fill")
-                        }
-                        Divider()
+                        // Watch promoted to a first-class root tile per
+                        // user feedback — only the walkthrough relaunch
+                        // remains in the overflow Menu.
                         Button {
                             WalkthroughsManager.shared.relaunch(.learnTab)
                             walkthrough = .learnTab

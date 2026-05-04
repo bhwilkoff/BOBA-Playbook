@@ -46,25 +46,20 @@ struct SearchView: View {
     var body: some View {
         @Bindable var store = store
         NavigationStack {
-            VStack(spacing: 0) {
-                // Custom search bar — typing area on the left, scan shortcut
-                // on the right. Replaces the old `.searchable` so we can pack
-                // a scan trigger into the same row per the nav-refactor ask.
-                searchBar
-                    .padding(.horizontal, Design.Spacing.md)
-                    .padding(.top, Design.Spacing.sm)
-                    .padding(.bottom, Design.Spacing.xs)
-
-                Group {
-                    if store.isLoading {
-                        loadingView
-                    } else if let error = store.loadError {
-                        errorView(error)
-                    } else {
-                        contentView
-                    }
+            Group {
+                if store.isLoading {
+                    loadingView
+                } else if let error = store.loadError {
+                    errorView(error)
+                } else {
+                    contentView
                 }
             }
+            .searchable(
+                text: $store.searchText,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "Cards, heroes, numbers…"
+            )
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -83,6 +78,17 @@ struct SearchView: View {
                 }
                 ToolbarItem(placement: .principal) {
                     BOBAWordmark()
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        scanCoordinator.start(.find, scanStore: scanStore)
+                    } label: {
+                        Image(systemName: "camera.viewfinder")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                    }
+                    .accessibilityLabel("Scan a card")
+                    .walkthroughAnchor("find.scan")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
@@ -267,60 +273,6 @@ struct SearchView: View {
             }
         } catch {
             quickAddError = error.localizedDescription
-        }
-    }
-
-    // MARK: - Search Bar (typing + scan shortcut)
-
-    private var searchBar: some View {
-        @Bindable var store = store
-        return HStack(spacing: Design.Spacing.sm) {
-            // Typing area
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Design.Colors.textMuted)
-                TextField("Cards, heroes, numbers…", text: $store.searchText)
-                    .font(Design.Fonts.mono(14))
-                    .foregroundStyle(Design.Colors.textPrimary)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .focused($searchFocused)
-                if !store.searchText.isEmpty {
-                    Button {
-                        store.searchText = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Design.Colors.textMuted)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 10)
-            .frame(height: 36)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Design.Colors.glass))
-            .walkthroughAnchor("find.search")
-
-            // Scan shortcut — tapping here opens the scanner instead of the keyboard.
-            Button {
-                scanCoordinator.start(.find, scanStore: scanStore)
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "camera.viewfinder")
-                        .font(.system(size: 14, weight: .semibold))
-                    Text("SCAN")
-                        .font(Design.Fonts.mono(9, weight: .bold))
-                }
-                .foregroundStyle(Design.Colors.bobaOrange)
-                .padding(.horizontal, 10)
-                .frame(height: 36)
-                .background(RoundedRectangle(cornerRadius: 10).fill(Design.Colors.bobaOrange.opacity(0.12)))
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Design.Colors.bobaOrange.opacity(0.4), lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Scan a card")
-            .walkthroughAnchor("find.scan")
         }
     }
 

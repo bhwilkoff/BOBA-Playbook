@@ -26,6 +26,10 @@ struct CollectionView: View {
     @State private var recalcProgress: (current: Int, total: Int)? = nil
 
     @State private var showingFilters      = false
+    /// Native search field — `.searchable` with `.navigationBarDrawer(displayMode: .always)`
+    /// pins it permanently below the nav bar (Settings-app pattern). Filters
+    /// `collectionIdentifiers` by hero name and card number.
+    @State private var searchText: String  = ""
     @State private var exportShareURL: URL?    = nil
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
     @State private var showingProfile      = false
@@ -119,6 +123,11 @@ struct CollectionView: View {
                     }
                 }
             }
+            .searchable(
+                text: $searchText,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "Search your collection"
+            )
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
@@ -1118,6 +1127,17 @@ struct CollectionView: View {
         if cardStore.activeFilterCount > 0 {
             let allowed = Set(cardStore.filteredCards.map(\.id))
             owned = owned.filter { allowed.contains($0) }
+        }
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if !trimmed.isEmpty {
+            owned = owned.filter { id in
+                let card = cardStore.displayCards.first { $0.id == id }
+                          ?? cardStore.displayCards.first { $0.cardNumber == id }
+                guard let card else { return false }
+                return card.name.lowercased().contains(trimmed)
+                    || card.cardNumber.lowercased().contains(trimmed)
+                    || (card.hero ?? "").lowercased().contains(trimmed)
+            }
         }
         return sortIdentifiers(owned, designation: designation)
     }

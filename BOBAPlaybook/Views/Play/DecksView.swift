@@ -101,14 +101,11 @@ struct DecksView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
-                VStack(spacing: 0) {
-                    poolSearchBar
-                    ZStack(alignment: .top) {
-                        cardPoolCanvas
-                        addedBannerOverlay
-                    }
-                    .frame(maxHeight: .infinity)
+                ZStack(alignment: .top) {
+                    cardPoolCanvas
+                    addedBannerOverlay
                 }
+                .frame(maxHeight: .infinity)
                 // Reserve room at the bottom for the summary pill so
                 // the last row of cards is reachable.
                 .padding(.bottom, Self.drawerCollapsedHeight)
@@ -122,6 +119,11 @@ struct DecksView: View {
                 .padding(.bottom, Design.Spacing.sm)
                 .walkthroughAnchor("decks.summaryPill")
             }
+            .searchable(
+                text: $search,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "Search · weapon, cost, or hero"
+            )
             .toolbar { toolbarContent }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible,         for: .navigationBar)
@@ -469,48 +471,6 @@ struct DecksView: View {
         .padding(.horizontal, Design.Spacing.md)
         .padding(.top, Design.Spacing.md)
         .padding(.bottom, Design.Spacing.sm)
-    }
-
-    /// Pool search bar — sits above the card grid, below the nav bar
-    /// (where Find's search bar visually lives). Uses a custom
-    /// TextField NOT `.searchable` so it never takes over the nav bar
-    /// (the wordmark + SAVE + overflow Menu stay reachable while the
-    /// keyboard is open). Done button comes via the .keyboard
-    /// ToolbarItemGroup attached at the body level.
-    private var poolSearchBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 14))
-                .foregroundStyle(Design.Colors.textMuted)
-            TextField("Search · weapon, cost, or hero", text: $search)
-                .font(Design.Fonts.mono(14))
-                .foregroundStyle(Design.Colors.textPrimary)
-                .textFieldStyle(.plain)
-                .submitLabel(.done)
-                .focused($searchFocused)
-                .onSubmit { searchFocused = false }
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-            if !search.isEmpty {
-                Button {
-                    search = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
-                        .foregroundStyle(Design.Colors.textMuted)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Clear search")
-            }
-        }
-        .padding(.horizontal, Design.Spacing.sm)
-        .frame(height: 36)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Design.Colors.glass)
-        )
-        .padding(.horizontal, Design.Spacing.md)
-        .padding(.vertical, Design.Spacing.xs)
     }
 
     private func statCount(label: String, value: Int, target: Int?) -> some View {
@@ -1182,6 +1142,26 @@ private struct DeckSummaryPill: View {
         totalCards > 0 || store.deckName != "New Deck"
     }
 
+    /// Compact section breakdown — shows what's actually in the deck so a
+    /// coach can read it at a glance without opening the editor:
+    /// "8/8 H · 30/30 P · 6 BP · 10/10 HD". Sections that don't apply to
+    /// the current format are omitted.
+    private var sectionBreakdown: String {
+        var parts: [String] = []
+        let heroTarget = store.format.heroTarget
+        parts.append("\(store.heroes.count)/\(heroTarget) H")
+        if store.format.needsPlaybook {
+            parts.append("\(store.plays.count)/30 P")
+            if store.bonusPlays.count > 0 {
+                parts.append("\(store.bonusPlays.count) BP")
+            }
+        }
+        if store.format.needsHotDogs {
+            parts.append("\(store.hotDogs.count)/10 HD")
+        }
+        return parts.joined(separator: "  ·  ")
+    }
+
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: Design.Spacing.sm) {
@@ -1196,16 +1176,11 @@ private struct DeckSummaryPill: View {
                             .font(Design.Fonts.display(15))
                             .foregroundStyle(Design.Colors.textPrimary)
                             .lineLimit(1)
-                        HStack(spacing: 6) {
-                            Text("\(totalCards) cards")
-                                .font(Design.Fonts.mono(11))
-                                .foregroundStyle(Design.Colors.textMuted)
-                            Text("·")
-                                .foregroundStyle(Design.Colors.textMuted)
-                            Text(store.format.displayName)
-                                .font(Design.Fonts.mono(10, weight: .bold))
-                                .foregroundStyle(Design.Colors.bobaOrange)
-                        }
+                        Text(sectionBreakdown)
+                            .font(Design.Fonts.mono(11, weight: .bold))
+                            .foregroundStyle(Design.Colors.textSecondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     } else {
                         Text("Build a deck")
                             .font(Design.Fonts.display(15))
@@ -1215,7 +1190,15 @@ private struct DeckSummaryPill: View {
                             .foregroundStyle(Design.Colors.textMuted)
                     }
                 }
-                Spacer(minLength: 0)
+                Spacer(minLength: 4)
+                if hasDraft {
+                    Text(store.format.displayName)
+                        .font(Design.Fonts.mono(9, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                        .padding(.horizontal, 8)
+                        .frame(height: 20)
+                        .background(Capsule().fill(Design.Colors.bobaOrange.opacity(0.15)))
+                }
                 Image(systemName: "chevron.up")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Design.Colors.textMuted)
@@ -1224,6 +1207,7 @@ private struct DeckSummaryPill: View {
             .padding(.horizontal, Design.Spacing.md)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity)
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .overlay(

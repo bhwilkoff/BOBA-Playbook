@@ -567,13 +567,22 @@ struct CollectionView: View {
                             spacing: Design.Spacing.md
                         ) {
                             ForEach(Array(identifiers.enumerated()), id: \.element) { idx, identifier in
+                                // matchedTransitionSource MUST be the
+                                // LAST (outermost) modifier so iOS sees
+                                // it on the rendered cell, not inside
+                                // the function-returned view. Otherwise
+                                // iOS prints the "nil view" warning and
+                                // falls back to the standard transition
+                                // (the forehead).
                                 if idx == 0 {
                                     collectionGridCell(identifier: identifier)
                                         .onTapGesture { navigationPath.append(identifier) }
                                         .walkthroughAnchor("collection.cardCell")
+                                        .matchedTransitionSource(id: identifier, in: cardZoomNamespace)
                                 } else {
                                     collectionGridCell(identifier: identifier)
                                         .onTapGesture { navigationPath.append(identifier) }
+                                        .matchedTransitionSource(id: identifier, in: cardZoomNamespace)
                                 }
                             }
                         }
@@ -810,21 +819,8 @@ struct CollectionView: View {
         let allDesignations = Set(collection.entries(forBobaId: identifier).map { $0.designation })
 
         if let card = catalog {
-            // Multi-designation badge overlay applied FIRST (closest to
-            // the cell view), then .matchedTransitionSource on the
-            // overlay-wrapped view. Order matters: matchedTransitionSource
-            // must be on the OUTER, visible cell — if it's on the inner
-            // BOBACardGridItem, iOS sees the wrapped overlay view as
-            // "different" from the source ID and falls back to the
-            // standard transition (the "nil view" warning the user
-            // captured in the console). Same fix philosophy as Decks's
-            // cell: the matched source must be the visible, in-window
-            // view that iOS will animate from.
             BOBACardGridItem(card: card, columnCount: gridColumns)
                 .overlay(alignment: .topTrailing) {
-                    // Multi-designation badge — preserved from the legacy
-                    // grid cell. Sits on top of the (otherwise pristine)
-                    // card art when a card lives in 2+ designations.
                     if allDesignations.count > 1 {
                         HStack(spacing: 2) {
                             ForEach(Array(allDesignations).sorted(by: { $0.rawValue < $1.rawValue })) { d in
@@ -838,7 +834,6 @@ struct CollectionView: View {
                         .padding(4)
                     }
                 }
-                .matchedTransitionSource(id: identifier, in: cardZoomNamespace)
         } else {
             // Catalog miss — render a placeholder + identifier so the
             // user sees something rather than a blank slot.

@@ -416,23 +416,26 @@ struct DecksView: View {
                 ) {
                     ForEach(Array(filtered.prefix(200).enumerated()), id: \.element.id) { idx, card in
                         BOBACardGridItem(card: card, columnCount: gridColumns)
-                            .matchedTransitionSource(id: card.id, in: poolZoomNamespace)
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 poolNavigationPath.append(card)
                             }
-                        // Long-press = add to current deck (per user
-                        // feedback #6 + matches the walkthrough copy).
-                        // Haptic feedback on success so the user feels
-                        // the add land. Confirmation banner via
-                        // ingestScannedCards' addedBanner pipeline.
-                        .simultaneousGesture(
-                            LongPressGesture(minimumDuration: 0.35)
-                                .onEnded { _ in
-                                    addCardToDeck(card)
-                                }
-                        )
-                        .modifier(FirstCellAnchor(isFirst: idx == 0))
+                            .simultaneousGesture(
+                                LongPressGesture(minimumDuration: 0.35)
+                                    .onEnded { _ in
+                                        addCardToDeck(card)
+                                    }
+                            )
+                            .modifier(FirstCellAnchor(isFirst: idx == 0))
+                            // matchedTransitionSource MUST be the LAST
+                            // (outermost) modifier so iOS sees it on
+                            // the visible, rendered cell — not on an
+                            // inner view that gets wrapped by gesture
+                            // containers. Otherwise iOS can't find the
+                            // source and prints the "nil view will
+                            // trigger a fallback transition" warning,
+                            // which is what produces the forehead.
+                            .matchedTransitionSource(id: card.id, in: poolZoomNamespace)
                     }
                 }
                 .padding(.horizontal, Design.Spacing.md)

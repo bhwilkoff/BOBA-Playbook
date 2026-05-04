@@ -42,6 +42,9 @@ struct CollectionView: View {
     /// inline; GRID hides it behind individual card detail. Default
     /// is now .list with the toolbar Menu picker available to switch.
     @AppStorage("bp_collectionDisplayMode_v2") private var displayModeRaw: String = CollectionDisplayMode.list.rawValue
+    /// User-selectable grid density (1 / 2 / 3 across) — only applies
+    /// in .grid display mode. Persisted per tab.
+    @AppStorage("bp_collectionGridColumns_v1") private var gridColumns: Int = 3
     private var displayMode: CollectionDisplayMode {
         get { CollectionDisplayMode(rawValue: displayModeRaw) ?? .grid }
     }
@@ -310,6 +313,19 @@ struct CollectionView: View {
                 }
             }
 
+            // Grid density (only meaningful in .grid display mode but
+            // always shown so the user can switch density and mode in
+            // one menu visit).
+            if displayMode == .grid {
+                Section("Columns") {
+                    Picker("Columns", selection: $gridColumns) {
+                        Label("1 across", systemImage: "rectangle").tag(1)
+                        Label("2 across", systemImage: "square.grid.2x1").tag(2)
+                        Label("3 across", systemImage: "square.grid.3x1.below.line.grid.1x2").tag(3)
+                    }
+                }
+            }
+
             // DISPLAY MODE picker per DESIGN.md §8.4 — Grid / List / Wall.
             // Wall is lifted from streamer-only per DECISIONS.md #036.
             // Selecting Wall presents the CollectionWallSheet over the
@@ -536,7 +552,8 @@ struct CollectionView: View {
                         // mode so designation badge / count are derived
                         // identically.
                         LazyVGrid(
-                            columns: [GridItem(.adaptive(minimum: 100, maximum: 130), spacing: Design.Spacing.sm)],
+                            columns: Array(repeating: GridItem(.flexible(), spacing: Design.Spacing.sm),
+                                           count: max(1, min(3, gridColumns))),
                             spacing: Design.Spacing.md
                         ) {
                             ForEach(Array(identifiers.enumerated()), id: \.element) { idx, identifier in
@@ -777,58 +794,44 @@ struct CollectionView: View {
     /// designation badge in the corner so cards visible across multiple
     /// designations stay scannable from a single grid view.
     @ViewBuilder
+    @ViewBuilder
     private func collectionGridCell(identifier: String) -> some View {
         let catalog = cardStore.displayCards.first { $0.id == identifier }
                    ?? cardStore.displayCards.first { $0.cardNumber == identifier }
-        let allCopies = collection.entries(forBobaId: identifier)
-        let allDesignations = Set(allCopies.map { $0.designation })
+        let allDesignations = Set(collection.entries(forBobaId: identifier).map { $0.designation })
 
-        VStack(spacing: 4) {
-            ZStack(alignment: .topTrailing) {
-                // Image layer: canonical BOBACardCell primitive per
-                // DESIGN.md §11.1. Multi-designation badge stack
-                // composes on top.
-                Group {
-                    if let card = catalog {
-                        BOBACardCell(card: card)
-                    } else {
-                        RoundedRectangle(cornerRadius: BOBACardCell.cornerRadius)
-                            .fill(Design.Colors.glass)
-                    }
-                }
-                .frame(width: 90, height: 126)
-
-                // Multi-designation badge — corner pill stack so a card that's
-                // both Personal + For Sale stays scannable.
-                if allDesignations.count > 1 {
-                    HStack(spacing: 2) {
-                        ForEach(Array(allDesignations).sorted(by: { $0.rawValue < $1.rawValue })) { d in
-                            Image(systemName: d.icon)
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(.white)
-                                .padding(3)
-                                .background(Circle().fill(Color.black.opacity(0.6)))
+        if let card = catalog {
+            BOBACardGridItem(card: card, columnCount: gridColumns)
+                .overlay(alignment: .topTrailing) {
+                    // Multi-designation badge — preserved from the legacy
+                    // grid cell. Sits on top of the (otherwise pristine)
+                    // card art when a card lives in 2+ designations.
+                    if allDesignations.count > 1 {
+                        HStack(spacing: 2) {
+                            ForEach(Array(allDesignations).sorted(by: { $0.rawValue < $1.rawValue })) { d in
+                                Image(systemName: d.icon)
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .padding(3)
+                                    .background(Circle().fill(Color.black.opacity(0.6)))
+                            }
                         }
+                        .padding(4)
                     }
-                    .padding(4)
                 }
-            }
-            Text(catalog?.hero.isEmpty == false ? catalog!.hero : (catalog?.name ?? identifier))
-                .font(Design.Fonts.mono(10, weight: .bold))
-                .foregroundStyle(Design.Colors.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            if let card = catalog, card.cardType == "Hero", let power = card.power {
-                HStack(spacing: 3) {
-                    Text(card.element)
-                        .font(Design.Fonts.mono(8, weight: .bold))
-                        .foregroundStyle(Design.Colors.element(card.element))
-                    Text("·").font(Design.Fonts.mono(8)).foregroundStyle(Design.Colors.textMuted)
-                    Text("\(power)").font(Design.Fonts.display(14)).foregroundStyle(Design.Colors.textPrimary)
-                }
+        } else {
+            // Catalog miss — render a placeholder + identifier so the
+            // user sees something rather than a blank slot.
+            VStack(spacing: 4) {
+                RoundedRectangle(cornerRadius: BOBACardCell.cornerRadius)
+                    .fill(Design.Colors.glass)
+                    .aspectRatio(BOBACardCell.aspectRatio, contentMode: .fit)
+                Text(identifier)
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .lineLimit(1)
             }
         }
-        .frame(width: 100)
     }
 
     private func collectionRow(identifier: String) -> some View {

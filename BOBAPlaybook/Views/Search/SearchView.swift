@@ -37,12 +37,15 @@ struct SearchView: View {
     /// icon color.
     @AppStorage("selectedIconName") private var selectedIconName: String = "default"
 
+    /// User-selectable grid density (1 / 2 / 3 cards across). Persisted
+    /// per tab so the user can pick a denser layout in Find without it
+    /// affecting Decks or Collection.
+    @AppStorage("bp_findGridColumns_v1") private var gridColumns: Int = 2
 
-    // Grid: 2 columns with minimum size
-    private let columns = [
-        GridItem(.flexible(), spacing: Design.Spacing.sm),
-        GridItem(.flexible(), spacing: Design.Spacing.sm),
-    ]
+    private var columns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: Design.Spacing.sm),
+              count: max(1, min(3, gridColumns)))
+    }
 
     var body: some View {
         @Bindable var store = store
@@ -98,13 +101,22 @@ struct SearchView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Button {
-                            showFilters = true
-                        } label: {
-                            Label("Filters", systemImage: "slider.horizontal.3")
+                        Section("Columns") {
+                            Picker("Columns", selection: $gridColumns) {
+                                Label("1 across", systemImage: "rectangle").tag(1)
+                                Label("2 across", systemImage: "square.grid.2x1").tag(2)
+                                Label("3 across", systemImage: "square.grid.3x1.below.line.grid.1x2").tag(3)
+                            }
                         }
-                        Toggle(isOn: $showcaseMode) {
-                            Label("Card Showcases", systemImage: "square.stack.3d.up.fill")
+                        Section {
+                            Button {
+                                showFilters = true
+                            } label: {
+                                Label("Filters", systemImage: "slider.horizontal.3")
+                            }
+                            Toggle(isOn: $showcaseMode) {
+                                Label("Card Showcases", systemImage: "square.stack.3d.up.fill")
+                            }
                         }
                         Divider()
                         Button {
@@ -349,7 +361,7 @@ struct SearchView: View {
         } else {
             LazyVGrid(columns: columns, spacing: Design.Spacing.sm) {
                 ForEach(Array(store.filteredCards.enumerated()), id: \.element.id) { idx, card in
-                    CardGridItemView(card: card)
+                    BOBACardGridItem(card: card, columnCount: gridColumns)
                         .aspectRatio(3/4, contentMode: .fit)
                         .onTapGesture {
                             if quickAdd {
@@ -499,7 +511,7 @@ struct SearchView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Design.Spacing.sm) {
                     ForEach(cards) { card in
-                        CardGridItemView(card: card)
+                        BOBACardGridItem(card: card, columnCount: gridColumns)
                             .frame(width: 110)
                             .aspectRatio(3/4, contentMode: .fit)
                             .onTapGesture {

@@ -204,35 +204,13 @@ struct CardDetailView: View {
                     }
                     .disabled(isPreparingShare)
                 }
-                // Prev/Next navigation in the bottom toolbar — only when navigation list is available
-                if navIndex >= 0 {
-                    ToolbarItem(placement: .bottomBar) {
-                        Button {
-                            navigateCard(by: -1)
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(navIndex > 0 ? Design.Colors.bobaOrange : Design.Colors.textMuted)
-                        }
-                        .disabled(navIndex <= 0)
-                    }
-                    ToolbarItem(placement: .bottomBar) { Spacer() }
-                    ToolbarItem(placement: .bottomBar) {
-                        Button {
-                            navigateCard(by: +1)
-                        } label: {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(navIndex < navigationCards.count - 1 ? Design.Colors.bobaOrange : Design.Colors.textMuted)
-                        }
-                        .disabled(navIndex >= navigationCards.count - 1)
-                    }
-                }
+                // Prev/Next navigation removed per user feedback —
+                // they cluttered the simple card-detail surface. The
+                // user navigates back to the grid (via dismiss) and
+                // taps another card.
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(.regularMaterial, for: .bottomBar)
-            .toolbarBackground(navIndex >= 0 ? .visible : .hidden, for: .bottomBar)
             .sheet(isPresented: $showingAddSheet) {
                 AddToCollectionSheet(card: card)
             }

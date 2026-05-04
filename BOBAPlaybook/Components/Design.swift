@@ -692,3 +692,135 @@ struct BOBACardCell: View {
             : Design.Colors.element(card.element).opacity(0.25)
     }
 }
+
+// MARK: - BOBACardGridItem
+//
+// Unified grid cell used by Find, Decks, and Collection. Card art
+// (BOBACardCell) on top — UNOBSTRUCTED, no overlays, no gradients.
+// Hero name + weapon + power (or sealed-product equivalents) render
+// BELOW the card in a clean caption that adapts to column count.
+//
+// Per user feedback (2026-05-04): the prior CardGridItemView
+// superimposed text on the card image, obscuring the artwork; this
+// version keeps the artwork pristine. Caption uses textPrimary for
+// the values and an element-tinted capsule for the weapon name so
+// HEX (#8B00FF) stays readable on dark backgrounds — the legibility
+// regression the user flagged on the Decks tab.
+//
+// `columnCount` (1 / 2 / 3) controls typography and density. 1-col
+// gets the largest typography (a single tall card per row); 3-col
+// is the compact density users currently see.
+
+struct BOBACardGridItem: View {
+    let card: Card
+    var columnCount: Int = 2
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            BOBACardCell(card: card)
+            caption
+        }
+    }
+
+    @ViewBuilder
+    private var caption: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(card.displayName)
+                .font(Design.Fonts.display(nameSize))
+                .foregroundStyle(Design.Colors.textPrimary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+            HStack(spacing: 6) {
+                weaponPill
+                Spacer(minLength: 4)
+                trailingValue
+            }
+        }
+        .padding(.horizontal, 2)
+    }
+
+    // MARK: - Caption components
+
+    @ViewBuilder
+    private var weaponPill: some View {
+        if card.isSealed {
+            label(card.set.uppercased(), color: Design.Colors.bobaOrange)
+        } else if card.isHero, !card.element.isEmpty {
+            label(card.element.uppercased(), color: Design.Colors.element(card.element))
+        } else if card.isPlay {
+            let isBonus = card.isBonusPlay == true
+            label(isBonus ? "BONUS" : "PLAY",
+                  color: isBonus ? Design.Colors.bobaCyan : Design.Colors.bobaViolet)
+        } else if card.isHotDog {
+            label("HOT DOG", color: Color(hex: "7ecb82"))
+        } else {
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private var trailingValue: some View {
+        if card.isSealed {
+            if let msrp = card.msrp {
+                Text(Decimal(msrp), format: .currency(code: "USD"))
+                    .font(Design.Fonts.mono(valueSize, weight: .bold))
+                    .foregroundStyle(Design.Colors.textPrimary)
+            }
+        } else if card.isHero, let power = card.power, power > 0 {
+            Text("\(power)")
+                .font(Design.Fonts.mono(valueSize, weight: .bold))
+                .foregroundStyle(Design.Colors.textPrimary)
+        } else if card.isPlay, let costLabel = card.playCostLabel {
+            Text(costLabel)
+                .font(Design.Fonts.mono(valueSize, weight: .bold))
+                .foregroundStyle(card.playCost == 0 ? Color(hex: "7ecb82") : Design.Colors.textPrimary)
+        } else {
+            EmptyView()
+        }
+    }
+
+    /// Element/weapon label — ALWAYS renders text in textPrimary inside
+    /// an element-tinted capsule. Solves the HEX-on-black readability
+    /// problem (the dark purple element color was illegible as foreground
+    /// text on near-black backgrounds).
+    @ViewBuilder
+    private func label(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(Design.Fonts.mono(pillSize, weight: .bold))
+            .foregroundStyle(Design.Colors.textPrimary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(
+                Capsule()
+                    .fill(color.opacity(0.30))
+                    .overlay(Capsule().strokeBorder(color.opacity(0.55), lineWidth: 0.5))
+            )
+    }
+
+    // MARK: - Density-adaptive typography
+
+    private var nameSize: CGFloat {
+        switch columnCount {
+        case 1: return 18
+        case 2: return 14
+        default: return 11
+        }
+    }
+
+    private var valueSize: CGFloat {
+        switch columnCount {
+        case 1: return 16
+        case 2: return 13
+        default: return 11
+        }
+    }
+
+    private var pillSize: CGFloat {
+        switch columnCount {
+        case 1: return 11
+        case 2: return 10
+        default: return 9
+        }
+    }
+}

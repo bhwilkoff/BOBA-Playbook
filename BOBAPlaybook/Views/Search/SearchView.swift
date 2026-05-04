@@ -21,12 +21,12 @@ struct SearchView: View {
     /// the first time. Re-triggerable via toolbar Menu.
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
 
-    /// True when the user is actively searching/filtering. When false,
-    /// SearchView shows the featured-ribbons surface (DESIGN.md §8.1
-    /// default state). When true, results grid takes over.
-    private var isSearchingOrFiltering: Bool {
-        !store.searchText.isEmpty || store.activeFilterCount > 0
-    }
+    /// Per user feedback: showing Card Showcases as the default empty-
+    /// state surface isn't how people actually search for cards. The
+    /// full grid is back as the default; Card Showcases is now an
+    /// opt-in mode toggleable from the toolbar Menu. Persisted across
+    /// launches so coaches who DO like browsing by Showcase keep it.
+    @AppStorage("bp_findShowcaseMode_v1") private var showcaseMode: Bool = false
     /// Drives the keyboard-toolbar Done button. SwiftUI's only built-in
     /// way to dismiss the keyboard from the field is via a focus binding,
     /// so the search field needs its own @FocusState even though we don't
@@ -90,6 +90,13 @@ struct SearchView: View {
                             showFilters = true
                         } label: {
                             Label("Filters", systemImage: "slider.horizontal.3")
+                        }
+                        // Card Showcases toggle — opt-in browse-by-curated-list
+                        // mode. Auto-yields to results grid when the user
+                        // types or applies a filter (per user feedback #5,
+                        // showcases shouldn't be the default surface).
+                        Toggle(isOn: $showcaseMode) {
+                            Label("Card Showcases", systemImage: "square.stack.3d.up.fill")
                         }
                         Divider()
                         Button {
@@ -327,11 +334,11 @@ struct SearchView: View {
     // MARK: - Content
     private var contentView: some View {
         ScrollView {
-            // When neither searching nor filtering, show the featured-
-            // ribbons surface (DESIGN.md §8.1 default state). When the
-            // user starts typing or applies a filter, fall through to
-            // the results grid below.
-            if !isSearchingOrFiltering {
+            // Default: full card grid (results body) sorted by has-image.
+            // Card Showcases is opt-in via the toolbar Menu — it's
+            // useful for browsing curated lists but isn't how people
+            // actually search for cards day-to-day.
+            if showcaseMode && !isSearchingOrFiltering {
                 featuredRibbons
                     .walkthroughAnchor("find.ribbons")
                     .padding(.top, Design.Spacing.sm)
@@ -342,6 +349,12 @@ struct SearchView: View {
         }
         .background(Design.Colors.nearBlack)
         .scrollEdgeEffectStyle(.hard, for: .top)
+    }
+
+    /// True when the user is actively searching/filtering. Showcase mode
+    /// auto-yields to results when the user types or filters.
+    private var isSearchingOrFiltering: Bool {
+        !store.searchText.isEmpty || store.activeFilterCount > 0
     }
 
     @ViewBuilder
@@ -423,9 +436,12 @@ struct SearchView: View {
     @ViewBuilder
     private var featuredRibbons: some View {
         LazyVStack(alignment: .leading, spacing: Design.Spacing.xl) {
-            // Featured collections
+            // Card Showcases (renamed from Featured Collections to
+            // match the term used in the filter sheet, per user
+            // feedback). Hand-curated cross-cuts that aren't easily
+            // expressed as filters.
             VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-                BOBASectionHeader("Featured Collections")
+                BOBASectionHeader("Card Showcases")
                 ForEach(BrowseFeaturedData.collections) { coll in
                     featuredCollectionRow(coll)
                 }
@@ -450,6 +466,20 @@ struct SearchView: View {
         .padding(.bottom, Design.Spacing.xxl)
     }
 
+    /// Per user feedback #5: every view of the app should prioritize
+    /// cards with art. Card Showcases ribbons previously took the
+    /// first 20 matches in raw catalog order, which surfaced
+    /// image-pending placeholders. This sorter pushes art-bearing
+    /// cards to the front of every ribbon.
+    private func sortedWithArt(_ cards: [Card]) -> [Card] {
+        cards.sorted { a, b in
+            let aImg = !(a.imageFile ?? "").isEmpty
+            let bImg = !(b.imageFile ?? "").isEmpty
+            if aImg != bImg { return aImg }
+            return false
+        }
+    }
+
     @ViewBuilder
     private func featuredCollectionRow(_ coll: BrowseFeaturedData.Collection) -> some View {
         // Suffix the count label onto the description (e.g. "...female
@@ -461,7 +491,7 @@ struct SearchView: View {
             title: coll.name,
             subtitle: subtitle,
             tint: coll.color,
-            cards: store.displayCards.filter(coll.matches).prefix(20).map { $0 }
+            cards: Array(sortedWithArt(store.displayCards.filter(coll.matches)).prefix(20))
         )
     }
 
@@ -471,7 +501,7 @@ struct SearchView: View {
             title: "\(label) Heroes",
             subtitle: nil,
             tint: Design.Colors.element(element),
-            cards: store.displayCards.filter { $0.element == element }.prefix(20).map { $0 }
+            cards: Array(sortedWithArt(store.displayCards.filter { $0.element == element }).prefix(20))
         )
     }
 
@@ -481,10 +511,10 @@ struct SearchView: View {
             title: label,
             subtitle: nil,
             tint: Design.Colors.bobaOrange,
-            cards: store.displayCards.filter { card in
+            cards: Array(sortedWithArt(store.displayCards.filter { card in
                 guard let insp = card.athleteInspiration else { return false }
                 return athletes.contains(insp)
-            }.prefix(20).map { $0 }
+            }).prefix(20))
         )
     }
 

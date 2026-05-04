@@ -56,18 +56,14 @@ struct DecksView: View {
     /// level stays visible underneath regardless of height.
     private static let drawerCollapsedHeight: CGFloat = 132
 
-    /// Resting height in points (post-release). The in-flight drag
-    /// delta lives on the DeckDrawer struct (its own @State) so
-    /// DecksView body — including the expensive cardPoolCanvas grid
-    /// — doesn't re-render at gesture rate.
-    @State private var drawerHeight: CGFloat = 132
-
-    /// Captured tab-content height from the GeometryReader, used by
-    /// non-view code paths (the walkthrough stage handler) that need
-    /// to compute drawer heights without having a proxy in scope.
-    /// Set on .onAppear of the GeometryReader; updated when the
-    /// container resizes (e.g., orientation change).
-    @State private var availableTabHeight: CGFloat = 800
+    /// Music-pattern editor presentation. Tapping the bottom summary
+    /// pill (or the strip — Stage 2) zooms into a full-screen deck
+    /// editor. Replaces the v2.038 custom drawer entirely. The
+    /// shared @Namespace lets `.matchedTransitionSource` on the pill
+    /// pair with `.navigationTransition(.zoom(...))` on the cover for
+    /// Photos-app-style hero zoom.
+    @State private var editorOpen = false
+    @Namespace private var deckZoomNamespace
 
     // Pool filters
     @State private var search            = ""
@@ -104,45 +100,27 @@ struct DecksView: View {
 
     var body: some View {
         NavigationStack {
-            GeometryReader { proxy in
-                let collapsed: CGFloat = Self.drawerCollapsedHeight
-                let totalHeight = max(collapsed, proxy.size.height)
-
-                ZStack(alignment: .bottom) {
-                    VStack(spacing: 0) {
-                        poolSearchBar
-                        ZStack(alignment: .top) {
-                            cardPoolCanvas
-                            addedBannerOverlay
-                        }
-                        .frame(maxHeight: .infinity)
+            ZStack(alignment: .bottom) {
+                VStack(spacing: 0) {
+                    poolSearchBar
+                    ZStack(alignment: .top) {
+                        cardPoolCanvas
+                        addedBannerOverlay
                     }
-                    // Reserve room at the bottom for the collapsed
-                    // drawer so the last row of cards is reachable
-                    // when the drawer is at rest.
-                    .padding(.bottom, collapsed)
+                    .frame(maxHeight: .infinity)
+                }
+                // Reserve room at the bottom for the summary pill so
+                // the last row of cards is reachable.
+                .padding(.bottom, Self.drawerCollapsedHeight)
 
-                    DeckDrawer(
-                        drawerHeight: $drawerHeight,
-                        bounds: (collapsed: collapsed, large: totalHeight),
-                        header: { sheetHeaderRow },
-                        content: {
-                            VStack(spacing: 0) {
-                                Divider().background(Design.Colors.glass)
-                                formatChipStrip
-                                    .walkthroughAnchor("decks.formatChip")
-                                Divider().background(Design.Colors.glass)
-                                deckListScroll
-                            }
-                        }
-                    )
-                    .padding(.horizontal, Design.Spacing.xs)
-                    .padding(.bottom, Design.Spacing.xs)
-                }
-                .onAppear { availableTabHeight = proxy.size.height }
-                .onChange(of: proxy.size.height) { _, newHeight in
-                    availableTabHeight = newHeight
-                }
+                DeckSummaryPill(
+                    store: store,
+                    onTap: { editorOpen = true },
+                    namespace: deckZoomNamespace
+                )
+                .padding(.horizontal, Design.Spacing.md)
+                .padding(.bottom, Design.Spacing.sm)
+                .walkthroughAnchor("decks.summaryPill")
             }
             .toolbar { toolbarContent }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
@@ -187,6 +165,29 @@ struct DecksView: View {
             .walkthroughOverlay($walkthrough) { stage in
                 handleWalkthroughStage(stage)
             }
+            // Music-pattern full-screen editor — zooms in from the
+            // summary pill via matchedTransitionSource. The closure
+            // captures self, so existing private helpers
+            // (sheetHeaderRow, formatChipStrip, deckListScroll) are
+            // accessible without needing to extract them into a
+            // standalone struct.
+            .fullScreenCover(isPresented: $editorOpen) {
+                NavigationStack {
+                    VStack(spacing: 0) {
+                        sheetHeaderRow
+                        Divider().background(Design.Colors.glass)
+                        formatChipStrip
+                            .walkthroughAnchor("decks.formatChip")
+                        Divider().background(Design.Colors.glass)
+                        deckListScroll
+                    }
+                    .toolbar { editorToolbar }
+                    .toolbarBackground(.regularMaterial, for: .navigationBar)
+                    .toolbarBackground(.visible, for: .navigationBar)
+                    .navigationBarTitleDisplayMode(.inline)
+                }
+                .navigationTransition(.zoom(sourceID: "deck-draft", in: deckZoomNamespace))
+            }
         }
         .onAppear(perform: handleAppear)
         .onDisappear { store.saveDraft() }
@@ -200,23 +201,66 @@ struct DecksView: View {
 
     // MARK: - Toolbar
 
+    /// DecksView toolbar (the card-pool tab) — wordmark + scan
+    /// shortcut + walkthrough relaunch. Save / Manage Decks / Rules /
+    /// Legality / Clear all moved into the editor's toolbar where
+    /// they're contextually correct. Pool only needs to look up cards
+    /// and start a scan.
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        // Profile button removed per user feedback — Profile lives only
-        // on the Find tab. Other tabs that need auth surface inline
-        // sign-in prompts (BOBASignInPrompt) at the point of action.
+        ToolbarItem(placement: .principal) {
+            BOBAWordmark()
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                Button {
+                    presentScanner()
+                } label: {
+                    Label("Scan into deck", systemImage: "camera.viewfinder")
+                }
+                Divider()
+                Button {
+                    WalkthroughsManager.shared.relaunch(.decksTab)
+                    walkthrough = .decksTab
+                } label: {
+                    Label("Show walkthrough", systemImage: "questionmark.circle")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 18))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+            }
+            .accessibilityLabel("Pool options")
+        }
+        ToolbarItemGroup(placement: .keyboard) {
+            Spacer()
+            Button("Done") { searchFocused = false }
+                .font(Design.Fonts.mono(13, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaOrange)
+        }
+    }
+
+    /// Editor toolbar — appears inside the full-screen cover. Close
+    /// (X) leading + Save trailing + overflow Menu with the deck-
+    /// management actions.
+    @ToolbarContentBuilder
+    private var editorToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button {
+                editorOpen = false
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                    .frame(width: 28, height: 28)
+            }
+            .accessibilityLabel("Close editor")
+        }
         ToolbarItem(placement: .principal) {
             BOBAWordmark()
         }
         ToolbarItem(placement: .topBarTrailing) {
             HStack(spacing: Design.Spacing.sm) {
-                // Save — primary action, tinted glass per §5.4. When
-                // the user isn't signed in, the button morphs to
-                // "SIGN IN" and opens the Profile sheet (which hosts
-                // SignInView). Profile is intentionally NOT in the
-                // Decks toolbar, but the sign-in path is reachable
-                // here so the walkthrough's "sign in and save" copy
-                // is actually true.
                 Button {
                     if auth.isAuthenticated {
                         Task { await saveDeck() }
@@ -236,10 +280,6 @@ struct DecksView: View {
                 .walkthroughAnchor("decks.saveButton")
                 .accessibilityLabel(auth.isAuthenticated ? "Save deck" : "Sign in to save")
 
-                // Overflow menu — collapses secondary destinations
-                // per §8.3. The "card tap action" picker was removed
-                // — long-press is the canonical add gesture now (per
-                // user feedback #6) and tap always opens detail.
                 Menu {
                     Button {
                         secondarySheet = .deckManagement
@@ -258,19 +298,6 @@ struct DecksView: View {
                         Label("Legality audit", systemImage: "checkmark.seal")
                     }
                     Divider()
-                    Button {
-                        presentScanner()
-                    } label: {
-                        Label("Scan into deck", systemImage: "camera.viewfinder")
-                    }
-                    Divider()
-                    Button {
-                        WalkthroughsManager.shared.relaunch(.decksTab)
-                        walkthrough = .decksTab
-                    } label: {
-                        Label("Show walkthrough", systemImage: "questionmark.circle")
-                    }
-                    Divider()
                     Button(role: .destructive) {
                         confirmingClearDeck = true
                     } label: {
@@ -284,12 +311,6 @@ struct DecksView: View {
                 }
                 .accessibilityLabel("Deck options")
             }
-        }
-        ToolbarItemGroup(placement: .keyboard) {
-            Spacer()
-            Button("Done") { searchFocused = false }
-                .font(Design.Fonts.mono(13, weight: .bold))
-                .foregroundStyle(Design.Colors.bobaOrange)
         }
     }
 
@@ -1106,40 +1127,16 @@ struct DecksView: View {
         // as a hook for future "auto-open deck panel after scan."
     }
 
-    /// Saved drawer height before a walkthrough stage expanded it.
-    /// Restored when the walkthrough completes so the user lands back
-    /// where they were.
-    @State private var savedDrawerHeightForWalkthrough: CGFloat? = nil
-
-    /// Walkthrough host hook — currently handles the
-    /// `decksDrawerExpanded` stage by saving the drawer's height,
-    /// expanding it to mid so the format chip is visible, then
-    /// restoring the prior height when the walkthrough ends. Per
-    /// user feedback: "if a feature is not on the screen, the view
-    /// should change to highlight it, then return the user to the
-    /// previous state."
+    /// Walkthrough host hook — `decksDrawerExpanded` now opens the
+    /// full-screen editor so the format chip and other deck-builder
+    /// surfaces are visible during the walkthrough. Closes on
+    /// stage=nil so the user lands back on the card pool.
     private func handleWalkthroughStage(_ stage: BOBAWalkthrough.Stage?) {
         switch stage {
         case .decksDrawerExpanded:
-            if savedDrawerHeightForWalkthrough == nil {
-                savedDrawerHeightForWalkthrough = drawerHeight
-            }
-            // Reveal enough drawer for the format chip strip without
-            // covering the whole canvas. Use the tab-content height
-            // captured from the GeometryReader (UIScreen.main was
-            // deprecated in iOS 26 in favor of context-derived sizes).
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                drawerHeight = max(Self.drawerCollapsedHeight,
-                                   availableTabHeight * 0.55)
-            }
+            editorOpen = true
         case nil:
-            // Walkthrough ended — restore prior drawer height.
-            if let prior = savedDrawerHeightForWalkthrough {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                    drawerHeight = prior
-                }
-                savedDrawerHeightForWalkthrough = nil
-            }
+            editorOpen = false
         }
     }
 }
@@ -1160,65 +1157,83 @@ private struct FirstCellAnchor: ViewModifier {
     }
 }
 
-// MARK: - DeckDrawer
+// MARK: - DeckSummaryPill
 
-/// Bottom-anchored drawer driven by a render-time transform, not by
-/// frame resizing. The drawer's frame is FIXED at `bounds.large` —
-/// the only thing that changes during drag is `.offset(y:)`, which
-/// is a GPU transform that does not invalidate layout. Re-renders
-/// during drag are essentially free, which keeps the drawer locked
-/// to the finger at 60Hz with no visible flash or stutter.
-private struct DeckDrawer<Header: View, Content: View>: View {
-    @Binding var drawerHeight: CGFloat
-    let bounds: (collapsed: CGFloat, large: CGFloat)
-    @ViewBuilder let header: () -> Header
-    @ViewBuilder let content: () -> Content
+/// Bottom-anchored summary chip — Music's "now playing" pattern
+/// applied to the deck-builder. Shows the active draft (deck name
+/// + count + format badge) and zooms into the full-screen editor
+/// on tap. Replaces the v2.038 custom drawer entirely; no drag, no
+/// detents, no flash.
+///
+/// The `namespace` is the @Namespace owned by DecksView — pairing
+/// `matchedTransitionSource(id: "deck-draft", in: ns)` here with
+/// `.navigationTransition(.zoom(sourceID: "deck-draft", in: ns))`
+/// on the cover gives the Photos-app-style hero zoom.
+private struct DeckSummaryPill: View {
+    let store: DeckBuilderStore
+    let onTap: () -> Void
+    let namespace: Namespace.ID
 
-    @GestureState private var dragTranslation: CGFloat = 0
+    private var totalCards: Int {
+        store.heroes.count + store.plays.count + store.bonusPlays.count + store.hotDogs.count
+    }
+
+    private var hasDraft: Bool {
+        totalCards > 0 || store.deckName != "New Deck"
+    }
 
     var body: some View {
-        // Visible height (clamped). Drag-up = negative translation =
-        // larger visible height.
-        let visibleHeight = max(bounds.collapsed,
-                                min(bounds.large, drawerHeight - dragTranslation))
-        // How far down the full-size drawer is pushed.
-        let pushDown = bounds.large - visibleHeight
+        Button(action: onTap) {
+            HStack(spacing: Design.Spacing.sm) {
+                Image(systemName: hasDraft ? "rectangle.stack.fill" : "rectangle.stack.badge.plus")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(hasDraft ? Design.Colors.bobaOrange : Design.Colors.textSecondary)
+                    .frame(width: 28, height: 28)
 
-        VStack(spacing: 0) {
-            VStack(spacing: 0) {
-                Capsule()
-                    .fill(Color.white.opacity(0.45))
-                    .frame(width: 40, height: 5)
-                    .padding(.top, 8)
-                    .padding(.bottom, 4)
-                header()
-            }
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 1)
-                    .updating($dragTranslation) { value, state, _ in
-                        state = value.translation.height
-                    }
-                    .onEnded { value in
-                        let predicted = drawerHeight - value.predictedEndTranslation.height
-                        let clamped = max(bounds.collapsed, min(bounds.large, predicted))
-                        withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.86)) {
-                            drawerHeight = clamped
+                VStack(alignment: .leading, spacing: 2) {
+                    if hasDraft {
+                        Text(store.deckName)
+                            .font(Design.Fonts.display(15))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                            .lineLimit(1)
+                        HStack(spacing: 6) {
+                            Text("\(totalCards) cards")
+                                .font(Design.Fonts.mono(11))
+                                .foregroundStyle(Design.Colors.textMuted)
+                            Text("·")
+                                .foregroundStyle(Design.Colors.textMuted)
+                            Text(store.format.displayName)
+                                .font(Design.Fonts.mono(10, weight: .bold))
+                                .foregroundStyle(Design.Colors.bobaOrange)
                         }
+                    } else {
+                        Text("Build a deck")
+                            .font(Design.Fonts.display(15))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                        Text("Tap to open the editor")
+                            .font(Design.Fonts.mono(11))
+                            .foregroundStyle(Design.Colors.textMuted)
                     }
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .padding(.trailing, 4)
+            }
+            .padding(.horizontal, Design.Spacing.md)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
             )
-
-            content()
+            .shadow(color: .black.opacity(0.3), radius: 10, y: -2)
         }
-        .frame(height: bounds.large, alignment: .top)
-        .frame(maxWidth: .infinity)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
-        )
-        .shadow(color: .black.opacity(0.35), radius: 14, y: -3)
-        .offset(y: pushDown)
+        .buttonStyle(.plain)
+        .matchedTransitionSource(id: "deck-draft", in: namespace)
+        .accessibilityLabel(hasDraft ? "Open deck editor — \(store.deckName), \(totalCards) cards" : "Open deck editor")
     }
 }

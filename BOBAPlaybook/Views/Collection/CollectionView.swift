@@ -22,6 +22,12 @@ struct CollectionView: View {
     /// user feedback (the picker forced 5 stacked rows of chrome
     /// before users saw a single card).
     @State private var navigationPath  = NavigationPath()
+
+    /// Music-pattern zoom transition namespace. Each grid cell carries
+    /// .matchedTransitionSource(id: bobaId, in: cardZoomNamespace) and
+    /// the navigationDestination for String renders
+    /// CollectionCardDetailView with .navigationTransition(.zoom(...)).
+    @Namespace private var cardZoomNamespace
     @State private var isRecalculating = false
     @State private var recalcProgress: (current: Int, total: Int)? = nil
 
@@ -125,6 +131,10 @@ struct CollectionView: View {
                     ShowsListView()
                 }
             }
+            .navigationDestination(for: String.self) { bobaId in
+                CollectionCardDetailView(bobaId: bobaId, wrapInNavStack: false)
+                    .navigationTransition(.zoom(sourceID: bobaId, in: cardZoomNamespace))
+            }
         }
         .sheet(isPresented: $showingSignIn) {
             SignInView()
@@ -164,9 +174,9 @@ struct CollectionView: View {
                 )
             )
         }
-        .sheet(item: $selectedCard) { wrapper in
-            CollectionCardDetailView(bobaId: wrapper.id)
-        }
+        // Card-detail is now a NavigationLink push (matchedTransitionSource
+        // + .navigationTransition(.zoom(...)) on the destination above).
+        // The legacy .sheet(item: $selectedCard) is removed.
         .walkthroughOverlay($walkthrough)
         .task {
             if auth.isAuthenticated {
@@ -559,11 +569,11 @@ struct CollectionView: View {
                             ForEach(Array(identifiers.enumerated()), id: \.element) { idx, identifier in
                                 if idx == 0 {
                                     collectionGridCell(identifier: identifier)
-                                        .onTapGesture { selectedCard = BobaIdWrapper(id: identifier) }
+                                        .onTapGesture { navigationPath.append(identifier) }
                                         .walkthroughAnchor("collection.cardCell")
                                 } else {
                                     collectionGridCell(identifier: identifier)
-                                        .onTapGesture { selectedCard = BobaIdWrapper(id: identifier) }
+                                        .onTapGesture { navigationPath.append(identifier) }
                                 }
                             }
                         }
@@ -574,11 +584,11 @@ struct CollectionView: View {
                             ForEach(Array(identifiers.enumerated()), id: \.element) { idx, identifier in
                                 if idx == 0 {
                                     collectionRow(identifier: identifier)
-                                        .onTapGesture { selectedCard = BobaIdWrapper(id: identifier) }
+                                        .onTapGesture { navigationPath.append(identifier) }
                                         .walkthroughAnchor("collection.cardCell")
                                 } else {
                                     collectionRow(identifier: identifier)
-                                        .onTapGesture { selectedCard = BobaIdWrapper(id: identifier) }
+                                        .onTapGesture { navigationPath.append(identifier) }
                                 }
                             }
                         }
@@ -711,7 +721,7 @@ struct CollectionView: View {
                     ForEach(rows) { row in
                         rainbowRow(row)
                             .onTapGesture {
-                                selectedCard = BobaIdWrapper(id: row.coverCard.id)
+                                navigationPath.append(row.coverCard.id)
                             }
                     }
                 }
@@ -802,6 +812,7 @@ struct CollectionView: View {
 
         if let card = catalog {
             BOBACardGridItem(card: card, columnCount: gridColumns)
+                .matchedTransitionSource(id: identifier, in: cardZoomNamespace)
                 .overlay(alignment: .topTrailing) {
                     // Multi-designation badge — preserved from the legacy
                     // grid cell. Sits on top of the (otherwise pristine)

@@ -6,6 +6,11 @@ struct CardDetailView: View {
     // Optional list of cards to swipe through (e.g. the current search results).
     // Empty = no prev/next navigation shown.
     var navigationCards: [Card] = []
+    /// True when presented as a sheet (sheet needs its own NavigationStack
+    /// to render the toolbar). False when pushed via .navigationDestination
+    /// of a parent NavigationStack — the parent provides the chrome and a
+    /// nested NavigationStack creates back-button conflicts.
+    var wrapInNavStack: Bool = true
 
     @Environment(\.dismiss) private var dismiss
     @Environment(AuthManager.self) private var auth
@@ -112,8 +117,17 @@ struct CardDetailView: View {
         }
     }
 
+    @ViewBuilder
+    private func navStackIfNeeded<C: View>(@ViewBuilder _ content: () -> C) -> some View {
+        if wrapInNavStack {
+            NavigationStack { content() }
+        } else {
+            content()
+        }
+    }
+
     var body: some View {
-        NavigationStack {
+        navStackIfNeeded {
             ScrollView {
                 VStack(spacing: 0) {
                     artPanel
@@ -125,10 +139,12 @@ struct CardDetailView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Done") { dismiss() }
-                        .font(Design.Fonts.mono(14))
-                        .foregroundStyle(Design.Colors.bobaOrange)
+                if wrapInNavStack {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Done") { dismiss() }
+                            .font(Design.Fonts.mono(14))
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                    }
                 }
                 ToolbarItem(placement: .principal) {
                     Text(card.name)

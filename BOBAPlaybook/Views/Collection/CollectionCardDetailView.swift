@@ -7,6 +7,8 @@ import SwiftUI
 struct CollectionCardDetailView: View {
     /// bobaId (e.g. "BOJ-123-BoJax-Base") for new entries, or a plain cardNumber for legacy entries.
     let bobaId: String
+    /// Sheet vs. push presentation — see CardDetailView.wrapInNavStack.
+    var wrapInNavStack: Bool = true
 
     @Environment(CollectionStore.self) private var collection
     @Environment(CardStore.self) private var cardStore
@@ -53,8 +55,17 @@ struct CollectionCardDetailView: View {
             }
     }
 
+    @ViewBuilder
+    private func navStackIfNeeded<C: View>(@ViewBuilder _ content: () -> C) -> some View {
+        if wrapInNavStack {
+            NavigationStack { content() }
+        } else {
+            content()
+        }
+    }
+
     var body: some View {
-        NavigationStack {
+        navStackIfNeeded {
             ScrollView {
                 VStack(alignment: .leading, spacing: Design.Spacing.xl) {
                     if let card = catalogCard {
@@ -92,10 +103,12 @@ struct CollectionCardDetailView: View {
             .navigationTitle(catalogCard?.name ?? catalogCard?.cardNumber ?? bobaId)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Done") { dismiss() }
-                        .font(Design.Fonts.mono(14))
-                        .foregroundStyle(Design.Colors.bobaOrange)
+                if wrapInNavStack {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Done") { dismiss() }
+                            .font(Design.Fonts.mono(14))
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     if let card = catalogCard {

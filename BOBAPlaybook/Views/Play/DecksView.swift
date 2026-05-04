@@ -75,6 +75,12 @@ struct DecksView: View {
     /// across). Persisted per tab so Decks can stay denser than Find.
     @AppStorage("bp_decksGridColumns_v1") private var gridColumns: Int = 3
 
+    /// Music-pattern zoom transition namespace + path for the card
+    /// pool. Tap a pool cell → BrowserCardDetailSheet zooms in from
+    /// the cell via .matchedTransitionSource + .navigationTransition.
+    @Namespace private var poolZoomNamespace
+    @State private var poolNavigationPath = NavigationPath()
+
     /// Routes within the editor's NavigationStack.
     enum EditorRoute: Hashable {
         case deckManagement
@@ -116,7 +122,7 @@ struct DecksView: View {
     // MARK: - Body
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $poolNavigationPath) {
             ZStack(alignment: .top) {
                 cardPoolCanvas
                 addedBannerOverlay
@@ -158,10 +164,17 @@ struct DecksView: View {
             // TextField), which never affects the nav bar at all and
             // gets a proper Done button on the keyboard via the
             // .keyboard ToolbarItemGroup below.
-            // Card-detail (long-press in pool) — independent of editor.
-            // Lives at the parent level so dismissal returns to the canvas.
-            .sheet(item: $selectedBrowserCard) { card in
-                BrowserCardDetailSheet(card: card, store: store, tab: pickRoleForCard(card))
+            // Card-detail push — Music's tap-to-zoom pattern. Cells
+            // mark their identity via .matchedTransitionSource and
+            // the destination renders BrowserCardDetailSheet with
+            // .navigationTransition(.zoom(...)) so the sheet grows
+            // out of the tapped cell. Tab bar stays visible.
+            .navigationDestination(for: Card.self) { card in
+                BrowserCardDetailSheet(card: card,
+                                       store: store,
+                                       tab: pickRoleForCard(card),
+                                       wrapInNavStack: false)
+                    .navigationTransition(.zoom(sourceID: card.id, in: poolZoomNamespace))
             }
             .walkthroughOverlay($walkthrough) { stage in
                 handleWalkthroughStage(stage)
@@ -398,9 +411,10 @@ struct DecksView: View {
                 ) {
                     ForEach(Array(filtered.prefix(200).enumerated()), id: \.element.id) { idx, card in
                         Button {
-                            selectedBrowserCard = card
+                            poolNavigationPath.append(card)
                         } label: {
                             BOBACardGridItem(card: card, columnCount: gridColumns)
+                                .matchedTransitionSource(id: card.id, in: poolZoomNamespace)
                         }
                         .buttonStyle(.plain)
                         // Long-press = add to current deck (per user

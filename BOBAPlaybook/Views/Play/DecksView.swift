@@ -36,6 +36,7 @@ struct DecksView: View {
     @Environment(CollectionStore.self)  private var collection
     @Environment(AuthManager.self)      private var auth
     @Environment(ScanStore.self)        private var scanStore
+    @Environment(ScanCoordinator.self)  private var scanCoordinator
 
     @State private var store = DeckBuilderStore()
 
@@ -60,8 +61,9 @@ struct DecksView: View {
     @State private var showDeckManagement    = false
     @State private var selectedBrowserCard   : Card? = nil
 
-    // Scan + alerts + transient feedback
-    @State private var showScan              = false
+    // Scan + alerts + transient feedback. Scan presentation lives at
+    // ContentView per DESIGN.md §6.5 — DecksView calls scanCoordinator
+    // .start(.deck(...)). No local showScan / fullScreenCover here.
     @State private var confirmingClearDeck   = false
     @State private var addedBanner           : String? = nil
     @State private var saveBanner            : String? = nil
@@ -104,25 +106,6 @@ struct DecksView: View {
             // Lives at the parent level so dismissal returns to the canvas.
             .sheet(item: $selectedBrowserCard) { card in
                 BrowserCardDetailSheet(card: card, store: store, tab: pickRoleForCard(card))
-            }
-            // Scan — fullScreenCover is independent of any sheet.
-            .fullScreenCover(isPresented: $showScan, onDismiss: {
-                scanStore.endDeckBuilderSession()
-            }) {
-                ZStack(alignment: .topLeading) {
-                    ScanView()
-                    Button {
-                        showScan = false
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundStyle(.white.opacity(0.85))
-                            .shadow(color: .black.opacity(0.5), radius: 4)
-                            .padding(Design.Spacing.md)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Close scanner")
-                }
             }
             .alert("Clear deck?", isPresented: $confirmingClearDeck) {
                 Button("Cancel", role: .cancel) {}
@@ -761,12 +744,10 @@ struct DecksView: View {
     }
 
     private func presentScanner() {
-        let targets = store.savedDecks.map { ScanStore.DeckTarget(id: $0.id, name: $0.name) }
-        scanStore.beginDeckBuilderSession(
-            currentDeckLabel: store.deckName,
-            availableSavedDecks: targets
+        scanCoordinator.start(
+            .deck(label: store.deckName, savedDecks: store.savedDecks),
+            scanStore: scanStore
         )
-        showScan = true
     }
 
     private func ingestScannedCards(_ cards: [Card]) {

@@ -6,7 +6,8 @@ struct SearchView: View {
     @Environment(AuthManager.self) private var auth
     @State private var showFilters = false
     @State private var selectedCard: Card?
-    @State private var showScan = false
+    @Environment(ScanStore.self) private var scanStore
+    @Environment(ScanCoordinator.self) private var scanCoordinator
     @State private var showProfile = false
     /// When true, tapping a grid card adds it to the user's Collection
     /// (as .personal) instead of opening the card detail sheet. Parallels
@@ -153,25 +154,10 @@ struct SearchView: View {
         .sheet(isPresented: $showFilters) {
             FilterSheetView(store: store)
         }
-        // Scan as an immersive full-screen cover — camera needs the whole
-        // viewport. A floating Close button handles dismissal since ScanView
-        // has no nav bar of its own.
-        .fullScreenCover(isPresented: $showScan) {
-            ZStack(alignment: .topLeading) {
-                ScanView()
-                Button {
-                    showScan = false
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 28))
-                        .foregroundStyle(Color.white.opacity(0.85))
-                        .shadow(color: .black.opacity(0.5), radius: 4)
-                        .padding(Design.Spacing.md)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Close scanner")
-            }
-        }
+        // Scan presentation lives at ContentView per DESIGN.md §6.5
+        // (single ScanView modal regardless of invoking tab). Find calls
+        // ScanCoordinator.start(.find, scanStore:) — the coordinator
+        // drives the centralized fullScreenCover.
         .sheet(isPresented: $showProfile) {
             ProfileView()
         }
@@ -198,7 +184,7 @@ struct SearchView: View {
         // Deep-link: bobaplaybook://scan — present the scanner sheet.
         .onChange(of: store.pendingScan) { _, pending in
             if pending {
-                showScan = true
+                scanCoordinator.start(.find, scanStore: scanStore)
                 store.pendingScan = false
             }
         }
@@ -212,7 +198,7 @@ struct SearchView: View {
             store.clearAllFilters()
             tryPresentPendingCard()
             if store.pendingScan {
-                showScan = true
+                scanCoordinator.start(.find, scanStore: scanStore)
                 store.pendingScan = false
             }
             if WalkthroughsManager.shared.shouldShow(.findTab) {
@@ -305,7 +291,7 @@ struct SearchView: View {
 
             // Scan shortcut — tapping here opens the scanner instead of the keyboard.
             Button {
-                showScan = true
+                scanCoordinator.start(.find, scanStore: scanStore)
             } label: {
                 HStack(spacing: 5) {
                     Image(systemName: "camera.viewfinder")

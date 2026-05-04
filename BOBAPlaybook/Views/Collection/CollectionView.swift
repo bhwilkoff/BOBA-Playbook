@@ -810,8 +810,17 @@ struct CollectionView: View {
         let allDesignations = Set(collection.entries(forBobaId: identifier).map { $0.designation })
 
         if let card = catalog {
+            // Multi-designation badge overlay applied FIRST (closest to
+            // the cell view), then .matchedTransitionSource on the
+            // overlay-wrapped view. Order matters: matchedTransitionSource
+            // must be on the OUTER, visible cell — if it's on the inner
+            // BOBACardGridItem, iOS sees the wrapped overlay view as
+            // "different" from the source ID and falls back to the
+            // standard transition (the "nil view" warning the user
+            // captured in the console). Same fix philosophy as Decks's
+            // cell: the matched source must be the visible, in-window
+            // view that iOS will animate from.
             BOBACardGridItem(card: card, columnCount: gridColumns)
-                .matchedTransitionSource(id: identifier, in: cardZoomNamespace)
                 .overlay(alignment: .topTrailing) {
                     // Multi-designation badge — preserved from the legacy
                     // grid cell. Sits on top of the (otherwise pristine)
@@ -829,6 +838,7 @@ struct CollectionView: View {
                         .padding(4)
                     }
                 }
+                .matchedTransitionSource(id: identifier, in: cardZoomNamespace)
         } else {
             // Catalog miss — render a placeholder + identifier so the
             // user sees something rather than a blank slot.

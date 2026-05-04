@@ -415,13 +415,12 @@ struct DecksView: View {
                     spacing: Design.Spacing.md
                 ) {
                     ForEach(Array(filtered.prefix(200).enumerated()), id: \.element.id) { idx, card in
-                        Button {
-                            poolNavigationPath.append(card)
-                        } label: {
-                            BOBACardGridItem(card: card, columnCount: gridColumns)
-                                .matchedTransitionSource(id: card.id, in: poolZoomNamespace)
-                        }
-                        .buttonStyle(.plain)
+                        BOBACardGridItem(card: card, columnCount: gridColumns)
+                            .matchedTransitionSource(id: card.id, in: poolZoomNamespace)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                poolNavigationPath.append(card)
+                            }
                         // Long-press = add to current deck (per user
                         // feedback #6 + matches the walkthrough copy).
                         // Haptic feedback on success so the user feels

@@ -1930,16 +1930,6 @@ struct BrowserCardDetailSheet: View {
         navStackIfNeeded {
             ScrollView {
                 VStack(spacing: Design.Spacing.lg) {
-                    // [DIAG] forehead bug
-                    Color.clear
-                        .frame(height: 0)
-                        .background(GeometryReader { proxy in
-                            Color.clear.onAppear {
-                                let f = proxy.frame(in: .global)
-                                let s = proxy.safeAreaInsets
-                                print("[FOREHEAD] DECKS content_top_y=\(f.minY) safeTop=\(s.top) safeBot=\(s.bottom)")
-                            }
-                        })
                     artPanel
 
                     // Stats

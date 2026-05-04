@@ -55,9 +55,12 @@ struct SearchView: View {
                     contentView
                 }
             }
+            // Find uses Tab(role: .search) — let the role determine the
+            // placement instead of forcing .navigationBarDrawer. The
+            // search role is what gives Find the visually-distinctive
+            // tab-bar slot and the iOS 26 search expansion behavior.
             .searchable(
                 text: $store.searchText,
-                placement: .navigationBarDrawer(displayMode: .always),
                 prompt: "Cards, heroes, numbers…"
             )
             .navigationTitle("")

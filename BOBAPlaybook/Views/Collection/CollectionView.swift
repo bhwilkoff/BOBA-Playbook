@@ -1135,7 +1135,7 @@ struct CollectionView: View {
                 guard let card else { return false }
                 return card.name.lowercased().contains(trimmed)
                     || card.cardNumber.lowercased().contains(trimmed)
-                    || (card.hero ?? "").lowercased().contains(trimmed)
+                    || card.hero.lowercased().contains(trimmed)
             }
         }
         return sortIdentifiers(owned, designation: designation)

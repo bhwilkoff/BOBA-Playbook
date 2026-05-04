@@ -6,12 +6,14 @@ import SwiftUI
 struct SettingsView: View {
     @AppStorage("selectedIconName") private var selectedIconName: String = "default"
     @State private var hints = HintsManager.shared
+    @State private var walkthroughs = WalkthroughsManager.shared
     /// Brief banner shown after the Reset button fires. Without this
     /// the action looks silent — hints have contextual triggers
     /// (substitution phase, deck builder, etc.) so the visible
     /// effect doesn't surface until the coach is back in that
     /// context. The banner closes that perception gap.
     @State private var resetConfirmation: String?
+    @State private var walkthroughResetConfirmation: String?
 
     var body: some View {
         List {
@@ -76,6 +78,49 @@ struct SettingsView: View {
                     .foregroundStyle(Design.Colors.textMuted)
             } footer: {
                 Text("Lightbulb tips appear at key moments — substitution positioning, deck composition, bonus-play limits. Each one shows only once per device unless you reset them here.")
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+            .listRowBackground(Design.Colors.surface)
+
+            // Feature walkthroughs — anchored multi-step first-visit
+            // tutorials per DESIGN.md §6.10. Distinct from the
+            // Practice Hints above (single-tip banners). The toggle
+            // silences the entire system; "Reset" replays every
+            // walkthrough as if the user had never seen any.
+            Section {
+                Toggle(isOn: Binding(
+                    get: { walkthroughs.walkthroughsEnabled },
+                    set: { walkthroughs.walkthroughsEnabled = $0 }
+                )) {
+                    Text("Show walkthroughs on first visit")
+                        .font(Design.Fonts.mono(14))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                }
+                .tint(Design.Colors.bobaCyan)
+                Button("Reset walkthroughs") {
+                    walkthroughs.resetAll()
+                    let count = WalkthroughID.allCases.count
+                    walkthroughResetConfirmation = "Cleared \(count) walkthrough dismissals. Each will fire again on next visit."
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(3))
+                        walkthroughResetConfirmation = nil
+                    }
+                }
+                .font(Design.Fonts.mono(13))
+                .foregroundStyle(Design.Colors.bobaOrange)
+                if let msg = walkthroughResetConfirmation {
+                    Text(msg)
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Color(hex: "4CAF50"))
+                        .transition(.opacity)
+                }
+            } header: {
+                Text("FEATURE WALKTHROUGHS")
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+            } footer: {
+                Text("Anchored multi-step tutorials that fire the first time you open a tab or feature. Each shows once per device unless you reset them here. Re-launchable from any tab's overflow menu via 'Show walkthrough'.")
                     .font(Design.Fonts.mono(11))
                     .foregroundStyle(Design.Colors.textMuted)
             }

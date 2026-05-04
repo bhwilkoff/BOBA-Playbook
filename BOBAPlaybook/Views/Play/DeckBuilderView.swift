@@ -2046,8 +2046,16 @@ struct BrowserCardDetailSheet: View {
                         .lineLimit(1)
                 }
             }
-            .toolbarBackground(.regularMaterial, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            // Hide the nav bar BACKGROUND on the destination — the
+            // artPanel's element-tinted gradient provides the visual
+            // top surface, the nav bar items (back chevron + principal
+            // title) just float over it. Music's Now Playing pattern.
+            // This is what eliminates the user's "extended header
+            // overlays the card art" forehead: there's no longer a
+            // distinct header band to be extended (inheriting the
+            // parent's toolbar+search-drawer height) — the gradient
+            // just is the top.
+            .toolbarBackground(.hidden, for: .navigationBar)
         }
     }
 }

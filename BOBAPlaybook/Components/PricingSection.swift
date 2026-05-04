@@ -358,14 +358,43 @@ struct PricingSection: View {
                         .foregroundStyle(Design.Colors.textMuted)
                 }
             } else {
-                HStack(spacing: 0) {
-                    priceCell(label: isEstimated ? "EST. LOW"  : "LOW",  value: bucket.low,     isActive: isActive)
-                    Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
-                    priceCell(label: isEstimated ? "EST. MID"  : "AVG",  value: bucket.average, isActive: isActive)
-                    Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
-                    priceCell(label: isEstimated ? "EST. HIGH" : "HIGH", value: bucket.high,    isActive: isActive)
+                // Per user feedback — Low/AVG/High only makes sense
+                // when there's enough data to spread across three
+                // anchor points. For BUY NOW, where each listing is
+                // an independent asking price, the items list below
+                // already shows every individual price so the
+                // tri-grid is redundant. For SOLD, the tri-grid
+                // adds signal only when count > 1; a single sale
+                // gets a single "Last sold" cell.
+                let showsTriGrid = isEstimated || (!isActive && bucket.count > 1)
+                if showsTriGrid {
+                    HStack(spacing: 0) {
+                        priceCell(label: isEstimated ? "EST. LOW"  : "LOW",  value: bucket.low,     isActive: isActive)
+                        Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
+                        priceCell(label: isEstimated ? "EST. MID"  : "AVG",  value: bucket.average, isActive: isActive)
+                        Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
+                        priceCell(label: isEstimated ? "EST. HIGH" : "HIGH", value: bucket.high,    isActive: isActive)
+                    }
+                    .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
+                } else {
+                    // Single anchor — for BUY NOW shows lowest asking
+                    // price; for a single SOLD shows that one sale.
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 4) {
+                            Text(isActive ? "FROM" : "LAST SOLD")
+                                .font(Design.Fonts.mono(8, weight: .bold))
+                                .foregroundStyle(Design.Colors.textMuted)
+                                .tracking(1.2)
+                            Text(bucket.low, format: .currency(code: "USD"))
+                                .font(Design.Fonts.mono(16, weight: .bold))
+                                .foregroundStyle(isActive ? Design.Colors.bobaOrange : Design.Colors.textPrimary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, Design.Spacing.md)
+                    .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
                 }
-                .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
 
                 if isEstimated {
                     Text(estimatedCaption(source: bucket.estimatedSource))

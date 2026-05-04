@@ -2,43 +2,36 @@
 //  LearnView.swift
 //  BOBAPlaybook
 //
-//  The "Learn" tab — Rules, Strategy, Browse, Collect, Tournament.
-//  Was previously part of the combined PlayView; split out in the nav
-//  refactor so informational content has its own tab and practice /
-//  decks each get their own tabs.
+//  Learn tab per DESIGN.md §8.2. Pure educational content — no card
+//  details, no card-add actions (those belong in Find).
+//
+//  Pattern: NavigationStack push from a single root list of 5
+//  categories (Rules / Strategy / Collect / Glossary / Tournament).
+//  No Browse — Browse moved to Find per §8.1. No top-level Read/Watch
+//  toggle — Watch is accessible via a toolbar Menu item for now;
+//  future work folds video into per-article scopes (§8.2 anatomy).
+//
+//  Original 6-section middle picker + Read/Watch toggle + nested
+//  Rookie/Sub/Playmaker mode picker collapsed from depth 4 → depth 2.
 //
 
 import SwiftUI
 
 // ════════════════════════════════════════════════════════════════
-// MARK: - Section Enum
+// MARK: - Category model
 // ════════════════════════════════════════════════════════════════
 
-private enum PlaySection: String, CaseIterable, Identifiable {
-    // Setup was retired 2026-04-28: its match-flow walkthrough was a
-    // duplicate of the per-mode Setup blocks inside Rules, and its
-    // "Reading the Playmat" / "Common Edge Cases" sections were tied
-    // to the practice-battle UI that most users can't access. The
-    // rule-flavored bits got merged into Rules' Edge Cases section;
-    // the practice-UI references were dropped.
-    case rules      = "Rules"
-    case strategy   = "Strategy"
-    case browse     = "Browse"
-    case collect    = "Collect"
-    case glossary   = "Glossary"
-    case tournament = "Tournament"
-    var id: String { rawValue }
-}
-
-/// Top-level Read/Watch toggle for the Learn tab. "Read" carries the
-/// existing reference content (Rules / Strategy / Browse / Collect /
-/// Glossary / Tournament). "Watch" routes to the YouTube feeds the
-/// `boba-youtube-feed` Worker aggregates from BoBA-focused channels +
-/// a community-wide search.
-private enum LearnMode: String, CaseIterable, Identifiable {
-    case read  = "Read"
-    case watch = "Watch"
-    var id: String { rawValue }
+/// One row in the Learn root list. Stable id used for the
+/// `.navigationDestination(for:)` switch. Each category pushes to
+/// its existing content view (RulesView, StrategyView, …). `id`
+/// strings are stable so they double as App Intent destination
+/// identifiers per DESIGN.md §7.2 (forward-compat for iOS 27 Siri
+/// summaries / deep links).
+private struct LearnCategory: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let systemImage: String
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -47,45 +40,120 @@ private enum LearnMode: String, CaseIterable, Identifiable {
 
 struct LearnView: View {
     @Environment(CardStore.self) private var cardStore
-    @State private var selectedSection: PlaySection = .rules
-    @State private var mode: LearnMode = .read
+    @State private var path = NavigationPath()
+    @State private var showWatch = false
+    @State private var walkthrough: BOBAWalkthrough.Script? = nil
+
+    private let categories: [LearnCategory] = [
+        LearnCategory(
+            id: "rules",
+            title: "Rules",
+            subtitle: "Match flow, card zones, edge cases",
+            systemImage: "book.closed.fill"
+        ),
+        LearnCategory(
+            id: "strategy",
+            title: "Strategy",
+            subtitle: "Power curve, weapon synergy, archetypes",
+            systemImage: "lightbulb.fill"
+        ),
+        LearnCategory(
+            id: "collect",
+            title: "Collect",
+            subtitle: "Treatments, parallels, variations",
+            systemImage: "square.stack.3d.up.fill"
+        ),
+        LearnCategory(
+            id: "glossary",
+            title: "Glossary",
+            subtitle: "Game terms + trading vocabulary",
+            systemImage: "character.book.closed.fill"
+        ),
+        LearnCategory(
+            id: "tournament",
+            title: "Tournament",
+            subtitle: "Pro Tour formats, modes, penalties",
+            systemImage: "trophy.fill"
+        )
+    ]
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                ReadWatchToggle(mode: $mode)
-                    .padding(.horizontal, Design.Spacing.lg)
-                    .padding(.top, Design.Spacing.sm)
-                    .padding(.bottom, Design.Spacing.xs)
-                    .background(Design.Colors.surface)
-
-                switch mode {
-                case .read:
-                    PlaySectionPicker(selected: $selectedSection)
-                        .padding(.vertical, Design.Spacing.sm)
-                        .background(Design.Colors.surface)
-
-                    switch selectedSection {
-                    case .rules:      RulesView()
-                    case .strategy:   StrategyView()
-                    case .browse:     BrowseView()
-                    case .collect:    CollectView()
-                    case .glossary:   GlossaryView()
-                    case .tournament: TournamentView()
+        NavigationStack(path: $path) {
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(categories.enumerated()), id: \.element.id) { idx, cat in
+                        NavigationLink(value: cat) {
+                            BOBASectionRow(
+                                title: cat.title,
+                                subtitle: cat.subtitle,
+                                systemImage: cat.systemImage
+                            )
+                            .padding(.horizontal, Design.Spacing.lg)
+                            .walkthroughAnchor(idx == 0 ? "learn.firstRow" : "learn.row.\(cat.id)")
+                        }
+                        .buttonStyle(.plain)
+                        Divider()
+                            .background(Design.Colors.glassBorder)
+                            .padding(.leading, Design.Spacing.lg)
                     }
-                case .watch:
-                    WatchView()
                 }
+                .padding(.top, Design.Spacing.md)
+                .walkthroughAnchor("learn.rootList")
             }
             .frame(maxWidth: .infinity)
             .background(Design.Colors.nearBlack)
+            .scrollEdgeEffectStyle(.soft, for: .top)
+            .navigationDestination(for: LearnCategory.self) { cat in
+                switch cat.id {
+                case "rules":      RulesView()
+                case "strategy":   StrategyView()
+                case "collect":    CollectView()
+                case "glossary":   GlossaryView()
+                case "tournament": TournamentView()
+                default:           EmptyView()
+                }
+            }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) { BOBAWordmark() }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            showWatch = true
+                        } label: {
+                            Label("Watch on YouTube", systemImage: "play.rectangle.fill")
+                        }
+                        Divider()
+                        Button {
+                            WalkthroughsManager.shared.relaunch(.learnTab)
+                            walkthrough = .learnTab
+                        } label: {
+                            Label("Show walkthrough", systemImage: "questionmark.circle")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+        }
+        .sheet(isPresented: $showWatch) {
+            WatchView()
+        }
+        .overlay {
+            if let script = walkthrough {
+                BOBAWalkthrough(script: script) {
+                    WalkthroughsManager.shared.dismiss(script.id)
+                    walkthrough = nil
+                }
+            }
+        }
+        .onAppear {
+            if WalkthroughsManager.shared.shouldShow(.learnTab) {
+                walkthrough = .learnTab
+            }
         }
     }
 }
@@ -94,71 +162,9 @@ struct LearnView: View {
 // MARK: - Read/Watch toggle
 // ════════════════════════════════════════════════════════════════
 
-private struct ReadWatchToggle: View {
-    @Binding var mode: LearnMode
-
-    var body: some View {
-        HStack(spacing: Design.Spacing.xs) {
-            ForEach(LearnMode.allCases) { m in
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { mode = m }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: m == .read ? "book.fill" : "play.tv.fill")
-                            .font(.system(size: 12, weight: .semibold))
-                        Text(m.rawValue)
-                            .font(Design.Fonts.display(15))
-                    }
-                    .foregroundStyle(mode == m ? Design.Colors.nearBlack : Design.Colors.textSecondary)
-                    .padding(.horizontal, Design.Spacing.lg)
-                    .frame(height: 36)
-                    .frame(maxWidth: .infinity)
-                    .background(Capsule().fill(mode == m ? Design.Colors.bobaOrange : Design.Colors.glass))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-}
-
-// ════════════════════════════════════════════════════════════════
-// MARK: - Section Picker (horizontal scroll)
-// ════════════════════════════════════════════════════════════════
-
-private struct PlaySectionPicker: View {
-    @Binding var selected: PlaySection
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Design.Spacing.xs) {
-                ForEach(PlaySection.allCases) { section in
-                    pill(for: section)
-                }
-            }
-            .padding(.horizontal, Design.Spacing.lg)
-        }
-    }
-
-    /// Per-pill renderer broken out so the body's type chain stays
-    /// short — Swift 6's checker can't infer the full ScrollView →
-    /// HStack → ForEach → Button → 5 chained modifiers tree fast
-    /// enough when the section count grows.
-    @ViewBuilder
-    private func pill(for section: PlaySection) -> some View {
-        let isSelected = selected == section
-        Button {
-            withAnimation(.easeInOut(duration: 0.18)) { selected = section }
-        } label: {
-            Text(section.rawValue)
-                .font(Design.Fonts.mono(13, weight: isSelected ? .bold : .regular))
-                .foregroundStyle(isSelected ? Design.Colors.nearBlack : Design.Colors.textSecondary)
-                .padding(.horizontal, Design.Spacing.md)
-                .frame(height: 34)
-                .background(Capsule().fill(isSelected ? Design.Colors.bobaOrange : Design.Colors.glass))
-        }
-        .buttonStyle(.plain)
-    }
-}
+// ReadWatchToggle and PlaySectionPicker removed — DESIGN.md §8.2
+// rebuild collapsed Read/Watch + 6-section picker into the new root
+// list (above) with Watch accessible via toolbar Menu.
 
 // ════════════════════════════════════════════════════════════════
 // MARK: - Mini Card View (card image + stats used throughout)
@@ -1363,271 +1369,6 @@ private struct ArchetypeCard: View {
     }
 }
 
-// ════════════════════════════════════════════════════════════════
-// MARK: - Browse View (Curated Card Lists)
-// ════════════════════════════════════════════════════════════════
-
-private struct ListFilter: Identifiable, Equatable {
-    let id: String; let name: String; let description: String
-    let count: String; let color: Color
-    let matches: (Card) -> Bool
-    static func == (l: ListFilter, r: ListFilter) -> Bool { l.id == r.id }
-}
-
-private struct BrowseView: View {
-    @Environment(CardStore.self) private var cardStore
-    @State private var activeList: ListFilter? = nil
-    @State private var selectedCard: Card? = nil
-
-    private let featuredLists: [ListFilter] = [
-        ListFilter(id: "woba", name: "WOBA",
-                   description: "Women of BOBA — heroes inspired by 17 legendary female athletes across every sport.",
-                   count: "884 cards", color: Color(hex: "FF69B4")) { card in
-            let heroes: Set<String> = ["AJax","Belladonna","Brandi","C.C.","Cameleon","Cheryl Bomb",
-                                       "Coopanova","Eraser","Halo","JPEG","Lady Magic","Leducky",
-                                       "PB Buckets","Pauldron","Peek-A-Boo","Ramponage","Swoopes"]
-            return heroes.contains(card.hero)
-        },
-        ListFilter(id: "bojax", name: "Bo Jackson",
-                   description: "The man who inspired it all — every BoJax card across every set and treatment.",
-                   count: "147 cards", color: Design.Colors.bobaOrange) { card in
-            card.athleteInspiration == "Bo Jackson" || card.hero == "BoJax" || card.hero == "Bojax"
-        },
-        ListFilter(id: "kid", name: "Ken Griffey Jr.",
-                   description: "The Kid — one of baseball's most beloved players.",
-                   count: "~76 cards", color: Design.Colors.bobaCyan) { card in
-            card.athleteInspiration == "Ken Griffey Jr." || card.hero == "The Kid"
-        },
-        ListFilter(id: "drj", name: "Dr. J",
-                   description: "Julius Erving — the original aerial artist of basketball.",
-                   count: "70 cards", color: Color(hex: "8B00FF")) { card in
-            card.athleteInspiration == "Julius Erving" || card.hero == "Dr. J"
-        },
-    ]
-
-    private let weaponFilters: [(element: String, label: String)] = [
-        ("FIRE","Fire"), ("ICE","Ice"), ("STEEL","Steel"),
-        ("BRAWL","Brawl"), ("GLOW","Glow"), ("HEX","Hex"), ("GUM","Gum"), ("SUPER","Super"),
-    ]
-
-    private let sportFilters: [(label: String, athletes: Set<String>)] = [
-        ("Basketball", ["LeBron James","Lebron James","Steph Curry","Kevin Durant","Giannis Antetokounmpo",
-                        "Giannis Anteokounmpo","Giannis Antetetokounmpo","Nikola Jokic","Luka Doncic",
-                        "Cooper Flagg","Paige Bueckers","Julius Erving","Magic Johnson","Allen Iverson",
-                        "Kawhi Leonard","Ja Morant","Jayson Tatum","Jason Tatum","Caitlin Clark",
-                        "Angel Reese","A'ja Wilson","Cynthia Cooper","Cheryl Miller","Sheryl Swoopes",
-                        "Nancy Lieberman","Elena Delle Donne","Devin Booker","Anthony Edwards","Damian Lillard"]),
-        ("Football",   ["Patrick Mahomes","Josh Allen","Lamar Jackson","Travis Kelce","Bo Jackson",
-                        "Barry Sanders","Adrian Peterson","Derrick Henry","Justin Jefferson","Joe Burrow",
-                        "Justin Herbert","CJ Stroud","Caleb Williams","Jordan Love","Aaron Rodgers",
-                        "Saquan Barkley","Christian McCaffrey","Christian McCaffery","Tyreek Hill",
-                        "Travis Hunter","Dak Prescott","Jalen Hurts","Jayden Daniels"]),
-        ("Baseball",   ["Ken Griffey Jr.","Ken Griffey Sr.","Shohei Ohtani","Aaron Judge","Mike Trout",
-                        "Mookie Betts","Juan Soto","Bo Jackson","Ronald Acuna Jr.","Fernando Tatis Jr.",
-                        "Fernando Tatís Jr.","Vladimir Guerrero Jr.","Julio Rodriguez","Jackson Holliday",
-                        "Paul Skenes","Rafael Devers","Bobby Witt Jr","Bobby Witt Jr.","Elly De La Cruz",
-                        "Gunnar Henderson","Corbin Carroll","Jackson Chourio"]),
-        ("Hockey",     ["Sidney Crosby","Alexander Ovechkin","Henrik Lundqvist"]),
-        ("Tennis",     ["Jessica Pegula","Paula Badosa"]),
-        ("Golf",       ["Bryson DeChambeau","Jordan Spieth"]),
-        ("Soccer",     ["Brandi Chastain","Chastain","Christie Pearce Rampone","Jozy Altidore"]),
-    ]
-
-    private func filteredCards(for filter: ListFilter) -> [Card] {
-        cardStore.displayCards
-            .filter(filter.matches)
-            .filter { $0.imageFile != nil && !($0.imageFile!.isEmpty) }
-            .prefix(60).map { $0 }
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Design.Spacing.xl) {
-                featuredSection
-                weaponSection
-                sportSection
-            }
-            .padding(Design.Spacing.lg)
-            .padding(.bottom, Design.Spacing.xxl)
-        }
-        .sheet(item: $selectedCard) { card in CardDetailView(card: card) }
-    }
-
-    // MARK: Featured collections
-    private var featuredSection: some View {
-        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-            Text("FEATURED COLLECTIONS")
-                .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
-
-            ForEach(featuredLists) { list in
-                VStack(spacing: 0) {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            activeList = activeList == list ? nil : list
-                        }
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(list.name).font(Design.Fonts.display(17))
-                                    .foregroundStyle(activeList == list ? list.color : Design.Colors.textPrimary)
-                                Text(list.description).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textMuted)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                Text(list.count).font(Design.Fonts.mono(11, weight: .bold))
-                                    .foregroundStyle(list.color.opacity(0.8))
-                            }
-                            Spacer()
-                            Image(systemName: activeList == list ? "chevron.up" : "chevron.right")
-                                .font(.system(size: 13, weight: .semibold)).foregroundStyle(list.color)
-                        }
-                        .padding(Design.Spacing.md)
-                    }
-                    .buttonStyle(.plain)
-
-                    if activeList == list {
-                        Divider().background(Design.Colors.glassBorder)
-                        cardGridOrLoading(for: list)
-                            .padding(Design.Spacing.sm)
-                    }
-                }
-                .background(RoundedRectangle(cornerRadius: Design.Radius.md)
-                    .fill(activeList == list ? list.color.opacity(0.06) : Design.Colors.surface)
-                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.md)
-                        .strokeBorder(activeList == list ? list.color.opacity(0.45) : Design.Colors.glassBorder, lineWidth: 1)))
-            }
-        }
-    }
-
-    // MARK: Weapon type section
-    private var weaponSection: some View {
-        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-            Text("BY WEAPON TYPE")
-                .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
-
-            FlowLayout(spacing: Design.Spacing.sm) {
-                ForEach(weaponFilters, id: \.element) { wf in
-                    let filterId = "weapon_\(wf.element)"
-                    let active = activeList?.id == filterId
-                    Button {
-                        let filter = ListFilter(id: filterId, name: "\(wf.label) Heroes",
-                                               description: "", count: "", color: Design.Colors.element(wf.element)) { $0.element == wf.element }
-                        withAnimation { activeList = active ? nil : filter }
-                    } label: {
-                        HStack(spacing: 5) {
-                            Circle().fill(Design.Colors.element(wf.element)).frame(width: 8, height: 8)
-                            Text(wf.label)
-                                .font(Design.Fonts.mono(13, weight: .bold))
-                                .foregroundStyle(active ? .white : Design.Colors.element(wf.element))
-                        }
-                        .padding(.horizontal, Design.Spacing.md).padding(.vertical, 8)
-                        .background(Capsule().fill(active ? Design.Colors.element(wf.element) : Design.Colors.element(wf.element).opacity(0.1))
-                            .overlay(Capsule().strokeBorder(Design.Colors.element(wf.element).opacity(active ? 0 : 0.4), lineWidth: 1)))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-
-            if let active = activeList, active.id.hasPrefix("weapon_") {
-                cardGridOrLoading(for: active).padding(.top, Design.Spacing.xs)
-            }
-        }
-    }
-
-    // MARK: Sport section
-    private var sportSection: some View {
-        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-            Text("BY SPORT")
-                .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
-
-            FlowLayout(spacing: Design.Spacing.sm) {
-                ForEach(sportFilters, id: \.label) { sport in
-                    let filterId = "sport_\(sport.label)"
-                    let active = activeList?.id == filterId
-                    Button {
-                        let athletes = sport.athletes
-                        let filter = ListFilter(id: filterId, name: sport.label,
-                                               description: "", count: "", color: Design.Colors.bobaOrange) { card in
-                            guard let insp = card.athleteInspiration else { return false }
-                            return athletes.contains(insp)
-                        }
-                        withAnimation { activeList = active ? nil : filter }
-                    } label: {
-                        Text(sport.label)
-                            .font(Design.Fonts.mono(13, weight: active ? .bold : .regular))
-                            .foregroundStyle(active ? Design.Colors.nearBlack : Design.Colors.textSecondary)
-                            .padding(.horizontal, Design.Spacing.md).padding(.vertical, 8)
-                            .background(Capsule().fill(active ? Design.Colors.bobaOrange : Design.Colors.glass))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-
-            if let active = activeList, active.id.hasPrefix("sport_") {
-                cardGridOrLoading(for: active).padding(.top, Design.Spacing.xs)
-            }
-        }
-    }
-
-    // MARK: Card grid helper
-    @ViewBuilder
-    private func cardGridOrLoading(for filter: ListFilter) -> some View {
-        let cards = filteredCards(for: filter)
-        if cardStore.isLoading {
-            HStack { Spacer(); ProgressView().tint(Design.Colors.bobaOrange); Spacer() }.padding()
-        } else if cards.isEmpty && cardStore.isLoadingMore {
-            HStack(spacing: Design.Spacing.sm) {
-                ProgressView().tint(Design.Colors.bobaOrange).scaleEffect(0.8)
-                Text("Loading full catalog…").font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textMuted)
-            }
-            .padding()
-        } else if cards.isEmpty {
-            Text("No cards found.").font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textMuted).padding()
-        } else {
-            VStack(alignment: .leading, spacing: Design.Spacing.xs) {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Design.Spacing.sm), count: 3),
-                         spacing: Design.Spacing.sm) {
-                    ForEach(cards) { card in
-                        BrowseCardCell(card: card, onTap: { selectedCard = card })
-                    }
-                }
-                if cards.count >= 60 {
-                    Text("Showing first 60 — use Search for full results")
-                        .font(Design.Fonts.mono(11)).foregroundStyle(Design.Colors.textMuted)
-                        .multilineTextAlignment(.center).frame(maxWidth: .infinity)
-                }
-            }
-        }
-    }
-}
-
-private struct BrowseCardCell: View {
-    let card: Card; let onTap: () -> Void
-    var body: some View {
-        Button(action: onTap) {
-            // Use the shared CardImageView so the thumbnail benefits from
-            // the NSCache + URLCache already populated by the main grid.
-            // Previously this cell used a bare AsyncImage which rendered
-            // the fallback shape (and the power badge overlay) instantly
-            // while the card art faded in behind it — making the power
-            // and rect feel like they "pop up from below" ahead of the
-            // card art itself.
-            ZStack(alignment: .bottomLeading) {
-                CardImageView(card: card, size: .thumb)
-                    .aspectRatio(5/7, contentMode: .fit)
-                    .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                if let power = card.power, power > 0 {
-                    Text("\(power)").font(Design.Fonts.display(12)).foregroundStyle(.white)
-                        .padding(.horizontal, 5).padding(.vertical, 2)
-                        .background(Design.Colors.element(card.element).opacity(0.85)).clipShape(Capsule())
-                        .padding(4)
-                }
-            }
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Design.Colors.element(card.element).opacity(0.3), lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-    }
-}
 
 // ════════════════════════════════════════════════════════════════
 // MARK: - Glossary View (Game terms + Trading vocabulary)

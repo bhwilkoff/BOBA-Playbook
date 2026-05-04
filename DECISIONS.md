@@ -362,3 +362,55 @@ the bottom-left cardNumber" issue (~22% under-detection) is fixed
 by inflating the quad to match the lane-spacing-derived card size
 before rectifying. Cells without anchors fall back to axis-aligned
 crops at predicted positions.
+
+## 036 — Wall + Price Overlay: lift from streamer-only gate to general collector use
+*2026-05-03*
+Per DESIGN.md §8.4 and §8.8, the Wall display mode (renders
+multiple cards as a single image for sharing) and the Price Overlay
+(renders price chips on top of card images) become first-class
+features for every collector — not gated to the streamer role.
+
+This **partially supersedes [DECISIONS.md #025](#025)** ("Feature Gating:
+Keep Code, Hide UI Entry Point") for these two specific features.
+The underlying principle of #025 is still valid for genuinely-blocked
+features (Discord trade room, eBay Market Feed). Wall + Price
+Overlay are not blocked on external infrastructure — they're shipped
+and working. The streamer-only gate was a scope-control decision
+when the features were first built; with the design overhaul, scope
+expands.
+
+**What lifts:**
+- Wall view becomes a Collection display mode for every collector
+  (Grid / List / Wall picker in toolbar Menu)
+- Wall view also accessible from Decks (overflow Menu → "Generate
+  deck wall") and Find (multi-select → "Wall these N cards") — the
+  latter two are §8.8 follow-ups; this entry covers the Collection
+  case
+- Price Overlay becomes a Wall-view toggle with per-designation
+  defaults (For Sale: ON with My price, For Trade: ON with market
+  estimate, Grails/Personal: OFF, Wanted: ON with WTB prefix)
+- Generic CollectionWallSheet wraps ShowWallComposer (already a
+  pure composer with no role coupling — the gate was at invocation
+  level only)
+
+**What stays gated to streamers:**
+- "My Shows" Whatnot show management (per DECISIONS.md #025 still
+  applies — the Whatnot integration is the streamer feature, not the
+  Wall rendering)
+- ShowDetailView's per-show wall generation (lives inside the
+  streamer-gated Shows tab)
+- The community trade room (Discord-bot dependency unchanged)
+
+**Why now:** The design overhaul's premise (DESIGN.md "card art is
+always the focal point — UI chrome frames it, never competes") is
+served by Wall view as a sharing affordance for every collector.
+Holding it behind a streamer role meant the most visually-distinctive
+sharing surface in the app was invisible to most users. Lifting the
+gate aligns invocation with the principle.
+
+**How to apply:** When implementing display-mode pickers or share
+affordances, expose Wall and Price Overlay to all signed-in users.
+Don't add new role gates around either feature. The underlying
+ShowWallComposer enum stays unchanged — it's pure composition logic
+with no role coupling.
+

@@ -8,6 +8,8 @@ struct CollectionView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(CollectionStore.self) private var collection
     @Environment(CardStore.self) private var cardStore
+    @Environment(ScanStore.self) private var scanStore
+    @Environment(ScanCoordinator.self) private var scanCoordinator
 
     @State private var selectedDesignation: UserCard.Designation = .personal
     @State private var selectedCard: BobaIdWrapper?
@@ -27,7 +29,14 @@ struct CollectionView: View {
     @State private var exportShareURL: URL?    = nil
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
     @State private var showingProfile      = false
+    @State private var showingWall         = false
+    @State private var showingShareSheet   = false
+    @State private var shareItems: [Any]   = []
     @AppStorage("selectedIconName") private var selectedIconName: String = "default"
+    @AppStorage("bp_collectionDisplayMode_v1") private var displayModeRaw: String = CollectionDisplayMode.grid.rawValue
+    private var displayMode: CollectionDisplayMode {
+        get { CollectionDisplayMode(rawValue: displayModeRaw) ?? .grid }
+    }
     /// Collection-only sort axis. Persisted across app launches because
     /// it's a personal preference (a coach who likes "Recently Added"
     /// doesn't want it reset every time they open the app).
@@ -38,6 +47,30 @@ struct CollectionView: View {
         case rainbow = "Rainbow"
         case shows   = "My Shows"
         var id: String { rawValue }
+    }
+
+    /// Per DESIGN.md §8.4 — three ways to render the same data set:
+    ///   - grid: visual scan, card art is the focal point (default)
+    ///   - list: compact rows for triage (the legacy renderer)
+    ///   - wall: tile-able image for sharing (lifted from streamer-only
+    ///           per DECISIONS.md #036)
+    enum CollectionDisplayMode: String, CaseIterable, Identifiable {
+        case grid, list, wall
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .grid: return "Grid"
+            case .list: return "List"
+            case .wall: return "Wall"
+            }
+        }
+        var icon: String {
+            switch self {
+            case .grid: return "square.grid.2x2"
+            case .list: return "list.bullet"
+            case .wall: return "rectangle.on.rectangle.angled"
+            }
+        }
     }
 
     /// Modes visible to the current user. Streamers see all three;
@@ -100,6 +133,26 @@ struct CollectionView: View {
         }
         .sheet(isPresented: $showingProfile) {
             ProfileView()
+        }
+        .sheet(isPresented: $showingWall) {
+            // Wall presents on top of the existing Collection view; on
+            // dismiss we land back on the same designation + display
+            // mode the user left.
+            let identifiers = collectionIdentifiers(for: selectedDesignation)
+            let cards: [Card] = identifiers.compactMap { id in
+                cardStore.displayCards.first { $0.id == id }
+                    ?? cardStore.displayCards.first { $0.cardNumber == id }
+            }
+            let prices = collection.estimatedValuesByBobaId(forDesignation: selectedDesignation)
+            CollectionWallSheet(
+                designation: selectedDesignation,
+                cards: cards,
+                prices: prices,
+                onDismiss: { showingWall = false }
+            )
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            ActivityShareSheet(items: shareItems)
         }
         .sheet(isPresented: $showingFilters) {
             // Bind the @AppStorage-backed raw string through a custom
@@ -262,22 +315,59 @@ struct CollectionView: View {
 
     private var collectionMenu: some View {
         Menu {
-            Button {
-                Task { await recalculateAll() }
-            } label: {
-                Label(isRecalculating ? "Refreshing prices…" : "Refresh market values",
-                      systemImage: "arrow.clockwise")
+            // DISPLAY MODE picker per DESIGN.md §8.4 — Grid / List / Wall.
+            // Wall is lifted from streamer-only per DECISIONS.md #036.
+            // Selecting Wall presents the CollectionWallSheet over the
+            // current view; Grid + List swap the in-place renderer and
+            // persist via @AppStorage.
+            Section("Display") {
+                Picker("Display mode", selection: Binding(
+                    get: { displayMode },
+                    set: { newMode in
+                        if newMode == .wall {
+                            // Wall is a presentation, not a persisted mode —
+                            // bounce the picker back to the prior in-place
+                            // renderer so closing the sheet returns to it.
+                            showingWall = true
+                        } else {
+                            displayModeRaw = newMode.rawValue
+                        }
+                    }
+                )) {
+                    ForEach(CollectionDisplayMode.allCases) { mode in
+                        Label(mode.label, systemImage: mode.icon).tag(mode)
+                    }
+                }
             }
-            .disabled(isRecalculating)
 
-            // (Find a Store moved to the Purchase tab.)
+            Section {
+                Button {
+                    presentScanner()
+                } label: {
+                    Label("Scan into \(selectedDesignation.displayName)", systemImage: "camera.viewfinder")
+                }
 
-            Button {
-                exportCollectionCSV()
-            } label: {
-                Label("Export Collection", systemImage: "square.and.arrow.up")
+                Button {
+                    Task { await recalculateAll() }
+                } label: {
+                    Label(isRecalculating ? "Refreshing prices…" : "Refresh market values",
+                          systemImage: "arrow.clockwise")
+                }
+                .disabled(isRecalculating)
+
+                Button {
+                    exportCollectionCSV()
+                } label: {
+                    Label("Export Collection (CSV)", systemImage: "square.and.arrow.up.on.square")
+                }
+                .disabled(collection.userCards.isEmpty)
+
+                Button {
+                    presentShareDeepLink()
+                } label: {
+                    Label("Share \(selectedDesignation.displayName)", systemImage: "square.and.arrow.up")
+                }
             }
-            .disabled(collection.userCards.isEmpty)
 
             Divider()
 
@@ -296,7 +386,7 @@ struct CollectionView: View {
                     .foregroundStyle(Design.Colors.bobaOrange)
             }
         }
-        .walkthroughAnchor("collection.displayMode")  // sits where future Grid/List/Wall picker will live
+        .walkthroughAnchor("collection.displayMode")
     }
 
     // MARK: - Filters button (trailing)
@@ -471,11 +561,31 @@ struct CollectionView: View {
                     if identifiers.isEmpty {
                         emptyState
                             .frame(maxWidth: .infinity, minHeight: 300)
+                    } else if displayMode == .grid {
+                        // GRID mode (§8.4 default) — visual scan, card art focal.
+                        // Tap a tile → card detail. Same identifier list as List
+                        // mode so designation badge / count are derived
+                        // identically.
+                        LazyVGrid(
+                            columns: [GridItem(.adaptive(minimum: 100, maximum: 130), spacing: Design.Spacing.sm)],
+                            spacing: Design.Spacing.md
+                        ) {
+                            ForEach(Array(identifiers.enumerated()), id: \.element) { idx, identifier in
+                                if idx == 0 {
+                                    collectionGridCell(identifier: identifier)
+                                        .onTapGesture { selectedCard = BobaIdWrapper(id: identifier) }
+                                        .walkthroughAnchor("collection.cardCell")
+                                } else {
+                                    collectionGridCell(identifier: identifier)
+                                        .onTapGesture { selectedCard = BobaIdWrapper(id: identifier) }
+                                }
+                            }
+                        }
+                        .padding(Design.Spacing.md)
                     } else {
+                        // LIST mode — compact rows, the legacy renderer.
                         LazyVStack(spacing: Design.Spacing.sm) {
                             ForEach(Array(identifiers.enumerated()), id: \.element) { idx, identifier in
-                                // First row anchors the collectionTab walkthrough's
-                                // "Tap to edit designation, valuation, or notes." step.
                                 if idx == 0 {
                                     collectionRow(identifier: identifier)
                                         .onTapGesture { selectedCard = BobaIdWrapper(id: identifier) }
@@ -694,6 +804,65 @@ struct CollectionView: View {
         }
     }
 
+    /// Grid-mode tile per DESIGN.md §8.4. Card art focal point with a
+    /// designation badge in the corner so cards visible across multiple
+    /// designations stay scannable from a single grid view.
+    @ViewBuilder
+    private func collectionGridCell(identifier: String) -> some View {
+        let catalog = cardStore.displayCards.first { $0.id == identifier }
+                   ?? cardStore.displayCards.first { $0.cardNumber == identifier }
+        let allCopies = collection.entries(forBobaId: identifier)
+        let allDesignations = Set(allCopies.map { $0.designation })
+
+        VStack(spacing: 4) {
+            ZStack(alignment: .topTrailing) {
+                Group {
+                    if let card = catalog {
+                        CardImageView(card: card, size: .thumb)
+                    } else {
+                        RoundedRectangle(cornerRadius: 8).fill(Design.Colors.glass)
+                    }
+                }
+                .frame(width: 90, height: 126)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(Design.Colors.element((catalog?.element ?? "NONE")).opacity(0.4), lineWidth: 1.5)
+                )
+
+                // Multi-designation badge — corner pill stack so a card that's
+                // both Personal + For Sale stays scannable.
+                if allDesignations.count > 1 {
+                    HStack(spacing: 2) {
+                        ForEach(Array(allDesignations).sorted(by: { $0.rawValue < $1.rawValue })) { d in
+                            Image(systemName: d.icon)
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(3)
+                                .background(Circle().fill(Color.black.opacity(0.6)))
+                        }
+                    }
+                    .padding(4)
+                }
+            }
+            Text(catalog?.hero.isEmpty == false ? catalog!.hero : (catalog?.name ?? identifier))
+                .font(Design.Fonts.mono(10, weight: .bold))
+                .foregroundStyle(Design.Colors.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            if let card = catalog, card.cardType == "Hero", let power = card.power {
+                HStack(spacing: 3) {
+                    Text(card.element)
+                        .font(Design.Fonts.mono(8, weight: .bold))
+                        .foregroundStyle(Design.Colors.element(card.element))
+                    Text("·").font(Design.Fonts.mono(8)).foregroundStyle(Design.Colors.textMuted)
+                    Text("\(power)").font(Design.Fonts.display(14)).foregroundStyle(Design.Colors.textPrimary)
+                }
+            }
+        }
+        .frame(width: 100)
+    }
+
     private func collectionRow(identifier: String) -> some View {
         // identifier is a bobaId (e.g. "BOJ-123-BoJax-Base") for new entries,
         // or a plain cardNumber for legacy entries without a bobaId stored.
@@ -899,6 +1068,36 @@ struct CollectionView: View {
     // and hands it to UIActivityViewController so users can share, save
     // to Files, AirDrop, etc. Named after the date so multiple exports
     // don't collide. The file sticks around in tmp until iOS evicts it.
+    /// Routes Collection-tab scan invocation through ScanCoordinator.
+    /// Until ScanStore gains a beginCollectionSession (designation chooser
+    /// + per-card destination), Collection scans land in the queue
+    /// identify-only via .find — coaches still review and add via the
+    /// queue's existing "save to designation" picker. This wraps the
+    /// invocation in the canonical pattern so a future upgrade only
+    /// requires switching the destination case.
+    private func presentScanner() {
+        scanCoordinator.start(.find, scanStore: scanStore)
+    }
+
+    /// Per DESIGN.md §8.4 — share the active designation as a deep link
+    /// to the web fallback (`bobaplaybook.com/u/{username}/{designation}`)
+    /// plus the existing CSV export. iOS share sheet lets the user pick
+    /// destination (Messages / Mail / AirDrop / Notes / Files).
+    private func presentShareDeepLink() {
+        var items: [Any] = []
+        if let userId = auth.userId {
+            // Public-designation deep link. Web fallback honors the same
+            // bobaplaybook.com/u/{username}/{designation} URL contract.
+            // For now we don't have usernames; fall back to user UUID
+            // until the public-profile feature lands.
+            let url = URL(string: "https://bobaplaybook.com/u/\(userId)/\(selectedDesignation.rawValue)")!
+            items.append(url)
+        }
+        items.append("My \(selectedDesignation.displayName) on BOBA Playbook")
+        shareItems = items
+        showingShareSheet = true
+    }
+
     private func exportCollectionCSV() {
         // When the user has Collection filters active, scope the export
         // to only the rows that pass the filter — matches the visible

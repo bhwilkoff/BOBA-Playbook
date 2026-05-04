@@ -184,6 +184,31 @@ struct BOBAWalkthrough: View {
         return anchorFrames[anchorKey]
     }
 
+    /// Approximate safe viewport — keeps the spotlight ring + tooltip
+    /// out of the navigation bar and bottom-bar regions. Tooltip width
+    /// is capped at 280; height varies with copy length but caps near
+    /// 140 (≈4 lines wrapped). Bottom bar reserves the lowest 96pt.
+    private var safeViewport: CGRect {
+        CGRect(
+            x: 16,
+            y: 60,                                // clear status bar + nav title row
+            width: max(0, containerSize.width - 32),
+            height: max(0, containerSize.height - 60 - 96)
+        )
+    }
+
+    private static let tooltipMaxWidth: CGFloat = 280
+    private static let tooltipEstimatedHeight: CGFloat = 140
+
+    /// True when the anchor's center is INSIDE the safe viewport. We
+    /// treat partially-on-screen anchors as on-screen but render the
+    /// spotlight ring clipped to the visible region; fully-off-screen
+    /// anchors fall back to a centered tooltip + directional hint.
+    private func anchorIsVisible(_ rect: CGRect) -> Bool {
+        let viewport = CGRect(origin: .zero, size: containerSize)
+        return viewport.intersects(rect)
+    }
+
     private func advance() {
         if isLastStep { complete() } else { currentStep += 1 }
     }
@@ -193,16 +218,17 @@ struct BOBAWalkthrough: View {
     /// Renders the 60% black dim with a rounded-rect cutout where the
     /// current anchor sits. The cutout uses .blendMode(.destinationOut)
     /// inside a .compositingGroup so the punched-through region lets the
-    /// anchored UI shine through at full opacity. Without a cutout
-    /// (anchor missing) the dim is uniform.
+    /// anchored UI shine through at full opacity. Cutout intersects with
+    /// the screen so off-screen portions don't render as visible holes.
     @ViewBuilder
     private var dimWithCutout: some View {
-        if let rect = currentAnchorRect {
+        if let rect = currentAnchorRect, anchorIsVisible(rect) {
             ZStack {
                 Color.black.opacity(0.6)
+                let visible = rect.intersection(CGRect(origin: .zero, size: containerSize))
                 RoundedRectangle(cornerRadius: 14)
-                    .frame(width: rect.width + 16, height: rect.height + 16)
-                    .position(x: rect.midX, y: rect.midY)
+                    .frame(width: visible.width + 16, height: visible.height + 16)
+                    .position(x: visible.midX, y: visible.midY)
                     .blendMode(.destinationOut)
             }
             .compositingGroup()
@@ -219,25 +245,54 @@ struct BOBAWalkthrough: View {
     private var spotlightAndTooltip: some View {
         if let step {
             ZStack {
-                if let rect = currentAnchorRect {
+                if let rect = currentAnchorRect, anchorIsVisible(rect) {
                     spotlightRing(rect: rect)
                 }
                 tooltip(for: step, anchorRect: currentAnchorRect)
+                if let rect = currentAnchorRect, !anchorIsVisible(rect) {
+                    offscreenIndicator(for: rect)
+                }
             }
         }
     }
 
+    /// Spotlight ring — only renders the visible portion of the anchor
+    /// so an anchor that's been partially scrolled out doesn't draw a
+    /// ring that extends off the screen edge.
     @ViewBuilder
     private func spotlightRing(rect: CGRect) -> some View {
-        // Cyan ring around the anchor — sits ON TOP of the dim, so even
-        // if the cutout doesn't render the ring still calls out the
-        // target region.
-        RoundedRectangle(cornerRadius: 14)
-            .strokeBorder(Design.Colors.bobaCyan, lineWidth: 2)
-            .frame(width: rect.width + 16, height: rect.height + 16)
-            .position(x: rect.midX, y: rect.midY)
-            .shadow(color: Design.Colors.bobaCyan.opacity(0.7), radius: 10)
-            .allowsHitTesting(false)
+        let visible = rect.intersection(CGRect(origin: .zero, size: containerSize))
+        if visible.width > 4 && visible.height > 4 {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(Design.Colors.bobaCyan, lineWidth: 2)
+                .frame(width: visible.width + 16, height: visible.height + 16)
+                .position(x: visible.midX, y: visible.midY)
+                .shadow(color: Design.Colors.bobaCyan.opacity(0.7), radius: 10)
+                .allowsHitTesting(false)
+        }
+    }
+
+    /// When the current step's anchor is entirely off-screen (e.g., a
+    /// row that's been scrolled past), show a directional chevron at
+    /// the screen edge in the direction of the anchor. Better UX than
+    /// "pointless tooltip with no spotlight."
+    @ViewBuilder
+    private func offscreenIndicator(for rect: CGRect) -> some View {
+        let needsUp   = rect.maxY < 0
+        let needsDown = rect.minY > containerSize.height
+        let icon = needsUp ? "chevron.up" : (needsDown ? "chevron.down" : "")
+        if !icon.isEmpty {
+            Image(systemName: icon)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaCyan)
+                .padding(12)
+                .background(Circle().fill(Color.black.opacity(0.6)))
+                .position(
+                    x: containerSize.width / 2,
+                    y: needsUp ? 80 : (containerSize.height - 130)
+                )
+                .allowsHitTesting(false)
+        }
     }
 
     @ViewBuilder
@@ -256,29 +311,92 @@ struct BOBAWalkthrough: View {
                             .strokeBorder(Design.Colors.bobaCyan.opacity(0.55), lineWidth: 1)
                     )
             )
-            .frame(maxWidth: 280)
+            .frame(maxWidth: Self.tooltipMaxWidth)
             .allowsHitTesting(false)
 
-        let position = tooltipPosition(anchor: anchorRect, step: step)
+        let position = clampedTooltipCenter(anchor: anchorRect, step: step)
         copy.position(x: position.x, y: position.y)
     }
 
-    private func tooltipPosition(anchor: CGRect?, step: Step) -> CGPoint {
-        let screen = containerSize
-        guard let anchor else {
-            return CGPoint(x: screen.width / 2, y: screen.height / 2)
+    /// Computes a tooltip center point that's guaranteed to keep the
+    /// full ~280×140 bounding box inside the safeViewport. Prefers the
+    /// side of the anchor that the step's placement (or autopick)
+    /// requested, but if that side has no room, falls back to the
+    /// opposite side. Clamps X/Y so even very-edge anchors (e.g., a
+    /// top-leading toolbar button at x=20) yield an on-screen tooltip.
+    private func clampedTooltipCenter(anchor: CGRect?, step: Step) -> CGPoint {
+        let viewport = safeViewport
+        let halfW = Self.tooltipMaxWidth / 2
+        let halfH = Self.tooltipEstimatedHeight / 2
+
+        // Allowed center range so the tooltip's bounding box stays in
+        // the safe viewport.
+        let minCx = viewport.minX + halfW
+        let maxCx = viewport.maxX - halfW
+        let minCy = viewport.minY + halfH
+        let maxCy = viewport.maxY - halfH
+
+        guard let anchor, anchorIsVisible(anchor) else {
+            // Anchor missing or off-screen — center the tooltip in the
+            // safe viewport. Off-screen indicator (above) handles
+            // direction.
+            return CGPoint(
+                x: clamp(viewport.midX, minCx, maxCx),
+                y: clamp(viewport.midY, minCy, maxCy)
+            )
         }
-        let auto: Placement = {
-            if let p = step.placement { return p }
-            // Pick the side with more room (above vs. below).
-            return anchor.midY > screen.height / 2 ? .above : .below
+
+        // Auto-pick side: try requested first, then opposite if no room.
+        let requested: Placement = step.placement ?? (
+            anchor.midY > containerSize.height / 2 ? .above : .below
+        )
+
+        // Compute candidate Y for above/below; prefer the requested side.
+        let aboveY = anchor.minY - 24 - halfH    // tooltip bottom 24pt above anchor
+        let belowY = anchor.maxY + 24 + halfH    // tooltip top 24pt below anchor
+
+        let chosenY: CGFloat = {
+            switch requested {
+            case .above:
+                if aboveY >= minCy { return aboveY }
+                if belowY <= maxCy { return belowY }
+                return clamp(viewport.midY, minCy, maxCy)
+            case .below:
+                if belowY <= maxCy { return belowY }
+                if aboveY >= minCy { return aboveY }
+                return clamp(viewport.midY, minCy, maxCy)
+            case .leading, .trailing:
+                // Side placements ignore Y heuristic — center on anchor.
+                return clamp(anchor.midY, minCy, maxCy)
+            }
         }()
-        switch auto {
-        case .above:    return CGPoint(x: anchor.midX, y: max(60, anchor.minY - 60))
-        case .below:    return CGPoint(x: anchor.midX, y: min(screen.height - 100, anchor.maxY + 60))
-        case .leading:  return CGPoint(x: max(140, anchor.minX - 150), y: anchor.midY)
-        case .trailing: return CGPoint(x: min(screen.width - 140, anchor.maxX + 150), y: anchor.midY)
-        }
+
+        let chosenX: CGFloat = {
+            switch requested {
+            case .leading:
+                let leftCx = anchor.minX - 16 - halfW
+                if leftCx >= minCx { return leftCx }
+                let rightCx = anchor.maxX + 16 + halfW
+                if rightCx <= maxCx { return rightCx }
+                return clamp(viewport.midX, minCx, maxCx)
+            case .trailing:
+                let rightCx = anchor.maxX + 16 + halfW
+                if rightCx <= maxCx { return rightCx }
+                let leftCx = anchor.minX - 16 - halfW
+                if leftCx >= minCx { return leftCx }
+                return clamp(viewport.midX, minCx, maxCx)
+            case .above, .below:
+                // Center on anchor X, then clamp.
+                return clamp(anchor.midX, minCx, maxCx)
+            }
+        }()
+
+        return CGPoint(x: chosenX, y: chosenY)
+    }
+
+    private func clamp(_ v: CGFloat, _ lo: CGFloat, _ hi: CGFloat) -> CGFloat {
+        guard hi >= lo else { return (lo + hi) / 2 }   // pathological viewport
+        return min(max(v, lo), hi)
     }
 
     private var bottomBar: some View {

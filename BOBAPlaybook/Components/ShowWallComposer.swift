@@ -340,7 +340,15 @@ fileprivate struct WallGrid: View {
         // huge tiles still reads well.
         let cornerRadius: CGFloat = max(6, width * 0.06)
         let priceFontSize: CGFloat = max(10, width * 0.085)
-        return ZStack(alignment: .bottomLeading) {
+        let cardHeight = width * 7 / 5
+        // Distance from the BOTTOM edge of the card up to the
+        // vertical center of the BoBA Playbook wordmark — the chip
+        // sits there, leaving the cardNumber badge in the bottom-left
+        // corner and the weapon symbol in the bottom-right visible.
+        // (The center of the wordmark sits at ~92% down the card →
+        // ~8% above the bottom edge.)
+        let chipBottomInset = cardHeight * 0.08
+        return ZStack(alignment: .bottom) {
             if let img = entry.image {
                 Image(uiImage: img).resizable().scaledToFill()
             } else {
@@ -359,10 +367,10 @@ fileprivate struct WallGrid: View {
                     .padding(.horizontal, max(4, width * 0.04))
                     .padding(.vertical, max(2, width * 0.02))
                     .background(Capsule().fill(Color.black.opacity(0.7)))
-                    .padding(max(4, width * 0.035))
+                    .padding(.bottom, chipBottomInset)
             }
         }
-        .frame(width: width, height: width * 7 / 5)
+        .frame(width: width, height: cardHeight)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .overlay(
             RoundedRectangle(cornerRadius: cornerRadius)

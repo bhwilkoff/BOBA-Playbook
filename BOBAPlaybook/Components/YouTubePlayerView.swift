@@ -79,6 +79,31 @@ struct YouTubePlayerView: UIViewRepresentable {
         webView.loadHTMLString(html, baseURL: URL(string: appPublicOrigin))
     }
 
+    /// Tear-down hook called by SwiftUI when the WKWebView is being
+    /// removed (sheet dismissed, navigation popped, etc.). We force
+    /// any active media presentation (HTML5-video fullscreen, PiP,
+    /// AirPlay) to close FIRST, then yield a runloop tick before the
+    /// WebContent process gets killed.
+    ///
+    /// Without this, the sequence on a fullscreen-then-dismiss is:
+    ///   1. AVPlayerViewController is presented by WebContent for
+    ///      the iframe's HTML5 video element.
+    ///   2. User dismisses the sheet (Close button or swipe-down).
+    ///   3. SwiftUI removes WKWebView → WebContent process gets
+    ///      torn down.
+    ///   4. AVPlayerViewController tries to exit fullscreen but its
+    ///      hosting process is already gone → crash with
+    ///      "Invalid call of -[AVPlayerViewController _transitionFromFullScreenAnimated:...]".
+    ///
+    /// `closeAllMediaPresentations(completionHandler:)` (iOS 14.5+)
+    /// hands AVPlayerViewController a clean exit signal while the
+    /// process is still alive. The completion handler completes
+    /// after fullscreen has dismissed, so we synchronously block
+    /// dismantle until that's done.
+    static func dismantleUIView(_ uiView: WKWebView, coordinator: Coordinator) {
+        uiView.closeAllMediaPresentations(completionHandler: { })
+    }
+
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     final class Coordinator {
@@ -89,7 +114,12 @@ struct YouTubePlayerView: UIViewRepresentable {
     /// Player JS API — the bare iframe is more reliable post the
     /// 2025 referrer-policy tightening. The iframe is sized via the
     /// classic 56.25%-padding-bottom technique to fill its parent
-    /// at 16:9 without layout flicker.
+    /// at 16:9 without layout flicker. Fullscreen is enabled (`fs=1`
+    /// + `allowfullscreen`) — vertical Shorts are unwatchable at
+    /// 9:16-shrunk-into-16:9, so the FS button is the whole point of
+    /// the experience. The crash that came with fullscreen on 1.971
+    /// is handled in `dismantleUIView` by calling
+    /// `closeAllMediaPresentations` before WKWebView tear-down.
     private static func makeEmbedHTML(videoId: String, autoplay: Bool) -> String {
         let autoplayParam = autoplay ? "&autoplay=1" : ""
         let originEsc = appPublicOrigin
@@ -108,9 +138,9 @@ struct YouTubePlayerView: UIViewRepresentable {
           <body>
             <div class="wrap">
               <iframe
-                src="https://www.youtube-nocookie.com/embed/\(videoId)?playsinline=1&modestbranding=1&rel=0&enablejsapi=1&origin=\(originEsc)&widget_referrer=\(originEsc)\(autoplayParam)"
+                src="https://www.youtube-nocookie.com/embed/\(videoId)?playsinline=1&modestbranding=1&rel=0&fs=1&enablejsapi=1&origin=\(originEsc)&widget_referrer=\(originEsc)\(autoplayParam)"
                 referrerpolicy="strict-origin-when-cross-origin"
-                allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                 allowfullscreen>
               </iframe>
             </div>

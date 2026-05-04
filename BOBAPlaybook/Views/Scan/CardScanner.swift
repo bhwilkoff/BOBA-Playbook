@@ -55,6 +55,24 @@ final class CardScanner: NSObject, @unchecked Sendable {
         qos: .userInitiated
     )
 
+    /// Concurrent queue for grid-mode OCR work. `processingQueue` is
+    /// serial because live scan's `processFrame` mutates state
+    /// (pendingCardNumber, consecutiveCount, missCount,
+    /// lastReportedTime) and would race with itself if those calls
+    /// ran concurrently. Grid scan is different: by the time
+    /// `scanGridImage` is called the customWordsCache is fully
+    /// populated (the caller drains via `awaitVocabularyReady`) and
+    /// nothing further mutates it, so multiple grid-cell OCR passes
+    /// can run on parallel threads safely. Without this lane all 9
+    /// cells in a TaskGroup would serialize behind one another on
+    /// the processing queue and the grid TaskGroup's parallelism
+    /// would be effectively wasted on the OCR step.
+    private let gridOCRQueue = DispatchQueue(
+        label: "com.boba.scanner.grid-ocr",
+        qos: .userInitiated,
+        attributes: .concurrent
+    )
+
     /// Array form for Vision's `customWords` — card numbers only.
     private var cardNumbers: [String] = []
     /// Set form for O(1) catalog validation on every processed frame.
@@ -149,6 +167,27 @@ final class CardScanner: NSObject, @unchecked Sendable {
         return (out, changed)
     }
 
+    /// Cyrillic homoglyph → Latin substitution. Vision occasionally
+    /// outputs Cyrillic letters when its model is uncertain about
+    /// stylized cards — "BHBF-57" reads as "ВЖBF-57" with cyrillic В
+    /// (looks like Latin B) and Ж (no Latin equivalent). Normalizing
+    /// the homoglyphs before regex extraction lets the catalog match
+    /// these reads.
+    private static let cyrillicSubs: [Character: Character] = [
+        "А": "A", "В": "B", "Е": "E", "К": "K", "М": "M", "Н": "H",
+        "О": "O", "Р": "P", "С": "C", "Т": "T", "Х": "X", "У": "Y",
+        "І": "I", "Ј": "J", "Ѕ": "S",
+        // Lowercase cyrillic for completeness (uppercased upstream
+        // strips most, but Ж/ж have no uppercase Latin equivalent).
+        "а": "A", "е": "E", "о": "O", "р": "P", "с": "C", "у": "Y",
+        "х": "X",
+    ]
+
+    private static func normalizeCyrillic(_ s: String) -> String {
+        guard s.contains(where: { cyrillicSubs.keys.contains($0) }) else { return s }
+        return String(s.map { cyrillicSubs[$0] ?? $0 })
+    }
+
     /// Shared CIContext for one-shot CGImage rendering on commit.
     /// Single static instance avoids the per-render setup cost of the
     /// internal Metal command queue.
@@ -202,6 +241,18 @@ final class CardScanner: NSObject, @unchecked Sendable {
             var merged = cardNumbers
             merged.append(contentsOf: vocabularyNames)
             customWordsCache = merged
+        }
+    }
+
+    /// Wait for setCardNumbers + setVocabularyNames dispatches to drain
+    /// off the processing queue. setX calls dispatch async; callers that
+    /// need the customWordsCache populated before scanning (Grid scan)
+    /// previously slept 200ms blindly. Submitting an empty no-op block
+    /// after the setX calls and waiting for it lets us proceed exactly
+    /// when vocab work completes — typically <30ms instead of 200ms.
+    func awaitVocabularyReady() async {
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            processingQueue.async { cont.resume() }
         }
     }
 
@@ -354,9 +405,58 @@ extension CardScanner: AVCaptureVideoDataOutputSampleBufferDelegate {
             request.customWords = customWordsCache
         }
 
+        // Card-presence gate. The OCR + catalog-validation chain is
+        // strong enough that random text on a computer screen, a
+        // book, or a pile of paper will occasionally produce a
+        // catalog-valid cardNumber (e.g. any 1-3 digit number that
+        // happens to match a Base Set card) and silently commit a
+        // phantom card to the queue. Requiring an actual card-shaped
+        // rectangle in the frame eliminates that false-positive class
+        // without weakening the OCR pipeline. The rectangle request
+        // runs in the same VNImageRequestHandler pass as text
+        // recognition, so the additional cost is small.
+        //
+        // Aspect 0.55-1.10 covers cards held portrait OR slightly
+        // landscape-tilted; minimumSize 0.10 rejects detections of
+        // tiny rectangles in background clutter; confidence 0.5
+        // filters Vision's lowest-confidence guesses.
+        let rectRequest = VNDetectRectanglesRequest()
+        rectRequest.minimumAspectRatio = 0.55
+        rectRequest.maximumAspectRatio = 1.10
+        rectRequest.minimumSize        = 0.10
+        rectRequest.minimumConfidence  = 0.5
+        rectRequest.maximumObservations = 8
+        rectRequest.quadratureTolerance = 30
+
         let handler = VNImageRequestHandler(ciImage: enhanced, options: [:])
-        guard (try? handler.perform([request])) != nil,
+        guard (try? handler.perform([rectRequest, request])) != nil,
               let observations = request.results else { return }
+
+        // No card-shaped rectangle in this frame → don't even
+        // consider the OCR text. Reset the consecutive-match counter
+        // so a future card has to confirm itself fresh, but DON'T
+        // crash through the missCount path: a "no rectangle" frame
+        // is a deliberately silent skip, not a noisy miss.
+        let rects = rectRequest.results ?? []
+        let hasCardShapedRect = rects.contains { obs in
+            let bb = obs.boundingBox
+            let area = bb.width * bb.height
+            // Max area filter: if the rectangle fills more than ~85%
+            // of the frame it's almost certainly the user's monitor,
+            // desk surface, or a sheet of paper — not a card. Real
+            // cards leave background visible on at least one side.
+            guard area <= 0.85 else { return false }
+            // ROI-aware containment: rectangle's center should land
+            // inside the user's framing guide, so a card floating
+            // outside the guide doesn't trigger a commit.
+            let center = CGPoint(x: bb.midX, y: bb.midY)
+            return regionOfInterest.contains(center)
+        }
+        guard hasCardShapedRect else {
+            pendingCardNumber = nil
+            consecutiveCount  = 0
+            return
+        }
 
         var topLeft:     [String] = []
         var topRight:    [String] = []
@@ -472,7 +572,14 @@ extension CardScanner: AVCaptureVideoDataOutputSampleBufferDelegate {
     ///    a prefix (so "BLBF" stays "BLBF", not "8L8F"). Always validates
     ///    against the catalog set before returning. Catalog audit found
     ///    these confusions in hundreds of cards across stylized treatments.
-    private func extractCardNumber(from text: String, catalogFallback: Bool) -> String? {
+    private func extractCardNumber(from rawText: String, catalogFallback: Bool) -> String? {
+        // Pre-normalize Cyrillic homoglyphs that Vision sometimes
+        // outputs on stylized cards. Without this, "ВЖBF-57" (cyrillic
+        // V + Ж followed by Latin BF-57) doesn't match any English
+        // regex; with it, "BЖBF-57" → no Ж sub but the В becomes B,
+        // so we get "BЖBF-57"→Latin "BBF-57"-ish patterns the regex
+        // can pick up. Cheap no-op when no cyrillic is present.
+        let text = Self.normalizeCyrillic(rawText)
         let range = NSRange(text.startIndex..., in: text)
 
         // Catalog validation gate. When the cardNumberSet hasn't been
@@ -626,14 +733,37 @@ extension CardScanner: AVCaptureVideoDataOutputSampleBufferDelegate {
 
         return nil
     }
+
+    /// Bare-digit cardNumber extraction that requires the digit to
+    /// appear at least `minRepeats` times in the text. Used for the
+    /// top-left quadrant fallback where the regular catalogFallback
+    /// path is too loose (a single "18" near "CALIBER" was returning
+    /// "18" as cn, triggering wrong-treatment scoring). When the
+    /// SAME digit appears 2+ times — like "172 172" from a badge
+    /// that bled into the topL crop — that's strong evidence the
+    /// badge actually rendered there.
+    private func extractRepeatedBareDigitCN(in text: String, minRepeats: Int) -> String? {
+        let words = text.uppercased()
+            .components(separatedBy: .whitespacesAndNewlines)
+            .map { $0.trimmingCharacters(in: .punctuationCharacters) }
+        var counts: [String: Int] = [:]
+        for w in words {
+            guard w.count >= 1, w.count <= 4, w.allSatisfy({ $0.isNumber }) else { continue }
+            counts[w, default: 0] += 1
+        }
+        let qualified = counts.filter { $0.value >= minRepeats && cardNumberSet.contains($0.key) }
+        return qualified.max(by: { $0.value < $1.value })?.key
+    }
 }
 
 // MARK: - Grid-mode OCR result
 
 /// Output of `scanGridImage`. Carries every text observation from
 /// the multi-pass OCR pipeline, plus the matched cardNumber when
-/// extraction succeeded. Hero-name fallback (ScanMatching.matchByHero)
-/// uses `allText` and `topLeftText` when `cardNumber` is nil.
+/// extraction succeeded. The unified `ScanMatching.resolve` consumes
+/// `topLeftText` for hero-veto and `cgImage` for FP, so a missing
+/// cardNumber doesn't lose the cell — image + hero text alone can
+/// still resolve it.
 struct GridOCRResult: Sendable {
     let cardNumber: String?
     let allText: String
@@ -705,7 +835,11 @@ extension CardScanner {
             return await scanGridImage(crops[0])
         }
         return await withCheckedContinuation { (cont: CheckedContinuation<GridOCRResult, Never>) in
-            processingQueue.async { [weak self] in
+            // Concurrent queue here too — multi-frame burst voting is
+            // currently disabled (burstCount = 1) but the path is
+            // kept ready for re-enablement; switching it to the
+            // concurrent lane now keeps both branches consistent.
+            gridOCRQueue.async { [weak self] in
                 guard let self else {
                     cont.resume(returning: GridOCRResult(
                         cardNumber: nil, allText: "", topLeftText: "",
@@ -717,7 +851,24 @@ extension CardScanner {
                 var votes: [String: Int] = [:]
                 for img in crops {
                     guard let ci = CIImage(image: img) else { continue }
-                    let result = self.runMultiPassGridOCR(ciImage: ci)
+                    // Same downsample-for-OCR / preserve-full-res-for-
+                    // downstream-signals split as scanGridImage. Without
+                    // this, burst OCR gets fed a downsampled CIImage but
+                    // then ALSO returns a downsampled CGImage that
+                    // corrupts BorderSignature.localVariance (smooths
+                    // out the speckle pattern that distinguishes Icon
+                    // Battlefoils from solid-color treatments).
+                    let extent = ci.extent
+                    let longSide = max(extent.width, extent.height)
+                    let target: CGFloat = 1200
+                    let ocrInput: CIImage = {
+                        guard longSide > target else { return ci }
+                        let scale = target / longSide
+                        return ci.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+                    }()
+                    let fullResCG = Self.ciContext.createCGImage(ci, from: ci.extent)
+                    let result = self.runMultiPassGridOCR(ciImage: ocrInput,
+                                                          capturedOverride: fullResCG)
                     perFrame.append(result)
                     if let cn = result.cardNumber {
                         votes[cn, default: 0] += 1
@@ -751,13 +902,41 @@ extension CardScanner {
     /// fallback on the populated text fields. Each pass uses the
     /// same customWords vocab boost that streaming scan uses.
     func scanGridImage(_ image: UIImage) async -> GridOCRResult {
-        guard let ciImage = CIImage(image: image) else {
+        guard let raw = CIImage(image: image) else {
             return GridOCRResult(cardNumber: nil, allText: "", topLeftText: "",
                                  bottomLeftText: "", topRightText: "",
                                  bottomRightText: "", cgImage: nil)
         }
+        // Downsample cells whose long side exceeds ~1200px BEFORE
+        // running multi-pass OCR. With a 3024x4032 source, each 3x3
+        // cell crop is roughly 1000x1400 pixels — Vision's text
+        // recognition cost scales with pixel count and these were
+        // taking 800ms+ per pass at full res. Downsampling to ~1200
+        // long side keeps card text comfortably readable (the focused
+        // pass's 4× upscale gives plenty of detail for tiny badges)
+        // while cutting per-pass time roughly in half.
+        let ciImage: CIImage = {
+            let extent = raw.extent
+            let longSide = max(extent.width, extent.height)
+            let target: CGFloat = 1200
+            guard longSide > target else { return raw }
+            let scale = target / longSide
+            return raw.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        }()
+        // The CGImage returned in GridOCRResult flows into
+        // observation.cgImage where ScanMatching reads it for FP
+        // distance, cellColor bucket, AND BorderSignature. The
+        // BorderSignature's localVariance metric is pixel-level —
+        // downsampling smooths neighboring pixels and erases the
+        // very speckle-pattern signal that distinguishes Icon
+        // Battlefoils from solid-color treatments. Build `captured`
+        // from the FULL-RES `raw` so the downstream signals see the
+        // same pixels the CLI test harness sees on the same HEIC.
+        let fullResCG = Self.ciContext.createCGImage(raw, from: raw.extent)
         return await withCheckedContinuation { (cont: CheckedContinuation<GridOCRResult, Never>) in
-            processingQueue.async { [weak self] in
+            // Concurrent queue: each grid cell's OCR runs on its own
+            // thread instead of queueing behind every other cell.
+            gridOCRQueue.async { [weak self] in
                 guard let self else {
                     cont.resume(returning: GridOCRResult(
                         cardNumber: nil, allText: "", topLeftText: "",
@@ -765,7 +944,8 @@ extension CardScanner {
                         bottomRightText: "", cgImage: nil))
                     return
                 }
-                let result = self.runMultiPassGridOCR(ciImage: ciImage)
+                let result = self.runMultiPassGridOCR(ciImage: ciImage,
+                                                      capturedOverride: fullResCG)
                 cont.resume(returning: result)
             }
         }
@@ -787,14 +967,23 @@ extension CardScanner {
     ///   3. If exactly 1 pass extracts → ALSO run the focused
     ///      bottom-left pass; if that confirms (or extracts the same
     ///      number) → commit. Otherwise pass the single-vote
-    ///      cardNumber through and let `ScanMatching.resolveGrid`'s
-    ///      hero-text gate validate it (low-confidence).
+    ///      cardNumber through and let `ScanMatching.resolve`'s
+    ///      hero-veto + FP rank validate it (low-confidence).
     ///   4. If 0 passes extract → run the focused pass alone for
     ///      tiny stylized badges (Wattage 141 et al).
     ///   5. If still nothing → return all observations for
     ///      hero-name-only matching downstream.
-    private func runMultiPassGridOCR(ciImage: CIImage) -> GridOCRResult {
-        let captured = Self.ciContext.createCGImage(ciImage, from: ciImage.extent)
+    private func runMultiPassGridOCR(ciImage: CIImage,
+                                     capturedOverride: CGImage? = nil) -> GridOCRResult {
+        // captured is the CGImage that flows downstream into FP /
+        // cellColor / BorderSignature. Default to the OCR-input CIImage
+        // when no override is provided (camera-still single-frame path
+        // where the source is already cell-sized). When the caller
+        // specifies an override (scanGridImage's full-res path), use
+        // that — preserves pixel-level signals against a downsampling
+        // that's intentional for OCR but corrupts FP/border metrics.
+        let captured = capturedOverride
+            ?? Self.ciContext.createCGImage(ciImage, from: ciImage.extent)
         struct PassParams {
             let mt: Float, c: Float, g: Float, s: Float
         }
@@ -804,36 +993,39 @@ extension CardScanner {
             PassParams(mt: 0.008, c: 2.0,  g: 0.75, s: 1.5),  // high contrast
             PassParams(mt: 0.01,  c: 1.4,  g: 0.85, s: 0.8),  // bright cards
         ]
-        // Parallelize the 4 enhancement passes — they're independent
-        // and each is CPU-bound on Vision's text detector. On A14+
-        // hardware this is a 3-4× speedup vs serial execution. We use
-        // a concurrent queue + DispatchGroup rather than TaskGroup
-        // because runMultiPassGridOCR is sync (called from
-        // processingQueue.async); converting to async would ripple
-        // through scanGridImage / scanGridImageBurst signatures.
-        let concurrentQueue = DispatchQueue(
-            label: "CardScanner.passes", qos: .userInitiated, attributes: .concurrent)
-        let group = DispatchGroup()
-        let lock = NSLock()
-        var passResults: [SinglePassResult?] = Array(repeating: nil, count: passes.count)
-        for (i, p) in passes.enumerated() {
-            group.enter()
-            concurrentQueue.async {
-                let r = self.runSingleOCRPass(
-                    ciImage: ciImage,
-                    params: (mt: p.mt, c: p.c, g: p.g, s: p.s)
-                )
-                lock.lock()
-                passResults[i] = r
-                lock.unlock()
-                group.leave()
+        // Run the 4 enhancement passes SEQUENTIALLY, not in parallel.
+        // Earlier versions parallelized these via DispatchGroup ("3-4×
+        // speedup on A14+ hardware"), which was true measured in
+        // isolation on a single cell. But the grid-scan TaskGroup
+        // already runs 4 cells concurrently, so 4 cells × 4 parallel
+        // passes = 16 Vision requests in flight — and the Neural
+        // Engine serializes Vision internally regardless of how many
+        // we throw at it. Under that contention each request stretched
+        // from ~100ms to 500ms-1s+. Going sequential here drops
+        // peak in-flight requests from 16 to 4 (one per cell) and
+        // each request runs at full speed → faster overall. Also
+        // adds a Tier 2 short-circuit: if 2 passes already agree on
+        // a cardNumber, skip the remaining passes entirely.
+        var passResults: [SinglePassResult] = []
+        passResults.reserveCapacity(passes.count)
+        var earlyVotes: [String: Int] = [:]
+        for p in passes {
+            let r = self.runSingleOCRPass(
+                ciImage: ciImage,
+                params: (mt: p.mt, c: p.c, g: p.g, s: p.s)
+            )
+            passResults.append(r)
+            if let cn = r.cardNumber {
+                earlyVotes[cn, default: 0] += 1
+                // Short-circuit: 2 passes already agree, no need to
+                // run the remaining passes — Tier 2 will pick this.
+                if earlyVotes[cn]! >= 2 { break }
             }
         }
-        group.wait()
 
         var votes: [String: Int] = [:]
         var allObs: [(text: String, midX: CGFloat, midY: CGFloat)] = []
-        let validResults = passResults.compactMap { $0 }
+        let validResults = passResults
         for r in validResults {
             allObs.append(contentsOf: r.observations)
             if let cn = r.cardNumber {
@@ -867,7 +1059,9 @@ extension CardScanner {
                 return makeResult(from: focus, cardNumber: focusCN, captured: captured)
             }
             // No focused-region confirmation; pass the single-vote
-            // through. resolveGrid's hero-text gate validates.
+            // through. The unified resolve's hero-veto + FP rank
+            // discard it if the printed hero on the card doesn't
+            // agree.
             return makeResult(from: single, cardNumber: singleCN, captured: captured)
         }
 
@@ -981,20 +1175,36 @@ extension CardScanner {
             observations: obsList)
     }
 
-    /// Focused OCR on the bottom-left badge area where small
-    /// stylized cardNumbers live on First-Edition cards.
+    /// Focused OCR on the bottom-left badge area where small stylized
+    /// cardNumbers live on First-Edition cards.
+    ///
+    /// Reduced again — now 2×2 = 4 sequential attempts (down from
+    /// the original 7×6 = 42 → 3×3 = 9). Per-cell measurement on a
+    /// 9-card scan showed the focused fallback was the dominant
+    /// variable cost when cells couldn't read their cardNumber from
+    /// the main passes (~1.5s per `cn=NO` cell × 4-5 such cells per
+    /// scan = 6-7s of focused work). Per-pass time also crept up
+    /// across consecutive scans (~80ms → 125ms) — Neural Engine
+    /// thermal throttling. The only way to keep performance steady
+    /// across consecutive scans is to do less Vision work overall.
+    ///
+    /// 4 sequential attempts × ~100-150ms = ~400-600ms worst case
+    /// (down from ~900ms with 9 attempts and ~4200ms with 42).
     private func runFocusedBottomLeftPass(ciImage: CIImage) -> SinglePassResult? {
         let extent = ciImage.extent
-        // Try a few crop sizes — the badge tab varies in width
-        // across treatments. CIImage uses bottom-left origin, so
-        // cropping the bottom-left = origin (0,0).
+        // 2 crop shapes — the most reliable winners from prior trace
+        // analysis. Dropped the "tight" shape (0.20×0.18) since the
+        // balanced shape's wider radius captured those cases too.
         let cropFractions: [(xMax: CGFloat, yFrac: CGFloat)] = [
-            (0.20, 0.15), (0.28, 0.20), (0.40, 0.25),
+            (0.28, 0.20),  // balanced — the original "default"
+            (0.50, 0.25),  // wider — for badges with longer text
         ]
+        // 2 contrast variants — kept the bright + dark extremes;
+        // dropped the balanced medium-contrast variant since the 4
+        // main passes already cover medium-contrast space.
         let variants: [(c: Float, g: Float, s: Float)] = [
-            (3.0, 1.50, 2.5), (3.0, 0.50, 2.5),
-            (2.0, 1.20, 1.5), (2.0, 0.80, 1.5),
-            (4.0, 1.80, 3.0), (4.0, 0.40, 3.0),
+            (3.0, 1.50, 2.5),  // bright high-contrast
+            (3.0, 0.50, 2.5),  // dark high-contrast
         ]
         for crop in cropFractions {
             let cropRect = CGRect(
@@ -1011,7 +1221,7 @@ extension CardScanner {
             for v in variants {
                 let r = runSingleOCRPass(
                     ciImage: cropped,
-                    params: (mt: 0.008, c: v.c, g: v.g, s: v.s)
+                    params: (mt: 0.004, c: v.c, g: v.g, s: v.s)
                 )
                 if r.cardNumber != nil { return r }
             }
@@ -1072,15 +1282,28 @@ extension CardScanner {
             }
         }
 
-        let fullText       = all.joined(separator: " ")
-        let bottomLeftText = bottomLeft.joined(separator: " ")
+        let fullText        = all.joined(separator: " ")
+        let bottomLeftText  = bottomLeft.joined(separator: " ")
+        let bottomRightText = bottomRight.joined(separator: " ")
+        let topLeftText     = topLeft.joined(separator: " ")
 
-        // Same waterfall as processFrame: bottom-left first (where the
-        // card number is printed), full-frame fallback for cards where
-        // the bottom-left text is partially obscured or the crop slightly
-        // off-center.
-        let extracted = extractCardNumber(from: bottomLeftText, catalogFallback: true)
-                     ?? extractCardNumber(from: fullText,       catalogFallback: false)
+        // Multi-quadrant waterfall.
+        //
+        // Bottom quadrants get loose catalogFallback=true (bare-digit
+        // catalog lookup OK because that's where the badge lives).
+        //
+        // topLeft uses catalogFallback=FALSE — bare digits there are
+        // typically hero-name-area noise (e.g. "CALIBER 18 CALIBER"
+        // returning "18" as cn and triggering wrong-treatment scoring).
+        // BUT we then add a stricter `extractRepeatedBareDigitCN` pass
+        // that accepts a bare digit ONLY if it appears 2+ times in
+        // topLeft — that's the Ozzmosis-172 pattern where the badge
+        // bled into topL ("172 172" both times).
+        let extracted = extractCardNumber(from: bottomLeftText,  catalogFallback: true)
+                     ?? extractCardNumber(from: bottomRightText, catalogFallback: true)
+                     ?? extractCardNumber(from: topLeftText,     catalogFallback: false)
+                     ?? extractRepeatedBareDigitCN(in: topLeftText, minRepeats: 2)
+                     ?? extractCardNumber(from: fullText,        catalogFallback: false)
 
         guard let number = extracted,
               cardNumberSet.isEmpty || cardNumberSet.contains(number) else {
@@ -1140,6 +1363,14 @@ extension CardScanner {
 // equally-scored candidates, or sub-threshold match score). Phase 2
 // adds the call site; this stub is API surface only.
 
+/// Back on MainActor. An earlier rev (1.981) tried marking this
+/// `nonisolated` so grid-scan cells could query FP concurrently —
+/// the theory was that 4 cells running FP queries in parallel would
+/// be faster than serializing them on main. In practice the Neural
+/// Engine serializes Vision requests internally regardless, AND the
+/// concurrent FP queries competed with concurrent OCR requests for
+/// the same NE — making BOTH slower. Serializing FP on main keeps
+/// NE free for OCR most of the time.
 @MainActor
 final class FeaturePrintIndex {
 
@@ -1186,10 +1417,46 @@ final class FeaturePrintIndex {
     /// ascending distance. Lower distance = more similar.
     func searchNearest(in cgImage: CGImage,
                        topK: Int = 5) async -> [(bobaId: String, distance: Float)] {
+        let all = await computeAllDistances(in: cgImage)
+        guard !all.isEmpty else { return [] }
+        var indexed = (0..<all.count).map { (i: $0, d: all[$0]) }
+        indexed.sort { $0.d < $1.d }
+        return indexed.prefix(topK).map { (bobaIds[$0.i], $0.d) }
+    }
+
+    /// One Vision feature-print pass + every-entry distance. Produces a
+    /// dictionary keyed by bobaId. Used by `CardRecognizer` so it can
+    /// fuse FP signal with OCR/hero signals — including looking up the
+    /// distance to a specific hero's variants regardless of where they
+    /// land in the global rank.
+    ///
+    /// `searchNearest` is now a thin wrapper around this. Returns an
+    /// empty dictionary if Vision can't produce a print or the index
+    /// dimensions don't match.
+    func distances(in cgImage: CGImage) async -> [String: Float] {
+        let all = await computeAllDistances(in: cgImage)
+        guard !all.isEmpty else { return [:] }
+        var out: [String: Float] = [:]
+        out.reserveCapacity(all.count)
+        for i in 0..<all.count {
+            // First-occurrence wins on duplicate bobaIds (the indexer
+            // dedupes, but this is still the safe behavior).
+            if out[bobaIds[i]] == nil { out[bobaIds[i]] = all[i] }
+        }
+        return out
+    }
+
+    /// Internal: run Vision + return the distance vector indexed by
+    /// entry. Empty array on any failure (index not loaded, Vision
+    /// error, dimension mismatch, etc.) — callers degrade gracefully.
+    private func computeAllDistances(in cgImage: CGImage) async -> [Float] {
         guard isLoaded, entryCount > 0 else { return [] }
 
         let request = VNGenerateImageFeaturePrintRequest()
-        request.imageCropAndScaleOption = .centerCrop
+        // .scaleFit must match the indexer (scripts/build_feature_print_index.swift).
+        // Switched from .centerCrop in 1.950 — see the comment there for why
+        // (treatment-distinguishing borders were getting cropped off).
+        request.imageCropAndScaleOption = .scaleFit
         // Match the indexer's revision exactly. Different revisions
         // produce incompatible vectors; without this pin a future iOS
         // default revision change would silently fall through.
@@ -1227,13 +1494,7 @@ final class FeaturePrintIndex {
                 }
             }
         }
-
-        // Top-K extraction. With 14k entries and small K, partial
-        // selection beats a full sort; for clarity here we just pair +
-        // sort. Re-evaluate if profiling shows it as a hot path.
-        var indexed = (0..<entryCount).map { (i: $0, d: distances[$0]) }
-        indexed.sort { $0.d < $1.d }
-        return indexed.prefix(topK).map { (bobaIds[$0.i], $0.d) }
+        return distances
     }
 
     // MARK: - Parser

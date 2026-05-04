@@ -16,6 +16,12 @@ struct ScanQueueView: View {
     @State private var isLoadingShowPrices = false
     @State private var showAddToShow = false
 
+    /// Pricing-overlay generator state. `previewImage` is non-nil when
+    /// the preview sheet is up; `isGeneratingOverlay` gates the button
+    /// while ImageRenderer runs.
+    @State private var previewImage: PricingOverlayPreviewImage? = nil
+    @State private var isGeneratingOverlay = false
+
     var body: some View {
         NavigationStack {
             Group {
@@ -373,37 +379,102 @@ struct ScanQueueView: View {
                     .foregroundStyle(.green)
             }
 
-            Button {
-                if scanStore.isShowMode {
-                    // Hand off to the add-to-show sheet; it handles both
-                    // add-to-existing and create-new flows.
-                    showAddToShow = true
-                } else if scanStore.source == .deckBuilder {
-                    Task { await saveAllToDeckBuilder() }
-                } else {
-                    Task { await saveAllToCollection() }
-                }
-            } label: {
-                HStack {
-                    if isSavingAll {
-                        ProgressView().tint(.white).scaleEffect(0.8)
+            HStack(spacing: Design.Spacing.sm) {
+                Button {
+                    if scanStore.isShowMode {
+                        // Hand off to the add-to-show sheet; it handles both
+                        // add-to-existing and create-new flows.
+                        showAddToShow = true
+                    } else if scanStore.source == .deckBuilder {
+                        Task { await saveAllToDeckBuilder() }
                     } else {
-                        // Broadcast icon for show mode — captures the
-                        // "going live" framing better than a TV silhouette.
-                        Image(systemName: scanStore.isShowMode ? "dot.radiowaves.up.forward" : "tray.and.arrow.down.fill")
+                        Task { await saveAllToCollection() }
                     }
-                    Text(saveAllLabel)
-                        .font(Design.Fonts.display(15))
+                } label: {
+                    HStack {
+                        if isSavingAll {
+                            ProgressView().tint(.white).scaleEffect(0.8)
+                        } else {
+                            // Broadcast icon for show mode — captures the
+                            // "going live" framing better than a TV silhouette.
+                            Image(systemName: scanStore.isShowMode ? "dot.radiowaves.up.forward" : "tray.and.arrow.down.fill")
+                        }
+                        Text(saveAllLabel)
+                            .font(Design.Fonts.display(15))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Design.Spacing.md)
+                    .background(
+                        RoundedRectangle(cornerRadius: Design.Radius.md)
+                            .fill(scanStore.isShowMode ? Design.Colors.bobaCyan : Design.Colors.bobaOrange)
+                    )
+                    .foregroundStyle(scanStore.isShowMode ? Design.Colors.nearBlack : .white)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Design.Spacing.md)
-                .background(
-                    RoundedRectangle(cornerRadius: Design.Radius.md)
-                        .fill(scanStore.isShowMode ? Design.Colors.bobaCyan : Design.Colors.bobaOrange)
-                )
-                .foregroundStyle(scanStore.isShowMode ? Design.Colors.nearBlack : .white)
+                .disabled(isSavingAll || (saveSuccess && !scanStore.isShowMode))
+
+                // Show-mode + grid context: offer a one-tap pricing
+                // overlay that bakes the queue's prices over the
+                // original grid photo for sharing on Whatnot / Discord.
+                if scanStore.isShowMode,
+                   scanStore.lastGridScanContext != nil {
+                    Button {
+                        Task { await generatePricingOverlay() }
+                    } label: {
+                        HStack {
+                            if isGeneratingOverlay {
+                                ProgressView().tint(.white).scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "rectangle.stack.badge.plus")
+                            }
+                            Text("Pricing Overlay")
+                                .font(Design.Fonts.display(15))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Design.Spacing.md)
+                        .background(
+                            RoundedRectangle(cornerRadius: Design.Radius.md)
+                                .fill(Design.Colors.bobaOrange)
+                        )
+                        .foregroundStyle(.white)
+                    }
+                    .disabled(isGeneratingOverlay
+                              || isSavingAll
+                              || queueIsMissingPrices)
+                }
             }
-            .disabled(isSavingAll || (saveSuccess && !scanStore.isShowMode))
+        }
+        .fullScreenCover(item: $previewImage) { wrapped in
+            PricingOverlayPreview(
+                image: wrapped.image,
+                onClose: { previewImage = nil }
+            )
+        }
+    }
+
+    /// True when any queued card lacks a populated price — the overlay
+    /// requires every card to have a price first.
+    private var queueIsMissingPrices: Bool {
+        guard scanStore.isShowMode else { return true }
+        return scanStore.queuedCards.contains { showPrices[$0.card.id] == nil }
+    }
+
+    /// Compose the pricing-overlay image and present the preview sheet.
+    /// Runs on the main actor because UIGraphicsImageRenderer + Decimal
+    /// formatting both want it.
+    @MainActor
+    private func generatePricingOverlay() async {
+        guard let ctx = scanStore.lastGridScanContext else { return }
+        isGeneratingOverlay = true
+        defer { isGeneratingOverlay = false }
+        let image = PricingOverlayComposer.compose(
+            sourcePhoto: ctx.sourcePhoto,
+            cells:       ctx.cells,
+            prices:      showPrices
+        )
+        if let image {
+            previewImage = PricingOverlayPreviewImage(image: image)
         }
     }
 
@@ -600,5 +671,362 @@ struct ScanQueueView: View {
         f.numberStyle = .currency
         f.currencyCode = "USD"
         return f.string(from: value as NSDecimalNumber) ?? "$\(value)"
+    }
+}
+
+// MARK: - Pricing overlay
+//
+// Renders the original Grid Scan photo with the queue's per-card prices
+// stamped over each card's bottom edge (covering the BoBA logo). The
+// total is appended in a bar above the photo; a subtle Playbook
+// watermark sits in the bottom-right of the photo. Designed for
+// streamers / sellers to share on Whatnot, Discord, etc.
+//
+// Inlined here (rather than a standalone file) per DECISIONS.md #031 —
+// Xcode's PBXFileSystemSynchronizedRootGroup intermittently fails to
+// pick up new Swift files. Co-locating with ScanQueueView keeps the
+// build robust and the data flow obvious (composer reads from the same
+// `showPrices` and `lastGridScanContext` the queue UI already uses).
+
+/// Identifiable wrapper so `.fullScreenCover(item:)` can drive the
+/// preview presentation. UIImage isn't Identifiable on its own.
+struct PricingOverlayPreviewImage: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
+@MainActor
+enum PricingOverlayComposer {
+
+    /// Compose the overlay. Returns nil if the photo or cells are
+    /// empty. Cells whose cardID has no price are skipped (no pill
+    /// drawn) but still don't fail the whole render — the caller
+    /// gates the button on `queueIsMissingPrices` so this should
+    /// rarely fire in practice.
+    static func compose(
+        sourcePhoto: UIImage,
+        cells:       [ScanStore.GridScanContext.Cell],
+        prices:      [String: Decimal]
+    ) -> UIImage? {
+        let photoSize = sourcePhoto.size
+        guard photoSize.width > 0, photoSize.height > 0, !cells.isEmpty else {
+            return nil
+        }
+
+        // Compute the bounding box of all cell rects in normalized
+        // photo coords (bottom-left origin), then expand by 10% of
+        // the bounding box dimensions on each side to leave a small
+        // margin around the cards. Clamp to [0, 1] so a buffer near
+        // the photo edge doesn't read past the source. Result is a
+        // tight crop window around the 9 cards — tabletop, hands,
+        // and other off-card scenery falls outside.
+        var minX: CGFloat = 1.0, minY: CGFloat = 1.0
+        var maxX: CGFloat = 0.0, maxY: CGFloat = 0.0
+        for cell in cells {
+            minX = min(minX, cell.cellRect.minX)
+            minY = min(minY, cell.cellRect.minY)
+            maxX = max(maxX, cell.cellRect.maxX)
+            maxY = max(maxY, cell.cellRect.maxY)
+        }
+        let bufX = (maxX - minX) * 0.10
+        let bufY = (maxY - minY) * 0.10
+        let cropMinX = max(0, minX - bufX)
+        let cropMaxX = min(1, maxX + bufX)
+        let cropMinY = max(0, minY - bufY)
+        let cropMaxY = min(1, maxY + bufY)
+        let cropW = cropMaxX - cropMinX
+        let cropH = cropMaxY - cropMinY
+        guard cropW > 0, cropH > 0 else { return nil }
+
+        // Pixel-space crop rect on the source photo. CIImage norm
+        // coords are bottom-left origin; UIImage drawing is top-left.
+        let cropPxX = cropMinX * photoSize.width
+        let cropPxY = (1 - cropMaxY) * photoSize.height
+        let cropPxW = cropW * photoSize.width
+        let cropPxH = cropH * photoSize.height
+        let croppedSize = CGSize(width: cropPxW, height: cropPxH)
+
+        // Total bar height scales with the CROPPED photo width so the
+        // proportions read well at any source resolution.
+        let totalBarHeight = max(80, croppedSize.width * 0.085)
+        let canvasSize = CGSize(
+            width:  croppedSize.width,
+            height: totalBarHeight + croppedSize.height
+        )
+
+        let format = UIGraphicsImageRendererFormat()
+        format.scale  = sourcePhoto.scale
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: canvasSize, format: format)
+
+        let total = cells.reduce(Decimal(0)) { acc, cell in
+            acc + (prices[cell.cardID] ?? 0)
+        }
+
+        return renderer.image { ctx in
+            // Background — same near-black the rest of the app uses
+            // so the total bar visually continues the brand surface.
+            Design.Colors.nearBlackUI.setFill()
+            UIRectFill(CGRect(origin: .zero, size: canvasSize))
+
+            // 1. Total bar
+            drawTotalBar(
+                in: CGRect(x: 0, y: 0, width: croppedSize.width, height: totalBarHeight),
+                total: total
+            )
+
+            // 2. Source photo, drawn at a negative offset so only the
+            //    crop region falls inside the canvas. The CLIP is
+            //    important — without it, the source photo's pre-crop
+            //    pixels (above the crop region in source coords) get
+            //    drawn ABOVE the photo's intended start in canvas
+            //    coords, overwriting the total bar we just drew.
+            let photoTopY = totalBarHeight
+            let photoArea = CGRect(x: 0, y: photoTopY,
+                                   width:  croppedSize.width,
+                                   height: croppedSize.height)
+            let cgCtx = ctx.cgContext
+            cgCtx.saveGState()
+            cgCtx.clip(to: photoArea)
+            sourcePhoto.draw(at: CGPoint(x: -cropPxX, y: photoTopY - cropPxY))
+            cgCtx.restoreGState()
+
+            // 3. Price pills. Each cell's rect is still in ORIGINAL-
+            //    photo normalized coords; remap into the cropped photo's
+            //    coord space before drawing the pill.
+            let photoRect = CGRect(x: 0, y: photoTopY,
+                                   width:  croppedSize.width,
+                                   height: croppedSize.height)
+            for cell in cells {
+                guard let price = prices[cell.cardID] else { continue }
+                let remapped = CGRect(
+                    x: (cell.cellRect.minX - cropMinX) / cropW,
+                    y: (cell.cellRect.minY - cropMinY) / cropH,
+                    width:  cell.cellRect.width  / cropW,
+                    height: cell.cellRect.height / cropH
+                )
+                let cardRect = denormalizedRect(remapped, photoRect: photoRect)
+                drawPricePill(in: cardRect, price: price)
+            }
+
+            // 4. Watermark in bottom-right of the (cropped) photo area
+            drawWatermark(in: photoRect)
+        }
+    }
+
+    // MARK: - Coordinate conversion
+
+    /// CIImage normalized rect (bottom-left origin, range 0–1) →
+    /// UIImage drawing rect (top-left origin, photo pixel space).
+    private static func denormalizedRect(
+        _ normRect: CGRect,
+        photoRect:  CGRect
+    ) -> CGRect {
+        let x = photoRect.minX + normRect.minX * photoRect.width
+        let y = photoRect.minY + (1 - normRect.maxY) * photoRect.height
+        let w = normRect.width  * photoRect.width
+        let h = normRect.height * photoRect.height
+        return CGRect(x: x, y: y, width: w, height: h)
+    }
+
+    // MARK: - Drawing
+
+    private static let priceFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle           = .currency
+        f.currencyCode          = "USD"
+        f.minimumFractionDigits = 2
+        f.maximumFractionDigits = 2
+        return f
+    }()
+
+    private static func formatPrice(_ price: Decimal) -> String {
+        priceFormatter.string(from: price as NSDecimalNumber) ?? "$\(price)"
+    }
+
+    private static func drawTotalBar(in rect: CGRect, total: Decimal) {
+        // Background — the total bar sits flush against the photo
+        // with no separator stripe between them. Earlier versions
+        // drew an orange accent stripe at the bottom of this bar
+        // but the line read as accidental, not deliberate.
+        Design.Colors.nearBlackUI.setFill()
+        UIRectFill(rect)
+
+        // "TOTAL · $XXX.XX" centered
+        let label = "TOTAL · \(formatPrice(total))"
+        let fontSize = rect.height * 0.42
+        let font = UIFont(name: "RussoOne-Regular", size: fontSize)
+            ?? UIFont.systemFont(ofSize: fontSize, weight: .heavy)
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font:            font,
+            .foregroundColor: UIColor.white,
+            .kern:            fontSize * 0.04,
+        ]
+        let textSize = (label as NSString).size(withAttributes: attrs)
+        let textRect = CGRect(
+            x: rect.midX - textSize.width / 2,
+            y: rect.midY - textSize.height / 2,
+            width:  textSize.width,
+            height: textSize.height
+        )
+        (label as NSString).draw(in: textRect, withAttributes: attrs)
+    }
+
+    private static func drawPricePill(in cardRect: CGRect, price: Decimal) {
+        // Pill geometry: text-sized rather than card-percentage-sized.
+        // Pick a target font height as a percentage of the card, then
+        // measure the actual price string and shrink the chip to text
+        // width + a tiny horizontal padding. Result is a tall, skinny
+        // chip that maps onto the BoBA Playbook wordmark footprint —
+        // the cardNumber badge and weapon-type symbol in the bottom
+        // corners stay clear regardless of price digit count.
+        let label = formatPrice(price)
+        let fontSize = cardRect.height * 0.075   // larger text — was effectively ~0.046
+        let font = UIFont(name: "RussoOne-Regular", size: fontSize)
+            ?? UIFont.systemFont(ofSize: fontSize, weight: .heavy)
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font:            font,
+            .foregroundColor: Design.Colors.bobaOrangeUI,
+        ]
+        let textSize = (label as NSString).size(withAttributes: attrs)
+
+        // Padding: tight horizontal (text fills most of the chip),
+        // a touch more vertical so descenders / cap height don't
+        // graze the border.
+        let hPad = fontSize * 0.32
+        let vPad = fontSize * 0.18
+        // Cap chip width at 60% of card so a long price ("$199.99")
+        // can't blow out past the corner badges.
+        let pillW = min(textSize.width + hPad * 2, cardRect.width * 0.60)
+        let pillH = textSize.height + vPad * 2
+        let pillCenterY = cardRect.minY + cardRect.height * 0.92
+        let pillRect = CGRect(
+            x: cardRect.midX - pillW / 2,
+            y: pillCenterY - pillH / 2,
+            width:  pillW,
+            height: pillH
+        )
+
+        let radius = pillH * 0.28
+        let path = UIBezierPath(roundedRect: pillRect, cornerRadius: radius)
+
+        // Dark translucent fill — readable over any treatment.
+        UIColor.black.withAlphaComponent(0.88).setFill()
+        path.fill()
+
+        // Orange border for brand emphasis. Slightly thinner now
+        // that the chip is narrower; otherwise the border dominates.
+        Design.Colors.bobaOrangeUI.setStroke()
+        path.lineWidth = max(2, pillH * 0.07)
+        path.stroke()
+
+        // Price text — centered.
+        let textRect = CGRect(
+            x: pillRect.midX - textSize.width / 2,
+            y: pillRect.midY - textSize.height / 2,
+            width:  textSize.width,
+            height: textSize.height
+        )
+        (label as NSString).draw(in: textRect, withAttributes: attrs)
+    }
+
+    private static func drawWatermark(in canvasRect: CGRect) {
+        let label = "BOBA PLAYBOOK"
+        let fontSize = max(12, canvasRect.width * 0.014)
+        let font = UIFont(name: "ChakraPetch-Bold", size: fontSize)
+            ?? UIFont.systemFont(ofSize: fontSize, weight: .bold)
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font:            font,
+            .foregroundColor: UIColor.white.withAlphaComponent(0.55),
+            .kern:            1.6,
+        ]
+        let textSize = (label as NSString).size(withAttributes: attrs)
+        let pad = canvasRect.width * 0.012
+        let textRect = CGRect(
+            x: canvasRect.maxX - textSize.width - pad,
+            y: canvasRect.maxY - textSize.height - pad,
+            width:  textSize.width,
+            height: textSize.height
+        )
+        (label as NSString).draw(in: textRect, withAttributes: attrs)
+    }
+}
+
+// MARK: - Preview sheet
+//
+// Mirrors the My Shows "Generate Wall" preview UX: full-screen image
+// viewer, Close on the left, Share on the right. Sharing routes via
+// UIActivityViewController so the system share sheet exposes Save to
+// Photos, Messages, Mail, etc. — same pattern as ShowDetailView's
+// shareWall(_:).
+
+struct PricingOverlayPreview: View {
+    let image: UIImage
+    let onClose: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(Design.Spacing.md)
+            }
+            .navigationTitle("Pricing Overlay")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Close") { onClose() }
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        share(image)
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                    }
+                }
+            }
+        }
+    }
+
+    /// System share sheet via UIActivityViewController. Passes the
+    /// raw UIImage so iOS exposes "Save Image" (writes to the user's
+    /// Photos library) alongside Messages, Mail, AirDrop, etc.
+    /// Earlier versions wrote a JPEG to a temp URL for filename
+    /// quality, but the URL form intermittently hid "Save Image" in
+    /// the share sheet. UIImage as the only item is the most reliable
+    /// path to expose the camera-roll save action. Requires
+    /// `NSPhotoLibraryAddUsageDescription` in Info.plist.
+    private func share(_ img: UIImage) {
+        let items: [Any] = [img]
+        let scene = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first(where: { $0.activationState == .foregroundActive })
+        guard let root = scene?.windows.first(where: { $0.isKeyWindow })?
+                .rootViewController?.topMostPresentedController
+        else { return }
+        let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        vc.popoverPresentationController?.sourceView = root.view
+        vc.popoverPresentationController?.sourceRect = CGRect(
+            x: root.view.bounds.maxX - 40, y: 40, width: 0, height: 0)
+        root.present(vc, animated: true)
+    }
+}
+
+/// Walk up the UIViewController presented chain and return the
+/// topmost one. Inlined here because the equivalent helper in
+/// ShowDetailView (`bp_topMostPresented`) is `fileprivate` and so
+/// not visible from this file. Kept fileprivate too — anyone else
+/// who needs this should add their own copy or we'll move it to a
+/// shared location later.
+fileprivate extension UIViewController {
+    var topMostPresentedController: UIViewController {
+        var top = self
+        while let next = top.presentedViewController { top = next }
+        return top
     }
 }

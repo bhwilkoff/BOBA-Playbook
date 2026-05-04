@@ -3,6 +3,10 @@ import Vision
 import CoreImage
 
 /// Crops up to 9 cards out of a single photo of a 3×N grid (3×1, 3×2, or 3×3).
+/// (We previously bumped this to 6×6 = 36 cards; reverted because
+/// `clusterCenters` allowed singleton noise rectangles to establish
+/// false lanes when more than 3 slots were available. Lifting the
+/// 3×3 cap again requires adding a `minMembers ≥ 2` gate first.)
 /// Output is row-major (top-left → bottom-right). Each crop is then run
 /// through CardScanner's still-image OCR path independently — see
 /// GridScanView for the wiring.
@@ -92,6 +96,10 @@ enum GridCardDetector {
         let rawAnchors = observations.filter { obs in
             let aspect = obs.boundingBox.width / obs.boundingBox.height
             let area = obs.boundingBox.width * obs.boundingBox.height
+            // Min side 0.10 — restored from 0.08 because the looser
+            // threshold let through too many small noise rectangles
+            // (text fragments, treatment-band glints) that survived
+            // dedup and showed up as phantom cards.
             return aspect >= 0.50 && aspect <= 1.10
                 && obs.boundingBox.width >= 0.10
                 && obs.boundingBox.height >= 0.10
@@ -197,7 +205,7 @@ enum GridCardDetector {
         try await performRectangleRequest(
             on: ciImage,
             orientation: orientation,
-            minimumConfidence: 0.1,
+            minimumConfidence: 0.3,
             minimumAspectRatio: 0.40,
             maximumAspectRatio: 1.10,
             minimumSize: 0.05,
@@ -387,27 +395,59 @@ private struct GridGeometry {
         let medianWidth  = widths[widths.count / 2]
         let medianHeight = heights[heights.count / 2]
 
-        // 2. Cluster X-centers into 1, 2, or 3 column lanes. We
-        //    cap at 3 columns because that's the largest grid the
-        //    feature spec supports. Tolerance scales with the
-        //    median card width — two anchors are in the same
-        //    column lane when their X-centers are within half a
-        //    card width.
+        // 2. Cluster X-centers into column lanes. Capped at 3
+        //    columns. We previously bumped this to 6 to support
+        //    larger grids, but `clusterCenters` has no
+        //    minimum-members-per-lane gate, so noise detections
+        //    promoted themselves into singleton lanes when 6 slots
+        //    were available. The result was phantom 5×6 grids
+        //    inferred from a real 3×3 photo. Restoring the original
+        //    cap is the safe fix; lifting it later requires adding
+        //    a `minMembers ≥ 2` requirement to clusterCenters first.
         let xCenters = anchors.map { $0.boundingBox.midX }
-        let columnLanes = clusterCenters(
+        var columnLanes = clusterCenters(
             values: xCenters,
             tolerance: medianWidth * 0.5,
             maxLanes: 3
         )
-        // 3. Cluster Y-centers into row lanes (1..3).
+        // 3. Cluster Y-centers into row lanes (1..3) — same reasoning.
         let yCenters = anchors.map { $0.boundingBox.midY }
-        let rowLanes = clusterCenters(
+        var rowLanes = clusterCenters(
             values: yCenters,
             tolerance: medianHeight * 0.5,
             maxLanes: 3
         )
 
         guard !columnLanes.isEmpty, !rowLanes.isEmpty else { return nil }
+
+        // 3b. Synthesize a missing 3rd lane when only 2 lanes were
+        //     detected and the gap is consistent + there's image
+        //     room above/below for another lane. Recovers cases like
+        //     IMG_5232 where the dark top row's cards each produced
+        //     mis-shaped Vision rectangles that got filtered out — 2
+        //     row lanes detected, but a 3rd row exists in the image.
+        //     Capped at adding 1 lane (only when count == 2) so
+        //     already-complete 3x3 grids don't get phantom 4th rows.
+        if rowLanes.count == 2 {
+            let sortedRows = rowLanes.sorted()
+            let gap = sortedRows[1] - sortedRows[0]
+            if gap > 0.05, gap < 0.6 {
+                let top = sortedRows[1]
+                let bottom = sortedRows[0]
+                if top + gap < 0.95 { rowLanes.append(top + gap) }
+                else if bottom - gap > 0.05 { rowLanes.append(bottom - gap) }
+            }
+        }
+        if columnLanes.count == 2 {
+            let sortedCols = columnLanes.sorted()
+            let gap = sortedCols[1] - sortedCols[0]
+            if gap > 0.05, gap < 0.6 {
+                let right = sortedCols[1]
+                let left = sortedCols[0]
+                if right + gap < 0.95 { columnLanes.append(right + gap) }
+                else if left - gap > 0.05 { columnLanes.append(left - gap) }
+            }
+        }
 
         // 4. Card dimensions — derived from grid LANE SPACING in
         //    BOTH axes. Cards as photographed don't always match

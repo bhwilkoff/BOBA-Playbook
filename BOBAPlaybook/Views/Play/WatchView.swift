@@ -103,6 +103,14 @@ struct WatchView: View {
         }
     }
 
+    /// Tap-handler entry point for every card in the Watch view.
+    /// `source` is unused at runtime — kept as a labeled hook so the
+    /// call sites stay explicit about which feed they're firing from.
+    private func handleTap(_ video: YouTubeVideo, source: String) {
+        _ = source
+        playing = video
+    }
+
     // MARK: - Content
 
     @ViewBuilder
@@ -122,7 +130,9 @@ struct WatchView: View {
             LazyVStack(spacing: Design.Spacing.md) {
                 ForEach(currentItems) { video in
                     UpcomingCard(video: video)
-                        .onTapGesture { playing = video }
+                        .id(video.videoId)
+                        .contentShape(Rectangle())
+                        .onTapGesture { handleTap(video, source: "upcoming") }
                 }
             }
             .padding(Design.Spacing.lg)
@@ -154,7 +164,9 @@ struct WatchView: View {
                 ) {
                     ForEach(currentItems) { video in
                         VerticalCard(video: video, width: columnWidth)
-                            .onTapGesture { playing = video }
+                            .id(video.videoId)
+                            .contentShape(Rectangle())
+                            .onTapGesture { handleTap(video, source: "vertical") }
                     }
                 }
                 .padding(outerPad)
@@ -172,7 +184,9 @@ struct WatchView: View {
             ) {
                 ForEach(currentItems) { video in
                     HorizontalCard(video: video)
-                        .onTapGesture { playing = video }
+                        .id(video.videoId)
+                        .contentShape(Rectangle())
+                        .onTapGesture { handleTap(video, source: "horizontal") }
                 }
             }
             .padding(Design.Spacing.lg)
@@ -533,6 +547,7 @@ private struct VideoPlayerSheet: View {
         NavigationStack {
             VStack(spacing: 0) {
                 YouTubePlayerView(videoId: video.videoId, autoplay: true)
+                    .id(video.videoId)
                     .aspectRatio(16.0/9.0, contentMode: .fit)
                     .background(Color.black)
 

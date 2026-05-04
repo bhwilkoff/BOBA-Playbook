@@ -496,15 +496,25 @@ struct ShowDetailView: View {
                 Section("PRICING") {
                     Toggle("Show per-card prices", isOn: $wallOptions.includePrices)
                     if wallOptions.includePrices {
-                        HStack {
-                            Text("Horizon").font(Design.Fonts.mono(13))
-                            Spacer()
-                            Text(horizon.shortLabel).font(Design.Fonts.mono(13, weight: .bold))
-                                .foregroundStyle(Design.Colors.bobaOrange)
+                        Picker("Horizon", selection: $horizon) {
+                            ForEach(ShowHorizon.allCases) { h in
+                                Text(h.shortLabel).tag(h)
+                            }
                         }
-                        Text("Prices come from the horizon picker on the show. Change the horizon back on the show before generating to use a different window.")
-                            .font(Design.Fonts.mono(11))
-                            .foregroundStyle(Design.Colors.textMuted)
+                        .pickerStyle(.menu)
+                        .tint(Design.Colors.bobaOrange)
+                        if isLoadingPrices {
+                            HStack(spacing: 6) {
+                                ProgressView().scaleEffect(0.7).tint(Design.Colors.bobaCyan)
+                                Text("Pricing \(pricedCount) of \(pricedTotal)…")
+                                    .font(Design.Fonts.mono(11))
+                                    .foregroundStyle(Design.Colors.textMuted)
+                            }
+                        } else {
+                            Text("Changing the horizon refetches prices. Tap Generate once it finishes.")
+                                .font(Design.Fonts.mono(11))
+                                .foregroundStyle(Design.Colors.textMuted)
+                        }
                     }
                 }
                 .listRowBackground(Design.Colors.surface)
@@ -528,7 +538,10 @@ struct ShowDetailView: View {
                         .padding(.vertical, 4)
                     }
                     .listRowBackground(Design.Colors.bobaCyan)
-                    .disabled(isGeneratingWall)
+                    // Block Generate while a horizon-triggered price
+                    // refresh is in flight — otherwise the wall would
+                    // bake in stale prices for the previous horizon.
+                    .disabled(isGeneratingWall || (wallOptions.includePrices && isLoadingPrices))
                 }
             }
             .scrollContentBackground(.hidden)

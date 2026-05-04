@@ -37,13 +37,6 @@ struct SearchView: View {
     /// icon color.
     @AppStorage("selectedIconName") private var selectedIconName: String = "default"
 
-    /// Find chrome state. Defaults to COLLAPSED — Music's
-    /// search-first model where the top is just a home icon and the
-    /// canvas + bottom search bar take the screen. Tap the home icon
-    /// to expand chrome (Profile, Scan, overflow Menu); tap it again
-    /// to collapse. Doesn't auto-expand on tab entry — staying
-    /// collapsed is the intended Find feel.
-    @State private var chromeCollapsed = true
 
     // Grid: 2 columns with minimum size
     private let columns = [
@@ -80,77 +73,60 @@ struct SearchView: View {
                 // Each slot reads `\.isSearching` from the .searchable scope.
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        withAnimation(.snappy(duration: 0.22)) {
-                            chromeCollapsed.toggle()
-                        }
+                        showProfile = true
                     } label: {
-                        Image(systemName: chromeCollapsed ? "house.fill" : "house")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(Design.Colors.textPrimary)
+                        Image(systemName: "person.crop.circle")
+                            .font(.system(size: 22))
+                            .foregroundStyle(AppIconOption.currentColor(for: selectedIconName))
                     }
-                    .accessibilityLabel(chromeCollapsed
-                                        ? "Show Profile, Scan, and options"
-                                        : "Hide Profile, Scan, and options")
-                    .walkthroughAnchor("find.home")
+                    .accessibilityLabel("Profile")
+                    .walkthroughAnchor("find.profile")
                 }
                 ToolbarItem(placement: .principal) {
                     BOBAWordmark()
                 }
-                if !chromeCollapsed {
-                    ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        scanCoordinator.start(.find, scanStore: scanStore)
+                    } label: {
+                        Image(systemName: "camera.viewfinder")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                    }
+                    .accessibilityLabel("Scan a card")
+                    .walkthroughAnchor("find.scan")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
                         Button {
-                            showProfile = true
+                            showFilters = true
                         } label: {
-                            Image(systemName: "person.crop.circle")
-                                .font(.system(size: 22))
-                                .foregroundStyle(AppIconOption.currentColor(for: selectedIconName))
+                            Label("Filters", systemImage: "slider.horizontal.3")
                         }
-                        .accessibilityLabel("Profile")
-                        .walkthroughAnchor("find.profile")
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
+                        Toggle(isOn: $showcaseMode) {
+                            Label("Card Showcases", systemImage: "square.stack.3d.up.fill")
+                        }
+                        Divider()
                         Button {
-                            scanCoordinator.start(.find, scanStore: scanStore)
+                            WalkthroughsManager.shared.relaunch(.findTab)
+                            walkthrough = .findTab
                         } label: {
-                            Image(systemName: "camera.viewfinder")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundStyle(Design.Colors.bobaCyan)
+                            Label("Show walkthrough", systemImage: "questionmark.circle")
                         }
-                        .accessibilityLabel("Scan a card")
-                        .walkthroughAnchor("find.scan")
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Menu {
-                            Button {
-                                showFilters = true
-                            } label: {
-                                Label("Filters", systemImage: "slider.horizontal.3")
-                            }
-                            Toggle(isOn: $showcaseMode) {
-                                Label("Card Showcases", systemImage: "square.stack.3d.up.fill")
-                            }
-                            Divider()
-                            Button {
-                                WalkthroughsManager.shared.relaunch(.findTab)
-                                walkthrough = .findTab
-                            } label: {
-                                Label("Show walkthrough", systemImage: "questionmark.circle")
-                            }
-                        } label: {
-                            ZStack(alignment: .topTrailing) {
-                                Image(systemName: "ellipsis.circle")
-                                    .font(.system(size: 17, weight: .medium))
-                                    .foregroundStyle(Design.Colors.textPrimary)
-                                if store.activeFilterCount > 0 {
-                                    Circle()
-                                        .fill(Design.Colors.bobaOrange)
-                                        .frame(width: 8, height: 8)
-                                        .offset(x: 4, y: -4)
-                                }
+                    } label: {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.system(size: 17, weight: .medium))
+                                .foregroundStyle(Design.Colors.textPrimary)
+                            if store.activeFilterCount > 0 {
+                                Circle()
+                                    .fill(Design.Colors.bobaOrange)
+                                    .frame(width: 8, height: 8)
+                                    .offset(x: 4, y: -4)
                             }
                         }
-                        .walkthroughAnchor("find.menu")
                     }
+                    .walkthroughAnchor("find.menu")
                 }
                 // "Done" key on the keyboard accessory bar — gives an
                 // out for the case where the user taps the search field

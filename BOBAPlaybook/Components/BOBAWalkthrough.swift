@@ -463,11 +463,9 @@ extension BOBAWalkthrough.Script {
     static let decksTab = BOBAWalkthrough.Script(
         id: .decksTab,
         steps: [
-            .init(anchor: .init("decks.cardPool"),  copy: "Tap any card to add it to your deck."),
-            .init(anchor: .init("decks.sheetHandle"), copy: "Drag up to see your full deck list."),
-            .init(anchor: .init("decks.formatChip"), copy: "Set your format — it shapes the whole deck."),
-            .init(anchor: .init("decks.searchBar"), copy: "Filter with tokens for element, cost, or hero."),
-            .init(anchor: .init("decks.saveButton"), copy: "Sign in and save to access your deck anywhere.")
+            .init(anchor: .init("decks.cardPool"),    copy: "Tap to view a card. Long-press to add to the deck."),
+            .init(anchor: .init("decks.sheetHandle"), copy: "Drag up for the full deck, format picker, and rules."),
+            .init(anchor: .init("decks.saveButton"),  copy: "Sign in and Save to sync your deck across devices.")
         ]
     )
 

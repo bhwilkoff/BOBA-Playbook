@@ -85,13 +85,12 @@ struct SearchView: View {
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .overlay(alignment: .top) { quickAddToastOverlay }
-            .alert("Couldn't add that card", isPresented: .init(
-                get: { quickAddError != nil },
-                set: { if !$0 { quickAddError = nil } }
-            )) {
+            .alert("Couldn't add that card",
+                   isPresented: quickAddErrorPresented,
+                   presenting: quickAddError) { _ in
                 Button("OK") { quickAddError = nil }
-            } message: {
-                Text(quickAddError ?? "")
+            } message: { error in
+                Text(error)
             }
             .navigationDestination(for: Card.self) { card in
                 CardDetailView(card: card,
@@ -206,6 +205,16 @@ struct SearchView: View {
         } catch {
             quickAddError = error.localizedDescription
         }
+    }
+
+    /// Stable Binding<Bool> for the quickAdd-error alert — pulled out
+    /// of the body so the inline Binding(get:set:) doesn't blow up
+    /// type inference.
+    private var quickAddErrorPresented: Binding<Bool> {
+        Binding(
+            get: { quickAddError != nil },
+            set: { if !$0 { quickAddError = nil } }
+        )
     }
 
     /// Quick-add success toast — extracted from the body's .overlay so

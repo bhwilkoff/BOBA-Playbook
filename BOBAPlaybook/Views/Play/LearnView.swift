@@ -146,6 +146,7 @@ struct LearnView: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
+                    .accessibilityLabel("Learn options")
                 }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)

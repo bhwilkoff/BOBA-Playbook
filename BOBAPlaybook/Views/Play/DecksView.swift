@@ -493,15 +493,36 @@ struct DecksView: View {
                             title: "HEROES (\(store.heroes.count)/\(store.format.heroTarget))",
                             isEmpty: false
                         ) {
+                            // Cross-tier hero repeat banner — flags the
+                            // "6-per-hero across variations" rule. Silent
+                            // when no hero is repeated, so it stays out of
+                            // the way during normal deck building.
+                            // (Restored from legacy DeckBuilderView.)
+                            if !heroRepeats.isEmpty {
+                                heroRepeatBanner
+                            }
                             ForEach(groupedHeroes, id: \.power) { group in
-                                HStack {
-                                    Text("PWR \(group.power)")
-                                        .font(Design.Fonts.mono(10, weight: .bold))
-                                        .foregroundStyle(Design.Colors.textMuted)
-                                    Spacer()
-                                    Text("\(group.cards.count)")
-                                        .font(Design.Fonts.mono(10))
-                                        .foregroundStyle(Design.Colors.textMuted)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack {
+                                        Text("PWR \(group.power)")
+                                            .font(Design.Fonts.mono(10, weight: .bold))
+                                            .foregroundStyle(Design.Colors.textMuted)
+                                        Text("(\(group.cards.count)/6)")
+                                            .font(Design.Fonts.mono(10))
+                                            .foregroundStyle(group.cards.count > 6 ? Color(hex: "C0392B") : Design.Colors.textMuted)
+                                        Spacer()
+                                    }
+                                    // Hero × weapon breakdown — restores the
+                                    // legacy "Maverick (FIRE×2, ICE)" line so
+                                    // coaches can see weapon spread per tier.
+                                    let breakdown = heroWeaponBreakdown(for: group.cards)
+                                    if !breakdown.isEmpty {
+                                        Text(breakdown)
+                                            .font(Design.Fonts.mono(9))
+                                            .foregroundStyle(Design.Colors.textMuted)
+                                            .lineLimit(2)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
                                 }
                                 .padding(.horizontal, Design.Spacing.md)
                                 .padding(.top, Design.Spacing.xs)
@@ -691,6 +712,94 @@ struct DecksView: View {
     private var groupedHeroes: [(power: Int, cards: [Card])] {
         let groups = Dictionary(grouping: store.heroes) { $0.power ?? 0 }
         return groups.map { (power: $0.key, cards: $0.value) }.sorted { $0.power > $1.power }
+    }
+
+    /// One-line "Hero (FIRE×2, ICE)" breakdown for a single power tier.
+    /// Restored from the legacy DeckBuilderView so coaches still see
+    /// weapon spread per tier in the new Maps-pattern Decks view.
+    private func heroWeaponBreakdown(for cards: [Card]) -> String {
+        var byHero: [String: [String: Int]] = [:]
+        for c in cards {
+            let hero = c.hero.isEmpty ? c.name : c.hero
+            byHero[hero, default: [:]][c.element, default: 0] += 1
+        }
+        let elementOrder = ["FIRE","ICE","STEEL","BRAWL","GLOW","HEX","GUM","SUPER","CYBER","ALT","NONE"]
+        let sortedHeroes = byHero.keys.sorted { a, b in
+            let aTotal = byHero[a]!.values.reduce(0, +)
+            let bTotal = byHero[b]!.values.reduce(0, +)
+            if aTotal != bTotal { return aTotal > bTotal }
+            return a.localizedCompare(b) == .orderedAscending
+        }
+        return sortedHeroes.map { hero -> String in
+            let weapons = byHero[hero]!.sorted { a, b in
+                let ai = elementOrder.firstIndex(of: a.key) ?? 99
+                let bi = elementOrder.firstIndex(of: b.key) ?? 99
+                return ai < bi
+            }
+            let weaponFrag = weapons.map { "\($0.key)\($0.value > 1 ? "×\($0.value)" : "")" }.joined(separator: ", ")
+            return "\(hero) (\(weaponFrag))"
+        }.joined(separator: " · ")
+    }
+
+    /// Heroes appearing more than once across the full Hero Deck (counting
+    /// all variations). The 6-per-hero rule caps this at 6; the banner
+    /// shows current counts so coaches spot crowding early.
+    private var heroRepeats: [(hero: String, count: Int, weapons: [String])] {
+        var byHero: [String: [Card]] = [:]
+        for c in store.heroes {
+            let key = c.hero.isEmpty ? c.name : c.hero
+            byHero[key, default: []].append(c)
+        }
+        let elementOrder = ["FIRE","ICE","STEEL","BRAWL","GLOW","HEX","GUM","SUPER","CYBER","ALT","NONE"]
+        var rows: [(hero: String, count: Int, weapons: [String])] = []
+        for (hero, cards) in byHero {
+            guard cards.count > 1 else { continue }
+            var weapons: [String: Int] = [:]
+            for c in cards { weapons[c.element, default: 0] += 1 }
+            let sorted = weapons.sorted { a, b in
+                let ai = elementOrder.firstIndex(of: a.key) ?? 99
+                let bi = elementOrder.firstIndex(of: b.key) ?? 99
+                return ai < bi
+            }
+            let frag = sorted.map { "\($0.key)\($0.value > 1 ? "×\($0.value)" : "")" }
+            rows.append((hero: hero, count: cards.count, weapons: frag))
+        }
+        rows.sort { lhs, rhs in
+            if lhs.count != rhs.count { return lhs.count > rhs.count }
+            return lhs.hero < rhs.hero
+        }
+        return rows
+    }
+
+    /// Restored from legacy DeckBuilderView. Cyan-tinted block above
+    /// the HEROES section flagging when any hero name appears more than
+    /// once. Red text when count > 6 (the per-hero cap). Hidden when
+    /// no hero is repeated.
+    private var heroRepeatBanner: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("HERO REPEATS · 6 per hero max across variations")
+                .font(Design.Fonts.mono(9, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+                .tracking(1)
+            ForEach(heroRepeats, id: \.hero) { row in
+                HStack(spacing: 4) {
+                    Text(row.hero)
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(row.count > 6 ? Color(hex: "C0392B") : Design.Colors.textPrimary)
+                    Text("(\(row.count)/6)")
+                        .font(Design.Fonts.mono(10))
+                        .foregroundStyle(row.count > 6 ? Color(hex: "C0392B") : Design.Colors.textMuted)
+                    Text(row.weapons.joined(separator: ", "))
+                        .font(Design.Fonts.mono(9))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.xs)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Design.Colors.bobaCyan.opacity(0.06))
     }
 
     /// Validation errors surfaced in the deck panel's warning bubble.

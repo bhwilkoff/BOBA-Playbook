@@ -459,9 +459,14 @@ struct SearchView: View {
 
     @ViewBuilder
     private func featuredCollectionRow(_ coll: BrowseFeaturedData.Collection) -> some View {
+        // Suffix the count label onto the description (e.g. "...female
+        // athletes across every sport. · 884 cards") so the curated
+        // count from the legacy BrowseView is preserved in the Find
+        // ribbon migration.
+        let subtitle = "\(coll.description) · \(coll.countLabel)"
         ribbon(
             title: coll.name,
-            subtitle: coll.description,
+            subtitle: subtitle,
             tint: coll.color,
             cards: store.displayCards.filter(coll.matches).prefix(20).map { $0 }
         )

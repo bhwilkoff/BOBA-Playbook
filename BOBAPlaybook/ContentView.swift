@@ -15,6 +15,12 @@ struct ContentView: View {
         // floating "Liquid Glass" appearance — larger icons, pill-shaped
         // active state, the look the old build had before the .tabItem
         // refactor regressed it.
+        //
+        // Find tab uses `role: .search` per DESIGN.md §6.1 — the iOS 26
+        // dedicated search pattern. The tab bar minimizes during search
+        // and search results take the canvas. SearchView still owns its
+        // own .searchable field; the role tells iOS how to render the
+        // tab bar slot.
         TabView(selection: $selectedTab) {
             Tab("Learn", systemImage: "book.pages.fill", value: 1) {
                 LearnView()
@@ -24,7 +30,7 @@ struct ContentView: View {
                 DecksView()
             }
 
-            Tab("Find", systemImage: "magnifyingglass", value: 0) {
+            Tab(value: 0, role: .search) {
                 SearchView()
             }
 

@@ -1128,7 +1128,12 @@ struct DeckBuilderView: View {
 // MARK: - Browser Card Cell
 // ════════════════════════════════════════════════════════════════
 
-private struct BrowserCardCell: View {
+// Shared between the legacy DeckBuilderView (presented as a sheet from
+// CardDetailView's "Add to Custom Deck" flow) and the new Maps-pattern
+// DecksView. Internal scope so DecksView.swift can reuse it without
+// duplication. Will be unified into a single canonical BOBACardCell
+// during the §32 universal-cleanups pass.
+struct BrowserCardCell: View {
     let card: Card
     let store: DeckBuilderStore
     let quickAdd: Bool
@@ -1213,7 +1218,15 @@ private struct BrowserCardCell: View {
             pressed = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { pressed = false }
             if quickAdd {
-                store.addCard(card, role: store.browserTab)
+                // Route role by card type rather than store.browserTab so the
+                // new DecksView (which has no browser tab) can also use this
+                // cell. The store's addCard auto-routes bonus plays into
+                // bonusPlays internally, so plays + bonus plays both pass
+                // role: .play and land correctly.
+                let role: DeckCardRole = card.isHero ? .hero
+                                       : card.isHotDog ? .hotDog
+                                       : (card.isBonusPlay == true ? .bonusPlay : .play)
+                store.addCard(card, role: role)
             } else {
                 onSelect(card)
             }
@@ -1231,7 +1244,7 @@ private struct BrowserCardCell: View {
 // MARK: - Deck Section
 // ════════════════════════════════════════════════════════════════
 
-private struct DeckSection<Content: View>: View {
+struct DeckSection<Content: View>: View {
     let title: String
     let isEmpty: Bool
     @ViewBuilder let content: () -> Content
@@ -1278,7 +1291,7 @@ private struct DeckSection<Content: View>: View {
 // MARK: - Deck Card Row
 // ════════════════════════════════════════════════════════════════
 
-private struct DeckCardRow: View {
+struct DeckCardRow: View {
     let card: Card
     let onRemove: () -> Void
 
@@ -1408,7 +1421,7 @@ private struct TemplateCard: View {
 // MARK: - Unified Deck Management Sheet
 // ════════════════════════════════════════════════════════════════
 
-private struct DeckManagementSheet: View {
+struct DeckManagementSheet: View {
     let store: DeckBuilderStore
     let cards: [Card]
     @Environment(\.dismiss) private var dismiss
@@ -1834,7 +1847,7 @@ private struct DeckManagementSheet: View {
 // MARK: - Browser Card Detail Sheet
 // ════════════════════════════════════════════════════════════════
 
-private struct BrowserCardDetailSheet: View {
+struct BrowserCardDetailSheet: View {
     let card: Card
     let store: DeckBuilderStore
     let tab: DeckCardRole

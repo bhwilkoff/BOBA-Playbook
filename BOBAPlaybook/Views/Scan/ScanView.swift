@@ -474,53 +474,19 @@ struct ScanView: View {
     // MARK: - Detection handling
 
     private func handleDetected(observation: ScanObservation) {
-        let candidates = cardStore.displayCards.filter {
-            $0.cardNumber.uppercased() == observation.cardNumber
-        }
-        guard !candidates.isEmpty else { return }
-
-        let scored = candidates
-            .map { (card: $0, score: matchScore($0, observation: observation)) }
-            .sorted { $0.score > $1.score }
-        guard let best = scored.first?.card else { return }
-
-        // Image-similarity disambiguation (Phase 2). Engages when
-        // multiple candidates share the same card number AND the top
-        // OCR score is within 2 points of the runner-up — that's the
-        // "RAD-352 Brockness vs Spider, both 120 power" case where
-        // textual signal can't pick a winner.
-        //
-        // The chip is DEFERRED until tiebreak completes — we never
-        // commit OCR's first guess only to overwrite it 100ms later.
-        // Single commit point eliminates the wrong-card-flash UX. The
-        // tiebreak path takes ~80–150ms in practice; non-tiebreak
-        // scans commit instantly.
-        let needsTiebreak = scored.count >= 2 &&
-                            (scored[0].score - scored[1].score) <= 2
-        if needsTiebreak,
-           let cgImage = observation.cgImage,
-           FeaturePrintIndex.shared.isLoaded {
-            let candidateBobaIds = Set(candidates.map { $0.id })
-            Task {
-                let nearest = await FeaturePrintIndex.shared
-                    .searchNearest(in: cgImage, topK: 10)
-                // Walk top-K in distance-ascending order; take the
-                // first entry that's also one of our cardNumber
-                // candidates. Fall back to OCR's pick if no candidate
-                // is in the index (singleton cardNumber + multi-only
-                // index, OR cgImage capture/index lookup failure).
-                let refined: Card
-                if let refinedId = nearest
-                    .first(where: { candidateBobaIds.contains($0.bobaId) })?.bobaId,
-                   let r = candidates.first(where: { $0.id == refinedId }) {
-                    refined = r
-                } else {
-                    refined = best
-                }
-                commitDetected(refined)
+        // Unified recognizer — same path Grid scan uses. FP + cardNumber
+        // + hero name fused with hero-veto and confidence/margin gates.
+        // Returns nil ("don't guess") when signals don't agree well
+        // enough — the chip simply doesn't appear, and the scanner's
+        // requireConsecutive gate retries on the next frame.
+        Task { @MainActor in
+            if let resolved = await ScanMatching.resolve(
+                observation: observation,
+                allCards:    cardStore.displayCards,
+                label:       "live"
+            ) {
+                commitDetected(resolved)
             }
-        } else {
-            commitDetected(best)
         }
     }
 
@@ -542,120 +508,6 @@ struct ScanView: View {
                 withAnimation(.easeOut(duration: 0.3)) { chipVisible = false }
             }
         }
-    }
-
-    /// Scores how well a card matches the OCR observation using per-quadrant text.
-    ///
-    /// Design note: when multiple cards share the same card number AND power
-    /// (e.g. RAD-352 Brockness and RAD-352 Spider, both 120), the hero name
-    /// is the only reliable differentiator. The old scoring only checked the
-    /// top-left quadrant for the name — which is unreliable on dark cards —
-    /// and weighted it below power, so ties were effectively random.
-    ///
-    /// Now: hero/name match searches ALL quadrant text with prefix-aware fuzzy
-    /// matching (handles partial OCR reads like "BROCK" → "BROCKNESS"), is
-    /// weighted above power, and element match adds a tiebreaker.
-    private func matchScore(_ card: Card, observation: ScanObservation) -> Int {
-        var score = 0
-        let full = observation.fullText
-
-        // --- Power match (+3) ---
-        let powerText = observation.rawPower.isEmpty ? full : observation.rawPower
-        if let power = card.power, extractIntegers(from: powerText).contains(power) {
-            score += 3
-        }
-
-        // --- Hero / name match (+5 per word) — searched across ALL quadrant text ---
-        // This is the primary differentiator for same-number cards. We search
-        // fullText rather than just the top-left quadrant because:
-        //   • OCR quadrant boundaries shift on dark cards and angled shots
-        //   • The card name can bleed into adjacent quadrant regions
-        // Prefix-aware matching handles partial reads ("BROCK" matches "BROCKNESS").
-        score += heroNameScore(card.hero, in: full) * 5
-        if card.name.uppercased() != card.hero.uppercased() {
-            score += heroNameScore(card.name, in: full) * 3
-        }
-
-        // Top-left quadrant bonus — name in the expected position is stronger signal
-        if !observation.rawName.isEmpty {
-            score += heroNameScore(card.hero, in: observation.rawName) * 2
-        }
-
-        // --- Element match (+2) ---
-        // Element text (FIRE, ICE, HEX…) often appears on the card face and
-        // can differentiate cards that share a number but have different elements.
-        if full.contains(card.element.uppercased()) {
-            score += 2
-        }
-
-        // --- Treatment / variation match (+1 per word) ---
-        let varText = observation.rawVariation.isEmpty ? full : "\(observation.rawVariation) \(full)"
-        if let treatment = card.treatment, !treatment.isEmpty {
-            let tWords = treatment.uppercased()
-                .components(separatedBy: .whitespaces)
-                .filter { $0.count > 3 }
-            score += tWords.filter { varText.contains($0) }.count
-        }
-
-        return score
-    }
-
-    /// Scores how well `name` appears in `text`. Returns a count used as a
-    /// multiplier in `matchScore`.
-    ///
-    /// Strategy (in priority order):
-    ///   1. Full-phrase match — "AIR ACE" found verbatim → returns 3 immediately.
-    ///      Fast, unambiguous, handles multi-word names correctly.
-    ///   2. Word-level match — for each word in the name (≥3 chars):
-    ///        • Long words (≥5 chars): prefix-aware — "BROCK" matches "BROCKNESS"
-    ///          to handle OCR truncation.
-    ///        • Short words (3–4 chars): exact match only — "AIR", "ACE", "REX"
-    ///          are too short for safe prefix matching but still meaningful.
-    ///
-    /// The old implementation required ≥5-char words, which silently dropped
-    /// both words of "AIR ACE" and made it score 0, losing to any other card
-    /// that happened to share its number and power.
-    private func heroNameScore(_ name: String, in text: String) -> Int {
-        let upperName = name.uppercased()
-
-        // 1. Full phrase — definitive, return immediately
-        if text.contains(upperName) { return 3 }
-
-        // 2. Word-level
-        let nameWords = upperName.components(separatedBy: .whitespaces).filter { $0.count >= 3 }
-        guard !nameWords.isEmpty else { return 0 }
-
-        let textWords = text.components(separatedBy: .whitespaces)
-        var matches = 0
-        for nw in nameWords {
-            for tw in textWords where tw.count >= 3 {
-                if nw.count >= 5 {
-                    // Prefix match for longer words handles truncated OCR reads
-                    let (shorter, longer) = nw.count <= tw.count ? (nw, tw) : (tw, nw)
-                    if shorter.count >= 5, longer.hasPrefix(shorter) {
-                        matches += 1; break
-                    }
-                } else if nw == tw {
-                    // Short words need exact match to avoid false positives
-                    matches += 1; break
-                }
-            }
-        }
-        return matches
-    }
-
-    private func extractIntegers(from text: String) -> Set<Int> {
-        var result = Set<Int>()
-        var current = ""
-        for ch in text {
-            if ch.isNumber { current.append(ch) }
-            else {
-                if let n = Int(current) { result.insert(n) }
-                current = ""
-            }
-        }
-        if let n = Int(current) { result.insert(n) }
-        return result
     }
 
     // MARK: - Quick-save (single scan)

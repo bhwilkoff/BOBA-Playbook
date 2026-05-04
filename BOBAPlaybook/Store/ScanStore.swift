@@ -50,6 +50,29 @@ final class ScanStore {
     var mode: Mode = .single
     var queuedCards: [QueuedCard] = []
 
+    /// Captured when a Grid Scan commits cells to the queue. Holds the
+    /// source photo + per-cell rectangle info so the queue UI can
+    /// later (in Show mode) generate a single shareable pricing
+    /// overlay image — original photo with each card's price stamped
+    /// over its bottom edge. nil when the queue wasn't populated from
+    /// a grid scan, or after the queue is cleared.
+    var lastGridScanContext: GridScanContext? = nil
+
+    struct GridScanContext {
+        let sourcePhoto: UIImage
+        let cells: [Cell]
+
+        struct Cell {
+            /// bobaId of the card committed to this cell. Looking up
+            /// the price in the queue's `showPrices` map uses this.
+            let cardID: String
+            /// Card's bounding rect in NORMALIZED CIImage coordinates
+            /// (bottom-left origin, range 0–1). The renderer flips Y
+            /// when converting to UIImage pixel space.
+            let cellRect: CGRect
+        }
+    }
+
     // MARK: - Deck-builder routing
     /// Source of the current scanning session (default Find tab).
     var source: Source = .find
@@ -118,6 +141,7 @@ final class ScanStore {
 
     func clearQueue() {
         queuedCards.removeAll()
+        lastGridScanContext = nil
     }
 
     /// Initialize scanner state for a deck-builder scanning session.

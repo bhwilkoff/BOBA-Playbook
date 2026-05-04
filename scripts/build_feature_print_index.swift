@@ -50,10 +50,15 @@ struct Args {
     var concurrency: Int = 4
     var verbose: Bool = false
     /// When true, only cards whose cardNumber is shared with another
-    /// card are indexed. Disambiguation is the only path that consults
-    /// the index at runtime, and disambiguation requires ≥2 candidates
-    /// for a cardNumber. Singletons would never trigger a search.
-    var multiOnly: Bool = true
+    /// card are indexed. This was the original tiebreaker-era default
+    /// (BFPI v2 / 9,206 entries) — it assumed OCR alone resolved
+    /// uniquely-numbered cards, and FP only ran on collision groups.
+    ///
+    /// As of the unified CardRecognizer (FP-primary), FP must cover
+    /// every imaged card or the recognizer can't propose candidates
+    /// for the majority of the catalog. Default flipped to false.
+    /// Pass --multi-only to restore tiebreaker-only coverage.
+    var multiOnly: Bool = false
 }
 
 func parseArgs() -> Args {
@@ -77,7 +82,8 @@ func parseArgs() -> Args {
         case "--limit":       a.limit = Int(next())
         case "--concurrency": a.concurrency = max(1, Int(next()) ?? 4)
         case "-v", "--verbose": a.verbose = true
-        case "--all":           a.multiOnly = false
+        case "--all":           a.multiOnly = false  // legacy alias, default is now full coverage
+        case "--multi-only":    a.multiOnly = true
         case "-h", "--help":
             print("""
             Usage: swift build_feature_print_index.swift \\
@@ -156,7 +162,21 @@ func featurePrint(bobaId: String, imageURL: URL) throws -> PrintResult {
         throw PrintError.fileMissing
     }
     let request = VNGenerateImageFeaturePrintRequest()
-    request.imageCropAndScaleOption = .centerCrop
+    // .scaleFit preserves the FULL card content by letterboxing the
+    // 0.71-aspect card into a square (padding on the sides). The
+    // alternative — .centerCrop, used through 1.949 — strips ~14%
+    // off the top and bottom of the catalog image, removing the
+    // border foil patterns and treatment-distinguishing badge
+    // styling that's the only visual difference between same-hero
+    // treatments (e.g., BLBF-786 Castler vs LOGO-786 Castler share
+    // the same character art; only the borders differ). Without
+    // those borders, FP's central artwork match couldn't tell
+    // treatments apart.
+    //
+    // The iOS-side runtime must use the SAME crop option or query
+    // vectors won't be comparable to indexed ones — see
+    // FeaturePrintIndex.computeAllDistances in CardScanner.swift.
+    request.imageCropAndScaleOption = .scaleFit
     // Pin to revision 2 (768-float embeddings, iOS 17+ / macOS 14+).
     // Pinning matters because the iOS-side reader has to use the same
     // model — different revisions produce incompatible vectors that

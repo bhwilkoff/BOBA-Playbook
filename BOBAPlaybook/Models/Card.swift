@@ -1,6 +1,12 @@
 import Foundation
 
-struct Card: Codable, Identifiable, Hashable, Sendable {
+/// `nonisolated` overrides the project's default-MainActor isolation
+/// so this Sendable value type can be read from background actors
+/// (notably the grid-scan TaskGroup, which calls into ScanMatching
+/// off MainActor for parallelism). The struct is already Sendable
+/// and all properties are immutable `let`s — there's no concurrency
+/// hazard, just a default-isolation correction.
+nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
     let bvId: Int?
     let cardNumber: String
     let name: String

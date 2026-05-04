@@ -131,6 +131,7 @@ struct SearchView: View {
                         .foregroundStyle(Design.Colors.bobaOrange)
                 }
             }
+            .bobaSidebarTrigger(.find)
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .overlay(alignment: .top) {

@@ -15,7 +15,7 @@ struct BOBAPlaybookApp: App {
     @State private var scanStore = ScanStore()
     @State private var scanCoordinator = ScanCoordinator()
     @State private var showsStore = ShowsStore()
-    @State private var selectedTab = 0
+    @State private var selectedDestination: Destination = .find
 
     /// Set of known Learn category slugs — gates the
     /// bobaplaybook://learn/{category} deep link so a typo doesn't
@@ -36,7 +36,7 @@ struct BOBAPlaybookApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(selectedTab: $selectedTab)
+            ContentView(selectedDestination: $selectedDestination)
                 .environment(cardStore)
                 .environment(authManager)
                 .environment(collectionStore)
@@ -93,12 +93,12 @@ struct BOBAPlaybookApp: App {
         guard url.scheme == "bobaplaybook" else { return }
         switch url.host {
         case "scan":
-            selectedTab = 0
+            selectedDestination = .find
             cardStore.pendingScan = true
         case "card":
             let cardNumber = String(url.path.dropFirst())
             if !cardNumber.isEmpty {
-                selectedTab = 0
+                selectedDestination = .find
                 cardStore.pendingCardNumber = cardNumber.uppercased()
                 // Optional ?action=addToCollection hint from
                 // AddToCollectionIntent — CardDetailView reads this
@@ -110,7 +110,7 @@ struct BOBAPlaybookApp: App {
                 }
             }
         case "search":
-            selectedTab = 0
+            selectedDestination = .find
             let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
             let q = comps?.queryItems?.first(where: { $0.name == "q" })?.value ?? ""
             if !q.isEmpty {
@@ -123,7 +123,7 @@ struct BOBAPlaybookApp: App {
             // section deep linking lands once the sub-views grow
             // section-anchor IDs.
             let slug = String(url.path.dropFirst()).lowercased()
-            selectedTab = 1
+            selectedDestination = .learn
             if !slug.isEmpty, Self.learnCategories.contains(slug) {
                 cardStore.pendingLearnCategory = slug
             }
@@ -157,9 +157,9 @@ struct BOBAPlaybookApp: App {
             handleDeepLink(URL(string: "bobaplaybook://learn/\(cat)")!)
         case "u" where pathParts.count >= 3:
             // /u/{userId}/{designation} — public collection wall.
-            // Currently routes to Collection tab; future work surfaces
+            // Currently routes to Collection; future work surfaces
             // the public-designation read-only view.
-            selectedTab = 4
+            selectedDestination = .collection
         default:
             break
         }

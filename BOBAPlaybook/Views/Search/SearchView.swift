@@ -60,44 +60,8 @@ struct SearchView: View {
     }
 
     var body: some View {
-        @Bindable var store = store
         NavigationStack(path: $navigationPath) {
-            Group {
-                if store.isLoading {
-                    loadingView
-                } else if let error = store.loadError {
-                    errorView(error)
-                } else {
-                    contentView
-                }
-            }
-            // Find uses Tab(role: .search) — let the role determine the
-            // placement instead of forcing .navigationBarDrawer. The
-            // search role is what gives Find the visually-distinctive
-            // tab-bar slot and the iOS 26 search expansion behavior.
-            .searchable(
-                text: $store.searchText,
-                prompt: "Cards, heroes, numbers…"
-            )
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { findToolbar }
-            .toolbarBackground(.regularMaterial, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .overlay(alignment: .top) { quickAddToastOverlay }
-            .alert("Couldn't add that card",
-                   isPresented: quickAddErrorPresented,
-                   presenting: quickAddError) { _ in
-                Button("OK") { quickAddError = nil }
-            } message: { error in
-                Text(error)
-            }
-            .navigationDestination(for: Card.self) { card in
-                CardDetailView(card: card,
-                               navigationCards: store.filteredCards,
-                               wrapInNavStack: false)
-                    .navigationTransition(.zoom(sourceID: card.id, in: cardZoomNamespace))
-            }
+            stackContent
         }
         .sheet(isPresented: $showFilters) {
             FilterSheetView(store: store)
@@ -204,6 +168,48 @@ struct SearchView: View {
             }
         } catch {
             quickAddError = error.localizedDescription
+        }
+    }
+
+    /// The NavigationStack content. Extracted from `body` because the
+    /// chained-modifier expression (Group → .searchable → toolbar →
+    /// alert → navigationDestination → ...) was timing out the Swift
+    /// type checker. Now `body` is just NavigationStack { stackContent }
+    /// + the .sheet hosts.
+    @ViewBuilder
+    private var stackContent: some View {
+        @Bindable var store = store
+        Group {
+            if store.isLoading {
+                loadingView
+            } else if let error = store.loadError {
+                errorView(error)
+            } else {
+                contentView
+            }
+        }
+        .searchable(
+            text: $store.searchText,
+            prompt: "Cards, heroes, numbers…"
+        )
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { findToolbar }
+        .toolbarBackground(.regularMaterial, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .overlay(alignment: .top) { quickAddToastOverlay }
+        .alert("Couldn't add that card",
+               isPresented: quickAddErrorPresented,
+               presenting: quickAddError) { _ in
+            Button("OK") { quickAddError = nil }
+        } message: { error in
+            Text(error)
+        }
+        .navigationDestination(for: Card.self) { card in
+            CardDetailView(card: card,
+                           navigationCards: store.filteredCards,
+                           wrapInNavStack: false)
+                .navigationTransition(.zoom(sourceID: card.id, in: cardZoomNamespace))
         }
     }
 

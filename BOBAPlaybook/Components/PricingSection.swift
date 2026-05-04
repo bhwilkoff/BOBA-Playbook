@@ -60,12 +60,17 @@ struct PricingSection: View {
                         .frame(height: 64)
                 } else if let result {
                     if result.sold != nil || result.active != nil {
-                        // Dual-section layout
+                        // Dual-section layout per DESIGN.md §8.7. Walkthrough
+                        // anchors point at each bucket so the .pricingPanels
+                        // first-visit script can teach the asking-vs-sold
+                        // distinction.
                         if let sold = result.sold {
                             bucketView(sold, label: "RECENT SALES", isActive: false)
+                                .walkthroughAnchor("pricing.sold")
                         }
                         if showActiveListings, let active = result.active {
                             bucketView(active, label: "BUY NOW", isActive: true)
+                                .walkthroughAnchor("pricing.buyNow")
                         }
                         // COMC asking-price strip lives below the eBay
                         // BUY NOW bucket. Renders only when COMC has

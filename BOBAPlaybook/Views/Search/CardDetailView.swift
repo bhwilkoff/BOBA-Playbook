@@ -288,8 +288,13 @@ struct CardDetailView: View {
                 }
             }
             .onAppear {
+                // First-visit teaches CardDetail surface anatomy.
+                // After that's dismissed, on a subsequent open, the
+                // pricing-panels script teaches asking-vs-sold (§8.7).
                 if WalkthroughsManager.shared.shouldShow(.cardDetail) {
                     walkthrough = .cardDetail
+                } else if WalkthroughsManager.shared.shouldShow(.pricingPanels) {
+                    walkthrough = .pricingPanels
                 }
             }
         }

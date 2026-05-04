@@ -50,6 +50,7 @@ struct DecksView: View {
 
     // Pool filters
     @State private var search            = ""
+    @State private var tokens            : [BOBAFilterToken] = []
     @State private var collectionOnly    = false
     @FocusState private var searchFocused: Bool
 
@@ -83,11 +84,20 @@ struct DecksView: View {
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible,         for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
+            // Search tokens per DESIGN.md §6.4 — replaces every filter
+            // pill row in the legacy view. Suggested tokens are
+            // contextual (every weapon, the 0–4 HD costs, hero matches
+            // for the current search query). The store's
+            // filteredPoolCards reads $tokens to narrow results.
             .searchable(
                 text: $search,
+                tokens: $tokens,
+                suggestedTokens: .constant(suggestedTokens),
                 placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "Search the catalog"
-            )
+                prompt: "Search · weapon, cost, or hero"
+            ) { token in
+                Label(token.label, systemImage: token.systemImageName)
+            }
             .onSubmit(of: .search) { searchFocused = false }
             // Single persistent bottom sheet — never dismissed.
             .sheet(isPresented: $showDeckSheet) {
@@ -674,6 +684,18 @@ struct DecksView: View {
         let ownedNumbers: Set<String> = collectionOnly
             ? Set(collection.userCards.filter { $0.designation.isOwned && $0.bobaId == nil }.map { $0.cardNumber })
             : []
+        // Group tokens by type so multi-weapon (FIRE OR ICE) is
+        // an OR, but weapon + cost is an AND. Same pattern as
+        // SearchView's filter precedence.
+        let weaponTokens = tokens.compactMap { token -> String? in
+            if case .weapon(let e) = token { return e } else { return nil }
+        }
+        let costTokens = tokens.compactMap { token -> Int? in
+            if case .cost(let c) = token { return c } else { return nil }
+        }
+        let heroTokens = tokens.compactMap { token -> String? in
+            if case .hero(let h) = token { return h.lowercased() } else { return nil }
+        }
 
         let cards = cardStore.displayCards.filter { card in
             // Catalog covers Heroes / Plays / HotDogs / Sealed Products.
@@ -685,6 +707,17 @@ struct DecksView: View {
                !ownedNumbers.contains(card.cardNumber) {
                 return false
             }
+            // Token filters (OR within type, AND across types) — §6.4.
+            if !weaponTokens.isEmpty, !weaponTokens.contains(card.element) {
+                return false
+            }
+            if !costTokens.isEmpty {
+                guard let cost = card.playCost, costTokens.contains(cost) else { return false }
+            }
+            if !heroTokens.isEmpty, !heroTokens.contains(card.hero.lowercased()) {
+                return false
+            }
+            // Free-text search — runs after token filters.
             if !q.isEmpty {
                 let h = card.hero.lowercased().contains(q)
                 let n = card.name.lowercased().contains(q)
@@ -707,6 +740,28 @@ struct DecksView: View {
             }
             return a.cardType < b.cardType
         }
+    }
+
+    /// Suggested tokens for the .searchable suggestions list. Default
+    /// shows every weapon + the canonical cost steps (0/1/2/3 HD); when
+    /// the user types text, also surfaces matching hero names.
+    private var suggestedTokens: [BOBAFilterToken] {
+        var out: [BOBAFilterToken] = BOBAFilterToken.weapons + BOBAFilterToken.costs
+        let q = search.lowercased().trimmingCharacters(in: .whitespaces)
+        if q.count >= 2 {
+            // De-dup heroes that match the query, ranked by hero
+            // frequency. Cap at 5 suggestions so the list doesn't
+            // dominate the keyboard.
+            var heroCounts: [String: Int] = [:]
+            for card in cardStore.displayCards where card.cardType == "Hero" {
+                if card.hero.lowercased().contains(q) {
+                    heroCounts[card.hero, default: 0] += 1
+                }
+            }
+            let topHeroes = heroCounts.sorted { $0.value > $1.value }.prefix(5).map { $0.key }
+            out.append(contentsOf: topHeroes.map { BOBAFilterToken.hero($0) })
+        }
+        return out
     }
 
     private var groupedHeroes: [(power: Int, cards: [Card])] {

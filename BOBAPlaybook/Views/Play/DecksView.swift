@@ -712,6 +712,9 @@ struct DecksView: View {
 
                 if !store.heroes.isEmpty {
                     Section {
+                        sectionLabelRow(title: "Heroes",
+                                        count: store.heroes.count,
+                                        target: store.format.heroTarget)
                         if !heroRepeats.isEmpty {
                             heroRepeatBanner
                                 .listRowInsets(EdgeInsets(top: Design.Spacing.xs,
@@ -748,16 +751,15 @@ struct DecksView: View {
                                 }
                             }
                         }
-                    } header: {
-                        sectionHeader(title: "Heroes",
-                                      count: store.heroes.count,
-                                      target: store.format.heroTarget)
                     }
                 }
 
                 if store.format.needsPlaybook {
                     if !store.plays.isEmpty {
                         Section {
+                            sectionLabelRow(title: "Plays",
+                                            count: store.plays.count,
+                                            target: 30)
                             ForEach(store.plays) { card in
                                 DeckCardRow(card: card, showRemoveButton: false) {
                                     store.removeCard(card, role: .play)
@@ -776,14 +778,13 @@ struct DecksView: View {
                                     }
                                 }
                             }
-                        } header: {
-                            sectionHeader(title: "Plays",
-                                          count: store.plays.count,
-                                          target: 30)
                         }
                     }
                     if !store.bonusPlays.isEmpty {
                         Section {
+                            sectionLabelRow(title: "Bonus Plays",
+                                            count: store.bonusPlays.count,
+                                            target: nil)
                             // Soft ceiling hint surfaces inline with
                             // the rows it warns about.
                             if store.bonusPlays.count >= 7 {
@@ -817,16 +818,15 @@ struct DecksView: View {
                                     }
                                 }
                             }
-                        } header: {
-                            sectionHeader(title: "Bonus Plays",
-                                          count: store.bonusPlays.count,
-                                          target: nil)
                         }
                     }
                 }
 
                 if store.format.needsHotDogs && !store.hotDogs.isEmpty {
                     Section {
+                        sectionLabelRow(title: "Hot Dogs",
+                                        count: store.hotDogs.count,
+                                        target: 10)
                         ForEach(store.hotDogs) { card in
                             DeckCardRow(card: card, showRemoveButton: false) {
                                 store.removeCard(card, role: .hotDog)
@@ -845,10 +845,6 @@ struct DecksView: View {
                                 }
                             }
                         }
-                    } header: {
-                        sectionHeader(title: "Hot Dogs",
-                                      count: store.hotDogs.count,
-                                      target: 10)
                     }
                 }
             }
@@ -859,14 +855,18 @@ struct DecksView: View {
         }
     }
 
-    /// Section header — count badge + label. `.textCase(nil)` opts
-    /// out of List's default uppercase so we own casing.
-    private func sectionHeader(title: String, count: Int, target: Int?) -> some View {
+    /// Inline section label — same shape as the prior pinning header,
+    /// but rendered as a regular `List` row so it scrolls with the
+    /// content instead of sticking to the top. The persistent totals
+    /// already live in `sheetHeaderRow` above the list, so a sticky
+    /// header here was redundant.
+    @ViewBuilder
+    private func sectionLabelRow(title: String, count: Int, target: Int?) -> some View {
         let countOK = target.map { count == $0 } ?? false
         let countColor: Color = (target != nil && countOK)
             ? Color(hex: "4CAF50")
             : Design.Colors.textMuted
-        return HStack(spacing: 6) {
+        HStack(spacing: 6) {
             Text(title.uppercased())
                 .font(Design.Fonts.mono(12, weight: .bold))
                 .tracking(1)
@@ -877,8 +877,12 @@ struct DecksView: View {
                 .foregroundStyle(countColor)
             Spacer(minLength: 0)
         }
-        .textCase(nil)
-        .padding(.vertical, 2)
+        .listRowInsets(EdgeInsets(top: Design.Spacing.md,
+                                  leading: Design.Spacing.md,
+                                  bottom: Design.Spacing.xs,
+                                  trailing: Design.Spacing.md))
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
     }
 
     /// PWR tier sub-header — single tight line per tier. Combines

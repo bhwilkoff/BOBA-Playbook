@@ -211,8 +211,17 @@ const Collection = (() => {
     const power       = catalogCard?.power;
     const treatment   = catalogCard?.treatment;
 
+    // Responsive image: srcset auto-upgrades to full-res when the
+    // grid renders fewer than ~4 cards across (mobile / "L" density),
+    // stays on cheap thumbs in dense layouts. Mirrors iOS's
+    // CardImageView size pass-through pattern.
+    const srcsetPair = imageFile
+      ? `${API.thumbUrl(imageFile)} 200w, ${API.fullUrl(imageFile)} 1200w`
+      : null;
     const imgHtml = imageFile
       ? `<img class="ccard-thumb" src="${esc(API.thumbUrl(imageFile))}"
+              srcset="${esc(srcsetPair)}"
+              sizes="auto, (min-width: 1024px) 220px, (min-width: 480px) 33vw, 50vw"
               alt="${esc(cardName)}" loading="lazy" decoding="async">`
       : `<div class="ccard-thumb ccard-thumb-placeholder" data-element="${esc(element)}" aria-hidden="true">
            <span class="placeholder-brand">BOBA<br>PB</span>

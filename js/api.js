@@ -45,6 +45,19 @@ const API = (() => {
       : fullUrl(card.imageFile);
   }
 
+  /// Returns a `srcset` string pairing the 200w thumb with the
+  /// 1200w full so the browser picks the right resolution per
+  /// rendered cell width. Use with `sizes="auto"` on a lazy-loaded
+  /// `<img>` to mirror iOS's "thumb in dense grids, full in sparse
+  /// grids" rule. nil when the card has no imageFile.
+  function cardImageSrcset(card) {
+    if (!card.imageFile) return null;
+    const t = cardThumbUrl(card);
+    const f = cardFullUrl(card);
+    if (!t || !f) return null;
+    return `${t} 200w, ${f} 1200w`;
+  }
+
   /* ----------------------------------------------------------------
      Card Catalog — static JSON files served from GitHub Pages
   ---------------------------------------------------------------- */
@@ -637,6 +650,7 @@ const API = (() => {
     sealedFullUrl,
     cardThumbUrl,
     cardFullUrl,
+    cardImageSrcset,
     loadCards,
     loadSearchIndex,
     loadCategories,

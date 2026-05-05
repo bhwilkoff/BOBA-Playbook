@@ -121,16 +121,18 @@ select { cursor: pointer; }
 .mobile-header {
   display: flex; align-items: center; gap: var(--sp-3);
   /* position: relative so z-index takes effect — header must paint above
-     the position:fixed sidebar (z-index: 300) when it slides in on mobile.
-     No sticky/fixed needed: body is a flex column with overflow:hidden,
-     so the header naturally stays pinned at the top. */
+     the position:fixed sidebar (z-index: 1200) when it slides in on mobile.
+     Bumped from 400 to 1300 alongside the sidebar bump that lifts it
+     above Leaflet's internal panes/controls (~1000) on the Find a Store
+     view. No sticky/fixed needed: body is a flex column with
+     overflow:hidden, so the header naturally stays pinned at the top. */
   position: relative;
   flex-shrink: 0;
   height: var(--header-h);
   padding: 0 var(--sp-4);
   background: var(--boba-surface);
   border-bottom: 1px solid var(--boba-glass-border);
-  z-index: 400;
+  z-index: 1300;
 }
 @media (min-width: 768px) { .mobile-header { display: none; } }
 
@@ -196,10 +198,14 @@ select { cursor: pointer; }
 /* ================================================================
    SIDEBAR OVERLAY
 ================================================================ */
+/* z-index: sit above Leaflet's internal panes (200-700) and
+   default control container (~1000) so the navigation drawer reads
+   on top of the Find a Store map. Bumping below the system chrome
+   (e.g. iOS status bar) but above any embedded canvas/iframe. */
 .sidebar-overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,0.7); backdrop-filter: blur(3px);
-  z-index: 299;
+  z-index: 1199;
 }
 .sidebar-overlay.visible { display: block; }
 
@@ -211,7 +217,7 @@ select { cursor: pointer; }
   width: var(--sidebar-w);
   background: var(--boba-surface);
   border-right: 1px solid var(--boba-glass-border);
-  z-index: 300;
+  z-index: 1200;
   display: flex; flex-direction: column;
   overflow-y: auto;
   transform: translateX(-100%);
@@ -977,13 +983,14 @@ main {
 @media (min-width: 1024px) {
   .card-grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: var(--sp-4); }
 }
-/* Explicit column-count overrides — wired by JS based on the user's
-   localStorage choice (bp_findGridColumns_v1). Override the
-   responsive auto-fill defaults above so 1-/2-/3-across become
-   absolute, not minimum widths. */
-body[data-find-cols="1"] #view-search .card-grid { grid-template-columns: 1fr; }
-body[data-find-cols="2"] #view-search .card-grid { grid-template-columns: repeat(2, 1fr); }
-body[data-find-cols="3"] #view-search .card-grid { grid-template-columns: repeat(3, 1fr); }
+/* Card-size overrides — wired by JS based on the user's
+   localStorage choice (bp_findGridDensity_v1). These adjust the
+   `minmax` MIN width so the auto-fill grid still fills the viewport
+   — a wide desktop at "S" can render 8+ columns rather than the
+   prior 1/2/3 absolute caps. */
+body[data-find-density="s"] #view-search .card-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: var(--sp-2); }
+body[data-find-density="m"] #view-search .card-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
+body[data-find-density="l"] #view-search .card-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--sp-4); }
 
 /* Column-count picker (segmented-style) */
 .grid-cols-picker {
@@ -2530,12 +2537,83 @@ body[data-find-cols="3"] #view-search .card-grid { grid-template-columns: repeat
 }
 .profile-action-row:hover:not(:disabled) { background: rgba(0,245,255,0.06); }
 .profile-action-row:disabled { opacity: 0.5; cursor: not-allowed; }
-.profile-recalc-status {
+.profile-recalc-status,
+.profile-change-password-status {
   padding: 0 var(--sp-4) var(--sp-3);
   font-family: var(--font-mono); font-size: 0.75rem;
   color: var(--text-muted);
 }
-.profile-recalc-status.hidden { display: none; }
+.profile-recalc-status.hidden,
+.profile-change-password-status.hidden { display: none; }
+
+/* ----------------------------------------------------------------
+   Public-collection sharing toggle + URL display
+---------------------------------------------------------------- */
+.profile-toggle-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  cursor: pointer;
+}
+.profile-toggle-text {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.profile-toggle-title {
+  font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600;
+  color: var(--text-primary);
+}
+.profile-toggle-sub {
+  font-family: var(--font-mono); font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.profile-toggle-switch { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+.profile-toggle-switch input {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 1;
+}
+.profile-toggle-track {
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0.15);
+  border-radius: 13px;
+  transition: background 0.18s;
+}
+.profile-toggle-track::after {
+  content: '';
+  position: absolute; top: 3px; left: 3px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #fff;
+  transition: transform 0.18s;
+}
+.profile-toggle-switch input:checked + .profile-toggle-track {
+  background: var(--boba-cyan, #00F5FF);
+}
+.profile-toggle-switch input:checked + .profile-toggle-track::after {
+  transform: translateX(18px);
+}
+
+.profile-public-url {
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4) var(--sp-3);
+}
+.profile-public-url.hidden { display: none; }
+.profile-public-url-text {
+  flex: 1; min-width: 0;
+  font-family: var(--font-mono); font-size: 0.78rem;
+  color: var(--boba-cyan, #00F5FF);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.profile-public-url-copy {
+  flex-shrink: 0;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,245,255,0.08);
+  border: 1px solid rgba(0,245,255,0.3);
+  border-radius: 6px;
+  color: var(--boba-cyan, #00F5FF);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.profile-public-url-copy:hover { background: rgba(0,245,255,0.18); }
 
 /* Admin panel */
 .admin-panel { max-width: 560px; }

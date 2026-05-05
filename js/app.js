@@ -1384,6 +1384,9 @@
 
   /// Flip the toggle label + styling. Pure cosmetics — the click
   /// branch in buildCardElement reads quickAddMode directly.
+  /// Inline SVGs for both states so the icon stays a glyph (no emoji).
+  const QUICK_ADD_EYE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const QUICK_ADD_PLUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
   function setQuickAddMode(on) {
     quickAddMode = !!on;
     if (!quickAddToggle) return;
@@ -1392,7 +1395,7 @@
     const label = quickAddToggle.querySelector('.quick-add-label');
     const icon  = quickAddToggle.querySelector('.quick-add-icon');
     if (label) label.textContent = on ? 'Quick Add' : 'Tap to View';
-    if (icon)  icon.textContent  = on ? '+' : '👁';
+    if (icon)  icon.innerHTML    = on ? QUICK_ADD_PLUS_SVG : QUICK_ADD_EYE_SVG;
   }
 
   /// Only authenticated users get the pill — Quick Add writes to
@@ -2545,31 +2548,28 @@
      those views get rebuilt to use the canonical .card-grid.
   ================================================================ */
   function initGridColsPicker() {
-    const KEY = 'bp_findGridColumns_v1';
-    const stored = localStorage.getItem(KEY);
-    // Default to 0 ("auto" / current responsive behavior) so first-
-    // time visitors see the same layout they always have. Picking
-    // an explicit count opts in.
-    let cols = stored ? parseInt(stored, 10) : 0;
+    const KEY = 'bp_findGridDensity_v1';
+    const VALID = ['s', 'm', 'l'];
+    let density = localStorage.getItem(KEY) || '';  // '' = responsive default
     const picker = document.querySelector('.grid-cols-picker');
     if (!picker) return;
     const apply = () => {
-      if (cols >= 1 && cols <= 3) {
-        document.body.dataset.findCols = String(cols);
+      if (VALID.includes(density)) {
+        document.body.dataset.findDensity = density;
       } else {
-        delete document.body.dataset.findCols;
+        delete document.body.dataset.findDensity;
       }
       picker.querySelectorAll('.grid-cols-btn').forEach(btn => {
-        btn.classList.toggle('active', parseInt(btn.dataset.cols, 10) === cols);
+        btn.classList.toggle('active', btn.dataset.density === density);
       });
     };
     picker.querySelectorAll('.grid-cols-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const next = parseInt(btn.dataset.cols, 10);
-        // Click the active one again to return to auto/responsive.
-        cols = (cols === next) ? 0 : next;
-        if (cols) localStorage.setItem(KEY, String(cols));
-        else      localStorage.removeItem(KEY);
+        const next = btn.dataset.density;
+        // Click the active one again to return to responsive default.
+        density = (density === next) ? '' : next;
+        if (density) localStorage.setItem(KEY, density);
+        else         localStorage.removeItem(KEY);
         apply();
       });
     });

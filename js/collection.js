@@ -374,44 +374,9 @@ const Collection = (() => {
     // unmarked default.
     const provider = session?.user?.app_metadata?.provider;
 
-    // Unique cards per designation — use bobaId when available for exact card identity
-    const uniqueFor = key => new Set(_cards.filter(c => c.designation === key).map(c => c.boba_id || c.card_number)).size;
-    const personalCount  = uniqueFor('personal');
-    const forSaleCount   = uniqueFor('for_sale');
-    const forTradeCount  = uniqueFor('for_trade');
-    const wantedCount    = uniqueFor('wanted');
-    const grailsCount    = uniqueFor('grails');
-    const ownedProfileCards = _cards.filter(c => ['personal','for_sale','for_trade'].includes(c.designation));
-    const totalValue     = ownedProfileCards
-      .filter(c => c.purchase_price)
-      .reduce((sum, c) => sum + Number(c.purchase_price), 0);
-    const totalValueStr  = totalValue > 0
-      ? '$' + totalValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-      : '—';
-    const estValue = ownedProfileCards
-      .filter(c => c.estimated_value)
-      .reduce((sum, c) => sum + Number(c.estimated_value), 0);
-    const estValueStr = estValue > 0
-      ? '$' + estValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-      : null;
-
-    // SVG icons matching iOS SF Symbols
-    const icons = {
-      person:   `<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-5.33 0-8 2.67-8 4v1h16v-1c0-1.33-2.67-4-8-4z"/></svg>`,
-      tag:      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/></svg>`,
-      trade:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>`,
-      star:     `<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
-      crown:    `<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M2 20h20v2H2v-2zM4 18l4-8 4 4 4-7 4 11H4z"/></svg>`,
-      dollar:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M15 8.5C15 7.12 13.66 6 12 6h-1c-1.66 0-3 1.12-3 2.5S9.34 11 11 11h2c1.66 0 3 1.12 3 2.5S14.66 17 13 17h-1c-1.66 0-3-1.12-3-2.5"/></svg>`,
-      chart:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
-    };
-
-    const statRow = (iconKey, label, value, colorClass = '') => `
-      <div class="profile-stat-row">
-        <span class="profile-stat-icon${colorClass ? ' ' + colorClass : ''}">${icons[iconKey]}</span>
-        <span class="profile-stat-label">${esc(label)}</span>
-        <span class="profile-stat-value">${esc(String(value))}</span>
-      </div>`;
+    // Per-designation card counts and value totals previously rendered
+    // here were removed for parity with iOS — those numbers live on the
+    // Collection tab's value summary header now, not in Profile.
 
     view.innerHTML = `
       <div class="profile-page">
@@ -449,36 +414,53 @@ const Collection = (() => {
                    placeholder="username" />
             <span id="profile-username-status" class="profile-username-status"></span>
           </div>
-          <p class="profile-username-hint">Lowercase letters, numbers, hyphens, and underscores. 2–30 characters. Used as your <a href="https://bobaplaybook.com/u/" target="_blank" rel="noopener">public collection URL</a> when sharing is on.</p>
+          <p class="profile-username-hint">Lowercase letters, numbers, hyphens, and underscores. 2–30 characters. Used as your public collection URL when sharing is on.</p>
         </div>
 
-        <!-- Collection stats -->
-        <div class="profile-section">
-          <div class="profile-section-label">Collection</div>
+        <!-- Collection sharing — global toggle that exposes / hides
+             the public read-only collection at bobaplaybook.com/u/{username}.
+             Mirrors the iOS Profile toggle (DECISIONS.md #039). -->
+        <div class="profile-section" id="profile-sharing-section">
+          <div class="profile-section-label">Collection Sharing</div>
           <div class="profile-stat-list">
-            ${statRow('person', 'Personal',  personalCount,  'icon-cyan')}
-            ${statRow('tag',    'For Sale',  forSaleCount,   'icon-orange')}
-            ${statRow('trade',  'For Trade', forTradeCount,  'icon-green')}
-            ${statRow('star',   'Wanted',    wantedCount,    'icon-violet')}
-            ${statRow('crown',  'Grails',    grailsCount,    'icon-gold')}
-            <div class="profile-stat-divider"></div>
-            ${statRow('dollar', 'Total Paid', totalValueStr, 'icon-cyan')}
-            ${estValueStr ? statRow('chart', 'Est. Market Value', estValueStr, 'icon-orange') : ''}
+            <label class="profile-toggle-row" for="profile-public-toggle">
+              <span class="profile-toggle-text">
+                <span class="profile-toggle-title">Make my collection public</span>
+                <span class="profile-toggle-sub">Anyone with your URL can view your owned cards.</span>
+              </span>
+              <span class="profile-toggle-switch">
+                <input type="checkbox" id="profile-public-toggle" />
+                <span class="profile-toggle-track"></span>
+              </span>
+            </label>
+            <div class="profile-public-url hidden" id="profile-public-url">
+              <span class="profile-public-url-text" id="profile-public-url-text">https://bobaplaybook.com/u/…</span>
+              <button class="profile-public-url-copy" id="profile-public-url-copy" type="button" aria-label="Copy URL">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Recalculate collection value -->
+        <!-- Security — Change Password via the native Supabase reset
+             email. Wired to API.requestPasswordReset(). -->
         <div class="profile-section">
+          <div class="profile-section-label">Security</div>
           <div class="profile-stat-list">
-            <button class="profile-action-row" id="profile-recalculate-btn">
+            <button class="profile-action-row" id="profile-change-password-btn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                   width="15" height="15" aria-hidden="true">
-                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                   stroke-linecap="round" stroke-linejoin="round" width="15" height="15"
+                   aria-hidden="true">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
-              <span>Recalculate Collection Value</span>
+              <span>Change Password</span>
             </button>
-            <p class="profile-recalc-status hidden" id="profile-recalc-status"></p>
+            <p class="profile-change-password-status hidden" id="profile-change-password-status"></p>
           </div>
         </div>
 
@@ -534,7 +516,7 @@ const Collection = (() => {
               </svg>
               <span>Terms of Service</span>
             </a>
-            <a class="profile-about-row" href="mailto:ben@learningischange.com">
+            <a class="profile-about-row" href="mailto:ben@bobaplaybook.com">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                    width="15" height="15" aria-hidden="true">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
@@ -573,7 +555,7 @@ const Collection = (() => {
               <span>Delete Account</span>
             </button>
           </div>
-          <p class="profile-delete-hint">Email <a href="mailto:ben@learningischange.com">ben@learningischange.com</a> for immediate deletion.</p>
+          <p class="profile-delete-hint">Email <a href="mailto:ben@bobaplaybook.com">ben@bobaplaybook.com</a> for immediate deletion.</p>
         </div>
       </div>`;
 
@@ -589,8 +571,11 @@ const Collection = (() => {
     view.querySelector('#profile-admin-btn')
       ?.addEventListener('click', () => openAdminPanel());
 
-    view.querySelector('#profile-recalculate-btn')
-      ?.addEventListener('click', () => recalculateValues(view));
+    // Public collection toggle + URL copy.
+    wirePublicCollectionToggle(view);
+
+    // Change Password — triggers the native Supabase reset email.
+    wireChangePasswordButton(view);
 
     // Delete Account — destructive confirm. Same deferred-backend
     // approach as iOS for now (signs out + tells user to email).
@@ -600,7 +585,7 @@ const Collection = (() => {
           'Delete your account?\n\n' +
           'Your collection, decks, and shared links will be ' +
           'permanently removed. This cannot be undone.\n\n' +
-          'For immediate deletion, email ben@learningischange.com.\n\n' +
+          'For immediate deletion, email ben@bobaplaybook.com.\n\n' +
           'Continue with sign-out now?'
         );
         if (!ok) return;
@@ -902,63 +887,88 @@ const Collection = (() => {
     });
   }
 
-  const EBAY_WORKER_URL = 'https://boba-ebay-proxy.benwilkoff.workers.dev';
+  /// Public-collection toggle + URL display. Hydrates from
+  /// fetchProfile, persists via setPublicCollectionEnabled. URL is
+  /// shown only when the toggle is ON; the copy button writes the
+  /// current URL to the clipboard with a 2-second confirmation.
+  function wirePublicCollectionToggle(view) {
+    const toggle  = view.querySelector('#profile-public-toggle');
+    const urlBox  = view.querySelector('#profile-public-url');
+    const urlText = view.querySelector('#profile-public-url-text');
+    const copyBtn = view.querySelector('#profile-public-url-copy');
+    if (!toggle || !urlBox || !urlText || !copyBtn) return;
 
-  async function recalculateValues(view) {
-    const btn    = view.querySelector('#profile-recalculate-btn');
-    const status = view.querySelector('#profile-recalc-status');
+    const renderUrl = (username) => {
+      if (!username) {
+        urlBox.classList.add('hidden');
+        return;
+      }
+      urlText.textContent = `https://bobaplaybook.com/u/${username}`;
+      urlBox.classList.remove('hidden');
+    };
+
+    // Hydrate state from the user_profiles row.
+    API.fetchProfile().then(profile => {
+      toggle.checked = !!profile?.public_collection_enabled;
+      if (toggle.checked) renderUrl(profile?.username);
+    }).catch(() => { /* offline — leave toggle in its default state */ });
+
+    toggle.addEventListener('change', async () => {
+      const enabled = toggle.checked;
+      // Optimistic UI; revert on error.
+      try {
+        await API.setPublicCollectionEnabled(enabled);
+        if (enabled) {
+          const profile = await API.fetchProfile();
+          renderUrl(profile?.username);
+        } else {
+          urlBox.classList.add('hidden');
+        }
+      } catch (e) {
+        toggle.checked = !enabled;
+        alert('Could not update sharing preference. ' + (e?.message || ''));
+      }
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      const url = urlText.textContent || '';
+      if (!url) return;
+      try {
+        await navigator.clipboard.writeText(url);
+        const original = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>';
+        setTimeout(() => { copyBtn.innerHTML = original; }, 2000);
+      } catch (_) { /* clipboard unavailable — silent */ }
+    });
+  }
+
+  /// Change Password — triggers the native Supabase reset email so
+  /// the user can pick a new password from a one-time link. Mirrors
+  /// the iOS Profile Change Password row.
+  function wireChangePasswordButton(view) {
+    const btn    = view.querySelector('#profile-change-password-btn');
+    const status = view.querySelector('#profile-change-password-status');
     if (!btn || !status) return;
 
-    const ownedCards = _cards.filter(c => ['personal','for_sale','for_trade'].includes(c.designation));
-    if (!ownedCards.length) {
-      status.textContent = 'No owned cards to price.';
-      status.classList.remove('hidden');
-      return;
-    }
-
-    btn.disabled = true;
-    status.classList.remove('hidden');
-    status.textContent = `Fetching prices… 0 / ${ownedCards.length}`;
-
-    let updated = 0;
-    for (let i = 0; i < ownedCards.length; i++) {
-      const entry = ownedCards[i];
-      const card  = _cardLookup ? _cardLookup(entry.card_number) : null;
-      if (!card) continue;
-
-      try {
-        const params = new URLSearchParams({
-          cardNumber: card.cardNumber,
-          hero:       card.hero       || '',
-          set:        card.set        || '',
-          element:    card.element    || '',
-          days:       '30',
-          ...(card.power    ? { power:     String(card.power)    } : {}),
-          ...(card.radishUrl ? { radishUrl: card.radishUrl       } : {}),
-        });
-        const res  = await fetch(`${EBAY_WORKER_URL}?${params}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const avg  = data?.average;
-        if (avg && avg > 0) {
-          await API.collectionUpdate(entry.id, { estimated_value: avg });
-          const local = _cards.find(c => c.id === entry.id);
-          if (local) local.estimated_value = avg;
-          updated++;
-        }
-      } catch (_) {
-        // skip cards that fail pricing — don't abort the whole run
+    btn.addEventListener('click', async () => {
+      const email = Auth.getSession()?.user?.email;
+      if (!email) {
+        status.textContent = 'No email on file — sign out and back in to refresh.';
+        status.classList.remove('hidden');
+        return;
       }
-
-      status.textContent = `Fetching prices… ${i + 1} / ${ownedCards.length}`;
-      // Yield to keep the UI responsive
-      await new Promise(r => setTimeout(r, 50));
-    }
-
-    btn.disabled = false;
-    status.textContent = `Done — updated ${updated} of ${ownedCards.length} cards.`;
-    renderCollectionView();
-    renderProfileView();
+      btn.disabled = true;
+      status.classList.remove('hidden');
+      status.textContent = 'Sending reset email…';
+      try {
+        await API.requestPasswordReset(email);
+        status.textContent = `Reset link sent to ${email}. Check your inbox.`;
+      } catch (e) {
+        status.textContent = 'Could not send reset email. ' + (e?.message || '');
+      } finally {
+        btn.disabled = false;
+      }
+    });
   }
 
   function openModSearchPanel() {

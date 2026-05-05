@@ -115,18 +115,22 @@ struct LearnView: View {
         // from the bottom while every other category slides in from
         // the side. WatchView is wired in the navigationDestination
         // switch below.
-        NavigationLink(value: cat) {
-            inner
-                .matchedTransitionSource(id: cat.id, in: tileZoomNamespace)
-                // Anchor lives on the inner content (which definitely
-                // has a laid-out frame) rather than the NavigationLink
-                // wrapper. NavigationLink's button label sometimes
-                // doesn't propagate anchorPreference until the user
-                // interacts with it, which made learn.firstRow show
-                // up as ANCHOR NOT REGISTERED in the diagnostic.
+        // ZStack lets the anchor live as a SIBLING of the NavigationLink,
+        // not inside its button label. iOS 17+ swallows
+        // anchorPreference declared inside NavigationLink/Button labels
+        // — even with eager rendering — so the only reliable way to
+        // get the per-tile anchor into the host's preference graph is
+        // a Color.clear sibling at the same frame.
+        ZStack {
+            NavigationLink(value: cat) {
+                inner
+                    .matchedTransitionSource(id: cat.id, in: tileZoomNamespace)
+            }
+            .buttonStyle(.plain)
+            Color.clear
                 .walkthroughAnchor(isFirst ? "learn.firstRow" : "learn.row.\(cat.id)")
+                .allowsHitTesting(false)
         }
-        .buttonStyle(.plain)
     }
 
     /// Resolves a slug from cardStore.pendingLearnCategory back to a

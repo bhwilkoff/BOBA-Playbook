@@ -308,21 +308,43 @@ struct BOBAWalkthrough: View {
                 if !rightIn  { lines.append("    → clipped RIGHT by \(fmt(rect.maxX - viewport.maxX))pt") }
                 if !topIn    { lines.append("    ↑ clipped TOP   by \(fmt(viewport.minY - rect.minY))pt") }
                 if !bottomIn { lines.append("    ↓ clipped BOTTOM by \(fmt(rect.maxY - viewport.maxY))pt") }
-                // Spotlight ring is the anchor padded by ±8 — verify
-                // the ring's bounding box stays in the viewport too,
-                // since "anchor on-screen" can be true while the ring
-                // around it gets clipped at the edges.
-                let ringRect = rect.insetBy(dx: -8, dy: -8)
-                let ringIn = viewport.contains(ringRect)
-                if !ringIn {
-                    lines.append("  spotlight ring (±8pt pad): x=\(fmt(ringRect.minX)) y=\(fmt(ringRect.minY)) w=\(fmt(ringRect.width)) h=\(fmt(ringRect.height))")
-                    let rL = ringRect.minX < viewport.minX ? viewport.minX - ringRect.minX : 0
-                    let rR = ringRect.maxX > viewport.maxX ? ringRect.maxX - viewport.maxX : 0
-                    let rT = ringRect.minY < viewport.minY ? viewport.minY - ringRect.minY : 0
-                    let rB = ringRect.maxY > viewport.maxY ? ringRect.maxY - viewport.maxY : 0
-                    lines.append("  ✗ ring CLIPPED — left=\(fmt(rL)) right=\(fmt(rR)) top=\(fmt(rT)) bottom=\(fmt(rB))")
+                // Spotlight ring is the anchor padded by ±8 BUT each
+                // edge's pad is capped at the available viewport
+                // margin (matches the spotlightRing pad-then-clamp
+                // dance below). For an anchor that touches a screen
+                // edge, that edge gets a 0pt inset instead of the
+                // -8pt that would push the ring off-screen. Log the
+                // actually-rendered rect, not a naïve ±8 expansion.
+                let visible = rect.intersection(viewport)
+                let leftCap   = min(8, visible.minX)
+                let rightCap  = min(8, viewport.maxX - visible.maxX)
+                let topCap    = min(8, visible.minY)
+                let bottomCap = min(8, viewport.maxY - visible.maxY)
+                let renderedRing = CGRect(
+                    x: visible.minX - leftCap,
+                    y: visible.minY - topCap,
+                    width:  visible.width  + leftCap + rightCap,
+                    height: visible.height + topCap  + bottomCap
+                )
+                let ringIn = viewport.contains(renderedRing)
+                if ringIn {
+                    if leftCap < 8 || rightCap < 8 || topCap < 8 || bottomCap < 8 {
+                        // Ring is on-screen but the pad was clamped
+                        // because the anchor touches a screen edge.
+                        // Report the actual rendered rect for clarity.
+                        lines.append("  spotlight ring (capped pad): ✓ FULLY ENCLOSED (pad clamped — left=\(fmt(leftCap)) right=\(fmt(rightCap)) top=\(fmt(topCap)) bottom=\(fmt(bottomCap)))")
+                    } else {
+                        lines.append("  spotlight ring (±8pt pad): ✓ FULLY ENCLOSED")
+                    }
                 } else {
-                    lines.append("  spotlight ring (±8pt pad): ✓ FULLY ENCLOSED")
+                    // Should not normally happen post-clamp; report
+                    // the rendered rect + overflow for diagnosis.
+                    lines.append("  spotlight ring (rendered): x=\(fmt(renderedRing.minX)) y=\(fmt(renderedRing.minY)) w=\(fmt(renderedRing.width)) h=\(fmt(renderedRing.height))")
+                    let rL = renderedRing.minX < viewport.minX ? viewport.minX - renderedRing.minX : 0
+                    let rR = renderedRing.maxX > viewport.maxX ? renderedRing.maxX - viewport.maxX : 0
+                    let rT = renderedRing.minY < viewport.minY ? viewport.minY - renderedRing.minY : 0
+                    let rB = renderedRing.maxY > viewport.maxY ? renderedRing.maxY - viewport.maxY : 0
+                    lines.append("  ✗ ring CLIPPED — left=\(fmt(rL)) right=\(fmt(rR)) top=\(fmt(rT)) bottom=\(fmt(rB))")
                 }
                 let intersects = viewport.intersects(rect)
                 if !intersects {

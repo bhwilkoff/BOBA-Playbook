@@ -538,6 +538,60 @@ const API = (() => {
 
   // Delete a deck (and its cards via cascade)
   /* ----------------------------------------------------------------
+     Profile RPCs (mirror of iOS SupabaseClient methods)
+     check_username / set_username / set_public_collection_enabled /
+     set_notification_prefs / set_discord_identity / request_role /
+     get_pending_role_requests / review_role_request — all defined
+     in supabase_schema.sql and applied to the live DB.
+  ---------------------------------------------------------------- */
+
+  async function fetchProfile() {
+    const { data: { session } } = await supa().auth.getSession();
+    if (!session) return null;
+    const { data, error } = await supa()
+      .from('user_profiles')
+      .select('username,public_collection_enabled,notifications_enabled,match_alerts_enabled,discord_user_id,discord_avatar_url,requested_role,requested_role_at')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async function checkUsername(candidate) {
+    const { data, error } = await supa().rpc('check_username', { candidate });
+    if (error) throw new Error(error.message);
+    // RPC returns a bare JSON string ("available" / "taken" / etc.)
+    return data ?? 'invalid_chars';
+  }
+
+  async function setUsername(newUsername) {
+    const { data, error } = await supa().rpc('set_username', { new_username: newUsername });
+    if (error) throw new Error(error.message);
+    return data ?? 'invalid_chars';
+  }
+
+  async function setPublicCollectionEnabled(enabled) {
+    const { error } = await supa().rpc('set_public_collection_enabled', { enabled });
+    if (error) throw new Error(error.message);
+  }
+
+  /// Generalized role-request RPC. Replaces submitModRequest for new
+  /// code paths — works for both "moderator" and "streamer".
+  async function requestRole(role, reason) {
+    const { error } = await supa().rpc('request_role', { target_role: role, reason });
+    if (error) throw new Error(error.message);
+  }
+
+  /// Triggers Supabase's native password-reset email. Mirrors iOS
+  /// SupabaseClient.requestPasswordReset.
+  async function requestPasswordReset(email) {
+    const { error } = await supa().auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://bobaplaybook.com/'
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  /* ----------------------------------------------------------------
      Public collections (read-only — no auth required)
      Backed by the get_public_collection(handle) Supabase RPC.
      The RPC bypasses user_cards RLS via SECURITY DEFINER and only
@@ -646,5 +700,12 @@ const API = (() => {
     // Public collections
     fetchPublicProfile,
     fetchPublicCollection,
+    // Profile RPCs
+    fetchProfile,
+    checkUsername,
+    setUsername,
+    setPublicCollectionEnabled,
+    requestRole,
+    requestPasswordReset,
   };
 })();

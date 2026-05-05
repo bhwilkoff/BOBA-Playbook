@@ -134,6 +134,30 @@ select { cursor: pointer; }
 }
 @media (min-width: 768px) { .mobile-header { display: none; } }
 
+/* Offline pill in mobile header (parity with iOS BOBAOfflinePill).
+   Pushed to the right via margin-left: auto so it stays separate
+   from the title. Cyan stroke icon + uppercase mono label. */
+.offline-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-left: auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  border: 0.5px solid rgba(255,255,255,0.18);
+  color: var(--boba-text-muted);
+  font-family: var(--font-mono); font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.06em;
+}
+/* Show on desktop too — networks die at every screen size. */
+@media (min-width: 768px) {
+  .offline-pill {
+    position: fixed; top: var(--sp-3); right: var(--sp-3);
+    z-index: 1000;
+    background: var(--boba-surface);
+    border-color: rgba(255,255,255,0.25);
+  }
+}
+
 .hamburger {
   display: flex; flex-direction: column; justify-content: center; gap: 5px;
   width: 36px; height: 36px; padding: 6px;
@@ -952,6 +976,33 @@ main {
 }
 @media (min-width: 1024px) {
   .card-grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: var(--sp-4); }
+}
+/* Explicit column-count overrides — wired by JS based on the user's
+   localStorage choice (bp_findGridColumns_v1). Override the
+   responsive auto-fill defaults above so 1-/2-/3-across become
+   absolute, not minimum widths. */
+body[data-find-cols="1"] #view-search .card-grid { grid-template-columns: 1fr; }
+body[data-find-cols="2"] #view-search .card-grid { grid-template-columns: repeat(2, 1fr); }
+body[data-find-cols="3"] #view-search .card-grid { grid-template-columns: repeat(3, 1fr); }
+
+/* Column-count picker (segmented-style) */
+.grid-cols-picker {
+  display: inline-flex; gap: 2px;
+  background: var(--boba-surface-2);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+.grid-cols-btn {
+  background: transparent; border: none;
+  padding: 4px 10px; min-width: 28px;
+  color: var(--boba-text-muted);
+  font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700;
+  cursor: pointer; border-radius: 4px;
+}
+.grid-cols-btn:hover { color: var(--boba-text-primary); }
+.grid-cols-btn.active {
+  background: var(--boba-cyan); color: #000;
 }
 
 /* ---- Card Item ---- */
@@ -2311,6 +2362,75 @@ main {
 }
 .mod-badge   { background: var(--boba-cyan);   color: #000; }
 .admin-badge { background: var(--boba-orange);  color: #000; }
+
+/* Sign-in method pill (parity with iOS provider pill).
+   Apple: black background with subtle white border.
+   Discord: brand blurple background. */
+.provider-pill { display: inline-flex; align-items: center; gap: 3px; }
+.provider-apple   { background: #000; color: #fff;
+                    border: 0.5px solid rgba(255,255,255,0.3); }
+.provider-discord { background: #5865F2; color: #fff; }
+
+/* Username row — inline TextField + status pill, mirrors iOS
+   UsernameRow. The @ prefix is decorative; the input itself is the
+   editable surface. */
+.profile-username-row {
+  display: flex; align-items: center; gap: var(--sp-2);
+  background: var(--boba-surface-2);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: var(--radius-md);
+  padding: var(--sp-2) var(--sp-3);
+}
+.profile-username-prefix {
+  color: var(--boba-cyan); font-family: var(--font-mono);
+  font-size: 1rem; font-weight: 700;
+}
+.profile-username-input {
+  flex: 1; min-width: 0;
+  background: transparent; border: none; outline: none;
+  color: var(--boba-text-primary);
+  font-family: var(--font-mono); font-size: 0.95rem;
+  padding: 0;
+}
+.profile-username-status {
+  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+  white-space: nowrap;
+}
+.profile-username-status.idle    { color: var(--boba-text-muted); }
+.profile-username-status.checking { color: var(--boba-text-muted); }
+.profile-username-status.ok      { color: #4CAF50; }
+.profile-username-status.mine    { color: #4CAF50; }
+.profile-username-status.error   { color: #FF5555; }
+.profile-username-hint {
+  font-family: var(--font-mono); font-size: 0.7rem;
+  color: var(--boba-text-muted); padding: 0 var(--sp-1);
+  line-height: 1.4;
+}
+.profile-username-hint a { color: var(--boba-cyan); }
+
+/* About + Delete rows (Privacy / Terms / Send Feedback / Delete) */
+.profile-about-row,
+.profile-delete-row {
+  display: flex; align-items: center; gap: var(--sp-2);
+  background: transparent; border: none;
+  padding: var(--sp-3); width: 100%; text-align: left; cursor: pointer;
+  font-family: var(--font-mono); font-size: 0.9rem;
+  text-decoration: none;
+}
+.profile-about-row  { color: var(--boba-cyan); }
+.profile-about-row:hover  { background: rgba(0,245,255,0.06); }
+.profile-delete-row { color: #FF5555; }
+.profile-delete-row:hover { background: rgba(255,85,85,0.08); }
+.profile-delete-hint {
+  font-family: var(--font-mono); font-size: 0.7rem;
+  color: var(--boba-text-muted); padding: 0 var(--sp-1);
+}
+.profile-delete-hint a { color: var(--boba-cyan); }
+
+.profile-account-username {
+  font-family: var(--font-display); font-size: 1.1rem;
+  color: var(--boba-text-primary);
+}
 
 /* Section */
 .profile-section {

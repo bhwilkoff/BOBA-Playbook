@@ -369,6 +369,10 @@ const Collection = (() => {
     const session = Auth.getSession();
     const email   = session?.user?.email || 'BOBA Player';
     const role    = API.getCachedRole();
+    // Sign-in method pill (DESIGN.md §6.5 / iOS provider pill parity).
+    // Apple/Discord get rendered as branded pills; email is the
+    // unmarked default.
+    const provider = session?.user?.app_metadata?.provider;
 
     // Unique cards per designation — use bobaId when available for exact card identity
     const uniqueFor = key => new Set(_cards.filter(c => c.designation === key).map(c => c.boba_id || c.card_number)).size;
@@ -421,13 +425,31 @@ const Collection = (() => {
             </svg>
           </div>
           <div class="profile-account-info">
+            <div class="profile-account-username" id="profile-username-display">@…</div>
             <div class="profile-account-email">${esc(email)}</div>
             <div class="profile-account-role">
               ${role === 'admin' ? 'Admin' : role === 'moderator' ? 'Moderator' : 'Member'}
               ${role === 'admin' ? '<span class="role-badge admin-badge">ADMIN</span>' :
                 role === 'moderator' ? '<span class="role-badge mod-badge">MOD</span>' : ''}
+              ${provider === 'apple'   ? '<span class="role-badge provider-pill provider-apple">APPLE</span>' : ''}
+              ${provider === 'discord' ? '<span class="role-badge provider-pill provider-discord">DISCORD</span>' : ''}
             </div>
           </div>
+        </div>
+
+        <!-- Username row (inline edit + debounced banned-words check) -->
+        <div class="profile-section">
+          <div class="profile-section-label">Username</div>
+          <div class="profile-username-row">
+            <span class="profile-username-prefix">@</span>
+            <input type="text" id="profile-username-input"
+                   class="profile-username-input"
+                   autocapitalize="none" autocorrect="off" spellcheck="false"
+                   maxlength="30"
+                   placeholder="username" />
+            <span id="profile-username-status" class="profile-username-status"></span>
+          </div>
+          <p class="profile-username-hint">Lowercase letters, numbers, hyphens, and underscores. 2–30 characters. Used as your <a href="https://bobaplaybook.com/u/" target="_blank" rel="noopener">public collection URL</a> when sharing is on.</p>
         </div>
 
         <!-- Collection stats -->
@@ -482,15 +504,46 @@ const Collection = (() => {
               <span>Admin Panel</span>
             </button>` : ''}
           </div>
-        </div>` : `
-        <!-- Mod Access Request — only for non-mods -->
-        <div class="profile-section" id="profile-mod-request-section">
-          <div class="profile-section-label">Moderator Access</div>
-          <div class="profile-mod-request-body" id="profile-mod-request-body">
-            <!-- populated async based on pending status -->
+        </div>` : ''}
+
+        <!-- Role Access — generalized to mod OR streamer.
+             Renders for users below the role they're requesting. -->
+        <div class="profile-section" id="profile-role-request-section">
+          <div class="profile-section-label">Role &amp; Access</div>
+          <div class="profile-mod-request-body" id="profile-role-request-body">
             <p class="profile-mod-request-loading">Checking status…</p>
           </div>
-        </div>`}
+        </div>
+
+        <!-- About — Privacy + Terms links + version -->
+        <div class="profile-section">
+          <div class="profile-section-label">About</div>
+          <div class="profile-stat-list">
+            <a class="profile-about-row" href="/privacy/" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   width="15" height="15" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <span>Privacy Policy</span>
+            </a>
+            <a class="profile-about-row" href="/terms/" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   width="15" height="15" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <span>Terms of Service</span>
+            </a>
+            <a class="profile-about-row" href="mailto:ben@learningischange.com">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   width="15" height="15" aria-hidden="true">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+              <span>Send Feedback</span>
+            </a>
+          </div>
+        </div>
 
         <!-- Sign out -->
         <div class="profile-section">
@@ -503,6 +556,24 @@ const Collection = (() => {
               <span>Sign Out</span>
             </button>
           </div>
+        </div>
+
+        <!-- Delete Account — destructive, with confirm dialog.
+             Same deferred-backend approach as iOS (DECISIONS.md #039):
+             signs the user out + asks them to email for full deletion
+             until the Worker endpoint ships. -->
+        <div class="profile-section">
+          <div class="profile-stat-list">
+            <button class="profile-delete-row" id="profile-delete-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   width="15" height="15" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+              <span>Delete Account</span>
+            </button>
+          </div>
+          <p class="profile-delete-hint">Email <a href="mailto:ben@learningischange.com">ben@learningischange.com</a> for immediate deletion.</p>
         </div>
       </div>`;
 
@@ -521,44 +592,242 @@ const Collection = (() => {
     view.querySelector('#profile-recalculate-btn')
       ?.addEventListener('click', () => recalculateValues(view));
 
-    // Async-populate mod access request block (only renders for non-mods)
-    if (!['moderator','admin'].includes(role)) {
-      renderModRequestBlock(view);
-    }
+    // Delete Account — destructive confirm. Same deferred-backend
+    // approach as iOS for now (signs out + tells user to email).
+    view.querySelector('#profile-delete-btn')
+      ?.addEventListener('click', async () => {
+        const ok = confirm(
+          'Delete your account?\n\n' +
+          'Your collection, decks, and shared links will be ' +
+          'permanently removed. This cannot be undone.\n\n' +
+          'For immediate deletion, email ben@learningischange.com.\n\n' +
+          'Continue with sign-out now?'
+        );
+        if (!ok) return;
+        await Auth.signOut();
+      });
+
+    // Username inline edit + debounced banned-words check.
+    wireUsernameRow(view);
+
+    // Role-request block — handles BOTH moderator AND streamer
+    // requests. Uses the new request_role RPC (DECISIONS.md #038).
+    renderRoleRequestBlock(view, role);
   }
 
-  async function renderModRequestBlock(view) {
-    const body = view.querySelector('#profile-mod-request-body');
+  /// Mirrors the iOS UsernameRow pattern: derives a default from the
+  /// email local-part on first profile open, debounced check_username
+  /// on every keystroke, status pill on the right, atomic write via
+  /// set_username RPC. Falls back to user-{6-char-hash} when the
+  /// derived seed can't escape the banned/reserved gates.
+  function wireUsernameRow(view) {
+    const input    = view.querySelector('#profile-username-input');
+    const display  = view.querySelector('#profile-username-display');
+    const status   = view.querySelector('#profile-username-status');
+    if (!input || !status || !display) return;
+
+    let currentUsername = null;
+    let checkSeq = 0;
+
+    const setStatus = (cls, text) => {
+      status.className = 'profile-username-status ' + cls;
+      status.textContent = text;
+    };
+
+    API.fetchProfile().then(async profile => {
+      if (profile?.username) {
+        currentUsername = profile.username;
+        input.value = profile.username;
+        display.textContent = '@' + profile.username;
+        setStatus('mine', '✓');
+      } else {
+        // First-time profile open — auto-derive from email local-part,
+        // try numeric suffixes on collision, fall back to user-{hash}.
+        const session = Auth.getSession();
+        const seed = (session?.user?.email || '').split('@')[0]
+          .toLowerCase()
+          .replace(/[^a-z0-9_-]/g, '');
+        const candidates = seed.length >= 2
+          ? [seed, ...Array.from({ length: 98 }, (_, i) => seed + (i + 2))]
+          : [];
+        for (const candidate of candidates) {
+          const trimmed = candidate.slice(0, 30);
+          const result = await API.checkUsername(trimmed);
+          if (result === 'available') {
+            const wrote = await API.setUsername(trimmed);
+            if (wrote === 'available') {
+              currentUsername = trimmed;
+              input.value = trimmed;
+              display.textContent = '@' + trimmed;
+              setStatus('mine', '✓');
+              return;
+            }
+          }
+          if (result === 'invalid_chars' || result === 'too_short') break;
+        }
+        // Last-ditch: user-{hash}
+        const uid = session?.user?.id || '';
+        const hash = uid.replace(/[^a-z0-9]/g, '').slice(0, 6);
+        if (hash) {
+          const fallback = 'user-' + hash;
+          const wrote = await API.setUsername(fallback);
+          if (wrote === 'available') {
+            currentUsername = fallback;
+            input.value = fallback;
+            display.textContent = '@' + fallback;
+            setStatus('mine', '✓');
+          }
+        }
+      }
+    }).catch(() => setStatus('error', '✗ Check failed'));
+
+    input.addEventListener('input', () => {
+      // Lowercase + strip invalid as the user types
+      const raw = input.value;
+      const normalized = raw.toLowerCase();
+      if (normalized !== raw) {
+        const pos = input.selectionStart;
+        input.value = normalized;
+        input.setSelectionRange(pos, pos);
+      }
+      const candidate = input.value.trim();
+      if (candidate === currentUsername) {
+        setStatus('mine', '✓');
+        return;
+      }
+      const seq = ++checkSeq;
+      setStatus('checking', '…');
+      setTimeout(async () => {
+        if (seq !== checkSeq) return;  // superseded
+        if (!candidate) { setStatus('idle', ''); return; }
+        try {
+          const result = await API.checkUsername(candidate);
+          if (seq !== checkSeq) return;
+          const map = {
+            available:     ['ok',    '✓ Available'],
+            taken:         ['error', '✗ Already taken'],
+            banned:        ['error', '✗ Not allowed'],
+            reserved:      ['error', '✗ Reserved'],
+            invalid_chars: ['error', '✗ Letters, numbers, _ - only'],
+            too_short:     ['error', '✗ At least 2 characters'],
+            too_long:      ['error', '✗ 30 characters max'],
+          };
+          const [cls, text] = map[result] || ['error', '✗ Try a different one'];
+          setStatus(cls, text);
+          // Auto-commit when validation passes — mirrors iOS pattern.
+          if (result === 'available') {
+            const wrote = await API.setUsername(candidate);
+            if (seq !== checkSeq) return;
+            if (wrote === 'available') {
+              currentUsername = candidate;
+              display.textContent = '@' + candidate;
+              setStatus('mine', '✓ Saved');
+            } else {
+              const [errCls, errText] = map[wrote] || ['error', '✗ Save failed'];
+              setStatus(errCls, errText);
+            }
+          }
+        } catch (e) {
+          setStatus('error', '✗ Check failed');
+        }
+      }, 350);
+    });
+  }
+
+  /// Mirrors iOS Profile's Role & Access section. Generalizes the
+  /// old mod-only request to also support streamer (per
+  /// DECISIONS.md #038 — request_role RPC takes either role).
+  async function renderRoleRequestBlock(view, role) {
+    const body = view.querySelector('#profile-role-request-body');
     if (!body) return;
-    let pending = false;
-    try { pending = await API.hasPendingModRequest(); } catch (_) { /* offline-safe */ }
-    if (pending) {
-      body.innerHTML = `
+
+    const isStreamer = role === 'streamer' || role === 'admin';
+    const isMod      = role === 'moderator' || role === 'admin';
+
+    let pendingRole = null;
+    try {
+      const profile = await API.fetchProfile();
+      pendingRole = profile?.requested_role || null;
+    } catch (_) { /* offline-safe */ }
+
+    const rows = [];
+    if (pendingRole) {
+      rows.push(`
         <div class="profile-mod-request-pending">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           <div>
-            <div class="profile-mod-request-pending-title">Request pending</div>
+            <div class="profile-mod-request-pending-title">${esc(pendingRole.charAt(0).toUpperCase() + pendingRole.slice(1))} request pending</div>
             <div class="profile-mod-request-pending-sub">An admin will review your request soon.</div>
           </div>
-        </div>`;
-      return;
+        </div>`);
     }
-    body.innerHTML = `
-      <p class="profile-mod-request-blurb">Become a moderator to help improve the catalog: upload images of cards from your own collection, fix wrong card data, and flag issues with existing images.</p>
-      <button class="profile-mod-request-btn" id="profile-mod-request-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-             width="15" height="15" aria-hidden="true">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          <polyline points="9 12 11 14 15 10" stroke-width="2.5"/>
-        </svg>
-        <span>Request Mod Access</span>
-      </button>`;
-    view.querySelector('#profile-mod-request-btn')
-      ?.addEventListener('click', () => openModRequestModal(view));
+    if (!isStreamer && pendingRole !== 'streamer') {
+      rows.push(`
+        <button class="profile-mod-request-btn" data-role="streamer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               width="15" height="15" aria-hidden="true">
+            <rect x="2" y="6" width="14" height="12" rx="2"/><polygon points="22 8 16 12 22 16 22 8"/>
+          </svg>
+          <span>Request Streamer Access</span>
+        </button>`);
+    }
+    if (!isMod && pendingRole !== 'moderator') {
+      rows.push(`
+        <button class="profile-mod-request-btn" data-role="moderator">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               width="15" height="15" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <polyline points="9 12 11 14 15 10" stroke-width="2.5"/>
+          </svg>
+          <span>Request Moderator Access</span>
+        </button>`);
+    }
+    if (rows.length === 1 && pendingRole) {
+      // Only the pending banner — nothing actionable. Skip blurb.
+      body.innerHTML = rows.join('');
+    } else if (!rows.length) {
+      body.innerHTML = `<p class="profile-mod-request-blurb">You already have the highest role.</p>`;
+    } else {
+      const blurb = `<p class="profile-mod-request-blurb">Streamers get the Whatnot Shows feature for live-break prep. Moderators help improve the catalog: upload card images, fix wrong card data, and flag image issues.</p>`;
+      body.innerHTML = blurb + rows.join('');
+    }
+
+    body.querySelectorAll('.profile-mod-request-btn').forEach(btn => {
+      btn.addEventListener('click', () => openRoleRequestModal(view, btn.dataset.role));
+    });
   }
 
-  function openModRequestModal(view) {
+  function openRoleRequestModal(view, role) {
+    // Per-role copy. The modal shape is identical between mod and
+    // streamer; only the title/blurb/feature list changes. Mirrors
+    // iOS Profile's RoleRequestSheet (DECISIONS.md #038).
+    const copy = role === 'streamer' ? {
+      icon: '<rect x="2" y="6" width="14" height="12" rx="2"/><polygon points="22 8 16 12 22 16 22 8"/>',
+      title: 'Set up live BOBA breaks',
+      lead: 'Streamer access unlocks the Whatnot Shows feature for hosts who run live breaks.',
+      featuresLabel: 'WHAT YOU CAN DO AS A STREAMER',
+      features: [
+        ['Pre-curate breaks', 'Build a Show with the cards you plan to give away or chase during a live break.'],
+        ['Track giveaway tally', 'Mark cards as excluded from totals; the running value updates as you go.'],
+        ['Generate share images', 'Render a Wall image of your shop\'s hits and post to Whatnot, Discord, or socials.'],
+        ['Review before shipping', 'All role promotions are reviewed by an admin — no risk of accidental access.'],
+      ],
+      fieldHint: 'Tell us about your streaming setup: which platform, how often you go live, what kind of breaks you run.',
+    } : {
+      icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10" stroke-width="2.5"/>',
+      title: 'Help improve the catalog',
+      lead: 'Moderator access lets trusted collectors contribute directly to BOBA Playbook\'s card data and images.',
+      featuresLabel: 'WHAT YOU CAN DO AS A MOD',
+      features: [
+        ['Upload card images', 'Submit photos from your own collection, especially for cards still missing art.'],
+        ['Fix wrong card data', 'Correct hero names, power values, abilities, or any field that\'s wrong in the app.'],
+        ['Flag image issues', 'Request removal or replacement of card images that show the wrong art.'],
+        ['Review before shipping', 'All changes go through admin review — no risk of accidental damage.'],
+      ],
+      fieldHint: 'How long have you collected BOBA? Specific athletes, sets, or treatments you focus on? What\'s motivating you to help?',
+    };
+
     document.getElementById('mod-request-modal')?.remove();
     const modal = document.createElement('div');
     modal.id = 'mod-request-modal';
@@ -568,39 +837,25 @@ const Collection = (() => {
         <div class="mod-request-header">
           <div class="mod-request-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                 width="28" height="28" aria-hidden="true">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              <polyline points="9 12 11 14 15 10" stroke-width="2.5"/>
-            </svg>
+                 width="28" height="28" aria-hidden="true">${copy.icon}</svg>
           </div>
-          <h3 id="mod-request-title">Help improve the catalog</h3>
-          <p>Moderator access lets trusted collectors contribute directly to BOBA Playbook's card data and images.</p>
+          <h3 id="mod-request-title">${esc(copy.title)}</h3>
+          <p>${esc(copy.lead)}</p>
         </div>
 
         <div class="mod-request-features">
-          <div class="mod-request-features-label">WHAT YOU CAN DO AS A MOD</div>
-          <div class="mod-request-feature">
-            <strong>Upload card images</strong>
-            <span>Submit photos from your own collection, especially for cards still missing art.</span>
-          </div>
-          <div class="mod-request-feature">
-            <strong>Fix wrong card data</strong>
-            <span>Correct hero names, power values, abilities, or any field that's wrong in the app.</span>
-          </div>
-          <div class="mod-request-feature">
-            <strong>Flag image issues</strong>
-            <span>Request removal or replacement of card images that show the wrong art.</span>
-          </div>
-          <div class="mod-request-feature">
-            <strong>Review before shipping</strong>
-            <span>All changes go through admin review — no risk of accidental damage.</span>
-          </div>
+          <div class="mod-request-features-label">${esc(copy.featuresLabel)}</div>
+          ${copy.features.map(([t, d]) => `
+            <div class="mod-request-feature">
+              <strong>${esc(t)}</strong>
+              <span>${esc(d)}</span>
+            </div>`).join('')}
         </div>
 
         <label class="mod-request-field">
           <span class="mod-request-field-label">TELL ME A BIT ABOUT YOURSELF</span>
-          <span class="mod-request-field-hint">How long have you collected BOBA? Specific athletes, sets, or treatments you focus on? What's motivating you to help?</span>
-          <textarea id="mod-request-reason" rows="5" placeholder="A short note about your collecting background…"></textarea>
+          <span class="mod-request-field-hint">${esc(copy.fieldHint)}</span>
+          <textarea id="mod-request-reason" rows="5" placeholder="A short note…"></textarea>
           <span class="mod-request-counter" id="mod-request-counter">0/20 minimum</span>
         </label>
 
@@ -635,9 +890,9 @@ const Collection = (() => {
       submit.textContent = 'Submitting…';
       err.classList.add('hidden');
       try {
-        await API.submitModRequest(textarea.value.trim());
+        await API.requestRole(role, textarea.value.trim());
         close();
-        renderModRequestBlock(view);
+        renderRoleRequestBlock(view, API.getCachedRole());
       } catch (e) {
         err.textContent = e?.message || 'Failed to submit request.';
         err.classList.remove('hidden');

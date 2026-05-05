@@ -303,8 +303,13 @@ struct ScanView: View {
             // got clipped.
             .padding(.leading, Design.Spacing.lg)
             .padding(.trailing, Design.Spacing.lg)
-            .padding(.bottom, 90)
+            // Anchor goes BEFORE the bottom padding so the spotlight
+            // ring captures only the pills row (~30pt), not the 90pt
+            // of empty space below it that clears the tab bar area.
+            // Last round's diagnostic showed the rect was 119pt tall
+            // for ~30pt of actual pills.
             .walkthroughAnchor("scanner.modePills")
+            .padding(.bottom, 90)
         }
         .fullScreenCover(isPresented: $showGridScan, onDismiss: {
             // Restart the streaming scanner — it was paused below in

@@ -330,3 +330,243 @@ $$;
 CREATE TRIGGER trg_shows_touch_updated_at
   BEFORE UPDATE ON shows
   FOR EACH ROW EXECUTE FUNCTION touch_shows_updated_at();
+
+-- ============================================================
+-- Profile redesign (2026-05-04)
+-- ------------------------------------------------------------
+-- Username + collection sharing + Discord identity persistence
+-- + generalized role-request (moderator OR streamer) + banned-words
+-- gate. Applied live as migration
+-- profile_username_sharing_role_request_banned_words.
+-- ============================================================
+
+ALTER TABLE user_profiles
+  ADD COLUMN IF NOT EXISTS username                  text,
+  ADD COLUMN IF NOT EXISTS discord_user_id           text,
+  ADD COLUMN IF NOT EXISTS discord_avatar_url        text,
+  ADD COLUMN IF NOT EXISTS public_collection_enabled boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS notifications_enabled     boolean NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS match_alerts_enabled      boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS requested_role            text,
+  ADD COLUMN IF NOT EXISTS requested_role_at         timestamptz,
+  ADD COLUMN IF NOT EXISTS requested_role_reason     text;
+
+ALTER TABLE user_profiles
+  ADD CONSTRAINT user_profiles_username_format
+  CHECK (username IS NULL OR username ~ '^[a-z0-9_-]{2,30}$');
+
+ALTER TABLE user_profiles
+  ADD CONSTRAINT user_profiles_requested_role_check
+  CHECK (requested_role IS NULL OR requested_role IN ('moderator', 'streamer'));
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_profiles_username_unique
+  ON user_profiles (username) WHERE username IS NOT NULL;
+
+-- banned_words: server-side authoritative gate for username choice.
+-- No public SELECT policy = list is not enumerable via PostgREST.
+-- Populated from LDNOOBW + scripts/custom_banned.txt by
+-- scripts/build_banned_words.py — re-run + apply when refreshing.
+CREATE TABLE banned_words (
+  word     text PRIMARY KEY,
+  source   text NOT NULL DEFAULT 'manual',
+  added_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE banned_words ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "admins manage banned_words"
+  ON banned_words FOR ALL
+  USING (EXISTS (SELECT 1 FROM user_profiles
+                  WHERE user_id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM user_profiles
+                       WHERE user_id = auth.uid() AND role = 'admin'));
+
+-- Reserved-namespace words. Hardcoded in a function (vs the
+-- banned_words table) because these are infrastructure terms — they
+-- shouldn't churn the way the slur list does.
+CREATE OR REPLACE FUNCTION username_is_reserved(name text)
+RETURNS boolean LANGUAGE sql IMMUTABLE AS $$
+  SELECT lower(name) = ANY (ARRAY[
+    'admin','administrator','mod','moderator','streamer','support','help',
+    'api','www','app','boba','bobaplaybook','playbook','official','bobattlearena',
+    'me','you','user','users','profile','profiles','account','accounts',
+    'collection','collections','deck','decks','card','cards','find','learn',
+    'purchase','privacy','terms','about','contact','login','signin','signup',
+    'logout','signout','register','settings','search','scan','share','wall',
+    'undefined','null','none','true','false','root','test','testing'
+  ]);
+$$;
+
+-- Username validation. Returns one of: 'available', 'taken',
+-- 'invalid_chars', 'reserved', 'banned', 'too_short', 'too_long'.
+-- UI calls this on every keystroke (debounced).
+CREATE OR REPLACE FUNCTION check_username(candidate text)
+RETURNS text LANGUAGE plpgsql SECURITY DEFINER STABLE AS $$
+DECLARE norm text;
+BEGIN
+  IF candidate IS NULL THEN RETURN 'invalid_chars'; END IF;
+  norm := lower(trim(candidate));
+  IF length(norm) < 2  THEN RETURN 'too_short';     END IF;
+  IF length(norm) > 30 THEN RETURN 'too_long';      END IF;
+  IF norm !~ '^[a-z0-9_-]+$' THEN RETURN 'invalid_chars'; END IF;
+  IF username_is_reserved(norm) THEN RETURN 'reserved'; END IF;
+  IF EXISTS (SELECT 1 FROM banned_words bw WHERE position(bw.word IN norm) > 0)
+    THEN RETURN 'banned'; END IF;
+  IF EXISTS (SELECT 1 FROM user_profiles
+             WHERE username = norm AND user_id <> auth.uid())
+    THEN RETURN 'taken'; END IF;
+  RETURN 'available';
+END;
+$$;
+
+-- Atomic validate-and-write.
+CREATE OR REPLACE FUNCTION set_username(new_username text)
+RETURNS text LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE result text; norm text;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'authentication required'; END IF;
+  norm := lower(trim(new_username));
+  result := check_username(norm);
+  IF result <> 'available' THEN RETURN result; END IF;
+  UPDATE user_profiles SET username = norm, updated_at = now()
+   WHERE user_id = auth.uid();
+  RETURN 'available';
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION set_public_collection_enabled(enabled boolean)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'authentication required'; END IF;
+  UPDATE user_profiles SET public_collection_enabled = enabled, updated_at = now()
+   WHERE user_id = auth.uid();
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION set_notification_prefs(notifications boolean, match_alerts boolean)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'authentication required'; END IF;
+  UPDATE user_profiles
+     SET notifications_enabled = notifications,
+         match_alerts_enabled  = match_alerts,
+         updated_at = now()
+   WHERE user_id = auth.uid();
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION set_discord_identity(discord_id text, avatar_url text)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'authentication required'; END IF;
+  UPDATE user_profiles
+     SET discord_user_id = discord_id, discord_avatar_url = avatar_url, updated_at = now()
+   WHERE user_id = auth.uid();
+END;
+$$;
+
+-- Generalized role request. Replaces submit_mod_request — but we
+-- keep the old name as a compat shim below.
+CREATE OR REPLACE FUNCTION request_role(target_role text, reason text)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'authentication required'; END IF;
+  IF target_role NOT IN ('moderator', 'streamer') THEN
+    RAISE EXCEPTION 'role must be moderator or streamer';
+  END IF;
+  IF EXISTS (SELECT 1 FROM user_profiles
+             WHERE user_id = auth.uid()
+               AND (role = 'admin' OR role = target_role)) THEN
+    RAISE EXCEPTION 'you already have this role or higher';
+  END IF;
+  UPDATE user_profiles
+     SET requested_role = target_role,
+         requested_role_at = now(),
+         requested_role_reason = reason,
+         updated_at = now()
+   WHERE user_id = auth.uid();
+END;
+$$;
+
+-- Note: Postgres reserves "current_role" — this column is
+-- "actual_role" in the result set.
+CREATE OR REPLACE FUNCTION get_pending_role_requests()
+RETURNS TABLE (user_id uuid, email text, username text, actual_role text,
+               requested_role text, reason text, requested_at timestamptz)
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM user_profiles
+                  WHERE user_id = auth.uid() AND role = 'admin') THEN
+    RAISE EXCEPTION 'admin role required';
+  END IF;
+  RETURN QUERY
+    SELECT up.user_id, up.email, up.username, up.role, up.requested_role,
+           up.requested_role_reason, up.requested_role_at
+      FROM user_profiles up
+     WHERE up.requested_role_at IS NOT NULL
+     ORDER BY up.requested_role_at ASC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION review_role_request(target_user_id uuid, approve boolean)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE pending text;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM user_profiles
+                  WHERE user_id = auth.uid() AND role = 'admin') THEN
+    RAISE EXCEPTION 'admin role required';
+  END IF;
+  SELECT requested_role INTO pending FROM user_profiles WHERE user_id = target_user_id;
+  IF pending IS NULL THEN RAISE EXCEPTION 'no pending request for that user'; END IF;
+  IF approve THEN
+    UPDATE user_profiles
+       SET role = pending,
+           requested_role = NULL, requested_role_at = NULL,
+           requested_role_reason = NULL, updated_at = now()
+     WHERE user_id = target_user_id;
+  ELSE
+    UPDATE user_profiles
+       SET requested_role = NULL, requested_role_at = NULL,
+           requested_role_reason = NULL, updated_at = now()
+     WHERE user_id = target_user_id;
+  END IF;
+END;
+$$;
+
+-- Compat shims. The old admin-panel client still calls these by
+-- name; delegate to the new generalized functions so the live build
+-- keeps working until iOS catches up. Drop in a follow-up release.
+CREATE OR REPLACE FUNCTION get_pending_mod_requests()
+RETURNS TABLE (user_id uuid, email text, reason text, requested_at timestamptz)
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM user_profiles
+                  WHERE user_id = auth.uid() AND role = 'admin') THEN
+    RAISE EXCEPTION 'admin role required';
+  END IF;
+  RETURN QUERY
+    SELECT up.user_id, up.email, up.requested_role_reason, up.requested_role_at
+      FROM user_profiles up
+     WHERE up.requested_role_at IS NOT NULL
+       AND up.requested_role = 'moderator'
+       AND up.role = 'user'
+     ORDER BY up.requested_role_at ASC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION review_mod_request(target_user_id uuid, approve boolean)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN PERFORM review_role_request(target_user_id, approve); END;
+$$;
+
+-- Public username → user_id resolver for the web app's /u/{handle}
+-- routes. Only returns rows where the user has opted in to public
+-- sharing, so nothing leaks for opted-out users.
+CREATE OR REPLACE FUNCTION get_public_profile(handle text)
+RETURNS TABLE (user_id uuid, username text, public_collection_enabled boolean)
+LANGUAGE sql SECURITY DEFINER STABLE AS $$
+  SELECT up.user_id, up.username, up.public_collection_enabled
+    FROM user_profiles up
+   WHERE up.username = lower(trim(handle))
+     AND up.public_collection_enabled = true
+   LIMIT 1;
+$$;

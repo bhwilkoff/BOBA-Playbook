@@ -111,6 +111,148 @@ final class SupabaseClient {
         return rows.first?.role ?? "user"
     }
 
+    // MARK: - Full profile (username, sharing, notifications, Discord)
+
+    /// One-shot fetch of every user_profiles field that drives the
+    /// Profile sheet — username, public sharing toggle, notification
+    /// prefs, persisted Discord identity, and any pending role
+    /// request. Returns nil if no profile row exists yet (the
+    /// handle_new_user trigger should always create one, but the
+    /// nil-safe path matters during the first session after sign-up
+    /// when the trigger and our fetch race).
+    struct UserProfileRow: Decodable {
+        let username:                  String?
+        let public_collection_enabled: Bool
+        let notifications_enabled:     Bool
+        let match_alerts_enabled:      Bool
+        let discord_user_id:           String?
+        let discord_avatar_url:        String?
+        let requested_role:            String?
+        let requested_role_at:         String?
+    }
+    func fetchProfile() async throws -> UserProfileRow? {
+        guard let uid = userId else { return nil }
+        let select = "username,public_collection_enabled,notifications_enabled," +
+                     "match_alerts_enabled,discord_user_id,discord_avatar_url," +
+                     "requested_role,requested_role_at"
+        let url = try makeURL(path:
+            "/rest/v1/user_profiles?select=\(select)&user_id=eq.\(uid.uuidString.lowercased())&limit=1")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        let rows: [UserProfileRow] = try await executeArray(request)
+        return rows.first
+    }
+
+    /// Calls the check_username RPC. Returns one of: "available",
+    /// "taken", "invalid_chars", "reserved", "banned", "too_short",
+    /// "too_long". Used by the inline username TextField for
+    /// debounced validation. The RPC is SECURITY DEFINER + STABLE,
+    /// safe to call on every keystroke.
+    func checkUsername(_ candidate: String) async throws -> String {
+        let url = try makeURL(path: "/rest/v1/rpc/check_username")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        addHeaders(&request, authenticated: true)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["candidate": candidate])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+        // RPC returns a bare JSON string like "available"
+        return (try? JSONDecoder().decode(String.self, from: data)) ?? "invalid_chars"
+    }
+
+    /// Atomic validate-and-write. Returns the same code set as
+    /// checkUsername; only "available" means the write succeeded.
+    func setUsername(_ newUsername: String) async throws -> String {
+        let url = try makeURL(path: "/rest/v1/rpc/set_username")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        addHeaders(&request, authenticated: true)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["new_username": newUsername])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+        return (try? JSONDecoder().decode(String.self, from: data)) ?? "invalid_chars"
+    }
+
+    /// Toggles the public-collection-sharing flag. Web app's
+    /// /u/{username} route reads the same column and refuses to
+    /// render when false.
+    func setPublicCollectionEnabled(_ enabled: Bool) async throws {
+        let url = try makeURL(path: "/rest/v1/rpc/set_public_collection_enabled")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        addHeaders(&request, authenticated: true)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["enabled": enabled])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
+    /// Both notification toggles in one round-trip — the iOS surface
+    /// always knows the full state, so two toggles == one RPC.
+    func setNotificationPrefs(notifications: Bool, matchAlerts: Bool) async throws {
+        let url = try makeURL(path: "/rest/v1/rpc/set_notification_prefs")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        addHeaders(&request, authenticated: true)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "notifications": notifications,
+            "match_alerts":  matchAlerts
+        ])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
+    /// Persists Discord identity to user_profiles after the user
+    /// connects via DiscordService. Pass nils to clear.
+    func setDiscordIdentity(discordId: String?, avatarUrl: String?) async throws {
+        let url = try makeURL(path: "/rest/v1/rpc/set_discord_identity")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        addHeaders(&request, authenticated: true)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "discord_id": discordId as Any,
+            "avatar_url": avatarUrl as Any
+        ])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
+    /// Generalized role request. Replaces submitModRequest — the old
+    /// API name still works (compat shim in the SQL layer) but new
+    /// code should call this so streamer requests route correctly.
+    func requestRole(_ role: String, reason: String) async throws {
+        let url = try makeURL(path: "/rest/v1/rpc/request_role")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        addHeaders(&request, authenticated: true)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "target_role": role,
+            "reason":      reason
+        ])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
+    /// Triggers Supabase's native password reset email. Recipient
+    /// gets a deep link back into bobaplaybook:// with a recovery
+    /// token; AuthManager.handleDeepLink already routes those.
+    func requestPasswordReset(email: String) async throws {
+        let url = try makeURL(path: "/auth/v1/recover")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        addHeaders(&request, authenticated: false)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["email": email])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
     // MARK: - Mod promotion requests
 
     /// Returns true if the current user has an outstanding mod-access request.

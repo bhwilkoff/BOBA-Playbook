@@ -39,6 +39,12 @@ struct ScanView: View {
     /// is set inside the first's lifetime.
     @State private var pendingQueueOpen = false
 
+    /// Active walkthrough script — fires once on first scan-screen
+    /// open per device. Re-launchable from the top-bar overflow Menu
+    /// (DESIGN.md §6.10 re-launch rule). Role-aware via the factory
+    /// in BOBAWalkthrough.Script.scannerOverview(...).
+    @State private var walkthrough: BOBAWalkthrough.Script? = nil
+
     // MARK: - Body
 
     var body: some View {
@@ -53,12 +59,25 @@ struct ScanView: View {
             }
         }
         .ignoresSafeArea()
-        .onAppear  { setupScanner() }
+        .onAppear  {
+            setupScanner()
+            // Fire the unified scanner walkthrough on first open.
+            // Role + entry-context determine whether the Show-mode
+            // step is appended.
+            if walkthrough == nil
+                && WalkthroughsManager.shared.shouldShow(.scannerOverview) {
+                walkthrough = .scannerOverview(
+                    isStreamer: auth.isStreamer,
+                    fromDeckBuilder: scanStore.source == .deckBuilder
+                )
+            }
+        }
         .onDisappear {
             scanner.stop()
             chipDismissTask?.cancel()
             withAnimation { chipVisible = false }
         }
+        .walkthroughOverlay($walkthrough)
         .sheet(item: $selectedCard) { card in
             CardDetailView(card: card)
         }
@@ -122,8 +141,12 @@ struct ScanView: View {
                     .frame(height: 220)
                 }
 
-                // Card guide frame
+                // Card guide frame — also the walkthrough anchor for
+                // the "viewfinder" step. Anchoring on the guide
+                // (not the entire camera layer) puts the cyan ring
+                // around the actual capture area users target.
                 cardGuideFrame
+                    .walkthroughAnchor("scanner.viewfinder")
 
                 // Scan hint — tilting the phone deflects specular glare on glossy cards
                 Text("TILT PHONE SLIGHTLY FOR GLOSSY CARDS")
@@ -216,6 +239,7 @@ struct ScanView: View {
                         }
                     }
                     .transition(.scale.combined(with: .opacity))
+                    .walkthroughAnchor("scanner.queueButton")
                 }
             }
         }
@@ -267,8 +291,10 @@ struct ScanView: View {
                 gridPill
                 if auth.isStreamer && scanStore.source != .deckBuilder {
                     modePill(for: .show, label: "SHOW", icon: "dot.radiowaves.up.forward")
+                        .walkthroughAnchor("scanner.showPill")
                 }
             }
+            .walkthroughAnchor("scanner.modePills")
             .padding(.trailing, Design.Spacing.lg)
             .padding(.bottom, 90)
         }

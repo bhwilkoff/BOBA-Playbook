@@ -290,6 +290,10 @@ enum WalkthroughID: String, CaseIterable {
     case scanFromDecks  = "walkthrough.scan_from_decks"
     case scanFromCollection = "walkthrough.scan_from_collection"
     case multiCardScan  = "walkthrough.multi_card_scan"
+    /// Unified scanner walkthrough (replaces the per-context scanFrom*
+    /// scripts in DESIGN.md §6.10.1). Fires on first ScanView open.
+    /// Role-aware — streamers see an extra step about Show mode.
+    case scannerOverview = "walkthrough.scanner_overview"
 }
 
 @Observable

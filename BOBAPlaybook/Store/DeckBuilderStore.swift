@@ -669,60 +669,133 @@ final class DeckBuilderStore {
     }
 
     /// True if adding this hero would violate a rule immediately.
-    ///
-    /// Checks per-hero power cap, absolute power ceiling, per-power limit
-    /// (including SPEC+ tiered 175-200/165-170 slots), exact-variation
-    /// uniqueness, and banned card types. The 2026 PDF retired the old
-    /// "max 6 of same hero name" rule — only the exact-card uniqueness
-    /// constraint survives.
+    /// Implemented as a thin wrapper around `heroViolationReason(for:)`
+    /// so the call sites that only need a Bool stay terse and the rule
+    /// logic lives in exactly one place.
     func heroWouldViolate(_ card: Card) -> Bool {
-        guard let power = card.power else { return true }
+        heroViolationReason(for: card) != nil
+    }
 
-        // Exact-variation uniqueness (the "one of" rule)
-        if heroes.contains(card) { return true }
+    /// The specific rule blocking this hero from being added, or `nil`
+    /// when it can be added. Returned strings are user-facing — render
+    /// them directly in the card-detail "Can't add" callout instead of
+    /// the generic "rule violation" wording.
+    ///
+    /// Mirrors the 2026 PDF's hero-deck rules: per-hero power cap,
+    /// absolute ceiling, per-power limit (including the SPEC+ tiered
+    /// 165-200 slots), Elite total-power budget, exact-variation
+    /// uniqueness, banned card types, and the optional opt-in
+    /// "max N of same hero name" custom rule.
+    func heroViolationReason(for card: Card) -> String? {
+        guard let power = card.power else {
+            return "This card has no power value."
+        }
 
-        // Banned card types
-        if format.bannedCardTypes.contains(card.cardType) { return true }
+        // Exact-variation uniqueness — the "one of" rule.
+        if heroes.contains(card) {
+            return "Already in your Hero Deck (one-of rule)."
+        }
 
-        // Per-hero power cap (Spec: 160; SPEC+: only if adding into the base 60)
+        // Banned card types (e.g. Elite bans Trainer cards).
+        if format.bannedCardTypes.contains(card.cardType) {
+            return "\(card.cardType) cards aren't legal in \(format.displayName)."
+        }
+
+        // Per-hero power cap (Spec: 160; SPEC+: ≤160 fills base 60,
+        // over-160 must land on the tiered ladder).
         if let cap = format.heroPowerCap, power > cap {
             if format == .specPlus {
-                // In SPEC+ the ≤160 heroes fill the base 60; over-160 goes to the
-                // tiered overflow slots. Only block if power > cap AND the tiered
-                // limit at this power is already exhausted (or power > absoluteMax).
                 let tieredLimit = format.specPlusTieredLimits[power]
-                if tieredLimit == nil { return true }            // e.g. power 162 — not on the ladder
-                if (heroPowerValues[power] ?? 0) >= (tieredLimit ?? 0) { return true }
+                if tieredLimit == nil {
+                    return "Power \(power) isn't on the SPEC+ tier ladder (165, 170, 175, 180, 185, 190, 195, 200)."
+                }
+                if let limit = tieredLimit, (heroPowerValues[power] ?? 0) >= limit {
+                    return "All \(limit) tier slot\(limit == 1 ? "" : "s") at power \(power) are filled."
+                }
             } else {
-                return true
+                return "Power \(power) exceeds the \(cap) cap for \(format.displayName)."
             }
         }
 
-        // Absolute ceiling
-        if let absMax = format.absoluteHeroPowerMax, power > absMax { return true }
-
-        // Elite: total-power budget would be exceeded by adding this card
-        if let totalCap = format.totalPowerCap {
-            let newTotal = heroes.reduce(0) { $0 + ($1.power ?? 0) } + power
-            if newTotal > totalCap { return true }
+        // Absolute ceiling — SPEC+ only.
+        if let absMax = format.absoluteHeroPowerMax, power > absMax {
+            return "Power \(power) exceeds the \(absMax) ceiling for \(format.displayName)."
         }
 
-        // Per-power-value limit (tiered powers already checked above for SPEC+)
+        // Elite: total-power budget across all heroes (8,250).
+        if let totalCap = format.totalPowerCap {
+            let currentTotal = heroes.reduce(0) { $0 + ($1.power ?? 0) }
+            if currentTotal + power > totalCap {
+                return "Adding power \(power) would exceed the \(totalCap)-power Elite budget (\(currentTotal) + \(power) = \(currentTotal + power))."
+            }
+        }
+
+        // Per-power-value limit (tiered powers already checked above).
         let tieredPowers = Set(format.specPlusTieredLimits.keys)
         if !tieredPowers.contains(power), let perPowerLimit = effectivePerPowerLimit {
-            if (heroPowerValues[power] ?? 0) >= perPowerLimit { return true }
+            if (heroPowerValues[power] ?? 0) >= perPowerLimit {
+                return "All \(perPowerLimit) slots at power \(power) are filled."
+            }
         }
 
-        // Optional 6-per-hero-name rule (retired by default; opt-in via ruleOverrides).
+        // Opt-in "max N of same hero name" custom rule.
         if let limit = ruleOverrides.perHeroNameLimit {
             let sameName = heroes.filter { $0.hero == card.hero }.count
-            if sameName >= limit { return true }
+            if sameName >= limit {
+                let heroLabel = card.hero.isEmpty ? "This hero" : card.hero
+                return "\(heroLabel) already appears \(limit) time\(limit == 1 ? "" : "s") (your custom rule cap)."
+            }
         }
 
-        // Hero-max check (Limited: 40, others: 60 or 70 for SPEC+)
-        if heroes.count >= format.heroMaximum { return true }
+        // Hero-max check (Limited: 40, others: 60 or 70 for SPEC+).
+        if heroes.count >= format.heroMaximum {
+            return "Hero Deck is full (\(format.heroMaximum)/\(format.heroMaximum))."
+        }
 
-        return false
+        return nil
+    }
+
+    /// Unified add-violation check across every role. Returns the
+    /// specific rule blocking the add, or `nil` when allowed. Used by
+    /// the card-detail sheet so non-hero adds (Plays / Bonus Plays /
+    /// Hot Dogs) surface their cap-hit reasons instead of the prior
+    /// silent no-op behavior.
+    func addViolationReason(for card: Card, role: DeckCardRole) -> String? {
+        switch role {
+        case .hero:
+            return heroViolationReason(for: card)
+
+        case .play:
+            if plays.contains(card) || bonusPlays.contains(card) {
+                return "Already in your Playbook (one-of rule)."
+            }
+            let isBonus = card.cardNumber.hasPrefix("BPL") || card.treatment == "Bonus Plays"
+            if isBonus, bonusPlays.count >= 15 {
+                return "Bonus Plays are full (15/15)."
+            }
+            return nil
+
+        case .bonusPlay:
+            if bonusPlays.contains(card) || plays.contains(card) {
+                return "Already in your Playbook (one-of rule)."
+            }
+            if bonusPlays.count >= 15 {
+                return "Bonus Plays are full (15/15)."
+            }
+            return nil
+
+        case .hotDog:
+            if hotDogs.contains(card) {
+                return "Already in your Hot Dogs."
+            }
+            if hotDogs.count >= 10 {
+                return "Hot Dogs are full (10/10)."
+            }
+            return nil
+
+        case .sideboard:
+            return nil
+        }
     }
 
     // MARK: - Add / Remove

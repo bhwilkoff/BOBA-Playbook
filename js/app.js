@@ -1551,10 +1551,30 @@
       </div>
       <div class="card-element-bar" aria-hidden="true"></div>`;
 
-    // Click handler branches on the Quick Add toggle: normal mode opens
-    // the card modal, Quick Add writes a user_cards row and flashes a
-    // toast. Keyboard Enter / Space mirrors the click behavior.
-    const tapHandler = () => {
+    el.dataset.cardId    = card.id;
+    el.dataset.cardIndex = String(index);
+
+    // Click branches:
+    //   • selectionMode + shift  → extend range from lastSelectedIndex
+    //   • selectionMode (any tap)→ toggle this card's selection
+    //   • plain shift-click      → enter selection mode + select this
+    //   • quickAddMode           → write user_cards row + toast
+    //   • default                → open the card modal
+    const tapHandler = (e) => {
+      // Suppress the synthetic click that fires after a long-press
+      // entered selection mode on this exact card.
+      if (el.dataset.suppressNextClick === '1') {
+        delete el.dataset.suppressNextClick;
+        return;
+      }
+      if (selectionMode || e?.shiftKey) {
+        if (e?.shiftKey && lastSelectedIndex >= 0 && lastSelectedIndex !== index) {
+          selectRange(lastSelectedIndex, index);
+        } else {
+          toggleCardSelection(card, index);
+        }
+        return;
+      }
       if (quickAddMode && window.Collection && typeof window.Collection.quickAdd === 'function') {
         quickAddCard(card);
       } else {
@@ -1563,8 +1583,40 @@
     };
     el.addEventListener('click', tapHandler);
     el.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tapHandler(); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tapHandler(e); }
     });
+
+    // Long-press → enter selection mode + select this card. 500ms
+    // threshold matches iOS long-press feel. Cancelled on pointer
+    // move >6px or pointer up before the timer fires.
+    let pressTimer = null;
+    let pressStart = null;
+    const cancelPress = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+    el.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      pressStart = { x: e.clientX, y: e.clientY };
+      cancelPress();
+      pressTimer = setTimeout(() => {
+        pressTimer = null;
+        // Suppress the click that fires when the finger lifts.
+        el.dataset.suppressNextClick = '1';
+        if (!selectionMode) enterSelectionMode();
+        toggleCardSelection(card, index);
+      }, 500);
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!pressStart) return;
+      const dx = e.clientX - pressStart.x, dy = e.clientY - pressStart.y;
+      if (dx*dx + dy*dy > 36) cancelPress();
+    });
+    el.addEventListener('pointerup',   cancelPress);
+    el.addEventListener('pointercancel', cancelPress);
+    el.addEventListener('pointerleave', cancelPress);
+
+    // Reflect existing selection state when this cell is rebuilt
+    // (re-render after a search refresh keeps selections intact).
+    if (selectedCardIds.has(card.id)) el.classList.add('card-item--selected');
+
     return el;
   }
 
@@ -2541,6 +2593,265 @@
   });
 
   /* ================================================================
+     MULTI-SELECT (Find tab — drag-marquee, shift-click, long-press)
+     -----------------------------------------------------------------
+     Selection model: a Set of card.id values + an index pointer for
+     shift-range. The selection is persisted across renderNextPage()
+     refreshes by reading selectedCardIds from buildCardElement.
+     Action toolbar exposes "Add to Collection" + "Add to Deck" with
+     dropdown pickers for designation / target deck.
+  ================================================================ */
+  let selectedCardIds   = new Set();
+  let selectionMode     = false;
+  let lastSelectedIndex = -1;
+
+  function enterSelectionMode() {
+    selectionMode = true;
+    document.body.classList.add('selection-mode');
+    syncSelectionToolbar();
+  }
+  function exitSelectionMode() {
+    selectionMode = false;
+    document.body.classList.remove('selection-mode');
+    selectedCardIds.clear();
+    lastSelectedIndex = -1;
+    document.querySelectorAll('.card-item--selected')
+      .forEach(el => el.classList.remove('card-item--selected'));
+    syncSelectionToolbar();
+  }
+  function toggleCardSelection(card, index) {
+    if (!card) return;
+    if (selectedCardIds.has(card.id)) selectedCardIds.delete(card.id);
+    else                              selectedCardIds.add(card.id);
+    lastSelectedIndex = index;
+    const el = cardGrid.querySelector(`.card-item[data-card-id="${cssEscape(card.id)}"]`);
+    el?.classList.toggle('card-item--selected', selectedCardIds.has(card.id));
+    syncSelectionToolbar();
+  }
+  function selectRange(fromIdx, toIdx) {
+    const lo = Math.min(fromIdx, toIdx), hi = Math.max(fromIdx, toIdx);
+    if (!selectionMode) enterSelectionMode();
+    for (let i = lo; i <= hi && i < filteredCards.length; i++) {
+      const c = filteredCards[i];
+      if (!c) continue;
+      selectedCardIds.add(c.id);
+      const el = cardGrid.querySelector(`.card-item[data-card-id="${cssEscape(c.id)}"]`);
+      el?.classList.add('card-item--selected');
+    }
+    lastSelectedIndex = toIdx;
+    syncSelectionToolbar();
+  }
+  function syncSelectionToolbar() {
+    const bar = document.getElementById('multiselect-toolbar');
+    const num = document.getElementById('multiselect-count-num');
+    if (!bar || !num) return;
+    const n = selectedCardIds.size;
+    num.textContent = String(n);
+    bar.hidden = n === 0;
+  }
+  // CSS.escape polyfill for older Safari (we build attribute selectors
+  // from card.id which can contain '.' and other CSS-meaningful chars).
+  const cssEscape = (window.CSS && CSS.escape)
+    ? (s) => CSS.escape(s)
+    : (s) => String(s).replace(/[^a-zA-Z0-9_-]/g, ch => '\\' + ch);
+
+  /* ----------------------------------------------------------------
+     Drag-marquee selection — mouse only. Mousedown on empty grid
+     space starts a rect that follows the cursor; on mouseup, every
+     `.card-item` whose bounding rect intersects the marquee is added
+     to the selection. Touch devices use long-press instead (no
+     marquee — the gesture conflicts with vertical scroll).
+  ---------------------------------------------------------------- */
+  function initMarqueeSelection() {
+    if (!cardGrid) return;
+    let marquee = null;
+    let startX = 0, startY = 0;
+    let scrollEl = document.getElementById('main-content') || document.scrollingElement || document.documentElement;
+    let startScrollTop = 0;
+
+    cardGrid.addEventListener('mousedown', (e) => {
+      // Ignore clicks on a card — those route through the card's tap
+      // handler. Ignore non-primary buttons. Modifier-aware: shift /
+      // cmd / ctrl let plain clicks do their own thing.
+      if (e.button !== 0) return;
+      if (e.target.closest('.card-item')) return;
+      e.preventDefault();
+      startX = e.clientX; startY = e.clientY;
+      startScrollTop = scrollEl.scrollTop || 0;
+      marquee = document.createElement('div');
+      marquee.className = 'marquee-rect';
+      marquee.style.left = `${startX}px`;
+      marquee.style.top  = `${startY}px`;
+      document.body.appendChild(marquee);
+
+      const onMove = (m) => {
+        const x = m.clientX, y = m.clientY;
+        const left = Math.min(startX, x), top = Math.min(startY, y);
+        const w = Math.abs(x - startX),   h = Math.abs(y - startY);
+        marquee.style.left = `${left}px`;
+        marquee.style.top  = `${top}px`;
+        marquee.style.width  = `${w}px`;
+        marquee.style.height = `${h}px`;
+      };
+      const onUp = (m) => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        // Rebuild the marquee rect in document coordinates so we can
+        // intersect with each card's getBoundingClientRect.
+        const rect = marquee.getBoundingClientRect();
+        marquee.remove();
+        marquee = null;
+        if (rect.width < 4 && rect.height < 4) return; // treat as plain click
+        if (!selectionMode) enterSelectionMode();
+        cardGrid.querySelectorAll('.card-item').forEach(el => {
+          const r = el.getBoundingClientRect();
+          if (rectsIntersect(rect, r)) {
+            const id = el.dataset.cardId;
+            if (id && !selectedCardIds.has(id)) {
+              selectedCardIds.add(id);
+              el.classList.add('card-item--selected');
+            }
+          }
+        });
+        syncSelectionToolbar();
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
+  function rectsIntersect(a, b) {
+    return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+  }
+
+  /* ----------------------------------------------------------------
+     Selection toolbar wiring — Add to Collection (designation menu),
+     Add to Deck (deck-list modal), Clear.
+  ---------------------------------------------------------------- */
+  function initMultiselectToolbar() {
+    const addColl = document.getElementById('multiselect-add-collection');
+    const addDeck = document.getElementById('multiselect-add-deck');
+    const clear   = document.getElementById('multiselect-clear');
+    addColl?.addEventListener('click', openDesignationMenu);
+    addDeck?.addEventListener('click', openDeckPicker);
+    clear?.addEventListener('click', exitSelectionMode);
+  }
+  function getSelectedCardObjects() {
+    return filteredCards.filter(c => selectedCardIds.has(c.id));
+  }
+  function openDesignationMenu() {
+    if (!Auth.isAuthenticated()) {
+      Auth.open();
+      return;
+    }
+    const cards = getSelectedCardObjects();
+    if (!cards.length) return;
+    const choices = [
+      ['personal',  'Personal'],
+      ['for_sale',  'For Sale'],
+      ['for_trade', 'For Trade'],
+      ['wanted',    'Wanted'],
+      ['grails',    'Grails'],
+    ];
+    const labels = choices.map(([key,label], i) => `${i+1}. ${label}`).join('\n');
+    const pick = prompt(`Add ${cards.length} card${cards.length===1?'':'s'} to which designation?\n\n${labels}\n\nEnter 1–5 (or Cancel):`, '1');
+    if (!pick) return;
+    const idx = parseInt(pick, 10) - 1;
+    if (!(idx >= 0 && idx < choices.length)) return;
+    const designation = choices[idx][0];
+    bulkAddToCollection(cards, designation);
+  }
+  async function bulkAddToCollection(cards, designation) {
+    let added = 0, failed = 0;
+    for (const card of cards) {
+      try {
+        await API.collectionAdd({
+          card_number: card.cardNumber,
+          boba_id:     card.id,
+          hero:        card.hero || null,
+          name:        card.name || null,
+          element:     card.element || null,
+          treatment:   card.treatment || null,
+          variation:   card.variation || null,
+          designation,
+        });
+        added++;
+      } catch (_) { failed++; }
+    }
+    showToast(`Added ${added} card${added===1?'':'s'} to ${designation.replace('_',' ')}${failed?` · ${failed} failed`:''}`);
+    exitSelectionMode();
+  }
+  async function openDeckPicker() {
+    if (!Auth.isAuthenticated()) {
+      Auth.open();
+      return;
+    }
+    const cards = getSelectedCardObjects();
+    if (!cards.length) return;
+    let decks;
+    try { decks = await API.deckList(); } catch (e) {
+      alert('Could not load your decks. ' + (e?.message || ''));
+      return;
+    }
+    if (!decks.length) {
+      alert('No saved decks yet. Build one in the Decks tab first.');
+      return;
+    }
+    const labels = decks.map((d, i) => `${i+1}. ${d.name} (${d.format})`).join('\n');
+    const pick = prompt(`Add ${cards.length} card${cards.length===1?'':'s'} to which deck?\n\n${labels}\n\nEnter 1–${decks.length} (or Cancel):`, '1');
+    if (!pick) return;
+    const idx = parseInt(pick, 10) - 1;
+    if (!(idx >= 0 && idx < decks.length)) return;
+    bulkAddToDeck(cards, decks[idx]);
+  }
+  async function bulkAddToDeck(cards, deck) {
+    let existing;
+    try { existing = await API.deckLoad(deck.id); } catch (e) {
+      alert('Could not load that deck. ' + (e?.message || '')); return;
+    }
+    const existingIds = new Set(existing.map(r => r.boba_id));
+    const merged = existing.map(r => ({ bobaId: r.boba_id, cardType: r.card_type }));
+    let added = 0, skipped = 0;
+    for (const card of cards) {
+      if (existingIds.has(card.id)) { skipped++; continue; }
+      const cardType = card.cardType === 'Hero'   ? 'hero'
+                     : card.cardType === 'HotDog' ? 'hot_dog'
+                     : card.isBonusPlay           ? 'bonus_play'
+                     :                              'play';
+      merged.push({ bobaId: card.id, cardType });
+      existingIds.add(card.id);
+      added++;
+    }
+    try {
+      await API.deckSave(deck.id, deck.name, deck.format, merged);
+      showToast(`Added ${added} card${added===1?'':'s'} to ${deck.name}${skipped?` · ${skipped} duplicate${skipped===1?'':'s'} skipped`:''}`);
+      exitSelectionMode();
+    } catch (e) {
+      alert('Could not save deck. ' + (e?.message || ''));
+    }
+  }
+  // Reuse the existing toast helper if present, else fall back to alert.
+  function showToast(msg) {
+    if (typeof window.showQuickAddToast === 'function') return window.showQuickAddToast(msg);
+    if (typeof window.toast === 'function') return window.toast(msg);
+    // Minimal inline toast — appears bottom-center for 2.5s.
+    let t = document.getElementById('app-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'app-toast';
+      t.className = 'app-toast';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add('visible');
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(() => t.classList.remove('visible'), 2500);
+  }
+  // Escape from selection mode via the keyboard.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && selectionMode) exitSelectionMode();
+  });
+
+  /* ================================================================
      PER-TAB GRID DENSITY (parity with iOS @AppStorage column counts)
      localStorage keys match iOS so a user with both platforms
      gets the same density preference where possible. Web only has
@@ -2596,6 +2907,8 @@
   async function init() {
     syncOfflinePill();
     initGridColsPicker();
+    initMarqueeSelection();
+    initMultiselectToolbar();
     // Collection.init() must run before Auth.init() so its auth-change listener
     // is registered before Auth.init()'s eager session restore dispatches the event.
     Collection.init();

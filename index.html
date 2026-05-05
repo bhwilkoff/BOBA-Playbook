@@ -248,6 +248,35 @@
             <span class="quick-add-label">Tap to View</span>
           </button>
         </div>
+        <!-- Multi-select toolbar — appears when ≥1 card is selected
+             via shift-click, drag-marquee, or long-press. Floats above
+             the grid bottom; auto-hides when selection is cleared. -->
+        <div class="multiselect-toolbar" id="multiselect-toolbar" hidden role="toolbar" aria-label="Selected cards actions">
+          <span class="multiselect-count"><span id="multiselect-count-num">0</span> selected</span>
+          <div class="multiselect-actions">
+            <button type="button" class="multiselect-action" id="multiselect-add-collection" aria-haspopup="menu">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+              Add to Collection
+            </button>
+            <button type="button" class="multiselect-action" id="multiselect-add-deck" aria-haspopup="menu">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M3 9h18M9 21V9"/>
+              </svg>
+              Add to Deck
+            </button>
+            <button type="button" class="multiselect-clear" id="multiselect-clear" aria-label="Clear selection">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="filter-panel" id="filter-panel" aria-hidden="true">

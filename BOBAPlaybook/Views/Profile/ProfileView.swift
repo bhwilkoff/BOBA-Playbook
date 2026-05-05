@@ -44,6 +44,7 @@ struct ProfileView: View {
     @State private var passwordResetSent      = false
     @State private var roleRequestForRole: String?  // "moderator" or "streamer"
     @State private var showingPractice        = false
+    @State private var copyConfirmed          = false
 
     var body: some View {
         NavigationStack {
@@ -408,16 +409,36 @@ struct ProfileView: View {
                             .lineLimit(1)
                             .truncationMode(.middle)
                         Spacer()
+                        // .buttonStyle(.borderless) is required inside
+                        // a Form row that has multiple buttons —
+                        // without it iOS routes every tap to the row
+                        // itself, so this button looked dead. Setting
+                        // BOTH UIPasteboard.string and .url so apps
+                        // that only read .string (e.g., browser
+                        // address bars) get the URL too.
                         Button {
+                            UIPasteboard.general.string = url.absoluteString
                             UIPasteboard.general.url = url
+                            copyConfirmed = true
+                            Task { @MainActor in
+                                try? await Task.sleep(for: .seconds(1.5))
+                                copyConfirmed = false
+                            }
                         } label: {
-                            Image(systemName: "doc.on.doc")
-                                .foregroundStyle(Design.Colors.bobaCyan)
+                            Image(systemName: copyConfirmed ? "checkmark.circle.fill" : "doc.on.doc")
+                                .foregroundStyle(copyConfirmed ? Color(hex: "4CAF50") : Design.Colors.bobaCyan)
+                                .symbolEffect(.bounce, value: copyConfirmed)
+                                .contentShape(Rectangle())
                         }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("Copy link")
                         ShareLink(item: url) {
                             Image(systemName: "square.and.arrow.up")
                                 .foregroundStyle(Design.Colors.bobaCyan)
+                                .contentShape(Rectangle())
                         }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("Share link")
                     }
                 } else {
                     Text("Pick a username above to enable your public link.")

@@ -1260,11 +1260,11 @@ struct DeckSection<Content: View>: View {
             } label: {
                 HStack {
                     Text(title)
-                        .font(Design.Fonts.mono(11, weight: .bold))
-                        .foregroundStyle(Design.Colors.textMuted)
+                        .font(Design.Fonts.mono(13, weight: .bold))
+                        .foregroundStyle(Design.Colors.textSecondary)
                     Spacer()
                     Image(systemName: collapsed ? "chevron.right" : "chevron.down")
-                        .font(.system(size: 11))
+                        .font(.system(size: 13))
                         .foregroundStyle(Design.Colors.textMuted)
                 }
                 .padding(.horizontal, Design.Spacing.md)
@@ -1278,7 +1278,7 @@ struct DeckSection<Content: View>: View {
             if !collapsed {
                 if isEmpty {
                     Text("Empty — add cards from the browser")
-                        .font(Design.Fonts.mono(12))
+                        .font(Design.Fonts.mono(13))
                         .foregroundStyle(Design.Colors.textMuted)
                         .padding(Design.Spacing.md)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1308,29 +1308,36 @@ struct DeckCardRow: View {
                     RoundedRectangle(cornerRadius: 4).fill(Design.Colors.glass)
                 }
             }
-            .frame(width: 32, height: 45)
+            .frame(width: 38, height: 53)
             .clipShape(RoundedRectangle(cornerRadius: 4))
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(card.hero.isEmpty ? card.name : card.hero)
-                    .font(Design.Fonts.mono(12, weight: .bold))
+                    .font(Design.Fonts.mono(14, weight: .bold))
                     .foregroundStyle(Design.Colors.textPrimary)
                     .lineLimit(1)
                 if card.cardType == "Hero" {
                     HStack(spacing: 4) {
                         Text(card.element)
-                            .font(Design.Fonts.mono(10))
+                            .font(Design.Fonts.mono(12))
                             .foregroundStyle(Design.Colors.element(card.element))
                         Text(card.treatment ?? "Base")
-                            .font(Design.Fonts.mono(10))
+                            .font(Design.Fonts.mono(12))
                             .foregroundStyle(Design.Colors.textMuted)
                             .lineLimit(1)
                     }
                 } else if let ability = card.playAbility {
                     Text(ability)
-                        .font(Design.Fonts.mono(10))
+                        .font(Design.Fonts.mono(12))
                         .foregroundStyle(Design.Colors.textMuted)
                         .lineLimit(2)
+                }
+                // Per-Play DBS contribution — surfaces the budget cost
+                // of each card in-row, mirroring the header stat.
+                if card.cardType != "Hero", let dbs = card.dbs {
+                    Text("DBS \(dbs)")
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange.opacity(0.85))
                 }
             }
 
@@ -1338,24 +1345,24 @@ struct DeckCardRow: View {
 
             if let power = card.power, card.cardType == "Hero" {
                 Text("\(power)")
-                    .font(Design.Fonts.display(20))
+                    .font(Design.Fonts.display(22))
                     .foregroundStyle(Design.Colors.textPrimary)
-                    .frame(minWidth: 40, alignment: .trailing)
+                    .frame(minWidth: 44, alignment: .trailing)
             } else if let cost = card.playCost {
                 VStack(spacing: 1) {
                     Text(cost == 0 ? "FREE" : "\(cost)")
-                        .font(Design.Fonts.display(16))
+                        .font(Design.Fonts.display(18))
                         .foregroundStyle(cost == 0 ? Color(hex: "4CAF50") : Design.Colors.bobaCyan)
                     if cost > 0 {
-                        Text("HD").font(Design.Fonts.mono(8)).foregroundStyle(Design.Colors.textMuted)
+                        Text("HD").font(Design.Fonts.mono(10)).foregroundStyle(Design.Colors.textMuted)
                     }
                 }
-                .frame(minWidth: 32, alignment: .trailing)
+                .frame(minWidth: 36, alignment: .trailing)
             }
 
             Button { onRemove() } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 18))
+                    .font(.system(size: 20))
                     .foregroundStyle(Design.Colors.textMuted)
             }
             .buttonStyle(.plain)

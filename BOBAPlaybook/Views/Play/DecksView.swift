@@ -503,10 +503,10 @@ struct DecksView: View {
     /// format badge + legality pill. (Search lives ABOVE the canvas,
     /// not in this header — see `poolSearchBar`.)
     private var sheetHeaderRow: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: Design.Spacing.sm) {
                 TextField("Deck name", text: $store.deckName)
-                    .font(Design.Fonts.display(18))
+                    .font(Design.Fonts.display(20))
                     .foregroundStyle(Design.Colors.textPrimary)
                     .submitLabel(.done)
                     .textFieldStyle(.plain)
@@ -515,6 +515,11 @@ struct DecksView: View {
                     legalityPill
                 }
             }
+            // Stat row — Heroes / Plays / Bonus / Hot Dogs / DBS budget.
+            // The DBS budget cell is the most important number for
+            // building a legitimate deck (per CLAUDE.md), so it shows
+            // alongside the other counts whenever the active format
+            // enforces a DBS budget.
             HStack(spacing: Design.Spacing.md) {
                 statCount(label: "Heroes", value: store.heroes.count, target: store.format.heroTarget)
                 if store.format.needsPlaybook {
@@ -522,16 +527,19 @@ struct DecksView: View {
                     if !store.bonusPlays.isEmpty {
                         statCount(label: "Bonus", value: store.bonusPlays.count, target: nil)
                     }
+                    if store.effectiveEnforceDBS {
+                        dbsCount(value: store.totalDBS, budget: store.effectiveDBSBudget)
+                    }
                 }
                 if store.format.needsHotDogs {
                     statCount(label: "Hot Dogs", value: store.hotDogs.count, target: 10)
                 }
                 Spacer()
                 Text(store.format.displayName)
-                    .font(Design.Fonts.mono(9, weight: .bold))
+                    .font(Design.Fonts.mono(11, weight: .bold))
                     .foregroundStyle(Design.Colors.bobaOrange)
-                    .padding(.horizontal, 8)
-                    .frame(height: 20)
+                    .padding(.horizontal, 9)
+                    .frame(height: 22)
                     .background(Capsule().fill(Design.Colors.bobaOrange.opacity(0.15)))
             }
         }
@@ -542,29 +550,48 @@ struct DecksView: View {
 
     private func statCount(label: String, value: Int, target: Int?) -> some View {
         let ok = target.map { value == $0 } ?? true
-        return HStack(spacing: 3) {
+        return HStack(spacing: 4) {
             Text(label)
-                .font(Design.Fonts.mono(9))
+                .font(Design.Fonts.mono(11))
                 .foregroundStyle(Design.Colors.textMuted)
             if let target {
                 Text("\(value)/\(target)")
-                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .font(Design.Fonts.mono(13, weight: .bold))
                     .foregroundStyle(ok ? Color(hex: "4CAF50") : Design.Colors.textPrimary)
             } else {
                 Text("\(value)")
-                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .font(Design.Fonts.mono(13, weight: .bold))
                     .foregroundStyle(Design.Colors.textPrimary)
             }
+        }
+    }
+
+    /// DBS budget tracker. Same shape as statCount but tinted by the
+    /// over/under state — green when on budget, orange near the cap,
+    /// red when over. This is the number coaches build around.
+    private func dbsCount(value: Int, budget: Int) -> some View {
+        let color: Color = {
+            if value > budget { return Color(hex: "C0392B") }
+            if value > Int(Double(budget) * 0.9) { return Design.Colors.bobaOrange }
+            return Color(hex: "4CAF50")
+        }()
+        return HStack(spacing: 4) {
+            Text("DBS")
+                .font(Design.Fonts.mono(11))
+                .foregroundStyle(Design.Colors.textMuted)
+            Text("\(value)/\(budget)")
+                .font(Design.Fonts.mono(13, weight: .bold))
+                .foregroundStyle(color)
         }
     }
 
     private var legalityPill: some View {
         let isLegal = store.validationErrors.isEmpty && !deckIsEmpty
         return Text(isLegal ? "LEGAL" : "ILLEGAL")
-            .font(Design.Fonts.mono(9, weight: .bold))
+            .font(Design.Fonts.mono(11, weight: .bold))
             .foregroundStyle(isLegal ? Color(hex: "4CAF50") : Color(hex: "C0392B"))
-            .padding(.horizontal, 8)
-            .frame(height: 20)
+            .padding(.horizontal, 9)
+            .frame(height: 22)
             .background(Capsule().fill((isLegal ? Color(hex: "4CAF50") : Color(hex: "C0392B")).opacity(0.15)))
     }
 
@@ -596,7 +623,13 @@ struct DecksView: View {
 
     @ViewBuilder
     private var deckListScroll: some View {
-        ScrollView {
+        // Vertical-only ScrollView. The .frame(maxWidth: .infinity)
+        // on the inner VStack stops SwiftUI from proposing a wider
+        // width when a child (e.g., a long DeckCardRow ability text)
+        // briefly demands more horizontal space — without it the
+        // ScrollView starts allowing horizontal rubber-banding even
+        // though we never asked for a horizontal axis.
+        ScrollView(.vertical, showsIndicators: true) {
             VStack(alignment: .leading, spacing: 0) {
                 if !auth.isAuthenticated && !deckIsEmpty {
                     BOBASignInPrompt(
@@ -726,6 +759,11 @@ struct DecksView: View {
                 }
             }
             .padding(.bottom, Design.Spacing.lg)
+            // Pin the inner column to the ScrollView's full width so
+            // children can't propose a wider intrinsic size and trigger
+            // horizontal rubber-banding (per
+            // memory/feedback_swiftui_scrollview_width.md).
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

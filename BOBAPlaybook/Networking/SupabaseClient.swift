@@ -166,6 +166,7 @@ final class SupabaseClient {
         let match_alerts_enabled:      Bool
         let discord_user_id:           String?
         let discord_avatar_url:        String?
+        let avatar_url:                String?
         let requested_role:            String?
         let requested_role_at:         String?
     }
@@ -173,7 +174,7 @@ final class SupabaseClient {
         guard let uid = userId else { return nil }
         let select = "username,public_collection_enabled,notifications_enabled," +
                      "match_alerts_enabled,discord_user_id,discord_avatar_url," +
-                     "requested_role,requested_role_at"
+                     "avatar_url,requested_role,requested_role_at"
         let url = try makeURL(path:
             "/rest/v1/user_profiles?select=\(select)&user_id=eq.\(uid.uuidString.lowercased())&limit=1")
         var request = URLRequest(url: url)
@@ -312,6 +313,68 @@ final class SupabaseClient {
         request.httpMethod = "POST"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
+    // MARK: - Avatar upload
+
+    struct AvatarUploadResponse: Decodable {
+        let url:     String
+        let version: Int64
+    }
+
+    /// Upload pre-cropped image data to the boba-avatar-upload Worker.
+    /// Caller is responsible for cropping to a square + downscaling to
+    /// ≤512px before passing the bytes (Worker rejects >2 MB).
+    /// `mimeType` must be one of: image/jpeg, image/png, image/webp.
+    /// Returns the public CDN URL + a version token for cache-busting.
+    func uploadAvatar(data imageData: Data, mimeType: String) async throws -> AvatarUploadResponse {
+        guard let token = session?.accessToken else {
+            throw APIError.serverError(401, "Not authenticated")
+        }
+        guard let url = URL(string: WorkerConfig.avatarUploadURL + "/avatar") else {
+            throw APIError.serverError(0, "Invalid Worker URL")
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue(mimeType,           forHTTPHeaderField: "Content-Type")
+        request.httpBody = imageData
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+        return try JSONDecoder().decode(AvatarUploadResponse.self, from: data)
+    }
+
+    /// Remove the current avatar from R2. Caller is responsible for
+    /// also calling `setAvatarUrl(nil)` so the resolver falls back to
+    /// the Discord avatar (or default silhouette).
+    func deleteAvatar() async throws {
+        guard let token = session?.accessToken else {
+            throw APIError.serverError(401, "Not authenticated")
+        }
+        guard let url = URL(string: WorkerConfig.avatarUploadURL + "/avatar") else {
+            throw APIError.serverError(0, "Invalid Worker URL")
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
+    /// Persist the avatar URL on user_profiles via the set_avatar_url
+    /// RPC. Pass nil to clear (resolver falls back to Discord/default).
+    /// The RPC enforces that non-nil URLs match the BOBA R2 avatars
+    /// prefix — defense against arbitrary-host avatar pointers.
+    func setAvatarUrl(_ newUrl: String?) async throws {
+        let url = try makeURL(path: "/rest/v1/rpc/set_avatar_url")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        addHeaders(&request, authenticated: true)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = ["new_url": newUrl as Any]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkStatus(data: data, response: response)
     }

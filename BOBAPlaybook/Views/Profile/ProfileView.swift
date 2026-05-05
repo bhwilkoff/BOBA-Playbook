@@ -1,5 +1,6 @@
 import SwiftUI
 import SafariServices
+import PhotosUI
 
 // MARK: - ProfileView
 // Auth + account + display + notifications + role + about, all in one
@@ -47,6 +48,17 @@ struct ProfileView: View {
     @State private var copyConfirmed          = false
     @State private var walkthroughsResetMsg: String?
 
+    // Avatar editing state. PhotosPicker writes the user's selection
+    // into `pickedAvatarItem`; the .onChange handler resolves it to
+    // a Data + UIImage and presents the crop sheet. Crop result →
+    // upload via auth.uploadAvatar → header AvatarView re-renders
+    // from auth.resolvedAvatarURL.
+    @State private var pickedAvatarItem:   PhotosPickerItem?
+    @State private var croppingImage:      UIImage?
+    @State private var avatarUploading     = false
+    @State private var showingAvatarMenu   = false
+    @State private var showingAvatarPicker = false
+
     var body: some View {
         NavigationStack {
             Group {
@@ -90,10 +102,77 @@ struct ProfileView: View {
             if auth.confirmationEmailSent { confirmationBanner(text: "Check your email to confirm your account.") }
             else if passwordResetSent      { confirmationBanner(text: "Password reset email sent — check your inbox.") }
         }
+        // Avatar editing — confirmationDialog presents the action
+        // menu (Choose Photo / Use Discord / Remove). PhotosPicker is
+        // bound to pickedAvatarItem; .onChange resolves it to a
+        // UIImage and triggers the crop sheet.
+        .confirmationDialog("Profile Picture",
+                            isPresented: $showingAvatarMenu,
+                            titleVisibility: .visible) {
+            Button("Choose from Library") { pickedAvatarItem = nil; showingAvatarPicker = true }
+            if let _ = discord.currentUser?.avatarURL ?? URL(string: auth.discordAvatarURL ?? "") {
+                Button("Use Discord Avatar") {
+                    Task {
+                        avatarUploading = true
+                        _ = await auth.clearAvatar()
+                        avatarUploading = false
+                    }
+                }
+            }
+            if auth.customAvatarURL != nil {
+                Button("Remove Custom Avatar", role: .destructive) {
+                    Task {
+                        avatarUploading = true
+                        _ = await auth.clearAvatar()
+                        avatarUploading = false
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .photosPicker(isPresented: $showingAvatarPicker,
+                      selection: $pickedAvatarItem,
+                      matching: .images,
+                      photoLibrary: .shared())
+        .onChange(of: pickedAvatarItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let img  = UIImage(data: data) {
+                    croppingImage = img
+                }
+                pickedAvatarItem = nil
+            }
+        }
+        .sheet(item: Binding(
+            get: { croppingImage.map(IdentifiableImage.init(image:)) },
+            set: { croppingImage = $0?.image }
+        )) { wrapper in
+            AvatarCropSheet(
+                image: wrapper.image,
+                onCancel: { croppingImage = nil },
+                onConfirm: { jpegData in
+                    croppingImage = nil
+                    Task {
+                        avatarUploading = true
+                        _ = await auth.uploadAvatar(data: jpegData, mimeType: "image/jpeg")
+                        avatarUploading = false
+                    }
+                }
+            )
+        }
         .task { await auth.loadProfile() }
         .onChange(of: auth.isAuthenticated) { _, isOn in
             if isOn { Task { await auth.loadProfile() } }
         }
+    }
+
+    /// Identifiable wrapper so a `UIImage` can drive a `.sheet(item:)`
+    /// presentation. Anonymous identity per presentation — exactly
+    /// what we want for the one-shot crop sheet.
+    private struct IdentifiableImage: Identifiable {
+        let id = UUID()
+        let image: UIImage
     }
 
     // MARK: - Banner
@@ -167,11 +246,22 @@ struct ProfileView: View {
     private var headerSection: some View {
         Section {
             HStack(spacing: Design.Spacing.md) {
-                AvatarView(
-                    discordAvatarURL: discord.currentUser?.avatarURL ?? URL(string: auth.discordAvatarURL ?? ""),
-                    fallbackInitial: initialFor(username: auth.username, email: auth.email),
-                    accentColor: AppIconOption.currentColor(for: selectedIconName)
-                )
+                Button {
+                    showingAvatarMenu = true
+                } label: {
+                    AvatarView(
+                        // Custom avatar (R2-uploaded) takes precedence
+                        // over Discord; resolver lives on AuthManager.
+                        avatarURL: auth.resolvedAvatarURL
+                            ?? discord.currentUser?.avatarURL,
+                        fallbackInitial: initialFor(username: auth.username, email: auth.email),
+                        accentColor: AppIconOption.currentColor(for: selectedIconName),
+                        showCameraBadge: true,
+                        uploading: avatarUploading
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Change profile picture")
                 VStack(alignment: .leading, spacing: 2) {
                     Text(usernameDisplay)
                         .font(Design.Fonts.display(18))
@@ -775,28 +865,51 @@ struct ProfileView: View {
 // MARK: - Avatar
 
 private struct AvatarView: View {
-    let discordAvatarURL: URL?
+    /// Already-resolved URL — caller picks the best of
+    /// custom (R2) → Discord → nil. AvatarView is dumb about source.
+    let avatarURL: URL?
     let fallbackInitial: String
     let accentColor: Color
+    /// When true, overlays a small camera badge in the corner so the
+    /// avatar reads as tappable (Profile use). Public-collection
+    /// renders set this false.
+    var showCameraBadge: Bool = false
+    /// When true, dims the avatar + shows a ProgressView so the user
+    /// sees the upload in flight.
+    var uploading: Bool = false
 
     var body: some View {
-        Group {
-            if let url = discordAvatarURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let img): img.resizable().scaledToFill()
-                    default: initialView
+        ZStack(alignment: .bottomTrailing) {
+            Group {
+                if let url = avatarURL {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let img): img.resizable().scaledToFill()
+                        default: initialView
+                        }
                     }
+                } else {
+                    initialView
                 }
-            } else {
-                initialView
+            }
+            .frame(width: 56, height: 56)
+            .clipShape(Circle())
+            .overlay(
+                Circle().strokeBorder(accentColor.opacity(0.6), lineWidth: 2)
+            )
+            .opacity(uploading ? 0.5 : 1)
+            .overlay(uploading ? ProgressView().controlSize(.small) : nil)
+
+            if showCameraBadge && !uploading {
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Design.Colors.nearBlack)
+                    .frame(width: 20, height: 20)
+                    .background(Circle().fill(accentColor))
+                    .overlay(Circle().strokeBorder(Design.Colors.nearBlack, lineWidth: 1.5))
+                    .offset(x: 2, y: 2)
             }
         }
-        .frame(width: 56, height: 56)
-        .clipShape(Circle())
-        .overlay(
-            Circle().strokeBorder(accentColor.opacity(0.6), lineWidth: 2)
-        )
     }
 
     private var initialView: some View {
@@ -805,6 +918,127 @@ private struct AvatarView: View {
             .foregroundStyle(Design.Colors.nearBlack)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(accentColor)
+    }
+}
+
+// MARK: - Avatar crop sheet
+
+/// Square-crop UI presented after PhotosPicker returns an image.
+/// Uses a draggable + scalable image inside a fixed-size circular
+/// crop window. On confirm, exports the crop as JPEG (≤512px) and
+/// hands it back via the callback.
+private struct AvatarCropSheet: View {
+    let image: UIImage
+    let onCancel: () -> Void
+    let onConfirm: (Data) -> Void
+
+    @State private var scale:     CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var offset:    CGSize  = .zero
+    @State private var lastOffset: CGSize = .zero
+
+    private let cropSize: CGFloat = 280
+
+    var body: some View {
+        NavigationStack {
+            VStack {
+                Spacer()
+                ZStack {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .scaleEffect(scale)
+                        .offset(offset)
+                        .frame(width: cropSize, height: cropSize)
+                        .clipped()
+                        .overlay(
+                            Circle()
+                                .strokeBorder(Color.white.opacity(0.9), lineWidth: 2)
+                        )
+                        .gesture(
+                            SimultaneousGesture(
+                                DragGesture()
+                                    .onChanged { value in
+                                        offset = CGSize(
+                                            width:  lastOffset.width  + value.translation.width,
+                                            height: lastOffset.height + value.translation.height
+                                        )
+                                    }
+                                    .onEnded { _ in lastOffset = offset },
+                                MagnificationGesture()
+                                    .onChanged { value in
+                                        scale = max(0.5, min(4.0, lastScale * value))
+                                    }
+                                    .onEnded { _ in lastScale = scale }
+                            )
+                        )
+                }
+                .frame(width: cropSize, height: cropSize)
+                Spacer()
+                Text("Drag to position · Pinch to zoom")
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .padding(.bottom, Design.Spacing.lg)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Design.Colors.nearBlack)
+            .navigationTitle("Crop")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") { onCancel() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Use") {
+                        if let data = renderCroppedJPEG() {
+                            onConfirm(data)
+                        }
+                    }
+                    .fontWeight(.bold)
+                }
+            }
+        }
+    }
+
+    /// Render the on-screen crop preview to a 512px square JPEG.
+    /// Quality 0.85 keeps the byte size well under the 2MB Worker cap.
+    private func renderCroppedJPEG() -> Data? {
+        let outputSize = CGSize(width: 512, height: 512)
+        let renderer = UIGraphicsImageRenderer(size: outputSize)
+        return renderer.jpegData(withCompressionQuality: 0.85) { _ in
+            // Replicate the on-screen layout: image fits inside cropSize
+            // square, then scaled + offset, then circle-clipped.
+            let path = UIBezierPath(ovalIn: CGRect(origin: .zero, size: outputSize))
+            path.addClip()
+            // Compute the image's natural fit-rect inside cropSize, then
+            // apply the user's scale + offset, all rescaled into outputSize.
+            let aspect = image.size.width / image.size.height
+            let baseRect: CGRect = aspect >= 1
+                ? CGRect(x: 0,
+                         y: (cropSize - cropSize / aspect) / 2,
+                         width:  cropSize,
+                         height: cropSize / aspect)
+                : CGRect(x: (cropSize - cropSize * aspect) / 2,
+                         y: 0,
+                         width:  cropSize * aspect,
+                         height: cropSize)
+            let scaleFactor = outputSize.width / cropSize
+            let scaledRect = CGRect(
+                x: (baseRect.midX - cropSize/2) * scale + offset.width  + cropSize/2,
+                y: (baseRect.midY - cropSize/2) * scale + offset.height + cropSize/2,
+                width:  baseRect.width  * scale,
+                height: baseRect.height * scale
+            )
+            // Origin needs adjusting since scaledRect.origin assumes
+            // we're centering on the same point — recompute as midX/Y - half.
+            let drawRect = CGRect(
+                x: (scaledRect.midX - scaledRect.width/2) * scaleFactor,
+                y: (scaledRect.midY - scaledRect.height/2) * scaleFactor,
+                width:  scaledRect.width  * scaleFactor,
+                height: scaledRect.height * scaleFactor
+            )
+            image.draw(in: drawRect)
+        }
     }
 }
 

@@ -35,6 +35,18 @@ final class AuthManager {
     /// open. Refreshed when the user (re)connects via DiscordService.
     private(set) var discordAvatarURL: String?
     private(set) var discordUserId:    String?
+    /// Custom avatar uploaded via boba-avatar-upload Worker (R2-hosted).
+    /// nil means resolver falls back to discordAvatarURL → default
+    /// silhouette. Updated by uploadAvatar / clearAvatar.
+    private(set) var customAvatarURL:  String?
+
+    /// Resolved avatar — the URL the UI should render. Custom takes
+    /// precedence over Discord; both nil means render the silhouette.
+    var resolvedAvatarURL: URL? {
+        if let s = customAvatarURL, let u = URL(string: s) { return u }
+        if let s = discordAvatarURL, let u = URL(string: s) { return u }
+        return nil
+    }
     /// Notification toggles. Backend dispatch is deferred (see
     /// DECISIONS.md) — these store user opt-in for when the
     /// match-alerts pipeline ships.
@@ -134,6 +146,7 @@ final class AuthManager {
         matchAlertsEnabled      = profile.match_alerts_enabled
         discordAvatarURL        = profile.discord_avatar_url
         discordUserId           = profile.discord_user_id
+        customAvatarURL         = profile.avatar_url
         pendingRoleRequest      = profile.requested_role
         // Keep the legacy hasPendingModRequest flag in sync so any
         // remaining call sites (AdminPanelView) keep working.
@@ -231,6 +244,42 @@ final class AuthManager {
         guard let address = email else { return false }
         do {
             try await client.requestPasswordReset(email: address)
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            return false
+        }
+    }
+
+    /// Upload a new avatar (JPEG/PNG/WebP bytes, ≤2MB after the
+    /// caller crops to a square). On success: writes to R2,
+    /// persists the URL via set_avatar_url, and updates
+    /// customAvatarURL so the UI re-renders immediately. Returns
+    /// the resolved URL (with `?v=<version>` cache-bust) on success.
+    func uploadAvatar(data imageData: Data, mimeType: String) async -> String? {
+        do {
+            let res = try await client.uploadAvatar(data: imageData, mimeType: mimeType)
+            try await client.setAvatarUrl(res.url)
+            // Append a version query string so any AsyncImage caching
+            // the previous avatar URL forcibly refreshes.
+            let bustURL = "\(res.url)?v=\(res.version)"
+            customAvatarURL = bustURL
+            return bustURL
+        } catch {
+            self.error = error.localizedDescription
+            return nil
+        }
+    }
+
+    /// Remove the custom avatar — falls back to Discord avatar (or
+    /// default silhouette). Best-effort: even if R2 delete fails, we
+    /// clear the user_profiles column so the resolver stops pointing
+    /// at a possibly-stale URL.
+    func clearAvatar() async -> Bool {
+        do {
+            try? await client.deleteAvatar()
+            try await client.setAvatarUrl(String?.none)
+            customAvatarURL = nil
             return true
         } catch {
             self.error = error.localizedDescription
@@ -441,6 +490,7 @@ final class AuthManager {
         matchAlertsEnabled      = false
         discordAvatarURL        = nil
         discordUserId           = nil
+        customAvatarURL         = nil
         pendingRoleRequest      = nil
         hasPendingModRequest    = false
         signInProvider          = nil

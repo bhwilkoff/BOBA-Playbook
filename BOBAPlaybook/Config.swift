@@ -28,6 +28,11 @@ enum WorkerConfig {
     /// table via FK ON DELETE CASCADE). App Store 5.1.1(v) compliance.
     /// See workers/account-delete/worker.js.
     static let accountDeleteURL = "https://boba-account-delete.benwilkoff.workers.dev"
+    /// boba-avatar-upload — POST /avatar (image bytes) and DELETE
+    /// /avatar. Bound to the boba-card-images R2 bucket; writes to
+    /// avatars/{user_id}.{ext}. Caller persists the returned URL via
+    /// SupabaseClient.setAvatarUrl(_:). See workers/avatar-upload/.
+    static let avatarUploadURL  = "https://boba-avatar-upload.benwilkoff.workers.dev"
 }
 
 // MARK: - Discord — Trade Room

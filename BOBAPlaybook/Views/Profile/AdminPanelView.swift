@@ -348,8 +348,11 @@ private struct UserRoleRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            // Top row: name/email + role badge
+            // Top row: avatar thumb + name/handle/email + role badge
             HStack(alignment: .top, spacing: Design.Spacing.sm) {
+                // Tiny avatar — same resolver as Profile / public
+                // collection (custom > Discord > silhouette).
+                AdminUserAvatar(url: user.resolvedAvatarURL)
                 VStack(alignment: .leading, spacing: 2) {
                     // Display name (if available from OAuth) + email
                     if let name = user.displayName, !name.isEmpty {
@@ -366,6 +369,27 @@ private struct UserRoleRow: View {
                             .font(Design.Fonts.mono(13, weight: .bold))
                             .foregroundStyle(isCurrentUser ? Design.Colors.bobaOrange : Design.Colors.textPrimary)
                             .lineLimit(1)
+                    }
+                    // @username — shown when set. Plus a tiny PUBLIC
+                    // pill when the user has shared their collection
+                    // (so admins can scan the list for shareable
+                    // accounts without opening each row).
+                    if let handle = user.username, !handle.isEmpty {
+                        HStack(spacing: 4) {
+                            Text("@\(handle)")
+                                .font(Design.Fonts.mono(10))
+                                .foregroundStyle(Design.Colors.bobaCyan)
+                                .lineLimit(1)
+                            if user.publicCollectionEnabled {
+                                Text("PUBLIC")
+                                    .font(Design.Fonts.mono(8, weight: .bold))
+                                    .foregroundStyle(Design.Colors.nearBlack)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .background(Design.Colors.bobaCyan)
+                                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                            }
+                        }
                     }
                 }
                 Spacer()
@@ -453,6 +477,36 @@ private struct UserRoleRow: View {
                     Text("est.")
                         .font(Design.Fonts.mono(10))
                         .foregroundStyle(Design.Colors.textMuted)
+                }
+            }
+
+            // Public collection link — only when sharing is on. Tap
+            // = open in Safari; long-press / Copy menu copies to
+            // pasteboard. Same URL the public-collection page reads.
+            if let publicURL = user.publicCollectionURL {
+                HStack(spacing: 6) {
+                    Image(systemName: "link")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                    Link(destination: publicURL) {
+                        Text(publicURL.absoluteString.replacingOccurrences(of: "https://", with: ""))
+                            .font(Design.Fonts.mono(10))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                            .underline()
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    .buttonStyle(.plain)
+                    Button {
+                        UIPasteboard.general.string = publicURL.absoluteString
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .padding(4)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Copy public collection URL")
                 }
             }
         }
@@ -549,5 +603,42 @@ private struct CorrectionReviewRow: View {
             }
         }
         .padding(.vertical, Design.Spacing.xs)
+    }
+}
+
+// MARK: - AdminUserAvatar
+// Tiny circular avatar shown next to each user in the admin list.
+// Uses the same custom > Discord > silhouette resolver as the
+// Profile sheet (DECISIONS.md #040).
+
+private struct AdminUserAvatar: View {
+    let url: URL?
+
+    var body: some View {
+        Group {
+            if let url {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let img): img.resizable().scaledToFill()
+                    default: silhouette
+                    }
+                }
+            } else {
+                silhouette
+            }
+        }
+        .frame(width: 32, height: 32)
+        .clipShape(Circle())
+        .overlay(
+            Circle().strokeBorder(Design.Colors.glass, lineWidth: 1)
+        )
+    }
+
+    private var silhouette: some View {
+        Image(systemName: "person.fill")
+            .font(.system(size: 14))
+            .foregroundStyle(Design.Colors.textMuted)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Design.Colors.surface)
     }
 }

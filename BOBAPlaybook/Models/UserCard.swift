@@ -11,25 +11,53 @@ struct AdminUserProfile: Codable, Identifiable {
     let displayName: String?
     let collectionCount: Int
     let totalCollectionValue: Decimal
+    let username: String?
+    let publicCollectionEnabled: Bool
+    let avatarUrl: String?
+    let discordAvatarUrl: String?
 
     var id: UUID { userId }
 
-    /// Best available label: display name → email prefix → UUID prefix
+    /// Best available label: display name → @username → email →
+    /// UUID prefix. @username takes precedence over email when
+    /// display_name is missing because the handle is more meaningful
+    /// to other admins reviewing the row.
     var label: String {
         if let name = displayName, !name.isEmpty { return name }
+        if let u = username, !u.isEmpty { return "@\(u)" }
         if let e = email { return e }
         return userId.uuidString.prefix(8) + "…"
     }
 
+    /// Public-collection URL when sharing is on; nil otherwise.
+    /// Mirrors the bobaplaybook.com/u/{username} contract from
+    /// DECISIONS.md #039.
+    var publicCollectionURL: URL? {
+        guard publicCollectionEnabled, let u = username, !u.isEmpty else { return nil }
+        return URL(string: "https://bobaplaybook.com/u/\(u)")
+    }
+
+    /// Resolved avatar URL — custom (R2) takes precedence over
+    /// Discord. Same resolver semantics as AuthManager.resolvedAvatarURL.
+    var resolvedAvatarURL: URL? {
+        if let s = avatarUrl,        let u = URL(string: s) { return u }
+        if let s = discordAvatarUrl, let u = URL(string: s) { return u }
+        return nil
+    }
+
     enum CodingKeys: String, CodingKey {
-        case userId               = "user_id"
+        case userId                    = "user_id"
         case email
         case role
-        case createdAt            = "created_at"
-        case lastSignInAt         = "last_sign_in_at"
-        case displayName          = "display_name"
-        case collectionCount      = "collection_count"
-        case totalCollectionValue = "total_collection_value"
+        case createdAt                 = "created_at"
+        case lastSignInAt              = "last_sign_in_at"
+        case displayName               = "display_name"
+        case collectionCount           = "collection_count"
+        case totalCollectionValue      = "total_collection_value"
+        case username
+        case publicCollectionEnabled   = "public_collection_enabled"
+        case avatarUrl                 = "avatar_url"
+        case discordAvatarUrl          = "discord_avatar_url"
     }
 }
 

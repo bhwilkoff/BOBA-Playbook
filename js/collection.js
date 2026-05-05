@@ -1589,12 +1589,52 @@ const Collection = (() => {
         const valueStr  = u.total_collection_value > 0
           ? ` · $${Math.round(u.total_collection_value).toLocaleString()} est.`
           : '';
+        // Avatar resolver: custom (R2) > Discord > silhouette.
+        // Same precedence as Profile / public-collection page.
+        const avatarUrl = u.avatar_url || u.discord_avatar_url;
+        const avatarHtml = avatarUrl
+          ? `<img class="admin-user-avatar-img" src="${esc(avatarUrl)}" alt="" referrerpolicy="no-referrer">`
+          : `<svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-5.33 0-8 2.67-8 4v1h16v-1c0-1.33-2.67-4-8-4z"/></svg>`;
+        // @username + PUBLIC pill — only when set. Mirrors iOS.
+        const handleHtml = u.username
+          ? `<div class="admin-user-handle">
+               <span class="admin-user-handle-name">@${esc(u.username)}</span>
+               ${u.public_collection_enabled
+                 ? '<span class="admin-public-pill">PUBLIC</span>'
+                 : ''}
+             </div>`
+          : '';
+        // Public collection link — only when sharing is on.
+        const publicURL = (u.public_collection_enabled && u.username)
+          ? `https://bobaplaybook.com/u/${u.username}`
+          : null;
+        const publicLinkHtml = publicURL
+          ? `<div class="admin-user-public-link">
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" width="11" height="11" aria-hidden="true">
+                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+               </svg>
+               <a href="${esc(publicURL)}" target="_blank" rel="noopener noreferrer">${esc(publicURL.replace('https://', ''))}</a>
+               <button class="admin-user-copy-btn" data-url="${esc(publicURL)}"
+                       aria-label="Copy public collection URL" title="Copy URL">
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round" width="11" height="11" aria-hidden="true">
+                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                 </svg>
+               </button>
+             </div>`
+          : '';
         return `
           <div class="admin-user-row" data-uid="${esc(u.user_id)}">
+            <div class="admin-user-avatar">${avatarHtml}</div>
             <div class="admin-user-info">
               ${nameHtml}
+              ${handleHtml}
               <div class="admin-user-meta">Joined ${joined} · Last seen ${lastSeen}</div>
               <div class="admin-user-collection">${u.collection_count} card${u.collection_count === 1 ? '' : 's'} in collection${valueStr}</div>
+              ${publicLinkHtml}
             </div>
             <div class="admin-user-role">
               <span class="admin-role-badge ${roleClass}">${u.role.toUpperCase()}</span>
@@ -1602,6 +1642,21 @@ const Collection = (() => {
             </div>
           </div>`;
       }).join('');
+
+      // Wire copy buttons — uses bobaShareTarget for the same
+      // copy-link-with-toast UX as the rest of the app.
+      listEl.querySelectorAll('.admin-user-copy-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const url = btn.dataset.url;
+          if (!url) return;
+          if (typeof window.bobaShareTarget === 'function') {
+            window.bobaShareTarget({ title: 'Public Collection', url }, btn);
+          } else {
+            navigator.clipboard?.writeText(url);
+          }
+        });
+      });
 
       listEl.querySelectorAll('.admin-role-btn').forEach(btn => {
         btn.addEventListener('click', async () => {

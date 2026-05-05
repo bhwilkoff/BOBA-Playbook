@@ -110,11 +110,25 @@ struct WalkthroughAnchorKey: PreferenceKey {
 extension View {
     /// Attach this to any view that's an anchor target for a
     /// walkthrough step. The string key matches `BOBAWalkthrough.Anchor`.
+    ///
+    /// IMPORTANT — uses `transformAnchorPreference` (NOT plain
+    /// `anchorPreference`) because plain anchorPreference REPLACES
+    /// the entire preference value at each call site. A parent
+    /// view's anchorPreference would silently wipe out every child's
+    /// previously-set entry. transformAnchorPreference instead gives
+    /// the closure mutable access to the existing dictionary so each
+    /// .walkthroughAnchor call ADDS its key without nuking the
+    /// existing ones. This is what made `learn.firstRow` (set on a
+    /// child tile) silently fail to register when `learn.rootList`
+    /// (set on the parent VStack) was also in scope — across 8+
+    /// iterations.
     func walkthroughAnchor(_ key: String) -> some View {
-        anchorPreference(
+        transformAnchorPreference(
             key: WalkthroughAnchorKey.self,
             value: .bounds
-        ) { [BOBAWalkthrough.Anchor(key): $0] }
+        ) { existing, anchor in
+            existing[BOBAWalkthrough.Anchor(key)] = anchor
+        }
     }
 
     /// Single-line host wiring for a walkthrough overlay. Place this on

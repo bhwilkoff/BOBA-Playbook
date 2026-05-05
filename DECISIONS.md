@@ -414,3 +414,114 @@ Don't add new role gates around either feature. The underlying
 ShowWallComposer enum stays unchanged — it's pure composition logic
 with no role coupling.
 
+## 037 — Profile redesign: username = display name = public handle
+*2026-05-04*
+The Profile sheet (DESIGN.md §6.5) ships a single `username` field
+that doubles as the user's display name AND the slug for their
+public collection URL (`bobaplaybook.com/u/{username}`). There is no
+separate `display_name` — they were collapsed deliberately because
+two parallel "what should I be called" fields drift in confusing
+ways (Discord's display-vs-username conflation is the cautionary
+tale).
+
+**Auto-derivation**: on first profile open, the iOS UsernameRow
+derives a candidate from the email local-part (lowercased, stripped
+to `[a-z0-9_-]`), then appends a numeric suffix (2…99) on collision
+and writes via the `set_username` RPC. Discord-OAuth users with no
+email fall back to `user-{6-char-hash}` from their user_id. Users
+can edit inline at any time — debounced check_username on every
+keystroke renders a status pill (`✓ available` / `✗ taken — try
+@ben2` / `✗ not allowed` / `✗ reserved`).
+
+**Banned-words gate**: two-layer per the user's "no slurs / no hate
+speech" requirement.
+1. Client (`BOBAPlaybook/banned-words.json`, ~270 entries) gives the
+   instant red pill in the inline TextField — zero network.
+2. Server (`banned_words` table on Supabase, populated from the same
+   `scripts/build_banned_words.py` source) is the authoritative gate
+   via `check_username` and `set_username` RPCs — defense in depth
+   so a modified client can't bypass and squat
+   `bobaplaybook.com/u/{slur}`.
+
+Source: LDNOOBW EN list (Shutterstock, Apache 2.0, multilingual)
+filtered to ≥4-character entries to reduce Scunthorpe-style false
+positives. Reserved infrastructure terms (`admin`, `mod`, `boba`,
+`api`, `www`, etc.) live separately in the `username_is_reserved`
+Postgres function — they don't churn the way the slur list does.
+Custom additions go in `scripts/custom_banned.txt`; rerun the
+script + re-apply the SQL to refresh both layers in lockstep.
+
+**Why this matters**: usernames are public-facing, persistent, and
+a vector for harassment. The cost of a slur landing on a public URL
+is much higher than a brief moment of "let me try ben2 instead"
+friction. The two-layer gate also exists to protect us from our
+own client bugs — if the bundled JSON ever falls out of sync, the
+server still refuses.
+
+## 038 — Profile redesign: generalized role-request (mod OR streamer)
+*2026-05-04*
+The original mod-request flow (`mod_request_reason` /
+`mod_request_at` columns + `submit_mod_request` RPC +
+`get_pending_mod_requests` RPC) is generalized to `requested_role` /
+`requested_role_at` / `requested_role_reason` columns +
+`request_role(role, reason)` RPC that accepts `'moderator'` OR
+`'streamer'`. The admin queue (`get_pending_role_requests`) returns
+both kinds; review (`review_role_request`) promotes to whatever role
+was requested.
+
+**Compat shims**: the old `submit_mod_request`,
+`get_pending_mod_requests`, and `review_mod_request` functions are
+kept as wrappers that delegate to the new ones, so any unshipped
+build of the iOS Admin Panel keeps working through the deploy
+window. The shims should be dropped in the next release.
+
+**Why now**: streamer was always going to need a request flow — the
+iOS Profile section asks for both, and one mechanism is cheaper to
+own than two. The migration is purely additive at the column level
+(old columns linger nullable, new columns inherit existing data via
+a one-shot `UPDATE … SET requested_role = 'moderator' WHERE
+mod_request_at IS NOT NULL`) so no data is lost.
+
+## 039 — Profile redesign: deferred features (UI ships, backend deferred)
+*2026-05-04*
+Three Profile features ship with functional UI but the backend
+work that makes them actually do something is intentionally
+deferred. The UI lands now so the surface is complete and users
+can opt in early.
+
+**(a) Trade match alerts** — toggle in the Notifications section.
+Persists to `user_profiles.match_alerts_enabled` via the
+`set_notification_prefs` RPC. The matching pipeline (queries
+`user_cards` for cross-user Wanted/Grail overlap, fans out via
+APNs) is multi-week of work and is blocked on standing up an APNs
+server-side dispatcher we don't have yet. Footer text reads
+"Coming soon — toggle to opt in early." When the dispatcher
+ships, the toggle is already live and respected.
+
+**(b) Public collection sharing** — toggle persists to
+`user_profiles.public_collection_enabled` and the iOS Profile
+shows the user the URL. The web-app side (a public route at
+`bobaplaybook.com/u/{username}` that reads `user_cards` joined to
+profiles) is its own separate work item — until it ships, the
+toggle and URL are correct but the URL hits a 404. The
+`get_public_profile(handle)` RPC is in place so the web app has
+the lookup it needs the moment it's wired.
+
+**(c) Account deletion** — destructive `confirmationDialog` ships
+now to satisfy App Store guideline 5.1.1(v) (apps that allow
+account creation must offer in-app deletion). Tapping "Delete
+Account" currently signs the user out and surfaces a footer
+asking them to email for full deletion. The real Worker endpoint
+that calls Supabase `auth.admin.deleteUser` + cascades through
+`user_cards` / `decks` / `shows` is queued as the next backend
+item. Deferring is acceptable because the user-facing affordance
++ the escalation path (email) are present; the gap is operational,
+not UX.
+
+**Why ship UI ahead of backend**: removing toggles later is much
+worse UX than disabling them temporarily. The opt-in data is itself
+useful signal once the backend ships ("how many users already
+wanted this?"). And the destructive-action shim for deletion is
+the right call vs leaving the App Store requirement unmet for the
+duration of the backend build.
+

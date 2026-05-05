@@ -1,0 +1,8 @@
+# Project-specific banned-word additions for username validation.
+# One word per line. Comments allowed with #.
+# These get merged with LDNOOBW in scripts/build_banned_words.py.
+#
+# Use this list for community-specific terms (esp. coded slurs or
+# evolving hate-speech terms) that aren't in LDNOOBW yet. Reserved
+# infrastructure words (admin, mod, boba, www, etc.) are NOT listed
+# here — they live in the username_is_reserved() Postgres function.

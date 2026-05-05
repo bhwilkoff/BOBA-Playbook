@@ -23,16 +23,41 @@ final class AuthManager {
     private(set) var error: String?
     private(set) var confirmationEmailSent = false
 
+    // Profile-sheet fields, populated by loadProfile() after sign-in.
+    /// The user's public handle. Nil until the user picks one
+    /// (auto-derived on first profile open from email/Discord
+    /// username; ProfileView writes the derived value back).
+    private(set) var username: String?
+    /// Toggles the public bobaplaybook.com/u/{username} surface.
+    private(set) var publicCollectionEnabled = false
+    /// Persisted Discord avatar URL — survives across sessions so
+    /// the profile header doesn't have to re-call Discord on every
+    /// open. Refreshed when the user (re)connects via DiscordService.
+    private(set) var discordAvatarURL: String?
+    private(set) var discordUserId:    String?
+    /// Notification toggles. Backend dispatch is deferred (see
+    /// DECISIONS.md) — these store user opt-in for when the
+    /// match-alerts pipeline ships.
+    private(set) var notificationsEnabled = true
+    private(set) var matchAlertsEnabled   = false
+    /// Pending role request — 'moderator' or 'streamer' or nil.
+    /// Generalized from the original hasPendingModRequest so the
+    /// UI can show "Streamer request pending" too.
+    private(set) var pendingRoleRequest: String?
+
     var isMod: Bool { role == "moderator" || role == "admin" }
     var isAdmin: Bool { role == "admin" }
     /// Streamers get the Shows feature (Collection > My Shows, card-detail
     /// "To Show" add option, Show Mode scanner). Admins are implicitly
     /// streamers so the admin account can exercise the flow end-to-end
-    /// without promoting itself. Promotion UI (a request-role flow
-    /// analogous to mod-access) is not built yet — admins can set this
-    /// directly in user_profiles.role for now.
+    /// without promoting itself.
     var isStreamer: Bool { role == "streamer" || role == "admin" }
-    var canRequestMod: Bool { isAuthenticated && !isMod && !hasPendingModRequest }
+    var canRequestMod: Bool {
+        isAuthenticated && !isMod && pendingRoleRequest != "moderator"
+    }
+    var canRequestStreamer: Bool {
+        isAuthenticated && !isStreamer && pendingRoleRequest != "streamer"
+    }
 
     private let client = SupabaseClient.shared
 
@@ -56,20 +81,129 @@ final class AuthManager {
         } catch {
             role = "user"
         }
-        // Refresh pending-request flag alongside role so the Profile UI
-        // reflects current state after sign-in and after admin review.
-        hasPendingModRequest = (try? await client.hasPendingModRequest()) ?? false
+        await loadProfile()
     }
 
-    /// Submits a mod-access request with the given reason and refreshes pending state.
-    func submitModRequest(reason: String) async {
+    /// Hydrates every Profile-sheet field from user_profiles in one
+    /// network round-trip. Called after sign-in and on every Profile
+    /// open (so admin actions like role review surface immediately).
+    func loadProfile() async {
+        guard isAuthenticated else { return }
+        guard let profile = try? await client.fetchProfile() else { return }
+        username                = profile.username
+        publicCollectionEnabled = profile.public_collection_enabled
+        notificationsEnabled    = profile.notifications_enabled
+        matchAlertsEnabled      = profile.match_alerts_enabled
+        discordAvatarURL        = profile.discord_avatar_url
+        discordUserId           = profile.discord_user_id
+        pendingRoleRequest      = profile.requested_role
+        // Keep the legacy hasPendingModRequest flag in sync so any
+        // remaining call sites (AdminPanelView) keep working.
+        hasPendingModRequest    = profile.requested_role == "moderator"
+    }
+
+    /// Persists a username via the validate-and-write RPC. Returns the
+    /// status code ("available" on success; one of taken/banned/etc.
+    /// on failure) so the UI can render a precise inline message.
+    @discardableResult
+    func setUsername(_ candidate: String) async -> String {
+        guard isAuthenticated else { return "invalid_chars" }
+        do {
+            let result = try await client.setUsername(candidate)
+            if result == "available" {
+                username = candidate.lowercased()
+            }
+            return result
+        } catch {
+            self.error = error.localizedDescription
+            return "invalid_chars"
+        }
+    }
+
+    /// Debounced uniqueness/banned-words check used by the inline
+    /// TextField. Cheaper than setUsername — read-only, no write.
+    func checkUsername(_ candidate: String) async -> String {
+        guard isAuthenticated else { return "invalid_chars" }
+        return (try? await client.checkUsername(candidate)) ?? "invalid_chars"
+    }
+
+    /// Public-collection-sharing toggle. Persists to user_profiles
+    /// AND mirrors locally so the SwiftUI binding doesn't snap back.
+    func setPublicCollectionEnabled(_ enabled: Bool) async {
+        guard isAuthenticated else { return }
+        publicCollectionEnabled = enabled  // optimistic
+        do {
+            try await client.setPublicCollectionEnabled(enabled)
+        } catch {
+            publicCollectionEnabled = !enabled
+            self.error = error.localizedDescription
+        }
+    }
+
+    /// Both notification toggles in one call so the UI can flip
+    /// either toggle without spawning two race-prone PATCHes.
+    func setNotificationPrefs(notifications: Bool, matchAlerts: Bool) async {
+        guard isAuthenticated else { return }
+        let oldN = notificationsEnabled
+        let oldM = matchAlertsEnabled
+        notificationsEnabled = notifications
+        matchAlertsEnabled   = matchAlerts
+        do {
+            try await client.setNotificationPrefs(
+                notifications: notifications, matchAlerts: matchAlerts)
+        } catch {
+            notificationsEnabled = oldN
+            matchAlertsEnabled   = oldM
+            self.error = error.localizedDescription
+        }
+    }
+
+    /// Persists Discord identity post-OAuth so the avatar survives
+    /// across sessions without re-calling Discord on every Profile
+    /// open. Pass nils to clear (used by Disconnect).
+    func setDiscordIdentity(discordId: String?, avatarUrl: String?) async {
         guard isAuthenticated else { return }
         do {
-            try await client.submitModRequest(reason: reason)
-            hasPendingModRequest = true
+            try await client.setDiscordIdentity(discordId: discordId, avatarUrl: avatarUrl)
+            discordUserId    = discordId
+            discordAvatarURL = avatarUrl
         } catch {
             self.error = error.localizedDescription
         }
+    }
+
+    /// Generalized role request — accepts 'moderator' or 'streamer'.
+    /// Replaces submitModRequest. Old code paths still work because
+    /// the SQL layer keeps a compat shim.
+    func requestRole(_ targetRole: String, reason: String) async {
+        guard isAuthenticated else { return }
+        do {
+            try await client.requestRole(targetRole, reason: reason)
+            pendingRoleRequest = targetRole
+            if targetRole == "moderator" { hasPendingModRequest = true }
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    /// Triggers Supabase's password-reset email flow. The recipient
+    /// gets a deep link back into bobaplaybook:// — handleDeepLink
+    /// already restores the session from those tokens.
+    func requestPasswordReset() async -> Bool {
+        guard let address = email else { return false }
+        do {
+            try await client.requestPasswordReset(email: address)
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            return false
+        }
+    }
+
+    /// Submits a mod-access request with the given reason. Kept for
+    /// existing call sites; new code should call requestRole.
+    func submitModRequest(reason: String) async {
+        await requestRole("moderator", reason: reason)
     }
 
     // MARK: - Sign up (email/password)
@@ -238,10 +372,19 @@ final class AuthManager {
         } catch {
             client.signOutLocally()
         }
-        isAuthenticated = false
-        userId = nil
-        email = nil
-        isLoading = false
+        isAuthenticated         = false
+        userId                  = nil
+        email                   = nil
+        role                    = "user"
+        username                = nil
+        publicCollectionEnabled = false
+        notificationsEnabled    = true
+        matchAlertsEnabled      = false
+        discordAvatarURL        = nil
+        discordUserId           = nil
+        pendingRoleRequest      = nil
+        hasPendingModRequest    = false
+        isLoading               = false
     }
 
     func clearError() { error = nil }

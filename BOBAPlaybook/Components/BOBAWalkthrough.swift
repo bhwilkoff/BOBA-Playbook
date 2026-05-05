@@ -298,10 +298,14 @@ struct BOBAWalkthrough: View {
             if let rect = anchorFrames[anchorKey] {
                 lines.append("  anchor rect: x=\(fmt(rect.minX)) y=\(fmt(rect.minY)) w=\(fmt(rect.width)) h=\(fmt(rect.height))")
                 let viewport = CGRect(origin: .zero, size: container)
-                let leftIn   = rect.minX  >= viewport.minX
-                let rightIn  = rect.maxX  <= viewport.maxX
-                let topIn    = rect.minY  >= viewport.minY
-                let bottomIn = rect.maxY  <= viewport.maxY
+                // 1pt tolerance — sub-pixel rounding (e.g., a 393.3pt
+                // anchor in a 393.0pt viewport, 0.3pt overflow) is
+                // visually invisible and shouldn't flag as CLIPPED.
+                let tol: CGFloat = 1.0
+                let leftIn   = rect.minX  >= viewport.minX - tol
+                let rightIn  = rect.maxX  <= viewport.maxX + tol
+                let topIn    = rect.minY  >= viewport.minY - tol
+                let bottomIn = rect.maxY  <= viewport.maxY + tol
                 let allIn    = leftIn && rightIn && topIn && bottomIn
                 lines.append("  anchor on-screen: \(allIn ? "✓ FULLY ON-SCREEN" : "✗ CLIPPED")")
                 if !leftIn   { lines.append("    ← clipped LEFT  by \(fmt(viewport.minX - rect.minX))pt") }

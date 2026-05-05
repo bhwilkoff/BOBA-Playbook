@@ -199,15 +199,27 @@ struct LearnView: View {
                 VStack(alignment: .leading, spacing: Design.Spacing.lg) {
                     learnHeader
 
-                    LazyVGrid(
-                        columns: [
-                            GridItem(.flexible(), spacing: Design.Spacing.md),
-                            GridItem(.flexible(), spacing: Design.Spacing.md)
-                        ],
-                        spacing: Design.Spacing.md
-                    ) {
-                        ForEach(Array(categories.enumerated()), id: \.element.id) { idx, cat in
-                            categoryTile(cat, isFirst: idx == 0)
+                    // Eager VStack-of-HStacks instead of LazyVGrid.
+                    // LazyVGrid's lazy rendering swallows child
+                    // anchorPreferences until cells are "established"
+                    // — even for tiles entirely above the fold —
+                    // which made every per-tile walkthrough anchor
+                    // (learn.firstRow, learn.row.*) silently fail
+                    // to reach the host's preference graph. Eager
+                    // rendering ensures anchors always register.
+                    VStack(spacing: Design.Spacing.md) {
+                        let pairs = stride(from: 0, to: categories.count, by: 2).map { i in
+                            (categories[i], i + 1 < categories.count ? categories[i + 1] : nil)
+                        }
+                        ForEach(Array(pairs.enumerated()), id: \.offset) { rowIdx, pair in
+                            HStack(spacing: Design.Spacing.md) {
+                                categoryTile(pair.0, isFirst: rowIdx == 0)
+                                if let second = pair.1 {
+                                    categoryTile(second, isFirst: false)
+                                } else {
+                                    Color.clear
+                                }
+                            }
                         }
                     }
                     .padding(.horizontal, Design.Spacing.lg)

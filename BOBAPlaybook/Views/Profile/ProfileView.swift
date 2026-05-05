@@ -45,6 +45,7 @@ struct ProfileView: View {
     @State private var roleRequestForRole: String?  // "moderator" or "streamer"
     @State private var showingPractice        = false
     @State private var copyConfirmed          = false
+    @State private var walkthroughsResetMsg: String?
 
     var body: some View {
         NavigationStack {
@@ -510,9 +511,30 @@ struct ProfileView: View {
 
             Button {
                 WalkthroughsManager.shared.resetAll()
+                let count = WalkthroughID.allCases.count
+                walkthroughsResetMsg = "Cleared \(count) dismissals. Each walkthrough fires again on next visit."
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(3))
+                    walkthroughsResetMsg = nil
+                }
             } label: {
                 Label("Reset Feature Walkthroughs", systemImage: "arrow.clockwise")
                     .foregroundStyle(Design.Colors.bobaOrange)
+            }
+            // Inline confirmation row so the button has visible
+            // feedback. Without it the action looks silent — most
+            // walkthroughs only fire on FIRST visit to a surface, so
+            // the user can't tell anything happened until they
+            // navigate to another tab.
+            if let msg = walkthroughsResetMsg {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color(hex: "4CAF50"))
+                    Text(msg)
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Color(hex: "4CAF50"))
+                }
+                .transition(.opacity)
             }
         } header: {
             Text("Display")

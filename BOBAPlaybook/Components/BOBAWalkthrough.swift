@@ -223,10 +223,25 @@ struct BOBAWalkthrough: View {
 
     // MARK: - Diagnostics
 
-    /// Emits a structured block to stdout describing the current step's
-    /// anchor state. Designed to be greppable and pasteable: each block
-    /// is bounded by `WT[id] ━━━━━━━━━━━━━━` rules so multi-step
-    /// transcripts read clearly when copied out of the Xcode console.
+    /// Emits a structured block describing the current step's anchor
+    /// state. Two output channels in parallel because iOS 26 routes
+    /// stdout through Unified Logging by default and Xcode's debug
+    /// area sometimes filters it out:
+    ///
+    ///  1. `print()` — the canonical channel (Xcode Debug → "All
+    ///     Output" in the console area).
+    ///  2. `NSLog()` — backup that goes through Apple System Log
+    ///     and reliably surfaces in Xcode's debug area regardless
+    ///     of stdout filter state. Format string `%@` + the block
+    ///     as NSString.
+    ///
+    /// To see output: in Xcode, open the Debug area (Cmd-Shift-Y),
+    /// look at the right pane (the console). If empty, click the
+    /// pane filter dropdown at the bottom-right and switch to
+    /// "All Output" instead of "Debugger Output".
+    ///
+    /// Each block is bounded by `WT[id] ━━━━━━━━━━━━━━` rules so
+    /// multi-step transcripts read clearly when copied out.
     private func logDiagnostics(event: String) {
         guard Self.diagnosticsEnabled else { return }
         let id = script.id.rawValue
@@ -306,7 +321,11 @@ struct BOBAWalkthrough: View {
             lines.append("  anchor: nil (full-screen step — intro/outro)")
         }
 
-        print(lines.joined(separator: "\n"))
+        let block = lines.joined(separator: "\n")
+        print(block)
+        // NSLog is verbose but reliably visible — print() can be
+        // swallowed by Xcode filter state or stdout routing in iOS 26.
+        NSLog("%@", block as NSString)
     }
 
     private func fmt(_ v: CGFloat) -> String {

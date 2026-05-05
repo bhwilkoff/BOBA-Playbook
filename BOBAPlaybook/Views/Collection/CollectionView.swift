@@ -589,7 +589,13 @@ struct CollectionView: View {
                         }
                         .padding(Design.Spacing.md)
                     } else {
-                        // LIST mode — compact rows, the legacy renderer.
+                        // LIST mode — compact rows. The matchedTransitionSource
+                        // is attached INSIDE collectionRow (around the small
+                        // thumb on the leading edge) so the hero zoom
+                        // appears to come from the card art, not the whole
+                        // row card. iOS draws the zoom from the matched
+                        // source's frame, so anchoring to the thumb gives
+                        // a tight, art-led transition.
                         LazyVStack(spacing: Design.Spacing.sm) {
                             ForEach(Array(identifiers.enumerated()), id: \.element) { idx, identifier in
                                 if idx == 0 {
@@ -873,18 +879,24 @@ struct CollectionView: View {
         let earliestAdded = copies.map { $0.acquiredAt }.min()
 
         return HStack(spacing: Design.Spacing.md) {
-            // Thumbnail
-            if let card = catalog {
-                CardImageView(card: card, size: .thumb)
-                    .frame(width: 44, height: 62)
-                    .clipShape(RoundedRectangle(cornerRadius: Design.Radius.sm))
-            } else {
-                RoundedRectangle(cornerRadius: Design.Radius.sm)
-                    .fill(Design.Colors.surface2)
-                    .frame(width: 44, height: 62)
+            // Thumbnail — bumped from 44×62 to 60×84 to match the larger
+            // body text. matchedTransitionSource lives HERE (not on
+            // the whole row) so the zoom-into-detail animation
+            // appears to originate from the actual card art, mirroring
+            // grid-mode's behavior.
+            Group {
+                if let card = catalog {
+                    CardImageView(card: card, size: .thumb)
+                        .clipShape(RoundedRectangle(cornerRadius: Design.Radius.sm))
+                } else {
+                    RoundedRectangle(cornerRadius: Design.Radius.sm)
+                        .fill(Design.Colors.surface2)
+                }
             }
+            .frame(width: 60, height: 84)
+            .matchedTransitionSource(id: identifier, in: cardZoomNamespace)
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 // Title + qty pill on the same row so the count stays
                 // visible on long names (lineLimit(1) was clipping it).
                 // Pill shows total across ALL designations; if some of
@@ -892,7 +904,7 @@ struct CollectionView: View {
                 // current-tab share is still readable at a glance.
                 HStack(spacing: Design.Spacing.xs) {
                     Text(catalog?.name ?? catalog?.cardNumber ?? identifier)
-                        .font(Design.Fonts.display(15))
+                        .font(Design.Fonts.display(18))
                         .foregroundStyle(Design.Colors.textPrimary)
                         .lineLimit(1)
                     if totalCopiesAllDesignations > 1 {
@@ -900,7 +912,7 @@ struct CollectionView: View {
                             ? "×\(totalCopiesAllDesignations)"
                             : "×\(totalCopiesAllDesignations) (\(copies.count) here)"
                         Text(label)
-                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .font(Design.Fonts.mono(11, weight: .bold))
                             .foregroundStyle(Design.Colors.bobaCyan)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 1)
@@ -911,23 +923,23 @@ struct CollectionView: View {
                 HStack(spacing: Design.Spacing.xs) {
                     if let element = catalog?.element, !element.isEmpty {
                         Text(element)
-                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .font(Design.Fonts.mono(12, weight: .bold))
                             .foregroundStyle(Design.Colors.element(element))
                     }
                     if let power = catalog?.power, power > 0 {
                         Text("⚡\(power)")
-                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .font(Design.Fonts.mono(12, weight: .bold))
                             .foregroundStyle(Design.Colors.textSecondary)
                     }
                     Text(catalog?.cardNumber ?? identifier)
-                        .font(Design.Fonts.mono(10))
+                        .font(Design.Fonts.mono(12))
                         .foregroundStyle(Design.Colors.textMuted)
                 }
                 // Treatment — separate line so long treatments wrap
                 // gracefully without crowding the stat strip.
                 if let treatment = catalog?.treatment, !treatment.isEmpty {
                     Text(treatment)
-                        .font(Design.Fonts.mono(10))
+                        .font(Design.Fonts.mono(12))
                         .foregroundStyle(Design.Colors.textMuted)
                         .lineLimit(1)
                 }
@@ -935,7 +947,7 @@ struct CollectionView: View {
                 // how recently they acquired the card.
                 if let added = earliestAdded {
                     Text("Added \(formatAddedDate(added))")
-                        .font(Design.Fonts.mono(9))
+                        .font(Design.Fonts.mono(11))
                         .foregroundStyle(Design.Colors.textMuted)
                 }
             }
@@ -950,33 +962,33 @@ struct CollectionView: View {
                 if selectedDesignation.isOwned {
                     if estimatedTotal > 0 {
                         Text(formatCurrency(estimatedTotal))
-                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .font(Design.Fonts.mono(15, weight: .bold))
                             .foregroundStyle(Design.Colors.bobaOrange)
                         Text("VALUE")
-                            .font(Design.Fonts.mono(8))
+                            .font(Design.Fonts.mono(10))
                             .foregroundStyle(Design.Colors.textMuted)
                             .tracking(1)
                     } else if totalPaid > 0 {
                         Text(formatCurrency(totalPaid))
-                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .font(Design.Fonts.mono(15, weight: .bold))
                             .foregroundStyle(Design.Colors.textPrimary)
                         Text("PAID")
-                            .font(Design.Fonts.mono(8))
+                            .font(Design.Fonts.mono(10))
                             .foregroundStyle(Design.Colors.textMuted)
                             .tracking(1)
                     } else {
                         Text("$—")
-                            .font(Design.Fonts.mono(13))
+                            .font(Design.Fonts.mono(15))
                             .foregroundStyle(Design.Colors.textMuted)
                     }
                     if estimatedTotal > 0 && totalPaid > 0 {
                         Text("paid \(formatCurrency(totalPaid))")
-                            .font(Design.Fonts.mono(8))
+                            .font(Design.Fonts.mono(10))
                             .foregroundStyle(Design.Colors.textMuted)
                     }
                 } else {
                     Text(selectedDesignation.displayName.uppercased())
-                        .font(Design.Fonts.mono(9, weight: .bold))
+                        .font(Design.Fonts.mono(11, weight: .bold))
                         .foregroundStyle(Design.Colors.bobaCyan)
                         .tracking(1)
                 }
@@ -1152,12 +1164,35 @@ struct CollectionView: View {
                 let card = cardStore.displayCards.first { $0.id == id }
                           ?? cardStore.displayCards.first { $0.cardNumber == id }
                 guard let card else { return false }
+                // FREE / 0 HD shortcut — Plays + Bonus Plays with
+                // playCost == 0 don't have "FREE" or "0" in their name
+                // / hero / cardNumber, so the literal substring search
+                // misses them. Mirror the DecksView pool filter
+                // pattern so coaches scanning their collection for
+                // free plays can find them. Same special-case applies
+                // to typing "1 hd", "2hd", etc.
+                if let cost = freeCostQuery(trimmed),
+                   let cardCost = card.playCost {
+                    return cardCost == cost
+                }
                 return card.name.lowercased().contains(trimmed)
                     || card.cardNumber.lowercased().contains(trimmed)
                     || card.hero.lowercased().contains(trimmed)
             }
         }
         return sortIdentifiers(owned, designation: designation)
+    }
+
+    /// Maps a normalized search query to a play-cost integer when the
+    /// user is asking for free / N HD plays. Returns nil for queries
+    /// that should fall through to the substring matcher.
+    private func freeCostQuery(_ q: String) -> Int? {
+        if q == "free" || q == "0 hd" || q == "0hd" { return 0 }
+        // "1 hd" / "1hd" / "2 hd" / etc. up through 8.
+        for n in 1...8 {
+            if q == "\(n) hd" || q == "\(n)hd" { return n }
+        }
+        return nil
     }
 
     /// Apply the active CollectionSortOrder. Sort keys are derived from

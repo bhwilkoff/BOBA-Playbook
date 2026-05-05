@@ -2016,7 +2016,9 @@ struct BrowserCardDetailSheet: View {
 
                     Spacer(minLength: Design.Spacing.xl)
                 }
-                .padding(.top, Design.Spacing.lg)
+                // (No .padding(.top) here — Find and Collection don't
+                // have one, and adding any push down opens a black gap
+                // between the nav bar and the artPanel gradient.)
             }
             // STANDARDIZED toolbar setup — IDENTICAL to Find's
             // CardDetailView and Collection's CollectionCardDetailView.

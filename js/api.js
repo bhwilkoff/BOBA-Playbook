@@ -537,6 +537,31 @@ const API = (() => {
   }
 
   // Delete a deck (and its cards via cascade)
+  /* ----------------------------------------------------------------
+     Public collections (read-only — no auth required)
+     Backed by the get_public_collection(handle) Supabase RPC.
+     The RPC bypasses user_cards RLS via SECURITY DEFINER and only
+     returns rows for users with public_collection_enabled = true,
+     filtered to safe-to-share columns (no purchase_price, no notes,
+     no asking_price). Wanted designation is also excluded — the
+     public surface reads as "what they have," not "what they want."
+  ---------------------------------------------------------------- */
+  async function fetchPublicProfile(username) {
+    const { data, error } = await supa()
+      .rpc('get_public_profile', { handle: username });
+    if (error) throw new Error(error.message);
+    // RPC returns at most one row; return null when the handle is
+    // unknown OR the user opted out of sharing.
+    return Array.isArray(data) && data.length ? data[0] : null;
+  }
+
+  async function fetchPublicCollection(username) {
+    const { data, error } = await supa()
+      .rpc('get_public_collection', { handle: username });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  }
+
   async function deckDelete(deckId) {
     const { data: { session } } = await supa().auth.getSession();
     if (!session) throw new Error('Not signed in');
@@ -618,5 +643,8 @@ const API = (() => {
     deckList,
     deckLoad,
     deckDelete,
+    // Public collections
+    fetchPublicProfile,
+    fetchPublicCollection,
   };
 })();

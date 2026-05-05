@@ -2192,6 +2192,21 @@
     <!-- PROFILE VIEW — rendered by collection.js -->
     <section id="view-profile" class="view" hidden aria-label="Profile"></section>
 
+    <!-- PUBLIC COLLECTION VIEW — mounted via /u/{username} (or ?u=)
+         and rendered by app.js#renderPublicCollection. Read-only:
+         no auth required, only safe-to-share fields shown. -->
+    <section id="view-public-collection" class="view" hidden aria-label="Public Collection">
+      <div style="padding: 1.5rem 1rem 0.5rem 1rem;">
+        <h1 id="public-collection-title" style="margin: 0; color: var(--boba-orange); font-family: var(--font-display, sans-serif); font-size: 1.75rem;">@username</h1>
+        <p id="public-collection-subtitle" style="margin: 0.25rem 0 0 0; color: rgba(255,255,255,0.5); font-size: 0.85rem;">Loading…</p>
+      </div>
+      <div id="public-collection-grid" class="card-grid"></div>
+      <div id="public-collection-empty" hidden style="padding: 3rem 1rem; text-align: center; color: rgba(255,255,255,0.7);">
+        <h2 style="color: var(--boba-orange); margin: 0 0 0.5rem 0;">This collection isn't public.</h2>
+        <p style="margin: 0; color: rgba(255,255,255,0.5);">If you own this profile, enable Public Collection in your Profile sheet.</p>
+      </div>
+    </section>
+
   </main>
 
   <!-- COLLECTION CARD DETAIL SHEET (must come before card-modal so card-modal stacks on top) -->

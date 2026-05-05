@@ -81,6 +81,13 @@ struct DecksView: View {
     @Namespace private var poolZoomNamespace
     @State private var poolNavigationPath = NavigationPath()
 
+    /// Separate zoom namespace for the editor's deck-list rows. The
+    /// editor lives inside a `fullScreenCover` with its OWN
+    /// NavigationStack (`editorPath`), so it can't share
+    /// `poolZoomNamespace` — namespaces only pair within the same
+    /// matched-source/destination view tree.
+    @Namespace private var editorZoomNamespace
+
     /// Routes within the editor's NavigationStack.
     enum EditorRoute: Hashable {
         case deckManagement
@@ -236,6 +243,16 @@ struct DecksView: View {
                         case .legality:
                             LegalityReportSheet(store: store, wrapInNavStack: false)
                         }
+                    }
+                    // Tap a row in the deck list → push the card detail
+                    // with the Music-style hero zoom from the row's
+                    // thumbnail (matched via editorZoomNamespace).
+                    .navigationDestination(for: Card.self) { card in
+                        BrowserCardDetailSheet(card: card,
+                                               store: store,
+                                               tab: pickRoleForCard(card),
+                                               wrapInNavStack: false)
+                            .navigationTransition(.zoom(sourceID: card.id, in: editorZoomNamespace))
                     }
                     // Profile is the lone exception — stays a sheet
                     // because SignInView (which Profile hosts) is
@@ -733,22 +750,7 @@ struct DecksView: View {
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color.clear)
                             ForEach(group.cards) { card in
-                                DeckCardRow(card: card, showRemoveButton: false) {
-                                    store.removeCard(card, role: .hero)
-                                }
-                                .listRowInsets(EdgeInsets(top: 4,
-                                                          leading: Design.Spacing.md,
-                                                          bottom: 4,
-                                                          trailing: Design.Spacing.md))
-                                .listRowSeparator(.hidden)
-                                .listRowBackground(Color.clear)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        store.removeCard(card, role: .hero)
-                                    } label: {
-                                        Label("Remove", systemImage: "trash")
-                                    }
-                                }
+                                editorDeckRow(card: card, role: .hero)
                             }
                         }
                     }
@@ -761,22 +763,7 @@ struct DecksView: View {
                                             count: store.plays.count,
                                             target: 30)
                             ForEach(store.plays) { card in
-                                DeckCardRow(card: card, showRemoveButton: false) {
-                                    store.removeCard(card, role: .play)
-                                }
-                                .listRowInsets(EdgeInsets(top: 4,
-                                                          leading: Design.Spacing.md,
-                                                          bottom: 4,
-                                                          trailing: Design.Spacing.md))
-                                .listRowSeparator(.hidden)
-                                .listRowBackground(Color.clear)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        store.removeCard(card, role: .play)
-                                    } label: {
-                                        Label("Remove", systemImage: "trash")
-                                    }
-                                }
+                                editorDeckRow(card: card, role: .play)
                             }
                         }
                     }
@@ -801,22 +788,7 @@ struct DecksView: View {
                                 .listRowBackground(Color.clear)
                             }
                             ForEach(store.bonusPlays) { card in
-                                DeckCardRow(card: card, showRemoveButton: false) {
-                                    store.removeCard(card, role: .bonusPlay)
-                                }
-                                .listRowInsets(EdgeInsets(top: 4,
-                                                          leading: Design.Spacing.md,
-                                                          bottom: 4,
-                                                          trailing: Design.Spacing.md))
-                                .listRowSeparator(.hidden)
-                                .listRowBackground(Color.clear)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        store.removeCard(card, role: .bonusPlay)
-                                    } label: {
-                                        Label("Remove", systemImage: "trash")
-                                    }
-                                }
+                                editorDeckRow(card: card, role: .bonusPlay)
                             }
                         }
                     }
@@ -828,22 +800,7 @@ struct DecksView: View {
                                         count: store.hotDogs.count,
                                         target: 10)
                         ForEach(store.hotDogs) { card in
-                            DeckCardRow(card: card, showRemoveButton: false) {
-                                store.removeCard(card, role: .hotDog)
-                            }
-                            .listRowInsets(EdgeInsets(top: 4,
-                                                      leading: Design.Spacing.md,
-                                                      bottom: 4,
-                                                      trailing: Design.Spacing.md))
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    store.removeCard(card, role: .hotDog)
-                                } label: {
-                                    Label("Remove", systemImage: "trash")
-                                }
-                            }
+                            editorDeckRow(card: card, role: .hotDog)
                         }
                     }
                 }
@@ -855,24 +812,56 @@ struct DecksView: View {
         }
     }
 
+    /// One deck-list row — DeckCardRow + list-row chrome + swipe-to-
+    /// remove + tap-to-detail with the Music-style hero zoom. Pulled
+    /// out so each section's ForEach stays a single line.
+    ///
+    /// `matchedTransitionSource` is the OUTERMOST modifier per
+    /// `feedback_zoom_transitions.md` — iOS needs to find it on the
+    /// visible cell at the moment of transition; gestures and list-
+    /// row containers wrapping it cause the "nil view" fallback.
+    @ViewBuilder
+    private func editorDeckRow(card: Card, role: DeckCardRole) -> some View {
+        DeckCardRow(card: card, showRemoveButton: false) {
+            store.removeCard(card, role: role)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { editorPath.append(card) }
+        .listRowInsets(EdgeInsets(top: 4,
+                                  leading: Design.Spacing.md,
+                                  bottom: 4,
+                                  trailing: Design.Spacing.md))
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                store.removeCard(card, role: role)
+            } label: {
+                Label("Remove", systemImage: "trash")
+            }
+        }
+        .matchedTransitionSource(id: card.id, in: editorZoomNamespace)
+    }
+
     /// Inline section label — same shape as the prior pinning header,
     /// but rendered as a regular `List` row so it scrolls with the
     /// content instead of sticking to the top. The persistent totals
     /// already live in `sheetHeaderRow` above the list, so a sticky
-    /// header here was redundant.
+    /// header here was redundant. Display font (Russo One) at 16pt
+    /// so the category reads clearly above the rows; mono digits for
+    /// the count keep the value tabular.
     @ViewBuilder
     private func sectionLabelRow(title: String, count: Int, target: Int?) -> some View {
         let countOK = target.map { count == $0 } ?? false
         let countColor: Color = (target != nil && countOK)
             ? Color(hex: "4CAF50")
             : Design.Colors.textMuted
-        HStack(spacing: 6) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(title.uppercased())
-                .font(Design.Fonts.mono(12, weight: .bold))
-                .tracking(1)
-                .foregroundStyle(Design.Colors.textSecondary)
+                .font(Design.Fonts.display(16))
+                .foregroundStyle(Design.Colors.textPrimary)
             Text(target.map { "\(count)/\($0)" } ?? "\(count)")
-                .font(Design.Fonts.mono(12, weight: .bold))
+                .font(Design.Fonts.mono(13, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(countColor)
             Spacer(minLength: 0)
@@ -885,33 +874,24 @@ struct DecksView: View {
         .listRowBackground(Color.clear)
     }
 
-    /// PWR tier sub-header — single tight line per tier. Combines
-    /// "PWR 155 · 3/6 · Hero (ICE×2), Hero (FIRE)" into one line at
-    /// readable 11pt; bumps the prior 9-10pt fonts.
+    /// PWR tier sub-header — sits between the section label (16pt
+    /// display) and the rows (16pt display name). Power label at 14pt
+    /// mono bold cyan, count at 13pt mono. The hero-name breakdown
+    /// ("Maverick (FIRE×2), ECKS (ICE)") was removed because the cards
+    /// listed directly below this header already show the same info.
     private func pwrSubheader(power: Int, cards: [Card]) -> some View {
-        let breakdown = heroWeaponBreakdown(for: cards)
         let countColor: Color = cards.count > 6
             ? Color(hex: "C0392B")
             : Design.Colors.textMuted
         return HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text("PWR \(power)")
-                .font(Design.Fonts.mono(11, weight: .bold))
+                .font(Design.Fonts.mono(14, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(Design.Colors.bobaCyan)
             Text("\(cards.count)/6")
-                .font(Design.Fonts.mono(11))
+                .font(Design.Fonts.mono(13, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(countColor)
-            if !breakdown.isEmpty {
-                Text("·")
-                    .font(Design.Fonts.mono(11))
-                    .foregroundStyle(Design.Colors.textMuted)
-                Text(breakdown)
-                    .font(Design.Fonts.mono(11))
-                    .foregroundStyle(Design.Colors.textMuted)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
             Spacer(minLength: 0)
         }
     }

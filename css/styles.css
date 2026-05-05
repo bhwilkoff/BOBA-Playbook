@@ -1570,6 +1570,15 @@ body[data-find-density="l"] #view-search .card-grid { grid-template-columns: rep
   animation: fadeIn 0.18s ease;
 }
 .modal-overlay[hidden] { display: none; }
+/* CRITICAL: closed <dialog class="modal-overlay"> must be hidden.
+   The browser uses [open], not [hidden], for native dialogs — so
+   the .modal-overlay { display: flex } rule above would otherwise
+   force every closed dialog to render as a full-viewport blurred
+   overlay. (This shipped briefly between de5aeb8 and the next
+   commit; users saw "every tab is blurred" because three closed
+   dialogs were all painting their backdrop-filter at once.) */
+dialog.modal-overlay:not([open]) { display: none; }
+
 /* When .modal-overlay is a <dialog>, the browser adds default
    margins/borders/max-width/max-height we don't want — reset to
    match the legacy <div> overlay shape. */
@@ -1577,8 +1586,10 @@ dialog.modal-overlay {
   width: 100vw; height: 100vh;
   max-width: 100vw; max-height: 100vh;
   margin: 0; padding: 0;
-  border: none;
   background: transparent;  /* the ::backdrop carries the scrim */
+  backdrop-filter: none;     /* same — no double-blur on the dialog itself */
+  -webkit-backdrop-filter: none;
+  border: none;
   color: inherit;
 }
 dialog.modal-overlay::backdrop {

@@ -212,10 +212,20 @@ struct BOBAWalkthrough: View {
             // Cyan ring + tooltip on top of the dim.
             spotlightAndTooltip
 
-            // Bottom controls.
+            // Skip/Done bar — adaptive position. When the current
+            // step's anchor lives in the bottom half of the screen
+            // (e.g., Scanner mode pills, Decks summary pill), the
+            // bar moves to the TOP so it doesn't cover the controls
+            // it's pointing to.
             VStack {
-                Spacer()
-                bottomBar
+                if barAtTop {
+                    bottomBar
+                        .padding(.top, max(safeBottomInset, 16))
+                    Spacer()
+                } else {
+                    Spacer()
+                    bottomBar
+                }
             }
         }
         .transition(.opacity)
@@ -384,6 +394,18 @@ struct BOBAWalkthrough: View {
     private var currentAnchorRect: CGRect? {
         guard let step, let anchorKey = step.anchor else { return nil }
         return anchorFrames[anchorKey]
+    }
+
+    /// True when the Skip/Done bar should render at the TOP of the
+    /// screen rather than the bottom — used for steps whose anchor
+    /// lives in the lower half of the viewport (Scanner mode pills,
+    /// Decks summary pill, etc.) so the bar doesn't cover the very
+    /// controls it's pointing at.
+    private var barAtTop: Bool {
+        guard let rect = currentAnchorRect, anchorIsVisible(rect) else {
+            return false
+        }
+        return rect.midY > containerSize.height * 0.5
     }
 
     /// Approximate safe viewport — keeps the spotlight ring + tooltip
@@ -671,11 +693,12 @@ struct BOBAWalkthrough: View {
         .background(.regularMaterial)
         .clipShape(Capsule())
         .padding(.horizontal, Design.Spacing.xl)
-        // Pad above the system tab bar (≈49pt) + home indicator
-        // (safeBottomInset, ≈34pt). Without this the Skip/Done bar
-        // landed BEHIND the tab bar on every tab except Scan
-        // (Scan ignoresSafeArea so its tab bar is hidden).
-        .padding(.bottom, safeBottomInset + 56)
+        // Bottom padding only applies when the bar is rendered at
+        // the bottom — clears the system tab bar (≈49pt) + home
+        // indicator (safeBottomInset, ≈34pt). When the bar is at
+        // the top (adaptive layout above), the wrapping VStack adds
+        // its own top padding instead and this value is irrelevant.
+        .padding(.bottom, barAtTop ? 0 : safeBottomInset + 56)
     }
 }
 
@@ -746,14 +769,20 @@ extension BOBAWalkthrough.Script {
         id: .decksEditor,
         steps: [
             .init(anchor: .init("decksEditor.statRow"),
-                  copy: "Heroes, Plays, Bonus, Hot Dogs, and DBS — your build at a glance."),
+                  copy: "Heroes, Plays, Bonus, Hot Dogs, DBS — your build at a glance."),
             .init(anchor: .init("decksEditor.formatChip"),
                   copy: "Format shapes the whole deck — pick before you build.",
                   placement: .below),
             .init(anchor: .init("decksEditor.deckList"),
                   copy: "Tap a card to view it. Tap × to remove."),
-            .init(anchor: .init("decksEditor.saveButton"),
-                  copy: "Sign in and Save to sync your deck across devices.",
+            // saveButton anchor moved to deckName field — the SAVE
+            // button is in the toolbar where .toolbarBackground
+            // renders above the walkthrough overlay and hides the
+            // ring. The deck name field is the first body element
+            // and always visible; tooltip mentions the SAVE button
+            // at the top right.
+            .init(anchor: .init("decksEditor.deckName"),
+                  copy: "Name it, then tap SAVE up top. Sign in to sync across devices.",
                   placement: .below)
         ]
     )

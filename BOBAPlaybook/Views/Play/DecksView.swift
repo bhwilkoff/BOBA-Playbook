@@ -534,6 +534,17 @@ struct DecksView: View {
                     .foregroundStyle(Design.Colors.textPrimary)
                     .submitLabel(.done)
                     .textFieldStyle(.plain)
+                    // Anchor for the editor walkthrough's "Sign in
+                    // and Save" step. Originally on the SAVE button
+                    // in the toolbar, but the editor's
+                    // .toolbarBackground(.regularMaterial, .visible)
+                    // renders above the walkthrough overlay and
+                    // hides the spotlight ring there. The deck name
+                    // field is the first body element and is always
+                    // visible — anchoring here gives a clearly-
+                    // visible spotlight + a tooltip that can mention
+                    // the SAVE button at the top right.
+                    .walkthroughAnchor("decksEditor.deckName")
                 Spacer()
                 if !deckIsEmpty {
                     legalityPill

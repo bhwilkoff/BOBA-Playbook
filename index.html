@@ -247,10 +247,24 @@
             </span>
             <span class="quick-add-label">Tap to View</span>
           </button>
+          <!-- Selection-mode toggle — explicit affordance for users
+               who don't discover shift-click / drag-marquee. When on,
+               every tap on a grid card toggles selection instead of
+               opening the modal. -->
+          <button class="quick-add-pill multiselect-toggle" id="multiselect-toggle" type="button" aria-pressed="false" title="Tap cards to select multiple (or shift-click / drag-marquee)">
+            <span class="quick-add-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                <path d="M9 11l3 3L22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </span>
+            <span class="quick-add-label">Select</span>
+          </button>
         </div>
         <!-- Multi-select toolbar — appears when ≥1 card is selected
-             via shift-click, drag-marquee, or long-press. Floats above
-             the grid bottom; auto-hides when selection is cleared. -->
+             via shift-click, drag-marquee, long-press, or the
+             "Select" pill above. Sticky just below the results bar. -->
         <div class="multiselect-toolbar" id="multiselect-toolbar" hidden role="toolbar" aria-label="Selected cards actions">
           <span class="multiselect-count"><span id="multiselect-count-num">0</span> selected</span>
           <div class="multiselect-actions">

@@ -1016,8 +1016,23 @@ body[data-find-density="l"] #view-search .card-grid { grid-template-columns: rep
 }
 .card-item { position: relative; }  /* in case not already set — required for ::after */
 
-/* Disable text selection during a drag so the marquee feels native. */
-body.selection-mode .card-grid { user-select: none; -webkit-user-select: none; }
+/* Card grid never allows native text selection or image drag — both
+   compete with the marquee gesture. Cards aren't meant to be
+   text-copied; their data lives on the modal/detail surfaces. */
+.card-grid, .card-grid * {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.card-grid img { -webkit-user-drag: none; user-drag: none; }
+
+/* "Select" pill — cyan accent when active so it reads distinctly
+   from the orange Quick Add pill (different verbs, different states). */
+.multiselect-toggle.active {
+  background: rgba(0,245,255,0.15) !important;
+  border-color: rgba(0,245,255,0.5) !important;
+  color: var(--boba-cyan, #00F5FF) !important;
+}
 
 .marquee-rect {
   position: fixed;

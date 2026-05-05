@@ -118,6 +118,12 @@ struct DecksView: View {
 
     // Walkthrough
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
+    /// Separate walkthrough for the editor presentation context.
+    /// The pool's walkthroughOverlay can't see anchors inside the
+    /// fullScreenCover (different preference graph), so the editor
+    /// hosts its own overlay + walkthrough that fires on first
+    /// editor open.
+    @State private var editorWalkthrough: BOBAWalkthrough.Script? = nil
 
     // MARK: - Body
 
@@ -200,7 +206,7 @@ struct DecksView: View {
                         sheetHeaderRow
                         Divider().background(Design.Colors.glass)
                         formatChipStrip
-                            .walkthroughAnchor("decks.formatChip")
+                            .walkthroughAnchor("decksEditor.formatChip")
                         Divider().background(Design.Colors.glass)
                         deckListScroll
                     }
@@ -208,6 +214,19 @@ struct DecksView: View {
                     .toolbarBackground(.regularMaterial, for: .navigationBar)
                     .toolbarBackground(.visible, for: .navigationBar)
                     .navigationBarTitleDisplayMode(.inline)
+                    .walkthroughOverlay($editorWalkthrough)
+                    .onAppear {
+                        // Fire on first editor open. Deferred so the
+                        // header stat row + format chips + deck list +
+                        // save button have laid out before anchor
+                        // capture.
+                        if WalkthroughsManager.shared.shouldShow(.decksEditor) {
+                            Task { @MainActor in
+                                try? await Task.sleep(for: .milliseconds(300))
+                                editorWalkthrough = .decksEditor
+                            }
+                        }
+                    }
                     .navigationDestination(for: EditorRoute.self) { route in
                         switch route {
                         case .deckManagement:
@@ -351,7 +370,7 @@ struct DecksView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled((auth.isAuthenticated && deckIsEmpty) || store.isSaving)
-                .walkthroughAnchor("decks.saveButton")
+                .walkthroughAnchor("decksEditor.saveButton")
                 .accessibilityLabel(auth.isAuthenticated ? "Save deck" : "Sign in to save")
 
                 Menu {
@@ -551,6 +570,7 @@ struct DecksView: View {
         .padding(.horizontal, Design.Spacing.md)
         .padding(.top, Design.Spacing.md)
         .padding(.bottom, Design.Spacing.sm)
+        .walkthroughAnchor("decksEditor.statRow")
     }
 
     private func statCount(label: String, value: Int, target: Int?) -> some View {
@@ -769,6 +789,7 @@ struct DecksView: View {
             // horizontal rubber-banding (per
             // memory/feedback_swiftui_scrollview_width.md).
             .frame(maxWidth: .infinity, alignment: .leading)
+            .walkthroughAnchor("decksEditor.deckList")
         }
     }
 
@@ -1115,9 +1136,15 @@ struct DecksView: View {
         if deckIsEmpty {
             _ = store.restoreDraft(allCards: cardStore.displayCards)
         }
-        // Walkthrough on first visit.
+        // Walkthrough on first visit. Deferred 250ms so the
+        // LazyVGrid pool cells + summary pill have time to lay out
+        // and register their anchor preferences (.onAppear fires
+        // before first layout — see SearchView for context).
         if WalkthroughsManager.shared.shouldShow(.decksTab) {
-            walkthrough = .decksTab
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(250))
+                walkthrough = .decksTab
+            }
         }
     }
 

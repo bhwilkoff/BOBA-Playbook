@@ -294,6 +294,14 @@ enum WalkthroughID: String, CaseIterable {
     /// scripts in DESIGN.md §6.10.1). Fires on first ScanView open.
     /// Role-aware — streamers see an extra step about Show mode.
     case scannerOverview = "walkthrough.scanner_overview"
+    /// Fires the first time a user opens the Decks editor (the
+    /// fullScreenCover that grows out of the summary pill). The
+    /// pool view's decksTab walkthrough can't reach the editor's
+    /// anchors (different presentation context), so the editor
+    /// teaches its own surfaces — format chip strip, deck list,
+    /// save button — in a separate walkthrough that fires the first
+    /// time the cover opens.
+    case decksEditor    = "walkthrough.decks_editor"
 }
 
 @Observable

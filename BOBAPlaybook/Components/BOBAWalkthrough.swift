@@ -134,21 +134,30 @@ extension View {
     ) -> some View {
         self.overlayPreferenceValue(WalkthroughAnchorKey.self) { anchors in
             if let script = binding.wrappedValue {
-                GeometryReader { proxy in
-                    let frames: [BOBAWalkthrough.Anchor: CGRect] = anchors.reduce(into: [:]) { acc, pair in
-                        acc[pair.key] = proxy[pair.value]
+                // Outer GeometryReader (NOT ignoring safe area) reads
+                // the bottom safe-area inset so the bottom Skip/Done
+                // bar can be padded above the tab bar. Inner reader
+                // (ignoring safe area) provides full-screen coords
+                // for the anchor rects + dim cutout.
+                GeometryReader { outer in
+                    let safeBottom = outer.safeAreaInsets.bottom
+                    GeometryReader { proxy in
+                        let frames: [BOBAWalkthrough.Anchor: CGRect] = anchors.reduce(into: [:]) { acc, pair in
+                            acc[pair.key] = proxy[pair.value]
+                        }
+                        BOBAWalkthrough(
+                            script: script,
+                            anchorFrames: frames,
+                            containerSize: proxy.size,
+                            safeBottomInset: safeBottom,
+                            onStage: onStage
+                        ) {
+                            WalkthroughsManager.shared.dismiss(script.id)
+                            binding.wrappedValue = nil
+                        }
                     }
-                    BOBAWalkthrough(
-                        script: script,
-                        anchorFrames: frames,
-                        containerSize: proxy.size,
-                        onStage: onStage
-                    ) {
-                        WalkthroughsManager.shared.dismiss(script.id)
-                        binding.wrappedValue = nil
-                    }
+                    .ignoresSafeArea()
                 }
-                .ignoresSafeArea()
             }
         }
     }
@@ -178,6 +187,13 @@ struct BOBAWalkthrough: View {
     /// set on the host's content never reached an overlay tree.
     let anchorFrames: [Anchor: CGRect]
     let containerSize: CGSize
+    /// Bottom safe-area inset of the host view, read from a non-
+    /// ignoring GeometryReader in walkthroughOverlay. Used to pad
+    /// the Skip/Done bar above the system tab bar — without this
+    /// the bar renders at containerSize.height (under the tab bar)
+    /// and is invisible on every tab except Scan (which itself
+    /// ignoresSafeArea so its tab bar is hidden).
+    let safeBottomInset: CGFloat
     /// Optional callback the host implements to prepare the view for a
     /// step's anchor (e.g., expand a drawer). Called with the new
     /// step's stage when advancing; called with nil when the
@@ -439,13 +455,27 @@ struct BOBAWalkthrough: View {
     /// inside the viewport (no edge of the cyan rectangle ever runs
     /// off-screen). The pad-then-clamp dance: compute the desired
     /// padded rect, then shrink it by however much it overflows on
-    /// each edge so all four sides remain visible.
+    /// each edge so all four sides remain visible. For full-width
+    /// anchors (like the deck summary pill or the scanner mode
+    /// pills), the inset is reduced so the ring stays inside the
+    /// screen instead of pushing 8pt past either edge.
     @ViewBuilder
     private func spotlightRing(rect: CGRect) -> some View {
         let viewport = CGRect(origin: .zero, size: containerSize)
         let visible = rect.intersection(viewport)
-        // Pad outward, then intersect with viewport to clamp every edge.
-        let clamped = visible.insetBy(dx: -8, dy: -8).intersection(viewport)
+        // Compute a per-edge inset that's normally -8 but caps at the
+        // available margin on each side. This prevents the ring from
+        // overflowing for anchors that touch the screen edges.
+        let leftInset:   CGFloat = -min(8, visible.minX)
+        let rightInset:  CGFloat = -min(8, viewport.maxX - visible.maxX)
+        let topInset:    CGFloat = -min(8, visible.minY)
+        let bottomInset: CGFloat = -min(8, viewport.maxY - visible.maxY)
+        let clamped = CGRect(
+            x: visible.minX + leftInset,
+            y: visible.minY + topInset,
+            width:  visible.width  - leftInset - rightInset,
+            height: visible.height - topInset  - bottomInset
+        ).intersection(viewport)
         if visible.width > 4 && visible.height > 4 {
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(Design.Colors.bobaCyan, lineWidth: 2)
@@ -615,7 +645,11 @@ struct BOBAWalkthrough: View {
         .background(.regularMaterial)
         .clipShape(Capsule())
         .padding(.horizontal, Design.Spacing.xl)
-        .padding(.bottom, Design.Spacing.xl)
+        // Pad above the system tab bar (≈49pt) + home indicator
+        // (safeBottomInset, ≈34pt). Without this the Skip/Done bar
+        // landed BEHIND the tab bar on every tab except Scan
+        // (Scan ignoresSafeArea so its tab bar is hidden).
+        .padding(.bottom, safeBottomInset + 56)
     }
 }
 
@@ -667,13 +701,34 @@ extension BOBAWalkthrough.Script {
 
     static let collectionTab = BOBAWalkthrough.Script(
         id: .collectionTab,
-        // scopeBar (segmented designation Picker) anchored at a
-        // pre-layout rect (-20,-20,40,47) on first appear, so dropped.
-        // Users discover designations naturally — the segmented
-        // Picker is right above the card list and labeled clearly.
+        // scopeBar restored — the 250ms host-side deferral lets the
+        // segmented Picker lay out before the walkthrough fires, so
+        // the rect is no longer the pre-layout (-20,-20,40,47) artifact.
         steps: [
+            .init(anchor: .init("collection.scopeBar"),    copy: "Switch between Personal, Sale, Trade, Wanted, and Grails."),
             .init(anchor: .init("collection.cardCell"),    copy: "Tap a card to view value, designation, and notes."),
-            .init(anchor: .init("collection.displayMode"), copy: "Open the menu to change designation, view, or share a Wall.")
+            .init(anchor: .init("collection.displayMode"), copy: "Open the menu to change view or share a Wall image.")
+        ]
+    )
+
+    /// Fires on first editor open from DecksView. The pool's
+    /// decksTab walkthrough teaches the pool surfaces; this one
+    /// teaches the editor (format, deck list with stat counts +
+    /// DBS budget, save). Together they cover the full deck-build
+    /// flow without crossing presentation boundaries.
+    static let decksEditor = BOBAWalkthrough.Script(
+        id: .decksEditor,
+        steps: [
+            .init(anchor: .init("decksEditor.statRow"),
+                  copy: "Heroes, Plays, Bonus, Hot Dogs, and DBS — your build at a glance."),
+            .init(anchor: .init("decksEditor.formatChip"),
+                  copy: "Format shapes the whole deck — pick before you build.",
+                  placement: .below),
+            .init(anchor: .init("decksEditor.deckList"),
+                  copy: "Tap a card to view it. Tap × to remove."),
+            .init(anchor: .init("decksEditor.saveButton"),
+                  copy: "Sign in and Save to sync your deck across devices.",
+                  placement: .below)
         ]
     )
 

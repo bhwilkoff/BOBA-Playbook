@@ -292,6 +292,30 @@ final class SupabaseClient {
         try checkStatus(data: data, response: response)
     }
 
+    /// Calls the boba-account-delete Worker to permanently delete the
+    /// current user's auth row. Postgres FKs cascade through every
+    /// user-data table (user_cards, decks, deck_cards, shows, show_cards,
+    /// user_profiles). Mod-submitted records (card_corrections,
+    /// card_image_overrides) preserve their content with NULL author.
+    ///
+    /// On success the caller MUST sign out locally — the JWT is
+    /// already invalidated server-side, but the local session needs
+    /// clearing so AuthManager doesn't try to use the stale token.
+    func deleteAccount() async throws {
+        guard let token = session?.accessToken else {
+            throw APIError.serverError(401, "Not authenticated")
+        }
+        guard let url = URL(string: WorkerConfig.accountDeleteURL + "/account/delete") else {
+            throw APIError.serverError(0, "Invalid Worker URL")
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
     // MARK: - Mod promotion requests
 
     /// Returns true if the current user has an outstanding mod-access request.

@@ -22,6 +22,12 @@ enum WorkerConfig {
     /// panel. See workers/comc-proxy/src/index.ts (note the Turnstile
     /// caveat: live data depends on COMC's WAF allowing the worker).
     static let comcProxyURL    = "https://boba-comc-proxy.benwilkoff.workers.dev"
+    /// boba-account-delete — POST /account/delete with the user's JWT.
+    /// Holds the Supabase service_role key as a secret and proxies the
+    /// admin auth.users delete (which cascades through every user-data
+    /// table via FK ON DELETE CASCADE). App Store 5.1.1(v) compliance.
+    /// See workers/account-delete/worker.js.
+    static let accountDeleteURL = "https://boba-account-delete.benwilkoff.workers.dev"
 }
 
 // MARK: - Discord — Trade Room

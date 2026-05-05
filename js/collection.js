@@ -586,19 +586,28 @@ const Collection = (() => {
     // Change Password — triggers the native Supabase reset email.
     wireChangePasswordButton(view);
 
-    // Delete Account — destructive confirm. Same deferred-backend
-    // approach as iOS for now (signs out + tells user to email).
+    // Delete Account — calls the boba-account-delete Worker which
+    // proxies the Supabase admin delete (cascading through every
+    // user-data table via FK ON DELETE CASCADE). On success we sign
+    // the user out locally so the stale JWT stops getting sent.
     view.querySelector('#profile-delete-btn')
       ?.addEventListener('click', async () => {
         const ok = confirm(
           'Delete your account?\n\n' +
-          'Your collection, decks, and shared links will be ' +
-          'permanently removed. This cannot be undone.\n\n' +
-          'For immediate deletion, email ben@bobaplaybook.com.\n\n' +
-          'Continue with sign-out now?'
+          'This permanently removes your collection, decks, shared ' +
+          'links, and account from BOBA Playbook. This cannot be ' +
+          'undone.\n\n' +
+          'Continue?'
         );
         if (!ok) return;
-        await Auth.signOut();
+        try {
+          await API.deleteAccount();
+          await Auth.signOut();
+          alert('Account deleted. Thanks for trying BOBA Playbook.');
+        } catch (e) {
+          alert('Could not delete account: ' + (e?.message || e) +
+                '\n\nIf this keeps happening, email ben@bobaplaybook.com.');
+        }
       });
 
     // Username inline edit + debounced banned-words check.

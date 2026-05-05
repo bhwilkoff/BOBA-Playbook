@@ -115,28 +115,19 @@ struct LearnView: View {
         // from the bottom while every other category slides in from
         // the side. WatchView is wired in the navigationDestination
         // switch below.
-        // Button (not NavigationLink — that swallows preferences)
-        // with the walkthrough anchor attached via .background, NOT
-        // .walkthroughAnchor on the Button itself. Earlier attempts
-        // (anchor on Button, anchor inside label, ZStack sibling) all
-        // failed because Button's iOS 26 internal preference machinery
-        // captures child preferences. .background places the anchor as
-        // a sibling in the parent's layout — Rectangle().fill(.clear)
-        // gives a definite-size renderable view (Color.clear sometimes
-        // gets optimized out of the preference graph) so the anchor
-        // reliably registers at the tile's actual frame.
-        Button {
-            path.append(cat)
-        } label: {
-            inner
-                .matchedTransitionSource(id: cat.id, in: tileZoomNamespace)
-        }
-        .buttonStyle(.plain)
-        .background(
-            Rectangle()
-                .fill(Color.clear)
-                .walkthroughAnchor(isFirst ? "learn.firstRow" : "learn.row.\(cat.id)")
-        )
+        // No Button, no NavigationLink. Both wrap children in an
+        // internal preference-eating layer in iOS 26. SearchView's
+        // find.cardCell anchors register reliably because it uses
+        // .onTapGesture on a bare view. Same pattern here:
+        // inner view + matchedTransitionSource + onTapGesture +
+        // walkthroughAnchor. The path is bound to NavigationStack,
+        // so path.append() drives navigation just like NavigationLink.
+        inner
+            .matchedTransitionSource(id: cat.id, in: tileZoomNamespace)
+            .onTapGesture {
+                path.append(cat)
+            }
+            .walkthroughAnchor(isFirst ? "learn.firstRow" : "learn.row.\(cat.id)")
     }
 
     /// Resolves a slug from cardStore.pendingLearnCategory back to a

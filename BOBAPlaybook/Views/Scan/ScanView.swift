@@ -66,7 +66,13 @@ struct ScanView: View {
             // step is appended.
             if walkthrough == nil
                 && WalkthroughsManager.shared.shouldShow(.scannerOverview) {
-                walkthrough = .scannerOverview
+                // Defer 250ms so the cardGuideFrame + bottomControls
+                // mode pills lay out before the walkthrough captures
+                // their anchors.
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(250))
+                    walkthrough = .scannerOverview
+                }
             }
         }
         .onDisappear {

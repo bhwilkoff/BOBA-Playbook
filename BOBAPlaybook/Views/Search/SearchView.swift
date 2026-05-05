@@ -116,7 +116,16 @@ struct SearchView: View {
                 store.pendingSearchQuery = nil
             }
             if WalkthroughsManager.shared.shouldShow(.findTab) {
-                walkthrough = .findTab
+                // Defer 250ms so the toolbar items (find.menu, find.scan,
+                // find.profile) and the first card cell (find.cardCell)
+                // have time to lay out and register their .walkthroughAnchor
+                // preferences. .onAppear fires BEFORE first layout
+                // completes; without the deferral the diagnostic showed
+                // anchors at pre-layout coords like (-13,-13).
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(250))
+                    walkthrough = .findTab
+                }
             }
         }
     }

@@ -255,7 +255,13 @@ struct LearnView: View {
         .walkthroughOverlay($walkthrough)
         .onAppear {
             if WalkthroughsManager.shared.shouldShow(.learnTab) {
-                walkthrough = .learnTab
+                // Defer so LazyVGrid lays out its first tile before the
+                // walkthrough captures anchors (.onAppear fires before
+                // first layout completes — see SearchView for context).
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(250))
+                    walkthrough = .learnTab
+                }
             }
             handlePendingCategory()
         }

@@ -199,7 +199,12 @@ struct CollectionView: View {
             // anchored on the empty/sign-in surface (the walkthrough
             // copy still teaches the concept).
             if WalkthroughsManager.shared.shouldShow(.collectionTab) {
-                walkthrough = .collectionTab
+                // Defer so designation Picker + first card cell lay
+                // out before the walkthrough captures their anchors.
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(250))
+                    walkthrough = .collectionTab
+                }
             }
         }
         .onChange(of: auth.isAuthenticated) { _, isAuthenticated in

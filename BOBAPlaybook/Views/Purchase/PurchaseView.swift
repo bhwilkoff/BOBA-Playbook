@@ -68,7 +68,14 @@ struct PurchaseView: View {
         .walkthroughOverlay($walkthrough)
         .onAppear {
             if WalkthroughsManager.shared.shouldShow(.purchaseTab) {
-                walkthrough = .purchaseTab
+                // Defer so the segmented Picker lays out before the
+                // walkthrough captures its anchor — without the
+                // deferral the Picker's pre-layout rect was bizarre
+                // (e.g., (-39.7, -23.3, 79.3, 47)).
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(250))
+                    walkthrough = .purchaseTab
+                }
             }
         }
     }

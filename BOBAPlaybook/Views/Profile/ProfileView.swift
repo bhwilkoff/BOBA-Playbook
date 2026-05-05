@@ -186,6 +186,9 @@ struct ProfileView: View {
                         if auth.isStreamer && !auth.isAdmin {
                             roleBadgePill("STREAMER", Design.Colors.bobaCyan)
                         }
+                        if let pill = providerPill {
+                            pill
+                        }
                         // Admin-only Practice shortcut. Tapping the
                         // bolt opens PracticeView in a fullScreenCover
                         // — kept admin-only because the practice
@@ -238,6 +241,45 @@ struct ProfileView: View {
             .padding(.vertical, 2)
             .background(color)
             .clipShape(RoundedRectangle(cornerRadius: 3))
+    }
+
+    /// Sign-in method indicator. Renders a small pill next to the
+    /// role badge so the user knows which provider their session
+    /// was created with — matters for "how do I disconnect Apple?"
+    /// or "do I have a password I can change?" questions. Email
+    /// users see no pill (it's the unmarked default).
+    private var providerPill: AnyView? {
+        switch auth.signInProvider {
+        case "apple":
+            return AnyView(HStack(spacing: 3) {
+                Image(systemName: "applelogo").font(.system(size: 9))
+                Text("APPLE").font(Design.Fonts.mono(9, weight: .bold))
+            }
+            .foregroundStyle(Design.Colors.textPrimary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.black)
+            .overlay(RoundedRectangle(cornerRadius: 3)
+                .strokeBorder(Color.white.opacity(0.3), lineWidth: 0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 3)))
+        case "discord":
+            return AnyView(HStack(spacing: 3) {
+                Image("discord-logo")
+                    .resizable().renderingMode(.template).scaledToFit()
+                    .frame(width: 9, height: 9)
+                Text("DISCORD").font(Design.Fonts.mono(9, weight: .bold))
+            }
+            .foregroundStyle(Color.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color(hex: "5865F2"))
+            .clipShape(RoundedRectangle(cornerRadius: 3)))
+        default:
+            // Email / unknown — no pill (the unmarked default
+            // matches the historical UI; password reset is the
+            // affordance for "this is an email account").
+            return nil
+        }
     }
 
     // MARK: - Account

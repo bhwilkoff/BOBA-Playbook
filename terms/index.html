@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service — BOBA Playbook</title>
+  <link rel="icon" href="/assets/icons/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --orange: #FF4D00;
+      --cyan: #00F5FF;
+      --violet: #8B00FF;
+      --near-black: #080810;
+      --surface: #0D0D1A;
+      --surface-2: #12121F;
+      --text-primary: #F0F0FF;
+      --text-secondary: #A0A0C0;
+      --text-muted: #606080;
+      --border: rgba(255,255,255,0.08);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--near-black);
+      color: var(--text-primary);
+      font-family: 'Chakra Petch', monospace;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+    }
+    .header-inner {
+      max-width: 760px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .header-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .header-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+    }
+    .header-title span { color: var(--orange); }
+
+    /* ── Hero ───────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #0D0820 0%, #100818 50%, #080C18 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -60px; left: -60px;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(255,77,0,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-inner { max-width: 760px; margin: 0 auto; position: relative; }
+    .hero h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(36px, 6vw, 54px);
+      letter-spacing: 0.05em;
+      line-height: 1.0;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: var(--orange); }
+    .hero-meta {
+      font-size: 13px;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* ── TL;DR ──────────────────────────────────────────────── */
+    .tldr {
+      background: rgba(0, 245, 255, 0.06);
+      border: 1px solid rgba(0, 245, 255, 0.2);
+      border-radius: 12px;
+      padding: 28px 32px;
+      margin: 40px 0;
+    }
+    .tldr h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 0.08em;
+      color: var(--cyan);
+      margin-bottom: 16px;
+    }
+    .tldr ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .tldr li { display: flex; align-items: flex-start; gap: 10px; font-size: 15px; color: var(--text-secondary); }
+    .tldr li::before { content: '✓'; color: var(--cyan); font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+
+    /* ── Main content ───────────────────────────────────────── */
+    main { max-width: 760px; margin: 0 auto; padding: 0 24px 80px; }
+
+    section { margin-top: 48px; }
+
+    h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 26px;
+      letter-spacing: 0.06em;
+      color: var(--orange);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,77,0,0.2);
+    }
+
+    h3 {
+      font-family: 'Chakra Petch', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin: 24px 0 10px;
+    }
+
+    p { color: var(--text-secondary); margin-bottom: 16px; font-size: 15px; }
+    p:last-child { margin-bottom: 0; }
+
+    ul, ol { padding-left: 20px; color: var(--text-secondary); font-size: 15px; }
+    li { margin-bottom: 8px; }
+
+    /* ── Callout ────────────────────────────────────────────── */
+    .callout {
+      background: rgba(139,0,255,0.08);
+      border-left: 3px solid var(--violet);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      margin: 20px 0;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 28px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    footer a { color: var(--text-muted); }
+    footer a:hover { color: var(--cyan); }
+
+    @media (max-width: 480px) {
+      .tldr { padding: 20px; }
+      h2 { font-size: 22px; }
+    }
+  </style>
+  <!-- Cloudflare Web Analytics — cookieless visitor counter. -->
+  <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token": "55a142aed31b4f2e89b58208bc31892a"}'></script>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <img src="/assets/icons/icon-192.png" alt="BOBA Playbook icon" class="header-icon">
+    <div class="header-title">BOBA <span>PLAYBOOK</span></div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-inner">
+    <h1>Terms of <span>Service</span></h1>
+    <p class="hero-meta">Last updated: May 4, 2026</p>
+  </div>
+</div>
+
+<main>
+
+  <div class="tldr">
+    <h2>TL;DR</h2>
+    <ul>
+      <li>BOBA Playbook is a free, independent fan companion app — not affiliated with the Bo Jackson Battle Arena game's publisher.</li>
+      <li>You're responsible for your account, your username, and any content (collection data, deck names) you put in.</li>
+      <li>Pick a username and content that don't harass, deceive, or impersonate others. We can disable accounts that do.</li>
+      <li>External links to eBay, COMC, Whatnot, and Discord are conveniences. We're not a party to your transactions or messages there.</li>
+      <li>The app is provided "as is" — we'll do our best, but no warranty. Your collection data is backed up to Supabase, but keep your own records of anything important.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>1. About These Terms</h2>
+    <p>These Terms of Service ("Terms") govern your use of the BOBA Playbook iOS app and the website at <a href="https://bobaplaybook.com">bobaplaybook.com</a> (together, the "Service"). The Service is operated by Ben Wilkoff ("we", "us"), an independent developer.</p>
+    <p>By creating an account, signing in, or otherwise using the Service, you agree to these Terms and to our <a href="/privacy/">Privacy Policy</a>. If you don't agree, please don't use the Service.</p>
+    <p>Questions? <a href="mailto:ben@learningischange.com">ben@learningischange.com</a>.</p>
+  </section>
+
+  <section>
+    <h2>2. Eligibility</h2>
+    <p>You must be at least 13 years old to create an account. If you're between 13 and the age of legal majority in your jurisdiction, you confirm that a parent or guardian has reviewed these Terms and agrees on your behalf.</p>
+    <p>The Service is provided to users worldwide, but we make no claim that it's appropriate or available in every jurisdiction. You're responsible for compliance with the laws that apply where you live.</p>
+  </section>
+
+  <section>
+    <h2>3. Your Account</h2>
+
+    <h3>Creating an account</h3>
+    <p>You can create an account using email and password, Sign in with Apple, or Discord OAuth. You agree to provide accurate information and to keep your credentials secure. You're responsible for everything that happens under your account.</p>
+
+    <h3>Username</h3>
+    <p>You'll be assigned a username (an "@handle") on first sign-in, derived from your email or Discord profile. You can change it from the Profile sheet. Usernames must:</p>
+    <ul>
+      <li>Use only lowercase letters, digits, hyphens, and underscores (2–30 characters).</li>
+      <li>Not impersonate another person, brand, or the Service itself (we reserve names like "admin", "support", "boba", and similar).</li>
+      <li>Not include slurs, hate speech, sexual content, or harassment. We use a moderation list to block obvious cases at the database level — your username choice is checked when you save it.</li>
+    </ul>
+    <p>We may rename or suspend accounts that violate these rules. If we rename your username, your public profile URL changes accordingly; we'll do our best to notify you when this happens.</p>
+
+    <h3>Account security</h3>
+    <p>Tell us immediately if you suspect someone else has accessed your account. We're not liable for losses arising from unauthorized account use that you didn't promptly report.</p>
+  </section>
+
+  <section>
+    <h2>4. Your Content</h2>
+    <p>"Your Content" means anything you submit to the Service: card collection entries, designations, prices, notes, deck names, deck composition, show metadata (for streamers), card corrections (for moderators), and your username.</p>
+
+    <h3>You own it</h3>
+    <p>You retain all rights to Your Content. We don't claim ownership.</p>
+
+    <h3>You grant us a license to host it</h3>
+    <p>You give us a non-exclusive, worldwide, royalty-free license to store, display, and transmit Your Content as needed to operate the Service — for example, syncing your collection across your devices, displaying your decks, and rendering your public collection page (if you choose to enable public sharing).</p>
+
+    <h3>Public sharing</h3>
+    <p>If you enable Public Collection in your Profile, the Service will render a read-only page at <strong>bobaplaybook.com/u/{your-username}</strong> showing the cards in your Personal, For Sale, For Trade, and Grails designations. Private fields (purchase price, asking price, notes) and your Wanted list are never exposed publicly. You can disable public sharing at any time; the page goes blank within seconds of toggling off.</p>
+
+    <h3>You're responsible for accuracy</h3>
+    <p>Designations like "For Sale" or "Grails" are display labels chosen by you. We make no guarantee that any card displayed on a public profile will actually be sold, traded, or held — that's between you and the people you communicate with off the Service.</p>
+  </section>
+
+  <section>
+    <h2>5. Acceptable Use</h2>
+
+    <p>Don't use the Service to:</p>
+    <ul>
+      <li>Harass, threaten, or impersonate other users or any third party.</li>
+      <li>Post or transmit slurs, hate speech, sexual content involving minors, or content that incites violence.</li>
+      <li>Scrape, mass-download, or automate the Service in a way that places undue load on our infrastructure or third parties we depend on (Supabase, Cloudflare, eBay's API, Discord's API).</li>
+      <li>Attempt to bypass rate limits, role gates, RLS policies, or the username moderation list.</li>
+      <li>Reverse engineer, decompile, or attempt to extract our API keys or worker credentials.</li>
+      <li>Use the Service to commit fraud — including misrepresenting cards For Sale or For Trade.</li>
+      <li>Upload card images you don't have rights to (moderator role only — image submissions must come from your own collection or be otherwise lawfully shareable).</li>
+    </ul>
+
+    <p>We can suspend or terminate any account that violates these rules. We try to communicate before doing so for non-egregious cases, but we reserve the right to act immediately when needed.</p>
+  </section>
+
+  <section>
+    <h2>6. Intellectual Property</h2>
+
+    <h3>BOBA / Bo Jackson Battle Arena trademarks</h3>
+    <p>"BOBA", "Bo Jackson Battle Arena", card names, hero names, weapon types, and game mechanics are property of the game's publisher. BOBA Playbook is an independent fan project; we are not affiliated with, endorsed by, or sponsored by the publisher. The trademarks are used here under fair-use principles for descriptive and informational purposes.</p>
+
+    <h3>Card images</h3>
+    <p>Card images are sourced from publicly available materials and are owned by the publisher. They are displayed in the Service for reference and identification — not for resale or redistribution outside the Service.</p>
+
+    <h3>Our code and design</h3>
+    <p>The Service's source code, design, and original written content (rules summaries, strategy guides, glossary entries we wrote) are owned by Ben Wilkoff. The repository is public on GitHub but does not grant any license to fork, redistribute, or build derivative apps without permission.</p>
+
+    <h3>Reporting infringement</h3>
+    <p>If you believe content on the Service infringes your intellectual property rights, contact <a href="mailto:ben@learningischange.com">ben@learningischange.com</a> with details (the work, the location of the alleged infringement, and your contact info). We respond promptly to legitimate claims.</p>
+  </section>
+
+  <section>
+    <h2>7. Third-Party Services and Off-Service Transactions</h2>
+
+    <p>The Service links to and integrates with third-party platforms:</p>
+
+    <ul>
+      <li><strong>eBay</strong> — pricing data and Buy Now listings via eBay's Browse API.</li>
+      <li><strong>COMC</strong> — asking-price listings (when available).</li>
+      <li><strong>Radish</strong> — recent sales price data.</li>
+      <li><strong>Whatnot</strong> — upcoming-shows feed for live breaks.</li>
+      <li><strong>Discord</strong> — community trade room (optional).</li>
+      <li><strong>Apple Maps / Leaflet</strong> — store-locator maps.</li>
+    </ul>
+
+    <p>We are not a party to any transaction, communication, or relationship you have with these third parties. Buying a card on eBay, joining a Whatnot break, sending a Discord message, or visiting a store is between you and the third party — their terms and policies apply, not ours.</p>
+
+    <p>We display pricing data ("estimated value", "market estimate", "Buy Now" links) for your convenience. We make no guarantee of accuracy, currency, or availability. Prices are estimates based on third-party feeds and can be wrong, stale, or inflated. Always verify before relying on a price for a real transaction.</p>
+
+    <div class="callout">
+      <strong>Important:</strong> The Service is a coaching and tracking tool, not a marketplace. We don't process payments, hold funds, escrow trades, or guarantee transactions of any kind. If a deal goes wrong off-Service, we can't help you recover.
+    </div>
+  </section>
+
+  <section>
+    <h2>8. Moderator and Streamer Roles</h2>
+
+    <p>Promoted roles (moderator, streamer, admin) come with elevated capabilities and corresponding responsibilities:</p>
+
+    <ul>
+      <li><strong>Moderators</strong> can submit catalog corrections (card data fixes) and image overrides. Submissions must be accurate and based on first-hand knowledge of the card. False or malicious submissions are grounds for immediate role revocation.</li>
+      <li><strong>Streamers</strong> can manage Whatnot show lists and generate share images. Show metadata you create may be visible to other users (depending on share settings).</li>
+      <li><strong>Admins</strong> can review pending requests, approve/reject role promotions, and manage the moderation queue.</li>
+    </ul>
+
+    <p>Promotion is granted at our discretion. We can revoke any role at any time, with or without notice, if it's misused.</p>
+  </section>
+
+  <section>
+    <h2>9. Account Termination</h2>
+
+    <h3>By you</h3>
+    <p>You can delete your account at any time from the Profile sheet (Sign Out → Delete Account). Account deletion permanently removes your email, collection data, decks, shows, and username from our systems within 30 days. To request immediate deletion, email <a href="mailto:ben@learningischange.com">ben@learningischange.com</a>.</p>
+
+    <h3>By us</h3>
+    <p>We can suspend or terminate your account if you violate these Terms, abuse the Service, or expose us to legal or operational risk. We'll do our best to communicate the reason and give you a chance to respond when the situation allows.</p>
+
+    <h3>What happens to public links</h3>
+    <p>If your account is deleted, your public collection page at <strong>bobaplaybook.com/u/{username}</strong> stops resolving. The username is released back to the available pool after 90 days, after which someone else could claim it.</p>
+  </section>
+
+  <section>
+    <h2>10. Disclaimers</h2>
+
+    <p>The Service is provided "as is" and "as available" without warranty of any kind, express or implied. To the fullest extent permitted by law, we disclaim all warranties — including implied warranties of merchantability, fitness for a particular purpose, non-infringement, and uninterrupted service.</p>
+
+    <p>We do not warrant that:</p>
+    <ul>
+      <li>The Service will be uninterrupted, error-free, or available in your location at all times.</li>
+      <li>Card data, pricing data, or strategy content is complete, accurate, or up to date.</li>
+      <li>The card-scanning feature will identify every card correctly.</li>
+      <li>Third-party services we integrate with (eBay, COMC, Radish, Whatnot, Discord) will remain available, free, or functioning as expected.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>11. Limitation of Liability</h2>
+
+    <p>To the fullest extent permitted by law, we are not liable for any indirect, incidental, consequential, special, or punitive damages — including lost profits, lost data, or lost transaction opportunities — arising from or relating to your use of the Service.</p>
+
+    <p>Our total liability for any claim arising out of or relating to the Service is limited to USD $50 or the amount you paid us in the past 12 months (the Service is currently free, so this is typically $0). Some jurisdictions don't allow these limitations; in that case, our liability is limited to the maximum permitted by law.</p>
+  </section>
+
+  <section>
+    <h2>12. Indemnification</h2>
+
+    <p>You agree to indemnify and hold harmless Ben Wilkoff, the Service, and its operators from any claim, demand, loss, or expense (including reasonable attorneys' fees) arising from (a) Your Content, (b) your violation of these Terms, (c) your violation of any third party's rights, or (d) your interactions with other users on or off the Service.</p>
+  </section>
+
+  <section>
+    <h2>13. Governing Law and Disputes</h2>
+
+    <p>These Terms are governed by the laws of the State of Colorado, United States, without regard to conflict-of-law principles.</p>
+
+    <p>Before pursuing formal action, you agree to first contact <a href="mailto:ben@learningischange.com">ben@learningischange.com</a> with a description of the dispute, so we have a reasonable opportunity to resolve it informally. Most issues can be solved with an email.</p>
+
+    <p>If informal resolution fails, any dispute will be resolved in the state or federal courts located in Denver County, Colorado, and you consent to that jurisdiction.</p>
+  </section>
+
+  <section>
+    <h2>14. Changes to These Terms</h2>
+
+    <p>We may update these Terms from time to time. The "Last updated" date at the top of this page reflects the most recent revision. For material changes, we'll make a reasonable effort to notify users through the app or via email before the changes take effect.</p>
+
+    <p>Continued use of the Service after changes take effect constitutes acceptance of the updated Terms. If you don't agree to a change, please delete your account.</p>
+  </section>
+
+  <section>
+    <h2>15. Miscellaneous</h2>
+
+    <p><strong>Severability.</strong> If any provision of these Terms is held unenforceable, the remaining provisions remain in full effect.</p>
+
+    <p><strong>No waiver.</strong> Our failure to enforce a provision is not a waiver of our right to enforce it later.</p>
+
+    <p><strong>Entire agreement.</strong> These Terms, together with the <a href="/privacy/">Privacy Policy</a>, constitute the entire agreement between you and us regarding the Service.</p>
+
+    <p><strong>Assignment.</strong> You may not assign these Terms without our written consent. We may assign these Terms to a successor in connection with a merger, acquisition, or sale of the Service's assets.</p>
+  </section>
+
+  <section>
+    <h2>16. Contact</h2>
+    <p>For any questions about these Terms:</p>
+    <p><a href="mailto:ben@learningischange.com">ben@learningischange.com</a></p>
+    <p>You may also open an issue on the <a href="https://github.com/bhwilkoff/BOBA-Playbook" target="_blank" rel="noopener">GitHub repository</a>.</p>
+  </section>
+
+</main>
+
+<footer>
+  <p>&copy; 2026 BOBA Playbook &nbsp;·&nbsp; <a href="/">bobaplaybook.com</a> &nbsp;·&nbsp; <a href="/privacy/">Privacy Policy</a> &nbsp;·&nbsp; <a href="mailto:ben@learningischange.com">ben@learningischange.com</a></p>
+</footer>
+
+</body>
+</html>

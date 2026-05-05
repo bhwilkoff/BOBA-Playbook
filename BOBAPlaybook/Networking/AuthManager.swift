@@ -44,6 +44,12 @@ final class AuthManager {
     /// Generalized from the original hasPendingModRequest so the
     /// UI can show "Streamer request pending" too.
     private(set) var pendingRoleRequest: String?
+    /// Provider used to create the current session — "apple",
+    /// "discord", or "email". Drives the sign-in method pill on
+    /// the Profile header so the user can see which identity they
+    /// signed in with (matters for "how do I disconnect Apple?"-
+    /// style questions).
+    private(set) var signInProvider: String?
 
     var isMod: Bool { role == "moderator" || role == "admin" }
     var isAdmin: Bool { role == "admin" }
@@ -82,6 +88,38 @@ final class AuthManager {
             role = "user"
         }
         await loadProfile()
+        await loadAuthMetadata()
+    }
+
+    /// Fetches the Supabase auth user record (provider + OAuth
+    /// metadata) and surfaces the provider. Called after every
+    /// sign-in so the Profile header's sign-in method pill is
+    /// always accurate. Best-effort: failures fall back to nil
+    /// rather than blocking the UI.
+    func loadAuthMetadata() async {
+        guard isAuthenticated else { return }
+        guard let auth = try? await client.fetchAuthUser() else { return }
+        signInProvider = auth.app_metadata?.provider
+    }
+
+    /// After a Discord OAuth sign-in, lift the avatar URL +
+    /// Discord user ID out of the Supabase user_metadata and
+    /// persist them to user_profiles via setDiscordIdentity. This
+    /// way Discord-OAuth-signed-up users have their avatar AND
+    /// trade-room handle populated without having to re-Connect
+    /// through the Profile sheet.
+    private func captureDiscordIdentityFromOAuth() async {
+        guard isAuthenticated else { return }
+        guard let auth = try? await client.fetchAuthUser() else { return }
+        // Only fire when the most recent provider was Discord —
+        // we don't want to overwrite a previously-set identity
+        // with email-based metadata.
+        guard auth.app_metadata?.provider == "discord" else { return }
+        let meta = auth.user_metadata
+        let discordId = meta?.provider_id ?? meta?.sub
+        let avatarURL = meta?.avatar_url
+        guard discordId != nil || avatarURL != nil else { return }
+        await setDiscordIdentity(discordId: discordId, avatarUrl: avatarURL)
     }
 
     /// Hydrates every Profile-sheet field from user_profiles in one
@@ -274,6 +312,10 @@ final class AuthManager {
             userId = session.userId
             email  = session.email
             await fetchRole()
+            // fetchRole already loads auth metadata; lift the Discord
+            // avatar + ID into user_profiles so the avatar surface
+            // doesn't need a separate DiscordService.authorize() round.
+            await captureDiscordIdentityFromOAuth()
         } catch is CancellationError {
             // User dismissed the auth sheet — not an error
         } catch {
@@ -384,6 +426,7 @@ final class AuthManager {
         discordUserId           = nil
         pendingRoleRequest      = nil
         hasPendingModRequest    = false
+        signInProvider          = nil
         isLoading               = false
     }
 

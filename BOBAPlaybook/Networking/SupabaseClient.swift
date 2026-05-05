@@ -111,6 +111,45 @@ final class SupabaseClient {
         return rows.first?.role ?? "user"
     }
 
+    // MARK: - Auth user (provider + OAuth metadata)
+
+    /// Fetches the Supabase auth user record for the current session,
+    /// surfacing the OAuth provider used to sign in plus any
+    /// provider-supplied metadata (Discord avatar, username, etc.).
+    /// Used by AuthManager to (a) auto-persist Discord identity on
+    /// Discord OAuth sign-in and (b) render the sign-in method pill
+    /// on the Profile header.
+    struct AuthUser: Decodable {
+        struct AppMetadata: Decodable {
+            let provider:  String?
+            let providers: [String]?
+        }
+        struct UserMetadata: Decodable {
+            // Discord-supplied (also Apple/email-supplied — keys vary).
+            let avatar_url:  String?
+            let full_name:   String?
+            let user_name:   String?
+            let name:        String?
+            let provider_id: String?
+            let sub:         String?  // Discord user ID under PKCE
+        }
+        let id:            String
+        let email:         String?
+        let app_metadata:  AppMetadata?
+        let user_metadata: UserMetadata?
+    }
+
+    func fetchAuthUser() async throws -> AuthUser? {
+        guard accessToken != nil else { return nil }
+        let url = try makeURL(path: "/auth/v1/user")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+        return try? JSONDecoder().decode(AuthUser.self, from: data)
+    }
+
     // MARK: - Full profile (username, sharing, notifications, Discord)
 
     /// One-shot fetch of every user_profiles field that drives the

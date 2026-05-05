@@ -2048,11 +2048,20 @@ const Collection = (() => {
         </form>
       </div>`;
 
-    overlay.hidden = false;
-    document.body.style.overflow = 'hidden';
+    // Native <dialog> per WEB-DESIGN.md §13.
+    if (typeof overlay.showModal === 'function' && !overlay.open) {
+      overlay.showModal();
+    } else {
+      overlay.hidden = false;
+      document.body.style.overflow = 'hidden';
+    }
 
     box.querySelector('#add-close-btn').addEventListener('click', closeAddSheet);
     overlay.addEventListener('click', e => { if (e.target === overlay) closeAddSheet(); });
+    overlay.addEventListener('cancel', e => {  // ESC dismiss
+      e.preventDefault();
+      closeAddSheet();
+    });
     box.querySelector('#add-form').addEventListener('submit', async e => {
       e.preventDefault();
       await handleAddSubmit();
@@ -2060,8 +2069,13 @@ const Collection = (() => {
   }
 
   function closeAddSheet() {
-    document.getElementById('add-collection-overlay').hidden = true;
-    document.body.style.overflow = '';
+    const overlay = document.getElementById('add-collection-overlay');
+    if (typeof overlay?.close === 'function' && overlay.open) {
+      overlay.close();
+    } else if (overlay) {
+      overlay.hidden = true;
+      document.body.style.overflow = '';
+    }
     _addCard = null;
   }
 

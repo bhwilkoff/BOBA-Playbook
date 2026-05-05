@@ -1037,6 +1037,79 @@ body[data-find-density="m"] #view-search .card-grid { grid-template-columns: rep
 body[data-find-density="l"] #view-search .card-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--sp-4); }
 
 /* ----------------------------------------------------------------
+   POPOVER MENU (WEB-DESIGN.md §13 — adopt Popover API)
+   Uses native CSS Nesting (Baseline 2024) per §13 ADOPT — see
+   WEB-DESIGN.md §15 P1 #6. Replaces the hand-rolled dropdown +
+   click-outside pattern with a transient `<div popover="auto">`
+   the browser owns (top layer, ESC dismiss, focus return).
+---------------------------------------------------------------- */
+.popover-menu {
+  /* Native popover defaults already include border + padding;
+     we override to match the BOBA dark glass aesthetic. */
+  background: var(--boba-surface, #0D0D1A);
+  border: 1px solid var(--boba-glass-border, rgba(255,255,255,0.12));
+  border-radius: 10px;
+  padding: 6px;
+  min-width: 220px;
+  max-width: 320px;
+  max-height: min(60vh, 480px);
+  overflow-y: auto;
+  margin: 0;  /* override <div popover> default centering */
+  color: var(--boba-text-primary, #fff);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  font-family: var(--font-mono, monospace);
+
+  & .popover-menu-title {
+    padding: 8px 12px 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--boba-text-muted, rgba(255,255,255,0.5));
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 4px;
+  }
+
+  & .popover-menu-item {
+    width: 100%;
+    display: flex; flex-direction: column; gap: 2px;
+    align-items: flex-start;
+    background: transparent;
+    color: inherit;
+    border: none;
+    padding: 9px 12px;
+    border-radius: 6px;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+    transition: background 0.12s;
+
+    &:hover, &:focus-visible {
+      background: rgba(0,245,255,0.1);
+      outline: none;
+    }
+    &:active { background: rgba(0,245,255,0.18); }
+
+    & .popover-menu-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    & .popover-menu-sublabel {
+      font-size: 0.7rem;
+      color: var(--boba-text-muted, rgba(255,255,255,0.5));
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+  }
+
+  /* Native popover ::backdrop is invisible by default — that's fine
+     for a menu (clicking outside dismisses without a scrim). */
+  &::backdrop {
+    background: transparent;
+  }
+}
+
+/* ----------------------------------------------------------------
    VIEW TRANSITIONS (WEB-DESIGN.md §13 — adopt View Transitions API)
    Wraps every showView() in document.startViewTransition so the
    browser cross-fades old → new instead of cutting hard. CSS here
@@ -1214,6 +1287,13 @@ body[data-find-density="l"] #view-search .card-grid { grid-template-columns: rep
   transition: transform 0.2s cubic-bezier(0.34,1.3,0.64,1),
               box-shadow 0.2s ease,
               border-color 0.2s ease;
+  /* Container query target — descendants react to THIS card's
+     rendered width (not the viewport). Per WEB-DESIGN.md §13 ADOPT,
+     this lets the same .card-item render correctly in the search
+     grid (110-220px depending on density), the public-collection
+     grid, and any future Wall view (~220px) without forks. */
+  container-type: inline-size;
+  container-name: card-cell;
 }
 .card-item:hover {
   transform: translateY(-5px) scale(1.01);
@@ -1308,6 +1388,29 @@ body[data-find-density="l"] #view-search .card-grid { grid-template-columns: rep
 .card-power {
   font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700;
   color: var(--boba-text-2);
+}
+
+/* Container queries — scale typography to the cell's own width.
+   Defaults above target ~155px ("M" density). Overrides below
+   handle "S" (~110px) and "L" (~220px+) without media queries.
+   See WEB-DESIGN.md §13 + §15 P1 #5. */
+@container card-cell (max-width: 130px) {
+  .card-info { padding: 6px 8px 9px; }
+  .card-number { font-size: 0.55rem; margin-bottom: 1px; }
+  .card-name {
+    font-size: 0.72rem;
+    -webkit-line-clamp: 1;
+    margin-bottom: 4px;
+  }
+  .card-power { font-size: 0.7rem; }
+  .card-treatment-ribbon { font-size: 0.5rem; padding: 2px 6px 2px 8px; max-width: 70px; }
+}
+@container card-cell (min-width: 200px) {
+  .card-info { padding: var(--sp-3) var(--sp-3) calc(var(--sp-3) + 4px); }
+  .card-number { font-size: 0.7rem; }
+  .card-name { font-size: 0.95rem; }
+  .card-power { font-size: 0.95rem; }
+  .card-treatment-ribbon { font-size: 0.65rem; max-width: 110px; }
 }
 
 /* ================================================================

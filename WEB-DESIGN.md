@@ -781,21 +781,32 @@ the rule it addresses and the rough effort.
 
 ### P0 (touched the next time the relevant view is edited)
 
-1. **Replace hand-rolled dropdowns with Popover API.** Currently
-   the filter panel toggle + designation picker + a few overlay
-   menus use click-outside JS. (§4.9 + §13 Popover ADOPT). ~1 day
-   each, do as part of the next refactor that touches the view.
+1. ~~**Replace hand-rolled dropdowns with Popover API.**~~ **SHIPPED
+   2026-05-05** for the actual targets that existed. The
+   designation picker + deck picker for multi-select bulk-add (which
+   were using blocking `prompt()` dialogs!) now use a reusable
+   `showPopoverMenu({anchor, title, items})` helper built on
+   `<div popover="auto">` — native top-layer rendering, click-
+   outside dismiss, ESC dismiss, focus return all free. Helper
+   exposed as `window.bobaShowPopoverMenu` for collection.js / other
+   modules. The filter panel was NOT migrated: it's an inline
+   accordion (pushes content down) not a floating popover; semantics
+   are correct as-is. Mod panels are full-screen modals — they fit
+   `<dialog>` better than Popover when migrated.
 
-2. ~~**Migrate modal overlays to `<dialog>`.**~~ **PARTIALLY SHIPPED
-   2026-05-05.** Card-detail modal (`#card-modal-overlay`) is now a
-   native `<dialog>` with `showModal()` + `::backdrop` styling +
-   native ESC dismiss + native focus trap + native scroll lock.
-   Auth modal + add-collection modal still use the legacy
-   `<div class="modal-overlay" hidden>` pattern; migrate when
-   those views are touched. Pattern established in commit:
-   `dialog.modal-overlay` selector resets dialog defaults to match
-   the legacy overlay shape; both legacy and dialog code paths
-   coexist via `modalOverlay.open ?? !modalOverlay.hidden`.
+2. ~~**Migrate modal overlays to `<dialog>`.**~~ **SHIPPED 2026-05-05.**
+   All three .modal-overlay surfaces are now native `<dialog>`:
+   card-detail (`#card-modal-overlay`), auth (`#auth-modal-overlay`),
+   add-collection (`#add-collection-overlay`). Each gets focus trap,
+   ESC dismiss (routed through closeModal/close via the `cancel`
+   event), top-layer rendering, scroll lock, and `::backdrop` scrim
+   from the browser. The `dialog.modal-overlay` selector resets
+   dialog defaults to match the legacy overlay shape so the inner
+   `.modal` / `.auth-modal-box` flex centering still works. Mod
+   panels (mod-edit, mod-search, admin) are dynamically-created
+   admin-only surfaces — they could migrate too but are
+   deferred to "when the relevant view is edited" since they're
+   working correctly today.
 
 3. ~~**Add `prefers-reduced-transparency` overrides**~~ **SHIPPED
    2026-05-05.** Single `@media (prefers-reduced-transparency:
@@ -815,12 +826,24 @@ the rule it addresses and the rough effort.
    morphs thumbnail → full image (the iOS hero-zoom analog). CSS
    tunes both `(root)` cross-fade and `(card-hero)` morph timing.
 
-5. **Container query refactor of `.card-item`.** Same cell renders
-   in search / Wall / public-collection / sidebar without forks.
-   (§13 ADOPT). ~1 day.
+5. ~~**Container query refactor of `.card-item`.**~~ **SHIPPED
+   2026-05-05.** `.card-item` gets `container-type: inline-size;
+   container-name: card-cell;`. Two `@container card-cell` rule
+   blocks (`max-width: 130px` and `min-width: 200px`) scale the
+   card-info typography — number, name, power, treatment ribbon —
+   to the cell's own width instead of the viewport. Same
+   `.card-item` now renders correctly at "S" density (~110px),
+   "M" default (~155px), and "L" (~220px+) without media-query
+   forks. Inherited automatically by the public-collection grid
+   (which reuses buildCardElement) and by any future Wall view.
 
-6. **CSS Nesting refactor of `css/styles.css`.** Cleaner without a
-   build step. (§13 ADOPT). ~half day.
+6. ~~**CSS Nesting refactor of `css/styles.css`.**~~ **PATTERN
+   ESTABLISHED 2026-05-05** (incremental). New CSS for the popover
+   menu uses native CSS Nesting (`& .popover-menu-item { ... }`).
+   Future component CSS should follow the same pattern. A full
+   rewrite of the existing 9000-line file is intentionally
+   deferred — too risky vs payoff; nest opportunistically when
+   touching existing rules.
 
 ### P2 (when a feature requires it)
 

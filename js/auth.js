@@ -24,22 +24,32 @@ const Auth = (() => {
     _mode = mode;
     _loading = false;
     renderModal();
-    overlay.hidden = false;
-    document.body.style.overflow = 'hidden';
+    // Native <dialog> per WEB-DESIGN.md §13. showModal() handles
+    // focus trap + ESC + scroll lock + top-layer rendering. Falls
+    // back to the legacy hidden-attribute path if the markup
+    // somehow isn't <dialog>.
+    if (typeof overlay.showModal === 'function' && !overlay.open) {
+      overlay.showModal();
+    } else {
+      overlay.hidden = false;
+      document.body.style.overflow = 'hidden';
+    }
     setTimeout(() => box.querySelector('#auth-email')?.focus(), 60);
   }
 
   function close() {
-    overlay.hidden = true;
-    // Only restore scrolling if no other full-screen modal is still open.
-    // If the card detail modal or add-collection sheet is still open,
-    // unsetting overflow here causes iOS to snap the page and lose the modal.
-    const cardModal = document.getElementById('card-modal-overlay');
-    const addModal  = document.getElementById('add-collection-overlay');
-    const otherOpen = (cardModal && !cardModal.hidden) ||
-                      (addModal  && !addModal.hidden);
-    if (!otherOpen) {
-      document.body.style.overflow = '';
+    if (typeof overlay.close === 'function' && overlay.open) {
+      overlay.close();
+    } else {
+      overlay.hidden = true;
+      // Only restore scrolling if no other full-screen modal is open.
+      const cardModal = document.getElementById('card-modal-overlay');
+      const addModal  = document.getElementById('add-collection-overlay');
+      const cardOpen  = cardModal && (cardModal.open ?? !cardModal.hidden);
+      const addOpen   = addModal  && (addModal.open  ?? !addModal.hidden);
+      if (!cardOpen && !addOpen) {
+        document.body.style.overflow = '';
+      }
     }
   }
 
@@ -365,9 +375,20 @@ const Auth = (() => {
     });
 
     // ── 4. Modal UI event handlers ────────────────────────────────────────────
+    // Click on the dialog backdrop area (not the inner box) closes.
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    // Native <dialog> fires `cancel` on ESC — preventDefault so we
+    // can route through close() (which handles other-modal scroll-
+    // lock coordination). Falls back to manual ESC for the legacy
+    // hidden-attribute path.
+    overlay.addEventListener('cancel', e => {
+      e.preventDefault();
+      close();
+    });
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && !overlay.hidden) close();
+      if (e.key !== 'Escape') return;
+      const isOpen = overlay.open ?? !overlay.hidden;
+      if (isOpen && overlay.tagName !== 'DIALOG') close();
     });
   }
 

@@ -370,6 +370,81 @@
   // without re-implementing the feature-detect.
   window.bobaShareTarget = shareTarget;
 
+  /// Native Popover-API menu (WEB-DESIGN.md §2.1 + §13 ADOPT).
+  /// Replaces hand-rolled dropdown patterns and blocking
+  /// prompt()/alert() pickers. The browser owns dismissal (click
+  /// outside / ESC), top-layer rendering, and focus return.
+  ///
+  /// `opts`:
+  ///   anchor:  HTMLElement that triggered the menu (positioning)
+  ///   title:   string shown above the items (optional)
+  ///   items:   array of { label, sublabel?, onSelect }
+  ///
+  /// Builds a transient `<div popover="auto">`, appends to body,
+  /// shows, and removes it from the DOM when dismissed (the
+  /// `toggle` event fires with newState === 'closed'). One menu
+  /// per call — no need to manage IDs.
+  function showPopoverMenu({ anchor, title, items }) {
+    if (!items?.length) return;
+    const menu = document.createElement('div');
+    menu.className = 'popover-menu';
+    menu.setAttribute('popover', 'auto');
+    menu.setAttribute('role', 'menu');
+    if (title) {
+      const t = document.createElement('div');
+      t.className = 'popover-menu-title';
+      t.textContent = title;
+      menu.appendChild(t);
+    }
+    items.forEach(({ label, sublabel, onSelect }) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'popover-menu-item';
+      btn.setAttribute('role', 'menuitem');
+      btn.innerHTML = `
+        <span class="popover-menu-label">${escHtml(label)}</span>
+        ${sublabel ? `<span class="popover-menu-sublabel">${escHtml(sublabel)}</span>` : ''}
+      `;
+      btn.addEventListener('click', () => {
+        menu.hidePopover();
+        try { onSelect?.(); } catch (e) { console.error('[popover] onSelect threw', e); }
+      });
+      menu.appendChild(btn);
+    });
+    document.body.appendChild(menu);
+    // Position near the anchor (best-effort). The Popover API is
+    // baseline-supported but CSS Anchor Positioning isn't on
+    // Firefox yet (per WEB-DESIGN.md §13 — WAIT verdict). Manual
+    // positioning gives us cross-browser today.
+    if (anchor) {
+      const rect = anchor.getBoundingClientRect();
+      menu.style.position = 'fixed';
+      menu.style.top  = `${Math.min(rect.bottom + 6, window.innerHeight - 200)}px`;
+      menu.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - 240))}px`;
+    }
+    // Cleanup when dismissed (ESC / click outside / item click).
+    menu.addEventListener('toggle', (e) => {
+      if (e.newState === 'closed') menu.remove();
+    });
+    if (typeof menu.showPopover === 'function') {
+      menu.showPopover();
+    } else {
+      // Popover API unsupported — fall back to a positioned div that
+      // dismisses on next document click.
+      menu.style.display = 'block';
+      const dismiss = (ev) => {
+        if (menu.contains(ev.target)) return;
+        menu.remove();
+        document.removeEventListener('click', dismiss);
+      };
+      // Defer so the click that opened the menu doesn't immediately
+      // dismiss it.
+      setTimeout(() => document.addEventListener('click', dismiss), 0);
+    }
+  }
+  // Expose globally for collection.js / other modules.
+  window.bobaShowPopoverMenu = showPopoverMenu;
+
   function showView(name, fromHistory = false) {
     // Practice is gated to admin only — bounce non-admins back to
     // search if they hit a deep-link or stale history entry.
@@ -2943,7 +3018,7 @@
   function getSelectedCardObjects() {
     return filteredCards.filter(c => selectedCardKeys.has(cardKey(c)));
   }
-  function openDesignationMenu() {
+  function openDesignationMenu(e) {
     if (!Auth.isAuthenticated()) {
       Auth.open();
       return;
@@ -2957,13 +3032,14 @@
       ['wanted',    'Wanted'],
       ['grails',    'Grails'],
     ];
-    const labels = choices.map(([key,label], i) => `${i+1}. ${label}`).join('\n');
-    const pick = prompt(`Add ${cards.length} card${cards.length===1?'':'s'} to which designation?\n\n${labels}\n\nEnter 1–5 (or Cancel):`, '1');
-    if (!pick) return;
-    const idx = parseInt(pick, 10) - 1;
-    if (!(idx >= 0 && idx < choices.length)) return;
-    const designation = choices[idx][0];
-    bulkAddToCollection(cards, designation);
+    showPopoverMenu({
+      anchor: e.currentTarget,
+      title:  `Add ${cards.length} card${cards.length===1?'':'s'} to…`,
+      items:  choices.map(([key, label]) => ({
+        label,
+        onSelect: () => bulkAddToCollection(cards, key),
+      })),
+    });
   }
   async function bulkAddToCollection(cards, designation) {
     let added = 0, failed = 0;
@@ -2985,28 +3061,32 @@
     showToast(`Added ${added} card${added===1?'':'s'} to ${designation.replace('_',' ')}${failed?` · ${failed} failed`:''}`);
     exitSelectionMode();
   }
-  async function openDeckPicker() {
+  async function openDeckPicker(e) {
     if (!Auth.isAuthenticated()) {
       Auth.open();
       return;
     }
     const cards = getSelectedCardObjects();
     if (!cards.length) return;
+    const anchor = e.currentTarget;
     let decks;
-    try { decks = await API.deckList(); } catch (e) {
-      alert('Could not load your decks. ' + (e?.message || ''));
+    try { decks = await API.deckList(); } catch (err) {
+      alert('Could not load your decks. ' + (err?.message || ''));
       return;
     }
     if (!decks.length) {
       alert('No saved decks yet. Build one in the Decks tab first.');
       return;
     }
-    const labels = decks.map((d, i) => `${i+1}. ${d.name} (${d.format})`).join('\n');
-    const pick = prompt(`Add ${cards.length} card${cards.length===1?'':'s'} to which deck?\n\n${labels}\n\nEnter 1–${decks.length} (or Cancel):`, '1');
-    if (!pick) return;
-    const idx = parseInt(pick, 10) - 1;
-    if (!(idx >= 0 && idx < decks.length)) return;
-    bulkAddToDeck(cards, decks[idx]);
+    showPopoverMenu({
+      anchor,
+      title: `Add ${cards.length} card${cards.length===1?'':'s'} to deck…`,
+      items: decks.map(d => ({
+        label:    d.name,
+        sublabel: d.format,
+        onSelect: () => bulkAddToDeck(cards, d),
+      })),
+    });
   }
   async function bulkAddToDeck(cards, deck) {
     let existing;

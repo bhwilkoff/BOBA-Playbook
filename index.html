@@ -2322,17 +2322,17 @@
     </div>
   </dialog>
 
-  <!-- AUTH MODAL -->
-  <div class="modal-overlay" id="auth-modal-overlay" hidden
-       role="dialog" aria-modal="true" aria-label="Sign in to BOBA Playbook">
+  <!-- AUTH MODAL — native <dialog> per WEB-DESIGN.md §13 -->
+  <dialog class="modal-overlay" id="auth-modal-overlay"
+          aria-label="Sign in to BOBA Playbook">
     <div class="auth-modal-box" id="auth-modal-box"></div>
-  </div>
+  </dialog>
 
-  <!-- ADD TO COLLECTION SHEET -->
-  <div class="modal-overlay" id="add-collection-overlay" hidden
-       role="dialog" aria-modal="true" aria-label="Add card to collection">
+  <!-- ADD TO COLLECTION SHEET — native <dialog> -->
+  <dialog class="modal-overlay" id="add-collection-overlay"
+          aria-label="Add card to collection">
     <div class="auth-modal-box add-collection-box" id="add-collection-box"></div>
-  </div>
+  </dialog>
 
   <!-- DISCORD TRADE ROOM FAB -->
   <button class="discord-fab" id="discord-fab" aria-label="Open Trade Room" hidden>

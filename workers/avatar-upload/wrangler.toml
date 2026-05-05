@@ -1,0 +1,17 @@
+name            = "boba-avatar-upload"
+main            = "worker.js"
+compatibility_date = "2024-09-01"
+
+# R2 binding — reuses the existing boba-card-images bucket so avatars
+# share the same public CDN URL. Avatars live under the `avatars/`
+# prefix (alongside thumbs/, full/, sealed/).
+[[r2_buckets]]
+binding     = "AVATARS"
+bucket_name = "boba-card-images"
+
+# Secrets (set via `wrangler secret put <NAME>`):
+#   SUPABASE_URL          — https://pazkimtkwwwekuguxkff.supabase.co
+#   SUPABASE_SERVICE_KEY  — service_role key (used to verify caller's JWT
+#                            via /auth/v1/user; we don't write to Supabase
+#                            directly — the client persists the URL via
+#                            the set_avatar_url RPC).

@@ -63,6 +63,11 @@ CREATE TABLE user_profiles (
   user_id    uuid PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
   email      text,
   role       text NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'moderator', 'admin', 'streamer')),
+  -- Custom avatar URL on the BOBA R2 CDN (avatars/{user_id}.{ext}).
+  -- NULL → fall back to discord_avatar_url, then default silhouette.
+  -- Written via the set_avatar_url RPC; uploads handled by the
+  -- boba-avatar-upload Worker. See migrations/2026-05-05_avatar_url.
+  avatar_url text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );

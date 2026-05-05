@@ -711,7 +711,7 @@ struct ProfileView: View {
     private var feedbackMailto: URL? {
         let subject = "BOBA Playbook feedback (v\(versionLine))"
             .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        return URL(string: "mailto:ben@learningischange.com?subject=\(subject)")
+        return URL(string: "mailto:ben@bobaplaybook.com?subject=\(subject)")
     }
 
     // MARK: - Sign out + delete
@@ -761,7 +761,7 @@ struct ProfileView: View {
                 Text("Account deletion is processed within 30 days. Your collection, decks, and shared links will be permanently removed. This cannot be undone.")
             }
         } footer: {
-            Text("Email ben@learningischange.com for immediate deletion.")
+            Text("Email ben@bobaplaybook.com for immediate deletion.")
                 .font(Design.Fonts.mono(11))
                 .foregroundStyle(Design.Colors.textMuted)
         }

@@ -1524,7 +1524,7 @@
     const imgHtml = thumbSrc
       ? `<img class="card-img" src="${escHtml(thumbSrc)}"
               ${srcset ? `srcset="${escHtml(srcset)}" sizes="auto, (min-width: 1024px) 220px, (min-width: 480px) 33vw, 50vw"` : ''}
-              alt="${escHtml(card.name)}" loading="lazy" decoding="async">`
+              alt="${escHtml(card.name)}" loading="lazy" decoding="async" draggable="false">`
       : `<div class="card-img-placeholder" aria-hidden="true">
            <span class="placeholder-brand">BOBA PB</span>
            <span class="placeholder-status">Image Pending</span>
@@ -2613,9 +2613,16 @@
   let selectionMode     = false;
   let lastSelectedIndex = -1;
 
+  function syncSelectModeToggle() {
+    const t = document.getElementById('multiselect-toggle');
+    if (!t) return;
+    t.setAttribute('aria-pressed', selectionMode ? 'true' : 'false');
+    t.classList.toggle('active', selectionMode);
+  }
   function enterSelectionMode() {
     selectionMode = true;
     document.body.classList.add('selection-mode');
+    syncSelectModeToggle();
     syncSelectionToolbar();
   }
   function exitSelectionMode() {
@@ -2625,6 +2632,7 @@
     lastSelectedIndex = -1;
     document.querySelectorAll('.card-item--selected')
       .forEach(el => el.classList.remove('card-item--selected'));
+    syncSelectModeToggle();
     syncSelectionToolbar();
   }
   function toggleCardSelection(card, index) {
@@ -2664,52 +2672,58 @@
     : (s) => String(s).replace(/[^a-zA-Z0-9_-]/g, ch => '\\' + ch);
 
   /* ----------------------------------------------------------------
-     Drag-marquee selection — mouse only. Mousedown on empty grid
-     space starts a rect that follows the cursor; on mouseup, every
-     `.card-item` whose bounding rect intersects the marquee is added
-     to the selection. Touch devices use long-press instead (no
-     marquee — the gesture conflicts with vertical scroll).
+     Drag-marquee selection — mouse only. Mousedown ANYWHERE on the
+     grid (including on a card) starts tracking; if the pointer moves
+     >5px before mouseup, it becomes a drag → build a marquee rect
+     and suppress the click that would have fired on the start card.
+     A plain click (no drag) falls through to the card's normal tap
+     handler. Modifier+click (shift/cmd/ctrl) skips the marquee
+     entirely so the existing range-select / multi-toggle paths work.
+     Touch devices use long-press instead — vertical scroll wins.
   ---------------------------------------------------------------- */
   function initMarqueeSelection() {
     if (!cardGrid) return;
-    let marquee = null;
-    let startX = 0, startY = 0;
-    let scrollEl = document.getElementById('main-content') || document.scrollingElement || document.documentElement;
-    let startScrollTop = 0;
 
     cardGrid.addEventListener('mousedown', (e) => {
-      // Ignore clicks on a card — those route through the card's tap
-      // handler. Ignore non-primary buttons. Modifier-aware: shift /
-      // cmd / ctrl let plain clicks do their own thing.
       if (e.button !== 0) return;
-      if (e.target.closest('.card-item')) return;
-      e.preventDefault();
-      startX = e.clientX; startY = e.clientY;
-      startScrollTop = scrollEl.scrollTop || 0;
-      marquee = document.createElement('div');
-      marquee.className = 'marquee-rect';
-      marquee.style.left = `${startX}px`;
-      marquee.style.top  = `${startY}px`;
-      document.body.appendChild(marquee);
+      // Modifier+click → let it through to the card's tap handler.
+      if (e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const startX = e.clientX, startY = e.clientY;
+      const startCard = e.target.closest('.card-item');
+      let marquee = null;
+      let didDrag = false;
 
       const onMove = (m) => {
+        if (!didDrag) {
+          const dx = m.clientX - startX, dy = m.clientY - startY;
+          if ((dx*dx + dy*dy) <= 25) return;  // 5px threshold
+          didDrag = true;
+          // Suppress the click that mousedown→mouseup will fire on
+          // the start card so the marquee doesn't double as a tap.
+          if (startCard) startCard.dataset.suppressNextClick = '1';
+          marquee = document.createElement('div');
+          marquee.className = 'marquee-rect';
+          document.body.appendChild(marquee);
+        }
         const x = m.clientX, y = m.clientY;
         const left = Math.min(startX, x), top = Math.min(startY, y);
-        const w = Math.abs(x - startX),   h = Math.abs(y - startY);
+        const w = Math.abs(x - startX), h = Math.abs(y - startY);
         marquee.style.left = `${left}px`;
         marquee.style.top  = `${top}px`;
         marquee.style.width  = `${w}px`;
         marquee.style.height = `${h}px`;
+        // Once we're dragging, suppress browser text/image selection.
+        m.preventDefault();
       };
-      const onUp = (m) => {
+      const onUp = () => {
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
-        // Rebuild the marquee rect in document coordinates so we can
-        // intersect with each card's getBoundingClientRect.
+        if (!didDrag) return;  // plain click — card's handler runs
         const rect = marquee.getBoundingClientRect();
         marquee.remove();
         marquee = null;
-        if (rect.width < 4 && rect.height < 4) return; // treat as plain click
+        if (rect.width < 4 && rect.height < 4) return;
         if (!selectionMode) enterSelectionMode();
         cardGrid.querySelectorAll('.card-item').forEach(el => {
           const r = el.getBoundingClientRect();
@@ -2718,6 +2732,8 @@
             if (id && !selectedCardIds.has(id)) {
               selectedCardIds.add(id);
               el.classList.add('card-item--selected');
+              const idx = parseInt(el.dataset.cardIndex, 10);
+              if (!isNaN(idx)) lastSelectedIndex = idx;
             }
           }
         });
@@ -2739,9 +2755,23 @@
     const addColl = document.getElementById('multiselect-add-collection');
     const addDeck = document.getElementById('multiselect-add-deck');
     const clear   = document.getElementById('multiselect-clear');
+    const toggle  = document.getElementById('multiselect-toggle');
     addColl?.addEventListener('click', openDesignationMenu);
     addDeck?.addEventListener('click', openDeckPicker);
     clear?.addEventListener('click', exitSelectionMode);
+    // Explicit "Select" pill — for users who don't discover the
+    // shift-click / drag-marquee / long-press gestures.
+    toggle?.addEventListener('click', () => {
+      if (selectionMode) {
+        exitSelectionMode();
+        toggle.setAttribute('aria-pressed', 'false');
+        toggle.classList.remove('active');
+      } else {
+        enterSelectionMode();
+        toggle.setAttribute('aria-pressed', 'true');
+        toggle.classList.add('active');
+      }
+    });
   }
   function getSelectedCardObjects() {
     return filteredCards.filter(c => selectedCardIds.has(c.id));

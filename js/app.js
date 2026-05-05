@@ -1559,7 +1559,7 @@
       </div>
       <div class="card-element-bar" aria-hidden="true"></div>`;
 
-    el.dataset.cardId    = card.id;
+    el.dataset.cardId    = cardKey(card);
     el.dataset.cardIndex = String(index);
 
     // Click branches:
@@ -1623,7 +1623,7 @@
 
     // Reflect existing selection state when this cell is rebuilt
     // (re-render after a search refresh keeps selections intact).
-    if (selectedCardIds.has(card.id)) el.classList.add('card-item--selected');
+    if (selectedCardKeys.has(cardKey(card))) el.classList.add('card-item--selected');
 
     return el;
   }
@@ -2601,15 +2601,23 @@
   });
 
   /* ================================================================
-     MULTI-SELECT (Find tab — drag-marquee, shift-click, long-press)
+     MULTI-SELECT (Find tab — Select pill + shift-click + drag-marquee)
      -----------------------------------------------------------------
-     Selection model: a Set of card.id values + an index pointer for
-     shift-range. The selection is persisted across renderNextPage()
-     refreshes by reading selectedCardIds from buildCardElement.
+     Selection model: a Set of stable card keys + an index pointer for
+     shift-range. The selection persists across renderNextPage()
+     refreshes by reading selectedCardKeys from buildCardElement.
      Action toolbar exposes "Add to Collection" + "Add to Deck" with
      dropdown pickers for designation / target deck.
+
+     IMPORTANT: web cards.json ships `bobaId` (not `id`). Earlier
+     versions of this code used `card.id` which is undefined on
+     every card — Set ended up with a phantom `undefined` entry, the
+     querySelector for `[data-card-id="undefined"]` only matched the
+     first card, and only that card got the cyan ring. Always go
+     through cardKey() so bobaId is the single source of identity.
   ================================================================ */
-  let selectedCardIds   = new Set();
+  const cardKey = (c) => c?.bobaId || c?.cardNumber || '';
+  let selectedCardKeys  = new Set();
   let selectionMode     = false;
   let lastSelectedIndex = -1;
 
@@ -2624,11 +2632,12 @@
     document.body.classList.add('selection-mode');
     syncSelectModeToggle();
     syncSelectionToolbar();
+    console.log('[multi-select] entered selection mode');
   }
   function exitSelectionMode() {
     selectionMode = false;
     document.body.classList.remove('selection-mode');
-    selectedCardIds.clear();
+    selectedCardKeys.clear();
     lastSelectedIndex = -1;
     document.querySelectorAll('.card-item--selected')
       .forEach(el => el.classList.remove('card-item--selected'));
@@ -2637,21 +2646,29 @@
   }
   function toggleCardSelection(card, index) {
     if (!card) return;
-    if (selectedCardIds.has(card.id)) selectedCardIds.delete(card.id);
-    else                              selectedCardIds.add(card.id);
+    const key = cardKey(card);
+    if (!key) {
+      console.warn('[multi-select] toggle skipped — card has no bobaId/cardNumber', card);
+      return;
+    }
+    const wasSelected = selectedCardKeys.has(key);
+    if (wasSelected) selectedCardKeys.delete(key);
+    else             selectedCardKeys.add(key);
     lastSelectedIndex = index;
-    const el = cardGrid.querySelector(`.card-item[data-card-id="${cssEscape(card.id)}"]`);
-    el?.classList.toggle('card-item--selected', selectedCardIds.has(card.id));
+    const el = cardGrid.querySelector(`.card-item[data-card-id="${cssEscape(key)}"]`);
+    el?.classList.toggle('card-item--selected', !wasSelected);
     syncSelectionToolbar();
+    console.log(`[multi-select] ${wasSelected ? 'unselected' : 'selected'} ${key} (now ${selectedCardKeys.size} total)`);
   }
   function selectRange(fromIdx, toIdx) {
     const lo = Math.min(fromIdx, toIdx), hi = Math.max(fromIdx, toIdx);
     if (!selectionMode) enterSelectionMode();
     for (let i = lo; i <= hi && i < filteredCards.length; i++) {
       const c = filteredCards[i];
-      if (!c) continue;
-      selectedCardIds.add(c.id);
-      const el = cardGrid.querySelector(`.card-item[data-card-id="${cssEscape(c.id)}"]`);
+      const key = cardKey(c);
+      if (!key) continue;
+      selectedCardKeys.add(key);
+      const el = cardGrid.querySelector(`.card-item[data-card-id="${cssEscape(key)}"]`);
       el?.classList.add('card-item--selected');
     }
     lastSelectedIndex = toIdx;
@@ -2661,12 +2678,12 @@
     const bar = document.getElementById('multiselect-toolbar');
     const num = document.getElementById('multiselect-count-num');
     if (!bar || !num) return;
-    const n = selectedCardIds.size;
+    const n = selectedCardKeys.size;
     num.textContent = String(n);
     bar.hidden = n === 0;
   }
-  // CSS.escape polyfill for older Safari (we build attribute selectors
-  // from card.id which can contain '.' and other CSS-meaningful chars).
+  // CSS.escape polyfill for older Safari — bobaIds contain spaces and
+  // other CSS-meaningful chars when used in attribute selectors.
   const cssEscape = (window.CSS && CSS.escape)
     ? (s) => CSS.escape(s)
     : (s) => String(s).replace(/[^a-zA-Z0-9_-]/g, ch => '\\' + ch);
@@ -2728,9 +2745,9 @@
         cardGrid.querySelectorAll('.card-item').forEach(el => {
           const r = el.getBoundingClientRect();
           if (rectsIntersect(rect, r)) {
-            const id = el.dataset.cardId;
-            if (id && !selectedCardIds.has(id)) {
-              selectedCardIds.add(id);
+            const key = el.dataset.cardId;  // already bobaId via cardKey()
+            if (key && !selectedCardKeys.has(key)) {
+              selectedCardKeys.add(key);
               el.classList.add('card-item--selected');
               const idx = parseInt(el.dataset.cardIndex, 10);
               if (!isNaN(idx)) lastSelectedIndex = idx;
@@ -2774,7 +2791,7 @@
     });
   }
   function getSelectedCardObjects() {
-    return filteredCards.filter(c => selectedCardIds.has(c.id));
+    return filteredCards.filter(c => selectedCardKeys.has(cardKey(c)));
   }
   function openDesignationMenu() {
     if (!Auth.isAuthenticated()) {
@@ -2804,7 +2821,7 @@
       try {
         await API.collectionAdd({
           card_number: card.cardNumber,
-          boba_id:     card.id,
+          boba_id:     cardKey(card),
           hero:        card.hero || null,
           name:        card.name || null,
           element:     card.element || null,
@@ -2850,13 +2867,15 @@
     const merged = existing.map(r => ({ bobaId: r.boba_id, cardType: r.card_type }));
     let added = 0, skipped = 0;
     for (const card of cards) {
-      if (existingIds.has(card.id)) { skipped++; continue; }
+      const key = cardKey(card);
+      if (!key) { skipped++; continue; }
+      if (existingIds.has(key)) { skipped++; continue; }
       const cardType = card.cardType === 'Hero'   ? 'hero'
                      : card.cardType === 'HotDog' ? 'hot_dog'
                      : card.isBonusPlay           ? 'bonus_play'
                      :                              'play';
-      merged.push({ bobaId: card.id, cardType });
-      existingIds.add(card.id);
+      merged.push({ bobaId: key, cardType });
+      existingIds.add(key);
       added++;
     }
     try {

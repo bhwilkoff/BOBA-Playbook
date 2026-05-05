@@ -1030,6 +1030,12 @@ struct DecksView: View {
                 return false
             }
             if !costTokens.isEmpty {
+                // Cost is only meaningful for Plays. Heroes and Hot
+                // Dogs ship with playCost: 0 in the catalog data, so
+                // without the cardType guard the FREE chip would
+                // surface every Hero in the catalog (the
+                // 250-power-Hero bug from the Decks pool screenshot).
+                guard card.cardType == "Play" else { return false }
                 guard let cost = card.playCost, costTokens.contains(cost) else { return false }
             }
             if !heroTokens.isEmpty, !heroTokens.contains(card.hero.lowercased()) {

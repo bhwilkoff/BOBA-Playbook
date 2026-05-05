@@ -563,7 +563,7 @@ const API = (() => {
     if (!session) return null;
     const { data, error } = await supa()
       .from('user_profiles')
-      .select('username,public_collection_enabled,notifications_enabled,match_alerts_enabled,discord_user_id,discord_avatar_url,requested_role,requested_role_at')
+      .select('username,public_collection_enabled,notifications_enabled,match_alerts_enabled,discord_user_id,discord_avatar_url,avatar_url,requested_role,requested_role_at')
       .eq('user_id', session.user.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -608,6 +608,72 @@ const API = (() => {
   /// (kept in sync with WorkerConfig.accountDeleteURL).
   const ACCOUNT_DELETE_WORKER_URL =
     'https://boba-account-delete.benwilkoff.workers.dev';
+
+  /// boba-avatar-upload Worker — POST /avatar (image bytes) and
+  /// DELETE /avatar. See workers/avatar-upload/.
+  const AVATAR_UPLOAD_WORKER_URL =
+    'https://boba-avatar-upload.benwilkoff.workers.dev';
+
+  /// Upload a square-cropped image (Blob, ≤2MB) and receive the
+  /// public CDN URL + version token for cache-busting. Caller is
+  /// responsible for cropping client-side; the Worker only validates
+  /// type + size. Use setAvatarUrl(url) to persist on user_profiles.
+  async function uploadAvatar(blob) {
+    const { data: { session } } = await supa().auth.getSession();
+    if (!session) throw new Error('Not signed in');
+    const res = await fetch(`${AVATAR_UPLOAD_WORKER_URL}/avatar`, {
+      method:  'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type':  blob.type || 'image/jpeg',
+      },
+      body: blob,
+    });
+    if (!res.ok) {
+      let detail = '';
+      try { detail = (await res.json())?.error || ''; }
+      catch (_) { /* non-JSON — ignore */ }
+      throw new Error(`Upload failed (HTTP ${res.status})${detail ? ': ' + detail : ''}`);
+    }
+    return res.json();  // { url, version }
+  }
+
+  /// Remove the user's avatar from R2. Caller is also responsible for
+  /// calling setAvatarUrl(null) so the user_profiles column matches.
+  async function deleteAvatar() {
+    const { data: { session } } = await supa().auth.getSession();
+    if (!session) throw new Error('Not signed in');
+    const res = await fetch(`${AVATAR_UPLOAD_WORKER_URL}/avatar`, {
+      method:  'DELETE',
+      headers: { 'Authorization': `Bearer ${session.access_token}` },
+    });
+    if (!res.ok) {
+      let detail = '';
+      try { detail = (await res.json())?.error || ''; }
+      catch (_) { /* non-JSON */ }
+      throw new Error(`Delete failed (HTTP ${res.status})${detail ? ': ' + detail : ''}`);
+    }
+  }
+
+  /// Persist the user_profiles.avatar_url column via the
+  /// set_avatar_url RPC. Pass null to clear (resolver falls back to
+  /// Discord avatar / silhouette). The RPC enforces that non-null
+  /// URLs match the BOBA R2 avatars prefix.
+  async function setAvatarUrl(newUrl) {
+    const { error } = await supa().rpc('set_avatar_url', { new_url: newUrl });
+    if (error) throw new Error(error.message);
+  }
+
+  /// Fetch the publicly-shareable profile fields for a username
+  /// (avatar URL, Discord avatar fallback). Returns null if the
+  /// user hasn't enabled public sharing or doesn't exist. Used by
+  /// the public-collection page to render the owner's avatar.
+  async function fetchPublicProfile(handle) {
+    const { data, error } = await supa().rpc('get_public_profile', { handle });
+    if (error) throw new Error(error.message);
+    // RPC returns a setof — first row or null.
+    return Array.isArray(data) ? data[0] || null : (data || null);
+  }
 
   /// Permanently delete the current user's account via the
   /// boba-account-delete Worker. The Worker holds the Supabase
@@ -751,5 +817,9 @@ const API = (() => {
     requestRole,
     requestPasswordReset,
     deleteAccount,
+    uploadAvatar,
+    deleteAvatar,
+    setAvatarUrl,
+    fetchPublicProfile,
   };
 })();

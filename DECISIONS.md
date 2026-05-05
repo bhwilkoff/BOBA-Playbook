@@ -552,3 +552,75 @@ wanted this?"). And the destructive-action shim for deletion is
 the right call vs leaving the App Store requirement unmet for the
 duration of the backend build.
 
+
+
+## 040 — Profile pictures: Discord-default, R2-on-upload
+*2026-05-05*
+
+Avatars use a three-tier resolver: **custom (R2-uploaded) → Discord
+avatar → default silhouette.** Most users authenticate via Discord
+OAuth, so they get a recognizable avatar with zero work + zero
+storage on our side. Only users who explicitly upload via the
+Profile sheet consume R2 space — the active-user fraction times the
+~50 KB per cropped JPEG keeps the bucket trivially small.
+
+**Storage layout** (consistent with DECISIONS.md #008's R2-for-images
+choice):
+- Bucket: `boba-card-images` (existing — avatars share the bucket
+  rather than provisioning a new one for negligible volume).
+- Prefix: `avatars/{user_id}.{ext}` where ext ∈ {jpg, png, webp}.
+- Public URL: `{CDN_BASE}/avatars/{user_id}.{ext}` — served from the
+  same CDN as card images.
+- Pre-write delete sweep removes any prior `avatars/{user_id}.*`
+  with a different extension so the resolver doesn't see two
+  candidates.
+
+**Worker** (`workers/avatar-upload/`, deployed at
+`https://boba-avatar-upload.benwilkoff.workers.dev`):
+- POST `/avatar` with Bearer JWT + image bytes (image/jpeg|png|webp,
+  ≤2 MB). Verifies the caller against `/auth/v1/user`, writes to
+  R2, returns `{url, version}` for cache-busting.
+- DELETE `/avatar` removes any existing avatar for the user (any
+  extension). Caller is also responsible for clearing
+  `user_profiles.avatar_url` so the resolver falls back.
+- Worker secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`.
+
+**Supabase**: `user_profiles.avatar_url text` column (nullable;
+NULL means "fall back to Discord/silhouette"). Two RPCs:
+- `set_avatar_url(new_url text)` — own-row only; rejects URLs that
+  don't match the BOBA R2 avatars prefix (defense against pointing
+  avatar_url at an arbitrary host).
+- `get_public_profile(handle text)` — returns `username`,
+  `avatar_url`, `discord_avatar_url` for a public-shared profile;
+  used by the public-collection page to render the owner's avatar
+  alongside `@username`. Drop+recreate from prior signature so
+  callers update in lockstep.
+
+**Client surfaces:**
+- iOS Profile (`ProfileView`): tap the avatar → confirmationDialog
+  with Choose from Library / Use Discord Avatar / Remove Custom.
+  PhotosPicker → AvatarCropSheet (drag + pinch on the square
+  preview) → 512×512 JPEG (q=0.85) → Worker → set_avatar_url →
+  AuthManager.customAvatarURL updates.
+- Web Profile (`collection.js#wireAvatarEditor`): click the avatar
+  → menu `<dialog>` (Choose from Computer / Discord / Remove) →
+  file input → canvas-based crop `<dialog>` (drag + scroll-zoom +
+  touch pan) → 512×512 JPEG → Worker → setAvatarUrl RPC.
+- Public collection (`bobaplaybook.com/u/{username}`): owner avatar
+  rendered next to `@username`. Resolves via the new
+  `get_public_profile` RPC; falls back to silhouette gracefully
+  when the profile is private or doesn't exist.
+
+**Why R2 + Worker instead of Supabase Storage:** the project's
+existing R2 setup (DECISIONS.md #008) gives zero egress + edge
+caching + a CDN URL that can be embedded anywhere without auth.
+Supabase Storage on the free tier was explicitly avoided per
+DECISIONS.md #007.
+
+**Why server-side URL gating:** without the
+`new_url LIKE 'https://pub-…r2.dev/avatars/%'` check on
+`set_avatar_url`, a malicious client could write any URL to their
+profile and have the public-collection page render arbitrary
+content (tracking pixels, inappropriate images on someone else's
+device). The Worker controls who can write to R2; the RPC controls
+where the column can point.

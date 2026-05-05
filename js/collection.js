@@ -391,13 +391,48 @@ const Collection = (() => {
       <div class="profile-page">
         <h2 class="view-heading profile-page-heading">Profile</h2>
 
-        <!-- Account card -->
+        <!-- Account card. Avatar is a button so click-to-edit reads
+             as tappable. The actual <img> / silhouette is hydrated by
+             wireAvatarEditor() once fetchProfile resolves. -->
         <div class="profile-account-card">
-          <div class="profile-avatar">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28" aria-hidden="true">
-              <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-5.33 0-8 2.67-8 4v1h16v-1c0-1.33-2.67-4-8-4z"/>
-            </svg>
-          </div>
+          <button class="profile-avatar profile-avatar-button" id="profile-avatar-btn"
+                  type="button" aria-label="Change profile picture">
+            <span class="profile-avatar-content" id="profile-avatar-content">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28" aria-hidden="true">
+                <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-5.33 0-8 2.67-8 4v1h16v-1c0-1.33-2.67-4-8-4z"/>
+              </svg>
+            </span>
+            <span class="profile-avatar-camera" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+            </span>
+          </button>
+          <input type="file" id="profile-avatar-file" accept="image/jpeg,image/png,image/webp" hidden>
+          <dialog id="profile-avatar-crop-dialog" class="avatar-crop-dialog" aria-label="Crop profile picture">
+            <div class="avatar-crop-header">
+              <span class="avatar-crop-title">Crop</span>
+              <span class="avatar-crop-hint">Drag to position · scroll to zoom</span>
+            </div>
+            <div class="avatar-crop-stage" id="avatar-crop-stage">
+              <canvas id="avatar-crop-canvas" width="280" height="280"></canvas>
+              <div class="avatar-crop-mask" aria-hidden="true"></div>
+            </div>
+            <div class="avatar-crop-actions">
+              <button type="button" class="avatar-crop-cancel" id="avatar-crop-cancel">Cancel</button>
+              <button type="button" class="avatar-crop-confirm" id="avatar-crop-confirm">Use Photo</button>
+            </div>
+          </dialog>
+          <dialog id="profile-avatar-menu-dialog" class="avatar-menu-dialog" aria-label="Profile picture options">
+            <div class="avatar-menu-list">
+              <button type="button" class="avatar-menu-row" id="avatar-menu-choose">Choose from Computer</button>
+              <button type="button" class="avatar-menu-row" id="avatar-menu-discord" hidden>Use Discord Avatar</button>
+              <button type="button" class="avatar-menu-row destructive" id="avatar-menu-remove" hidden>Remove Custom Avatar</button>
+              <button type="button" class="avatar-menu-row" id="avatar-menu-cancel">Cancel</button>
+            </div>
+          </dialog>
           <div class="profile-account-info">
             <div class="profile-account-username" id="profile-username-display">@…</div>
             <div class="profile-account-email">${esc(email)}</div>
@@ -585,6 +620,9 @@ const Collection = (() => {
 
     // Change Password — triggers the native Supabase reset email.
     wireChangePasswordButton(view);
+
+    // Avatar editor — file picker → canvas crop → upload to R2.
+    wireAvatarEditor(view);
 
     // Delete Account — calls the boba-account-delete Worker which
     // proxies the Supabase admin delete (cascading through every
@@ -985,6 +1023,214 @@ const Collection = (() => {
         status.textContent = 'Could not send reset email. ' + (e?.message || '');
       } finally {
         btn.disabled = false;
+      }
+    });
+  }
+
+  /// Profile avatar editor — click the avatar to open the menu
+  /// dialog (Choose from Computer / Use Discord / Remove); selecting
+  /// a file opens a canvas-based square crop dialog; confirm posts
+  /// the cropped JPEG to the avatar Worker and persists the URL via
+  /// set_avatar_url RPC. Resolution priority: custom (R2) →
+  /// Discord avatar → silhouette.
+  function wireAvatarEditor(view) {
+    const btn         = view.querySelector('#profile-avatar-btn');
+    const content     = view.querySelector('#profile-avatar-content');
+    const fileInput   = view.querySelector('#profile-avatar-file');
+    const cropDialog  = view.querySelector('#profile-avatar-crop-dialog');
+    const cropCanvas  = view.querySelector('#avatar-crop-canvas');
+    const cropStage   = view.querySelector('#avatar-crop-stage');
+    const cropConfirm = view.querySelector('#avatar-crop-confirm');
+    const cropCancel  = view.querySelector('#avatar-crop-cancel');
+    const menuDialog  = view.querySelector('#profile-avatar-menu-dialog');
+    const menuChoose  = view.querySelector('#avatar-menu-choose');
+    const menuDiscord = view.querySelector('#avatar-menu-discord');
+    const menuRemove  = view.querySelector('#avatar-menu-remove');
+    const menuCancel  = view.querySelector('#avatar-menu-cancel');
+    if (!btn || !fileInput || !cropDialog || !menuDialog) return;
+
+    let currentAvatarUrl = null;       // custom (R2) URL, or null
+    let currentDiscordAvatarUrl = null;
+
+    /// Render the avatar — img if we have a URL, silhouette otherwise.
+    /// Custom always wins over Discord; Discord wins over silhouette.
+    const renderAvatar = () => {
+      const url = currentAvatarUrl || currentDiscordAvatarUrl;
+      if (url) {
+        content.innerHTML =
+          `<img src="${esc(url)}" alt="" class="profile-avatar-img" referrerpolicy="no-referrer">`;
+      } else {
+        content.innerHTML =
+          `<svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28" aria-hidden="true">` +
+            `<path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-5.33 0-8 2.67-8 4v1h16v-1c0-1.33-2.67-4-8-4z"/>` +
+          `</svg>`;
+      }
+      // Show "Use Discord Avatar" only if we have one available.
+      menuDiscord.hidden = !currentDiscordAvatarUrl;
+      // Show "Remove" only if a custom avatar is set.
+      menuRemove.hidden  = !currentAvatarUrl;
+    };
+
+    // Hydrate from fetchProfile.
+    API.fetchProfile().then(profile => {
+      currentAvatarUrl        = profile?.avatar_url        || null;
+      currentDiscordAvatarUrl = profile?.discord_avatar_url || null;
+      renderAvatar();
+    }).catch(() => { /* offline-safe — keep default silhouette */ });
+
+    // Tap avatar → open menu dialog.
+    btn.addEventListener('click', () => {
+      if (typeof menuDialog.showModal === 'function') menuDialog.showModal();
+      else menuDialog.setAttribute('open', '');
+    });
+    menuCancel.addEventListener('click', () => menuDialog.close());
+    menuChoose.addEventListener('click', () => {
+      menuDialog.close();
+      fileInput.click();
+    });
+    menuDiscord.addEventListener('click', async () => {
+      menuDialog.close();
+      try {
+        await API.deleteAvatar();
+        await API.setAvatarUrl(null);
+        currentAvatarUrl = null;
+        renderAvatar();
+      } catch (e) {
+        alert('Could not switch to Discord avatar: ' + (e?.message || e));
+      }
+    });
+    menuRemove.addEventListener('click', async () => {
+      menuDialog.close();
+      try {
+        await API.deleteAvatar();
+        await API.setAvatarUrl(null);
+        currentAvatarUrl = null;
+        renderAvatar();
+      } catch (e) {
+        alert('Could not remove custom avatar: ' + (e?.message || e));
+      }
+    });
+
+    // File picked → load image → open crop dialog.
+    let cropImg = null;
+    let cropOffsetX = 0, cropOffsetY = 0;
+    let cropScale = 1.0;
+    let dragging = false, dragStartX = 0, dragStartY = 0;
+
+    const drawCrop = () => {
+      const ctx = cropCanvas.getContext('2d');
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
+      if (!cropImg) return;
+      // Fit-then-cover the cropImg into the canvas at base scale, then
+      // apply user scale + offset.
+      const cw = cropCanvas.width, ch = cropCanvas.height;
+      const aspect = cropImg.naturalWidth / cropImg.naturalHeight;
+      let baseW, baseH;
+      if (aspect >= 1) { baseH = ch; baseW = ch * aspect; }
+      else             { baseW = cw; baseH = cw / aspect; }
+      const drawW = baseW * cropScale;
+      const drawH = baseH * cropScale;
+      const drawX = (cw - drawW) / 2 + cropOffsetX;
+      const drawY = (ch - drawH) / 2 + cropOffsetY;
+      ctx.drawImage(cropImg, drawX, drawY, drawW, drawH);
+    };
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          cropImg = img;
+          cropOffsetX = 0; cropOffsetY = 0; cropScale = 1.0;
+          drawCrop();
+          if (typeof cropDialog.showModal === 'function') cropDialog.showModal();
+          else cropDialog.setAttribute('open', '');
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+      fileInput.value = '';  // allow re-selecting the same file
+    });
+
+    // Drag + wheel-zoom on the canvas.
+    cropCanvas.addEventListener('mousedown', (e) => {
+      dragging = true;
+      dragStartX = e.clientX - cropOffsetX;
+      dragStartY = e.clientY - cropOffsetY;
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      cropOffsetX = e.clientX - dragStartX;
+      cropOffsetY = e.clientY - dragStartY;
+      drawCrop();
+    });
+    document.addEventListener('mouseup', () => { dragging = false; });
+    cropCanvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = -e.deltaY * 0.002;
+      cropScale = Math.max(0.5, Math.min(4.0, cropScale + delta));
+      drawCrop();
+    }, { passive: false });
+    // Touch support (single-finger drag; pinch-zoom uses two-finger
+    // distance — rough but works without a library).
+    cropCanvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        dragging = true;
+        dragStartX = e.touches[0].clientX - cropOffsetX;
+        dragStartY = e.touches[0].clientY - cropOffsetY;
+      }
+    });
+    cropCanvas.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 1 && dragging) {
+        e.preventDefault();
+        cropOffsetX = e.touches[0].clientX - dragStartX;
+        cropOffsetY = e.touches[0].clientY - dragStartY;
+        drawCrop();
+      }
+    }, { passive: false });
+    cropCanvas.addEventListener('touchend', () => { dragging = false; });
+
+    cropCancel.addEventListener('click', () => cropDialog.close());
+
+    cropConfirm.addEventListener('click', async () => {
+      // Render to a 512×512 JPEG, circular mask is purely visual —
+      // we upload the square crop; the renderer on display sites
+      // applies border-radius: 50%.
+      const out = document.createElement('canvas');
+      out.width = 512; out.height = 512;
+      const octx = out.getContext('2d');
+      octx.fillStyle = '#000';
+      octx.fillRect(0, 0, 512, 512);
+      const cw = cropCanvas.width, ch = cropCanvas.height;
+      const aspect = cropImg.naturalWidth / cropImg.naturalHeight;
+      let baseW, baseH;
+      if (aspect >= 1) { baseH = ch; baseW = ch * aspect; }
+      else             { baseW = cw; baseH = cw / aspect; }
+      const drawW = baseW * cropScale;
+      const drawH = baseH * cropScale;
+      const drawX = (cw - drawW) / 2 + cropOffsetX;
+      const drawY = (ch - drawH) / 2 + cropOffsetY;
+      const sf = 512 / cw;
+      octx.drawImage(cropImg, drawX * sf, drawY * sf, drawW * sf, drawH * sf);
+
+      cropConfirm.disabled = true;
+      cropConfirm.textContent = 'Uploading…';
+      try {
+        const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', 0.85));
+        if (!blob) throw new Error('Could not encode image');
+        const { url, version } = await API.uploadAvatar(blob);
+        await API.setAvatarUrl(url);
+        currentAvatarUrl = `${url}?v=${version}`;
+        renderAvatar();
+        cropDialog.close();
+      } catch (e) {
+        alert('Could not upload avatar: ' + (e?.message || e));
+      } finally {
+        cropConfirm.disabled = false;
+        cropConfirm.textContent = 'Use Photo';
       }
     });
   }

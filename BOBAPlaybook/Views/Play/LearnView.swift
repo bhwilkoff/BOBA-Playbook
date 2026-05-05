@@ -118,9 +118,15 @@ struct LearnView: View {
         NavigationLink(value: cat) {
             inner
                 .matchedTransitionSource(id: cat.id, in: tileZoomNamespace)
+                // Anchor lives on the inner content (which definitely
+                // has a laid-out frame) rather than the NavigationLink
+                // wrapper. NavigationLink's button label sometimes
+                // doesn't propagate anchorPreference until the user
+                // interacts with it, which made learn.firstRow show
+                // up as ANCHOR NOT REGISTERED in the diagnostic.
+                .walkthroughAnchor(isFirst ? "learn.firstRow" : "learn.row.\(cat.id)")
         }
         .buttonStyle(.plain)
-        .walkthroughAnchor(isFirst ? "learn.firstRow" : "learn.row.\(cat.id)")
     }
 
     /// Resolves a slug from cardStore.pendingLearnCategory back to a

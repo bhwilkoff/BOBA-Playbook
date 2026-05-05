@@ -711,92 +711,16 @@ are replaced wholesale, not patched.
 
 ### 6.10.1 Walkthrough catalog
 
-Concrete script for every walkthrough in the app, with anchor + copy
-per step. Each script complies with the §6.10 rules: ≤5 steps, ≤12
-words/step, anchor-based, signed-out-friendly. Implementers build
-against this catalog directly — no need to invent copy.
+The shipped walkthrough scripts live in
+`BOBAPlaybook/Components/BOBAWalkthrough.swift` (the `extension
+BOBAWalkthrough.Script` block at the bottom of that file). Each
+script complies with the §6.10 rules: ≤5 steps, ≤12 words/step,
+anchor-based, signed-out-friendly. **The code is the source of
+truth — read it there, not here.**
 
-#### Find — first visit (5 steps)
-1. **Anchor: search field.** *"Search any of 17,968 cards by name, hero, or weapon."*
-2. **Anchor: featured ribbons.** *"Browse by weapon, sport, or featured collections."*
-3. **Anchor: a card cell.** *"Tap a card to see details, prices, and decks."*
-4. **Anchor: scan toolbar button.** *"Scan a real card to identify it instantly."*
-5. **Anchor: profile gear.** *"Sign in to save cards to your collection."* (Done)
-
-#### Learn — first visit (4 steps)
-1. **Anchor: root list.** *"Five learning paths, from Rules to Tournament."*
-2. **Anchor: first category row.** *"Tap to read articles, strategy, and glossary."*
-3. **Anchor: scope bar (inside first article opened during walkthrough).** *"Switch between Rookie, Substitution, and Playmaker views."*
-4. **Anchor: search field.** *"Search across every Learn article from here."* (Done)
-
-#### Decks — first visit (5 steps) *(matches §8.3 Maps-pattern rebuild)*
-1. **Anchor: card pool grid.** *"Tap any card to add it to your deck."*
-2. **Anchor: bottom sheet drag handle.** *"Drag up to see your full deck list."*
-3. **Anchor: format chip in sheet.** *"Set your format — it shapes the whole deck."*
-4. **Anchor: search bar with token.** *"Filter with tokens for element, cost, or hero."*
-5. **Anchor: Save button.** *"Sign in and save to access your deck anywhere."* (Done)
-
-#### Collection — first visit (5 steps)
-1. **Anchor: designation scope bar.** *"Personal, For Sale, Trade, Wanted, Grails — switch here."*
-2. **Anchor: a card cell.** *"Tap to edit designation, valuation, or notes."*
-3. **Anchor: scan toolbar button.** *"Scan to bulk-add cards to a designation."*
-4. **Anchor: display-mode picker.** *"Switch to List for triage or Wall for sharing."*
-5. **Anchor: share button.** *"Share by URL or as a Wall image."* (Done)
-
-#### Purchase — first visit (3 steps)
-1. **Anchor: segmented picker.** *"Upcoming Breaks or Find a Store."*
-2. **Anchor: a Whatnot show tile.** *"Tap to open the show in Whatnot."*
-3. **Anchor: store finder map.** *"Find indie shops or big-box near you."* (Done)
-
-#### Card detail — first open (3 steps)
-1. **Anchor: stats grid.** *"Six cells: Card #, Type, Treatment, Weapon, Set, Sub-set."*
-2. **Anchor: pricing panels.** *"Buy Now is asking; Sold is transacted. Kept separate."*
-3. **Anchor: action bar.** *"Add to Collection, Add to Deck, or Share."* (Done)
-
-#### Pricing panels — first scroll (2 steps)
-1. **Anchor: Buy Now strip.** *"Live asking prices from eBay and COMC."*
-2. **Anchor: Sold strip.** *"Recent sales drive the market estimate above."* (Done)
-
-#### Wall view — first render (3 steps)
-1. **Anchor: aspect picker.** *"Pick wallpaper, square, or 16:9 sizing."*
-2. **Anchor: Price Overlay toggle.** *"Show prices on each card for sale lists."*
-3. **Anchor: Share button.** *"Save the image or share it directly."* (Done)
-
-#### Scan — first invocation (varies by destination)
-
-Three destination-specific scripts, since scan from Find / Decks /
-Collection (§6.5) does meaningfully different things at the
-"default action on capture" step.
-
-**From Find** (2 steps):
-1. **Anchor: viewfinder.** *"Cards land in your scan queue as you capture."*
-2. **Anchor: mode toggle.** *"Switch to grid mode for 3–9 cards at once."* (Done)
-
-**From Decks** (2 steps):
-1. **Anchor: viewfinder.** *"Captured cards add directly to your current deck."*
-2. **Anchor: queue review.** *"Tap any card to remove if mis-scanned."* (Done)
-
-**From Collection** (3 steps):
-1. **Anchor: destination chooser sheet (pre-scan).** *"Pick a designation — captures land there."*
-2. **Anchor: viewfinder.** *"Scan as many cards as you'd like in one session."*
-3. **Anchor: queue review.** *"Change a card's designation here before finishing."* (Done)
-
-#### Multi-card grid scan — first use (3 steps)
-1. **Anchor: viewfinder.** *"Position 3 to 9 cards in a grid pattern."*
-2. **Anchor: shutter.** *"One tap captures all visible cards."*
-3. **Anchor: review queue.** *"Confirm matches or pick from alternatives."* (Done)
-
----
-
-**Step-count audit:** 5 + 4 + 5 + 5 + 3 + 3 + 2 + 3 + 2 + 2 + 3 + 3 =
-**40 total anchored steps** across 12 walkthroughs (5 tabs + 7
-features). Average 3.3 steps per walkthrough; max 5; all under cap.
-
-**Word-count audit:** every step copy is ≤ 12 words. Re-verify
-during implementation; a step that grows past 12 words signals
-either (a) the anchor is wrong (try splitting into two steps), or
-(b) the underlying UI needs simplification (the §6.10 rule:
-walkthrough length is a proxy for UI complexity).
+A script that grows past 12 words/step or 5 steps signals either
+(a) the anchor is wrong (try splitting into two steps), or (b) the
+underlying UI needs simplification.
 
 ---
 
@@ -1313,41 +1237,16 @@ Only enabled inside Wall view.
 
 ## 9. The redesign roadmap
 
-The order of operations to bring existing code into compliance. Each
-item references the §-rule it implements.
+The original 30-item roadmap from this document's first draft is
+substantially complete (Find / Learn / Decks / Collection / Purchase
+rebuilds all shipped, walkthrough infrastructure landed, Liquid
+Glass adopted, scan unified, Wall + Price Overlay un-gated). The
+historical roadmap is preserved in git history at the v2.072 tag of
+this document.
 
-| Order | Refactor | Rule | Impact |
-|---|---|---|---|
-| 1 | Move `BrowseView` and `CardDetailView` out of `LearnView`; add featured ribbons to Find | §1.1, §8.1, §8.2 | Largest single simplification — kills Learn's tab-in-tab problem and removes ~800 lines from `LearnView.swift` |
-| 2 | Convert Decks toolbar pile-up to Maps pattern (canvas + bottom sheet) | §8.3 | Highest perceived density win — kills 5-row toolbar |
-| 3 | Add `Tab(role: .search)` to Find | §6.1, §8.1 | Unlocks iOS 26 dedicated search UX |
-| 4 | Replace Learn's 6-section middle picker with single root-list `NavigationStack` push | §3.1, §8.2 | Removes Russian-doll nav |
-| 5 | Convert all Decks filter rows to `.searchable` tokens | §6.4, §8.3 | Removes pill-bar pile-up |
-| 6 | Strip every `.presentationBackground` modifier from sheets | §3.10, §5.5 | Restores iOS 26 automatic Liquid Glass |
-| 7 | Replace hand-rolled scroll-edge gradients with `.scrollEdgeEffectStyle` | §3.11, §5.6 | Native iOS 26 chrome |
-| 8 | Wire primary actions (Search, Open Deck, Start Scan, Add to Collection) as `AppIntent` | §7.1 | iOS 27 readiness |
-| 9 | Add stable section IDs to Learn articles | §7.2 | iOS 27 readiness |
-| 10 | Audit every grid for `BOBACardCell` consistency; fix any one-off card layouts | §4.3 | Small-multiples enforcement |
-| 11 | Remove `.background(Color.gray.opacity(0.1))` and ad-hoc dividers from lists | §4.1 | Density restoration |
-| 12 | QA pass: every screen against Reduce Transparency / Reduce Motion / Increase Contrast / Tinted Mode max | §5.7, §5.8 | Accessibility + iOS 27 forward |
-| 13 | Unify scan invocation across Find/Decks/Collection — single `ScanCoordinator(destination:)` API, single ScanView, `tabViewBottomAccessory` strip for active sessions | §6.5 | Removes 3 parallel scan-button-and-routing implementations |
-| 14 | Add Collection display-mode picker (Grid / List / Wall); lift Generate Wall from streamer-only gate to a general display mode for all collectors (discuss DECISIONS.md #025 implications first) | §8.4 | Makes collection display + sharing first-class for every user |
-| 15 | Wire Share affordance into card detail, deck detail, designation scope; produce deep links + share images via single iOS share sheet with `bobaplaybook.com/{type}/{id}` Universal Links | §6.5, §8.4 | Sharing as a first-class verb; web fallback for non-iOS recipients |
-| 16 | Add public/private toggle per Collection designation in Profile; have the web app honor it for `bobaplaybook.com/u/{username}/{designation}` URLs | §8.4 | Public collection sharing without sign-in friction for recipients |
-| 17 | Consolidate `CardDetailView` to one source of truth across Find / Decks / Collection; differentiate by action bar only, not anatomy | §8.6 | Removes per-tab drift in the most-visited surface |
-| 18 | Audit pricing UI to enforce the §8.7 two-section layout; add COMC soft-fail handling and the audit-able market-estimate caption | §8.7 | Pricing trust + provenance |
-| 19 | Lift Wall view from streamer-only gate (DECISIONS.md #025); make it Collection display mode + Decks overflow option + Find multi-select option | §8.8 | Sharing as a first-class feature for every user |
-| 20 | Lift Price Overlay from streamer-only gate; integrate as a Wall-view toggle with per-designation defaults | §8.8 | Sale/trade communication for every user |
-| 21 | Standardize empty / loading / error / offline states using `BOBAEmptyState` + `BOBAErrorBanner` everywhere; add Offline pill in nav bar | §6.7 | "Feels janky" complaint root cause |
-| 22 | Add iPad adaptation for Decks (NavigationSplitView + side panel), Find (sidebar search), Collection (multi-column grid) | §6.6 | iPad becomes a first-class surface, not stretched-iPhone |
-| 23 | Audit toolbar / wordmark / material treatment for §6.9 compliance across every view | §6.9 | One-app feel |
-| 24 | Codify `BOBASignInPrompt` inline auth pattern (no full-screen wall on launch); refactor existing auth-gate sites to use it | §6.5 Auth | Lower friction for read-only verbs |
-| 25 | Audit existing hints against §6.8; add Profile reset button + global silence toggle UI | §6.8 | Predictable teaching moments |
-| 26 | Build reusable `BOBAWalkthrough` component (extract pattern from existing `DeckBuilderTutorialOverlay`) + `WalkthroughsManager` (parallel to HintsManager); add Reset Walkthroughs + Show Walkthroughs toggle to Profile | §6.10, §11 | Walkthrough infrastructure |
-| 27 | Implement the 5 tab walkthroughs (Find / Learn / Decks / Collection / Purchase) per §6.10.1 catalog — anchor + copy ready, just bind to UI | §6.10.1 | First-visit teaching across all tabs |
-| 28 | Implement the 7 per-feature walkthroughs (Card detail / Pricing / Wall / Scan-from-Find / Scan-from-Decks / Scan-from-Collection / Grid scan) per §6.10.1 catalog | §6.10.1 | Just-in-time teaching for novel interactions |
-| 29 | Replace existing `DeckBuilderTutorialOverlay` content with the new Decks walkthrough script per §6.10.1, as part of the §8.3 Decks-tab rebuild (item #2). The old script is obsolete — the entire Decks UI changes. Don't patch step-by-step; substitute wholesale. | §6.10.1, §8.3 | Decks walkthrough matches Decks rebuild |
-| 30 | Verify every walkthrough survives signed-out (no required-auth interruption). The Find #5 / Decks #5 / Collection #5 steps reference sign-in — must show sign-in *as an option*, not block at sign-in | §6.5 Auth, §6.10 | Walkthroughs respect auth-optional rule |
+Open redesign work tracked in [SCRATCHPAD.md](./SCRATCHPAD.md) under
+the Active section — typically per-feature one-offs at this stage,
+not roadmap-level refactors.
 
 ---
 

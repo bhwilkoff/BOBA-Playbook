@@ -1,15 +1,34 @@
 # BOBA Playbook — Project Scratchpad
 
-> Active working notes only. Completed milestone implementation detail and the full session log live in [ARCHIVE.md](./ARCHIVE.md). See [DECISIONS.md](./DECISIONS.md) for architecture decisions.
+> Active working notes only. Completed milestone implementation detail and the full session log live in [ARCHIVE.md](./ARCHIVE.md). See [DECISIONS.md](./DECISIONS.md) for architecture decisions and [DESIGN.md](./DESIGN.md) for binding iOS design rules.
 
-## Current State
+## Current State (2026-05-05)
 
-- **Active work**: Purchase view (Whatnot upcoming-shows feed + Find a Store) + nav restructure (Find / Learn / Decks / Collection / Purchase). Find tab is the default landing surface and renders larger than the others.
-- **Catalog**: 17,968 cards (+54 OKC Thunder World Champions, 2026-04-28) · ~90% image coverage on R2 (OKC art still pending source). Cumulative power-realign audit landed 831 corrections across 15,691 Hero records.
-- **Open questions**:
-  - Whatnot Worker — three-layer extraction (DOM regex + Apollo SSR + `__NEXT_DATA__`); see Cowork's `handoff-updates-2026-04-27/whatnot-shows-worker/` for the full plan.
-  - **OKC art sourcing** — all 54 OKC records ship with `imageFile=null`. Spawning a research agent to confirm what's currently published on bobattlearena.com / the card source / Radish; once located, trigger a BV-scrape pass scoped to OKC- pages.
-  - **COMC Cloudflare Turnstile** — `boba-comc-proxy` (workers/comc-proxy/) is wired into iOS+web BUY NOW panel per Cowork's `handoff-updates-2026-04-29/comc-feasibility/`. Hours after the recon, COMC turned on a Cloudflare-managed JS challenge for all anonymous browsers (residential IPs too). Worker currently returns `count: 0, challenged: true` and clients soft-fail to no COMC items. Bypass requires Cloudflare Browser Rendering API or migrating to a Playwright runner — defer until COMC's WAF stance changes or we decide it's worth the cost.
+- **Catalog**: 17,968 cards · ~90% image coverage on R2 · OKC art still pending
+- **Latest version**: iOS 2.081 / 353
+- **Latest commit**: walkthrough diagnostics removed (validated; pattern preserved in memory)
+
+## What Just Shipped (recent)
+
+- **Native-first Decks rebuild** (DESIGN.md §1.0, §8.3): Music-pattern summary pill + fullScreenCover editor with hero zoom; secondary surfaces (Manage Decks / Rules / Legality) push as NavigationDestinations
+- **Card detail standardized** across Find / Decks / Collection (canonical artPanel + toolbar; hero zoom transitions per DESIGN.md §8.6)
+- **Profile redesign** (DECISIONS.md #037-#039): username field with banned-words gate, generalized role-request (mod OR streamer), Discord identity auto-persist, sign-in method pill, public collection toggle, Terms of Service page (live at https://bobaplaybook.com/terms/)
+- **Public collections** (web): get_public_collection RPC + 404.html `/u/{slug}` redirect + `view-public-collection` SPA route
+- **Web parity batches 1+2**: username inline edit, sign-in method pill, Terms link, generalized role request, Delete Account, offline indicator, per-tab grid density, Weapon/Treatment terminology audited (already in parity)
+- **Walkthroughs** (DESIGN.md §6.10): all 7 walkthroughs validated as visually correct after 8+ iteration round on the Learn anchor (root cause: `anchorPreference` was overwriting parent-side; fix was `transformAnchorPreference` in the helper). Diagnostic instrumentation removed; pattern documented in memory.
+- **WEB-DESIGN.md** drafted as a research plan (583 lines of TODOs; not yet binding)
+
+## Active / Next-Up
+
+- **M4 Purchase view** — still in progress per the parity table below. The picker + Find a Store UI shipped on iOS; Whatnot upcoming-breaks worker deployment remains.
+- **Account deletion Worker endpoint** — UI ships now (App Store 5.1.1(v) compliance), real Worker at `/account/delete` queued. See DECISIONS.md #039.
+- **Match-alerts pipeline** (Wanted/Grail notifications) — UI toggle ships, APNs server-side dispatcher is multi-week of new infra. See DECISIONS.md #039.
+
+## Open Questions / Blockers
+
+- **OKC art sourcing** — 54 OKC records ship with `imageFile=null`. Confirm what's published on bobattlearena.com / the card source / Radish, then trigger a BV-scrape pass scoped to OKC- pages.
+- **COMC Cloudflare Turnstile** — `boba-comc-proxy` returns `count: 0, challenged: true`. Bypass requires Cloudflare Browser Rendering API or a Playwright runner. Defer until COMC's WAF stance changes.
+- **Practice executor IP review** — admin-gated per DECISIONS.md #033; access via the bolt icon on the Profile role badge. No timeline.
 
 ---
 
@@ -23,38 +42,27 @@
 | App icon + branding | ✅ | ✅ | XOXO logo, wordmark, PWA |
 | Mobile Safari layout | ✅ | n/a | Body flex column, no viewport-fit=cover |
 | Collection Mode | ✅ | ✅ | M2 complete |
-| Scan Mode (camera OCR) | ❌ | ✅ | M3 iOS complete — iOS only by design |
+| Scan Mode (camera OCR) | ❌ | ✅ | iOS only by design |
 | Pricing comps (links) | ✅ | ✅ | M3 complete |
-| Buy Now (active listings) | ✅ | ✅ | M3.5 complete — Worker deployed at boba-ebay-proxy.benwilkoff.workers.dev |
-| Deck Builder | ✅ | ✅ | Templates + saved decks, format-aware (Standard/SPEC/SPEC+/Limited). |
-| Streamer Shows | ✅ | ✅ | My Shows + Generate Wall (streamer role only). |
-| Find a Store | ✅ | ✅ | MapKit/Leaflet, ~330 indie retailers + ~1,800 big-box. |
-| Purchase view (Upcoming Breaks + Find a Store) | ⏳ | ⏳ | In-progress. |
+| Buy Now (active listings) | ✅ | ✅ | eBay + COMC (latter Turnstile-blocked) |
+| Deck Builder | ✅ | ✅ | iOS rebuilt to Music-pattern pill + zoom editor |
+| Streamer Shows | ✅ | ✅ | My Shows + Generate Wall (streamer role only) |
+| Find a Store | ✅ | ✅ | MapKit/Leaflet, ~330 indie + ~1,800 big-box |
+| Purchase view | ⏳ | ⏳ | Picker + Find a Store shipped; Whatnot worker pending |
+| Profile (username, sharing, role-request, etc.) | ✅ | ✅ | v2.064-v2.080 |
+| Public collections (`/u/{username}`) | ✅ | n/a (auth) | Web-only render; iOS sets the toggle |
+| Walkthroughs | n/a | ✅ | iOS only — see WEB-DESIGN.md §12 for the open question |
 
 ---
 
-## Milestones
+## Milestones (active)
 
 ### ✅ Completed
-- **M0 — Project Setup**: Card data JSONs, R2 images, Supabase schema, GitHub Pages live, Xcode project at repo root.
-- **M1 — Search Mode** (both platforms): card grid, search, filters, modal, CDN images, PWA, branding.
-- **M2 — Collection Mode** (both platforms): Supabase auth (email + Apple), Keychain (iOS), CRUD, designation tabs, value summary, ProfileView. Designations: Personal · For Sale · For Trade · Wanted · Grails.
-- **M3 — Scan Mode (iOS) + Pricing Comps (both)**: Vision OCR with 3-frame stability, multi/single toggle, Save All queue. Radish + eBay links on both platforms.
-- **M3.5 — Pricing Enhancements**: Dual-section Buy Now + sold history shipped on both platforms.
+M0 (setup), M1 (search), M2 (collection), M3/M3.5 (scan + pricing). Profile + Decks rebuild + Public collections (web) + Walkthroughs all shipped post-M3.5. Full notes in ARCHIVE.md.
 
-Full implementation notes for M1–M3.5 live in [ARCHIVE.md](./ARCHIVE.md).
-
----
-
-### ⏳ M4 — Purchase view (ACTIVE)
-
-Two sections:
-
-1. **Upcoming Breaks** — Whatnot upcoming-shows feed for the search "Bo Jackson Battle Arena", surfaced as large card tiles with host, scheduled time, viewer/interested count, and a deep link into the Whatnot show. Backed by a Cloudflare Worker (`boba-whatnot-shows`) that scrapes the search page server-side; Worker spec in `handoff-updates-2026-04-27/whatnot-shows-worker/`.
-2. **Find a Store** — moved here from inside Collection. ~330 independent retailers + ~1,800 big-box (with default filter to indies); MapKit on iOS, Leaflet on web.
-
----
+### ⏳ M4 — Purchase view
+- **Upcoming Breaks** — Whatnot feed via `boba-whatnot-shows` Worker; spec in `handoff-updates-2026-04-27/whatnot-shows-worker/`
+- **Find a Store** — done (moved out of Collection)
 
 ### ❌ M5 — Discord Trading Channel (FUTURE)
-Embed community trading channel. `discord.com/channels/1305710603440095252/1306146115757936650`
-Research Discord Activity SDK vs WebView feasibility before committing.
+Embed community trading channel. Research Discord Activity SDK vs WebView feasibility before committing.

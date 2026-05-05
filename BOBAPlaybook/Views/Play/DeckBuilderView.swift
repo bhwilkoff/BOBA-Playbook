@@ -1939,7 +1939,12 @@ struct BrowserCardDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     private var inDeck: Bool { store.isInDeck(card) }
-    private var wouldViolate: Bool { tab == .hero && store.heroWouldViolate(card) }
+    /// Specific rule blocking the add (or nil when allowed). Drives
+    /// the "Can't add" callout instead of the prior generic
+    /// "rule violation" wording. Covers all roles, not just heroes.
+    private var violationReason: String? {
+        store.addViolationReason(for: card, role: tab)
+    }
 
     @ViewBuilder
     private func navStackIfNeeded<C: View>(@ViewBuilder _ content: () -> C) -> some View {
@@ -2040,11 +2045,33 @@ struct BrowserCardDetailSheet: View {
                     .padding(.horizontal, Design.Spacing.lg)
 
                     // Add to deck / Remove button
-                    if wouldViolate {
-                        Text("Cannot add — rule violation")
-                            .font(Design.Fonts.mono(13, weight: .bold))
-                            .foregroundStyle(Color(hex: "C0392B"))
-                            .padding()
+                    if let reason = violationReason, !inDeck {
+                        // Inline callout — names the actual rule
+                        // (one-of, weapon cap, hero deck full, etc.)
+                        // instead of the prior generic "rule violation"
+                        // wording.
+                        VStack(alignment: .leading, spacing: 6) {
+                            Label("Can't add to deck", systemImage: "exclamationmark.triangle.fill")
+                                .font(Design.Fonts.mono(13, weight: .bold))
+                                .foregroundStyle(Color(hex: "C0392B"))
+                            Text(reason)
+                                .font(Design.Fonts.mono(13))
+                                .foregroundStyle(Design.Colors.textSecondary)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(Design.Spacing.md)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: Design.Radius.md)
+                                .fill(Color(hex: "C0392B").opacity(0.08))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Design.Radius.md)
+                                .strokeBorder(Color(hex: "C0392B").opacity(0.35), lineWidth: 1)
+                        )
+                        .padding(.horizontal, Design.Spacing.lg)
+                        .padding(.top, Design.Spacing.sm)
                     } else if inDeck {
                         Button {
                             store.removeCard(card, role: tab)

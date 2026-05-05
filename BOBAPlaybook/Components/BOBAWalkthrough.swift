@@ -737,13 +737,14 @@ extension BOBAWalkthrough.Script {
 
     static let learnTab = BOBAWalkthrough.Script(
         id: .learnTab,
-        // Both steps anchor on the first tile — the rootList anchor
-        // (LazyVGrid wrapper) measured wrong on first appear because
-        // its children hadn't laid out yet, so the spotlight landed
-        // off-screen. Anchoring twice on the same first tile keeps
-        // the spotlight in a consistent, always-visible spot.
+        // Step 1 circles the entire 6-tile grid (rootList — proven to
+        // register reliably). Step 2 zooms into the first tile via
+        // firstRow (under active iteration with a .background-anchor
+        // approach). If firstRow still doesn't register, the spotlight
+        // gracefully falls back to a centered tooltip — better than
+        // nothing.
         steps: [
-            .init(anchor: .init("learn.firstRow"), copy: "Six learning paths to get better at BoBA."),
+            .init(anchor: .init("learn.rootList"), copy: "Six learning paths to get better at BoBA."),
             .init(anchor: .init("learn.firstRow"), copy: "Tap any tile to read, watch, or browse.")
         ]
     )

@@ -775,14 +775,13 @@ extension BOBAWalkthrough.Script {
                   placement: .below),
             .init(anchor: .init("decksEditor.deckList"),
                   copy: "Tap a card to view it. Tap × to remove."),
-            // saveButton anchor moved to deckName field — the SAVE
-            // button is in the toolbar where .toolbarBackground
-            // renders above the walkthrough overlay and hides the
-            // ring. The deck name field is the first body element
-            // and always visible; tooltip mentions the SAVE button
-            // at the top right.
-            .init(anchor: .init("decksEditor.deckName"),
-                  copy: "Name it, then tap SAVE up top. Sign in to sync across devices.",
+            // saveButton DOES register and is on-screen per the
+            // diagnostic. Reverted from the deckName fallback —
+            // deckName never registered (TextField inside HStack
+            // inside a sheet's VStack apparently doesn't propagate)
+            // while saveButton consistently does.
+            .init(anchor: .init("decksEditor.saveButton"),
+                  copy: "Sign in and tap SAVE to sync your deck across devices.",
                   placement: .below)
         ]
     )

@@ -21,7 +21,7 @@
 ## Active / Next-Up
 
 - **M4 Purchase view** — still in progress per the parity table below. The picker + Find a Store UI shipped on iOS; Whatnot upcoming-breaks worker deployment remains.
-- **Account deletion Worker endpoint** — UI ships now (App Store 5.1.1(v) compliance), real Worker at `/account/delete` queued. See DECISIONS.md #039.
+- ~~**Account deletion Worker endpoint**~~ — SHIPPED 2026-05-05 (`workers/account-delete/`). DECISIONS.md #039 updated.
 - **Match-alerts pipeline** (Wanted/Grail notifications) — UI toggle ships, APNs server-side dispatcher is multi-week of new infra. See DECISIONS.md #039.
 
 ## Open Questions / Blockers

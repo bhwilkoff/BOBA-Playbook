@@ -1,0 +1,23 @@
+name            = "boba-account-delete"
+main            = "worker.js"
+compatibility_date = "2024-09-01"
+
+# Secrets (set via `wrangler secret put <NAME>` after `wrangler login`):
+#   SUPABASE_URL          — https://pazkimtkwwwekuguxkff.supabase.co
+#   SUPABASE_SERVICE_KEY  — service_role key from Supabase dashboard
+#                            (bypasses RLS; required to call admin APIs)
+#
+# Deploy:
+#   cd workers/account-delete
+#   wrangler deploy
+#
+# After deploying, paste the worker URL into:
+#   - BOBAPlaybook/Config.swift       → WorkerConfig.accountDeleteURL
+#   - js/api.js (deleteAccount fn)    → ACCOUNT_DELETE_WORKER_URL
+#
+# All cascading deletes are handled by Postgres FK constraints with
+# ON DELETE CASCADE on auth.users (user_cards, decks, deck_cards via
+# decks, user_profiles, shows, show_cards via shows). Mod-submitted
+# rows in card_corrections / card_image_overrides ON DELETE SET NULL
+# preserves the audit history with NULL author. So this worker only
+# needs to call auth.admin.deleteUser; the database does the rest.

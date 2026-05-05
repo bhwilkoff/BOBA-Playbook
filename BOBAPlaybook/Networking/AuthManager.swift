@@ -238,6 +238,23 @@ final class AuthManager {
         }
     }
 
+    /// Permanently delete the current user's account via the
+    /// boba-account-delete Worker. On success the local session is
+    /// cleared so the next launch lands the user signed-out. On
+    /// failure the user stays signed in and `self.error` carries the
+    /// message — caller should surface it without dismissing the
+    /// confirmation dialog.
+    func deleteAccount() async -> Bool {
+        do {
+            try await client.deleteAccount()
+            await signOut()
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            return false
+        }
+    }
+
     /// Submits a mod-access request with the given reason. Kept for
     /// existing call sites; new code should call requestRole.
     func submitModRequest(reason: String) async {

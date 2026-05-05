@@ -517,16 +517,33 @@ Per-designation public/private toggles are still deferred (today
 the toggle is global). The Wanted-as-WTB-list use case from
 DESIGN.md §8.4 will need its own opt-in surface when shipped.
 
-**(c) Account deletion** — destructive `confirmationDialog` ships
-now to satisfy App Store guideline 5.1.1(v) (apps that allow
-account creation must offer in-app deletion). Tapping "Delete
-Account" currently signs the user out and surfaces a footer
-asking them to email for full deletion. The real Worker endpoint
-that calls Supabase `auth.admin.deleteUser` + cascades through
-`user_cards` / `decks` / `shows` is queued as the next backend
-item. Deferring is acceptable because the user-facing affordance
-+ the escalation path (email) are present; the gap is operational,
-not UX.
+**(c) Account deletion** — IMPLEMENTED 2026-05-05. The
+`boba-account-delete` Cloudflare Worker
+(`workers/account-delete/worker.js`) accepts POST `/account/delete`
+with a Bearer JWT, verifies the caller against Supabase's
+`/auth/v1/user`, and forwards the deletion to Supabase's admin
+`/auth/v1/admin/users/{id}` endpoint using the service-role key
+held as a Worker secret. Postgres FK constraints with ON DELETE
+CASCADE on `auth.users` cascade through `user_cards`, `decks`
+(plus `deck_cards` via `decks`), `shows` (plus `show_cards` via
+`shows`), and `user_profiles`. Mod-submitted records in
+`card_corrections` and `card_image_overrides` use ON DELETE SET
+NULL so the audit trail survives with anonymous authorship.
+
+Wired on iOS (`AuthManager.deleteAccount` →
+`SupabaseClient.deleteAccount` → Worker) and web (`API.deleteAccount`
+→ Worker). Both surfaces sign the user out locally on success so
+the stale JWT stops getting sent. Failure surfaces an error to the
+user without dismissing the confirm; the inline error banner
+treatment is the next polish.
+
+Worker secrets to set (one-time, via `wrangler secret put`):
+- `SUPABASE_URL` = `https://pazkimtkwwwekuguxkff.supabase.co`
+- `SUPABASE_SERVICE_KEY` = service_role key from Supabase dashboard
+
+Worker URL: `https://boba-account-delete.benwilkoff.workers.dev`
+(stored in `BOBAPlaybook/Config.swift::WorkerConfig.accountDeleteURL`
+and `js/api.js::ACCOUNT_DELETE_WORKER_URL`).
 
 **Why ship UI ahead of backend**: removing toggles later is much
 worse UX than disabling them temporarily. The opt-in data is itself

@@ -747,21 +747,25 @@ struct ProfileView: View {
             .confirmationDialog("Delete your account?",
                                 isPresented: $showingDeleteConfirm,
                                 titleVisibility: .visible) {
-                // Wired to a coming-soon path; the destructive
-                // confirmation surface ships now so the App Store
-                // 5.1.1(v) requirement is met from the user's POV.
                 Button("Delete Account", role: .destructive) {
-                    // TODO: call Worker /account/delete (deferred,
-                    // see DECISIONS.md). For now, sign-out so the
-                    // user has a path forward and message them.
-                    Task { await auth.signOut() }
+                    Task {
+                        let ok = await auth.deleteAccount()
+                        if !ok {
+                            // AuthManager.error carries the reason
+                            // (Worker offline, JWT expired, etc.).
+                            // Re-arm the confirm so the user can
+                            // retry; surfacing it on the inline
+                            // error banner is the next polish.
+                            showingDeleteConfirm = false
+                        }
+                    }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Account deletion is processed within 30 days. Your collection, decks, and shared links will be permanently removed. This cannot be undone.")
+                Text("This permanently removes your collection, decks, shared links, and account from BOBA Playbook. This action cannot be undone.")
             }
         } footer: {
-            Text("Email ben@bobaplaybook.com for immediate deletion.")
+            Text("Trouble deleting? Email ben@bobaplaybook.com.")
                 .font(Design.Fonts.mono(11))
                 .foregroundStyle(Design.Colors.textMuted)
         }

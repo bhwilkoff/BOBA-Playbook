@@ -604,6 +604,35 @@ const API = (() => {
     if (error) throw new Error(error.message);
   }
 
+  /// boba-account-delete Worker URL — see BOBAPlaybook/Config.swift
+  /// (kept in sync with WorkerConfig.accountDeleteURL).
+  const ACCOUNT_DELETE_WORKER_URL =
+    'https://boba-account-delete.benwilkoff.workers.dev';
+
+  /// Permanently delete the current user's account via the
+  /// boba-account-delete Worker. The Worker holds the Supabase
+  /// service_role key and proxies the admin auth.users delete (which
+  /// cascades through every user-data table via FK ON DELETE CASCADE).
+  /// On success the caller MUST sign out locally so the stale JWT
+  /// stops getting sent on subsequent requests.
+  async function deleteAccount() {
+    const { data: { session } } = await supa().auth.getSession();
+    if (!session) throw new Error('Not signed in');
+    const res = await fetch(`${ACCOUNT_DELETE_WORKER_URL}/account/delete`, {
+      method:  'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type':  'application/json',
+      },
+    });
+    if (!res.ok) {
+      let detail = '';
+      try { detail = (await res.json())?.error || ''; }
+      catch (_) { /* non-JSON response — ignore detail */ }
+      throw new Error(`Delete failed (HTTP ${res.status})${detail ? ': ' + detail : ''}`);
+    }
+  }
+
   /* ----------------------------------------------------------------
      Public collections (read-only — no auth required)
      Backed by the get_public_collection(handle) Supabase RPC.
@@ -721,5 +750,6 @@ const API = (() => {
     setPublicCollectionEnabled,
     requestRole,
     requestPasswordReset,
+    deleteAccount,
   };
 })();

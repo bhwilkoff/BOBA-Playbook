@@ -180,24 +180,6 @@ extension View {
 // MARK: - The overlay view
 
 struct BOBAWalkthrough: View {
-    /// When true, step transitions emit a structured `print()` +
-    /// `NSLog()` block to the Xcode console for the walkthroughs in
-    /// `diagnosticWalkthroughIDs` (default: only the unsolved ones).
-    /// Use to diagnose "why is the highlight clipped / off-screen /
-    /// missing?" by running the walkthrough and pasting console
-    /// output back. Set to false to silence everything.
-    static var diagnosticsEnabled: Bool = true
-
-    /// Subset of walkthrough IDs that emit diagnostic blocks. Keeps
-    /// the console signal-to-noise high once a walkthrough is
-    /// validated — solved walkthroughs (Find, Decks pool, Collection,
-    /// Purchase, Scanner viewfinder, decksEditor save/stat/format) are
-    /// silent; only walkthroughs we're still iterating on log.
-    static var diagnosticWalkthroughIDs: Set<String> = [
-        WalkthroughID.learnTab.rawValue,
-        WalkthroughID.decksEditor.rawValue,
-    ]
-
     let script: Script
     /// Pre-resolved anchor frames (host view's coordinate space) for the
     /// current view-tree state. Computed at the call site via
@@ -257,158 +239,7 @@ struct BOBAWalkthrough: View {
             // First step's stage prepare hook fires on appear so the
             // host can reveal the very first anchor if it's hidden.
             onStage?(step?.stage)
-            logDiagnostics(event: "START")
         }
-        // .onChange fires AFTER the next render — by then any
-        // stage-driven host re-render has produced fresh anchorFrames,
-        // so the diagnostic logs the post-stage rect (not the
-        // pre-stage one). Without this, drawer-expansion steps would
-        // always log "anchor not registered" because the diagnostic
-        // ran before the drawer had laid out.
-        .onChange(of: currentStep) { _, _ in
-            logDiagnostics(event: "ADVANCE")
-        }
-    }
-
-    // MARK: - Diagnostics
-
-    /// Emits a structured block describing the current step's anchor
-    /// state. Two output channels in parallel because iOS 26 routes
-    /// stdout through Unified Logging by default and Xcode's debug
-    /// area sometimes filters it out:
-    ///
-    ///  1. `print()` — the canonical channel (Xcode Debug → "All
-    ///     Output" in the console area).
-    ///  2. `NSLog()` — backup that goes through Apple System Log
-    ///     and reliably surfaces in Xcode's debug area regardless
-    ///     of stdout filter state. Format string `%@` + the block
-    ///     as NSString.
-    ///
-    /// To see output: in Xcode, open the Debug area (Cmd-Shift-Y),
-    /// look at the right pane (the console). If empty, click the
-    /// pane filter dropdown at the bottom-right and switch to
-    /// "All Output" instead of "Debugger Output".
-    ///
-    /// Each block is bounded by `WT[id] ━━━━━━━━━━━━━━` rules so
-    /// multi-step transcripts read clearly when copied out.
-    private func logDiagnostics(event: String) {
-        guard Self.diagnosticsEnabled else { return }
-        let id = script.id.rawValue
-        // Suppress logging for walkthroughs already validated as
-        // working — only the unsolved ones (in diagnosticWalkthroughIDs)
-        // emit blocks. Keeps the Xcode console manageable.
-        guard Self.diagnosticWalkthroughIDs.contains(id) else { return }
-        let total = script.steps.count
-        let stepNum = currentStep + 1
-
-        var lines: [String] = []
-        lines.append("WT[\(id)] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ \(event)")
-
-        if event == "DISMISS" {
-            lines.append("  → walkthrough dismissed at step \(stepNum)/\(total)")
-            lines.append("  → onStage(nil) called — host should restore prior UI state")
-            print(lines.joined(separator: "\n"))
-            return
-        }
-
-        guard let step else {
-            lines.append("  ✗ NO STEP — currentStep=\(currentStep) total=\(total)")
-            print(lines.joined(separator: "\n"))
-            return
-        }
-
-        lines.append("  step \(stepNum)/\(total)")
-        lines.append("  copy: \"\(step.copy)\"")
-        lines.append("  copy length: \(step.copy.split(separator: " ").count) words \(step.copy.count <= 12 * 8 ? "✓" : "⚠ likely > §6.10 cap of 12")")
-
-        if let stage = step.stage {
-            lines.append("  stage: \(stage) — host should prepare UI for this anchor")
-        } else {
-            lines.append("  stage: nil")
-        }
-
-        let container = containerSize
-        lines.append("  container: \(fmt(container.width)) × \(fmt(container.height))")
-
-        if let anchorKey = step.anchor {
-            lines.append("  anchor key: \"\(anchorKey.key)\"")
-            if let rect = anchorFrames[anchorKey] {
-                lines.append("  anchor rect: x=\(fmt(rect.minX)) y=\(fmt(rect.minY)) w=\(fmt(rect.width)) h=\(fmt(rect.height))")
-                let viewport = CGRect(origin: .zero, size: container)
-                // 1pt tolerance — sub-pixel rounding (e.g., a 393.3pt
-                // anchor in a 393.0pt viewport, 0.3pt overflow) is
-                // visually invisible and shouldn't flag as CLIPPED.
-                let tol: CGFloat = 1.0
-                let leftIn   = rect.minX  >= viewport.minX - tol
-                let rightIn  = rect.maxX  <= viewport.maxX + tol
-                let topIn    = rect.minY  >= viewport.minY - tol
-                let bottomIn = rect.maxY  <= viewport.maxY + tol
-                let allIn    = leftIn && rightIn && topIn && bottomIn
-                lines.append("  anchor on-screen: \(allIn ? "✓ FULLY ON-SCREEN" : "✗ CLIPPED")")
-                if !leftIn   { lines.append("    ← clipped LEFT  by \(fmt(viewport.minX - rect.minX))pt") }
-                if !rightIn  { lines.append("    → clipped RIGHT by \(fmt(rect.maxX - viewport.maxX))pt") }
-                if !topIn    { lines.append("    ↑ clipped TOP   by \(fmt(viewport.minY - rect.minY))pt") }
-                if !bottomIn { lines.append("    ↓ clipped BOTTOM by \(fmt(rect.maxY - viewport.maxY))pt") }
-                // Spotlight ring is the anchor padded by ±8 BUT each
-                // edge's pad is capped at the available viewport
-                // margin (matches the spotlightRing pad-then-clamp
-                // dance below). For an anchor that touches a screen
-                // edge, that edge gets a 0pt inset instead of the
-                // -8pt that would push the ring off-screen. Log the
-                // actually-rendered rect, not a naïve ±8 expansion.
-                let visible = rect.intersection(viewport)
-                let leftCap   = min(8, visible.minX)
-                let rightCap  = min(8, viewport.maxX - visible.maxX)
-                let topCap    = min(8, visible.minY)
-                let bottomCap = min(8, viewport.maxY - visible.maxY)
-                let renderedRing = CGRect(
-                    x: visible.minX - leftCap,
-                    y: visible.minY - topCap,
-                    width:  visible.width  + leftCap + rightCap,
-                    height: visible.height + topCap  + bottomCap
-                )
-                let ringIn = viewport.contains(renderedRing)
-                if ringIn {
-                    if leftCap < 8 || rightCap < 8 || topCap < 8 || bottomCap < 8 {
-                        // Ring is on-screen but the pad was clamped
-                        // because the anchor touches a screen edge.
-                        // Report the actual rendered rect for clarity.
-                        lines.append("  spotlight ring (capped pad): ✓ FULLY ENCLOSED (pad clamped — left=\(fmt(leftCap)) right=\(fmt(rightCap)) top=\(fmt(topCap)) bottom=\(fmt(bottomCap)))")
-                    } else {
-                        lines.append("  spotlight ring (±8pt pad): ✓ FULLY ENCLOSED")
-                    }
-                } else {
-                    // Should not normally happen post-clamp; report
-                    // the rendered rect + overflow for diagnosis.
-                    lines.append("  spotlight ring (rendered): x=\(fmt(renderedRing.minX)) y=\(fmt(renderedRing.minY)) w=\(fmt(renderedRing.width)) h=\(fmt(renderedRing.height))")
-                    let rL = renderedRing.minX < viewport.minX ? viewport.minX - renderedRing.minX : 0
-                    let rR = renderedRing.maxX > viewport.maxX ? renderedRing.maxX - viewport.maxX : 0
-                    let rT = renderedRing.minY < viewport.minY ? viewport.minY - renderedRing.minY : 0
-                    let rB = renderedRing.maxY > viewport.maxY ? renderedRing.maxY - viewport.maxY : 0
-                    lines.append("  ✗ ring CLIPPED — left=\(fmt(rL)) right=\(fmt(rR)) top=\(fmt(rT)) bottom=\(fmt(rB))")
-                }
-                let intersects = viewport.intersects(rect)
-                if !intersects {
-                    lines.append("  ⚠ anchor entirely OFF-SCREEN — overlay falls back to centered tooltip + chevron")
-                }
-            } else {
-                lines.append("  anchor rect: ✗ ANCHOR NOT REGISTERED")
-                lines.append("  → no view in the current host has called .walkthroughAnchor(\"\(anchorKey.key)\")")
-                lines.append("  → all currently-registered keys: \(anchorFrames.keys.map { $0.key }.sorted().joined(separator: ", "))")
-            }
-        } else {
-            lines.append("  anchor: nil (full-screen step — intro/outro)")
-        }
-
-        let block = lines.joined(separator: "\n")
-        print(block)
-        // NSLog is verbose but reliably visible — print() can be
-        // swallowed by Xcode filter state or stdout routing in iOS 26.
-        NSLog("%@", block as NSString)
-    }
-
-    private func fmt(_ v: CGFloat) -> String {
-        String(format: "%.1f", v)
     }
 
     private var step: Step? {
@@ -474,7 +305,6 @@ struct BOBAWalkthrough: View {
     }
 
     private func complete() {
-        logDiagnostics(event: "DISMISS")
         // Restore prior state before tearing down.
         onStage?(nil)
         onComplete()

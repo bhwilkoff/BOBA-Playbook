@@ -77,6 +77,21 @@
       <span></span><span></span><span></span>
     </button>
     <span class="mobile-title"><span class="mobile-title-boba">BOBA</span><span class="mobile-title-playbook"> Playbook</span></span>
+    <!-- Offline pill — wired by app.js navigator.onLine listener.
+         Hidden until the browser reports the connection is offline. -->
+    <span class="offline-pill" id="offline-pill" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           width="11" height="11" aria-hidden="true">
+        <line x1="1" y1="1" x2="23" y2="23"/>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"/>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+        <line x1="12" y1="20" x2="12.01" y2="20"/>
+      </svg>
+      <span>OFFLINE</span>
+    </span>
   </header>
 
   <!-- Sidebar overlay (mobile) -->
@@ -207,6 +222,16 @@
 
         <div class="results-bar">
           <span class="results-count" id="search-count" aria-live="polite" aria-atomic="true"></span>
+          <!-- Column-count picker (DESIGN.md §11 / iOS per-tab grid
+               density parity). Persists to localStorage under the
+               same key the iOS app uses, so a user who signs into
+               both platforms gets the same density preference where
+               possible. -->
+          <div class="grid-cols-picker" role="group" aria-label="Card grid columns">
+            <button type="button" class="grid-cols-btn" data-cols="1" aria-label="1 column">1</button>
+            <button type="button" class="grid-cols-btn" data-cols="2" aria-label="2 columns">2</button>
+            <button type="button" class="grid-cols-btn" data-cols="3" aria-label="3 columns">3</button>
+          </div>
           <!-- Quick Add toggle — only rendered for signed-in users by
                app.js. When active, tapping a grid card adds to the
                user's Collection (as .personal) instead of opening the

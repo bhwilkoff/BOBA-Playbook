@@ -2538,9 +2538,64 @@
   });
 
   /* ================================================================
+     PER-TAB GRID DENSITY (parity with iOS @AppStorage column counts)
+     localStorage keys match iOS so a user with both platforms
+     gets the same density preference where possible. Web only has
+     a Find grid today; Decks/Collection picker hooks land when
+     those views get rebuilt to use the canonical .card-grid.
+  ================================================================ */
+  function initGridColsPicker() {
+    const KEY = 'bp_findGridColumns_v1';
+    const stored = localStorage.getItem(KEY);
+    // Default to 0 ("auto" / current responsive behavior) so first-
+    // time visitors see the same layout they always have. Picking
+    // an explicit count opts in.
+    let cols = stored ? parseInt(stored, 10) : 0;
+    const picker = document.querySelector('.grid-cols-picker');
+    if (!picker) return;
+    const apply = () => {
+      if (cols >= 1 && cols <= 3) {
+        document.body.dataset.findCols = String(cols);
+      } else {
+        delete document.body.dataset.findCols;
+      }
+      picker.querySelectorAll('.grid-cols-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.cols, 10) === cols);
+      });
+    };
+    picker.querySelectorAll('.grid-cols-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const next = parseInt(btn.dataset.cols, 10);
+        // Click the active one again to return to auto/responsive.
+        cols = (cols === next) ? 0 : next;
+        if (cols) localStorage.setItem(KEY, String(cols));
+        else      localStorage.removeItem(KEY);
+        apply();
+      });
+    });
+    apply();
+  }
+
+  /* ================================================================
+     OFFLINE INDICATOR (DESIGN.md §6.7 / iOS BOBAOfflinePill parity)
+     Subtle pill in the mobile header; visible only when
+     navigator.onLine is false. Re-fires on online/offline events so
+     intermittent connectivity drops surface immediately.
+  ================================================================ */
+  function syncOfflinePill() {
+    const pill = document.getElementById('offline-pill');
+    if (!pill) return;
+    pill.hidden = navigator.onLine !== false;
+  }
+  window.addEventListener('online',  syncOfflinePill);
+  window.addEventListener('offline', syncOfflinePill);
+
+  /* ================================================================
      INITIALIZATION
   ================================================================ */
   async function init() {
+    syncOfflinePill();
+    initGridColsPicker();
     // Collection.init() must run before Auth.init() so its auth-change listener
     // is registered before Auth.init()'s eager session restore dispatches the event.
     Collection.init();

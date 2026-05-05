@@ -16,7 +16,7 @@
 - **Public collections** (web): get_public_collection RPC + 404.html `/u/{slug}` redirect + `view-public-collection` SPA route
 - **Web parity batches 1+2**: username inline edit, sign-in method pill, Terms link, generalized role request, Delete Account, offline indicator, per-tab grid density, Weapon/Treatment terminology audited (already in parity)
 - **Walkthroughs** (DESIGN.md §6.10): all 7 walkthroughs validated as visually correct after 8+ iteration round on the Learn anchor (root cause: `anchorPreference` was overwriting parent-side; fix was `transformAnchorPreference` in the helper). Diagnostic instrumentation removed; pattern documented in memory.
-- **WEB-DESIGN.md** drafted as a research plan (583 lines of TODOs; not yet binding)
+- **WEB-DESIGN.md** ratified to binding (978 lines). All 21 TODO sections converted to binding rules in DESIGN.md style; "Out of scope" decisions explicit (walkthroughs, Cmd-K, web push, build step). Roadmap of P0/P1/P2 web refactors implied by the new rules listed in §15.
 
 ## Active / Next-Up
 

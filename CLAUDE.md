@@ -251,7 +251,8 @@ Cost + DBS for Plays render BELOW the canonical six.
 | `docs/CARD_SCHEMA.md` | Full cards.json field documentation |
 | `workers/ebay-proxy/worker.js` | Cloudflare Worker: eBay Browse API + Radish pricing proxy (deployed: boba-ebay-proxy.benwilkoff.workers.dev) |
 | `DECISIONS.md` | Architecture decision log |
-| `DESIGN.md` | iOS design theory — binding rules for every UI feature |
+| `DESIGN.md` | iOS design theory — binding rules for every iOS UI feature |
+| `WEB-DESIGN.md` | Web design theory — binding rules for every web UI feature |
 | `SCRATCHPAD.md` | Feature parity tracker and milestone status |
 
 ---
@@ -284,4 +285,4 @@ Cost + DBS for Plays render BELOW the canonical six.
 ---
 
 ## Current State
-See @SCRATCHPAD.md for milestone status. See @DECISIONS.md for architecture decisions. **For any UI / IA work, consult @DESIGN.md before proposing — it is binding.**
+See @SCRATCHPAD.md for milestone status. See @DECISIONS.md for architecture decisions. **For any UI / IA work, consult @DESIGN.md (iOS) or @WEB-DESIGN.md (web) before proposing — both are binding.**

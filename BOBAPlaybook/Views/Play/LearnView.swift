@@ -73,7 +73,16 @@ struct LearnView: View {
     /// sheet directly; every other tile pushes via NavigationLink.
     @ViewBuilder
     private func categoryTile(_ cat: LearnCategory, isFirst: Bool) -> some View {
-        let inner = VStack(alignment: .leading, spacing: 8) {
+        // Inlined as a SINGLE expression — no `let inner = ...`
+        // capture — so the function returns the modifier chain
+        // directly. Earlier multi-statement form (let inner = ...;
+        // inner.modifier...) was likely capturing the view value
+        // before modifiers attached, breaking preference propagation
+        // to the host even with .walkthroughAnchor at the end.
+        // Pattern matches the working find.cardCell: bare view +
+        // matchedTransitionSource + onTapGesture + walkthroughAnchor,
+        // no Button or NavigationLink wrapper.
+        VStack(alignment: .leading, spacing: 8) {
             Image(systemName: cat.systemImage)
                 .font(.system(size: 26, weight: .semibold))
                 .foregroundStyle(cat.accent)
@@ -85,20 +94,12 @@ struct LearnView: View {
             Text(cat.title)
                 .font(Design.Fonts.display(20))
                 .foregroundStyle(Design.Colors.textPrimary)
-            // Per user feedback — the cards have headroom so the
-            // subtitle can read at a more legible size. Bumped from
-            // 11pt to 13pt for actual readability.
             Text(cat.subtitle)
                 .font(Design.Fonts.mono(13))
                 .foregroundStyle(Design.Colors.textSecondary)
                 .lineLimit(3)
                 .multilineTextAlignment(.leading)
         }
-        // No Spacer + smaller minHeight per user feedback — the prior
-        // 160pt min was forcing trailing whitespace under each tile
-        // (and pushing the 6-tile grid past one screen). Tiles now
-        // size to content with a small floor so an icon-only state
-        // still has presence.
         .frame(maxWidth: .infinity, minHeight: 110, alignment: .topLeading)
         .padding(Design.Spacing.md)
         .background(
@@ -109,25 +110,10 @@ struct LearnView: View {
                         .strokeBorder(cat.accent.opacity(0.25), lineWidth: 1)
                 )
         )
-
-        // All tiles use NavigationLink push (slides in from the side)
-        // for a consistent transition feel — no more Watch flying up
-        // from the bottom while every other category slides in from
-        // the side. WatchView is wired in the navigationDestination
-        // switch below.
-        // No Button, no NavigationLink. Both wrap children in an
-        // internal preference-eating layer in iOS 26. SearchView's
-        // find.cardCell anchors register reliably because it uses
-        // .onTapGesture on a bare view. Same pattern here:
-        // inner view + matchedTransitionSource + onTapGesture +
-        // walkthroughAnchor. The path is bound to NavigationStack,
-        // so path.append() drives navigation just like NavigationLink.
-        inner
-            .matchedTransitionSource(id: cat.id, in: tileZoomNamespace)
-            .onTapGesture {
-                path.append(cat)
-            }
-            .walkthroughAnchor(isFirst ? "learn.firstRow" : "learn.row.\(cat.id)")
+        .matchedTransitionSource(id: cat.id, in: tileZoomNamespace)
+        .contentShape(Rectangle())
+        .onTapGesture { path.append(cat) }
+        .walkthroughAnchor(isFirst ? "learn.firstRow" : "learn.row.\(cat.id)")
     }
 
     /// Resolves a slug from cardStore.pendingLearnCategory back to a

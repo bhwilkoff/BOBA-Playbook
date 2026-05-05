@@ -3053,6 +3053,7 @@
   async function renderPublicCollection(handle) {
     const titleEl    = document.getElementById('public-collection-title');
     const subtitleEl = document.getElementById('public-collection-subtitle');
+    const avatarEl   = document.getElementById('public-collection-avatar');
     const gridEl     = document.getElementById('public-collection-grid');
     const emptyEl    = document.getElementById('public-collection-empty');
     if (!titleEl || !gridEl) return;
@@ -3061,6 +3062,24 @@
     subtitleEl.textContent = 'Loading…';
     gridEl.innerHTML = '';
     emptyEl.hidden = true;
+
+    // Owner avatar — render from get_public_profile in parallel with
+    // the cards fetch so the header doesn't lag the grid.
+    if (avatarEl) {
+      // Reset to silhouette while we resolve.
+      avatarEl.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32">' +
+          '<path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-5.33 0-8 2.67-8 4v1h16v-1c0-1.33-2.67-4-8-4z"/>' +
+        '</svg>';
+      API.fetchPublicProfile(handle).then(profile => {
+        if (!profile) return;  // private or nonexistent — silhouette stays
+        const url = profile.avatar_url || profile.discord_avatar_url;
+        if (url) {
+          avatarEl.innerHTML =
+            `<img src="${escHtml(url)}" alt="" class="public-collection-avatar-img" referrerpolicy="no-referrer">`;
+        }
+      }).catch(() => { /* offline / RPC error — silhouette stays */ });
+    }
 
     let rows = [];
     try {

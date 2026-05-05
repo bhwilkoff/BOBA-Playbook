@@ -2271,9 +2271,16 @@
          and rendered by app.js#renderPublicCollection. Read-only:
          no auth required, only safe-to-share fields shown. -->
     <section id="view-public-collection" class="view" hidden aria-label="Public Collection">
-      <div style="padding: 1.5rem 1rem 0.5rem 1rem;">
-        <h1 id="public-collection-title" style="margin: 0; color: var(--boba-orange); font-family: var(--font-display, sans-serif); font-size: 1.75rem;">@username</h1>
-        <p id="public-collection-subtitle" style="margin: 0.25rem 0 0 0; color: rgba(255,255,255,0.5); font-size: 0.85rem;">Loading…</p>
+      <div class="public-collection-header">
+        <div class="public-collection-avatar" id="public-collection-avatar" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
+            <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-5.33 0-8 2.67-8 4v1h16v-1c0-1.33-2.67-4-8-4z"/>
+          </svg>
+        </div>
+        <div class="public-collection-titlebox">
+          <h1 id="public-collection-title">@username</h1>
+          <p id="public-collection-subtitle">Loading…</p>
+        </div>
       </div>
       <div id="public-collection-grid" class="card-grid"></div>
       <div id="public-collection-empty" hidden style="padding: 3rem 1rem; text-align: center; color: rgba(255,255,255,0.7);">

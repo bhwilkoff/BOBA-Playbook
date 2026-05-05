@@ -43,6 +43,7 @@ struct ProfileView: View {
     @State private var showingTerms           = false
     @State private var passwordResetSent      = false
     @State private var roleRequestForRole: String?  // "moderator" or "streamer"
+    @State private var showingPractice        = false
 
     var body: some View {
         NavigationStack {
@@ -72,6 +73,17 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showingPrivacy) { SafariSheet(url: URL(string: "https://bobaplaybook.com/privacy/")!) }
         .sheet(isPresented: $showingTerms)   { SafariSheet(url: URL(string: "https://bobaplaybook.com/terms/")!) }
+        .fullScreenCover(isPresented: $showingPractice) {
+            NavigationStack {
+                PlayView()
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("Close") { showingPractice = false }
+                                .foregroundStyle(Design.Colors.bobaOrange)
+                        }
+                    }
+            }
+        }
         .overlay(alignment: .top) {
             if auth.confirmationEmailSent { confirmationBanner(text: "Check your email to confirm your account.") }
             else if passwordResetSent      { confirmationBanner(text: "Password reset email sent — check your inbox.") }
@@ -174,6 +186,21 @@ struct ProfileView: View {
                         if auth.isStreamer && !auth.isAdmin {
                             roleBadgePill("STREAMER", Design.Colors.bobaCyan)
                         }
+                        // Admin-only Practice shortcut. Tapping the
+                        // bolt opens PracticeView in a fullScreenCover
+                        // — kept admin-only because the practice
+                        // executor is gated pending the BoBA IP review
+                        // (DECISIONS.md, #033).
+                        if auth.isAdmin {
+                            Button {
+                                showingPractice = true
+                            } label: {
+                                Image(systemName: "bolt.square.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(Design.Colors.bobaOrange)
+                            }
+                            .accessibilityLabel("Practice (admin only)")
+                        }
                     }
                     .padding(.top, 2)
                 }
@@ -256,8 +283,17 @@ struct ProfileView: View {
     private var connectionsSection: some View {
         Section {
             HStack {
-                Label("Discord", systemImage: "bubble.left.and.bubble.right")
-                    .foregroundStyle(Design.Colors.textPrimary)
+                Label {
+                    Text("Discord")
+                        .foregroundStyle(Design.Colors.textPrimary)
+                } icon: {
+                    Image("discord-logo")
+                        .resizable()
+                        .renderingMode(.template)
+                        .scaledToFit()
+                        .frame(width: 18, height: 18)
+                        .foregroundStyle(Color(hex: "5865F2"))  // Discord brand blurple
+                }
                 Spacer()
                 if discord.isAuthorized, let user = discord.currentUser {
                     Text(user.displayName)
@@ -904,6 +940,10 @@ private struct ColumnsPickerRow: View {
 // MARK: - CollectionDisplayModeRow
 
 private struct CollectionDisplayModeRow: View {
+    // Wall is intentionally absent — it's a sharing affordance
+    // (renders cards as a single image), NOT a persistent display
+    // mode. The Collection tab's Wall is invoked from the toolbar,
+    // not selected here.
     @AppStorage("bp_collectionDisplayMode_v2") private var raw: String = "list"
 
     var body: some View {
@@ -914,10 +954,9 @@ private struct CollectionDisplayModeRow: View {
             Picker("", selection: $raw) {
                 Text("List").tag("list")
                 Text("Grid").tag("grid")
-                Text("Wall").tag("wall")
             }
             .pickerStyle(.segmented)
-            .frame(width: 180)
+            .frame(width: 140)
         }
     }
 }

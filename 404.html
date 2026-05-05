@@ -8,8 +8,20 @@
     // string so deep-linked views (e.g. ?view=collection) still work.
     // NOTE: do NOT use /BOBA-Playbook/ — that was the old GitHub Pages
     // sub-path. The custom domain bobaplaybook.com serves from root /.
+    //
+    // Special case: /u/{username} is the public-collection surface
+    // (per DECISIONS.md #039). Forward the username slug as ?u= so
+    // app.js can mount the public-collection view, preserving any
+    // existing query string from the original request.
+    var path = location.pathname;
     var q = location.search;
-    window.location.replace('/' + (q ? q : ''));
+    var u = path.match(/^\/u\/([a-z0-9_-]+)\/?$/i);
+    if (u) {
+      var sep = q ? '&' : '?';
+      window.location.replace('/' + q + sep + 'u=' + encodeURIComponent(u[1].toLowerCase()));
+    } else {
+      window.location.replace('/' + (q ? q : ''));
+    }
   </script>
   <!-- Cloudflare Web Analytics — counts the rare 404 hit before the redirect fires. -->
   <script defer src="https://static.cloudflareinsights.com/beacon.min.js"

@@ -190,7 +190,7 @@
   /* ================================================================
      VIEW SYSTEM
   ================================================================ */
-  const viewIds = ['search', 'scan', 'rules', 'decks', 'practice', 'stores', 'collection', 'purchase', 'profile'];
+  const viewIds = ['search', 'scan', 'rules', 'decks', 'practice', 'stores', 'collection', 'purchase', 'profile', 'public-collection'];
   const navBtnIds = {
     search:        'nav-search-btn',
     scan:          'nav-scan-btn',
@@ -2609,6 +2609,68 @@
         );
       }
     }
+
+    // Public collection: ?u=ben (or /u/ben → 404 redirect → ?u=ben)
+    // mounts the read-only public-collection view.
+    if (params.has('u')) {
+      const handle = String(params.get('u') || '').toLowerCase();
+      showView('public-collection', true);
+      renderPublicCollection(handle);
+    }
+  }
+
+  /* ================================================================
+     PUBLIC COLLECTION VIEW
+     Read-only render of someone else's collection at /u/{username}.
+     No auth required — relies on the get_public_collection RPC,
+     which returns empty for nonexistent or private profiles.
+  ================================================================ */
+  async function renderPublicCollection(handle) {
+    const titleEl    = document.getElementById('public-collection-title');
+    const subtitleEl = document.getElementById('public-collection-subtitle');
+    const gridEl     = document.getElementById('public-collection-grid');
+    const emptyEl    = document.getElementById('public-collection-empty');
+    if (!titleEl || !gridEl) return;
+
+    titleEl.textContent = `@${handle}`;
+    subtitleEl.textContent = 'Loading…';
+    gridEl.innerHTML = '';
+    emptyEl.hidden = true;
+
+    let rows = [];
+    try {
+      rows = await API.fetchPublicCollection(handle);
+    } catch (err) {
+      console.error('public collection fetch failed:', err);
+      subtitleEl.textContent = 'Failed to load — please refresh.';
+      return;
+    }
+
+    if (!rows.length) {
+      subtitleEl.textContent = '';
+      emptyEl.hidden = false;
+      return;
+    }
+
+    // Resolve each user_card row to a catalog card via boba_id (preferred)
+    // or card_number (fallback). Skip rows whose boba_id no longer
+    // exists in the catalog.
+    const resolved = rows.map(row => {
+      const card = (row.boba_id && cardsByBobaId.get(String(row.boba_id)))
+                || cardsByNumber.get(String(row.card_number))?.[0];
+      return card ? { card, row } : null;
+    }).filter(Boolean);
+
+    subtitleEl.textContent = `${resolved.length} card${resolved.length === 1 ? '' : 's'}`;
+
+    // Reuse buildCardElement so the public-collection grid looks
+    // identical to the Find search grid (treatment classes, hover,
+    // accessibility attrs all inherited).
+    const fragment = document.createDocumentFragment();
+    resolved.forEach(({ card }, i) => {
+      fragment.appendChild(buildCardElement(card, i));
+    });
+    gridEl.appendChild(fragment);
   }
 
   // ----------------------------------------------------------------

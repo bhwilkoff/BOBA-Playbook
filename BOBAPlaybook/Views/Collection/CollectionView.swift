@@ -74,20 +74,22 @@ struct CollectionView: View {
     ///   - wall: tile-able image for sharing (lifted from streamer-only
     ///           per DECISIONS.md #036)
     enum CollectionDisplayMode: String, CaseIterable, Identifiable {
-        case grid, list, wall
+        // Wall is intentionally NOT a display mode — it's a sharing
+        // affordance (renders cards as a single image) invoked from
+        // the toolbar's "Generate Wall image…" button. Including it
+        // here implied users could "switch to" Wall, which it isn't.
+        case grid, list
         var id: String { rawValue }
         var label: String {
             switch self {
             case .grid: return "Grid"
             case .list: return "List"
-            case .wall: return "Wall"
             }
         }
         var icon: String {
             switch self {
             case .grid: return "square.grid.2x2"
             case .list: return "list.bullet"
-            case .wall: return "rectangle.on.rectangle.angled"
             }
         }
     }
@@ -336,24 +338,13 @@ struct CollectionView: View {
                 }
             }
 
-            // DISPLAY MODE picker per DESIGN.md §8.4 — Grid / List / Wall.
-            // Wall is lifted from streamer-only per DECISIONS.md #036.
-            // Selecting Wall presents the CollectionWallSheet over the
-            // current view; Grid + List swap the in-place renderer and
-            // persist via @AppStorage.
+            // Display mode is Grid OR List — Wall is NOT a display
+            // mode, it's a sharing affordance (lives in the actions
+            // section below as "Generate Wall image…").
             Section("Display") {
                 Picker("Display mode", selection: Binding(
                     get: { displayMode },
-                    set: { newMode in
-                        if newMode == .wall {
-                            // Wall is a presentation, not a persisted mode —
-                            // bounce the picker back to the prior in-place
-                            // renderer so closing the sheet returns to it.
-                            showingWall = true
-                        } else {
-                            displayModeRaw = newMode.rawValue
-                        }
-                    }
+                    set: { displayModeRaw = $0.rawValue }
                 )) {
                     ForEach(CollectionDisplayMode.allCases) { mode in
                         Label(mode.label, systemImage: mode.icon).tag(mode)
@@ -362,6 +353,16 @@ struct CollectionView: View {
             }
 
             Section {
+                // Wall as a one-shot share action, not a persistent
+                // view. Generates an image of the current designation
+                // scope and presents Save / Share controls inline.
+                Button {
+                    showingWall = true
+                } label: {
+                    Label("Generate Wall image…", systemImage: "rectangle.on.rectangle.angled")
+                }
+                .disabled(collection.userCards.isEmpty)
+
                 Button {
                     presentScanner()
                 } label: {

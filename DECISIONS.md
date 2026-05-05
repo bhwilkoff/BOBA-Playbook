@@ -498,14 +498,24 @@ server-side dispatcher we don't have yet. Footer text reads
 "Coming soon — toggle to opt in early." When the dispatcher
 ships, the toggle is already live and respected.
 
-**(b) Public collection sharing** — toggle persists to
-`user_profiles.public_collection_enabled` and the iOS Profile
-shows the user the URL. The web-app side (a public route at
-`bobaplaybook.com/u/{username}` that reads `user_cards` joined to
-profiles) is its own separate work item — until it ships, the
-toggle and URL are correct but the URL hits a 404. The
-`get_public_profile(handle)` RPC is in place so the web app has
-the lookup it needs the moment it's wired.
+**(b) Public collection sharing** — IMPLEMENTED 2026-05-04
+(originally listed as deferred). Toggle persists to
+`user_profiles.public_collection_enabled`; the iOS Profile shows
+the user the URL. Web-app route at `bobaplaybook.com/u/{username}`
+is live: `404.html` redirects `/u/{slug}` → `/?u={slug}`, the SPA
+mounts `view-public-collection`, and `js/api.js#fetchPublicCollection`
+calls the `get_public_collection(handle)` Supabase RPC. The RPC is
+SECURITY DEFINER + STABLE and returns a filtered projection that
+EXCLUDES `purchase_price` / `asking_price` / `notes` (private),
+plus filters out the Wanted designation (the public surface reads
+as "what they have," not "what they want"). The page renders a
+read-only grid using the same `buildCardElement` the search grid
+uses, so styling stays consistent. Tapping a card opens the
+existing card-detail modal in read-only mode.
+
+Per-designation public/private toggles are still deferred (today
+the toggle is global). The Wanted-as-WTB-list use case from
+DESIGN.md §8.4 will need its own opt-in surface when shipped.
 
 **(c) Account deletion** — destructive `confirmationDialog` ships
 now to satisfy App Store guideline 5.1.1(v) (apps that allow

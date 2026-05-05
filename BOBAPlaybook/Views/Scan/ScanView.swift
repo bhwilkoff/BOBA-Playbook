@@ -66,10 +66,7 @@ struct ScanView: View {
             // step is appended.
             if walkthrough == nil
                 && WalkthroughsManager.shared.shouldShow(.scannerOverview) {
-                walkthrough = .scannerOverview(
-                    isStreamer: auth.isStreamer,
-                    fromDeckBuilder: scanStore.source == .deckBuilder
-                )
+                walkthrough = .scannerOverview
             }
         }
         .onDisappear {
@@ -294,9 +291,14 @@ struct ScanView: View {
                         .walkthroughAnchor("scanner.showPill")
                 }
             }
-            .walkthroughAnchor("scanner.modePills")
+            // Leading padding gives the walkthrough spotlight ring
+            // (anchor padded by ±8) clearance from the screen's left
+            // edge — without it the ring's left edge sat at x=-8 and
+            // got clipped.
+            .padding(.leading, Design.Spacing.lg)
             .padding(.trailing, Design.Spacing.lg)
             .padding(.bottom, 90)
+            .walkthroughAnchor("scanner.modePills")
         }
         .fullScreenCover(isPresented: $showGridScan, onDismiss: {
             // Restart the streaming scanner — it was paused below in

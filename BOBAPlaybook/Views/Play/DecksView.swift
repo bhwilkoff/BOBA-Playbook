@@ -181,9 +181,6 @@ struct DecksView: View {
                                        wrapInNavStack: false)
                     .navigationTransition(.zoom(sourceID: card.id, in: poolZoomNamespace))
             }
-            .walkthroughOverlay($walkthrough) { stage in
-                handleWalkthroughStage(stage)
-            }
             // Music-pattern full-screen editor — zooms in from the
             // summary pill via matchedTransitionSource. The closure
             // captures self, so existing private helpers
@@ -248,6 +245,14 @@ struct DecksView: View {
                 }
                 .navigationTransition(.zoom(sourceID: "deck-draft", in: deckZoomNamespace))
             }
+        }
+        // .walkthroughOverlay MUST sit OUTSIDE NavigationStack so its
+        // GeometryReader measures the full screen, not the inner
+        // content. When attached inside the NavigationStack the host
+        // sized to a single card cell (147×68) and every step's
+        // anchor came back as off-screen.
+        .walkthroughOverlay($walkthrough) { stage in
+            handleWalkthroughStage(stage)
         }
         .onAppear(perform: handleAppear)
         .onDisappear { store.saveDraft() }

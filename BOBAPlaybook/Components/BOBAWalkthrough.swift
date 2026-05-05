@@ -626,7 +626,12 @@ extension BOBAWalkthrough.Script {
     static let findTab = BOBAWalkthrough.Script(
         id: .findTab,
         steps: [
-            .init(anchor: .init("find.search"),   copy: "Search any of 17,968 cards by name, hero, or weapon."),
+            // Search anchor dropped — Tab(role: .search) puts the
+            // field in the system tab bar, not the view. Ribbons
+            // dropped — only render when showcaseMode is on
+            // (default false), so they're not present on first
+            // visit either. The four anchors below are all toolbar
+            // items + first card cell, all guaranteed on-screen.
             .init(anchor: .init("find.menu"),     copy: "Open the menu for filters and Card Showcases."),
             .init(anchor: .init("find.cardCell"), copy: "Tap a card to see details, prices, and decks."),
             .init(anchor: .init("find.scan"),     copy: "Scan a real card to identify it instantly."),
@@ -636,32 +641,39 @@ extension BOBAWalkthrough.Script {
 
     static let learnTab = BOBAWalkthrough.Script(
         id: .learnTab,
+        // Both steps anchor on the first tile — the rootList anchor
+        // (LazyVGrid wrapper) measured wrong on first appear because
+        // its children hadn't laid out yet, so the spotlight landed
+        // off-screen. Anchoring twice on the same first tile keeps
+        // the spotlight in a consistent, always-visible spot.
         steps: [
-            .init(anchor: .init("learn.rootList"), copy: "Six paths to learn BoBA — read, watch, or browse."),
-            .init(anchor: .init("learn.firstRow"), copy: "Tap any tile to dive into that path.")
+            .init(anchor: .init("learn.firstRow"), copy: "Six learning paths to get better at BoBA."),
+            .init(anchor: .init("learn.firstRow"), copy: "Tap any tile to read, watch, or browse.")
         ]
     )
 
     static let decksTab = BOBAWalkthrough.Script(
         id: .decksTab,
+        // Pool-only walkthrough. The format chip + save button steps
+        // moved out — those anchors live inside the fullScreenCover
+        // editor (a separate presentation context) and are unreachable
+        // from the pool view's overlay. The summary pill IS the entry
+        // point to the editor; tapping it opens those features.
         steps: [
             .init(anchor: .init("decks.cardPool"),    copy: "Tap to view a card. Long-press to add to the deck."),
-            .init(anchor: .init("decks.sheetHandle"), copy: "Drag up for the full deck, format picker, and rules."),
-            // Drawer auto-expands so the format chip is on-screen for
-            // this step, then collapses back when the walkthrough
-            // dismisses (host implements via onStage).
-            .init(anchor: .init("decks.formatChip"),  copy: "Format shapes the whole deck — pick before you build.",
-                  stage: .decksDrawerExpanded),
-            .init(anchor: .init("decks.saveButton"),  copy: "Sign in and Save to sync your deck across devices.")
+            .init(anchor: .init("decks.summaryPill"), copy: "Tap the summary to open your deck editor.")
         ]
     )
 
     static let collectionTab = BOBAWalkthrough.Script(
         id: .collectionTab,
+        // scopeBar (segmented designation Picker) anchored at a
+        // pre-layout rect (-20,-20,40,47) on first appear, so dropped.
+        // Users discover designations naturally — the segmented
+        // Picker is right above the card list and labeled clearly.
         steps: [
-            .init(anchor: .init("collection.scopeBar"),    copy: "Switch between Personal, Sale, Trade, Wanted, and Grails."),
             .init(anchor: .init("collection.cardCell"),    copy: "Tap a card to view value, designation, and notes."),
-            .init(anchor: .init("collection.displayMode"), copy: "Open the menu for List, Grid, or Wall sharing.")
+            .init(anchor: .init("collection.displayMode"), copy: "Open the menu to change designation, view, or share a Wall.")
         ]
     )
 
@@ -736,35 +748,27 @@ extension BOBAWalkthrough.Script {
     )
 
     /// Unified scanner overview — fires on first ScanView open.
-    /// Role-aware: streamers see one extra step explaining Show mode
-    /// (which only renders for them). When invoked from the deck
-    /// builder, Show mode isn't an option (per ScanView wiring) so
-    /// the streamer step is suppressed there too.
+    /// Two steps for everyone: viewfinder + mode pills. The Show-mode
+    /// step that used to be conditional was dropped — `auth.isStreamer`
+    /// can be stale at .onAppear time relative to render time, which
+    /// produced an "anchor not registered" failure when the script
+    /// was built thinking isStreamer=true but the modePill rendered
+    /// with isStreamer=false. Streamers learn Show mode by seeing
+    /// the SHOW pill in the row described by step 2.
     ///
-    /// Step selection rule: every anchor must be a UI element that's
-    /// guaranteed to be on-screen the first time the scanner opens.
-    /// Transient anchors (queue button, detection chip) are excluded
-    /// — users discover them naturally through normal use, and a
-    /// "this appears here" step that points to nothing breaks worse
-    /// than no step at all.
-    static func scannerOverview(
-        isStreamer: Bool,
-        fromDeckBuilder: Bool
-    ) -> BOBAWalkthrough.Script {
-        var steps: [BOBAWalkthrough.Step] = [
+    /// Anchors are deliberately limited to UI elements guaranteed to
+    /// be on-screen the first time the scanner opens. Transient
+    /// anchors (queue button, detection chip) excluded — users
+    /// discover them naturally, and a "this appears here" step that
+    /// points to nothing breaks worse than no step at all.
+    static let scannerOverview = BOBAWalkthrough.Script(
+        id: .scannerOverview,
+        steps: [
             .init(anchor: .init("scanner.viewfinder"),
-                  copy: "Hold a card in the frame. We identify it on-device — no image leaves your phone."),
+                  copy: "Hold a card in the frame — we identify it on-device."),
             .init(anchor: .init("scanner.modePills"),
-                  copy: "Single saves one card. Multi queues many. Grid captures 3–9 at once.",
+                  copy: "Single saves one. Multi queues many. Grid captures 3–9.",
                   placement: .above)
         ]
-        if isStreamer && !fromDeckBuilder {
-            steps.append(.init(
-                anchor: .init("scanner.showPill"),
-                copy: "Show mode adds cards to a Whatnot show for live breaks.",
-                placement: .above
-            ))
-        }
-        return BOBAWalkthrough.Script(id: .scannerOverview, steps: steps)
-    }
+    )
 }

@@ -1450,6 +1450,14 @@ body[data-find-density="l"] #view-search .card-grid { grid-template-columns: rep
 /* ================================================================
    CARD DETAIL MODAL
 ================================================================ */
+/* Card-modal markup is now <dialog> per WEB-DESIGN.md §13 — but
+   .modal-overlay class still styles non-dialog modals (auth,
+   add-collection, etc.) until they migrate. The selectors below
+   handle BOTH cases:
+   - <dialog class="modal-overlay">  → ::backdrop owns the scrim;
+     dialog itself is the centered shell. Reset native dialog
+     borders/padding so it inherits our flex layout.
+   - <div class="modal-overlay" hidden> → legacy fallback. */
 .modal-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.82);
@@ -1459,6 +1467,36 @@ body[data-find-density="l"] #view-search .card-grid { grid-template-columns: rep
   animation: fadeIn 0.18s ease;
 }
 .modal-overlay[hidden] { display: none; }
+/* When .modal-overlay is a <dialog>, the browser adds default
+   margins/borders/max-width/max-height we don't want — reset to
+   match the legacy <div> overlay shape. */
+dialog.modal-overlay {
+  width: 100vw; height: 100vh;
+  max-width: 100vw; max-height: 100vh;
+  margin: 0; padding: 0;
+  border: none;
+  background: transparent;  /* the ::backdrop carries the scrim */
+  color: inherit;
+}
+dialog.modal-overlay::backdrop {
+  background: rgba(0,0,0,0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fadeIn 0.18s ease;
+}
+/* The flex layout that centers the inner .modal lives on the
+   dialog; restate so the native dialog inherits it cleanly. */
+dialog.modal-overlay[open] {
+  display: flex; align-items: flex-end; justify-content: center;
+  background: transparent;  /* still — only ::backdrop dims */
+}
+@media (prefers-reduced-transparency: reduce) {
+  dialog.modal-overlay::backdrop {
+    background: rgba(0,0,0,0.95);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
 
 @media (min-width: 640px) {
   .modal-overlay { align-items: center; padding: var(--sp-6); }

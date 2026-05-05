@@ -23,6 +23,7 @@
 - **M4 Purchase view** — still in progress per the parity table below. The picker + Find a Store UI shipped on iOS; Whatnot upcoming-breaks worker deployment remains.
 - ~~**Account deletion Worker endpoint**~~ — SHIPPED 2026-05-05 (`workers/account-delete/`). DECISIONS.md #039 updated.
 - ~~**Profile picture upload**~~ — SHIPPED 2026-05-05 (`workers/avatar-upload/` + `set_avatar_url`/`get_public_profile` RPCs). Discord-default + R2-on-upload pattern; rendered on iOS Profile, web Profile, and the public-collection page. DECISIONS.md #040.
+- ~~**Web "feels native" pass**~~ — SHIPPED 2026-05-05. View Transitions on every `showView()` (cross-fade) + card-grid → modal hero-zoom morph. `prefers-reduced-transparency` + `prefers-reduced-motion` parity overrides. Card-detail modal migrated from `<div>` to native `<dialog>` (focus trap, ESC, top layer). Web Share API helper with copy-link fallback. WEB-DESIGN.md §15 P0 #2/#3 + P1 #4 + cross-cutting §8.2 closed.
 - **Match-alerts pipeline** (Wanted/Grail notifications) — UI toggle ships, APNs server-side dispatcher is multi-week of new infra. See DECISIONS.md #039.
 
 ## Open Questions / Blockers

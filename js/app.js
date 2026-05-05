@@ -323,6 +323,53 @@
         && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
+  /// Cross-cutting Share verb (WEB-DESIGN.md §8.2) — single helper
+  /// every share button calls. Uses the native Web Share API when
+  /// available (mobile Safari, Chrome Android), falls back to
+  /// clipboard.writeText + on-button toast everywhere else
+  /// (Firefox, Chrome desktop). AbortError = user dismissed the
+  /// share sheet — silent.
+  ///
+  /// `payload`: { title, text, url } — same shape as navigator.share.
+  /// `triggerEl` (optional): the <button> that triggered the share;
+  ///   gets a 2-sec "Link copied!" label after the clipboard fallback
+  ///   so the user knows something happened.
+  async function shareTarget(payload, triggerEl) {
+    const url = payload?.url || window.location.href;
+    const args = { ...payload, url };
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share(args);
+        return 'shared';
+      } catch (e) {
+        if (e?.name === 'AbortError') return 'cancelled';
+        // Other errors fall through to the copy path so the user
+        // still gets something useful (e.g. iOS share sheet refused
+        // due to a missing entitlement, etc.).
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      if (triggerEl) {
+        const original = triggerEl.innerHTML;
+        const originalText = triggerEl.textContent;
+        triggerEl.textContent = 'Link copied!';
+        setTimeout(() => {
+          triggerEl.innerHTML = original;
+          if (triggerEl.textContent !== originalText) {
+            triggerEl.textContent = originalText;
+          }
+        }, 2000);
+      }
+      return 'copied';
+    } catch (_) {
+      return 'failed';
+    }
+  }
+  // Expose globally so other modules (collection.js, etc.) can call it
+  // without re-implementing the feature-detect.
+  window.bobaShareTarget = shareTarget;
+
   function showView(name, fromHistory = false) {
     // Practice is gated to admin only — bounce non-admins back to
     // search if they hit a deep-link or stale history entry.
@@ -422,14 +469,21 @@
       const card = cardFromURLParams(params);
       if (card) openModal(card, -1, true);
     } else {
-      // No card — close modal if open and show the correct view.
-      if (!modalOverlay.hidden) {
+      // No card in URL — close modal if open and show the right view.
+      // Native <dialog>.open is the source of truth; .hidden is no
+      // longer set when using showModal/close.
+      const modalOpen = modalOverlay.open ?? !modalOverlay.hidden;
+      if (modalOpen) {
         cleanupZoom();
-        modalOverlay.hidden = true;
+        if (typeof modalOverlay.close === 'function' && modalOverlay.open) {
+          modalOverlay.close();
+        } else {
+          modalOverlay.hidden = true;
+          document.body.style.overflow = '';
+        }
         modalNavPrev.hidden = true;
         modalNavNext.hidden = true;
         currentModalIndex = -1;
-        document.body.style.overflow = '';
       }
       showView(urlView, true);
     }
@@ -1515,7 +1569,9 @@
     updateFilterBadge();
     // Reflect filter state in URL so searches are bookmarkable/shareable.
     // Use replaceState (not push) so filter typing doesn't flood browser history.
-    if (!skipURLSync && modalOverlay.hidden) {
+    // Native <dialog>.open replaces the prior .hidden check.
+    const modalOpen = modalOverlay.open ?? !modalOverlay.hidden;
+    if (!skipURLSync && !modalOpen) {
       history.replaceState({ view: currentView }, '', buildSearchURL());
     }
   }
@@ -1872,8 +1928,18 @@
 
   function openModal(card, index = -1, fromHistory = false) {
     modalContent.innerHTML = buildModalContent(card);
-    modalOverlay.hidden = false;
-    document.body.style.overflow = 'hidden';
+    // Native <dialog> — showModal handles focus trap + ESC + scroll
+    // lock + top layer. Guard re-entry; calling showModal on an
+    // already-open dialog throws. The View Transitions hero zoom
+    // (openModalWithHeroZoom) calls openModal inside a startView-
+    // Transition callback; both paths land here.
+    if (typeof modalOverlay.showModal === 'function' && !modalOverlay.open) {
+      modalOverlay.showModal();
+    } else if (modalOverlay.tagName !== 'DIALOG') {
+      // Legacy fallback if markup isn't <dialog> for some reason.
+      modalOverlay.hidden = false;
+      document.body.style.overflow = 'hidden';
+    }
     modalCloseBtn.focus();
     initZoom();
 
@@ -1896,20 +1962,15 @@
     modalContent.querySelector('[data-action="add-to-collection"]')
       ?.addEventListener('click', () => Collection.openAddSheet(card));
 
-    // Wire "Share" button — URL is already correct in the address bar.
+    // Wire "Share" button — routes through the canonical
+    // shareTarget helper (Web Share API → clipboard fallback).
     modalContent.querySelector('[data-action="share-card"]')
       ?.addEventListener('click', (e) => {
-        const url = window.location.href;
-        if (navigator.share) {
-          navigator.share({ title: card.name, text: `${card.name} — BOBA Playbook`, url });
-        } else {
-          navigator.clipboard.writeText(url).then(() => {
-            const btn = e.currentTarget;
-            const original = btn.innerHTML;
-            btn.textContent = 'Link copied!';
-            setTimeout(() => { btn.innerHTML = original; }, 2000);
-          });
-        }
+        shareTarget({
+          title: card.name,
+          text:  `${card.name} — BOBA Playbook`,
+          url:   window.location.href,
+        }, e.currentTarget);
       });
 
     // Wire "Mod: Edit Card Info" button
@@ -2360,13 +2421,19 @@
 
   function closeModal() {
     cleanupZoom();
-    modalOverlay.hidden = true;
+    // Native <dialog> close — also restores focus + un-traps + un-locks
+    // the page scroll. Guard for the legacy fallback path.
+    if (typeof modalOverlay.close === 'function' && modalOverlay.open) {
+      modalOverlay.close();
+    } else {
+      modalOverlay.hidden = true;
+      document.body.style.overflow = '';
+    }
     // Nav buttons are position: fixed (not children of the overlay), so hiding
     // the overlay doesn't hide them — must do it explicitly.
     modalNavPrev.hidden = true;
     modalNavNext.hidden = true;
     currentModalIndex = -1;
-    document.body.style.overflow = '';
     // Replace URL with the current search/filter state (no card param) so the
     // address bar stays accurate and forward doesn't re-open the closed card.
     history.replaceState({ view: currentView }, '', buildSearchURL());
@@ -2640,10 +2707,24 @@
   modalNavNext.addEventListener('click', () => navigateModal(+1));
 
   modalCloseBtn.addEventListener('click', closeModal);
+  // Click on the dialog itself (the backdrop area outside the inner
+  // modal box) closes — same UX as the prior overlay div. The inner
+  // .modal box catches its own clicks; e.target === modalOverlay
+  // only fires for the backdrop region.
   modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+  // Native <dialog> fires a `cancel` event when ESC dismisses it
+  // before the close — we listen so cleanup (cleanupZoom, URL state
+  // reset) runs the same code path as the close button.
+  modalOverlay.addEventListener('cancel', (e) => {
+    e.preventDefault();   // Prevent the default close so we can route through closeModal
+    closeModal();
+  });
   document.addEventListener('keydown', (e) => {
-    if (modalOverlay.hidden) return;
-    if (e.key === 'Escape') { closeModal(); return; }
+    // Native <dialog>.open replaces the prior .hidden check.
+    const modalOpen = modalOverlay.open ?? !modalOverlay.hidden;
+    if (!modalOpen) return;
+    // ESC handled natively by <dialog> (fires `cancel` event); we
+    // only need ArrowLeft/Right for prev/next nav.
     if (e.key === 'ArrowLeft')  { navigateModal(-1); return; }
     if (e.key === 'ArrowRight') { navigateModal(+1); return; }
   });

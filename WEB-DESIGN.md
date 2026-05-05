@@ -786,18 +786,34 @@ the rule it addresses and the rough effort.
    menus use click-outside JS. (§4.9 + §13 Popover ADOPT). ~1 day
    each, do as part of the next refactor that touches the view.
 
-2. **Migrate modal overlays to `<dialog>`.** Card detail modal,
-   sign-in modal, share fallback. (§4.10 + §13 dialog ADOPT). ~2
-   hours each.
+2. ~~**Migrate modal overlays to `<dialog>`.**~~ **PARTIALLY SHIPPED
+   2026-05-05.** Card-detail modal (`#card-modal-overlay`) is now a
+   native `<dialog>` with `showModal()` + `::backdrop` styling +
+   native ESC dismiss + native focus trap + native scroll lock.
+   Auth modal + add-collection modal still use the legacy
+   `<div class="modal-overlay" hidden>` pattern; migrate when
+   those views are touched. Pattern established in commit:
+   `dialog.modal-overlay` selector resets dialog defaults to match
+   the legacy overlay shape; both legacy and dialog code paths
+   coexist via `modalOverlay.open ?? !modalOverlay.hidden`.
 
-3. **Add `prefers-reduced-transparency` overrides** to every
-   `backdrop-filter` rule. (§6 + §13 BINDING). ~30 min sweep.
+3. ~~**Add `prefers-reduced-transparency` overrides**~~ **SHIPPED
+   2026-05-05.** Single `@media (prefers-reduced-transparency:
+   reduce)` block at the top of `styles.css` drops backdrop-filter
+   on every canonical chrome surface and bumps the chrome
+   backgrounds to opaque `var(--boba-surface)` so the loss of blur
+   doesn't leave surfaces translucent-without-blur.
 
 ### P1 (planned refactor)
 
-4. **Wrap `showView()` in View Transitions.** Add `view-
-   transition-name` to card grid cells + detail. (§13 ADOPT). ~1
-   day. Highest visual-impact item.
+4. ~~**Wrap `showView()` in View Transitions.**~~ **SHIPPED
+   2026-05-05.** `showView()` body extracted to `applyView(name)`;
+   `showView` feature-detects `document.startViewTransition` AND
+   respects `prefers-reduced-motion`. Plus a `openModalWithHeroZoom`
+   wrapper that pairs the tapped grid cell with the modal hero
+   image via `view-transition-name: card-hero` so the browser
+   morphs thumbnail → full image (the iOS hero-zoom analog). CSS
+   tunes both `(root)` cross-fade and `(card-hero)` morph timing.
 
 5. **Container query refactor of `.card-item`.** Same cell renders
    in search / Wall / public-collection / sidebar without forks.
@@ -815,8 +831,20 @@ the rule it addresses and the rough effort.
 8. **Collection Wall display mode** (§14.4) — parity with iOS
    DESIGN.md §8.8. Build when Collection tab is the focus.
 
-9. **Profile picture upload** — separate work item; touches both
-   web and iOS. Not blocked on this doc.
+9. ~~**Profile picture upload**~~ **SHIPPED 2026-05-05.** See
+   DECISIONS.md #040.
+
+### Cross-cutting capabilities (§8)
+
+10. ~~**Web Share API for the Share verb.**~~ **SHIPPED 2026-05-05.**
+    `shareTarget({title, text, url}, triggerEl)` helper in `app.js`
+    (also exposed as `window.bobaShareTarget`). Uses
+    `navigator.share` when available (mobile Safari, Chrome
+    Android), falls back to `clipboard.writeText` + on-button
+    "Link copied!" toast. AbortError silenced (user dismissed the
+    share sheet). The card-detail Share button routes through it;
+    other surfaces (deck detail, public-collection link) can adopt
+    by calling the same helper.
 
 ### Deferred (rationale below in §17)
 

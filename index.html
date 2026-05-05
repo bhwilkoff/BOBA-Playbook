@@ -2297,9 +2297,11 @@
     <div class="cdetail-box" id="cdetail-box"></div>
   </div>
 
-  <!-- CARD DETAIL MODAL -->
-  <div class="modal-overlay" id="card-modal-overlay" hidden
-       role="dialog" aria-modal="true" aria-labelledby="modal-card-name">
+  <!-- CARD DETAIL MODAL — native <dialog> per WEB-DESIGN.md §13.
+       showModal() handles focus trap, ESC dismiss, scroll lock, top
+       layer, and inert behind. ::backdrop styling lives in CSS. -->
+  <dialog class="modal-overlay" id="card-modal-overlay"
+          aria-labelledby="modal-card-name">
     <button class="modal-nav modal-nav-prev" id="modal-nav-prev" aria-label="Previous card" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
         <polyline points="15 18 9 12 15 6"/>
@@ -2318,7 +2320,7 @@
       </button>
       <div class="modal-content" id="modal-content"></div>
     </div>
-  </div>
+  </dialog>
 
   <!-- AUTH MODAL -->
   <div class="modal-overlay" id="auth-modal-overlay" hidden

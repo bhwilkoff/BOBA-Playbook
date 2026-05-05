@@ -1108,10 +1108,11 @@ private struct SafariSheet: UIViewControllerRepresentable {
     let url: URL
 
     func makeUIViewController(context: Context) -> SFSafariViewController {
-        let vc = SFSafariViewController(url: url)
-        vc.preferredBarTintColor    = UIColor(Design.Colors.nearBlack)
-        vc.preferredControlTintColor = UIColor(Design.Colors.bobaOrange)
-        return vc
+        // iOS 26 deprecated preferredBarTintColor / preferredControlTintColor
+        // ("Tinting the bars interferes with background effects that the
+        // system provides"). Let SFSafariViewController use its own
+        // adaptive Liquid Glass treatment.
+        SFSafariViewController(url: url)
     }
     func updateUIViewController(_ vc: SFSafariViewController, context: Context) {}
 }

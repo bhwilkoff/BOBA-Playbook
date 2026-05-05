@@ -1513,9 +1513,17 @@
     el.setAttribute('tabindex', '0');
     el.setAttribute('aria-label', `${card.name}, ${card.element || 'No weapon'}, Power ${card.power}`);
 
+    // Responsive image: srcset pairs the 200w thumb with the 1200w
+    // full, sizes="auto" tells modern browsers to pick per rendered
+    // cell width. So a dense "S" grid stays on cheap thumbs, while
+    // "L" / 1-2-across viewports auto-upgrade to full so the art
+    // doesn't pixelate. Older browsers without sizes="auto" fall
+    // back to the breakpoint heuristic.
     const thumbSrc = API.cardThumbUrl(card);
+    const srcset   = API.cardImageSrcset(card);
     const imgHtml = thumbSrc
       ? `<img class="card-img" src="${escHtml(thumbSrc)}"
+              ${srcset ? `srcset="${escHtml(srcset)}" sizes="auto, (min-width: 1024px) 220px, (min-width: 480px) 33vw, 50vw"` : ''}
               alt="${escHtml(card.name)}" loading="lazy" decoding="async">`
       : `<div class="card-img-placeholder" aria-hidden="true">
            <span class="placeholder-brand">BOBA PB</span>

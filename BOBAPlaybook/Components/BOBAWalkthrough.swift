@@ -803,13 +803,16 @@ extension BOBAWalkthrough.Script {
                   placement: .below),
             .init(anchor: .init("decksEditor.deckList"),
                   copy: "Tap a card to view it. Tap × to remove."),
-            // saveButton DOES register and is on-screen per the
-            // diagnostic. Reverted from the deckName fallback —
-            // deckName never registered (TextField inside HStack
-            // inside a sheet's VStack apparently doesn't propagate)
-            // while saveButton consistently does.
-            .init(anchor: .init("decksEditor.saveButton"),
-                  copy: "Sign in and tap SAVE to sync your deck across devices.",
+            // saveButton's diagnostic always reported FULLY
+            // ON-SCREEN, but the editor's
+            // .toolbarBackground(.regularMaterial, .visible)
+            // renders a material layer ABOVE the walkthrough
+            // overlay, hiding the spotlight ring drawn at toolbar
+            // y-coords. Anchored on the deck name TextField
+            // instead — in-body, no z-order issue. Copy directs
+            // attention to SAVE up top in the toolbar.
+            .init(anchor: .init("decksEditor.deckName"),
+                  copy: "Name it, then tap SAVE up top. Sign in to sync across devices.",
                   placement: .below)
         ]
     )

@@ -60,8 +60,12 @@ struct PurchaseView: View {
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .walkthroughOverlay($walkthrough)
         }
+        // .walkthroughOverlay must sit OUTSIDE NavigationStack so the
+        // overlay's GeometryReader measures the full screen, not the
+        // collapsed-VStack inner content (the bug that reported
+        // container 79.7×47 — the modePicker's intrinsic size).
+        .walkthroughOverlay($walkthrough)
         .onAppear {
             if WalkthroughsManager.shared.shouldShow(.purchaseTab) {
                 walkthrough = .purchaseTab

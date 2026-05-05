@@ -1296,79 +1296,133 @@ struct DeckSection<Content: View>: View {
 
 struct DeckCardRow: View {
     let card: Card
+    /// When `false`, the trailing X is suppressed so the host (e.g.
+    /// the new DecksView editor's `List` with `.swipeActions`) can
+    /// own removal natively. Defaults to `true` for the legacy
+    /// DeckBuilderView used from CardDetailView's "Add to Custom
+    /// Deck" sheet, which has no swipe context.
+    var showRemoveButton: Bool = true
     let onRemove: () -> Void
 
     var body: some View {
-        HStack(spacing: Design.Spacing.sm) {
-            // Small thumb
+        HStack(spacing: Design.Spacing.md) {
+            // Larger thumb so the card art reads as the row's focal
+            // point (DESIGN.md "card art is always the focal point").
+            // 50×70 holds the 5:7 print aspect cleanly.
             Group {
                 if let file = card.imageFile, !file.isEmpty {
                     CachedAsyncCardImage(url: CDN.thumb(for: file), contentMode: .fill)
                 } else {
-                    RoundedRectangle(cornerRadius: 4).fill(Design.Colors.glass)
+                    RoundedRectangle(cornerRadius: 6).fill(Design.Colors.glass)
                 }
             }
-            .frame(width: 38, height: 53)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .frame(width: 50, height: 70)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(card.hero.isEmpty ? card.name : card.hero)
-                    .font(Design.Fonts.mono(14, weight: .bold))
+                    .font(Design.Fonts.display(16))
                     .foregroundStyle(Design.Colors.textPrimary)
                     .lineLimit(1)
-                if card.cardType == "Hero" {
-                    HStack(spacing: 4) {
-                        Text(card.element)
-                            .font(Design.Fonts.mono(12))
-                            .foregroundStyle(Design.Colors.element(card.element))
-                        Text(card.treatment ?? "Base")
-                            .font(Design.Fonts.mono(12))
-                            .foregroundStyle(Design.Colors.textMuted)
-                            .lineLimit(1)
-                    }
-                } else if let ability = card.playAbility {
-                    Text(ability)
-                        .font(Design.Fonts.mono(12))
-                        .foregroundStyle(Design.Colors.textMuted)
-                        .lineLimit(2)
-                }
-                // Per-Play DBS contribution — surfaces the budget cost
-                // of each card in-row, mirroring the header stat.
-                if card.cardType != "Hero", let dbs = card.dbs {
-                    Text("DBS \(dbs)")
-                        .font(Design.Fonts.mono(10, weight: .bold))
-                        .foregroundStyle(Design.Colors.bobaOrange.opacity(0.85))
-                }
+
+                rowSubtitle
             }
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            if let power = card.power, card.cardType == "Hero" {
-                Text("\(power)")
-                    .font(Design.Fonts.display(22))
-                    .foregroundStyle(Design.Colors.textPrimary)
-                    .frame(minWidth: 44, alignment: .trailing)
-            } else if let cost = card.playCost {
-                VStack(spacing: 1) {
-                    Text(cost == 0 ? "FREE" : "\(cost)")
-                        .font(Design.Fonts.display(18))
-                        .foregroundStyle(cost == 0 ? Color(hex: "4CAF50") : Design.Colors.bobaCyan)
-                    if cost > 0 {
-                        Text("HD").font(Design.Fonts.mono(10)).foregroundStyle(Design.Colors.textMuted)
-                    }
+            trailingBadge
+
+            if showRemoveButton {
+                Button { onRemove() } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Design.Colors.textMuted.opacity(0.6))
                 }
-                .frame(minWidth: 36, alignment: .trailing)
+                .buttonStyle(.plain)
+                .padding(.leading, 4)
+                .accessibilityLabel("Remove \(card.hero.isEmpty ? card.name : card.hero)")
             }
-
-            Button { onRemove() } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 20))
-                    .foregroundStyle(Design.Colors.textMuted)
-            }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, Design.Spacing.md)
-        .padding(.vertical, Design.Spacing.xs)
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+
+    /// Single-line subtitle. Heroes render `WEAPON · Treatment`; plays
+    /// render an inline DBS pill (when relevant) followed by the
+    /// ability snippet, both clipped to one line. Keeps row height
+    /// uniform across the three card types — small multiples per
+    /// DESIGN.md §4.3.
+    @ViewBuilder
+    private var rowSubtitle: some View {
+        if card.cardType == "Hero" {
+            HStack(spacing: 6) {
+                Text(card.element)
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(Design.Colors.element(card.element))
+                Text(card.treatment ?? "Base")
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+        } else {
+            HStack(spacing: 6) {
+                if let dbs = card.dbs {
+                    Text("DBS \(dbs)")
+                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(Design.Colors.bobaOrange.opacity(0.15))
+                        )
+                }
+                if let ability = card.playAbility {
+                    Text(ability)
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+            }
+        }
+    }
+
+    /// Trailing value badge — power for heroes, cost for plays. Mono
+    /// bold 18pt instead of the prior 22pt Russo One display so the
+    /// number stops dwarfing the row's name and thumb.
+    @ViewBuilder
+    private var trailingBadge: some View {
+        if let power = card.power, card.cardType == "Hero" {
+            VStack(spacing: 0) {
+                Text("\(power)")
+                    .font(Design.Fonts.mono(18, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundStyle(Design.Colors.textPrimary)
+                Text("PWR")
+                    .font(Design.Fonts.mono(9, weight: .bold))
+                    .tracking(0.6)
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+            .frame(minWidth: 40, alignment: .trailing)
+        } else if let cost = card.playCost {
+            VStack(spacing: 0) {
+                Text(cost == 0 ? "FREE" : "\(cost)")
+                    .font(Design.Fonts.mono(cost == 0 ? 12 : 18, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundStyle(cost == 0 ? Color(hex: "4CAF50") : Design.Colors.bobaCyan)
+                if cost > 0 {
+                    Text("HD")
+                        .font(Design.Fonts.mono(9, weight: .bold))
+                        .tracking(0.6)
+                        .foregroundStyle(Design.Colors.textMuted)
+                }
+            }
+            .frame(minWidth: 40, alignment: .trailing)
+        }
     }
 }
 

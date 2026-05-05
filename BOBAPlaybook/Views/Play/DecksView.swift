@@ -297,6 +297,18 @@ struct DecksView: View {
         }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
+                if auth.isAuthenticated {
+                    Section("Filter") {
+                        // Native Toggle inside Menu renders as a
+                        // checkmark item — replaces the misplaced
+                        // toggle that used to live inside the editor
+                        // (where its effect on the pool was hidden).
+                        Toggle(isOn: $collectionOnly) {
+                            Label("Show only cards I own",
+                                  systemImage: "tray.full")
+                        }
+                    }
+                }
                 Section("Columns") {
                     Picker("Columns", selection: $gridColumns) {
                         Label("1 across", systemImage: "rectangle.portrait").tag(1)
@@ -523,11 +535,12 @@ struct DecksView: View {
         }
     }
 
-    /// Always-visible header — deck name + per-section counts +
-    /// format badge + legality pill. (Search lives ABOVE the canvas,
-    /// not in this header — see `poolSearchBar`.)
+    /// Always-visible header — deck name + legality pill + per-section
+    /// stat cells. The format pill that previously lived here was
+    /// removed because the format chip strip below already shows the
+    /// active format prominently.
     private var sheetHeaderRow: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
             HStack(spacing: Design.Spacing.sm) {
                 TextField("Deck name", text: $store.deckName)
                     .font(Design.Fonts.display(20))
@@ -535,47 +548,38 @@ struct DecksView: View {
                     .submitLabel(.done)
                     .textFieldStyle(.plain)
                     // Anchor for the editor walkthrough's "Sign in
-                    // and Save" step. Originally on the SAVE button
-                    // in the toolbar, but the editor's
+                    // and Save" step. Toolbar items get covered by
                     // .toolbarBackground(.regularMaterial, .visible)
-                    // renders above the walkthrough overlay and
-                    // hides the spotlight ring there. The deck name
-                    // field is the first body element and is always
-                    // visible — anchoring here gives a clearly-
-                    // visible spotlight + a tooltip that can mention
-                    // the SAVE button at the top right.
+                    // — the deck name field is the first body element
+                    // and is always visible to host the spotlight.
                     .walkthroughAnchor("decksEditor.deckName")
                 Spacer()
                 if !deckIsEmpty {
                     legalityPill
                 }
             }
-            // Stat row — Heroes / Plays / Bonus / Hot Dogs / DBS budget.
-            // The DBS budget cell is the most important number for
-            // building a legitimate deck (per CLAUDE.md), so it shows
-            // alongside the other counts whenever the active format
-            // enforces a DBS budget.
-            HStack(spacing: Design.Spacing.md) {
-                statCount(label: "Heroes", value: store.heroes.count, target: store.format.heroTarget)
+            // Stat row — uniform 2-line cells (label CAPS top, value
+            // mono bold below). `.fixedSize` per cell guarantees no
+            // mid-word wrapping ("Hero/es 60/6\n0") regardless of how
+            // many cells the active format demands. DBS cell only
+            // appears when the format enforces a budget; Bonus only
+            // when the deck has any bonus plays.
+            HStack(alignment: .top, spacing: Design.Spacing.lg) {
+                statCell(label: "Heroes", value: store.heroes.count,
+                         target: store.format.heroTarget)
                 if store.format.needsPlaybook {
-                    statCount(label: "Plays", value: store.plays.count, target: 30)
+                    statCell(label: "Plays", value: store.plays.count, target: 30)
                     if !store.bonusPlays.isEmpty {
-                        statCount(label: "Bonus", value: store.bonusPlays.count, target: nil)
+                        statCell(label: "Bonus", value: store.bonusPlays.count, target: nil)
                     }
                     if store.effectiveEnforceDBS {
-                        dbsCount(value: store.totalDBS, budget: store.effectiveDBSBudget)
+                        dbsCell(value: store.totalDBS, budget: store.effectiveDBSBudget)
                     }
                 }
                 if store.format.needsHotDogs {
-                    statCount(label: "Hot Dogs", value: store.hotDogs.count, target: 10)
+                    statCell(label: "Hot Dogs", value: store.hotDogs.count, target: 10)
                 }
-                Spacer()
-                Text(store.format.displayName)
-                    .font(Design.Fonts.mono(11, weight: .bold))
-                    .foregroundStyle(Design.Colors.bobaOrange)
-                    .padding(.horizontal, 9)
-                    .frame(height: 22)
-                    .background(Capsule().fill(Design.Colors.bobaOrange.opacity(0.15)))
+                Spacer(minLength: 0)
             }
         }
         .padding(.horizontal, Design.Spacing.md)
@@ -584,41 +588,49 @@ struct DecksView: View {
         .walkthroughAnchor("decksEditor.statRow")
     }
 
-    private func statCount(label: String, value: Int, target: Int?) -> some View {
-        let ok = target.map { value == $0 } ?? true
-        return HStack(spacing: 4) {
-            Text(label)
-                .font(Design.Fonts.mono(11))
+    /// Compact 2-line stat cell — uppercase label tracked top, mono
+    /// bold tabular-digit value below. `fixedSize(horizontal:true)`
+    /// is what stops SwiftUI from breaking the text mid-word when the
+    /// row is tight. Green tint when target met.
+    private func statCell(label: String, value: Int, target: Int?) -> some View {
+        let ok = target.map { value == $0 } ?? false
+        let valueColor: Color = (target != nil && ok)
+            ? Color(hex: "4CAF50")
+            : Design.Colors.textPrimary
+        let valueText: String = target.map { "\(value)/\($0)" } ?? "\(value)"
+        return VStack(alignment: .leading, spacing: 2) {
+            Text(label.uppercased())
+                .font(Design.Fonts.mono(10, weight: .bold))
+                .tracking(0.6)
                 .foregroundStyle(Design.Colors.textMuted)
-            if let target {
-                Text("\(value)/\(target)")
-                    .font(Design.Fonts.mono(13, weight: .bold))
-                    .foregroundStyle(ok ? Color(hex: "4CAF50") : Design.Colors.textPrimary)
-            } else {
-                Text("\(value)")
-                    .font(Design.Fonts.mono(13, weight: .bold))
-                    .foregroundStyle(Design.Colors.textPrimary)
-            }
+            Text(valueText)
+                .font(Design.Fonts.mono(16, weight: .bold))
+                .monospacedDigit()
+                .foregroundStyle(valueColor)
         }
+        .fixedSize(horizontal: true, vertical: false)
     }
 
-    /// DBS budget tracker. Same shape as statCount but tinted by the
-    /// over/under state — green when on budget, orange near the cap,
-    /// red when over. This is the number coaches build around.
-    private func dbsCount(value: Int, budget: Int) -> some View {
+    /// DBS budget tracker — same shape as statCell, tinted by
+    /// over/under state (red over, orange near cap, green safe). The
+    /// number coaches build around.
+    private func dbsCell(value: Int, budget: Int) -> some View {
         let color: Color = {
             if value > budget { return Color(hex: "C0392B") }
             if value > Int(Double(budget) * 0.9) { return Design.Colors.bobaOrange }
             return Color(hex: "4CAF50")
         }()
-        return HStack(spacing: 4) {
+        return VStack(alignment: .leading, spacing: 2) {
             Text("DBS")
-                .font(Design.Fonts.mono(11))
+                .font(Design.Fonts.mono(10, weight: .bold))
+                .tracking(0.6)
                 .foregroundStyle(Design.Colors.textMuted)
             Text("\(value)/\(budget)")
-                .font(Design.Fonts.mono(13, weight: .bold))
+                .font(Design.Fonts.mono(16, weight: .bold))
+                .monospacedDigit()
                 .foregroundStyle(color)
         }
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     private var legalityPill: some View {
@@ -657,150 +669,246 @@ struct DecksView: View {
 
     // MARK: - Deck list (scrolling content of the sheet)
 
+    /// Native `List` per DESIGN.md §1.0 (native first). Sections inherit
+    /// iOS 26 styling automatically; rows expose a destructive
+    /// `.swipeActions` for removal so the per-row X chrome can disappear.
+    /// The empty state still renders inside a ScrollView because the
+    /// template gallery is bespoke layout that doesn't fit the row
+    /// shape.
     @ViewBuilder
     private var deckListScroll: some View {
-        // Vertical-only ScrollView. The .frame(maxWidth: .infinity)
-        // on the inner VStack stops SwiftUI from proposing a wider
-        // width when a child (e.g., a long DeckCardRow ability text)
-        // briefly demands more horizontal space — without it the
-        // ScrollView starts allowing horizontal rubber-banding even
-        // though we never asked for a horizontal axis.
-        ScrollView(.vertical, showsIndicators: true) {
-            VStack(alignment: .leading, spacing: 0) {
-                if !auth.isAuthenticated && !deckIsEmpty {
-                    BOBASignInPrompt(
-                        actionDescription: "save this deck and access it on every device",
-                        onSignIn: { secondarySheet = .profile }
-                    )
-                    .padding(.horizontal, Design.Spacing.md)
-                    .padding(.vertical, Design.Spacing.sm)
-                }
-
-                // Collection-only toggle — the single survivor of the legacy
-                // 5-filter-row stack. Hidden when the user isn't signed in.
-                if auth.isAuthenticated {
-                    HStack {
-                        Toggle(isOn: $collectionOnly) {
-                            Text("Show only cards I own")
-                                .font(Design.Fonts.mono(12))
-                                .foregroundStyle(Design.Colors.textSecondary)
-                        }
-                        .toggleStyle(.switch)
-                        .tint(Design.Colors.bobaCyan)
+        if deckIsEmpty {
+            ScrollView(.vertical, showsIndicators: true) {
+                emptyDeckCTA
+                    .padding(.bottom, Design.Spacing.lg)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .walkthroughAnchor("decksEditor.deckList")
+            }
+        } else {
+            List {
+                if !auth.isAuthenticated {
+                    Section {
+                        BOBASignInPrompt(
+                            actionDescription: "save this deck and access it on every device",
+                            onSignIn: { secondarySheet = .profile }
+                        )
+                        .listRowInsets(EdgeInsets(top: Design.Spacing.sm,
+                                                  leading: Design.Spacing.md,
+                                                  bottom: Design.Spacing.sm,
+                                                  trailing: Design.Spacing.md))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                     }
-                    .padding(.horizontal, Design.Spacing.md)
-                    .padding(.vertical, Design.Spacing.xs)
                 }
 
-                if deckIsEmpty {
-                    emptyDeckCTA
-                } else {
-                    if !visibleValidationErrors.isEmpty {
+                if !visibleValidationErrors.isEmpty {
+                    Section {
                         validationSection
+                            .listRowInsets(EdgeInsets())
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
                     }
-                    if !store.heroes.isEmpty {
-                        DeckSection(
-                            title: "HEROES (\(store.heroes.count)/\(store.format.heroTarget))",
-                            isEmpty: false
-                        ) {
-                            // Cross-tier hero repeat banner — flags the
-                            // "6-per-hero across variations" rule. Silent
-                            // when no hero is repeated, so it stays out of
-                            // the way during normal deck building.
-                            // (Restored from legacy DeckBuilderView.)
-                            if !heroRepeats.isEmpty {
-                                heroRepeatBanner
-                            }
-                            ForEach(groupedHeroes, id: \.power) { group in
-                                VStack(alignment: .leading, spacing: 2) {
-                                    HStack {
-                                        Text("PWR \(group.power)")
-                                            .font(Design.Fonts.mono(10, weight: .bold))
-                                            .foregroundStyle(Design.Colors.textMuted)
-                                        Text("(\(group.cards.count)/6)")
-                                            .font(Design.Fonts.mono(10))
-                                            .foregroundStyle(group.cards.count > 6 ? Color(hex: "C0392B") : Design.Colors.textMuted)
-                                        Spacer()
-                                    }
-                                    // Hero × weapon breakdown — restores the
-                                    // legacy "Maverick (FIRE×2, ICE)" line so
-                                    // coaches can see weapon spread per tier.
-                                    let breakdown = heroWeaponBreakdown(for: group.cards)
-                                    if !breakdown.isEmpty {
-                                        Text(breakdown)
-                                            .font(Design.Fonts.mono(9))
-                                            .foregroundStyle(Design.Colors.textMuted)
-                                            .lineLimit(2)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                    }
+                }
+
+                if !store.heroes.isEmpty {
+                    Section {
+                        if !heroRepeats.isEmpty {
+                            heroRepeatBanner
+                                .listRowInsets(EdgeInsets(top: Design.Spacing.xs,
+                                                          leading: Design.Spacing.md,
+                                                          bottom: Design.Spacing.sm,
+                                                          trailing: Design.Spacing.md))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                        }
+                        ForEach(groupedHeroes, id: \.power) { group in
+                            pwrSubheader(power: group.power, cards: group.cards)
+                                .listRowInsets(EdgeInsets(top: Design.Spacing.sm,
+                                                          leading: Design.Spacing.md,
+                                                          bottom: 2,
+                                                          trailing: Design.Spacing.md))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                            ForEach(group.cards) { card in
+                                DeckCardRow(card: card, showRemoveButton: false) {
+                                    store.removeCard(card, role: .hero)
                                 }
-                                .padding(.horizontal, Design.Spacing.md)
-                                .padding(.top, Design.Spacing.xs)
-                                ForEach(group.cards) { card in
-                                    DeckCardRow(card: card) {
+                                .listRowInsets(EdgeInsets(top: 4,
+                                                          leading: Design.Spacing.md,
+                                                          bottom: 4,
+                                                          trailing: Design.Spacing.md))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
                                         store.removeCard(card, role: .hero)
+                                    } label: {
+                                        Label("Remove", systemImage: "trash")
                                     }
                                 }
                             }
+                        }
+                    } header: {
+                        sectionHeader(title: "Heroes",
+                                      count: store.heroes.count,
+                                      target: store.format.heroTarget)
+                    }
+                }
+
+                if store.format.needsPlaybook {
+                    if !store.plays.isEmpty {
+                        Section {
+                            ForEach(store.plays) { card in
+                                DeckCardRow(card: card, showRemoveButton: false) {
+                                    store.removeCard(card, role: .play)
+                                }
+                                .listRowInsets(EdgeInsets(top: 4,
+                                                          leading: Design.Spacing.md,
+                                                          bottom: 4,
+                                                          trailing: Design.Spacing.md))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        store.removeCard(card, role: .play)
+                                    } label: {
+                                        Label("Remove", systemImage: "trash")
+                                    }
+                                }
+                            }
+                        } header: {
+                            sectionHeader(title: "Plays",
+                                          count: store.plays.count,
+                                          target: 30)
                         }
                     }
-                    if store.format.needsPlaybook {
-                        if !store.plays.isEmpty {
-                            DeckSection(
-                                title: "PLAYS (\(store.plays.count)/30)",
-                                isEmpty: false
-                            ) {
-                                ForEach(store.plays) { card in
-                                    DeckCardRow(card: card) {
-                                        store.removeCard(card, role: .play)
-                                    }
-                                }
-                            }
-                        }
-                        if !store.bonusPlays.isEmpty {
-                            // Hint surfaces above the soft ceiling Brad calls out
-                            // in the deck-builder transcript ([00:23:31]).
+                    if !store.bonusPlays.isEmpty {
+                        Section {
+                            // Soft ceiling hint surfaces inline with
+                            // the rows it warns about.
                             if store.bonusPlays.count >= 7 {
                                 HintBanner(
                                     id: .bonusPlayCeiling,
                                     title: "TIP — BONUS PLAY CEILING",
                                     message: "More than 6 bonus plays dilutes your Playbook. Consider trimming back."
                                 )
-                                .padding(.horizontal, Design.Spacing.md)
+                                .listRowInsets(EdgeInsets(top: Design.Spacing.xs,
+                                                          leading: Design.Spacing.md,
+                                                          bottom: Design.Spacing.sm,
+                                                          trailing: Design.Spacing.md))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
                             }
-                            DeckSection(
-                                title: "BONUS PLAYS (\(store.bonusPlays.count))",
-                                isEmpty: false
-                            ) {
-                                ForEach(store.bonusPlays) { card in
-                                    DeckCardRow(card: card) {
+                            ForEach(store.bonusPlays) { card in
+                                DeckCardRow(card: card, showRemoveButton: false) {
+                                    store.removeCard(card, role: .bonusPlay)
+                                }
+                                .listRowInsets(EdgeInsets(top: 4,
+                                                          leading: Design.Spacing.md,
+                                                          bottom: 4,
+                                                          trailing: Design.Spacing.md))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
                                         store.removeCard(card, role: .bonusPlay)
+                                    } label: {
+                                        Label("Remove", systemImage: "trash")
                                     }
                                 }
                             }
-                        }
-                    }
-                    if store.format.needsHotDogs && !store.hotDogs.isEmpty {
-                        DeckSection(
-                            title: "HOT DOGS (\(store.hotDogs.count)/10)",
-                            isEmpty: false
-                        ) {
-                            ForEach(store.hotDogs) { card in
-                                DeckCardRow(card: card) {
-                                    store.removeCard(card, role: .hotDog)
-                                }
-                            }
+                        } header: {
+                            sectionHeader(title: "Bonus Plays",
+                                          count: store.bonusPlays.count,
+                                          target: nil)
                         }
                     }
                 }
+
+                if store.format.needsHotDogs && !store.hotDogs.isEmpty {
+                    Section {
+                        ForEach(store.hotDogs) { card in
+                            DeckCardRow(card: card, showRemoveButton: false) {
+                                store.removeCard(card, role: .hotDog)
+                            }
+                            .listRowInsets(EdgeInsets(top: 4,
+                                                      leading: Design.Spacing.md,
+                                                      bottom: 4,
+                                                      trailing: Design.Spacing.md))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    store.removeCard(card, role: .hotDog)
+                                } label: {
+                                    Label("Remove", systemImage: "trash")
+                                }
+                            }
+                        }
+                    } header: {
+                        sectionHeader(title: "Hot Dogs",
+                                      count: store.hotDogs.count,
+                                      target: 10)
+                    }
+                }
             }
-            .padding(.bottom, Design.Spacing.lg)
-            // Pin the inner column to the ScrollView's full width so
-            // children can't propose a wider intrinsic size and trigger
-            // horizontal rubber-banding (per
-            // memory/feedback_swiftui_scrollview_width.md).
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Design.Colors.nearBlack)
             .walkthroughAnchor("decksEditor.deckList")
+        }
+    }
+
+    /// Section header — count badge + label. `.textCase(nil)` opts
+    /// out of List's default uppercase so we own casing.
+    private func sectionHeader(title: String, count: Int, target: Int?) -> some View {
+        let countOK = target.map { count == $0 } ?? false
+        let countColor: Color = (target != nil && countOK)
+            ? Color(hex: "4CAF50")
+            : Design.Colors.textMuted
+        return HStack(spacing: 6) {
+            Text(title.uppercased())
+                .font(Design.Fonts.mono(12, weight: .bold))
+                .tracking(1)
+                .foregroundStyle(Design.Colors.textSecondary)
+            Text(target.map { "\(count)/\($0)" } ?? "\(count)")
+                .font(Design.Fonts.mono(12, weight: .bold))
+                .monospacedDigit()
+                .foregroundStyle(countColor)
+            Spacer(minLength: 0)
+        }
+        .textCase(nil)
+        .padding(.vertical, 2)
+    }
+
+    /// PWR tier sub-header — single tight line per tier. Combines
+    /// "PWR 155 · 3/6 · Hero (ICE×2), Hero (FIRE)" into one line at
+    /// readable 11pt; bumps the prior 9-10pt fonts.
+    private func pwrSubheader(power: Int, cards: [Card]) -> some View {
+        let breakdown = heroWeaponBreakdown(for: cards)
+        let countColor: Color = cards.count > 6
+            ? Color(hex: "C0392B")
+            : Design.Colors.textMuted
+        return HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text("PWR \(power)")
+                .font(Design.Fonts.mono(11, weight: .bold))
+                .monospacedDigit()
+                .foregroundStyle(Design.Colors.bobaCyan)
+            Text("\(cards.count)/6")
+                .font(Design.Fonts.mono(11))
+                .monospacedDigit()
+                .foregroundStyle(countColor)
+            if !breakdown.isEmpty {
+                Text("·")
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textMuted)
+                Text(breakdown)
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            Spacer(minLength: 0)
         }
     }
 
@@ -1088,35 +1196,40 @@ struct DecksView: View {
         return rows
     }
 
-    /// Restored from legacy DeckBuilderView. Cyan-tinted block above
-    /// the HEROES section flagging when any hero name appears more than
-    /// once. Red text when count > 6 (the per-hero cap). Hidden when
-    /// no hero is repeated.
+    /// Cyan-tinted callout above the HEROES section flagging when any
+    /// hero name appears more than once. Red text when count > 6 (the
+    /// per-hero cap). Silent when no hero is repeated. Fonts bumped to
+    /// 11-12pt — the prior 9-10pt was below useful reading size.
     private var heroRepeatBanner: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("HERO REPEATS · 6 per hero max across variations")
-                .font(Design.Fonts.mono(9, weight: .bold))
-                .foregroundStyle(Design.Colors.textMuted)
-                .tracking(1)
+        VStack(alignment: .leading, spacing: 6) {
+            Text("HERO REPEATS — 6 PER HERO MAX ACROSS VARIATIONS")
+                .font(Design.Fonts.mono(11, weight: .bold))
+                .tracking(0.8)
+                .foregroundStyle(Design.Colors.bobaCyan.opacity(0.85))
             ForEach(heroRepeats, id: \.hero) { row in
-                HStack(spacing: 4) {
+                HStack(spacing: 6) {
                     Text(row.hero)
-                        .font(Design.Fonts.mono(10, weight: .bold))
+                        .font(Design.Fonts.mono(12, weight: .bold))
                         .foregroundStyle(row.count > 6 ? Color(hex: "C0392B") : Design.Colors.textPrimary)
-                    Text("(\(row.count)/6)")
-                        .font(Design.Fonts.mono(10))
+                    Text("\(row.count)/6")
+                        .font(Design.Fonts.mono(12))
+                        .monospacedDigit()
                         .foregroundStyle(row.count > 6 ? Color(hex: "C0392B") : Design.Colors.textMuted)
                     Text(row.weapons.joined(separator: ", "))
-                        .font(Design.Fonts.mono(9))
+                        .font(Design.Fonts.mono(11))
                         .foregroundStyle(Design.Colors.textMuted)
                         .lineLimit(1)
+                        .truncationMode(.tail)
                 }
             }
         }
         .padding(.horizontal, Design.Spacing.md)
-        .padding(.vertical, Design.Spacing.xs)
+        .padding(.vertical, Design.Spacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Design.Colors.bobaCyan.opacity(0.06))
+        .background(
+            RoundedRectangle(cornerRadius: Design.Radius.sm)
+                .fill(Design.Colors.bobaCyan.opacity(0.08))
+        )
     }
 
     /// Validation errors surfaced in the deck panel's warning bubble.

@@ -314,12 +314,46 @@
     return set?.[0] ?? displayCards.find(c => String(c.cardNumber) === numStr);
   }
 
+  /// Reduced-motion respect — when the user prefers reduced motion,
+  /// skip View Transitions so we don't animate against their setting.
+  /// Re-evaluated each call so OS preference changes mid-session take
+  /// effect immediately.
+  function prefersReducedMotion() {
+    return typeof window.matchMedia === 'function'
+        && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
   function showView(name, fromHistory = false) {
     // Practice is gated to admin only — bounce non-admins back to
     // search if they hit a deep-link or stale history entry.
     if (name === 'practice' && API.getCachedRole?.() !== 'admin') {
       name = 'search';
     }
+
+    // View Transitions API (Baseline 2024) — wraps the DOM swap so
+    // the browser cross-fades the old view into the new one. The
+    // `view-transition-name` on grid cells + detail surfaces (set
+    // contextually on tap; see renderHeroZoomTransition) lets the
+    // browser auto-morph paired elements during the same call. Falls
+    // back to an instant swap on Firefox <129 / Safari <18 / when
+    // prefers-reduced-motion is on. Same-document flavor only — we
+    // don't enable cross-document transitions (Firefox holdout).
+    if (typeof document.startViewTransition === 'function' && !prefersReducedMotion()) {
+      document.startViewTransition(() => applyView(name));
+    } else {
+      applyView(name);
+    }
+
+    if (!fromHistory) {
+      history.pushState({ view: name }, '', buildSearchURL());
+    }
+  }
+
+  /// The actual DOM swap — extracted from showView so it can run
+  /// either directly (no-transition path) or inside a
+  /// startViewTransition callback. Pure side-effect; do not call
+  /// directly from app code, always go through showView.
+  function applyView(name) {
     currentView = name;
     viewIds.forEach(id => {
       const el = $(`view-${id}`);
@@ -346,10 +380,6 @@
     }
     if (name === 'purchase' && window.PurchaseView?.init) {
       window.PurchaseView.init();
-    }
-
-    if (!fromHistory) {
-      history.pushState({ view: name }, '', buildSearchURL());
     }
   }
 
@@ -1586,7 +1616,7 @@
       if (quickAddMode && window.Collection && typeof window.Collection.quickAdd === 'function') {
         quickAddCard(card);
       } else {
-        openModal(card, index);
+        openModalWithHeroZoom(el, card, index);
       }
     };
     el.addEventListener('click', tapHandler);
@@ -1799,6 +1829,45 @@
 
   function cleanupZoom() {
     if (_zoomAbort) { _zoomAbort.abort(); _zoomAbort = null; }
+  }
+
+  /// View Transitions hero zoom — when the user taps a grid cell,
+  /// pair it with the modal's hero image so the browser morphs the
+  /// thumbnail into the full image instead of cross-fading.
+  ///
+  /// Mechanics: set view-transition-name on the source cell + the
+  /// matching name on the modal hero image (after openModal runs)
+  /// inside one startViewTransition callback. Browser captures both,
+  /// auto-pairs by name, animates between them. Names are cleared
+  /// after the transition finishes so the next tap starts fresh —
+  /// view-transition-name must be unique in the document at the
+  /// time of capture.
+  ///
+  /// Falls back to a plain openModal if the API isn't available
+  /// (Safari < 18) or the user prefers reduced motion.
+  function openModalWithHeroZoom(sourceEl, card, index) {
+    const supports = typeof document.startViewTransition === 'function'
+                  && !prefersReducedMotion()
+                  && sourceEl;
+    if (!supports) {
+      openModal(card, index);
+      return;
+    }
+    const name = `card-hero`;  // shared transition slot — only one card animates at a time
+    sourceEl.style.viewTransitionName = name;
+    const transition = document.startViewTransition(() => {
+      openModal(card, index);
+      // Tag the hero image so the browser pairs the morph.
+      const heroImg = modalContent.querySelector('.modal-card-img');
+      if (heroImg) heroImg.style.viewTransitionName = name;
+    });
+    // Clear the names after the animation so the next click can pair
+    // freshly (view-transition-name must be unique at capture time).
+    transition.finished.finally(() => {
+      sourceEl.style.viewTransitionName = '';
+      const heroImg = modalContent.querySelector('.modal-card-img');
+      if (heroImg) heroImg.style.viewTransitionName = '';
+    });
   }
 
   function openModal(card, index = -1, fromHistory = false) {

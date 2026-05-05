@@ -7,6 +7,50 @@
 /* Ensure [hidden] always hides regardless of CSS display property */
 [hidden] { display: none !important; }
 
+/* ----------------------------------------------------------------
+   ACCESSIBILITY — reduced transparency + reduced motion
+   (WEB-DESIGN.md §6 binding rule)
+
+   When the user opts into reduced transparency (Settings →
+   Accessibility on macOS/iOS, or the equivalent on other OSes),
+   drop every backdrop-filter to none. The underlying rgba()
+   backgrounds get bumped to opaque on the canonical chrome
+   surfaces below so the result is a flat dark color instead of
+   a translucent-without-blur muddle.
+
+   When reduced motion is on, View Transitions short-circuit in
+   JS (showView/applyView paths) AND the ::view-transition-* CSS
+   animations zero out — belt-and-suspenders so neither layer
+   animates against the user's setting.
+---------------------------------------------------------------- */
+@media (prefers-reduced-transparency: reduce) {
+  /* Hammer: every surface that uses blur drops the blur. The
+     spec intent is "no transparency effects" — we comply across
+     the board rather than per-class. */
+  .channels-sidebar,
+  .sidebar-overlay,
+  .mobile-header,
+  .modal-overlay,
+  .avatar-crop-dialog::backdrop,
+  .avatar-menu-dialog::backdrop,
+  dialog::backdrop,
+  .multiselect-toolbar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  /* Bump the canonical chrome surfaces to opaque so the loss of
+     blur doesn't leave them as flat-translucent (which reads worse
+     than either glass or solid). Other rgba surfaces stay as-is —
+     most are content-area dimmers where the rgba alpha was never
+     critical. */
+  .channels-sidebar,
+  .mobile-header,
+  .avatar-crop-dialog,
+  .avatar-menu-dialog {
+    background: var(--boba-surface) !important;
+  }
+}
+
 /* ---- Design Tokens ---- */
 :root {
   /* Brand palette */
@@ -991,6 +1035,37 @@ main {
 body[data-find-density="s"] #view-search .card-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: var(--sp-2); }
 body[data-find-density="m"] #view-search .card-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
 body[data-find-density="l"] #view-search .card-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--sp-4); }
+
+/* ----------------------------------------------------------------
+   VIEW TRANSITIONS (WEB-DESIGN.md §13 — adopt View Transitions API)
+   Wraps every showView() in document.startViewTransition so the
+   browser cross-fades old → new instead of cutting hard. CSS here
+   tunes the timing + opts out under prefers-reduced-motion (the JS
+   side also short-circuits, but the @media is a belt-and-suspenders
+   guarantee that the browser doesn't animate the root either).
+---------------------------------------------------------------- */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 240ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation: none; }
+}
+
+/* Card grid → modal hero zoom — when a cell has the
+   data-zooming-id attribute set (by the click handler in
+   buildCardElement), pair it with the modal hero image carrying the
+   matching view-transition-name so the browser morphs them. The
+   name is set inline via JS just before the transition starts and
+   cleared after; CSS only describes the animation feel. */
+::view-transition-old(card-hero),
+::view-transition-new(card-hero) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1);
+  animation-fill-mode: both;
+}
 
 /* ----------------------------------------------------------------
    MULTI-SELECT — selected card state, marquee rect, action toolbar

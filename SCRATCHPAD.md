@@ -20,7 +20,7 @@
 
 ## Active / Next-Up
 
-- **M4 Purchase view** — still in progress per the parity table below. The picker + Find a Store UI shipped on iOS; Whatnot upcoming-breaks worker deployment remains.
+- ~~**M4 Purchase view**~~ — SHIPPED. Whatnot upcoming-breaks live at `boba-ebay-proxy.benwilkoff.workers.dev/whatnot/upcoming` (lives inside the existing eBay worker, not a standalone — that's why the older "boba-whatnot-shows" handoff folder doesn't exist). Wired on iOS via `WhatnotShowsService` and on web via `js/purchase.js`. Picker + Find a Store on iOS shipped earlier.
 - ~~**Account deletion Worker endpoint**~~ — SHIPPED 2026-05-05 (`workers/account-delete/`). DECISIONS.md #039 updated.
 - ~~**Profile picture upload**~~ — SHIPPED 2026-05-05 (`workers/avatar-upload/` + `set_avatar_url`/`get_public_profile` RPCs). Discord-default + R2-on-upload pattern; rendered on iOS Profile, web Profile, and the public-collection page. DECISIONS.md #040.
 - **Admin panel public-link visibility** (2026-05-05) — `get_admin_user_stats` RPC now returns `username`, `public_collection_enabled`, `avatar_url`, `discord_avatar_url`. iOS + web admin panels render an avatar thumb, @username with PUBLIC pill, and a copyable `bobaplaybook.com/u/{handle}` URL row when sharing is on. Reuses the avatar resolver from DECISIONS.md #040.
@@ -58,7 +58,7 @@
 | Deck Builder | ✅ | ✅ | iOS rebuilt to Music-pattern pill + zoom editor |
 | Streamer Shows | ✅ | ✅ | My Shows + Generate Wall (streamer role only) |
 | Find a Store | ✅ | ✅ | MapKit/Leaflet, ~330 indie + ~1,800 big-box |
-| Purchase view | ⏳ | ⏳ | Picker + Find a Store shipped; Whatnot worker pending |
+| Purchase view | ✅ | ✅ | Find a Store + Upcoming Breaks (Whatnot via boba-ebay-proxy `/whatnot/upcoming`) |
 | Profile (username, sharing, role-request, etc.) | ✅ | ✅ | v2.064-v2.080 |
 | Public collections (`/u/{username}`) | ✅ | n/a (auth) | Web-only render; iOS sets the toggle |
 | Walkthroughs | n/a | ✅ | iOS only — see WEB-DESIGN.md §12 for the open question |
@@ -70,9 +70,9 @@
 ### ✅ Completed
 M0 (setup), M1 (search), M2 (collection), M3/M3.5 (scan + pricing). Profile + Decks rebuild + Public collections (web) + Walkthroughs all shipped post-M3.5. Full notes in ARCHIVE.md.
 
-### ⏳ M4 — Purchase view
-- **Upcoming Breaks** — Whatnot feed via `boba-whatnot-shows` Worker; spec in `handoff-updates-2026-04-27/whatnot-shows-worker/`
-- **Find a Store** — done (moved out of Collection)
+### ✅ M4 — Purchase view
+- **Upcoming Breaks** — done. Whatnot search at `boba-ebay-proxy.benwilkoff.workers.dev/whatnot/upcoming` (consolidated into the eBay worker, not a standalone). iOS uses `WhatnotShowsService`, web uses `js/purchase.js`.
+- **Find a Store** — done (moved out of Collection).
 
 ### ❌ M5 — Discord Trading Channel (FUTURE)
 Embed community trading channel. Research Discord Activity SDK vs WebView feasibility before committing.

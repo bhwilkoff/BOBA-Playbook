@@ -157,6 +157,15 @@ extension View {
 // MARK: - The overlay view
 
 struct BOBAWalkthrough: View {
+    /// When true, every step transition emits a structured `print()`
+    /// block to the Xcode console with anchor existence, frame rect,
+    /// container size, on-screen containment per edge, spotlight-ring
+    /// containment, and stage state. Use to diagnose "why is the
+    /// highlight clipped / off-screen / missing?" by running the
+    /// walkthrough and pasting console output back. Default ON because
+    /// silent breakage is the worst-case UX for a teaching surface.
+    static var diagnosticsEnabled: Bool = true
+
     let script: Script
     /// Pre-resolved anchor frames (host view's coordinate space) for the
     /// current view-tree state. Computed at the call site via
@@ -199,7 +208,109 @@ struct BOBAWalkthrough: View {
             // First step's stage prepare hook fires on appear so the
             // host can reveal the very first anchor if it's hidden.
             onStage?(step?.stage)
+            logDiagnostics(event: "START")
         }
+        // .onChange fires AFTER the next render — by then any
+        // stage-driven host re-render has produced fresh anchorFrames,
+        // so the diagnostic logs the post-stage rect (not the
+        // pre-stage one). Without this, drawer-expansion steps would
+        // always log "anchor not registered" because the diagnostic
+        // ran before the drawer had laid out.
+        .onChange(of: currentStep) { _, _ in
+            logDiagnostics(event: "ADVANCE")
+        }
+    }
+
+    // MARK: - Diagnostics
+
+    /// Emits a structured block to stdout describing the current step's
+    /// anchor state. Designed to be greppable and pasteable: each block
+    /// is bounded by `WT[id] ━━━━━━━━━━━━━━` rules so multi-step
+    /// transcripts read clearly when copied out of the Xcode console.
+    private func logDiagnostics(event: String) {
+        guard Self.diagnosticsEnabled else { return }
+        let id = script.id.rawValue
+        let total = script.steps.count
+        let stepNum = currentStep + 1
+
+        var lines: [String] = []
+        lines.append("WT[\(id)] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ \(event)")
+
+        if event == "DISMISS" {
+            lines.append("  → walkthrough dismissed at step \(stepNum)/\(total)")
+            lines.append("  → onStage(nil) called — host should restore prior UI state")
+            print(lines.joined(separator: "\n"))
+            return
+        }
+
+        guard let step else {
+            lines.append("  ✗ NO STEP — currentStep=\(currentStep) total=\(total)")
+            print(lines.joined(separator: "\n"))
+            return
+        }
+
+        lines.append("  step \(stepNum)/\(total)")
+        lines.append("  copy: \"\(step.copy)\"")
+        lines.append("  copy length: \(step.copy.split(separator: " ").count) words \(step.copy.count <= 12 * 8 ? "✓" : "⚠ likely > §6.10 cap of 12")")
+
+        if let stage = step.stage {
+            lines.append("  stage: \(stage) — host should prepare UI for this anchor")
+        } else {
+            lines.append("  stage: nil")
+        }
+
+        let container = containerSize
+        lines.append("  container: \(fmt(container.width)) × \(fmt(container.height))")
+
+        if let anchorKey = step.anchor {
+            lines.append("  anchor key: \"\(anchorKey.key)\"")
+            if let rect = anchorFrames[anchorKey] {
+                lines.append("  anchor rect: x=\(fmt(rect.minX)) y=\(fmt(rect.minY)) w=\(fmt(rect.width)) h=\(fmt(rect.height))")
+                let viewport = CGRect(origin: .zero, size: container)
+                let leftIn   = rect.minX  >= viewport.minX
+                let rightIn  = rect.maxX  <= viewport.maxX
+                let topIn    = rect.minY  >= viewport.minY
+                let bottomIn = rect.maxY  <= viewport.maxY
+                let allIn    = leftIn && rightIn && topIn && bottomIn
+                lines.append("  anchor on-screen: \(allIn ? "✓ FULLY ON-SCREEN" : "✗ CLIPPED")")
+                if !leftIn   { lines.append("    ← clipped LEFT  by \(fmt(viewport.minX - rect.minX))pt") }
+                if !rightIn  { lines.append("    → clipped RIGHT by \(fmt(rect.maxX - viewport.maxX))pt") }
+                if !topIn    { lines.append("    ↑ clipped TOP   by \(fmt(viewport.minY - rect.minY))pt") }
+                if !bottomIn { lines.append("    ↓ clipped BOTTOM by \(fmt(rect.maxY - viewport.maxY))pt") }
+                // Spotlight ring is the anchor padded by ±8 — verify
+                // the ring's bounding box stays in the viewport too,
+                // since "anchor on-screen" can be true while the ring
+                // around it gets clipped at the edges.
+                let ringRect = rect.insetBy(dx: -8, dy: -8)
+                let ringIn = viewport.contains(ringRect)
+                if !ringIn {
+                    lines.append("  spotlight ring (±8pt pad): x=\(fmt(ringRect.minX)) y=\(fmt(ringRect.minY)) w=\(fmt(ringRect.width)) h=\(fmt(ringRect.height))")
+                    let rL = ringRect.minX < viewport.minX ? viewport.minX - ringRect.minX : 0
+                    let rR = ringRect.maxX > viewport.maxX ? ringRect.maxX - viewport.maxX : 0
+                    let rT = ringRect.minY < viewport.minY ? viewport.minY - ringRect.minY : 0
+                    let rB = ringRect.maxY > viewport.maxY ? ringRect.maxY - viewport.maxY : 0
+                    lines.append("  ✗ ring CLIPPED — left=\(fmt(rL)) right=\(fmt(rR)) top=\(fmt(rT)) bottom=\(fmt(rB))")
+                } else {
+                    lines.append("  spotlight ring (±8pt pad): ✓ FULLY ENCLOSED")
+                }
+                let intersects = viewport.intersects(rect)
+                if !intersects {
+                    lines.append("  ⚠ anchor entirely OFF-SCREEN — overlay falls back to centered tooltip + chevron")
+                }
+            } else {
+                lines.append("  anchor rect: ✗ ANCHOR NOT REGISTERED")
+                lines.append("  → no view in the current host has called .walkthroughAnchor(\"\(anchorKey.key)\")")
+                lines.append("  → all currently-registered keys: \(anchorFrames.keys.map { $0.key }.sorted().joined(separator: ", "))")
+            }
+        } else {
+            lines.append("  anchor: nil (full-screen step — intro/outro)")
+        }
+
+        print(lines.joined(separator: "\n"))
+    }
+
+    private func fmt(_ v: CGFloat) -> String {
+        String(format: "%.1f", v)
     }
 
     private var step: Step? {
@@ -245,12 +356,15 @@ struct BOBAWalkthrough: View {
         } else {
             currentStep += 1
             // Notify host of the new step's stage so it can prepare
-            // (e.g., expand a drawer to reveal the anchor).
+            // (e.g., expand a drawer to reveal the anchor). The
+            // diagnostic log fires from .onChange(of: currentStep)
+            // above so it reads the post-render anchor frames.
             onStage?(step?.stage)
         }
     }
 
     private func complete() {
+        logDiagnostics(event: "DISMISS")
         // Restore prior state before tearing down.
         onStage?(nil)
         onComplete()
@@ -601,4 +715,37 @@ extension BOBAWalkthrough.Script {
             .init(anchor: .init("gridScan.queue"),      copy: "Confirm matches or pick from alternatives.")
         ]
     )
+
+    /// Unified scanner overview — fires on first ScanView open.
+    /// Role-aware: streamers see one extra step explaining Show mode
+    /// (which only renders for them). When invoked from the deck
+    /// builder, Show mode isn't an option (per ScanView wiring) so
+    /// the streamer step is suppressed there too.
+    ///
+    /// Step selection rule: every anchor must be a UI element that's
+    /// guaranteed to be on-screen the first time the scanner opens.
+    /// Transient anchors (queue button, detection chip) are excluded
+    /// — users discover them naturally through normal use, and a
+    /// "this appears here" step that points to nothing breaks worse
+    /// than no step at all.
+    static func scannerOverview(
+        isStreamer: Bool,
+        fromDeckBuilder: Bool
+    ) -> BOBAWalkthrough.Script {
+        var steps: [BOBAWalkthrough.Step] = [
+            .init(anchor: .init("scanner.viewfinder"),
+                  copy: "Hold a card in the frame. We identify it on-device — no image leaves your phone."),
+            .init(anchor: .init("scanner.modePills"),
+                  copy: "Single saves one card. Multi queues many. Grid captures 3–9 at once.",
+                  placement: .above)
+        ]
+        if isStreamer && !fromDeckBuilder {
+            steps.append(.init(
+                anchor: .init("scanner.showPill"),
+                copy: "Show mode adds cards to a Whatnot show for live breaks.",
+                placement: .above
+            ))
+        }
+        return BOBAWalkthrough.Script(id: .scannerOverview, steps: steps)
+    }
 }

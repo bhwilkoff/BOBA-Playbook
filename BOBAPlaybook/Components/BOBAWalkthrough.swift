@@ -166,14 +166,23 @@ extension View {
 // MARK: - The overlay view
 
 struct BOBAWalkthrough: View {
-    /// When true, every step transition emits a structured `print()`
-    /// block to the Xcode console with anchor existence, frame rect,
-    /// container size, on-screen containment per edge, spotlight-ring
-    /// containment, and stage state. Use to diagnose "why is the
-    /// highlight clipped / off-screen / missing?" by running the
-    /// walkthrough and pasting console output back. Default ON because
-    /// silent breakage is the worst-case UX for a teaching surface.
+    /// When true, step transitions emit a structured `print()` +
+    /// `NSLog()` block to the Xcode console for the walkthroughs in
+    /// `diagnosticWalkthroughIDs` (default: only the unsolved ones).
+    /// Use to diagnose "why is the highlight clipped / off-screen /
+    /// missing?" by running the walkthrough and pasting console
+    /// output back. Set to false to silence everything.
     static var diagnosticsEnabled: Bool = true
+
+    /// Subset of walkthrough IDs that emit diagnostic blocks. Keeps
+    /// the console signal-to-noise high once a walkthrough is
+    /// validated — solved walkthroughs (Find, Decks pool, Collection,
+    /// Purchase, Scanner viewfinder, decksEditor save/stat/format) are
+    /// silent; only walkthroughs we're still iterating on log.
+    static var diagnosticWalkthroughIDs: Set<String> = [
+        WalkthroughID.learnTab.rawValue,
+        WalkthroughID.decksEditor.rawValue,
+    ]
 
     let script: Script
     /// Pre-resolved anchor frames (host view's coordinate space) for the
@@ -271,6 +280,10 @@ struct BOBAWalkthrough: View {
     private func logDiagnostics(event: String) {
         guard Self.diagnosticsEnabled else { return }
         let id = script.id.rawValue
+        // Suppress logging for walkthroughs already validated as
+        // working — only the unsolved ones (in diagnosticWalkthroughIDs)
+        // emit blocks. Keeps the Xcode console manageable.
+        guard Self.diagnosticWalkthroughIDs.contains(id) else { return }
         let total = script.steps.count
         let stepNum = currentStep + 1
 

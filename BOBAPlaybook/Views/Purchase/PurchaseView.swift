@@ -11,55 +11,29 @@
 import SwiftUI
 
 struct PurchaseView: View {
-    enum PurchaseMode: String, CaseIterable, Identifiable {
+    enum PurchaseMode: String, CaseIterable, Identifiable, Hashable {
         case breaks = "Live Breaks"
         case stores = "Find a Store"
         var id: String { rawValue }
+        var icon: String {
+            switch self {
+            case .breaks: return "tv.fill"
+            case .stores: return "mappin.and.ellipse"
+            }
+        }
     }
 
     @State private var mode: PurchaseMode = .breaks
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                modePicker
-                    .padding(.horizontal, Design.Spacing.md)
-                    .padding(.vertical, Design.Spacing.sm)
-                    .walkthroughAnchor("purchase.picker")
-
-                switch mode {
-                case .breaks:
-                    UpcomingBreaksList()
-                case .stores:
-                    StoreLocatorView()
-                }
+        Group {
+            if horizontalSizeClass == .regular {
+                iPadBody
+            } else {
+                compactBody
             }
-            .background(Design.Colors.nearBlack)
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    BOBAWordmark()
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button {
-                            WalkthroughsManager.shared.relaunch(.purchaseTab)
-                            walkthrough = .purchaseTab
-                        } label: {
-                            Label("Show walkthrough", systemImage: "questionmark.circle")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 18))
-                            .foregroundStyle(Design.Colors.bobaCyan)
-                    }
-                    .accessibilityLabel("Purchase options")
-                }
-            }
-            .toolbarBackground(.regularMaterial, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
         }
         // .walkthroughOverlay must sit OUTSIDE NavigationStack so the
         // overlay's GeometryReader measures the full screen, not the
@@ -77,6 +51,90 @@ struct PurchaseView: View {
                     walkthrough = .purchaseTab
                 }
             }
+        }
+    }
+
+    // MARK: - Compact (iPhone) body — segmented picker + content
+
+    @ViewBuilder
+    private var compactBody: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                modePicker
+                    .padding(.horizontal, Design.Spacing.md)
+                    .padding(.vertical, Design.Spacing.sm)
+                    .walkthroughAnchor("purchase.picker")
+
+                modeContent
+            }
+            .background(Design.Colors.nearBlack)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { purchaseToolbar }
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+        }
+    }
+
+    // MARK: - iPad body — sidebar mode picker + detail
+
+    @ViewBuilder
+    private var iPadBody: some View {
+        NavigationSplitView {
+            List(selection: $mode) {
+                ForEach(PurchaseMode.allCases) { m in
+                    Label(m.rawValue, systemImage: m.icon)
+                        .tag(m)
+                        .walkthroughAnchor(m == .breaks ? "purchase.picker" : "")
+                }
+            }
+            .listStyle(.sidebar)
+            .navigationTitle("Purchase")
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+        } detail: {
+            NavigationStack {
+                modeContent
+                    .background(Design.Colors.nearBlack)
+                    .navigationTitle("")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar { purchaseToolbar }
+                    .toolbarBackground(.regularMaterial, for: .navigationBar)
+                    .toolbarBackground(.visible, for: .navigationBar)
+            }
+        }
+        .navigationSplitViewStyle(.balanced)
+    }
+
+    // MARK: - Shared
+
+    @ViewBuilder
+    private var modeContent: some View {
+        switch mode {
+        case .breaks: UpcomingBreaksList()
+        case .stores: StoreLocatorView()
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var purchaseToolbar: some ToolbarContent {
+        ToolbarItem(placement: .principal) {
+            BOBAWordmark()
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                Button {
+                    WalkthroughsManager.shared.relaunch(.purchaseTab)
+                    walkthrough = .purchaseTab
+                } label: {
+                    Label("Show walkthrough", systemImage: "questionmark.circle")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 18))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+            }
+            .accessibilityLabel("Purchase options")
         }
     }
 

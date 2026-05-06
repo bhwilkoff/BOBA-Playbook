@@ -41,7 +41,12 @@ private struct LearnCategory: Identifiable, Hashable {
 
 struct LearnView: View {
     @Environment(CardStore.self) private var cardStore
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var path = NavigationPath()
+    /// iPad regular uses NavigationSplitView with selection-driven
+    /// detail. Compact keeps the existing path-based push from the
+    /// tile grid.
+    @State private var selectedCategory: LearnCategory?
 
     /// Music-pattern zoom transition — each tile pushes via
     /// .matchedTransitionSource and the destination's .navigationTransition
@@ -125,8 +130,13 @@ struct LearnView: View {
         guard let slug = cardStore.pendingLearnCategory,
               let cat = categories.first(where: { $0.id == slug }) else { return }
         cardStore.pendingLearnCategory = nil
-        path = NavigationPath()
-        path.append(cat)
+        // iPad: drive selection-bound detail. Compact: push via path.
+        if horizontalSizeClass == .regular {
+            selectedCategory = cat
+        } else {
+            path = NavigationPath()
+            path.append(cat)
+        }
     }
 
     /// Six learning paths surfaced as visual tiles. Watch (YouTube) is
@@ -181,6 +191,35 @@ struct LearnView: View {
     ]
 
     var body: some View {
+        Group {
+            if horizontalSizeClass == .regular {
+                iPadBody
+            } else {
+                compactBody
+            }
+        }
+        .walkthroughOverlay($walkthrough)
+        .onAppear {
+            if WalkthroughsManager.shared.shouldShow(.learnTab) {
+                // Defer so LazyVGrid lays out its first tile before the
+                // walkthrough captures anchors (.onAppear fires before
+                // first layout completes — see SearchView for context).
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(250))
+                    walkthrough = .learnTab
+                }
+            }
+            handlePendingCategory()
+        }
+        .onChange(of: cardStore.pendingLearnCategory) { _, _ in
+            handlePendingCategory()
+        }
+    }
+
+    // MARK: - Compact (iPhone) body — tile grid + push
+
+    @ViewBuilder
+    private var compactBody: some View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: Design.Spacing.lg) {
@@ -218,60 +257,144 @@ struct LearnView: View {
             .background(Design.Colors.nearBlack)
             .scrollEdgeEffectStyle(.soft, for: .top)
             .navigationDestination(for: LearnCategory.self) { cat in
-                Group {
-                    switch cat.id {
-                    case "rules":      RulesView()
-                    case "strategy":   StrategyView()
-                    case "collect":    CollectView()
-                    case "watch":      WatchView()
-                    case "glossary":   GlossaryView()
-                    case "tournament": TournamentView()
-                    default:           EmptyView()
-                    }
-                }
-                .compactZoomDestination(id: cat.id, in: tileZoomNamespace)
+                categoryView(for: cat)
+                    .compactZoomDestination(id: cat.id, in: tileZoomNamespace)
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) { BOBAWordmark() }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        // Watch promoted to a first-class root tile per
-                        // user feedback — only the walkthrough relaunch
-                        // remains in the overflow Menu.
-                        Button {
-                            WalkthroughsManager.shared.relaunch(.learnTab)
-                            walkthrough = .learnTab
-                        } label: {
-                            Label("Show walkthrough", systemImage: "questionmark.circle")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                    }
-                    .accessibilityLabel("Learn options")
-                }
-            }
+            .toolbar { learnRootToolbar }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
-        // Watch is now a NavigationLink push (consistent slide-in
-        // transition with every other Learn category) — no more sheet.
-        .walkthroughOverlay($walkthrough)
-        .onAppear {
-            if WalkthroughsManager.shared.shouldShow(.learnTab) {
-                // Defer so LazyVGrid lays out its first tile before the
-                // walkthrough captures anchors (.onAppear fires before
-                // first layout completes — see SearchView for context).
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(250))
-                    walkthrough = .learnTab
-                }
-            }
-            handlePendingCategory()
+    }
+
+    // MARK: - iPad body — NavigationSplitView (sidebar list + detail)
+
+    /// iPad regular per DESIGN.md §6.6: slim category list as sidebar,
+    /// selected category content as detail. Both columns visible in
+    /// landscape; portrait collapses sidebar to a system toggle.
+    @ViewBuilder
+    private var iPadBody: some View {
+        NavigationSplitView {
+            iPadSidebar
+        } detail: {
+            iPadDetail
         }
-        .onChange(of: cardStore.pendingLearnCategory) { _, _ in
-            handlePendingCategory()
+        .navigationSplitViewStyle(.balanced)
+    }
+
+    @ViewBuilder
+    private var iPadSidebar: some View {
+        List(selection: $selectedCategory) {
+            ForEach(Array(categories.enumerated()), id: \.element.id) { idx, cat in
+                iPadSidebarRow(cat, isFirst: idx == 0)
+                    .tag(cat)
+            }
+        }
+        .listStyle(.sidebar)
+        .navigationTitle("Learn")
+        .toolbar { learnRootToolbar }
+        .toolbarBackground(.regularMaterial, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+    }
+
+    @ViewBuilder
+    private func iPadSidebarRow(_ cat: LearnCategory, isFirst: Bool) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: cat.systemImage)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(cat.accent)
+                .frame(width: 32, height: 32)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(cat.accent.opacity(0.12))
+                )
+            VStack(alignment: .leading, spacing: 2) {
+                Text(cat.title)
+                    .font(Design.Fonts.display(15))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                Text(cat.subtitle)
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .lineLimit(2)
+            }
+        }
+        .padding(.vertical, 4)
+        .walkthroughAnchor(isFirst ? "learn.firstRow" : "learn.row.\(cat.id)")
+    }
+
+    @ViewBuilder
+    private var iPadDetail: some View {
+        Group {
+            if let cat = selectedCategory {
+                categoryView(for: cat)
+                    .navigationTitle(cat.title)
+            } else {
+                iPadPlaceholder
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.regularMaterial, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+    }
+
+    /// Empty-detail state on iPad before the user selects a category.
+    /// Carries the editorial weight (LEARN BoBA wordmark + tagline)
+    /// that the tile grid carries on compact.
+    private var iPadPlaceholder: some View {
+        VStack(spacing: Design.Spacing.sm) {
+            Spacer()
+            Text("LEARN BoBA")
+                .font(Design.Fonts.mono(11, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaCyan)
+                .tracking(2)
+            Text("Everything we know.\nBuilt for every coach.")
+                .font(Design.Fonts.display(28))
+                .foregroundStyle(Design.Colors.textPrimary)
+                .multilineTextAlignment(.center)
+                .lineSpacing(2)
+            Text("Pick a category on the left to start learning.")
+                .font(Design.Fonts.mono(13))
+                .foregroundStyle(Design.Colors.textSecondary)
+                .padding(.top, Design.Spacing.md)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Design.Colors.nearBlack)
+    }
+
+    // MARK: - Shared
+
+    /// Resolves a category to its content view. Identical body for
+    /// compact (push destination) and regular (detail column).
+    @ViewBuilder
+    private func categoryView(for cat: LearnCategory) -> some View {
+        switch cat.id {
+        case "rules":      RulesView()
+        case "strategy":   StrategyView()
+        case "collect":    CollectView()
+        case "watch":      WatchView()
+        case "glossary":   GlossaryView()
+        case "tournament": TournamentView()
+        default:           EmptyView()
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var learnRootToolbar: some ToolbarContent {
+        ToolbarItem(placement: .principal) { BOBAWordmark() }
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                Button {
+                    WalkthroughsManager.shared.relaunch(.learnTab)
+                    walkthrough = .learnTab
+                } label: {
+                    Label("Show walkthrough", systemImage: "questionmark.circle")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
+            .accessibilityLabel("Learn options")
         }
     }
 }

@@ -47,6 +47,13 @@ struct ContentView: View {
         }
         .tabViewStyle(.sidebarAdaptable)
         .tint(Design.Colors.bobaOrange)
+        // iPad hardware-keyboard shortcuts — Cmd+1..5 jump to tabs in
+        // sidebar order (Find / Learn / Decks / Collection / Purchase).
+        // Hidden Button overlay is the standard SwiftUI pattern for
+        // attaching .keyboardShortcut to a binding-driven selection.
+        // No-op on iPhone (no keyboard) — costs only an invisible
+        // 0×0 view, no layout impact.
+        .background(TabSwitchShortcuts(selectedTab: $selectedTab))
         // Centralized scan presentation per DESIGN.md §6.5 — single
         // ScanView modal regardless of which tab invoked it. Tabs call
         // ScanCoordinator.start(...) with the right destination; the
@@ -69,6 +76,33 @@ struct ContentView: View {
                 .accessibilityLabel("Close scanner")
             }
         }
+    }
+}
+
+// MARK: - Hardware-keyboard tab shortcuts (iPad)
+
+/// Cmd+1..5 jump to tabs in sidebar order. Renders as 0×0 hidden
+/// buttons — present in the responder chain so .keyboardShortcut
+/// fires, but not visible or interactive via touch. iPhone with no
+/// keyboard simply ignores them.
+private struct TabSwitchShortcuts: View {
+    @Binding var selectedTab: Int
+    var body: some View {
+        Group {
+            Button { selectedTab = 0 } label: { EmptyView() }
+                .keyboardShortcut("1", modifiers: .command)
+            Button { selectedTab = 1 } label: { EmptyView() }
+                .keyboardShortcut("2", modifiers: .command)
+            Button { selectedTab = 3 } label: { EmptyView() }
+                .keyboardShortcut("3", modifiers: .command)
+            Button { selectedTab = 4 } label: { EmptyView() }
+                .keyboardShortcut("4", modifiers: .command)
+            Button { selectedTab = 5 } label: { EmptyView() }
+                .keyboardShortcut("5", modifiers: .command)
+        }
+        .frame(width: 0, height: 0)
+        .opacity(0)
+        .accessibilityHidden(true)
     }
 }
 

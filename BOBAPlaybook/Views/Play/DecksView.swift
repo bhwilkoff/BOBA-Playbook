@@ -146,151 +146,27 @@ struct DecksView: View {
     // MARK: - Body
 
     var body: some View {
-        NavigationStack(path: $poolNavigationPath) {
-            ZStack(alignment: .top) {
-                cardPoolCanvas
-                addedBannerOverlay
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // .safeAreaInset auto-sizes the inset to the pill's actual
-            // height (≈60pt) and reflows around the keyboard when search
-            // is active. Replaces the fixed 132pt padding that left a
-            // visible gap below the canvas.
-            .safeAreaInset(edge: .bottom) {
-                DeckSummaryPill(
-                    store: store,
-                    onTap: { editorOpen = true },
-                    namespace: deckZoomNamespace
-                )
-                .padding(.horizontal, Design.Spacing.md)
-                .padding(.bottom, Design.Spacing.sm)
-                .walkthroughAnchor("decks.summaryPill")
-            }
-            .searchable(
-                text: $search,
-                tokens: $tokens,
-                suggestedTokens: .constant(suggestedTokens),
-                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "Search · weapon, cost, or hero"
-            ) { token in
-                Label(token.label, systemImage: token.systemImageName)
-                    .foregroundStyle(token.tint)
-            }
-            .toolbar { toolbarContent }
-            .toolbarBackground(.regularMaterial, for: .navigationBar)
-            .toolbarBackground(.visible,         for: .navigationBar)
-            .navigationBarTitleDisplayMode(.inline)
-            // Search tokens per DESIGN.md §6.4 — replaces every filter
-            // pill row in the legacy view. Suggested tokens are
-            // contextual (every weapon, the 0–4 HD costs, hero matches
-            // for the current search query). The store's
-            // filteredPoolCards reads $tokens to narrow results.
-            // Search is intentionally NOT in the nav bar — `.searchable`
-            // (in any placement) made iOS take over the toolbar with a
-            // Cancel button when the field focused, blocking the SAVE
-            // pill and the overflow Menu. Per user feedback #2 the
-            // search lives inside the drawer header now (custom
-            // TextField), which never affects the nav bar at all and
-            // gets a proper Done button on the keyboard via the
-            // .keyboard ToolbarItemGroup below.
-            // Card-detail push — Music's tap-to-zoom pattern. Cells
-            // mark their identity via .matchedTransitionSource and
-            // the destination renders BrowserCardDetailSheet with
-            // .navigationTransition(.zoom(...)) so the sheet grows
-            // out of the tapped cell. Tab bar stays visible.
-            .navigationDestination(for: Card.self) { card in
-                BrowserCardDetailSheet(card: card,
-                                       store: store,
-                                       tab: pickRoleForCard(card),
-                                       wrapInNavStack: false)
-                    .compactZoomDestination(id: card.id, in: poolZoomNamespace)
-            }
-            // Music-pattern full-screen editor — zooms in from the
-            // summary pill via matchedTransitionSource. The closure
-            // captures self, so existing private helpers
-            // (sheetHeaderRow, formatChipStrip, deckListScroll) are
-            // accessible without needing to extract them into a
-            // standalone struct.
-            //
-            // Secondary sheets (Profile / Rules / Legality / Manage)
-            // and the Clear-deck alert are attached INSIDE the cover
-            // so they present on top of the editor. Previously they
-            // were on the parent — iOS would dismiss the cover before
-            // showing them, which broke the "open Manage Decks while
-            // editing" flow.
-            .fullScreenCover(isPresented: $editorOpen) {
-                NavigationStack(path: $editorPath) {
-                    VStack(spacing: 0) {
-                        sheetHeaderRow
-                        Divider().background(Design.Colors.glass)
-                        formatChipStrip
-                            .walkthroughAnchor("decksEditor.formatChip")
-                        Divider().background(Design.Colors.glass)
-                        deckListScroll
-                    }
-                    .toolbar { editorToolbar }
-                    .toolbarBackground(.regularMaterial, for: .navigationBar)
-                    .toolbarBackground(.visible, for: .navigationBar)
-                    .navigationBarTitleDisplayMode(.inline)
-                    .walkthroughOverlay($editorWalkthrough)
-                    .onAppear {
-                        // Fire on first editor open. Deferred so the
-                        // header stat row + format chips + deck list +
-                        // save button have laid out before anchor
-                        // capture.
-                        if WalkthroughsManager.shared.shouldShow(.decksEditor) {
-                            Task { @MainActor in
-                                try? await Task.sleep(for: .milliseconds(300))
-                                editorWalkthrough = .decksEditor
-                            }
-                        }
-                    }
-                    .navigationDestination(for: EditorRoute.self) { route in
-                        switch route {
-                        case .deckManagement:
-                            DeckManagementSheet(store: store, cards: cardStore.displayCards, wrapInNavStack: false)
-                        case .rules:
-                            DeckRulesSheet(store: store, wrapInNavStack: false)
-                        case .legality:
-                            LegalityReportSheet(store: store, wrapInNavStack: false)
-                        }
-                    }
-                    // Tap a row in the deck list → push the card detail
-                    // with the Music-style hero zoom from the row's
-                    // thumbnail (matched via editorZoomNamespace).
-                    .navigationDestination(for: Card.self) { card in
-                        BrowserCardDetailSheet(card: card,
-                                               store: store,
-                                               tab: pickRoleForCard(card),
-                                               wrapInNavStack: false)
-                            .compactZoomDestination(id: card.id, in: editorZoomNamespace)
-                    }
-                    // Profile is the lone exception — stays a sheet
-                    // because SignInView (which Profile hosts) is
-                    // designed as a modal account/auth surface and
-                    // doesn't fit a push back-chevron context.
-                    .sheet(item: $secondarySheet) { sheet in
-                        switch sheet {
-                        case .profile:        ProfileView()
-                        // Other cases retained for compile parity but
-                        // no longer fired from the editor — they push
-                        // via editorPath instead.
-                        case .rules:          DeckRulesSheet(store: store)
-                        case .legality:       LegalityReportSheet(store: store)
-                        case .deckManagement: DeckManagementSheet(store: store, cards: cardStore.displayCards)
-                        }
-                    }
-                    .alert("Clear deck?", isPresented: $confirmingClearDeck) {
-                        Button("Cancel", role: .cancel) {}
-                        Button("Clear deck", role: .destructive) {
-                            store.clearDeck()
-                            store.discardDraft()
-                        }
-                    } message: {
-                        Text("Removes every Hero, Play, Bonus Play, and Hot Dog. Your deck name and rule overrides stay.")
-                    }
+        Group {
+            if horizontalSizeClass == .regular {
+                // iPad — 2-column NavigationSplitView per DESIGN.md
+                // §6.6. Pool sidebar (browse) + editor detail (focused
+                // work). Both columns are visible in landscape; portrait
+                // collapses the sidebar to a toolbar toggle (system).
+                NavigationSplitView {
+                    poolStack
+                        .navigationSplitViewColumnWidth(min: 380, ideal: 640)
+                } detail: {
+                    editorStack
                 }
-                .compactZoomDestination(id: "deck-draft", in: deckZoomNamespace)
+                .navigationSplitViewStyle(.balanced)
+            } else {
+                // iPhone — pool with summary pill → fullScreenCover
+                // editor. Existing structure unchanged.
+                poolStack
+                    .fullScreenCover(isPresented: $editorOpen) {
+                        editorStack
+                            .compactZoomDestination(id: "deck-draft", in: deckZoomNamespace)
+                    }
             }
         }
         // .walkthroughOverlay MUST sit OUTSIDE NavigationStack so its
@@ -308,6 +184,136 @@ struct DecksView: View {
             let cards = scanStore.pendingScannedCardsForActiveDeck
             scanStore.pendingScannedCardsForActiveDeck = []
             ingestScannedCards(cards)
+        }
+    }
+
+    // MARK: - Body components (split for iPad NavigationSplitView)
+
+    /// Card pool — main canvas. Used as the top-level NavigationStack
+    /// on iPhone (with fullScreenCover editor below) and as the
+    /// NavigationSplitView sidebar column on iPad (with editor pinned
+    /// in the detail column).
+    @ViewBuilder
+    private var poolStack: some View {
+        NavigationStack(path: $poolNavigationPath) {
+            ZStack(alignment: .top) {
+                cardPoolCanvas
+                addedBannerOverlay
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Summary pill is redundant on iPad — editor is already
+            // pinned in the detail column. Show on compact only.
+            // .safeAreaInset auto-sizes the inset to the pill's actual
+            // height (≈60pt) and reflows around the keyboard when
+            // search is active.
+            .safeAreaInset(edge: .bottom) {
+                if horizontalSizeClass == .compact {
+                    DeckSummaryPill(
+                        store: store,
+                        onTap: { editorOpen = true },
+                        namespace: deckZoomNamespace
+                    )
+                    .padding(.horizontal, Design.Spacing.md)
+                    .padding(.bottom, Design.Spacing.sm)
+                    .walkthroughAnchor("decks.summaryPill")
+                }
+            }
+            .searchable(
+                text: $search,
+                tokens: $tokens,
+                suggestedTokens: .constant(suggestedTokens),
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "Search · weapon, cost, or hero"
+            ) { token in
+                Label(token.label, systemImage: token.systemImageName)
+                    .foregroundStyle(token.tint)
+            }
+            .toolbar { toolbarContent }
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible,         for: .navigationBar)
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: Card.self) { card in
+                BrowserCardDetailSheet(card: card,
+                                       store: store,
+                                       tab: pickRoleForCard(card),
+                                       wrapInNavStack: false)
+                    .compactZoomDestination(id: card.id, in: poolZoomNamespace)
+            }
+        }
+    }
+
+    /// Deck editor — header + format chips + grouped deck list +
+    /// toolbar (close X compact-only, Save, overflow Menu). Used as
+    /// fullScreenCover content on iPhone and as the NavigationSplit-
+    /// View detail column on iPad.
+    @ViewBuilder
+    private var editorStack: some View {
+        NavigationStack(path: $editorPath) {
+            VStack(spacing: 0) {
+                sheetHeaderRow
+                Divider().background(Design.Colors.glass)
+                formatChipStrip
+                    .walkthroughAnchor("decksEditor.formatChip")
+                Divider().background(Design.Colors.glass)
+                deckListScroll
+            }
+            .toolbar { editorToolbar }
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .navigationBarTitleDisplayMode(.inline)
+            .walkthroughOverlay($editorWalkthrough)
+            .onAppear {
+                // Fire on first editor open. Deferred so the header
+                // stat row + format chips + deck list + save button
+                // have laid out before anchor capture.
+                if WalkthroughsManager.shared.shouldShow(.decksEditor) {
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(300))
+                        editorWalkthrough = .decksEditor
+                    }
+                }
+            }
+            .navigationDestination(for: EditorRoute.self) { route in
+                switch route {
+                case .deckManagement:
+                    DeckManagementSheet(store: store, cards: cardStore.displayCards, wrapInNavStack: false)
+                case .rules:
+                    DeckRulesSheet(store: store, wrapInNavStack: false)
+                case .legality:
+                    LegalityReportSheet(store: store, wrapInNavStack: false)
+                }
+            }
+            // Tap a row in the deck list → push the card detail with
+            // Music-style hero zoom from the row's thumbnail (matched
+            // via editorZoomNamespace).
+            .navigationDestination(for: Card.self) { card in
+                BrowserCardDetailSheet(card: card,
+                                       store: store,
+                                       tab: pickRoleForCard(card),
+                                       wrapInNavStack: false)
+                    .compactZoomDestination(id: card.id, in: editorZoomNamespace)
+            }
+            // Profile is the lone exception — stays a sheet because
+            // SignInView (which Profile hosts) is designed as a modal
+            // account/auth surface and doesn't fit a push back-chevron
+            // context.
+            .sheet(item: $secondarySheet) { sheet in
+                switch sheet {
+                case .profile:        ProfileView()
+                case .rules:          DeckRulesSheet(store: store)
+                case .legality:       LegalityReportSheet(store: store)
+                case .deckManagement: DeckManagementSheet(store: store, cards: cardStore.displayCards)
+                }
+            }
+            .alert("Clear deck?", isPresented: $confirmingClearDeck) {
+                Button("Cancel", role: .cancel) {}
+                Button("Clear deck", role: .destructive) {
+                    store.clearDeck()
+                    store.discardDraft()
+                }
+            } message: {
+                Text("Removes every Hero, Play, Bonus Play, and Hot Dog. Your deck name and rule overrides stay.")
+            }
         }
     }
 
@@ -373,24 +379,34 @@ struct DecksView: View {
         }
     }
 
-    /// Editor toolbar — appears inside the full-screen cover. Close
-    /// (X) leading + Save trailing + overflow Menu with the deck-
-    /// management actions.
+    /// Editor toolbar — appears inside the full-screen cover (compact)
+    /// or the NavigationSplitView detail column (regular). Close (X)
+    /// leading is compact-only; on iPad the editor is pinned in the
+    /// detail column so there's nothing to close. Save trailing +
+    /// overflow Menu with the deck-management actions.
     @ToolbarContentBuilder
     private var editorToolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button {
-                editorOpen = false
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Design.Colors.textPrimary)
-                    .frame(width: 28, height: 28)
+        if horizontalSizeClass == .compact {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    editorOpen = false
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                        .frame(width: 28, height: 28)
+                }
+                .accessibilityLabel("Close editor")
             }
-            .accessibilityLabel("Close editor")
         }
-        ToolbarItem(placement: .principal) {
-            BOBAWordmark()
+        // Wordmark only on compact (where the editor's nav bar is the
+        // only one on screen). On iPad the pool's nav bar already
+        // carries the wordmark in the sidebar column; duplicating in
+        // the detail column doubles the brand stamp.
+        if horizontalSizeClass == .compact {
+            ToolbarItem(placement: .principal) {
+                BOBAWordmark()
+            }
         }
         ToolbarItem(placement: .topBarTrailing) {
             HStack(spacing: Design.Spacing.sm) {
@@ -1349,11 +1365,14 @@ struct DecksView: View {
         // as a hook for future "auto-open deck panel after scan."
     }
 
-    /// Walkthrough host hook — `decksDrawerExpanded` now opens the
-    /// full-screen editor so the format chip and other deck-builder
-    /// surfaces are visible during the walkthrough. Closes on
-    /// stage=nil so the user lands back on the card pool.
+    /// Walkthrough host hook — `decksDrawerExpanded` opens the
+    /// full-screen editor on compact so the format chip and other
+    /// deck-builder surfaces are visible during the walkthrough. On
+    /// iPad regular the editor is already pinned in the detail
+    /// column so this is a no-op. Closes on stage=nil so the user
+    /// lands back on the card pool.
     private func handleWalkthroughStage(_ stage: BOBAWalkthrough.Stage?) {
+        guard horizontalSizeClass == .compact else { return }
         switch stage {
         case .decksDrawerExpanded:
             editorOpen = true

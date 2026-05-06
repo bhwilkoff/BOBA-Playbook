@@ -22,10 +22,11 @@
 - **PurchaseView NavigationSplitView** — SHIPPED 2026-05-06. 2-segment picker (Live Breaks / Find a Store) becomes sidebar on iPad regular. Compact keeps the segmented Picker treatment.
 - **Cmd+1..5 hardware-keyboard tab shortcuts** — SHIPPED 2026-05-06. Hidden-Button overlay attached to ContentView. iPhone with no keyboard ignores them. Apple's first-party iPad apps (Mail/Music/Settings) all support this.
 
+- **3-column DecksView** — SHIPPED 2026-05-06. Saved-decks sidebar | pool | editor on iPad regular. `loadSavedDeck(_:cards:)` hoisted to `DeckBuilderStore` (DeckManagementSheet's private loadDeck now calls it). Sidebar List shows saved decks with active-deck checkmark + per-row loading spinner; "+ New deck" at top discards draft. Auth-gated (sign-in CTA when signed out, empty-state when authenticated but no saved decks). iPad portrait collapses sidebar via system toggle (NavigationSplitView .balanced default). Column widths hint: sidebar 240/280, pool 380/560, editor takes remainder.
+- **iPad toolbar density** — SHIPPED 2026-05-06. Filters surfaces inline on Find (iPad regular) with active-count dot; Scan surfaces inline on Decks (pool) and Collection (My Cards lens). Settings-style items (Columns, Display, walkthrough relaunch) stay in the Menu — they nest naturally and would clutter inline.
+
 ## Deferred iPad work
 
-- **3-column DecksView** — saved-decks sidebar | pool | editor. Requires hoisting `loadDeck` from `DeckManagementSheet` to `DeckBuilderStore` so the new sidebar + the existing sheet share the load path. iPad portrait would have tight per-column widths (~340pt × 3) which cramps the 5-col pool grid; iPad landscape works. Re-evaluate with usage data.
-- **iPad toolbar density** — overflow Menus could expand to inline buttons on regular width where there's 1000pt+ horizontal room. Polish, lower priority.
 - **Walkthrough anchor verification on iPad** — needs simulator validation that anchors registered in NavigationSplitView sidebar/detail columns resolve correctly through the outer `walkthroughOverlay`. SwiftUI preferences flow up the view tree, so should work, but verify in simulator.
 - **iPad drag-and-drop** — drag cards between deck slots, between Find→Decks/Collection. Significant work; nice-to-have.
 - **Scan view landscape polish** — fixed `kGuideW=300, kGuideH=420` works in iPad landscape but feels small relative to canvas. Could scale guide for regular width.

@@ -33,7 +33,7 @@
   - `.card-item` uses container queries — same cell renders correctly at S/M/L density without media-query forks. Inherited by the public-collection grid.
   - CSS Nesting pattern established (incremental) on the new popover-menu CSS.
 - **Match-alerts pipeline** (Wanted/Grail notifications) — UI toggle ships, APNs server-side dispatcher is multi-week of new infra. See DECISIONS.md #039. **Note 2026-05-05**: TRADE-DESIGN.md (binding) was ratified to constrain HOW the match notifications hand off to a trading flow. Match-alerts pipeline is now Phase 7 of the TRADE-DESIGN.md §14 roadmap; don't ship before Phase 0 (LLC + insurance + ToS) is done.
-- **TRADE-DESIGN.md** ratified 2026-05-05 from four parallel research agents (Apple App Store policy, US/EU legal liability, payment integrations, fraud-prevention patterns). Architecture: pure facilitation — BOBA never touches money; in-app messaging surface for intent confirmation only; PayPal G&S deep links for payment; full §1.2 controls (report/block/mod-queue); LLC + Tech E&O insurance required before launch. ~10 weeks of dev + 4-6 weeks of legal in parallel for v1.
+- **TRADE-DESIGN.md** ratified 2026-05-05 (v2 rewrite for $0-ongoing-cost constraint). Architecture: **pure introduction** — BOBA detects matches, surfaces the other user's Discord handle, steps out. No in-app chat, no thread storage, no insurance, no retained counsel. Apple §1.2 controls satisfied via email-based reporting + bilateral block + bounded-shape listings + published contact (no per-message mod queue). Subscription monetization (Apple IAP) gates push notifications + power-user features. ~3 weeks of v1 dev (vs the original 10-week estimate). Risks Ben is explicitly accepting documented in §3.
 
 ## Open Questions / Blockers
 

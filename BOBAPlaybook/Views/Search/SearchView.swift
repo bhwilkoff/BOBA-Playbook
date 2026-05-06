@@ -309,6 +309,29 @@ struct SearchView: View {
             .accessibilityLabel("Scan a card")
             .walkthroughAnchor("find.scan")
         }
+        // iPad regular surfaces Filters as a standalone toolbar
+        // button per DESIGN.md §6.6 (inline on regular, Menu on
+        // compact). Active-filter count badge follows the button.
+        if horizontalSizeClass == .regular {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showFilters = true
+                } label: {
+                    ZStack(alignment: .topTrailing) {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                        if store.activeFilterCount > 0 {
+                            Circle()
+                                .fill(Design.Colors.bobaOrange)
+                                .frame(width: 8, height: 8)
+                                .offset(x: 4, y: -4)
+                        }
+                    }
+                }
+                .accessibilityLabel("Filters")
+            }
+        }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Section("Columns") {
@@ -319,10 +342,13 @@ struct SearchView: View {
                     }
                 }
                 Section {
-                    Button {
-                        showFilters = true
-                    } label: {
-                        Label("Filters", systemImage: "slider.horizontal.3")
+                    // Filters is iPad-inline; only show in Menu on compact.
+                    if horizontalSizeClass == .compact {
+                        Button {
+                            showFilters = true
+                        } label: {
+                            Label("Filters", systemImage: "slider.horizontal.3")
+                        }
                     }
                     Toggle(isOn: $showcaseMode) {
                         Label("Card Showcases", systemImage: "square.stack.3d.up.fill")

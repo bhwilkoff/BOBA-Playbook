@@ -317,6 +317,21 @@ struct CollectionView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 filterButton
             }
+            // iPad regular surfaces Scan as a standalone toolbar
+            // button per DESIGN.md §6.6 (matches Find + Decks). My
+            // Cards lens only — Rainbow / Shows don't take scans.
+            if horizontalSizeClass == .regular && selectedLens == .myCards {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        presentScanner()
+                    } label: {
+                        Image(systemName: "camera.viewfinder")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                    }
+                    .accessibilityLabel("Scan into \(selectedDesignation.displayName)")
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 collectionMenu
             }
@@ -479,10 +494,14 @@ struct CollectionView: View {
                 }
                 .disabled(collection.userCards.isEmpty)
 
-                Button {
-                    presentScanner()
-                } label: {
-                    Label("Scan into \(selectedDesignation.displayName)", systemImage: "camera.viewfinder")
+                // Scan is iPad-inline (when on My Cards lens); only
+                // show in Menu on compact width.
+                if horizontalSizeClass == .compact {
+                    Button {
+                        presentScanner()
+                    } label: {
+                        Label("Scan into \(selectedDesignation.displayName)", systemImage: "camera.viewfinder")
+                    }
                 }
 
                 Button {

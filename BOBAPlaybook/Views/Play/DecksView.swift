@@ -458,6 +458,21 @@ struct DecksView: View {
         ToolbarItem(placement: .principal) {
             BOBAWordmark()
         }
+        // iPad regular surfaces Scan as a standalone toolbar button
+        // per DESIGN.md §6.6 (inline on regular, in Menu on compact).
+        // Compact keeps it in the overflow Menu below.
+        if horizontalSizeClass == .regular {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    presentScanner()
+                } label: {
+                    Image(systemName: "camera.viewfinder")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                }
+                .accessibilityLabel("Scan into deck")
+            }
+        }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 if auth.isAuthenticated {
@@ -479,11 +494,14 @@ struct DecksView: View {
                         }
                     }
                 }
-                Section {
-                    Button {
-                        presentScanner()
-                    } label: {
-                        Label("Scan into deck", systemImage: "camera.viewfinder")
+                // Scan is iPad-inline; only show in Menu on compact.
+                if horizontalSizeClass == .compact {
+                    Section {
+                        Button {
+                            presentScanner()
+                        } label: {
+                            Label("Scan into deck", systemImage: "camera.viewfinder")
+                        }
                     }
                 }
                 Divider()

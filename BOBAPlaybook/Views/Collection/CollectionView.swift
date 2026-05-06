@@ -78,6 +78,18 @@ struct CollectionView: View {
         case shows
     }
 
+    /// iPad regular uses a NavigationSplitView sidebar for lens
+    /// switching; compact keeps the existing path-based push from the
+    /// overflow Menu. Selecting a lens in the sidebar swaps the detail
+    /// column's content — My Cards (with its designation Picker),
+    /// Rainbow Progress, or My Shows (streamer-only).
+    enum CollectionLens: Hashable {
+        case myCards
+        case rainbow
+        case shows
+    }
+    @State private var selectedLens: CollectionLens = .myCards
+
     /// Per DESIGN.md §8.4 — three ways to render the same data set:
     ///   - grid: visual scan, card art is the focal point (default)
     ///   - list: compact rows for triage (the legacy renderer)
@@ -105,47 +117,11 @@ struct CollectionView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
-            Group {
-                if !auth.isAuthenticated {
-                    unauthenticatedView
-                } else {
-                    authenticatedView
-                }
-            }
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    BOBAWordmark()
-                }
-                if auth.isAuthenticated {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        filterButton
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        collectionMenu
-                    }
-                }
-            }
-            .searchable(
-                text: $searchText,
-                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "Search your collection"
-            )
-            .toolbarBackground(.regularMaterial, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .navigationDestination(for: CollectionRoute.self) { route in
-                switch route {
-                case .rainbow:
-                    rainbowDestination
-                case .shows:
-                    ShowsListView()
-                }
-            }
-            .navigationDestination(for: String.self) { bobaId in
-                CollectionCardDetailView(bobaId: bobaId, wrapInNavStack: false)
-                    .compactZoomDestination(id: bobaId, in: cardZoomNamespace)
+        Group {
+            if horizontalSizeClass == .regular && auth.isAuthenticated {
+                iPadBody
+            } else {
+                compactBody
             }
         }
         .sheet(isPresented: $showingSignIn) {
@@ -225,6 +201,124 @@ struct CollectionView: View {
                 Task { await collection.loadCollection() }
             } else {
                 collection.clearCollection()
+            }
+        }
+    }
+
+    // MARK: - Body components
+
+    /// iPhone (and signed-out iPad) — single-column NavigationStack
+    /// with the existing path-based push for Rainbow / Shows /
+    /// CardDetail. Unchanged from the pre-iPad-pass shape.
+    @ViewBuilder
+    private var compactBody: some View {
+        NavigationStack(path: $navigationPath) {
+            Group {
+                if !auth.isAuthenticated {
+                    unauthenticatedView
+                } else {
+                    authenticatedView
+                }
+            }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { collectionToolbar }
+            .searchable(
+                text: $searchText,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "Search your collection"
+            )
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .navigationDestination(for: CollectionRoute.self) { route in
+                switch route {
+                case .rainbow: rainbowDestination
+                case .shows:   ShowsListView()
+                }
+            }
+            .navigationDestination(for: String.self) { bobaId in
+                CollectionCardDetailView(bobaId: bobaId, wrapInNavStack: false)
+                    .compactZoomDestination(id: bobaId, in: cardZoomNamespace)
+            }
+        }
+    }
+
+    /// iPad regular per DESIGN.md §6.6 / §8.4 — sidebar lens picker
+    /// (My Cards / Rainbow / Shows) feeding a detail column. The
+    /// designation segmented Picker stays inside the My Cards detail
+    /// (familiar UX); Rainbow + Shows now have permanent sidebar
+    /// entries instead of being buried in the overflow Menu.
+    @ViewBuilder
+    private var iPadBody: some View {
+        NavigationSplitView {
+            iPadSidebar
+        } detail: {
+            NavigationStack(path: $navigationPath) {
+                iPadDetail
+                    .navigationTitle("")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar { collectionToolbar }
+                    .searchable(
+                        text: $searchText,
+                        placement: .navigationBarDrawer(displayMode: .always),
+                        prompt: "Search your collection"
+                    )
+                    .toolbarBackground(.regularMaterial, for: .navigationBar)
+                    .toolbarBackground(.visible, for: .navigationBar)
+                    .navigationDestination(for: String.self) { bobaId in
+                        CollectionCardDetailView(bobaId: bobaId, wrapInNavStack: false)
+                            .compactZoomDestination(id: bobaId, in: cardZoomNamespace)
+                    }
+            }
+        }
+        .navigationSplitViewStyle(.balanced)
+    }
+
+    @ViewBuilder
+    private var iPadSidebar: some View {
+        List(selection: $selectedLens) {
+            Section("My Cards") {
+                Label("All", systemImage: "square.grid.2x2.fill")
+                    .tag(CollectionLens.myCards)
+            }
+            Section("Other") {
+                Label("Rainbow Progress", systemImage: "sparkles")
+                    .tag(CollectionLens.rainbow)
+                if auth.isStreamer {
+                    Label("My Shows", systemImage: "tv.fill")
+                        .tag(CollectionLens.shows)
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .navigationTitle("Collection")
+        .toolbarBackground(.regularMaterial, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+    }
+
+    @ViewBuilder
+    private var iPadDetail: some View {
+        switch selectedLens {
+        case .myCards: authenticatedView
+        case .rainbow: rainbowDestination
+        case .shows:   ShowsListView()
+        }
+    }
+
+    /// Toolbar shared between compact and regular paths. The Rainbow /
+    /// Shows menu items are conditionally hidden on iPad regular —
+    /// the sidebar handles those lens switches.
+    @ToolbarContentBuilder
+    private var collectionToolbar: some ToolbarContent {
+        ToolbarItem(placement: .principal) {
+            BOBAWordmark()
+        }
+        if auth.isAuthenticated {
+            ToolbarItem(placement: .topBarTrailing) {
+                filterButton
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                collectionMenu
             }
         }
     }
@@ -325,20 +419,24 @@ struct CollectionView: View {
 
     private var collectionMenu: some View {
         Menu {
-            // Other collection lenses — push to their own full-screen
-            // surfaces instead of cramming into a top-of-view segmented
-            // picker. Each pushed view has only the chrome it needs.
-            Section {
-                Button {
-                    navigationPath.append(CollectionRoute.rainbow)
-                } label: {
-                    Label("Rainbow Progress", systemImage: "sparkles")
-                }
-                if auth.isStreamer {
+            // Other collection lenses — compact only. iPad regular
+            // surfaces these as permanent sidebar entries (per
+            // DESIGN.md §6.6); duplicating them here would be redundant.
+            // Compact pushes to their own full-screen surfaces instead
+            // of cramming into a top-of-view segmented picker.
+            if horizontalSizeClass == .compact {
+                Section {
                     Button {
-                        navigationPath.append(CollectionRoute.shows)
+                        navigationPath.append(CollectionRoute.rainbow)
                     } label: {
-                        Label("My Shows", systemImage: "tv.fill")
+                        Label("Rainbow Progress", systemImage: "sparkles")
+                    }
+                    if auth.isStreamer {
+                        Button {
+                            navigationPath.append(CollectionRoute.shows)
+                        } label: {
+                            Label("My Shows", systemImage: "tv.fill")
+                        }
                     }
                 }
             }

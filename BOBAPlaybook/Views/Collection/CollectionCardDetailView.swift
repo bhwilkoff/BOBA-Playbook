@@ -14,6 +14,7 @@ struct CollectionCardDetailView: View {
     @Environment(CardStore.self) private var cardStore
     @Environment(AuthManager.self) private var auth
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @State private var editingEntry: UserCard?
     @State private var showingAddSheet = false
@@ -264,11 +265,11 @@ struct CollectionCardDetailView: View {
                 ],
                 startPoint: .top, endPoint: .bottom
             )
-            .frame(height: 420)
+            .frame(height: Design.CardDetailMetrics.panelHeight(for: horizontalSizeClass))
 
             CardImageView(card: card, size: .full)
                 .aspectRatio(5.0/7.0, contentMode: .fit)
-                .frame(height: 380)
+                .frame(height: Design.CardDetailMetrics.imageHeight(for: horizontalSizeClass))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .shadow(color: Design.Colors.element(card.element).opacity(0.4), radius: 16, y: 6)
         }

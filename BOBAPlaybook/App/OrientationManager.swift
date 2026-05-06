@@ -13,9 +13,19 @@ import UIKit
 @MainActor
 final class OrientationManager {
     static let shared = OrientationManager()
-    private init() {}
+    private init() {
+        orientationMask = OrientationManager.defaultMask
+    }
 
-    private(set) var orientationMask: UIInterfaceOrientationMask = .portrait
+    /// Per DESIGN.md §6.6, iPad ships first-class with landscape
+    /// available everywhere; iPhone stays portrait-only as the
+    /// default. Practice still forces landscape via `lockLandscape()`
+    /// on both idioms.
+    private static var defaultMask: UIInterfaceOrientationMask {
+        UIDevice.current.userInterfaceIdiom == .pad ? .allButUpsideDown : .portrait
+    }
+
+    private(set) var orientationMask: UIInterfaceOrientationMask
 
     func lockLandscape() {
         orientationMask = [.landscapeLeft, .landscapeRight]
@@ -32,8 +42,11 @@ final class OrientationManager {
         }
     }
 
+    /// Restore the device-default mask (iPhone: portrait, iPad: all-
+    /// but-upside-down). Named `lockPortrait` for backward-compat with
+    /// PracticeView's onDisappear; semantically it's "restore default."
     func lockPortrait() {
-        orientationMask = .portrait
+        orientationMask = OrientationManager.defaultMask
         applyOrientationChange()
     }
 

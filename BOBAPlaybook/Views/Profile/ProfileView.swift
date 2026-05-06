@@ -591,11 +591,11 @@ struct ProfileView: View {
             }
 
             ColumnsPickerRow(label: "Find — columns",       systemImage: "magnifyingglass",
-                             storageKey: "bp_findGridColumns_v1",       defaultValue: 2)
+                             storageKey: "bp_findGridColumns_v1",       compactDefault: 2)
             ColumnsPickerRow(label: "Decks — columns",      systemImage: "rectangle.stack",
-                             storageKey: "bp_decksGridColumns_v1",      defaultValue: 3)
+                             storageKey: "bp_decksGridColumns_v1",      compactDefault: 3)
             ColumnsPickerRow(label: "Collection — columns", systemImage: "person.crop.rectangle.stack",
-                             storageKey: "bp_collectionGridColumns_v1", defaultValue: 3)
+                             storageKey: "bp_collectionGridColumns_v1", compactDefault: 3)
 
             CollectionDisplayModeRow()
 
@@ -1233,15 +1233,27 @@ private struct ColumnsPickerRow: View {
     let label: String
     let systemImage: String
     let storageKey: String
-    let defaultValue: Int
-    @AppStorage private var value: Int
+    /// Compact-width default if no stored value. Regular width always
+    /// uses 5 per Design.GridDensity (DESIGN.md §6.6).
+    let compactDefault: Int
+    @AppStorage private var storedValue: Int
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
-    init(label: String, systemImage: String, storageKey: String, defaultValue: Int) {
+    init(label: String, systemImage: String, storageKey: String, compactDefault: Int) {
         self.label = label
         self.systemImage = systemImage
         self.storageKey = storageKey
-        self.defaultValue = defaultValue
-        _value = AppStorage(wrappedValue: defaultValue, storageKey)
+        self.compactDefault = compactDefault
+        // Sentinel `0` = unset → resolves to size-class default.
+        _storedValue = AppStorage(wrappedValue: 0, storageKey)
+    }
+
+    private var value: Int {
+        Design.GridDensity.resolved(stored: storedValue, sizeClass: horizontalSizeClass, compactDefault: compactDefault)
+    }
+
+    private var binding: Binding<Int> {
+        Binding(get: { value }, set: { storedValue = $0 })
     }
 
     var body: some View {
@@ -1249,13 +1261,13 @@ private struct ColumnsPickerRow: View {
             Label(label, systemImage: systemImage)
                 .foregroundStyle(Design.Colors.textPrimary)
             Spacer()
-            Picker("", selection: $value) {
-                Text("1").tag(1)
-                Text("2").tag(2)
-                Text("3").tag(3)
+            Picker("", selection: binding) {
+                ForEach(Design.GridDensity.columnOptions(for: horizontalSizeClass), id: \.self) { n in
+                    Text("\(n)").tag(n)
+                }
             }
             .pickerStyle(.segmented)
-            .frame(width: 120)
+            .frame(width: horizontalSizeClass == .regular ? 220 : 120)
         }
     }
 }

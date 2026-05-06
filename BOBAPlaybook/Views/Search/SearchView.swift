@@ -37,13 +37,23 @@ struct SearchView: View {
     /// icon color.
     @AppStorage("selectedIconName") private var selectedIconName: String = "default"
 
-    /// User-selectable grid density (1 / 2 / 3 cards across). Persisted
-    /// per tab so the user can pick a denser layout in Find without it
-    /// affecting Decks or Collection.
-    @AppStorage("bp_findGridColumns_v1") private var gridColumns: Int = 2
+    /// User-selectable grid density. Persisted per tab so the user can
+    /// pick a denser layout in Find without it affecting Decks or
+    /// Collection. Sentinel `0` = unset → resolves to size-class
+    /// default (compact: 2, regular: 5) per DESIGN.md §6.6.
+    @AppStorage("bp_findGridColumns_v1") private var gridColumnsStorage: Int = 0
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    private var gridColumns: Int {
+        Design.GridDensity.resolved(stored: gridColumnsStorage, sizeClass: horizontalSizeClass, compactDefault: 2)
+    }
+
+    private var gridColumnsBinding: Binding<Int> {
+        Binding(get: { gridColumns }, set: { gridColumnsStorage = $0 })
+    }
 
     /// Music-pattern zoom transitions. Each grid cell carries a
-    /// .matchedTransitionSource(id: card.id, in: cardZoomNamespace)
+    /// .compactZoomSource(id: card.id, in: cardZoomNamespace)
     /// and the navigationDestination renders CardDetailView with
     /// .navigationTransition(.zoom(...)) — the destination grows out
     /// of the tapped cell, all native iOS 18+ APIs.
@@ -56,7 +66,7 @@ struct SearchView: View {
 
     private var columns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: Design.Spacing.sm),
-              count: max(1, min(3, gridColumns)))
+              count: max(1, gridColumns))
     }
 
     var body: some View {
@@ -72,6 +82,10 @@ struct SearchView: View {
         // drives the centralized fullScreenCover.
         .sheet(isPresented: $showProfile) {
             ProfileView()
+                // iPad: adapt to popover anchored on the trigger button
+                // (DESIGN.md §6.6 — sheets for actions become popovers
+                // on regular width). Compact width keeps sheet behavior.
+                .presentationCompactAdaptation(.popover)
         }
         .walkthroughOverlay($walkthrough)
         // Deep-link: bobaplaybook://card/{number} sets store.pendingCardNumber.
@@ -224,7 +238,7 @@ struct SearchView: View {
             CardDetailView(card: card,
                            navigationCards: store.filteredCards,
                            wrapInNavStack: false)
-                .navigationTransition(.zoom(sourceID: card.id, in: cardZoomNamespace))
+                .compactZoomDestination(id: card.id, in: cardZoomNamespace)
         }
     }
 
@@ -295,10 +309,10 @@ struct SearchView: View {
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Section("Columns") {
-                    Picker("Columns", selection: $gridColumns) {
-                        Label("1 across", systemImage: "rectangle.portrait").tag(1)
-                        Label("2 across", systemImage: "rectangle.split.2x1").tag(2)
-                        Label("3 across", systemImage: "rectangle.split.3x1").tag(3)
+                    Picker("Columns", selection: gridColumnsBinding) {
+                        ForEach(Design.GridDensity.columnOptions(for: horizontalSizeClass), id: \.self) { n in
+                            Text("\(n) across").tag(n)
+                        }
                     }
                 }
                 Section {
@@ -414,7 +428,7 @@ struct SearchView: View {
                 ForEach(Array(store.filteredCards.enumerated()), id: \.element.id) { idx, card in
                     BOBACardGridItem(card: card, columnCount: gridColumns)
                         .aspectRatio(3/4, contentMode: .fit)
-                        .matchedTransitionSource(id: card.id, in: cardZoomNamespace)
+                        .compactZoomSource(id: card.id, in: cardZoomNamespace)
                         .onTapGesture {
                             if quickAdd {
                                 Task { await quickAddCard(card) }
@@ -566,7 +580,7 @@ struct SearchView: View {
                         BOBACardGridItem(card: card, columnCount: gridColumns)
                             .frame(width: 110)
                             .aspectRatio(3/4, contentMode: .fit)
-                            .matchedTransitionSource(id: card.id, in: cardZoomNamespace)
+                            .compactZoomSource(id: card.id, in: cardZoomNamespace)
                             .onTapGesture {
                                 if quickAdd {
                                     Task { await quickAddCard(card) }

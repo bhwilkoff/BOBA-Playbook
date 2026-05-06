@@ -13,12 +13,27 @@ struct StoreLocatorView: View {
         )
     )
     @StateObject private var location = LocationPermissionManager()
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
+        // iPad regular width gets a true horizontal split (map left,
+        // list right) per DESIGN.md §6.6 — phone keeps the vertical
+        // stack with the fixed-height map. Filter bar spans full
+        // width on both layouts.
         VStack(spacing: 0) {
             filterBar
-            mapSection
-            listSection
+            if horizontalSizeClass == .regular {
+                HStack(spacing: 0) {
+                    mapSection
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    Divider()
+                    listSection
+                        .frame(width: 380)
+                }
+            } else {
+                mapSection
+                listSection
+            }
         }
         .background(Design.Colors.nearBlack)
         .navigationTitle("Find a Store")
@@ -213,7 +228,11 @@ struct StoreLocatorView: View {
                 MapScaleView()
             }
             .mapStyle(.standard(elevation: .flat))
-            .frame(height: 240)
+            // Compact (phone): fixed 240pt above the list. Regular
+            // (iPad): fill the trailing column; the parent split-view
+            // gives the map full vertical headroom.
+            .frame(height: horizontalSizeClass == .regular ? nil : 240)
+            .frame(maxHeight: horizontalSizeClass == .regular ? .infinity : nil)
 
             if store.loadState == .loading {
                 ProgressView()

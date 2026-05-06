@@ -104,6 +104,12 @@ struct DeckBuilderTutorialOverlay: View {
     let steps: [DeckBuilderTutorialStep]
     let targetFrames: [DeckBuilderTutorialTarget: CGRect]
     let containerSize: CGSize
+    /// Top + bottom safe-area insets read from the host so tooltip
+    /// placement excludes the iPad menu bar / nav bar / tab bar
+    /// regions instead of using the hardcoded 12pt margins. Without
+    /// this the tooltip can land under the iPad menu bar in landscape.
+    let safeTopInset: CGFloat
+    let safeBottomInset: CGFloat
     let onFinish: () -> Void
 
     @State private var index: Int = 0
@@ -111,10 +117,14 @@ struct DeckBuilderTutorialOverlay: View {
     init(steps: [DeckBuilderTutorialStep] = .deckBuilderDefault,
          targetFrames: [DeckBuilderTutorialTarget: CGRect],
          containerSize: CGSize,
+         safeTopInset: CGFloat = 0,
+         safeBottomInset: CGFloat = 0,
          onFinish: @escaping () -> Void) {
         self.steps = steps
         self.targetFrames = targetFrames
         self.containerSize = containerSize
+        self.safeTopInset = safeTopInset
+        self.safeBottomInset = safeBottomInset
         self.onFinish = onFinish
     }
 
@@ -272,9 +282,14 @@ struct DeckBuilderTutorialOverlay: View {
         let lead  = CGPoint(x: rect.minX - gap - halfW, y: rect.midY)
         let trail = CGPoint(x: rect.maxX + gap + halfW, y: rect.midY)
 
+        // Reserve safe-area chrome (status bar / nav bar / iPad menu
+        // bar at top, tab bar at bottom) plus a small margin. Without
+        // this the tooltip can sit under the iPad menu bar in landscape.
+        let topBound = safeTopInset + 12
+        let bottomBound = containerSize.height - safeBottomInset - 12
         func fits(_ p: CGPoint) -> Bool {
             p.x - halfW >= 12 && p.x + halfW <= containerSize.width - 12 &&
-            p.y - halfH >= 12 && p.y + halfH <= containerSize.height - 12
+            p.y - halfH >= topBound && p.y + halfH <= bottomBound
         }
 
         var order: [(CGPoint, DeckBuilderTutorialStep.Placement)] = []

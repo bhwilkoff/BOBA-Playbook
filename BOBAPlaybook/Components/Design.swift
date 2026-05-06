@@ -109,6 +109,102 @@ extension View {
     }
 }
 
+// MARK: - Compact-only hero zoom (DESIGN.md §6.6.2)
+//
+// Wrappers around .matchedTransitionSource and
+// .navigationTransition(.zoom(...)) that apply ONLY when
+// horizontalSizeClass == .compact. On regular width (iPad), these
+// are no-ops so the destination falls back to the system push
+// transition. A corner cell zooming to a 1024pt destination on
+// iPad reads as broken — the slingshot travels too far and the
+// 200pt thumbnail can't sample 1024pt of detail cleanly.
+//
+// Use these everywhere we used to write
+// `.matchedTransitionSource(id:in:)` / `.navigationTransition(.zoom...)`.
+
+private struct CompactZoomSource<ID: Hashable>: ViewModifier {
+    let id: ID
+    let namespace: Namespace.ID
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if sizeClass == .compact {
+            content.matchedTransitionSource(id: id, in: namespace)
+        } else {
+            content
+        }
+    }
+}
+
+private struct CompactZoomDestination<ID: Hashable>: ViewModifier {
+    let id: ID
+    let namespace: Namespace.ID
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if sizeClass == .compact {
+            content.navigationTransition(.zoom(sourceID: id, in: namespace))
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    /// Compact-only `.matchedTransitionSource` (DESIGN.md §6.6.2).
+    /// No-op on regular width.
+    func compactZoomSource<ID: Hashable>(id: ID, in namespace: Namespace.ID) -> some View {
+        modifier(CompactZoomSource(id: id, namespace: namespace))
+    }
+
+    /// Compact-only `.navigationTransition(.zoom(...))` (DESIGN.md §6.6.2).
+    /// No-op on regular width — system push transition activates instead.
+    func compactZoomDestination<ID: Hashable>(id: ID, in namespace: Namespace.ID) -> some View {
+        modifier(CompactZoomDestination(id: id, namespace: namespace))
+    }
+}
+
+// MARK: - GridDensity (DESIGN.md §6.6 — size-class-aware column counts)
+//
+// All grids that expose user-selectable column count (Find / Decks /
+// Collection / ProfileView's settings) read sentinel `0` from
+// @AppStorage as "unset" and resolve to a size-class default.
+// Compact (iPhone) gets a denser/looser 1-3 range; regular (iPad)
+// expands to 3-7 because a 3-col grid on a 1024pt screen is sparse.
+
+extension Design {
+    enum GridDensity {
+        /// Returns user's stored choice (>0) or the size-class default.
+        /// Compact uses the per-tab `compactDefault` (Find=2, Decks=3,
+        /// Collection=3); regular falls back to 5 universally.
+        static func resolved(stored: Int, sizeClass: UserInterfaceSizeClass?, compactDefault: Int) -> Int {
+            if stored > 0 { return stored }
+            return sizeClass == .regular ? 5 : compactDefault
+        }
+
+        /// Picker options per size class.
+        static func columnOptions(for sizeClass: UserInterfaceSizeClass?) -> [Int] {
+            sizeClass == .regular ? [3, 4, 5, 6, 7] : [1, 2, 3]
+        }
+    }
+
+    /// Card-detail artPanel sizing per DESIGN.md §6.6 — iPad gets
+    /// taller frames so the card-art focal point doesn't read as
+    /// claustrophobic in landscape. Used by CardDetailView,
+    /// CollectionCardDetailView, and BrowserCardDetailSheet (the
+    /// three canonical detail surfaces from §8.6).
+    enum CardDetailMetrics {
+        static func panelHeight(for sizeClass: UserInterfaceSizeClass?) -> CGFloat {
+            sizeClass == .regular ? 560 : 420
+        }
+        static func imageHeight(for sizeClass: UserInterfaceSizeClass?) -> CGFloat {
+            sizeClass == .regular ? 520 : 380
+        }
+    }
+}
+
 // ════════════════════════════════════════════════════════════════
 // MARK: - First-run contextual hints (handoff §7)
 // ════════════════════════════════════════════════════════════════

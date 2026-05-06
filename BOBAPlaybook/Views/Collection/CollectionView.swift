@@ -48,9 +48,19 @@ struct CollectionView: View {
     /// inline; GRID hides it behind individual card detail. Default
     /// is now .list with the toolbar Menu picker available to switch.
     @AppStorage("bp_collectionDisplayMode_v2") private var displayModeRaw: String = CollectionDisplayMode.list.rawValue
-    /// User-selectable grid density (1 / 2 / 3 across) — only applies
-    /// in .grid display mode. Persisted per tab.
-    @AppStorage("bp_collectionGridColumns_v1") private var gridColumns: Int = 3
+    /// User-selectable grid density — only applies in .grid display
+    /// mode. Persisted per tab. Sentinel `0` = unset → resolves to
+    /// size-class default (compact: 3, regular: 5) per DESIGN.md §6.6.
+    @AppStorage("bp_collectionGridColumns_v1") private var gridColumnsStorage: Int = 0
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    private var gridColumns: Int {
+        Design.GridDensity.resolved(stored: gridColumnsStorage, sizeClass: horizontalSizeClass, compactDefault: 3)
+    }
+
+    private var gridColumnsBinding: Binding<Int> {
+        Binding(get: { gridColumns }, set: { gridColumnsStorage = $0 })
+    }
     private var displayMode: CollectionDisplayMode {
         get { CollectionDisplayMode(rawValue: displayModeRaw) ?? .grid }
     }
@@ -135,7 +145,7 @@ struct CollectionView: View {
             }
             .navigationDestination(for: String.self) { bobaId in
                 CollectionCardDetailView(bobaId: bobaId, wrapInNavStack: false)
-                    .navigationTransition(.zoom(sourceID: bobaId, in: cardZoomNamespace))
+                    .compactZoomDestination(id: bobaId, in: cardZoomNamespace)
             }
         }
         .sheet(isPresented: $showingSignIn) {
@@ -143,6 +153,7 @@ struct CollectionView: View {
         }
         .sheet(isPresented: $showingProfile) {
             ProfileView()
+                .presentationCompactAdaptation(.popover)
         }
         .sheet(isPresented: $showingWall) {
             // Wall presents on top of the existing Collection view; on
@@ -335,10 +346,10 @@ struct CollectionView: View {
             // one menu visit).
             if displayMode == .grid {
                 Section("Columns") {
-                    Picker("Columns", selection: $gridColumns) {
-                        Label("1 across", systemImage: "rectangle.portrait").tag(1)
-                        Label("2 across", systemImage: "rectangle.split.2x1").tag(2)
-                        Label("3 across", systemImage: "rectangle.split.3x1").tag(3)
+                    Picker("Columns", selection: gridColumnsBinding) {
+                        ForEach(Design.GridDensity.columnOptions(for: horizontalSizeClass), id: \.self) { n in
+                            Text("\(n) across").tag(n)
+                        }
                     }
                 }
             }
@@ -569,7 +580,7 @@ struct CollectionView: View {
                         // identically.
                         LazyVGrid(
                             columns: Array(repeating: GridItem(.flexible(), spacing: Design.Spacing.sm),
-                                           count: max(1, min(3, gridColumns))),
+                                           count: max(1, gridColumns)),
                             spacing: Design.Spacing.md
                         ) {
                             ForEach(Array(identifiers.enumerated()), id: \.element) { idx, identifier in
@@ -584,11 +595,11 @@ struct CollectionView: View {
                                     collectionGridCell(identifier: identifier)
                                         .onTapGesture { navigationPath.append(identifier) }
                                         .walkthroughAnchor("collection.cardCell")
-                                        .matchedTransitionSource(id: identifier, in: cardZoomNamespace)
+                                        .compactZoomSource(id: identifier, in: cardZoomNamespace)
                                 } else {
                                     collectionGridCell(identifier: identifier)
                                         .onTapGesture { navigationPath.append(identifier) }
-                                        .matchedTransitionSource(id: identifier, in: cardZoomNamespace)
+                                        .compactZoomSource(id: identifier, in: cardZoomNamespace)
                                 }
                             }
                         }
@@ -899,7 +910,7 @@ struct CollectionView: View {
                 }
             }
             .frame(width: 60, height: 84)
-            .matchedTransitionSource(id: identifier, in: cardZoomNamespace)
+            .compactZoomSource(id: identifier, in: cardZoomNamespace)
 
             VStack(alignment: .leading, spacing: 4) {
                 // Title + qty pill on the same row so the count stays

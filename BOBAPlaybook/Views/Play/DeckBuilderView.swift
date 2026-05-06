@@ -183,28 +183,33 @@ struct DeckBuilderView: View {
         }
         .overlayPreferenceValue(DeckBuilderAnchorKey.self) { anchors in
             if showDeckTutorial {
-                // GeometryReader.ignoresSafeArea() so the proxy's local
-                // origin sits at the top of the screen (above the nav
-                // bar) instead of below it. Toolbar items report
-                // anchors in screen-relative space; without this
-                // adjustment those anchors translate into negative-Y
-                // coordinates relative to the proxy, causing the
-                // highlight ring to render off-screen.
-                GeometryReader { proxy in
-                    let frames: [DeckBuilderTutorialTarget: CGRect] = anchors.reduce(into: [:]) { acc, pair in
-                        acc[pair.key] = proxy[pair.value]
-                    }
-                    DeckBuilderTutorialOverlay(
-                        targetFrames: frames,
-                        containerSize: proxy.size
-                    ) {
-                        withAnimation(.easeOut(duration: 0.25)) {
-                            deckTutorialSeen = true
-                            showDeckTutorial = false
+                // Outer (non-ignoring) GeometryReader reads safe-area
+                // insets so tooltip placement excludes the nav-bar /
+                // tab-bar / iPad menu-bar regions instead of just the
+                // hardcoded 12pt margins. Inner reader (ignoring) gives
+                // full-screen coords for anchor resolution. Same pattern
+                // as BOBAWalkthrough.swift's walkthroughOverlay.
+                GeometryReader { outer in
+                    let safeTop = outer.safeAreaInsets.top
+                    let safeBottom = outer.safeAreaInsets.bottom
+                    GeometryReader { proxy in
+                        let frames: [DeckBuilderTutorialTarget: CGRect] = anchors.reduce(into: [:]) { acc, pair in
+                            acc[pair.key] = proxy[pair.value]
+                        }
+                        DeckBuilderTutorialOverlay(
+                            targetFrames: frames,
+                            containerSize: proxy.size,
+                            safeTopInset: safeTop,
+                            safeBottomInset: safeBottom
+                        ) {
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                deckTutorialSeen = true
+                                showDeckTutorial = false
+                            }
                         }
                     }
+                    .ignoresSafeArea()
                 }
-                .ignoresSafeArea()
             }
         }
         .sheet(isPresented: $showDeckManagement) {
@@ -1937,6 +1942,7 @@ struct BrowserCardDetailSheet: View {
     /// Sheet vs. push presentation — see CardDetailView.wrapInNavStack.
     var wrapInNavStack: Bool = true
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var inDeck: Bool { store.isInDeck(card) }
     /// Specific rule blocking the add (or nil when allowed). Drives
@@ -1969,7 +1975,7 @@ struct BrowserCardDetailSheet: View {
                 ],
                 startPoint: .top, endPoint: .bottom
             )
-            .frame(height: 420)
+            .frame(height: Design.CardDetailMetrics.panelHeight(for: horizontalSizeClass))
 
             Group {
                 if let file = card.imageFile, !file.isEmpty {
@@ -1984,7 +1990,7 @@ struct BrowserCardDetailSheet: View {
                 }
             }
             .aspectRatio(5.0/7.0, contentMode: .fit)
-            .frame(height: 380)
+            .frame(height: Design.CardDetailMetrics.imageHeight(for: horizontalSizeClass))
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .shadow(color: Design.Colors.element(card.element).opacity(0.4), radius: 16, y: 6)
         }

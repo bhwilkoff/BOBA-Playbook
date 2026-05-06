@@ -498,52 +498,13 @@ server-side dispatcher we don't have yet. Footer text reads
 "Coming soon — toggle to opt in early." When the dispatcher
 ships, the toggle is already live and respected.
 
-**(b) Public collection sharing** — IMPLEMENTED 2026-05-04
-(originally listed as deferred). Toggle persists to
-`user_profiles.public_collection_enabled`; the iOS Profile shows
-the user the URL. Web-app route at `bobaplaybook.com/u/{username}`
-is live: `404.html` redirects `/u/{slug}` → `/?u={slug}`, the SPA
-mounts `view-public-collection`, and `js/api.js#fetchPublicCollection`
-calls the `get_public_collection(handle)` Supabase RPC. The RPC is
-SECURITY DEFINER + STABLE and returns a filtered projection that
-EXCLUDES `purchase_price` / `asking_price` / `notes` (private),
-plus filters out the Wanted designation (the public surface reads
-as "what they have," not "what they want"). The page renders a
-read-only grid using the same `buildCardElement` the search grid
-uses, so styling stays consistent. Tapping a card opens the
-existing card-detail modal in read-only mode.
+**(b) Public collection sharing** — IMPLEMENTED 2026-05-04. Toggle persists to `user_profiles.public_collection_enabled`. Web route `bobaplaybook.com/u/{username}` live: `404.html` redirects `/u/{slug}` → `/?u={slug}`; SPA mounts `view-public-collection`; `js/api.js#fetchPublicCollection` calls `get_public_collection(handle)` Supabase RPC (SECURITY DEFINER + STABLE). Returned projection EXCLUDES `purchase_price`/`asking_price`/`notes` and filters out Wanted (public reads as "what they have," not "what they want"). Renders via shared `buildCardElement`; card detail opens read-only.
 
-Per-designation public/private toggles are still deferred (today
-the toggle is global). The Wanted-as-WTB-list use case from
-DESIGN.md §8.4 will need its own opt-in surface when shipped.
+Per-designation toggles deferred (today's toggle is global). Wanted-as-WTB-list (DESIGN.md §8.4) needs its own opt-in surface.
 
-**(c) Account deletion** — IMPLEMENTED 2026-05-05. The
-`boba-account-delete` Cloudflare Worker
-(`workers/account-delete/worker.js`) accepts POST `/account/delete`
-with a Bearer JWT, verifies the caller against Supabase's
-`/auth/v1/user`, and forwards the deletion to Supabase's admin
-`/auth/v1/admin/users/{id}` endpoint using the service-role key
-held as a Worker secret. Postgres FK constraints with ON DELETE
-CASCADE on `auth.users` cascade through `user_cards`, `decks`
-(plus `deck_cards` via `decks`), `shows` (plus `show_cards` via
-`shows`), and `user_profiles`. Mod-submitted records in
-`card_corrections` and `card_image_overrides` use ON DELETE SET
-NULL so the audit trail survives with anonymous authorship.
+**(c) Account deletion** — IMPLEMENTED 2026-05-05. `boba-account-delete` Worker (`workers/account-delete/worker.js`): POST `/account/delete` w/ Bearer JWT → verifies vs Supabase `/auth/v1/user` → forwards to admin `/auth/v1/admin/users/{id}` using service-role secret. Postgres FK CASCADE on `auth.users` clears `user_cards`, `decks` (+`deck_cards`), `shows` (+`show_cards`), `user_profiles`. Mod-submitted `card_corrections` / `card_image_overrides` use SET NULL so audit trail survives anonymously.
 
-Wired on iOS (`AuthManager.deleteAccount` →
-`SupabaseClient.deleteAccount` → Worker) and web (`API.deleteAccount`
-→ Worker). Both surfaces sign the user out locally on success so
-the stale JWT stops getting sent. Failure surfaces an error to the
-user without dismissing the confirm; the inline error banner
-treatment is the next polish.
-
-Worker secrets to set (one-time, via `wrangler secret put`):
-- `SUPABASE_URL` = `https://pazkimtkwwwekuguxkff.supabase.co`
-- `SUPABASE_SERVICE_KEY` = service_role key from Supabase dashboard
-
-Worker URL: `https://boba-account-delete.benwilkoff.workers.dev`
-(stored in `BOBAPlaybook/Config.swift::WorkerConfig.accountDeleteURL`
-and `js/api.js::ACCOUNT_DELETE_WORKER_URL`).
+Wired on iOS + web; both sign out locally on success. Worker URL: `https://boba-account-delete.benwilkoff.workers.dev` (in `WorkerConfig.accountDeleteURL` and `js/api.js`). Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`.
 
 **Why ship UI ahead of backend**: removing toggles later is much
 worse UX than disabling them temporarily. The opt-in data is itself
@@ -557,70 +518,14 @@ duration of the backend build.
 ## 040 — Profile pictures: Discord-default, R2-on-upload
 *2026-05-05*
 
-Avatars use a three-tier resolver: **custom (R2-uploaded) → Discord
-avatar → default silhouette.** Most users authenticate via Discord
-OAuth, so they get a recognizable avatar with zero work + zero
-storage on our side. Only users who explicitly upload via the
-Profile sheet consume R2 space — the active-user fraction times the
-~50 KB per cropped JPEG keeps the bucket trivially small.
+Three-tier resolver: **custom (R2-uploaded) → Discord avatar → default silhouette.** Most users auth via Discord OAuth → recognizable avatar at zero storage cost. Only explicit uploads consume R2 space; ~50KB cropped JPEG × active-user fraction keeps bucket trivially small.
 
-**Storage layout** (consistent with DECISIONS.md #008's R2-for-images
-choice):
-- Bucket: `boba-card-images` (existing — avatars share the bucket
-  rather than provisioning a new one for negligible volume).
-- Prefix: `avatars/{user_id}.{ext}` where ext ∈ {jpg, png, webp}.
-- Public URL: `{CDN_BASE}/avatars/{user_id}.{ext}` — served from the
-  same CDN as card images.
-- Pre-write delete sweep removes any prior `avatars/{user_id}.*`
-  with a different extension so the resolver doesn't see two
-  candidates.
+**Storage:** existing `boba-card-images` bucket, `avatars/{user_id}.{ext}` prefix (jpg/png/webp). Public URL `{CDN_BASE}/avatars/{user_id}.{ext}`. Pre-write delete sweep clears prior `avatars/{user_id}.*` with different extension so the resolver doesn't see duplicates.
 
-**Worker** (`workers/avatar-upload/`, deployed at
-`https://boba-avatar-upload.benwilkoff.workers.dev`):
-- POST `/avatar` with Bearer JWT + image bytes (image/jpeg|png|webp,
-  ≤2 MB). Verifies the caller against `/auth/v1/user`, writes to
-  R2, returns `{url, version}` for cache-busting.
-- DELETE `/avatar` removes any existing avatar for the user (any
-  extension). Caller is also responsible for clearing
-  `user_profiles.avatar_url` so the resolver falls back.
-- Worker secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`.
+**Worker** (`workers/avatar-upload/`, `boba-avatar-upload.benwilkoff.workers.dev`): POST `/avatar` w/ Bearer JWT + bytes (≤2MB) → verifies vs `/auth/v1/user` → writes R2 → returns `{url, version}`. DELETE clears all extensions. Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`.
 
-**Supabase**: `user_profiles.avatar_url text` column (nullable;
-NULL means "fall back to Discord/silhouette"). Two RPCs:
-- `set_avatar_url(new_url text)` — own-row only; rejects URLs that
-  don't match the BOBA R2 avatars prefix (defense against pointing
-  avatar_url at an arbitrary host).
-- `get_public_profile(handle text)` — returns `username`,
-  `avatar_url`, `discord_avatar_url` for a public-shared profile;
-  used by the public-collection page to render the owner's avatar
-  alongside `@username`. Drop+recreate from prior signature so
-  callers update in lockstep.
+**Supabase:** `user_profiles.avatar_url` (nullable; NULL = fall back). RPCs: `set_avatar_url(new_url)` (own-row, rejects URLs not matching R2 avatars prefix); `get_public_profile(handle)` returns `username, avatar_url, discord_avatar_url` for public-collection page.
 
-**Client surfaces:**
-- iOS Profile (`ProfileView`): tap the avatar → confirmationDialog
-  with Choose from Library / Use Discord Avatar / Remove Custom.
-  PhotosPicker → AvatarCropSheet (drag + pinch on the square
-  preview) → 512×512 JPEG (q=0.85) → Worker → set_avatar_url →
-  AuthManager.customAvatarURL updates.
-- Web Profile (`collection.js#wireAvatarEditor`): click the avatar
-  → menu `<dialog>` (Choose from Computer / Discord / Remove) →
-  file input → canvas-based crop `<dialog>` (drag + scroll-zoom +
-  touch pan) → 512×512 JPEG → Worker → setAvatarUrl RPC.
-- Public collection (`bobaplaybook.com/u/{username}`): owner avatar
-  rendered next to `@username`. Resolves via the new
-  `get_public_profile` RPC; falls back to silhouette gracefully
-  when the profile is private or doesn't exist.
+**Why R2+Worker, not Supabase Storage:** R2 (DECISIONS.md #008) = zero egress + edge cache + auth-free CDN URL. Supabase Storage avoided per #007.
 
-**Why R2 + Worker instead of Supabase Storage:** the project's
-existing R2 setup (DECISIONS.md #008) gives zero egress + edge
-caching + a CDN URL that can be embedded anywhere without auth.
-Supabase Storage on the free tier was explicitly avoided per
-DECISIONS.md #007.
-
-**Why server-side URL gating:** without the
-`new_url LIKE 'https://pub-…r2.dev/avatars/%'` check on
-`set_avatar_url`, a malicious client could write any URL to their
-profile and have the public-collection page render arbitrary
-content (tracking pixels, inappropriate images on someone else's
-device). The Worker controls who can write to R2; the RPC controls
-where the column can point.
+**Why server-side URL gating:** without the R2-prefix check on `set_avatar_url`, a malicious client could point `avatar_url` at any host (tracking pixels, inappropriate images rendered on others' devices). Worker controls who writes R2; RPC controls where the column points.

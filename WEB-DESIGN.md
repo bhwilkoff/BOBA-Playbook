@@ -1,21 +1,10 @@
 # BOBA Playbook — Web Design
 
-> **This document is binding.** Every new view, screen, dialog,
-> sidebar item, and grid in the web app must trace its design back
-> to a rule in this document. When something feels overwhelming or
-> off-brand, the failure is here, not in the feature — fix the
-> document, then fix the feature.
+> **Binding.** Every new view/dialog/sidebar item/grid in the web app must trace to a rule here. Fix the document, then the feature.
 >
-> Companion to [`DESIGN.md`](./DESIGN.md) (binding iOS doc),
-> [`CLAUDE.md`](./CLAUDE.md) (project context), and
-> [`DECISIONS.md`](./DECISIONS.md) (architecture log). DESIGN.md
-> still governs cross-platform principles (verb per tab, search-
-> first, density-via-removed-chrome). This doc owns every web-
-> specific implementation rule.
+> Companion to [`DESIGN.md`](./DESIGN.md) (iOS), [`CLAUDE.md`](./CLAUDE.md), [`DECISIONS.md`](./DECISIONS.md). DESIGN.md governs cross-platform principles; this doc owns web-specific implementation rules.
 >
-> Ratified 2026-05-05 from the research plan that lived here through
-> v2.086. Open questions (§20) were answered, not deferred — see the
-> end of the doc.
+> Ratified 2026-05-05 from the prior research plan.
 
 ---
 
@@ -37,178 +26,72 @@ adopt. Sections 1–6 are principles and shouldn't churn.
 
 ---
 
-## 1. Web-specific constraints (input to every other section)
+## 1. Web-specific constraints
 
-Non-negotiable inputs from the project:
+Non-negotiable inputs:
 
-- **GitHub Pages static hosting** — no server runtime, no Node.js
-  (per CLAUDE.md). Anything that looks like SSR or build-step is
-  out unless we explicitly migrate hosts.
-- **Vanilla HTML / CSS / JS — no framework, no build step**
-  (DECISIONS.md #001). Plain DOM, plain CSS, ES2022+ vanilla JS,
-  Supabase JS SDK loaded via CDN. No npm install, no bundler,
-  no TypeScript transpile.
-- **Mobile-first** (CLAUDE.md). Test at 375px before 1440px.
-- **WCAG AA from line one** (CLAUDE.md "Standing Instructions").
-- **Body flex-column layout** (DECISIONS.md #020) — no
-  `viewport-fit=cover`, no fixed headers, no `position: fixed`
-  overlays that fight Safari's compositor.
-- **Cross-platform feature-parity contract** (DECISIONS.md #005) —
-  but with the explicit DESIGN.md §12 carve-out that web design is
-  its own discipline. Web does not chase iOS-specific patterns
-  (Liquid Glass, hero zoom, `.tabViewBottomAccessory`) when a
-  better-feeling web-native pattern exists.
+- **GitHub Pages static hosting** — no server runtime, no Node.js. SSR/build-step out unless we migrate hosts.
+- **Vanilla HTML/CSS/JS** (DECISIONS.md #001) — no framework, no build step. Plain DOM, plain CSS, ES2022+, Supabase SDK via CDN. No npm/bundler/TS transpile.
+- **Mobile-first.** 375px before 1440px.
+- **WCAG AA from line one.**
+- **Body flex-column** (DECISIONS.md #020) — no `viewport-fit=cover`, no fixed headers, no `position:fixed` overlays.
+- **Feature parity** (DECISIONS.md #005) with web-as-own-discipline carve-out (DESIGN.md §12). Don't chase iOS-specific patterns when a better web-native exists.
 
-**Locked decisions** (formerly "open questions" in this doc):
+**Locked decisions:**
 
-- **No build step, ever.** Native CSS Nesting + Container Queries +
-  `:has()` removed the last reason to want Sass / PostCSS in 2026.
-  Vanilla JS with ES modules removed the last reason to want
-  TypeScript transpile. If we want stronger type checking, JSDoc
-  comments + `// @ts-check` give us 80% of TS in-editor without a
-  build pipeline.
-- **GitHub Pages stays.** The 17k-card catalog at ~5MB JSON ships
-  fine through Pages' CDN. Re-evaluate only if catalog crosses 50MB
-  or we need a server runtime for a feature that can't be a
-  Cloudflare Worker.
+- **No build step, ever.** Native CSS Nesting + Container Queries + `:has()` killed Sass/PostCSS need. JSDoc + `// @ts-check` covers 80% of TS without transpile.
+- **GitHub Pages stays.** 17k cards / ~5MB JSON ships fine through Pages CDN. Re-evaluate only if catalog crosses 50MB or we need server runtime that can't be a Cloudflare Worker.
 
 ---
 
 ## 2. The six binding principles
 
-Each rule names the iOS DESIGN.md §1 equivalent it descends from,
-then specifies the web-native form.
+Each rule names the iOS DESIGN.md §1 equivalent then specifies the web form.
 
 ### 2.1 Native first.
 
-**Rule:** every interaction is a built-in HTML element or browser
-API before it is custom code.
+**Rule:** every interaction = built-in HTML element or browser API before custom code.
 
-- `<dialog>` + `showModal()` before custom modal overlays.
-- `<input type="search">` before custom search bars.
-- Popover API (`popover` attribute) before hand-rolled dropdown
-  positioning + click-outside listeners.
-- `<details>` / `<summary>` before custom collapsible sections.
-- View Transitions API (`document.startViewTransition`) before
-  custom CSS animation orchestration for cross-view changes.
-- `<form>` with native validation (`required`, `pattern`,
-  `:invalid`) before inline JS error rendering.
-- CSS `scroll-snap` before JS scroll-tracking.
-- CSS Container Queries before viewport-only `@media` rules for
-  components that can render in multiple containers.
+- `<dialog>` + `showModal()` before custom modal overlays
+- `<input type="search">` before custom search bars
+- Popover API before hand-rolled dropdowns + click-outside listeners
+- `<details>`/`<summary>` before custom collapsibles
+- View Transitions API before custom cross-view animation
+- `<form>` native validation (`required`, `pattern`, `:invalid`) before inline JS errors
+- CSS `scroll-snap` before JS scroll-tracking
+- Container Queries before viewport-only `@media`
 
-**Why:** the recurring failure mode in the v2.0xx web batches was
-reaching for custom code (overlay divs, hand-rolled dropdowns, JS
-state-class toggles) when a baseline-supported native API existed
-and would have shipped a better-feeling result in less code. The
-baseline web platform in 2026 is almost as expressive as the iOS
-SDK; treat it that way.
+**Why:** the v2.0xx failure mode was reaching for custom code (overlay divs, hand-rolled dropdowns, state-class toggles) when a baseline-supported native API existed. The 2026 baseline platform is nearly as expressive as the iOS SDK.
 
-**How to apply:** before writing any new component, ask "is there a
-native HTML element or browser API that does 80% of this?" If yes,
-build on it and accept its native behavior over a hand-rolled
-variant. The fallback strategy for the few unsupported browsers is
-graceful degradation (`@supports`, feature-detect for JS APIs) —
-not framework polyfills.
+**Apply:** before writing a component, ask "is there a native API that does 80% of this?" Yes → build on it, accept native behavior. Fallback = graceful degradation (`@supports`, feature-detect) — not framework polyfills.
 
 ### 2.2 Each tab owns one verb.
 
-**Rule:** Find = explore, Learn = understand, Decks = build,
-Collection = own, Purchase = acquire. Same verb assignment as iOS
-DESIGN.md §1.1 — transfers verbatim.
-
-**Why:** verb collisions are structural bugs, not feature requests.
-A web user navigates between tabs at the same conceptual rate as
-an iOS user (every few minutes); inconsistent verb mapping between
-platforms costs them every time they switch.
-
-**How to apply:** if a feature feels like it could land in two
-tabs, the one that owns the verb wins. Cross-cutting affordances
-(scan, share, sign-in) follow §6 — not "drop the same UI in every
-tab."
+Find = explore · Learn = understand · Decks = build · Collection = own · Purchase = acquire (verbatim from DESIGN.md §1.1). Verb collisions are structural bugs. Cross-cutting affordances (scan/share/sign-in) follow §8.
 
 ### 2.3 Navigation depth ≤ 2 inside a tab.
 
-**Rule:** view → list → detail. Anything deeper is a parallel
-filter axis or it belongs in a different tab.
-
-**Why:** the web has cheaper navigation than iOS (browser back is
-always available), but cheap navigation isn't free orientation. By
-depth 3 the user no longer remembers what tab they're in or what
-the back button will do. URL-driven view state means the URL bar
-also gets harder to read.
-
-**How to apply:** if a feature feels like it needs a third level,
-it's actually a `<select>` filter inside the detail view OR a
-parallel `<dialog>` that opens over the current view. Modals
-opened over a view do **not** count as a third nav level (no back-
-button drill, ESC dismisses).
+view → list → detail. Anything deeper = parallel filter axis (`<select>` inline) or different tab. Modals over a view do NOT count as a third nav level (no back-button drill, ESC dismisses). Web has cheap nav but not free orientation — depth 3 = user no longer knows what tab they're in.
 
 ### 2.4 Search is the universal navigator.
 
-**Rule:** every tab whose content has a meaningful catalog has a
-search input. Find owns the catalog-wide search; Learn searches
-its articles; Decks searches the card pool; Collection searches
-owned cards. The browser URL bar is a parallel search surface (URL
-deep links to filtered views) — design URL params to be readable.
+Every catalog ≥50 items gets a sticky-top search input. URL params reflect filter state so URLs share as deep links. Filters = URL-encodable tokens (chip-style display), not nav levels.
 
-**No command palette (Cmd-K) for now.** The 8 keyboard-power-user
-sites that justify a command palette (Linear, Raycast, Notion,
-GitHub, Vercel, Stripe Dashboard, Slack, Figma) all have user
-bases dominated by professional tool-runners. BOBA's audience is
-trading-card collectors with phones; a command palette is not the
-right cross-platform investment vs. tightening the per-tab
-search inputs. Re-evaluate when desktop usage analytics justify it
-or when one user explicitly asks.
+**No Cmd-K palette for now.** Justifying audiences (Linear, Raycast, Notion) are pro tool-runners; BOBA's audience is collectors with phones. Re-evaluate when desktop analytics justify or a user asks.
 
-**Why:** web users search-first by habit (URL bar, browser find,
-in-page search). A buried filter is a design failure when the
-catalog crosses ~50 items.
+### 2.5 Density comes from removing chrome.
 
-**How to apply:** every catalog ≥50 items gets a sticky-top search
-input. URL params reflect the current filter state so the URL
-shares as a deep link. Filters become URL-encodeable tokens (chip-
-style on display) rather than nav levels.
+Verbatim from DESIGN.md §1.4. Web's desktop pixel ceiling tempts more decoration; resist. Most common offender: `background: rgba(255,255,255,0.05)` on rows for "separation." Use `<hr>` or 8px vertical spacing.
 
-### 2.5 Density comes from removing chrome, not adding affordances.
+### 2.6 Backdrop-filter = navigation chrome only.
 
-**Rule:** transfers verbatim from DESIGN.md §1.4 — three weights ×
-two sizes = six hierarchy levels with zero added pixels. Every
-divider, shadow, badge, and chip you remove makes the remaining
-info read denser.
+Web equivalent of DESIGN.md §1.5 Liquid Glass. `backdrop-filter: blur()` on mobile header, sidebar, modal backdrops — never on grids/rows/content. Layered backdrop-filter is GPU-expensive on low-end Android (Chromium falls back to flat color silently above ~3 layers).
 
-**Why:** same Tufte / Things 3 / Reeder lineage. The web's higher
-pixel ceiling on desktop tempts more decoration; resist it.
-
-**How to apply:** before adding visual chrome (border, shadow,
-tinted background), try removing other chrome instead. The most
-common offender on web is `background: rgba(255,255,255,0.05)`
-sprinkled on rows for "separation." Use a `<hr>` or 8px of vertical
-spacing instead.
-
-### 2.6 Backdrop-filter is for navigation chrome only — content
-stays unfiltered.
-
-**Rule:** the web equivalent of DESIGN.md §1.5's Liquid Glass rule.
-`backdrop-filter: blur()` on the mobile header, sidebar, and modal
-backdrops — never on card grids, list rows, or content surfaces.
-
-**Why:** layered backdrop-filter elements are GPU-expensive on
-low-end Android (Chromium falls back to flat color silently above
-~3 layers). Using it everywhere gets slow without making the chrome
-feel any better. Restricting it to navigation surfaces preserves
-the "frame, never compete" principle that DESIGN.md §1.5 codified.
-
-**How to apply:**
-- Header: `backdrop-filter: blur(8px); background: rgba(13, 13, 26, 0.85);`
-- Sidebar: same treatment.
-- `<dialog>::backdrop`: `backdrop-filter: blur(4px); background: rgba(0,0,0,0.6);`
-- Card grid, rows, content panels: solid color from
-  `--boba-surface`, no backdrop-filter.
-- Wrap every backdrop-filter rule in
-  `@media not (prefers-reduced-transparency: reduce)` — when the
-  user prefers reduced transparency, drop to a flat color
-  (`--boba-surface`) automatically.
+**Apply:**
+- Header / sidebar: `backdrop-filter: blur(8px); background: rgba(13,13,26,0.85);`
+- `<dialog>::backdrop`: `blur(4px); background: rgba(0,0,0,0.6);`
+- Grid / rows / content: solid `--boba-surface`, no filter.
+- Every rule wrapped in `@media not (prefers-reduced-transparency: reduce)` — drop to flat color when set.
 
 ---
 
@@ -576,33 +459,13 @@ state handling is the #1 source of "feels janky" feedback.
 
 ## 11. First-run hints + walkthroughs — web does NOT get walkthroughs
 
-**Decision (formerly TODO §12):** the iOS walkthrough engine
-(DESIGN.md §6.10, 12 walkthroughs / ~40 anchored steps) does
-**not** get a web equivalent.
+The iOS walkthrough engine (DESIGN.md §6.10) does not get a web equivalent.
 
-**Why:**
-1. iOS walkthroughs justify themselves because the tab bar +
-   navigation gestures + bottom-sheet patterns are non-obvious to
-   first-time iOS users. The web equivalents (sidebar nav, links,
-   `<dialog>`) are universally understood.
-2. The iOS rule (DESIGN.md §6.10 anti-pattern "slide-deck
-   onboarding") was "teach with the real UI on the real screen."
-   On web, the real UI **is** the screen the user lands on — there's
-   no first-launch sequence to compete with.
-3. Building a web walkthrough engine adds 400+ lines of overlay /
-   anchor / persistence code for a feature whose value-add over
-   inline help text is marginal.
+**Why:** (1) iOS patterns (tab bar, gestures, bottom sheets) are non-obvious to first-time users; web primitives (sidebar nav, links, `<dialog>`) are universally understood. (2) On web, the real UI IS the screen the user lands on — no first-launch sequence to compete with. (3) ~400 lines of overlay/anchor/persistence code for marginal value-add over inline help.
 
-**What we ship instead:** inline contextual help.
-- A `?` icon in the top-right of complex views opens a `<dialog>`
-  with a short explainer (3-5 sentences max).
-- Empty states (§10) carry the productive-next-action that a
-  walkthrough's first step would have shown.
-- No `bp_walkthroughSeen_*` localStorage entries on web.
+**Ship instead:** `?` icon in top-right of complex views → `<dialog>` with 3-5 sentence explainer. Empty states (§10) carry the productive-next-action a walkthrough's first step would have shown. No `bp_walkthroughSeen_*` localStorage entries on web.
 
-If a future feature genuinely demands per-step teaching (a future
-practice executor, a complex multi-step workflow), revisit this
-decision then — not preemptively.
+Revisit if a future feature (practice executor, complex multi-step workflow) genuinely demands per-step teaching.
 
 ---
 
@@ -775,107 +638,25 @@ v2.067 — codified here).
 
 ## 15. Roadmap — refactors implied by ratifying this doc
 
-Now that §2-§14 are binding, the existing web app drifts from
-several rules. This is the prioritized work list. Each item names
-the rule it addresses and the rough effort.
+### Shipped 2026-05-05
 
-### P0 (touched the next time the relevant view is edited)
-
-1. ~~**Replace hand-rolled dropdowns with Popover API.**~~ **SHIPPED
-   2026-05-05** for the actual targets that existed. The
-   designation picker + deck picker for multi-select bulk-add (which
-   were using blocking `prompt()` dialogs!) now use a reusable
-   `showPopoverMenu({anchor, title, items})` helper built on
-   `<div popover="auto">` — native top-layer rendering, click-
-   outside dismiss, ESC dismiss, focus return all free. Helper
-   exposed as `window.bobaShowPopoverMenu` for collection.js / other
-   modules. The filter panel was NOT migrated: it's an inline
-   accordion (pushes content down) not a floating popover; semantics
-   are correct as-is. Mod panels are full-screen modals — they fit
-   `<dialog>` better than Popover when migrated.
-
-2. ~~**Migrate modal overlays to `<dialog>`.**~~ **SHIPPED 2026-05-05.**
-   All three .modal-overlay surfaces are now native `<dialog>`:
-   card-detail (`#card-modal-overlay`), auth (`#auth-modal-overlay`),
-   add-collection (`#add-collection-overlay`). Each gets focus trap,
-   ESC dismiss (routed through closeModal/close via the `cancel`
-   event), top-layer rendering, scroll lock, and `::backdrop` scrim
-   from the browser. The `dialog.modal-overlay` selector resets
-   dialog defaults to match the legacy overlay shape so the inner
-   `.modal` / `.auth-modal-box` flex centering still works. Mod
-   panels (mod-edit, mod-search, admin) are dynamically-created
-   admin-only surfaces — they could migrate too but are
-   deferred to "when the relevant view is edited" since they're
-   working correctly today.
-
-3. ~~**Add `prefers-reduced-transparency` overrides**~~ **SHIPPED
-   2026-05-05.** Single `@media (prefers-reduced-transparency:
-   reduce)` block at the top of `styles.css` drops backdrop-filter
-   on every canonical chrome surface and bumps the chrome
-   backgrounds to opaque `var(--boba-surface)` so the loss of blur
-   doesn't leave surfaces translucent-without-blur.
-
-### P1 (planned refactor)
-
-4. ~~**Wrap `showView()` in View Transitions.**~~ **SHIPPED
-   2026-05-05.** `showView()` body extracted to `applyView(name)`;
-   `showView` feature-detects `document.startViewTransition` AND
-   respects `prefers-reduced-motion`. Plus a `openModalWithHeroZoom`
-   wrapper that pairs the tapped grid cell with the modal hero
-   image via `view-transition-name: card-hero` so the browser
-   morphs thumbnail → full image (the iOS hero-zoom analog). CSS
-   tunes both `(root)` cross-fade and `(card-hero)` morph timing.
-
-5. ~~**Container query refactor of `.card-item`.**~~ **SHIPPED
-   2026-05-05.** `.card-item` gets `container-type: inline-size;
-   container-name: card-cell;`. Two `@container card-cell` rule
-   blocks (`max-width: 130px` and `min-width: 200px`) scale the
-   card-info typography — number, name, power, treatment ribbon —
-   to the cell's own width instead of the viewport. Same
-   `.card-item` now renders correctly at "S" density (~110px),
-   "M" default (~155px), and "L" (~220px+) without media-query
-   forks. Inherited automatically by the public-collection grid
-   (which reuses buildCardElement) and by any future Wall view.
-
-6. ~~**CSS Nesting refactor of `css/styles.css`.**~~ **PATTERN
-   ESTABLISHED 2026-05-05** (incremental). New CSS for the popover
-   menu uses native CSS Nesting (`& .popover-menu-item { ... }`).
-   Future component CSS should follow the same pattern. A full
-   rewrite of the existing 9000-line file is intentionally
-   deferred — too risky vs payoff; nest opportunistically when
-   touching existing rules.
+- **Popover API** for designation/deck pickers in multi-select bulk-add (`window.bobaShowPopoverMenu` helper). Filter panel stays inline-accordion. Mod panels would fit `<dialog>` better when migrated.
+- **`<dialog>` migration** for all three modal overlays: card-detail, auth, add-collection. Native focus trap + ESC + top-layer + `::backdrop` scrim. Mod panels (admin) deferred — working correctly.
+- **`prefers-reduced-transparency` overrides** in single `@media` block at top of styles.css; drops backdrop-filter on chrome surfaces, bumps to opaque `--boba-surface`.
+- **View Transitions** in `showView()` — feature-detected + `prefers-reduced-motion` aware. `openModalWithHeroZoom` pairs grid cell with modal hero via `view-transition-name: card-hero` (iOS hero-zoom analog).
+- **Container queries** on `.card-item` — `container-type: inline-size; container-name: card-cell;` with `@container` blocks for typography scaling. Same cell at S/M/L density without media-query forks; inherited by public-collection grid.
+- **CSS Nesting pattern** established (incremental, on new popover CSS). Full rewrite of 9000-line file deferred.
+- **Web Share API** — `shareTarget({title,text,url})` helper / `window.bobaShareTarget`. `navigator.share` when available, `clipboard.writeText` + "Link copied!" fallback. AbortError silenced.
+- **Profile picture upload** — DECISIONS.md #040.
 
 ### P2 (when a feature requires it)
 
-7. **Decks side-by-side desktop layout** (§14.3) — currently the
-   web Decks tab doesn't follow this pattern. Refactor when Decks
-   tab gets touched substantively.
+- **Decks side-by-side desktop layout** (§14.3) — refactor when Decks gets touched substantively.
+- **Collection Wall display mode** (§14.4) — parity with iOS §8.8.
 
-8. **Collection Wall display mode** (§14.4) — parity with iOS
-   DESIGN.md §8.8. Build when Collection tab is the focus.
+### Deferred (see §17)
 
-9. ~~**Profile picture upload**~~ **SHIPPED 2026-05-05.** See
-   DECISIONS.md #040.
-
-### Cross-cutting capabilities (§8)
-
-10. ~~**Web Share API for the Share verb.**~~ **SHIPPED 2026-05-05.**
-    `shareTarget({title, text, url}, triggerEl)` helper in `app.js`
-    (also exposed as `window.bobaShareTarget`). Uses
-    `navigator.share` when available (mobile Safari, Chrome
-    Android), falls back to `clipboard.writeText` + on-button
-    "Link copied!" toast. AbortError silenced (user dismissed the
-    share sheet). The card-detail Share button routes through it;
-    other surfaces (deck detail, public-collection link) can adopt
-    by calling the same helper.
-
-### Deferred (rationale below in §17)
-
-- Walkthroughs on web (§11 — explicit no).
-- Cmd-K command palette (§2.4 — re-evaluate later).
-- Web Push notifications (out of scope; iOS APNs is the canonical
-  surface).
-- Two-column desktop split-view (§9 — wait for analytics).
+Walkthroughs on web · Cmd-K palette · Web Push · Two-column desktop split-view.
 
 ---
 

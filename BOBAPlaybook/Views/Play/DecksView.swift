@@ -71,9 +71,20 @@ struct DecksView: View {
     /// instead of the previous "drawer on top of drawer" sheet stack.
     @State private var editorPath = NavigationPath()
 
-    /// User-selectable grid density for the card pool (1 / 2 / 3
-    /// across). Persisted per tab so Decks can stay denser than Find.
-    @AppStorage("bp_decksGridColumns_v1") private var gridColumns: Int = 3
+    /// User-selectable grid density for the card pool. Persisted per
+    /// tab so Decks can stay denser than Find. Sentinel `0` = unset →
+    /// resolves to size-class default (compact: 3, regular: 5) per
+    /// DESIGN.md §6.6.
+    @AppStorage("bp_decksGridColumns_v1") private var gridColumnsStorage: Int = 0
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    private var gridColumns: Int {
+        Design.GridDensity.resolved(stored: gridColumnsStorage, sizeClass: horizontalSizeClass, compactDefault: 3)
+    }
+
+    private var gridColumnsBinding: Binding<Int> {
+        Binding(get: { gridColumns }, set: { gridColumnsStorage = $0 })
+    }
 
     /// Music-pattern zoom transition namespace + path for the card
     /// pool. Tap a pool cell → BrowserCardDetailSheet zooms in from
@@ -192,7 +203,7 @@ struct DecksView: View {
                                        store: store,
                                        tab: pickRoleForCard(card),
                                        wrapInNavStack: false)
-                    .navigationTransition(.zoom(sourceID: card.id, in: poolZoomNamespace))
+                    .compactZoomDestination(id: card.id, in: poolZoomNamespace)
             }
             // Music-pattern full-screen editor — zooms in from the
             // summary pill via matchedTransitionSource. The closure
@@ -252,7 +263,7 @@ struct DecksView: View {
                                                store: store,
                                                tab: pickRoleForCard(card),
                                                wrapInNavStack: false)
-                            .navigationTransition(.zoom(sourceID: card.id, in: editorZoomNamespace))
+                            .compactZoomDestination(id: card.id, in: editorZoomNamespace)
                     }
                     // Profile is the lone exception — stays a sheet
                     // because SignInView (which Profile hosts) is
@@ -279,7 +290,7 @@ struct DecksView: View {
                         Text("Removes every Hero, Play, Bonus Play, and Hot Dog. Your deck name and rule overrides stay.")
                     }
                 }
-                .navigationTransition(.zoom(sourceID: "deck-draft", in: deckZoomNamespace))
+                .compactZoomDestination(id: "deck-draft", in: deckZoomNamespace)
             }
         }
         // .walkthroughOverlay MUST sit OUTSIDE NavigationStack so its
@@ -327,10 +338,10 @@ struct DecksView: View {
                     }
                 }
                 Section("Columns") {
-                    Picker("Columns", selection: $gridColumns) {
-                        Label("1 across", systemImage: "rectangle.portrait").tag(1)
-                        Label("2 across", systemImage: "rectangle.split.2x1").tag(2)
-                        Label("3 across", systemImage: "rectangle.split.3x1").tag(3)
+                    Picker("Columns", selection: gridColumnsBinding) {
+                        ForEach(Design.GridDensity.columnOptions(for: horizontalSizeClass), id: \.self) { n in
+                            Text("\(n) across").tag(n)
+                        }
                     }
                 }
                 Section {
@@ -464,7 +475,7 @@ struct DecksView: View {
 
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: Design.Spacing.sm),
-                                   count: max(1, min(3, gridColumns))),
+                                   count: max(1, gridColumns)),
                     spacing: Design.Spacing.md
                 ) {
                     ForEach(Array(filtered.prefix(200).enumerated()), id: \.element.id) { idx, card in
@@ -488,7 +499,7 @@ struct DecksView: View {
                             // source and prints the "nil view will
                             // trigger a fallback transition" warning,
                             // which is what produces the forehead.
-                            .matchedTransitionSource(id: card.id, in: poolZoomNamespace)
+                            .compactZoomSource(id: card.id, in: poolZoomNamespace)
                     }
                 }
                 .padding(.horizontal, Design.Spacing.md)
@@ -840,7 +851,7 @@ struct DecksView: View {
                 Label("Remove", systemImage: "trash")
             }
         }
-        .matchedTransitionSource(id: card.id, in: editorZoomNamespace)
+        .compactZoomSource(id: card.id, in: editorZoomNamespace)
     }
 
     /// Inline section label — same shape as the prior pinning header,
@@ -1468,7 +1479,7 @@ private struct DeckSummaryPill: View {
             .shadow(color: .black.opacity(0.3), radius: 10, y: -2)
         }
         .buttonStyle(.plain)
-        .matchedTransitionSource(id: "deck-draft", in: namespace)
+        .compactZoomSource(id: "deck-draft", in: namespace)
         .accessibilityLabel(hasDraft ? "Open deck editor — \(store.deckName), \(totalCards) cards" : "Open deck editor")
     }
 }

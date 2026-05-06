@@ -39,6 +39,10 @@ struct ReactionPickerView: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        // iPad: render as popover anchored on the trigger button per
+        // DESIGN.md §6.6 — emoji-picker is action-shaped, not content-
+        // shaped. Compact width keeps the .medium detent treatment.
+        .presentationCompactAdaptation(.popover)
     }
 
     // MARK: - Search bar

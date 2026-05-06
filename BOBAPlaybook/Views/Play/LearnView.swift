@@ -110,7 +110,7 @@ struct LearnView: View {
                         .strokeBorder(cat.accent.opacity(0.25), lineWidth: 1)
                 )
         )
-        .matchedTransitionSource(id: cat.id, in: tileZoomNamespace)
+        .compactZoomSource(id: cat.id, in: tileZoomNamespace)
         .contentShape(Rectangle())
         .onTapGesture { path.append(cat) }
         .walkthroughAnchor(isFirst ? "learn.firstRow" : "learn.row.\(cat.id)")
@@ -229,7 +229,7 @@ struct LearnView: View {
                     default:           EmptyView()
                     }
                 }
-                .navigationTransition(.zoom(sourceID: cat.id, in: tileZoomNamespace))
+                .compactZoomDestination(id: cat.id, in: tileZoomNamespace)
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)

@@ -16,6 +16,7 @@ struct CardDetailView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(CollectionStore.self) private var collection
     @Environment(CardStore.self) private var cardStore
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     // The card currently being displayed — may change via prev/next navigation.
     @State private var card: Card
@@ -409,12 +410,12 @@ struct CardDetailView: View {
                 ],
                 startPoint: .top, endPoint: .bottom
             )
-            .frame(height: 420)
+            .frame(height: Design.CardDetailMetrics.panelHeight(for: horizontalSizeClass))
 
             CardImageView(card: card, size: .full)
                 .id(card.id)  // force view recreation on card change so loadedImage resets
                 .aspectRatio(5.0/7.0, contentMode: .fit)
-                .frame(height: 380)
+                .frame(height: Design.CardDetailMetrics.imageHeight(for: horizontalSizeClass))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .shadow(color: Design.Colors.element(card.element).opacity(0.4), radius: 16, y: 6)
                 .scaleEffect(effectiveScale)

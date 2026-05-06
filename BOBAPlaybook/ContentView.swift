@@ -45,6 +45,7 @@ struct ContentView: View {
                 PurchaseView()
             }
         }
+        .tabViewStyle(.sidebarAdaptable)
         .tint(Design.Colors.bobaOrange)
         // Centralized scan presentation per DESIGN.md §6.5 — single
         // ScanView modal regardless of which tab invoked it. Tabs call

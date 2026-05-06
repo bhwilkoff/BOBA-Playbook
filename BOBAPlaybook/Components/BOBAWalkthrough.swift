@@ -155,6 +155,7 @@ extension View {
                 // for the anchor rects + dim cutout.
                 GeometryReader { outer in
                     let safeBottom = outer.safeAreaInsets.bottom
+                    let safeTop = outer.safeAreaInsets.top
                     GeometryReader { proxy in
                         let frames: [BOBAWalkthrough.Anchor: CGRect] = anchors.reduce(into: [:]) { acc, pair in
                             acc[pair.key] = proxy[pair.value]
@@ -163,6 +164,7 @@ extension View {
                             script: script,
                             anchorFrames: frames,
                             containerSize: proxy.size,
+                            safeTopInset: safeTop,
                             safeBottomInset: safeBottom,
                             onStage: onStage
                         ) {
@@ -192,6 +194,12 @@ struct BOBAWalkthrough: View {
     /// set on the host's content never reached an overlay tree.
     let anchorFrames: [Anchor: CGRect]
     let containerSize: CGSize
+    /// Top safe-area inset (status bar + nav bar + iPad menu bar). Read
+    /// from a non-ignoring GeometryReader in walkthroughOverlay so the
+    /// safe viewport excludes whatever chrome the host actually has —
+    /// not a hardcoded 60pt that was correct on iPhone but cuts
+    /// tooltips off on iPad portrait/landscape and Stage Manager.
+    let safeTopInset: CGFloat
     /// Bottom safe-area inset of the host view, read from a non-
     /// ignoring GeometryReader in walkthroughOverlay. Used to pad
     /// the Skip/Done bar above the system tab bar — without this
@@ -267,15 +275,20 @@ struct BOBAWalkthrough: View {
     }
 
     /// Approximate safe viewport — keeps the spotlight ring + tooltip
-    /// out of the navigation bar and bottom-bar regions. Tooltip width
-    /// is capped at 280; height varies with copy length but caps near
-    /// 140 (≈4 lines wrapped). Bottom bar reserves the lowest 96pt.
+    /// out of the host's safe-area chrome (status bar, nav bar, iPad
+    /// menu bar) and the Skip/Done bar region. Reads safeTopInset and
+    /// safeBottomInset from the host so iPad portrait, iPad landscape,
+    /// and Stage Manager / Split View all get the right math. The 16pt
+    /// padding on top is a small extra margin below the nav title row;
+    /// the 80pt below safeBottom is the Skip/Done bar reservation.
     private var safeViewport: CGRect {
-        CGRect(
+        let topReserve = safeTopInset + 16
+        let bottomReserve = safeBottomInset + 80
+        return CGRect(
             x: 16,
-            y: 60,                                // clear status bar + nav title row
+            y: topReserve,
             width: max(0, containerSize.width - 32),
-            height: max(0, containerSize.height - 60 - 96)
+            height: max(0, containerSize.height - topReserve - bottomReserve)
         )
     }
 

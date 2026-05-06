@@ -186,6 +186,8 @@ struct CollectionView: View {
                     set: { collectionSortRaw = $0.rawValue }
                 )
             )
+            // iPad: popover anchored on the toolbar Filters button.
+            .presentationCompactAdaptation(.popover)
         }
         // Card-detail is now a NavigationLink push (matchedTransitionSource
         // + .navigationTransition(.zoom(...)) on the destination above).

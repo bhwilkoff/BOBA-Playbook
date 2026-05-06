@@ -232,19 +232,25 @@ struct CardDetailView: View {
             // Music's "Now Playing" pattern. Same modifier on Decks and
             // Collection card details for consistency.
             .toolbarBackground(.hidden, for: .navigationBar)
+            // Action-shaped sheets adapt to popover on iPad per
+            // DESIGN.md §6.6 — anchored to the toolbar Add menu's
+            // chosen item. Compact width keeps sheet behavior.
             .sheet(isPresented: $showingAddSheet) {
                 AddToCollectionSheet(card: card)
+                    .presentationCompactAdaptation(.popover)
             }
             .sheet(isPresented: $showingAddToDeck) {
                 AddToDeckSheet(card: card) { deckName in
                     showAddedToDeckToast(deckName)
                 }
                 .environment(cardStore)
+                .presentationCompactAdaptation(.popover)
             }
             .sheet(isPresented: $showingAddToShow) {
                 AddToShowSheet(card: card) { showName in
                     showAddedToShowToast(showName)
                 }
+                .presentationCompactAdaptation(.popover)
             }
             .sheet(isPresented: $showingSignIn) {
                 SignInView()

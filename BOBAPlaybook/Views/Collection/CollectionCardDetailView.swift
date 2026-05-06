@@ -157,9 +157,13 @@ struct CollectionCardDetailView: View {
             }
             // Hide nav bar background — gradient is the visual top.
             .toolbarBackground(.hidden, for: .navigationBar)
+            // The four "Add to X" / Edit sheets are action-shaped per
+            // DESIGN.md §6.6 — popover on iPad anchored to the trigger
+            // button; sheet on compact.
             .sheet(isPresented: $showingAddSheet) {
                 if let card = catalogCard {
                     AddToCollectionSheet(card: card)
+                        .presentationCompactAdaptation(.popover)
                 }
             }
             .sheet(isPresented: $showingAddToDeck) {
@@ -168,6 +172,7 @@ struct CollectionCardDetailView: View {
                         showAddedToDeckToast(deckName)
                     }
                     .environment(cardStore)
+                    .presentationCompactAdaptation(.popover)
                 }
             }
             .sheet(isPresented: $showingAddToShow) {
@@ -175,11 +180,13 @@ struct CollectionCardDetailView: View {
                     AddToShowSheet(card: card) { showName in
                         showAddedToShowToast(showName)
                     }
+                    .presentationCompactAdaptation(.popover)
                 }
             }
             .sheet(item: $editingEntry) { entry in
                 if let card = catalogCard {
                     EditCollectionEntrySheet(entry: entry, card: card)
+                        .presentationCompactAdaptation(.popover)
                 }
             }
             .task {

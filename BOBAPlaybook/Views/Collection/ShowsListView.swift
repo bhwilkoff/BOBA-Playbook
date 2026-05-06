@@ -60,11 +60,15 @@ struct ShowsListView: View {
         .sheet(item: $selectedShow) { show in
             NavigationStack { ShowDetailView(show: show) }
         }
+        // Rename + new-show sheets are action-shaped — popover on iPad
+        // anchored to the trigger button (DESIGN.md §6.6).
         .sheet(item: $renameTarget) { target in
             renameSheet(for: target)
+                .presentationCompactAdaptation(.popover)
         }
         .sheet(isPresented: $showNewShowSheet) {
             newShowSheet
+                .presentationCompactAdaptation(.popover)
         }
         .alert("Couldn't finish that", isPresented: .init(
             get: { actionError != nil },

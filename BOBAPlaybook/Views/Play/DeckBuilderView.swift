@@ -1895,31 +1895,8 @@ struct DeckManagementSheet: View {
         busyDeckId = deck.id
         defer { busyDeckId = nil }
         do {
-            let rows = try await SupabaseClient.shared.fetchDeckCards(deckId: deck.id)
-            let byId = Dictionary(uniqueKeysWithValues: cards.map { ($0.id, $0) })
-            // Apply to the store
-            store.clearDeck()
-            store.deckName = deck.name
-            store.currentDeckId = deck.id
-            // Format comes back as a Supabase slug — resolve to a DeckFormat case
-            if let f = DeckFormat.allCases.first(where: { $0.supabaseValue == deck.format }) {
-                store.format = f
-            }
-            var loaded = 0
-            for row in rows {
-                guard let card = byId[row.bobaId] else { continue }
-                let role: DeckCardRole = switch row.cardType {
-                    case "hero":       .hero
-                    case "play":       .play
-                    case "bonus_play": .bonusPlay
-                    case "hot_dog":    .hotDog
-                    case "sideboard":  .sideboard
-                    default:           .hero
-                }
-                store.addCard(card, role: role)
-                loaded += 1
-            }
-            print("[DeckBuilder] loaded \(loaded)/\(rows.count) cards for deck '\(deck.name)'")
+            let loaded = try await store.loadSavedDeck(deck, cards: cards)
+            print("[DeckBuilder] loaded \(loaded) cards for deck '\(deck.name)'")
             // Give SwiftUI a tick to settle state before dismissing, so the parent
             // deck builder sees the updated store when the sheet closes.
             await Task.yield()

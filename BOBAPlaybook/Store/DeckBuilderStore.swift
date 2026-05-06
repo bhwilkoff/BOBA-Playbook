@@ -1343,6 +1343,42 @@ final class DeckBuilderStore {
         isLoadingSaved = false
     }
 
+    /// Loads a saved deck's cards from Supabase, clears the current
+    /// draft, and replaces it with the saved deck. Returns the count
+    /// of cards loaded. Throws Supabase / network errors so callers
+    /// can surface a banner. Hoisted out of DeckManagementSheet so
+    /// the iPad SavedDecksSidebar (DesignSpec §6.6) can share the
+    /// same load path. The catalog `[Card]` is passed in (rather than
+    /// stored on DeckBuilderStore) because CardStore is the canonical
+    /// owner of the catalog.
+    @discardableResult
+    func loadSavedDeck(_ deck: SavedDeck, cards: [Card]) async throws -> Int {
+        let rows = try await SupabaseClient.shared.fetchDeckCards(deckId: deck.id)
+        let byId = Dictionary(uniqueKeysWithValues: cards.map { ($0.id, $0) })
+        clearDeck()
+        deckName = deck.name
+        currentDeckId = deck.id
+        // Format comes back as a Supabase slug — resolve to a DeckFormat case
+        if let f = DeckFormat.allCases.first(where: { $0.supabaseValue == deck.format }) {
+            format = f
+        }
+        var loaded = 0
+        for row in rows {
+            guard let card = byId[row.bobaId] else { continue }
+            let role: DeckCardRole = switch row.cardType {
+                case "hero":       .hero
+                case "play":       .play
+                case "bonus_play": .bonusPlay
+                case "hot_dog":    .hotDog
+                case "sideboard":  .sideboard
+                default:           .hero
+            }
+            addCard(card, role: role)
+            loaded += 1
+        }
+        return loaded
+    }
+
     // MARK: - Text Export
 
     var deckListText: String {

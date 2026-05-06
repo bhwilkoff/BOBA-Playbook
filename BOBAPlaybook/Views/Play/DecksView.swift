@@ -143,18 +143,31 @@ struct DecksView: View {
     /// editor open.
     @State private var editorWalkthrough: BOBAWalkthrough.Script? = nil
 
+    /// iPad 3-column sidebar — saved-deck row currently being loaded
+    /// from Supabase (UUID). Disables row taps + shows a spinner.
+    @State private var loadingSidebarDeckId: UUID? = nil
+    /// Banner displayed at the top of the editor for ~3s after a
+    /// sidebar load fails. Reuses the saveBanner shape.
+    @State private var sidebarLoadError: String? = nil
+
     // MARK: - Body
 
     var body: some View {
         Group {
             if horizontalSizeClass == .regular {
-                // iPad — 2-column NavigationSplitView per DESIGN.md
-                // §6.6. Pool sidebar (browse) + editor detail (focused
-                // work). Both columns are visible in landscape; portrait
-                // collapses the sidebar to a toolbar toggle (system).
+                // iPad — 3-column NavigationSplitView per DESIGN.md
+                // §6.6: saved decks (sidebar) | pool (content) | editor
+                // (detail). Landscape shows all three; portrait shows
+                // detail with sidebar+content via system toggles.
+                // Saved-decks sidebar is auth-gated — signed-out users
+                // see a sign-in CTA in the sidebar (the pool+editor
+                // continue to work for draft-only authoring).
                 NavigationSplitView {
+                    savedDecksSidebar
+                        .navigationSplitViewColumnWidth(min: 240, ideal: 280)
+                } content: {
                     poolStack
-                        .navigationSplitViewColumnWidth(min: 380, ideal: 640)
+                        .navigationSplitViewColumnWidth(min: 380, ideal: 560)
                 } detail: {
                     editorStack
                 }
@@ -313,6 +326,122 @@ struct DecksView: View {
                 }
             } message: {
                 Text("Removes every Hero, Play, Bonus Play, and Hot Dog. Your deck name and rule overrides stay.")
+            }
+        }
+    }
+
+    // MARK: - Saved decks sidebar (iPad 3-column)
+
+    /// Sidebar listing the user's saved decks. Tap a row to load the
+    /// deck into the editor (replaces current draft). Active row
+    /// indicator shows which deck is currently being edited via
+    /// `store.currentDeckId`. "+ New deck" at the top discards the
+    /// draft and starts fresh. Signed-out users see a sign-in CTA.
+    @ViewBuilder
+    private var savedDecksSidebar: some View {
+        List {
+            Section {
+                Button {
+                    store.discardDraft()
+                    store.clearDeck()
+                    store.deckName = ""
+                    store.currentDeckId = nil
+                } label: {
+                    Label("New deck", systemImage: "plus.circle")
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Start a new deck")
+            }
+
+            if !auth.isAuthenticated {
+                Section("Sign in") {
+                    Text("Sign in to save decks and sync them across devices.")
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .padding(.vertical, 4)
+                }
+            } else if store.savedDecks.isEmpty {
+                Section("My Decks") {
+                    Text("No saved decks yet — Save the current draft from the editor toolbar.")
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .padding(.vertical, 4)
+                }
+            } else {
+                Section("My Decks") {
+                    ForEach(store.savedDecks, id: \.id) { deck in
+                        savedDeckRow(deck)
+                    }
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .navigationTitle("Decks")
+        .toolbarBackground(.regularMaterial, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .task {
+            // Refresh saved decks when the sidebar appears so the
+            // sidebar reflects the latest from Supabase. Cheap (single
+            // SELECT). Re-runs whenever auth state changes.
+            if auth.isAuthenticated && store.savedDecks.isEmpty {
+                await store.loadSavedDecks()
+            }
+        }
+        .onChange(of: auth.isAuthenticated) { _, isAuthed in
+            if isAuthed {
+                Task { await store.loadSavedDecks() }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func savedDeckRow(_ deck: SavedDeck) -> some View {
+        let isActive = (store.currentDeckId == deck.id)
+        let isLoading = (loadingSidebarDeckId == deck.id)
+        Button {
+            guard !isLoading else { return }
+            Task { await loadDeckFromSidebar(deck) }
+        } label: {
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(deck.name.isEmpty ? "Untitled" : deck.name)
+                        .font(Design.Fonts.display(14))
+                        .foregroundStyle(isActive ? Design.Colors.bobaOrange
+                                                  : Design.Colors.textPrimary)
+                        .lineLimit(1)
+                    Text(deck.format.uppercased())
+                        .font(Design.Fonts.mono(9, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .tracking(1)
+                }
+                Spacer()
+                if isLoading {
+                    ProgressView().scaleEffect(0.7)
+                } else if isActive {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                }
+            }
+            .padding(.vertical, 2)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isLoading)
+    }
+
+    private func loadDeckFromSidebar(_ deck: SavedDeck) async {
+        loadingSidebarDeckId = deck.id
+        defer { loadingSidebarDeckId = nil }
+        do {
+            try await store.loadSavedDeck(deck, cards: cardStore.displayCards)
+        } catch {
+            sidebarLoadError = "Couldn't load deck — \(error.localizedDescription)"
+            // Auto-dismiss after 3s
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(3))
+                sidebarLoadError = nil
             }
         }
     }

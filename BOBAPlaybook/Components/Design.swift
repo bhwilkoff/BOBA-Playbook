@@ -828,17 +828,18 @@ struct BOBACardGridItem: View {
     let card: Card
     var columnCount: Int = 2
 
-    /// 1- and 2-across cells render large enough that the 200px thumb
-    /// pixelates noticeably — pull the ≤1200px full WebP at those
-    /// densities. CardImageView handles the loading: NSCache (60MB)
-    /// + URLCache (100MB mem / 500MB disk, configured in App.init)
-    /// dedupe across instances; a 150ms debounce skips fly-by cells
-    /// during fast scrolls; cached thumbs render as a base layer
-    /// while the full image loads, so the user sees the card
-    /// immediately and the high-res replaces it. 3-across stays on
-    /// thumbs to keep network usage proportional to cell area.
+    /// 1- through 4-across cells render large enough that the 200px
+    /// thumb pixelates noticeably — pull the ≤1200px full WebP at
+    /// those densities. 5+ across (iPad-only territory per
+    /// Design.GridDensity) stays on thumbs to keep network usage
+    /// proportional to cell area. CardImageView handles the loading:
+    /// NSCache (60MB) + URLCache (100MB mem / 500MB disk, configured
+    /// in App.init) dedupe across instances; a 150ms debounce skips
+    /// fly-by cells during fast scrolls; cached thumbs render as a
+    /// base layer while the full image loads, so the user sees the
+    /// card immediately and the high-res replaces it.
     private var imageSize: CardImageView.ImageSize {
-        columnCount <= 2 ? .full : .thumb
+        columnCount <= 4 ? .full : .thumb
     }
 
     var body: some View {

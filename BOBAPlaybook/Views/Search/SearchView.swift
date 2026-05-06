@@ -75,6 +75,9 @@ struct SearchView: View {
         }
         .sheet(isPresented: $showFilters) {
             FilterSheetView(store: store)
+                // iPad: popover anchored on the toolbar Filters button.
+                // Compact: sheet (existing behavior).
+                .presentationCompactAdaptation(.popover)
         }
         // Scan presentation lives at ContentView per DESIGN.md §6.5
         // (single ScanView modal regardless of invoking tab). Find calls

@@ -157,13 +157,18 @@ struct ShowDetailView: View {
         .sheet(item: $selectedCardForDetail) { card in
             CardDetailView(card: card)
         }
+        // Wall options + rename are action-shaped → popover on iPad.
         .sheet(isPresented: $showWallOptions) {
             wallOptionsSheet
+                .presentationCompactAdaptation(.popover)
         }
         .fullScreenCover(isPresented: $showWall) {
             wallViewer
         }
-        .sheet(isPresented: $showRenameSheet) { renameSheet }
+        .sheet(isPresented: $showRenameSheet) {
+            renameSheet
+                .presentationCompactAdaptation(.popover)
+        }
         .alert("Couldn't finish that", isPresented: .init(
             get: { actionError != nil }, set: { if !$0 { actionError = nil } }
         )) { Button("OK") { actionError = nil } } message: { Text(actionError ?? "") }

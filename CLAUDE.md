@@ -253,6 +253,7 @@ Cost + DBS for Plays render BELOW the canonical six.
 | `DECISIONS.md` | Architecture decision log |
 | `DESIGN.md` | iOS design theory — binding rules for every iOS UI feature |
 | `WEB-DESIGN.md` | Web design theory — binding rules for every web UI feature |
+| `TRADE-DESIGN.md` | P2P trading design — binding rules for matching, messaging, payment guidance, fraud prevention, dispute flow |
 | `SCRATCHPAD.md` | Feature parity tracker and milestone status |
 
 ---
@@ -285,4 +286,4 @@ Cost + DBS for Plays render BELOW the canonical six.
 ---
 
 ## Current State
-See @SCRATCHPAD.md for milestone status. See @DECISIONS.md for architecture decisions. **For any UI / IA work, consult @DESIGN.md (iOS) or @WEB-DESIGN.md (web) before proposing — both are binding.**
+See @SCRATCHPAD.md for milestone status. See @DECISIONS.md for architecture decisions. **For any UI / IA work, consult @DESIGN.md (iOS) or @WEB-DESIGN.md (web) before proposing — both are binding.** **For any P2P trading / matching / messaging / payment-guidance work, consult @TRADE-DESIGN.md — binding.**

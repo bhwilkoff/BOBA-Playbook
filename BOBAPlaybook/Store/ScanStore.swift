@@ -90,10 +90,21 @@ final class ScanStore {
     /// .deckBuilder) and isn't tracked here.
     var selectedDeckIds: Set<UUID> = []
     /// When source == .deckBuilder: also write each scanned card to
-    /// Collection (designation = .personal). Off by default — the
-    /// scenario the feature targets is "drafting a deck, scan some
-    /// physical cards in." Toggled by a checkbox in the queue.
+    /// Collection. Off by default — the scenario the feature targets
+    /// is "drafting a deck, scan some physical cards in." Toggled by
+    /// a checkbox in the queue. Designation defaults to .personal
+    /// (the deck-builder mirror is always Personal — see
+    /// activeCollectionDesignation for primary collection scans).
     var alsoSaveToCollection: Bool = false
+
+    /// Set when a Collection-destination scan is active (user invoked
+    /// "Scan into For Sale" / "Wanted" / etc. from CollectionView).
+    /// Read by every save path (queue saveAllToCollection, single-card
+    /// chip quickSaveToCollection) — falls back to .personal when nil
+    /// so non-Collection scans (Find, Decks) still default correctly.
+    /// Cleared on endCollectionSession (called from ScanCoordinator's
+    /// dismiss handler).
+    var activeCollectionDesignation: UserCard.Designation? = nil
     /// Cards delivered FROM the queue back TO the deck-builder
     /// presenter. Set by the queue's Save All path; observed by
     /// DeckBuilderView via .onChange — when non-empty, the view
@@ -172,6 +183,23 @@ final class ScanStore {
         self.availableSavedDecks = []
         self.selectedDeckIds = []
         self.alsoSaveToCollection = false
+    }
+
+    /// Initialize scanner state for a Collection-destination session.
+    /// Called by ScanCoordinator when CollectionView invokes
+    /// `start(.collection(designation:))` from the "Scan into X" menu
+    /// item. Captures land in the chosen designation when saved from
+    /// the queue or the single-card chip.
+    func beginCollectionSession(designation: UserCard.Designation) {
+        self.activeCollectionDesignation = designation
+        self.queuedCards = []
+    }
+
+    /// Clear the collection-session marker so the next non-collection
+    /// scan (Find identify-only, or a Decks scan) doesn't silently
+    /// inherit the designation. Called from ScanCoordinator.dismiss.
+    func endCollectionSession() {
+        self.activeCollectionDesignation = nil
     }
 
     /// Replace the most-recently-queued card with a refined version.

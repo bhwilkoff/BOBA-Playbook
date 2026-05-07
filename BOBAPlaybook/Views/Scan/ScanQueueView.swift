@@ -597,6 +597,13 @@ struct ScanQueueView: View {
         saveError   = nil
         var firstError: String?
 
+        // Designation honors the "Scan into X" menu item the user
+        // tapped in CollectionView — falls back to .personal when
+        // nil (i.e., scan was invoked via Find rather than a
+        // Collection lens). Without this, every scanned card landed
+        // in Personal regardless of the menu label.
+        let designation = scanStore.activeCollectionDesignation ?? .personal
+
         for queued in scanStore.queuedCards {
             // Save `quantity` distinct user_card rows for this scan.
             // Each represents one physical copy the user owns.
@@ -604,7 +611,7 @@ struct ScanQueueView: View {
                 let entry = NewUserCard(
                     cardNumber: queued.card.cardNumber,
                     bobaId: queued.card.id,
-                    designation: .personal
+                    designation: designation
                 )
                 do { try await collectionStore.addCard(entry) }
                 catch { if firstError == nil { firstError = error.localizedDescription } }

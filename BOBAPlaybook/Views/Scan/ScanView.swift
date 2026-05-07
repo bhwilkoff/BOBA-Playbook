@@ -552,17 +552,21 @@ struct ScanView: View {
     // MARK: - Quick-save (single scan)
 
     /// Single-scan quick-save: writes `quantity` user_card rows for
-    /// the detected card to the user's Collection (designation
-    /// .personal), dismisses the chip, and surfaces a brief toast.
-    /// Triggered from the chip's "Add to Collection" button.
+    /// the detected card to the user's Collection. Designation
+    /// honors the active scan session (e.g. "Scan into For Sale")
+    /// via scanStore.activeCollectionDesignation, falling back to
+    /// .personal for Find-tab scans. Dismisses the chip and
+    /// surfaces a brief toast. Triggered from the chip's "Add to
+    /// Collection" button.
     private func quickSaveToCollection(card: Card, quantity: Int) async {
         let n = max(1, min(99, quantity))
+        let designation = scanStore.activeCollectionDesignation ?? .personal
         var firstError: String?
         for _ in 0..<n {
             let entry = NewUserCard(
                 cardNumber: card.cardNumber,
                 bobaId: card.id,
-                designation: .personal
+                designation: designation
             )
             do { try await collectionStore.addCard(entry) }
             catch { if firstError == nil { firstError = error.localizedDescription } }
@@ -570,7 +574,7 @@ struct ScanView: View {
         if let err = firstError {
             quickSaveToast = "Save failed: \(err)"
         } else {
-            quickSaveToast = "Saved \(n) to collection"
+            quickSaveToast = "Saved \(n) to \(designation.displayName)"
         }
         // Dismiss chip + scanner detection so the user can scan the next card.
         withAnimation(.easeOut(duration: 0.25)) { chipVisible = false }

@@ -44,6 +44,10 @@ fastlane/test_output
 # Node (shouldn't be needed, but just in case)
 node_modules/
 
+# Next.js build artifacts (tools/screenshots dev server)
+.next/
+*.tsbuildinfo
+
 # Environment / secrets
 .env
 .env.local

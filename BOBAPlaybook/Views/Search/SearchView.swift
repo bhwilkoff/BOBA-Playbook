@@ -72,10 +72,6 @@ struct SearchView: View {
 
     var body: some View {
         @Bindable var bindableStore = store
-        let _ = print("[DeepLink] SearchView body re-evaluated. " +
-                      "findNavigationPath count=\(store.findNavigationPath.count) " +
-                      "displayCards=\(store.displayCards.count) " +
-                      "isLoading=\(store.isLoading) isLoadingMore=\(store.isLoadingMore)")
         NavigationStack(path: $bindableStore.findNavigationPath) {
             stackContent
         }
@@ -734,15 +730,7 @@ struct CardRouteResolver: View {
     @Environment(CardStore.self) private var cardStore
 
     var body: some View {
-        let resolvedCard = resolved
-        let _ = print("[DeepLink] CardRouteResolver body. " +
-                      "route.cardNumber=\(route.cardNumber) " +
-                      "route.bobaId=\(route.bobaId ?? "nil") " +
-                      "displayCards=\(cardStore.displayCards.count) " +
-                      "isLoading=\(cardStore.isLoading) " +
-                      "isLoadingMore=\(cardStore.isLoadingMore) " +
-                      "resolved=\(resolvedCard?.id ?? "nil")")
-        if let card = resolvedCard {
+        if let card = resolved {
             CardDetailView(card: card,
                            navigationCards: navigationCards,
                            wrapInNavStack: false)

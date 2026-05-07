@@ -1,0 +1,108 @@
+# pipeline-stage-b-recognize.yml
+#
+# Stage B of the automated image-sourcing pipeline. Runs on macos-15
+# (free + unlimited on public repos). Builds the CardRecognitionCLI
+# Swift binary, then runs the Python orchestrator that pulls
+# state='cropped' candidates from Supabase, downloads images from R2,
+# invokes cardreckon, writes recognition results back, and transitions
+# state → accepted | review | quarantined | error.
+#
+# See pipeline/README.md for the architecture context.
+
+name: pipeline · stage B · recognize
+
+on:
+  # Weekly cron — Sunday 04:00 UTC. Lines up with Phase 1's natural
+  # batch cadence so a week's worth of new scrapes get recognized in
+  # one pass. Also functions as the Supabase keepalive (free tier
+  # auto-pauses after 7 days idle).
+  schedule:
+    - cron: '0 4 * * 0'
+
+  # Manual dispatch with optional limit override
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max candidates to process this run'
+        required: false
+        default: '5000'
+      batch_size:
+        description: 'Candidates per cardreckon invocation'
+        required: false
+        default: '500'
+
+  # Auto-chain after Stage A scrape completes successfully
+  workflow_run:
+    workflows: ['pipeline · stage A · scrape']
+    types: [completed]
+
+# Drift-check the Mirror folder vs iOS sources before building. A
+# scoring change in BOBAPlaybook/Views/Scan/ScanMatching.swift that
+# isn't synced into the CLI mirror produces silently-different
+# recognition results — the check makes that surface immediately.
+permissions:
+  contents: read
+
+jobs:
+  recognize:
+    name: Run cardreckon on cropped candidates
+    runs-on: macos-15
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    timeout-minutes: 350    # 6 hour cap minus buffer for setup/teardown
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Mirror in sync with iOS sources
+        run: |
+          chmod +x pipeline/recognition/sync_mirror.sh
+          if ! pipeline/recognition/sync_mirror.sh --check; then
+            echo '::error::Mirror has drifted from BOBAPlaybook/Views/Scan/ — run sync_mirror.sh locally and commit'
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: pipeline/scripts/requirements.txt
+
+      - name: Install Python deps
+        run: pip install -r pipeline/scripts/requirements.txt
+
+      - name: Cache SwiftPM build
+        uses: actions/cache@v4
+        with:
+          path: pipeline/recognition/CardRecognitionCLI/.build
+          key: swiftpm-${{ runner.os }}-${{ hashFiles('pipeline/recognition/CardRecognitionCLI/Package.swift', 'pipeline/recognition/CardRecognitionCLI/Sources/**/*.swift') }}
+          restore-keys: |
+            swiftpm-${{ runner.os }}-
+
+      - name: Build cardreckon (release)
+        working-directory: pipeline/recognition/CardRecognitionCLI
+        run: swift build -c release
+
+      - name: Smoke-test cardreckon binary
+        # Print --help / version sanity line so failures here distinguish
+        # build problems from runtime problems on the actual run step
+        run: |
+          ls -la pipeline/recognition/CardRecognitionCLI/.build/release/cardreckon
+          file pipeline/recognition/CardRecognitionCLI/.build/release/cardreckon
+
+      - name: Run Stage B
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          R2_ACCOUNT_ID:        ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY:        ${{ secrets.R2_ACCESS_KEY }}
+          R2_SECRET_KEY:        ${{ secrets.R2_SECRET_KEY }}
+          R2_BUCKET:            boba-card-images
+        run: |
+          python pipeline/scripts/stage_b_recognize.py \
+            --cardreckon     pipeline/recognition/CardRecognitionCLI/.build/release/cardreckon \
+            --cards-json     BOBAPlaybook/display-cards.json \
+            --feature-prints BOBAPlaybook/feature-prints.bin \
+            --limit          ${{ github.event.inputs.limit      || '5000' }} \
+            --batch-size     ${{ github.event.inputs.batch_size || '500' }}

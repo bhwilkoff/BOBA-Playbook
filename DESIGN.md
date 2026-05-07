@@ -179,7 +179,7 @@ iPad ships as first-class. Every new view declares its regular-width adaptation;
 | Pattern (compact) | Regular (iPad) |
 |---|---|
 | `NavigationStack` push | `NavigationSplitView` (2- or 3-column) |
-| `Tab(role: .search)` full-screen | Tab bar morphs to sidebar via `.tabViewStyle(.sidebarAdaptable)` |
+| `Tab(role: .search)` full-screen | `Tab(role: .search)` stays full-screen — see TabView note below |
 | Bottom sheet with detents | Trailing column / popover — never modal-over-canvas |
 | `searchScopes` bar | Scope rows in sidebar |
 | Toolbar `Menu` w/ disclosure | Inline toolbar buttons (1000pt+ of horizontal room) |
@@ -188,6 +188,8 @@ iPad ships as first-class. Every new view declares its regular-width adaptation;
 | `.matchedTransitionSource` + `.zoom` | System push (see §6.6.2) |
 | `.fullScreenCover` for content | NavigationSplitView detail column |
 | `.sheet` for actions (Profile, picker) | Popover via `.presentationCompactAdaptation(.popover)` |
+
+**TabView style.** Do NOT apply `.tabViewStyle(.sidebarAdaptable)`. iPadOS 26's sidebar mode (which `.sidebarAdaptable` opts into) puts the tab list in a left sidebar, which then visually competes with our per-tab `NavigationSplitView` sidebars (saved decks, lens picker, mode picker, category list). Floating tab pill stays on every device; iPad gets richer in-tab navigation via per-tab `NavigationSplitView` than the system tab sidebar (which is just 5 tab names) would provide.
 
 **Decks on iPad is canonical:** 3-column `NavigationSplitView` (saved decks | pool | current deck w/ stats+legality+rules inline). Same verb, same components; different spatial arrangement.
 

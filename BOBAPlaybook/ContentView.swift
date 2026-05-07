@@ -45,7 +45,19 @@ struct ContentView: View {
                 PurchaseView()
             }
         }
-        .tabViewStyle(.sidebarAdaptable)
+        // .tabViewStyle(.sidebarAdaptable) intentionally omitted —
+        // when the user picks "sidebar mode" on iPadOS 26, the system
+        // tab bar morphs to a left sidebar. Our per-tab
+        // NavigationSplitView (saved decks in Decks; lens picker in
+        // Collection; mode picker in Purchase; category list in
+        // Learn) then adds a SECOND sidebar to the right of the
+        // system one — visually competing.
+        //
+        // Floating tab pill is the right anchor: TabView stays a
+        // bottom pill on every device, and each tab owns its own
+        // sidebar/detail layout via NavigationSplitView. iPad users
+        // get a richer in-tab navigation than the system tab sidebar
+        // would provide (which is just the 5 tab names).
         .tint(Design.Colors.bobaOrange)
         // iPad hardware-keyboard shortcuts — Cmd+1..5 jump to tabs in
         // sidebar order (Find / Learn / Decks / Collection / Purchase).

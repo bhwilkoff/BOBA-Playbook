@@ -90,6 +90,18 @@ struct CollectionView: View {
     }
     @State private var selectedLens: CollectionLens = .myCards
 
+    /// `List(selection:)` on iOS only accepts Binding<T?>? — not the
+    /// non-optional state above. This wrapper lets the iPad sidebar
+    /// drive selection while keeping the rest of the body using the
+    /// non-optional value (which is conceptually correct here — there
+    /// is always a lens selected). Setting nil is ignored.
+    private var selectedLensBinding: Binding<CollectionLens?> {
+        Binding(
+            get: { selectedLens },
+            set: { if let v = $0 { selectedLens = v } }
+        )
+    }
+
     /// Per DESIGN.md §8.4 — three ways to render the same data set:
     ///   - grid: visual scan, card art is the focal point (default)
     ///   - list: compact rows for triage (the legacy renderer)
@@ -276,7 +288,7 @@ struct CollectionView: View {
 
     @ViewBuilder
     private var iPadSidebar: some View {
-        List(selection: $selectedLens) {
+        List(selection: selectedLensBinding) {
             Section("My Cards") {
                 Label("All", systemImage: "square.grid.2x2.fill")
                     .tag(CollectionLens.myCards)

@@ -27,6 +27,17 @@ struct PurchaseView: View {
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
+    /// `List(selection:)` on iOS only accepts Binding<T?>? — not the
+    /// non-optional state above. Wrapper lets the iPad sidebar drive
+    /// selection while keeping the rest of the body / Picker using
+    /// the non-optional value.
+    private var modeBinding: Binding<PurchaseMode?> {
+        Binding(
+            get: { mode },
+            set: { if let v = $0 { mode = v } }
+        )
+    }
+
     var body: some View {
         Group {
             if horizontalSizeClass == .regular {
@@ -81,7 +92,7 @@ struct PurchaseView: View {
     @ViewBuilder
     private var iPadBody: some View {
         NavigationSplitView {
-            List(selection: $mode) {
+            List(selection: modeBinding) {
                 ForEach(PurchaseMode.allCases) { m in
                     Label(m.rawValue, systemImage: m.icon)
                         .tag(m)

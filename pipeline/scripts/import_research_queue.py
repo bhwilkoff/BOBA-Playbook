@@ -52,7 +52,14 @@ from typing import Optional
 # Third-party — see requirements.txt
 import boto3                                 # R2 (S3-compatible)
 from botocore.config import Config
+from dotenv import load_dotenv               # auto-loads .env from repo root
 from supabase import Client, create_client   # Supabase client
+
+# Load .env from the BOBA-Playbook repo root (two levels up from
+# this script: pipeline/scripts/ → repo root). load_dotenv() is a
+# no-op if the file doesn't exist, so CI runs (which use GH Actions
+# secrets directly) still work fine.
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
 # ─── Defaults ─────────────────────────────────────────────────────────────
@@ -141,31 +148,37 @@ def infer_boba_ids(path: Path, root_dir: Path, state: str) -> tuple[Optional[str
     """
     Best-effort inference of (target_boba_id, recognized_boba_id) from path.
 
-    Conventions in the research folder (per Cowork's pipeline):
-      - ebay-verified/images/{bobaIdSlug}.jpg → recognized_boba_id = stem
-      - ebay-review/needs-review/{cardNumber-OR-bobaIdSlug}/{N}.jpg →
-            target_boba_id = parent dir name (slug or cardNumber)
-      - ebay-review/quarantine/... → no reliable label
+    Conventions in the research folder (verified empirically 2026-05-07):
 
-    These are stored as raw strings here. A later cleanup pass can resolve
-    slugs → canonical bobaIds via cards.json + boba_id.py.
+      ebay-verified/images/{bobaIdSlug}.{jpg,webp,png}
+        → flat layout, file stem IS the bobaId slug
+        → target = recognized = stem (these are human-OK'd)
+
+      ebay-review/{needs-review,quarantine,reclaim,rejected}/
+          {bobaIdSlug}__{eBayListingId}__{ordinal}.jpg
+        → flat layout, file stem encodes the bobaId before the FIRST '__'
+        → target = part before '__'; recognized = unknown (Stage B's job)
+
+    Filename slugs may not be byte-identical to boba_id.py's canonical
+    formula (some use underscores where the formula uses dashes; some
+    have trailing-segment differences). Phase 4 normalizes via cards.json
+    lookup. For now, we store the filename slug verbatim — it's enough
+    for Stage B calibration since the catalog match still goes through
+    ScanMatching's full scoring.
     """
     if state == "accepted":
-        # ebay-verified/images/{slug}.jpg — file stem IS the identifier
+        # Flat: ebay-verified/images/{slug}.jpg
         return (path.stem, path.stem)
 
     if state in ("cropped", "quarantined", "rejected"):
-        # The card's identifying string is usually the immediate parent
-        # directory under the state root — e.g.
-        #   ebay-review/needs-review/A-100-Maverick-BaseSet/3.jpg
-        # → target_boba_id = "A-100-Maverick-BaseSet"
-        try:
-            relative_to_root = path.relative_to(root_dir)
-            parts = relative_to_root.parts
-            if len(parts) >= 2:
-                return (parts[0], None)
-        except ValueError:
-            pass
+        # Flat: ebay-review/{state-root}/{slug}__{listing-id}__{N}.jpg
+        # Take everything before the FIRST '__' as the target slug.
+        stem = path.stem
+        if "__" in stem:
+            slug = stem.split("__", 1)[0]
+            return (slug, None)
+        # No '__' separator → fall back to the full stem (defensive)
+        return (stem, None)
 
     return (None, None)
 
@@ -358,7 +371,10 @@ def main():
     print()
 
     # ─── Hash + Upload to R2 ──
-    print(f"→ hashing + uploading to R2 ({UPLOAD_WORKERS} workers)")
+    if args.dry_run:
+        print(f"→ hashing only (dry-run — R2 upload skipped) ({UPLOAD_WORKERS} workers)")
+    else:
+        print(f"→ hashing + uploading to R2 ({UPLOAD_WORKERS} workers)")
     r2_client = (None if args.dry_run else
                  make_r2_client(r2_account_id, r2_access_key, r2_secret_key))
 

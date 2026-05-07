@@ -52,8 +52,12 @@ from typing import Optional
 
 import boto3
 from botocore.config import Config
+from dotenv import load_dotenv
 from PIL import Image
 from supabase import Client, create_client
+
+# Auto-load .env from repo root for local invocation parity with CI.
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
 # ─── Paths inside the repo ────────────────────────────────────────────────

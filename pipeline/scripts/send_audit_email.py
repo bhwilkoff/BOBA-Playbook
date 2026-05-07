@@ -34,7 +34,11 @@ import sys
 from typing import Optional
 
 import requests
+from dotenv import load_dotenv
+from pathlib import Path
 from supabase import Client, create_client
+
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
 CDN_BASE = "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev"

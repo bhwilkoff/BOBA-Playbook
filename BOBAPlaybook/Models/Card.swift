@@ -161,17 +161,24 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
 /// Custom UTType for in-app card drag-drop. Namespaced under the
 /// bundle ID and intentionally NOT declared in Info.plist — we
 /// don't want third-party apps announcing they can receive BOBA
-/// cards. Internal use only.
+/// cards. Internal use only. `nonisolated` so it doesn't pick up
+/// the project's default MainActor isolation
+/// (SWIFT_DEFAULT_ACTOR_ISOLATION=MainActor) — the Transferable
+/// machinery reads it from arbitrary actors during drag-drop.
 extension UTType {
-    static let bobaCard = UTType(exportedAs: "com.bhwilkoff.bobaplaybook.card")
+    nonisolated static let bobaCard = UTType(exportedAs: "com.bhwilkoff.bobaplaybook.card")
 }
 
 /// Inlined into Card.swift rather than a standalone file because
 /// Xcode's PBXFileSystemSynchronizedRootGroup intermittently fails
 /// to pick up new files (per memory feedback_xcode_synchronized_groups).
 /// CodableRepresentation works because Card is already Codable+Sendable.
+/// `nonisolated` on transferRepresentation matches the protocol's
+/// nonisolated requirement — without it, Card's default MainActor
+/// isolation would create the "Conformance crosses into main actor-
+/// isolated code" data-race error in Swift 6 mode.
 extension Card: Transferable {
-    static var transferRepresentation: some TransferRepresentation {
+    nonisolated static var transferRepresentation: some TransferRepresentation {
         CodableRepresentation(contentType: .bobaCard)
     }
 }

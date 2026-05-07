@@ -39,9 +39,47 @@ enum CardSortOrder: String, CaseIterable, Identifiable {
     }
 }
 
+/// Lightweight Hashable route for the Find tab's NavigationStack.
+/// Stored in `CardStore.findNavigationPath` so URL handlers (Universal
+/// Links, custom-scheme) can append a route directly without going
+/// through an observation chain. Resolver view renders from a route
+/// — handles the catalog-not-loaded case by re-evaluating when
+/// displayCards updates (Observable tracking).
+///
+/// bobaId is set when a Card object is in hand (in-app cell tap);
+/// nil for URL deep-links where only cardNumber+treatment+hero are
+/// known until the catalog resolves.
+struct CardRoute: Hashable, Codable {
+    let bobaId: String?
+    let cardNumber: String
+    let treatment: String?
+    let hero: String?
+
+    init(bobaId: String? = nil, cardNumber: String, treatment: String? = nil, hero: String? = nil) {
+        self.bobaId = bobaId
+        self.cardNumber = cardNumber
+        self.treatment = treatment
+        self.hero = hero
+    }
+
+    init(card: Card) {
+        self.init(bobaId: card.id,
+                  cardNumber: card.cardNumber,
+                  treatment: card.treatment,
+                  hero: card.hero)
+    }
+}
+
 @Observable
 @MainActor
 final class CardStore {
+
+    /// Navigation path for the Find tab. Owned here (not in SearchView's
+    /// @State) so URL handlers can append routes directly. SearchView
+    /// binds NavigationStack(path:) to this, eliminating the cold-launch
+    /// race where pendingCardNumber-style observation could miss a
+    /// value set before the view mounted.
+    var findNavigationPath: [CardRoute] = []
 
     // MARK: - Data
     private(set) var displayCards: [Card] = []
@@ -107,18 +145,12 @@ final class CardStore {
     }
 
     // MARK: - Deep link
-    // Set by the URL handler when a bobaplaybook://card/{number} URL opens the app.
-    // SearchView watches this and presents the card once displayCards is populated.
-    var pendingCardNumber: String? = nil
-
-    /// Optional disambiguators read from the deep-link URL's query
-    /// string (?treatment=... and ?hero=...). Multiple variants can
-    /// share a cardNumber (different treatments at one number); when
-    /// these are set, SearchView.tryPresentPendingCard narrows the
-    /// match to the specific variant the user clicked. Cleared
-    /// alongside pendingCardNumber after a successful lookup.
-    var pendingCardTreatment: String? = nil
-    var pendingCardHero: String? = nil
+    // Card-detail deep links go through findNavigationPath (above)
+    // — the URL handler appends a CardRoute directly. The previous
+    // pendingCardNumber/Treatment/Hero observation chain was removed
+    // because it was racy on cold-launch (URL set values before
+    // SearchView observed them) and unnecessary once the path lives
+    // here for the URL handler to mutate.
 
     /// Set by the URL handler when a bobaplaybook://scan URL opens the app
     /// (the QR code on the web version uses this to jump straight to scanning).
@@ -139,8 +171,8 @@ final class CardStore {
 
     /// Set when a deep link includes ?action=addToCollection (raised by
     /// AddToCollectionIntent — DESIGN.md §7). CardDetailView observes
-    /// this on first appearance for the pendingCardNumber's card and
-    /// auto-presents the AddToCollection sheet. Cleared once consumed.
+    /// this on first appearance and auto-presents the AddToCollection
+    /// sheet. Cleared once consumed.
     var pendingCardAction: String? = nil
 
     // MARK: - Internal

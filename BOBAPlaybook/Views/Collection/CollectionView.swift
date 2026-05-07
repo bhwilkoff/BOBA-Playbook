@@ -1234,15 +1234,15 @@ struct CollectionView: View {
     // and hands it to UIActivityViewController so users can share, save
     // to Files, AirDrop, etc. Named after the date so multiple exports
     // don't collide. The file sticks around in tmp until iOS evicts it.
-    /// Routes Collection-tab scan invocation through ScanCoordinator.
-    /// Until ScanStore gains a beginCollectionSession (designation chooser
-    /// + per-card destination), Collection scans land in the queue
-    /// identify-only via .find — coaches still review and add via the
-    /// queue's existing "save to designation" picker. This wraps the
-    /// invocation in the canonical pattern so a future upgrade only
-    /// requires switching the destination case.
+    /// Routes Collection-tab scan invocation through ScanCoordinator
+    /// with the currently-selected designation. ScanStore's
+    /// activeCollectionDesignation drives the queue's save-all path
+    /// and the single-card chip quick-save, so cards land where the
+    /// "Scan into X" menu label promised — Personal, For Sale, For
+    /// Trade, Wanted, or Grails.
     private func presentScanner() {
-        scanCoordinator.start(.find, scanStore: scanStore)
+        scanCoordinator.start(.collection(designation: selectedDesignation),
+                              scanStore: scanStore)
     }
 
     /// Per DESIGN.md §8.4 — share the active designation as a deep link

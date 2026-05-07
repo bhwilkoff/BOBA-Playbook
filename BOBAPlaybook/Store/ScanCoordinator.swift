@@ -40,9 +40,10 @@ final class ScanCoordinator {
         case deck(label: String, savedDecks: [SavedDeck])
 
         /// Collection tab — captures land in the user's collection
-        /// under the chosen designation. Defer until §27 Collection
-        /// rebuild lands the designation chooser.
-        case collection(designation: String)
+        /// under the chosen designation. ScanStore.activeCollection-
+        /// Designation drives every save path (queue saveAll, single-
+        /// card chip quick-save). Cleared on dismiss.
+        case collection(designation: UserCard.Designation)
 
         var isDeck: Bool {
             if case .deck = self { return true }
@@ -75,11 +76,13 @@ final class ScanCoordinator {
                 currentDeckLabel: label,
                 availableSavedDecks: targets
             )
-        case .collection:
-            // Collection-destination scan — when wired up in §27,
-            // ScanStore will gain a beginCollectionSession(designation:).
-            // For now fall back to identify-only behavior.
+        case .collection(let designation):
+            // Collection-destination scan — captures land in the
+            // chosen designation when saved from the queue or the
+            // single-card chip. Reset deck context so the queue UI
+            // doesn't render in deck-builder mode.
             scanStore.endDeckBuilderSession()
+            scanStore.beginCollectionSession(designation: designation)
         }
         isPresenting = true
     }
@@ -90,6 +93,10 @@ final class ScanCoordinator {
         if destination.isDeck {
             scanStore.endDeckBuilderSession()
         }
+        // Always clear the collection-session marker — the next
+        // invocation may be Find (identify-only), and lingering
+        // designation state would silently misroute saves.
+        scanStore.endCollectionSession()
         destination = .find
         isPresenting = false
     }

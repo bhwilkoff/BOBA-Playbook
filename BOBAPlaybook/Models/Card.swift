@@ -165,10 +165,12 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
 ///
 /// contentType is .json (built-in UTType) — that's what
 /// CodableRepresentation actually emits via the default JSONEncoder.
-/// The earlier custom UTType "com.bhwilkoff.bobaplaybook.card" tripped
-/// Xcode's "exported type not declared in Info.plist" warning; for
-/// in-app-only drag-drop (pool → editor) we don't need or want a
-/// custom UTI announcing that BOBA Playbook can receive cards.
+/// An earlier custom UTType (exportedAs a bundle-namespaced string)
+/// tripped Xcode's "exported type not declared in Info.plist"
+/// warning; for in-app-only drag-drop (pool → editor) we don't need
+/// or want a custom UTI announcing that BOBA Playbook can receive
+/// cards. NOTE: don't put the literal old UTI string anywhere in
+/// this file — Xcode's grep-based UTI scan will flag it again.
 ///
 /// `nonisolated` matches the protocol's nonisolated requirement —
 /// without it, Card's default MainActor isolation creates the

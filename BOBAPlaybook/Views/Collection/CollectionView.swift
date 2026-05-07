@@ -715,62 +715,74 @@ struct CollectionView: View {
                     .tint(Design.Colors.bobaOrange)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView {
+                Group {
                     if identifiers.isEmpty {
-                        emptyState
-                            .frame(maxWidth: .infinity, minHeight: 300)
+                        ScrollView {
+                            emptyState
+                                .frame(maxWidth: .infinity, minHeight: 300)
+                        }
                     } else if displayMode == .grid {
                         // GRID mode (§8.4 default) — visual scan, card art focal.
                         // Tap a tile → card detail. Same identifier list as List
                         // mode so designation badge / count are derived
                         // identically.
-                        LazyVGrid(
-                            columns: Array(repeating: GridItem(.flexible(), spacing: Design.Spacing.sm),
-                                           count: max(1, gridColumns)),
-                            spacing: Design.Spacing.md
-                        ) {
-                            ForEach(Array(identifiers.enumerated()), id: \.element) { idx, identifier in
-                                // matchedTransitionSource MUST be the
-                                // LAST (outermost) modifier so iOS sees
-                                // it on the rendered cell, not inside
-                                // the function-returned view. Otherwise
-                                // iOS prints the "nil view" warning and
-                                // falls back to the standard transition
-                                // (the forehead).
-                                if idx == 0 {
-                                    collectionGridCell(identifier: identifier)
-                                        .onTapGesture { navigationPath.append(identifier) }
-                                        .walkthroughAnchor("collection.cardCell")
-                                        .compactZoomSource(id: identifier, in: cardZoomNamespace)
-                                } else {
-                                    collectionGridCell(identifier: identifier)
-                                        .onTapGesture { navigationPath.append(identifier) }
-                                        .compactZoomSource(id: identifier, in: cardZoomNamespace)
+                        ScrollView {
+                            LazyVGrid(
+                                columns: Array(repeating: GridItem(.flexible(), spacing: Design.Spacing.sm),
+                                               count: max(1, gridColumns)),
+                                spacing: Design.Spacing.md
+                            ) {
+                                ForEach(Array(identifiers.enumerated()), id: \.element) { idx, identifier in
+                                    // matchedTransitionSource MUST be the
+                                    // LAST (outermost) modifier so iOS sees
+                                    // it on the rendered cell, not inside
+                                    // the function-returned view. Otherwise
+                                    // iOS prints the "nil view" warning and
+                                    // falls back to the standard transition
+                                    // (the forehead).
+                                    if idx == 0 {
+                                        collectionGridCell(identifier: identifier)
+                                            .onTapGesture { navigationPath.append(identifier) }
+                                            .walkthroughAnchor("collection.cardCell")
+                                            .compactZoomSource(id: identifier, in: cardZoomNamespace)
+                                    } else {
+                                        collectionGridCell(identifier: identifier)
+                                            .onTapGesture { navigationPath.append(identifier) }
+                                            .compactZoomSource(id: identifier, in: cardZoomNamespace)
+                                    }
                                 }
                             }
+                            .padding(Design.Spacing.md)
                         }
-                        .padding(Design.Spacing.md)
                     } else {
-                        // LIST mode — compact rows. The matchedTransitionSource
-                        // is attached INSIDE collectionRow (around the small
-                        // thumb on the leading edge) so the hero zoom
-                        // appears to come from the card art, not the whole
-                        // row card. iOS draws the zoom from the matched
-                        // source's frame, so anchoring to the thumb gives
-                        // a tight, art-led transition.
-                        LazyVStack(spacing: Design.Spacing.sm) {
+                        // LIST mode — native iOS List per user feedback
+                        // (swipe-left-to-delete like Mail). NavigationLink
+                        // pushes via path; swipeActions provides the
+                        // destructive Delete affordance. Brand colors
+                        // preserved via listRowBackground / separator tint.
+                        // matchedTransitionSource lives inside
+                        // collectionRow on the thumbnail so the hero zoom
+                        // anchors to the card art.
+                        List {
                             ForEach(Array(identifiers.enumerated()), id: \.element) { idx, identifier in
-                                if idx == 0 {
+                                NavigationLink(value: identifier) {
                                     collectionRow(identifier: identifier)
-                                        .onTapGesture { navigationPath.append(identifier) }
-                                        .walkthroughAnchor("collection.cardCell")
-                                } else {
-                                    collectionRow(identifier: identifier)
-                                        .onTapGesture { navigationPath.append(identifier) }
                                 }
+                                .listRowBackground(Design.Colors.nearBlack)
+                                .listRowSeparatorTint(Design.Colors.glassBorder)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        Task { await deleteAllCopies(forBobaId: identifier) }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                                .modifier(CollectionRowAnchor(isFirst: idx == 0))
                             }
                         }
-                        .padding(Design.Spacing.lg)
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                        .background(Design.Colors.nearBlack)
                     }
                 }
                 .scrollEdgeEffectStyle(.hard, for: .top)  // §5.6 dense scroll
@@ -1161,19 +1173,29 @@ struct CollectionView: View {
                 }
             }
 
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12))
-                .foregroundStyle(Design.Colors.textMuted)
+            // chevron removed — NavigationLink in List mode draws its
+            // own system disclosure chevron at the trailing edge.
         }
-        .padding(Design.Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Design.Radius.md)
-                .fill(Design.Colors.surface)
-                .overlay(
-                    RoundedRectangle(cornerRadius: Design.Radius.md)
-                        .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)
-                )
-        )
+        // No outer card chrome — List wraps each row with the system
+        // row treatment (separator, selection highlight, swipe-action
+        // affordance). brand surface color provided by
+        // .listRowBackground at the call site.
+        .padding(.vertical, Design.Spacing.xs)
+    }
+
+    /// Swipe-to-delete handler for list mode. Removes every UserCard
+    /// row whose bobaId matches `identifier` AND whose designation
+    /// matches the currently-selected tab — so swiping a "Maverick
+    /// ×3 here" row in For Sale removes all three For Sale copies,
+    /// but leaves any Personal copies of the same card untouched.
+    /// User can re-add via Find / Scan if the swipe was accidental.
+    private func deleteAllCopies(forBobaId identifier: String) async {
+        let toDelete = collection.entries(forBobaId: identifier)
+            .filter { $0.designation == selectedDesignation }
+        for entry in toDelete {
+            do { try await collection.deleteCard(id: entry.id) }
+            catch { /* best effort — partial delete is OK; user can retry */ }
+        }
     }
 
     /// Short, glanceable acquired-on label. Today/Yesterday for
@@ -1446,5 +1468,20 @@ struct CollectionView: View {
 // Identifiable wrapper so we can use sheet(item:) with a bobaId or legacy cardNumber string.
 private struct BobaIdWrapper: Identifiable {
     let id: String
+}
+
+// MARK: - CollectionRowAnchor
+// Conditionally attaches the walkthrough anchor to the first row
+// only. Inside a List, the anchor lives on the row content rather
+// than the row container so the walkthrough overlay can find it.
+private struct CollectionRowAnchor: ViewModifier {
+    let isFirst: Bool
+    func body(content: Content) -> some View {
+        if isFirst {
+            content.walkthroughAnchor("collection.cardCell")
+        } else {
+            content
+        }
+    }
 }
 

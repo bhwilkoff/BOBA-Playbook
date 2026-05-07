@@ -92,13 +92,22 @@ struct SearchView: View {
         }
         .walkthroughOverlay($walkthrough)
         // Deep-link: bobaplaybook://card/{number} sets store.pendingCardNumber.
-        // Try to resolve it immediately (cards may already be loaded) and again
-        // when the full catalog finishes loading.
+        // .onChange catches changes that happen WHILE this view is
+        // observing — but on cold launch via Universal Link, the URL
+        // handler may run before the view fully mounts, OR the
+        // catalog may not contain the card yet (full catalog loads
+        // async after cards-head). Polling retry guarantees we
+        // converge even when the .onChange observer misses a beat.
         .onChange(of: store.pendingCardNumber) { _, cardNum in
-            tryPresentPendingCard()
+            pollUntilCardPresented()
         }
         .onChange(of: store.isLoadingMore) { _, _ in
             tryPresentPendingCard()
+        }
+        // Catches the cold-launch race where pendingCardNumber gets
+        // set BEFORE this view is observing it.
+        .task {
+            pollUntilCardPresented()
         }
         // Deep-link: bobaplaybook://scan — present the scanner sheet.
         .onChange(of: store.pendingScan) { _, pending in
@@ -384,19 +393,33 @@ struct SearchView: View {
         }
     }
 
+    /// Retry tryPresentPendingCard up to 20 times (10s) to ride out
+    /// the cold-launch race: the deep-link URL handler may set
+    /// pendingCardNumber BEFORE this view observes it, and the full
+    /// catalog (which contains most cards) loads async after the
+    /// 500-card head bundle. Each retry is cheap (single dictionary
+    /// lookup); polling stops as soon as pendingCardNumber gets
+    /// cleared by a successful push.
+    private func pollUntilCardPresented() {
+        Task { @MainActor in
+            for _ in 0..<20 {
+                tryPresentPendingCard()
+                if store.pendingCardNumber == nil { return }
+                try? await Task.sleep(for: .milliseconds(500))
+            }
+        }
+    }
+
     private func tryPresentPendingCard() {
         guard let cardNum = store.pendingCardNumber,
               !store.displayCards.isEmpty else { return }
 
-        // Disambiguate using treatment + hero when present (set from
-        // the deep-link URL's ?treatment= and ?hero= params). Multiple
-        // variants can share a cardNumber — without this, we'd pick
-        // the first arbitrary match. Match is case-sensitive on
-        // cardNumber/treatment (which are catalog data), but case-
-        // insensitive + whitespace-trimmed on hero (URL-encoded names
-        // like `Barry "Cutback" Sanders` round-trip with attention).
-        let treatment = store.pendingCardTreatment
-        let hero      = store.pendingCardHero
+        // URL query params decode `+` as literal `+`, but the web
+        // app's share URLs use `+` for space (form-encoding
+        // convention). Normalize both treatment and hero so
+        // "Blue+Blast" matches the catalog's "Blue Blast".
+        let treatment = store.pendingCardTreatment?.replacingOccurrences(of: "+", with: " ")
+        let hero      = store.pendingCardHero?.replacingOccurrences(of: "+", with: " ")
         let normalizedHero = hero?.trimmingCharacters(in: .whitespaces).lowercased()
 
         let card = store.displayCards.first { c in

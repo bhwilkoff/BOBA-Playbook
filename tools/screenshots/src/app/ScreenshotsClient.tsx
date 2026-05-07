@@ -3,9 +3,11 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 // html-to-image imported dynamically in the export handler (avoids SSR localStorage error)
 
-// ─── Canvas dimensions (design at largest iPhone size) ──────────────────────
-const CW = 1320;
-const CH = 2868;
+// ─── Canvas dimensions (design at largest device size per family) ───────────
+const IPHONE_W = 1320;
+const IPHONE_H = 2868;
+const IPAD_W = 2064;
+const IPAD_H = 2752;
 
 // ─── iPhone mockup pre-measured constants ────────────────────────────────────
 const MK_W = 1022;
@@ -18,12 +20,19 @@ const SC_RX = (126 / 918) * 100;
 const SC_RY = (126 / 1990) * 100;
 
 // ─── Export sizes ─────────────────────────────────────────────────────────────
-const SIZES = [
+const IPHONE_SIZES = [
   { label: '6.9"', w: 1320, h: 2868 },
   { label: '6.5"', w: 1284, h: 2778 },
   { label: '6.3"', w: 1206, h: 2622 },
   { label: '6.1"', w: 1125, h: 2436 },
 ] as const;
+
+const IPAD_SIZES = [
+  { label: '13" iPad', w: 2064, h: 2752 },
+  { label: '12.9" iPad Pro', w: 2048, h: 2732 },
+] as const;
+
+type ExportSize = { label: string; w: number; h: number };
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -399,10 +408,10 @@ function Slide2({ w, h }: { w: number; h: number }) {
           Every Card.<br />At Your<br />Fingertips.
         </div>
         <div style={{ marginTop: w * 0.03, ...body(w * 0.031) }}>
-          17,739 cards. Instant search.<br />Filter by element, set, and rarity.
+          17,968 cards. Instant search.<br />Filter by Weapon, Treatment, Set.
         </div>
         <div style={{ marginTop: w * 0.035, display: "flex", gap: w * 0.025, flexWrap: "wrap" }}>
-          <Pill color={C.cyan} w={w}>17,739 cards</Pill>
+          <Pill color={C.cyan} w={w}>17,968 cards</Pill>
           <Pill color={C.orange} w={w}>Full images</Pill>
           <Pill color={C.violet} w={w}>Instant search</Pill>
         </div>
@@ -571,13 +580,13 @@ function Slide5({ w, h }: { w: number; h: number }) {
 
       {/* Caption top */}
       <div style={{ position: "absolute", top: h * 0.06, left: w * 0.1, right: w * 0.1, zIndex: 10 }}>
-        <div style={label("Pricing", w, C.orange)}>EBAY SOLD DATA</div>
+        <div style={label("Pricing", w, C.orange)}>RECENT SOLD COMPS</div>
         <div style={{ marginTop: w * 0.025, ...headline(w * 0.105) }}>
           Real sales.<br />Real prices.
         </div>
         <div style={{ marginTop: w * 0.028, ...body(w * 0.031) }}>
-          Low, average, and high comps<br />
-          across 7, 30, and 90-day windows.
+          Live market estimate plus<br />
+          recent sold listings, per card.
         </div>
 
         {/* Price widget */}
@@ -603,7 +612,7 @@ function Slide5({ w, h }: { w: number; h: number }) {
         </div>
 
         <div style={{ marginTop: w * 0.028, display: "flex", gap: w * 0.02, flexWrap: "wrap" }}>
-          <Pill color={C.orange} w={w}>eBay sold listings</Pill>
+          <Pill color={C.orange} w={w}>Recent sales</Pill>
           <Pill color={C.cyan} w={w}>Live market data</Pill>
         </div>
       </div>
@@ -646,11 +655,11 @@ function Slide6({ w, h }: { w: number; h: number }) {
           Know the rules.<br />Win the game.
         </div>
         <div style={{ marginTop: w * 0.028, ...body(w * 0.031) }}>
-          Rookie · Substitution · Playmaker
+          Rookie to playmaker.<br />Rules, strategy, decks.
         </div>
         <div style={{ marginTop: w * 0.035, display: "flex", gap: w * 0.02, flexWrap: "wrap" }}>
-          <Pill color={C.violet} w={w}>3 game modes</Pill>
-          <Pill color={C.orange} w={w}>Deck builder</Pill>
+          <Pill color={C.violet} w={w}>Deck builder</Pill>
+          <Pill color={C.orange} w={w}>Format legality</Pill>
           <Pill color={C.cyan} w={w}>Strategy guides</Pill>
         </div>
       </div>
@@ -673,17 +682,66 @@ function Slide6({ w, h }: { w: number; h: number }) {
   );
 }
 
-// ─── Slide 7: More features ───────────────────────────────────────────────────
+// ─── Slide 7: Decks (deck builder feature) ───────────────────────────────────
+// Layout: caption block at top (label+headline+body+pills, ends ~h*0.36),
+// phone top-anchored at h*0.40 and bleeds off the bottom.
+function SlideDecks({ w, h }: { w: number; h: number }) {
+  return (
+    <div style={{ position: "relative", width: w, height: h, overflow: "hidden",
+      background: `linear-gradient(155deg, #080810 0%, #0A0A20 50%, #080810 100%)` }}>
+      <GridLines w={w} h={h} />
+      <ScanlineOverlay w={w} h={h} />
+
+      <CyanGlow style={{ width: w * 1.0, height: w * 1.0, top: h * 0.05, right: -w * 0.3 }} />
+      <OrangeGlow style={{ width: w * 0.7, height: w * 0.7, bottom: 0, left: -w * 0.1 }} />
+      <VioletGlow style={{ width: w * 0.5, height: w * 0.5, top: h * 0.4, left: w * 0.5 }} />
+
+      {/* Caption — top zone */}
+      <div style={{ position: "absolute", top: h * 0.06, left: w * 0.1, right: w * 0.1, zIndex: 10 }}>
+        <div style={label("Decks", w, C.cyan)}>DECK BUILDER</div>
+        <div style={{ marginTop: w * 0.025, ...headline(w * 0.105) }}>
+          Build legal.<br />Battle ready.
+        </div>
+        <div style={{ marginTop: w * 0.028, ...body(w * 0.031) }}>
+          Format legality. Weapon counts.<br />
+          Battle Day Score totals.
+        </div>
+        <div style={{ marginTop: w * 0.035, display: "flex", gap: w * 0.02, flexWrap: "wrap" }}>
+          <Pill color={C.cyan} w={w}>Format legality</Pill>
+          <Pill color={C.orange} w={w}>Battle Day Score</Pill>
+          <Pill color={C.violet} w={w}>Save & sync</Pill>
+        </div>
+      </div>
+
+      {/* Phone — top-anchored below caption, bleeds off bottom */}
+      <Phone
+        src="/screenshots/decks.png"
+        alt="Decks editor"
+        placeholder="Decks editor"
+        style={{
+          position: "absolute",
+          width: w * 0.76,
+          top: h * 0.40,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 2,
+        }}
+      />
+    </div>
+  );
+}
+
+// ─── Slide 8: More features ───────────────────────────────────────────────────
 function Slide7({ w, h }: { w: number; h: number }) {
   const features = [
-    { icon: "🔍", text: "Instant card search" },
-    { icon: "📸", text: "On-device card scan" },
+    { icon: "🔍", text: "Search 17K+ cards" },
+    { icon: "📸", text: "On-device scan" },
     { icon: "📦", text: "Collection tracker" },
-    { icon: "💰", text: "eBay price comps" },
+    { icon: "💰", text: "Live market prices" },
     { icon: "🃏", text: "Deck builder" },
-    { icon: "📖", text: "Full rules reference" },
-    { icon: "⭐", text: "Grails & wishlists" },
-    { icon: "☁️", text: "Cloud sync" },
+    { icon: "📱", text: "iPad first-class" },
+    { icon: "🔗", text: "Public collections" },
+    { icon: "🛒", text: "Breaks & stores" },
   ];
 
   return (
@@ -766,32 +824,645 @@ function Slide7({ w, h }: { w: number; h: number }) {
   );
 }
 
-// ─── Slide registry ───────────────────────────────────────────────────────────
-const SLIDES = [
+// ─── iPad mockup component (CSS-only frame) ──────────────────────────────────
+// Aspect 770/1000 matches the inner-screen 92% × 94.4% to a 3:4 device — using
+// the wrong outer aspect causes black bars or stretched screenshots.
+function IPad({
+  src,
+  alt,
+  style,
+  placeholder,
+}: {
+  src: string;
+  alt: string;
+  style?: React.CSSProperties;
+  placeholder?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  return (
+    <div style={{ position: "relative", aspectRatio: "770/1000", ...style }}>
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          borderRadius: "5% / 3.6%",
+          background: "linear-gradient(180deg, #2C2C2E 0%, #1C1C1E 100%)",
+          position: "relative",
+          overflow: "hidden",
+          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.1), 0 8px 40px rgba(0,0,0,0.6)",
+        }}
+      >
+        {/* Front camera dot */}
+        <div
+          style={{
+            position: "absolute",
+            top: "1.2%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "0.9%",
+            height: "0.65%",
+            borderRadius: "50%",
+            background: "#111113",
+            border: "1px solid rgba(255,255,255,0.08)",
+            zIndex: 20,
+          }}
+        />
+        {/* Bezel edge highlight */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "5% / 3.6%",
+            border: "1px solid rgba(255,255,255,0.06)",
+            pointerEvents: "none",
+            zIndex: 15,
+          }}
+        />
+        {/* Screen area */}
+        <div
+          style={{
+            position: "absolute",
+            left: "4%",
+            top: "2.8%",
+            width: "92%",
+            height: "94.4%",
+            borderRadius: "2.2% / 1.6%",
+            overflow: "hidden",
+            background: C.surface,
+          }}
+        >
+          {failed ? (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 12,
+                background: C.surface,
+              }}
+            >
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: "50%",
+                  background: C.surface2,
+                  border: `2px solid ${C.glassBorder}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                  <rect x="2" y="2" width="20" height="20" rx="4" stroke={C.textMuted} strokeWidth="1.5" />
+                  <circle cx="8.5" cy="8.5" r="2" stroke={C.textMuted} strokeWidth="1.5" />
+                  <path d="M2 16l5-5 4 4 3-3 5 5" stroke={C.textMuted} strokeWidth="1.5" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <span
+                style={{
+                  fontFamily: "var(--font-chakra)",
+                  fontSize: 16,
+                  color: C.textMuted,
+                  textAlign: "center",
+                  padding: "0 24px",
+                }}
+              >
+                {placeholder ?? "Add iPad screenshot"}
+              </span>
+            </div>
+          ) : (
+            <img
+              src={src}
+              alt={alt}
+              style={{
+                display: "block",
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "top",
+              }}
+              draggable={false}
+              onError={() => setFailed(true)}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── iPad slides ──────────────────────────────────────────────────────────────
+// Same narrative arc as the iPhone slides; mockup proportions adjusted for the
+// wider iPad canvas (3:4 vs iPhone's 9:19.5). All caption sizing stays
+// canvas-relative so headlines look the same proportional weight on both.
+
+// iPad Slide 1 — Hero
+function IPadSlide1({ w, h }: { w: number; h: number }) {
+  return (
+    <div style={{ position: "relative", width: w, height: h, background: C.bg, overflow: "hidden" }}>
+      <GridLines w={w} h={h} />
+      <ScanlineOverlay w={w} h={h} />
+
+      <OrangeGlow style={{ width: w * 1.0, height: w * 1.0, top: h * 0.55, left: -w * 0.2 }} />
+      <CyanGlow style={{ width: w * 0.7, height: w * 0.7, top: -w * 0.15, right: -w * 0.15 }} />
+      <VioletGlow style={{ width: w * 0.5, height: w * 0.5, top: h * 0.30, left: w * 0.5 }} />
+
+      {/* Brand at top */}
+      <div style={{
+        position: "absolute", top: h * 0.05, left: 0, right: 0, zIndex: 10,
+        display: "flex", flexDirection: "column", alignItems: "center", gap: w * 0.014,
+      }}>
+        <img src="/icon.png" alt="BOBA Playbook" style={{ width: w * 0.11, height: w * 0.11, borderRadius: w * 0.024 }} />
+        <span style={label("BOBA PLAYBOOK", w)}>BOBA PLAYBOOK</span>
+      </div>
+
+      {/* iPad — width w*0.55 → height = w*0.55*1000/770 = w*0.714 = 1473px = h*0.535 */}
+      <IPad
+        src="/screenshots-ipad/home.png"
+        alt="iPad home screen"
+        placeholder="Drop iPad home screenshot"
+        style={{
+          position: "absolute",
+          width: w * 0.55,
+          top: h * 0.18,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 2,
+        }}
+      />
+
+      {/* Bottom gradient — covers bottom 30% so tagline is legible */}
+      <div style={{
+        position: "absolute",
+        bottom: 0, left: 0, right: 0,
+        height: h * 0.30,
+        background: `linear-gradient(to top, ${C.bg} 50%, transparent)`,
+        zIndex: 5,
+        pointerEvents: "none",
+      }} />
+
+      {/* Tagline */}
+      <div style={{
+        position: "absolute",
+        bottom: h * 0.06,
+        left: 0, right: 0,
+        textAlign: "center",
+        zIndex: 10,
+      }}>
+        <div style={headline(w * 0.075)}>
+          Search. Scan. Collect. Play.
+        </div>
+        <div style={{ marginTop: w * 0.018, ...body(w * 0.026) }}>
+          The ultimate BOBA companion app
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// iPad Slide 2 — Search
+function IPadSlide2({ w, h }: { w: number; h: number }) {
+  return (
+    <div style={{ position: "relative", width: w, height: h, background: C.bg, overflow: "hidden" }}>
+      <GridLines w={w} h={h} />
+      <ScanlineOverlay w={w} h={h} />
+
+      <CyanGlow style={{ width: w * 0.9, height: w * 0.9, top: -w * 0.25, left: -w * 0.15 }} />
+      <OrangeGlow style={{ width: w * 0.6, height: w * 0.6, bottom: 0, right: -w * 0.05 }} />
+
+      {/* Caption top — safe zone h*0.06 → ~h*0.36 */}
+      <div style={{ position: "absolute", top: h * 0.06, left: w * 0.10, right: w * 0.10, zIndex: 10 }}>
+        <div style={label("Search", w)}>THE FULL COLLECTION</div>
+        <div style={{ marginTop: w * 0.02, ...headline(w * 0.095) }}>
+          Every Card. At Your Fingertips.
+        </div>
+        <div style={{ marginTop: w * 0.022, ...body(w * 0.025) }}>
+          17,968 cards. Instant search. Filter by Weapon, Treatment, Set.
+        </div>
+        <div style={{ marginTop: w * 0.025, display: "flex", gap: w * 0.018, flexWrap: "wrap" }}>
+          <Pill color={C.cyan} w={w}>17,968 cards</Pill>
+          <Pill color={C.orange} w={w}>Full images</Pill>
+          <Pill color={C.violet} w={w}>Instant search</Pill>
+        </div>
+      </div>
+
+      {/* iPad — width w*0.62, top h*0.40 → bottom h*0.40 + 0.62*1000/770*w/h = bleeds */}
+      <IPad
+        src="/screenshots-ipad/search.png"
+        alt="iPad search screen"
+        placeholder="Drop iPad search screenshot"
+        style={{
+          position: "absolute",
+          width: w * 0.62,
+          top: h * 0.40,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 2,
+        }}
+      />
+    </div>
+  );
+}
+
+// iPad Slide 3 — Scan
+function IPadSlide3({ w, h }: { w: number; h: number }) {
+  return (
+    <div style={{ position: "relative", width: w, height: h, overflow: "hidden",
+      background: `linear-gradient(160deg, #080810 0%, #0D0820 50%, #080810 100%)` }}>
+      <GridLines w={w} h={h} />
+      <ScanlineOverlay w={w} h={h} />
+
+      <VioletGlow style={{ width: w * 1.0, height: w * 1.0, top: h * 0.3, left: -w * 0.2 }} />
+      <CyanGlow style={{ width: w * 0.7, height: w * 0.7, top: -w * 0.1, right: -w * 0.15 }} />
+
+      {/* Caption top — label + headline */}
+      <div style={{ position: "absolute", top: h * 0.06, left: w * 0.10, right: w * 0.10, zIndex: 10 }}>
+        <div style={label("Scan", w, C.violet)}>CAMERA · ON-DEVICE</div>
+        <div style={{ marginTop: w * 0.02, ...headline(w * 0.095) }}>
+          Point. Shoot. Add.
+        </div>
+      </div>
+
+      {/* iPad */}
+      <IPad
+        src="/screenshots-ipad/scan.png"
+        alt="iPad scan screen"
+        placeholder="Drop iPad scan screenshot"
+        style={{
+          position: "absolute",
+          width: w * 0.55,
+          top: h * 0.24,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 2,
+        }}
+      />
+
+      {/* Bottom gradient fade */}
+      <div style={{
+        position: "absolute",
+        bottom: 0, left: 0, right: 0,
+        height: h * 0.22,
+        background: `linear-gradient(to top, ${C.bg} 50%, transparent)`,
+        zIndex: 5,
+        pointerEvents: "none",
+      }} />
+
+      {/* Bottom caption */}
+      <div style={{
+        position: "absolute",
+        bottom: h * 0.06,
+        left: w * 0.10, right: w * 0.10,
+        zIndex: 10,
+      }}>
+        <div style={body(w * 0.025)}>
+          Identifies any card in real time. No uploads. Entirely on-device.
+        </div>
+        <div style={{ marginTop: w * 0.018, display: "flex", gap: w * 0.018 }}>
+          <Pill color={C.violet} w={w}>Vision OCR</Pill>
+          <Pill color={C.cyan} w={w}>Private</Pill>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// iPad Slide 4 — Collect (single iPad showing NavigationSplitView)
+function IPadSlide4({ w, h }: { w: number; h: number }) {
+  return (
+    <div style={{ position: "relative", width: w, height: h, background: C.bg, overflow: "hidden" }}>
+      <GridLines w={w} h={h} />
+      <ScanlineOverlay w={w} h={h} />
+
+      <OrangeGlow style={{ width: w * 0.9, height: w * 0.9, bottom: -w * 0.15, right: -w * 0.15 }} />
+      <CyanGlow style={{ width: w * 0.5, height: w * 0.5, top: -w * 0.05, left: -w * 0.05 }} />
+
+      {/* Caption */}
+      <div style={{ position: "absolute", top: h * 0.06, left: w * 0.10, right: w * 0.10, zIndex: 10 }}>
+        <div style={label("Collect", w)}>YOUR COLLECTION</div>
+        <div style={{ marginTop: w * 0.02, ...headline(w * 0.09) }}>
+          Track what you own.
+        </div>
+        <div style={{ marginTop: w * 0.022, ...body(w * 0.025) }}>
+          Personal · For Sale · For Trade · Wanted · Grails
+        </div>
+        <div style={{ marginTop: w * 0.025, display: "flex", gap: w * 0.018, flexWrap: "wrap" }}>
+          <Pill color={C.orange} w={w}>5 designations</Pill>
+          <Pill color={C.cyan} w={w}>Cloud sync</Pill>
+          <Pill color={C.violet} w={w}>Swipe to delete</Pill>
+        </div>
+      </div>
+
+      {/* iPad */}
+      <IPad
+        src="/screenshots-ipad/collect.png"
+        alt="iPad collection screen"
+        placeholder="Drop iPad collection screenshot"
+        style={{
+          position: "absolute",
+          width: w * 0.62,
+          top: h * 0.42,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 2,
+        }}
+      />
+    </div>
+  );
+}
+
+// iPad Slide 5 — Pricing
+function IPadSlide5({ w, h }: { w: number; h: number }) {
+  return (
+    <div style={{ position: "relative", width: w, height: h, overflow: "hidden",
+      background: `linear-gradient(170deg, #080810 0%, #100808 60%, #080810 100%)` }}>
+      <GridLines w={w} h={h} />
+      <ScanlineOverlay w={w} h={h} />
+
+      <OrangeGlow style={{ width: w * 0.8, height: w * 0.8, top: h * 0.5, left: w * 0.05 }} />
+      <VioletGlow style={{ width: w * 0.5, height: w * 0.5, top: -w * 0.05, right: -w * 0.05 }} />
+
+      {/* Caption + price widget */}
+      <div style={{ position: "absolute", top: h * 0.06, left: w * 0.10, right: w * 0.10, zIndex: 10 }}>
+        <div style={label("Pricing", w, C.orange)}>RECENT SOLD COMPS</div>
+        <div style={{ marginTop: w * 0.02, ...headline(w * 0.09) }}>
+          Real sales. Real prices.
+        </div>
+        <div style={{ marginTop: w * 0.022, ...body(w * 0.025) }}>
+          Live market estimate plus recent sold listings, per card.
+        </div>
+
+        <div style={{
+          marginTop: w * 0.028,
+          background: C.surface,
+          border: `1px solid ${C.glassBorder}`,
+          borderRadius: w * 0.025,
+          padding: `${w * 0.025}px ${w * 0.04}px`,
+          display: "flex",
+          justifyContent: "space-between",
+          maxWidth: w * 0.55,
+        }}>
+          {[
+            { label: "LOW", value: "$4.99", color: C.cyan },
+            { label: "AVG", value: "$12.50", color: C.orange },
+            { label: "HIGH", value: "$28.00", color: C.violet },
+          ].map(({ label: l, value, color }) => (
+            <div key={l} style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: "var(--font-chakra)", fontSize: w * 0.016, fontWeight: 700, color: C.textMuted, letterSpacing: "0.15em" }}>{l}</div>
+              <div style={{ fontFamily: "var(--font-bebas)", fontSize: w * 0.052, color, letterSpacing: "0.02em", lineHeight: 1.1 }}>{value}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: w * 0.022, display: "flex", gap: w * 0.018, flexWrap: "wrap" }}>
+          <Pill color={C.orange} w={w}>Recent sales</Pill>
+          <Pill color={C.cyan} w={w}>Live market data</Pill>
+        </div>
+      </div>
+
+      {/* iPad — bleeds off bottom */}
+      <IPad
+        src="/screenshots-ipad/pricing.png"
+        alt="iPad pricing screen"
+        placeholder="Drop iPad pricing screenshot"
+        style={{
+          position: "absolute",
+          width: w * 0.60,
+          top: h * 0.45,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 2,
+        }}
+      />
+    </div>
+  );
+}
+
+// iPad Slide 6 — Play
+function IPadSlide6({ w, h }: { w: number; h: number }) {
+  return (
+    <div style={{ position: "relative", width: w, height: h, overflow: "hidden",
+      background: `linear-gradient(150deg, #080810 0%, #080818 50%, #0A0810 100%)` }}>
+      <GridLines w={w} h={h} />
+      <ScanlineOverlay w={w} h={h} />
+
+      <VioletGlow style={{ width: w * 1.0, height: w * 1.0, top: h * 0.1, left: -w * 0.25 }} />
+      <OrangeGlow style={{ width: w * 0.6, height: w * 0.6, bottom: 0, right: -w * 0.05 }} />
+
+      {/* Caption */}
+      <div style={{ position: "absolute", top: h * 0.06, left: w * 0.10, right: w * 0.10, zIndex: 10 }}>
+        <div style={label("Play", w, C.violet)}>RULES · STRATEGY · DECKS</div>
+        <div style={{ marginTop: w * 0.02, ...headline(w * 0.09) }}>
+          Know the rules. Win the game.
+        </div>
+        <div style={{ marginTop: w * 0.022, ...body(w * 0.025) }}>
+          Rookie to playmaker. Rules, strategy, decks.
+        </div>
+        <div style={{ marginTop: w * 0.025, display: "flex", gap: w * 0.018, flexWrap: "wrap" }}>
+          <Pill color={C.violet} w={w}>Deck builder</Pill>
+          <Pill color={C.orange} w={w}>Format legality</Pill>
+          <Pill color={C.cyan} w={w}>Strategy guides</Pill>
+        </div>
+      </div>
+
+      {/* iPad — top h*0.36, width w*0.62, centered, bleeds */}
+      <IPad
+        src="/screenshots-ipad/play.png"
+        alt="iPad play screen"
+        placeholder="Drop iPad decks screenshot"
+        style={{
+          position: "absolute",
+          width: w * 0.62,
+          top: h * 0.36,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 2,
+        }}
+      />
+    </div>
+  );
+}
+
+// iPad Slide 7 — Decks (deck builder)
+function IPadSlideDecks({ w, h }: { w: number; h: number }) {
+  return (
+    <div style={{ position: "relative", width: w, height: h, overflow: "hidden",
+      background: `linear-gradient(155deg, #080810 0%, #0A0A20 50%, #080810 100%)` }}>
+      <GridLines w={w} h={h} />
+      <ScanlineOverlay w={w} h={h} />
+
+      <CyanGlow style={{ width: w * 0.9, height: w * 0.9, top: h * 0.05, right: -w * 0.20 }} />
+      <OrangeGlow style={{ width: w * 0.6, height: w * 0.6, bottom: 0, left: -w * 0.05 }} />
+      <VioletGlow style={{ width: w * 0.4, height: w * 0.4, top: h * 0.4, left: w * 0.5 }} />
+
+      {/* Caption */}
+      <div style={{ position: "absolute", top: h * 0.06, left: w * 0.10, right: w * 0.10, zIndex: 10 }}>
+        <div style={label("Decks", w, C.cyan)}>DECK BUILDER</div>
+        <div style={{ marginTop: w * 0.02, ...headline(w * 0.09) }}>
+          Build legal. Battle ready.
+        </div>
+        <div style={{ marginTop: w * 0.022, ...body(w * 0.025) }}>
+          Saved decks · Pool · Editor — three columns, drag-and-drop.
+        </div>
+        <div style={{ marginTop: w * 0.025, display: "flex", gap: w * 0.018, flexWrap: "wrap" }}>
+          <Pill color={C.cyan} w={w}>Format legality</Pill>
+          <Pill color={C.orange} w={w}>Drag-drop</Pill>
+          <Pill color={C.violet} w={w}>Battle Day Score</Pill>
+        </div>
+      </div>
+
+      {/* iPad — bleeds off bottom */}
+      <IPad
+        src="/screenshots-ipad/decks.png"
+        alt="iPad decks 3-column"
+        placeholder="Drop iPad decks 3-column screenshot"
+        style={{
+          position: "absolute",
+          width: w * 0.62,
+          top: h * 0.40,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 2,
+        }}
+      />
+    </div>
+  );
+}
+
+// iPad Slide 8 — More features
+function IPadSlide7({ w, h }: { w: number; h: number }) {
+  const features = [
+    { icon: "🔍", text: "Search 17K+ cards" },
+    { icon: "📸", text: "On-device scan" },
+    { icon: "📦", text: "Collection tracker" },
+    { icon: "💰", text: "Live market prices" },
+    { icon: "🃏", text: "Deck builder" },
+    { icon: "📱", text: "iPad first-class" },
+    { icon: "🔗", text: "Public collections" },
+    { icon: "🛒", text: "Breaks & stores" },
+  ];
+
+  return (
+    <div style={{ position: "relative", width: w, height: h, overflow: "hidden",
+      background: `linear-gradient(180deg, #080810 0%, #0D0D1A 100%)` }}>
+      <GridLines w={w} h={h} />
+      <ScanlineOverlay w={w} h={h} />
+
+      <OrangeGlow style={{ width: w * 0.7, height: w * 0.7, top: h * 0.3, left: -w * 0.15 }} />
+      <CyanGlow style={{ width: w * 0.6, height: w * 0.6, top: h * 0.2, right: -w * 0.15 }} />
+      <VioletGlow style={{ width: w * 0.4, height: w * 0.4, bottom: h * 0.1, left: w * 0.3 }} />
+
+      {/* App icon + wordmark */}
+      <div style={{
+        position: "absolute",
+        top: h * 0.06,
+        left: 0,
+        right: 0,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: w * 0.014,
+      }}>
+        <img
+          src="/icon.png"
+          alt="BOBA Playbook"
+          style={{ width: w * 0.14, height: w * 0.14, borderRadius: w * 0.03 }}
+        />
+        <div style={headline(w * 0.058)}>BOBA PLAYBOOK</div>
+      </div>
+
+      {/* Headline */}
+      <div style={{
+        position: "absolute",
+        top: h * 0.26,
+        left: 0,
+        right: 0,
+        textAlign: "center",
+        padding: `0 ${w * 0.08}px`,
+      }}>
+        <div style={headline(w * 0.105)}>
+          And so much more.
+        </div>
+        <div style={{ marginTop: w * 0.02, ...body(w * 0.027) }}>
+          Everything you need for BOBA. Made by fans.
+        </div>
+      </div>
+
+      {/* Feature grid — 2-col, larger cards on the wider iPad canvas */}
+      <div style={{
+        position: "absolute",
+        top: h * 0.46,
+        left: w * 0.10,
+        right: w * 0.10,
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: w * 0.025,
+      }}>
+        {features.map(({ icon, text }) => (
+          <div
+            key={text}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: w * 0.025,
+              background: C.surface,
+              border: `1px solid ${C.glassBorder}`,
+              borderRadius: w * 0.022,
+              padding: `${w * 0.026}px ${w * 0.03}px`,
+            }}
+          >
+            <span style={{ fontSize: w * 0.04 }}>{icon}</span>
+            <span style={{ fontFamily: "var(--font-chakra)", fontSize: w * 0.026, fontWeight: 500, color: C.textPrimary }}>{text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Slide registries ─────────────────────────────────────────────────────────
+const IPHONE_SLIDES = [
   { id: "slide1", title: "Hero", Component: Slide1 },
   { id: "slide2", title: "Search", Component: Slide2 },
   { id: "slide3", title: "Scan", Component: Slide3 },
   { id: "slide4", title: "Collect", Component: Slide4 },
   { id: "slide5", title: "Pricing", Component: Slide5 },
   { id: "slide6", title: "Play", Component: Slide6 },
-  { id: "slide7", title: "More", Component: Slide7 },
+  { id: "slide7", title: "Decks", Component: SlideDecks },
+  { id: "slide8", title: "More", Component: Slide7 },
+];
+
+const IPAD_SLIDES = [
+  { id: "ipad-slide1", title: "Hero", Component: IPadSlide1 },
+  { id: "ipad-slide2", title: "Search", Component: IPadSlide2 },
+  { id: "ipad-slide3", title: "Scan", Component: IPadSlide3 },
+  { id: "ipad-slide4", title: "Collect", Component: IPadSlide4 },
+  { id: "ipad-slide5", title: "Pricing", Component: IPadSlide5 },
+  { id: "ipad-slide6", title: "Play", Component: IPadSlide6 },
+  { id: "ipad-slide7", title: "Decks", Component: IPadSlideDecks },
+  { id: "ipad-slide8", title: "More", Component: IPadSlide7 },
 ];
 
 // ─── Preview wrapper with ResizeObserver scaling ──────────────────────────────
-// Export strategy: capture the preview's inner div directly (it IS the full CW×CH
-// slide — just visually scaled via CSS transform). We override transform:"none" in
-// the html-to-image clone so it renders at native size. This avoids the blank-image
-// bug caused by off-screen elements that never get fonts/images loaded by the browser.
 function ScreenshotPreview({
   id,
   title,
   children,
   exportSize,
+  canvasW,
+  canvasH,
 }: {
   id: string;
   title: string;
   children: React.ReactNode;
-  exportSize: (typeof SIZES)[number];
+  exportSize: ExportSize;
+  canvasW: number;
+  canvasH: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -803,43 +1474,82 @@ function ScreenshotPreview({
     if (!el) return;
     const ro = new ResizeObserver(() => {
       const { width } = el.getBoundingClientRect();
-      setScale(width / CW);
+      setScale(width / canvasW);
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [canvasW]);
 
   const handleExport = useCallback(async () => {
     const el = innerRef.current;
     if (!el || exporting) return;
     setExporting(true);
+
+    // Track which <img> srcs we replaced so we can restore them in finally{}
+    const originalSrcs = new Map<HTMLImageElement, string>();
+
     try {
+      // 1. Wait for fonts
       await document.fonts.ready;
+
+      // 2. Pre-convert every <img> in the slide to a base64 data URL and
+      // swap it into img.src. We do this because html-to-image's internal
+      // image fetcher silently fails to embed Next.js dev-server assets
+      // in some environments — the export renders with empty img slots
+      // (mockup frame missing, screenshot missing). Inlining the bytes
+      // before capture sidesteps the fetcher entirely.
+      const imgs = Array.from(el.querySelectorAll("img"));
+      for (const img of imgs) {
+        if (img.src.startsWith("data:")) continue;
+        try {
+          const resp = await fetch(img.src);
+          if (!resp.ok) continue;
+          const blob = await resp.blob();
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const r = new FileReader();
+            r.onloadend = () => resolve(r.result as string);
+            r.onerror = () => reject(r.error);
+            r.readAsDataURL(blob);
+          });
+          originalSrcs.set(img, img.src);
+          img.src = dataUrl;
+          // Wait for the swapped-in src to be ready to paint
+          if (img.decode) {
+            try { await img.decode(); } catch { /* ignore */ }
+          }
+        } catch (err) {
+          console.warn("[export] failed to inline image", img.src, err);
+        }
+      }
+
       const htmlToImage = await import("html-to-image");
 
       const opts = {
-        width: CW,
-        height: CH,
-        pixelRatio: exportSize.w / CW,
-        // Remove the CSS scale transform in the clone so it renders at native CW×CH
+        width: canvasW,
+        height: canvasH,
+        pixelRatio: exportSize.w / canvasW,
+        // Remove the CSS scale transform in the clone so it renders at native size
         style: { transform: "none", transformOrigin: "top left" },
-        cacheBust: true,
       };
 
-      // First call warms up font + image embedding; second call is the real capture
-      await htmlToImage.toPng(el, opts);
+      // Single capture — images are already data URLs, no warm-up needed
       const dataUrl = await htmlToImage.toPng(el, opts);
 
+      const safeLabel = exportSize.label.replace(/"/g, "in").replace(/\s+/g, "-");
       const link = document.createElement("a");
-      link.download = `boba-${id}-${exportSize.label.replace(/"/g, "in")}.png`;
+      link.download = `boba-${id}-${safeLabel}-${exportSize.w}x${exportSize.h}.png`;
       link.href = dataUrl;
       link.click();
     } finally {
+      // Restore original src on every img we touched
+      for (const [img, src] of originalSrcs) {
+        img.src = src;
+      }
       setExporting(false);
     }
-  }, [id, exportSize, exporting]);
+  }, [id, exportSize, exporting, canvasW, canvasH]);
 
-  const previewH = CW * scale * (CH / CW);
+  const previewH = canvasW * scale * (canvasH / canvasW);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -862,8 +1572,8 @@ function ScreenshotPreview({
           style={{
             transformOrigin: "top left",
             transform: `scale(${scale})`,
-            width: CW,
-            height: CH,
+            width: canvasW,
+            height: canvasH,
           }}
         >
           {children}
@@ -899,9 +1609,23 @@ function ScreenshotPreview({
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
+type Device = "iphone" | "ipad";
+
 export default function ScreenshotsClient() {
+  const [device, setDevice] = useState<Device>("iphone");
   const [sizeIdx, setSizeIdx] = useState(0);
-  const exportSize = SIZES[sizeIdx];
+
+  const sizes: readonly ExportSize[] = device === "iphone" ? IPHONE_SIZES : IPAD_SIZES;
+  const exportSize = sizes[Math.min(sizeIdx, sizes.length - 1)];
+  const slides = device === "iphone" ? IPHONE_SLIDES : IPAD_SLIDES;
+  const canvasW = device === "iphone" ? IPHONE_W : IPAD_W;
+  const canvasH = device === "iphone" ? IPHONE_H : IPAD_H;
+
+  // Reset size index when device changes (sizes arrays are different lengths)
+  const switchDevice = (d: Device) => {
+    setDevice(d);
+    setSizeIdx(0);
+  };
 
   return (
     <div
@@ -925,6 +1649,7 @@ export default function ScreenshotsClient() {
           display: "flex",
           alignItems: "center",
           gap: 24,
+          flexWrap: "wrap",
         }}
       >
         <span
@@ -938,11 +1663,40 @@ export default function ScreenshotsClient() {
           BOBA Playbook — Screenshots
         </span>
 
-        <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+        {/* Device toggle */}
+        <div style={{ display: "flex", gap: 6, marginLeft: "auto", alignItems: "center" }}>
+          <span style={{ fontSize: 11, color: C.textMuted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            Device:
+          </span>
+          {(["iphone", "ipad"] as const).map((d) => (
+            <button
+              key={d}
+              onClick={() => switchDevice(d)}
+              style={{
+                fontFamily: "var(--font-chakra)",
+                fontSize: 11,
+                fontWeight: device === d ? 700 : 400,
+                color: device === d ? C.orange : C.textMuted,
+                background: device === d ? `${C.orange}15` : "transparent",
+                border: `1px solid ${device === d ? C.orange : "rgba(255,255,255,0.1)"}`,
+                borderRadius: 4,
+                padding: "4px 12px",
+                cursor: "pointer",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+
+        {/* Size dropdown */}
+        <div style={{ display: "flex", gap: 8 }}>
           <span style={{ fontSize: 11, color: C.textMuted, alignSelf: "center", letterSpacing: "0.1em", textTransform: "uppercase" }}>
             Size:
           </span>
-          {SIZES.map((s, i) => (
+          {sizes.map((s, i) => (
             <button
               key={s.label}
               onClick={() => setSizeIdx(i)}
@@ -979,13 +1733,22 @@ export default function ScreenshotsClient() {
           lineHeight: 1.5,
         }}
       >
-        <strong style={{ color: C.cyan }}>Adding screenshots:</strong> Drop your iPhone 15 Pro captures into{" "}
+        <strong style={{ color: C.cyan }}>Adding screenshots:</strong>{" "}
+        Drop iPhone captures (portrait, ideally 1320×2868 from 6.9&quot; sim or device) into{" "}
         <code style={{ color: C.textPrimary, background: "rgba(255,255,255,0.05)", padding: "1px 6px", borderRadius: 3 }}>
           tools/screenshots/public/screenshots/
         </code>{" "}
-        using these filenames:{" "}
+        as{" "}
         <code style={{ color: C.textPrimary, background: "rgba(255,255,255,0.05)", padding: "1px 6px", borderRadius: 3 }}>
-          home.png, search.png, scan.png, collect.png, collect-2.png, pricing.png, play.png
+          home / search / scan / collect / collect-2 / pricing / play / decks.png
+        </code>.
+        Drop iPad captures (portrait, ideally 2048×2732 from 12.9&quot; iPad Pro) into{" "}
+        <code style={{ color: C.textPrimary, background: "rgba(255,255,255,0.05)", padding: "1px 6px", borderRadius: 3 }}>
+          tools/screenshots/public/screenshots-ipad/
+        </code>{" "}
+        as{" "}
+        <code style={{ color: C.textPrimary, background: "rgba(255,255,255,0.05)", padding: "1px 6px", borderRadius: 3 }}>
+          home / search / scan / collect / pricing / play / decks.png
         </code>.
         Click any slide to export it at the selected resolution.
       </div>
@@ -994,16 +1757,25 @@ export default function ScreenshotsClient() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+          gridTemplateColumns: device === "iphone"
+            ? "repeat(auto-fill, minmax(200px, 1fr))"
+            : "repeat(auto-fill, minmax(280px, 1fr))",
           gap: 24,
           padding: "24px 32px",
           maxWidth: 1600,
           margin: "0 auto",
         }}
       >
-        {SLIDES.map(({ id, title, Component }) => (
-          <ScreenshotPreview key={id} id={id} title={title} exportSize={exportSize}>
-            <Component w={CW} h={CH} />
+        {slides.map(({ id, title, Component }) => (
+          <ScreenshotPreview
+            key={id}
+            id={id}
+            title={title}
+            exportSize={exportSize}
+            canvasW={canvasW}
+            canvasH={canvasH}
+          >
+            <Component w={canvasW} h={canvasH} />
           </ScreenshotPreview>
         ))}
       </div>

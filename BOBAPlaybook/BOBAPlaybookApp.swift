@@ -68,31 +68,49 @@ struct BOBAPlaybookApp: App {
                     guard authManager.isAuthenticated else { return }
                     Task { await authManager.fetchRole() }
                 }
+                // Single URL entry point. iOS 17+ routes both
+                // bobaplaybook:// custom-scheme URLs AND https://
+                // Universal Links through onOpenURL — the older
+                // NSUserActivityTypeBrowsingWeb path is largely
+                // superseded. Dispatch by scheme.
                 .onOpenURL { url in
                     print("[DeepLink] onOpenURL fired: \(url.absoluteString)")
-                    handleDeepLink(url)
+                    routeIncoming(url)
                 }
-                // Universal Links per DESIGN.md §8.4 — taps on
-                // https://bobaplaybook.com/* land here when the app is
-                // installed (apple-app-site-association on the server
-                // gates which paths route in vs. open the web). Iframed
-                // through the same handler that takes bobaplaybook://
-                // URLs so the routing stays one source of truth.
+                // onContinueUserActivity kept as a fallback for older
+                // iOS versions / Handoff scenarios where the system
+                // still uses the activity-based delivery.
                 .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
                     print("[DeepLink] onContinueUserActivity fired. webpageURL=\(activity.webpageURL?.absoluteString ?? "nil")")
                     guard let url = activity.webpageURL else {
                         print("[DeepLink]   ↳ no webpageURL on activity, ignoring")
                         return
                     }
-                    handleUniversalLink(url)
+                    routeIncoming(url)
                 }
         }
     }
 
-    /// Single handler for both bobaplaybook:// custom-scheme URLs and
-    /// Universal Link https://bobaplaybook.com/* fallbacks. Routes the
-    /// canonical paths from DESIGN.md (card / search / scan / learn /
-    /// u/{user}/{designation}) and forwards anything else to AuthManager.
+    /// Dispatcher for incoming URLs from either scheme. Universal
+    /// Links arrive as https://bobaplaybook.com/...; custom-scheme
+    /// links arrive as bobaplaybook://.... Routes each to its
+    /// dedicated handler so the parsing stays simple.
+    @MainActor
+    private func routeIncoming(_ url: URL) {
+        switch url.scheme {
+        case "https":
+            handleUniversalLink(url)
+        case "bobaplaybook":
+            handleDeepLink(url)
+        default:
+            print("[DeepLink] routeIncoming: unhandled scheme '\(url.scheme ?? "nil")', ignoring")
+        }
+    }
+
+    /// Single handler for bobaplaybook:// custom-scheme URLs.
+    /// Universal Links go through handleUniversalLink which translates
+    /// to a custom-scheme URL and calls this — one parser, two entry
+    /// shapes.
     @MainActor
     private func handleDeepLink(_ url: URL) {
         print("[DeepLink] handleDeepLink: scheme=\(url.scheme ?? "nil") host=\(url.host ?? "nil") path=\(url.path)")

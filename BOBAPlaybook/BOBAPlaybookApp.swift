@@ -99,15 +99,28 @@ struct BOBAPlaybookApp: App {
             let cardNumber = String(url.path.dropFirst())
             if !cardNumber.isEmpty {
                 selectedTab = 0
-                cardStore.pendingCardNumber = cardNumber.uppercased()
+                let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+                let q = comps?.queryItems
+                // Optional ?treatment= and ?hero= disambiguate when a
+                // hero has multiple variants at one cardNumber. Web
+                // URLs (bobaplaybook.com/?card=BL-B81&treatment=...
+                // &hero=...) carry both — without these, the lookup
+                // fell back to the first cardNumber match, landing
+                // on the wrong variant.
+                //
+                // Set BEFORE pendingCardNumber so SearchView's
+                // .onChange(of: pendingCardNumber) reads them as the
+                // already-set values when it fires tryPresentPendingCard.
+                cardStore.pendingCardTreatment = q?.first(where: { $0.name == "treatment" })?.value
+                cardStore.pendingCardHero = q?.first(where: { $0.name == "hero" })?.value
                 // Optional ?action=addToCollection hint from
                 // AddToCollectionIntent — CardDetailView reads this
                 // and auto-presents the AddToCollection sheet on
                 // first appearance.
-                let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
-                if let action = comps?.queryItems?.first(where: { $0.name == "action" })?.value {
+                if let action = q?.first(where: { $0.name == "action" })?.value {
                     cardStore.pendingCardAction = action
                 }
+                cardStore.pendingCardNumber = cardNumber.uppercased()
             }
         case "search":
             selectedTab = 0
@@ -135,10 +148,39 @@ struct BOBAPlaybookApp: App {
     /// https://bobaplaybook.com/{card,search,scan,learn,u/{id}/{designation}}
     /// path mirror of the custom-scheme URLs above. Translates to the
     /// custom scheme so a single switch handles both inbound paths.
+    /// Also handles the web app's root-path query-string format:
+    /// https://bobaplaybook.com/?card=BL-B81&treatment=Blue+Blast&hero=...
+    /// — the SPA-style URL the web build emits when you share a card.
     @MainActor
     private func handleUniversalLink(_ url: URL) {
         guard url.host == "bobaplaybook.com" else { return }
         let pathParts = url.path.split(separator: "/").map(String.init)
+        let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+
+        // Root-path SPA URLs: /?card=X&treatment=Y&hero=Z
+        // Take precedence over path-based parsing when ?card= is
+        // present, since the web app's canonical share URL is this
+        // shape.
+        if let cardQ = comps?.queryItems?.first(where: { $0.name == "card" })?.value,
+           !cardQ.isEmpty {
+            let treatment = comps?.queryItems?.first(where: { $0.name == "treatment" })?.value
+            let hero      = comps?.queryItems?.first(where: { $0.name == "hero" })?.value
+            // Build a custom-scheme URL preserving every query param so
+            // handleDeepLink's existing parsing handles the rest.
+            var newComps = URLComponents()
+            newComps.scheme = "bobaplaybook"
+            newComps.host = "card"
+            newComps.path = "/\(cardQ)"
+            var items: [URLQueryItem] = []
+            if let t = treatment { items.append(URLQueryItem(name: "treatment", value: t)) }
+            if let h = hero      { items.append(URLQueryItem(name: "hero",      value: h)) }
+            if !items.isEmpty { newComps.queryItems = items }
+            if let translated = newComps.url {
+                handleDeepLink(translated)
+                return
+            }
+        }
+
         guard let first = pathParts.first?.lowercased() else { return }
         switch first {
         case "card" where pathParts.count >= 2:
@@ -148,7 +190,6 @@ struct BOBAPlaybookApp: App {
             handleDeepLink(URL(string: "bobaplaybook://scan")!)
         case "search":
             // /search?q=...
-            let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
             let q = comps?.queryItems?.first(where: { $0.name == "q" })?.value ?? ""
             let encoded = q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
             handleDeepLink(URL(string: "bobaplaybook://search?q=\(encoded)")!)

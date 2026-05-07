@@ -111,6 +111,15 @@ final class CardStore {
     // SearchView watches this and presents the card once displayCards is populated.
     var pendingCardNumber: String? = nil
 
+    /// Optional disambiguators read from the deep-link URL's query
+    /// string (?treatment=... and ?hero=...). Multiple variants can
+    /// share a cardNumber (different treatments at one number); when
+    /// these are set, SearchView.tryPresentPendingCard narrows the
+    /// match to the specific variant the user clicked. Cleared
+    /// alongside pendingCardNumber after a successful lookup.
+    var pendingCardTreatment: String? = nil
+    var pendingCardHero: String? = nil
+
     /// Set by the URL handler when a bobaplaybook://scan URL opens the app
     /// (the QR code on the web version uses this to jump straight to scanning).
     /// SearchView watches this and presents the ScanView sheet.

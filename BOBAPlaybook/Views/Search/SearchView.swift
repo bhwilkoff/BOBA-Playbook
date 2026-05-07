@@ -386,10 +386,36 @@ struct SearchView: View {
 
     private func tryPresentPendingCard() {
         guard let cardNum = store.pendingCardNumber,
-              !store.displayCards.isEmpty,
-              let card = store.displayCards.first(where: { $0.cardNumber == cardNum }) else { return }
+              !store.displayCards.isEmpty else { return }
+
+        // Disambiguate using treatment + hero when present (set from
+        // the deep-link URL's ?treatment= and ?hero= params). Multiple
+        // variants can share a cardNumber — without this, we'd pick
+        // the first arbitrary match. Match is case-sensitive on
+        // cardNumber/treatment (which are catalog data), but case-
+        // insensitive + whitespace-trimmed on hero (URL-encoded names
+        // like `Barry "Cutback" Sanders` round-trip with attention).
+        let treatment = store.pendingCardTreatment
+        let hero      = store.pendingCardHero
+        let normalizedHero = hero?.trimmingCharacters(in: .whitespaces).lowercased()
+
+        let card = store.displayCards.first { c in
+            guard c.cardNumber == cardNum else { return false }
+            if let t = treatment, !t.isEmpty, c.treatment != t { return false }
+            if let nh = normalizedHero, !nh.isEmpty,
+               c.hero.trimmingCharacters(in: .whitespaces).lowercased() != nh { return false }
+            return true
+        }
+            // Fallback — if the disambiguators didn't match anything
+            // (data drift, treatment renamed, etc.), still surface a
+            // card rather than silently failing.
+            ?? store.displayCards.first(where: { $0.cardNumber == cardNum })
+
+        guard let card else { return }
         navigationPath.append(card)
         store.pendingCardNumber = nil
+        store.pendingCardTreatment = nil
+        store.pendingCardHero = nil
     }
 
     // MARK: - Content

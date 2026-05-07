@@ -457,6 +457,11 @@ struct SearchView: View {
                 ForEach(Array(store.filteredCards.enumerated()), id: \.element.id) { idx, card in
                     BOBACardGridItem(card: card, columnCount: gridColumns)
                         .aspectRatio(3/4, contentMode: .fit)
+                        // iPad drag-drop per DESIGN.md §6.6 — drag a
+                        // card out to drop into a Decks editor (in
+                        // another iPad window via Stage Manager) or
+                        // to receiving apps. Harmless on iPhone.
+                        .draggable(card)
                         .compactZoomSource(id: card.id, in: cardZoomNamespace)
                         .onTapGesture {
                             if quickAdd {

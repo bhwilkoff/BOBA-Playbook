@@ -1,0 +1,37 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["L2G756LY8N.app.bobaplaybook.ios"],
+        "components": [
+          {
+            "/": "/",
+            "?": { "card": "*" },
+            "comment": "Card share URLs (web SPA emits ?card=X&treatment=Y&hero=Z)"
+          },
+          {
+            "/": "/card/*",
+            "comment": "Path-based card URLs (alt format)"
+          },
+          {
+            "/": "/u/*",
+            "comment": "Public collection pages (/u/{username} and /u/{username}/{designation})"
+          },
+          {
+            "/": "/learn/*",
+            "comment": "Learn category deep links"
+          },
+          {
+            "/": "/scan",
+            "comment": "Scan trigger"
+          },
+          {
+            "/": "/search",
+            "?": { "q": "*" },
+            "comment": "Search query (requires ?q=)"
+          }
+        ]
+      }
+    ]
+  }
+}

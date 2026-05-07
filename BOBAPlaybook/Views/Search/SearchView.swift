@@ -238,6 +238,14 @@ struct SearchView: View {
                               navigationCards: store.filteredCards,
                               zoomNamespace: cardZoomNamespace)
         }
+        // CardDetailView's "Other Versions" cells push a Card via
+        // NavigationLink(value: variant). Without this destination
+        // handler the taps silently no-op — the Find stack only has
+        // a CardRoute handler (added for Universal Links), so a Card
+        // value has nowhere to land. Mirrors CollectionView's pattern.
+        .navigationDestination(for: Card.self) { card in
+            CardDetailView(card: card, wrapInNavStack: false)
+        }
     }
 
     /// Stable Binding<Bool> for the quickAdd-error alert — pulled out

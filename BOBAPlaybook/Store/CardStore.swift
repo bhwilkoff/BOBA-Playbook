@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftUI
 
 /// Sub-tab on the Find tab that scopes results by card purpose. The
 /// Discord corpus (§8) shows players think of Plays / Hot Dogs / Sealed
@@ -79,7 +80,14 @@ final class CardStore {
     /// binds NavigationStack(path:) to this, eliminating the cold-launch
     /// race where pendingCardNumber-style observation could miss a
     /// value set before the view mounted.
-    var findNavigationPath: [CardRoute] = []
+    ///
+    /// Type-erased (`NavigationPath`) rather than `[CardRoute]` so the
+    /// stack accepts mixed value types: URL deep links push `CardRoute`,
+    /// in-app pushes (e.g. `CardDetailView`'s "Other Versions" cells)
+    /// push `Card`. A strictly-typed path silently rejects any value
+    /// whose type doesn't match its element type — that was the cause
+    /// of the variant-tap regression after the Universal Links refactor.
+    var findNavigationPath = NavigationPath()
 
     // MARK: - Data
     private(set) var displayCards: [Card] = []

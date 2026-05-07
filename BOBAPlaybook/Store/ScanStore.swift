@@ -117,11 +117,15 @@ final class ScanStore {
 
     // MARK: - Queue operations
 
-    /// Adds a card to the queue. Re-scanning the same cardNumber bumps
-    /// its quantity instead of dropping the duplicate — so a stack of
-    /// identical battlefoils can be tallied by repeated scans.
+    /// Adds a card to the queue. Re-scanning the same card (same
+    /// bobaId) bumps its quantity instead of dropping the duplicate —
+    /// so a stack of identical battlefoils can be tallied by repeated
+    /// scans. Dedup is by bobaId, NOT cardNumber: the same cardNumber
+    /// can map to multiple bobaIds (different treatments at one
+    /// number), and merging those would silently fold distinct cards
+    /// into a single queue entry.
     func addToQueue(_ card: Card) {
-        if let idx = queuedCards.firstIndex(where: { $0.card.cardNumber == card.cardNumber }) {
+        if let idx = queuedCards.firstIndex(where: { $0.card.id == card.id }) {
             queuedCards[idx].quantity = min(queuedCards[idx].quantity + 1, 99)
             return
         }

@@ -41,7 +41,11 @@ struct ModPanelView: View {
                     .listRowBackground(Design.Colors.surface)
                 } else {
                     Section("RESULTS") {
-                        ForEach(Array(results), id: \.cardNumber) { card in
+                        // id: \.id (bobaId) — cardNumber is non-unique
+                        // when a hero has multiple variants at one
+                        // number; using it here would collide and
+                        // corrupt SwiftUI identity tracking.
+                        ForEach(Array(results), id: \.id) { card in
                             Button {
                                 selectedCard = card
                             } label: {

@@ -270,6 +270,19 @@ struct DecksView: View {
                 Divider().background(Design.Colors.glass)
                 deckListScroll
             }
+            // iPad drag-drop drop zone per DESIGN.md §6.6 — pool
+            // cells (.draggable) drop here to add to the deck.
+            // dropDestination supersedes the long-press add path on
+            // iPad regular when the user actually drags. iPhone
+            // never reaches this drop target (editor is a
+            // fullScreenCover; pool isn't visible to drag from), so
+            // attaching .dropDestination is harmless on compact.
+            .dropDestination(for: Card.self) { droppedCards, _ in
+                for card in droppedCards {
+                    addCardToDeck(card)
+                }
+                return !droppedCards.isEmpty
+            }
             .toolbar { editorToolbar }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -653,6 +666,17 @@ struct DecksView: View {
                                         addCardToDeck(card)
                                     }
                             )
+                            // iPad drag-and-drop per DESIGN.md §6.6:
+                            // long-press lifts the cell as a drag
+                            // preview; drop on the editor (detail
+                            // column) calls addCardToDeck. The same
+                            // long-press also fires the .onEnded above
+                            // — drag completion supersedes when the
+                            // user actually moves; a stationary press
+                            // commits the LongPressGesture instead.
+                            // iPhone has no in-app drop target so the
+                            // drag snaps back; .draggable is harmless.
+                            .draggable(card)
                             .modifier(FirstCellAnchor(isFirst: idx == 0))
                             // matchedTransitionSource MUST be the LAST
                             // (outermost) modifier so iOS sees it on

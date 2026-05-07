@@ -976,6 +976,11 @@ struct CollectionView: View {
                         .padding(4)
                     }
                 }
+                // iPad cross-window drag-drop per DESIGN.md §6.6.
+                // Drag a Collection card into a Decks editor window
+                // to add it to the current draft. Catalog-miss
+                // placeholder branch below isn't draggable (no Card).
+                .draggable(card)
         } else {
             // Catalog miss — render a placeholder + identifier so the
             // user sees something rather than a blank slot.

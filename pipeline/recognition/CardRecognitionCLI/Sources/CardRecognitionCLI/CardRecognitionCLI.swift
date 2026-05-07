@@ -61,6 +61,12 @@ private struct OutputOCR: Encodable {
     let full_text:        String
 }
 
+private struct OutputCrop: Encodable {
+    let path:       String       // local path where the tight crop was written
+    let method:     String       // "vision_rect" | "center_57" | "uncropped"
+    let confidence: Float        // 0..1 — Vision rect confidence; 0 on fallback
+}
+
 private struct OutputResult: Encodable {
     let id: String
     let recognized_boba_id: String?
@@ -68,6 +74,7 @@ private struct OutputResult: Encodable {
     let margin: Float?
     let top_candidates: [OutputTopCandidate]
     let ocr: OutputOCR?
+    let crop: OutputCrop?
     let error: String?
 }
 
@@ -236,6 +243,7 @@ struct CardRecognitionCLI {
                 recognized_boba_id: nil,
                 score: nil, margin: nil,
                 top_candidates: [], ocr: nil,
+                crop: nil,
                 error: "input line not valid JSON: \(error)"
             )
         }
@@ -247,12 +255,33 @@ struct CardRecognitionCLI {
                 recognized_boba_id: nil,
                 score: nil, margin: nil,
                 top_candidates: [], ocr: nil,
+                crop: nil,
                 error: "image file unreadable or undecodable: \(candidate.image_path)"
             )
         }
 
-        // Run OCR + build observation
-        let observation = VisionOCR.ocr(cgImage: cgImage, customWords: customWords)
+        // Tight-crop step: use Vision rect detection + perspective
+        // correction to produce a tight 5:7 portrait. Recognition runs
+        // on the rectified crop so OCR + FP see the same kind of pixels
+        // the catalog feature-print index was built from.
+        // Output JPEG sits next to the input (id-tight.jpg) and Stage B
+        // uploads it to R2 staging/tight-crops/.
+        let tightCropURL = imageURL
+            .deletingPathExtension()
+            .appendingPathExtension("tight.jpg")
+        let cropInfo = TightCrop.tightCrop(input: cgImage, to: tightCropURL)
+        let cropOut = OutputCrop(
+            path: tightCropURL.path,
+            method: cropInfo.method.rawValue,
+            confidence: cropInfo.sourceConfidence
+        )
+
+        // Reload the rectified image as a CGImage. This is the input
+        // we feed Vision OCR + ScanMatching — NOT the original.
+        let recognitionImage = VisionOCR.loadImage(at: tightCropURL) ?? cgImage
+
+        // Run OCR + build observation on the tight crop
+        let observation = VisionOCR.ocr(cgImage: recognitionImage, customWords: customWords)
 
         // Resolve to a card via ScanMatching (the heavy scoring + hero
         // veto + confidence/margin gates live inside)
@@ -291,6 +320,7 @@ struct CardRecognitionCLI {
                 raw_name:         observation.rawName,
                 full_text:        observation.fullText
             ),
+            crop: cropOut,
             error: nil
         )
     }

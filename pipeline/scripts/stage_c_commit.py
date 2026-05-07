@@ -126,7 +126,7 @@ def safe_filename_for_boba_id(boba_id: str) -> str:
 def fetch_accepted(supabase: Client) -> list[dict]:
     res = (supabase.table("pipeline_image_candidates")
            .select("id,recognized_boba_id,recognition_score,recognition_margin,"
-                   "crop_image_r2_key,image_md5")
+                   "crop_image_r2_key,tight_crop_r2_key,image_md5")
            .eq("state", "accepted")
            .not_.is_("recognized_boba_id", "null")
            .execute())
@@ -135,7 +135,14 @@ def fetch_accepted(supabase: Client) -> list[dict]:
 
 def pick_winners(accepted: list[dict]) -> list[WinningCandidate]:
     """One bobaId → one winning candidate (highest score). Mantra:
-    one image per card. one bobaId per card."""
+    one image per card. one bobaId per card.
+
+    Source-key priority (commit time):
+        tight_crop_r2_key  →  crop_image_r2_key
+    The tight crop is the perspective-corrected 5:7 produced by the
+    CLI; it's the right shape for production tiers. Legacy rows from
+    pre-tight-crop runs fall back to the loose crop_image_r2_key.
+    """
     by_boba: dict[str, dict] = {}
     for row in accepted:
         bid = row["recognized_boba_id"]
@@ -145,12 +152,14 @@ def pick_winners(accepted: list[dict]) -> list[WinningCandidate]:
 
     winners: list[WinningCandidate] = []
     for bid, row in by_boba.items():
+        # Prefer tight crop; fall back to legacy crop_image_r2_key
+        source_key = row.get("tight_crop_r2_key") or row["crop_image_r2_key"]
         winners.append(WinningCandidate(
             candidate_id=row["id"],
             boba_id=bid,
             score=row["recognition_score"] or 0.0,
             margin=row.get("recognition_margin"),
-            crop_image_r2_key=row["crop_image_r2_key"],
+            crop_image_r2_key=source_key,
             image_md5=row["image_md5"] or "",
         ))
     return winners

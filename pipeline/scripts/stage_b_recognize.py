@@ -213,8 +213,39 @@ def classify(score: Optional[float], margin: Optional[float],
     return "quarantined"
 
 
+def upload_tight_crop(r2, bucket: str, candidate_id: str,
+                      result: dict) -> Optional[tuple[str, str, float]]:
+    """Upload the per-candidate tight crop to R2.
+
+    Returns (r2_key, method, confidence) on success, or None if the
+    crop file is missing / unreadable. The CLI writes the rectified
+    JPEG next to the input as {input}.tight.jpg.
+    """
+    crop = (result or {}).get("crop")
+    if not crop:
+        return None
+    crop_path = crop.get("path")
+    if not crop_path or not Path(crop_path).exists():
+        return None
+
+    r2_key = f"staging/tight-crops/{candidate_id}.jpg"
+    try:
+        with open(crop_path, "rb") as f:
+            r2.put_object(
+                Bucket=bucket, Key=r2_key, Body=f,
+                ContentType="image/jpeg",
+            )
+    except Exception as e:
+        print(f"  ! tight-crop upload failed for {candidate_id}: {e}")
+        return None
+
+    return (r2_key, crop.get("method") or "unknown",
+            float(crop.get("confidence") or 0))
+
+
 def update_candidate(supabase: Client, candidate: Candidate,
-                     result: Optional[dict], run_id: str) -> str:
+                     result: Optional[dict], tight_crop_info,
+                     run_id: str) -> str:
     """Apply Stage B output to one candidate row. Returns the new state."""
     error = candidate.error or (result.get("error") if result else None)
     score      = (result or {}).get("score")
@@ -232,6 +263,11 @@ def update_candidate(supabase: Client, candidate: Candidate,
     }
     if error:
         payload["error"] = error
+    if tight_crop_info:
+        key, method, conf = tight_crop_info
+        payload["tight_crop_r2_key"]    = key
+        payload["tight_crop_method"]    = method
+        payload["tight_crop_confidence"] = conf
 
     supabase.table("pipeline_image_candidates") \
             .update(payload).eq("id", candidate.id).execute()
@@ -345,10 +381,28 @@ def main():
             )
             results.update(shard_results)
 
+        # ─── Upload tight crops to R2 (per candidate) ──
+        # The CLI wrote each tight-cropped JPEG next to the input.
+        # Upload them to staging/tight-crops/{candidate_id}.jpg so
+        # Stage C can use them as the source for production tiers.
+        print(f"→ uploading tight crops to R2")
+        tight_uploads: dict[str, tuple[str, str, float]] = {}
+        for c in candidates:
+            res = results.get(c.id)
+            if not res:
+                continue
+            info = upload_tight_crop(r2, r2_bucket, c.id, res)
+            if info:
+                tight_uploads[c.id] = info
+        print(f"  uploaded {len(tight_uploads)}/{len(results)} tight crops")
+
         # ─── Update Supabase + tally ──
         counts = {"accepted": 0, "review": 0, "quarantined": 0, "error": 0}
         for c in candidates:
-            new_state = update_candidate(supabase, c, results.get(c.id), run_id)
+            new_state = update_candidate(
+                supabase, c, results.get(c.id),
+                tight_uploads.get(c.id), run_id,
+            )
             counts[new_state] = counts.get(new_state, 0) + 1
 
         print(f"by state: " + ", ".join(f"{k}={v}" for k, v in counts.items()))

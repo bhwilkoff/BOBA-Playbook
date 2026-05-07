@@ -1,4 +1,6 @@
 import Foundation
+import CoreTransferable
+import UniformTypeIdentifiers
 
 /// `nonisolated` overrides the project's default-MainActor isolation
 /// so this Sendable value type can be read from background actors
@@ -151,5 +153,25 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
         highlights         = try c.decodeIfPresent([String].self,  forKey: .highlights)
         caseQuantity       = try c.decodeIfPresent(Int.self,       forKey: .caseQuantity)
         ebaySearchQuery    = try c.decodeIfPresent(String.self,    forKey: .ebaySearchQuery)
+    }
+}
+
+// MARK: - Transferable (drag-and-drop, DESIGN.md §6.6)
+
+/// Custom UTType for in-app card drag-drop. Namespaced under the
+/// bundle ID and intentionally NOT declared in Info.plist — we
+/// don't want third-party apps announcing they can receive BOBA
+/// cards. Internal use only.
+extension UTType {
+    static let bobaCard = UTType(exportedAs: "com.bhwilkoff.bobaplaybook.card")
+}
+
+/// Inlined into Card.swift rather than a standalone file because
+/// Xcode's PBXFileSystemSynchronizedRootGroup intermittently fails
+/// to pick up new files (per memory feedback_xcode_synchronized_groups).
+/// CodableRepresentation works because Card is already Codable+Sendable.
+extension Card: Transferable {
+    static var transferRepresentation: some TransferRepresentation {
+        CodableRepresentation(contentType: .bobaCard)
     }
 }

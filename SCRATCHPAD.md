@@ -5,7 +5,7 @@
 ## Current State (2026-05-05)
 
 - **Catalog**: 17,968 cards · ~90% image coverage on R2 · OKC art still pending
-- **Latest version**: iOS 2.100 / 363 — iPad first-class pass
+- **Latest version**: iOS 2.101 / 364 — drop sidebarAdaptable to avoid competing with per-tab NavigationSplitView sidebars
 - **Latest commit**: walkthrough diagnostics removed (validated; pattern preserved in memory)
 
 ## What Just Shipped (recent)

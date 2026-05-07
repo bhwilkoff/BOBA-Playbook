@@ -1,0 +1,118 @@
+# pipeline-stage-c-commit.yml
+#
+# Stage C of the automated image-sourcing pipeline. Runs on Linux
+# (free + unlimited on public repos). Picks winners per recognized
+# bobaId, applies the DECISIONS.md #026 collision guard, generates
+# WebP tiers, uploads to R2, patches catalog bundles, opens a PR, and
+# sends an audit email via Resend.
+#
+# Auto-merge on this PR is gated by the workflow's permissions. Once
+# Phase 4 calibration confirms the AUTO threshold is safe, we flip
+# `auto_merge` to true here. Until then, the PR opens and waits for
+# Ben's tap.
+
+name: pipeline · stage C · commit + email
+
+on:
+  # Auto-chain after Stage B succeeds. Stage B itself is on a weekly
+  # cron; this workflow runs immediately after.
+  workflow_run:
+    workflows: ['pipeline · stage B · recognize']
+    types: [completed]
+
+  # Manual dispatch for ad-hoc runs (esp. during Phase 4 calibration)
+  workflow_dispatch:
+    inputs:
+      auto_merge:
+        description: 'Auto-merge the PR after opening?'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
+      dry_run:
+        description: "Preview only — don't upload to R2 or open a PR"
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
+
+permissions:
+  contents:       write   # for git push of the auto-merge branch
+  pull-requests:  write   # for `gh pr create` + auto-merge
+
+jobs:
+  commit:
+    name: Commit accepted candidates + open PR + send email
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout (full history for git push)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: pipeline/scripts/requirements.txt
+
+      - name: Install Python deps
+        run: pip install -r pipeline/scripts/requirements.txt
+
+      - name: Configure git identity
+        run: |
+          git config user.name  'boba-pipeline-bot'
+          git config user.email 'pipeline@bobaplaybook.com'
+
+      - name: Run Stage C commit
+        id: commit
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          R2_ACCOUNT_ID:        ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY:        ${{ secrets.R2_ACCESS_KEY }}
+          R2_SECRET_KEY:        ${{ secrets.R2_SECRET_KEY }}
+          R2_BUCKET:            boba-card-images
+          GITHUB_TOKEN:         ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          BRANCH="pipeline/auto-merge-$(date -u +%Y%m%d-%H%M%S)"
+          DRY_FLAG=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            DRY_FLAG="--dry-run"
+          fi
+
+          python pipeline/scripts/stage_c_commit.py \
+            --repo-root . \
+            --branch    "$BRANCH" \
+            $DRY_FLAG | tee /tmp/stage_c.log
+
+          # Extract the PR URL from the log so the email step can include it
+          PR_URL=$(grep -oE 'https://github.com/[^ ]+/pull/[0-9]+' /tmp/stage_c.log | head -n1 || true)
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Auto-merge PR
+        if: ${{ github.event.inputs.auto_merge == 'true' && steps.commit.outputs.pr_url != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Squash-merge so main history stays one-commit-per-batch
+          gh pr merge "${{ steps.commit.outputs.pr_url }}" --squash --auto --delete-branch
+
+      - name: Send audit email
+        if: ${{ always() }}
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          RESEND_API_KEY:       ${{ secrets.RESEND_API_KEY }}
+        run: |
+          python pipeline/scripts/send_audit_email.py \
+            --pr-url "${{ steps.commit.outputs.pr_url }}" \
+            --to     ben@bobaplaybook.com \
+            --from   pipeline@bobaplaybook.com

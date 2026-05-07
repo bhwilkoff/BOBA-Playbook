@@ -270,15 +270,27 @@ def main():
             sys.exit(f"missing {label}: {p}")
 
     # ─── Env ──
-    # .strip() defensively — GH Actions' env: block has been observed
-    # to inject trailing whitespace into secret values, which trips
-    # supabase-py's URL validator with a generic "Invalid URL" error.
     supabase_url   = os.environ["SUPABASE_URL"].strip()
     supabase_key   = os.environ["SUPABASE_SERVICE_KEY"].strip()
     r2_account_id  = os.environ["R2_ACCOUNT_ID"].strip()
     r2_access_key  = os.environ["R2_ACCESS_KEY"].strip()
     r2_secret_key  = os.environ["R2_SECRET_KEY"].strip()
     r2_bucket      = os.environ.get("R2_BUCKET", "boba-card-images").strip()
+
+    # ─── Diagnostic: confirm env values arrived intact ──────────────────
+    # Print length + first 8 chars (enough to see "https://" but not leak
+    # secrets). Remove this once we've confirmed the CI injection works.
+    def _peek(name: str, val: str) -> str:
+        if not val:
+            return f"{name}=<EMPTY>"
+        return f"{name} len={len(val)} prefix={val[:8]!r}"
+    print("env diagnostic:")
+    for n, v in [("SUPABASE_URL", supabase_url),
+                 ("SUPABASE_SERVICE_KEY", supabase_key),
+                 ("R2_ACCOUNT_ID", r2_account_id),
+                 ("R2_ACCESS_KEY", r2_access_key),
+                 ("R2_SECRET_KEY", r2_secret_key)]:
+        print("  " + _peek(n, v))
 
     supabase = create_client(supabase_url, supabase_key)
     r2       = make_r2_client(r2_account_id, r2_access_key, r2_secret_key)

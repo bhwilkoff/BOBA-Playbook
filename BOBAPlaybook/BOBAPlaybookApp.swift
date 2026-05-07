@@ -101,18 +101,6 @@ struct BOBAPlaybookApp: App {
                 selectedTab = 0
                 let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
                 let q = comps?.queryItems
-                // Optional ?treatment= and ?hero= disambiguate when a
-                // hero has multiple variants at one cardNumber. Web
-                // URLs (bobaplaybook.com/?card=BL-B81&treatment=...
-                // &hero=...) carry both — without these, the lookup
-                // fell back to the first cardNumber match, landing
-                // on the wrong variant.
-                //
-                // Set BEFORE pendingCardNumber so SearchView's
-                // .onChange(of: pendingCardNumber) reads them as the
-                // already-set values when it fires tryPresentPendingCard.
-                cardStore.pendingCardTreatment = q?.first(where: { $0.name == "treatment" })?.value
-                cardStore.pendingCardHero = q?.first(where: { $0.name == "hero" })?.value
                 // Optional ?action=addToCollection hint from
                 // AddToCollectionIntent — CardDetailView reads this
                 // and auto-presents the AddToCollection sheet on
@@ -120,7 +108,16 @@ struct BOBAPlaybookApp: App {
                 if let action = q?.first(where: { $0.name == "action" })?.value {
                     cardStore.pendingCardAction = action
                 }
-                cardStore.pendingCardNumber = cardNumber.uppercased()
+                // Push CardRoute directly onto the Find tab's path
+                // — no observation chain. CardRouteResolver at the
+                // destination handles catalog-not-loaded by re-
+                // evaluating when displayCards populates.
+                let route = CardRoute(
+                    cardNumber: cardNumber.uppercased(),
+                    treatment: q?.first(where: { $0.name == "treatment" })?.value,
+                    hero: q?.first(where: { $0.name == "hero" })?.value
+                )
+                cardStore.findNavigationPath.append(route)
             }
         case "search":
             selectedTab = 0

@@ -59,10 +59,11 @@ struct SearchView: View {
     /// of the tapped cell, all native iOS 18+ APIs.
     @Namespace private var cardZoomNamespace
 
-    /// Navigation path for the Find NavigationStack. Cell taps push
-    /// onto this so CardDetailView slides in from the right (with the
-    /// tab bar still visible) instead of presenting as a sheet.
-    @State private var navigationPath = NavigationPath()
+    /// Navigation path for the Find NavigationStack lives on
+    /// CardStore (@Observable), not as @State here. This lets URL
+    /// handlers (BOBAPlaybookApp.handleDeepLink) append routes
+    /// directly — no observation chain, no cold-launch race. Cell
+    /// taps wrap their Card in a CardRoute and push the same way.
 
     private var columns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: Design.Spacing.sm),
@@ -70,7 +71,8 @@ struct SearchView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
+        @Bindable var bindableStore = store
+        NavigationStack(path: $bindableStore.findNavigationPath) {
             stackContent
         }
         .sheet(isPresented: $showFilters) {
@@ -91,24 +93,10 @@ struct SearchView: View {
                 .presentationCompactAdaptation(.popover)
         }
         .walkthroughOverlay($walkthrough)
-        // Deep-link: bobaplaybook://card/{number} sets store.pendingCardNumber.
-        // .onChange catches changes that happen WHILE this view is
-        // observing — but on cold launch via Universal Link, the URL
-        // handler may run before the view fully mounts, OR the
-        // catalog may not contain the card yet (full catalog loads
-        // async after cards-head). Polling retry guarantees we
-        // converge even when the .onChange observer misses a beat.
-        .onChange(of: store.pendingCardNumber) { _, cardNum in
-            pollUntilCardPresented()
-        }
-        .onChange(of: store.isLoadingMore) { _, _ in
-            tryPresentPendingCard()
-        }
-        // Catches the cold-launch race where pendingCardNumber gets
-        // set BEFORE this view is observing it.
-        .task {
-            pollUntilCardPresented()
-        }
+        // Deep-link card navigation goes through CardRoute pushed
+        // directly onto store.findNavigationPath by the URL handler
+        // — no observation chain, no race. CardRouteResolver
+        // handles the catalog-not-loaded case at the destination.
         // Deep-link: bobaplaybook://scan — present the scanner sheet.
         .onChange(of: store.pendingScan) { _, pending in
             if pending {
@@ -132,7 +120,6 @@ struct SearchView: View {
             // presenter so in-tab navigation (open card → close) keeps
             // whatever was set.
             store.clearAllFilters()
-            tryPresentPendingCard()
             if store.pendingScan {
                 scanCoordinator.start(.find, scanStore: scanStore)
                 store.pendingScan = false
@@ -246,11 +233,10 @@ struct SearchView: View {
         } message: { error in
             Text(error)
         }
-        .navigationDestination(for: Card.self) { card in
-            CardDetailView(card: card,
-                           navigationCards: store.filteredCards,
-                           wrapInNavStack: false)
-                .compactZoomDestination(id: card.id, in: cardZoomNamespace)
+        .navigationDestination(for: CardRoute.self) { route in
+            CardRouteResolver(route: route,
+                              navigationCards: store.filteredCards,
+                              zoomNamespace: cardZoomNamespace)
         }
     }
 
@@ -393,53 +379,11 @@ struct SearchView: View {
         }
     }
 
-    /// Retry tryPresentPendingCard up to 20 times (10s) to ride out
-    /// the cold-launch race: the deep-link URL handler may set
-    /// pendingCardNumber BEFORE this view observes it, and the full
-    /// catalog (which contains most cards) loads async after the
-    /// 500-card head bundle. Each retry is cheap (single dictionary
-    /// lookup); polling stops as soon as pendingCardNumber gets
-    /// cleared by a successful push.
-    private func pollUntilCardPresented() {
-        Task { @MainActor in
-            for _ in 0..<20 {
-                tryPresentPendingCard()
-                if store.pendingCardNumber == nil { return }
-                try? await Task.sleep(for: .milliseconds(500))
-            }
-        }
-    }
-
-    private func tryPresentPendingCard() {
-        guard let cardNum = store.pendingCardNumber,
-              !store.displayCards.isEmpty else { return }
-
-        // URL query params decode `+` as literal `+`, but the web
-        // app's share URLs use `+` for space (form-encoding
-        // convention). Normalize both treatment and hero so
-        // "Blue+Blast" matches the catalog's "Blue Blast".
-        let treatment = store.pendingCardTreatment?.replacingOccurrences(of: "+", with: " ")
-        let hero      = store.pendingCardHero?.replacingOccurrences(of: "+", with: " ")
-        let normalizedHero = hero?.trimmingCharacters(in: .whitespaces).lowercased()
-
-        let card = store.displayCards.first { c in
-            guard c.cardNumber == cardNum else { return false }
-            if let t = treatment, !t.isEmpty, c.treatment != t { return false }
-            if let nh = normalizedHero, !nh.isEmpty,
-               c.hero.trimmingCharacters(in: .whitespaces).lowercased() != nh { return false }
-            return true
-        }
-            // Fallback — if the disambiguators didn't match anything
-            // (data drift, treatment renamed, etc.), still surface a
-            // card rather than silently failing.
-            ?? store.displayCards.first(where: { $0.cardNumber == cardNum })
-
-        guard let card else { return }
-        navigationPath.append(card)
-        store.pendingCardNumber = nil
-        store.pendingCardTreatment = nil
-        store.pendingCardHero = nil
-    }
+    // pollUntilCardPresented + tryPresentPendingCard removed — the
+    // observation-chain approach was racy on cold-launch. Deep-links
+    // now push CardRoute directly onto store.findNavigationPath via
+    // BOBAPlaybookApp.handleDeepLink; CardRouteResolver at the
+    // destination handles catalog-not-loaded.
 
     // MARK: - Content
     private var contentView: some View {
@@ -516,7 +460,7 @@ struct SearchView: View {
                             if quickAdd {
                                 Task { await quickAddCard(card) }
                             } else {
-                                navigationPath.append(card)
+                                store.findNavigationPath.append(CardRoute(card: card))
                             }
                         }
                         // Anchor ONLY the first cell — PreferenceKey
@@ -668,7 +612,7 @@ struct SearchView: View {
                                 if quickAdd {
                                     Task { await quickAddCard(card) }
                                 } else {
-                                    navigationPath.append(card)
+                                    store.findNavigationPath.append(CardRoute(card: card))
                                 }
                             }
                     }
@@ -766,6 +710,73 @@ private struct IfFirstAnchor: ViewModifier {
     let key: String
     func body(content: Content) -> some View {
         if isFirst { content.walkthroughAnchor(key) } else { content }
+    }
+}
+
+// MARK: - CardRouteResolver
+//
+// Destination view for CardRoute pushes onto the Find tab's
+// NavigationStack. Resolves the route to a Card from the catalog;
+// if the catalog isn't loaded yet (cold-launch via deep link), shows
+// a loading state that auto-resolves when displayCards populates
+// (because CardStore is @Observable and the catalog read here
+// re-evaluates on store mutation).
+
+struct CardRouteResolver: View {
+    let route: CardRoute
+    let navigationCards: [Card]
+    let zoomNamespace: Namespace.ID
+
+    @Environment(CardStore.self) private var cardStore
+
+    var body: some View {
+        if let card = resolved {
+            CardDetailView(card: card,
+                           navigationCards: navigationCards,
+                           wrapInNavStack: false)
+                .compactZoomDestination(id: card.id, in: zoomNamespace)
+        } else if cardStore.isLoading || cardStore.isLoadingMore {
+            VStack(spacing: Design.Spacing.md) {
+                ProgressView()
+                    .tint(Design.Colors.bobaOrange)
+                    .scaleEffect(1.2)
+                Text("Loading card…")
+                    .font(Design.Fonts.mono(13))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Design.Colors.nearBlack)
+        } else {
+            // Catalog fully loaded but card not in it.
+            ContentUnavailableView(
+                "Card not found",
+                systemImage: "magnifyingglass",
+                description: Text("\(route.cardNumber) isn't in the current catalog.")
+            )
+            .background(Design.Colors.nearBlack)
+        }
+    }
+
+    /// Resolve route → Card. Prefers bobaId (in-app push). Falls back
+    /// to cardNumber + treatment + hero narrowing for URL deep links
+    /// where bobaId is unknown until the catalog loads. `+` is
+    /// normalized to space (web URLs use form-encoding for spaces).
+    private var resolved: Card? {
+        guard !cardStore.displayCards.isEmpty else { return nil }
+        if let bobaId = route.bobaId,
+           let hit = cardStore.displayCards.first(where: { $0.id == bobaId }) {
+            return hit
+        }
+        let treatment = route.treatment?.replacingOccurrences(of: "+", with: " ")
+        let hero      = route.hero?.replacingOccurrences(of: "+", with: " ")
+        let normalizedHero = hero?.trimmingCharacters(in: .whitespaces).lowercased()
+        return cardStore.displayCards.first { c in
+            guard c.cardNumber == route.cardNumber else { return false }
+            if let t = treatment, !t.isEmpty, c.treatment != t { return false }
+            if let nh = normalizedHero, !nh.isEmpty,
+               c.hero.trimmingCharacters(in: .whitespaces).lowercased() != nh { return false }
+            return true
+        } ?? cardStore.displayCards.first(where: { $0.cardNumber == route.cardNumber })
     }
 }
 

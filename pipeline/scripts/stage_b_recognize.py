@@ -62,7 +62,13 @@ from typing import Optional
 
 import boto3
 from botocore.config import Config
+from dotenv import load_dotenv
 from supabase import Client, create_client
+
+# Auto-load .env from repo root so local invocations work without a
+# manual `source .env`. No-op when the file is absent (CI uses GH
+# Actions secrets directly, which already populate os.environ).
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
 # ─── Threshold configuration ──────────────────────────────────────────────

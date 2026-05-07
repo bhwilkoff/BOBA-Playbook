@@ -1,0 +1,46 @@
+# GitHub Pages config for bobaplaybook.com
+#
+# Default Jekyll behavior excludes dotfile-prefixed directories like
+# .well-known, but we ship the apple-app-site-association file there
+# for iOS Universal Links. Explicit include lets it through while
+# preserving Jekyll's other defaults.
+#
+# Without Jekyll (.nojekyll) the upload-artifact step ships the
+# entire repo (Swift code, wrangler state, supabase migrations,
+# tools/ binaries, etc.) and blows past Pages' artifact size limit
+# — that's what failed run 25503853286. Keeping Jekyll preserves
+# the filtering that was working pre-AASA.
+
+include:
+  - .well-known
+
+# Don't ship anything that isn't part of the live website.
+exclude:
+  - BOBAPlaybook/
+  - BOBAPlaybook.xcodeproj/
+  - BOBA Checklists/
+  - FromCowork/
+  - tools/
+  - workers/
+  - supabase/
+  - scripts/
+  - unified-cards/
+  - .wrangler/
+  - .claude/
+  - ci_scripts/
+  - "*.swift"
+  - "*.py"
+  - AppVersion.xcconfig
+  - "*.entitlements"
+  - "AuthKey_*.p8"
+  - .env.local
+  - COWORK.md
+  - CLAUDE.md
+  - DECISIONS.md
+  - DESIGN.md
+  - WEB-DESIGN.md
+  - TRADE-DESIGN.md
+  - SCRATCHPAD.md
+  - ARCHIVE.md
+  - BETA_TEST_PLAN.md
+  - README.md

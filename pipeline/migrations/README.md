@@ -20,3 +20,4 @@ Migrations are idempotent (`create table if not exists`, `drop policy if exists`
 | File | Purpose |
 |---|---|
 | `0001_pipeline_initial.sql` | Initial schema — `pipeline_runs`, `pipeline_image_candidates`, `pipeline_card_images` + RLS lockdown |
+| `0002_pipeline_state_extensions.sql` | Adds `committed` and `superseded` to the candidate state enum (Stage C terminal states) |

@@ -13,7 +13,7 @@ BOBA Playbook is built by fans, for fans. It is not affiliated with or endorsed 
 The app is organized around five verbs — one per tab.
 
 ### Find — explore
-Browse, search, and filter all 17,968 BOBA cards. Token-style filters by hero, weapon, treatment, cost, format, and set. Tap any card for the detail view: full art, the canonical 6-cell stat grid, eBay + Radish + COMC pricing, and one-tap add to your collection or current deck.
+Browse, search, and filter all 17,968 BOBA cards. Token-style filters by hero, weapon, treatment, cost, format, and set. Tap any card for the detail view: full art, the canonical 6-cell stat grid, live eBay pricing, and one-tap add to your collection or current deck.
 
 ### Learn — understand
 Rules reference for all three skill levels (Rookie / Substitution / Playmaker), strategy guides, the collecting-basics taxonomy (treatments vs parallels, weapon rarity, Inspired Ink serialized variants), curated YouTube tutorials, glossary, and the BoBA tournament reference.
@@ -48,13 +48,7 @@ iPad also gets **drag-and-drop** (drag a card from Find / Decks pool / Collectio
 
 ## Pricing Data
 
-Pricing comparables come from three places:
-
-- **Radish Price Guide** — TCG-specialized comps, preferred for sold-history estimates
-- **eBay sold listings** — fallback when Radish has no data, plus active "Buy Now" listings
-- **COMC** — second source of asking-price listings on the Buy Now panel
-
-Asking prices and sold prices are kept separate. The market estimate uses sold data only — mixing in asking prices would inflate it 10-25%.
+Pricing comes from **eBay** — sold listings for the market-estimate / sold-history panel, and active "Buy Now" listings for the asking panel. Asking and sold are kept separate. The market estimate uses sold data only — mixing in asking prices would inflate it 10-25%.
 
 ---
 
@@ -90,7 +84,7 @@ Built with vanilla HTML / CSS / JavaScript on the web and Swift 6 / SwiftUI (iOS
 - **Card catalog** — static JSON (17,968 cards · ~90% image coverage), served from GitHub Pages and bundled into the iOS app
 - **Card images** — Cloudflare R2 (zero egress, edge-cached). Two tiers: 200px thumbs for grids ≥5-across, ≤1200px full WebP otherwise
 - **Auth + user data** — Supabase (Postgres + auth). Card browsing never touches a database
-- **Integrations** — Cloudflare Workers for eBay + Radish + COMC pricing, Whatnot upcoming breaks, account deletion, avatar uploads, YouTube feed. Each Worker is a single-purpose proxy
+- **Integrations** — Cloudflare Workers for eBay pricing, Whatnot upcoming breaks, account deletion, avatar uploads, YouTube feed. Each Worker is a single-purpose proxy
 - **Scan pipeline** — Apple Vision (text + image fingerprint) on-device, with a parallel macOS CLI for offline iteration
 - **Web app** — PWA installable from Safari, View Transitions API for native-feeling page transitions, container queries on the card grid, native `<dialog>` modals, no build step
 

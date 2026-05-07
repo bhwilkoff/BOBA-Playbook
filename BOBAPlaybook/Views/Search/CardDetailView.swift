@@ -691,8 +691,21 @@ struct CardDetailView: View {
                 .tracking(1.5)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Design.Spacing.md) {
-                    ForEach(variations, id: \.cardNumber) { variant in
-                        NavigationLink(destination: CardDetailView(card: variant)) {
+                    // ID is .id (bobaId) not .cardNumber — multiple
+                    // variants can share a cardNumber (e.g., themed
+                    // foils + Inspired Ink at one number). Non-unique
+                    // ForEach IDs corrupt SwiftUI identity tracking
+                    // and was the cause of the "Other Versions tap
+                    // bounces back to Find" bug. Value-based
+                    // NavigationLink routes via the parent
+                    // NavigationStack's path + navigationDestination
+                    // (for: Card.self) handler — pushing
+                    // CardDetailView via the destination init that
+                    // already handles wrapInNavStack correctly.
+                    // Mixing value-less .destination: with path-
+                    // driven NavigationStack causes state desync.
+                    ForEach(variations, id: \.id) { variant in
+                        NavigationLink(value: variant) {
                             VStack(spacing: Design.Spacing.xs) {
                                 CardImageView(card: variant, size: .thumb)
                                     .frame(width: 80, height: 112)

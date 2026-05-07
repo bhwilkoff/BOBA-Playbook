@@ -5,7 +5,7 @@
 ## Current State (2026-05-05)
 
 - **Catalog**: 17,968 cards · ~90% image coverage on R2 · OKC art still pending
-- **Latest version**: iOS 2.101 / 364 — drop sidebarAdaptable to avoid competing with per-tab NavigationSplitView sidebars
+- **Latest version**: iOS 2.113 / 376 — Universal Links validated end-to-end; route-based deep linking pattern shipped
 - **Latest commit**: walkthrough diagnostics removed (validated; pattern preserved in memory)
 
 ## What Just Shipped (recent)
@@ -24,6 +24,9 @@
 
 - **3-column DecksView** — SHIPPED 2026-05-06. Saved-decks sidebar | pool | editor on iPad regular. `loadSavedDeck(_:cards:)` hoisted to `DeckBuilderStore` (DeckManagementSheet's private loadDeck now calls it). Sidebar List shows saved decks with active-deck checkmark + per-row loading spinner; "+ New deck" at top discards draft. Auth-gated (sign-in CTA when signed out, empty-state when authenticated but no saved decks). iPad portrait collapses sidebar via system toggle (NavigationSplitView .balanced default). Column widths hint: sidebar 240/280, pool 380/560, editor takes remainder.
 - **iPad toolbar density** — SHIPPED 2026-05-06. Filters surfaces inline on Find (iPad regular) with active-count dot; Scan surfaces inline on Decks (pool) and Collection (My Cards lens). Settings-style items (Columns, Display, walkthrough relaunch) stay in the Menu — they nest naturally and would clutter inline.
+- **iPad drag-and-drop** — SHIPPED 2026-05-06. `Card` Transferable via CodableRepresentation(.json) (no custom UTType — was tripping Xcode Info.plist warning). Pool / Find grid / Collection grid cells get `.draggable(card)`; Decks editor's outer VStack gets `.dropDestination(for: Card.self)` calling addCardToDeck. Phone path harmless (no in-app drop target — preview snaps back).
+- **Universal Links / deep linking** — SHIPPED 2026-05-07 after seven commits chasing the wrong cause. Final architecture: AASA at `/.well-known/apple-app-site-association` (catch-all `/` with `/privacy/*` and `/terms/*` excludes). `_config.yml` keeps Jekyll filtering working on GitHub Pages. iOS handler dispatches by scheme — `https://` → `handleUniversalLink`, `bobaplaybook://` → `handleDeepLink`. Route-based pattern: `CardRoute` (Hashable) pushed onto `cardStore.findNavigationPath` directly by URL handler; `CardRouteResolver` at the destination handles catalog-not-loaded with a graceful loading state. ALL via .onOpenURL on iOS 17+, NOT .onContinueUserActivity (memory: feedback_universal_links_onopenurl). Lesson: instrument first, guess never.
+- **Build number sync** — SHIPPED 2026-05-07. `ci_scripts/ci_post_clone.sh` + `scripts/bump-build.sh` both query App Store Connect API for latest TF build per marketing version. **Pending one-time config**: add `ASC_API_ISSUER_ID` secret to Xcode Cloud workflow Environment Variables (App Store Connect → Xcode Cloud → workflow → Environment) AND `export ASC_API_ISSUER_ID=...` for local archiving. Until configured, both scripts no-op gracefully — Xcode Cloud still uses CI_BUILD_NUMBER and Mac uses xcconfig directly. See memory: reference_build_number_sync.
 
 ## Deferred iPad work
 

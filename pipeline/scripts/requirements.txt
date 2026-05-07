@@ -1,0 +1,24 @@
+# Pipeline scripts — Python dependencies
+#
+# Pinned to known-good versions. Install with:
+#     pip install -r pipeline/scripts/requirements.txt
+
+# Supabase client (REST + service-role auth)
+supabase>=2.7.0,<3.0.0
+
+# R2 client (boto3 + S3-compatible API)
+boto3>=1.34.0,<2.0.0
+
+# CLI argparse helpers
+python-dotenv>=1.0.0,<2.0.0
+
+# Image handling (Stage A pre-crop)
+Pillow>=10.0.0,<12.0.0
+opencv-python-headless>=4.9.0,<5.0.0
+
+# HTTP scraping
+requests>=2.32.0,<3.0.0
+beautifulsoup4>=4.12.0,<5.0.0
+
+# Stage A BV/Whatnot scraping (Linux runner — Playwright handles headless)
+playwright>=1.46.0,<2.0.0

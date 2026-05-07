@@ -69,6 +69,7 @@ struct BOBAPlaybookApp: App {
                     Task { await authManager.fetchRole() }
                 }
                 .onOpenURL { url in
+                    print("[DeepLink] onOpenURL fired: \(url.absoluteString)")
                     handleDeepLink(url)
                 }
                 // Universal Links per DESIGN.md §8.4 — taps on
@@ -78,7 +79,11 @@ struct BOBAPlaybookApp: App {
                 // through the same handler that takes bobaplaybook://
                 // URLs so the routing stays one source of truth.
                 .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
-                    guard let url = activity.webpageURL else { return }
+                    print("[DeepLink] onContinueUserActivity fired. webpageURL=\(activity.webpageURL?.absoluteString ?? "nil")")
+                    guard let url = activity.webpageURL else {
+                        print("[DeepLink]   ↳ no webpageURL on activity, ignoring")
+                        return
+                    }
                     handleUniversalLink(url)
                 }
         }
@@ -90,7 +95,11 @@ struct BOBAPlaybookApp: App {
     /// u/{user}/{designation}) and forwards anything else to AuthManager.
     @MainActor
     private func handleDeepLink(_ url: URL) {
-        guard url.scheme == "bobaplaybook" else { return }
+        print("[DeepLink] handleDeepLink: scheme=\(url.scheme ?? "nil") host=\(url.host ?? "nil") path=\(url.path)")
+        guard url.scheme == "bobaplaybook" else {
+            print("[DeepLink]   ↳ wrong scheme, ignoring")
+            return
+        }
         switch url.host {
         case "scan":
             selectedTab = 0
@@ -118,6 +127,12 @@ struct BOBAPlaybookApp: App {
                     hero: q?.first(where: { $0.name == "hero" })?.value
                 )
                 cardStore.findNavigationPath.append(route)
+                print("[DeepLink]   ↳ appended CardRoute to findNavigationPath. " +
+                      "cardNumber=\(route.cardNumber) treatment=\(route.treatment ?? "nil") " +
+                      "hero=\(route.hero ?? "nil") pathCount=\(cardStore.findNavigationPath.count) " +
+                      "displayCards=\(cardStore.displayCards.count)")
+            } else {
+                print("[DeepLink]   ↳ card path empty, ignoring")
             }
         case "search":
             selectedTab = 0
@@ -150,9 +165,17 @@ struct BOBAPlaybookApp: App {
     /// — the SPA-style URL the web build emits when you share a card.
     @MainActor
     private func handleUniversalLink(_ url: URL) {
-        guard url.host == "bobaplaybook.com" else { return }
+        print("[DeepLink] handleUniversalLink: \(url.absoluteString)")
+        guard url.host == "bobaplaybook.com" else {
+            print("[DeepLink]   ↳ wrong host (\(url.host ?? "nil")), ignoring")
+            return
+        }
         let pathParts = url.path.split(separator: "/").map(String.init)
         let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        let queryDesc = comps?.queryItems?
+            .map { "\($0.name)=\($0.value ?? "")" }
+            .joined(separator: ", ") ?? "nil"
+        print("[DeepLink]   pathParts=\(pathParts) queryItems=\(queryDesc)")
 
         // Root-path SPA URLs: /?card=X&treatment=Y&hero=Z
         // Take precedence over path-based parsing when ?card= is
@@ -160,6 +183,7 @@ struct BOBAPlaybookApp: App {
         // shape.
         if let cardQ = comps?.queryItems?.first(where: { $0.name == "card" })?.value,
            !cardQ.isEmpty {
+            print("[DeepLink]   ↳ root-path SPA URL with ?card=\(cardQ); translating")
             let treatment = comps?.queryItems?.first(where: { $0.name == "treatment" })?.value
             let hero      = comps?.queryItems?.first(where: { $0.name == "hero" })?.value
             // Build a custom-scheme URL preserving every query param so

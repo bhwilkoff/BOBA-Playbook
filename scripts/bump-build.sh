@@ -1,37 +1,32 @@
 #!/bin/sh
-# Xcode Cloud — runs after cloning the repo, before xcodebuild.
+# Local helper — run before archiving from Mac Xcode to bump
+# CURRENT_PROJECT_VERSION in AppVersion.xcconfig past the latest
+# TestFlight build for the current marketing version.
 #
-# Sets CURRENT_PROJECT_VERSION in AppVersion.xcconfig to (latest
-# TestFlight build for this marketing version) + 1, queried from
-# the App Store Connect API. This makes Xcode Cloud and local Mac
-# Xcode pushes both bump from the same source of truth (ASC) so
-# the two upload paths never collide.
+# Pairs with ci_scripts/ci_post_clone.sh — both query the same ASC
+# API endpoint, so Mac Xcode pushes and Xcode Cloud builds always
+# converge on a strictly-increasing build number, never colliding.
 #
-# Without this, Xcode Cloud uses CI_BUILD_NUMBER (the count of CI
-# runs ≈ 214) while Mac Xcode reads the xcconfig (≈ 367) — two
-# independent counters that can collide on TestFlight uploads.
+# Usage:
+#   export ASC_API_ISSUER_ID=<your-issuer-uuid>
+#   ./scripts/bump-build.sh
 #
-# Required Xcode Cloud env vars (set in App Store Connect →
-# Xcode Cloud → workflow → Environment → Environment Variables):
-#   ASC_API_ISSUER_ID  — your team's issuer UUID from
-#                        ASC → Users and Access → Keys
+# Then archive + upload as normal. The xcconfig bump is committed to
+# git by you (the script doesn't auto-commit) so the next CI run also
+# sees it. After a successful upload, optionally:
+#   git commit AppVersion.xcconfig -m "Bump to v$X/$Y"
 #
-# Required repo file:
-#   AuthKey_Y97R9U9WMG.p8  — already at repo root; key ID baked in
-#                            below.
-#
-# This script is a NO-OP (with a log line) when ASC_API_ISSUER_ID
-# is unset, so the workflow still runs even before secrets are
-# configured.
+# To avoid putting the issuer ID on the command line every time,
+# stash it in your shell profile or a .env.local file.
 
 set -eu
 
-cd "$CI_WORKSPACE"
+cd "$(dirname "$0")/.."
 
 if [ -z "${ASC_API_ISSUER_ID:-}" ]; then
-    echo "ci_post_clone: ASC_API_ISSUER_ID unset — falling back to xcconfig value (no ASC query)"
-    grep -E '^(MARKETING_VERSION|CURRENT_PROJECT_VERSION)' AppVersion.xcconfig
-    exit 0
+    echo "bump-build: ASC_API_ISSUER_ID env var required."
+    echo "  Get it from App Store Connect → Users and Access → Keys."
+    exit 1
 fi
 
 KEY_ID="Y97R9U9WMG"
@@ -39,18 +34,13 @@ KEY_FILE="AuthKey_${KEY_ID}.p8"
 BUNDLE_ID="app.bobaplaybook.ios"
 
 if [ ! -f "$KEY_FILE" ]; then
-    echo "ci_post_clone: $KEY_FILE not found — aborting build-number bump"
+    echo "bump-build: $KEY_FILE not found at repo root"
     exit 1
 fi
 
 MARKETING_VERSION=$(grep -E '^MARKETING_VERSION' AppVersion.xcconfig | awk '{print $3}')
 CURRENT_BUILD=$(grep -E '^CURRENT_PROJECT_VERSION' AppVersion.xcconfig | awk '{print $3}')
 
-echo "ci_post_clone: bundle=$BUNDLE_ID  version=$MARKETING_VERSION  xcconfig-build=$CURRENT_BUILD"
-
-# Build a JWT for ASC API auth using Python (Xcode Cloud runners
-# have python3 + cryptography pre-installed). Output: a bearer token
-# valid for 20 minutes.
 JWT=$(python3 - <<EOF
 import json, time, base64, os
 from cryptography.hazmat.primitives import hashes, serialization
@@ -78,15 +68,11 @@ print(signing_input.decode() + "." + sig_b64)
 EOF
 )
 
-# Look up the app's ASC ID from the bundle ID.
 APP_RESP=$(curl -fsS \
     -H "Authorization: Bearer $JWT" \
     "https://api.appstoreconnect.apple.com/v1/apps?filter%5BbundleId%5D=$BUNDLE_ID")
 APP_ID=$(echo "$APP_RESP" | python3 -c 'import sys, json; print(json.load(sys.stdin)["data"][0]["id"])')
 
-# Fetch the highest build number across ALL TestFlight builds of
-# this marketing version. Page size 200 covers our usage; widen if
-# we ever cross that.
 BUILDS_RESP=$(curl -fsS \
     -H "Authorization: Bearer $JWT" \
     "https://api.appstoreconnect.apple.com/v1/builds?filter%5Bapp%5D=$APP_ID&filter%5BpreReleaseVersion.version%5D=$MARKETING_VERSION&fields%5Bbuilds%5D=version&limit=200")
@@ -98,20 +84,20 @@ nums = [int(d["attributes"]["version"]) for d in data if d["attributes"]["versio
 print(max(nums) if nums else 0)
 ')
 
-# Take the larger of (latest TF build, current xcconfig value), then
-# add 1. The xcconfig floor handles the cold-start case where ASC
-# returns 0 (no prior build for this version).
 if [ "$LATEST_BUILD" -gt "$CURRENT_BUILD" ]; then
     NEXT_BUILD=$((LATEST_BUILD + 1))
 else
     NEXT_BUILD=$((CURRENT_BUILD + 1))
 fi
 
-echo "ci_post_clone: latest TF build for v${MARKETING_VERSION} = ${LATEST_BUILD}, bumping to ${NEXT_BUILD}"
+echo "bump-build: v${MARKETING_VERSION} latest TF build = ${LATEST_BUILD}, xcconfig was ${CURRENT_BUILD}"
+echo "bump-build: writing CURRENT_PROJECT_VERSION = ${NEXT_BUILD}"
 
-# Rewrite the xcconfig in-place (CI workspace only; no commit).
 sed -i.bak -E "s/^CURRENT_PROJECT_VERSION = .*/CURRENT_PROJECT_VERSION = $NEXT_BUILD/" AppVersion.xcconfig
 rm -f AppVersion.xcconfig.bak
 
-echo "ci_post_clone: AppVersion.xcconfig now:"
+echo "bump-build: AppVersion.xcconfig now:"
 grep -E '^(MARKETING_VERSION|CURRENT_PROJECT_VERSION)' AppVersion.xcconfig
+
+echo ""
+echo "Next: archive in Xcode (or commit + push to trigger Xcode Cloud)."

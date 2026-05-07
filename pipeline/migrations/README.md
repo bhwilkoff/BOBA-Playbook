@@ -21,3 +21,4 @@ Migrations are idempotent (`create table if not exists`, `drop policy if exists`
 |---|---|
 | `0001_pipeline_initial.sql` | Initial schema — `pipeline_runs`, `pipeline_image_candidates`, `pipeline_card_images` + RLS lockdown |
 | `0002_pipeline_state_extensions.sql` | Adds `committed` and `superseded` to the candidate state enum (Stage C terminal states) |
+| `0003_pipeline_tight_crop.sql` | Adds `tight_crop_r2_key`, `tight_crop_method`, `tight_crop_confidence` for the perspective-corrected crop produced inside CardRecognitionCLI |

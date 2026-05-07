@@ -567,7 +567,17 @@ struct CollectionCardDetailView: View {
             sectionHeader("OTHER VERSIONS (\(variations.count))")
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Design.Spacing.md) {
-                    ForEach(variations, id: \.cardNumber) { variant in
+                    // ID is .id (bobaId) not .cardNumber — multiple
+                    // variants can share a cardNumber. Non-unique
+                    // ForEach IDs corrupt SwiftUI identity tracking
+                    // and broke the variations push (it bounced back
+                    // to root). Un-owned variants use value-based
+                    // NavigationLink so they route via the parent
+                    // NavigationStack's path + navigationDestination
+                    // (for: Card.self) handler — value-less
+                    // .destination: mixes badly with path-driven
+                    // NavigationStack.
+                    ForEach(variations, id: \.id) { variant in
                         // Owned variants route back into this view so
                         // coaches can edit that copy's designation /
                         // price / notes in the same flow. Un-owned
@@ -581,7 +591,7 @@ struct CollectionCardDetailView: View {
                             }
                             .buttonStyle(.plain)
                         } else {
-                            NavigationLink(destination: CardDetailView(card: variant)) {
+                            NavigationLink(value: variant) {
                                 variationTile(variant)
                             }
                         }

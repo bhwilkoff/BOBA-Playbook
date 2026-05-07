@@ -252,6 +252,15 @@ struct CollectionView: View {
                 CollectionCardDetailView(bobaId: bobaId, wrapInNavStack: false)
                     .compactZoomDestination(id: bobaId, in: cardZoomNamespace)
             }
+            // CollectionCardDetailView's "Other Versions" pushes
+            // un-owned variants via value-based NavigationLink — the
+            // destination Card → CardDetailView (catalog detail, not
+            // collection detail) is the right surface there since the
+            // user doesn't own that copy. wrapInNavStack: false because
+            // we're inside this NavigationStack already.
+            .navigationDestination(for: Card.self) { card in
+                CardDetailView(card: card, wrapInNavStack: false)
+            }
         }
     }
 
@@ -280,6 +289,12 @@ struct CollectionView: View {
                     .navigationDestination(for: String.self) { bobaId in
                         CollectionCardDetailView(bobaId: bobaId, wrapInNavStack: false)
                             .compactZoomDestination(id: bobaId, in: cardZoomNamespace)
+                    }
+                    // Mirrors compactBody — un-owned "Other Versions"
+                    // variants from CollectionCardDetailView push as
+                    // catalog detail.
+                    .navigationDestination(for: Card.self) { card in
+                        CardDetailView(card: card, wrapInNavStack: false)
                     }
             }
         }

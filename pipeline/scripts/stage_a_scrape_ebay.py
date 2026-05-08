@@ -107,13 +107,19 @@ def boba_id_for(card: dict) -> str:
 
 def filter_to_actionable(cards: list[dict], supabase: Client,
                          skip_recent_days: int) -> list[dict]:
-    """Drop cards that have active candidates or were tried recently."""
+    """Drop cards that have active candidates or were tried recently.
+
+    Chunks are small (50 bobaIds per query) because PostgREST encodes
+    `.in_()` lists into the URL — 1000+ bobaIds explode the URL past
+    the server's max length and trigger 400 'JSON could not be
+    generated'. 50 stays under ~4KB per request.
+    """
     boba_ids = [boba_id_for(c) for c in cards]
-    # Cards with non-terminal candidates already in queue
-    page_size = 1000
+    CHUNK = 50
+
     busy = set()
-    for i in range(0, len(boba_ids), page_size):
-        chunk = boba_ids[i:i + page_size]
+    for i in range(0, len(boba_ids), CHUNK):
+        chunk = boba_ids[i:i + CHUNK]
         res = (supabase.table("pipeline_image_candidates")
                .select("target_boba_id")
                .in_("target_boba_id", chunk)
@@ -124,8 +130,8 @@ def filter_to_actionable(cards: list[dict], supabase: Client,
 
     cutoff = (datetime.now(timezone.utc) - timedelta(days=skip_recent_days)).isoformat()
     cooled = set()
-    for i in range(0, len(boba_ids), page_size):
-        chunk = boba_ids[i:i + page_size]
+    for i in range(0, len(boba_ids), CHUNK):
+        chunk = boba_ids[i:i + CHUNK]
         res = (supabase.table("pipeline_card_images")
                .select("boba_id,last_attempted_at")
                .in_("boba_id", chunk)

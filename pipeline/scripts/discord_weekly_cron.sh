@@ -61,14 +61,17 @@ mkdir -p "$EXPORT_DIR"
 # --media. Safe: Discord CDN URLs don't use the token, so parallel CDN
 # requests cannot get the token banned. Channels: general, feedback-and-
 # support, trade-room.
-log "DCE export start (JSON-only, parallel channels)"
+# NOTE: DCE channels run SEQUENTIALLY (no --parallel). DCE's --parallel
+# flag runs N channels in parallel, each hammering Discord's API with
+# the user's token. --parallel 3 triggered a token-level rate limit on
+# 2026-05-08 that blocked Ben's desktop Discord too. Don't reintroduce.
+log "DCE export start (JSON-only, sequential channels)"
 if "$DCE_BIN" export \
     -t "$TOKEN" \
     -c 1305710603440095255 1448759509076934778 1306146115757936650 \
     -f Json \
     --after "$AFTER" \
     --before "$BEFORE" \
-    --parallel 3 \
     -o "$EXPORT_DIR/%C.json" >> "$LOG_FILE" 2>&1
 then
   log "DCE JSON export OK"

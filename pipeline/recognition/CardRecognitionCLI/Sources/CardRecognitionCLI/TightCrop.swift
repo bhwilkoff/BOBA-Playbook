@@ -46,19 +46,13 @@ enum TightCrop {
     static func tightCrop(input: CGImage, to outputURL: URL) -> CroppedImageInfo {
         // ─── Try Vision rectangle detection first ──
         let request = VNDetectRectanglesRequest()
-        // Mirrors CardScanner.swift live-scan rect-detection params,
-        // tightened slightly for the single-card case where the card
-        // fills more of the frame:
-        //   • aspect 0.45-1.10 — handles portrait + slightly tilted
-        //     landscape (Vision treats both card orientations as
-        //     "rectangle"; we'll auto-rotate if needed below)
-        //   • minimumSize 0.20 — single eBay listings put the card
-        //     at >20% of the frame; smaller hits are usually
-        //     background clutter (price stickers, watermarks)
-        //   • minimumConfidence 0.4 — slightly more permissive than
-        //     iOS live (0.5) since photo quality varies more
+        // Run Vision with permissive aspect — we'll filter to bare-card
+        // shape AFTER detection, so we can also see the slab vs the
+        // card inside it (Vision sometimes returns both for graded
+        // PSA/BGS cases). The post-filter step picks the card-shaped
+        // rect, not the slab.
         request.minimumAspectRatio = 0.45
-        request.maximumAspectRatio = 1.10
+        request.maximumAspectRatio = 1.50
         request.minimumSize        = 0.20
         request.minimumConfidence  = 0.4
         request.maximumObservations = 8
@@ -71,10 +65,34 @@ enum TightCrop {
             rectangles = results
         }
 
-        // Pick the BEST rectangle: highest (confidence × area). Filters
-        // out small high-confidence detections of price stickers /
-        // watermarks vs the large card itself.
-        let best = rectangles.max { a, b in
+        // Filter to BARE-CARD aspect ratios. Trading cards are 2.5×3.5
+        // ≈ 0.714 portrait. A ±~9% window handles perspective tilt and
+        // slight crop padding. Inverse range (1.28-1.51) catches cards
+        // photographed laid sideways.
+        //
+        // CRITICAL: this rejects PSA/BGS/SGC GRADED SLABS. A slab is
+        // typically aspect 0.55-0.65 (taller than a card because the
+        // grading label sits above the card window). Without this
+        // filter, Vision picks the slab outline, perspective-corrects
+        // to 5:7, and the rectified output contains a squished card
+        // with the grading label visible at top. Visually inconsistent
+        // with the rest of the catalog (which is bare cards) and a
+        // user-flagged quality bug 2026-05-08.
+        //
+        // When NO card-aspect rectangle survives, the algorithm falls
+        // through to centerCrop57. That output still has crop method
+        // != 'vision_rect', so it can't pass the AUTO gate — the
+        // candidate routes to REVIEW instead of auto-shipping.
+        let cardShaped = rectangles.filter { rect in
+            let ar = rect.boundingBox.width / rect.boundingBox.height
+            let isPortrait  = (ar >= 0.66 && ar <= 0.78)
+            let isLandscape = (ar >= 1.28 && ar <= 1.51)
+            return isPortrait || isLandscape
+        }
+
+        // Pick the best CARD-SHAPED rectangle (highest confidence × area).
+        // Slabs are excluded; only true card outlines survive.
+        let best = cardShaped.max { a, b in
             let aArea = a.boundingBox.width * a.boundingBox.height
             let bArea = b.boundingBox.width * b.boundingBox.height
             return CGFloat(a.confidence) * aArea < CGFloat(b.confidence) * bArea

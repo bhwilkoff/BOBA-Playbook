@@ -119,14 +119,21 @@ def dce_export(token: str, dce_bin: Path, out_dir: Path,
     out_dir.mkdir(parents=True, exist_ok=True)
     template = str(out_dir / "%C.json")
 
-    # Phase 1: DCE JSON-only (channels in parallel for additional speedup)
+    # Phase 1: DCE JSON-only — channels SEQUENTIAL (--parallel 1).
+    # DO NOT bump this up. DCE's --parallel runs N channels in parallel,
+    # each hammering Discord's API with the user's token at full rate.
+    # 3 parallel channels triggered a token-level rate limit on
+    # 2026-05-08 that blocked Ben's desktop Discord too. CDN media
+    # parallelism is fine (downloader uses signed URLs, no token); but
+    # API-side parallelism is account-banning territory. Sequential
+    # channels still finish in seconds because the API call is just
+    # paginating message metadata, not media.
     cmd = [str(dce_bin), "export",
            "-t", token,
            "-c", *CHANNEL_IDS,
            "-f", "Json",
            "--after", after,
            "--before", before,
-           "--parallel", "3",   # parallel CHANNELS (not files)
            "-o", template]
     with log_path.open("a") as logf:
         logf.write(f"\n=== DCE export {after} → {before} (JSON-only, parallel=3) ===\n")

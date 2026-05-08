@@ -244,7 +244,14 @@ def patch_bundle(path: Path, updates: dict[str, str]) -> int:
             c["imageAvailable"] = True
             patched += 1
 
-    path.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
+    # Preserve the existing 2-space indentation of the catalog bundles.
+    # Minifying produces correct content but a 2M-line "deletion" in the
+    # diff that no reviewer can audit. Pretty-printed serialization keeps
+    # PRs readable AND keeps subsequent diffs minimal (only touched
+    # records show as changed).
+    path.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2) + "\n"
+    )
     return patched
 
 

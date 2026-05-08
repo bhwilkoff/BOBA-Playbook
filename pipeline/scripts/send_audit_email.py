@@ -197,9 +197,15 @@ def main():
     ap.add_argument("--from", dest="sender", default="pipeline@bobaplaybook.com")
     args = ap.parse_args()
 
-    api_key = os.environ.get("RESEND_API_KEY")
+    api_key = os.environ.get("RESEND_API_KEY", "").strip()
     if not api_key:
-        sys.exit("RESEND_API_KEY not set")
+        # Skip cleanly — Stage C commit work already succeeded; missing
+        # email key is a Phase 3 setup gap, not a pipeline failure. Once
+        # the user adds RESEND_API_KEY to GH Actions secrets, audit
+        # emails start flowing without any other change.
+        print("RESEND_API_KEY not set — skipping audit email "
+              "(Stage C commit already succeeded; this step is best-effort)")
+        return
 
     supabase = create_client(os.environ["SUPABASE_URL"],
                              os.environ["SUPABASE_SERVICE_KEY"])

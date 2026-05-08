@@ -79,8 +79,14 @@ def index_bv_rows() -> dict[str, list[dict]]:
     Filters to rows where:
       - is_placeholder = '0' (real card art, not a BV placeholder)
       - image_url is set
-      - download_status was 'ok' at last scrape (meaning the URL was
-        verified reachable)
+
+    download_status is intentionally NOT filtered — values are:
+      'ok'      → the scraper downloaded successfully
+      'exists'  → URL reachable but file already on disk (still valid)
+      ''        → never attempted (added after scrape; URL likely valid)
+    All three are downloadable today; we'll detect dead URLs at fetch
+    time. Filtering on 'ok' alone dropped from 23,660 valid rows to
+    5,687 — most of BV's coverage was being silently skipped.
 
     Multiple BV rows can map to one cardNumber (different treatments).
     We keep them all and let the matcher pick by hero/name.
@@ -93,10 +99,6 @@ def index_bv_rows() -> dict[str, list[dict]]:
             if row.get("is_placeholder") != "0":
                 continue
             if not row.get("image_url"):
-                continue
-            # Skip non-OK download status — BV CDN returned an error
-            # at scrape time, almost certainly broken now too.
-            if row.get("download_status") and row["download_status"] != "ok":
                 continue
             cn = (row.get("external_card_number") or "").strip()
             if not cn:

@@ -12,12 +12,13 @@
 name: pipeline · stage B · recognize
 
 on:
-  # Weekly cron — Sunday 04:00 UTC. Lines up with Phase 1's natural
-  # batch cadence so a week's worth of new scrapes get recognized in
-  # one pass. Also functions as the Supabase keepalive (free tier
-  # auto-pauses after 7 days idle).
+  # Daily 04:00 UTC — runs 30 min after the last Stage A cron
+  # (Radish 03:30) so it picks up the freshly-queued candidates from
+  # all three sources (BV 02:30, eBay 03:00, Radish 03:30). Stage C
+  # auto-chains. Public repo means macOS runner minutes are free; the
+  # cost is ~30 min/day of compute well under any limit.
   schedule:
-    - cron: '0 4 * * 0'
+    - cron: '0 4 * * *'
 
   # Manual dispatch with optional limit override
   workflow_dispatch:

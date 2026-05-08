@@ -250,15 +250,48 @@ def generate_image_tiers(crop_bytes: bytes) -> tuple[bytes, bytes]:
 
 
 def upload_winner(r2, bucket: str, w: WinningCandidate, full_bytes: bytes,
-                  thumb_bytes: bytes, dry_run: bool):
+                  thumb_bytes: bytes, dry_run: bool) -> str:
+    """Upload a winner's WebP tiers to R2.
+
+    Returns:
+      "ok"               — both tiers written
+      "already_exists"   — at least one tier's key already had bytes;
+                           NOTHING written (refuse-to-overwrite). The
+                           caller should treat this candidate as
+                           already_imaged.
+      "dry_run"          — no-op for preview mode
+
+    Refusing to overwrite is the LAST defense against the "we shipped
+    over existing art" bug from 2026-05-08. The pre-flight have_art
+    filter (in pick_winners) is the primary defense; this HEAD-check
+    is belt-and-suspenders. Stage C must never overwrite existing R2
+    bytes — there's no version history; an overwrite is irrecoverable
+    unless we have an external archive.
+    """
     if dry_run:
-        return
+        return "dry_run"
+
+    # HEAD-check both target keys. If EITHER already exists, refuse
+    # the entire upload — partial uploads (full but not thumb, or
+    # vice versa) leave R2 in an inconsistent state.
+    for key in (w.full_r2_key, w.thumb_r2_key):
+        try:
+            r2.head_object(Bucket=bucket, Key=key)
+            # 200 = exists. Refuse to overwrite.
+            return "already_exists"
+        except r2.exceptions.ClientError as e:
+            code = e.response.get("Error", {}).get("Code", "")
+            if code not in ("404", "NoSuchKey", "NotFound"):
+                raise   # transient / auth / other — let caller surface
+
+    # Neither key exists; safe to PUT.
     r2.put_object(Bucket=bucket, Key=w.full_r2_key,  Body=full_bytes,
                   ContentType="image/webp",
                   CacheControl="public, max-age=31536000, immutable")
     r2.put_object(Bucket=bucket, Key=w.thumb_r2_key, Body=thumb_bytes,
                   ContentType="image/webp",
                   CacheControl="public, max-age=31536000, immutable")
+    return "ok"
 
 
 def patch_bundle(path: Path, updates: dict[str, str]) -> int:
@@ -497,20 +530,30 @@ def main():
     # ─── Generate + upload tiers ──
     print(f"→ generating + uploading {len(winners)} image tiers")
     failures: list[str] = []
+    refused_overwrites: list[str] = []   # winners whose R2 key already had bytes
     for i, w in enumerate(winners):
         try:
             crop_obj = r2.get_object(Bucket=bucket, Key=w.crop_image_r2_key)
             crop_bytes = crop_obj["Body"].read()
             full_bytes, thumb_bytes = generate_image_tiers(crop_bytes)
-            upload_winner(r2, bucket, w, full_bytes, thumb_bytes, args.dry_run)
+            status = upload_winner(r2, bucket, w, full_bytes, thumb_bytes, args.dry_run)
+            if status == "already_exists":
+                refused_overwrites.append(w.boba_id)
+                print(f"  ⊘ refused overwrite: {w.boba_id} (R2 key already populated)")
         except Exception as e:
             print(f"  ! {w.boba_id}: {e}")
             failures.append(w.boba_id)
         if (i + 1) % 25 == 0:
             print(f"  {i + 1}/{len(winners)}")
 
-    # Drop failures from winners
-    winners = [w for w in winners if w.boba_id not in failures]
+    # Drop failures + refused-overwrites from winners. Refused-overwrite
+    # candidates transition to 'already_imaged' below; failures stay in
+    # 'accepted' so they get retried next run.
+    winners = [w for w in winners
+               if w.boba_id not in failures
+               and w.boba_id not in refused_overwrites]
+    if refused_overwrites:
+        print(f"  total refused (already had art on R2): {len(refused_overwrites)}")
 
     # ─── Patch catalog bundles ──
     print(f"→ patching {len(CATALOG_BUNDLES)} catalog bundles")
@@ -541,6 +584,20 @@ def main():
             [r["id"] for r in accepted]
         )
         update_card_images_table(supabase, winners)
+
+        # Mark refused-overwrite candidates as already_imaged so they
+        # don't keep churning through future runs. The R2 HEAD-check
+        # caught a case the pre-flight have_art filter missed; treat
+        # the result the same way.
+        if refused_overwrites:
+            refused_ids = [
+                row["id"] for row in accepted
+                if row["recognized_boba_id"] in refused_overwrites
+            ]
+            for i in range(0, len(refused_ids), 500):
+                supabase.table("pipeline_image_candidates") \
+                    .update({"state": "already_imaged"}) \
+                    .in_("id", refused_ids[i:i+500]).execute()
 
     # ─── Close run ──
     summary = {

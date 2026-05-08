@@ -83,7 +83,15 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 # ─── State mapping ────────────────────────────────────────────────────────
 
 STATE_BY_RELATIVE_ROOT = {
-    "ebay-verified/images":           "accepted",
+    # ebay-verified/images was historically state='accepted' on the
+    # assumption that human approval implied a final commit-ready
+    # state. That broke Stage C — recognized_boba_id was set to the
+    # filename slug, which doesn't match the canonical bobaId format
+    # in cards.json. Stage C uploaded R2 files at slug-style names
+    # that no card record references. ALL imports now go to 'cropped'
+    # so Stage B does the canonical recognition pass; humans approved
+    # the IMAGE/CARD match, not the filename's bobaId format.
+    "ebay-verified/images":           "cropped",
     "ebay-review/needs-review":       "cropped",
     "ebay-review/quarantine":         "quarantined",
     "ebay-review/rejected":           "rejected",
@@ -152,23 +160,23 @@ def infer_boba_ids(path: Path, root_dir: Path, state: str) -> tuple[Optional[str
 
       ebay-verified/images/{bobaIdSlug}.{jpg,webp,png}
         → flat layout, file stem IS the bobaId slug
-        → target = recognized = stem (these are human-OK'd)
 
       ebay-review/{needs-review,quarantine,reclaim,rejected}/
           {bobaIdSlug}__{eBayListingId}__{ordinal}.jpg
         → flat layout, file stem encodes the bobaId before the FIRST '__'
-        → target = part before '__'; recognized = unknown (Stage B's job)
 
-    Filename slugs may not be byte-identical to boba_id.py's canonical
-    formula (some use underscores where the formula uses dashes; some
-    have trailing-segment differences). Phase 4 normalizes via cards.json
-    lookup. For now, we store the filename slug verbatim — it's enough
-    for Stage B calibration since the catalog match still goes through
-    ScanMatching's full scoring.
+    target_boba_id is the slug-form hint from the filename — used only
+    as scrape-time targeting context, not as a final identifier.
+    recognized_boba_id is intentionally NEVER set by import. ALL
+    canonical bobaId assignment runs through Stage B's ScanMatching
+    so the result is byte-identical to the format cards.json uses
+    (no slug-vs-canonical mismatch downstream). Even ebay-verified
+    images go through Stage B — humans approved that the IMAGE matches
+    the card, not that the filename is in canonical form.
     """
     if state == "accepted":
-        # Flat: ebay-verified/images/{slug}.jpg
-        return (path.stem, path.stem)
+        # Flat: ebay-verified/images/{slug}.jpg — slug-form target only
+        return (path.stem, None)
 
     if state in ("cropped", "quarantined", "rejected"):
         # Flat: ebay-review/{state-root}/{slug}__{listing-id}__{N}.jpg
@@ -177,7 +185,6 @@ def infer_boba_ids(path: Path, root_dir: Path, state: str) -> tuple[Optional[str
         if "__" in stem:
             slug = stem.split("__", 1)[0]
             return (slug, None)
-        # No '__' separator → fall back to the full stem (defensive)
         return (stem, None)
 
     return (None, None)

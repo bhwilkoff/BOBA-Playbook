@@ -74,11 +74,31 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 # ─── Threshold configuration ──────────────────────────────────────────────
 
 THRESHOLDS = {
-    # Top candidate scored at or above this AND margin gate passed → AUTO
-    "auto_score":  0.95,
-    "auto_margin": 0.50,
-    # Top score at or above this (but below auto) → REVIEW (PR awaits tap)
-    "review_score": 0.70,
+    # AUTO tier — strict gates so wrong-bobaId never auto-merges:
+    #
+    #   1. score >= 4.5 — well above ScanMatching's reject floor (1.4)
+    #      and above the score range where same-hero variant collisions
+    #      were observed (1.6 - 3.7 in the 2026-05-08 audit).
+    #   2. margin to next-different-hero candidate >= 0.5 (existing).
+    #   3. second_margin to next-best ANY candidate >= 0.5 — NEW gate
+    #      that catches same-hero variant collisions (Windmill BFA-97 vs
+    #      BL-BG97, Vlad VGSA-1 vs VGSA-8, etc.).
+    #   4. tight_crop_method == 'vision_rect' (enforced in classify):
+    #      Vision rect detection succeeded so the geometry we recognized
+    #      against was actually card-shaped. Center-fallback crops
+    #      can't AUTO regardless of score — they go to REVIEW.
+    #
+    # Earlier values (auto_score=0.95) shipped wrong-bobaId matches in
+    # PR #3 (closed). These thresholds are conservative; expect ~25%
+    # AUTO yield until calibration improves.
+    "auto_score":         4.5,
+    "auto_margin":        0.5,
+    "auto_second_margin": 0.5,
+
+    # REVIEW tier — Stage C opens the PR but does NOT auto-merge.
+    # Lower bar than AUTO; everything that scored at least this much
+    # but didn't clear the AUTO gates lands here. User taps to merge.
+    "review_score":       2.0,
 }
 
 
@@ -198,15 +218,42 @@ def run_cardreckon(
     return results
 
 
-def classify(score: Optional[float], margin: Optional[float],
-             recognized_boba_id: Optional[str], error: Optional[str]) -> str:
-    """Map a recognition result to the next pipeline state."""
+def classify(result: Optional[dict], error: Optional[str]) -> str:
+    """Map a recognition result dict to the next pipeline state.
+
+    AUTO gate requires ALL of:
+      • score >= auto_score
+      • margin to different-hero >= auto_margin (when present)
+      • second_margin to any-runner-up >= auto_second_margin (when present)
+      • crop method == 'vision_rect' (Vision actually found the card)
+    """
     if error:
         return "error"
-    if score is None or recognized_boba_id is None:
+    if result is None:
         return "quarantined"
-    if (score >= THRESHOLDS["auto_score"]
-            and (margin is None or margin >= THRESHOLDS["auto_margin"])):
+
+    score      = result.get("score")
+    recognized = result.get("recognized_boba_id")
+    if score is None or recognized is None:
+        return "quarantined"
+
+    margin = result.get("margin")
+    crop_method = (result.get("crop") or {}).get("method")
+
+    # Second margin: distance from top to next-best of ANY kind
+    # (regardless of hero). Catches same-hero variant collisions.
+    top_cands = result.get("top_candidates") or []
+    second_margin: Optional[float] = None
+    if len(top_cands) >= 2:
+        second_margin = (top_cands[0].get("score") or 0) - (top_cands[1].get("score") or 0)
+
+    auto_ok = (
+        crop_method == "vision_rect"
+        and score >= THRESHOLDS["auto_score"]
+        and (margin is None         or margin         >= THRESHOLDS["auto_margin"])
+        and (second_margin is None  or second_margin  >= THRESHOLDS["auto_second_margin"])
+    )
+    if auto_ok:
         return "accepted"
     if score >= THRESHOLDS["review_score"]:
         return "review"
@@ -251,7 +298,7 @@ def update_candidate(supabase: Client, candidate: Candidate,
     score      = (result or {}).get("score")
     margin     = (result or {}).get("margin")
     recognized = (result or {}).get("recognized_boba_id")
-    next_state = classify(score, margin, recognized, error)
+    next_state = classify(result, error)
 
     payload: dict = {
         "state":                  next_state,

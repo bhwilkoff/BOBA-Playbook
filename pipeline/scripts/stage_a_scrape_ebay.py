@@ -147,71 +147,95 @@ def filter_to_actionable(cards: list[dict], supabase: Client,
             and boba_id_for(c) not in cooled]
 
 
-def build_query(card: dict) -> str:
-    """Build an eBay search query for a missing-art card.
+def build_queries(card: dict) -> list[str]:
+    """Build multiple eBay query variants for a missing-art card.
 
-    Strategy: cardNumber alone is usually too rare to match listing
-    titles directly. Hero name alone is too noisy (false positives
-    against unrelated products — Nike shorts, basketball jerseys, etc.).
-    Best signal is `{cardNumber} {hero}` when both are non-empty —
-    the cardNumber prefix tells eBay's tokenizer "this is a BoBA
-    card," the hero narrows down to the right one. Add "BoBA" or
-    "Battle Arena" only when missing other signal.
+    Long-tail listings rarely contain the exact cardNumber in their
+    title (sellers often abbreviate or use the hero name only). Trying
+    multiple variants per card lifts our hit rate without exploding
+    query volume — Browse API is fast and the Worker caches the OAuth
+    token, so 3-4 variants per card adds ~1-2s of latency per card
+    (within budget at 200 cards/run).
+
+    Variant order is tried until we get hits OR we exhaust the list.
+    Each variant attacks a different listing-title shape:
+      1. cardNumber + hero          — exact-match lottery
+      2. hero + cardNumber prefix   — for "Maverick PG-72" listings
+                                       where cardNumber is at end
+      3. cardNumber + 'BoBA'        — when sellers omit hero
+      4. hero + treatment + 'BoBA'  — long-tail hero-only listings
     """
-    cn = (card.get("cardNumber") or "").strip()
+    cn   = (card.get("cardNumber") or "").strip()
     hero = (card.get("hero") or card.get("name") or "").strip()
     treat = (card.get("treatment") or "").strip()
+
+    variants: list[str] = []
     if cn and hero:
-        # Use just cardNumber + hero — most listings have both
-        return f"{cn} {hero}"
-    if hero:
-        # Hero only — needs disambiguator since hero names are short
-        return f"{hero} BoBA Battle Arena"
+        variants.append(f"{cn} {hero}")
+    if hero and cn:
+        # Drop set prefix — "PG-72" often appears as just "PG72" or "72"
+        # in listings; try cardNumber-prefix-only form
+        prefix = cn.split("-")[0] if "-" in cn else cn
+        if prefix and prefix != cn:
+            variants.append(f"{hero} {prefix}")
     if cn:
-        return f"{cn} BoBA Battle Arena"
-    return ""
+        variants.append(f"{cn} BoBA")
+    if hero:
+        if treat and treat.lower() != "base set":
+            variants.append(f"{hero} {treat} BoBA")
+        else:
+            variants.append(f"{hero} BoBA Battle Arena")
+    # Dedupe while preserving order
+    seen = set()
+    out = []
+    for v in variants:
+        v = v.strip()
+        if v and v not in seen:
+            seen.add(v)
+            out.append(v)
+    return out
 
 
-def scrape_ebay(query: str, top_n: int = 3) -> list[dict]:
-    """Query the boba-ebay-proxy Worker's /scrape-ebay endpoint and
-    return [{listing_id, image_url, title, listing_url}].
+def scrape_ebay(card: dict, top_n: int = 3) -> tuple[list[dict], str]:
+    """Query the boba-ebay-proxy Worker for a card, trying variants
+    until we get hits. Returns (items, query_that_succeeded).
 
     Worker handles eBay OAuth + Browse API. Direct HTML scrape gets
     403'd from GH Actions runner IPs (verified 2026-05-08).
     """
-    if not query:
-        return []
-    try:
-        resp = requests.get(
-            f"{EBAY_PROXY_BASE}/scrape-ebay",
-            params={"q": query, "limit": str(top_n)},
-            timeout=15,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception as e:
-        print(f"  ! proxy fetch failed for {query!r}: {e}")
-        return []
-
-    items = []
-    for it in (data.get("items") or [])[:top_n]:
-        url = it.get("imageUrl")
-        if not url:
+    queries = build_queries(card)
+    for query in queries:
+        try:
+            resp = requests.get(
+                f"{EBAY_PROXY_BASE}/scrape-ebay",
+                params={"q": query, "limit": str(top_n)},
+                timeout=15,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            print(f"  ! proxy fetch failed for {query!r}: {e}")
             continue
-        # Promote eBay thumb URLs to full-size
-        url = re.sub(r"s-l\d+\.", "s-l1600.", url)
-        listing_id = it.get("itemId", "")
-        # eBay Browse API returns itemId like "v1|157837201096|0" — pull out the numeric ID
-        m = re.search(r"\|(\d+)\|", listing_id)
-        if m:
-            listing_id = m.group(1)
-        items.append({
-            "listing_id": listing_id,
-            "image_url":  url,
-            "title":      it.get("title") or "",
-            "listing_url": it.get("viewItemURL") or "",
-        })
-    return items
+
+        items = []
+        for it in (data.get("items") or [])[:top_n]:
+            url = it.get("imageUrl")
+            if not url:
+                continue
+            url = re.sub(r"s-l\d+\.", "s-l1600.", url)
+            listing_id = it.get("itemId", "")
+            m = re.search(r"\|(\d+)\|", listing_id)
+            if m:
+                listing_id = m.group(1)
+            items.append({
+                "listing_id": listing_id,
+                "image_url":  url,
+                "title":      it.get("title") or "",
+                "listing_url": it.get("viewItemURL") or "",
+            })
+        if items:
+            return items, query
+    return [], (queries[0] if queries else "")
 
 
 def download_image(url: str) -> Optional[bytes]:
@@ -281,15 +305,14 @@ def main():
     inserted, skipped, errors = 0, 0, 0
     for i, card in enumerate(targets):
         bid = boba_id_for(card)
-        query = build_query(card)
         if i % 20 == 0:
-            print(f"  [{i+1}/{len(targets)}] {bid}  q={query!r}")
+            print(f"  [{i+1}/{len(targets)}] {bid}")
 
         if args.dry_run:
             time.sleep(0.05)
             continue
 
-        items = scrape_ebay(query, top_n=args.candidates_per_card)
+        items, query = scrape_ebay(card, top_n=args.candidates_per_card)
         if not items:
             skipped += 1
             time.sleep(args.query_delay)

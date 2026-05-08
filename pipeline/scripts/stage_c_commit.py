@@ -307,26 +307,30 @@ def open_pr(repo_root: Path, branch: str, winners: list[WinningCandidate],
     body_lines = [
         f"## Stage C run `{run_id}`",
         "",
-        f"- **Winners merged:** {len(winners)}",
-        f"- **R2 prefix:** `full/` + `thumbs/` on `boba-card-images`",
+        f"- Winners merged: {len(winners)}",
+        f"- R2 prefix: `full/` + `thumbs/` on `boba-card-images`",
         "",
         "### Cards",
         "",
-        "| bobaId | score | margin | thumb |",
-        "|---|---|---|---|",
+        "Each section shows the bobaId + score + the production-tier "
+        "image at 300px (sourced from `full/` so card numbers are "
+        "legible for spot-checking).",
+        "",
+        "---",
+        "",
     ]
-    for w in winners[:200]:
-        thumb_url = f"{cdn_base}/thumbs/{Path(w.image_file).name}"
-        body_lines.append(
-            f"| `{w.boba_id}` | {w.score:.2f} | "
-            f"{w.margin:.2f} | "
-            f"<img src='{thumb_url}' width='80'> |"
-            if w.margin is not None else
-            f"| `{w.boba_id}` | {w.score:.2f} | — | "
-            f"<img src='{thumb_url}' width='80'> |"
-        )
+    # Each card as a dedicated section with a high-res image. Better
+    # mobile readability than a 200-row table with 80px thumbs — the
+    # bobaId line stays adjacent to its image even when scrolling.
+    for i, w in enumerate(winners[:200], 1):
+        full_url = f"{cdn_base}/full/{Path(w.image_file).name}"
+        margin_str = f", margin {w.margin:.2f}" if w.margin is not None else ""
+        body_lines.append(f"### {i}. `{w.boba_id}` — score {w.score:.2f}{margin_str}")
+        body_lines.append("")
+        body_lines.append(f'<img src="{full_url}" width="300">')
+        body_lines.append("")
     if len(winners) > 200:
-        body_lines.append(f"| _+ {len(winners) - 200} more — see audit email_ | | | |")
+        body_lines.append(f"_(+ {len(winners) - 200} more — see audit email)_")
 
     body = "\n".join(body_lines)
 

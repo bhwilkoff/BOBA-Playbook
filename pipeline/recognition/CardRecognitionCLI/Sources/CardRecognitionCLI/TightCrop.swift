@@ -65,34 +65,12 @@ enum TightCrop {
             rectangles = results
         }
 
-        // Filter to BARE-CARD aspect ratios. Trading cards are 2.5×3.5
-        // ≈ 0.714 portrait. A ±~9% window handles perspective tilt and
-        // slight crop padding. Inverse range (1.28-1.51) catches cards
-        // photographed laid sideways.
-        //
-        // CRITICAL: this rejects PSA/BGS/SGC GRADED SLABS. A slab is
-        // typically aspect 0.55-0.65 (taller than a card because the
-        // grading label sits above the card window). Without this
-        // filter, Vision picks the slab outline, perspective-corrects
-        // to 5:7, and the rectified output contains a squished card
-        // with the grading label visible at top. Visually inconsistent
-        // with the rest of the catalog (which is bare cards) and a
-        // user-flagged quality bug 2026-05-08.
-        //
-        // When NO card-aspect rectangle survives, the algorithm falls
-        // through to centerCrop57. That output still has crop method
-        // != 'vision_rect', so it can't pass the AUTO gate — the
-        // candidate routes to REVIEW instead of auto-shipping.
-        let cardShaped = rectangles.filter { rect in
-            let ar = rect.boundingBox.width / rect.boundingBox.height
-            let isPortrait  = (ar >= 0.66 && ar <= 0.78)
-            let isLandscape = (ar >= 1.28 && ar <= 1.51)
-            return isPortrait || isLandscape
-        }
-
-        // Pick the best CARD-SHAPED rectangle (highest confidence × area).
-        // Slabs are excluded; only true card outlines survive.
-        let best = cardShaped.max { a, b in
+        // Pick the best rectangle: highest (confidence × area). Slab
+        // detection happens AFTER perspective correction (via OCR on
+        // the rectified top region) — aspect alone can't distinguish
+        // slabs from cards because PSA/BGS/SGC slabs are all in the
+        // 0.69-0.74 aspect range, identical to bare cards.
+        let best = rectangles.max { a, b in
             let aArea = a.boundingBox.width * a.boundingBox.height
             let bArea = b.boundingBox.width * b.boundingBox.height
             return CGFloat(a.confidence) * aArea < CGFloat(b.confidence) * bArea
@@ -100,9 +78,19 @@ enum TightCrop {
 
         if let rect = best {
             if let cropped = perspectiveCorrect(input: input, observation: rect) {
+                // Slab detection: the rectangle's outer aspect (~0.71)
+                // is identical for a bare card and for a PSA/BGS/SGC
+                // graded slab — both are 2.5×3.5-ish proportions. The
+                // distinguishing signal is the GRADING LABEL inside
+                // the top of the slab. OCR the top 25% of the
+                // rectified image; if any grading-related keyword is
+                // present, mark this candidate as slab_rejected so it
+                // can't pass the AUTO gate (which requires
+                // crop_method == 'vision_rect').
+                let isSlab = detectSlab(in: cropped)
                 writeJPEG(cropped, to: outputURL)
                 return CroppedImageInfo(
-                    method: .visionRectangle,
+                    method: isSlab ? .slabRejected : .visionRectangle,
                     sourceRectArea: Double(rect.boundingBox.width * rect.boundingBox.height),
                     sourceConfidence: rect.confidence
                 )
@@ -132,6 +120,70 @@ enum TightCrop {
             sourceRectArea: 0,
             sourceConfidence: 0
         )
+    }
+
+    // MARK: - Slab detection
+    //
+    // PSA/BGS/SGC/CGC graded slabs have outer aspect (~0.71) identical
+    // to a bare card, so rectangle-shape filtering can't tell them
+    // apart. The reliable signal is the GRADING LABEL printed at the
+    // top of the slab (PSA blue, BGS black, SGC white, etc.) — a tight
+    // band of uppercase text declaring the grade.
+    //
+    // After perspective correction we OCR the top 25% of the rectified
+    // image and check for any grading-language keyword. Hits → mark as
+    // slab_rejected → can't pass the AUTO gate (which requires
+    // crop_method == 'vision_rect').
+    //
+    // The keyword list intentionally includes both grading-company
+    // names AND grade-vocabulary so we catch slabs even when the
+    // company logo OCRs imperfectly. Edge cases that might falsely
+    // hit (a card whose name contains "MINT" etc.) are extremely
+    // rare in the BoBA catalog — the false-positive risk is much
+    // lower than the cost of letting slabs through.
+
+    private static let slabKeywords: [String] = [
+        // Grading-company brands
+        "PSA",  "BGS",  "SGC",  "CGC",  "BVG",  "TAG",
+        "CCG",  "GMA",  "ISA",  "AGS",  "HGA",  "PGS",
+        // Grade vocabulary
+        "GEM MT",   "GEM-MT",   "GEM MINT",
+        "MINT",     "NM-MT",    "NEAR MINT",
+        "PRISTINE", "GRADED",   "AUTHENTIC",
+        // Cert/population/subgrade text on slab labels
+        "POPULATION", "SUBGRADE", "CENTERING",
+        "SURFACE",    "EDGES",    "CORNERS",
+    ]
+
+    private static func detectSlab(in cgImage: CGImage) -> Bool {
+        // Crop top 25% — grading labels live in the top band of slabs
+        let topHeight = max(1, cgImage.height / 4)
+        let topRect = CGRect(x: 0, y: 0, width: cgImage.width, height: topHeight)
+        guard let topImage = cgImage.cropping(to: topRect) else { return false }
+
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel       = .accurate
+        request.usesLanguageCorrection = false
+        request.recognitionLanguages   = ["en-US"]
+        request.minimumTextHeight      = 0.02   // grading labels are decent-sized
+
+        let handler = VNImageRequestHandler(cgImage: topImage, options: [:])
+        do { try handler.perform([request]) } catch { return false }
+        guard let results = request.results else { return false }
+
+        // Concatenate all OCR text from the top region. Grading labels
+        // are short uppercase strings split across multiple text
+        // observations ("PSA" + "10" + "GEM MT" etc.); concatenation
+        // catches multi-token matches like "GEM MT" that wouldn't
+        // appear in a single observation.
+        let allText = results
+            .compactMap { $0.topCandidates(1).first?.string.uppercased() }
+            .joined(separator: " ")
+
+        for keyword in slabKeywords {
+            if allText.contains(keyword) { return true }
+        }
+        return false
     }
 
     // MARK: - Perspective correction
@@ -248,6 +300,7 @@ struct CroppedImageInfo {
         case visionRectangle    = "vision_rect"
         case centerFallback     = "center_57"
         case uncroppedFallback  = "uncropped"
+        case slabRejected       = "slab_rejected"
     }
     let method: Method
     let sourceRectArea: Double      // 0..1 normalized; 0 if not vision_rect

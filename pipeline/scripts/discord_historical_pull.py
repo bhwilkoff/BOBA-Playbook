@@ -107,25 +107,44 @@ def run(*cmd, cwd=None, capture=False) -> subprocess.CompletedProcess:
 def dce_export(token: str, dce_bin: Path, out_dir: Path,
                after: str, before: str, log_path: Path) -> bool:
     """Export the three channels for [after, before) into out_dir.
+
+    Two-phase pattern (much faster than DCE's --media):
+      1. Run DCE WITHOUT --media to get JSONs (rate-limited only by API,
+         not by per-attachment CDN throttling — completes in seconds).
+      2. Run download_discord_media.py with 4 parallel workers — Discord
+         CDN doesn't authenticate by token, so parallel CDN requests
+         can't get the token banned. ~4× faster than DCE --media.
+
     Returns True on success."""
     out_dir.mkdir(parents=True, exist_ok=True)
     template = str(out_dir / "%C.json")
 
+    # Phase 1: DCE JSON-only (channels in parallel for additional speedup)
     cmd = [str(dce_bin), "export",
            "-t", token,
            "-c", *CHANNEL_IDS,
            "-f", "Json",
            "--after", after,
            "--before", before,
-           "--media",
+           "--parallel", "3",   # parallel CHANNELS (not files)
            "-o", template]
-
     with log_path.open("a") as logf:
-        logf.write(f"\n=== DCE export {after} → {before} ===\n")
+        logf.write(f"\n=== DCE export {after} → {before} (JSON-only, parallel=3) ===\n")
         logf.flush()
-        proc = subprocess.run(cmd, stdout=logf, stderr=subprocess.STDOUT, text=True)
+        p1 = subprocess.run(cmd, stdout=logf, stderr=subprocess.STDOUT, text=True)
+    if p1.returncode != 0:
+        return False
 
-    return proc.returncode == 0
+    # Phase 2: parallel media downloader
+    dl_cmd = ["python3",
+              str(REPO_ROOT / "pipeline/scripts/download_discord_media.py"),
+              "--exports-dir", str(out_dir),
+              "--workers", "4"]
+    with log_path.open("a") as logf:
+        logf.write(f"\n=== parallel media download (workers=4) ===\n")
+        logf.flush()
+        p2 = subprocess.run(dl_cmd, stdout=logf, stderr=subprocess.STDOUT, text=True)
+    return p2.returncode == 0
 
 
 def cleanup_media(exports_dir: Path):

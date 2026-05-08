@@ -55,22 +55,36 @@ log "DCE range: $AFTER → $BEFORE"
 
 mkdir -p "$EXPORT_DIR"
 
-# ── Run DCE ────────────────────────────────────────────────────────
-# Channels: general, feedback-and-support, trade-room
-log "DCE export start"
+# ── Run DCE (JSON-only, then parallel media download) ─────────────
+# Two-phase pattern: DCE writes the JSON fast (seconds), then a paralleled
+# downloader (4 workers) pulls media ~4× faster than DCE's sequential
+# --media. Safe: Discord CDN URLs don't use the token, so parallel CDN
+# requests cannot get the token banned. Channels: general, feedback-and-
+# support, trade-room.
+log "DCE export start (JSON-only, parallel channels)"
 if "$DCE_BIN" export \
     -t "$TOKEN" \
     -c 1305710603440095255 1448759509076934778 1306146115757936650 \
     -f Json \
     --after "$AFTER" \
     --before "$BEFORE" \
-    --media \
+    --parallel 3 \
     -o "$EXPORT_DIR/%C.json" >> "$LOG_FILE" 2>&1
 then
-  log "DCE export OK"
+  log "DCE JSON export OK"
 else
   log "FATAL: DCE failed (see log above)"
   exit 1
+fi
+
+log "media download start (4 parallel workers)"
+if python3 "$REPO_ROOT/pipeline/scripts/download_discord_media.py" \
+    --exports-dir "$EXPORT_DIR" \
+    --workers 4 >> "$LOG_FILE" 2>&1
+then
+  log "media download OK"
+else
+  log "WARN: media download exited non-zero (see log)"
 fi
 
 # ── Evaluate ───────────────────────────────────────────────────────

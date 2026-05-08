@@ -55,7 +55,7 @@ DEFAULT_CARDREKON   = REPO_ROOT / "pipeline/recognition/CardRecognitionCLI/.buil
 DEFAULT_CARDS_JSON  = REPO_ROOT / "BOBAPlaybook/display-cards.json"
 DEFAULT_FP_BIN      = REPO_ROOT / "BOBAPlaybook/feature-prints.bin"
 
-IMG_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}  # HEIC skipped — cardreckon may not load
+IMG_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".heic"}  # CGImageSourceCreateWithURL handles HEIC natively on macOS
 MIN_BYTES = 50_000
 MAX_BYTES = 12_000_000
 

@@ -67,7 +67,10 @@ USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 ]
 
-EBAY_SEARCH_URL = "https://www.ebay.com/sch/i.html"
+# Routes through the existing boba-ebay-proxy Worker which has eBay
+# Browse API OAuth credentials. Direct HTML scrape from GH Actions
+# runner IPs gets 403'd by eBay's bot detection.
+EBAY_PROXY_BASE = "https://boba-ebay-proxy.benwilkoff.workers.dev"
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────
@@ -145,51 +148,68 @@ def filter_to_actionable(cards: list[dict], supabase: Client,
 
 
 def build_query(card: dict) -> str:
+    """Build an eBay search query for a missing-art card.
+
+    Strategy: cardNumber alone is usually too rare to match listing
+    titles directly. Hero name alone is too noisy (false positives
+    against unrelated products — Nike shorts, basketball jerseys, etc.).
+    Best signal is `{cardNumber} {hero}` when both are non-empty —
+    the cardNumber prefix tells eBay's tokenizer "this is a BoBA
+    card," the hero narrows down to the right one. Add "BoBA" or
+    "Battle Arena" only when missing other signal.
+    """
     cn = (card.get("cardNumber") or "").strip()
     hero = (card.get("hero") or card.get("name") or "").strip()
-    return f"{cn} {hero} BOBA"
+    treat = (card.get("treatment") or "").strip()
+    if cn and hero:
+        # Use just cardNumber + hero — most listings have both
+        return f"{cn} {hero}"
+    if hero:
+        # Hero only — needs disambiguator since hero names are short
+        return f"{hero} BoBA Battle Arena"
+    if cn:
+        return f"{cn} BoBA Battle Arena"
+    return ""
 
 
 def scrape_ebay(query: str, top_n: int = 3) -> list[dict]:
-    """Hit eBay's HTML search and parse the first `top_n` listing image
-    URLs. Returns [{listing_id, image_url, title, listing_url}]."""
-    params = {"_nkw": query, "_sop": "12", "_ipg": "60"}
-    headers = {"User-Agent": random.choice(USER_AGENTS)}
+    """Query the boba-ebay-proxy Worker's /scrape-ebay endpoint and
+    return [{listing_id, image_url, title, listing_url}].
+
+    Worker handles eBay OAuth + Browse API. Direct HTML scrape gets
+    403'd from GH Actions runner IPs (verified 2026-05-08).
+    """
+    if not query:
+        return []
     try:
-        resp = requests.get(EBAY_SEARCH_URL, params=params, headers=headers,
-                            timeout=15)
+        resp = requests.get(
+            f"{EBAY_PROXY_BASE}/scrape-ebay",
+            params={"q": query, "limit": str(top_n)},
+            timeout=15,
+        )
         resp.raise_for_status()
+        data = resp.json()
     except Exception as e:
-        print(f"  ! ebay fetch failed for {query!r}: {e}")
+        print(f"  ! proxy fetch failed for {query!r}: {e}")
         return []
 
-    soup = BeautifulSoup(resp.text, "html.parser")
     items = []
-    for li in soup.select("li.s-item")[:30]:
-        if len(items) >= top_n:
-            break
-        img = li.select_one("img.s-item__image-img") or li.select_one("img")
-        link = li.select_one("a.s-item__link")
-        if not img or not link:
+    for it in (data.get("items") or [])[:top_n]:
+        url = it.get("imageUrl")
+        if not url:
             continue
-        # Lazy-loaded eBay images put the real URL in data-src or data-defer-load
-        url = (img.get("data-defer-load") or img.get("data-src")
-               or img.get("src"))
-        if not url or "ir.ebaystatic.com" in url:
-            continue
-        # Promote thumb to full-size by stripping size suffix (...s-l140.jpg → s-l1600)
+        # Promote eBay thumb URLs to full-size
         url = re.sub(r"s-l\d+\.", "s-l1600.", url)
-        href = link.get("href") or ""
-        m = re.search(r"/itm/(?:[^/]+/)?(\d+)", href)
-        listing_id = m.group(1) if m else None
-        title = (link.get_text() or "").strip()
-        if not listing_id or "Shop on eBay" in title:
-            continue
+        listing_id = it.get("itemId", "")
+        # eBay Browse API returns itemId like "v1|157837201096|0" — pull out the numeric ID
+        m = re.search(r"\|(\d+)\|", listing_id)
+        if m:
+            listing_id = m.group(1)
         items.append({
             "listing_id": listing_id,
-            "image_url": url,
-            "title": title,
-            "listing_url": href,
+            "image_url":  url,
+            "title":      it.get("title") or "",
+            "listing_url": it.get("viewItemURL") or "",
         })
     return items
 

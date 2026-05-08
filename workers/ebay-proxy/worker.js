@@ -946,6 +946,61 @@ async function searchSold(token, keywords, cutoffISO) {
   return { items, error: null, noScope: false };
 }
 
+/** Stage A pipeline endpoint: search eBay by free-text query and
+ *  return a small JSON array of {itemId, imageUrl, title, viewItemURL}
+ *  per match. Used by pipeline/scripts/stage_a_scrape_ebay.py — eBay
+ *  blocks GH Actions runner IPs from HTML scrape, so the pipeline
+ *  routes through this Worker which already has Browse API
+ *  credentials.
+ *
+ *  GET /scrape-ebay?q=<query>&limit=<N>   (default N=5, max 20)
+ */
+async function handleScrapeEbay(request, env) {
+  if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) {
+    return json({ error: "EBAY_APP_ID and EBAY_CERT_ID secrets required" }, 500);
+  }
+  const url = new URL(request.url);
+  const q   = (url.searchParams.get("q") || "").trim();
+  if (!q) return json({ error: "q parameter required" }, 400);
+  const limit = Math.min(20, Math.max(1, parseInt(url.searchParams.get("limit") ?? "5", 10)));
+
+  let token;
+  try {
+    token = await getAppToken(env, caches.default);
+  } catch (e) {
+    return json({ error: `oauth: ${e.message || e}` }, 500);
+  }
+
+  const params = new URLSearchParams({
+    q,
+    filter: "buyingOptions:{FIXED_PRICE|AUCTION},itemLocationCountry:US",
+    limit:  String(limit),
+  });
+  const res = await fetch(`${BROWSE_API}?${params}`, {
+    headers: {
+      "Authorization":           `Bearer ${token}`,
+      "X-EBAY-C-MARKETPLACE-ID": MARKETPLACE,
+      "Accept":                  "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    let msg = `Browse API ${res.status}`;
+    try { msg = (await res.json())?.errors?.[0]?.message ?? msg; } catch { /* ignore */ }
+    return json({ error: msg, items: [] }, 502);
+  }
+
+  const data = await res.json();
+  const items = (data.itemSummaries ?? []).map(it => ({
+    itemId:       it.itemId,
+    title:        it.title,
+    imageUrl:     it.image?.imageUrl ?? null,
+    viewItemURL:  it.itemWebUrl,
+  })).filter(x => x.imageUrl && x.itemId);
+
+  return json({ items, query: q }, 200);
+}
+
 /** Browse API — current active fixed-price listings. Returns {items, error}. */
 async function searchActive(token, keywords) {
   const params = new URLSearchParams({
@@ -1302,6 +1357,7 @@ export default {
     if (request.method === "POST" && url.pathname.endsWith("/discord/refresh")) return handleDiscordRefresh(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/discord/messages")) return handleDiscordMessages(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/whatnot/upcoming")) return handleWhatnotUpcoming(request, env);
+    if (request.method === "GET"  && url.pathname.endsWith("/scrape-ebay"))      return handleScrapeEbay(request, env);
     const { searchParams } = url;
     const cardNumber = searchParams.get("cardNumber");
     const hero       = searchParams.get("hero") || "";

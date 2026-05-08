@@ -127,20 +127,36 @@ def fetch_candidates(supabase: Client, limit: int) -> list[Candidate]:
     """Pull candidates ready for Stage B recognition.
 
     Order: oldest discovered first (LIFO would let recent re-imports
-    cut in line). Cap at `limit` to keep job runtime predictable.
+    cut in line). Caps at `limit` to keep job runtime predictable.
+
+    Paginates via .range() because PostgREST's default `db.maxRows` is
+    1000 — without paging we'd silently process only the first 1000
+    cropped candidates regardless of `--limit`. Range queries are
+    server-side ordered, so the windows are stable across pages.
     """
-    res = (supabase.table("pipeline_image_candidates")
-           .select("id,state,crop_image_r2_key")
-           .eq("state", "cropped")
-           .not_.is_("crop_image_r2_key", "null")
-           .order("discovered_at", desc=False)
-           .limit(limit)
-           .execute())
-    return [
-        Candidate(id=row["id"], state=row["state"],
-                  crop_image_r2_key=row["crop_image_r2_key"])
-        for row in (res.data or [])
-    ]
+    PAGE = 1000
+    out: list[Candidate] = []
+    offset = 0
+    while len(out) < limit:
+        page_size = min(PAGE, limit - len(out))
+        page = (supabase.table("pipeline_image_candidates")
+                .select("id,state,crop_image_r2_key")
+                .eq("state", "cropped")
+                .not_.is_("crop_image_r2_key", "null")
+                .order("discovered_at", desc=False)
+                .range(offset, offset + page_size - 1)
+                .execute()).data or []
+        if not page:
+            break
+        out.extend(
+            Candidate(id=row["id"], state=row["state"],
+                      crop_image_r2_key=row["crop_image_r2_key"])
+            for row in page
+        )
+        offset += len(page)
+        if len(page) < page_size:
+            break  # exhausted
+    return out
 
 
 def download_one(r2, bucket: str, candidate: Candidate, dest_dir: Path) -> Candidate:

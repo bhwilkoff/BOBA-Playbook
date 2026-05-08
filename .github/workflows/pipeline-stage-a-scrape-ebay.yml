@@ -1,0 +1,73 @@
+# pipeline-stage-a-scrape-ebay.yml
+#
+# Stage A — eBay HTML-scrape sourcer for missing-art bobaIds.
+#
+# Reads cards.json, finds bobaIds with imageAvailable=false, queries
+# eBay's HTML search per card, downloads top-N candidate images,
+# uploads to R2 staging/scrape/ebay/, inserts pipeline_image_candidates
+# rows with state='cropped' and target_boba_id set.
+#
+# Stage B's auto-chain doesn't fire from Stage A here — Stage A's
+# completion just produces a fresh queue of cropped candidates that
+# the next Stage B cron run picks up. (Stage A → Stage B → Stage C
+# chaining can be added later if we want it.)
+
+name: pipeline · stage A · scrape eBay
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max cards to query this run'
+        required: false
+        default: '200'
+      candidates_per_card:
+        description: 'Top N images per card'
+        required: false
+        default: '3'
+      query_delay:
+        description: 'Seconds between eBay queries (rate limit)'
+        required: false
+        default: '1.0'
+  schedule:
+    # Daily at 03:00 UTC. Pace the eBay queries so we drain the
+    # missing-art queue gradually rather than hammering eBay.
+    - cron: '0 3 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  scrape:
+    name: Scrape eBay for missing-art targets
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: pipeline/scripts/requirements.txt
+
+      - name: Install Python deps
+        run: pip install -r pipeline/scripts/requirements.txt
+
+      - name: Run Stage A
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          R2_ACCOUNT_ID:        ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY:        ${{ secrets.R2_ACCESS_KEY }}
+          R2_SECRET_KEY:        ${{ secrets.R2_SECRET_KEY }}
+          R2_BUCKET:            boba-card-images
+        run: |
+          python pipeline/scripts/stage_a_scrape_ebay.py \
+            --repo-root           . \
+            --limit               ${{ github.event.inputs.limit               || '200' }} \
+            --candidates-per-card ${{ github.event.inputs.candidates_per_card || '3'   }} \
+            --query-delay         ${{ github.event.inputs.query_delay         || '1.0' }}

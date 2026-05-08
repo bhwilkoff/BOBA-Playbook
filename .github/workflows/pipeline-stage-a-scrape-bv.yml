@@ -1,0 +1,59 @@
+# pipeline-stage-a-scrape-bv.yml
+#
+# Stage A — BazookaVault sourcer for missing-art bobaIds.
+#
+# Highest-yield source. Joins the local BV CSV (33k+ rows scraped from
+# BV's authenticated card pages, preserved at pipeline/data/) against
+# cards.json's missing-art set and downloads the public CDN images at
+# images.bazookavault.com (no auth needed for the images themselves —
+# auth was only for the original page crawl).
+
+name: pipeline · stage A · scrape BazookaVault
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max cards to fetch this run'
+        required: false
+        default: '500'
+  schedule:
+    # Daily at 02:30 UTC — runs first since BV has the highest yield;
+    # eBay (03:00) and Radish (03:30) follow to cover gaps.
+    - cron: '30 2 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  scrape:
+    name: Scrape BazookaVault for missing-art targets
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: pipeline/scripts/requirements.txt
+
+      - name: Install Python deps
+        run: pip install -r pipeline/scripts/requirements.txt
+
+      - name: Run Stage A (BazookaVault)
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          R2_ACCOUNT_ID:        ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY:        ${{ secrets.R2_ACCESS_KEY }}
+          R2_SECRET_KEY:        ${{ secrets.R2_SECRET_KEY }}
+          R2_BUCKET:            boba-card-images
+        run: |
+          python pipeline/scripts/stage_a_scrape_bv.py \
+            --repo-root . \
+            --limit     ${{ github.event.inputs.limit || '500' }}

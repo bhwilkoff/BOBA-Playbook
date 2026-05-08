@@ -95,6 +95,13 @@ THRESHOLDS = {
     "auto_margin":        0.5,
     "auto_second_margin": 0.5,
 
+    # AUTO via target-match path: Stage B's recognized_boba_id
+    # independently confirms what Stage A asked for. Score floor is
+    # mostly to filter image-decode-noise (real recognition usually
+    # scores 2.5+). Doesn't need margin gating because target match
+    # is itself a strong second-signal corroboration.
+    "auto_target_match_score": 2.0,
+
     # REVIEW tier — Stage C opens the PR but does NOT auto-merge.
     # Lower bar than AUTO; everything that scored at least this much
     # but didn't clear the AUTO gates lands here. User taps to merge.
@@ -109,6 +116,7 @@ class Candidate:
     id: str
     state: str
     crop_image_r2_key: str
+    target_boba_id: Optional[str] = None
     local_path: Optional[Path] = None
     error: Optional[str] = None
 
@@ -140,7 +148,7 @@ def fetch_candidates(supabase: Client, limit: int) -> list[Candidate]:
     while len(out) < limit:
         page_size = min(PAGE, limit - len(out))
         page = (supabase.table("pipeline_image_candidates")
-                .select("id,state,crop_image_r2_key")
+                .select("id,state,crop_image_r2_key,target_boba_id")
                 .eq("state", "cropped")
                 .not_.is_("crop_image_r2_key", "null")
                 .order("discovered_at", desc=False)
@@ -150,7 +158,8 @@ def fetch_candidates(supabase: Client, limit: int) -> list[Candidate]:
             break
         out.extend(
             Candidate(id=row["id"], state=row["state"],
-                      crop_image_r2_key=row["crop_image_r2_key"])
+                      crop_image_r2_key=row["crop_image_r2_key"],
+                      target_boba_id=row.get("target_boba_id"))
             for row in page
         )
         offset += len(page)
@@ -234,14 +243,27 @@ def run_cardreckon(
     return results
 
 
-def classify(result: Optional[dict], error: Optional[str]) -> str:
+def classify(result: Optional[dict], error: Optional[str],
+             target_boba_id: Optional[str] = None) -> str:
     """Map a recognition result dict to the next pipeline state.
 
-    AUTO gate requires ALL of:
-      • score >= auto_score
-      • margin to different-hero >= auto_margin (when present)
-      • second_margin to any-runner-up >= auto_second_margin (when present)
-      • crop method == 'vision_rect' (Vision actually found the card)
+    Two AUTO paths — either suffices:
+
+    PATH 1 — target match (strongest signal):
+      Stage A scraped for target X. Stage B independently recognized
+      as X. Two independent agreement signals — stronger than any
+      score threshold alone. Requires:
+        • recognized_boba_id == target_boba_id (canonical or normalized)
+        • crop method == 'vision_rect'
+        • score >= auto_target_match_score (basic sanity, not strict)
+
+    PATH 2 — high score (no target available, or target mismatched):
+      For research-queue imports without a clean target, OR for cases
+      where Stage B saw a different card than the scrape asked for.
+        • crop method == 'vision_rect'
+        • score >= auto_score (strict)
+        • margin to different-hero >= auto_margin
+        • second_margin to any-runner-up >= auto_second_margin
     """
     if error:
         return "error"
@@ -256,13 +278,27 @@ def classify(result: Optional[dict], error: Optional[str]) -> str:
     margin = result.get("margin")
     crop_method = (result.get("crop") or {}).get("method")
 
-    # Second margin: distance from top to next-best of ANY kind
-    # (regardless of hero). Catches same-hero variant collisions.
     top_cands = result.get("top_candidates") or []
     second_margin: Optional[float] = None
     if len(top_cands) >= 2:
         second_margin = (top_cands[0].get("score") or 0) - (top_cands[1].get("score") or 0)
 
+    # PATH 1 — target verification: scrape asked for X, recognition
+    # independently said X. Normalize underscores↔spaces because
+    # imported research-queue targets use slug form while ScanMatching
+    # output is canonical.
+    target_match = False
+    if target_boba_id and recognized:
+        t_norm = target_boba_id.replace("_", " ")
+        r_norm = recognized.replace("_", " ")
+        target_match = (t_norm.lower() == r_norm.lower())
+
+    if (target_match
+            and crop_method == "vision_rect"
+            and score >= THRESHOLDS["auto_target_match_score"]):
+        return "accepted"
+
+    # PATH 2 — strict score-only gate
     auto_ok = (
         crop_method == "vision_rect"
         and score >= THRESHOLDS["auto_score"]
@@ -271,6 +307,7 @@ def classify(result: Optional[dict], error: Optional[str]) -> str:
     )
     if auto_ok:
         return "accepted"
+
     if score >= THRESHOLDS["review_score"]:
         return "review"
     return "quarantined"
@@ -314,7 +351,7 @@ def update_candidate(supabase: Client, candidate: Candidate,
     score      = (result or {}).get("score")
     margin     = (result or {}).get("margin")
     recognized = (result or {}).get("recognized_boba_id")
-    next_state = classify(result, error)
+    next_state = classify(result, error, target_boba_id=candidate.target_boba_id)
 
     payload: dict = {
         "state":                  next_state,

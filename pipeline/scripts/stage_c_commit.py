@@ -133,15 +133,53 @@ def fetch_accepted(supabase: Client) -> list[dict]:
     return res.data or []
 
 
-def pick_winners(accepted: list[dict]) -> list[WinningCandidate]:
-    """One bobaId → one winning candidate (highest score). Mantra:
-    one image per card. one bobaId per card.
+def load_existing_image_bobaIds(repo_root: Path) -> set[str]:
+    """Build the set of bobaIds that already have art in cards.json.
+
+    Stage C MUST NOT overwrite existing images — the BOBA mantra is
+    "One Image per Card. One ID per Card." If a card already has
+    imageAvailable=true, the existing image stays. Stage C ships ONLY
+    for cards whose imageAvailable is false (the genuine missing-art
+    queue).
+
+    Future enhancement: a separate "image upgrade" flow could replace
+    existing art for cards where the new image is demonstrably better
+    (higher resolution, less compression, etc.) — but that's an
+    explicit, opt-in path, not the default.
+    """
+    cards_path = repo_root / "assets" / "data" / "cards.json"
+    if not cards_path.exists():
+        return set()
+    cards = json.loads(cards_path.read_text())
+    have_art: set[str] = set()
+    for c in cards:
+        if not c.get("imageAvailable"):
+            continue
+        cn   = (c.get("cardNumber") or "").strip()
+        hero = (c.get("hero") or c.get("name") or "").strip()
+        treat = (c.get("treatment") or "").strip()
+        var  = (c.get("variation") or "").strip()
+        have_art.add(f"{cn}-{hero}-{treat}-{var}")
+    return have_art
+
+
+def pick_winners(
+    accepted: list[dict],
+    have_art: set[str],
+) -> tuple[list[WinningCandidate], list[str]]:
+    """Pick one winning candidate per bobaId. Mantra: one image per
+    card, one bobaId per card.
+
+    Filters out winners whose recognized bobaId already has art in
+    cards.json (defense in depth — the bulk pre-flight should have
+    caught these as 'already_imaged' upstream, but this catches any
+    stragglers and prevents Stage C from EVER overwriting existing
+    art on R2).
 
     Source-key priority (commit time):
         tight_crop_r2_key  →  crop_image_r2_key
-    The tight crop is the perspective-corrected 5:7 produced by the
-    CLI; it's the right shape for production tiers. Legacy rows from
-    pre-tight-crop runs fall back to the loose crop_image_r2_key.
+
+    Returns (winners, skipped_already_imaged_bobaIds).
     """
     by_boba: dict[str, dict] = {}
     for row in accepted:
@@ -151,8 +189,11 @@ def pick_winners(accepted: list[dict]) -> list[WinningCandidate]:
             by_boba[bid] = row
 
     winners: list[WinningCandidate] = []
+    skipped: list[str] = []
     for bid, row in by_boba.items():
-        # Prefer tight crop; fall back to legacy crop_image_r2_key
+        if bid in have_art:
+            skipped.append(bid)
+            continue
         source_key = row.get("tight_crop_r2_key") or row["crop_image_r2_key"]
         winners.append(WinningCandidate(
             candidate_id=row["id"],
@@ -162,7 +203,7 @@ def pick_winners(accepted: list[dict]) -> list[WinningCandidate]:
             crop_image_r2_key=source_key,
             image_md5=row["image_md5"] or "",
         ))
-    return winners
+    return winners, skipped
 
 
 def detect_within_pipeline_collisions(winners: list[WinningCandidate]) -> set[str]:
@@ -419,9 +460,24 @@ def main():
         }).eq("id", run_id).execute()
         return
 
-    # ─── Pick winners ──
-    winners = pick_winners(accepted)
+    # ─── Pick winners (filter against existing art) ──
+    have_art = load_existing_image_bobaIds(repo_root)
+    print(f"existing art in cards.json: {len(have_art):,} bobaIds")
+    winners, already_imaged = pick_winners(accepted, have_art)
     print(f"winners: {len(winners)} (one per bobaId)")
+    if already_imaged:
+        print(f"  filtered (already have art in cards.json): {len(already_imaged)}")
+        # Transition those candidates to 'already_imaged' state in
+        # Supabase so they don't keep churning through future runs.
+        already_imaged_ids = [
+            row["id"] for row in accepted
+            if row["recognized_boba_id"] in already_imaged
+        ]
+        if already_imaged_ids and not args.dry_run:
+            for i in range(0, len(already_imaged_ids), 500):
+                supabase.table("pipeline_image_candidates") \
+                    .update({"state": "already_imaged"}) \
+                    .in_("id", already_imaged_ids[i:i+500]).execute()
 
     # ─── Collision detection ──
     collisions = detect_within_pipeline_collisions(winners)

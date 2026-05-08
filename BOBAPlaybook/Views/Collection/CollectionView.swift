@@ -1394,6 +1394,8 @@ struct CollectionView: View {
         struct Sortable {
             let id: String
             let name: String
+            let cardNumber: String
+            let power: Int
             let added: Date
             let value: Decimal
             let paid: Decimal
@@ -1408,6 +1410,8 @@ struct CollectionView: View {
             return Sortable(
                 id: id,
                 name: catalog?.name ?? catalog?.cardNumber ?? id,
+                cardNumber: catalog?.cardNumber ?? "",
+                power: catalog?.power ?? 0,
                 added: added,
                 value: value,
                 paid: paid
@@ -1447,6 +1451,28 @@ struct CollectionView: View {
             case .paidAsc:
                 return metas.sorted { lhs, rhs in
                     if lhs.paid != rhs.paid { return lhs.paid < rhs.paid }
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                }
+            case .numberAsc:
+                return metas.sorted { lhs, rhs in
+                    let cmp = lhs.cardNumber.localizedStandardCompare(rhs.cardNumber)
+                    if cmp != .orderedSame { return cmp == .orderedAscending }
+                    return lhs.id < rhs.id
+                }
+            case .numberDesc:
+                return metas.sorted { lhs, rhs in
+                    let cmp = lhs.cardNumber.localizedStandardCompare(rhs.cardNumber)
+                    if cmp != .orderedSame { return cmp == .orderedDescending }
+                    return lhs.id < rhs.id
+                }
+            case .powerDesc:
+                return metas.sorted { lhs, rhs in
+                    if lhs.power != rhs.power { return lhs.power > rhs.power }
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                }
+            case .powerAsc:
+                return metas.sorted { lhs, rhs in
+                    if lhs.power != rhs.power { return lhs.power < rhs.power }
                     return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
                 }
             }

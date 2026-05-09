@@ -96,11 +96,20 @@ THRESHOLDS = {
     "auto_second_margin": 0.5,
 
     # AUTO via target-match path: Stage B's recognized_boba_id
-    # independently confirms what Stage A asked for. Score floor is
-    # mostly to filter image-decode-noise (real recognition usually
-    # scores 2.5+). Doesn't need margin gating because target match
-    # is itself a strong second-signal corroboration.
-    "auto_target_match_score": 2.0,
+    # independently confirms what Stage A asked for. Bumped 2.0 → 4.0
+    # on 2026-05-09 after PR #15 shipped a Mighty Ducks "Billy the
+    # Kid" Sidekicks card (Emilio Estevez) for the BoBA bobaId
+    # `Alt-1-Billy the Kid-Sidekicks-Emilio Estevez (Co-Starring
+    # Bily)` at score 3.66 / margin 1.86. Both games happen to share
+    # cardNumber `Alt-1` AND hero `Billy the Kid` — the title +
+    # OCR + target-match all agreed, but the underlying art was from
+    # an entirely different TCG. The lesson: target-match is only as
+    # strong as the seller's listing title; sellers reuse "Billy the
+    # Kid" / similar names across many cards. Score 4.0 is high
+    # enough to require strong feature-print + OCR agreement, while
+    # still being meaningfully more permissive than the strict 4.5
+    # AUTO path (Path 2) below.
+    "auto_target_match_score": 4.0,
 
     # REVIEW tier — Stage C opens the PR but does NOT auto-merge.
     # Lower bar than AUTO; everything that scored at least this much

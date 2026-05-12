@@ -1035,10 +1035,20 @@ struct ShowcaseTileCell: View {
     }
 
     private func animationProgress(at date: Date) -> Double? {
+        // While animationStartDate is set, return progress (capped at
+        // 1.0). The cell keeps rendering the variant's end-state until
+        // animate()'s Task explicitly nils animationStartDate during
+        // the settle step. Previously the early-return at `elapsed >=
+        // duration` created a ~50ms gap where the body fell through to
+        // face(state.current) — which was still the OLD image —
+        // producing a visible flash before the state settled to the
+        // new image. At progress = 1.0 every variant already renders
+        // the destination image (flip lands upright at 180°/180°,
+        // drop has pending visible underneath, etc.), so the transition
+        // from variant-render → settled face(current) is seamless.
         guard let start = state.animationStartDate else { return nil }
         let elapsed = date.timeIntervalSince(start)
         let duration = state.animationVariant.duration
-        if elapsed >= duration { return nil }
         return min(1.0, max(0.0, elapsed / duration))
     }
 
@@ -1458,15 +1468,14 @@ nonisolated enum ShowcaseVideoConstants {
     static let captureFPS: Int = 10
     static let encodeFPS: Int32 = 30
 
-    /// Segment duration. 4s gives the AVPlayer buffer estimator
-    /// enough headroom that it doesn't oscillate between play/pause
-    /// state every segment ("stall danger" warning + repeated
-    /// AVPlayerWaitingWhileEvaluatingBufferingRateReason transitions
-    /// when segments are 2s and target is 2s — right at the spec
-    /// lower bound). 4s still lets the player be ready within ~4s of
-    /// Showcase opening which is acceptable startup latency for an
-    /// AirPlay-Video session.
-    static let segmentDurationSeconds: Double = 4.0
+    /// Segment duration. 3s is the sweet spot between buffer stability
+    /// (4s+ keeps the player from stall-warning oscillation) and
+    /// phone-side-controls → TV-side responsiveness (smaller segments
+    /// = faster propagation of state changes through the HLS pipeline,
+    /// which is bottlenecked by segment duration). Sub-second updates
+    /// would require Low-Latency HLS (CMAF segments + EXT-X-PART), a
+    /// meaningfully bigger pipeline.
+    static let segmentDurationSeconds: Double = 3.0
 
     /// Sliding-window: keep N most-recent segments in the playlist.
     /// Older segment files are deleted to bound temp storage.

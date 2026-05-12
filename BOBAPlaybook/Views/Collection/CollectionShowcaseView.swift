@@ -422,6 +422,19 @@ struct ShowcaseGridView: View {
     private let minRows: Int = 2
     private let maxRows: Int = 12
 
+    /// True until ~25% of grid tiles have populated their `front`
+    /// image. The initial fan-out fetch from R2 + WebP decode can
+    /// take 1-3 seconds; without the overlay the user sees a near-
+    /// black screen full of dark placeholders, which reads as broken.
+    private var isInitialLoading: Bool {
+        let total = session.tiles.count
+        guard total > 0 else { return true }
+        let loaded = session.tiles.reduce(into: 0) { count, tile in
+            if tile.front != nil { count += 1 }
+        }
+        return Double(loaded) / Double(total) < 0.25
+    }
+
     /// Top safe-area inset read directly from the foreground window
     /// scene. GeometryReader.safeAreaInsets returns .zero when its
     /// container has `.ignoresSafeArea(.all)` applied (which our
@@ -517,6 +530,16 @@ struct ShowcaseGridView: View {
                 if showsToolbar && revealedToolbar {
                     toolbarOverlay(topInset: deviceTopSafeInset)
                         .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
+                // Brand-styled loading overlay during the initial
+                // fan-out fetch of card images. Fades out once enough
+                // tiles have populated to look "full." Covers the
+                // sparse-dark-placeholder state that previously read
+                // as a blank screen.
+                if isInitialLoading {
+                    ShowcaseLoadingOverlay()
+                        .transition(.opacity.animation(.easeInOut(duration: 0.5)))
                 }
             }
             .frame(width: size.width, height: size.height)
@@ -2223,5 +2246,50 @@ private struct TVCardTile: View {
             }
         }
         .frame(width: width, height: height)
+    }
+}
+
+// MARK: - ShowcaseLoadingOverlay
+//
+// Covers the grid while card images are still loading. TimelineView
+// drives a 3-dot pulse so the animation is GPU-cheap and bounded —
+// no Task loops, no @State writes, no risk of leaking. Brand styling
+// (BOBA orange dot color, monospaced wordmark) so it reads as a
+// first-class Showcase splash rather than a generic spinner.
+private struct ShowcaseLoadingOverlay: View {
+    var body: some View {
+        ZStack {
+            Color(red: 0x08/255, green: 0x08/255, blue: 0x10/255)
+                .ignoresSafeArea()
+
+            VStack(spacing: 28) {
+                Text("PERSONAL SHOWCASE")
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .tracking(4)
+                    .foregroundStyle(.white.opacity(0.7))
+
+                TimelineView(.periodic(from: .now, by: 0.35)) { context in
+                    // Time-based phase 0/1/2 — no @State needed.
+                    let stride = context.date.timeIntervalSinceReferenceDate / 0.35
+                    let phase = Int(stride.truncatingRemainder(dividingBy: 3))
+                    HStack(spacing: 14) {
+                        ForEach(0..<3, id: \.self) { i in
+                            Circle()
+                                .fill(Color(red: 1, green: 0x4D/255, blue: 0))
+                                .frame(width: 12, height: 12)
+                                .scaleEffect(i == phase ? 1.5 : 1.0)
+                                .opacity(i == phase ? 1.0 : 0.3)
+                                .animation(.easeInOut(duration: 0.3), value: phase)
+                        }
+                    }
+                }
+                .frame(height: 20)
+
+                Text("Loading your collection")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.45))
+                    .tracking(1.5)
+            }
+        }
     }
 }

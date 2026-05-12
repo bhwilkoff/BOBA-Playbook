@@ -45,6 +45,7 @@ struct ProfileView: View {
     @State private var passwordResetSent      = false
     @State private var roleRequestForRole: String?  // "moderator" or "streamer"
     @State private var showingPractice        = false
+    @State private var showingHouseOfCards    = false
     @State private var copyConfirmed          = false
     @State private var walkthroughsResetMsg: String?
 
@@ -67,14 +68,7 @@ struct ProfileView: View {
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal)        { BOBAWordmark() }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .font(Design.Fonts.mono(13, weight: .bold))
-                        .foregroundStyle(Design.Colors.bobaOrange)
-                }
-            }
+            .toolbar { profileToolbar }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
@@ -97,6 +91,9 @@ struct ProfileView: View {
                         }
                     }
             }
+        }
+        .fullScreenCover(isPresented: $showingHouseOfCards) {
+            HouseOfCardsView()
         }
         .overlay(alignment: .top) {
             if auth.confirmationEmailSent { confirmationBanner(text: "Check your email to confirm your account.") }
@@ -164,6 +161,26 @@ struct ProfileView: View {
         .task { await auth.loadProfile() }
         .onChange(of: auth.isAuthenticated) { _, isOn in
             if isOn { Task { await auth.loadProfile() } }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var profileToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button {
+                showingHouseOfCards = true
+            } label: {
+                Image(systemName: "square.stack.3d.up")
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+            .accessibilityLabel("House of Cards")
+        }
+        ToolbarItem(placement: .principal) { BOBAWordmark() }
+        ToolbarItem(placement: .topBarTrailing) {
+            Button("Done") { dismiss() }
+                .font(Design.Fonts.mono(13, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaOrange)
         }
     }
 

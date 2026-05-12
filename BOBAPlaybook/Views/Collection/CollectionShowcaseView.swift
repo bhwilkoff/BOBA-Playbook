@@ -157,11 +157,15 @@ final class ShowcaseSession {
         tiles = newTiles
         cycleEpoch &+= 1
 
-        // Phase 2: parallel image fetch + populate.
+        // Phase 2: parallel image fetch + populate. Uses FULL-res CDN
+        // URL (≤1200px) instead of the 200px thumb so card text reads
+        // crisp on the AirPlay-Video TV stream from frame 1. Slightly
+        // larger per-card payload (~80KB vs ~10KB) but the loading
+        // overlay covers the extra few hundred ms.
         await withTaskGroup(of: (Int, UIImage?).self) { group in
             for (i, card) in assignments {
                 group.addTask { [pool] in
-                    let img = await pool.loadImage(for: card, preferThumb: true)
+                    let img = await pool.loadImage(for: card, preferThumb: false)
                     return (i, img)
                 }
             }
@@ -332,6 +336,15 @@ struct CollectionShowcaseView: View {
     @State private var externalManager: ExternalDisplayManager
     @State private var streamer: ShowcaseVideoStreamer
 
+    // Persisted across Showcase opens via UserDefaults. Read on
+    // appear; written via .onChange below.
+    @AppStorage("bp_showcaseRows_v1") private var savedRows: Int = 6
+    @AppStorage("bp_showcaseCycleSpeed_v1") private var savedCycleSpeed: Double = 3.0
+    /// Variants encoded as a comma-separated list of raw values. Default
+    /// is every variant enabled.
+    @AppStorage("bp_showcaseVariants_v1") private var savedVariantsRaw: String =
+        ShowcaseAnimation.allCases.map(\.rawValue).joined(separator: ",")
+
     init(cards: [Card], onDismiss: @escaping () -> Void) {
         let s = ShowcaseSession()
         s.setCards(cards)
@@ -389,12 +402,30 @@ struct CollectionShowcaseView: View {
             UIApplication.shared.isIdleTimerDisabled = true
             OrientationManager.shared.allowLandscape()
             ExternalDisplayManager.shared.setSession(session)
+            // Restore persisted settings.
+            session.rows = max(2, min(12, savedRows))
+            session.cycleSpeed = max(3.0, min(15.0, savedCycleSpeed))
+            let restored = Set(
+                savedVariantsRaw
+                    .split(separator: ",")
+                    .compactMap { ShowcaseAnimation(rawValue: String($0)) }
+            )
+            if !restored.isEmpty {
+                session.enabledVariants = restored
+            }
         }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
             OrientationManager.shared.lockPortrait()
             ExternalDisplayManager.shared.setSession(nil)
             streamer.stop()
+        }
+        // Persist setting changes immediately so the next Showcase
+        // open picks up where the user left off.
+        .onChange(of: session.rows) { _, new in savedRows = new }
+        .onChange(of: session.cycleSpeed) { _, new in savedCycleSpeed = new }
+        .onChange(of: session.enabledVariants) { _, new in
+            savedVariantsRaw = new.map(\.rawValue).sorted().joined(separator: ",")
         }
         // Async streamer startup so MainActor isn't blocked on the
         // NWListener "ready" wait. The grid renders immediately; the
@@ -759,13 +790,15 @@ struct ShowcaseControlPanel: View {
     /// to false forces the player back to local playback —
     /// isExternalPlaybackActive flips false, CollectionShowcaseView's
     /// tvActive becomes false, and the phone swaps back to the grid.
-    /// Re-enables external playback after a brief delay so the user
-    /// can pick AirPlay again from the toolbar.
+    ///
+    /// We do NOT auto-re-enable allowsExternalPlayback. The system
+    /// audio route stays on Apple TV after a stop, so re-enabling
+    /// would just kick the player straight back into external playback.
+    /// Instead, RoutePickerView's delegate re-enables it the moment
+    /// the user opens the AirPlay picker on the grid toolbar — so
+    /// "Stop Casting" stays sticky until the user actively re-engages.
     private func stopCasting() {
         streamer?.player.allowsExternalPlayback = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            streamer?.player.allowsExternalPlayback = true
-        }
     }
 
     var body: some View {
@@ -1339,18 +1372,36 @@ final class ShowcaseImagePool {
 private struct RoutePickerView: UIViewRepresentable {
     let player: AVPlayer
 
+    func makeCoordinator() -> Coordinator {
+        Coordinator(player: player)
+    }
+
     func makeUIView(context: Context) -> AVRoutePickerView {
         let v = AVRoutePickerView()
         v.prioritizesVideoDevices = true
         v.activeTintColor = UIColor(red: 0, green: 0xF5/255, blue: 1, alpha: 1)
         v.tintColor = .white
         v.backgroundColor = .clear
+        v.delegate = context.coordinator
         return v
     }
     func updateUIView(_ uiView: AVRoutePickerView, context: Context) {
-        // AVRoutePickerView routes the system AVRouteDetector pick; no
-        // explicit player binding API. AVPlayer.allowsExternalPlayback
-        // gates whether the player participates in AirPlay-Video.
+        context.coordinator.player = player
+    }
+
+    /// AVRoutePickerViewDelegate — flips allowsExternalPlayback back
+    /// to true the moment the user opens the picker. After
+    /// ShowcaseControlPanel.stopCasting() disables it, this is what
+    /// lets the user re-engage AirPlay-Video by tapping the picker
+    /// and choosing a destination again.
+    final class Coordinator: NSObject, AVRoutePickerViewDelegate {
+        var player: AVPlayer
+        init(player: AVPlayer) { self.player = player }
+
+        func routePickerViewWillBeginPresentingRoutes(_ routePickerView: AVRoutePickerView) {
+            player.allowsExternalPlayback = true
+            showcaseLog("RoutePicker presenting — re-enabled allowsExternalPlayback")
+        }
     }
 }
 

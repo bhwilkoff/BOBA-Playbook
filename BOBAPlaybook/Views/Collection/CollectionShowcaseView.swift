@@ -103,37 +103,67 @@ final class ShowcaseSession {
         return active.isEmpty ? [.flip] : active
     }
 
-    /// Initialize tile grid for the given total count. Repeats cards
-    /// when the pool is smaller than the grid, avoiding adjacent
-    /// duplicates (8 retries per cell — AlbumArtwork's behavior).
+    /// Initialize tile grid for the given total count. Splits into
+    /// two phases for fast first paint:
+    ///
+    /// Phase 1 (synchronous): walk the pool and assign a card to each
+    /// tile slot, applying the no-adjacent-duplicates rule. Tiles are
+    /// created with bobaId but no image yet, so the grid renders
+    /// instantly with placeholder backgrounds.
+    ///
+    /// Phase 2 (parallel): fan out image loads via withTaskGroup. Each
+    /// tile fills in as its image lands. URLSession multiplexes over
+    /// HTTP/2 so the loads truly run in parallel rather than serialized
+    /// on a single MainActor await chain.
+    ///
+    /// Initial fill uses the thumb CDN tier (~10KB / 200px) for fast
+    /// first paint. Animation cycles use full CDN tier (~80KB / 1200px)
+    /// for the cards that flip into view — handled by ShowcaseImagePool's
+    /// loadImage call which the cycle path uses.
     func initializeTiles(count: Int) async {
         if tiles.count == count { return }
         pool.setCandidates(cards)
 
-        var newTiles: [ShowcaseTileState] = []
-        newTiles.reserveCapacity(count)
+        // Phase 1: card assignment with no-adjacent-duplicates rule.
+        var assignments: [(Int, Card)] = []
         var lastRow: [String] = []
         var rowBuf: [String] = []
-
         let cols = max(1, columns)
         for i in 0..<count {
             let col = i % cols
             let exclude = Set(lastRow + rowBuf)
-            let pick = await pool.nextImage(excluding: exclude)
-            let tile = ShowcaseTileState()
-            if let (id, img) = pick {
-                tile.currentBobaId = id
-                tile.front = img
-            }
-            newTiles.append(tile)
-            rowBuf.append(tile.currentBobaId ?? "")
+            guard let card = pool.pickCard(excluding: exclude) else { break }
+            assignments.append((i, card))
+            rowBuf.append(card.id)
             if col == cols - 1 {
                 lastRow = rowBuf
                 rowBuf = []
             }
         }
+
+        // Create empty tiles and publish immediately so the grid
+        // renders before any images have loaded.
+        var newTiles: [ShowcaseTileState] = (0..<count).map { _ in ShowcaseTileState() }
+        for (i, card) in assignments where i < newTiles.count {
+            newTiles[i].currentBobaId = card.id
+        }
         tiles = newTiles
         cycleEpoch &+= 1
+
+        // Phase 2: parallel image fetch + populate.
+        await withTaskGroup(of: (Int, UIImage?).self) { group in
+            for (i, card) in assignments {
+                group.addTask { [pool] in
+                    let img = await pool.loadImage(for: card, preferThumb: true)
+                    return (i, img)
+                }
+            }
+            for await (i, img) in group {
+                if i < self.tiles.count, let img = img {
+                    self.tiles[i].front = img
+                }
+            }
+        }
     }
 
     /// Cycle loop — schedules flip cycles forever until cancelled.
@@ -410,26 +440,25 @@ struct ShowcaseGridView: View {
         .ignoresSafeArea(.all, edges: .all)
         .contentShape(Rectangle())
         .onTapGesture { if showsToolbar { revealToolbar() } }
+        // Pinch-to-zoom: commit only on .onEnded to avoid stacking
+        // withAnimation calls on every onChanged tick (which produced
+        // the "Invalid sample AnimatablePair" console spam and made
+        // the layout reflow fight every frame).
         .gesture(
             showsToolbar
             ? MagnifyGesture()
-                .onChanged { value in
-                    // Clamp to a sensible range so magnification = 0
-                    // (theoretically possible mid-gesture) doesn't
-                    // produce infinity / NaN through the division.
+                .onEnded { value in
                     let mag = max(0.1, min(10.0, value.magnification))
                     let raw = Double(rowsAtPinchStart) / mag
                     guard raw.isFinite else { return }
                     let candidate = Int(round(raw))
                     let clamped = max(minRows, min(maxRows, candidate))
                     if clamped != session.rows {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                        withAnimation(.easeInOut(duration: 0.35)) {
                             session.rows = clamped
                         }
                     }
-                }
-                .onEnded { _ in
-                    rowsAtPinchStart = session.rows
+                    rowsAtPinchStart = clamped
                 }
             : nil
         )
@@ -779,7 +808,16 @@ struct ExternalShowcaseRoot: View {
 }
 
 // MARK: - ShowcaseTileCell
-
+//
+// Renders the tile via the "layered exit" pattern: the persistent
+// `front` image is always at rest (never rotated, never translated)
+// so the cell never displays an upside-down card. The optional `exit`
+// overlay sits on top during a non-flip animation and animates away
+// (translate / rotate / fade) to reveal the new `front` underneath.
+//
+// The 3D Y-flip variant is special — it uses the front + back face
+// pattern via faceUp, which is the only animation that touches the
+// tile's container rotation. The exit overlay is hidden during flips.
 private struct ShowcaseTileCell: View {
     @Bindable var state: ShowcaseTileState
     let width: CGFloat
@@ -787,21 +825,40 @@ private struct ShowcaseTileCell: View {
 
     var body: some View {
         ZStack {
+            // Persistent front face (always at rest — never rotated,
+            // never translated).
             face(image: state.front)
                 .opacity(state.faceUp ? 1 : 0)
+
+            // Flip back face (only visible during a flip animation).
             face(image: state.back)
                 .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
                 .opacity(state.faceUp ? 0 : 1)
+
+            // Exit overlay (only present during non-flip variants).
+            // Animates translate / rotation / opacity away to reveal
+            // the new `front` underneath. Cleared after animation.
+            if let exit = state.exitImage {
+                Image(uiImage: exit)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: width, height: height)
+                    .clipped()
+                    .opacity(state.exitOpacity)
+                    .rotationEffect(.degrees(state.exitRotation))
+                    .offset(x: state.exitOffsetX, y: state.exitOffsetY)
+                    .allowsHitTesting(false)
+            }
         }
-        .opacity(state.opacity)
-        .rotationEffect(.degrees(state.rotation2D))
         .rotation3DEffect(
             .degrees(state.faceUp ? 0 : 180),
             axis: (x: 0, y: 1, z: 0)
         )
-        .offset(x: state.translateX, y: state.translateY)
         .frame(width: width, height: height)
         .clipped()
+        .onAppear { state.setCellSize(width, height) }
+        .onChange(of: width) { _, w in state.setCellSize(w, height) }
+        .onChange(of: height) { _, h in state.setCellSize(width, h) }
     }
 
     @ViewBuilder
@@ -819,20 +876,38 @@ private struct ShowcaseTileCell: View {
 }
 
 // MARK: - ShowcaseTileState
-
+//
+// Two separate animation pipelines:
+//   1. Flip — Y-axis 3D rotation via `faceUp` toggling front/back faces.
+//      Front stays at rest; back is the offscreen face that gets the
+//      new image before rotation. Canonical iTunes behavior.
+//   2. Exit-reveal — for every non-flip variant (drop, rollDrop,
+//      pinRotation, dropFromCorner, row variants). The new image
+//      slides into `front` instantly; the OLD image is copied into
+//      `exitImage` and animates away to reveal the new one underneath.
+//      Front itself never moves, so the tile never shows an inverted
+//      card at any point in the animation.
 @Observable
 @MainActor
 final class ShowcaseTileState: Identifiable {
     let id = UUID()
     var currentBobaId: String?
+
+    // Persistent visible image (never rotated, never translated).
     var front: UIImage?
+
+    // 3D flip state — flip variant only.
     var back: UIImage?
     var faceUp: Bool = true
 
-    var translateX: CGFloat = 0
-    var translateY: CGFloat = 0
-    var rotation2D: Double = 0
-    var opacity: Double = 1
+    // Exit overlay — every non-flip variant uses these to animate the
+    // OLD image away while `front` already holds the NEW image
+    // underneath. All four reset to identity after each animation.
+    var exitImage: UIImage?
+    var exitOffsetX: CGFloat = 0
+    var exitOffsetY: CGFloat = 0
+    var exitRotation: Double = 0
+    var exitOpacity: Double = 1
 
     func animate(to next: UIImage, variant: ShowcaseAnimation, reduceMotion: Bool) async {
         if reduceMotion {
@@ -840,87 +915,114 @@ final class ShowcaseTileState: Identifiable {
             try? await Task.sleep(for: .milliseconds(400))
             return
         }
-        switch variant {
-        case .flip:                       await flip(to: next)
-        case .drop, .rowDrop:             await drop(to: next)
-        case .rollDrop, .rowRollDrop:     await rollDrop(to: next)
-        case .pinRotation:                await pinRotation(to: next)
-        case .dropFromCorner:             await dropFromCorner(to: next)
+        if variant == .flip {
+            await flip(to: next)
+        } else {
+            await exitReveal(to: next, variant: variant)
         }
     }
 
+    // MARK: Flip
+
+    /// 3D Y-axis flip. The hidden face receives the new image before
+    /// rotation, so the swap is invisible at mid-flip when the tile
+    /// edge is camera-on.
     private func flip(to next: UIImage) async {
         if faceUp {
             back = next
-            withAnimation(.easeInOut(duration: 0.6)) { faceUp = false }
+            withAnimation(.easeInOut(duration: 0.75)) { faceUp = false }
         } else {
             front = next
-            withAnimation(.easeInOut(duration: 0.6)) { faceUp = true }
+            withAnimation(.easeInOut(duration: 0.75)) { faceUp = true }
         }
-        try? await Task.sleep(for: .milliseconds(600))
+        try? await Task.sleep(for: .milliseconds(760))
     }
 
-    private func drop(to next: UIImage) async {
-        withAnimation(.easeIn(duration: 0.3)) { translateY = 1500 }
-        try? await Task.sleep(for: .milliseconds(310))
-        translateY = -1500
-        swapFace(to: next)
-        withAnimation(.easeOut(duration: 0.5)) { translateY = 0 }
-        try? await Task.sleep(for: .milliseconds(510))
-    }
+    // MARK: Exit-reveal (drop / rollDrop / pinRotation / dropFromCorner)
 
-    private func rollDrop(to next: UIImage) async {
-        withAnimation(.easeIn(duration: 0.3)) {
-            translateY = 1500
-            rotation2D = 360
-        }
-        try? await Task.sleep(for: .milliseconds(310))
-        translateY = -1500
-        rotation2D = 0
-        swapFace(to: next)
-        withAnimation(.easeOut(duration: 0.5)) {
-            translateY = 0
-            rotation2D = 360
-        }
-        try? await Task.sleep(for: .milliseconds(510))
-        rotation2D = 0
-    }
+    /// Set up the exit overlay with the current image, swap `front`
+    /// to the new image, then animate the overlay away per variant.
+    /// Reset overlay to identity once done.
+    private func exitReveal(to next: UIImage, variant: ShowcaseAnimation) async {
+        // Capture currently-visible image as the exit overlay.
+        let visible = faceUp ? front : back
+        exitImage = visible
+        exitOffsetX = 0
+        exitOffsetY = 0
+        exitRotation = 0
+        exitOpacity = 1
 
-    private func pinRotation(to next: UIImage) async {
-        withAnimation(.easeInOut(duration: 0.5)) {
-            rotation2D += 180
-            opacity = 0
-        }
-        try? await Task.sleep(for: .milliseconds(260))
-        swapFace(to: next)
-        withAnimation(.easeInOut(duration: 0.5)) { opacity = 1 }
-        try? await Task.sleep(for: .milliseconds(510))
-        rotation2D = rotation2D.truncatingRemainder(dividingBy: 360)
-    }
-
-    private func dropFromCorner(to next: UIImage) async {
-        let xDir: CGFloat = Bool.random() ? 1 : -1
-        let yDir: CGFloat = Bool.random() ? 1 : -1
-        withAnimation(.easeIn(duration: 0.35)) {
-            translateX = xDir * 1500
-            translateY = yDir * 1500
-            rotation2D = xDir * 30
-        }
-        try? await Task.sleep(for: .milliseconds(360))
-        translateX = -xDir * 1500
-        translateY = -yDir * 1500
-        rotation2D = -xDir * 30
-        swapFace(to: next)
-        withAnimation(.easeOut(duration: 0.5)) {
-            translateX = 0
-            translateY = 0
-            rotation2D = 0
-        }
-        try? await Task.sleep(for: .milliseconds(510))
-    }
-
-    private func swapFace(to next: UIImage) {
+        // New image instantly takes the persistent slot underneath.
         if faceUp { front = next } else { back = next }
+
+        // One frame for state to settle (otherwise the implicit
+        // animation can pick up the new exitImage assignment).
+        try? await Task.sleep(for: .milliseconds(16))
+
+        switch variant {
+        case .drop, .rowDrop:
+            // Slide down + soft fade. 1.0s total.
+            withAnimation(.easeIn(duration: 0.95)) {
+                exitOffsetY = height * 1.4   // safely past bottom edge
+                exitOpacity = 0.6
+            }
+            try? await Task.sleep(for: .milliseconds(960))
+
+        case .rollDrop, .rowRollDrop:
+            // Slide down + full 360° spin. Never ends mid-rotation.
+            withAnimation(.easeIn(duration: 1.05)) {
+                exitOffsetY = height * 1.4
+                exitRotation = 360
+                exitOpacity = 0.6
+            }
+            try? await Task.sleep(for: .milliseconds(1060))
+
+        case .pinRotation:
+            // Full 360° rotation in place + crossfade. Always lands
+            // upright (never visibly upside-down).
+            withAnimation(.easeInOut(duration: 0.95)) {
+                exitRotation = 360
+                exitOpacity = 0
+            }
+            try? await Task.sleep(for: .milliseconds(960))
+
+        case .dropFromCorner:
+            // Slide out toward a random corner with a slight rotation.
+            let xDir: CGFloat = Bool.random() ? 1 : -1
+            let yDir: CGFloat = Bool.random() ? 1 : -1
+            withAnimation(.easeIn(duration: 1.1)) {
+                exitOffsetX = width * 1.6 * xDir
+                exitOffsetY = height * 1.6 * yDir
+                exitRotation = xDir * 25
+                exitOpacity = 0.5
+            }
+            try? await Task.sleep(for: .milliseconds(1110))
+
+        case .flip:
+            break // handled above
+        }
+
+        // Reset overlay to identity for the next cycle.
+        exitImage = nil
+        exitOffsetX = 0
+        exitOffsetY = 0
+        exitRotation = 0
+        exitOpacity = 1
+    }
+
+    // Cell dimensions used inside the animation (drop distance scales
+    // with cell height so the card visibly clears its own bounds).
+    // The tile cell sets these when it mounts; defaults are sized for
+    // a typical 6-row iPhone layout if a tile animates before the cell
+    // ever reports its frame.
+    private var width: CGFloat { _animationWidth ?? 200 }
+    private var height: CGFloat { _animationHeight ?? 280 }
+    var _animationWidth: CGFloat?
+    var _animationHeight: CGFloat?
+
+    func setCellSize(_ w: CGFloat, _ h: CGFloat) {
+        _animationWidth = w
+        _animationHeight = h
     }
 
     func crossfade(to next: UIImage) {
@@ -951,25 +1053,30 @@ final class ShowcaseImagePool {
         cursor = 0
     }
 
-    func nextImage(excluding: Set<String> = []) async -> (String, UIImage)? {
+    /// Synchronous card selection with no-adjacent-duplicates retry.
+    /// Returns nil only when the candidate pool is empty.
+    func pickCard(excluding: Set<String> = []) -> Card? {
         guard !candidates.isEmpty else { return nil }
         for _ in 0..<8 {
-            let card = pick()
-            if !excluding.contains(card.id) {
-                if let img = await loadDecodedImage(for: card) {
-                    return (card.id, img)
-                }
-                continue
-            }
+            let card = advance()
+            if !excluding.contains(card.id) { return card }
         }
-        let card = pick()
-        if let img = await loadDecodedImage(for: card) {
+        return advance() // fallback: accept a potential duplicate
+    }
+
+    /// Async card+image picker for the cycle path. Picks a card (with
+    /// retries on adjacency), loads its full-res image, returns both.
+    /// Cycle animations want the higher-quality full URL; initial tile
+    /// fill calls `loadImage(for:preferThumb:true)` separately.
+    func nextImage(excluding: Set<String> = []) async -> (String, UIImage)? {
+        guard let card = pickCard(excluding: excluding) else { return nil }
+        if let img = await loadImage(for: card, preferThumb: false) {
             return (card.id, img)
         }
         return nil
     }
 
-    private func pick() -> Card {
+    private func advance() -> Card {
         let card = candidates[cursor]
         cursor += 1
         if cursor >= candidates.count {
@@ -979,8 +1086,17 @@ final class ShowcaseImagePool {
         return card
     }
 
-    private func loadDecodedImage(for card: Card) async -> UIImage? {
-        guard let url = CDN.fullURL(for: card) else { return nil }
+    /// Load + decode a card's image. `preferThumb: true` uses the
+    /// 200px thumbnail tier (~10KB, fast initial paint); false uses
+    /// the ≤1200px full tier (~80KB, sharper for animation cycles).
+    func loadImage(for card: Card, preferThumb: Bool) async -> UIImage? {
+        let url: URL?
+        if preferThumb {
+            url = CDN.thumbURL(for: card)
+        } else {
+            url = CDN.fullURL(for: card)
+        }
+        guard let url else { return nil }
         let key = url.absoluteString as NSString
         if let cached = decodedCache.object(forKey: key) {
             return cached

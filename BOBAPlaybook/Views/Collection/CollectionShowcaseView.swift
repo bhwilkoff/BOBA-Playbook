@@ -755,6 +755,19 @@ struct ShowcaseControlPanel: View {
     var onDismiss: () -> Void
     @State private var externalManager = ExternalDisplayManager.shared
 
+    /// Disengages AirPlay-Video routing. Setting allowsExternalPlayback
+    /// to false forces the player back to local playback —
+    /// isExternalPlaybackActive flips false, CollectionShowcaseView's
+    /// tvActive becomes false, and the phone swaps back to the grid.
+    /// Re-enables external playback after a brief delay so the user
+    /// can pick AirPlay again from the toolbar.
+    private func stopCasting() {
+        streamer?.player.allowsExternalPlayback = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            streamer?.player.allowsExternalPlayback = true
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -774,12 +787,14 @@ struct ShowcaseControlPanel: View {
                     Button("Done") { onDismiss() }
                         .foregroundStyle(.white)
                 }
-                // No top-right action — to stop AirPlay the user opens
-                // Control Center → AirPlay picker → iPhone. The
-                // previous "Use Phone" button only affected the
-                // Screen Mirroring path (ExternalDisplayManager) and
-                // did nothing for the AirPlay-Video routing flow,
-                // which is the canonical path now.
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        stopCasting()
+                    } label: {
+                        Label("Stop Casting", systemImage: "stop.circle")
+                            .foregroundStyle(Color(red: 0, green: 0xF5/255, blue: 1))
+                    }
+                }
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -1457,9 +1472,14 @@ nonisolated func showcaseLocalIPAddress() -> String? {
 // AVAssetWriterDelegate callback (which fires on a nonisolated
 // background queue) without crossing an actor boundary.
 nonisolated enum ShowcaseVideoConstants {
-    /// TV output dimensions. 1920×1080 = standard 16:9 HD.
-    static let renderWidth: Int = 1920
-    static let renderHeight: Int = 1080
+    /// TV output dimensions. 1280×720 (HD-Ready, 16:9) instead of full
+    /// HD. Apple TV upscales 720p to 4K smoothly and the per-segment
+    /// data drops ~55%, which stabilizes AVPlayer's buffer estimator
+    /// and stops the "evaluating buffering rate" oscillation that was
+    /// causing playback to repeatedly pause. Card art doesn't have
+    /// fine detail that benefits from 1080p anyway.
+    static let renderWidth: Int = 1280
+    static let renderHeight: Int = 720
 
     /// Source capture cadence — how often we re-snapshot the SwiftUI
     /// grid view. Apple TV's pipeline judders at unusual frame rates,
@@ -1481,9 +1501,12 @@ nonisolated enum ShowcaseVideoConstants {
     /// Older segment files are deleted to bound temp storage.
     static let segmentWindowSize: Int = 8
 
-    /// Video bitrate. 4 Mbps is Apple's middle-of-the-road for 1080p
-    /// in the HLS Authoring Specification.
-    static let bitrate: Int = 4_000_000
+    /// Video bitrate. 2.5 Mbps for 720p — within Apple's HLS Authoring
+    /// Spec recommendation (2-3.5 Mbps for 720p H.264). Lower target
+    /// means less variance segment-to-segment, which keeps AVPlayer's
+    /// buffer estimator stable and stops the playback rate from
+    /// oscillating between play and waitingToPlay.
+    static let bitrate: Int = 2_500_000
 
     /// Card aspect ratio (width / height) for the TV-side render.
     static let cardAspect: CGFloat = 0.75
@@ -2517,6 +2540,11 @@ struct ShowcaseTVRenderView: View {
                                 x: CGFloat(col) * cellW + cellW / 2,
                                 y: CGFloat(row) * cellH + cellH / 2
                             )
+                            // Lift this cell above its neighbors during
+                            // an active animation so the falling card
+                            // composites over them. Matches the phone-
+                            // side ShowcaseGridView pattern.
+                            .zIndex(session.tiles[index].pending != nil ? 1 : 0)
                         }
                     }
                 }

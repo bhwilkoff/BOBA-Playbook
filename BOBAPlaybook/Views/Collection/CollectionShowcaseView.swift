@@ -323,6 +323,7 @@ struct CollectionShowcaseView: View {
 
     @State private var session: ShowcaseSession
     @State private var externalManager: ExternalDisplayManager
+    @State private var streamer: ShowcaseVideoStreamer
 
     init(cards: [Card], onDismiss: @escaping () -> Void) {
         let s = ShowcaseSession()
@@ -331,27 +332,53 @@ struct CollectionShowcaseView: View {
         self.onDismiss = onDismiss
         self._session = State(initialValue: s)
         self._externalManager = State(initialValue: ExternalDisplayManager.shared)
+        self._streamer = State(initialValue: ShowcaseVideoStreamer(session: s))
+    }
+
+    /// Phone-side switches to the control panel whenever either path
+    /// is showing content on a TV:
+    ///   - AirPlay-Video routing (user picked Apple TV from AVRoutePickerView)
+    ///   - Plain Screen Mirroring (user enabled it via Control Center)
+    private var tvActive: Bool {
+        streamer.isExternalPlaybackActive
+        || (externalManager.externalScreenAvailable
+            && externalManager.useExternalDisplay
+            && session.renderTarget == .external)
     }
 
     var body: some View {
         Group {
-            if externalManager.externalScreenAvailable
-                && externalManager.useExternalDisplay
-                && session.renderTarget == .external {
-                ShowcaseControlPanel(session: session, onDismiss: onDismiss)
+            if tvActive {
+                ShowcaseControlPanel(
+                    session: session,
+                    streamer: streamer,
+                    onDismiss: onDismiss
+                )
             } else {
-                ShowcaseGridView(session: session, showsToolbar: true, onDismiss: onDismiss)
+                ShowcaseGridView(
+                    session: session,
+                    streamer: streamer,
+                    showsToolbar: true,
+                    onDismiss: onDismiss
+                )
             }
         }
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = true
             OrientationManager.shared.allowLandscape()
             ExternalDisplayManager.shared.setSession(session)
+            // Start the AirPlay-Video pipeline. Encoder runs at ~10
+            // fps; AVPlayer plays the local HLS stream muted. As soon
+            // as the user picks an Apple TV from the in-app
+            // AVRoutePickerView, AirPlay-Video routing kicks in and
+            // we flip to the control panel.
+            streamer.start()
         }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
             OrientationManager.shared.lockPortrait()
             ExternalDisplayManager.shared.setSession(nil)
+            streamer.stop()
         }
         .preferredColorScheme(.dark)
     }
@@ -370,13 +397,13 @@ struct CollectionShowcaseView: View {
 // live on the phone via ShowcaseControlPanel.
 struct ShowcaseGridView: View {
     @Bindable var session: ShowcaseSession
+    var streamer: ShowcaseVideoStreamer?
     let showsToolbar: Bool
     var onDismiss: (() -> Void)?
 
     @State private var rowsAtPinchStart: Int = 6
     @State private var revealedToolbar: Bool = true
     @State private var toolbarHideTask: Task<Void, Never>?
-    @State private var showsAirPlayHelp: Bool = false
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -517,11 +544,6 @@ struct ShowcaseGridView: View {
             }
         }
         .statusBar(hidden: true)
-        .alert("Show on Apple TV", isPresented: $showsAirPlayHelp) {
-            Button("Got it") { }
-        } message: {
-            Text("Open Control Center, tap Screen Mirroring, and choose your Apple TV. Showcase will take over the TV and your phone will show playback controls.")
-        }
     }
 
     // MARK: Toolbar
@@ -568,23 +590,18 @@ struct ShowcaseGridView: View {
                 }
                 .accessibilityLabel(session.paused ? "Resume" : "Pause")
 
-                // Apple TV help. We can't use AVRoutePickerView here —
-                // it only routes AirPlay-Video (AVPlayer content). For
-                // a SwiftUI tile grid we rely on the external-display
-                // scene which fires on plain Screen Mirroring. This
-                // button explains the Control-Center → Screen Mirroring
-                // → Apple TV path that triggers our second-screen mode.
-                Button {
-                    showsAirPlayHelp = true
-                    revealToolbar()
-                } label: {
-                    Image(systemName: "tv.badge.wifi")
-                        .font(.system(size: 14, weight: .semibold))
+                // AirPlay-Video picker. Now functional: the streamer
+                // owns an AVPlayer with allowsExternalPlayback=true
+                // playing a local HLS stream of the Showcase grid.
+                // Tap → system picker → choose Apple TV → AVPlayer
+                // routes the H.264 stream to the TV (no Screen
+                // Mirroring), phone-side swaps to control panel.
+                if let player = streamer?.player {
+                    RoutePickerView(player: player)
                         .frame(width: 38, height: 38)
                         .background(Circle().fill(Color.white.opacity(0.15)))
-                        .foregroundStyle(.white)
+                        .accessibilityLabel("AirPlay")
                 }
-                .accessibilityLabel("Show on Apple TV")
             }
             .padding(.horizontal, 20)
             // Pad past safe area + 8pt clearance. In landscape this
@@ -645,6 +662,7 @@ struct ShowcaseGridView: View {
 //   - Done (dismiss entirely)
 struct ShowcaseControlPanel: View {
     @Bindable var session: ShowcaseSession
+    var streamer: ShowcaseVideoStreamer?
     var onDismiss: () -> Void
     @State private var externalManager = ExternalDisplayManager.shared
 
@@ -841,7 +859,16 @@ struct ExternalShowcaseRoot: View {
 
             if let session = externalManager.session,
                session.renderTarget == .external {
-                ShowcaseGridView(session: session, showsToolbar: false, onDismiss: nil)
+                // External (mirror) path doesn't need a streamer
+                // reference — the TV is being driven by Screen
+                // Mirroring, not AirPlay-Video. Pass nil so the
+                // toolbar-less grid renders without the route picker.
+                ShowcaseGridView(
+                    session: session,
+                    streamer: nil,
+                    showsToolbar: false,
+                    onDismiss: nil
+                )
             } else {
                 idlePlaceholder
             }
@@ -1200,6 +1227,8 @@ final class ShowcaseImagePool {
 // MARK: - RoutePickerView
 
 private struct RoutePickerView: UIViewRepresentable {
+    let player: AVPlayer
+
     func makeUIView(context: Context) -> AVRoutePickerView {
         let v = AVRoutePickerView()
         v.prioritizesVideoDevices = true
@@ -1208,5 +1237,9 @@ private struct RoutePickerView: UIViewRepresentable {
         v.backgroundColor = .clear
         return v
     }
-    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
+    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {
+        // AVRoutePickerView routes the system AVRouteDetector pick; no
+        // explicit player binding API. AVPlayer.allowsExternalPlayback
+        // gates whether the player participates in AirPlay-Video.
+    }
 }

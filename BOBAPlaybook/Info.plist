@@ -11,19 +11,20 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<!-- AirPlay-Video for Personal Showcase.
-	     `AVInitialRouteSharingPolicy = LongFormVideo` was removed
-	     because it surfaced a proactive Dynamic Island AirPlay
-	     suggestion at every launch. The route-sharing policy is set
-	     at runtime via AVAudioSession.setCategory(.playback,
-	     mode: .moviePlayback, policy: .longFormVideo) when Showcase
-	     opens — sufficient for AirPlay-Video to engage on demand.
-	     `UIBackgroundModes = [audio]` was also removed because it
-	     re-triggered the same popup whenever an AirPlay receiver was
-	     nearby. Showcase is a foreground-only feature (it's a
-	     screensaver-style display); backgrounding the app ends the
-	     session anyway, so the audio background capability wasn't
-	     doing useful work. AirPlay-Video routing in the foreground
-	     works correctly without it. -->
+	     `UIBackgroundModes = [audio]` is REQUIRED for AirPlay-Video
+	     sessions to survive when the user switches apps (per user
+	     request). Trade-off: this declaration causes iOS to surface
+	     a "tap to AirPlay" suggestion in the Dynamic Island at launch
+	     whenever an AirPlay receiver is on the network. No public API
+	     exists to declare audio background capability without that
+	     popup. (`AVInitialRouteSharingPolicy = LongFormVideo` is NOT
+	     set — that's an additional, separate trigger we don't need;
+	     audio-session policy at runtime is enough for AirPlay-Video
+	     to engage on demand.) -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 
 	<key>CFBundleURLTypes</key>
 	<array>

@@ -1285,6 +1285,59 @@ private struct RoutePickerView: UIViewRepresentable {
 // guarantees Xcode finds the new types on a clean build.
 // =============================================================================
 
+// MARK: - Showcase diagnostics
+//
+// Plain `print()` per memory feedback_diagnostic_console.md — use
+// the Xcode console, not os.Logger which needs Console.app + device
+// sidebar setup. Filter by tag `[Showcase]` when watching.
+@inline(__always)
+nonisolated func showcaseLog(_ message: @autoclosure () -> String) {
+    print("[Showcase] \(message())")
+}
+
+// MARK: - LAN IP helper
+//
+// Returns the iPhone's Wi-Fi (en0) IPv4 address so AVPlayer can hand
+// Apple TV a URL the TV can actually fetch. The Apple TV cannot
+// reach the iPhone's `127.0.0.1` — that's its own loopback. The
+// research report flagged this as "inferred — verify on-device,"
+// and on-device verification confirms: tapping AirPlay + picking
+// Apple TV did nothing because the TV got a localhost URL it
+// couldn't dial. With the LAN IP, Apple TV fetches the HLS playlist
+// directly (we already bind NWListener to .any so the server
+// answers both interfaces).
+nonisolated func showcaseLocalIPAddress() -> String? {
+    var address: String?
+    var ifaddr: UnsafeMutablePointer<ifaddrs>?
+    guard getifaddrs(&ifaddr) == 0, let firstAddr = ifaddr else { return nil }
+    defer { freeifaddrs(ifaddr) }
+    for ifptr in sequence(first: firstAddr, next: { $0.pointee.ifa_next }) {
+        let interface = ifptr.pointee
+        let family = interface.ifa_addr.pointee.sa_family
+        guard family == UInt8(AF_INET) else { continue }
+        let name = String(cString: interface.ifa_name)
+        // en0 = Wi-Fi on iPhone. pdp_ip* = cellular (no AirPlay), skip.
+        guard name == "en0" else { continue }
+        var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+        getnameinfo(
+            interface.ifa_addr,
+            socklen_t(interface.ifa_addr.pointee.sa_len),
+            &hostname,
+            socklen_t(hostname.count),
+            nil,
+            0,
+            NI_NUMERICHOST
+        )
+        let addr = String(cString: hostname)
+        // Skip self-assigned / link-local 169.254.x.x.
+        if !addr.hasPrefix("169.254") {
+            address = addr
+            break
+        }
+    }
+    return address
+}
+
 // MARK: - ShowcaseVideoConstants
 //
 // `nonisolated` overrides the project's default-MainActor isolation
@@ -1390,6 +1443,11 @@ final class ShowcaseVideoStreamer: NSObject {
     /// closure runs on the queue we specify (.main here), no concurrent
     /// closure boundary to cross.
     private var externalPlaybackCancellable: AnyCancellable?
+    /// KVO subscriptions for diagnostics — surface player + item
+    /// failures in the console so we stop guessing what's wrong.
+    private var playerStatusCancellable: AnyCancellable?
+    private var playerRateCancellable: AnyCancellable?
+    private var itemStatusCancellable: AnyCancellable?
 
     // MARK: Init
 
@@ -1405,7 +1463,22 @@ final class ShowcaseVideoStreamer: NSObject {
         externalPlaybackCancellable = player.publisher(for: \.isExternalPlaybackActive)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] value in
+                showcaseLog("AVPlayer.isExternalPlaybackActive → \(value)")
                 self?.isExternalPlaybackActive = value
+            }
+        playerStatusCancellable = player.publisher(for: \.status)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] status in
+                let label = Self.describe(playerStatus: status)
+                showcaseLog("AVPlayer.status → \(label)")
+                if status == .failed, let player = self?.player {
+                    showcaseLog("AVPlayer.error → \(player.error?.localizedDescription ?? "nil")")
+                }
+            }
+        playerRateCancellable = player.publisher(for: \.rate)
+            .receive(on: DispatchQueue.main)
+            .sink { rate in
+                showcaseLog("AVPlayer.rate → \(rate)")
             }
     }
 
@@ -1432,16 +1505,19 @@ final class ShowcaseVideoStreamer: NSObject {
     func start() async {
         guard !isRunning else { return }
         isRunning = true
+        showcaseLog("start() begin")
         do {
             try prepareSegmentDir()
+            showcaseLog("segmentDir ready: \(segmentDir?.path ?? "nil")")
             try await startServer()
+            showcaseLog("server ready on port \(server?.port ?? 0); LAN IP \(showcaseLocalIPAddress() ?? "nil")")
             try startWriter()
+            showcaseLog("writer started, status=\(writer?.status.rawValue ?? -1)")
             startCapture()
+            showcaseLog("capture loop running at \(ShowcaseVideoConstants.captureFPS) fps")
             // Player attachment is deferred — see handleSegment.
         } catch {
-            #if DEBUG
-            print("[ShowcaseVideoStreamer] start failed:", error)
-            #endif
+            showcaseLog("start() FAILED: \(error.localizedDescription)")
             stop()
         }
     }
@@ -1452,6 +1528,7 @@ final class ShowcaseVideoStreamer: NSObject {
 
     func stop() {
         guard isRunning else { return }
+        showcaseLog("stop()")
         isRunning = false
         stopCapture()
         finalizeWriter()
@@ -1463,6 +1540,12 @@ final class ShowcaseVideoStreamer: NSObject {
         cleanupSegmentDir()
         externalPlaybackCancellable?.cancel()
         externalPlaybackCancellable = nil
+        playerStatusCancellable?.cancel()
+        playerStatusCancellable = nil
+        playerRateCancellable?.cancel()
+        playerRateCancellable = nil
+        itemStatusCancellable?.cancel()
+        itemStatusCancellable = nil
     }
 
     // MARK: - Segment dir
@@ -1651,9 +1734,54 @@ final class ShowcaseVideoStreamer: NSObject {
     // MARK: - Player
 
     private func attachPlayerToPlaylist() {
-        guard let server, let url = URL(string: "http://127.0.0.1:\(server.port)/index.m3u8") else { return }
+        guard let server else {
+            showcaseLog("attachPlayerToPlaylist FAILED — no server")
+            return
+        }
+        // Apple TV cannot reach the iPhone's 127.0.0.1, so we hand it
+        // the iPhone's Wi-Fi LAN IP. The NWListener binds to .any, so
+        // our server already answers on both 127.0.0.1 and the LAN IP.
+        let host = showcaseLocalIPAddress() ?? "127.0.0.1"
+        guard let url = URL(string: "http://\(host):\(server.port)/index.m3u8") else {
+            showcaseLog("attachPlayerToPlaylist FAILED — bad URL host=\(host) port=\(server.port)")
+            return
+        }
+        showcaseLog("attaching player → \(url.absoluteString)")
         let item = AVPlayerItem(url: url)
+
+        // KVO on the player item so we can surface load failures.
+        itemStatusCancellable = item.publisher(for: \.status)
+            .receive(on: DispatchQueue.main)
+            .sink { status in
+                showcaseLog("AVPlayerItem.status → \(Self.describe(itemStatus: status))")
+                if status == .failed {
+                    showcaseLog("AVPlayerItem.error → \(item.error?.localizedDescription ?? "nil")")
+                    if let underlying = item.error as NSError?,
+                       let inner = underlying.userInfo[NSUnderlyingErrorKey] as? NSError {
+                        showcaseLog("AVPlayerItem.underlying → \(inner.localizedDescription) (\(inner.domain) \(inner.code))")
+                    }
+                }
+            }
+
         player.replaceCurrentItem(with: item)
+    }
+
+    private static func describe(itemStatus: AVPlayerItem.Status) -> String {
+        switch itemStatus {
+        case .unknown: return "unknown"
+        case .readyToPlay: return "readyToPlay"
+        case .failed: return "failed"
+        @unknown default: return "@unknown"
+        }
+    }
+
+    private static func describe(playerStatus: AVPlayer.Status) -> String {
+        switch playerStatus {
+        case .unknown: return "unknown"
+        case .readyToPlay: return "readyToPlay"
+        case .failed: return "failed"
+        @unknown default: return "@unknown"
+        }
     }
 }
 
@@ -1688,12 +1816,14 @@ extension ShowcaseVideoStreamer: AVAssetWriterDelegate {
             try? data.write(to: file, options: .atomic)
             playlist.setInitSegment("init.mp4")
             serverCache.setSegmentFile("init.mp4", url: file)
+            showcaseLog("segment INIT written, \(data.count) bytes → init.mp4")
         case .separable:
             let name = "seg\(playlist.nextSegmentIndex).m4s"
             let file = dir.appendingPathComponent(name)
             try? data.write(to: file, options: .atomic)
             playlist.appendSegment(name: name, duration: duration)
             serverCache.setSegmentFile(name, url: file)
+            showcaseLog("segment SEPARABLE \(name), \(data.count) bytes, dur=\(String(format: "%.2f", duration))s")
             for old in playlist.evictedFiles {
                 let url = dir.appendingPathComponent(old)
                 try? FileManager.default.removeItem(at: url)
@@ -1934,8 +2064,10 @@ nonisolated final class LocalHLSServer: @unchecked Sendable {
             }
             let path = String(parts[1])
             if let (body, mime) = self.provider?(path) {
+                showcaseLog("HTTP 200 \(path) \(body.count)B \(mime)")
                 LocalHLSServer.send(connection: connection, body: body, mime: mime)
             } else {
+                showcaseLog("HTTP 404 \(path)")
                 LocalHLSServer.sendNotFound(connection: connection)
             }
         }

@@ -148,7 +148,9 @@ final class ShowcaseSession {
 
         // Create empty tiles and publish immediately so the grid
         // renders before any images have loaded.
-        var newTiles: [ShowcaseTileState] = (0..<count).map { _ in ShowcaseTileState() }
+        // `let` because we only mutate the tile instances (reference
+        // types) — the array itself is never reassigned.
+        let newTiles: [ShowcaseTileState] = (0..<count).map { _ in ShowcaseTileState() }
         for (i, card) in assignments where i < newTiles.count {
             newTiles[i].currentBobaId = card.id
         }
@@ -1260,8 +1262,13 @@ private struct RoutePickerView: UIViewRepresentable {
 // =============================================================================
 
 // MARK: - ShowcaseVideoConstants
-
-enum ShowcaseVideoConstants {
+//
+// `nonisolated` overrides the project's default-MainActor isolation
+// (per memory feedback_project_default_mainactor_isolation.md). These
+// are compile-time constants that need to be readable from the
+// AVAssetWriterDelegate callback (which fires on a nonisolated
+// background queue) without crossing an actor boundary.
+nonisolated enum ShowcaseVideoConstants {
     /// TV output dimensions. 1920×1080 = standard 16:9 HD.
     static let renderWidth: Int = 1920
     static let renderHeight: Int = 1080
@@ -1336,6 +1343,13 @@ final class ShowcaseVideoStreamer: NSObject {
     private var segmentDir: URL?
     private var playlist = HLSPlaylistBuilder()
     private var server: LocalHLSServer?
+    /// Sendable bridge between MainActor (where playlist + segment
+    /// metadata live) and the background NWListener queue (where the
+    /// HTTP request handler reads). MainActor pushes into the cache
+    /// whenever the playlist or segment files change; the server's
+    /// provider closure reads without any actor hop (no semaphore
+    /// deadlock risk).
+    private let serverCache = ShowcaseHLSServerCache()
 
     // MARK: KVO
 
@@ -1421,43 +1435,18 @@ final class ShowcaseVideoStreamer: NSObject {
 
     private func startServer() throws {
         let server = LocalHLSServer()
-        try server.start { [weak self] path in
-            guard let self else { return nil }
-            return self.serve(path: path)
+        let cache = serverCache
+        try server.start { path in
+            cache.lookup(path)
         }
         self.server = server
-    }
-
-    /// Serves the m3u8 (synthesized live) and segment / init files
-    /// (from disk). Returns (data, contentType) or nil for 404.
-    private nonisolated func serve(path: String) -> (Data, String)? {
-        let trimmed = path.hasPrefix("/") ? String(path.dropFirst()) : path
-        let task = DispatchSemaphore(value: 0)
-        var result: (Data, String)? = nil
-        Task { @MainActor in
-            defer { task.signal() }
-            if trimmed == "index.m3u8" {
-                let body = self.playlist.serialize()
-                result = (Data(body.utf8), "application/vnd.apple.mpegurl")
-                return
-            }
-            guard let dir = self.segmentDir else { return }
-            let file = dir.appendingPathComponent(trimmed)
-            guard let data = try? Data(contentsOf: file) else { return }
-            let mime = trimmed.hasSuffix(".m4s") || trimmed.hasSuffix(".mp4")
-                ? "video/mp4"
-                : "application/octet-stream"
-            result = (data, mime)
-        }
-        task.wait()
-        return result
     }
 
     // MARK: - Writer
 
     private func startWriter() throws {
         guard segmentDir != nil else { return }
-        let writer = try AVAssetWriter(
+        let writer = AVAssetWriter(
             contentType: UTType(AVFileType.mp4.rawValue)!
         )
         writer.outputFileTypeProfile = .mpeg4AppleHLS
@@ -1648,19 +1637,24 @@ extension ShowcaseVideoStreamer: AVAssetWriterDelegate {
             let file = dir.appendingPathComponent("init.mp4")
             try? data.write(to: file, options: .atomic)
             playlist.setInitSegment("init.mp4")
+            serverCache.setSegmentFile("init.mp4", url: file)
         case .separable:
             let name = "seg\(playlist.nextSegmentIndex).m4s"
             let file = dir.appendingPathComponent(name)
             try? data.write(to: file, options: .atomic)
             playlist.appendSegment(name: name, duration: duration)
+            serverCache.setSegmentFile(name, url: file)
             for old in playlist.evictedFiles {
                 let url = dir.appendingPathComponent(old)
                 try? FileManager.default.removeItem(at: url)
+                serverCache.removeSegmentFile(old)
             }
             playlist.clearEvicted()
         @unknown default:
             break
         }
+        // Refresh the playlist bytes the HTTP server will hand out.
+        serverCache.setPlaylist(Data(playlist.serialize().utf8))
     }
 }
 
@@ -1716,13 +1710,77 @@ final class HLSPlaylistBuilder {
     }
 }
 
-// MARK: - LocalHLSServer
+// MARK: - ShowcaseHLSServerCache
+//
+// Sendable bridge between MainActor (where the playlist + segment
+// metadata live) and the background NWListener queue (where the
+// server's request handler reads). MainActor pushes into this cache
+// whenever segments are written or the playlist is updated; the
+// server's provider closure reads without crossing actor boundaries.
+//
+// Lock-protected for safe concurrent reads. `@unchecked Sendable`
+// because the lock provides the synchronization Swift's checker
+// can't see automatically.
+final class ShowcaseHLSServerCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var playlist: Data = Data()
+    private var segments: [String: URL] = [:]
 
-final class LocalHLSServer {
-    private(set) var port: UInt16 = 0
-    private var listener: NWListener?
+    func setPlaylist(_ data: Data) {
+        lock.lock(); defer { lock.unlock() }
+        playlist = data
+    }
+
+    func setSegmentFile(_ name: String, url: URL) {
+        lock.lock(); defer { lock.unlock() }
+        segments[name] = url
+    }
+
+    func removeSegmentFile(_ name: String) {
+        lock.lock(); defer { lock.unlock() }
+        segments.removeValue(forKey: name)
+    }
+
+    /// Sendable lookup safe for the LocalHLSServer's background queue.
+    /// Returns (data, content-type) for index.m3u8 / init.mp4 / segN.m4s,
+    /// or nil for a 404.
+    func lookup(_ path: String) -> (Data, String)? {
+        let trimmed = path.hasPrefix("/") ? String(path.dropFirst()) : path
+        if trimmed == "index.m3u8" {
+            lock.lock(); defer { lock.unlock() }
+            return (playlist, "application/vnd.apple.mpegurl")
+        }
+        let url: URL? = {
+            lock.lock(); defer { lock.unlock() }
+            return segments[trimmed]
+        }()
+        guard let url, let data = try? Data(contentsOf: url) else { return nil }
+        let mime = (trimmed.hasSuffix(".m4s") || trimmed.hasSuffix(".mp4"))
+            ? "video/mp4"
+            : "application/octet-stream"
+        return (data, mime)
+    }
+}
+
+// MARK: - LocalHLSServer
+//
+// Minimal HTTP/1.1 server on 127.0.0.1 via Network.framework's
+// NWListener. The stateUpdateHandler intentionally does NOT capture
+// self — it reads the listener's port via the listener reference
+// captured in the closure (NWListener is safe to query for `.port`
+// from any thread). `@unchecked Sendable` because we synchronize the
+// mutable state internally with NSLock.
+final class LocalHLSServer: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _port: UInt16 = 0
+    private var _listener: NWListener?
     private let queue = DispatchQueue(label: "playbook.showcase.hls.server")
     private var provider: (@Sendable (String) -> (Data, String)?)?
+
+    var port: UInt16 {
+        lock.lock(); defer { lock.unlock() }
+        return _port
+    }
 
     func start(handler: @escaping @Sendable (String) -> (Data, String)?) throws {
         self.provider = handler
@@ -1731,24 +1789,40 @@ final class LocalHLSServer {
             self?.handle(connection: connection)
         }
         let portReady = DispatchSemaphore(value: 0)
-        listener.stateUpdateHandler = { [weak self] state in
+        let lockRef = self.lock
+        // Capture only the listener (Sendable) + lock + storage proxy.
+        // No `self` capture in the state-update handler so Swift 6
+        // doesn't see concurrent mutation through a weak reference.
+        let portSetter: @Sendable (UInt16) -> Void = { [weak self] p in
+            lockRef.lock()
+            self?._port = p
+            lockRef.unlock()
+        }
+        listener.stateUpdateHandler = { state in
             switch state {
             case .ready:
-                if let p = listener.port?.rawValue { self?.port = p }
+                if let p = listener.port?.rawValue {
+                    portSetter(p)
+                }
                 portReady.signal()
             case .failed:
                 portReady.signal()
-            default: break
+            default:
+                break
             }
         }
         listener.start(queue: queue)
-        self.listener = listener
+        lock.lock()
+        _listener = listener
+        lock.unlock()
         _ = portReady.wait(timeout: .now() + 2)
     }
 
     func stop() {
-        listener?.cancel()
-        listener = nil
+        lock.lock()
+        _listener?.cancel()
+        _listener = nil
+        lock.unlock()
     }
 
     private func handle(connection: NWConnection) {
@@ -1766,14 +1840,14 @@ final class LocalHLSServer {
             }
             let path = String(parts[1])
             if let (body, mime) = self.provider?(path) {
-                self.send(connection: connection, body: body, mime: mime)
+                LocalHLSServer.send(connection: connection, body: body, mime: mime)
             } else {
-                self.sendNotFound(connection: connection)
+                LocalHLSServer.sendNotFound(connection: connection)
             }
         }
     }
 
-    private func send(connection: NWConnection, body: Data, mime: String) {
+    private static func send(connection: NWConnection, body: Data, mime: String) {
         var header = "HTTP/1.1 200 OK\r\n"
         header += "Content-Type: \(mime)\r\n"
         header += "Content-Length: \(body.count)\r\n"
@@ -1788,7 +1862,7 @@ final class LocalHLSServer {
         })
     }
 
-    private func sendNotFound(connection: NWConnection) {
+    private static func sendNotFound(connection: NWConnection) {
         let header = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
         connection.send(content: Data(header.utf8), completion: .contentProcessed { _ in
             connection.cancel()

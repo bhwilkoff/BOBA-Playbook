@@ -161,6 +161,19 @@ final class ShowcaseSession {
             }
         }
 
+        // Preserve images from the previous tile array, keyed by
+        // bobaId. When the user pinch-zooms (changing session.rows),
+        // the tile array gets re-built — but cards already in the
+        // cache are still valid. Reusing their images avoids the
+        // "wall of dark placeholders" gap while Phase 2 re-fetches
+        // everything.
+        var preserved: [String: UIImage] = [:]
+        for tile in tiles {
+            if let bid = tile.currentBobaId, let img = tile.current {
+                preserved[bid] = img
+            }
+        }
+
         // Create empty tiles and publish immediately so the grid
         // renders before any images have loaded.
         // `let` because we only mutate the tile instances (reference
@@ -168,6 +181,9 @@ final class ShowcaseSession {
         let newTiles: [ShowcaseTileState] = (0..<count).map { _ in ShowcaseTileState() }
         for (i, card) in assignments where i < newTiles.count {
             newTiles[i].currentBobaId = card.id
+            if let img = preserved[card.id] {
+                newTiles[i].current = img
+            }
         }
         tiles = newTiles
         cycleEpoch &+= 1
@@ -179,8 +195,15 @@ final class ShowcaseSession {
         // path uses full-res (~80KB / ≤1200px) so each tile upgrades
         // to crisp resolution as it naturally cycles over the next
         // minute. The user gets fast-paint + eventual full quality.
+        //
+        // Skip cards that we restored from the preserved cache above
+        // — no need to re-fetch what we already have in memory.
+        let needsFetch = assignments.filter { i, card in
+            guard i < tiles.count else { return false }
+            return tiles[i].current == nil
+        }
         await withTaskGroup(of: (Int, UIImage?).self) { group in
-            for (i, card) in assignments {
+            for (i, card) in needsFetch {
                 group.addTask { [pool] in
                     let img = await pool.loadImage(for: card, preferThumb: true)
                     return (i, img)
@@ -550,17 +573,22 @@ struct ShowcaseGridView: View {
     private let minRows: Int = 2
     private let maxRows: Int = 12
 
-    /// True until ~25% of grid tiles have populated their `front`
-    /// image. The initial fan-out fetch from R2 + WebP decode can
-    /// take 1-3 seconds; without the overlay the user sees a near-
-    /// black screen full of dark placeholders, which reads as broken.
+    /// True until ~25% of the PHONE-VISIBLE tile subset has populated.
+    /// Measuring against session.tiles.count (which is TV-sized,
+    /// ~96 tiles) made the overlay wait for ~24 tiles instead of
+    /// the ~6 that actually need to be loaded for the phone view to
+    /// look full — 4× longer wait. Now we only require the phone's
+    /// visible subset to populate before fading the overlay.
     private var isInitialLoading: Bool {
-        let total = session.tiles.count
-        guard total > 0 else { return true }
-        let loaded = session.tiles.reduce(into: 0) { count, tile in
-            if tile.current != nil { count += 1 }
+        let target = session.phoneVisibleTileCount > 0
+            ? session.phoneVisibleTileCount
+            : session.tiles.count
+        let count = min(target, session.tiles.count)
+        guard count > 0 else { return true }
+        let loaded = session.tiles.prefix(count).reduce(into: 0) { acc, tile in
+            if tile.current != nil { acc += 1 }
         }
-        return Double(loaded) / Double(total) < 0.25
+        return Double(loaded) / Double(count) < 0.25
     }
 
     /// Top safe-area inset read directly from the foreground window
@@ -1131,8 +1159,25 @@ struct ShowcaseTileCell: View {
     let height: CGFloat
 
     var body: some View {
-        TimelineView(.animation) { context in
-            renderedContent(at: context.date)
+        // CRITICAL perf optimization: only wrap in TimelineView while
+        // an animation is in progress. TimelineView(.animation) ticks
+        // at the display refresh rate (60-120 Hz); with ~96 tiles in
+        // the grid, that was 5,760+ view re-evaluations per second
+        // for tiles that aren't even animating. ImageRenderer at
+        // 1920×1080 compounding on that saturated MainActor, which
+        // was causing the AirPlay stream to stutter and re-buffer.
+        //
+        // Static tiles render a single Image (no SwiftUI re-renders
+        // until state changes via Observation). Only during an
+        // active animation do we engage the high-frequency TimelineView.
+        Group {
+            if state.pending != nil {
+                TimelineView(.animation) { context in
+                    renderedContent(at: context.date)
+                }
+            } else {
+                face(state.current)
+            }
         }
         .frame(width: width, height: height)
         .onAppear { state.setCellSize(width, height) }

@@ -466,6 +466,20 @@ struct ShowcaseGridView: View {
             ZStack(alignment: .top) {
                 Color(red: 0x08/255, green: 0x08/255, blue: 0x10/255)
 
+                // Hidden AVPlayerLayer surface — REQUIRED for the
+                // player to engage AirPlay-Video routing per Apple's
+                // allowsExternalPlayback docs. Without it, the route
+                // picker surfaces destinations but picking one fails
+                // silently. Near-zero opacity so the user never sees
+                // it; layer remains in the hierarchy and active.
+                if let player = streamer?.player {
+                    AirPlaySurface(player: player)
+                        .frame(width: 4, height: 4)
+                        .opacity(0.001)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+
                 // Tap-to-reveal layer — only active when the toolbar
                 // is hidden. Keeps the reveal-on-tap gesture out of
                 // the toolbar's button territory so taps on Pause /
@@ -1295,6 +1309,53 @@ private struct RoutePickerView: UIViewRepresentable {
         // AVRoutePickerView routes the system AVRouteDetector pick; no
         // explicit player binding API. AVPlayer.allowsExternalPlayback
         // gates whether the player participates in AirPlay-Video.
+    }
+}
+
+// MARK: - AirPlaySurface
+//
+// **This view is the load-bearing missing piece for AirPlay-Video.**
+//
+// Per Apple's AVPlayer.allowsExternalPlayback docs:
+// "External playback can only be enabled if the player is playing
+// the asset using an instance of AVPlayerLayer or one of its
+// derivatives. If the player is using a different type of layer,
+// AirPlay video can't be enabled."
+//
+// In v2.131-v2.134 our AVPlayer was playing the local HLS stream
+// "headless" — no AVPlayerLayer in the view hierarchy. The system
+// route picker still surfaced AirPlay destinations (the picker is
+// system-level), but picking one silently failed to engage
+// AirPlay-Video because iOS couldn't find a valid video surface to
+// route from. The v2.134 trace confirmed: every other signal
+// (player.status=readyToPlay, rate=1.0, segments fetching) was fine
+// EXCEPT isExternalPlaybackActive never flipped to true.
+//
+// Pattern: a UIView whose backing layer IS an AVPlayerLayer (via
+// `layerClass` override). Mounted in the view hierarchy at near-zero
+// opacity. The system now has a valid AVPlayerLayer to route. This
+// is the iOS 8 → iOS 26 canonical pattern; Apple has not deprecated
+// or replaced it.
+private struct AirPlaySurface: UIViewRepresentable {
+    let player: AVPlayer
+
+    func makeUIView(context: Context) -> AVPlayerContainerView {
+        let view = AVPlayerContainerView()
+        view.player = player
+        return view
+    }
+
+    func updateUIView(_ uiView: AVPlayerContainerView, context: Context) {
+        uiView.player = player
+    }
+}
+
+private final class AVPlayerContainerView: UIView {
+    override static var layerClass: AnyClass { AVPlayerLayer.self }
+    var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+    var player: AVPlayer? {
+        get { playerLayer.player }
+        set { playerLayer.player = newValue }
     }
 }
 

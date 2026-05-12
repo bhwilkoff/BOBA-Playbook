@@ -563,7 +563,7 @@ private final class HouseOfCardsCoordinator: NSObject {
         // crisp emblem, not a painted-on surface.
         if let logo = UIImage(named: "boba_playbook_icon_512") ?? UIImage(named: "AppIcon"),
            let cg = logo.cgImage,
-           let tex = try? TextureResource.generate(from: cg, options: .init(semantic: .color)) {
+           let tex = makeColorTexture(from: cg) {
             let logoPlane = MeshResource.generatePlane(width: 0.22, depth: 0.22)
             var logoMat = UnlitMaterial()
             logoMat.color = .init(tint: UIColor.white.withAlphaComponent(0.18), texture: .init(tex))
@@ -581,7 +581,7 @@ private final class HouseOfCardsCoordinator: NSObject {
         guard let path = Bundle.main.url(forResource: "card-back", withExtension: "png"),
               let image = UIImage(contentsOfFile: path.path),
               let cg = image.cgImage,
-              let tex = try? TextureResource.generate(from: cg, options: .init(semantic: .color))
+              let tex = makeColorTexture(from: cg)
         else {
             return
         }
@@ -731,6 +731,20 @@ private final class HouseOfCardsCoordinator: NSObject {
         return entity
     }
 
+    // iOS 18 deprecated TextureResource.generate(from:options:) in
+    // favor of TextureResource(image:withName:options:). Both APIs
+    // are MainActor-isolated under Swift 6 strict concurrency, so
+    // callers must already be on MainActor. This helper hides the
+    // version split.
+    private func makeColorTexture(from cg: CGImage) -> TextureResource? {
+        let opts = TextureResource.CreateOptions(semantic: .color)
+        if #available(iOS 18.0, *) {
+            return try? TextureResource(image: cg, withName: nil, options: opts)
+        } else {
+            return try? TextureResource.generate(from: cg, options: opts)
+        }
+    }
+
     private func makeEdgeMaterial() -> PhysicallyBasedMaterial {
         if let m = edgeMaterial { return m }
         var m = PhysicallyBasedMaterial()
@@ -742,16 +756,22 @@ private final class HouseOfCardsCoordinator: NSObject {
     }
 
     // MARK: Async art loading
+    //
+    // Network fetch + UIImage/CGImage decode happen off-main on a
+    // detached task. TextureResource construction is MainActor-
+    // isolated (Swift 6), so we hop to MainActor for it + completion.
     private func loadFrontArt(for card: Card, completion: @escaping @MainActor (TextureResource) -> Void) {
         guard let url = CDN.fullURL(for: card) ?? CDN.thumbURL(for: card) else { return }
-        Task.detached(priority: .userInitiated) {
+        Task.detached(priority: .userInitiated) { [weak self] in
             guard
                 let (data, _) = try? await URLSession.shared.data(from: url),
                 let image = UIImage(data: data),
-                let cg = image.cgImage,
-                let tex = try? TextureResource.generate(from: cg, options: .init(semantic: .color))
+                let cg = image.cgImage
             else { return }
-            await MainActor.run { completion(tex) }
+            await MainActor.run {
+                guard let tex = self?.makeColorTexture(from: cg) else { return }
+                completion(tex)
+            }
         }
     }
 }

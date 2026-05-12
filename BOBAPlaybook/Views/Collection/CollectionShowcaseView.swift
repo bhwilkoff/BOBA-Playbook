@@ -422,10 +422,23 @@ struct ShowcaseGridView: View {
     private let minRows: Int = 2
     private let maxRows: Int = 12
 
+    /// Top safe-area inset read directly from the foreground window
+    /// scene. GeometryReader.safeAreaInsets returns .zero when its
+    /// container has `.ignoresSafeArea(.all)` applied (which our
+    /// outer modifier does, intentionally — the grid needs to bleed
+    /// past the Dynamic Island). Falling back to the window-scene
+    /// insets keeps the toolbar safely below the notch.
+    private var deviceTopSafeInset: CGFloat {
+        let scene = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive }
+            ?? (UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        return scene?.windows.first?.safeAreaInsets.top ?? 47
+    }
+
     var body: some View {
         GeometryReader { geo in
             let size = geo.size
-            let safe = geo.safeAreaInsets
             // Defensive: SwiftUI's initial layout pass can deliver
             // size = .zero before the view is sized, which would make
             // cellW = 0 and `size.width / cellW` = NaN. Int(NaN)
@@ -502,7 +515,7 @@ struct ShowcaseGridView: View {
                 }
 
                 if showsToolbar && revealedToolbar {
-                    toolbarOverlay(topInset: safe.top)
+                    toolbarOverlay(topInset: deviceTopSafeInset)
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
@@ -1291,9 +1304,14 @@ nonisolated enum ShowcaseVideoConstants {
     static let captureFPS: Int = 10
     static let encodeFPS: Int32 = 30
 
-    /// Segment duration. 6s is Apple's recommended starting point for
-    /// HLS (preferredOutputSegmentInterval).
-    static let segmentDurationSeconds: Double = 6.0
+    /// Segment duration. 2s gives a fast first-segment time so the
+    /// AVPlayer has playable content within ~2s of Showcase opening,
+    /// which is what enables AirPlay-Video routing to work when the
+    /// user taps the in-app picker. Apple's HLS Authoring Spec
+    /// permits 2s as the lower bound (full LL-HLS spec goes lower,
+    /// but for our purposes 2s is the responsiveness/overhead sweet
+    /// spot).
+    static let segmentDurationSeconds: Double = 2.0
 
     /// Sliding-window: keep N most-recent segments in the playlist.
     /// Older segment files are deleted to bound temp storage.
@@ -1402,6 +1420,15 @@ final class ShowcaseVideoStreamer: NSObject {
     /// "ready" state. The view calls this from `.task { await
     /// streamer.start() }`, which suspends the task during the server
     /// startup and lets the grid render immediately.
+    ///
+    /// IMPORTANT: we do NOT call attachPlayerToPlaylist() here.
+    /// AVPlayer fails to play an empty HLS playlist and never engages
+    /// AirPlay-Video, which is the root cause of "tapping AirPlay
+    /// does nothing." Instead, the AVAssetWriterDelegate kicks the
+    /// player off after the first .separable segment lands (~2s with
+    /// our segmentDurationSeconds). By then the playlist has real
+    /// content, AVPlayer loads cleanly, and the in-app
+    /// AVRoutePickerView routes via AirPlay-Video as expected.
     func start() async {
         guard !isRunning else { return }
         isRunning = true
@@ -1410,8 +1437,7 @@ final class ShowcaseVideoStreamer: NSObject {
             try await startServer()
             try startWriter()
             startCapture()
-            attachPlayerToPlaylist()
-            player.play()
+            // Player attachment is deferred — see handleSegment.
         } catch {
             #if DEBUG
             print("[ShowcaseVideoStreamer] start failed:", error)
@@ -1420,6 +1446,10 @@ final class ShowcaseVideoStreamer: NSObject {
         }
     }
 
+    /// True once the first .separable HLS segment has been written
+    /// and the AVPlayer has been pointed at the playlist URL.
+    private var playerAttached: Bool = false
+
     func stop() {
         guard isRunning else { return }
         isRunning = false
@@ -1427,6 +1457,7 @@ final class ShowcaseVideoStreamer: NSObject {
         finalizeWriter()
         player.pause()
         player.replaceCurrentItem(with: nil)
+        playerAttached = false
         server?.stop()
         server = nil
         cleanupSegmentDir()
@@ -1674,6 +1705,16 @@ extension ShowcaseVideoStreamer: AVAssetWriterDelegate {
         }
         // Refresh the playlist bytes the HTTP server will hand out.
         serverCache.setPlaylist(Data(playlist.serialize().utf8))
+
+        // Deferred player attachment — only point AVPlayer at the
+        // playlist after we have actual playable content. Loading an
+        // empty m3u8 makes AVPlayer fail silently and never engage
+        // AirPlay-Video, which was the "AirPlay does nothing" bug.
+        if !playerAttached, case .separable = type {
+            playerAttached = true
+            attachPlayerToPlaylist()
+            player.play()
+        }
     }
 }
 

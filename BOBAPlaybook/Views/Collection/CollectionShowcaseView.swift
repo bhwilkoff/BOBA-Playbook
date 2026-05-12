@@ -167,7 +167,7 @@ final class ShowcaseSession {
             }
             for await (i, img) in group {
                 if i < self.tiles.count, let img = img {
-                    self.tiles[i].front = img
+                    self.tiles[i].current = img
                 }
             }
         }
@@ -413,6 +413,20 @@ struct CollectionShowcaseView: View {
         .task(id: session.cycleEpoch) {
             await session.runCycleLoop(reduceMotion: reduceMotion)
         }
+        // Tile init — single source of truth keyed on session.rows.
+        // Sized for the LARGER of (phone grid, TV grid) so the TV's
+        // 1920×1080 canvas is always fully populated even when the
+        // user's collection has fewer cards than tiles (cards repeat
+        // with no-adjacent-duplicates). Phone renders the subset that
+        // fits its screen.
+        .task(id: session.rows) {
+            let rows = max(2, session.rows)
+            let tvCellH = CGFloat(ShowcaseVideoConstants.renderHeight) / CGFloat(rows)
+            let tvCellW = tvCellH * ShowcaseVideoConstants.cardAspect
+            let tvCols = max(1, Int(ceil(CGFloat(ShowcaseVideoConstants.renderWidth) / tvCellW)))
+            session.columns = tvCols
+            await session.initializeTiles(count: rows * tvCols)
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active && !session.paused {
                 session.cycleEpoch &+= 1
@@ -470,7 +484,7 @@ struct ShowcaseGridView: View {
         let total = session.tiles.count
         guard total > 0 else { return true }
         let loaded = session.tiles.reduce(into: 0) { count, tile in
-            if tile.front != nil { count += 1 }
+            if tile.current != nil { count += 1 }
         }
         return Double(loaded) / Double(total) < 0.25
     }
@@ -543,7 +557,12 @@ struct ShowcaseGridView: View {
                                     x: CGFloat(col) * cellW + cellW / 2,
                                     y: CGFloat(row) * cellH + cellH / 2
                                 )
-                                .zIndex(session.tiles[index].exitImage != nil ? 1 : 0)
+                                // Lift this cell above its neighbors
+                                // during an active animation so the
+                                // exit transform (offset / rotation)
+                                // composites over them as the card
+                                // falls across the grid.
+                                .zIndex(session.tiles[index].pending != nil ? 1 : 0)
                             }
                         }
                     }
@@ -557,18 +576,10 @@ struct ShowcaseGridView: View {
                     // toolbar is hidden) and to toolbar buttons (when
                     // visible).
                     .allowsHitTesting(false)
-                    .onAppear {
-                        session.columns = cols
-                        Task { await session.initializeTiles(count: totalTiles) }
-                    }
-                    .onChange(of: cols) { _, newCols in
-                        session.columns = newCols
-                        Task { await session.initializeTiles(count: session.rows * newCols) }
-                    }
-                    .onChange(of: session.rows) { _, _ in
-                        session.columns = cols
-                        Task { await session.initializeTiles(count: session.rows * cols) }
-                    }
+                    // Tile init lives on CollectionShowcaseView keyed
+                    // by session.rows — single source of truth, sized
+                    // for the larger of phone/TV grids. Phone view
+                    // just renders the subset that fits.
                 }
 
                 if showsToolbar && revealedToolbar {
@@ -971,66 +982,136 @@ struct ExternalShowcaseRoot: View {
 
 // MARK: - ShowcaseTileCell
 //
-// Renders the tile via the "layered exit" pattern: the persistent
-// `front` image is always at rest (never rotated, never translated)
-// so the cell never displays an upside-down card. The optional `exit`
-// overlay sits on top during a non-flip animation and animates away
-// (translate / rotate / fade) to reveal the new `front` underneath.
+// Time-based animation renderer. The body is wrapped in TimelineView
+// (.animation), so it re-evaluates every display refresh — and every
+// re-evaluation computes the current visual state from elapsed time
+// since `state.animationStartDate`.
 //
-// The 3D Y-flip variant is special — it uses the front + back face
-// pattern via faceUp, which is the only animation that touches the
-// tile's container rotation. The exit overlay is hidden during flips.
-private struct ShowcaseTileCell: View {
+// Critical: this is what makes animations show up on BOTH the phone
+// (live SwiftUI rendering) AND the AirPlay-Video TV stream
+// (ImageRenderer captures whatever the body says at the moment of
+// snapshot). The previous withAnimation-based design left ImageRenderer
+// reading the END state of every animation, which is why the TV
+// stream showed instant card swaps with no flip/drop/etc.
+struct ShowcaseTileCell: View {
     @Bindable var state: ShowcaseTileState
     let width: CGFloat
     let height: CGFloat
 
     var body: some View {
-        ZStack {
-            // Persistent front face (always at rest — never rotated,
-            // never translated).
-            face(image: state.front)
-                .opacity(state.faceUp ? 1 : 0)
-
-            // Flip back face (only visible during a flip animation).
-            face(image: state.back)
-                .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
-                .opacity(state.faceUp ? 0 : 1)
-
-            // Exit overlay (only present during non-flip variants).
-            // Animates translate / rotation / opacity away to reveal
-            // the new `front` underneath. Cleared after animation.
-            if let exit = state.exitImage {
-                Image(uiImage: exit)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: width, height: height)
-                    .clipped()
-                    .opacity(state.exitOpacity)
-                    .rotationEffect(.degrees(state.exitRotation))
-                    .offset(x: state.exitOffsetX, y: state.exitOffsetY)
-                    .allowsHitTesting(false)
-            }
+        TimelineView(.animation) { context in
+            renderedContent(at: context.date)
         }
-        .rotation3DEffect(
-            .degrees(state.faceUp ? 0 : 180),
-            axis: (x: 0, y: 1, z: 0)
-        )
         .frame(width: width, height: height)
-        // NO outer .clipped() — the persistent front face has its own
-        // .clipped() inside face(), but we want the exit overlay to
-        // render OUTSIDE the cell bounds so the card visibly falls
-        // down through the grid (over neighbor cells). The parent
-        // ShowcaseGridView ZStack lifts this cell's zIndex while an
-        // exit animation is active so it composites above its
-        // neighbors during the fall.
         .onAppear { state.setCellSize(width, height) }
         .onChange(of: width) { _, w in state.setCellSize(w, height) }
         .onChange(of: height) { _, h in state.setCellSize(width, h) }
     }
 
     @ViewBuilder
-    private func face(image: UIImage?) -> some View {
+    private func renderedContent(at date: Date) -> some View {
+        let progress = animationProgress(at: date)
+
+        if let pending = state.pending, let progress {
+            // Animation in progress — render per-variant interpolation.
+            switch state.animationVariant {
+            case .flip:
+                flipView(progress: progress, current: state.current, pending: pending)
+            case .drop, .rowDrop:
+                exitDropView(progress: progress, current: state.current,
+                             pending: pending, rotation: 0)
+            case .rollDrop, .rowRollDrop:
+                exitDropView(progress: progress, current: state.current,
+                             pending: pending, rotation: 360)
+            case .pinRotation:
+                pinRotationView(progress: progress, current: state.current, pending: pending)
+            case .dropFromCorner:
+                cornerView(progress: progress, current: state.current, pending: pending)
+            }
+        } else {
+            // Settled — show current image at rest.
+            face(state.current)
+        }
+    }
+
+    private func animationProgress(at date: Date) -> Double? {
+        guard let start = state.animationStartDate else { return nil }
+        let elapsed = date.timeIntervalSince(start)
+        let duration = state.animationVariant.duration
+        if elapsed >= duration { return nil }
+        return min(1.0, max(0.0, elapsed / duration))
+    }
+
+    // MARK: Per-variant interpolations
+
+    @ViewBuilder
+    private func flipView(progress: Double, current: UIImage?, pending: UIImage) -> some View {
+        // 3D Y rotation 0 → 180. New face is positioned at 180° so it
+        // reads upright after the flip completes. Crossfade at the
+        // 90° edge so we don't see the flat edge.
+        let angle = progress * 180
+        ZStack {
+            face(current).opacity(angle < 90 ? 1 : 0)
+            face(pending)
+                .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+                .opacity(angle >= 90 ? 1 : 0)
+        }
+        .rotation3DEffect(.degrees(angle), axis: (x: 0, y: 1, z: 0))
+    }
+
+    @ViewBuilder
+    private func exitDropView(
+        progress: Double, current: UIImage?, pending: UIImage, rotation: Double
+    ) -> some View {
+        // Gravity-style ease-in via progress² so the card accelerates.
+        let eased = progress * progress
+        let yOffset = eased * height * 5
+        let rot = eased * rotation
+        let exitOpacity = 1.0 - progress * 0.2
+        ZStack {
+            face(pending)                                         // revealed underneath
+            face(current)                                         // animating away on top
+                .rotationEffect(.degrees(rot))
+                .offset(y: yOffset)
+                .opacity(exitOpacity)
+        }
+    }
+
+    @ViewBuilder
+    private func pinRotationView(progress: Double, current: UIImage?, pending: UIImage) -> some View {
+        // Outgoing image spins 360° in place + fades out by midpoint.
+        // Incoming image fades in from midpoint. Always lands upright.
+        let curRot = progress * 360
+        let curOpacity = max(0, 1.0 - progress * 2)
+        let pendOpacity = max(0, progress * 2 - 1)
+        ZStack {
+            face(pending).opacity(pendOpacity)
+            face(current)
+                .rotationEffect(.degrees(curRot))
+                .opacity(curOpacity)
+        }
+    }
+
+    @ViewBuilder
+    private func cornerView(progress: Double, current: UIImage?, pending: UIImage) -> some View {
+        // Old card flies out toward a random corner (direction set
+        // when the animation started, captured in state.dirX/dirY).
+        let eased = progress * progress
+        let xOffset = eased * width * 5 * state.dirX
+        let yOffset = eased * height * 5 * state.dirY
+        let rot = eased * 20 * state.dirX
+        let exitOpacity = 1.0 - progress * 0.2
+        ZStack {
+            face(pending)
+            face(current)
+                .rotationEffect(.degrees(rot))
+                .offset(x: xOffset, y: yOffset)
+                .opacity(exitOpacity)
+        }
+    }
+
+    @ViewBuilder
+    private func face(_ image: UIImage?) -> some View {
         if let img = image {
             Image(uiImage: img)
                 .resizable()
@@ -1045,163 +1126,91 @@ private struct ShowcaseTileCell: View {
 
 // MARK: - ShowcaseTileState
 //
-// Two separate animation pipelines:
-//   1. Flip — Y-axis 3D rotation via `faceUp` toggling front/back faces.
-//      Front stays at rest; back is the offscreen face that gets the
-//      new image before rotation. Canonical iTunes behavior.
-//   2. Exit-reveal — for every non-flip variant (drop, rollDrop,
-//      pinRotation, dropFromCorner, row variants). The new image
-//      slides into `front` instantly; the OLD image is copied into
-//      `exitImage` and animates away to reveal the new one underneath.
-//      Front itself never moves, so the tile never shows an inverted
-//      card at any point in the animation.
+// Purely declarative animation state. The cell view (ShowcaseTileCell)
+// uses TimelineView(.animation) and computes the visual transform from
+// (Date() - animationStartDate). This is what makes the same animation
+// work on BOTH the phone (live SwiftUI rendering) AND the AirPlay-Video
+// TV stream (ImageRenderer snapshots at each video capture tick).
+//
+// The previous design used `withAnimation { state.x = newValue }` which
+// set state to newValue immediately while SwiftUI interpolated visually.
+// ImageRenderer reads state = newValue and renders the END state, so
+// the TV stream showed instant card swaps with no animation. Time-based
+// interpolation fixes that — ImageRenderer renders whatever the
+// TimelineView body says at the current moment.
 @Observable
 @MainActor
 final class ShowcaseTileState: Identifiable {
     let id = UUID()
     var currentBobaId: String?
 
-    // Persistent visible image (never rotated, never translated).
-    var front: UIImage?
+    /// Image shown when no animation in progress. During an animation,
+    /// this is the OUTGOING image being animated away.
+    var current: UIImage?
 
-    // 3D flip state — flip variant only.
-    var back: UIImage?
-    var faceUp: Bool = true
+    /// Image transitioning IN. nil when no animation in progress.
+    /// For flip: this is the image revealed on the back face.
+    /// For other variants: this is the image revealed underneath.
+    var pending: UIImage?
 
-    // Exit overlay — every non-flip variant uses these to animate the
-    // OLD image away while `front` already holds the NEW image
-    // underneath. All four reset to identity after each animation.
-    var exitImage: UIImage?
-    var exitOffsetX: CGFloat = 0
-    var exitOffsetY: CGFloat = 0
-    var exitRotation: Double = 0
-    var exitOpacity: Double = 1
+    /// Animation start time. nil when no animation.
+    var animationStartDate: Date?
+
+    /// Variant of the active animation.
+    var animationVariant: ShowcaseAnimation = .flip
+
+    /// Random direction parameters for dropFromCorner — set once at
+    /// the start of the animation so the entire animation uses
+    /// consistent direction.
+    var dirX: CGFloat = 1
+    var dirY: CGFloat = 1
+
+    /// Cell dimensions — set by the cell view's .onAppear. Animations
+    /// scale translate distances by cell size so cards visibly clear
+    /// neighboring cells.
+    var cellWidth: CGFloat = 200
+    var cellHeight: CGFloat = 280
 
     func animate(to next: UIImage, variant: ShowcaseAnimation, reduceMotion: Bool) async {
         if reduceMotion {
-            crossfade(to: next)
-            try? await Task.sleep(for: .milliseconds(400))
+            current = next
             return
         }
-        if variant == .flip {
-            await flip(to: next)
-        } else {
-            await exitReveal(to: next, variant: variant)
+        pending = next
+        animationVariant = variant
+        if variant == .dropFromCorner {
+            dirX = Bool.random() ? 1 : -1
+            dirY = Bool.random() ? 1 : -1
         }
+        animationStartDate = Date()
+        let duration = variant.duration
+        // Wait for the animation to complete + a small grace so the
+        // TimelineView's interpolation lands at the end frame.
+        try? await Task.sleep(for: .seconds(duration + 0.05))
+        // Settle: current = pending, clear pending.
+        current = next
+        pending = nil
+        animationStartDate = nil
     }
-
-    // MARK: Flip
-
-    /// 3D Y-axis flip. The hidden face receives the new image before
-    /// rotation, so the swap is invisible at mid-flip when the tile
-    /// edge is camera-on.
-    private func flip(to next: UIImage) async {
-        if faceUp {
-            back = next
-            withAnimation(.easeInOut(duration: 0.75)) { faceUp = false }
-        } else {
-            front = next
-            withAnimation(.easeInOut(duration: 0.75)) { faceUp = true }
-        }
-        try? await Task.sleep(for: .milliseconds(760))
-    }
-
-    // MARK: Exit-reveal (drop / rollDrop / pinRotation / dropFromCorner)
-
-    /// Set up the exit overlay with the current image, swap `front`
-    /// to the new image, then animate the overlay away per variant.
-    /// Reset overlay to identity once done.
-    private func exitReveal(to next: UIImage, variant: ShowcaseAnimation) async {
-        // Capture currently-visible image as the exit overlay.
-        let visible = faceUp ? front : back
-        exitImage = visible
-        exitOffsetX = 0
-        exitOffsetY = 0
-        exitRotation = 0
-        exitOpacity = 1
-
-        // New image instantly takes the persistent slot underneath.
-        if faceUp { front = next } else { back = next }
-
-        // One frame for state to settle (otherwise the implicit
-        // animation can pick up the new exitImage assignment).
-        try? await Task.sleep(for: .milliseconds(16))
-
-        switch variant {
-        case .drop, .rowDrop:
-            // Fall down past 4-ish cells of neighbors, with gravity
-            // accel. The parent ZStack lifts our zIndex during this
-            // animation so the card composites over its neighbors.
-            withAnimation(.timingCurve(0.4, 0, 0.7, 1, duration: 1.1)) {
-                exitOffsetY = height * 5
-                exitOpacity = 0.85
-            }
-            try? await Task.sleep(for: .milliseconds(1110))
-
-        case .rollDrop, .rowRollDrop:
-            // Fall down + full 360° spin (lands upright, never mid-rotation).
-            withAnimation(.timingCurve(0.4, 0, 0.7, 1, duration: 1.2)) {
-                exitOffsetY = height * 5
-                exitRotation = 360
-                exitOpacity = 0.85
-            }
-            try? await Task.sleep(for: .milliseconds(1210))
-
-        case .pinRotation:
-            // Full 360° rotation in place + crossfade. Always lands
-            // upright (never visibly upside-down).
-            withAnimation(.easeInOut(duration: 1.0)) {
-                exitRotation = 360
-                exitOpacity = 0
-            }
-            try? await Task.sleep(for: .milliseconds(1010))
-
-        case .dropFromCorner:
-            // Fly out toward a random corner past 4-5 neighbors, with
-            // a slight rotation. Card stays mostly visible during
-            // travel so the trajectory reads.
-            let xDir: CGFloat = Bool.random() ? 1 : -1
-            let yDir: CGFloat = Bool.random() ? 1 : -1
-            withAnimation(.timingCurve(0.4, 0, 0.7, 1, duration: 1.2)) {
-                exitOffsetX = width * 5 * xDir
-                exitOffsetY = height * 5 * yDir
-                exitRotation = xDir * 20
-                exitOpacity = 0.8
-            }
-            try? await Task.sleep(for: .milliseconds(1210))
-
-        case .flip:
-            break // handled above
-        }
-
-        // Reset overlay to identity for the next cycle.
-        exitImage = nil
-        exitOffsetX = 0
-        exitOffsetY = 0
-        exitRotation = 0
-        exitOpacity = 1
-    }
-
-    // Cell dimensions used inside the animation (drop distance scales
-    // with cell height so the card visibly clears its own bounds).
-    // The tile cell sets these when it mounts; defaults are sized for
-    // a typical 6-row iPhone layout if a tile animates before the cell
-    // ever reports its frame.
-    private var width: CGFloat { _animationWidth ?? 200 }
-    private var height: CGFloat { _animationHeight ?? 280 }
-    var _animationWidth: CGFloat?
-    var _animationHeight: CGFloat?
 
     func setCellSize(_ w: CGFloat, _ h: CGFloat) {
-        _animationWidth = w
-        _animationHeight = h
+        cellWidth = w
+        cellHeight = h
     }
+}
 
-    func crossfade(to next: UIImage) {
-        if faceUp {
-            withAnimation(.easeInOut(duration: 0.4)) { front = next }
-        } else {
-            withAnimation(.easeInOut(duration: 0.4)) { back = next }
+extension ShowcaseAnimation {
+    /// Per-variant animation duration. Slightly slower than the v2.124
+    /// withAnimation durations because time-based eased curves feel
+    /// shorter than spring-driven SwiftUI animations of the same
+    /// nominal duration.
+    var duration: TimeInterval {
+        switch self {
+        case .flip:                       return 0.85
+        case .drop, .rowDrop:             return 1.2
+        case .rollDrop, .rowRollDrop:     return 1.3
+        case .pinRotation:                return 1.1
+        case .dropFromCorner:             return 1.3
         }
     }
 }
@@ -1449,14 +1458,15 @@ nonisolated enum ShowcaseVideoConstants {
     static let captureFPS: Int = 10
     static let encodeFPS: Int32 = 30
 
-    /// Segment duration. 2s gives a fast first-segment time so the
-    /// AVPlayer has playable content within ~2s of Showcase opening,
-    /// which is what enables AirPlay-Video routing to work when the
-    /// user taps the in-app picker. Apple's HLS Authoring Spec
-    /// permits 2s as the lower bound (full LL-HLS spec goes lower,
-    /// but for our purposes 2s is the responsiveness/overhead sweet
-    /// spot).
-    static let segmentDurationSeconds: Double = 2.0
+    /// Segment duration. 4s gives the AVPlayer buffer estimator
+    /// enough headroom that it doesn't oscillate between play/pause
+    /// state every segment ("stall danger" warning + repeated
+    /// AVPlayerWaitingWhileEvaluatingBufferingRateReason transitions
+    /// when segments are 2s and target is 2s — right at the spec
+    /// lower bound). 4s still lets the player be ready within ~4s of
+    /// Showcase opening which is acceptable startup latency for an
+    /// AirPlay-Video session.
+    static let segmentDurationSeconds: Double = 4.0
 
     /// Sliding-window: keep N most-recent segments in the playlist.
     /// Older segment files are deleted to bound temp storage.
@@ -1628,22 +1638,9 @@ final class ShowcaseVideoStreamer: NSObject {
         guard !isRunning else { return }
         isRunning = true
         showcaseLog("start() begin")
-        // Ensure the session has enough tiles for the TV-sized grid.
-        // The phone-side view initializes for its own (smaller) cell
-        // count; if AirPlay engages without the streamer kicking off
-        // a TV-sized init, the TV ends up rendering only the phone's
-        // subset of tiles, with the rest as black background.
-        if let session {
-            let tvRows = max(2, session.rows)
-            let tvCellH = CGFloat(ShowcaseVideoConstants.renderHeight) / CGFloat(tvRows)
-            let tvCellW = tvCellH * ShowcaseVideoConstants.cardAspect
-            let tvCols = max(1, Int(ceil(CGFloat(ShowcaseVideoConstants.renderWidth) / tvCellW)))
-            let tvTotal = tvRows * tvCols
-            if session.tiles.count < tvTotal {
-                session.columns = max(session.columns, tvCols)
-                Task { await session.initializeTiles(count: tvTotal) }
-            }
-        }
+        // (Tile init moved to CollectionShowcaseView — single source
+        //  of truth keyed on session.rows. Two competing inits from
+        //  phone .onAppear vs streamer were racing.)
         // AVAudioSession MUST be configured before AVPlayer routing
         // engages. Without .playback + .moviePlayback + .longFormVideo
         // policy, AVRoutePickerView surfaces destinations but picking
@@ -2498,7 +2495,11 @@ struct ShowcaseTVRenderView: View {
                         if index < session.tiles.count {
                             let row = index / cols
                             let col = index % cols
-                            TVCardTile(
+                            // Same ShowcaseTileCell as phone-side —
+                            // single rendering path. TimelineView
+                            // inside handles the animation progress,
+                            // which ImageRenderer captures correctly.
+                            ShowcaseTileCell(
                                 state: session.tiles[index],
                                 width: cellW,
                                 height: cellH
@@ -2515,27 +2516,6 @@ struct ShowcaseTVRenderView: View {
             }
             .frame(width: size.width, height: size.height)
         }
-    }
-}
-
-private struct TVCardTile: View {
-    let state: ShowcaseTileState
-    let width: CGFloat
-    let height: CGFloat
-
-    var body: some View {
-        Group {
-            if let img = state.faceUp ? state.front : state.back {
-                Image(uiImage: img)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: width, height: height)
-                    .clipped()
-            } else {
-                Color(red: 0x0D/255, green: 0x0D/255, blue: 0x1A/255)
-            }
-        }
-        .frame(width: width, height: height)
     }
 }
 

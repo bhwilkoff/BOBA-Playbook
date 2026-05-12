@@ -200,27 +200,27 @@ final class ShowcaseSession {
         }
     }
 
-    /// Pick a variant (weighted) + set of tiles, animate each in
-    /// sequence. Row variants pick a whole row; tile variants pick
-    /// 3-6 random tiles.
+    /// Pick a variant (weighted) + 3-6 random tiles from the whole
+    /// grid, animate each on a 200ms stagger.
+    ///
+    /// Previously rowDrop / rowRollDrop variants triggered a special
+    /// path that coordinated a whole row of tiles at once. That made
+    /// animations feel "less random" — they'd visibly sweep across
+    /// a row at predictable intervals. Per user feedback the row
+    /// coordination is gone; every cycle picks tiles uniformly from
+    /// the entire grid. rowDrop/rowRollDrop remain as enum cases for
+    /// settings-persistence compatibility but now animate identically
+    /// to drop / rollDrop on a random tile subset.
     func runFlipCycle(reduceMotion: Bool) async {
         guard !tiles.isEmpty, columns > 0 else { return }
         let variant = pickVariant()
 
-        let indices: [Int]
-        if variant.isRowVariant {
-            let r = Int.random(in: 0..<rows)
-            indices = Array(0..<columns).map { r * columns + $0 }
-                .filter { $0 < tiles.count }
-        } else {
-            let count = Int.random(in: 3...min(6, tiles.count))
-            indices = Array(Array(0..<tiles.count).shuffled().prefix(count))
-        }
+        let count = Int.random(in: 3...min(6, tiles.count))
+        let indices = Array(Array(0..<tiles.count).shuffled().prefix(count))
 
-        let stagger = variant.isRowVariant ? 100 : 200
         for (i, tileIndex) in indices.enumerated() {
             if i > 0 {
-                try? await Task.sleep(for: .milliseconds(stagger))
+                try? await Task.sleep(for: .milliseconds(200))
             }
             if Task.isCancelled || paused { return }
             // Exclude both the tile's current card AND its neighbors'

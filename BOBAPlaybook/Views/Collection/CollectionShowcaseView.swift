@@ -212,8 +212,15 @@ final class ShowcaseSession {
                 try? await Task.sleep(for: .milliseconds(stagger))
             }
             if Task.isCancelled || paused { return }
-            let neighbors = neighborBobaIds(of: tileIndex)
-            guard let (newId, image) = await pool.nextImage(excluding: neighbors) else { continue }
+            // Exclude both the tile's current card AND its neighbors'
+            // cards — a tile must never animate to the same card it's
+            // already showing (otherwise the animation plays for no
+            // visible change).
+            var exclude = neighborBobaIds(of: tileIndex)
+            if let own = tiles[tileIndex].currentBobaId {
+                exclude.insert(own)
+            }
+            guard let (newId, image) = await pool.nextImage(excluding: exclude) else { continue }
             tiles[tileIndex].currentBobaId = newId
             await tiles[tileIndex].animate(to: image, variant: variant, reduceMotion: reduceMotion)
         }
@@ -369,6 +376,7 @@ struct ShowcaseGridView: View {
     @State private var rowsAtPinchStart: Int = 6
     @State private var revealedToolbar: Bool = true
     @State private var toolbarHideTask: Task<Void, Never>?
+    @State private var showsAirPlayHelp: Bool = false
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -380,6 +388,7 @@ struct ShowcaseGridView: View {
     var body: some View {
         GeometryReader { geo in
             let size = geo.size
+            let safe = geo.safeAreaInsets
             // Defensive: SwiftUI's initial layout pass can deliver
             // size = .zero before the view is sized, which would make
             // cellW = 0 and `size.width / cellW` = NaN. Int(NaN)
@@ -394,23 +403,40 @@ struct ShowcaseGridView: View {
             ZStack(alignment: .top) {
                 Color(red: 0x08/255, green: 0x08/255, blue: 0x10/255)
 
+                // Tap-to-reveal layer — only active when the toolbar
+                // is hidden. Keeps the reveal-on-tap gesture out of
+                // the toolbar's button territory so taps on Pause /
+                // AirPlay / Dismiss fire their actions instead of
+                // re-triggering toolbar-show (the landscape "buttons
+                // don't respond" bug).
+                if showsToolbar && !revealedToolbar {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture { revealToolbar() }
+                }
+
                 if geometryReady {
-                    LazyVGrid(
-                        columns: Array(
-                            repeating: GridItem(.fixed(cellW), spacing: 0),
-                            count: cols
-                        ),
-                        spacing: 0
-                    ) {
+                    // Manual ZStack-positioned grid (not LazyVGrid) so
+                    // each cell can lift its zIndex during an exit
+                    // animation and render OVER neighbor cells while
+                    // the card "falls down" past them (per AlbumArtwork
+                    // visual semantics).
+                    ZStack(alignment: .topLeading) {
                         ForEach(0..<totalTiles, id: \.self) { index in
                             if index < session.tiles.count {
+                                let row = index / cols
+                                let col = index % cols
                                 ShowcaseTileCell(
                                     state: session.tiles[index],
                                     width: cellW,
                                     height: cellH
                                 )
-                            } else {
-                                Color.clear.frame(width: cellW, height: cellH)
+                                .frame(width: cellW, height: cellH)
+                                .position(
+                                    x: CGFloat(col) * cellW + cellW / 2,
+                                    y: CGFloat(row) * cellH + cellH / 2
+                                )
+                                .zIndex(session.tiles[index].exitImage != nil ? 1 : 0)
                             }
                         }
                     }
@@ -431,15 +457,13 @@ struct ShowcaseGridView: View {
                 }
 
                 if showsToolbar && revealedToolbar {
-                    toolbarOverlay
+                    toolbarOverlay(topInset: safe.top)
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
             .frame(width: size.width, height: size.height)
         }
         .ignoresSafeArea(.all, edges: .all)
-        .contentShape(Rectangle())
-        .onTapGesture { if showsToolbar { revealToolbar() } }
         // Pinch-to-zoom: commit only on .onEnded to avoid stacking
         // withAnimation calls on every onChanged tick (which produced
         // the "Invalid sample AnimatablePair" console spam and made
@@ -477,7 +501,15 @@ struct ShowcaseGridView: View {
                 session.cycleEpoch &+= 1
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: ProcessInfo.thermalStateDidChangeNotification)) { _ in
+        .onReceive(
+            NotificationCenter.default
+                .publisher(for: ProcessInfo.thermalStateDidChangeNotification)
+                // Apple posts thermal-state notifications on an
+                // arbitrary queue; without this hop SwiftUI logs
+                // "Publishing changes from background threads is not
+                // allowed" when we mutate the @Observable session.
+                .receive(on: DispatchQueue.main)
+        ) { _ in
             let new = ProcessInfo.processInfo.thermalState
             if new != session.thermalState {
                 session.thermalState = new
@@ -485,11 +517,22 @@ struct ShowcaseGridView: View {
             }
         }
         .statusBar(hidden: true)
+        .alert("Show on Apple TV", isPresented: $showsAirPlayHelp) {
+            Button("Got it") { }
+        } message: {
+            Text("Open Control Center, tap Screen Mirroring, and choose your Apple TV. Showcase will take over the TV and your phone will show playback controls.")
+        }
     }
 
     // MARK: Toolbar
 
-    private var toolbarOverlay: some View {
+    /// Toolbar overlay. `topInset` is the device's actual top safe-
+    /// area (Dynamic Island in portrait, ~0 in landscape on most
+    /// iPhones, ~24pt on home-indicator iPads). Reading this from
+    /// GeometryReader instead of hardcoding 56pt is what makes the
+    /// toolbar usable in landscape — the previous fixed inset pushed
+    /// content into nowhere-tappable territory in some orientations.
+    private func toolbarOverlay(topInset: CGFloat) -> some View {
         VStack(spacing: 0) {
             HStack(spacing: 16) {
                 Button {
@@ -525,13 +568,29 @@ struct ShowcaseGridView: View {
                 }
                 .accessibilityLabel(session.paused ? "Resume" : "Pause")
 
-                RoutePickerView()
-                    .frame(width: 38, height: 38)
-                    .background(Circle().fill(Color.white.opacity(0.15)))
-                    .accessibilityLabel("AirPlay")
+                // Apple TV help. We can't use AVRoutePickerView here —
+                // it only routes AirPlay-Video (AVPlayer content). For
+                // a SwiftUI tile grid we rely on the external-display
+                // scene which fires on plain Screen Mirroring. This
+                // button explains the Control-Center → Screen Mirroring
+                // → Apple TV path that triggers our second-screen mode.
+                Button {
+                    showsAirPlayHelp = true
+                    revealToolbar()
+                } label: {
+                    Image(systemName: "tv.badge.wifi")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(Color.white.opacity(0.15)))
+                        .foregroundStyle(.white)
+                }
+                .accessibilityLabel("Show on Apple TV")
             }
             .padding(.horizontal, 20)
-            .padding(.top, 56)
+            // Pad past safe area + 8pt clearance. In landscape this
+            // collapses to ~8-12pt total; in portrait Dynamic Island
+            // it expands to ~56-64pt.
+            .padding(.top, max(topInset, 8) + 8)
             .padding(.bottom, 14)
             .background(
                 LinearGradient(
@@ -543,7 +602,7 @@ struct ShowcaseGridView: View {
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .frame(height: 160)
+                .frame(height: max(topInset, 8) + 110)
                 .offset(y: -10),
                 alignment: .top
             )
@@ -855,7 +914,13 @@ private struct ShowcaseTileCell: View {
             axis: (x: 0, y: 1, z: 0)
         )
         .frame(width: width, height: height)
-        .clipped()
+        // NO outer .clipped() — the persistent front face has its own
+        // .clipped() inside face(), but we want the exit overlay to
+        // render OUTSIDE the cell bounds so the card visibly falls
+        // down through the grid (over neighbor cells). The parent
+        // ShowcaseGridView ZStack lifts this cell's zIndex while an
+        // exit animation is active so it composites above its
+        // neighbors during the fall.
         .onAppear { state.setCellSize(width, height) }
         .onChange(of: width) { _, w in state.setCellSize(w, height) }
         .onChange(of: height) { _, h in state.setCellSize(width, h) }
@@ -961,42 +1026,46 @@ final class ShowcaseTileState: Identifiable {
 
         switch variant {
         case .drop, .rowDrop:
-            // Slide down + soft fade. 1.0s total.
-            withAnimation(.easeIn(duration: 0.95)) {
-                exitOffsetY = height * 1.4   // safely past bottom edge
-                exitOpacity = 0.6
+            // Fall down past 4-ish cells of neighbors, with gravity
+            // accel. The parent ZStack lifts our zIndex during this
+            // animation so the card composites over its neighbors.
+            withAnimation(.timingCurve(0.4, 0, 0.7, 1, duration: 1.1)) {
+                exitOffsetY = height * 5
+                exitOpacity = 0.85
             }
-            try? await Task.sleep(for: .milliseconds(960))
+            try? await Task.sleep(for: .milliseconds(1110))
 
         case .rollDrop, .rowRollDrop:
-            // Slide down + full 360° spin. Never ends mid-rotation.
-            withAnimation(.easeIn(duration: 1.05)) {
-                exitOffsetY = height * 1.4
+            // Fall down + full 360° spin (lands upright, never mid-rotation).
+            withAnimation(.timingCurve(0.4, 0, 0.7, 1, duration: 1.2)) {
+                exitOffsetY = height * 5
                 exitRotation = 360
-                exitOpacity = 0.6
+                exitOpacity = 0.85
             }
-            try? await Task.sleep(for: .milliseconds(1060))
+            try? await Task.sleep(for: .milliseconds(1210))
 
         case .pinRotation:
             // Full 360° rotation in place + crossfade. Always lands
             // upright (never visibly upside-down).
-            withAnimation(.easeInOut(duration: 0.95)) {
+            withAnimation(.easeInOut(duration: 1.0)) {
                 exitRotation = 360
                 exitOpacity = 0
             }
-            try? await Task.sleep(for: .milliseconds(960))
+            try? await Task.sleep(for: .milliseconds(1010))
 
         case .dropFromCorner:
-            // Slide out toward a random corner with a slight rotation.
+            // Fly out toward a random corner past 4-5 neighbors, with
+            // a slight rotation. Card stays mostly visible during
+            // travel so the trajectory reads.
             let xDir: CGFloat = Bool.random() ? 1 : -1
             let yDir: CGFloat = Bool.random() ? 1 : -1
-            withAnimation(.easeIn(duration: 1.1)) {
-                exitOffsetX = width * 1.6 * xDir
-                exitOffsetY = height * 1.6 * yDir
-                exitRotation = xDir * 25
-                exitOpacity = 0.5
+            withAnimation(.timingCurve(0.4, 0, 0.7, 1, duration: 1.2)) {
+                exitOffsetX = width * 5 * xDir
+                exitOffsetY = height * 5 * yDir
+                exitRotation = xDir * 20
+                exitOpacity = 0.8
             }
-            try? await Task.sleep(for: .milliseconds(1110))
+            try? await Task.sleep(for: .milliseconds(1210))
 
         case .flip:
             break // handled above

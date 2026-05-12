@@ -141,19 +141,30 @@ struct HouseOfCardsView: View {
                         DeckStripCard(
                             card: card,
                             isNext: idx == 0,
+                            // Note: we do NOT mutate the deck until
+                            // onDragEnd. Mutating it mid-drag shifts
+                            // the strip while the user's finger is
+                            // mid-gesture and SwiftUI's view recycler
+                            // breaks the gesture stream. The active
+                            // dragged card lives on the coordinator
+                            // (dragCard); the strip stays stable.
                             onDragStart: { card, point in
                                 guard idx == 0 else { return }
                                 session.dragSpawnCard = card
                                 session.dragScreenPoint = point
-                                // Consume the card from the deck so the next
-                                // one slides up as the active draggable.
-                                session.deck.removeFirst()
                             },
                             onDragChange: { point in
                                 session.dragScreenPoint = point
                             },
                             onDragEnd: {
                                 session.dragScreenPoint = nil
+                                // The coordinator commits the card to
+                                // dynamic on the next updateUIView.
+                                // Pop the consumed card from the deck
+                                // now that the drop has completed.
+                                if !session.deck.isEmpty {
+                                    session.deck.removeFirst()
+                                }
                             }
                         )
                     }
@@ -591,6 +602,9 @@ private final class HouseOfCardsCoordinator: NSObject {
     // MARK: Card spawning
     private func spawnDragCard(_ card: Card) {
         guard let view = arView, let root = anchor else { return }
+        // One drag at a time — ignore further spawn requests until
+        // the current dragCard is committed or cleared.
+        guard dragCard == nil else { return }
 
         // Build the entity at the current drag screen point,
         // projected onto a hover plane just above the tower.
@@ -605,7 +619,11 @@ private final class HouseOfCardsCoordinator: NSObject {
 
         let entity = buildCardEntity(for: card, position: startPos)
         // Kinematic during drag — no gravity, follows finger.
+        // CCD must be OFF for kinematic bodies; PhysX spams the
+        // console otherwise ("kinematic bodies with CCD enabled
+        // are not supported"). We re-enable on dynamic commit.
         if var body = entity.components[PhysicsBodyComponent.self] {
+            body.isContinuousCollisionDetectionEnabled = false
             body.mode = .kinematic
             entity.components.set(body)
         }
@@ -637,19 +655,20 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     private func commitDragRelease() {
         guard let card = dragCard else { return }
-        // Swap kinematic → dynamic. Apply a tiny downward
-        // velocity so the card "drops" instead of hovering
-        // before gravity engages.
+        // Swap kinematic → dynamic. Re-enable CCD now that the
+        // body is dynamic again (thin geometry needs it to avoid
+        // tunneling during fast falls).
         if var body = card.entity.components[PhysicsBodyComponent.self] {
             body.mode = .dynamic
+            body.isContinuousCollisionDetectionEnabled = true
             card.entity.components.set(body)
         }
+        // Apply a tiny downward velocity so the card "drops"
+        // instead of hovering before gravity engages.
         if var motion = card.entity.components[PhysicsMotionComponent.self] {
             motion.linearVelocity = SIMD3<Float>(0, -0.2, 0)
             card.entity.components.set(motion)
         } else {
-            // First frame in dynamic mode — add a fresh motion
-            // component so velocity reads work.
             var motion = PhysicsMotionComponent()
             motion.linearVelocity = SIMD3<Float>(0, -0.2, 0)
             card.entity.components.set(motion)

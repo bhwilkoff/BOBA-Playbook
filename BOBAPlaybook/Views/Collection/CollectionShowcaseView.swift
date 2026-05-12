@@ -1857,9 +1857,16 @@ nonisolated final class LocalHLSServer: @unchecked Sendable {
             }
             listener.start(queue: queue)
         }
-        let portNow = listener.port?.rawValue ?? 0
+        // Extract lock/unlock to a sync helper — Swift 6 forbids
+        // NSLock.lock()/.unlock() directly from async contexts
+        // ("unavailable from asynchronous contexts; Use async-safe
+        // scoped locking instead").
+        storeReady(port: listener.port?.rawValue ?? 0, listener: listener)
+    }
+
+    private func storeReady(port: UInt16, listener: NWListener) {
         lock.lock()
-        _port = portNow
+        _port = port
         _listener = listener
         lock.unlock()
     }

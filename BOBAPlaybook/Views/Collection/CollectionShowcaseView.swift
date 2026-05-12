@@ -470,11 +470,12 @@ struct ShowcaseGridView: View {
                 // player to engage AirPlay-Video routing per Apple's
                 // allowsExternalPlayback docs. Without it, the route
                 // picker surfaces destinations but picking one fails
-                // silently. Near-zero opacity so the user never sees
-                // it; layer remains in the hierarchy and active.
+                // silently. Sized 200×200 (not microscopic) so the
+                // routing engine treats it as a real video surface;
+                // opacity 0.001 keeps it functionally invisible.
                 if let player = streamer?.player {
                     AirPlaySurface(player: player)
-                        .frame(width: 4, height: 4)
+                        .frame(width: 200, height: 200)
                         .opacity(0.001)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
@@ -1535,6 +1536,7 @@ final class ShowcaseVideoStreamer: NSObject {
     private var playerWaitingReasonCancellable: AnyCancellable?
     private var itemStatusCancellable: AnyCancellable?
     private var itemErrorLogObserver: NSObjectProtocol?
+    private var audioRouteObserver: NSObjectProtocol?
 
     // MARK: Init
 
@@ -1612,6 +1614,15 @@ final class ShowcaseVideoStreamer: NSObject {
         guard !isRunning else { return }
         isRunning = true
         showcaseLog("start() begin")
+        // AVAudioSession MUST be configured before AVPlayer routing
+        // engages. Without .playback + .moviePlayback + .longFormVideo
+        // policy, AVRoutePickerView surfaces destinations but picking
+        // one routes via AirPlay-AUDIO (or nothing at all) — never
+        // AirPlay-Video. The diagnostic trace showed isExternalPlayback
+        // Active stayed false because AVPlayer's AirPlay engine treats
+        // the default .soloAmbient session as "not a video player."
+        configureAudioSession()
+        setupAudioRouteObserver()
         do {
             try prepareSegmentDir()
             showcaseLog("segmentDir ready: \(segmentDir?.path ?? "nil")")
@@ -1625,6 +1636,57 @@ final class ShowcaseVideoStreamer: NSObject {
         } catch {
             showcaseLog("start() FAILED: \(error.localizedDescription)")
             stop()
+        }
+    }
+
+    private func configureAudioSession() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(
+                .playback,
+                mode: .moviePlayback,
+                policy: .longFormVideo,
+                options: []
+            )
+            try session.setActive(true)
+            let route = session.currentRoute
+            let outputs = route.outputs
+                .map { "\($0.portName)/\($0.portType.rawValue)" }
+                .joined(separator: ", ")
+            showcaseLog("AudioSession set: category=playback mode=moviePlayback policy=longFormVideo")
+            showcaseLog("AudioSession.currentRoute outputs=[\(outputs)]")
+        } catch {
+            showcaseLog("AudioSession setup FAILED: \(error.localizedDescription)")
+        }
+    }
+
+    private func setupAudioRouteObserver() {
+        if let old = audioRouteObserver {
+            NotificationCenter.default.removeObserver(old)
+        }
+        audioRouteObserver = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.routeChangeNotification,
+            object: nil,
+            queue: .main
+        ) { notification in
+            let reasonRaw = (notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt) ?? 999
+            let reason: String = {
+                switch reasonRaw {
+                case 0: return "unknown"
+                case 1: return "newDeviceAvailable"
+                case 2: return "oldDeviceUnavailable"
+                case 3: return "categoryChange"
+                case 4: return "override"
+                case 6: return "wakeFromSleep"
+                case 7: return "noSuitableRouteForCategory"
+                case 8: return "routeConfigurationChange"
+                default: return "raw=\(reasonRaw)"
+                }
+            }()
+            let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
+                .map { "\($0.portName)/\($0.portType.rawValue)" }
+                .joined(separator: ", ")
+            showcaseLog("AudioSession.routeChange reason=\(reason) outputs=[\(outputs)]")
         }
     }
 
@@ -1660,6 +1722,14 @@ final class ShowcaseVideoStreamer: NSObject {
             NotificationCenter.default.removeObserver(observer)
             itemErrorLogObserver = nil
         }
+        if let observer = audioRouteObserver {
+            NotificationCenter.default.removeObserver(observer)
+            audioRouteObserver = nil
+        }
+        try? AVAudioSession.sharedInstance().setActive(
+            false,
+            options: .notifyOthersOnDeactivation
+        )
     }
 
     // MARK: - Segment dir

@@ -89,6 +89,21 @@ final class ShowcaseSession {
     // External display routing.
     var renderTarget: RenderTarget = .phone
 
+    /// How many tiles the phone view is currently rendering (its row
+    /// count × phone-side col count). The tile array is sized for the
+    /// TV grid (~90 tiles); when AirPlay is NOT engaged the phone
+    /// only displays the first `phoneVisibleTileCount` of those. The
+    /// cycle uses this to avoid picking off-screen tiles, which was
+    /// causing visible animations to feel rare (~25% hit rate).
+    var phoneVisibleTileCount: Int = 0
+
+    /// True when AVPlayer routing reports external playback active.
+    /// CollectionShowcaseView mirrors streamer.isExternalPlaybackActive
+    /// into here so the cycle can decide whether to pick from the
+    /// whole tile array (TV sees all 96) or just the phone-visible
+    /// subset.
+    var airplayActive: Bool = false
+
     // Bumped on every state change that should restart the cycle Task.
     var cycleEpoch: Int = 0
 
@@ -215,8 +230,23 @@ final class ShowcaseSession {
         guard !tiles.isEmpty, columns > 0 else { return }
         let variant = pickVariant()
 
-        let count = Int.random(in: 3...min(6, tiles.count))
-        let indices = Array(Array(0..<tiles.count).shuffled().prefix(count))
+        // Pick from the SUBSET of tiles that's actually being shown to
+        // the user. When AirPlay is active the TV displays all tiles
+        // (so pick from the entire array). When AirPlay isn't active,
+        // the phone view only renders the first phoneVisibleTileCount
+        // — picking from the rest would animate cards nobody can see,
+        // which felt like long pauses between visible animations.
+        let upperBound: Int
+        if airplayActive {
+            upperBound = tiles.count
+        } else if phoneVisibleTileCount > 0 {
+            upperBound = min(phoneVisibleTileCount, tiles.count)
+        } else {
+            upperBound = tiles.count
+        }
+        guard upperBound > 0 else { return }
+        let count = Int.random(in: 3...min(6, upperBound))
+        let indices = Array(Array(0..<upperBound).shuffled().prefix(count))
 
         for (i, tileIndex) in indices.enumerated() {
             if i > 0 {
@@ -427,6 +457,17 @@ struct CollectionShowcaseView: View {
         .onChange(of: session.enabledVariants) { _, new in
             savedVariantsRaw = new.map(\.rawValue).sorted().joined(separator: ",")
         }
+        // Mirror the AirPlay state into the session so runFlipCycle
+        // knows whether to pick from the phone-visible subset of
+        // tiles (when AirPlay isn't engaged — TV isn't showing
+        // anything) or the entire tile array (when AirPlay is engaged
+        // — TV displays all tiles).
+        .onChange(of: streamer.isExternalPlaybackActive) { _, active in
+            session.airplayActive = active
+        }
+        .onAppear {
+            session.airplayActive = streamer.isExternalPlaybackActive
+        }
         // Async streamer startup so MainActor isn't blocked on the
         // NWListener "ready" wait. The grid renders immediately; the
         // encoder + HTTP server + AVPlayer come online a fraction of
@@ -611,6 +652,24 @@ struct ShowcaseGridView: View {
                     // by session.rows — single source of truth, sized
                     // for the larger of phone/TV grids. Phone view
                     // just renders the subset that fits.
+                    //
+                    // We DO update phoneVisibleTileCount here, on every
+                    // cols/rows change, so the cycle scheduler picks
+                    // only from the tiles the user can actually see.
+                    // Without this, ~75% of animation cycles target
+                    // off-screen tiles, which the user perceives as
+                    // long pauses between visible flips. Pinch-to-zoom
+                    // changes session.rows → re-fires the onChange and
+                    // the count tracks the new visible area.
+                    .onAppear {
+                        session.phoneVisibleTileCount = session.rows * cols
+                    }
+                    .onChange(of: cols) { _, newCols in
+                        session.phoneVisibleTileCount = session.rows * newCols
+                    }
+                    .onChange(of: session.rows) { _, newRows in
+                        session.phoneVisibleTileCount = newRows * cols
+                    }
                 }
 
                 if showsToolbar && revealedToolbar {

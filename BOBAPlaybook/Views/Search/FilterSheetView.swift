@@ -17,6 +17,8 @@ enum CollectionSortOrder: String, CaseIterable, Identifiable {
     case numberDesc     = "number_desc"
     case powerDesc      = "power_desc"
     case powerAsc       = "power_asc"
+    case costAsc        = "cost_asc"
+    case costDesc       = "cost_desc"
 
     var id: String { rawValue }
 
@@ -34,6 +36,8 @@ enum CollectionSortOrder: String, CaseIterable, Identifiable {
         case .numberDesc:    return "Card # Descending"
         case .powerDesc:     return "Power: High → Low"
         case .powerAsc:      return "Power: Low → High"
+        case .costAsc:       return "Hot Dog Cost: Low → High"
+        case .costDesc:      return "Hot Dog Cost: High → Low"
         }
     }
 }

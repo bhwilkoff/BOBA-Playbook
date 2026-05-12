@@ -22,6 +22,8 @@ enum CardSortOrder: String, CaseIterable, Identifiable {
     case powerAsc    = "power_asc"
     case numberAsc   = "number_asc"
     case numberDesc  = "number_desc"
+    case costAsc     = "cost_asc"
+    case costDesc    = "cost_desc"
     case variation   = "variation"
 
     var id: String { rawValue }
@@ -35,6 +37,8 @@ enum CardSortOrder: String, CaseIterable, Identifiable {
         case .powerAsc:  return "Power: Low → High"
         case .numberAsc: return "Card # Ascending"
         case .numberDesc: return "Card # Descending"
+        case .costAsc:   return "Hot Dog Cost: Low → High"
+        case .costDesc:  return "Hot Dog Cost: High → Low"
         case .variation: return "Variation"
         }
     }
@@ -381,6 +385,18 @@ final class CardStore {
                 return a.cardNumber.localizedStandardCompare(b.cardNumber) == .orderedAscending
             case .numberDesc:
                 return a.cardNumber.localizedStandardCompare(b.cardNumber) == .orderedDescending
+            case .costAsc:
+                // Cards without a Hot Dog cost (Heroes/HotDogs/Sealed)
+                // sort after Plays so the cost-ordered run stays contiguous.
+                let aHas = a.playCost != nil, bHas = b.playCost != nil
+                if aHas != bHas { return aHas }
+                let ca = a.playCost ?? 0, cb = b.playCost ?? 0
+                return ca != cb ? ca < cb : a.hero.localizedCompare(b.hero) == .orderedAscending
+            case .costDesc:
+                let aHas = a.playCost != nil, bHas = b.playCost != nil
+                if aHas != bHas { return aHas }
+                let ca = a.playCost ?? 0, cb = b.playCost ?? 0
+                return ca != cb ? ca > cb : a.hero.localizedCompare(b.hero) == .orderedAscending
             case .variation:
                 let va = a.variation ?? "", vb = b.variation ?? ""
                 return va != vb ? va.localizedCompare(vb) == .orderedAscending

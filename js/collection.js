@@ -137,6 +137,8 @@ const Collection = (() => {
             <option value="price_asc"${_collectionSort==='price_asc'?' selected':''}>Market Value: Low → High</option>
             <option value="paid_desc"${_collectionSort==='paid_desc'?' selected':''}>Paid: High → Low</option>
             <option value="paid_asc"${_collectionSort==='paid_asc'?' selected':''}>Paid: Low → High</option>
+            <option value="cost_asc"${_collectionSort==='cost_asc'?' selected':''}>Hot Dog Cost: Low → High</option>
+            <option value="cost_desc"${_collectionSort==='cost_desc'?' selected':''}>Hot Dog Cost: High → Low</option>
             <option value="name_asc"${_collectionSort==='name_asc'?' selected':''}>Name A → Z</option>
             <option value="name_desc"${_collectionSort==='name_desc'?' selected':''}>Name Z → A</option>
           </select>
@@ -323,7 +325,9 @@ const Collection = (() => {
       }, null) || '';
       const value = group.reduce((s, c) => s + (c.estimated_value ? Number(c.estimated_value) : 0), 0);
       const paid  = group.reduce((s, c) => s + (c.purchase_price ? Number(c.purchase_price) : 0), 0);
-      return { name, added, value, paid };
+      // playCost is only set on Play cards; null for Heroes/HotDogs/Sealed.
+      const cost  = (card && card.playCost != null) ? Number(card.playCost) : null;
+      return { name, added, value, paid, cost };
     };
     const cache = new Map(groups.map(g => [g, meta(g)]));
     const cmp = (a, b, k, dir) => {
@@ -343,6 +347,20 @@ const Collection = (() => {
       case 'price_asc':   list.sort((a, b) => cmp(a, b, 'value',  1)); break;
       case 'paid_desc':   list.sort((a, b) => cmp(a, b, 'paid',  -1)); break;
       case 'paid_asc':    list.sort((a, b) => cmp(a, b, 'paid',   1)); break;
+      case 'cost_asc':
+      case 'cost_desc': {
+        // Plays (cost present) before non-Plays so the cost-ordered run stays contiguous.
+        const asc = _collectionSort === 'cost_asc';
+        list.sort((a, b) => {
+          const ac = cache.get(a).cost, bc = cache.get(b).cost;
+          const ah = ac != null, bh = bc != null;
+          if (ah !== bh) return ah ? -1 : 1;
+          const av = ac ?? 0, bv = bc ?? 0;
+          if (av !== bv) return asc ? av - bv : bv - av;
+          return cache.get(a).name.localeCompare(cache.get(b).name);
+        });
+        break;
+      }
       default:            list.sort((a, b) => cmp(a, b, 'added', -1));
     }
     return list;

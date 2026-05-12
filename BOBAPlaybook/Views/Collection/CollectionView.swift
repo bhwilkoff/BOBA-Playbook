@@ -1396,6 +1396,7 @@ struct CollectionView: View {
             let name: String
             let cardNumber: String
             let power: Int
+            let cost: Int?
             let added: Date
             let value: Decimal
             let paid: Decimal
@@ -1412,6 +1413,7 @@ struct CollectionView: View {
                 name: catalog?.name ?? catalog?.cardNumber ?? id,
                 cardNumber: catalog?.cardNumber ?? "",
                 power: catalog?.power ?? 0,
+                cost: catalog?.playCost,
                 added: added,
                 value: value,
                 paid: paid
@@ -1473,6 +1475,23 @@ struct CollectionView: View {
             case .powerAsc:
                 return metas.sorted { lhs, rhs in
                     if lhs.power != rhs.power { return lhs.power < rhs.power }
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                }
+            case .costAsc:
+                return metas.sorted { lhs, rhs in
+                    // Plays (cost present) before non-Plays so cost ordering stays contiguous.
+                    let lh = lhs.cost != nil, rh = rhs.cost != nil
+                    if lh != rh { return lh }
+                    let lc = lhs.cost ?? 0, rc = rhs.cost ?? 0
+                    if lc != rc { return lc < rc }
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                }
+            case .costDesc:
+                return metas.sorted { lhs, rhs in
+                    let lh = lhs.cost != nil, rh = rhs.cost != nil
+                    if lh != rh { return lh }
+                    let lc = lhs.cost ?? 0, rc = rhs.cost ?? 0
+                    if lc != rc { return lc > rc }
                     return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
                 }
             }

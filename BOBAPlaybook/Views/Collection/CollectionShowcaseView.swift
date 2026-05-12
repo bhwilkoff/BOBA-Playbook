@@ -3,19 +3,44 @@ import AVKit
 import Combine
 import ImageIO
 
+// MARK: - ShowcaseAnimation
+//
+// AlbumArtwork-style variants. Each cycle the orchestrator picks one
+// variant and applies it across 3-6 random tiles (or, for row
+// variants, across every tile in a single row with a 100ms internal
+// stagger). Weights mirror the lingkuma/AlbumArtwork repo's defaults.
+enum ShowcaseAnimation: CaseIterable {
+    case flip            // 3D Y rotation 180°; canonical iTunes look
+    case drop            // Vertical fall out of frame, new card falls in from top
+    case rollDrop        // Drop + 720° 2D rotation
+    case pinRotation     // 180° 2D rotation in place + opacity fade
+    case dropFromCorner  // Slide-and-rotate out toward a random corner; new card in from the opposite
+    case rowDrop         // Coordinated whole-row drop (parent-driven)
+    case rowRollDrop     // Coordinated whole-row rollDrop (parent-driven)
+
+    /// AlbumArtwork's weights: tile variants ~15, row variants ~12.5.
+    var weight: Double {
+        switch self {
+        case .rowDrop, .rowRollDrop: return 12.5
+        default:                     return 15.0
+        }
+    }
+
+    /// True for variants that operate on whole rows. The cycle picks
+    /// a single row and staggers all its tiles together.
+    var isRowVariant: Bool {
+        switch self {
+        case .rowDrop, .rowRollDrop: return true
+        default:                     return false
+        }
+    }
+}
+
 // MARK: - CollectionShowcaseView
 //
 // "Personal Showcase" — iTunes Album Artwork-style screensaver
 // surface for the user's owned collection. Surfaces as a Collection
-// display-mode launcher (alongside Grid/List/Wall). Per DESIGN.md
-// §8.4 the Collection toolbar Menu is the natural home.
-//
-// Aesthetic per the lingkuma/AlbumArtwork reference: 6-row tile grid,
-// square cells edge-to-edge bleeding off the screen, solid near-black
-// background, every ~3s a random 3-6 tiles flip on the Y axis (200ms
-// stagger) to reveal a different card. Single-axis flip is the
-// canonical iTunes behavior; the AlbumArtwork repo's drop / rollDrop
-// / pinRotation / row-sweep variants are out of scope for v1.
+// toolbar Menu launcher.
 //
 // Card source: owned cards (every designation EXCEPT .wanted, since
 // wanted = wishlist, not owned), image-bearing only, sorted by
@@ -23,9 +48,14 @@ import ImageIO
 // pool is smaller than the grid, cards repeat but no two adjacent
 // tiles render the same card (retry up to 8 times).
 //
-// AirPlay: v1 = system screen mirroring. AVRoutePickerView in the
-// auto-hiding toolbar surfaces the route picker; iOS handles the
-// actual mirror. Dedicated external-display mode is deferred.
+// Cards render at their natural 3:4 portrait aspect, tile edge-to-
+// edge, partial tiles bleed off the screen edges. Row count is
+// user-tunable via pinch-to-zoom (range 2-12).
+//
+// Orientation: unlocks landscape while mounted (OrientationManager).
+//
+// AirPlay: v1 = system screen mirroring via AVRoutePickerView. v2 =
+// dedicated external display (handled by a separate refactor).
 struct CollectionShowcaseView: View {
     let cards: [Card]
     var onDismiss: () -> Void
@@ -33,6 +63,8 @@ struct CollectionShowcaseView: View {
     @State private var pool = ShowcaseImagePool()
     @State private var tiles: [ShowcaseTileState] = []
     @State private var columns: Int = 0
+    @State private var rows: Int = 6
+    @State private var rowsAtPinchStart: Int = 6
     @State private var revealedToolbar: Bool = true
     @State private var paused: Bool = false
     @State private var cycleEpoch: Int = 0
@@ -42,73 +74,107 @@ struct CollectionShowcaseView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let rows: Int = 6
+    // Card aspect ratio (portrait). All tiles render at this ratio.
+    private let cardAspect: CGFloat = 0.75  // width / height = 3/4
+
+    // Pinch-to-zoom row range.
+    private let minRows: Int = 2
+    private let maxRows: Int = 12
 
     var body: some View {
-        ZStack {
-            Color(red: 0x08/255, green: 0x08/255, blue: 0x10/255)
-                .ignoresSafeArea()
+        GeometryReader { geo in
+            let size = geo.size
+            let cellH = size.height / CGFloat(rows)
+            let cellW = cellH * cardAspect
+            let cols = max(1, Int(ceil(size.width / cellW)))
+            let totalTiles = rows * cols
 
-            GeometryReader { geo in
-                let size = geo.size
-                let cellSide = size.height / CGFloat(rows)
-                let cols = max(1, Int(ceil(size.width / cellSide)))
-                let total = rows * cols
+            ZStack(alignment: .top) {
+                // Background bleeds past every safe area edge.
+                Color(red: 0x08/255, green: 0x08/255, blue: 0x10/255)
 
+                // Tile grid, centered + bleeding off the screen edges
+                // (partial tiles intentional — matches AlbumArtwork
+                // "包括部分显示的封面").
                 LazyVGrid(
-                    columns: Array(repeating: GridItem(.fixed(cellSide), spacing: 0), count: cols),
+                    columns: Array(
+                        repeating: GridItem(.fixed(cellW), spacing: 0),
+                        count: cols
+                    ),
                     spacing: 0
                 ) {
-                    ForEach(0..<total, id: \.self) { index in
+                    ForEach(0..<totalTiles, id: \.self) { index in
                         if index < tiles.count {
                             ShowcaseTileCell(
                                 state: tiles[index],
-                                side: cellSide
+                                width: cellW,
+                                height: cellH
                             )
                         } else {
-                            Color.clear.frame(width: cellSide, height: cellSide)
+                            Color.clear
+                                .frame(width: cellW, height: cellH)
                         }
                     }
                 }
-                .frame(width: cellSide * CGFloat(cols), height: cellSide * CGFloat(rows))
+                .frame(width: cellW * CGFloat(cols), height: cellH * CGFloat(rows))
                 .position(x: size.width / 2, y: size.height / 2)
                 .onAppear {
                     columns = cols
-                    Task { await initializeTiles(count: total) }
+                    Task { await initializeTiles(count: totalTiles) }
                 }
                 .onChange(of: cols) { _, newCols in
                     columns = newCols
                     Task { await initializeTiles(count: rows * newCols) }
                 }
-            }
+                .onChange(of: rows) { _, _ in
+                    columns = cols
+                    Task { await initializeTiles(count: rows * cols) }
+                }
 
-            // Auto-hiding toolbar overlay (Photos pattern). Tap anywhere
-            // reveals; auto-hides after 3s of no interaction.
-            if revealedToolbar {
-                toolbarOverlay
-                    .transition(.opacity)
+                // Auto-hiding toolbar (Photos pattern).
+                if revealedToolbar {
+                    toolbarOverlay
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
             }
+            .frame(width: size.width, height: size.height)
         }
+        .ignoresSafeArea(.all, edges: .all)
         .contentShape(Rectangle())
         .onTapGesture { revealToolbar() }
+        // Pinch-to-zoom row count. Pinch out (magnification > 1) =
+        // fewer rows / larger cards (zoom into the art). Pinch in =
+        // more rows / smaller cards. Clamped [2, 12].
+        .gesture(
+            MagnifyGesture()
+                .onChanged { value in
+                    let candidate = Int(round(Double(rowsAtPinchStart) / value.magnification))
+                    let clamped = max(minRows, min(maxRows, candidate))
+                    if clamped != rows {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                            rows = clamped
+                        }
+                    }
+                }
+                .onEnded { _ in
+                    rowsAtPinchStart = rows
+                }
+        )
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = true
+            OrientationManager.shared.allowLandscape()
+            rowsAtPinchStart = rows
             scheduleToolbarHide()
         }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
+            OrientationManager.shared.lockPortrait()
             toolbarHideTask?.cancel()
         }
-        // Cycle driver. Restarts whenever cycleEpoch changes (pause /
-        // resume / thermal-state change). Suspends when paused or in
-        // background.
         .task(id: cycleEpoch) {
             await runCycleLoop()
         }
         .onChange(of: scenePhase) { _, phase in
-            // Pause cycle when the app is backgrounded or inactive
-            // (e.g., AirPlay disconnect, incoming call, app switcher).
-            // The .task(id:) bump on resume restarts the loop.
             if phase == .active && !paused {
                 cycleEpoch &+= 1
             }
@@ -117,25 +183,28 @@ struct CollectionShowcaseView: View {
             let new = ProcessInfo.processInfo.thermalState
             if new != thermalState {
                 thermalState = new
-                cycleEpoch &+= 1 // restart with new cadence
+                cycleEpoch &+= 1
             }
         }
         .statusBar(hidden: true)
         .preferredColorScheme(.dark)
     }
 
-    // MARK: - Toolbar
-
+    // MARK: - Toolbar overlay
+    //
+    // Opaque dark fill — readability over any card art behind. A
+    // subtle gradient at the bottom edge softens the cut into the
+    // grid.
     private var toolbarOverlay: some View {
-        VStack {
+        VStack(spacing: 0) {
             HStack(spacing: 16) {
                 Button {
                     onDismiss()
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 16, weight: .semibold))
-                        .frame(width: 36, height: 36)
-                        .background(.ultraThinMaterial, in: Circle())
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(Color.white.opacity(0.15)))
                         .foregroundStyle(.white)
                 }
                 .accessibilityLabel("Close Showcase")
@@ -143,9 +212,9 @@ struct CollectionShowcaseView: View {
                 Spacer()
 
                 Text("PERSONAL SHOWCASE")
-                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
                     .tracking(1.5)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white)
 
                 Spacer()
 
@@ -156,20 +225,34 @@ struct CollectionShowcaseView: View {
                 } label: {
                     Image(systemName: paused ? "play.fill" : "pause.fill")
                         .font(.system(size: 14, weight: .semibold))
-                        .frame(width: 36, height: 36)
-                        .background(.ultraThinMaterial, in: Circle())
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(Color.white.opacity(0.15)))
                         .foregroundStyle(.white)
                 }
                 .accessibilityLabel(paused ? "Resume" : "Pause")
 
                 RoutePickerView()
-                    .frame(width: 36, height: 36)
-                    .background(.ultraThinMaterial, in: Circle())
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Color.white.opacity(0.15)))
                     .accessibilityLabel("AirPlay")
             }
             .padding(.horizontal, 20)
-            .padding(.top, 8)
-            Spacer()
+            .padding(.top, 56)
+            .padding(.bottom, 14)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.92),
+                        Color.black.opacity(0.78),
+                        Color.black.opacity(0.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 160)
+                .offset(y: -10),
+                alignment: .top
+            )
         }
     }
 
@@ -180,12 +263,10 @@ struct CollectionShowcaseView: View {
 
     private func scheduleToolbarHide() {
         toolbarHideTask?.cancel()
-        toolbarHideTask = Task {
+        toolbarHideTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(3))
             if !Task.isCancelled {
-                await MainActor.run {
-                    withAnimation(.easeInOut(duration: 0.3)) { revealedToolbar = false }
-                }
+                withAnimation(.easeInOut(duration: 0.3)) { revealedToolbar = false }
             }
         }
     }
@@ -193,12 +274,9 @@ struct CollectionShowcaseView: View {
     // MARK: - Cycle loop
 
     private func runCycleLoop() async {
-        // Build the pool's candidate list on first entry (cards is
-        // already filtered + sorted by the caller per DESIGN.md §8.4).
         pool.setCandidates(cards)
 
-        // Wait for the first frame to render so tiles exist before
-        // we try to flip them.
+        // Wait for the first frame to render so tiles exist.
         try? await Task.sleep(for: .milliseconds(200))
 
         while !Task.isCancelled {
@@ -213,8 +291,6 @@ struct CollectionShowcaseView: View {
         }
     }
 
-    /// Base seconds between flip cycles. Drops to a slower pace under
-    /// thermal pressure to avoid throttling.
     private func baseCadence() -> Double {
         switch thermalState {
         case .nominal, .fair: return 3.0
@@ -224,33 +300,52 @@ struct CollectionShowcaseView: View {
         }
     }
 
-    /// Pick 3-6 random tiles and flip each on a 200ms stagger. Each
-    /// tile gets a freshly-decoded image whose bobaId isn't already
-    /// shown on either of its left/right neighbors (8-try retry).
+    /// Pick a variant + a set of tiles, animate each in sequence.
+    /// Row variants pick a whole row; tile variants pick 3-6 random
+    /// tiles.
     private func runFlipCycle() async {
-        guard !tiles.isEmpty else { return }
-        let count = Int.random(in: 3...min(6, tiles.count))
-        let indices = Array(0..<tiles.count).shuffled().prefix(count)
+        guard !tiles.isEmpty, columns > 0 else { return }
+        let variant = pickVariant()
+
+        let indices: [Int]
+        if variant.isRowVariant {
+            let r = Int.random(in: 0..<rows)
+            indices = Array(0..<columns).map { r * columns + $0 }
+                .filter { $0 < tiles.count }
+        } else {
+            let count = Int.random(in: 3...min(6, tiles.count))
+            indices = Array(Array(0..<tiles.count).shuffled().prefix(count))
+        }
+
+        // Row variants get a tighter 100ms stagger so the sweep reads
+        // as a wave. Tile variants use 200ms (AlbumArtwork's default).
+        let stagger = variant.isRowVariant ? 100 : 200
 
         for (i, tileIndex) in indices.enumerated() {
-            // 200ms stagger between tiles in the same cycle.
             if i > 0 {
-                try? await Task.sleep(for: .milliseconds(200))
+                try? await Task.sleep(for: .milliseconds(stagger))
             }
             if Task.isCancelled || paused { return }
 
             let neighbors = neighborBobaIds(of: tileIndex)
             guard let (newId, image) = await pool.nextImage(excluding: neighbors) else { continue }
 
-            await MainActor.run {
-                tiles[tileIndex].currentBobaId = newId
-                if reduceMotion {
-                    tiles[tileIndex].crossfade(to: image)
-                } else {
-                    tiles[tileIndex].flip(to: image)
-                }
-            }
+            tiles[tileIndex].currentBobaId = newId
+            await tiles[tileIndex].animate(to: image, variant: variant, reduceMotion: reduceMotion)
         }
+    }
+
+    /// Weighted random pick mirroring AlbumArtwork's defaults.
+    private func pickVariant() -> ShowcaseAnimation {
+        let variants = ShowcaseAnimation.allCases
+        let totalWeight = variants.reduce(0.0) { $0 + $1.weight }
+        let r = Double.random(in: 0..<totalWeight)
+        var running = 0.0
+        for v in variants {
+            running += v.weight
+            if r < running { return v }
+        }
+        return .flip
     }
 
     private func neighborBobaIds(of index: Int) -> Set<String> {
@@ -273,7 +368,6 @@ struct CollectionShowcaseView: View {
     // MARK: - Tile initialization
 
     private func initializeTiles(count: Int) async {
-        // Preserve existing tiles when grid count is unchanged.
         if tiles.count == count { return }
         pool.setCandidates(cards)
 
@@ -285,8 +379,6 @@ struct CollectionShowcaseView: View {
         let cols = max(1, columns)
         for i in 0..<count {
             let col = i % cols
-            // For the very first fill, avoid duplicates in the current
-            // row + the row above (cheap O(1) adjacency check).
             let exclude = Set(lastRow + rowBuf)
             let pick = await pool.nextImage(excluding: exclude)
             let tile = ShowcaseTileState()
@@ -301,22 +393,21 @@ struct CollectionShowcaseView: View {
                 rowBuf = []
             }
         }
-        await MainActor.run {
-            self.tiles = newTiles
-            self.cycleEpoch &+= 1
-        }
+        self.tiles = newTiles
+        self.cycleEpoch &+= 1
     }
 }
 
 // MARK: - ShowcaseTileCell
 //
-// Each tile owns its own @State to prevent the parent's body from
-// re-rendering the whole grid on every flip (per memory
-// `feedback_swiftui_gesture_perf.md` — extract animated subviews
-// with their own state).
+// Each tile owns its own @Observable state so flips don't re-render
+// the whole grid (per memory `feedback_swiftui_gesture_perf.md`).
+// The view body reads state.translateX/Y/rotation/opacity/faceUp and
+// applies them to the card image.
 private struct ShowcaseTileCell: View {
     @Bindable var state: ShowcaseTileState
-    let side: CGFloat
+    let width: CGFloat
+    let height: CGFloat
 
     var body: some View {
         ZStack {
@@ -326,35 +417,36 @@ private struct ShowcaseTileCell: View {
                 .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
                 .opacity(state.faceUp ? 0 : 1)
         }
+        .opacity(state.opacity)
+        .rotationEffect(.degrees(state.rotation2D))
         .rotation3DEffect(
             .degrees(state.faceUp ? 0 : 180),
             axis: (x: 0, y: 1, z: 0)
         )
-        .frame(width: side, height: side)
+        .offset(x: state.translateX, y: state.translateY)
+        .frame(width: width, height: height)
         .clipped()
     }
 
+    @ViewBuilder
     private func face(image: UIImage?) -> some View {
-        Group {
-            if let img = image {
-                Image(uiImage: img)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: side, height: side)
-                    .clipped()
-            } else {
-                Color(red: 0x0D/255, green: 0x0D/255, blue: 0x1A/255)
-            }
+        if let img = image {
+            Image(uiImage: img)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: width, height: height)
+                .clipped()
+        } else {
+            Color(red: 0x0D/255, green: 0x0D/255, blue: 0x1A/255)
         }
     }
 }
 
 // MARK: - ShowcaseTileState
 //
-// Per-tile observable state. Holds front + back images plus a
-// faceUp flag — the flip pattern preloads the offscreen face with
-// the next image before animating, so the swap is invisible at
-// mid-flip when the tile edge is camera-on.
+// Per-tile observable state. Front/back image slots support the flip
+// pattern (pre-load the offscreen face, then rotate); the drop /
+// roll / corner variants drive translate + rotation offsets.
 @Observable
 @MainActor
 final class ShowcaseTileState: Identifiable {
@@ -364,9 +456,42 @@ final class ShowcaseTileState: Identifiable {
     var back: UIImage?
     var faceUp: Bool = true
 
-    /// Flip to a new image. Whichever face is currently hidden
-    /// receives the new image before the rotation animation starts.
-    func flip(to next: UIImage) {
+    // Transform state — used by drop / roll / pinRotation / corner.
+    // All variants reset these to zero after completion so the tile
+    // always rests at translate(0,0) rotate(0) opacity(1).
+    var translateX: CGFloat = 0
+    var translateY: CGFloat = 0
+    var rotation2D: Double = 0
+    var opacity: Double = 1
+
+    /// Dispatch by variant. Each variant is responsible for leaving
+    /// the tile in a settled rest state.
+    func animate(to next: UIImage, variant: ShowcaseAnimation, reduceMotion: Bool) async {
+        if reduceMotion {
+            crossfade(to: next)
+            try? await Task.sleep(for: .milliseconds(400))
+            return
+        }
+        switch variant {
+        case .flip:
+            await flip(to: next)
+        case .drop, .rowDrop:
+            await drop(to: next)
+        case .rollDrop, .rowRollDrop:
+            await rollDrop(to: next)
+        case .pinRotation:
+            await pinRotation(to: next)
+        case .dropFromCorner:
+            await dropFromCorner(to: next)
+        }
+    }
+
+    // MARK: Variants
+
+    /// Canonical iTunes 3D Y-axis flip. 600ms easeInOut. The hidden
+    /// face receives the new image before rotation starts so the swap
+    /// is invisible at mid-flip when the tile edge is camera-on.
+    private func flip(to next: UIImage) async {
         if faceUp {
             back = next
             withAnimation(.easeInOut(duration: 0.6)) { faceUp = false }
@@ -374,10 +499,89 @@ final class ShowcaseTileState: Identifiable {
             front = next
             withAnimation(.easeInOut(duration: 0.6)) { faceUp = true }
         }
+        try? await Task.sleep(for: .milliseconds(600))
+    }
+
+    /// Falls straight down out of frame, snaps above frame with new
+    /// image, falls back in. Total ~800ms.
+    private func drop(to next: UIImage) async {
+        withAnimation(.easeIn(duration: 0.3)) { translateY = 1500 }
+        try? await Task.sleep(for: .milliseconds(310))
+        translateY = -1500
+        swapFace(to: next)
+        withAnimation(.easeOut(duration: 0.5)) { translateY = 0 }
+        try? await Task.sleep(for: .milliseconds(510))
+    }
+
+    /// Drop + 720° 2D rotation. Same timing as drop, with the spin
+    /// distributed across the full fall arc.
+    private func rollDrop(to next: UIImage) async {
+        withAnimation(.easeIn(duration: 0.3)) {
+            translateY = 1500
+            rotation2D = 360
+        }
+        try? await Task.sleep(for: .milliseconds(310))
+        translateY = -1500
+        rotation2D = 0
+        swapFace(to: next)
+        withAnimation(.easeOut(duration: 0.5)) {
+            translateY = 0
+            rotation2D = 360
+        }
+        try? await Task.sleep(for: .milliseconds(510))
+        rotation2D = 0
+    }
+
+    /// 180° 2D rotation in place with a brief opacity fade. The image
+    /// swap happens at the opacity nadir so the rotation reveals the
+    /// new card.
+    private func pinRotation(to next: UIImage) async {
+        withAnimation(.easeInOut(duration: 0.5)) {
+            rotation2D += 180
+            opacity = 0
+        }
+        try? await Task.sleep(for: .milliseconds(260))
+        swapFace(to: next)
+        withAnimation(.easeInOut(duration: 0.5)) {
+            opacity = 1
+        }
+        try? await Task.sleep(for: .milliseconds(510))
+        // Reset rotation so the next pinRotation cycle starts at 0
+        // (otherwise rotation2D grows unbounded). The reset is
+        // imperceptible since the tile is fully opaque + identity-
+        // rotation-equivalent (full multiples of 360°).
+        rotation2D = rotation2D.truncatingRemainder(dividingBy: 360)
+    }
+
+    /// Slide-and-rotate out toward a random corner; new card slides
+    /// in from the opposite corner. The most dramatic variant.
+    private func dropFromCorner(to next: UIImage) async {
+        let xDir: CGFloat = Bool.random() ? 1 : -1
+        let yDir: CGFloat = Bool.random() ? 1 : -1
+        withAnimation(.easeIn(duration: 0.35)) {
+            translateX = xDir * 1500
+            translateY = yDir * 1500
+            rotation2D = xDir * 30
+        }
+        try? await Task.sleep(for: .milliseconds(360))
+        translateX = -xDir * 1500
+        translateY = -yDir * 1500
+        rotation2D = -xDir * 30
+        swapFace(to: next)
+        withAnimation(.easeOut(duration: 0.5)) {
+            translateX = 0
+            translateY = 0
+            rotation2D = 0
+        }
+        try? await Task.sleep(for: .milliseconds(510))
+    }
+
+    private func swapFace(to next: UIImage) {
+        if faceUp { front = next } else { back = next }
     }
 
     /// Reduce-Motion fallback: crossfade the visible face without
-    /// rotation. The hidden face stays untouched.
+    /// rotation or translation.
     func crossfade(to next: UIImage) {
         if faceUp {
             withAnimation(.easeInOut(duration: 0.4)) { front = next }
@@ -389,13 +593,11 @@ final class ShowcaseTileState: Identifiable {
 
 // MARK: - ShowcaseImagePool
 //
-// Two-layer cache + lookahead pool. URLCache (configured at app
-// launch, 100MB/500MB per CLAUDE.md) handles compressed-byte
-// caching; NSCache here holds decoded UIImages so we never decode
-// a 200px WebP inside the animation closure.
-//
-// Candidates: owned + has-image cards, sorted recently-added-first
-// by the caller. Cycles through the list; when exhausted, reshuffles.
+// Two-layer cache + lookahead pool. URLCache (100/500MB per CLAUDE.md)
+// handles compressed-byte caching; NSCache here holds decoded UIImages
+// so we never decode a WebP inside an animation closure. Loads via
+// the *full* CDN URL (≤1200px) for visual quality at low row counts;
+// thumb URL is too soft at large tile sizes.
 @Observable
 @MainActor
 final class ShowcaseImagePool {
@@ -403,39 +605,28 @@ final class ShowcaseImagePool {
     private var cursor: Int = 0
     private let decodedCache: NSCache<NSString, UIImage> = {
         let c = NSCache<NSString, UIImage>()
-        c.totalCostLimit = 64 * 1024 * 1024 // 64 MB decoded
+        c.totalCostLimit = 96 * 1024 * 1024 // 96 MB decoded (full-res tier)
         return c
     }()
 
     func setCandidates(_ cards: [Card]) {
-        // Caller is responsible for filtering + sorting; we only
-        // reshuffle when the pool starts a new full cycle (so the
-        // recently-added bias holds for the first pass).
         if candidates.map(\.id) == cards.map(\.id) { return }
         candidates = cards
         cursor = 0
     }
 
-    /// Hand back the next (bobaId, decoded UIImage) pair, skipping
-    /// any bobaIds in `excluding`. Returns nil only if the pool is
-    /// empty.
     func nextImage(excluding: Set<String> = []) async -> (String, UIImage)? {
         guard !candidates.isEmpty else { return nil }
 
-        // Up to 8 tries to find a card whose bobaId isn't an
-        // immediate neighbor's. After 8, give up and accept a
-        // potential duplicate (the AlbumArtwork retry limit).
         for _ in 0..<8 {
             let card = pick()
             if !excluding.contains(card.id) {
                 if let img = await loadDecodedImage(for: card) {
                     return (card.id, img)
                 }
-                // Image failed to load — try another.
                 continue
             }
         }
-        // Fall back: just take whatever's next, even if it duplicates.
         let card = pick()
         if let img = await loadDecodedImage(for: card) {
             return (card.id, img)
@@ -448,18 +639,13 @@ final class ShowcaseImagePool {
         cursor += 1
         if cursor >= candidates.count {
             cursor = 0
-            // Reshuffle on each full pass so users don't see the
-            // exact same sequence twice in a long Showcase session.
-            // The recently-added bias is sacrificed after the first
-            // cycle, which is the right trade — by then the user
-            // has seen the newest cards already.
             candidates.shuffle()
         }
         return card
     }
 
     private func loadDecodedImage(for card: Card) async -> UIImage? {
-        guard let url = CDN.thumbURL(for: card) else { return nil }
+        guard let url = CDN.fullURL(for: card) else { return nil }
         let key = url.absoluteString as NSString
         if let cached = decodedCache.object(forKey: key) {
             return cached
@@ -478,11 +664,9 @@ final class ShowcaseImagePool {
         }
     }
 
-    /// Force-decode bytes to a UIImage off the main actor using ImageIO.
-    /// `kCGImageSourceShouldCacheImmediately: true` evaluates the decode
-    /// on THIS thread (background) rather than lazily on first render,
-    /// which is exactly what we want — animation hitches come from
-    /// decode-on-first-frame, not from network latency.
+    /// Force-decode bytes to UIImage off the main actor via ImageIO.
+    /// `kCGImageSourceShouldCacheImmediately: true` forces decode on
+    /// THIS thread (background), eliminating hitches on first render.
     private static func decode(_ data: Data) async -> UIImage? {
         await Task.detached(priority: .utility) { () -> UIImage? in
             guard let source = CGImageSourceCreateWithData(data as CFData, nil),
@@ -498,15 +682,14 @@ final class ShowcaseImagePool {
 
 // MARK: - RoutePickerView
 //
-// Native AVRoutePickerView wrapped for SwiftUI. `prioritizesVideoDevices = true`
-// surfaces TVs / AirPlay-2 receivers at the top of the picker (instead
-// of HomePods / speakers). System handles screen mirroring once a
-// device is selected.
+// Native AVRoutePickerView for the v1 mirror-mode AirPlay path.
+// `prioritizesVideoDevices = true` surfaces TVs at the top of the
+// picker.
 private struct RoutePickerView: UIViewRepresentable {
     func makeUIView(context: Context) -> AVRoutePickerView {
         let v = AVRoutePickerView()
         v.prioritizesVideoDevices = true
-        v.activeTintColor = UIColor(red: 0, green: 0xF5/255, blue: 1, alpha: 1) // BOBA cyan
+        v.activeTintColor = UIColor(red: 0, green: 0xF5/255, blue: 1, alpha: 1)
         v.tintColor = .white
         v.backgroundColor = .clear
         return v

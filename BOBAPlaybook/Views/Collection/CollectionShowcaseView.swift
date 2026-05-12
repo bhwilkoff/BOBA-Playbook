@@ -374,18 +374,21 @@ struct CollectionShowcaseView: View {
             UIApplication.shared.isIdleTimerDisabled = true
             OrientationManager.shared.allowLandscape()
             ExternalDisplayManager.shared.setSession(session)
-            // Start the AirPlay-Video pipeline. Encoder runs at ~10
-            // fps; AVPlayer plays the local HLS stream muted. As soon
-            // as the user picks an Apple TV from the in-app
-            // AVRoutePickerView, AirPlay-Video routing kicks in and
-            // we flip to the control panel.
-            streamer.start()
         }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
             OrientationManager.shared.lockPortrait()
             ExternalDisplayManager.shared.setSession(nil)
             streamer.stop()
+        }
+        // Async streamer startup so MainActor isn't blocked on the
+        // NWListener "ready" wait. The grid renders immediately; the
+        // encoder + HTTP server + AVPlayer come online a fraction of
+        // a second later. AirPlay-Video routing engages as soon as
+        // the player has a current item, which happens at the tail
+        // of start().
+        .task {
+            await streamer.start()
         }
         .preferredColorScheme(.dark)
     }
@@ -476,6 +479,14 @@ struct ShowcaseGridView: View {
                     }
                     .frame(width: cellW * CGFloat(cols), height: cellH * CGFloat(session.rows))
                     .position(x: size.width / 2, y: size.height / 2)
+                    // Grid tiles are Image views — they consume taps
+                    // without handling them, blocking the
+                    // tap-to-reveal-toolbar layer below them in the
+                    // ZStack. Disabling hit testing lets taps fall
+                    // through to the Color.clear reveal layer (when
+                    // toolbar is hidden) and to toolbar buttons (when
+                    // visible).
+                    .allowsHitTesting(false)
                     .onAppear {
                         session.columns = cols
                         Task { await session.initializeTiles(count: totalTiles) }
@@ -1387,12 +1398,16 @@ final class ShowcaseVideoStreamer: NSObject {
 
     // MARK: Lifecycle
 
-    func start() {
+    /// Async startup so we don't block MainActor on the NWListener's
+    /// "ready" state. The view calls this from `.task { await
+    /// streamer.start() }`, which suspends the task during the server
+    /// startup and lets the grid render immediately.
+    func start() async {
         guard !isRunning else { return }
         isRunning = true
         do {
             try prepareSegmentDir()
-            try startServer()
+            try await startServer()
             try startWriter()
             startCapture()
             attachPlayerToPlaylist()
@@ -1437,10 +1452,10 @@ final class ShowcaseVideoStreamer: NSObject {
 
     // MARK: - Server
 
-    private func startServer() throws {
+    private func startServer() async throws {
         let server = LocalHLSServer()
         let cache = serverCache
-        try server.start { path in
+        try await server.start { path in
             cache.lookup(path)
         }
         self.server = server
@@ -1782,6 +1797,20 @@ nonisolated final class ShowcaseHLSServerCache: @unchecked Sendable {
 // closures the NWListener calls back into can mutate `_port` /
 // `_listener` (per memory
 // feedback_project_default_mainactor_isolation.md).
+/// Thread-safe one-shot flag for the NWListener stateUpdateHandler
+/// continuation. `state` can fire multiple times (.ready, .cancelled,
+/// etc) and we must resume the continuation exactly once.
+private nonisolated final class ResumedBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var consumed = false
+    func takeResume() -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        if consumed { return false }
+        consumed = true
+        return true
+    }
+}
+
 nonisolated final class LocalHLSServer: @unchecked Sendable {
     private let lock = NSLock()
     private var _port: UInt16 = 0
@@ -1794,40 +1823,45 @@ nonisolated final class LocalHLSServer: @unchecked Sendable {
         return _port
     }
 
-    func start(handler: @escaping @Sendable (String) -> (Data, String)?) throws {
+    /// Continuation-based async startup — replaces an earlier
+    /// DispatchSemaphore wait that blocked MainActor for up to 2 sec.
+    /// The state-update handler resumes the continuation when the
+    /// listener becomes ready (or fails); no main-thread blocking.
+    func start(handler: @escaping @Sendable (String) -> (Data, String)?) async throws {
         self.provider = handler
         let listener = try NWListener(using: .tcp, on: .any)
         listener.newConnectionHandler = { [weak self] connection in
             self?.handle(connection: connection)
         }
-        let portReady = DispatchSemaphore(value: 0)
-        let lockRef = self.lock
-        // Capture only the listener (Sendable) + lock + storage proxy.
-        // No `self` capture in the state-update handler so Swift 6
-        // doesn't see concurrent mutation through a weak reference.
-        let portSetter: @Sendable (UInt16) -> Void = { [weak self] p in
-            lockRef.lock()
-            self?._port = p
-            lockRef.unlock()
-        }
-        listener.stateUpdateHandler = { state in
-            switch state {
-            case .ready:
-                if let p = listener.port?.rawValue {
-                    portSetter(p)
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            // Atomic-resume guard — stateUpdateHandler can fire multiple
+            // times; we resume exactly once.
+            let resumedBox = ResumedBox()
+            listener.stateUpdateHandler = { state in
+                switch state {
+                case .ready:
+                    if resumedBox.takeResume() {
+                        cont.resume()
+                    }
+                case .failed(let err):
+                    if resumedBox.takeResume() {
+                        cont.resume(throwing: err)
+                    }
+                case .cancelled:
+                    if resumedBox.takeResume() {
+                        cont.resume(throwing: CancellationError())
+                    }
+                default:
+                    break
                 }
-                portReady.signal()
-            case .failed:
-                portReady.signal()
-            default:
-                break
             }
+            listener.start(queue: queue)
         }
-        listener.start(queue: queue)
+        let portNow = listener.port?.rawValue ?? 0
         lock.lock()
+        _port = portNow
         _listener = listener
         lock.unlock()
-        _ = portReady.wait(timeout: .now() + 2)
     }
 
     func stop() {

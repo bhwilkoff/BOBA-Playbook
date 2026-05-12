@@ -10,6 +10,20 @@
 	<string>BOBA Playbook uses your location to show nearby authorized retailers. Your location is never stored or shared.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- AirPlay-Video routing for Personal Showcase (see
+	     CollectionShowcaseView.swift / ShowcaseVideoStreamer).
+	     Per WWDC19 #501 + Apple's "Integrating AirPlay for
+	     long-form video apps" doc: long-form video apps must
+	     register their RouteSharingPolicy at launch via this
+	     key, and must declare the `audio` background mode so
+	     AVPlayer can keep streaming while the user controls
+	     playback from the phone with the TV showing the video. -->
+	<key>AVInitialRouteSharingPolicy</key>
+	<string>LongFormVideo</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

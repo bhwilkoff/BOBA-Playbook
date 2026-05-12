@@ -66,6 +66,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     private func installOrientationLock(for notification: Notification) {
         guard
             let windowScene = notification.object as? UIWindowScene,
+            // Only the primary scene gets the orientation-lock wrap.
+            // External-display non-interactive scenes have their own
+            // hosting controller (ExternalShowcaseRoot) and must not
+            // be wrapped — orientation doesn't apply to a TV anyway,
+            // and wrapping the external UIHostingController would
+            // break its rendering.
+            windowScene.session.role == .windowApplication,
             let window = windowScene.windows.first,
             let rootVC = window.rootViewController,
             !(rootVC is PortraitWindowController)

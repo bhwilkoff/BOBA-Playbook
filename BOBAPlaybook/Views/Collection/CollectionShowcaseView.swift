@@ -390,6 +390,7 @@ struct CollectionShowcaseView: View {
     @State private var session: ShowcaseSession
     @State private var externalManager: ExternalDisplayManager
     @State private var streamer: ShowcaseVideoStreamer
+    @State private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
 
     // Persisted across Showcase opens via UserDefaults. Read on
     // appear; written via .onChange below.
@@ -474,6 +475,10 @@ struct CollectionShowcaseView: View {
             OrientationManager.shared.lockPortrait()
             ExternalDisplayManager.shared.setSession(nil)
             streamer.stop()
+            if backgroundTaskID != .invalid {
+                UIApplication.shared.endBackgroundTask(backgroundTaskID)
+                backgroundTaskID = .invalid
+            }
         }
         // Persist setting changes immediately so the next Showcase
         // open picks up where the user left off.
@@ -525,8 +530,48 @@ struct CollectionShowcaseView: View {
             await session.initializeTiles(count: rows * tvCols)
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active && !session.paused {
-                session.cycleEpoch &+= 1
+            switch phase {
+            case .background:
+                // Request a background task so iOS gives us extra
+                // grace time before suspending. AVAssetWriter still
+                // fails on suspension (Apple's documented behavior),
+                // but the AVPlayer keeps serving buffered segments
+                // to Apple TV from our HLS sliding window (~24s of
+                // content) so AirPlay stays continuous for brief
+                // app switches.
+                if backgroundTaskID == .invalid {
+                    backgroundTaskID = UIApplication.shared
+                        .beginBackgroundTask(withName: "showcase-airplay") {
+                            // Expiration handler runs if we exceed
+                            // the granted time — end the task to be
+                            // a good iOS citizen.
+                            if backgroundTaskID != .invalid {
+                                UIApplication.shared.endBackgroundTask(backgroundTaskID)
+                                backgroundTaskID = .invalid
+                            }
+                        }
+                }
+            case .active:
+                if backgroundTaskID != .invalid {
+                    UIApplication.shared.endBackgroundTask(backgroundTaskID)
+                    backgroundTaskID = .invalid
+                }
+                // Auto-restart the encoder if it failed during
+                // background. AVAssetWriter transitions to .failed
+                // when iOS suspends the app, and there's no way to
+                // recover an individual writer — we have to rebuild.
+                // We do this in a Task so MainActor doesn't block.
+                if streamer.isRunning && !streamer.isWriterHealthy {
+                    Task {
+                        streamer.stop()
+                        await streamer.start()
+                    }
+                }
+                if !session.paused {
+                    session.cycleEpoch &+= 1
+                }
+            default:
+                break
             }
         }
         .onReceive(
@@ -1717,6 +1762,16 @@ final class ShowcaseVideoStreamer: NSObject {
 
     /// True between `start()` and `stop()`.
     private(set) var isRunning: Bool = false
+
+    /// True if the underlying AVAssetWriter is actively writing.
+    /// Goes false when the writer enters `.failed` state (which
+    /// happens automatically when iOS backgrounds the app per Apple's
+    /// documented behavior). CollectionShowcaseView checks this on
+    /// scene-phase changes and restarts the streamer if needed.
+    var isWriterHealthy: Bool {
+        guard isRunning, let writer else { return false }
+        return writer.status == .writing
+    }
 
     /// The route picker view should bind to this AVPlayer.
     private(set) var player: AVPlayer = AVPlayer()

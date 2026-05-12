@@ -1447,7 +1447,10 @@ final class ShowcaseVideoStreamer: NSObject {
     /// failures in the console so we stop guessing what's wrong.
     private var playerStatusCancellable: AnyCancellable?
     private var playerRateCancellable: AnyCancellable?
+    private var playerTimeControlCancellable: AnyCancellable?
+    private var playerWaitingReasonCancellable: AnyCancellable?
     private var itemStatusCancellable: AnyCancellable?
+    private var itemErrorLogObserver: NSObjectProtocol?
 
     // MARK: Init
 
@@ -1479,6 +1482,25 @@ final class ShowcaseVideoStreamer: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { rate in
                 showcaseLog("AVPlayer.rate → \(rate)")
+            }
+        playerTimeControlCancellable = player.publisher(for: \.timeControlStatus)
+            .receive(on: DispatchQueue.main)
+            .sink { status in
+                let label: String
+                switch status {
+                case .paused: label = "paused"
+                case .waitingToPlayAtSpecifiedRate: label = "waitingToPlayAtSpecifiedRate"
+                case .playing: label = "playing"
+                @unknown default: label = "@unknown"
+                }
+                showcaseLog("AVPlayer.timeControlStatus → \(label)")
+            }
+        playerWaitingReasonCancellable = player.publisher(for: \.reasonForWaitingToPlay)
+            .receive(on: DispatchQueue.main)
+            .sink { reason in
+                if let raw = reason?.rawValue {
+                    showcaseLog("AVPlayer.reasonForWaitingToPlay → \(raw)")
+                }
             }
     }
 
@@ -1544,8 +1566,16 @@ final class ShowcaseVideoStreamer: NSObject {
         playerStatusCancellable = nil
         playerRateCancellable?.cancel()
         playerRateCancellable = nil
+        playerTimeControlCancellable?.cancel()
+        playerTimeControlCancellable = nil
+        playerWaitingReasonCancellable?.cancel()
+        playerWaitingReasonCancellable = nil
         itemStatusCancellable?.cancel()
         itemStatusCancellable = nil
+        if let observer = itemErrorLogObserver {
+            NotificationCenter.default.removeObserver(observer)
+            itemErrorLogObserver = nil
+        }
     }
 
     // MARK: - Segment dir
@@ -1763,6 +1793,27 @@ final class ShowcaseVideoStreamer: NSObject {
                 }
             }
 
+        // HLS-specific error log — fires whenever the player encounters
+        // a problem fetching/parsing segments. This catches the "player
+        // gave up mid-stream" failure mode that AVPlayerItem.error
+        // doesn't always surface.
+        if let old = itemErrorLogObserver {
+            NotificationCenter.default.removeObserver(old)
+        }
+        itemErrorLogObserver = NotificationCenter.default.addObserver(
+            forName: AVPlayerItem.newErrorLogEntryNotification,
+            object: item,
+            queue: .main
+        ) { [weak item] _ in
+            guard let entry = item?.errorLog()?.events.last else { return }
+            showcaseLog(
+                "AVPlayerItem ERROR_LOG status=\(entry.errorStatusCode) "
+                + "comment=\(entry.errorComment ?? "nil") "
+                + "domain=\(entry.errorDomain) "
+                + "URI=\(entry.uri ?? "nil")"
+            )
+        }
+
         player.replaceCurrentItem(with: item)
     }
 
@@ -1886,6 +1937,11 @@ final class HLSPlaylistBuilder {
         var lines: [String] = []
         lines.append("#EXTM3U")
         lines.append("#EXT-X-VERSION:7")
+        // Apple HLS Authoring Spec: required for fMP4 segment
+        // playlists. Without it, AVPlayer parses the playlist but
+        // won't fetch segments — which matches the v2.132 trace
+        // (3 m3u8 polls, no init/segment requests after).
+        lines.append("#EXT-X-INDEPENDENT-SEGMENTS")
         let maxDuration = entries.map(\.duration).max() ?? ShowcaseVideoConstants.segmentDurationSeconds
         lines.append("#EXT-X-TARGETDURATION:\(Int(ceil(maxDuration)))")
         lines.append("#EXT-X-MEDIA-SEQUENCE:\(mediaSequence)")
@@ -1896,7 +1952,9 @@ final class HLSPlaylistBuilder {
             lines.append(String(format: "#EXTINF:%.3f,", entry.duration))
             lines.append(entry.name)
         }
-        return lines.joined(separator: "\n") + "\n"
+        // No #EXT-X-ENDLIST — this is a live playlist. \r\n line
+        // endings per HLS spec canonical form.
+        return lines.joined(separator: "\r\n") + "\r\n"
     }
 }
 
@@ -2050,6 +2108,9 @@ nonisolated final class LocalHLSServer: @unchecked Sendable {
     }
 
     private func handle(connection: NWConnection) {
+        // Surface peer endpoint so we can tell phone-local (loopback)
+        // requests apart from Apple-TV-as-AirPlay-Video requests.
+        let peer = String(describing: connection.endpoint)
         connection.start(queue: queue)
         connection.receive(minimumIncompleteLength: 1, maximumLength: 8 * 1024) { [weak self] data, _, _, _ in
             guard let self, let data = data, let request = String(data: data, encoding: .utf8) else {
@@ -2062,12 +2123,13 @@ nonisolated final class LocalHLSServer: @unchecked Sendable {
                 connection.cancel()
                 return
             }
+            let method = String(parts[0])
             let path = String(parts[1])
             if let (body, mime) = self.provider?(path) {
-                showcaseLog("HTTP 200 \(path) \(body.count)B \(mime)")
+                showcaseLog("HTTP \(method) 200 \(path) \(body.count)B \(mime) from \(peer)")
                 LocalHLSServer.send(connection: connection, body: body, mime: mime)
             } else {
-                showcaseLog("HTTP 404 \(path)")
+                showcaseLog("HTTP \(method) 404 \(path) from \(peer)")
                 LocalHLSServer.sendNotFound(connection: connection)
             }
         }

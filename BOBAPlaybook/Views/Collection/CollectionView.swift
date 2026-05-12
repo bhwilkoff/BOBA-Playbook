@@ -40,6 +40,7 @@ struct CollectionView: View {
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
     @State private var showingProfile      = false
     @State private var showingWall         = false
+    @State private var showingShowcase     = false
     @State private var showingShareSheet   = false
     @State private var shareItems: [Any]   = []
     @AppStorage("selectedIconName") private var selectedIconName: String = "default"
@@ -158,6 +159,12 @@ struct CollectionView: View {
                 cards: cards,
                 prices: prices,
                 onDismiss: { showingWall = false }
+            )
+        }
+        .fullScreenCover(isPresented: $showingShowcase) {
+            CollectionShowcaseView(
+                cards: showcaseCards,
+                onDismiss: { showingShowcase = false }
             )
         }
         .sheet(isPresented: $showingShareSheet) {
@@ -520,6 +527,16 @@ struct CollectionView: View {
                     Label("Generate Wall image…", systemImage: "rectangle.on.rectangle.angled")
                 }
                 .disabled(collection.userCards.isEmpty)
+
+                // Personal Showcase — iTunes Album Artwork-style
+                // screensaver of your owned collection. AirPlay-ready
+                // for casting to a TV. See CollectionShowcaseView.
+                Button {
+                    showingShowcase = true
+                } label: {
+                    Label("Open Showcase…", systemImage: "sparkles.rectangle.stack")
+                }
+                .disabled(showcaseCards.isEmpty)
 
                 // Scan is iPad-inline (when on My Cards lens); only
                 // show in Menu on compact width.
@@ -1382,6 +1399,33 @@ struct CollectionView: View {
             if q == "\(n) hd" || q == "\(n)hd" { return n }
         }
         return nil
+    }
+
+    /// Personal Showcase pool — owned cards (every designation except
+    /// .wanted, since wanted is a wishlist, not owned), deduped by
+    /// bobaId with the most-recent acquisition winning, resolved to
+    /// Card records, filtered to image-bearing only, sorted by
+    /// acquiredAt descending so new acquisitions surface first. The
+    /// ShowcaseImagePool reshuffles after the first full pass.
+    private var showcaseCards: [Card] {
+        var bestAcquired: [String: Date] = [:]
+        for uc in collection.userCards where uc.designation != .wanted {
+            let key = uc.bobaId ?? uc.cardNumber
+            if let prior = bestAcquired[key] {
+                if uc.acquiredAt > prior { bestAcquired[key] = uc.acquiredAt }
+            } else {
+                bestAcquired[key] = uc.acquiredAt
+            }
+        }
+        let resolved: [(Card, Date)] = bestAcquired.compactMap { key, when in
+            let card = cardStore.displayCards.first { $0.id == key }
+                    ?? cardStore.displayCards.first { $0.cardNumber == key }
+            guard let card, let f = card.imageFile, !f.isEmpty else { return nil }
+            return (card, when)
+        }
+        return resolved
+            .sorted { $0.1 > $1.1 }
+            .map(\.0)
     }
 
     /// Apply the active CollectionSortOrder. Sort keys are derived from

@@ -1351,10 +1351,16 @@ final class ShowcaseVideoStreamer: NSObject {
     /// deadlock risk).
     private let serverCache = ShowcaseHLSServerCache()
 
-    // MARK: KVO
+    // MARK: KVO / Combine
 
-    private var externalObserver: NSKeyValueObservation?
-    private var statusObserver: NSKeyValueObservation?
+    /// Combine subscription on AVPlayer.isExternalPlaybackActive.
+    /// We use Combine + .sink (not @Sendable) instead of
+    /// NSKeyValueObservation + Task { @MainActor }, because Swift 6
+    /// flags the nested Task self-capture as "Reference to captured
+    /// var 'self' in concurrently-executing code." Combine's sink
+    /// closure runs on the queue we specify (.main here), no concurrent
+    /// closure boundary to cross.
+    private var externalPlaybackCancellable: AnyCancellable?
 
     // MARK: Init
 
@@ -1367,11 +1373,11 @@ final class ShowcaseVideoStreamer: NSObject {
         player.usesExternalPlaybackWhileExternalScreenIsActive = true
         player.isMuted = true   // no audio track in our stream
 
-        externalObserver = player.observe(\.isExternalPlaybackActive, options: [.new, .initial]) { [weak self] player, _ in
-            Task { @MainActor in
-                self?.isExternalPlaybackActive = player.isExternalPlaybackActive
+        externalPlaybackCancellable = player.publisher(for: \.isExternalPlaybackActive)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] value in
+                self?.isExternalPlaybackActive = value
             }
-        }
     }
 
     // No deinit — Swift 6's deinit is nonisolated and can't access
@@ -1409,10 +1415,8 @@ final class ShowcaseVideoStreamer: NSObject {
         server?.stop()
         server = nil
         cleanupSegmentDir()
-        externalObserver?.invalidate()
-        externalObserver = nil
-        statusObserver?.invalidate()
-        statusObserver = nil
+        externalPlaybackCancellable?.cancel()
+        externalPlaybackCancellable = nil
     }
 
     // MARK: - Segment dir
@@ -1720,8 +1724,12 @@ final class HLSPlaylistBuilder {
 //
 // Lock-protected for safe concurrent reads. `@unchecked Sendable`
 // because the lock provides the synchronization Swift's checker
-// can't see automatically.
-final class ShowcaseHLSServerCache: @unchecked Sendable {
+// can't see automatically. `nonisolated` so the project's
+// SWIFT_DEFAULT_ACTOR_ISOLATION=MainActor setting doesn't trap
+// every property to MainActor (per memory
+// feedback_project_default_mainactor_isolation.md — framework-
+// callback classes need explicit nonisolated at the class level).
+nonisolated final class ShowcaseHLSServerCache: @unchecked Sendable {
     private let lock = NSLock()
     private var playlist: Data = Data()
     private var segments: [String: URL] = [:]
@@ -1769,8 +1777,12 @@ final class ShowcaseHLSServerCache: @unchecked Sendable {
 // self — it reads the listener's port via the listener reference
 // captured in the closure (NWListener is safe to query for `.port`
 // from any thread). `@unchecked Sendable` because we synchronize the
-// mutable state internally with NSLock.
-final class LocalHLSServer: @unchecked Sendable {
+// mutable state internally with NSLock. `nonisolated` overrides the
+// project's SWIFT_DEFAULT_ACTOR_ISOLATION=MainActor so the @Sendable
+// closures the NWListener calls back into can mutate `_port` /
+// `_listener` (per memory
+// feedback_project_default_mainactor_isolation.md).
+nonisolated final class LocalHLSServer: @unchecked Sendable {
     private let lock = NSLock()
     private var _port: UInt16 = 0
     private var _listener: NWListener?

@@ -172,15 +172,17 @@ final class ShowcaseSession {
         tiles = newTiles
         cycleEpoch &+= 1
 
-        // Phase 2: parallel image fetch + populate. Uses FULL-res CDN
-        // URL (≤1200px) instead of the 200px thumb so card text reads
-        // crisp on the AirPlay-Video TV stream from frame 1. Slightly
-        // larger per-card payload (~80KB vs ~10KB) but the loading
-        // overlay covers the extra few hundred ms.
+        // Phase 2: parallel image fetch + populate. Uses the 200px
+        // thumb URL (~10KB) so the full grid fills quickly — the
+        // user sees a wall of card art within a second or two
+        // instead of a black screen filling tile-by-tile. The cycle
+        // path uses full-res (~80KB / ≤1200px) so each tile upgrades
+        // to crisp resolution as it naturally cycles over the next
+        // minute. The user gets fast-paint + eventual full quality.
         await withTaskGroup(of: (Int, UIImage?).self) { group in
             for (i, card) in assignments {
                 group.addTask { [pool] in
-                    let img = await pool.loadImage(for: card, preferThumb: false)
+                    let img = await pool.loadImage(for: card, preferThumb: true)
                     return (i, img)
                 }
             }
@@ -845,40 +847,41 @@ struct ShowcaseControlPanel: View {
     var onDismiss: () -> Void
     @State private var externalManager = ExternalDisplayManager.shared
 
-    /// Disengages AirPlay-Video routing as fully as iOS allows from an
-    /// app-level API:
-    ///   1. allowsExternalPlayback = false — stops the player using
+    /// Disengages AirPlay-Video routing:
+    ///   1. allowsExternalPlayback = false — player stops using
     ///      external playback. isExternalPlaybackActive flips false,
-    ///      phone swaps back to grid.
-    ///   2. pause + replaceCurrentItem(nil) — removes content so the
-    ///      audio session has nothing to route.
-    ///   3. setActive(false, .notifyOthersOnDeactivation) on the audio
-    ///      session — releases the AirPlay route from our app's
-    ///      perspective. iOS may or may not revert the system-wide
-    ///      route depending on version + whether other apps are using
-    ///      it. There's no public API to FORCE the system route off
-    ///      Apple TV; that requires user action in Control Center.
-    ///   4. After a short delay restore audio session + re-attach
-    ///      playlist so AirPlay can be re-engaged via the picker.
+    ///      CollectionShowcaseView swaps back to grid.
+    ///   2. Briefly setCategory(.ambient) — .ambient doesn't support
+    ///      AirPlay routing, which forces the system audio route to
+    ///      revert to local. This is what flips the AVRoutePickerView
+    ///      icon from blue (routing) to white (available). Restored
+    ///      to .playback/.moviePlayback/.longFormVideo after a beat so
+    ///      the player keeps playing locally and AirPlay-Video stays
+    ///      one tap away (RoutePickerView's delegate re-enables
+    ///      allowsExternalPlayback the moment the user opens the
+    ///      picker again).
     ///
-    /// RoutePickerView's delegate flips allowsExternalPlayback back to
-    /// true the moment the user opens the picker, so re-engagement
-    /// stays one tap.
+    /// Critically: we do NOT clear currentItem. The previous version
+    /// did, then re-attached, but couldn't re-trigger play() — leaving
+    /// the player paused with rate=0 and resume broken. Keeping the
+    /// item attached means resume "just works" — pick AirPlay → routing
+    /// engages → playback resumes from the live edge.
     private func stopCasting() {
         guard let streamer else { return }
         streamer.player.allowsExternalPlayback = false
-        streamer.player.pause()
-        streamer.player.replaceCurrentItem(with: nil)
-        try? AVAudioSession.sharedInstance().setActive(
-            false,
-            options: .notifyOthersOnDeactivation
-        )
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak streamer] in
+        // .ambient doesn't allow AirPlay; the system reverts the route
+        // to local speaker. We immediately restore .playback (with the
+        // long-form-video policy) so local playback continues.
+        try? AVAudioSession.sharedInstance().setCategory(.ambient)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak streamer] in
             try? AVAudioSession.sharedInstance().setCategory(
                 .playback, mode: .moviePlayback, policy: .longFormVideo
             )
             try? AVAudioSession.sharedInstance().setActive(true)
-            streamer?.reattachPlaylistIfNeeded()
+            // Ensure local playback is still going so when the user
+            // re-engages AirPlay via the picker, there's playable
+            // content already in the player.
+            streamer?.player.play()
         }
     }
 
@@ -2234,16 +2237,6 @@ final class ShowcaseVideoStreamer: NSObject {
     }
 
     // MARK: - Player
-
-    /// Public re-attachment helper for the ControlPanel's Stop Casting
-    /// button — after we tear down the player item to release the
-    /// AirPlay route, we need to re-prep the player so the user can
-    /// re-engage AirPlay via the picker. No-op if the player already
-    /// has a current item (e.g. someone called stop twice in a row).
-    func reattachPlaylistIfNeeded() {
-        guard player.currentItem == nil, server != nil else { return }
-        attachPlayerToPlaylist()
-    }
 
     private func attachPlayerToPlaylist() {
         guard let server else {

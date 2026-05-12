@@ -1294,6 +1294,19 @@
           return String(a.cardNumber).localeCompare(String(b.cardNumber), undefined, { numeric: true });
         case 'number-desc':
           return String(b.cardNumber).localeCompare(String(a.cardNumber), undefined, { numeric: true });
+        case 'cost-asc': {
+          // Cards without a Hot Dog cost (Heroes/HotDogs/Sealed) sort after Plays.
+          const ah = a.playCost != null, bh = b.playCost != null;
+          if (ah !== bh) return ah ? -1 : 1;
+          const d = Number(a.playCost ?? 0) - Number(b.playCost ?? 0);
+          return d || heroName(a).localeCompare(heroName(b));
+        }
+        case 'cost-desc': {
+          const ah = a.playCost != null, bh = b.playCost != null;
+          if (ah !== bh) return ah ? -1 : 1;
+          const d = Number(b.playCost ?? 0) - Number(a.playCost ?? 0);
+          return d || heroName(a).localeCompare(heroName(b));
+        }
         case 'variation':
           return (a.variation || '').localeCompare(b.variation || '') ||
                  heroName(a).localeCompare(heroName(b));

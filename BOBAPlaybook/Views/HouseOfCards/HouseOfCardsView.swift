@@ -760,17 +760,26 @@ private final class HouseOfCardsCoordinator: NSObject {
     // Network fetch + UIImage/CGImage decode happen off-main on a
     // detached task. TextureResource construction is MainActor-
     // isolated (Swift 6), so we hop to MainActor for it + completion.
+    // The detached task captures no `self` — Swift 6 strict
+    // concurrency flags `[weak self]` reads across the MainActor.run
+    // boundary, and we don't need instance state in here anyway.
     private func loadFrontArt(for card: Card, completion: @escaping @MainActor (TextureResource) -> Void) {
         guard let url = CDN.fullURL(for: card) ?? CDN.thumbURL(for: card) else { return }
-        Task.detached(priority: .userInitiated) { [weak self] in
+        Task.detached(priority: .userInitiated) {
             guard
                 let (data, _) = try? await URLSession.shared.data(from: url),
                 let image = UIImage(data: data),
                 let cg = image.cgImage
             else { return }
             await MainActor.run {
-                guard let tex = self?.makeColorTexture(from: cg) else { return }
-                completion(tex)
+                let opts = TextureResource.CreateOptions(semantic: .color)
+                let tex: TextureResource?
+                if #available(iOS 18.0, *) {
+                    tex = try? TextureResource(image: cg, withName: nil, options: opts)
+                } else {
+                    tex = try? TextureResource.generate(from: cg, options: opts)
+                }
+                if let tex { completion(tex) }
             }
         }
     }

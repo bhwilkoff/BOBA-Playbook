@@ -2552,28 +2552,35 @@ private struct ShowcaseLoadingOverlay: View {
             Color(red: 0x08/255, green: 0x08/255, blue: 0x10/255)
                 .ignoresSafeArea()
 
-            VStack(spacing: 28) {
+            VStack(spacing: 32) {
                 Text("PERSONAL SHOWCASE")
                     .font(.system(size: 14, weight: .bold, design: .monospaced))
                     .tracking(4)
                     .foregroundStyle(.white.opacity(0.7))
 
-                TimelineView(.periodic(from: .now, by: 0.35)) { context in
-                    // Time-based phase 0/1/2 — no @State needed.
-                    let stride = context.date.timeIntervalSinceReferenceDate / 0.35
-                    let phase = Int(stride.truncatingRemainder(dividingBy: 3))
-                    HStack(spacing: 14) {
+                // TimelineView(.animation) ticks at the display refresh
+                // rate (60-120 Hz). Each dot's phase is a sine wave
+                // offset by 1.5 rad — produces a smooth left-to-right
+                // pulse across the 3 dots. The previous .periodic +
+                // .animation(value:) combo didn't actually interpolate
+                // (TimelineView re-evaluates the body on each tick,
+                // which can defeat SwiftUI's animation tracking).
+                TimelineView(.animation) { context in
+                    let t = context.date.timeIntervalSinceReferenceDate
+                    HStack(spacing: 16) {
                         ForEach(0..<3, id: \.self) { i in
+                            // Wave: amplitude 0.6 around midpoint 1.0
+                            // for scale, 0.25 → 1.0 for opacity.
+                            let phase = (sin(t * 3.0 - Double(i) * 1.5) + 1) / 2
                             Circle()
                                 .fill(Color(red: 1, green: 0x4D/255, blue: 0))
-                                .frame(width: 12, height: 12)
-                                .scaleEffect(i == phase ? 1.5 : 1.0)
-                                .opacity(i == phase ? 1.0 : 0.3)
-                                .animation(.easeInOut(duration: 0.3), value: phase)
+                                .frame(width: 14, height: 14)
+                                .scaleEffect(0.6 + 0.6 * phase)
+                                .opacity(0.25 + 0.75 * phase)
                         }
                     }
                 }
-                .frame(height: 20)
+                .frame(height: 28)
 
                 Text("Loading your collection")
                     .font(.system(size: 12, design: .monospaced))

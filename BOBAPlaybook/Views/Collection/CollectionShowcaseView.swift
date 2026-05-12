@@ -350,46 +350,54 @@ struct ShowcaseGridView: View {
     var body: some View {
         GeometryReader { geo in
             let size = geo.size
-            let cellH = size.height / CGFloat(session.rows)
-            let cellW = cellH * cardAspect
-            let cols = max(1, Int(ceil(size.width / cellW)))
+            // Defensive: SwiftUI's initial layout pass can deliver
+            // size = .zero before the view is sized, which would make
+            // cellW = 0 and `size.width / cellW` = NaN. Int(NaN)
+            // crashes (the Showcase v2.121 launch crash). Bail to a
+            // black frame until geometry is real.
+            let geometryReady = size.width > 1 && size.height > 1 && session.rows > 0
+            let cellH = geometryReady ? size.height / CGFloat(session.rows) : 0
+            let cellW = max(1, cellH * cardAspect)
+            let cols = geometryReady ? max(1, Int(ceil(size.width / cellW))) : 0
             let totalTiles = session.rows * cols
 
             ZStack(alignment: .top) {
                 Color(red: 0x08/255, green: 0x08/255, blue: 0x10/255)
 
-                LazyVGrid(
-                    columns: Array(
-                        repeating: GridItem(.fixed(cellW), spacing: 0),
-                        count: cols
-                    ),
-                    spacing: 0
-                ) {
-                    ForEach(0..<totalTiles, id: \.self) { index in
-                        if index < session.tiles.count {
-                            ShowcaseTileCell(
-                                state: session.tiles[index],
-                                width: cellW,
-                                height: cellH
-                            )
-                        } else {
-                            Color.clear.frame(width: cellW, height: cellH)
+                if geometryReady {
+                    LazyVGrid(
+                        columns: Array(
+                            repeating: GridItem(.fixed(cellW), spacing: 0),
+                            count: cols
+                        ),
+                        spacing: 0
+                    ) {
+                        ForEach(0..<totalTiles, id: \.self) { index in
+                            if index < session.tiles.count {
+                                ShowcaseTileCell(
+                                    state: session.tiles[index],
+                                    width: cellW,
+                                    height: cellH
+                                )
+                            } else {
+                                Color.clear.frame(width: cellW, height: cellH)
+                            }
                         }
                     }
-                }
-                .frame(width: cellW * CGFloat(cols), height: cellH * CGFloat(session.rows))
-                .position(x: size.width / 2, y: size.height / 2)
-                .onAppear {
-                    session.columns = cols
-                    Task { await session.initializeTiles(count: totalTiles) }
-                }
-                .onChange(of: cols) { _, newCols in
-                    session.columns = newCols
-                    Task { await session.initializeTiles(count: session.rows * newCols) }
-                }
-                .onChange(of: session.rows) { _, _ in
-                    session.columns = cols
-                    Task { await session.initializeTiles(count: session.rows * cols) }
+                    .frame(width: cellW * CGFloat(cols), height: cellH * CGFloat(session.rows))
+                    .position(x: size.width / 2, y: size.height / 2)
+                    .onAppear {
+                        session.columns = cols
+                        Task { await session.initializeTiles(count: totalTiles) }
+                    }
+                    .onChange(of: cols) { _, newCols in
+                        session.columns = newCols
+                        Task { await session.initializeTiles(count: session.rows * newCols) }
+                    }
+                    .onChange(of: session.rows) { _, _ in
+                        session.columns = cols
+                        Task { await session.initializeTiles(count: session.rows * cols) }
+                    }
                 }
 
                 if showsToolbar && revealedToolbar {
@@ -406,7 +414,13 @@ struct ShowcaseGridView: View {
             showsToolbar
             ? MagnifyGesture()
                 .onChanged { value in
-                    let candidate = Int(round(Double(rowsAtPinchStart) / value.magnification))
+                    // Clamp to a sensible range so magnification = 0
+                    // (theoretically possible mid-gesture) doesn't
+                    // produce infinity / NaN through the division.
+                    let mag = max(0.1, min(10.0, value.magnification))
+                    let raw = Double(rowsAtPinchStart) / mag
+                    guard raw.isFinite else { return }
+                    let candidate = Int(round(raw))
                     let clamped = max(minRows, min(maxRows, candidate))
                     if clamped != session.rows {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {

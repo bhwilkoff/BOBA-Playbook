@@ -353,22 +353,37 @@ struct CollectionShowcaseView: View {
             && session.renderTarget == .external)
     }
 
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
-        Group {
-            if tvActive {
-                ShowcaseControlPanel(
-                    session: session,
-                    streamer: streamer,
-                    onDismiss: onDismiss
-                )
-            } else {
-                ShowcaseGridView(
-                    session: session,
-                    streamer: streamer,
-                    showsToolbar: true,
-                    onDismiss: onDismiss
-                )
+        ZStack {
+            Group {
+                if tvActive {
+                    ShowcaseControlPanel(
+                        session: session,
+                        streamer: streamer,
+                        onDismiss: onDismiss
+                    )
+                } else {
+                    ShowcaseGridView(
+                        session: session,
+                        streamer: streamer,
+                        showsToolbar: true,
+                        onDismiss: onDismiss
+                    )
+                }
             }
+            // AirPlaySurface must persist across the grid ↔ control
+            // panel swap, otherwise the AVPlayerLayer disappears when
+            // AirPlay engages — at exactly the moment the routing
+            // engine needs it. Mounted at the outermost level here.
+            AirPlaySurface(player: streamer.player)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .opacity(0.001)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+                .zIndex(-1)   // behind everything else
         }
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = true
@@ -389,6 +404,30 @@ struct CollectionShowcaseView: View {
         // of start().
         .task {
             await streamer.start()
+        }
+        // Cycle loop owned by the OUTER view so it survives the
+        // grid ↔ control-panel swap when AirPlay engages. Previously
+        // this lived on ShowcaseGridView's .task, which got cancelled
+        // when the phone switched to ControlPanel — causing tiles to
+        // freeze on the TV.
+        .task(id: session.cycleEpoch) {
+            await session.runCycleLoop(reduceMotion: reduceMotion)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active && !session.paused {
+                session.cycleEpoch &+= 1
+            }
+        }
+        .onReceive(
+            NotificationCenter.default
+                .publisher(for: ProcessInfo.thermalStateDidChangeNotification)
+                .receive(on: DispatchQueue.main)
+        ) { _ in
+            let new = ProcessInfo.processInfo.thermalState
+            if new != session.thermalState {
+                session.thermalState = new
+                session.cycleEpoch &+= 1
+            }
         }
         .preferredColorScheme(.dark)
     }
@@ -415,8 +454,9 @@ struct ShowcaseGridView: View {
     @State private var revealedToolbar: Bool = true
     @State private var toolbarHideTask: Task<Void, Never>?
 
-    @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    // scenePhase + reduceMotion observers moved up to
+    // CollectionShowcaseView with the cycle loop, since they need
+    // to stay alive when this view unmounts during AirPlay routing.
 
     private let cardAspect: CGFloat = 0.75   // width / height = 3/4
     private let minRows: Int = 2
@@ -464,23 +504,9 @@ struct ShowcaseGridView: View {
             let totalTiles = session.rows * cols
 
             ZStack(alignment: .top) {
-                // AVPlayerLayer surface at full size, full opacity,
-                // at the BACK of the ZStack. Apple's research-confirmed
-                // requirement: AVFoundation uses the layer's on-screen
-                // size to evaluate whether a "real" video display
-                // exists; sub-threshold or near-zero-opacity layers
-                // don't count. We render full-size + full-opacity so
-                // the routing engine recognizes it, then cover it with
-                // our opaque background Color so the user never sees
-                // the local-playback video (which goes to the TV when
-                // AirPlay-Video routes).
-                if let player = streamer?.player {
-                    AirPlaySurface(player: player)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
-                }
-
+                // (AirPlaySurface moved up to CollectionShowcaseView
+                // so it persists when the phone-side swaps between
+                // grid and control panel.)
                 Color(red: 0x08/255, green: 0x08/255, blue: 0x10/255)
                     .ignoresSafeArea()
 
@@ -592,29 +618,9 @@ struct ShowcaseGridView: View {
         .onDisappear {
             toolbarHideTask?.cancel()
         }
-        .task(id: session.cycleEpoch) {
-            await session.runCycleLoop(reduceMotion: reduceMotion)
-        }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .active && !session.paused {
-                session.cycleEpoch &+= 1
-            }
-        }
-        .onReceive(
-            NotificationCenter.default
-                .publisher(for: ProcessInfo.thermalStateDidChangeNotification)
-                // Apple posts thermal-state notifications on an
-                // arbitrary queue; without this hop SwiftUI logs
-                // "Publishing changes from background threads is not
-                // allowed" when we mutate the @Observable session.
-                .receive(on: DispatchQueue.main)
-        ) { _ in
-            let new = ProcessInfo.processInfo.thermalState
-            if new != session.thermalState {
-                session.thermalState = new
-                session.cycleEpoch &+= 1
-            }
-        }
+        // (cycle loop + scenePhase + thermal observers moved to
+        // CollectionShowcaseView so they survive the grid ↔ panel
+        // swap when AirPlay engages.)
         .statusBar(hidden: true)
     }
 
@@ -757,14 +763,12 @@ struct ShowcaseControlPanel: View {
                     Button("Done") { onDismiss() }
                         .foregroundStyle(.white)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        externalManager.useExternalDisplay = false
-                    } label: {
-                        Label("Use Phone", systemImage: "iphone")
-                            .foregroundStyle(Color(red: 0, green: 0xF5/255, blue: 1))
-                    }
-                }
+                // No top-right action — to stop AirPlay the user opens
+                // Control Center → AirPlay picker → iPhone. The
+                // previous "Use Phone" button only affected the
+                // Screen Mirroring path (ExternalDisplayManager) and
+                // did nothing for the AirPlay-Video routing flow,
+                // which is the canonical path now.
             }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -827,11 +831,11 @@ struct ShowcaseControlPanel: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text("Cycle Speed")
+                    Text("Card Swap Interval")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.white)
                     Spacer()
-                    Text("\(Int(session.cycleSpeed))s")
+                    Text("every \(Int(session.cycleSpeed))s")
                         .font(.system(size: 13, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.7))
                 }
@@ -1624,6 +1628,22 @@ final class ShowcaseVideoStreamer: NSObject {
         guard !isRunning else { return }
         isRunning = true
         showcaseLog("start() begin")
+        // Ensure the session has enough tiles for the TV-sized grid.
+        // The phone-side view initializes for its own (smaller) cell
+        // count; if AirPlay engages without the streamer kicking off
+        // a TV-sized init, the TV ends up rendering only the phone's
+        // subset of tiles, with the rest as black background.
+        if let session {
+            let tvRows = max(2, session.rows)
+            let tvCellH = CGFloat(ShowcaseVideoConstants.renderHeight) / CGFloat(tvRows)
+            let tvCellW = tvCellH * ShowcaseVideoConstants.cardAspect
+            let tvCols = max(1, Int(ceil(CGFloat(ShowcaseVideoConstants.renderWidth) / tvCellW)))
+            let tvTotal = tvRows * tvCols
+            if session.tiles.count < tvTotal {
+                session.columns = max(session.columns, tvCols)
+                Task { await session.initializeTiles(count: tvTotal) }
+            }
+        }
         // AVAudioSession MUST be configured before AVPlayer routing
         // engages. Without .playback + .moviePlayback + .longFormVideo
         // policy, AVRoutePickerView surfaces destinations but picking
@@ -2465,24 +2485,33 @@ struct ShowcaseTVRenderView: View {
             let cols = max(1, Int(ceil(size.width / cellW)))
             let totalTiles = rows * cols
 
-            ZStack(alignment: .topLeading) {
+            ZStack {
                 Color(red: 0x08/255, green: 0x08/255, blue: 0x10/255)
 
-                ForEach(0..<totalTiles, id: \.self) { index in
-                    if index < session.tiles.count {
-                        let row = index / cols
-                        let col = index % cols
-                        TVCardTile(
-                            state: session.tiles[index],
-                            width: cellW,
-                            height: cellH
-                        )
-                        .position(
-                            x: CGFloat(col) * cellW + cellW / 2,
-                            y: CGFloat(row) * cellH + cellH / 2
-                        )
+                // Inner grid sized exactly to cols × rows, centered in
+                // the 1920×1080 canvas so the bleed is symmetric (left
+                // and right edges both have partial tiles) instead of
+                // left-aligned with only-right-bleed. This matches the
+                // phone-side ShowcaseGridView's layout.
+                ZStack(alignment: .topLeading) {
+                    ForEach(0..<totalTiles, id: \.self) { index in
+                        if index < session.tiles.count {
+                            let row = index / cols
+                            let col = index % cols
+                            TVCardTile(
+                                state: session.tiles[index],
+                                width: cellW,
+                                height: cellH
+                            )
+                            .position(
+                                x: CGFloat(col) * cellW + cellW / 2,
+                                y: CGFloat(row) * cellH + cellH / 2
+                            )
+                        }
                     }
                 }
+                .frame(width: cellW * CGFloat(cols), height: cellH * CGFloat(rows))
+                .position(x: size.width / 2, y: size.height / 2)
             }
             .frame(width: size.width, height: size.height)
         }

@@ -524,7 +524,7 @@ struct CollectionView: View {
                 Button {
                     showingWall = true
                 } label: {
-                    Label("Generate Wall image…", systemImage: "rectangle.on.rectangle.angled")
+                    Label("Generate Wall image", systemImage: "rectangle.on.rectangle.angled")
                 }
                 .disabled(collection.userCards.isEmpty)
 
@@ -534,7 +534,7 @@ struct CollectionView: View {
                 Button {
                     showingShowcase = true
                 } label: {
-                    Label("Open Showcase…", systemImage: "sparkles.rectangle.stack")
+                    Label("Open Showcase", systemImage: "sparkles.rectangle.stack")
                 }
                 .disabled(showcaseCards.isEmpty)
 

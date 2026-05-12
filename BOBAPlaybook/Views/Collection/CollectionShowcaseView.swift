@@ -845,19 +845,41 @@ struct ShowcaseControlPanel: View {
     var onDismiss: () -> Void
     @State private var externalManager = ExternalDisplayManager.shared
 
-    /// Disengages AirPlay-Video routing. Setting allowsExternalPlayback
-    /// to false forces the player back to local playback —
-    /// isExternalPlaybackActive flips false, CollectionShowcaseView's
-    /// tvActive becomes false, and the phone swaps back to the grid.
+    /// Disengages AirPlay-Video routing as fully as iOS allows from an
+    /// app-level API:
+    ///   1. allowsExternalPlayback = false — stops the player using
+    ///      external playback. isExternalPlaybackActive flips false,
+    ///      phone swaps back to grid.
+    ///   2. pause + replaceCurrentItem(nil) — removes content so the
+    ///      audio session has nothing to route.
+    ///   3. setActive(false, .notifyOthersOnDeactivation) on the audio
+    ///      session — releases the AirPlay route from our app's
+    ///      perspective. iOS may or may not revert the system-wide
+    ///      route depending on version + whether other apps are using
+    ///      it. There's no public API to FORCE the system route off
+    ///      Apple TV; that requires user action in Control Center.
+    ///   4. After a short delay restore audio session + re-attach
+    ///      playlist so AirPlay can be re-engaged via the picker.
     ///
-    /// We do NOT auto-re-enable allowsExternalPlayback. The system
-    /// audio route stays on Apple TV after a stop, so re-enabling
-    /// would just kick the player straight back into external playback.
-    /// Instead, RoutePickerView's delegate re-enables it the moment
-    /// the user opens the AirPlay picker on the grid toolbar — so
-    /// "Stop Casting" stays sticky until the user actively re-engages.
+    /// RoutePickerView's delegate flips allowsExternalPlayback back to
+    /// true the moment the user opens the picker, so re-engagement
+    /// stays one tap.
     private func stopCasting() {
-        streamer?.player.allowsExternalPlayback = false
+        guard let streamer else { return }
+        streamer.player.allowsExternalPlayback = false
+        streamer.player.pause()
+        streamer.player.replaceCurrentItem(with: nil)
+        try? AVAudioSession.sharedInstance().setActive(
+            false,
+            options: .notifyOthersOnDeactivation
+        )
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak streamer] in
+            try? AVAudioSession.sharedInstance().setCategory(
+                .playback, mode: .moviePlayback, policy: .longFormVideo
+            )
+            try? AVAudioSession.sharedInstance().setActive(true)
+            streamer?.reattachPlaylistIfNeeded()
+        }
     }
 
     var body: some View {
@@ -1523,12 +1545,12 @@ private final class AVPlayerContainerView: UIView {
 
 // MARK: - Showcase diagnostics
 //
-// Plain `print()` per memory feedback_diagnostic_console.md — use
-// the Xcode console, not os.Logger which needs Console.app + device
-// sidebar setup. Filter by tag `[Showcase]` when watching.
+// Disabled per user request — call sites left intact (the autoclosure
+// means they pay no runtime cost) so debugging can be re-enabled by
+// uncommenting the print() below.
 @inline(__always)
 nonisolated func showcaseLog(_ message: @autoclosure () -> String) {
-    print("[Showcase] \(message())")
+    // print("[Showcase] \(message())")
 }
 
 // MARK: - LAN IP helper
@@ -1582,14 +1604,14 @@ nonisolated func showcaseLocalIPAddress() -> String? {
 // AVAssetWriterDelegate callback (which fires on a nonisolated
 // background queue) without crossing an actor boundary.
 nonisolated enum ShowcaseVideoConstants {
-    /// TV output dimensions. 1280×720 (HD-Ready, 16:9) instead of full
-    /// HD. Apple TV upscales 720p to 4K smoothly and the per-segment
-    /// data drops ~55%, which stabilizes AVPlayer's buffer estimator
-    /// and stops the "evaluating buffering rate" oscillation that was
-    /// causing playback to repeatedly pause. Card art doesn't have
-    /// fine detail that benefits from 1080p anyway.
-    static let renderWidth: Int = 1280
-    static let renderHeight: Int = 720
+    /// TV output dimensions. 1920×1080 — full HD. Card text + edges
+    /// stay crisp on a 4K Apple TV after upscaling. We're stable at
+    /// 1080p now because (a) segment duration is 3s instead of 2s
+    /// (buffer headroom), (b) bitrate is high enough that variance
+    /// between busy and quiet segments doesn't trip the player's
+    /// buffer estimator.
+    static let renderWidth: Int = 1920
+    static let renderHeight: Int = 1080
 
     /// Source capture cadence — how often we re-snapshot the SwiftUI
     /// grid view. Apple TV's pipeline judders at unusual frame rates,
@@ -1611,12 +1633,11 @@ nonisolated enum ShowcaseVideoConstants {
     /// Older segment files are deleted to bound temp storage.
     static let segmentWindowSize: Int = 8
 
-    /// Video bitrate. 2.5 Mbps for 720p — within Apple's HLS Authoring
-    /// Spec recommendation (2-3.5 Mbps for 720p H.264). Lower target
-    /// means less variance segment-to-segment, which keeps AVPlayer's
-    /// buffer estimator stable and stops the playback rate from
-    /// oscillating between play and waitingToPlay.
-    static let bitrate: Int = 2_500_000
+    /// Video bitrate. 8 Mbps for crisp 1080p H.264. Apple's HLS
+    /// Authoring Spec puts 1080p H.264 at 6-8 Mbps for premium quality.
+    /// Higher end of the range so card text + line art stay sharp
+    /// after Apple TV upscales to 4K.
+    static let bitrate: Int = 8_000_000
 
     /// Card aspect ratio (width / height) for the TV-side render.
     static let cardAspect: CGFloat = 0.75
@@ -1947,10 +1968,18 @@ final class ShowcaseVideoStreamer: NSObject {
         let compression: [String: Any] = [
             AVVideoAverageBitRateKey: ShowcaseVideoConstants.bitrate,
             AVVideoExpectedSourceFrameRateKey: Int(ShowcaseVideoConstants.encodeFPS),
-            AVVideoMaxKeyFrameIntervalKey: Int(ShowcaseVideoConstants.encodeFPS),
-            AVVideoMaxKeyFrameIntervalDurationKey: 1.0,
+            // Keyframe every 2 seconds (= 60 frames at 30fps). Apple's
+            // HLS Authoring Spec recommends ≤ segment duration / 1.5,
+            // so 2s keyframes for our 3s segments is well within spec.
+            // Longer keyframe interval lets the encoder spend more
+            // bits on P/B frames where they buy more visual quality.
+            AVVideoMaxKeyFrameIntervalKey: Int(ShowcaseVideoConstants.encodeFPS * 2),
+            AVVideoMaxKeyFrameIntervalDurationKey: 2.0,
             AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
-            AVVideoAllowFrameReorderingKey: false
+            // B-frames enabled — better compression efficiency at
+            // same bitrate, which means the same 8 Mbps gets us
+            // visibly sharper card art.
+            AVVideoAllowFrameReorderingKey: true
         ]
         let videoSettings: [String: Any] = [
             AVVideoCodecKey: AVVideoCodecType.h264,
@@ -2205,6 +2234,16 @@ final class ShowcaseVideoStreamer: NSObject {
     }
 
     // MARK: - Player
+
+    /// Public re-attachment helper for the ControlPanel's Stop Casting
+    /// button — after we tear down the player item to release the
+    /// AirPlay route, we need to re-prep the player so the user can
+    /// re-engage AirPlay via the picker. No-op if the player already
+    /// has a current item (e.g. someone called stop twice in a row).
+    func reattachPlaylistIfNeeded() {
+        guard player.currentItem == nil, server != nil else { return }
+        attachPlayerToPlaylist()
+    }
 
     private func attachPlayerToPlaylist() {
         guard let server else {

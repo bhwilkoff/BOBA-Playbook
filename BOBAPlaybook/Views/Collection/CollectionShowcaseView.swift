@@ -464,22 +464,25 @@ struct ShowcaseGridView: View {
             let totalTiles = session.rows * cols
 
             ZStack(alignment: .top) {
-                Color(red: 0x08/255, green: 0x08/255, blue: 0x10/255)
-
-                // Hidden AVPlayerLayer surface — REQUIRED for the
-                // player to engage AirPlay-Video routing per Apple's
-                // allowsExternalPlayback docs. Without it, the route
-                // picker surfaces destinations but picking one fails
-                // silently. Sized 200×200 (not microscopic) so the
-                // routing engine treats it as a real video surface;
-                // opacity 0.001 keeps it functionally invisible.
+                // AVPlayerLayer surface at full size, full opacity,
+                // at the BACK of the ZStack. Apple's research-confirmed
+                // requirement: AVFoundation uses the layer's on-screen
+                // size to evaluate whether a "real" video display
+                // exists; sub-threshold or near-zero-opacity layers
+                // don't count. We render full-size + full-opacity so
+                // the routing engine recognizes it, then cover it with
+                // our opaque background Color so the user never sees
+                // the local-playback video (which goes to the TV when
+                // AirPlay-Video routes).
                 if let player = streamer?.player {
                     AirPlaySurface(player: player)
-                        .frame(width: 200, height: 200)
-                        .opacity(0.001)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 }
+
+                Color(red: 0x08/255, green: 0x08/255, blue: 0x10/255)
+                    .ignoresSafeArea()
 
                 // Tap-to-reveal layer — only active when the toolbar
                 // is hidden. Keeps the reveal-on-tap gesture out of
@@ -1505,6 +1508,13 @@ final class ShowcaseVideoStreamer: NSObject {
     private var displayLink: CADisplayLink?
     private var sourceFrameIndex: Int64 = 0
 
+    // Silent audio track — required for AirPlay-Video. Research-
+    // confirmed: AirPlay-Video routing is rooted in the audio session
+    // mechanism, and video-only HLS streams fail to route. Silent AAC
+    // gives the routing engine something to bind to.
+    private var audioInput: AVAssetWriterInput?
+    private var audioFormatDescription: CMAudioFormatDescription?
+
     // MARK: Playlist + server
 
     private var segmentDir: URL?
@@ -1809,6 +1819,52 @@ final class ShowcaseVideoStreamer: NSObject {
             throw NSError(domain: "ShowcaseVideoStreamer", code: 1)
         }
         writer.add(input)
+
+        // Silent AAC audio track. The HLS Authoring Spec recommends
+        // an audio rendition for every video, AirPlay-Video's routing
+        // engine binds via the audio-session mechanism, and there are
+        // widely-reported failures for video-only HLS streams. Silent
+        // mono AAC at 64 kbps is the minimum-viable answer.
+        let audioSettings: [String: Any] = [
+            AVFormatIDKey: kAudioFormatMPEG4AAC,
+            AVNumberOfChannelsKey: 1,
+            AVSampleRateKey: 44100,
+            AVEncoderBitRateKey: 64_000
+        ]
+        let audioInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
+        audioInput.expectsMediaDataInRealTime = true
+        guard writer.canAdd(audioInput) else {
+            throw NSError(domain: "ShowcaseVideoStreamer", code: 4)
+        }
+        writer.add(audioInput)
+
+        // Source format description for silent 16-bit signed-int PCM
+        // input. The AAC encoder swallows this and emits AAC packets
+        // into the fragmented MP4 segments.
+        var asbd = AudioStreamBasicDescription(
+            mSampleRate: 44_100,
+            mFormatID: kAudioFormatLinearPCM,
+            mFormatFlags: kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked,
+            mBytesPerPacket: 2,
+            mFramesPerPacket: 1,
+            mBytesPerFrame: 2,
+            mChannelsPerFrame: 1,
+            mBitsPerChannel: 16,
+            mReserved: 0
+        )
+        var fmt: CMAudioFormatDescription?
+        CMAudioFormatDescriptionCreate(
+            allocator: kCFAllocatorDefault,
+            asbd: &asbd,
+            layoutSize: 0,
+            layout: nil,
+            magicCookieSize: 0,
+            magicCookie: nil,
+            extensions: nil,
+            formatDescriptionOut: &fmt
+        )
+        self.audioFormatDescription = fmt
+
         guard writer.startWriting() else {
             throw writer.error ?? NSError(domain: "ShowcaseVideoStreamer", code: 2)
         }
@@ -1817,15 +1873,86 @@ final class ShowcaseVideoStreamer: NSObject {
         self.writer = writer
         self.videoInput = input
         self.adaptor = adaptor
+        self.audioInput = audioInput
         self.sourceFrameIndex = 0
+    }
+
+    /// Append a silent PCM sample buffer for one source-frame's worth
+    /// of audio (1/captureFPS seconds). Matches the video timeline so
+    /// AVAssetWriter can multiplex into HLS segments correctly.
+    private func appendSilentAudio(sourceIndex: Int64) {
+        guard let audioInput, audioInput.isReadyForMoreMediaData,
+              let formatDesc = audioFormatDescription else { return }
+
+        let audioSampleRate: Double = 44_100
+        let sourceFPS: Double = Double(ShowcaseVideoConstants.captureFPS)
+        let framesPerAppend = Int(audioSampleRate / sourceFPS)   // 4410 frames per 0.1s
+        let bytesPerSample = 2
+        let totalBytes = framesPerAppend * bytesPerSample
+
+        var blockBuffer: CMBlockBuffer?
+        let bbStatus = CMBlockBufferCreateWithMemoryBlock(
+            allocator: kCFAllocatorDefault,
+            memoryBlock: nil,
+            blockLength: totalBytes,
+            blockAllocator: kCFAllocatorDefault,
+            customBlockSource: nil,
+            offsetToData: 0,
+            dataLength: totalBytes,
+            flags: 0,
+            blockBufferOut: &blockBuffer
+        )
+        guard bbStatus == kCMBlockBufferNoErr, let blockBuffer else { return }
+        CMBlockBufferFillDataBytes(
+            with: 0,
+            blockBuffer: blockBuffer,
+            offsetIntoDestination: 0,
+            dataLength: totalBytes
+        )
+
+        let pts = CMTime(
+            value: sourceIndex * Int64(framesPerAppend),
+            timescale: Int32(audioSampleRate)
+        )
+        let duration = CMTime(
+            value: Int64(framesPerAppend),
+            timescale: Int32(audioSampleRate)
+        )
+        var timing = CMSampleTimingInfo(
+            duration: duration,
+            presentationTimeStamp: pts,
+            decodeTimeStamp: .invalid
+        )
+        var sizePerSample: Int = bytesPerSample
+
+        var sampleBuffer: CMSampleBuffer?
+        CMSampleBufferCreate(
+            allocator: kCFAllocatorDefault,
+            dataBuffer: blockBuffer,
+            dataReady: true,
+            makeDataReadyCallback: nil,
+            refcon: nil,
+            formatDescription: formatDesc,
+            sampleCount: CMItemCount(framesPerAppend),
+            sampleTimingEntryCount: 1,
+            sampleTimingArray: &timing,
+            sampleSizeEntryCount: 1,
+            sampleSizeArray: &sizePerSample,
+            sampleBufferOut: &sampleBuffer
+        )
+        guard let sampleBuffer else { return }
+        audioInput.append(sampleBuffer)
     }
 
     private func finalizeWriter() {
         videoInput?.markAsFinished()
+        audioInput?.markAsFinished()
         writer?.finishWriting { }
         writer = nil
         videoInput = nil
         adaptor = nil
+        audioInput = nil
+        audioFormatDescription = nil
     }
 
     // MARK: - Capture
@@ -1878,6 +2005,9 @@ final class ShowcaseVideoStreamer: NSObject {
             )
             adaptor.append(pixelBuffer, withPresentationTime: pts)
         }
+        // Audio runs on its own sample-rate timeline; we append one
+        // PCM buffer per source frame, covering 1/captureFPS seconds.
+        appendSilentAudio(sourceIndex: sourceFrameIndex)
         sourceFrameIndex += 1
     }
 

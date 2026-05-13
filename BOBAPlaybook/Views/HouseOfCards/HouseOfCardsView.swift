@@ -1167,6 +1167,12 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// snap to a partnered card (its apex is already occupied —
     /// snapping would pull the new card on top of the partner).
     private static let partneredApexDistance: Float = 0.02  // 2cm
+    /// Side-by-side snap is tighter than A-frame's general
+    /// 12cm range — it's a precise base-adjacency relationship,
+    /// not a long-range magnet. User has to drag close to the
+    /// cardWidth-radius ring around the candidate for snap to
+    /// engage; max pull is 4cm.
+    private static let sideBySideTolerance: Float = 0.04 // 4cm
 
     private enum SmartSnapKind: String {
         case aFrame
@@ -1252,35 +1258,41 @@ private final class HouseOfCardsCoordinator: NSObject {
 
             // 3) Side-by-side bottom-to-bottom: place our card
             //    adjacent to the candidate at the same height,
-            //    edges touching. Used for: setting up the
-            //    second pyramid base next to the first, laying
+            //    edges touching. Used for: setting up the next
+            //    pyramid's base next to the existing one, laying
             //    flat roof cards next to each other, etc.
             //
-            //    Target: candidate's bottom-midpoint offset by
-            //    exactly `cardWidth` along the candidate's local
-            //    +X axis (the lateral / "broad" axis — works
-            //    correctly whether the candidate is upright,
-            //    tilted, or yawed). Both +X and -X directions
-            //    are evaluated; the side closer to our current
-            //    position wins.
+            //    v2.180: direction-agnostic ring snap. Target is
+            //    exactly cardWidth from the candidate's bottom in
+            //    the direction the user dragged from — no enforced
+            //    axis, so it works for pyramids arranged in any
+            //    direction (lateral row, depth row, diagonal).
             //
-            //    Y-gate: only engages when bottoms are at similar
-            //    heights (within 2cm). Stops side-by-side from
-            //    pulling a card that's been lifted for a roof
-            //    placement back down to the base.
+            //    Gates: bottoms at similar heights (within 2cm),
+            //    AND tilts similar (same direction, within
+            //    mirrorTolerance). Tilt-similarity means we only
+            //    engage between cards that are "in the same layer"
+            //    — a vertical card and a tilted card don't
+            //    side-by-side snap (that pairing usually wants
+            //    A-frame instead).
+            //
+            //    Threshold 4cm (vs A-frame's 12cm): side-by-side
+            //    is a precise relationship, not a long-range
+            //    magnet. The user has to drag close to the
+            //    snap target for it to engage.
             let theirBottom = c.entity.convert(position: bottomLocal, to: nil as Entity?)
-            if abs(ourBottom.y - theirBottom.y) < 0.02 {
-                let lateralDirWorld = c.entity.convert(direction: SIMD3<Float>(1, 0, 0), to: nil as Entity?)
-                let lateralXZ = SIMD3<Float>(lateralDirWorld.x, 0, lateralDirWorld.z)
-                let lateralLen = simd_length(lateralXZ)
-                if lateralLen > 1e-3 {
-                    let lateralUnit = lateralXZ / lateralLen
-                    let targetPos = theirBottom + Self.cardWidth * lateralUnit
-                    let targetNeg = theirBottom - Self.cardWidth * lateralUnit
-                    let dPos = simd_length(targetPos - ourBottom)
-                    let dNeg = simd_length(targetNeg - ourBottom)
-                    let (target, d) = dPos < dNeg ? (targetPos, dPos) : (targetNeg, dNeg)
-                    if d < Self.snapDistance, best == nil || d < best!.dist {
+            let yAligned = abs(ourBottom.y - theirBottom.y) < 0.02
+            let tiltSame = abs(ourTilt - theirTilt) < Self.snapMirrorTolerance
+            if yAligned, tiltSame {
+                let dirToOurs = SIMD3<Float>(
+                    ourBottom.x - theirBottom.x, 0, ourBottom.z - theirBottom.z
+                )
+                let len = simd_length(dirToOurs)
+                if len > 1e-3 {
+                    let dirUnit = dirToOurs / len
+                    let target = theirBottom + Self.cardWidth * dirUnit
+                    let d = simd_length(target - ourBottom)
+                    if d < Self.sideBySideTolerance, best == nil || d < best!.dist {
                         best = Best(kind: .sideBySide, target: target, ourFeature: ourBottom, dist: d)
                     }
                 }

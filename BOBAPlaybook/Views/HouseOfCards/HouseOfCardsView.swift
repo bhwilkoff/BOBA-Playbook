@@ -1030,14 +1030,31 @@ private final class HouseOfCardsCoordinator: NSObject {
         edgeBody.name = "card-body"
         entity.addChild(edgeBody)
 
-        // ── Front plane: faces +Y in local space, slightly
-        //    above the box top. After the spawn rotation
-        //    (90° around X), this faces the camera.
+        // ── Plane orientation math (v2.159):
+        //
+        //    Entity rotation is standUp = -π/2 around world X.
+        //    That maps local axes to world directions as:
+        //       local +X → world +X
+        //       local +Y → world -Z   (AWAY from camera)
+        //       local +Z → world +Y   (up)
+        //       local -Y → world +Z   (TOWARD camera)
+        //
+        //    For the FRONT face (art) to be visible from the
+        //    camera at +Z, the front plane must be at entity-local
+        //    -Y direction, with its visible side (normal) facing
+        //    local -Y so that it ends up at world +Z after the
+        //    standUp rotation.
+        //
+        //    Plane mesh from generatePlane has its default normal
+        //    at local +Y. To flip the normal to local -Y, we
+        //    rotate the plane π around its own X axis.
+        //
+        //    v2.158 had front/back swapped: art was on the plane
+        //    facing world -Z, so the camera saw the texture
+        //    mirrored (rendered from the back side of the plane).
         let frontMesh = MeshResource.generatePlane(width: Self.cardWidth,
                                                    depth: Self.cardHeight,
                                                    cornerRadius: Self.cornerR)
-        // Placeholder material: the card back texture, so the
-        // card has a recognizable look even before art loads.
         var placeholder = UnlitMaterial()
         if let tex = backTexture {
             placeholder.color = .init(tint: .white, texture: .init(tex))
@@ -1045,14 +1062,15 @@ private final class HouseOfCardsCoordinator: NSObject {
             placeholder.color = .init(tint: UIColor(red: 0.65, green: 0.20, blue: 0.18, alpha: 1))
         }
         let frontEntity = ModelEntity(mesh: frontMesh, materials: [placeholder])
-        frontEntity.position = SIMD3<Float>(0, halfT + 0.00012, 0)
+        // Front plane: at entity-local -Y, flipped π around X so
+        // its normal points to local -Y → world +Z (camera-facing).
+        frontEntity.position = SIMD3<Float>(0, -halfT - 0.00012, 0)
+        frontEntity.orientation = simd_quatf(angle: .pi, axis: SIMD3<Float>(1, 0, 0))
         frontEntity.name = "card-front"
         entity.addChild(frontEntity)
 
-        // ── Back plane: faces -Y in local space, slightly below
-        //    the box bottom. After spawn rotation, faces away
-        //    from the camera. Rotate 180° around X so the
-        //    texture renders on the correct side.
+        // ── Back plane: at entity-local +Y with default normal
+        //    +Y → world -Z (away from camera) after standUp.
         let backMesh = MeshResource.generatePlane(width: Self.cardWidth,
                                                   depth: Self.cardHeight,
                                                   cornerRadius: Self.cornerR)
@@ -1063,8 +1081,7 @@ private final class HouseOfCardsCoordinator: NSObject {
             backMatUnlit.color = .init(tint: UIColor(red: 0.65, green: 0.20, blue: 0.18, alpha: 1))
         }
         let backEntity = ModelEntity(mesh: backMesh, materials: [backMatUnlit])
-        backEntity.position = SIMD3<Float>(0, -halfT - 0.00012, 0)
-        backEntity.orientation = simd_quatf(angle: .pi, axis: SIMD3<Float>(1, 0, 0))
+        backEntity.position = SIMD3<Float>(0, halfT + 0.00012, 0)
         backEntity.name = "card-back"
         entity.addChild(backEntity)
 

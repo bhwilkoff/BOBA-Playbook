@@ -1130,12 +1130,12 @@ private final class HouseOfCardsCoordinator: NSObject {
         let frontMesh = MeshResource.generatePlane(width: Self.cardWidth,
                                                    depth: Self.cardHeight,
                                                    cornerRadius: Self.cornerR)
+        // Neutral dark placeholder until CDN art loads. Previously
+        // used the back-texture which made the front face briefly
+        // look like a flipped card back — user reported the
+        // half-second of "back" appearance on spawn.
         var placeholder = UnlitMaterial()
-        if let tex = backTexture {
-            placeholder.color = .init(tint: .white, texture: .init(tex))
-        } else {
-            placeholder.color = .init(tint: UIColor(red: 0.65, green: 0.20, blue: 0.18, alpha: 1))
-        }
+        placeholder.color = .init(tint: UIColor(white: 0.08, alpha: 1))
         let frontEntity = ModelEntity(mesh: frontMesh, materials: [placeholder])
         // Front plane: at entity-local +Y; default normal +Y maps
         // to the outward-facing direction after entity rotation.
@@ -1249,15 +1249,14 @@ private final class HouseOfCardsCoordinator: NSObject {
         let renderer = UIGraphicsImageRenderer(size: size, format: format)
         return renderer.image { ctx in
             let cg = ctx.cgContext
-            // Vertical flip: translate down + scale Y by -1 so the
-            // image draws with its top edge at the bottom of the
-            // canvas. Net effect on the resulting UIImage: vertical
-            // mirror.
-            cg.translateBy(x: 0, y: size.height)
-            cg.scaleBy(x: 1, y: -1)
-            // Clip to rounded rect; note the rect is in the
-            // ORIGINAL coordinate system, which after the flip
-            // still corresponds to the full image.
+            // 180° rotation (flip BOTH axes). User reported v2.161-
+            // 165 showed the cards mirrored horizontally. My v2.161
+            // vertical-only flip corrected upside-down but exposed
+            // a horizontal mirror — the original texture-to-plane
+            // UV mapping was 180°-rotated, not just V-flipped, so
+            // we need to flip both U and V to restore correctness.
+            cg.translateBy(x: size.width, y: size.height)
+            cg.scaleBy(x: -1, y: -1)
             let path = UIBezierPath(roundedRect: rect, cornerRadius: radius)
             path.addClip()
             image.draw(in: rect)

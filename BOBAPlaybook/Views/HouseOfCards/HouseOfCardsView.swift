@@ -97,12 +97,22 @@ struct HouseOfCardsView: View {
 
             Spacer()
 
+            // Reset Field — prominent, immediate (no confirm per
+            // user choice). Clears the tower so they can start over.
+            Button {
+                session.resetScene()
+            } label: {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .frame(width: 36, height: 36)
+                    .background(.ultraThinMaterial, in: Circle())
+            }
+            .accessibilityLabel("Reset Field")
+
             Menu {
                 Toggle("Use my collection",  isOn: $useCollection)
                     .disabled(!auth.isAuthenticated || ownedHighPowerCount == 0)
-                Button("Reset Tower",  systemImage: "arrow.counterclockwise") {
-                    session.resetScene()
-                }
                 Button("How to Play",  systemImage: "questionmark.circle") {
                     showingHelp = true
                 }
@@ -128,29 +138,36 @@ struct HouseOfCardsView: View {
         }
     }
 
-    // MARK: Bottom deck strip — upcoming cards
+    // MARK: Bottom deck strip — upcoming cards + Place button
     private var bottomDeckStrip: some View {
         VStack(spacing: 8) {
-            Text("TAP TO SPAWN A PAIR · DRAG TO PLACE · RELEASE")
-                .font(Design.Fonts.mono(9, weight: .semibold))
-                .tracking(1)
-                .foregroundStyle(.white.opacity(0.55))
+            // Status / Place button row.
+            HStack(spacing: 12) {
+                Text(stripStatusText)
+                    .font(Design.Fonts.mono(10, weight: .semibold))
+                    .tracking(1)
+                    .foregroundStyle(.white.opacity(0.55))
+                    .lineLimit(1)
+                Spacer()
+                if session.hasHeldCards {
+                    placeButton(title: "DROP", action: { session.releaseRequested = true })
+                } else if !session.selectedCards.isEmpty {
+                    placeButton(title: "TAP TABLE TO PLACE",
+                                action: {})   // visual prompt only — actual placement is by tap
+                        .disabled(true)
+                        .opacity(0.7)
+                }
+            }
+            .padding(.horizontal, 14)
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    ForEach(Array(session.deck.prefix(8).enumerated()), id: \.offset) { idx, card in
+                    ForEach(Array(session.deck.prefix(12).enumerated()), id: \.offset) { _, card in
                         DeckStripCard(
                             card: card,
-                            isNext: idx == 0,
+                            selectionIndex: session.selectionIndex(of: card),
                             onTap: {
-                                // Signal the coordinator to spawn a
-                                // pair from the deck. The coordinator
-                                // pops 2 cards via inout — we don't
-                                // mutate the deck here. The `card`
-                                // value passed in pendingSpawn is a
-                                // signal flag; the coordinator ignores
-                                // its identity and pops from the deck
-                                // head.
-                                session.pendingSpawn = card
+                                session.toggleSelection(card)
                             }
                         )
                     }
@@ -161,6 +178,29 @@ struct HouseOfCardsView: View {
         }
         .padding(.vertical, 8)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func placeButton(title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(Design.Fonts.mono(11, weight: .bold))
+                .tracking(1)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Design.Colors.bobaOrange, in: Capsule())
+        }
+    }
+
+    private var stripStatusText: String {
+        if session.hasHeldCards {
+            return "ADJUST · TAP DROP TO RELEASE"
+        }
+        if session.selectedCards.isEmpty {
+            return "SELECT CARDS TO PLACE · MAX 4"
+        }
+        return "\(session.selectedCards.count)/4 SELECTED"
     }
 
     // MARK: Card pool resolution
@@ -197,14 +237,16 @@ struct HouseOfCardsView: View {
                     Text("BUILD A TOWER")
                         .font(Design.Fonts.display(22))
                         .foregroundStyle(.white)
-                    Text("Place cards onto the table or onto other cards. Lean them against each other to climb levels. The taller and more stable the tower, the higher the score.")
+                    Text("Pick the cards you want, choose where to place them, then drop them into physics. Build leaning structures to climb levels.")
                         .font(Design.Fonts.mono(15))
                         .foregroundStyle(.white.opacity(0.85))
                     Divider().overlay(.white.opacity(0.15))
-                    helpRow("Place",       "Tap the leftmost card — TWO cards spawn together as an A-frame. Drag with one finger to position the pair, release to drop.")
-                    helpRow("Look around", "Drag on empty space to orbit the camera. Pinch to zoom in or out.")
-                    helpRow("Re-grab",     "Touch a placed card and drag to reposition it. Release to drop again.")
-                    helpRow("Lean",        "An A-frame is two cards meeting at the top — the classic house-of-cards base. Build a row, then bridge them with a horizontal card to start a second story.")
+                    helpRow("Select",      "Tap up to 4 cards in the bottom strip — orange numbered badge shows placement order.")
+                    helpRow("Place",       "Tap the table where you want the cards to spawn. They appear as held (kinematic) — they won't fall yet.")
+                    helpRow("Adjust",      "Drag with one finger to move the held cards. Tap DROP when you're happy with the position to release them into physics.")
+                    helpRow("Re-grab",     "Tap any placed card to pick it back up. Tap DROP again to commit.")
+                    helpRow("Look around", "Drag on empty space to orbit the camera. Pinch to zoom.")
+                    helpRow("Reset",       "The ↺ button in the top bar clears the table immediately so you can start over.")
                     helpRow("Score",       "Each stable layer adds to your tower height. 10+ is the dream.")
                     helpRow("Switch deck", "Toggle 'Use my collection' to build with cards you own (power > 135).")
                 }
@@ -237,48 +279,61 @@ struct HouseOfCardsView: View {
 
 // MARK: - DeckStripCard
 //
-// Compact card thumbnail in the bottom strip. The leftmost
-// ("next") card is tappable. Tapping pulls the card off the
-// deck and signals the coordinator to spawn it in the scene
-// as a held kinematic entity. Drag-from-strip was abandoned
-// after the v2.151–v2.154 attempts — SwiftUI→UIKit gesture
-// coupling across the strip→scene boundary was too brittle.
-// Tap is reliable; the scene's own gestures handle placement.
+// Compact card thumbnail in the bottom strip. Tap to toggle
+// selection (up to 4 cards selectable). Selected cards show
+// orange border + the order-of-selection index in the corner.
+// v2.167 multi-select model — the user explicitly picks which
+// cards to place rather than the leftmost-pair auto-pop.
 private struct DeckStripCard: View {
     let card: Card
-    let isNext: Bool
+    let selectionIndex: Int?   // nil = not selected; otherwise 0..3
     var onTap: () -> Void = {}
 
+    private var isSelected: Bool { selectionIndex != nil }
+
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
+        ZStack(alignment: .topTrailing) {
             CardImageView(card: card, size: .thumb)
                 .aspectRatio(0.714, contentMode: .fit)
                 .frame(width: 60, height: 84)
                 .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 4)
-                        .stroke(isNext ? Design.Colors.bobaOrange : .white.opacity(0.2),
-                                lineWidth: isNext ? 2 : 0.5)
+                        .stroke(isSelected ? Design.Colors.bobaOrange : .white.opacity(0.2),
+                                lineWidth: isSelected ? 2.5 : 0.5)
                 )
-                .shadow(color: isNext ? Design.Colors.bobaOrange.opacity(0.4) : .clear,
-                        radius: isNext ? 6 : 0)
-                .scaleEffect(isNext ? 1.0 : 0.92)
-                .opacity(isNext ? 1.0 : 0.7)
-            if let power = card.power {
-                Text("\(power)")
-                    .font(Design.Fonts.mono(9, weight: .bold))
+                .shadow(color: isSelected ? Design.Colors.bobaOrange.opacity(0.6) : .clear,
+                        radius: isSelected ? 8 : 0)
+                .scaleEffect(isSelected ? 1.06 : 1.0)
+
+            if let idx = selectionIndex {
+                Text("\(idx + 1)")
+                    .font(Design.Fonts.mono(11, weight: .bold))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1)
-                    .background(Color.black.opacity(0.6), in: Capsule())
-                    .padding(3)
+                    .frame(width: 20, height: 20)
+                    .background(Design.Colors.bobaOrange, in: Circle())
+                    .offset(x: 6, y: -6)
+            }
+
+            if let power = card.power {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Text("\(power)")
+                            .font(Design.Fonts.mono(9, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(Color.black.opacity(0.6), in: Capsule())
+                        Spacer()
+                    }
+                }
+                .padding(3)
             }
         }
+        .frame(width: 60, height: 84)
         .contentShape(Rectangle())
-        .onTapGesture {
-            guard isNext else { return }
-            onTap()
-        }
+        .onTapGesture { onTap() }
     }
 }
 
@@ -459,6 +514,7 @@ private final class HouseOfCardsCoordinator: NSObject {
     // here, the 2-finger pinch is free to recognize on 2-touch
     // gestures without conflict.
     private func installGestures(on view: ARView) {
+        // 1-finger pan: orbit camera OR drag a held/grabbed card.
         let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePrimaryPan(_:)))
         pan.minimumNumberOfTouches = 1
         pan.maximumNumberOfTouches = 1
@@ -466,10 +522,54 @@ private final class HouseOfCardsCoordinator: NSObject {
         view.addGestureRecognizer(pan)
         self.primaryPanGesture = pan
 
+        // Pinch: zoom always.
         let pinch = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
         pinch.delegate = self
         view.addGestureRecognizer(pinch)
         self.pinchGesture = pinch
+
+        // Tap: spawn-at-location (when cards selected) OR grab a
+        // settled card. Requires pan to fail first so dragging
+        // doesn't trigger an accidental spawn.
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        tap.delegate = self
+        tap.require(toFail: pan)
+        view.addGestureRecognizer(tap)
+    }
+
+    @objc private func handleTap(_ g: UITapGestureRecognizer) {
+        guard let view = arView else { return }
+        guard g.state == .ended else { return }
+        let point = g.location(in: view)
+
+        // If user has cards selected in the strip, spawn them at
+        // the tap location regardless of what's there.
+        if !session.selectedCards.isEmpty && heldCards.isEmpty {
+            // Project the tap point onto the tabletop (Y ≈ 0).
+            if let world = view.project(point, ontoPlaneAt: 0) {
+                session.pendingSpawnLocation = world
+            }
+            return
+        }
+
+        // Otherwise treat the tap as a card grab: hit-test for a
+        // card under the touch.
+        let hits = view.hitTest(point, query: .nearest, mask: .all)
+        for hit in hits {
+            var entity: Entity? = hit.entity
+            while let e = entity {
+                if e.name == "card-root" {
+                    if let dyn = dynamicCards.first(where: { $0.entity === e }) {
+                        switchToKinematic(dyn)
+                        dynamicCards.removeAll(where: { $0 === dyn })
+                        heldCards = [dyn]
+                        session.hasHeldCards = true
+                        return
+                    }
+                }
+                entity = e.parent
+            }
+        }
     }
 
     @objc private func handlePrimaryPan(_ g: UIPanGestureRecognizer) {
@@ -667,13 +767,30 @@ private final class HouseOfCardsCoordinator: NSObject {
             clearAllCards()
         }
 
-        // Tap-spawn: user tapped a card in the deck strip.
-        // Spawn TWO kinematic cards as an A-frame at the table
-        // center. The user drags the pair into position with the
-        // primary pan; release commits both to dynamic.
-        if session.pendingSpawn != nil {
-            session.pendingSpawn = nil
-            spawnHeldPair(takingFrom: &session.deck)
+        // Spawn-at-location: user has selected cards in the strip
+        // and just tapped a location on the table. Spawn the
+        // selected cards there as held kinematic.
+        if let location = session.pendingSpawnLocation {
+            session.pendingSpawnLocation = nil
+            let toSpawn = session.selectedCards
+            session.selectedCards.removeAll()
+            // Also remove these cards from the deck.
+            for card in toSpawn {
+                if let idx = session.deck.firstIndex(where: { $0.id == card.id }) {
+                    session.deck.remove(at: idx)
+                }
+            }
+            spawnHeldCards(toSpawn, at: location)
+            session.hasHeldCards = !heldCards.isEmpty
+        }
+
+        // Drop signal: user tapped "Drop" to commit held cards.
+        if session.releaseRequested {
+            session.releaseRequested = false
+            if !heldCards.isEmpty {
+                commitHeldCards()
+                session.hasHeldCards = false
+            }
         }
     }
 
@@ -909,6 +1026,79 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     // MARK: Card spawning
     //
+    // v2.167 spawn: spawnHeldCards(_:at:)
+    //
+    // Spawns 1-4 cards at a given world location as held
+    // kinematic entities. The user then adjusts them with
+    // scene gestures (1-finger drag to translate, future 2-
+    // finger gestures to rotate per the redesign). Tap Drop
+    // to commit all to dynamic physics.
+    //
+    // Patterns by count:
+    //   1 card  → vertical, slight forward lean
+    //   2 cards → A-frame tent (leaning inward)
+    //   3 cards → triangle (three leaning inward at 60°
+    //              offsets)
+    //   4 cards → Berg-style pinwheel cell (four leaning
+    //              inward at 90° offsets)
+    private func spawnHeldCards(_ cards: [Card], at location: SIMD3<Float>) {
+        guard let root = anchor, !cards.isEmpty else { return }
+        if !heldCards.isEmpty { commitHeldCards() }
+
+        let leanAngle: Float = .pi / 6   // 30° from vertical
+        let halfH = Self.cardHeight * 0.5
+        let halfT = Self.cardThick * 0.5
+
+        // Distance from cell center to each card's base.
+        let baseOffset = halfT * cos(leanAngle) + halfH * sin(leanAngle) - 0.0005
+
+        // Vertical height of each card's center (entity-local Y).
+        let centerY = halfT * sin(leanAngle) + halfH * cos(leanAngle)
+
+        // Per-card placement: each card sits at an azimuth around
+        // the spawn-center, with its TOP tilted toward the spawn
+        // center and its FRONT facing outward.
+        let count = min(cards.count, 4)
+        var newHeld: [CardEntity] = []
+        for i in 0..<count {
+            let azimuth = (Float(i) / Float(count)) * (2 * .pi)
+            let entityX = location.x + sin(azimuth) * baseOffset
+            let entityZ = location.z + cos(azimuth) * baseOffset
+            let entityY = location.y + centerY + 0.001
+
+            // Card lean: -π/6 around X then yaw by `azimuth + π`
+            // around Y so the front face points outward.
+            let lean = simd_quatf(angle: leanAngle - .pi / 2,
+                                  axis: SIMD3<Float>(1, 0, 0))
+            let yaw  = simd_quatf(angle: -azimuth, axis: SIMD3<Float>(0, 1, 0))
+            let rotation = yaw * lean
+
+            let entity = buildCardEntity(
+                for: cards[i],
+                position: SIMD3<Float>(entityX, entityY, entityZ),
+                rotation: rotation
+            )
+            if var body = entity.components[PhysicsBodyComponent.self] {
+                body.isContinuousCollisionDetectionEnabled = false
+                body.mode = .kinematic
+                entity.components.set(body)
+            }
+            root.addChild(entity)
+            newHeld.append(CardEntity(entity: entity, card: cards[i]))
+        }
+        heldCards = newHeld
+
+        // Load art for each card async.
+        for c in newHeld {
+            let entity = c.entity
+            loadFrontArt(for: c.card) { [weak self, weak entity] tex in
+                self?.applyArt(to: entity, texture: tex)
+            }
+        }
+        print("[HoC] Spawned \(newHeld.count) cards at \(location)")
+    }
+
+    // Legacy stub — kept to avoid breaking call sites mid-refactor.
     // Pair-spawn: tap-from-strip consumes TWO cards from the
     // deck and spawns them as a TENT at the table center.
     //
@@ -1400,12 +1590,24 @@ final class HouseOfCardsSession {
     /// by the RealityView coordinator's settle detector.
     var currentLevels: Int = 0
 
-    /// One-shot flag set by tapping a card in the deck strip.
-    /// The RealityView coordinator reads + clears it on the
-    /// next render cycle, spawning a kinematic "held" card at
-    /// the table center. Scene gestures handle placement from
-    /// there (1-finger long-press to drag, release to drop).
-    var pendingSpawn: Card? = nil
+    /// Cards selected from the strip, up to 4. Cards in this
+    /// array show selection state in the strip UI. Tapping
+    /// "Place" then the table spawns these cards into the scene.
+    var selectedCards: [Card] = []
+
+    /// World position where the next spawn should happen.
+    /// Set by tap-on-table after the user has tapped Place.
+    /// Coordinator reads + clears it on the next update cycle.
+    var pendingSpawnLocation: SIMD3<Float>? = nil
+
+    /// True while the coordinator is holding cards from a
+    /// recent spawn (cards are kinematic, awaiting commit to
+    /// dynamic). Used to drive UI state (Drop button visible).
+    var hasHeldCards: Bool = false
+
+    /// Set when the user taps "Drop" — coordinator commits held
+    /// cards to dynamic physics on next update cycle.
+    var releaseRequested: Bool = false
 
     /// Cleared & rebuilt by resetScene; the coordinator
     /// observes it via an Int identity tag and rebuilds the
@@ -1419,15 +1621,33 @@ final class HouseOfCardsSession {
         deck = pool.shuffled()
     }
 
-    func requestSpawnNextCard() {
-        guard let next = deck.first else { return }
-        pendingSpawn = next
-        deck.removeFirst()
+    /// Toggle a card's selection. Max 4 selected at once.
+    func toggleSelection(_ card: Card) {
+        if let idx = selectedCards.firstIndex(where: { $0.id == card.id }) {
+            selectedCards.remove(at: idx)
+        } else if selectedCards.count < 4 {
+            selectedCards.append(card)
+        }
+    }
+
+    func isSelected(_ card: Card) -> Bool {
+        selectedCards.contains(where: { $0.id == card.id })
+    }
+
+    func selectionIndex(of card: Card) -> Int? {
+        selectedCards.firstIndex(where: { $0.id == card.id })
+    }
+
+    func clearSelection() {
+        selectedCards.removeAll()
     }
 
     func resetScene() {
         currentLevels = 0
         resetGeneration &+= 1
+        selectedCards.removeAll()
+        pendingSpawnLocation = nil
+        hasHeldCards = false
     }
 }
 

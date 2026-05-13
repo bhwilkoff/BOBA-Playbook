@@ -658,6 +658,14 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     @objc private func handleEntityGestureUpdate(_ g: UIGestureRecognizer) {
         guard let selected = selectedCardEntity else { return }
+        // v2.174 diagnostics: log entity-gesture state transitions
+        // so we can see in console which Apple gesture is firing
+        // and when.
+        if g.state == .began {
+            print("[HoB] Apple \(type(of: g)) BEGAN")
+        } else if g.state == .ended {
+            print("[HoB] Apple \(type(of: g)) ENDED — firing A-frame snap")
+        }
         // Surface snap fires every .changed frame: Apple's
         // translation is XZ-only; we only modify Y. Orthogonal —
         // they compose without conflict, and the card visibly
@@ -697,6 +705,18 @@ private final class HouseOfCardsCoordinator: NSObject {
     private var cardManipAccum: CGPoint = .zero
     private static let cardManipAxisThreshold: CGFloat = 8.0
 
+    /// v2.174: true if Apple's entity gestures are currently
+    /// claiming the touches (translation in .began/.changed OR
+    /// rotation in .began/.changed). When true, our custom
+    /// 2-finger pan should bail to avoid pitch/lift firing
+    /// simultaneously with Apple's translate/yaw.
+    private var entityGestureActive: Bool {
+        for g in entityGestures where g.state == .began || g.state == .changed {
+            return true
+        }
+        return false
+    }
+
     @objc private func handleTwoFingerPan(_ g: UIPanGestureRecognizer) {
         guard let view = arView else { return }
         let delta = g.translation(in: view)
@@ -708,6 +728,7 @@ private final class HouseOfCardsCoordinator: NSObject {
                 twoFingerMode = .rotatingCard(selected)
                 cardManipAxis = .undetermined
                 cardManipAccum = .zero
+                print("[HoB] 2-finger pan BEGAN on selected card; entityGestureActive=\(entityGestureActive)")
             } else {
                 twoFingerMode = .panningCamera
             }
@@ -716,6 +737,18 @@ private final class HouseOfCardsCoordinator: NSObject {
         case .changed:
             switch twoFingerMode {
             case .rotatingCard(let card):
+                // v2.174 gesture-exclusivity: if Apple's
+                // EntityRotationGesture is currently firing (the
+                // user is twisting yaw), skip pitch/lift this
+                // frame. Stops the "diagonal-twist fires pitch
+                // and yaw simultaneously" conflict the user
+                // reported in v2.173. Apple's translate uses
+                // 1-finger only so doesn't compete here, but the
+                // check covers it defensively.
+                if entityGestureActive {
+                    g.setTranslation(.zero, in: view)
+                    return
+                }
                 // v2.172 axis lock: accumulate delta until the user
                 // has moved >8pt in either axis, then lock to the
                 // dominant one for the rest of the gesture. Stops
@@ -859,6 +892,7 @@ private final class HouseOfCardsCoordinator: NSObject {
             // empty space → orbit camera (preserves selection).
             let hitCard = hitTestCardEntity(at: point)
             if selectedCardEntity != nil {
+                print("[HoB] 1-finger pan BEGAN with selection → orbit (touch was off the selected card)")
                 panMode = .orbiting
                 g.setTranslation(.zero, in: view)
                 return
@@ -1042,14 +1076,21 @@ private final class HouseOfCardsCoordinator: NSObject {
     // Snap is XZ-only; surface-snap handles the Y. Together they
     // produce the canonical "two cards leaning on each other"
     // pose without manual fiddling.
-    private static let aFrameSnapDistance: Float = 0.04   // 4cm
-    private static let aFrameTiltMin: Float = 0.087        // ~5°
-    private static let aFrameMirrorTolerance: Float = 0.175 // ~10°
+    // v2.174: loosened from 4cm / 5° / 10° → 7cm / 4° / 20°.
+    // Original thresholds were so tight that users would have to
+    // place card tops within 4cm of each other to feel the snap,
+    // which is hard at typical screen scales.
+    private static let aFrameSnapDistance: Float = 0.07   // 7cm
+    private static let aFrameTiltMin: Float = 0.07         // ~4°
+    private static let aFrameMirrorTolerance: Float = 0.35 // ~20°
 
     private func applyAFrameSnap(to card: CardEntity) {
         // Get our pitch angle (rotation around world X).
         let ourTilt = pitchAngle(of: card.entity)
-        guard abs(ourTilt) > Self.aFrameTiltMin else { return }
+        guard abs(ourTilt) > Self.aFrameTiltMin else {
+            print("[HoB] A-frame: ourTilt=\(ourTilt) rad below \(Self.aFrameTiltMin) min, not checking")
+            return
+        }
 
         // Top-edge midpoint of our card in world space.
         let topLocal = SIMD3<Float>(0, 0, Self.cardHeight / 2)
@@ -1062,27 +1103,33 @@ private final class HouseOfCardsCoordinator: NSObject {
         let candidates = (heldCards + dynamicCards).filter { $0 !== card }
         var bestPartner: (entity: Entity, topY: Float, topPos: SIMD3<Float>)? = nil
         var bestDist: Float = .greatestFiniteMagnitude
+        print("[HoB] A-frame: checking \(candidates.count) candidates, ourTilt=\(ourTilt) rad, ourTop=\(ourTop)")
         for c in candidates {
             let theirTilt = pitchAngle(of: c.entity)
-            // Mirror = opposite sign, similar magnitude.
-            guard ourTilt * theirTilt < 0 else { continue }
-            guard abs(abs(theirTilt) - abs(ourTilt)) < Self.aFrameMirrorTolerance else { continue }
             let theirTop = c.entity.convert(position: topLocal, to: nil as Entity?)
             let dx = theirTop.x - ourTop.x
             let dz = theirTop.z - ourTop.z
             let d = sqrt(dx*dx + dz*dz)
-            if d < Self.aFrameSnapDistance && d < bestDist {
+            let mirrorSign = ourTilt * theirTilt < 0
+            let mirrorMag = abs(abs(theirTilt) - abs(ourTilt)) < Self.aFrameMirrorTolerance
+            let withinDist = d < Self.aFrameSnapDistance
+            print("[HoB]   candidate: theirTilt=\(theirTilt) rad, dist=\(String(format: "%.3f", d))m, mirrorSign=\(mirrorSign), mirrorMag=\(mirrorMag), withinDist=\(withinDist)")
+            guard mirrorSign else { continue }
+            guard mirrorMag else { continue }
+            if withinDist && d < bestDist {
                 bestDist = d
                 bestPartner = (c.entity, theirTop.y, theirTop)
             }
         }
-        guard let partner = bestPartner else { return }
+        guard let partner = bestPartner else {
+            print("[HoB] A-frame: NO partner found in range")
+            return
+        }
         // Snap our XZ so our top midpoint = partner's top midpoint.
-        // We need to compute the position offset that achieves this:
-        //   targetCenter = ourCenter + (partner.topPos - ourTop)
         let offset = partner.topPos - ourTop
         card.entity.position.x = ourCenter.x + offset.x
         card.entity.position.z = ourCenter.z + offset.z
+        print("[HoB] A-frame: SNAPPED to partner, offset=\(offset)")
         // Re-snap bottom to surface (the surface may have changed
         // because we moved over a different supporting card).
         applySurfaceSnap(to: card)
@@ -1464,7 +1511,11 @@ private final class HouseOfCardsCoordinator: NSObject {
         table.components.set(
             PhysicsBodyComponent(
                 massProperties: .default,
-                material: .generate(friction: 0.45, restitution: 0.05),
+                // v2.174: bumped 0.45 → 0.70 in line with card-material
+                // friction increase. Base of an A-frame grips the table
+                // more firmly, so users can lean cards against each
+                // other without the bases sliding apart.
+                material: .generate(friction: 0.70, restitution: 0.05),
                 mode: .static
             )
         )
@@ -1933,9 +1984,15 @@ private final class HouseOfCardsCoordinator: NSObject {
         // thickness for physics stability):
         //   V = 0.0635 × 0.003 × 0.0889 = 1.69e-5 m³
         //   ρ = 0.0018 / 1.69e-5 ≈ 107 kg/m³
+        // v2.174: bumped friction for forgiveness. Real paper-
+        // on-paper static μ runs 0.50-0.70; we go to the high end
+        // (0.85 / 0.70) to make stacking and leaning more stable
+        // when cards are slightly bumped. Angular damping bumped
+        // 0.05 → 0.25 — kills micro-wobble without preventing
+        // gravity-driven collapse.
         let pmat = PhysicsMaterialResource.generate(
-            staticFriction:  0.55,
-            dynamicFriction: 0.40,
+            staticFriction:  0.85,
+            dynamicFriction: 0.70,
             restitution:     0.02
         )
         var body = PhysicsBodyComponent(
@@ -1946,7 +2003,7 @@ private final class HouseOfCardsCoordinator: NSObject {
         )
         body.isContinuousCollisionDetectionEnabled = true
         body.linearDamping  = 0.05
-        body.angularDamping = 0.05
+        body.angularDamping = 0.25
         entity.components.set(body)
         entity.components.set(PhysicsMotionComponent())
 

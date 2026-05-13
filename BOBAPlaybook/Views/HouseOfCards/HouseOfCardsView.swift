@@ -840,14 +840,17 @@ private final class HouseOfCardsCoordinator: NSObject {
                 g.setTranslation(.zero, in: view)
 
             case .panningCamera:
-                // v2.171: drag direction matches camera direction
-                // (drag right → camera looks at points to the right
-                // of current target). User reported v2.170's
-                // Apple-Maps-style "drag the world" direction felt
-                // backward in the 3D scene.
+                // v2.184: drag-the-world direction. Drag finger RIGHT
+                // → world content shifts RIGHT under finger (the
+                // cameraTarget moves LEFT in world). This is the
+                // direction Ben has now asked for three times.
+                // DO NOT flip these signs without checking memory
+                // reference_camera_pan_direction first — the v2.171
+                // joystick variant ("drag right = camera looks
+                // right") felt reversed to Ben in actual use.
                 let factor: Float = camDistance * 0.0018
-                let dxWorld = Float(delta.x) * factor
-                let dzWorld = Float(delta.y) * factor
+                let dxWorld = -Float(delta.x) * factor
+                let dzWorld = -Float(delta.y) * factor
                 let cosA = cos(camAzimuth)
                 let sinA = sin(camAzimuth)
                 cameraTarget.x += dxWorld * cosA - dzWorld * sinA

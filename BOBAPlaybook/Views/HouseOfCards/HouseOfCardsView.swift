@@ -805,7 +805,14 @@ private final class HouseOfCardsCoordinator: NSObject {
                     let pivotBefore = card.entity.convert(position: bottomLocal, to: nil as Entity?)
                     let inputAngle = Float(delta.x) * 0.012
                     let currentTilt = pitchAngle(of: card.entity)
-                    let maxTilt: Float = 1.22  // ~70°
+                    // v2.179: max tilt 70° → 90°. Users need a flat
+                    // (horizontal) card to make roof pieces that
+                    // sit-on-top of A-frame apexes — the v2.175
+                    // 70° cap was preventing that core part of
+                    // tower construction. Past 90° the card is
+                    // upside-down which isn't useful, so the cap
+                    // stays at exactly π/2.
+                    let maxTilt: Float = .pi / 2
                     let proposed = currentTilt + inputAngle
                     let clamped = max(-maxTilt, min(maxTilt, proposed))
                     let actualAngle = clamped - currentTilt
@@ -1164,6 +1171,7 @@ private final class HouseOfCardsCoordinator: NSObject {
     private enum SmartSnapKind: String {
         case aFrame
         case sitOnTop
+        case sideBySide
     }
 
     /// True if `c` is already in an A-frame with some other card
@@ -1241,6 +1249,42 @@ private final class HouseOfCardsCoordinator: NSObject {
                     best = Best(kind: .sitOnTop, target: theirTop, ourFeature: ourBottom, dist: dS)
                 }
             }
+
+            // 3) Side-by-side bottom-to-bottom: place our card
+            //    adjacent to the candidate at the same height,
+            //    edges touching. Used for: setting up the
+            //    second pyramid base next to the first, laying
+            //    flat roof cards next to each other, etc.
+            //
+            //    Target: candidate's bottom-midpoint offset by
+            //    exactly `cardWidth` along the candidate's local
+            //    +X axis (the lateral / "broad" axis — works
+            //    correctly whether the candidate is upright,
+            //    tilted, or yawed). Both +X and -X directions
+            //    are evaluated; the side closer to our current
+            //    position wins.
+            //
+            //    Y-gate: only engages when bottoms are at similar
+            //    heights (within 2cm). Stops side-by-side from
+            //    pulling a card that's been lifted for a roof
+            //    placement back down to the base.
+            let theirBottom = c.entity.convert(position: bottomLocal, to: nil as Entity?)
+            if abs(ourBottom.y - theirBottom.y) < 0.02 {
+                let lateralDirWorld = c.entity.convert(direction: SIMD3<Float>(1, 0, 0), to: nil as Entity?)
+                let lateralXZ = SIMD3<Float>(lateralDirWorld.x, 0, lateralDirWorld.z)
+                let lateralLen = simd_length(lateralXZ)
+                if lateralLen > 1e-3 {
+                    let lateralUnit = lateralXZ / lateralLen
+                    let targetPos = theirBottom + Self.cardWidth * lateralUnit
+                    let targetNeg = theirBottom - Self.cardWidth * lateralUnit
+                    let dPos = simd_length(targetPos - ourBottom)
+                    let dNeg = simd_length(targetNeg - ourBottom)
+                    let (target, d) = dPos < dNeg ? (targetPos, dPos) : (targetNeg, dNeg)
+                    if d < Self.snapDistance, best == nil || d < best!.dist {
+                        best = Best(kind: .sideBySide, target: target, ourFeature: ourBottom, dist: d)
+                    }
+                }
+            }
         }
 
         guard let snap = best else {
@@ -1248,9 +1292,11 @@ private final class HouseOfCardsCoordinator: NSObject {
             return
         }
 
-        // Apply the snap. A-frame: XZ only — surface-snap handles
-        // Y for the base on the table. Sit-on-top: full XYZ — we
-        // want our card to land on the supporting card.
+        // Apply the snap. XZ from the offset always. Y only for
+        // sit-on-top (we want our card to land ON the supporting
+        // card). For A-frame and side-by-side, Y is delegated to
+        // applySurfaceSnap so cards stay at the correct level
+        // (table OR top of whatever they're resting on).
         let offset = snap.target - snap.ourFeature
         card.entity.position.x += offset.x
         card.entity.position.z += offset.z

@@ -513,7 +513,15 @@ private final class HouseOfCardsCoordinator: NSObject {
     private weak var primaryPanGesture:   UIPanGestureRecognizer?
     private weak var twoFingerPanGesture: UIPanGestureRecognizer?
     private weak var pinchGesture:        UIPinchGestureRecognizer?
-    private weak var rotationGesture:     UIRotationGestureRecognizer?
+
+    /// v2.173: Apple's `ARView.installGestures([.translation,
+    /// .rotation], for:)` recognizers attached to the currently
+    /// selected card. Installed in setSelectedCard, removed on
+    /// deselect. Apple's translation handles XZ-plane drag and
+    /// Apple's rotation handles 2-finger-twist yaw — both
+    /// canonical iOS RealityKit APIs (verified against Apple
+    /// docs for iOS 26).
+    private var entityGestures: [EntityGestureRecognizer] = []
 
     /// Current gesture mode set on .began of primaryPanGesture
     /// and cleared on .ended. Drives whether deltas orbit the
@@ -600,21 +608,14 @@ private final class HouseOfCardsCoordinator: NSObject {
         view.addGestureRecognizer(twoPan)
         self.twoFingerPanGesture = twoPan
 
-        // Pinch: zoom always (v2.172 — dropped pinch-for-yaw, which
-        // was non-standard. Yaw moves to 2-finger twist below).
+        // Pinch: zoom camera always (v2.172 — dropped pinch-for-yaw,
+        // which was non-standard. v2.173: yaw is now handled by
+        // Apple's EntityRotationGestureRecognizer attached per-
+        // selected-card via installGestures.)
         let pinch = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
         pinch.delegate = self
         view.addGestureRecognizer(pinch)
         self.pinchGesture = pinch
-
-        // Rotation (2-finger twist): yaw the selected card. Matches
-        // AR Quick Look + every other iOS gesture-based rotation
-        // app. Recognizes simultaneously with pinch so user can
-        // twist + zoom in one gesture.
-        let rotate = UIRotationGestureRecognizer(target: self, action: #selector(handleRotation(_:)))
-        rotate.delegate = self
-        view.addGestureRecognizer(rotate)
-        self.rotationGesture = rotate
 
         // Tap: spawn-at-location (when cards selected) OR grab a
         // settled card. Requires pan to fail first so dragging
@@ -623,6 +624,57 @@ private final class HouseOfCardsCoordinator: NSObject {
         tap.delegate = self
         tap.require(toFail: pan)
         view.addGestureRecognizer(tap)
+    }
+
+    // v2.173: install Apple's native entity gestures on a card
+    // when it becomes the selection. Returns Apple-managed
+    // recognizers that update the entity transform directly each
+    // frame. We attach a target callback so we can re-apply
+    // surface-snap + A-frame-snap after each gesture update —
+    // Apple's translation is XZ-only (Y untouched), so our snap
+    // and Apple's drag are orthogonal and compose cleanly.
+    //
+    // Per Apple staff (forum 771441), ARView is the canonical
+    // iOS RealityKit container; installGestures(_:for:) is the
+    // canonical entity-manipulation API on iOS through iOS 26.
+    // ManipulationComponent / GestureComponent on visionOS only.
+    private func installEntityGestures(on card: CardEntity) {
+        guard let view = arView else { return }
+        let recognizers = view.installGestures([.translation, .rotation], for: card.entity)
+        for r in recognizers {
+            r.addTarget(self, action: #selector(handleEntityGestureUpdate(_:)))
+            r.delegate = self
+        }
+        entityGestures = recognizers
+    }
+
+    private func removeEntityGestures() {
+        guard let view = arView else { return }
+        for r in entityGestures {
+            view.removeGestureRecognizer(r)
+        }
+        entityGestures.removeAll()
+    }
+
+    @objc private func handleEntityGestureUpdate(_ g: UIGestureRecognizer) {
+        guard let selected = selectedCardEntity else { return }
+        // Surface snap fires every .changed frame: Apple's
+        // translation is XZ-only; we only modify Y. Orthogonal —
+        // they compose without conflict, and the card visibly
+        // rides the surface as you drag.
+        if g.state == .changed {
+            applySurfaceSnap(to: selected)
+        }
+        // A-frame snap fires on .ended only. Each Apple-translate
+        // .changed frame sets XZ from touch position; if we
+        // overrode XZ during the drag, Apple's next frame would
+        // immediately undo us. Snapping on release pulls the
+        // card into a stable leaning pose at the end of the
+        // gesture without fighting Apple's drag.
+        if g.state == .ended {
+            applySurfaceSnap(to: selected)
+            applyAFrameSnap(to: selected)
+        }
     }
 
     /// What the 2-finger gesture is currently driving.
@@ -738,31 +790,6 @@ private final class HouseOfCardsCoordinator: NSObject {
         }
     }
 
-    @objc private func handleRotation(_ g: UIRotationGestureRecognizer) {
-        // v2.172: 2-finger twist → yaw the selected card around
-        // world Y. Standard iOS rotation pattern. Pinch is now
-        // always zoom, even when a card is selected.
-        guard let selected = selectedCardEntity else { return }
-        switch g.state {
-        case .changed:
-            let yawAngle = Float(g.rotation)
-            // Twist counter-clockwise (positive g.rotation) → card
-            // yaws counter-clockwise from above (positive around +Y).
-            let yaw = simd_quatf(angle: yawAngle, axis: SIMD3<Float>(0, 1, 0))
-            selected.entity.orientation = yaw * selected.entity.orientation
-            g.rotation = 0
-            // Yawing a TILTED card moves the bottom-edge midpoint
-            // in XZ (rotation around vertical, with offset along
-            // local -Z). If the bottom midpoint passes over a
-            // different supporting surface during the yaw, the
-            // card should ride that surface — re-snap on every
-            // changed frame.
-            applySurfaceSnap(to: selected)
-        default:
-            break
-        }
-    }
-
     @objc private func handleTap(_ g: UITapGestureRecognizer) {
         guard let view = arView else { return }
         guard g.state == .ended else { return }
@@ -824,22 +851,22 @@ private final class HouseOfCardsCoordinator: NSObject {
 
         switch g.state {
         case .began:
-            // v2.171 context-aware: if a card is selected AND the
-            // drag started ON that card, drag the card. Otherwise
-            // orbit the camera — so the user can adjust their view
-            // even while a card is selected (per user request).
+            // v2.173: when a card is SELECTED, our shouldReceive
+            // delegate filters out touches landing on it — those
+            // go to Apple's EntityTranslationGestureRecognizer
+            // installed via installGestures. Anything that reaches
+            // this handler with a selection active is therefore on
+            // empty space → orbit camera (preserves selection).
             let hitCard = hitTestCardEntity(at: point)
-            if let selected = selectedCardEntity {
-                if let hit = hitCard, hit === selected {
-                    panMode = .draggingCards([selected])
-                } else {
-                    panMode = .orbiting
-                }
+            if selectedCardEntity != nil {
+                panMode = .orbiting
                 g.setTranslation(.zero, in: view)
                 return
             }
 
             // No selection: pan a card if one was touched, else orbit.
+            // Play-mode grab path: switch a dynamic card to
+            // kinematic for the duration of the drag.
             if let card = hitCard {
                 if !session.isPaused, dynamicCards.contains(where: { $0 === card }) {
                     switchToKinematic(card)
@@ -921,9 +948,10 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     @objc private func handlePinch(_ g: UIPinchGestureRecognizer) {
         guard g.scale > 0 else { return }
-        // v2.172: pinch ALWAYS zooms camera, whether a card is
-        // selected or not. Yaw moved to 2-finger twist
-        // (handleRotation).
+        // Pinch ALWAYS zooms camera. v2.172 dropped pinch-for-yaw
+        // (which was non-standard). v2.173 routes yaw through
+        // Apple's EntityRotationGestureRecognizer attached per-
+        // selected-card via installGestures.
         camDistance = max(Self.camDistanceMin,
                           min(Self.camDistanceMax, camDistance / Float(g.scale)))
         g.scale = 1.0
@@ -1082,9 +1110,10 @@ private final class HouseOfCardsCoordinator: NSObject {
     private func setSelectedCard(_ card: CardEntity?) {
         // If the same card is being passed in, nothing to do.
         if let prev = selectedCardEntity, let next = card, prev === next { return }
-        // Remove outline from previously-selected card and let
-        // it return to physics if play mode.
+        // Remove outline + entity gestures from previously-selected
+        // card; let it return to physics if play mode.
         if let prev = selectedCardEntity {
+            removeEntityGestures()
             removeSelectionOutline(from: prev)
             if !session.isPaused {
                 // Card was kinematic-during-selection; restore it
@@ -1102,6 +1131,8 @@ private final class HouseOfCardsCoordinator: NSObject {
         }
         selectedCardEntity = card
         // Ensure new selection is kinematic + outline visible.
+        // Install Apple's native translate + yaw gestures so the
+        // user gets canonical iOS gesture handling on the card.
         if let card = card {
             switchToKinematic(card)
             if let idx = dynamicCards.firstIndex(where: { $0 === card }) {
@@ -1111,6 +1142,7 @@ private final class HouseOfCardsCoordinator: NSObject {
                 heldCards.append(card)
             }
             addSelectionOutline(to: card)
+            installEntityGestures(on: card)
         }
     }
 
@@ -2039,12 +2071,38 @@ extension HouseOfCardsCoordinator: UIGestureRecognizerDelegate {
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
     ) -> Bool {
-        // Pan + pinch coexist. Long-press stays exclusive.
+        // Pan + pinch + Apple's entity gestures coexist. Long-press
+        // stays exclusive.
         if gestureRecognizer is UILongPressGestureRecognizer ||
            other is UILongPressGestureRecognizer {
             return false
         }
         return true
+    }
+
+    nonisolated func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldReceive touch: UITouch
+    ) -> Bool {
+        // v2.173: Our 1-finger pan must NOT receive touches that
+        // land on the currently-selected card. Those go to
+        // Apple's EntityTranslationGestureRecognizer (installed
+        // per-selection via installGestures). This is the
+        // delegate primitive Apple recommends for resolving the
+        // 1-finger-pan-vs-entity-translate ambiguity on iOS.
+        return MainActor.assumeIsolated {
+            guard let pan = primaryPanGesture, gestureRecognizer === pan else {
+                return true
+            }
+            guard let view = arView, let selected = selectedCardEntity else {
+                return true
+            }
+            let point = touch.location(in: view)
+            if let hit = hitTestCardEntity(at: point), hit === selected {
+                return false
+            }
+            return true
+        }
     }
 }
 

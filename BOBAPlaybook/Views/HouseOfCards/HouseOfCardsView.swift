@@ -951,8 +951,20 @@ private final class HouseOfCardsCoordinator: NSObject {
         // +sin(θ)*halfH from entity center. To put the apex at
         // world Z=0 for card 1 at z=-baseHalfZ:
         //   baseHalfZ = sin(θ)*halfH
-        // Plus 1mm apex gap so the cards don't overlap on spawn.
-        let apexGap: Float = 0.001
+        //
+        // v2.163: NEGATIVE apex gap (cards spawn with their tops
+        // slightly OVERLAPPING). User reported v2.162's 1mm gap
+        // meant cards "do not touch one another." Without contact
+        // the cards have no apex support and SHOULD topple under
+        // gravity — but RealityKit's solver was treating them as
+        // at-rest, never starting the tip. Spawning with overlap
+        // forces the solver to resolve the contact, which gives
+        // each card a real apex normal force and establishes the
+        // A-frame mechanically.
+        //
+        // The overlap amount is roughly the card thickness so the
+        // resolved contact is right at the apex top edge.
+        let apexGap: Float = -Self.cardThick * 0.5
         let baseHalfZ = sin(leanAngle) * halfH + apexGap
 
         let leftEntity  = buildCardEntity(for: card1,
@@ -1006,23 +1018,29 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     private func commitHeldCards() {
         guard !heldCards.isEmpty else { return }
-        for card in heldCards {
+        // For each card, set initial velocity so the solver sees it
+        // as "moving" (not at rest) and applies real physics. A pure
+        // 0-velocity dynamic body whose forces are in equilibrium
+        // (gravity vs base normal vs apex normal) gets locked in by
+        // the constraint solver and won't fall even after support
+        // is removed. Seeding velocity bypasses this.
+        for (idx, card) in heldCards.enumerated() {
             if var body = card.entity.components[PhysicsBodyComponent.self] {
                 body.mode = .dynamic
                 body.isContinuousCollisionDetectionEnabled = true
                 card.entity.components.set(body)
             }
-            // Small downward velocity so it "settles" rather than
-            // hovering. Tiny lateral push toward the other card in
-            // the pair so the A-frame's tops touch.
-            if var motion = card.entity.components[PhysicsMotionComponent.self] {
-                motion.linearVelocity = SIMD3<Float>(0, -0.05, 0)
-                card.entity.components.set(motion)
-            } else {
-                var motion = PhysicsMotionComponent()
-                motion.linearVelocity = SIMD3<Float>(0, -0.05, 0)
-                card.entity.components.set(motion)
-            }
+            // Tip the card slightly toward its lean direction. For
+            // the first card (leans toward +Z apex), angular vel
+            // around +X axis (so top swings to +Z and -Y). For the
+            // second card (leans toward -Z apex), angular vel
+            // around -X. Index-based fallback since heldCards is
+            // unordered, but the pair is always [card1=left, card2=right].
+            let tipDirection: Float = (idx == 0) ? 1.0 : -1.0
+            var motion = PhysicsMotionComponent()
+            motion.linearVelocity = SIMD3<Float>(0, -0.02, 0)
+            motion.angularVelocity = SIMD3<Float>(tipDirection * 0.3, 0, 0)
+            card.entity.components.set(motion)
             dynamicCards.append(card)
         }
         print("[HoC] Committed \(heldCards.count) cards. Tower: \(dynamicCards.count) total.")

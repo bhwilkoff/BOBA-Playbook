@@ -162,7 +162,6 @@ struct HouseOfCardsView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 Spacer(minLength: 4)
-                lockToggleButton
                 playPauseButton
             }
             .padding(.horizontal, 14)
@@ -186,24 +185,6 @@ struct HouseOfCardsView: View {
         }
         .padding(.vertical, 8)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-
-    @ViewBuilder
-    private var lockToggleButton: some View {
-        Button {
-            session.lockToSurface.toggle()
-        } label: {
-            Image(systemName: session.lockToSurface ? "lock.fill" : "lock.open")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 32, height: 32)
-                .background(
-                    Circle().fill(session.lockToSurface
-                                  ? Design.Colors.bobaCyan.opacity(0.85)
-                                  : Color.white.opacity(0.18))
-                )
-        }
-        .accessibilityLabel(session.lockToSurface ? "Unlock (allow free vertical movement)" : "Lock bottom to surface below")
     }
 
     @ViewBuilder
@@ -304,12 +285,11 @@ struct HouseOfCardsView: View {
                     helpRow("1. Select from strip", "Tap up to 4 cards in the bottom strip — orange numbered badge shows placement order.")
                     helpRow("2. Tap to place",      "Tap anywhere on the table to spawn the selected cards there, standing vertical. Add more anytime by selecting more strip cards and tapping again.")
                     helpRow("3. Tap a card",        "Tap a placed card to SELECT it — an orange halo appears around it. While selected, ALL gestures manipulate that card (camera is paused).")
-                    helpRow("Translate",            "One-finger drag STARTING ON the selected card → slide it across the table (X/Z). When 🔒 is on, the bottom of the card sticks to whatever surface is below it — table or top of another card.")
-                    helpRow("Tilt (angle)",         "Two-finger HORIZONTAL drag → tilt the selected card forward/back. The bottom keeps riding the surface below as it leans.")
-                    helpRow("Lift / lower",         "Unlock 🔒 first. Then two-finger VERTICAL drag → raise or lower the selected card freely in the air.")
+                    helpRow("Translate",            "One-finger drag STARTING ON the selected card → slide it across the table (X/Z). The bottom always rides whatever surface is below — table or top of another card.")
+                    helpRow("Tilt (angle)",         "Two-finger HORIZONTAL drag → tilt the selected card forward/back, up to flat (90°). The bottom keeps riding the surface below as it leans.")
+                    helpRow("Lift / lower",         "Two-finger VERTICAL drag → raise or lower the selected card freely. Lift a card high to position it as a roof piece on top of an A-frame apex.")
                     helpRow("Rotate (yaw)",         "TWIST with two fingers → spin the selected card around its vertical axis. (Standard iOS rotation gesture, same as Photos / Maps.)")
-                    helpRow("Lock toggle",          "🔒 ON (default): the bottom of the selected card snaps to whatever surface is under it. Slide a card across the table, over a supporting card — bottom auto-rides the surface. 🔒 OFF: free vertical movement, lift cards into the air.")
-                    helpRow("Smart snap",           "When you release a drag, lift, or tilt near another card, the closest valid stacking pose snaps automatically. Two cases: (1) Both tilted in OPPOSITE directions and their tops are close → A-frame apex. (2) Your card is ABOVE another card and the bottoms/tops are aligned → your bottom edge rests on the supporting card's top. Lets you build full pyramids without measuring — lean two cards together, lift a roof card on top, stack another A-frame above it.")
+                    helpRow("Smart snap",           "When you release a drag, lift, or tilt near another card, the closest valid stacking pose snaps automatically. Three cases: (1) Both tilted in OPPOSITE directions and their tops are close → A-frame apex. (2) Your card is ABOVE another card with bottom near their top → your bottom rests on the supporting card. (3) Two similar-tilt cards' bottoms close together → bases snap side-by-side. Build pyramids, roofs, and adjacent towers without measuring.")
                     helpRow("Deselect",             "Tap empty space (or tap the selected card again) to deselect.")
                     helpRow("Look around",          "When NOTHING is selected: one-finger drag orbits, two-finger drag pans the view, pinch zooms.")
                     helpRow("Play / Pause",        "Tap PLAY to engage physics. Tap PAUSE anytime to freeze mid-fall, repair, and play again.")
@@ -831,16 +811,15 @@ private final class HouseOfCardsCoordinator: NSObject {
                     // Apple's translation .ended.
 
                 case .lift:
-                    if session.lockToSurface {
-                        // Locked: bottom rides surface. Vertical
-                        // drag is a no-op except for the snap re-eval.
-                        applySurfaceSnap(to: card)
-                    } else {
-                        // Unlocked: free Y translation.
-                        let yDelta: Float = -Float(delta.y) * 0.0005
-                        let newY = card.entity.position.y + yDelta
-                        card.entity.position.y = max(minCardY(), newY)
-                    }
+                    // v2.181: lock button removed. 2-finger vertical
+                    // drag always allows free Y translation.
+                    // Surface-snap deliberately NOT called here —
+                    // it would fight the lift. Smart snap on .ended
+                    // pulls the card to whichever surface is below
+                    // its new XZ (table, another card's top, etc.).
+                    let yDelta: Float = -Float(delta.y) * 0.0005
+                    let newY = card.entity.position.y + yDelta
+                    card.entity.position.y = max(minCardY(), newY)
 
                 case .undetermined:
                     // Haven't committed to an axis yet — apply nothing.
@@ -1106,13 +1085,14 @@ private final class HouseOfCardsCoordinator: NSObject {
         return nil
     }
 
-    /// When lockToSurface is ON, set card.position.y so the card's
-    /// bottom-edge midpoint rests on the surface below (table OR
-    /// top of supporting card) with a small air gap so the halo
-    /// doesn't intersect the surface.
+    /// Set card.position.y so the card's bottom-edge midpoint
+    /// rests on the surface below (table OR top of supporting
+    /// card) with a small air gap so the halo doesn't intersect
+    /// the surface. v2.181: always on — lock button removed.
+    /// During 2-finger vertical drag (.lift), this isn't called
+    /// so the user can lift cards freely.
     private func applySurfaceSnap(to card: CardEntity) {
-        guard session.lockToSurface,
-              let surfaceY = surfaceYBelow(card: card) else { return }
+        guard let surfaceY = surfaceYBelow(card: card) else { return }
         let bottomMidLocal = SIMD3<Float>(0, 0, -Self.cardHeight / 2)
         let currentBottomY = card.entity.convert(
             position: bottomMidLocal, to: nil as Entity?
@@ -1695,11 +1675,11 @@ private final class HouseOfCardsCoordinator: NSObject {
         table.components.set(
             PhysicsBodyComponent(
                 massProperties: .default,
-                // v2.174: bumped 0.45 → 0.70 in line with card-material
-                // friction increase. Base of an A-frame grips the table
-                // more firmly, so users can lean cards against each
-                // other without the bases sliding apart.
-                material: .generate(friction: 0.70, restitution: 0.05),
+                // v2.181: bumped 0.70 → 0.9 to match card-material
+                // friction. Base of every A-frame grips the table
+                // firmly so pyramids don't slide apart when the
+                // physics engages.
+                material: .generate(friction: 0.9, restitution: 0.0),
                 mode: .static
             )
         )
@@ -2168,26 +2148,30 @@ private final class HouseOfCardsCoordinator: NSObject {
         // thickness for physics stability):
         //   V = 0.0635 × 0.003 × 0.0889 = 1.69e-5 m³
         //   ρ = 0.0018 / 1.69e-5 ≈ 107 kg/m³
-        // v2.174: bumped friction for forgiveness. Real paper-
-        // on-paper static μ runs 0.50-0.70; we go to the high end
-        // (0.85 / 0.70) to make stacking and leaning more stable
-        // when cards are slightly bumped. Angular damping bumped
-        // 0.05 → 0.25 — kills micro-wobble without preventing
-        // gravity-driven collapse.
+        // v2.181: pushed cards into "more forgiving than real" range
+        // because the user wants structurally-sound tower configs to
+        // survive PLAY. Friction μ_s=1.0 / μ_d=0.9 is at the top of
+        // real matte paper. Angular damping doubled (0.25 → 0.5)
+        // kills micro-wobble that propagates into apex-contact
+        // slips. Linear damping doubled (0.05 → 0.10) prevents tiny
+        // velocity drifts from accumulating. Density 107 → 200
+        // doesn't change toppling rate (mass-equivalence) but
+        // improves PhysX solver numerical stability — solver
+        // impulses translate to smaller velocity changes per frame.
         let pmat = PhysicsMaterialResource.generate(
-            staticFriction:  0.85,
-            dynamicFriction: 0.70,
-            restitution:     0.02
+            staticFriction:  1.0,
+            dynamicFriction: 0.9,
+            restitution:     0.0
         )
         var body = PhysicsBodyComponent(
             shapes:   [shape],
-            density:  107,
+            density:  200,
             material: pmat,
             mode:     .dynamic
         )
         body.isContinuousCollisionDetectionEnabled = true
-        body.linearDamping  = 0.05
-        body.angularDamping = 0.25
+        body.linearDamping  = 0.10
+        body.angularDamping = 0.50
         entity.components.set(body)
         entity.components.set(PhysicsMotionComponent())
 
@@ -2440,12 +2424,6 @@ final class HouseOfCardsSession {
     /// Signal flag: user tapped the PLAY/PAUSE button. The
     /// coordinator reads + clears it and toggles isPaused.
     var togglePauseRequested: Bool = false
-
-    /// When true, the selected card's Y position is clamped to
-    /// the table surface (or top of nearest supporting card).
-    /// Prevents accidentally lifting a card to nowhere or
-    /// driving it through the table. Default ON.
-    var lockToSurface: Bool = true
 
     /// True if at least one card is on the table (kinematic
     /// or dynamic). Drives play-button enabled state.

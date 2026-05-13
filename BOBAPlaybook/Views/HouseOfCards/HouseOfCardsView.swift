@@ -251,17 +251,19 @@ struct HouseOfCardsView: View {
                         .font(Design.Fonts.mono(15))
                         .foregroundStyle(.white.opacity(0.85))
                     Divider().overlay(.white.opacity(0.15))
-                    helpRow("1. Select", "Tap up to 4 cards in the bottom strip — orange numbered badge shows placement order.")
-                    helpRow("2. Place",  "Tap anywhere on the table. The cards appear standing vertical at that spot, frozen in place. Add more cards anytime — tap more strip cards then tap the table again.")
-                    helpRow("3. Move",   "Drag any card with ONE finger to reposition it. Drag empty space to orbit the camera.")
-                    helpRow("4. Rotate", "Drag a card with TWO fingers to rotate it. Horizontal = yaw (spin around vertical), vertical = tilt forward/back. This is how you build leaning structures.")
-                    helpRow("5. Look around", "Two-finger drag on EMPTY space pans the camera target across the table. Pinch to zoom.")
-                    helpRow("6. Play",   "When your tower looks good, tap PLAY. Gravity engages — see if it stands.")
-                    helpRow("7. Pause",  "Tap PAUSE anytime to freeze mid-fall, repair, and play again.")
-                    helpRow("Re-grab",   "Tap any placed card to pick it back up for adjustment.")
-                    helpRow("Reset",     "The ↺ button in the top bar clears the field immediately.")
-                    helpRow("Score",     "Each stable layer adds to your tower height. 10+ is the dream.")
-                    helpRow("Switch deck","Toggle 'Use my collection' to build with cards you own (power > 135).")
+                    helpRow("1. Select from strip", "Tap up to 4 cards in the bottom strip — orange numbered badge shows placement order.")
+                    helpRow("2. Tap to place",      "Tap anywhere on the table to spawn the selected cards there, standing vertical. Add more anytime by selecting more strip cards and tapping again.")
+                    helpRow("3. Tap a card",        "Tap a placed card to SELECT it — an orange halo appears around it. While selected, ALL gestures manipulate that card (camera is paused).")
+                    helpRow("Translate",            "One-finger drag → slide the selected card across the table (X/Z).")
+                    helpRow("Lift / lower",         "Two-finger vertical drag → raise or lower the selected card off the table (Y).")
+                    helpRow("Rotate (yaw)",         "Two-finger HORIZONTAL drag → spin the selected card around the vertical axis.")
+                    helpRow("Tilt (angle)",         "PINCH → angle the selected card forward or back. Pinch-out tilts the top away from you.")
+                    helpRow("Deselect",             "Tap empty space (or tap the selected card again) to deselect. Then camera gestures work again.")
+                    helpRow("Look around",          "When NOTHING is selected: one-finger drag orbits, two-finger drag pans the table view, pinch zooms.")
+                    helpRow("Play / Pause",        "Tap PLAY to engage physics. Tap PAUSE anytime to freeze mid-fall, repair, and play again.")
+                    helpRow("Reset",                "The ↺ button in the top bar clears the field immediately.")
+                    helpRow("Score",                "Each stable layer adds to your tower height. 10+ is the dream.")
+                    helpRow("Switch deck",          "Toggle 'Use my collection' to build with cards you own (power > 135).")
                 }
                 .padding(20)
             }
@@ -407,11 +409,15 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// All dynamic (settled or in-flight) card entities in the
     /// world. Re-grabbed cards move from here to heldCards.
     private var dynamicCards: [CardEntity] = []
-    /// Kinematic cards currently being placed by the user.
-    /// A pair-spawn from the strip puts 2 cards here forming an
-    /// A-frame; the pan gesture moves them together; release
-    /// commits both back to dynamic.
+    /// Kinematic cards. In pause mode this is every card on
+    /// the table. In play mode it's empty unless a card is
+    /// being actively grabbed.
     private var heldCards: [CardEntity] = []
+    /// The card currently SELECTED for individual manipulation
+    /// in pause mode. Has a visual outline halo. While set, all
+    /// gestures route to it (camera gestures are suppressed).
+    /// Always nil in play mode.
+    private var selectedCardEntity: CardEntity?
     private var lastResetGeneration: Int = -1
 
     /// Card-back texture is loaded once and reused across
@@ -436,6 +442,22 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// Camera framing: as the tower grows, the camera lifts
     /// to keep the top in view.
     private var targetMaxY: Float = 0.0
+
+    // Cached selection-outline mesh + material — built lazily
+    // on first use, reused for every selection.
+    private lazy var outlineMesh: MeshResource = {
+        let margin: Float = 0.005
+        return MeshResource.generatePlane(
+            width: Self.cardWidth + 2 * margin,
+            depth: Self.cardHeight + 2 * margin,
+            cornerRadius: Self.cornerR + margin
+        )
+    }()
+    private lazy var outlineMaterial: UnlitMaterial = {
+        var m = UnlitMaterial()
+        m.color = .init(tint: UIColor(red: 1.0, green: 0.5, blue: 0.05, alpha: 1.0))
+        return m
+    }()
 
 
     /// Spherical-coordinate camera state (orbit around the
@@ -571,55 +593,33 @@ private final class HouseOfCardsCoordinator: NSObject {
 
         switch g.state {
         case .began:
-            // Hit-test to decide: rotate a card or pan camera.
-            let point = g.location(in: view)
-            let hits = view.hitTest(point, query: .nearest, mask: .all)
-            var targetCard: CardEntity?
-            for hit in hits {
-                var e: Entity? = hit.entity
-                while let entity = e {
-                    if entity.name == "card-root" {
-                        if let card = heldCards.first(where: { $0.entity === entity })
-                            ?? dynamicCards.first(where: { $0.entity === entity }) {
-                            targetCard = card
-                            // If it's a dynamic card during play,
-                            // switch to kinematic for the rotation.
-                            if !session.isPaused,
-                               dynamicCards.contains(where: { $0 === card }) {
-                                switchToKinematic(card)
-                                dynamicCards.removeAll(where: { $0 === card })
-                                heldCards.append(card)
-                            }
-                        }
-                    }
-                    e = entity.parent
-                }
-                if targetCard != nil { break }
+            // Selected card takes priority. Otherwise pan camera.
+            if let selected = selectedCardEntity {
+                twoFingerMode = .rotatingCard(selected)
+            } else {
+                twoFingerMode = .panningCamera
             }
-            twoFingerMode = targetCard.map { .rotatingCard($0) } ?? .panningCamera
             g.setTranslation(.zero, in: view)
 
         case .changed:
             switch twoFingerMode {
             case .rotatingCard(let card):
-                // Horizontal drag → yaw (world Y axis).
-                // Vertical drag → pitch (world X axis).
-                let yawAngle   = Float(delta.x) * 0.012
-                let pitchAngle = Float(delta.y) * 0.012
-                let yaw   = simd_quatf(angle: yawAngle,   axis: SIMD3<Float>(0, 1, 0))
-                let pitch = simd_quatf(angle: pitchAngle, axis: SIMD3<Float>(1, 0, 0))
-                card.entity.orientation = yaw * pitch * card.entity.orientation
+                // Horizontal drag → yaw around world Y axis.
+                // Vertical drag → translate along world Y (lift/lower).
+                // Both apply proportionally so pure horizontal or
+                // pure vertical gives only one effect.
+                let yawAngle = Float(delta.x) * 0.012
+                let yawQ = simd_quatf(angle: yawAngle, axis: SIMD3<Float>(0, 1, 0))
+                card.entity.orientation = yawQ * card.entity.orientation
+                let yDelta: Float = -Float(delta.y) * 0.0005
+                let newY = card.entity.position.y + yDelta
+                card.entity.position.y = max(0.0005, newY)  // clamp above table
                 g.setTranslation(.zero, in: view)
 
             case .panningCamera:
-                // Move cameraTarget in world XZ plane. Scale by
-                // distance so panning feels consistent at any zoom.
                 let factor: Float = camDistance * 0.0018
                 let dxWorld = -Float(delta.x) * factor
                 let dzWorld = -Float(delta.y) * factor
-                // Rotate the screen-delta by camera azimuth so
-                // drag-right ALWAYS moves the world to the right
-                // (relative to camera view).
                 let cosA = cos(camAzimuth)
                 let sinA = sin(camAzimuth)
                 cameraTarget.x += dxWorld * cosA - dzWorld * sinA
@@ -632,19 +632,6 @@ private final class HouseOfCardsCoordinator: NSObject {
             }
 
         case .ended, .cancelled, .failed:
-            // If we were rotating a play-mode dynamic card, push
-            // it back to dynamic now.
-            if case .rotatingCard(let card) = twoFingerMode,
-               !session.isPaused,
-               heldCards.contains(where: { $0 === card }) {
-                if var body = card.entity.components[PhysicsBodyComponent.self] {
-                    body.mode = .dynamic
-                    body.isContinuousCollisionDetectionEnabled = true
-                    card.entity.components.set(body)
-                }
-                heldCards.removeAll(where: { $0 === card })
-                dynamicCards.append(card)
-            }
             twoFingerMode = .idle
 
         default:
@@ -657,37 +644,54 @@ private final class HouseOfCardsCoordinator: NSObject {
         guard g.state == .ended else { return }
         let point = g.location(in: view)
 
-        // If user has cards selected in the strip, spawn them at
-        // the tap location. No constraint on existing cards —
-        // user can always add more (v2.168 had a heldCards.isEmpty
-        // check that blocked re-spawn).
-        if !session.selectedCards.isEmpty {
+        // Hit-test for a card under the tap.
+        let tappedCard = hitTestCardEntity(at: point)
+
+        // Strip selection takes priority: if user has cards
+        // selected in the strip and tapped EMPTY SPACE, spawn
+        // them at the tap location.
+        if !session.selectedCards.isEmpty, tappedCard == nil {
             if let world = view.project(point, ontoPlaneAt: 0) {
                 session.pendingSpawnLocation = world
             }
             return
         }
 
-        // Otherwise: if currently playing, tap on a card pulls it
-        // back to kinematic for adjustment. In pause mode all
-        // cards are already kinematic, so just hit-test for drag
-        // (handled by the 1-finger pan elsewhere).
-        guard !session.isPaused else { return }
+        // Tap on a card: select/deselect.
+        if let card = tappedCard {
+            if let current = selectedCardEntity, current === card {
+                setSelectedCard(nil)        // tap selected card again → deselect
+            } else {
+                setSelectedCard(card)       // switch / new selection
+            }
+            return
+        }
+
+        // Tap on empty space with no strip selection: deselect
+        // any placed-card selection.
+        if selectedCardEntity != nil {
+            setSelectedCard(nil)
+        }
+    }
+
+    /// Walk the hit-test results to find the nearest card-root
+    /// ancestor entity.
+    private func hitTestCardEntity(at point: CGPoint) -> CardEntity? {
+        guard let view = arView else { return nil }
         let hits = view.hitTest(point, query: .nearest, mask: .all)
         for hit in hits {
             var entity: Entity? = hit.entity
             while let e = entity {
                 if e.name == "card-root" {
-                    if let dyn = dynamicCards.first(where: { $0.entity === e }) {
-                        switchToKinematic(dyn)
-                        dynamicCards.removeAll(where: { $0 === dyn })
-                        heldCards = [dyn]
-                        return
+                    if let card = heldCards.first(where: { $0.entity === e })
+                        ?? dynamicCards.first(where: { $0.entity === e }) {
+                        return card
                     }
                 }
                 entity = e.parent
             }
         }
+        return nil
     }
 
     @objc private func handlePrimaryPan(_ g: UIPanGestureRecognizer) {
@@ -696,40 +700,27 @@ private final class HouseOfCardsCoordinator: NSObject {
 
         switch g.state {
         case .began:
-            // Hit-test: did the touch land on a card?
-            let hits = view.hitTest(point, query: .nearest, mask: .all)
-            let hitCard = hits.compactMap { hit -> CardEntity? in
-                var entity: Entity? = hit.entity
-                while let e = entity {
-                    if e.name == "card-root" {
-                        // Find the CardEntity bookkeeping wrapper.
-                        if let held = heldCards.first(where: { $0.entity === e }) {
-                            return held
-                        }
-                        if let dyn = dynamicCards.first(where: { $0.entity === e }) {
-                            return dyn
-                        }
-                    }
-                    entity = e.parent
-                }
-                return nil
-            }.first
+            // Priority: if a card is selected, ALL pan goes to it.
+            // This is the user's "while a card is selected, you
+            // are only manipulating that card" rule.
+            if let selected = selectedCardEntity {
+                panMode = .draggingCards([selected])
+                g.setTranslation(.zero, in: view)
+                return
+            }
 
+            // No selection: hit-test for a card. If found, route
+            // to it (re-grab during play, drag in pause).
+            let hitCard = hitTestCardEntity(at: point)
             if let card = hitCard {
-                // Drag the specific card the user touched. In
-                // PAUSED mode every card is already kinematic, so
-                // just move it. In PLAY mode, switch it back to
-                // kinematic for the duration of the drag.
                 if !session.isPaused, dynamicCards.contains(where: { $0 === card }) {
                     switchToKinematic(card)
                     dynamicCards.removeAll(where: { $0 === card })
                     heldCards.append(card)
                 }
                 panMode = .draggingCards([card])
-                print("[HoC] pan: dragging card '\(card.card.cardNumber)'")
             } else {
                 panMode = .orbiting
-                print("[HoC] pan: orbiting camera")
             }
             g.setTranslation(.zero, in: view)
 
@@ -790,13 +781,83 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     @objc private func handlePinch(_ g: UIPinchGestureRecognizer) {
         guard g.scale > 0 else { return }
-        if g.state == .began {
-            print("[HoC] pinch began scale=\(g.scale)")
+
+        // If a card is selected, pinch tilts the card forward/back.
+        // Pinch-out (scale > 1) = tilt back (top away from camera).
+        // Pinch-in (scale < 1) = tilt forward (top toward camera).
+        if let selected = selectedCardEntity {
+            let tiltAngle: Float = (Float(g.scale) - 1.0) * 0.6
+            let pitch = simd_quatf(angle: tiltAngle, axis: SIMD3<Float>(1, 0, 0))
+            selected.entity.orientation = pitch * selected.entity.orientation
+            g.scale = 1.0
+            return
         }
+
+        // No selection: zoom camera.
         camDistance = max(Self.camDistanceMin,
                           min(Self.camDistanceMax, camDistance / Float(g.scale)))
         g.scale = 1.0
         updateCameraTransform()
+    }
+
+    // MARK: Selection (pause-mode-only manipulation)
+    //
+    // Tap a card to select it: an orange halo appears and all
+    // subsequent gestures route to that card (camera control
+    // is suppressed). Tap empty space or the same card to
+    // deselect.
+    private func setSelectedCard(_ card: CardEntity?) {
+        // If the same card is being passed in, nothing to do.
+        if let prev = selectedCardEntity, let next = card, prev === next { return }
+        // Remove outline from previously-selected card and let
+        // it return to physics if play mode.
+        if let prev = selectedCardEntity {
+            removeSelectionOutline(from: prev)
+            if !session.isPaused {
+                // Card was kinematic-during-selection; restore it
+                // to dynamic for play.
+                if var body = prev.entity.components[PhysicsBodyComponent.self] {
+                    body.mode = .dynamic
+                    body.isContinuousCollisionDetectionEnabled = true
+                    prev.entity.components.set(body)
+                }
+                heldCards.removeAll(where: { $0 === prev })
+                if !dynamicCards.contains(where: { $0 === prev }) {
+                    dynamicCards.append(prev)
+                }
+            }
+        }
+        selectedCardEntity = card
+        // Ensure new selection is kinematic + outline visible.
+        if let card = card {
+            switchToKinematic(card)
+            if let idx = dynamicCards.firstIndex(where: { $0 === card }) {
+                dynamicCards.remove(at: idx)
+            }
+            if !heldCards.contains(where: { $0 === card }) {
+                heldCards.append(card)
+            }
+            addSelectionOutline(to: card)
+        }
+    }
+
+    private func addSelectionOutline(to card: CardEntity) {
+        // If the outline already exists, do nothing.
+        if card.entity.findEntity(named: "selection-outline") != nil { return }
+        let outline = ModelEntity(mesh: outlineMesh, materials: [outlineMaterial])
+        outline.name = "selection-outline"
+        // Position slightly BEHIND the front plane in local +Y
+        // direction. The outline is larger than the card, so its
+        // border peeks out around the card edges — a halo effect.
+        let halfT = Self.cardThick * 0.5
+        outline.position = SIMD3<Float>(0, halfT + 0.00006, 0)
+        card.entity.addChild(outline)
+    }
+
+    private func removeSelectionOutline(from card: CardEntity) {
+        if let outline = card.entity.findEntity(named: "selection-outline") {
+            outline.removeFromParent()
+        }
     }
 
     private func switchToKinematic(_ card: CardEntity) {
@@ -916,9 +977,13 @@ private final class HouseOfCardsCoordinator: NSObject {
             session.hasAnyCards = !heldCards.isEmpty || !dynamicCards.isEmpty
         }
 
-        // Pause/Play toggle.
+        // Pause/Play toggle. Auto-deselect any selected card so
+        // the new physics state applies cleanly.
         if session.togglePauseRequested {
             session.togglePauseRequested = false
+            if selectedCardEntity != nil {
+                setSelectedCard(nil)
+            }
             session.isPaused.toggle()
             applyPauseState()
         }
@@ -1190,9 +1255,11 @@ private final class HouseOfCardsCoordinator: NSObject {
         else {
             return
         }
-        // Clip card-back to rounded corners so the back-facing
-        // plane shows the same silhouette as the art-facing plane.
-        let rounded = Self.roundedCorners(image) ?? image
+        // Clip card-back to rounded corners. applyRotation: false
+        // because the back plane's π-around-X local rotation
+        // already flips the texture V axis — double-flipping
+        // would make the back appear upside-down.
+        let rounded = Self.roundedCorners(image, applyRotation: false) ?? image
         guard let cg = rounded.cgImage,
               let tex = makeColorTexture(from: cg)
         else { return }
@@ -1427,6 +1494,7 @@ private final class HouseOfCardsCoordinator: NSObject {
     }
 
     private func clearAllCards() {
+        selectedCardEntity = nil   // outline gets removed with entity
         for c in dynamicCards { c.entity.removeFromParent() }
         dynamicCards.removeAll()
         for c in heldCards { c.entity.removeFromParent() }
@@ -1596,7 +1664,9 @@ private final class HouseOfCardsCoordinator: NSObject {
     //    flipping the image vertically inverts the V mapping so
     //    the card's top (where the hero name is) ends up at the
     //    highest point in world space.
-    static func roundedCorners(_ image: UIImage, radiusRatio: CGFloat = 0.045) -> UIImage? {
+    static func roundedCorners(_ image: UIImage,
+                               radiusRatio: CGFloat = 0.045,
+                               applyRotation: Bool = true) -> UIImage? {
         let size = image.size
         guard size.width > 0, size.height > 0 else { return image }
         let radius = min(size.width, size.height) * radiusRatio
@@ -1607,14 +1677,18 @@ private final class HouseOfCardsCoordinator: NSObject {
         let renderer = UIGraphicsImageRenderer(size: size, format: format)
         return renderer.image { ctx in
             let cg = ctx.cgContext
-            // 180° rotation (flip BOTH axes). User reported v2.161-
-            // 165 showed the cards mirrored horizontally. My v2.161
-            // vertical-only flip corrected upside-down but exposed
-            // a horizontal mirror — the original texture-to-plane
-            // UV mapping was 180°-rotated, not just V-flipped, so
-            // we need to flip both U and V to restore correctness.
-            cg.translateBy(x: size.width, y: size.height)
-            cg.scaleBy(x: -1, y: -1)
+            if applyRotation {
+                // 180° rotation for the FRONT-plane texture only.
+                // The front plane has no local rotation, so we
+                // compensate for the plane's UV mapping (image top
+                // → plane -Z) by rotating the image. The BACK plane
+                // already has a π-around-X local rotation which
+                // does this flip implicitly — applying the same
+                // image rotation to the back-card texture would
+                // double-flip and show upside-down.
+                cg.translateBy(x: size.width, y: size.height)
+                cg.scaleBy(x: -1, y: -1)
+            }
             let path = UIBezierPath(roundedRect: rect, cornerRadius: radius)
             path.addClip()
             image.draw(in: rect)

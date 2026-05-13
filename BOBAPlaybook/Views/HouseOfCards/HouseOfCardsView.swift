@@ -1155,10 +1155,36 @@ private final class HouseOfCardsCoordinator: NSObject {
     private static let snapDistance: Float = 0.12   // 12cm
     private static let snapTiltMin: Float = 0.07     // ~4°
     private static let snapMirrorTolerance: Float = 0.35 // ~20°
+    /// Two cards whose tops are within this distance are considered
+    /// already partnered in an A-frame. A new card cannot A-frame-
+    /// snap to a partnered card (its apex is already occupied —
+    /// snapping would pull the new card on top of the partner).
+    private static let partneredApexDistance: Float = 0.02  // 2cm
 
     private enum SmartSnapKind: String {
         case aFrame
         case sitOnTop
+    }
+
+    /// True if `c` is already in an A-frame with some other card
+    /// in `candidates` — meaning their top midpoints are coincident
+    /// (within partneredApexDistance) and their tilts are mirror.
+    private func isAlreadyPartnered(_ c: CardEntity, in candidates: [CardEntity]) -> Bool {
+        let topLocal = SIMD3<Float>(0, 0, Self.cardHeight / 2)
+        let cTop = c.entity.convert(position: topLocal, to: nil as Entity?)
+        let cTilt = pitchAngle(of: c.entity)
+        guard abs(cTilt) > Self.snapTiltMin else { return false }
+        for other in candidates {
+            if other === c { continue }
+            let oTilt = pitchAngle(of: other.entity)
+            guard abs(oTilt) > Self.snapTiltMin else { continue }
+            guard cTilt * oTilt < 0 else { continue }
+            let oTop = other.entity.convert(position: topLocal, to: nil as Entity?)
+            if simd_length(oTop - cTop) < Self.partneredApexDistance {
+                return true
+            }
+        }
+        return false
     }
 
     private func applySmartSnap(to card: CardEntity) {
@@ -1183,12 +1209,18 @@ private final class HouseOfCardsCoordinator: NSObject {
             let theirTilt = pitchAngle(of: c.entity)
 
             // 1) A-frame top-to-top. Both tilted, mirror sign,
-            //    similar magnitude. Horizontal (XZ) distance from
-            //    our top to theirs.
+            //    similar magnitude. SKIP if the candidate is already
+            //    partnered in an A-frame (its apex is occupied —
+            //    snapping would pull our card onto its partner,
+            //    producing a stack instead of a new pyramid).
+            //    Sit-on-top below is still allowed against
+            //    partnered candidates (that's how you place a roof
+            //    card on an A-frame apex).
             if abs(ourTilt) > Self.snapTiltMin,
                abs(theirTilt) > Self.snapTiltMin,
                ourTilt * theirTilt < 0,
-               abs(abs(theirTilt) - abs(ourTilt)) < Self.snapMirrorTolerance {
+               abs(abs(theirTilt) - abs(ourTilt)) < Self.snapMirrorTolerance,
+               !isAlreadyPartnered(c, in: candidates) {
                 let dxA = theirTop.x - ourTop.x
                 let dzA = theirTop.z - ourTop.z
                 let dA = sqrt(dxA * dxA + dzA * dzA)

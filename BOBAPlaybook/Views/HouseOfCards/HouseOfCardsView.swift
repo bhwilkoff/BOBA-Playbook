@@ -365,10 +365,15 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// azimuth: rotation around world Y (horizontal pan)
     /// elevation: angle above the horizontal plane (vertical pan)
     /// distance: radial distance from the cameraTarget
-    private var camAzimuth:   Float = 0
-    private var camElevation: Float = 0.55   // ~31° above horizon
-    private var camDistance:  Float = 0.55
-    private let cameraTarget: SIMD3<Float> = SIMD3<Float>(0, 0.04, 0)
+    ///
+    /// Default azimuth π/6 (30° toward +X) gives a 3/4 view of
+    /// the Z-axis tent: user sees the Λ silhouette clearly with
+    /// one card's front partially visible. Orbiting reveals the
+    /// other side.
+    private var camAzimuth:   Float = .pi / 6
+    private var camElevation: Float = 0.45   // ~26° above horizon
+    private var camDistance:  Float = 0.50
+    private let cameraTarget: SIMD3<Float> = SIMD3<Float>(0, 0.035, 0)
     /// Pinch zoom range. v2.157's [0.25, 2.5] let the user
     /// zoom out so far the cards "got lost" in empty space.
     /// Tighter range keeps the tabletop always meaningful.
@@ -857,70 +862,81 @@ private final class HouseOfCardsCoordinator: NSObject {
     // MARK: Card spawning
     //
     // Pair-spawn: tap-from-strip consumes TWO cards from the
-    // deck and spawns them as an A-frame at the table center.
-    // Both cards are kinematic. The user drags the pair into
-    // position with the 1-finger pan; release commits both to
-    // dynamic simultaneously.
+    // deck and spawns them as a TENT at the table center.
     //
-    // A-frame geometry (per house-of-cards-construction research):
-    //   - canonical lean is 45° from vertical (not 15-20° as the
-    //     prior versions used — too shallow, cards slip outward)
-    //   - base spacing ~50mm for a 2.5"×3.5" card (88.9mm long)
-    //   - tops meet at center, apex height ≈ cos(45°) * H/2 ≈ 31mm
-    //
-    // standUp rotation: -π/2 around world X axis stands the card
-    // with its geometric +Z (height) pointing along world +Y (up).
+    // Tent geometry (v3 — proper house-of-cards "tent"):
+    //   - Main axis along world Z (depth). User views from +Z+X+Y
+    //     corner (default 3/4 camera).
+    //   - Card 1 at (0, centerY, -baseHalfZ) tilted by -π/4 around
+    //     world X axis. Its top swings toward +Z (apex at z=0); its
+    //     front face ends up pointing -Z direction (OUTWARD).
+    //   - Card 2 at (0, centerY, +baseHalfZ) = (180° around Y) ∘
+    //     card-1 rotation. Top toward -Z, front toward +Z (outward).
+    //   - Lean axis is world X, which is parallel to both cards'
+    //     bottom edges (along world X). The whole bottom edge
+    //     rests on the table — not just a corner.
+    //   - Front faces OUTWARD (away from apex), backs face INWARD
+    //     (toward each other inside the tent) — what a real tent
+    //     does, what the user asked for.
+    //   - 45° lean; bottom-edge spacing ~63mm (sin(45)*H + apex
+    //     gap); apex height ~31mm.
     private func spawnHeldPair(takingFrom deck: inout [Card]) {
         guard let root = anchor else { return }
-        guard deck.count >= 1 else { return }  // need at least 1; 2 is ideal
-        // Pop up to 2 cards from the deck.
+        guard deck.count >= 1 else { return }
         let card1 = deck.removeFirst()
-        let card2 = deck.count > 0 ? deck.removeFirst() : card1   // fallback to dup if only 1 left
+        let card2 = deck.count > 0 ? deck.removeFirst() : card1
 
-        // If there's already a held pair, commit it first so
-        // we don't accumulate kinematic cards forever.
         if !heldCards.isEmpty { commitHeldCards() }
 
-        // 45° from vertical — the canonical house-of-cards
-        // angle per Bryan Berg and the standard A-frame guides.
-        let leanAngle: Float = .pi / 4   // 45°
-        let halfH      = Self.cardHeight * 0.5
-        let halfW      = Self.cardWidth  * 0.5
+        let leanAngle: Float = .pi / 4   // 45° from vertical
+        let halfH = Self.cardHeight * 0.5
 
-        // CenterY must clear the table by the FULL extent of
-        // the leaned card's lowest point. After lean θ around
-        // Z, the lowest corner has Y offset = -(sin(θ)*halfW +
-        // cos(θ)*halfH) from the entity center. v2.157 only
-        // accounted for cos(θ)*halfH; the missing sin(θ)*halfW
-        // term made cards sink 2cm into the table and the
-        // physics solver ejected them violently.
-        let lowestOffset = sin(leanAngle) * halfW + cos(leanAngle) * halfH
-        let centerY      = lowestOffset + max(0.001, targetMaxY) + 0.001 // 1mm air gap
+        // Lean rotation around world X (parallel to card width
+        // direction, which is the bottom edge direction). The
+        // entire bottom edge stays on the table when the card
+        // is correctly positioned.
+        //
+        // After this single rotation, for card 1:
+        //   local +X (width) → world +X
+        //   local +Y (front face normal) → world (0, +sin(45),
+        //     -cos(45)) = up + outward in -Z direction
+        //   local +Z (height) → world (0, +cos(45), +sin(45)) =
+        //     up + toward apex (+Z direction since card is at -Z)
+        //
+        // Card 2 is card 1 mirrored across the apex plane (Y axis).
+        // 180° rotation around Y axis flips X→-X and Z→-Z, giving:
+        //   front face → world (0, +sin(45), +cos(45)) = up + +Z
+        //     direction (outward for card at +Z position)
+        //   height → world (0, +cos(45), -sin(45)) = up + -Z
+        //     (toward apex)
+        let lean1 = simd_quatf(angle: -leanAngle, axis: SIMD3<Float>(1, 0, 0))
+        let flipY = simd_quatf(angle: .pi,         axis: SIMD3<Float>(0, 1, 0))
+        let lean2 = flipY * lean1
 
-        // Apex gap: top centers of the two cards mathematically
-        // meet at world X=0 in a 45° A-frame. With zero gap, the
-        // physics solver detects overlap (cards have 0.4mm
-        // thickness in Z plus the geometric crossing) and ejects
-        // them. Add a 1mm offset to each card's X position so
-        // the apex has a small gap that gravity can close via
-        // natural lean-into-each-other contact.
+        // centerY: bottom edge sits on table at world Y=0.
+        // After lean -π/4 around X, the bottom edge (originally at
+        // local Z = -halfH) is at world Y offset = -cos(45)*halfH
+        // = -sin(45)*halfH (since sin45=cos45) from entity center.
+        // So entity center must be at Y = sin(45)*halfH for the
+        // edge to be at Y=0.
+        let centerY = sin(leanAngle) * halfH + max(0.001, targetMaxY) + 0.001
+
+        // baseHalfZ: the top center is at offset (0, +cos(45)*halfH,
+        // +sin(45)*halfH) from entity center after the rotation.
+        // For tops to meet at world Z=0 from card 1 at z=-baseHalfZ:
+        //   -baseHalfZ + sin(45)*halfH = 0
+        //   baseHalfZ = sin(45)*halfH ≈ 31mm
+        // Plus 1mm apex gap so the two cards don't overlap on spawn
+        // (physics solver ejects overlapping bodies).
         let apexGap: Float = 0.001
-        let baseHalfX  = sin(leanAngle) * halfH + apexGap
-
-        // Card on left (-X) leans toward +X.
-        // Card on right (+X) leans toward -X.
-        // standUp: -π/2 around X makes card stand height-up.
-        // lean around Z axis tilts the card in the X direction.
-        let standUp = simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
-        let leftLean  = simd_quatf(angle: -leanAngle, axis: SIMD3<Float>(0, 0, 1))
-        let rightLean = simd_quatf(angle:  leanAngle, axis: SIMD3<Float>(0, 0, 1))
+        let baseHalfZ = sin(leanAngle) * halfH + apexGap
 
         let leftEntity  = buildCardEntity(for: card1,
-                                          position: SIMD3<Float>(-baseHalfX, centerY, 0),
-                                          rotation: leftLean * standUp)
+                                          position: SIMD3<Float>(0, centerY, -baseHalfZ),
+                                          rotation: lean1)
         let rightEntity = buildCardEntity(for: card2,
-                                          position: SIMD3<Float>( baseHalfX, centerY, 0),
-                                          rotation: rightLean * standUp)
+                                          position: SIMD3<Float>(0, centerY,  baseHalfZ),
+                                          rotation: lean2)
 
         for entity in [leftEntity, rightEntity] {
             if var body = entity.components[PhysicsBodyComponent.self] {
@@ -1030,28 +1046,25 @@ private final class HouseOfCardsCoordinator: NSObject {
         edgeBody.name = "card-body"
         entity.addChild(edgeBody)
 
-        // ── Plane orientation math (v2.159):
+        // ── Plane orientation math (v3 / v2.160):
         //
-        //    Entity rotation is standUp = -π/2 around world X.
+        //    Entity rotation for card 1 (left/at-Z): -π/4 around X.
         //    That maps local axes to world directions as:
-        //       local +X → world +X
-        //       local +Y → world -Z   (AWAY from camera)
-        //       local +Z → world +Y   (up)
-        //       local -Y → world +Z   (TOWARD camera)
+        //       local +X → world +X (width, parallel to table edge)
+        //       local +Y → world (0, +sin45, -cos45) = up + -Z
+        //         (the "outward" tent slope for card 1)
+        //       local +Z → world (0, +cos45, +sin45) = up + +Z
+        //         (toward apex)
         //
-        //    For the FRONT face (art) to be visible from the
-        //    camera at +Z, the front plane must be at entity-local
-        //    -Y direction, with its visible side (normal) facing
-        //    local -Y so that it ends up at world +Z after the
-        //    standUp rotation.
+        //    For the FRONT face (art) to be on the OUTWARD slope
+        //    of the tent — i.e., facing away from the apex — its
+        //    normal direction in world space should match local +Y's
+        //    world direction. So put the front plane at entity-local
+        //    +Y position with default (+Y normal) orientation.
         //
-        //    Plane mesh from generatePlane has its default normal
-        //    at local +Y. To flip the normal to local -Y, we
-        //    rotate the plane π around its own X axis.
-        //
-        //    v2.158 had front/back swapped: art was on the plane
-        //    facing world -Z, so the camera saw the texture
-        //    mirrored (rendered from the back side of the plane).
+        //    The back plane goes at entity-local -Y, with its normal
+        //    flipped (rotated π around X) so it points inward toward
+        //    the apex (the inside of the tent).
         let frontMesh = MeshResource.generatePlane(width: Self.cardWidth,
                                                    depth: Self.cardHeight,
                                                    cornerRadius: Self.cornerR)
@@ -1062,15 +1075,15 @@ private final class HouseOfCardsCoordinator: NSObject {
             placeholder.color = .init(tint: UIColor(red: 0.65, green: 0.20, blue: 0.18, alpha: 1))
         }
         let frontEntity = ModelEntity(mesh: frontMesh, materials: [placeholder])
-        // Front plane: at entity-local -Y, flipped π around X so
-        // its normal points to local -Y → world +Z (camera-facing).
-        frontEntity.position = SIMD3<Float>(0, -halfT - 0.00012, 0)
-        frontEntity.orientation = simd_quatf(angle: .pi, axis: SIMD3<Float>(1, 0, 0))
+        // Front plane: at entity-local +Y; default normal +Y maps
+        // to the outward-facing direction after entity rotation.
+        frontEntity.position = SIMD3<Float>(0, halfT + 0.00012, 0)
         frontEntity.name = "card-front"
         entity.addChild(frontEntity)
 
-        // ── Back plane: at entity-local +Y with default normal
-        //    +Y → world -Z (away from camera) after standUp.
+        // ── Back plane: at entity-local -Y, flipped π around X so
+        //    its normal points inward (toward the apex / inside
+        //    the tent).
         let backMesh = MeshResource.generatePlane(width: Self.cardWidth,
                                                   depth: Self.cardHeight,
                                                   cornerRadius: Self.cornerR)
@@ -1081,7 +1094,8 @@ private final class HouseOfCardsCoordinator: NSObject {
             backMatUnlit.color = .init(tint: UIColor(red: 0.65, green: 0.20, blue: 0.18, alpha: 1))
         }
         let backEntity = ModelEntity(mesh: backMesh, materials: [backMatUnlit])
-        backEntity.position = SIMD3<Float>(0, halfT + 0.00012, 0)
+        backEntity.position = SIMD3<Float>(0, -halfT - 0.00012, 0)
+        backEntity.orientation = simd_quatf(angle: .pi, axis: SIMD3<Float>(1, 0, 0))
         backEntity.name = "card-back"
         entity.addChild(backEntity)
 

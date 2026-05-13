@@ -355,6 +355,12 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// to keep the top in view.
     private var targetMaxY: Float = 0.0
 
+    /// Alternating lean direction per spawn so successive cards
+    /// don't fall the same way. v2.155 cards spawned bolt
+    /// upright and dropped straight down — no leaning. v2.156
+    /// spawns them with a ±0.2 rad tilt that alternates.
+    private var spawnLeanDirection: Float = 1.0
+
     /// Spherical-coordinate camera state (orbit around the table).
     /// azimuth: rotation around world Y (horizontal pan)
     /// elevation: angle above the horizontal plane (vertical pan)
@@ -425,6 +431,14 @@ private final class HouseOfCardsCoordinator: NSObject {
         cardPan.numberOfTouchesRequired = 1
         cardPan.allowableMovement = .greatestFiniteMagnitude
         cardPan.delegate = self
+        // Critical: cardPan must wait for cameraPan (2-finger) to
+        // fail before activating. Without this, the long-press
+        // greedily claims the first touch and the 2-finger pan
+        // can never accumulate its second touch — camera orbit
+        // silently never fires. require(toFail:) is the standard
+        // iOS pattern for "single-finger gesture should yield to
+        // multi-finger sibling."
+        cardPan.require(toFail: cameraPan)
         view.addGestureRecognizer(cardPan)
         self.cardPanGesture = cardPan
     }
@@ -432,6 +446,9 @@ private final class HouseOfCardsCoordinator: NSObject {
     @objc private func handleCameraPan(_ g: UIPanGestureRecognizer) {
         guard let view = g.view else { return }
         let delta = g.translation(in: view)
+        if g.state == .began {
+            print("[HoC] camera-pan began (touches=\(g.numberOfTouches))")
+        }
         // 1 pixel ≈ 0.005 rad of orbit — feels close to native
         // (Maps / Photos zoomed-out views).
         camAzimuth   -= Float(delta.x) * 0.005
@@ -442,6 +459,9 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     @objc private func handlePinch(_ g: UIPinchGestureRecognizer) {
         guard g.scale > 0 else { return }
+        if g.state == .began {
+            print("[HoC] pinch began scale=\(g.scale)")
+        }
         camDistance = max(0.25, min(2.5, camDistance / Float(g.scale)))
         g.scale = 1.0
         updateCameraTransform()
@@ -452,17 +472,17 @@ private final class HouseOfCardsCoordinator: NSObject {
         let point = g.location(in: view)
 
         switch g.state {
-        case .began, .changed:
-            // Only move if we have a held card. If the user
-            // taps without a card held, do nothing — they need
-            // to first tap a card in the strip.
+        case .began:
+            print("[HoC] card-pan began at \(point) — heldCard=\(heldCard != nil ? "yes" : "no")")
+            fallthrough
+        case .changed:
             guard let held = heldCard else { return }
             let y = held.entity.position.y
             if let world = view.project(point, ontoPlaneAt: y) {
                 held.entity.position = world
             }
         case .ended, .cancelled, .failed:
-            // Commit the held card to dynamic so gravity engages.
+            print("[HoC] card-pan ended — committing")
             if heldCard != nil {
                 commitHeldCard()
             }
@@ -688,30 +708,39 @@ private final class HouseOfCardsCoordinator: NSObject {
     // MARK: Card spawning
     //
     // Spawn pattern: tap-from-strip → kinematic card appears at
-    // table center, STANDING VERTICALLY (rotated 90° around X
-    // axis so its long dimension is up). The user then drags it
-    // with the 1-finger gesture; release commits to dynamic.
+    // table center, STANDING VERTICALLY with an alternating ±15°
+    // lean so successive cards fall in opposite directions and
+    // can naturally meet at the top (the classic house-of-cards
+    // configuration).
     private func spawnHeldCard(_ card: Card) {
         guard let root = anchor else { return }
         // One card-in-hand at a time. If there's already a held
         // card waiting to be placed, the new tap commits the
-        // previous one and replaces it. (Alternative: ignore the
-        // new request — but committing feels more responsive.)
+        // previous one and replaces it.
         if heldCard != nil { commitHeldCard() }
 
         // Stand the card vertically: 90° around world X axis
-        // makes the box's long axis (originally Z / depth) point
-        // up. Add a small random Y tilt for visual variety.
+        // makes the geometric +Y face (where the art lives) face
+        // the camera. Then apply a lean toward +Z or -Z that
+        // alternates each spawn — so two successive cards face
+        // each other and can lean into a stable triangle.
         let standUp = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
-        let tilt    = simd_quatf(angle: Float.random(in: -0.25...0.25),
-                                 axis: SIMD3<Float>(0, 1, 0))
-        let rotation = standUp * tilt
+        let leanAngle: Float = 0.26 * spawnLeanDirection  // ~15° from vertical
+        spawnLeanDirection *= -1
+        // After standUp, the card stands with its "art" face
+        // pointing along world +Z. Rotating around world Z tilts
+        // the card sideways (left/right when viewed from +Z),
+        // not what we want. Rotating around world X tilts the
+        // card forward/back along the camera-facing direction.
+        let lean = simd_quatf(angle: leanAngle, axis: SIMD3<Float>(1, 0, 0))
+        let rotation = lean * standUp
 
-        // Spawn position: just above the table, centered. The
-        // user drags it into place.
+        // Spawn position: lateral offset matching the lean direction
+        // so two successive cards land near each other and can lean.
         let halfHeight = Self.cardHeight * 0.5
-        let startY = halfHeight + max(0.005, targetMaxY)
-        let startPos = SIMD3<Float>(0, startY, 0)
+        let lateralOffset: Float = 0.025 * (-spawnLeanDirection)  // opposite of upcoming next
+        let startY = halfHeight + max(0.005, targetMaxY) + 0.01
+        let startPos = SIMD3<Float>(lateralOffset, startY, 0)
 
         let entity = buildCardEntity(for: card, position: startPos, rotation: rotation)
 
@@ -728,30 +757,25 @@ private final class HouseOfCardsCoordinator: NSObject {
 
         print("[HoC] Spawned held card '\(card.cardNumber)' at \(startPos) — kinematic")
 
-        // Load front art async; until it lands the front face
-        // shows the back texture as placeholder so the card
-        // still reads correctly.
+        // Load front art async; on completion find the named
+        // child entity ("card-front") and update its material.
+        // We use child planes (not box-face materials) so the
+        // texture mapping is unambiguous — no face-index guessing.
         loadFrontArt(for: card) { [weak entity] tex in
-            guard let entity, let model = entity.components[ModelComponent.self] else {
+            guard let entity else {
                 print("[HoC] art load completed but entity gone")
                 return
             }
-            var mats = model.materials
-            // Face order on a splitFaces box is [+X,-X,+Y,-Y,+Z,-Z].
-            // Card stands vertically (rotated 90° around X), so its
-            // geometric +Y face (index 2) is the one facing the
-            // camera after rotation — that's where art goes.
-            if mats.count >= 3 {
-                var art = PhysicallyBasedMaterial()
-                art.baseColor = .init(tint: .white, texture: .init(tex))
-                art.roughness = .init(floatLiteral: 0.55)
-                art.metallic  = .init(floatLiteral: 0.0)
-                mats[2] = art
+            guard let front = entity.findEntity(named: "card-front") as? ModelEntity,
+                  var model = front.components[ModelComponent.self] else {
+                print("[HoC] couldn't find card-front child")
+                return
             }
-            var updated = model
-            updated.materials = mats
-            entity.components.set(updated)
-            print("[HoC] Art applied to face 2 (was \(model.materials.count) materials)")
+            var art = UnlitMaterial()
+            art.color = .init(tint: .white, texture: .init(tex))
+            model.materials = [art]
+            front.components.set(model)
+            print("[HoC] Art applied to card-front plane (tex \(tex.width)×\(tex.height))")
         }
     }
 
@@ -789,44 +813,78 @@ private final class HouseOfCardsCoordinator: NSObject {
     }
 
     // MARK: Card entity construction
+    //
+    // v2.156: use child plane entities for the visible front
+    // (art) and back. v2.155's splitFaces box approach had
+    // unverified face-index mapping; the user reported art never
+    // visible despite "applied to face 2" prints. Child planes
+    // eliminate the guessing — front-plane is +Y in local space,
+    // texture maps directly, no UV ambiguity.
     private func buildCardEntity(for card: Card,
                                  position: SIMD3<Float>,
                                  rotation: simd_quatf = simd_quatf(angle: 0, axis: SIMD3<Float>(1,0,0))) -> ModelEntity {
-        let mesh = MeshResource.generateBox(
+        let halfT = Self.cardThick * 0.5
+
+        // ── Root entity: physics body + collision live here.
+        //    Invisible (no mesh on the root).
+        let entity = ModelEntity()
+        entity.position = position
+        entity.orientation = rotation
+        entity.name = "card-root"
+
+        // ── Edge box: a very thin colored slab that gives the
+        //    card visible thickness. Doesn't carry textures.
+        let edgeBox = MeshResource.generateBox(
             width: Self.cardWidth,
             height: Self.cardThick,
             depth: Self.cardHeight,
             cornerRadius: Self.cornerR,
-            splitFaces: true
+            splitFaces: false
         )
+        let edgeBody = ModelEntity(mesh: edgeBox, materials: [makeEdgeMaterial()])
+        edgeBody.name = "card-body"
+        entity.addChild(edgeBody)
 
-        // Face order on a splitFaces box per WWDC + community
-        // testing: [+X, -X, +Y, -Y, +Z, -Z]. With card lying
-        // flat: +Y is top (art), -Y is bottom (back). When the
-        // card is rotated 90° around X to stand vertically, the
-        // geometric +Y face faces the camera — still index 2.
-        let edgeMat = makeEdgeMaterial()
-        let backMat: PhysicallyBasedMaterial = {
-            var m = PhysicallyBasedMaterial()
-            m.roughness = .init(floatLiteral: 0.55)
-            m.metallic  = .init(floatLiteral: 0.0)
-            if let tex = backTexture {
-                m.baseColor = .init(tint: .white, texture: .init(tex))
-            } else {
-                m.baseColor = .init(tint: UIColor(red: 0.65, green: 0.20, blue: 0.18, alpha: 1))
-            }
-            return m
-        }()
-        // Front (art) material starts as a copy of back so the
+        // ── Front plane: faces +Y in local space, slightly
+        //    above the box top. After the spawn rotation
+        //    (90° around X), this faces the camera.
+        let frontMesh = MeshResource.generatePlane(width: Self.cardWidth,
+                                                   depth: Self.cardHeight,
+                                                   cornerRadius: Self.cornerR)
+        // Placeholder material: the card back texture, so the
         // card has a recognizable look even before art loads.
-        let frontPlaceholder = backMat
+        var placeholder = UnlitMaterial()
+        if let tex = backTexture {
+            placeholder.color = .init(tint: .white, texture: .init(tex))
+        } else {
+            placeholder.color = .init(tint: UIColor(red: 0.65, green: 0.20, blue: 0.18, alpha: 1))
+        }
+        let frontEntity = ModelEntity(mesh: frontMesh, materials: [placeholder])
+        frontEntity.position = SIMD3<Float>(0, halfT + 0.00012, 0)
+        frontEntity.name = "card-front"
+        entity.addChild(frontEntity)
 
-        let entity = ModelEntity(mesh: mesh,
-                                 materials: [edgeMat, edgeMat, frontPlaceholder, backMat, edgeMat, edgeMat])
-        entity.position = position
-        entity.orientation = rotation
+        // ── Back plane: faces -Y in local space, slightly below
+        //    the box bottom. After spawn rotation, faces away
+        //    from the camera. Rotate 180° around X so the
+        //    texture renders on the correct side.
+        let backMesh = MeshResource.generatePlane(width: Self.cardWidth,
+                                                  depth: Self.cardHeight,
+                                                  cornerRadius: Self.cornerR)
+        var backMatUnlit = UnlitMaterial()
+        if let tex = backTexture {
+            backMatUnlit.color = .init(tint: .white, texture: .init(tex))
+        } else {
+            backMatUnlit.color = .init(tint: UIColor(red: 0.65, green: 0.20, blue: 0.18, alpha: 1))
+        }
+        let backEntity = ModelEntity(mesh: backMesh, materials: [backMatUnlit])
+        backEntity.position = SIMD3<Float>(0, -halfT - 0.00012, 0)
+        backEntity.orientation = simd_quatf(angle: .pi, axis: SIMD3<Float>(1, 0, 0))
+        backEntity.name = "card-back"
+        entity.addChild(backEntity)
 
-        // Collision shape — convex box, same dimensions.
+        // ── Collision + physics on the root (so the planes
+        //    move with the box rigid body).
         let shape = ShapeResource.generateBox(
             width:  Self.cardWidth,
             height: Self.cardThick,
@@ -834,7 +892,6 @@ private final class HouseOfCardsCoordinator: NSObject {
         )
         entity.components.set(CollisionComponent(shapes: [shape]))
 
-        // Physics body — high friction so leans hold.
         let pmat = PhysicsMaterialResource.generate(
             staticFriction:  0.85,
             dynamicFriction: 0.75,
@@ -849,9 +906,6 @@ private final class HouseOfCardsCoordinator: NSObject {
         body.linearDamping  = 0.4
         body.angularDamping = 0.6
         entity.components.set(body)
-
-        // Pre-attach motion component so velocity reads work
-        // immediately.
         entity.components.set(PhysicsMotionComponent())
 
         return entity

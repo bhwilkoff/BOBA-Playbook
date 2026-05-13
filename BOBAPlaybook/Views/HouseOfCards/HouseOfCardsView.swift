@@ -85,7 +85,7 @@ struct HouseOfCardsView: View {
             Spacer()
 
             VStack(spacing: 2) {
-                Text("HOUSE OF CARDS")
+                Text("HOUSE OF BOBA")
                     .font(Design.Fonts.display(14))
                     .tracking(2)
                     .foregroundStyle(.white.opacity(0.9))
@@ -111,8 +111,17 @@ struct HouseOfCardsView: View {
             .accessibilityLabel("Reset Field")
 
             Menu {
-                Toggle("Use my collection",  isOn: $useCollection)
-                    .disabled(!auth.isAuthenticated || ownedHighPowerCount == 0)
+                // Toggle in Menu can be flaky across iOS versions —
+                // use a manual Button with state-mirroring label.
+                Button {
+                    useCollection.toggle()
+                    session.reseedDeck(from: cardPool)
+                } label: {
+                    Label(
+                        useCollection ? "Use my collection  ✓" : "Use my collection",
+                        systemImage: useCollection ? "checkmark.circle.fill" : "person.crop.circle"
+                    )
+                }
                 Button("How to Play",  systemImage: "questionmark.circle") {
                     showingHelp = true
                 }
@@ -141,14 +150,16 @@ struct HouseOfCardsView: View {
     // MARK: Bottom deck strip — upcoming cards + Place button
     private var bottomDeckStrip: some View {
         VStack(spacing: 8) {
-            // Status + PLAY/PAUSE button row.
-            HStack(spacing: 12) {
+            // Status + LOCK + PLAY/PAUSE row.
+            HStack(spacing: 10) {
                 Text(stripStatusText)
                     .font(Design.Fonts.mono(10, weight: .semibold))
                     .tracking(1)
                     .foregroundStyle(.white.opacity(0.55))
                     .lineLimit(1)
-                Spacer()
+                    .minimumScaleFactor(0.7)
+                Spacer(minLength: 4)
+                lockToggleButton
                 playPauseButton
             }
             .padding(.horizontal, 14)
@@ -172,6 +183,24 @@ struct HouseOfCardsView: View {
         }
         .padding(.vertical, 8)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var lockToggleButton: some View {
+        Button {
+            session.lockToSurface.toggle()
+        } label: {
+            Image(systemName: session.lockToSurface ? "lock.fill" : "lock.open")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 32, height: 32)
+                .background(
+                    Circle().fill(session.lockToSurface
+                                  ? Design.Colors.bobaCyan.opacity(0.85)
+                                  : Color.white.opacity(0.18))
+                )
+        }
+        .accessibilityLabel(session.lockToSurface ? "Unlock vertical position" : "Lock to surface")
     }
 
     @ViewBuilder
@@ -202,15 +231,15 @@ struct HouseOfCardsView: View {
 
     private var stripStatusText: String {
         if !session.isPaused {
-            return "PHYSICS RUNNING · TAP PAUSE TO FREEZE"
+            return "PHYSICS RUNNING"
         }
         if !session.selectedCards.isEmpty {
-            return "\(session.selectedCards.count)/4 SELECTED · TAP TABLE TO PLACE"
+            return "\(session.selectedCards.count)/4 · TAP TABLE TO PLACE"
         }
         if session.hasAnyCards {
-            return "PAUSED · ADJUST OR TAP PLAY"
+            return "PAUSED · TAP A CARD TO ADJUST"
         }
-        return "SELECT CARDS · MAX 4"
+        return "PICK CARDS FROM DRAWER"
     }
 
     // MARK: Card pool resolution
@@ -244,7 +273,7 @@ struct HouseOfCardsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("BUILD A TOWER")
+                    Text("HOUSE OF BOBA")
                         .font(Design.Fonts.display(22))
                         .foregroundStyle(.white)
                     Text("Build first, then play. Set up your tower in a frozen physics playground, then hit PLAY to see if it stands.")
@@ -254,12 +283,13 @@ struct HouseOfCardsView: View {
                     helpRow("1. Select from strip", "Tap up to 4 cards in the bottom strip — orange numbered badge shows placement order.")
                     helpRow("2. Tap to place",      "Tap anywhere on the table to spawn the selected cards there, standing vertical. Add more anytime by selecting more strip cards and tapping again.")
                     helpRow("3. Tap a card",        "Tap a placed card to SELECT it — an orange halo appears around it. While selected, ALL gestures manipulate that card (camera is paused).")
-                    helpRow("Translate",            "One-finger drag → slide the selected card across the table (X/Z).")
-                    helpRow("Lift / lower",         "Two-finger vertical drag → raise or lower the selected card off the table (Y).")
-                    helpRow("Rotate (yaw)",         "Two-finger HORIZONTAL drag → spin the selected card around the vertical axis.")
-                    helpRow("Tilt (angle)",         "PINCH → angle the selected card forward or back. Pinch-out tilts the top away from you.")
-                    helpRow("Deselect",             "Tap empty space (or tap the selected card again) to deselect. Then camera gestures work again.")
-                    helpRow("Look around",          "When NOTHING is selected: one-finger drag orbits, two-finger drag pans the table view, pinch zooms.")
+                    helpRow("Translate",            "One-finger drag STARTING ON the selected card → slide it across the table (X/Z). One-finger drag from empty space orbits the camera even while a card is selected.")
+                    helpRow("Lift / lower",         "Two-finger VERTICAL drag → raise or lower the selected card. Unlock the 🔒 button to allow lifting off the table.")
+                    helpRow("Tilt (angle)",         "Two-finger HORIZONTAL drag → tilt the selected card forward/back.")
+                    helpRow("Rotate (yaw)",         "PINCH → spin the selected card around its vertical axis.")
+                    helpRow("Lock toggle",          "The 🔒 button next to PLAY keeps the selected card at table level. Unlock it to lift cards onto towers.")
+                    helpRow("Deselect",             "Tap empty space (or tap the selected card again) to deselect.")
+                    helpRow("Look around",          "When NOTHING is selected: one-finger drag orbits, two-finger drag pans the view, pinch zooms.")
                     helpRow("Play / Pause",        "Tap PLAY to engage physics. Tap PAUSE anytime to freeze mid-fall, repair, and play again.")
                     helpRow("Reset",                "The ↺ button in the top bar clears the field immediately.")
                     helpRow("Score",                "Each stable layer adds to your tower height. 10+ is the dream.")
@@ -438,6 +468,11 @@ private final class HouseOfCardsCoordinator: NSObject {
     private static let cardThick:  Float = 0.003
     private static let cardHeight: Float = 0.0889
     private static let cornerR:    Float = 0.0025
+    private static let outlineMargin: Float = 0.005
+    /// Minimum clearance from the table for the BOTTOM of the
+    /// outline (= bottom of card + outlineMargin) plus a 1mm air
+    /// gap. centerY must be ≥ halfH + minClearance.
+    private static let minClearance: Float = outlineMargin + 0.001
 
     /// Camera framing: as the tower grows, the camera lifts
     /// to keep the top in view.
@@ -446,11 +481,10 @@ private final class HouseOfCardsCoordinator: NSObject {
     // Cached selection-outline mesh + material — built lazily
     // on first use, reused for every selection.
     private lazy var outlineMesh: MeshResource = {
-        let margin: Float = 0.005
         return MeshResource.generatePlane(
-            width: Self.cardWidth + 2 * margin,
-            depth: Self.cardHeight + 2 * margin,
-            cornerRadius: Self.cornerR + margin
+            width: Self.cardWidth + 2 * Self.outlineMargin,
+            depth: Self.cardHeight + 2 * Self.outlineMargin,
+            cornerRadius: Self.cornerR + Self.outlineMargin
         )
     }()
     private lazy var outlineMaterial: UnlitMaterial = {
@@ -604,22 +638,34 @@ private final class HouseOfCardsCoordinator: NSObject {
         case .changed:
             switch twoFingerMode {
             case .rotatingCard(let card):
-                // Horizontal drag → yaw around world Y axis.
-                // Vertical drag → translate along world Y (lift/lower).
-                // Both apply proportionally so pure horizontal or
-                // pure vertical gives only one effect.
-                let yawAngle = Float(delta.x) * 0.012
-                let yawQ = simd_quatf(angle: yawAngle, axis: SIMD3<Float>(0, 1, 0))
-                card.entity.orientation = yawQ * card.entity.orientation
-                let yDelta: Float = -Float(delta.y) * 0.0005
-                let newY = card.entity.position.y + yDelta
-                card.entity.position.y = max(0.0005, newY)  // clamp above table
+                // 2-finger HORIZONTAL drag → TILT (pitch around
+                // world X). 2-finger VERTICAL drag → Y translate
+                // (lift / lower). Y is clamped to keep the card
+                // above the table or to the surface when locked.
+                let pitchAngle = Float(delta.x) * 0.012
+                let pitchQ = simd_quatf(angle: pitchAngle, axis: SIMD3<Float>(1, 0, 0))
+                card.entity.orientation = pitchQ * card.entity.orientation
+
+                if session.lockToSurface {
+                    // Locked: keep card at its current Y, ignore
+                    // vertical drag for translation.
+                    card.entity.position.y = max(minCardY(), card.entity.position.y)
+                } else {
+                    let yDelta: Float = -Float(delta.y) * 0.0005
+                    let newY = card.entity.position.y + yDelta
+                    card.entity.position.y = max(minCardY(), newY)
+                }
                 g.setTranslation(.zero, in: view)
 
             case .panningCamera:
+                // v2.171: drag direction matches camera direction
+                // (drag right → camera looks at points to the right
+                // of current target). User reported v2.170's
+                // Apple-Maps-style "drag the world" direction felt
+                // backward in the 3D scene.
                 let factor: Float = camDistance * 0.0018
-                let dxWorld = -Float(delta.x) * factor
-                let dzWorld = -Float(delta.y) * factor
+                let dxWorld = Float(delta.x) * factor
+                let dzWorld = Float(delta.y) * factor
                 let cosA = cos(camAzimuth)
                 let sinA = sin(camAzimuth)
                 cameraTarget.x += dxWorld * cosA - dzWorld * sinA
@@ -700,18 +746,22 @@ private final class HouseOfCardsCoordinator: NSObject {
 
         switch g.state {
         case .began:
-            // Priority: if a card is selected, ALL pan goes to it.
-            // This is the user's "while a card is selected, you
-            // are only manipulating that card" rule.
+            // v2.171 context-aware: if a card is selected AND the
+            // drag started ON that card, drag the card. Otherwise
+            // orbit the camera — so the user can adjust their view
+            // even while a card is selected (per user request).
+            let hitCard = hitTestCardEntity(at: point)
             if let selected = selectedCardEntity {
-                panMode = .draggingCards([selected])
+                if let hit = hitCard, hit === selected {
+                    panMode = .draggingCards([selected])
+                } else {
+                    panMode = .orbiting
+                }
                 g.setTranslation(.zero, in: view)
                 return
             }
 
-            // No selection: hit-test for a card. If found, route
-            // to it (re-grab during play, drag in pause).
-            let hitCard = hitTestCardEntity(at: point)
+            // No selection: pan a card if one was touched, else orbit.
             if let card = hitCard {
                 if !session.isPaused, dynamicCards.contains(where: { $0 === card }) {
                     switchToKinematic(card)
@@ -741,13 +791,17 @@ private final class HouseOfCardsCoordinator: NSObject {
                 guard let first = cards.first else { return }
                 let y = first.entity.position.y
                 guard let world = view.project(point, ontoPlaneAt: y) else { return }
-                // Move all cards in the group by the same delta so
-                // an A-frame stays intact while being placed.
                 let dx = world.x - first.entity.position.x
                 let dz = world.z - first.entity.position.z
+                let minY = minCardY()
                 for c in cards {
                     c.entity.position.x += dx
                     c.entity.position.z += dz
+                    // Clamp Y to keep card and outline above the
+                    // table at all times (user explicit rule #10).
+                    if c.entity.position.y < minY {
+                        c.entity.position.y = minY
+                    }
                 }
             case .idle:
                 break
@@ -782,13 +836,13 @@ private final class HouseOfCardsCoordinator: NSObject {
     @objc private func handlePinch(_ g: UIPinchGestureRecognizer) {
         guard g.scale > 0 else { return }
 
-        // If a card is selected, pinch tilts the card forward/back.
-        // Pinch-out (scale > 1) = tilt back (top away from camera).
-        // Pinch-in (scale < 1) = tilt forward (top toward camera).
+        // If a card is selected, pinch performs YAW (rotation
+        // around vertical Y axis). Spread (scale > 1) → rotate
+        // CCW from above. Pinch in (scale < 1) → rotate CW.
         if let selected = selectedCardEntity {
-            let tiltAngle: Float = (Float(g.scale) - 1.0) * 0.6
-            let pitch = simd_quatf(angle: tiltAngle, axis: SIMD3<Float>(1, 0, 0))
-            selected.entity.orientation = pitch * selected.entity.orientation
+            let yawAngle: Float = (Float(g.scale) - 1.0) * 1.5
+            let yaw = simd_quatf(angle: yawAngle, axis: SIMD3<Float>(0, 1, 0))
+            selected.entity.orientation = yaw * selected.entity.orientation
             g.scale = 1.0
             return
         }
@@ -798,6 +852,14 @@ private final class HouseOfCardsCoordinator: NSObject {
                           min(Self.camDistanceMax, camDistance / Float(g.scale)))
         g.scale = 1.0
         updateCameraTransform()
+    }
+
+    /// Minimum world-Y for the selected card given clearance for
+    /// the outline halo (which extends `outlineMargin` past card
+    /// edges). For now, hardcoded to table-level minimum.
+    /// TODO: when supporting cards are below, return their top Y.
+    private func minCardY() -> Float {
+        return Self.cardHeight * 0.5 + Self.minClearance
     }
 
     // MARK: Selection (pause-mode-only manipulation)
@@ -842,21 +904,34 @@ private final class HouseOfCardsCoordinator: NSObject {
     }
 
     private func addSelectionOutline(to card: CardEntity) {
-        // If the outline already exists, do nothing.
-        if card.entity.findEntity(named: "selection-outline") != nil { return }
-        let outline = ModelEntity(mesh: outlineMesh, materials: [outlineMaterial])
-        outline.name = "selection-outline"
-        // Position slightly BEHIND the front plane in local +Y
-        // direction. The outline is larger than the card, so its
-        // border peeks out around the card edges — a halo effect.
+        // Add halo planes BEHIND both the front and the back so
+        // the halo is visible regardless of which face the camera
+        // is looking at.
+        if card.entity.findEntity(named: "selection-outline-front") != nil { return }
         let halfT = Self.cardThick * 0.5
-        outline.position = SIMD3<Float>(0, halfT + 0.00006, 0)
-        card.entity.addChild(outline)
+
+        // Front-side halo: at local +Y, slightly behind front plane.
+        let frontHalo = ModelEntity(mesh: outlineMesh, materials: [outlineMaterial])
+        frontHalo.name = "selection-outline-front"
+        frontHalo.position = SIMD3<Float>(0, halfT + 0.00006, 0)
+        card.entity.addChild(frontHalo)
+
+        // Back-side halo: at local -Y, slightly behind back plane.
+        // The back plane has a π-around-X local rotation; matching
+        // that on the halo makes its visible side face the same
+        // direction (camera-from-behind).
+        let backHalo = ModelEntity(mesh: outlineMesh, materials: [outlineMaterial])
+        backHalo.name = "selection-outline-back"
+        backHalo.position = SIMD3<Float>(0, -halfT - 0.00006, 0)
+        backHalo.orientation = simd_quatf(angle: .pi, axis: SIMD3<Float>(1, 0, 0))
+        card.entity.addChild(backHalo)
     }
 
     private func removeSelectionOutline(from card: CardEntity) {
-        if let outline = card.entity.findEntity(named: "selection-outline") {
-            outline.removeFromParent()
+        for name in ["selection-outline-front", "selection-outline-back"] {
+            if let outline = card.entity.findEntity(named: name) {
+                outline.removeFromParent()
+            }
         }
     }
 
@@ -1284,9 +1359,11 @@ private final class HouseOfCardsCoordinator: NSObject {
 
         let halfH = Self.cardHeight * 0.5
 
-        // Card stands vertical. Its bottom edge rests on the
-        // table; center is halfH above ground.
-        let centerY = halfH + 0.001
+        // Card stands vertical. centerY must clear both the card
+        // bottom (halfH) AND the selection-outline border that
+        // extends `outlineMargin` past the card edges, otherwise
+        // the halo intersects the table.
+        let centerY = halfH + Self.minClearance
 
         // Spread cards along world X so they don't overlap.
         // Spacing = card width + small gap.
@@ -1853,6 +1930,12 @@ final class HouseOfCardsSession {
     /// Signal flag: user tapped the PLAY/PAUSE button. The
     /// coordinator reads + clears it and toggles isPaused.
     var togglePauseRequested: Bool = false
+
+    /// When true, the selected card's Y position is clamped to
+    /// the table surface (or top of nearest supporting card).
+    /// Prevents accidentally lifting a card to nowhere or
+    /// driving it through the table. Default ON.
+    var lockToSurface: Bool = true
 
     /// True if at least one card is on the table (kinematic
     /// or dynamic). Drives play-button enabled state.

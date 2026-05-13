@@ -174,7 +174,7 @@ struct ProfileView: View {
                     .font(.system(size: 16, weight: .regular))
                     .foregroundStyle(.white.opacity(0.6))
             }
-            .accessibilityLabel("House of Cards")
+            .accessibilityLabel("House of BoBA")
         }
         ToolbarItem(placement: .principal) { BOBAWordmark() }
         ToolbarItem(placement: .topBarTrailing) {

@@ -1097,6 +1097,44 @@ private final class HouseOfCardsCoordinator: NSObject {
         return nil
     }
 
+    // v2.183: orientation-aware face centers. For sit-on-top
+    // snapping, we want the face that's currently facing UP on
+    // the supporting card (and DOWN on our card), not the
+    // local-frame +Z/-Z edge. Examples:
+    //   - Vertical card: upward face is the top edge (+Z face).
+    //   - Tilted card: upward face is still the top edge (+Z
+    //     face has highest Y when card is mostly upright).
+    //   - Horizontal card (lying flat with broad face up): upward
+    //     face is the broad face (+Y face), NOT the back edge.
+    // Picks among all six box faces; returns the world center of
+    // whichever has the most-extreme world-Y in the requested
+    // direction (+1 = upward, -1 = downward).
+    private func extremeFaceCenter(of entity: Entity, towardWorldY sign: Float) -> SIMD3<Float> {
+        let faces: [SIMD3<Float>] = [
+            SIMD3<Float>( Self.cardWidth  / 2, 0, 0),
+            SIMD3<Float>(-Self.cardWidth  / 2, 0, 0),
+            SIMD3<Float>(0,  Self.cardThick / 2, 0),
+            SIMD3<Float>(0, -Self.cardThick / 2, 0),
+            SIMD3<Float>(0, 0,  Self.cardHeight / 2),
+            SIMD3<Float>(0, 0, -Self.cardHeight / 2),
+        ]
+        var best: (point: SIMD3<Float>, score: Float)? = nil
+        for face in faces {
+            let world = entity.convert(position: face, to: nil as Entity?)
+            let score = world.y * sign
+            if best == nil || score > best!.score {
+                best = (world, score)
+            }
+        }
+        return best!.point
+    }
+    private func upwardFaceCenter(of entity: Entity) -> SIMD3<Float> {
+        extremeFaceCenter(of: entity, towardWorldY:  1)
+    }
+    private func downwardFaceCenter(of entity: Entity) -> SIMD3<Float> {
+        extremeFaceCenter(of: entity, towardWorldY: -1)
+    }
+
     /// Set card.position.y so the card's bottom-edge midpoint
     /// rests on the surface below (table OR top of supporting
     /// card) with a small air gap so the halo doesn't intersect
@@ -1200,6 +1238,13 @@ private final class HouseOfCardsCoordinator: NSObject {
         let ourBottom = card.entity.convert(position: bottomLocal, to: nil as Entity?)
         let ourTop    = card.entity.convert(position: topLocal,    to: nil as Entity?)
         let ourTilt   = pitchAngle(of: card.entity)
+        // v2.183: orientation-aware face centers for sit-on-top.
+        // For a horizontal card lying flat, the bottom-edge
+        // midpoint is one EDGE of the broad face, not the broad
+        // face center — that produced the "halfway up" snap target
+        // the user reported. Now sit-on-top uses the face that's
+        // actually facing UP (or DOWN) for the given orientation.
+        let ourBottomFace = downwardFaceCenter(of: card.entity)
 
         let candidates = (heldCards + dynamicCards).filter { $0 !== card }
         struct Best {
@@ -1207,6 +1252,7 @@ private final class HouseOfCardsCoordinator: NSObject {
             let target: SIMD3<Float>
             let ourFeature: SIMD3<Float>
             let dist: Float
+            let partner: Entity
         }
         var best: Best? = nil
 
@@ -1231,20 +1277,23 @@ private final class HouseOfCardsCoordinator: NSObject {
                 let dzA = theirTop.z - ourTop.z
                 let dA = sqrt(dxA * dxA + dzA * dzA)
                 if dA < Self.snapDistance, best == nil || dA < best!.dist {
-                    best = Best(kind: .aFrame, target: theirTop, ourFeature: ourTop, dist: dA)
+                    best = Best(kind: .aFrame, target: theirTop, ourFeature: ourTop, dist: dA, partner: c.entity)
                 }
             }
 
-            // 2) Sit-on-top: our bottom near their top. Only when
-            //    we're at or above their top (don't pull our card
-            //    DOWN through theirs). Distance is from our bottom-
-            //    midpoint to their top-midpoint, horizontal only.
-            if ourBottom.y >= theirTop.y - 0.01 {
-                let dxS = theirTop.x - ourBottom.x
-                let dzS = theirTop.z - ourBottom.z
+            // 2) Sit-on-top: our bottom-face center near their
+            //    top-face center. Both are computed orientation-
+            //    aware so the snap targets the right surface
+            //    whether the supporting card is vertical, tilted,
+            //    or flat-roof horizontal. Only engages when our
+            //    card is at or above the candidate.
+            let theirTopFace = upwardFaceCenter(of: c.entity)
+            if ourBottomFace.y >= theirTopFace.y - 0.01 {
+                let dxS = theirTopFace.x - ourBottomFace.x
+                let dzS = theirTopFace.z - ourBottomFace.z
                 let dS = sqrt(dxS * dxS + dzS * dzS)
                 if dS < Self.snapDistance, best == nil || dS < best!.dist {
-                    best = Best(kind: .sitOnTop, target: theirTop, ourFeature: ourBottom, dist: dS)
+                    best = Best(kind: .sitOnTop, target: theirTopFace, ourFeature: ourBottomFace, dist: dS, partner: c.entity)
                 }
             }
 
@@ -1285,7 +1334,7 @@ private final class HouseOfCardsCoordinator: NSObject {
                     let target = theirBottom + Self.cardWidth * dirUnit
                     let d = simd_length(target - ourBottom)
                     if d < Self.sideBySideTolerance, best == nil || d < best!.dist {
-                        best = Best(kind: .sideBySide, target: target, ourFeature: ourBottom, dist: d)
+                        best = Best(kind: .sideBySide, target: target, ourFeature: ourBottom, dist: d, partner: c.entity)
                     }
                 }
             }
@@ -1296,16 +1345,41 @@ private final class HouseOfCardsCoordinator: NSObject {
             return
         }
 
-        // Apply the snap. XZ from the offset always. Y only for
-        // sit-on-top (we want our card to land ON the supporting
-        // card). For A-frame and side-by-side, Y is delegated to
-        // applySurfaceSnap so cards stay at the correct level
-        // (table OR top of whatever they're resting on).
-        let offset = snap.target - snap.ourFeature
-        card.entity.position.x += offset.x
-        card.entity.position.z += offset.z
-        if snap.kind == .sitOnTop {
-            card.entity.position.y += offset.y
+        // Apply the snap.
+        switch snap.kind {
+        case .aFrame:
+            // v2.183 tilt-snap: align our pitch to mirror the
+            // partner's. Rotation around the bottom-edge pivot
+            // keeps our base anchored while the top rotates into
+            // mirror position. After the orientation change, our
+            // top edge is somewhere new — re-snap XZ so the new
+            // top edge meets the partner's apex.
+            let partnerTilt = pitchAngle(of: snap.partner)
+            let ourCurrentTilt = pitchAngle(of: card.entity)
+            let tiltDelta = -partnerTilt - ourCurrentTilt
+            if abs(tiltDelta) > 0.005 {
+                let pivotBefore = card.entity.convert(position: bottomLocal, to: nil as Entity?)
+                let pitchQ = simd_quatf(angle: tiltDelta, axis: SIMD3<Float>(1, 0, 0))
+                card.entity.orientation = pitchQ * card.entity.orientation
+                let pivotAfter = card.entity.convert(position: bottomLocal, to: nil as Entity?)
+                card.entity.position += (pivotBefore - pivotAfter)
+            }
+            let ourTopAfter = card.entity.convert(position: topLocal, to: nil as Entity?)
+            let xz = snap.target - ourTopAfter
+            card.entity.position.x += xz.x
+            card.entity.position.z += xz.z
+
+        case .sitOnTop:
+            // Full XYZ — our (downward) face center lands on
+            // their (upward) face center.
+            let offset = snap.target - snap.ourFeature
+            card.entity.position += offset
+
+        case .sideBySide:
+            // XZ only — Y delegated to surface-snap.
+            let offset = snap.target - snap.ourFeature
+            card.entity.position.x += offset.x
+            card.entity.position.z += offset.z
         }
         applySurfaceSnap(to: card)
         print("[HoB] Smart snap: \(snap.kind.rawValue), \(String(format: "%.2f", snap.dist))m")

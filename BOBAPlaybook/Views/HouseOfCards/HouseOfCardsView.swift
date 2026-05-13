@@ -367,8 +367,13 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// distance: radial distance from the cameraTarget
     private var camAzimuth:   Float = 0
     private var camElevation: Float = 0.55   // ~31° above horizon
-    private var camDistance:  Float = 0.65
-    private let cameraTarget: SIMD3<Float> = SIMD3<Float>(0, 0.06, 0)
+    private var camDistance:  Float = 0.55
+    private let cameraTarget: SIMD3<Float> = SIMD3<Float>(0, 0.04, 0)
+    /// Pinch zoom range. v2.157's [0.25, 2.5] let the user
+    /// zoom out so far the cards "got lost" in empty space.
+    /// Tighter range keeps the tabletop always meaningful.
+    private static let camDistanceMin: Float = 0.30
+    private static let camDistanceMax: Float = 1.10
 
     /// Gesture recognizers — retained so we can remove them
     /// cleanly if the view detaches.
@@ -494,8 +499,13 @@ private final class HouseOfCardsCoordinator: NSObject {
             switch panMode {
             case .orbiting:
                 let delta = g.translation(in: view)
+                // Native iOS feel: drag direction matches scene
+                // motion. Drag RIGHT → world rotates right (camera
+                // moves left around the target, decreasing azimuth).
+                // Drag DOWN → camera tilts DOWN (lower elevation,
+                // looking more level toward the table).
                 camAzimuth   -= Float(delta.x) * 0.006
-                camElevation  = max(0.05, min(1.45, camElevation - Float(delta.y) * 0.006))
+                camElevation  = max(0.05, min(1.45, camElevation + Float(delta.y) * 0.006))
                 g.setTranslation(.zero, in: view)
                 updateCameraTransform()
             case .draggingCards(let cards):
@@ -533,7 +543,8 @@ private final class HouseOfCardsCoordinator: NSObject {
         if g.state == .began {
             print("[HoC] pinch began scale=\(g.scale)")
         }
-        camDistance = max(0.25, min(2.5, camDistance / Float(g.scale)))
+        camDistance = max(Self.camDistanceMin,
+                          min(Self.camDistanceMax, camDistance / Float(g.scale)))
         g.scale = 1.0
         updateCameraTransform()
     }
@@ -680,10 +691,11 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     // MARK: Tabletop
     //
-    // v2.155: visibly textured warm wood-tone surface with a
-    // darker outer rim. v2.151 used a near-black material that
-    // disappeared into the background gradient and the user
-    // couldn't see the table at all.
+    // v2.158: procedural wood-grain texture replaces v2.155's
+    // flat brown. Generated programmatically with vertical
+    // bands of varying brown tones + subtle noise → reads as
+    // walnut-grain at any viewing distance, no bundled image
+    // asset required.
     private func buildTabletop(on root: AnchorEntity) {
         // Use a thick box (not an infinite plane) so the edge is
         // visible as a 3D surface.
@@ -692,12 +704,20 @@ private final class HouseOfCardsCoordinator: NSObject {
         let tableH: Float = 0.02
         let box = MeshResource.generateBox(
             width: tableW, height: tableH, depth: tableD,
-            cornerRadius: 0.01,
+            cornerRadius: 0.012,
             splitFaces: false
         )
         var mat = PhysicallyBasedMaterial()
-        // Warm walnut-ish wood tone.
-        mat.baseColor = .init(tint: UIColor(red: 0.36, green: 0.24, blue: 0.16, alpha: 1))
+        // Procedural walnut-grain texture; fall back to flat
+        // tint if the generator fails.
+        if let woodImage = Self.makeWoodGrainImage(size: 1024),
+           let cg = woodImage.cgImage,
+           let tex = makeColorTexture(from: cg) {
+            mat.baseColor = .init(tint: .white, texture: .init(tex))
+            print("[HoC] Wood-grain texture generated (\(cg.width)×\(cg.height))")
+        } else {
+            mat.baseColor = .init(tint: UIColor(red: 0.36, green: 0.24, blue: 0.16, alpha: 1))
+        }
         mat.roughness = .init(floatLiteral: 0.55)
         mat.metallic  = .init(floatLiteral: 0.0)
         let table = ModelEntity(mesh: box, materials: [mat])
@@ -733,22 +753,86 @@ private final class HouseOfCardsCoordinator: NSObject {
         felt.position = SIMD3<Float>(0, 0.0006, 0)
         root.addChild(felt)
 
-        // BOBA logo decal — slightly above the felt to avoid
-        // z-fighting, unlit so it reads as a crisp emblem.
-        if let logo = UIImage(named: "boba_playbook_icon_512") ?? UIImage(named: "AppIcon"),
-           let cg = logo.cgImage,
-           let tex = makeColorTexture(from: cg) {
-            let logoPlane = MeshResource.generatePlane(width: 0.22, depth: 0.22)
-            var logoMat = UnlitMaterial()
-            logoMat.color = .init(tint: UIColor(red: 1, green: 0.5, blue: 0.1, alpha: 0.32),
-                                  texture: .init(tex))
-            logoMat.blending = .transparent(opacity: .init(floatLiteral: 0.32))
-            let logoEntity = ModelEntity(mesh: logoPlane, materials: [logoMat])
-            logoEntity.position = SIMD3<Float>(0, 0.0012, 0)
-            root.addChild(logoEntity)
-            print("[HoC] Tabletop logo loaded (\(cg.width)×\(cg.height))")
+        // BOBA logo decal — clipped to rounded corners + unlit
+        // so it reads as a crisp emblem. Z-offset slightly above
+        // the felt to avoid depth-fighting.
+        if let raw = UIImage(named: "boba_playbook_icon_512") ?? UIImage(named: "AppIcon") {
+            // Larger corner radius for the logo (~10% of side) to
+            // soften the silhouette on the dark felt.
+            let rounded = Self.roundedCorners(raw, radiusRatio: 0.10) ?? raw
+            if let cg = rounded.cgImage, let tex = makeColorTexture(from: cg) {
+                let logoPlane = MeshResource.generatePlane(width: 0.22, depth: 0.22)
+                var logoMat = UnlitMaterial()
+                logoMat.color = .init(tint: UIColor(red: 1, green: 0.5, blue: 0.1, alpha: 0.34),
+                                      texture: .init(tex))
+                logoMat.blending = .transparent(opacity: .init(floatLiteral: 0.34))
+                let logoEntity = ModelEntity(mesh: logoPlane, materials: [logoMat])
+                logoEntity.position = SIMD3<Float>(0, 0.0012, 0)
+                root.addChild(logoEntity)
+                print("[HoC] Tabletop logo loaded rounded (\(cg.width)×\(cg.height))")
+            }
         } else {
             print("[HoC] WARN: tabletop logo image not found")
+        }
+    }
+
+    // MARK: Wood-grain procedural texture
+    //
+    // Programmatically generated walnut wood grain. Uses
+    // CoreGraphics to paint vertical bands of subtly varying
+    // brown tones, then a faint grain noise pass on top.
+    // Good enough that it reads as wood at iPhone viewing
+    // distance without needing a bundled PNG asset.
+    static func makeWoodGrainImage(size: Int) -> UIImage? {
+        let pxSize = CGSize(width: size, height: size)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: pxSize, format: format)
+        return renderer.image { ctx in
+            let cg = ctx.cgContext
+            // Base warm walnut.
+            cg.setFillColor(UIColor(red: 0.31, green: 0.20, blue: 0.13, alpha: 1).cgColor)
+            cg.fill(CGRect(origin: .zero, size: pxSize))
+
+            // Vertical grain bands. Random widths + slight color
+            // jitter around the base walnut tone.
+            var x: CGFloat = 0
+            while x < pxSize.width {
+                let bandW = CGFloat.random(in: 6...32)
+                let jitter = CGFloat.random(in: -0.06...0.06)
+                let r = max(0, min(1, 0.31 + jitter))
+                let g = max(0, min(1, 0.20 + jitter * 0.7))
+                let b = max(0, min(1, 0.13 + jitter * 0.5))
+                let alpha = CGFloat.random(in: 0.22...0.48)
+                cg.setFillColor(UIColor(red: r, green: g, blue: b, alpha: alpha).cgColor)
+                cg.fill(CGRect(x: x, y: 0, width: bandW, height: pxSize.height))
+                x += bandW
+            }
+
+            // Fine grain noise — short horizontal strokes in a
+            // darker tone to suggest cellular wood texture.
+            cg.setStrokeColor(UIColor(red: 0.16, green: 0.10, blue: 0.06, alpha: 0.18).cgColor)
+            cg.setLineWidth(0.6)
+            for _ in 0..<3500 {
+                let x0 = CGFloat.random(in: 0...pxSize.width)
+                let y0 = CGFloat.random(in: 0...pxSize.height)
+                let len = CGFloat.random(in: 4...18)
+                cg.move(to: CGPoint(x: x0, y: y0))
+                cg.addLine(to: CGPoint(x: x0 + len, y: y0))
+                cg.strokePath()
+            }
+
+            // A handful of darker "knot" spots for character.
+            for _ in 0..<6 {
+                let cx = CGFloat.random(in: 50...(pxSize.width - 50))
+                let cy = CGFloat.random(in: 50...(pxSize.height - 50))
+                let radius = CGFloat.random(in: 8...22)
+                let knot = CGRect(x: cx - radius, y: cy - radius,
+                                  width: radius * 2, height: radius * 2)
+                cg.setFillColor(UIColor(red: 0.18, green: 0.10, blue: 0.05, alpha: 0.35).cgColor)
+                cg.fillEllipse(in: knot)
+            }
         }
     }
 
@@ -757,12 +841,16 @@ private final class HouseOfCardsCoordinator: NSObject {
         // Card back is bundled. Loaded once and reused per
         // card via the same TextureResource handle.
         guard let path = Bundle.main.url(forResource: "card-back", withExtension: "png"),
-              let image = UIImage(contentsOfFile: path.path),
-              let cg = image.cgImage,
-              let tex = makeColorTexture(from: cg)
+              let image = UIImage(contentsOfFile: path.path)
         else {
             return
         }
+        // Clip card-back to rounded corners so the back-facing
+        // plane shows the same silhouette as the art-facing plane.
+        let rounded = Self.roundedCorners(image) ?? image
+        guard let cg = rounded.cgImage,
+              let tex = makeColorTexture(from: cg)
+        else { return }
         backTexture = tex
     }
 
@@ -795,15 +883,29 @@ private final class HouseOfCardsCoordinator: NSObject {
 
         // 45° from vertical — the canonical house-of-cards
         // angle per Bryan Berg and the standard A-frame guides.
-        // Anything less than ~30° tends to slip outward; more
-        // than ~55° tends to fall inward.
         let leanAngle: Float = .pi / 4   // 45°
         let halfH      = Self.cardHeight * 0.5
-        // Base offset: center-of-card sits at sin(θ)*halfH from
-        // the world origin so the two cards' bottom edges are
-        // ~50mm apart for a 88.9mm-tall card.
-        let baseHalfX  = sin(leanAngle) * halfH
-        let centerY    = cos(leanAngle) * halfH + max(0.001, targetMaxY)
+        let halfW      = Self.cardWidth  * 0.5
+
+        // CenterY must clear the table by the FULL extent of
+        // the leaned card's lowest point. After lean θ around
+        // Z, the lowest corner has Y offset = -(sin(θ)*halfW +
+        // cos(θ)*halfH) from the entity center. v2.157 only
+        // accounted for cos(θ)*halfH; the missing sin(θ)*halfW
+        // term made cards sink 2cm into the table and the
+        // physics solver ejected them violently.
+        let lowestOffset = sin(leanAngle) * halfW + cos(leanAngle) * halfH
+        let centerY      = lowestOffset + max(0.001, targetMaxY) + 0.001 // 1mm air gap
+
+        // Apex gap: top centers of the two cards mathematically
+        // meet at world X=0 in a 45° A-frame. With zero gap, the
+        // physics solver detects overlap (cards have 0.4mm
+        // thickness in Z plus the geometric crossing) and ejects
+        // them. Add a 1mm offset to each card's X position so
+        // the apex has a small gap that gravity can close via
+        // natural lean-into-each-other contact.
+        let apexGap: Float = 0.001
+        let baseHalfX  = sin(leanAngle) * halfH + apexGap
 
         // Card on left (-X) leans toward +X.
         // Card on right (+X) leans toward -X.
@@ -1013,6 +1115,29 @@ private final class HouseOfCardsCoordinator: NSObject {
         }
     }
 
+    // MARK: Texture helpers — rounded-corner clipping
+    //
+    // MeshResource.generatePlane(cornerRadius:) doesn't actually
+    // round the visible plane mesh — the parameter is silently
+    // ignored on iOS 17/18. Instead we clip the underlying image
+    // to a rounded rect and let the alpha channel cut the
+    // corners. UnlitMaterial respects alpha, so this just works.
+    static func roundedCorners(_ image: UIImage, radiusRatio: CGFloat = 0.045) -> UIImage? {
+        let size = image.size
+        guard size.width > 0, size.height > 0 else { return image }
+        let radius = min(size.width, size.height) * radiusRatio
+        let rect = CGRect(origin: .zero, size: size)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = image.scale
+        format.opaque = false
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        return renderer.image { ctx in
+            let path = UIBezierPath(roundedRect: rect, cornerRadius: radius)
+            path.addClip()
+            image.draw(in: rect)
+        }
+    }
+
     private func makeEdgeMaterial() -> PhysicallyBasedMaterial {
         if let m = edgeMaterial { return m }
         var m = PhysicallyBasedMaterial()
@@ -1036,10 +1161,15 @@ private final class HouseOfCardsCoordinator: NSObject {
         Task.detached(priority: .userInitiated) {
             guard
                 let (data, _) = try? await URLSession.shared.data(from: url),
-                let image = UIImage(data: data),
-                let cg = image.cgImage
+                let image = UIImage(data: data)
             else { return }
             await MainActor.run {
+                // Clip to rounded corners BEFORE generating the
+                // texture — the alpha channel gives us visible
+                // rounded corners (since generatePlane's
+                // cornerRadius param is silently ignored on iOS 17/18).
+                let rounded = HouseOfCardsCoordinator.roundedCorners(image) ?? image
+                guard let cg = rounded.cgImage else { return }
                 let opts = TextureResource.CreateOptions(semantic: .color)
                 let tex: TextureResource?
                 if #available(iOS 18.0, *) {

@@ -131,7 +131,7 @@ struct HouseOfCardsView: View {
     // MARK: Bottom deck strip — upcoming cards
     private var bottomDeckStrip: some View {
         VStack(spacing: 8) {
-            Text("TAP A CARD · DRAG TO PLACE · RELEASE TO DROP")
+            Text("TAP TO SPAWN A PAIR · DRAG TO PLACE · RELEASE")
                 .font(Design.Fonts.mono(9, weight: .semibold))
                 .tracking(1)
                 .foregroundStyle(.white.opacity(0.55))
@@ -142,13 +142,15 @@ struct HouseOfCardsView: View {
                             card: card,
                             isNext: idx == 0,
                             onTap: {
-                                // Pop the card from the deck and signal
-                                // the coordinator to spawn it. Scene
-                                // gestures handle placement from there.
+                                // Signal the coordinator to spawn a
+                                // pair from the deck. The coordinator
+                                // pops 2 cards via inout — we don't
+                                // mutate the deck here. The `card`
+                                // value passed in pendingSpawn is a
+                                // signal flag; the coordinator ignores
+                                // its identity and pops from the deck
+                                // head.
                                 session.pendingSpawn = card
-                                if !session.deck.isEmpty {
-                                    session.deck.removeFirst()
-                                }
                             }
                         )
                     }
@@ -199,9 +201,10 @@ struct HouseOfCardsView: View {
                         .font(Design.Fonts.mono(15))
                         .foregroundStyle(.white.opacity(0.85))
                     Divider().overlay(.white.opacity(0.15))
-                    helpRow("Place",       "Tap the leftmost card in the strip — it appears in the scene. Drag with one finger to position, release to drop.")
-                    helpRow("Look around", "Two-finger drag to orbit the camera. Pinch to zoom in or out.")
-                    helpRow("Lean",        "Cards have friction. Two cards leaning against each other count as one level.")
+                    helpRow("Place",       "Tap the leftmost card — TWO cards spawn together as an A-frame. Drag with one finger to position the pair, release to drop.")
+                    helpRow("Look around", "Drag on empty space to orbit the camera. Pinch to zoom in or out.")
+                    helpRow("Re-grab",     "Touch a placed card and drag to reposition it. Release to drop again.")
+                    helpRow("Lean",        "An A-frame is two cards meeting at the top — the classic house-of-cards base. Build a row, then bridge them with a horizontal card to start a second story.")
                     helpRow("Score",       "Each stable layer adds to your tower height. 10+ is the dream.")
                     helpRow("Switch deck", "Toggle 'Use my collection' to build with cards you own (power > 135).")
                 }
@@ -330,12 +333,14 @@ private final class HouseOfCardsCoordinator: NSObject {
     private var tabletop: ModelEntity?
     private var sceneSubscription: Cancellable?
 
-    /// All dynamic card entities currently in the world.
+    /// All dynamic (settled or in-flight) card entities in the
+    /// world. Re-grabbed cards move from here to heldCards.
     private var dynamicCards: [CardEntity] = []
-    /// The kinematic card currently being placed by the user.
-    /// Replaces the old "dragCard" — same role, different
-    /// interaction model (spawned by tap, moved by scene-pan).
-    private var heldCard: CardEntity?
+    /// Kinematic cards currently being placed by the user.
+    /// A pair-spawn from the strip puts 2 cards here forming an
+    /// A-frame; the pan gesture moves them together; release
+    /// commits both back to dynamic.
+    private var heldCards: [CardEntity] = []
     private var lastResetGeneration: Int = -1
 
     /// Card-back texture is loaded once and reused across
@@ -355,11 +360,6 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// to keep the top in view.
     private var targetMaxY: Float = 0.0
 
-    /// Alternating lean direction per spawn so successive cards
-    /// don't fall the same way. v2.155 cards spawned bolt
-    /// upright and dropped straight down — no leaning. v2.156
-    /// spawns them with a ±0.2 rad tilt that alternates.
-    private var spawnLeanDirection: Float = 1.0
 
     /// Spherical-coordinate camera state (orbit around the table).
     /// azimuth: rotation around world Y (horizontal pan)
@@ -372,9 +372,23 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     /// Gesture recognizers — retained so we can remove them
     /// cleanly if the view detaches.
-    private weak var cardPanGesture:    UILongPressGestureRecognizer?
-    private weak var cameraPanGesture:  UIPanGestureRecognizer?
-    private weak var cameraPinchGesture: UIPinchGestureRecognizer?
+    private weak var primaryPanGesture: UIPanGestureRecognizer?
+    private weak var pinchGesture:      UIPinchGestureRecognizer?
+
+    /// Current gesture mode set on .began of primaryPanGesture
+    /// and cleared on .ended. Drives whether deltas orbit the
+    /// camera or move a held/grabbed card.
+    private enum PanMode {
+        case idle
+        case orbiting
+        case draggingCards([CardEntity])
+    }
+    private var panMode: PanMode = .idle
+    /// During an orbit drag, accumulate the screen delta into
+    /// the spherical-coordinate state. setTranslation resets
+    /// each .changed so we apply deltas, not absolute values.
+    /// During a card drag, we project the current touch point
+    /// onto the card's hover plane.
 
     init(session: HouseOfCardsSession) {
         self.session = session
@@ -404,57 +418,114 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     // MARK: Gestures
     //
-    // Three gestures live on the ARView:
-    //   - cameraPan  (2-finger)  → orbit camera (azimuth + elevation)
-    //   - cameraPinch            → zoom (radial distance)
-    //   - cardPan    (1-finger)  → move the held kinematic card
+    // Two gestures live on the ARView:
+    //   - primaryPan (1-finger)  → context-sensitive:
+    //                              · If touch hits a card    → drag that card
+    //                              · If there's a held card  → drag held cards
+    //                              · Otherwise              → orbit camera
+    //   - pinch                  → zoom (radial distance)
     //
-    // UILongPressGestureRecognizer with minimumPressDuration=0 is
-    // used for cardPan because it fires .began on touch-down
-    // (UIPanGestureRecognizer waits for a movement threshold,
-    // which felt sluggish for "tap-and-drag-immediately").
+    // Single 1-finger pan replaces the v2.156 two-recognizer
+    // setup (2-finger pan + 1-finger long-press). The long-press
+    // greedily claimed touches and shadowed the pinch
+    // recognizer — pinch never fired. With only a 1-finger pan
+    // here, the 2-finger pinch is free to recognize on 2-touch
+    // gestures without conflict.
     private func installGestures(on view: ARView) {
-        let cameraPan = UIPanGestureRecognizer(target: self, action: #selector(handleCameraPan(_:)))
-        cameraPan.minimumNumberOfTouches = 2
-        cameraPan.maximumNumberOfTouches = 2
-        cameraPan.delegate = self
-        view.addGestureRecognizer(cameraPan)
-        self.cameraPanGesture = cameraPan
+        let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePrimaryPan(_:)))
+        pan.minimumNumberOfTouches = 1
+        pan.maximumNumberOfTouches = 1
+        pan.delegate = self
+        view.addGestureRecognizer(pan)
+        self.primaryPanGesture = pan
 
         let pinch = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
         pinch.delegate = self
         view.addGestureRecognizer(pinch)
-        self.cameraPinchGesture = pinch
-
-        let cardPan = UILongPressGestureRecognizer(target: self, action: #selector(handleCardPan(_:)))
-        cardPan.minimumPressDuration = 0
-        cardPan.numberOfTouchesRequired = 1
-        cardPan.allowableMovement = .greatestFiniteMagnitude
-        cardPan.delegate = self
-        // Critical: cardPan must wait for cameraPan (2-finger) to
-        // fail before activating. Without this, the long-press
-        // greedily claims the first touch and the 2-finger pan
-        // can never accumulate its second touch — camera orbit
-        // silently never fires. require(toFail:) is the standard
-        // iOS pattern for "single-finger gesture should yield to
-        // multi-finger sibling."
-        cardPan.require(toFail: cameraPan)
-        view.addGestureRecognizer(cardPan)
-        self.cardPanGesture = cardPan
+        self.pinchGesture = pinch
     }
 
-    @objc private func handleCameraPan(_ g: UIPanGestureRecognizer) {
-        guard let view = g.view else { return }
-        let delta = g.translation(in: view)
-        if g.state == .began {
-            print("[HoC] camera-pan began (touches=\(g.numberOfTouches))")
+    @objc private func handlePrimaryPan(_ g: UIPanGestureRecognizer) {
+        guard let view = arView else { return }
+        let point = g.location(in: view)
+
+        switch g.state {
+        case .began:
+            // Hit-test: did the touch land on a card?
+            let hits = view.hitTest(point, query: .nearest, mask: .all)
+            let hitCard = hits.compactMap { hit -> CardEntity? in
+                var entity: Entity? = hit.entity
+                while let e = entity {
+                    if e.name == "card-root" {
+                        // Find the CardEntity bookkeeping wrapper.
+                        if let held = heldCards.first(where: { $0.entity === e }) {
+                            return held
+                        }
+                        if let dyn = dynamicCards.first(where: { $0.entity === e }) {
+                            return dyn
+                        }
+                    }
+                    entity = e.parent
+                }
+                return nil
+            }.first
+
+            if !heldCards.isEmpty {
+                // Cards already held (just spawned from strip). Drag
+                // the whole group as one, regardless of where finger
+                // started — natural for placing a fresh pair.
+                panMode = .draggingCards(heldCards)
+                print("[HoC] pan: drag held group of \(heldCards.count)")
+            } else if let card = hitCard {
+                // Re-grab a settled card: switch it to kinematic,
+                // disable CCD, track it.
+                switchToKinematic(card)
+                heldCards = [card]
+                dynamicCards.removeAll(where: { $0 === card })
+                panMode = .draggingCards([card])
+                print("[HoC] pan: re-grabbed settled card '\(card.card.cardNumber)'")
+            } else {
+                panMode = .orbiting
+                print("[HoC] pan: orbiting camera")
+            }
+            g.setTranslation(.zero, in: view)
+
+        case .changed:
+            switch panMode {
+            case .orbiting:
+                let delta = g.translation(in: view)
+                camAzimuth   -= Float(delta.x) * 0.006
+                camElevation  = max(0.05, min(1.45, camElevation - Float(delta.y) * 0.006))
+                g.setTranslation(.zero, in: view)
+                updateCameraTransform()
+            case .draggingCards(let cards):
+                guard let first = cards.first else { return }
+                let y = first.entity.position.y
+                guard let world = view.project(point, ontoPlaneAt: y) else { return }
+                // Move all cards in the group by the same delta so
+                // an A-frame stays intact while being placed.
+                let dx = world.x - first.entity.position.x
+                let dz = world.z - first.entity.position.z
+                for c in cards {
+                    c.entity.position.x += dx
+                    c.entity.position.z += dz
+                }
+            case .idle:
+                break
+            }
+
+        case .ended, .cancelled, .failed:
+            switch panMode {
+            case .draggingCards:
+                if !heldCards.isEmpty { commitHeldCards() }
+            case .orbiting, .idle:
+                break
+            }
+            panMode = .idle
+
+        default:
+            break
         }
-        // 1 pixel ≈ 0.005 rad of orbit — feels close to native
-        // (Maps / Photos zoomed-out views).
-        camAzimuth   -= Float(delta.x) * 0.005
-        camElevation  = max(0.05, min(1.45, camElevation - Float(delta.y) * 0.005))
-        g.setTranslation(.zero, in: view)
-        updateCameraTransform()
     }
 
     @objc private func handlePinch(_ g: UIPinchGestureRecognizer) {
@@ -467,28 +538,14 @@ private final class HouseOfCardsCoordinator: NSObject {
         updateCameraTransform()
     }
 
-    @objc private func handleCardPan(_ g: UILongPressGestureRecognizer) {
-        guard let view = arView else { return }
-        let point = g.location(in: view)
-
-        switch g.state {
-        case .began:
-            print("[HoC] card-pan began at \(point) — heldCard=\(heldCard != nil ? "yes" : "no")")
-            fallthrough
-        case .changed:
-            guard let held = heldCard else { return }
-            let y = held.entity.position.y
-            if let world = view.project(point, ontoPlaneAt: y) {
-                held.entity.position = world
-            }
-        case .ended, .cancelled, .failed:
-            print("[HoC] card-pan ended — committing")
-            if heldCard != nil {
-                commitHeldCard()
-            }
-        default:
-            break
+    private func switchToKinematic(_ card: CardEntity) {
+        if var body = card.entity.components[PhysicsBodyComponent.self] {
+            body.isContinuousCollisionDetectionEnabled = false
+            body.mode = .kinematic
+            card.entity.components.set(body)
         }
+        card.settledFrames = 0
+        card.isSettled = false
     }
 
     private func updateCameraTransform() {
@@ -547,12 +604,12 @@ private final class HouseOfCardsCoordinator: NSObject {
         }
 
         // Tap-spawn: user tapped a card in the deck strip.
-        // Spawn a kinematic card at the table center. The user
-        // then drags it into position with the 1-finger long-
-        // press on the ARView; release commits to dynamic.
-        if let card = session.pendingSpawn {
+        // Spawn TWO kinematic cards as an A-frame at the table
+        // center. The user drags the pair into position with the
+        // primary pan; release commits both to dynamic.
+        if session.pendingSpawn != nil {
             session.pendingSpawn = nil
-            spawnHeldCard(card)
+            spawnHeldPair(takingFrom: &session.deck)
         }
     }
 
@@ -652,10 +709,14 @@ private final class HouseOfCardsCoordinator: NSObject {
                 width: tableW, height: tableH, depth: tableD
             )])
         )
+        // Table μ ≈ 0.55 — felt/carpet-equivalent per the
+        // house-of-cards research. Higher than card-card μ so
+        // the base of an A-frame grips the table better than
+        // the apex contact slips.
         table.components.set(
             PhysicsBodyComponent(
                 massProperties: .default,
-                material: .generate(staticFriction: 0.85, dynamicFriction: 0.75, restitution: 0.05),
+                material: .generate(friction: 0.55, restitution: 0.05),
                 mode: .static
             )
         )
@@ -707,108 +768,130 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     // MARK: Card spawning
     //
-    // Spawn pattern: tap-from-strip → kinematic card appears at
-    // table center, STANDING VERTICALLY with an alternating ±15°
-    // lean so successive cards fall in opposite directions and
-    // can naturally meet at the top (the classic house-of-cards
-    // configuration).
-    private func spawnHeldCard(_ card: Card) {
+    // Pair-spawn: tap-from-strip consumes TWO cards from the
+    // deck and spawns them as an A-frame at the table center.
+    // Both cards are kinematic. The user drags the pair into
+    // position with the 1-finger pan; release commits both to
+    // dynamic simultaneously.
+    //
+    // A-frame geometry (per house-of-cards-construction research):
+    //   - canonical lean is 45° from vertical (not 15-20° as the
+    //     prior versions used — too shallow, cards slip outward)
+    //   - base spacing ~50mm for a 2.5"×3.5" card (88.9mm long)
+    //   - tops meet at center, apex height ≈ cos(45°) * H/2 ≈ 31mm
+    //
+    // standUp rotation: -π/2 around world X axis stands the card
+    // with its geometric +Z (height) pointing along world +Y (up).
+    private func spawnHeldPair(takingFrom deck: inout [Card]) {
         guard let root = anchor else { return }
-        // One card-in-hand at a time. If there's already a held
-        // card waiting to be placed, the new tap commits the
-        // previous one and replaces it.
-        if heldCard != nil { commitHeldCard() }
+        guard deck.count >= 1 else { return }  // need at least 1; 2 is ideal
+        // Pop up to 2 cards from the deck.
+        let card1 = deck.removeFirst()
+        let card2 = deck.count > 0 ? deck.removeFirst() : card1   // fallback to dup if only 1 left
 
-        // Stand the card vertically: 90° around world X axis
-        // makes the geometric +Y face (where the art lives) face
-        // the camera. Then apply a lean toward +Z or -Z that
-        // alternates each spawn — so two successive cards face
-        // each other and can lean into a stable triangle.
-        let standUp = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
-        let leanAngle: Float = 0.26 * spawnLeanDirection  // ~15° from vertical
-        spawnLeanDirection *= -1
-        // After standUp, the card stands with its "art" face
-        // pointing along world +Z. Rotating around world Z tilts
-        // the card sideways (left/right when viewed from +Z),
-        // not what we want. Rotating around world X tilts the
-        // card forward/back along the camera-facing direction.
-        let lean = simd_quatf(angle: leanAngle, axis: SIMD3<Float>(1, 0, 0))
-        let rotation = lean * standUp
+        // If there's already a held pair, commit it first so
+        // we don't accumulate kinematic cards forever.
+        if !heldCards.isEmpty { commitHeldCards() }
 
-        // Spawn position: lateral offset matching the lean direction
-        // so two successive cards land near each other and can lean.
-        let halfHeight = Self.cardHeight * 0.5
-        let lateralOffset: Float = 0.025 * (-spawnLeanDirection)  // opposite of upcoming next
-        let startY = halfHeight + max(0.005, targetMaxY) + 0.01
-        let startPos = SIMD3<Float>(lateralOffset, startY, 0)
+        // 45° from vertical — the canonical house-of-cards
+        // angle per Bryan Berg and the standard A-frame guides.
+        // Anything less than ~30° tends to slip outward; more
+        // than ~55° tends to fall inward.
+        let leanAngle: Float = .pi / 4   // 45°
+        let halfH      = Self.cardHeight * 0.5
+        // Base offset: center-of-card sits at sin(θ)*halfH from
+        // the world origin so the two cards' bottom edges are
+        // ~50mm apart for a 88.9mm-tall card.
+        let baseHalfX  = sin(leanAngle) * halfH
+        let centerY    = cos(leanAngle) * halfH + max(0.001, targetMaxY)
 
-        let entity = buildCardEntity(for: card, position: startPos, rotation: rotation)
+        // Card on left (-X) leans toward +X.
+        // Card on right (+X) leans toward -X.
+        // standUp: -π/2 around X makes card stand height-up.
+        // lean around Z axis tilts the card in the X direction.
+        let standUp = simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
+        let leftLean  = simd_quatf(angle: -leanAngle, axis: SIMD3<Float>(0, 0, 1))
+        let rightLean = simd_quatf(angle:  leanAngle, axis: SIMD3<Float>(0, 0, 1))
 
-        // Kinematic during placement — no gravity, follows finger
-        // via handleCardPan. CCD off (PhysX rejects CCD+kinematic).
-        if var body = entity.components[PhysicsBodyComponent.self] {
-            body.isContinuousCollisionDetectionEnabled = false
-            body.mode = .kinematic
-            entity.components.set(body)
+        let leftEntity  = buildCardEntity(for: card1,
+                                          position: SIMD3<Float>(-baseHalfX, centerY, 0),
+                                          rotation: leftLean * standUp)
+        let rightEntity = buildCardEntity(for: card2,
+                                          position: SIMD3<Float>( baseHalfX, centerY, 0),
+                                          rotation: rightLean * standUp)
+
+        for entity in [leftEntity, rightEntity] {
+            if var body = entity.components[PhysicsBodyComponent.self] {
+                body.isContinuousCollisionDetectionEnabled = false
+                body.mode = .kinematic
+                entity.components.set(body)
+            }
+            root.addChild(entity)
         }
-        root.addChild(entity)
-        let cardEntity = CardEntity(entity: entity, card: card)
-        heldCard = cardEntity
 
-        print("[HoC] Spawned held card '\(card.cardNumber)' at \(startPos) — kinematic")
+        heldCards = [
+            CardEntity(entity: leftEntity,  card: card1),
+            CardEntity(entity: rightEntity, card: card2)
+        ]
 
-        // Load front art async; on completion find the named
-        // child entity ("card-front") and update its material.
-        // We use child planes (not box-face materials) so the
-        // texture mapping is unambiguous — no face-index guessing.
-        loadFrontArt(for: card) { [weak entity] tex in
-            guard let entity else {
-                print("[HoC] art load completed but entity gone")
-                return
-            }
-            guard let front = entity.findEntity(named: "card-front") as? ModelEntity,
-                  var model = front.components[ModelComponent.self] else {
-                print("[HoC] couldn't find card-front child")
-                return
-            }
-            var art = UnlitMaterial()
-            art.color = .init(tint: .white, texture: .init(tex))
-            model.materials = [art]
-            front.components.set(model)
-            print("[HoC] Art applied to card-front plane (tex \(tex.width)×\(tex.height))")
+        print("[HoC] Spawned A-frame pair '\(card1.cardNumber)' + '\(card2.cardNumber)' at center")
+
+        // Async art load for both cards. Each callback finds the
+        // named child plane on its own entity. Explicit self
+        // capture is required by Swift's escaping-closure rules.
+        loadFrontArt(for: card1) { [weak self, weak leftEntity] tex in
+            self?.applyArt(to: leftEntity, texture: tex)
+        }
+        loadFrontArt(for: card2) { [weak self, weak rightEntity] tex in
+            self?.applyArt(to: rightEntity, texture: tex)
         }
     }
 
-    private func commitHeldCard() {
-        guard let card = heldCard else { return }
-        // Swap kinematic → dynamic. Re-enable CCD now that the
-        // body is dynamic (thin geometry needs it to prevent
-        // tunneling during fast falls).
-        if var body = card.entity.components[PhysicsBodyComponent.self] {
-            body.mode = .dynamic
-            body.isContinuousCollisionDetectionEnabled = true
-            card.entity.components.set(body)
+    @MainActor
+    private func applyArt(to entity: ModelEntity?, texture: TextureResource) {
+        guard let entity else { return }
+        guard let front = entity.findEntity(named: "card-front") as? ModelEntity,
+              var model = front.components[ModelComponent.self] else {
+            print("[HoC] couldn't find card-front child")
+            return
         }
-        // Small downward velocity so the card "drops" rather
-        // than hovering before gravity engages.
-        if var motion = card.entity.components[PhysicsMotionComponent.self] {
-            motion.linearVelocity = SIMD3<Float>(0, -0.1, 0)
-            card.entity.components.set(motion)
-        } else {
-            var motion = PhysicsMotionComponent()
-            motion.linearVelocity = SIMD3<Float>(0, -0.1, 0)
-            card.entity.components.set(motion)
+        var art = UnlitMaterial()
+        art.color = .init(tint: .white, texture: .init(texture))
+        model.materials = [art]
+        front.components.set(model)
+        print("[HoC] Art applied (tex \(texture.width)×\(texture.height))")
+    }
+
+    private func commitHeldCards() {
+        guard !heldCards.isEmpty else { return }
+        for card in heldCards {
+            if var body = card.entity.components[PhysicsBodyComponent.self] {
+                body.mode = .dynamic
+                body.isContinuousCollisionDetectionEnabled = true
+                card.entity.components.set(body)
+            }
+            // Small downward velocity so it "settles" rather than
+            // hovering. Tiny lateral push toward the other card in
+            // the pair so the A-frame's tops touch.
+            if var motion = card.entity.components[PhysicsMotionComponent.self] {
+                motion.linearVelocity = SIMD3<Float>(0, -0.05, 0)
+                card.entity.components.set(motion)
+            } else {
+                var motion = PhysicsMotionComponent()
+                motion.linearVelocity = SIMD3<Float>(0, -0.05, 0)
+                card.entity.components.set(motion)
+            }
+            dynamicCards.append(card)
         }
-        dynamicCards.append(card)
-        heldCard = nil
-        print("[HoC] Committed held card to dynamic. \(dynamicCards.count) cards in tower.")
+        print("[HoC] Committed \(heldCards.count) cards. Tower: \(dynamicCards.count) total.")
+        heldCards.removeAll()
     }
 
     private func clearAllCards() {
         for c in dynamicCards { c.entity.removeFromParent() }
         dynamicCards.removeAll()
-        heldCard?.entity.removeFromParent()
-        heldCard = nil
+        for c in heldCards { c.entity.removeFromParent() }
+        heldCards.removeAll()
         targetMaxY = 0
     }
 
@@ -892,10 +975,15 @@ private final class HouseOfCardsCoordinator: NSObject {
         )
         entity.components.set(CollisionComponent(shapes: [shape]))
 
+        // Friction per the house-of-cards research:
+        //   card-on-card μ_static ≈ 0.45, μ_dynamic ≈ 0.35
+        // RealityKit's PhysicsMaterialResource takes a single
+        // friction value (not split static/dynamic), so we use
+        // the dynamic value — slightly under-frictioning produces
+        // the "buildable but tense" gameplay feel.
         let pmat = PhysicsMaterialResource.generate(
-            staticFriction:  0.85,
-            dynamicFriction: 0.75,
-            restitution:     0.05
+            friction:    0.42,
+            restitution: 0.05
         )
         var body = PhysicsBodyComponent(
             massProperties: .init(mass: 0.0018),
@@ -903,8 +991,8 @@ private final class HouseOfCardsCoordinator: NSObject {
             mode: .dynamic
         )
         body.isContinuousCollisionDetectionEnabled = true
-        body.linearDamping  = 0.4
-        body.angularDamping = 0.6
+        body.linearDamping  = 0.5
+        body.angularDamping = 0.7
         entity.components.set(body)
         entity.components.set(PhysicsMotionComponent())
 

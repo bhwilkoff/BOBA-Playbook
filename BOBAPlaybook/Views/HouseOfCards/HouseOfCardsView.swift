@@ -141,7 +141,7 @@ struct HouseOfCardsView: View {
     // MARK: Bottom deck strip — upcoming cards + Place button
     private var bottomDeckStrip: some View {
         VStack(spacing: 8) {
-            // Status / Place button row.
+            // Status + PLAY/PAUSE button row.
             HStack(spacing: 12) {
                 Text(stripStatusText)
                     .font(Design.Fonts.mono(10, weight: .semibold))
@@ -149,14 +149,7 @@ struct HouseOfCardsView: View {
                     .foregroundStyle(.white.opacity(0.55))
                     .lineLimit(1)
                 Spacer()
-                if session.hasHeldCards {
-                    placeButton(title: "DROP", action: { session.releaseRequested = true })
-                } else if !session.selectedCards.isEmpty {
-                    placeButton(title: "TAP TABLE TO PLACE",
-                                action: {})   // visual prompt only — actual placement is by tap
-                        .disabled(true)
-                        .opacity(0.7)
-                }
+                playPauseButton
             }
             .padding(.horizontal, 14)
 
@@ -181,26 +174,42 @@ struct HouseOfCardsView: View {
     }
 
     @ViewBuilder
-    private func placeButton(title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(Design.Fonts.mono(11, weight: .bold))
-                .tracking(1)
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Design.Colors.bobaOrange, in: Capsule())
+    private var playPauseButton: some View {
+        Button {
+            session.togglePause()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: session.isPaused ? "play.fill" : "pause.fill")
+                    .font(.system(size: 12, weight: .bold))
+                Text(session.isPaused ? "PLAY" : "PAUSE")
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .tracking(1)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 9)
+            .background(
+                Capsule().fill(
+                    session.hasAnyCards
+                        ? Design.Colors.bobaOrange
+                        : Color.white.opacity(0.18)
+                )
+            )
         }
+        .disabled(!session.hasAnyCards)
     }
 
     private var stripStatusText: String {
-        if session.hasHeldCards {
-            return "ADJUST · TAP DROP TO RELEASE"
+        if !session.isPaused {
+            return "PHYSICS RUNNING · TAP PAUSE TO FREEZE"
         }
-        if session.selectedCards.isEmpty {
-            return "SELECT CARDS TO PLACE · MAX 4"
+        if !session.selectedCards.isEmpty {
+            return "\(session.selectedCards.count)/4 SELECTED · TAP TABLE TO PLACE"
         }
-        return "\(session.selectedCards.count)/4 SELECTED"
+        if session.hasAnyCards {
+            return "PAUSED · ADJUST OR TAP PLAY"
+        }
+        return "SELECT CARDS · MAX 4"
     }
 
     // MARK: Card pool resolution
@@ -237,18 +246,19 @@ struct HouseOfCardsView: View {
                     Text("BUILD A TOWER")
                         .font(Design.Fonts.display(22))
                         .foregroundStyle(.white)
-                    Text("Pick the cards you want, choose where to place them, then drop them into physics. Build leaning structures to climb levels.")
+                    Text("Build first, then play. Set up your tower in a frozen physics playground, then hit PLAY to see if it stands.")
                         .font(Design.Fonts.mono(15))
                         .foregroundStyle(.white.opacity(0.85))
                     Divider().overlay(.white.opacity(0.15))
-                    helpRow("Select",      "Tap up to 4 cards in the bottom strip — orange numbered badge shows placement order.")
-                    helpRow("Place",       "Tap the table where you want the cards to spawn. They appear as held (kinematic) — they won't fall yet.")
-                    helpRow("Adjust",      "Drag with one finger to move the held cards. Tap DROP when you're happy with the position to release them into physics.")
-                    helpRow("Re-grab",     "Tap any placed card to pick it back up. Tap DROP again to commit.")
-                    helpRow("Look around", "Drag on empty space to orbit the camera. Pinch to zoom.")
-                    helpRow("Reset",       "The ↺ button in the top bar clears the table immediately so you can start over.")
-                    helpRow("Score",       "Each stable layer adds to your tower height. 10+ is the dream.")
-                    helpRow("Switch deck", "Toggle 'Use my collection' to build with cards you own (power > 135).")
+                    helpRow("1. Select", "Tap up to 4 cards in the bottom strip — orange numbered badge shows placement order.")
+                    helpRow("2. Place",  "Tap the table where you want them. The cards appear at that spot, frozen in place — no gravity yet.")
+                    helpRow("3. Adjust", "While paused, drag any card with one finger to reposition it. Repeat as many times as you like.")
+                    helpRow("4. Play",   "Tap PLAY to engage physics. Cards become dynamic and fall if not supported.")
+                    helpRow("5. Pause",  "Tap PAUSE anytime to freeze the scene mid-fall. Repair, then play again.")
+                    helpRow("Look around","Drag on empty space to orbit the camera. Pinch to zoom.")
+                    helpRow("Reset",     "The ↺ button in the top bar clears the table immediately so you can start over.")
+                    helpRow("Score",     "Each stable layer adds to your tower height. 10+ is the dream.")
+                    helpRow("Switch deck","Toggle 'Use my collection' to build with cards you own (power > 135).")
                 }
                 .padding(20)
             }
@@ -552,8 +562,11 @@ private final class HouseOfCardsCoordinator: NSObject {
             return
         }
 
-        // Otherwise treat the tap as a card grab: hit-test for a
-        // card under the touch.
+        // Otherwise: if currently playing, tap on a card pulls it
+        // back to kinematic for adjustment. In pause mode all
+        // cards are already kinematic, so just hit-test for drag
+        // (handled by the 1-finger pan elsewhere).
+        guard !session.isPaused else { return }
         let hits = view.hitTest(point, query: .nearest, mask: .all)
         for hit in hits {
             var entity: Entity? = hit.entity
@@ -563,7 +576,6 @@ private final class HouseOfCardsCoordinator: NSObject {
                         switchToKinematic(dyn)
                         dynamicCards.removeAll(where: { $0 === dyn })
                         heldCards = [dyn]
-                        session.hasHeldCards = true
                         return
                     }
                 }
@@ -597,20 +609,18 @@ private final class HouseOfCardsCoordinator: NSObject {
                 return nil
             }.first
 
-            if !heldCards.isEmpty {
-                // Cards already held (just spawned from strip). Drag
-                // the whole group as one, regardless of where finger
-                // started — natural for placing a fresh pair.
-                panMode = .draggingCards(heldCards)
-                print("[HoC] pan: drag held group of \(heldCards.count)")
-            } else if let card = hitCard {
-                // Re-grab a settled card: switch it to kinematic,
-                // disable CCD, track it.
-                switchToKinematic(card)
-                heldCards = [card]
-                dynamicCards.removeAll(where: { $0 === card })
+            if let card = hitCard {
+                // Drag the specific card the user touched. In
+                // PAUSED mode every card is already kinematic, so
+                // just move it. In PLAY mode, switch it back to
+                // kinematic for the duration of the drag.
+                if !session.isPaused, dynamicCards.contains(where: { $0 === card }) {
+                    switchToKinematic(card)
+                    dynamicCards.removeAll(where: { $0 === card })
+                    heldCards.append(card)
+                }
                 panMode = .draggingCards([card])
-                print("[HoC] pan: re-grabbed settled card '\(card.card.cardNumber)'")
+                print("[HoC] pan: dragging card '\(card.card.cardNumber)'")
             } else {
                 panMode = .orbiting
                 print("[HoC] pan: orbiting camera")
@@ -647,11 +657,23 @@ private final class HouseOfCardsCoordinator: NSObject {
             }
 
         case .ended, .cancelled, .failed:
-            switch panMode {
-            case .draggingCards:
-                if !heldCards.isEmpty { commitHeldCards() }
-            case .orbiting, .idle:
-                break
+            // In PAUSE mode: leave the dragged card kinematic
+            // where it is — playground mode, no commit yet.
+            // In PLAY mode: if a single card was transiently
+            // grabbed from dynamic, transition it back to dynamic.
+            if case .draggingCards(let cards) = panMode,
+               !session.isPaused,
+               cards.count == 1,
+               let card = cards.first,
+               heldCards.contains(where: { $0 === card }) {
+                // Re-engage physics on the single card.
+                if var body = card.entity.components[PhysicsBodyComponent.self] {
+                    body.mode = .dynamic
+                    body.isContinuousCollisionDetectionEnabled = true
+                    card.entity.components.set(body)
+                }
+                heldCards.removeAll(where: { $0 === card })
+                dynamicCards.append(card)
             }
             panMode = .idle
 
@@ -767,30 +789,77 @@ private final class HouseOfCardsCoordinator: NSObject {
             clearAllCards()
         }
 
-        // Spawn-at-location: user has selected cards in the strip
-        // and just tapped a location on the table. Spawn the
-        // selected cards there as held kinematic.
+        // Spawn-at-location: user tapped a location on the table
+        // with cards selected. Always auto-pauses so the new
+        // cards spawn into a frozen scene (can't spawn into a
+        // physics-running world without chaos).
         if let location = session.pendingSpawnLocation {
             session.pendingSpawnLocation = nil
+            if !session.isPaused {
+                session.isPaused = true
+                applyPauseState()
+            }
             let toSpawn = session.selectedCards
             session.selectedCards.removeAll()
-            // Also remove these cards from the deck.
             for card in toSpawn {
                 if let idx = session.deck.firstIndex(where: { $0.id == card.id }) {
                     session.deck.remove(at: idx)
                 }
             }
             spawnHeldCards(toSpawn, at: location)
-            session.hasHeldCards = !heldCards.isEmpty
+            session.hasAnyCards = !heldCards.isEmpty || !dynamicCards.isEmpty
         }
 
-        // Drop signal: user tapped "Drop" to commit held cards.
-        if session.releaseRequested {
-            session.releaseRequested = false
-            if !heldCards.isEmpty {
-                commitHeldCards()
-                session.hasHeldCards = false
+        // Pause/Play toggle.
+        if session.togglePauseRequested {
+            session.togglePauseRequested = false
+            session.isPaused.toggle()
+            applyPauseState()
+        }
+    }
+
+    /// Switch every card's physics body to match session.isPaused.
+    /// PAUSED → all bodies become kinematic, cards lock in place.
+    /// PLAYING → all bodies become dynamic, gravity engages.
+    private func applyPauseState() {
+        if session.isPaused {
+            // Move all dynamic cards back to held (kinematic).
+            for card in dynamicCards {
+                if var body = card.entity.components[PhysicsBodyComponent.self] {
+                    body.isContinuousCollisionDetectionEnabled = false
+                    body.mode = .kinematic
+                    card.entity.components.set(body)
+                }
+                // Zero velocity so they don't drift in pause.
+                if var motion = card.entity.components[PhysicsMotionComponent.self] {
+                    motion.linearVelocity = .zero
+                    motion.angularVelocity = .zero
+                    card.entity.components.set(motion)
+                }
+                card.settledFrames = 0
+                card.isSettled = false
+                heldCards.append(card)
             }
+            dynamicCards.removeAll()
+            print("[HoC] PAUSED \(heldCards.count) cards")
+        } else {
+            // Move all held cards to dynamic.
+            for card in heldCards {
+                if var body = card.entity.components[PhysicsBodyComponent.self] {
+                    body.isContinuousCollisionDetectionEnabled = true
+                    body.mode = .dynamic
+                    card.entity.components.set(body)
+                }
+                // Tiny downward seed velocity so the solver doesn't
+                // treat the body as at-rest equilibrium.
+                if var motion = card.entity.components[PhysicsMotionComponent.self] {
+                    motion.linearVelocity = SIMD3<Float>(0, -0.01, 0)
+                    card.entity.components.set(motion)
+                }
+                dynamicCards.append(card)
+            }
+            heldCards.removeAll()
+            print("[HoC] PLAYING with \(dynamicCards.count) cards")
         }
     }
 
@@ -1043,7 +1112,10 @@ private final class HouseOfCardsCoordinator: NSObject {
     //              inward at 90° offsets)
     private func spawnHeldCards(_ cards: [Card], at location: SIMD3<Float>) {
         guard let root = anchor, !cards.isEmpty else { return }
-        if !heldCards.isEmpty { commitHeldCards() }
+        // v2.168: no auto-commit. In paused-playground model, new
+        // cards just join the heldCards (kinematic) pool. Pre-
+        // existing kinematic cards stay put. User taps PLAY to
+        // engage physics on all of them at once.
 
         let leanAngle: Float = .pi / 6   // 30° from vertical
         let halfH = Self.cardHeight * 0.5
@@ -1086,7 +1158,7 @@ private final class HouseOfCardsCoordinator: NSObject {
             root.addChild(entity)
             newHeld.append(CardEntity(entity: entity, card: cards[i]))
         }
-        heldCards = newHeld
+        heldCards.append(contentsOf: newHeld)
 
         // Load art for each card async.
         for c in newHeld {
@@ -1095,7 +1167,7 @@ private final class HouseOfCardsCoordinator: NSObject {
                 self?.applyArt(to: entity, texture: tex)
             }
         }
-        print("[HoC] Spawned \(newHeld.count) cards at \(location)")
+        print("[HoC] Spawned \(newHeld.count) cards at \(location); held=\(heldCards.count)")
     }
 
     // Legacy stub — kept to avoid breaking call sites mid-refactor.
@@ -1265,6 +1337,7 @@ private final class HouseOfCardsCoordinator: NSObject {
         for c in heldCards { c.entity.removeFromParent() }
         heldCards.removeAll()
         targetMaxY = 0
+        session.hasAnyCards = false
     }
 
     // MARK: Card entity construction
@@ -1600,14 +1673,21 @@ final class HouseOfCardsSession {
     /// Coordinator reads + clears it on the next update cycle.
     var pendingSpawnLocation: SIMD3<Float>? = nil
 
-    /// True while the coordinator is holding cards from a
-    /// recent spawn (cards are kinematic, awaiting commit to
-    /// dynamic). Used to drive UI state (Drop button visible).
-    var hasHeldCards: Bool = false
+    /// Master pause/play state. When true, the entire physics
+    /// simulation is frozen: every card is kinematic, gravity
+    /// has no effect, the user can manipulate any card freely.
+    /// When false, all cards are dynamic and physics runs.
+    /// Default is paused — the user explicitly opts into physics
+    /// by tapping PLAY.
+    var isPaused: Bool = true
 
-    /// Set when the user taps "Drop" — coordinator commits held
-    /// cards to dynamic physics on next update cycle.
-    var releaseRequested: Bool = false
+    /// Signal flag: user tapped the PLAY/PAUSE button. The
+    /// coordinator reads + clears it and toggles isPaused.
+    var togglePauseRequested: Bool = false
+
+    /// True if at least one card is on the table (kinematic
+    /// or dynamic). Drives play-button enabled state.
+    var hasAnyCards: Bool = false
 
     /// Cleared & rebuilt by resetScene; the coordinator
     /// observes it via an Int identity tag and rebuilds the
@@ -1642,12 +1722,17 @@ final class HouseOfCardsSession {
         selectedCards.removeAll()
     }
 
+    func togglePause() {
+        togglePauseRequested = true
+    }
+
     func resetScene() {
         currentLevels = 0
         resetGeneration &+= 1
         selectedCards.removeAll()
         pendingSpawnLocation = nil
-        hasHeldCards = false
+        hasAnyCards = false
+        isPaused = true
     }
 }
 

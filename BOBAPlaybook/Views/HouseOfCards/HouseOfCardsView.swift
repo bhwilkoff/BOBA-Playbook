@@ -644,6 +644,17 @@ private final class HouseOfCardsCoordinator: NSObject {
         for r in recognizers {
             r.addTarget(self, action: #selector(handleEntityGestureUpdate(_:)))
             r.delegate = self
+            // v2.175: restrict Apple's translation to exactly 1 finger.
+            // EntityTranslationGestureRecognizer is a UIPanGesture
+            // subclass; by default it accepts multi-finger pans, so
+            // it fires DURING our 2-finger pitch/lift gestures and
+            // drags the card sideways while the user tries to tilt
+            // (visible in v2.174 diagnostics).
+            if let pan = r as? UIPanGestureRecognizer,
+               !(r is UIRotationGestureRecognizer) {
+                pan.minimumNumberOfTouches = 1
+                pan.maximumNumberOfTouches = 1
+            }
         }
         entityGestures = recognizers
     }
@@ -658,14 +669,6 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     @objc private func handleEntityGestureUpdate(_ g: UIGestureRecognizer) {
         guard let selected = selectedCardEntity else { return }
-        // v2.174 diagnostics: log entity-gesture state transitions
-        // so we can see in console which Apple gesture is firing
-        // and when.
-        if g.state == .began {
-            print("[HoB] Apple \(type(of: g)) BEGAN")
-        } else if g.state == .ended {
-            print("[HoB] Apple \(type(of: g)) ENDED — firing A-frame snap")
-        }
         // Surface snap fires every .changed frame: Apple's
         // translation is XZ-only; we only modify Y. Orthogonal —
         // they compose without conflict, and the card visibly
@@ -728,7 +731,6 @@ private final class HouseOfCardsCoordinator: NSObject {
                 twoFingerMode = .rotatingCard(selected)
                 cardManipAxis = .undetermined
                 cardManipAccum = .zero
-                print("[HoB] 2-finger pan BEGAN on selected card; entityGestureActive=\(entityGestureActive)")
             } else {
                 twoFingerMode = .panningCamera
             }
@@ -765,15 +767,40 @@ private final class HouseOfCardsCoordinator: NSObject {
 
                 switch cardManipAxis {
                 case .pitch:
-                    // 2-finger HORIZONTAL drag → tilt (pitch around
-                    // world X). After tilting, re-snap bottom to
-                    // surface so the card "rides" the supporting
-                    // surface as it leans.
-                    let pitchAngle = Float(delta.x) * 0.012
-                    let pitchQ = simd_quatf(angle: pitchAngle, axis: SIMD3<Float>(1, 0, 0))
-                    card.entity.orientation = pitchQ * card.entity.orientation
+                    // v2.175: pitch now rotates AROUND THE BOTTOM-
+                    // EDGE MIDPOINT, not the card center. Three-step:
+                    // 1. Capture pivot (bottom-mid in world)
+                    // 2. Apply rotation to orientation
+                    // 3. Translate so the new bottom-mid lands at
+                    //    the pre-rotation pivot.
+                    // Bottom stays anchored — only the top moves.
+                    //
+                    // Also clamps total tilt to ±70° via the
+                    // pitchAngle() decomposition. Past 70° the card
+                    // is nearly horizontal and further tilt isn't
+                    // useful for stacking — it just flips upside-
+                    // down.
+                    let bottomLocal = SIMD3<Float>(0, 0, -Self.cardHeight / 2)
+                    let pivotBefore = card.entity.convert(position: bottomLocal, to: nil as Entity?)
+                    let inputAngle = Float(delta.x) * 0.012
+                    let currentTilt = pitchAngle(of: card.entity)
+                    let maxTilt: Float = 1.22  // ~70°
+                    let proposed = currentTilt + inputAngle
+                    let clamped = max(-maxTilt, min(maxTilt, proposed))
+                    let actualAngle = clamped - currentTilt
+                    if abs(actualAngle) > 1e-5 {
+                        let pitchQ = simd_quatf(angle: actualAngle, axis: SIMD3<Float>(1, 0, 0))
+                        card.entity.orientation = pitchQ * card.entity.orientation
+                        let pivotAfter = card.entity.convert(position: bottomLocal, to: nil as Entity?)
+                        card.entity.position += (pivotBefore - pivotAfter)
+                    }
+                    // Defensive surface re-snap (corrects any small
+                    // drift, and re-evaluates whether the bottom is
+                    // now over a different supporting card).
                     applySurfaceSnap(to: card)
-                    applyAFrameSnap(to: card)
+                    // No A-frame snap during pitch — XZ stays where
+                    // the user placed the card. Snap engages on
+                    // Apple's translation .ended.
 
                 case .lift:
                     if session.lockToSurface {
@@ -892,7 +919,6 @@ private final class HouseOfCardsCoordinator: NSObject {
             // empty space → orbit camera (preserves selection).
             let hitCard = hitTestCardEntity(at: point)
             if selectedCardEntity != nil {
-                print("[HoB] 1-finger pan BEGAN with selection → orbit (touch was off the selected card)")
                 panMode = .orbiting
                 g.setTranslation(.zero, in: view)
                 return
@@ -1076,62 +1102,50 @@ private final class HouseOfCardsCoordinator: NSObject {
     // Snap is XZ-only; surface-snap handles the Y. Together they
     // produce the canonical "two cards leaning on each other"
     // pose without manual fiddling.
-    // v2.174: loosened from 4cm / 5° / 10° → 7cm / 4° / 20°.
-    // Original thresholds were so tight that users would have to
-    // place card tops within 4cm of each other to feel the snap,
-    // which is hard at typical screen scales.
-    private static let aFrameSnapDistance: Float = 0.07   // 7cm
+    // v2.175: snap distance 7cm → 12cm. Logs from v2.174 testing
+    // showed cards consistently at 12-18cm apart when user expected
+    // snap. 12cm is roughly 2 card widths — close enough that the
+    // user has clearly "aimed" at the partner.
+    private static let aFrameSnapDistance: Float = 0.12   // 12cm
     private static let aFrameTiltMin: Float = 0.07         // ~4°
     private static let aFrameMirrorTolerance: Float = 0.35 // ~20°
 
     private func applyAFrameSnap(to card: CardEntity) {
-        // Get our pitch angle (rotation around world X).
         let ourTilt = pitchAngle(of: card.entity)
-        guard abs(ourTilt) > Self.aFrameTiltMin else {
-            print("[HoB] A-frame: ourTilt=\(ourTilt) rad below \(Self.aFrameTiltMin) min, not checking")
-            return
-        }
+        guard abs(ourTilt) > Self.aFrameTiltMin else { return }
 
-        // Top-edge midpoint of our card in world space.
         let topLocal = SIMD3<Float>(0, 0, Self.cardHeight / 2)
         let ourTop = card.entity.convert(position: topLocal, to: nil as Entity?)
         let ourCenter = card.entity.position
 
-        // Find a candidate partner: a placed card that is NOT us,
-        // whose tilt is roughly the mirror of ours, and whose top
-        // midpoint is within snap distance horizontally.
         let candidates = (heldCards + dynamicCards).filter { $0 !== card }
         var bestPartner: (entity: Entity, topY: Float, topPos: SIMD3<Float>)? = nil
         var bestDist: Float = .greatestFiniteMagnitude
-        print("[HoB] A-frame: checking \(candidates.count) candidates, ourTilt=\(ourTilt) rad, ourTop=\(ourTop)")
         for c in candidates {
             let theirTilt = pitchAngle(of: c.entity)
+            guard ourTilt * theirTilt < 0 else { continue }
+            guard abs(abs(theirTilt) - abs(ourTilt)) < Self.aFrameMirrorTolerance else { continue }
             let theirTop = c.entity.convert(position: topLocal, to: nil as Entity?)
             let dx = theirTop.x - ourTop.x
             let dz = theirTop.z - ourTop.z
             let d = sqrt(dx*dx + dz*dz)
-            let mirrorSign = ourTilt * theirTilt < 0
-            let mirrorMag = abs(abs(theirTilt) - abs(ourTilt)) < Self.aFrameMirrorTolerance
-            let withinDist = d < Self.aFrameSnapDistance
-            print("[HoB]   candidate: theirTilt=\(theirTilt) rad, dist=\(String(format: "%.3f", d))m, mirrorSign=\(mirrorSign), mirrorMag=\(mirrorMag), withinDist=\(withinDist)")
-            guard mirrorSign else { continue }
-            guard mirrorMag else { continue }
-            if withinDist && d < bestDist {
+            if d < Self.aFrameSnapDistance && d < bestDist {
                 bestDist = d
                 bestPartner = (c.entity, theirTop.y, theirTop)
             }
         }
         guard let partner = bestPartner else {
-            print("[HoB] A-frame: NO partner found in range")
+            // v2.175: log only when we'd EXPECT snap (tilted card
+            // released after Apple's translation) but no partner
+            // was found. Keeps console quiet during pitch motion.
+            print("[HoB] A-frame: tilted \(String(format: "%.2f", ourTilt))rad, no mirror partner in 12cm")
             return
         }
-        // Snap our XZ so our top midpoint = partner's top midpoint.
         let offset = partner.topPos - ourTop
         card.entity.position.x = ourCenter.x + offset.x
         card.entity.position.z = ourCenter.z + offset.z
-        print("[HoB] A-frame: SNAPPED to partner, offset=\(offset)")
-        // Re-snap bottom to surface (the surface may have changed
-        // because we moved over a different supporting card).
+        let snapDist = sqrt(offset.x*offset.x + offset.z*offset.z)
+        print("[HoB] A-frame SNAPPED to partner (was \(String(format: "%.2f", snapDist))m away)")
         applySurfaceSnap(to: card)
     }
 

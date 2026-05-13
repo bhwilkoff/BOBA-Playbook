@@ -288,7 +288,7 @@ struct HouseOfCardsView: View {
                     helpRow("Lift / lower",         "Unlock 🔒 first. Then two-finger VERTICAL drag → raise or lower the selected card freely in the air.")
                     helpRow("Rotate (yaw)",         "TWIST with two fingers → spin the selected card around its vertical axis. (Standard iOS rotation gesture, same as Photos / Maps.)")
                     helpRow("Lock toggle",          "🔒 ON (default): the bottom of the selected card snaps to whatever surface is under it. Slide a card across the table, over a supporting card — bottom auto-rides the surface. 🔒 OFF: free vertical movement, lift cards into the air.")
-                    helpRow("A-frame snap",         "Tilt one card, then drag a second card near it tilted the OPPOSITE way — they auto-snap to a stable leaning pose when their top edges align. Lets you build pyramids without measuring.")
+                    helpRow("Smart snap",           "When you release a drag, lift, or tilt near another card, the closest valid stacking pose snaps automatically. Two cases: (1) Both tilted in OPPOSITE directions and their tops are close → A-frame apex. (2) Your card is ABOVE another card and the bottoms/tops are aligned → your bottom edge rests on the supporting card's top. Lets you build full pyramids without measuring — lean two cards together, lift a roof card on top, stack another A-frame above it.")
                     helpRow("Deselect",             "Tap empty space (or tap the selected card again) to deselect.")
                     helpRow("Look around",          "When NOTHING is selected: one-finger drag orbits, two-finger drag pans the view, pinch zooms.")
                     helpRow("Play / Pause",        "Tap PLAY to engage physics. Tap PAUSE anytime to freeze mid-fall, repair, and play again.")
@@ -684,7 +684,7 @@ private final class HouseOfCardsCoordinator: NSObject {
         // gesture without fighting Apple's drag.
         if g.state == .ended {
             applySurfaceSnap(to: selected)
-            applyAFrameSnap(to: selected)
+            applySmartSnap(to: selected)
         }
     }
 
@@ -841,6 +841,14 @@ private final class HouseOfCardsCoordinator: NSObject {
             }
 
         case .ended, .cancelled, .failed:
+            // v2.176: after a pitch/lift gesture releases, evaluate
+            // smart snap. The user has just settled the card's
+            // orientation/height; this is the moment to pull it
+            // into a stable configuration if a partner is nearby.
+            if case .rotatingCard(let card) = twoFingerMode, g.state == .ended {
+                applySurfaceSnap(to: card)
+                applySmartSnap(to: card)
+            }
             twoFingerMode = .idle
             cardManipAxis = .undetermined
             cardManipAccum = .zero
@@ -974,7 +982,6 @@ private final class HouseOfCardsCoordinator: NSObject {
                     // card without any vertical fiddling — bottom
                     // rides whatever's underneath.
                     applySurfaceSnap(to: c)
-                    applyAFrameSnap(to: c)
                 }
             case .idle:
                 break
@@ -1102,51 +1109,103 @@ private final class HouseOfCardsCoordinator: NSObject {
     // Snap is XZ-only; surface-snap handles the Y. Together they
     // produce the canonical "two cards leaning on each other"
     // pose without manual fiddling.
-    // v2.175: snap distance 7cm → 12cm. Logs from v2.174 testing
-    // showed cards consistently at 12-18cm apart when user expected
-    // snap. 12cm is roughly 2 card widths — close enough that the
-    // user has clearly "aimed" at the partner.
-    private static let aFrameSnapDistance: Float = 0.12   // 12cm
-    private static let aFrameTiltMin: Float = 0.07         // ~4°
-    private static let aFrameMirrorTolerance: Float = 0.35 // ~20°
+    // v2.176: generalized snap. Two snap kinds:
+    //
+    //   A-frame (top ↔ top): both cards tilted in opposite
+    //     directions; their tops meet at the apex. Snaps our top-
+    //     midpoint to the partner's top-midpoint. XZ-only — Y is
+    //     left to surface-snap.
+    //
+    //   Sit-on-top (our bottom ↔ their top): our card's bottom-
+    //     midpoint is at or above the candidate's top. Snaps our
+    //     bottom-midpoint onto their top-midpoint, including Y so
+    //     the card lands on the supporting surface (e.g., vertical
+    //     card resting on a flat roof card, flat roof card resting
+    //     on an A-frame apex, next-layer A-frame whose base sits
+    //     on a roof). After the XYZ snap, applySurfaceSnap fires
+    //     defensively to anchor the bottom exactly at the
+    //     supporting card's top + clearance.
+    //
+    // For each candidate card, both snap kinds are evaluated.
+    // Across all candidates and all kinds, the closest valid pair
+    // (smallest horizontal distance) wins. The user's "snap to the
+    // closest card" intent emerges naturally from picking the
+    // minimum-distance valid pairing — favors local geometry.
+    private static let snapDistance: Float = 0.12   // 12cm
+    private static let snapTiltMin: Float = 0.07     // ~4°
+    private static let snapMirrorTolerance: Float = 0.35 // ~20°
 
-    private func applyAFrameSnap(to card: CardEntity) {
-        let ourTilt = pitchAngle(of: card.entity)
-        guard abs(ourTilt) > Self.aFrameTiltMin else { return }
+    private enum SmartSnapKind: String {
+        case aFrame
+        case sitOnTop
+    }
 
-        let topLocal = SIMD3<Float>(0, 0, Self.cardHeight / 2)
-        let ourTop = card.entity.convert(position: topLocal, to: nil as Entity?)
-        let ourCenter = card.entity.position
+    private func applySmartSnap(to card: CardEntity) {
+        let bottomLocal = SIMD3<Float>(0, 0, -Self.cardHeight / 2)
+        let topLocal    = SIMD3<Float>(0, 0,  Self.cardHeight / 2)
+
+        let ourBottom = card.entity.convert(position: bottomLocal, to: nil as Entity?)
+        let ourTop    = card.entity.convert(position: topLocal,    to: nil as Entity?)
+        let ourTilt   = pitchAngle(of: card.entity)
 
         let candidates = (heldCards + dynamicCards).filter { $0 !== card }
-        var bestPartner: (entity: Entity, topY: Float, topPos: SIMD3<Float>)? = nil
-        var bestDist: Float = .greatestFiniteMagnitude
+        struct Best {
+            let kind: SmartSnapKind
+            let target: SIMD3<Float>
+            let ourFeature: SIMD3<Float>
+            let dist: Float
+        }
+        var best: Best? = nil
+
         for c in candidates {
+            let theirTop  = c.entity.convert(position: topLocal,    to: nil as Entity?)
             let theirTilt = pitchAngle(of: c.entity)
-            guard ourTilt * theirTilt < 0 else { continue }
-            guard abs(abs(theirTilt) - abs(ourTilt)) < Self.aFrameMirrorTolerance else { continue }
-            let theirTop = c.entity.convert(position: topLocal, to: nil as Entity?)
-            let dx = theirTop.x - ourTop.x
-            let dz = theirTop.z - ourTop.z
-            let d = sqrt(dx*dx + dz*dz)
-            if d < Self.aFrameSnapDistance && d < bestDist {
-                bestDist = d
-                bestPartner = (c.entity, theirTop.y, theirTop)
+
+            // 1) A-frame top-to-top. Both tilted, mirror sign,
+            //    similar magnitude. Horizontal (XZ) distance from
+            //    our top to theirs.
+            if abs(ourTilt) > Self.snapTiltMin,
+               abs(theirTilt) > Self.snapTiltMin,
+               ourTilt * theirTilt < 0,
+               abs(abs(theirTilt) - abs(ourTilt)) < Self.snapMirrorTolerance {
+                let dxA = theirTop.x - ourTop.x
+                let dzA = theirTop.z - ourTop.z
+                let dA = sqrt(dxA * dxA + dzA * dzA)
+                if dA < Self.snapDistance, best == nil || dA < best!.dist {
+                    best = Best(kind: .aFrame, target: theirTop, ourFeature: ourTop, dist: dA)
+                }
+            }
+
+            // 2) Sit-on-top: our bottom near their top. Only when
+            //    we're at or above their top (don't pull our card
+            //    DOWN through theirs). Distance is from our bottom-
+            //    midpoint to their top-midpoint, horizontal only.
+            if ourBottom.y >= theirTop.y - 0.01 {
+                let dxS = theirTop.x - ourBottom.x
+                let dzS = theirTop.z - ourBottom.z
+                let dS = sqrt(dxS * dxS + dzS * dzS)
+                if dS < Self.snapDistance, best == nil || dS < best!.dist {
+                    best = Best(kind: .sitOnTop, target: theirTop, ourFeature: ourBottom, dist: dS)
+                }
             }
         }
-        guard let partner = bestPartner else {
-            // v2.175: log only when we'd EXPECT snap (tilted card
-            // released after Apple's translation) but no partner
-            // was found. Keeps console quiet during pitch motion.
-            print("[HoB] A-frame: tilted \(String(format: "%.2f", ourTilt))rad, no mirror partner in 12cm")
+
+        guard let snap = best else {
+            print("[HoB] Smart snap: no candidate in 12cm (tilt=\(String(format: "%.2f", ourTilt))rad)")
             return
         }
-        let offset = partner.topPos - ourTop
-        card.entity.position.x = ourCenter.x + offset.x
-        card.entity.position.z = ourCenter.z + offset.z
-        let snapDist = sqrt(offset.x*offset.x + offset.z*offset.z)
-        print("[HoB] A-frame SNAPPED to partner (was \(String(format: "%.2f", snapDist))m away)")
+
+        // Apply the snap. A-frame: XZ only — surface-snap handles
+        // Y for the base on the table. Sit-on-top: full XYZ — we
+        // want our card to land on the supporting card.
+        let offset = snap.target - snap.ourFeature
+        card.entity.position.x += offset.x
+        card.entity.position.z += offset.z
+        if snap.kind == .sitOnTop {
+            card.entity.position.y += offset.y
+        }
         applySurfaceSnap(to: card)
+        print("[HoB] Smart snap: \(snap.kind.rawValue), \(String(format: "%.2f", snap.dist))m")
     }
 
     /// Decompose an entity's orientation to extract its tilt

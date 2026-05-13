@@ -670,21 +670,33 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     @objc private func handleEntityGestureUpdate(_ g: UIGestureRecognizer) {
         guard let selected = selectedCardEntity else { return }
-        // Surface snap fires every .changed frame: Apple's
-        // translation is XZ-only; we only modify Y. Orthogonal —
-        // they compose without conflict, and the card visibly
-        // rides the surface as you drag.
-        if g.state == .changed {
+
+        // v2.182: skip surface-snap during ROTATION (yaw). Apple's
+        // rotation preserves Y for every point on the entity, but
+        // a yaw of an upright/tilted card sweeps the bottom-mid
+        // in XZ around the center. When the bottom-mid sweeps
+        // even slightly off a supporting card, the raycast finds
+        // the table below instead of the support — and surface-
+        // snap drops the card to table-level mid-yaw. We want
+        // yaw to be a pure orientation change that keeps the
+        // card at its current level. (Translation and pitch
+        // still need per-frame snap to ride supports.)
+        let isRotation = g is EntityRotationGestureRecognizer
+
+        // Surface snap on every .changed frame for translation
+        // (XZ drag): translation is XZ-only, our snap modifies Y
+        // — orthogonal, card visibly rides the surface as it drags.
+        if g.state == .changed, !isRotation {
             applySurfaceSnap(to: selected)
         }
-        // A-frame snap fires on .ended only. Each Apple-translate
-        // .changed frame sets XZ from touch position; if we
-        // overrode XZ during the drag, Apple's next frame would
-        // immediately undo us. Snapping on release pulls the
-        // card into a stable leaning pose at the end of the
-        // gesture without fighting Apple's drag.
+        // Smart snap on .ended (all gesture types). For non-
+        // rotation, also re-fire surface-snap defensively. For
+        // rotation, skip surface-snap so the card doesn't drop
+        // to whatever the raycast finds at the new XZ.
         if g.state == .ended {
-            applySurfaceSnap(to: selected)
+            if !isRotation {
+                applySurfaceSnap(to: selected)
+            }
             applySmartSnap(to: selected)
         }
     }

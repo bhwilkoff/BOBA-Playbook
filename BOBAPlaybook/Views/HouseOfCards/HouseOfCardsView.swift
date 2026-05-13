@@ -114,8 +114,11 @@ struct HouseOfCardsView: View {
                 // Toggle in Menu can be flaky across iOS versions —
                 // use a manual Button with state-mirroring label.
                 Button {
+                    // v2.177: just flip the flag. The
+                    // .onChange(of: useCollection) handler on the
+                    // root body fires reseedDeck once — no need
+                    // to also call it here.
                     useCollection.toggle()
-                    session.reseedDeck(from: cardPool)
                 } label: {
                     Label(
                         useCollection ? "Use my collection  ✓" : "Use my collection",
@@ -243,28 +246,46 @@ struct HouseOfCardsView: View {
     }
 
     // MARK: Card pool resolution
+    //
+    // v2.177: "Use my collection" now drops the power-135 filter
+    // entirely for owned cards. The user already curated their
+    // collection — the catalog default's high-power filter was
+    // over-trimming small collections (and producing a silent
+    // fallback to catalog when nothing passed). Fallback to
+    // catalog only when (a) toggle is off, (b) not signed in, or
+    // (c) no owned cards have images at all. The fallback is
+    // logged so console output makes it obvious why the strip
+    // didn't change.
     private var cardPool: [Card] {
-        if useCollection, auth.isAuthenticated, ownedHighPowerCount > 0 {
-            let ownedIds = Set(collection.userCards.map { $0.cardNumber })
-            return cardStore.displayCards.filter {
-                ownedIds.contains($0.cardNumber)
-                    && ($0.power ?? 0) > 135
-                    && ($0.imageFile?.isEmpty == false)
-            }
+        guard useCollection else {
+            return catalogPool
         }
-        return cardStore.displayCards.filter {
+        guard auth.isAuthenticated else {
+            print("[HoB] cardPool: collection mode requested but not signed in → catalog")
+            return catalogPool
+        }
+        let pool = ownedPool
+        if pool.isEmpty {
+            print("[HoB] cardPool: collection mode but \(collection.userCards.count) owned cards have no images → catalog")
+            return catalogPool
+        }
+        print("[HoB] cardPool: collection mode, \(pool.count) owned cards (total owned=\(collection.userCards.count))")
+        return pool
+    }
+
+    /// Catalog default: high-power cards with images.
+    private var catalogPool: [Card] {
+        cardStore.displayCards.filter {
             ($0.power ?? 0) > 135 && ($0.imageFile?.isEmpty == false)
         }
     }
 
-    private var ownedHighPowerCount: Int {
-        let ownedIds = Set(collection.userCards.map { $0.cardNumber })
-        return cardStore.displayCards.reduce(into: 0) { acc, c in
-            if ownedIds.contains(c.cardNumber)
-                && (c.power ?? 0) > 135
-                && (c.imageFile?.isEmpty == false) {
-                acc += 1
-            }
+    /// User's owned cards (no power filter — they curated it
+    /// themselves). Must have an image.
+    private var ownedPool: [Card] {
+        let ownedNumbers = Set(collection.userCards.map { $0.cardNumber })
+        return cardStore.displayCards.filter {
+            ownedNumbers.contains($0.cardNumber) && ($0.imageFile?.isEmpty == false)
         }
     }
 

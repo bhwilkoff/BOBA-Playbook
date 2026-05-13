@@ -562,6 +562,20 @@ private final class HouseOfCardsCoordinator: NSObject {
         }
         card.settledFrames = 0
         card.isSettled = false
+        // Wake any dynamic neighbors. RealityKit's physics solver
+        // auto-sleeps stationary bodies; a card that was leaning
+        // against the one we just grabbed won't notice it's lost
+        // its support unless something forces a physics tick.
+        // Apply a microscopic downward impulse to every dynamic
+        // card to kick them awake. The impulse is small enough
+        // (0.0001 N·s on a 1.8g card) that stable cards won't
+        // visibly jitter, but unstable cards will start falling.
+        for other in dynamicCards {
+            other.entity.applyLinearImpulse(SIMD3<Float>(0, -0.0001, 0),
+                                            relativeTo: nil)
+            other.settledFrames = 0
+            other.isSettled = false
+        }
     }
 
     private func updateCameraTransform() {
@@ -734,14 +748,14 @@ private final class HouseOfCardsCoordinator: NSObject {
                 width: tableW, height: tableH, depth: tableD
             )])
         )
-        // Table μ ≈ 0.55 — felt/carpet-equivalent per the
-        // house-of-cards research. Higher than card-card μ so
-        // the base of an A-frame grips the table better than
-        // the apex contact slips.
+        // Table μ reduced to 0.45 (was 0.55). Still higher than
+        // card-card μ (0.30) so the base of an A-frame grips the
+        // table better than the apex contact slips, but lower
+        // overall so cards actually move when nudged.
         table.components.set(
             PhysicsBodyComponent(
                 massProperties: .default,
-                material: .generate(friction: 0.55, restitution: 0.05),
+                material: .generate(friction: 0.45, restitution: 0.05),
                 mode: .static
             )
         )
@@ -888,7 +902,11 @@ private final class HouseOfCardsCoordinator: NSObject {
 
         if !heldCards.isEmpty { commitHeldCards() }
 
-        let leanAngle: Float = .pi / 4   // 45° from vertical
+        // 30° lean per user feedback — 45° was "too wide to
+        // actually keep the cards upright." 30° puts the cards
+        // more vertical, with their centers of mass more directly
+        // over their bottom edges → more stable.
+        let leanAngle: Float = .pi / 6   // 30° from vertical
         let halfH = Self.cardHeight * 0.5
 
         // Lean rotation around world X (parallel to card width
@@ -914,22 +932,22 @@ private final class HouseOfCardsCoordinator: NSObject {
         let lean2 = flipY * lean1
 
         // centerY: bottom edge sits on table at world Y=0.
-        // After lean -π/4 around X, the bottom edge (originally at
-        // local Z = -halfH) is at world Y offset = -cos(45)*halfH
-        // = -sin(45)*halfH (since sin45=cos45) from entity center.
-        // So entity center must be at Y = sin(45)*halfH for the
-        // edge to be at Y=0.
+        // After lean -θ around X, the bottom edge (originally at
+        // local Z = -halfH) has world Y offset = -sin(θ)*halfH from
+        // entity center. So entity center must be at Y = sin(θ)*halfH
+        // for the edge to touch Y=0.
         let centerY = sin(leanAngle) * halfH + max(0.001, targetMaxY) + 0.001
 
-        // baseHalfZ: the top center is at offset (0, +cos(45)*halfH,
-        // +sin(45)*halfH) from entity center after the rotation.
+        // baseHalfZ: the top center is at offset (0, +sin(θ)*halfH,
+        // +cos(θ)*halfH) from entity center after rotation -θ X.
         // For tops to meet at world Z=0 from card 1 at z=-baseHalfZ:
-        //   -baseHalfZ + sin(45)*halfH = 0
-        //   baseHalfZ = sin(45)*halfH ≈ 31mm
-        // Plus 1mm apex gap so the two cards don't overlap on spawn
-        // (physics solver ejects overlapping bodies).
+        //   -baseHalfZ + cos(θ)*halfH = 0
+        //   baseHalfZ = cos(θ)*halfH
+        // (For θ=45° this equals sin(θ)*halfH so v2.160's formula
+        // worked by coincidence. For 30° we need cos.)
+        // Plus 1mm apex gap so the two cards don't overlap on spawn.
         let apexGap: Float = 0.001
-        let baseHalfZ = sin(leanAngle) * halfH + apexGap
+        let baseHalfZ = cos(leanAngle) * halfH + apexGap
 
         let leftEntity  = buildCardEntity(for: card1,
                                           position: SIMD3<Float>(0, centerY, -baseHalfZ),
@@ -1033,18 +1051,16 @@ private final class HouseOfCardsCoordinator: NSObject {
         entity.orientation = rotation
         entity.name = "card-root"
 
-        // ── Edge box: a very thin colored slab that gives the
-        //    card visible thickness. Doesn't carry textures.
-        let edgeBox = MeshResource.generateBox(
-            width: Self.cardWidth,
-            height: Self.cardThick,
-            depth: Self.cardHeight,
-            cornerRadius: Self.cornerR,
-            splitFaces: false
-        )
-        let edgeBody = ModelEntity(mesh: edgeBox, materials: [makeEdgeMaterial()])
-        edgeBody.name = "card-body"
-        entity.addChild(edgeBody)
+        // ── No card-body box: v2.160 used a thin off-white box
+        //    for visible thickness, but its full-rectangle top/
+        //    bottom faces poked past the rounded-texture planes'
+        //    transparent corners — the white box showed THROUGH
+        //    the rounded mask, making the cards look like rounded
+        //    images inside sharp white rectangles. The card now
+        //    visually is just two planes (front + back) with
+        //    near-zero gap. Physics still works because the
+        //    CollisionComponent on the root entity uses a box
+        //    shape with the same dimensions.
 
         // ── Plane orientation math (v3 / v2.160):
         //
@@ -1108,14 +1124,14 @@ private final class HouseOfCardsCoordinator: NSObject {
         )
         entity.components.set(CollisionComponent(shapes: [shape]))
 
-        // Friction per the house-of-cards research:
-        //   card-on-card μ_static ≈ 0.45, μ_dynamic ≈ 0.35
-        // RealityKit's PhysicsMaterialResource takes a single
-        // friction value (not split static/dynamic), so we use
-        // the dynamic value — slightly under-frictioning produces
-        // the "buildable but tense" gameplay feel.
+        // Card-card friction reduced from 0.42 → 0.30. Damping
+        // reduced (linear 0.5→0.3, angular 0.7→0.4). User reports
+        // cards "stay angled anywhere you place them" — meaning
+        // the cards never slipped/fell when unsupported. Lower
+        // friction + lower damping makes them more fragile, so a
+        // card left without apex support actually topples.
         let pmat = PhysicsMaterialResource.generate(
-            friction:    0.42,
+            friction:    0.30,
             restitution: 0.05
         )
         var body = PhysicsBodyComponent(
@@ -1124,8 +1140,8 @@ private final class HouseOfCardsCoordinator: NSObject {
             mode: .dynamic
         )
         body.isContinuousCollisionDetectionEnabled = true
-        body.linearDamping  = 0.5
-        body.angularDamping = 0.7
+        body.linearDamping  = 0.3
+        body.angularDamping = 0.4
         entity.components.set(body)
         entity.components.set(PhysicsMotionComponent())
 
@@ -1146,13 +1162,23 @@ private final class HouseOfCardsCoordinator: NSObject {
         }
     }
 
-    // MARK: Texture helpers — rounded-corner clipping
+    // MARK: Texture helpers — rounded-corner clipping + vertical flip
     //
-    // MeshResource.generatePlane(cornerRadius:) doesn't actually
-    // round the visible plane mesh — the parameter is silently
-    // ignored on iOS 17/18. Instead we clip the underlying image
-    // to a rounded rect and let the alpha channel cut the
-    // corners. UnlitMaterial respects alpha, so this just works.
+    // Two image preprocessing steps before texture upload:
+    //
+    // 1. Rounded corners: MeshResource.generatePlane(cornerRadius:)
+    //    doesn't actually round the visible plane mesh — the
+    //    parameter is silently ignored on iOS 17/18. So we clip
+    //    the underlying image to a rounded rect and let the alpha
+    //    channel cut the corners.
+    //
+    // 2. Vertical flip: MeshResource.generatePlane maps the image's
+    //    top edge to the plane's -Z direction. With the v2.160
+    //    entity rotation, plane-local -Z ends up at world -Y
+    //    (downward). The card visually appears upside-down. Pre-
+    //    flipping the image vertically inverts the V mapping so
+    //    the card's top (where the hero name is) ends up at the
+    //    highest point in world space.
     static func roundedCorners(_ image: UIImage, radiusRatio: CGFloat = 0.045) -> UIImage? {
         let size = image.size
         guard size.width > 0, size.height > 0 else { return image }
@@ -1163,6 +1189,16 @@ private final class HouseOfCardsCoordinator: NSObject {
         format.opaque = false
         let renderer = UIGraphicsImageRenderer(size: size, format: format)
         return renderer.image { ctx in
+            let cg = ctx.cgContext
+            // Vertical flip: translate down + scale Y by -1 so the
+            // image draws with its top edge at the bottom of the
+            // canvas. Net effect on the resulting UIImage: vertical
+            // mirror.
+            cg.translateBy(x: 0, y: size.height)
+            cg.scaleBy(x: 1, y: -1)
+            // Clip to rounded rect; note the rect is in the
+            // ORIGINAL coordinate system, which after the flip
+            // still corresponds to the full image.
             let path = UIBezierPath(roundedRect: rect, cornerRadius: radius)
             path.addClip()
             image.draw(in: rect)

@@ -166,8 +166,9 @@ struct HouseOfCardsView: View {
                     }
                 }
                 .padding(.horizontal, 8)
+                .padding(.vertical, 8)   // room for the order-badge to extend above
             }
-            .frame(height: 100)
+            .frame(height: 108)
         }
         .padding(.vertical, 8)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -251,12 +252,14 @@ struct HouseOfCardsView: View {
                         .foregroundStyle(.white.opacity(0.85))
                     Divider().overlay(.white.opacity(0.15))
                     helpRow("1. Select", "Tap up to 4 cards in the bottom strip — orange numbered badge shows placement order.")
-                    helpRow("2. Place",  "Tap the table where you want them. The cards appear at that spot, frozen in place — no gravity yet.")
-                    helpRow("3. Adjust", "While paused, drag any card with one finger to reposition it. Repeat as many times as you like.")
-                    helpRow("4. Play",   "Tap PLAY to engage physics. Cards become dynamic and fall if not supported.")
-                    helpRow("5. Pause",  "Tap PAUSE anytime to freeze the scene mid-fall. Repair, then play again.")
-                    helpRow("Look around","Drag on empty space to orbit the camera. Pinch to zoom.")
-                    helpRow("Reset",     "The ↺ button in the top bar clears the table immediately so you can start over.")
+                    helpRow("2. Place",  "Tap anywhere on the table. The cards appear standing vertical at that spot, frozen in place. Add more cards anytime — tap more strip cards then tap the table again.")
+                    helpRow("3. Move",   "Drag any card with ONE finger to reposition it. Drag empty space to orbit the camera.")
+                    helpRow("4. Rotate", "Drag a card with TWO fingers to rotate it. Horizontal = yaw (spin around vertical), vertical = tilt forward/back. This is how you build leaning structures.")
+                    helpRow("5. Look around", "Two-finger drag on EMPTY space pans the camera target across the table. Pinch to zoom.")
+                    helpRow("6. Play",   "When your tower looks good, tap PLAY. Gravity engages — see if it stands.")
+                    helpRow("7. Pause",  "Tap PAUSE anytime to freeze mid-fall, repair, and play again.")
+                    helpRow("Re-grab",   "Tap any placed card to pick it back up for adjustment.")
+                    helpRow("Reset",     "The ↺ button in the top bar clears the field immediately.")
                     helpRow("Score",     "Each stable layer adds to your tower height. 10+ is the dream.")
                     helpRow("Switch deck","Toggle 'Use my collection' to build with cards you own (power > 135).")
                 }
@@ -310,11 +313,14 @@ private struct DeckStripCard: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 4)
                         .stroke(isSelected ? Design.Colors.bobaOrange : .white.opacity(0.2),
-                                lineWidth: isSelected ? 2.5 : 0.5)
+                                lineWidth: isSelected ? 3 : 0.5)
                 )
-                .shadow(color: isSelected ? Design.Colors.bobaOrange.opacity(0.6) : .clear,
-                        radius: isSelected ? 8 : 0)
-                .scaleEffect(isSelected ? 1.06 : 1.0)
+                .shadow(color: isSelected ? Design.Colors.bobaOrange.opacity(0.7) : .clear,
+                        radius: isSelected ? 10 : 0)
+            // (No scaleEffect — v2.168 scaled by 6% on select which
+            // clipped the top/bottom of the card AND the order
+            // badge against the strip frame. Glow + thicker border
+            // is enough visual feedback.)
 
             if let idx = selectionIndex {
                 Text("\(idx + 1)")
@@ -322,7 +328,7 @@ private struct DeckStripCard: View {
                     .foregroundStyle(.white)
                     .frame(width: 20, height: 20)
                     .background(Design.Colors.bobaOrange, in: Circle())
-                    .offset(x: 6, y: -6)
+                    .offset(x: 4, y: -4)
             }
 
             if let power = card.power {
@@ -432,19 +438,13 @@ private final class HouseOfCardsCoordinator: NSObject {
     private var targetMaxY: Float = 0.0
 
 
-    /// Spherical-coordinate camera state (orbit around the table).
-    /// azimuth: rotation around world Y (horizontal pan)
-    /// elevation: angle above the horizontal plane (vertical pan)
-    /// distance: radial distance from the cameraTarget
-    ///
-    /// Default azimuth π/6 (30° toward +X) gives a 3/4 view of
-    /// the Z-axis tent: user sees the Λ silhouette clearly with
-    /// one card's front partially visible. Orbiting reveals the
-    /// other side.
+    /// Spherical-coordinate camera state (orbit around the
+    /// `cameraTarget` point). 2-finger drag in empty space pans
+    /// the target across the table so user can look anywhere.
     private var camAzimuth:   Float = .pi / 6
     private var camElevation: Float = 0.45   // ~26° above horizon
     private var camDistance:  Float = 0.50
-    private let cameraTarget: SIMD3<Float> = SIMD3<Float>(0, 0.035, 0)
+    private var cameraTarget: SIMD3<Float> = SIMD3<Float>(0, 0.035, 0)
     /// Pinch zoom range. v2.157's [0.25, 2.5] let the user
     /// zoom out so far the cards "got lost" in empty space.
     /// Tighter range keeps the tabletop always meaningful.
@@ -453,8 +453,9 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     /// Gesture recognizers — retained so we can remove them
     /// cleanly if the view detaches.
-    private weak var primaryPanGesture: UIPanGestureRecognizer?
-    private weak var pinchGesture:      UIPinchGestureRecognizer?
+    private weak var primaryPanGesture:   UIPanGestureRecognizer?
+    private weak var twoFingerPanGesture: UIPanGestureRecognizer?
+    private weak var pinchGesture:        UIPinchGestureRecognizer?
 
     /// Current gesture mode set on .began of primaryPanGesture
     /// and cleared on .ended. Drives whether deltas orbit the
@@ -524,13 +525,22 @@ private final class HouseOfCardsCoordinator: NSObject {
     // here, the 2-finger pinch is free to recognize on 2-touch
     // gestures without conflict.
     private func installGestures(on view: ARView) {
-        // 1-finger pan: orbit camera OR drag a held/grabbed card.
+        // 1-finger pan: orbit camera OR drag a held card.
         let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePrimaryPan(_:)))
         pan.minimumNumberOfTouches = 1
         pan.maximumNumberOfTouches = 1
         pan.delegate = self
         view.addGestureRecognizer(pan)
         self.primaryPanGesture = pan
+
+        // 2-finger pan: rotate a held card (yaw + pitch) OR pan
+        // the camera target across the table.
+        let twoPan = UIPanGestureRecognizer(target: self, action: #selector(handleTwoFingerPan(_:)))
+        twoPan.minimumNumberOfTouches = 2
+        twoPan.maximumNumberOfTouches = 2
+        twoPan.delegate = self
+        view.addGestureRecognizer(twoPan)
+        self.twoFingerPanGesture = twoPan
 
         // Pinch: zoom always.
         let pinch = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
@@ -547,15 +557,111 @@ private final class HouseOfCardsCoordinator: NSObject {
         view.addGestureRecognizer(tap)
     }
 
+    /// What the 2-finger gesture is currently driving.
+    private enum TwoFingerMode {
+        case idle
+        case rotatingCard(CardEntity)
+        case panningCamera
+    }
+    private var twoFingerMode: TwoFingerMode = .idle
+
+    @objc private func handleTwoFingerPan(_ g: UIPanGestureRecognizer) {
+        guard let view = arView else { return }
+        let delta = g.translation(in: view)
+
+        switch g.state {
+        case .began:
+            // Hit-test to decide: rotate a card or pan camera.
+            let point = g.location(in: view)
+            let hits = view.hitTest(point, query: .nearest, mask: .all)
+            var targetCard: CardEntity?
+            for hit in hits {
+                var e: Entity? = hit.entity
+                while let entity = e {
+                    if entity.name == "card-root" {
+                        if let card = heldCards.first(where: { $0.entity === entity })
+                            ?? dynamicCards.first(where: { $0.entity === entity }) {
+                            targetCard = card
+                            // If it's a dynamic card during play,
+                            // switch to kinematic for the rotation.
+                            if !session.isPaused,
+                               dynamicCards.contains(where: { $0 === card }) {
+                                switchToKinematic(card)
+                                dynamicCards.removeAll(where: { $0 === card })
+                                heldCards.append(card)
+                            }
+                        }
+                    }
+                    e = entity.parent
+                }
+                if targetCard != nil { break }
+            }
+            twoFingerMode = targetCard.map { .rotatingCard($0) } ?? .panningCamera
+            g.setTranslation(.zero, in: view)
+
+        case .changed:
+            switch twoFingerMode {
+            case .rotatingCard(let card):
+                // Horizontal drag → yaw (world Y axis).
+                // Vertical drag → pitch (world X axis).
+                let yawAngle   = Float(delta.x) * 0.012
+                let pitchAngle = Float(delta.y) * 0.012
+                let yaw   = simd_quatf(angle: yawAngle,   axis: SIMD3<Float>(0, 1, 0))
+                let pitch = simd_quatf(angle: pitchAngle, axis: SIMD3<Float>(1, 0, 0))
+                card.entity.orientation = yaw * pitch * card.entity.orientation
+                g.setTranslation(.zero, in: view)
+
+            case .panningCamera:
+                // Move cameraTarget in world XZ plane. Scale by
+                // distance so panning feels consistent at any zoom.
+                let factor: Float = camDistance * 0.0018
+                let dxWorld = -Float(delta.x) * factor
+                let dzWorld = -Float(delta.y) * factor
+                // Rotate the screen-delta by camera azimuth so
+                // drag-right ALWAYS moves the world to the right
+                // (relative to camera view).
+                let cosA = cos(camAzimuth)
+                let sinA = sin(camAzimuth)
+                cameraTarget.x += dxWorld * cosA - dzWorld * sinA
+                cameraTarget.z += dxWorld * sinA + dzWorld * cosA
+                g.setTranslation(.zero, in: view)
+                updateCameraTransform()
+
+            case .idle:
+                break
+            }
+
+        case .ended, .cancelled, .failed:
+            // If we were rotating a play-mode dynamic card, push
+            // it back to dynamic now.
+            if case .rotatingCard(let card) = twoFingerMode,
+               !session.isPaused,
+               heldCards.contains(where: { $0 === card }) {
+                if var body = card.entity.components[PhysicsBodyComponent.self] {
+                    body.mode = .dynamic
+                    body.isContinuousCollisionDetectionEnabled = true
+                    card.entity.components.set(body)
+                }
+                heldCards.removeAll(where: { $0 === card })
+                dynamicCards.append(card)
+            }
+            twoFingerMode = .idle
+
+        default:
+            break
+        }
+    }
+
     @objc private func handleTap(_ g: UITapGestureRecognizer) {
         guard let view = arView else { return }
         guard g.state == .ended else { return }
         let point = g.location(in: view)
 
         // If user has cards selected in the strip, spawn them at
-        // the tap location regardless of what's there.
-        if !session.selectedCards.isEmpty && heldCards.isEmpty {
-            // Project the tap point onto the tabletop (Y ≈ 0).
+        // the tap location. No constraint on existing cards —
+        // user can always add more (v2.168 had a heldCards.isEmpty
+        // check that blocked re-spawn).
+        if !session.selectedCards.isEmpty {
             if let world = view.project(point, ontoPlaneAt: 0) {
                 session.pendingSpawnLocation = world
             }
@@ -1095,55 +1201,45 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     // MARK: Card spawning
     //
-    // v2.167 spawn: spawnHeldCards(_:at:)
+    // v2.169 spawn: vertical row at tap location.
     //
-    // Spawns 1-4 cards at a given world location as held
-    // kinematic entities. The user then adjusts them with
-    // scene gestures (1-finger drag to translate, future 2-
-    // finger gestures to rotate per the redesign). Tap Drop
-    // to commit all to dynamic physics.
+    // 1-4 cards spawn standing vertical, facing the camera,
+    // spread horizontally in a row at the tap location. NO
+    // auto-arrangement into A-frames / pinwheels — user
+    // rotates and positions individually via gestures.
     //
-    // Patterns by count:
-    //   1 card  → vertical, slight forward lean
-    //   2 cards → A-frame tent (leaning inward)
-    //   3 cards → triangle (three leaning inward at 60°
-    //              offsets)
-    //   4 cards → Berg-style pinwheel cell (four leaning
-    //              inward at 90° offsets)
+    // Previous radial pattern produced visually-impossible
+    // geometry (3-card faces intersecting, 2-card V instead of
+    // tent) because real physical cards can't all converge at
+    // a single apex without passing through each other.
     private func spawnHeldCards(_ cards: [Card], at location: SIMD3<Float>) {
         guard let root = anchor, !cards.isEmpty else { return }
-        // v2.168: no auto-commit. In paused-playground model, new
-        // cards just join the heldCards (kinematic) pool. Pre-
-        // existing kinematic cards stay put. User taps PLAY to
-        // engage physics on all of them at once.
 
-        let leanAngle: Float = .pi / 6   // 30° from vertical
         let halfH = Self.cardHeight * 0.5
-        let halfT = Self.cardThick * 0.5
 
-        // Distance from cell center to each card's base.
-        let baseOffset = halfT * cos(leanAngle) + halfH * sin(leanAngle) - 0.0005
+        // Card stands vertical. Its bottom edge rests on the
+        // table; center is halfH above ground.
+        let centerY = halfH + 0.001
 
-        // Vertical height of each card's center (entity-local Y).
-        let centerY = halfT * sin(leanAngle) + halfH * cos(leanAngle)
-
-        // Per-card placement: each card sits at an azimuth around
-        // the spawn-center, with its TOP tilted toward the spawn
-        // center and its FRONT facing outward.
+        // Spread cards along world X so they don't overlap.
+        // Spacing = card width + small gap.
+        let spacing = Self.cardWidth + 0.015   // ~7.85cm apart
         let count = min(cards.count, 4)
+        let firstX = -Float(count - 1) * 0.5 * spacing
+
+        // Base rotation: stand vertical, front facing camera (+Z).
+        // standUp = -π/2 around X puts height up; flipY = π
+        // around Y rotates the card so its front (originally
+        // local +Y → world -Z after standUp) now faces +Z.
+        let standUp = simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
+        let faceCamera = simd_quatf(angle: .pi, axis: SIMD3<Float>(0, 1, 0))
+        let rotation = faceCamera * standUp
+
         var newHeld: [CardEntity] = []
         for i in 0..<count {
-            let azimuth = (Float(i) / Float(count)) * (2 * .pi)
-            let entityX = location.x + sin(azimuth) * baseOffset
-            let entityZ = location.z + cos(azimuth) * baseOffset
-            let entityY = location.y + centerY + 0.001
-
-            // Card lean: -π/6 around X then yaw by `azimuth + π`
-            // around Y so the front face points outward.
-            let lean = simd_quatf(angle: leanAngle - .pi / 2,
-                                  axis: SIMD3<Float>(1, 0, 0))
-            let yaw  = simd_quatf(angle: -azimuth, axis: SIMD3<Float>(0, 1, 0))
-            let rotation = yaw * lean
+            let entityX = location.x + firstX + Float(i) * spacing
+            let entityY = location.y + centerY
+            let entityZ = location.z
 
             let entity = buildCardEntity(
                 for: cards[i],
@@ -1160,14 +1256,13 @@ private final class HouseOfCardsCoordinator: NSObject {
         }
         heldCards.append(contentsOf: newHeld)
 
-        // Load art for each card async.
         for c in newHeld {
             let entity = c.entity
             loadFrontArt(for: c.card) { [weak self, weak entity] tex in
                 self?.applyArt(to: entity, texture: tex)
             }
         }
-        print("[HoC] Spawned \(newHeld.count) cards at \(location); held=\(heldCards.count)")
+        print("[HoC] Spawned \(newHeld.count) vertical cards at \(location); held=\(heldCards.count)")
     }
 
     // Legacy stub — kept to avoid breaking call sites mid-refactor.

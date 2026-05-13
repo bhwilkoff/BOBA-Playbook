@@ -420,6 +420,17 @@ private final class HouseOfCardsCoordinator: NSObject {
         view.scene.addAnchor(root)
         self.anchor = root
 
+        // v2.165: bump physics solver iterations 4/4 → 25/25.
+        // Apple's RealityKit physics-joints sample explicitly does
+        // this for "stacking-sensitive" scenes. With 4 iterations,
+        // the constraint solver doesn't converge on stacked thin
+        // contacts — explains both cards-don't-fall-when-grabbed
+        // AND apex-doesn't-establish-contact in prior versions.
+        var simComponent = PhysicsSimulationComponent()
+        simComponent.solverIterations.positionIterations = 25
+        simComponent.solverIterations.velocityIterations = 25
+        root.components.set(simComponent)
+
         buildLighting(on: root)
         buildCamera(on: root, view: view)
         buildTabletop(on: root)
@@ -1159,26 +1170,33 @@ private final class HouseOfCardsCoordinator: NSObject {
         )
         entity.components.set(CollisionComponent(shapes: [shape]))
 
-        // v2.164: physics tuned per the research:
-        //   - staticFriction 0.55, dynamicFriction 0.40 (paper-on-
-        //     table values from ASTM-style measurements; staticFr
-        //     > dynamicFr is physically realistic and gives the
-        //     "stick then slip" behavior).
-        //   - restitution 0.02 (cards barely bounce).
-        //   - Damping back to defaults 0.05 (v2.161-163's 0.3/0.4
-        //     was over-damping and killing gravity-driven motion).
-        // The friction-coefficient analysis from the physics SE
-        // derivation: μ_ct ≥ 0.5·tan(θ) at the base for stability.
-        // At θ=30°, need μ ≥ 0.289 — 0.55 static is well above.
+        // v2.165: physics-body inertia fix.
+        //
+        // CRITICAL: v2.164 used PhysicsMassProperties(mass: 0.0018)
+        // which sets ONLY mass, leaving inertia at default [1,1,1]
+        // kg·m². For a 1.8g card whose real inertia values are
+        // ~1e-6 kg·m², that default inertia was ~1 MILLION times
+        // too high — the cards literally couldn't rotate.
+        //
+        // Per Apple's PhysicsBodies sample (Entity+Sphere.swift),
+        // the right pattern is `shapes:density:` which derives
+        // BOTH mass AND inertia from the shape's volume integral.
+        //
+        // Density chosen so volume × density = real 1.8g card
+        // mass given the 3mm collider thickness (~10× real card
+        // thickness for physics stability):
+        //   V = 0.0635 × 0.003 × 0.0889 = 1.69e-5 m³
+        //   ρ = 0.0018 / 1.69e-5 ≈ 107 kg/m³
         let pmat = PhysicsMaterialResource.generate(
             staticFriction:  0.55,
             dynamicFriction: 0.40,
             restitution:     0.02
         )
         var body = PhysicsBodyComponent(
-            massProperties: .init(mass: 0.0018),
+            shapes:   [shape],
+            density:  107,
             material: pmat,
-            mode: .dynamic
+            mode:     .dynamic
         )
         body.isContinuousCollisionDetectionEnabled = true
         body.linearDamping  = 0.05

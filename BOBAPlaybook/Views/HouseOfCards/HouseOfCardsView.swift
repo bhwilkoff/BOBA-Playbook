@@ -566,13 +566,24 @@ private final class HouseOfCardsCoordinator: NSObject {
         // auto-sleeps stationary bodies; a card that was leaning
         // against the one we just grabbed won't notice it's lost
         // its support unless something forces a physics tick.
-        // Apply a microscopic downward impulse to every dynamic
-        // card to kick them awake. The impulse is small enough
-        // (0.0001 N·s on a 1.8g card) that stable cards won't
-        // visibly jitter, but unstable cards will start falling.
+        // v2.161 applied a microscopic downward impulse that was
+        // too small to actually start unstable cards tipping.
+        // v2.162: SET a small random angular velocity directly on
+        // each dynamic card. This bypasses the solver's sleep
+        // check entirely and gives the body a definite spin that
+        // gravity can amplify if the card is unstable.
         for other in dynamicCards {
-            other.entity.applyLinearImpulse(SIMD3<Float>(0, -0.0001, 0),
-                                            relativeTo: nil)
+            if var motion = other.entity.components[PhysicsMotionComponent.self] {
+                // Random angular velocity around all 3 axes,
+                // ~3°/s magnitude. Stable cards damp this out
+                // within a frame or two; unstable cards tip over.
+                motion.angularVelocity = SIMD3<Float>(
+                    Float.random(in: -0.05...0.05),
+                    Float.random(in: -0.03...0.03),
+                    Float.random(in: -0.05...0.05)
+                )
+                other.entity.components.set(motion)
+            }
             other.settledFrames = 0
             other.isSettled = false
         }
@@ -903,51 +914,46 @@ private final class HouseOfCardsCoordinator: NSObject {
         if !heldCards.isEmpty { commitHeldCards() }
 
         // 30° lean per user feedback — 45° was "too wide to
-        // actually keep the cards upright." 30° puts the cards
-        // more vertical, with their centers of mass more directly
-        // over their bottom edges → more stable.
+        // actually keep the cards upright." leanAngle here is
+        // the angle FROM VERTICAL: 0 = upright, π/2 = lying flat.
         let leanAngle: Float = .pi / 6   // 30° from vertical
         let halfH = Self.cardHeight * 0.5
 
-        // Lean rotation around world X (parallel to card width
-        // direction, which is the bottom edge direction). The
-        // entire bottom edge stays on the table when the card
-        // is correctly positioned.
+        // ROTATION FORMULA (v2.162 correction):
+        // To stand the card and tilt it θ from vertical, rotate
+        // by (θ - π/2) around the world X axis. At θ=0 this is
+        // -π/2 (pure standUp). At θ=π/2 this is 0 (lying flat).
         //
-        // After this single rotation, for card 1:
-        //   local +X (width) → world +X
-        //   local +Y (front face normal) → world (0, +sin(45),
-        //     -cos(45)) = up + outward in -Z direction
-        //   local +Z (height) → world (0, +cos(45), +sin(45)) =
-        //     up + toward apex (+Z direction since card is at -Z)
+        // v2.161 used `-leanAngle` which only worked at exactly
+        // 45° because cos(π/4)=sin(π/4). At 30° lean, that bug
+        // produced 60° lean instead of 30° — what the user
+        // described as "even more extreme (wide)."
         //
-        // Card 2 is card 1 mirrored across the apex plane (Y axis).
-        // 180° rotation around Y axis flips X→-X and Z→-Z, giving:
-        //   front face → world (0, +sin(45), +cos(45)) = up + +Z
-        //     direction (outward for card at +Z position)
-        //   height → world (0, +cos(45), -sin(45)) = up + -Z
-        //     (toward apex)
-        let lean1 = simd_quatf(angle: -leanAngle, axis: SIMD3<Float>(1, 0, 0))
-        let flipY = simd_quatf(angle: .pi,         axis: SIMD3<Float>(0, 1, 0))
+        // After the correct rotation, for card 1:
+        //   local +Z (height) → world (0, cos(θ), +sin(θ))
+        //     i.e. mostly up, slightly toward +Z (apex)
+        //   local +Y (front normal) → world (0, sin(θ), -cos(θ))
+        //     i.e. mostly outward toward -Z, slightly up
+        //
+        // Card 2 mirrors across the YZ plane: 180° around Y.
+        let lean1 = simd_quatf(angle: leanAngle - .pi / 2,
+                               axis: SIMD3<Float>(1, 0, 0))
+        let flipY = simd_quatf(angle: .pi,
+                               axis: SIMD3<Float>(0, 1, 0))
         let lean2 = flipY * lean1
 
-        // centerY: bottom edge sits on table at world Y=0.
-        // After lean -θ around X, the bottom edge (originally at
-        // local Z = -halfH) has world Y offset = -sin(θ)*halfH from
-        // entity center. So entity center must be at Y = sin(θ)*halfH
-        // for the edge to touch Y=0.
-        let centerY = sin(leanAngle) * halfH + max(0.001, targetMaxY) + 0.001
+        // centerY: the bottom corners are at world Y offset
+        // -cos(θ)*halfH from entity center. To put them on the
+        // table (Y=0), entity center Y = cos(θ)*halfH.
+        let centerY = cos(leanAngle) * halfH + max(0.001, targetMaxY) + 0.001
 
-        // baseHalfZ: the top center is at offset (0, +sin(θ)*halfH,
-        // +cos(θ)*halfH) from entity center after rotation -θ X.
-        // For tops to meet at world Z=0 from card 1 at z=-baseHalfZ:
-        //   -baseHalfZ + cos(θ)*halfH = 0
-        //   baseHalfZ = cos(θ)*halfH
-        // (For θ=45° this equals sin(θ)*halfH so v2.160's formula
-        // worked by coincidence. For 30° we need cos.)
-        // Plus 1mm apex gap so the two cards don't overlap on spawn.
+        // baseHalfZ: the top center is at world Z offset
+        // +sin(θ)*halfH from entity center. To put the apex at
+        // world Z=0 for card 1 at z=-baseHalfZ:
+        //   baseHalfZ = sin(θ)*halfH
+        // Plus 1mm apex gap so the cards don't overlap on spawn.
         let apexGap: Float = 0.001
-        let baseHalfZ = cos(leanAngle) * halfH + apexGap
+        let baseHalfZ = sin(leanAngle) * halfH + apexGap
 
         let leftEntity  = buildCardEntity(for: card1,
                                           position: SIMD3<Float>(0, centerY, -baseHalfZ),

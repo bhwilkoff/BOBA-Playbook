@@ -349,10 +349,16 @@ private final class HouseOfCardsCoordinator: NSObject {
     private var backTexture: TextureResource?
     private var edgeMaterial: PhysicallyBasedMaterial?
 
-    /// Box mesh template — shared across all cards (RealityKit
-    /// caches the mesh resource, so this is a real perf win).
+    /// Box mesh template — shared across all cards.
+    /// `cardThick` 0.4mm → 3mm: per Apple physics docs, paper-thin
+    /// rigid bodies cause PhysX to treat the base as a flat-face
+    /// contact patch with omnidirectional friction (μ ≈ ∞ pin at
+    /// the bottom), preventing rotation around the bottom edge.
+    /// A 3mm collider gives the solver a real wedge to compute
+    /// edge contact against. Real trading cards are 0.33mm; 3mm
+    /// looks slightly thick but is what the physics needs.
     private static let cardWidth:  Float = 0.0635
-    private static let cardThick:  Float = 0.0004
+    private static let cardThick:  Float = 0.003
     private static let cardHeight: Float = 0.0889
     private static let cornerR:    Float = 0.0025
 
@@ -562,30 +568,36 @@ private final class HouseOfCardsCoordinator: NSObject {
         }
         card.settledFrames = 0
         card.isSettled = false
-        // Wake any dynamic neighbors. RealityKit's physics solver
-        // auto-sleeps stationary bodies; a card that was leaning
-        // against the one we just grabbed won't notice it's lost
-        // its support unless something forces a physics tick.
-        // v2.161 applied a microscopic downward impulse that was
-        // too small to actually start unstable cards tipping.
-        // v2.162: SET a small random angular velocity directly on
-        // each dynamic card. This bypasses the solver's sleep
-        // check entirely and gives the body a definite spin that
-        // gravity can amplify if the card is unstable.
-        for other in dynamicCards {
-            if var motion = other.entity.components[PhysicsMotionComponent.self] {
-                // Random angular velocity around all 3 axes,
-                // ~3°/s magnitude. Stable cards damp this out
-                // within a frame or two; unstable cards tip over.
-                motion.angularVelocity = SIMD3<Float>(
-                    Float.random(in: -0.05...0.05),
-                    Float.random(in: -0.03...0.03),
-                    Float.random(in: -0.05...0.05)
-                )
-                other.entity.components.set(motion)
+        // Wake any dynamic neighbors via mode-cycling. Per Apple
+        // dev forum thread 668563: RealityKit has no public
+        // wakeUp()/setAwake() API. The documented workaround is
+        // to set body.mode = .kinematic then on the next frame
+        // back to .dynamic — this forces PhysX to re-activate the
+        // body. Plus a tiny impulse as belt-and-braces.
+        let cardsToWake = dynamicCards
+        for other in cardsToWake {
+            if var body = other.entity.components[PhysicsBodyComponent.self] {
+                body.mode = .kinematic
+                other.entity.components.set(body)
             }
             other.settledFrames = 0
             other.isSettled = false
+        }
+        // Next frame: switch them back to dynamic so PhysX
+        // re-evaluates the forces. Use Task to defer one frame.
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 16_000_000) // ~1 frame
+            guard let self else { return }
+            for other in cardsToWake where self.dynamicCards.contains(where: { $0 === other }) {
+                if var body = other.entity.components[PhysicsBodyComponent.self] {
+                    body.mode = .dynamic
+                    body.isContinuousCollisionDetectionEnabled = true
+                    other.entity.components.set(body)
+                }
+                // Tiny impulse to guarantee solver re-evaluates.
+                other.entity.applyLinearImpulse(SIMD3<Float>(0, -0.00001, 0),
+                                                relativeTo: nil)
+            }
         }
     }
 
@@ -942,30 +954,37 @@ private final class HouseOfCardsCoordinator: NSObject {
                                axis: SIMD3<Float>(0, 1, 0))
         let lean2 = flipY * lean1
 
-        // centerY: the bottom corners are at world Y offset
-        // -cos(θ)*halfH from entity center. To put them on the
-        // table (Y=0), entity center Y = cos(θ)*halfH.
-        let centerY = cos(leanAngle) * halfH + max(0.001, targetMaxY) + 0.001
+        // v2.164: positions account for the now-3mm collider.
+        // With non-trivial thickness, the LOWEST world-Y point of
+        // a leaned card is not just at the center of the bottom
+        // edge — it's at the inner-bottom corner. Similarly the
+        // apex contact is at the inner-top corner, not the center
+        // of the top edge.
+        let halfT = Self.cardThick * 0.5
 
-        // baseHalfZ: the top center is at world Z offset
-        // +sin(θ)*halfH from entity center. To put the apex at
-        // world Z=0 for card 1 at z=-baseHalfZ:
-        //   baseHalfZ = sin(θ)*halfH
-        //
-        // v2.163: NEGATIVE apex gap (cards spawn with their tops
-        // slightly OVERLAPPING). User reported v2.162's 1mm gap
-        // meant cards "do not touch one another." Without contact
-        // the cards have no apex support and SHOULD topple under
-        // gravity — but RealityKit's solver was treating them as
-        // at-rest, never starting the tip. Spawning with overlap
-        // forces the solver to resolve the contact, which gives
-        // each card a real apex normal force and establishes the
-        // A-frame mechanically.
-        //
-        // The overlap amount is roughly the card thickness so the
-        // resolved contact is right at the apex top edge.
-        let apexGap: Float = -Self.cardThick * 0.5
-        let baseHalfZ = sin(leanAngle) * halfH + apexGap
+        // centerY: the lowest point (inner-bottom corner of the
+        // collider) has world Y offset = -(halfT*sin(θ) +
+        // halfH*cos(θ)) from the entity center. To put that
+        // point on the table (Y=0):
+        //   centerY = halfT*sin(θ) + halfH*cos(θ)
+        let centerY = halfT * sin(leanAngle)
+                    + halfH * cos(leanAngle)
+                    + max(0.001, targetMaxY)
+                    + 0.001  // 1mm air gap so cards drop into place
+
+        // baseHalfZ: the apex contact point is the INNER-TOP corner
+        // of each card's collider. For card 1 at entity z =
+        // -baseHalfZ, this corner is at world Z = -baseHalfZ +
+        // (halfT*cos(θ) + halfH*sin(θ)). For colliders to meet at
+        // world Z = 0:
+        //   baseHalfZ = halfT*cos(θ) + halfH*sin(θ)
+        // Per the research, spawn cards with a small interpene-
+        // tration (~0.5mm overlap each side) so PhysX MUST resolve
+        // the contact — establishes real apex normal force.
+        let apexOverlap: Float = 0.0005
+        let baseHalfZ = halfT * cos(leanAngle)
+                      + halfH * sin(leanAngle)
+                      - apexOverlap
 
         let leftEntity  = buildCardEntity(for: card1,
                                           position: SIMD3<Float>(0, centerY, -baseHalfZ),
@@ -1018,28 +1037,20 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     private func commitHeldCards() {
         guard !heldCards.isEmpty else { return }
-        // For each card, set initial velocity so the solver sees it
-        // as "moving" (not at rest) and applies real physics. A pure
-        // 0-velocity dynamic body whose forces are in equilibrium
-        // (gravity vs base normal vs apex normal) gets locked in by
-        // the constraint solver and won't fall even after support
-        // is removed. Seeding velocity bypasses this.
-        for (idx, card) in heldCards.enumerated() {
+        for card in heldCards {
             if var body = card.entity.components[PhysicsBodyComponent.self] {
                 body.mode = .dynamic
                 body.isContinuousCollisionDetectionEnabled = true
                 card.entity.components.set(body)
             }
-            // Tip the card slightly toward its lean direction. For
-            // the first card (leans toward +Z apex), angular vel
-            // around +X axis (so top swings to +Z and -Y). For the
-            // second card (leans toward -Z apex), angular vel
-            // around -X. Index-based fallback since heldCards is
-            // unordered, but the pair is always [card1=left, card2=right].
-            let tipDirection: Float = (idx == 0) ? 1.0 : -1.0
+            // Small downward seed velocity so the body isn't at
+            // perfect rest on commit (avoids solver-equilibrium
+            // lock-in). With the v2.164 3mm collider this is much
+            // less critical — the thicker collider gives PhysX
+            // proper edge contact to compute around — but a small
+            // kick is cheap insurance.
             var motion = PhysicsMotionComponent()
             motion.linearVelocity = SIMD3<Float>(0, -0.02, 0)
-            motion.angularVelocity = SIMD3<Float>(tipDirection * 0.3, 0, 0)
             card.entity.components.set(motion)
             dynamicCards.append(card)
         }
@@ -1148,15 +1159,21 @@ private final class HouseOfCardsCoordinator: NSObject {
         )
         entity.components.set(CollisionComponent(shapes: [shape]))
 
-        // Card-card friction reduced from 0.42 → 0.30. Damping
-        // reduced (linear 0.5→0.3, angular 0.7→0.4). User reports
-        // cards "stay angled anywhere you place them" — meaning
-        // the cards never slipped/fell when unsupported. Lower
-        // friction + lower damping makes them more fragile, so a
-        // card left without apex support actually topples.
+        // v2.164: physics tuned per the research:
+        //   - staticFriction 0.55, dynamicFriction 0.40 (paper-on-
+        //     table values from ASTM-style measurements; staticFr
+        //     > dynamicFr is physically realistic and gives the
+        //     "stick then slip" behavior).
+        //   - restitution 0.02 (cards barely bounce).
+        //   - Damping back to defaults 0.05 (v2.161-163's 0.3/0.4
+        //     was over-damping and killing gravity-driven motion).
+        // The friction-coefficient analysis from the physics SE
+        // derivation: μ_ct ≥ 0.5·tan(θ) at the base for stability.
+        // At θ=30°, need μ ≥ 0.289 — 0.55 static is well above.
         let pmat = PhysicsMaterialResource.generate(
-            friction:    0.30,
-            restitution: 0.05
+            staticFriction:  0.55,
+            dynamicFriction: 0.40,
+            restitution:     0.02
         )
         var body = PhysicsBodyComponent(
             massProperties: .init(mass: 0.0018),
@@ -1164,8 +1181,8 @@ private final class HouseOfCardsCoordinator: NSObject {
             mode: .dynamic
         )
         body.isContinuousCollisionDetectionEnabled = true
-        body.linearDamping  = 0.3
-        body.angularDamping = 0.4
+        body.linearDamping  = 0.05
+        body.angularDamping = 0.05
         entity.components.set(body)
         entity.components.set(PhysicsMotionComponent())
 

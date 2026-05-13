@@ -840,21 +840,35 @@ private final class HouseOfCardsCoordinator: NSObject {
                 g.setTranslation(.zero, in: view)
 
             case .panningCamera:
-                // v2.184: drag-the-world direction. Drag finger RIGHT
-                // → world content shifts RIGHT under finger (the
-                // cameraTarget moves LEFT in world). This is the
-                // direction Ben has now asked for three times.
-                // DO NOT flip these signs without checking memory
-                // reference_camera_pan_direction first — the v2.171
-                // joystick variant ("drag right = camera looks
-                // right") felt reversed to Ben in actual use.
+                // v2.185: native RealityKit 3D-pan convention
+                // (joystick / AR Quick Look / Reality Composer
+                // style). Camera focal point follows the fingers
+                // in screen-aligned axes, projected onto world XZ.
+                //
+                // Derivation (camAzimuth = angle CCW from +Z to
+                // camera offset, so camera sits at target +
+                // (sin(az), _, cos(az)) * distance, looking at
+                // target):
+                //   screen-right in world  = ( cos(az), 0, -sin(az))
+                //   screen-up    in world  = (-sin(az), 0, -cos(az))
+                //                            [XZ projection of cam forward]
+                //
+                // For UIPan delta (dx right-positive, dy down-
+                // positive), the world delta is:
+                //   ΔX = dx*cos + dy*sin
+                //   ΔZ = -dx*sin + dy*cos
+                //
+                // Previous v2.171/v2.184 implementations both had
+                // sign errors on the sin terms (cross-axis
+                // coupling), producing the "scrolling-space" feel
+                // where diagonal drags moved unexpectedly.
                 let factor: Float = camDistance * 0.0018
-                let dxWorld = -Float(delta.x) * factor
-                let dzWorld = -Float(delta.y) * factor
+                let dx = Float(delta.x) * factor
+                let dy = Float(delta.y) * factor
                 let cosA = cos(camAzimuth)
                 let sinA = sin(camAzimuth)
-                cameraTarget.x += dxWorld * cosA - dzWorld * sinA
-                cameraTarget.z += dxWorld * sinA + dzWorld * cosA
+                cameraTarget.x +=  dx * cosA + dy * sinA
+                cameraTarget.z += -dx * sinA + dy * cosA
                 g.setTranslation(.zero, in: view)
                 updateCameraTransform()
 

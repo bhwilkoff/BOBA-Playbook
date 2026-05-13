@@ -200,7 +200,7 @@ struct HouseOfCardsView: View {
                                   : Color.white.opacity(0.18))
                 )
         }
-        .accessibilityLabel(session.lockToSurface ? "Unlock vertical position" : "Lock to surface")
+        .accessibilityLabel(session.lockToSurface ? "Unlock (allow free vertical movement)" : "Lock bottom to surface below")
     }
 
     @ViewBuilder
@@ -283,11 +283,12 @@ struct HouseOfCardsView: View {
                     helpRow("1. Select from strip", "Tap up to 4 cards in the bottom strip — orange numbered badge shows placement order.")
                     helpRow("2. Tap to place",      "Tap anywhere on the table to spawn the selected cards there, standing vertical. Add more anytime by selecting more strip cards and tapping again.")
                     helpRow("3. Tap a card",        "Tap a placed card to SELECT it — an orange halo appears around it. While selected, ALL gestures manipulate that card (camera is paused).")
-                    helpRow("Translate",            "One-finger drag STARTING ON the selected card → slide it across the table (X/Z). One-finger drag from empty space orbits the camera even while a card is selected.")
-                    helpRow("Lift / lower",         "Two-finger VERTICAL drag → raise or lower the selected card. Unlock the 🔒 button to allow lifting off the table.")
-                    helpRow("Tilt (angle)",         "Two-finger HORIZONTAL drag → tilt the selected card forward/back.")
-                    helpRow("Rotate (yaw)",         "PINCH → spin the selected card around its vertical axis.")
-                    helpRow("Lock toggle",          "The 🔒 button next to PLAY keeps the selected card at table level. Unlock it to lift cards onto towers.")
+                    helpRow("Translate",            "One-finger drag STARTING ON the selected card → slide it across the table (X/Z). When 🔒 is on, the bottom of the card sticks to whatever surface is below it — table or top of another card.")
+                    helpRow("Tilt (angle)",         "Two-finger HORIZONTAL drag → tilt the selected card forward/back. The bottom keeps riding the surface below as it leans.")
+                    helpRow("Lift / lower",         "Unlock 🔒 first. Then two-finger VERTICAL drag → raise or lower the selected card freely in the air.")
+                    helpRow("Rotate (yaw)",         "TWIST with two fingers → spin the selected card around its vertical axis. (Standard iOS rotation gesture, same as Photos / Maps.)")
+                    helpRow("Lock toggle",          "🔒 ON (default): the bottom of the selected card snaps to whatever surface is under it. Slide a card across the table, over a supporting card — bottom auto-rides the surface. 🔒 OFF: free vertical movement, lift cards into the air.")
+                    helpRow("A-frame snap",         "Tilt one card, then drag a second card near it tilted the OPPOSITE way — they auto-snap to a stable leaning pose when their top edges align. Lets you build pyramids without measuring.")
                     helpRow("Deselect",             "Tap empty space (or tap the selected card again) to deselect.")
                     helpRow("Look around",          "When NOTHING is selected: one-finger drag orbits, two-finger drag pans the view, pinch zooms.")
                     helpRow("Play / Pause",        "Tap PLAY to engage physics. Tap PAUSE anytime to freeze mid-fall, repair, and play again.")
@@ -512,6 +513,7 @@ private final class HouseOfCardsCoordinator: NSObject {
     private weak var primaryPanGesture:   UIPanGestureRecognizer?
     private weak var twoFingerPanGesture: UIPanGestureRecognizer?
     private weak var pinchGesture:        UIPinchGestureRecognizer?
+    private weak var rotationGesture:     UIRotationGestureRecognizer?
 
     /// Current gesture mode set on .began of primaryPanGesture
     /// and cleared on .ended. Drives whether deltas orbit the
@@ -598,11 +600,21 @@ private final class HouseOfCardsCoordinator: NSObject {
         view.addGestureRecognizer(twoPan)
         self.twoFingerPanGesture = twoPan
 
-        // Pinch: zoom always.
+        // Pinch: zoom always (v2.172 — dropped pinch-for-yaw, which
+        // was non-standard. Yaw moves to 2-finger twist below).
         let pinch = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
         pinch.delegate = self
         view.addGestureRecognizer(pinch)
         self.pinchGesture = pinch
+
+        // Rotation (2-finger twist): yaw the selected card. Matches
+        // AR Quick Look + every other iOS gesture-based rotation
+        // app. Recognizes simultaneously with pinch so user can
+        // twist + zoom in one gesture.
+        let rotate = UIRotationGestureRecognizer(target: self, action: #selector(handleRotation(_:)))
+        rotate.delegate = self
+        view.addGestureRecognizer(rotate)
+        self.rotationGesture = rotate
 
         // Tap: spawn-at-location (when cards selected) OR grab a
         // settled card. Requires pan to fail first so dragging
@@ -621,6 +633,18 @@ private final class HouseOfCardsCoordinator: NSObject {
     }
     private var twoFingerMode: TwoFingerMode = .idle
 
+    /// v2.172: When 2-finger pan is rotating a card, lock to the
+    /// FIRST significant axis (H = pitch, V = lift). Eliminates the
+    /// diagonal-drag-does-both-at-once bug.
+    private enum CardManipAxis {
+        case undetermined
+        case pitch   // horizontal drag dominant → tilt
+        case lift    // vertical drag dominant → Y translate
+    }
+    private var cardManipAxis: CardManipAxis = .undetermined
+    private var cardManipAccum: CGPoint = .zero
+    private static let cardManipAxisThreshold: CGFloat = 8.0
+
     @objc private func handleTwoFingerPan(_ g: UIPanGestureRecognizer) {
         guard let view = arView else { return }
         let delta = g.translation(in: view)
@@ -630,6 +654,8 @@ private final class HouseOfCardsCoordinator: NSObject {
             // Selected card takes priority. Otherwise pan camera.
             if let selected = selectedCardEntity {
                 twoFingerMode = .rotatingCard(selected)
+                cardManipAxis = .undetermined
+                cardManipAccum = .zero
             } else {
                 twoFingerMode = .panningCamera
             }
@@ -638,22 +664,47 @@ private final class HouseOfCardsCoordinator: NSObject {
         case .changed:
             switch twoFingerMode {
             case .rotatingCard(let card):
-                // 2-finger HORIZONTAL drag → TILT (pitch around
-                // world X). 2-finger VERTICAL drag → Y translate
-                // (lift / lower). Y is clamped to keep the card
-                // above the table or to the surface when locked.
-                let pitchAngle = Float(delta.x) * 0.012
-                let pitchQ = simd_quatf(angle: pitchAngle, axis: SIMD3<Float>(1, 0, 0))
-                card.entity.orientation = pitchQ * card.entity.orientation
+                // v2.172 axis lock: accumulate delta until the user
+                // has moved >8pt in either axis, then lock to the
+                // dominant one for the rest of the gesture. Stops
+                // diagonal drags from firing pitch + lift at once.
+                if cardManipAxis == .undetermined {
+                    cardManipAccum.x += delta.x
+                    cardManipAccum.y += delta.y
+                    let absX = abs(cardManipAccum.x)
+                    let absY = abs(cardManipAccum.y)
+                    if max(absX, absY) > Self.cardManipAxisThreshold {
+                        cardManipAxis = (absX > absY) ? .pitch : .lift
+                    }
+                }
 
-                if session.lockToSurface {
-                    // Locked: keep card at its current Y, ignore
-                    // vertical drag for translation.
-                    card.entity.position.y = max(minCardY(), card.entity.position.y)
-                } else {
-                    let yDelta: Float = -Float(delta.y) * 0.0005
-                    let newY = card.entity.position.y + yDelta
-                    card.entity.position.y = max(minCardY(), newY)
+                switch cardManipAxis {
+                case .pitch:
+                    // 2-finger HORIZONTAL drag → tilt (pitch around
+                    // world X). After tilting, re-snap bottom to
+                    // surface so the card "rides" the supporting
+                    // surface as it leans.
+                    let pitchAngle = Float(delta.x) * 0.012
+                    let pitchQ = simd_quatf(angle: pitchAngle, axis: SIMD3<Float>(1, 0, 0))
+                    card.entity.orientation = pitchQ * card.entity.orientation
+                    applySurfaceSnap(to: card)
+                    applyAFrameSnap(to: card)
+
+                case .lift:
+                    if session.lockToSurface {
+                        // Locked: bottom rides surface. Vertical
+                        // drag is a no-op except for the snap re-eval.
+                        applySurfaceSnap(to: card)
+                    } else {
+                        // Unlocked: free Y translation.
+                        let yDelta: Float = -Float(delta.y) * 0.0005
+                        let newY = card.entity.position.y + yDelta
+                        card.entity.position.y = max(minCardY(), newY)
+                    }
+
+                case .undetermined:
+                    // Haven't committed to an axis yet — apply nothing.
+                    break
                 }
                 g.setTranslation(.zero, in: view)
 
@@ -679,7 +730,34 @@ private final class HouseOfCardsCoordinator: NSObject {
 
         case .ended, .cancelled, .failed:
             twoFingerMode = .idle
+            cardManipAxis = .undetermined
+            cardManipAccum = .zero
 
+        default:
+            break
+        }
+    }
+
+    @objc private func handleRotation(_ g: UIRotationGestureRecognizer) {
+        // v2.172: 2-finger twist → yaw the selected card around
+        // world Y. Standard iOS rotation pattern. Pinch is now
+        // always zoom, even when a card is selected.
+        guard let selected = selectedCardEntity else { return }
+        switch g.state {
+        case .changed:
+            let yawAngle = Float(g.rotation)
+            // Twist counter-clockwise (positive g.rotation) → card
+            // yaws counter-clockwise from above (positive around +Y).
+            let yaw = simd_quatf(angle: yawAngle, axis: SIMD3<Float>(0, 1, 0))
+            selected.entity.orientation = yaw * selected.entity.orientation
+            g.rotation = 0
+            // Yawing a TILTED card moves the bottom-edge midpoint
+            // in XZ (rotation around vertical, with offset along
+            // local -Z). If the bottom midpoint passes over a
+            // different supporting surface during the yaw, the
+            // card should ride that surface — re-snap on every
+            // changed frame.
+            applySurfaceSnap(to: selected)
         default:
             break
         }
@@ -802,6 +880,14 @@ private final class HouseOfCardsCoordinator: NSObject {
                     if c.entity.position.y < minY {
                         c.entity.position.y = minY
                     }
+                    // v2.172: after every XZ move, re-evaluate the
+                    // surface below the card and snap the bottom
+                    // edge to it (when locked). Lets the user slide
+                    // a card off the table onto the top of another
+                    // card without any vertical fiddling — bottom
+                    // rides whatever's underneath.
+                    applySurfaceSnap(to: c)
+                    applyAFrameSnap(to: c)
                 }
             case .idle:
                 break
@@ -835,31 +921,156 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     @objc private func handlePinch(_ g: UIPinchGestureRecognizer) {
         guard g.scale > 0 else { return }
-
-        // If a card is selected, pinch performs YAW (rotation
-        // around vertical Y axis). Spread (scale > 1) → rotate
-        // CCW from above. Pinch in (scale < 1) → rotate CW.
-        if let selected = selectedCardEntity {
-            let yawAngle: Float = (Float(g.scale) - 1.0) * 1.5
-            let yaw = simd_quatf(angle: yawAngle, axis: SIMD3<Float>(0, 1, 0))
-            selected.entity.orientation = yaw * selected.entity.orientation
-            g.scale = 1.0
-            return
-        }
-
-        // No selection: zoom camera.
+        // v2.172: pinch ALWAYS zooms camera, whether a card is
+        // selected or not. Yaw moved to 2-finger twist
+        // (handleRotation).
         camDistance = max(Self.camDistanceMin,
                           min(Self.camDistanceMax, camDistance / Float(g.scale)))
         g.scale = 1.0
         updateCameraTransform()
     }
 
-    /// Minimum world-Y for the selected card given clearance for
-    /// the outline halo (which extends `outlineMargin` past card
-    /// edges). For now, hardcoded to table-level minimum.
-    /// TODO: when supporting cards are below, return their top Y.
+    /// Minimum world-Y for any card given clearance for the
+    /// outline halo. Hard floor — bottoms out at table level.
+    /// Surface-snap (applySurfaceSnap) handles the "snap to top
+    /// of supporting card" case on top of this.
     private func minCardY() -> Float {
         return Self.cardHeight * 0.5 + Self.minClearance
+    }
+
+    // MARK: Surface snap (v2.172)
+    //
+    // Cast a ray straight down from the card's bottom-edge
+    // midpoint and find the top of the nearest collision (the
+    // tabletop OR the top of another card under this one).
+    // Returns nil only if nothing is in range — defensive, the
+    // table is always present.
+    private func surfaceYBelow(card: CardEntity) -> Float? {
+        guard let arView = self.arView else { return nil }
+        // Bottom-edge midpoint in the card's LOCAL frame:
+        // local Z is the card's vertical axis post-standUp, so
+        // (0, 0, -h/2) is the midpoint of the bottom edge.
+        let bottomMidLocal = SIMD3<Float>(0, 0, -Self.cardHeight / 2)
+        let bottomMid = card.entity.convert(position: bottomMidLocal, to: nil as Entity?)
+        // Start the ray slightly above the bottom edge to avoid
+        // beginning the ray inside a supporting collision shape.
+        let origin = SIMD3<Float>(bottomMid.x, bottomMid.y + 0.01, bottomMid.z)
+        let hits = arView.scene.raycast(
+            origin: origin,
+            direction: SIMD3<Float>(0, -1, 0),
+            length: 2.0,
+            query: .all,
+            mask: .default,
+            relativeTo: nil
+        )
+        for hit in hits {
+            // Walk up the entity tree to find a card-root ancestor.
+            // If we find one and it's our own card, skip this hit
+            // and try the next. Otherwise return this hit's Y.
+            var e: Entity? = hit.entity
+            var isSelf = false
+            while let cur = e {
+                if cur.name == "card-root" {
+                    if cur === card.entity { isSelf = true }
+                    break
+                }
+                e = cur.parent
+            }
+            if !isSelf {
+                return hit.position.y
+            }
+        }
+        return nil
+    }
+
+    /// When lockToSurface is ON, set card.position.y so the card's
+    /// bottom-edge midpoint rests on the surface below (table OR
+    /// top of supporting card) with a small air gap so the halo
+    /// doesn't intersect the surface.
+    private func applySurfaceSnap(to card: CardEntity) {
+        guard session.lockToSurface,
+              let surfaceY = surfaceYBelow(card: card) else { return }
+        let bottomMidLocal = SIMD3<Float>(0, 0, -Self.cardHeight / 2)
+        let currentBottomY = card.entity.convert(
+            position: bottomMidLocal, to: nil as Entity?
+        ).y
+        let targetBottomY = surfaceY + Self.minClearance
+        let dy = targetBottomY - currentBottomY
+        card.entity.position.y += dy
+        // Safety: keep entity center above table-floor even if
+        // the math glitches (e.g., near-degenerate tilt).
+        if card.entity.position.y < minCardY() {
+            card.entity.position.y = minCardY()
+        }
+    }
+
+    // MARK: A-frame partner snap (v2.172)
+    //
+    // When the selected card is tilted >5° AND there's another
+    // placed card within ~4cm whose tilt is roughly the MIRROR of
+    // ours (opposite sign, within 10°), snap our X/Z position so
+    // the top-edge midpoints meet — forming a stable A-frame.
+    //
+    // Snap is XZ-only; surface-snap handles the Y. Together they
+    // produce the canonical "two cards leaning on each other"
+    // pose without manual fiddling.
+    private static let aFrameSnapDistance: Float = 0.04   // 4cm
+    private static let aFrameTiltMin: Float = 0.087        // ~5°
+    private static let aFrameMirrorTolerance: Float = 0.175 // ~10°
+
+    private func applyAFrameSnap(to card: CardEntity) {
+        // Get our pitch angle (rotation around world X).
+        let ourTilt = pitchAngle(of: card.entity)
+        guard abs(ourTilt) > Self.aFrameTiltMin else { return }
+
+        // Top-edge midpoint of our card in world space.
+        let topLocal = SIMD3<Float>(0, 0, Self.cardHeight / 2)
+        let ourTop = card.entity.convert(position: topLocal, to: nil as Entity?)
+        let ourCenter = card.entity.position
+
+        // Find a candidate partner: a placed card that is NOT us,
+        // whose tilt is roughly the mirror of ours, and whose top
+        // midpoint is within snap distance horizontally.
+        let candidates = (heldCards + dynamicCards).filter { $0 !== card }
+        var bestPartner: (entity: Entity, topY: Float, topPos: SIMD3<Float>)? = nil
+        var bestDist: Float = .greatestFiniteMagnitude
+        for c in candidates {
+            let theirTilt = pitchAngle(of: c.entity)
+            // Mirror = opposite sign, similar magnitude.
+            guard ourTilt * theirTilt < 0 else { continue }
+            guard abs(abs(theirTilt) - abs(ourTilt)) < Self.aFrameMirrorTolerance else { continue }
+            let theirTop = c.entity.convert(position: topLocal, to: nil as Entity?)
+            let dx = theirTop.x - ourTop.x
+            let dz = theirTop.z - ourTop.z
+            let d = sqrt(dx*dx + dz*dz)
+            if d < Self.aFrameSnapDistance && d < bestDist {
+                bestDist = d
+                bestPartner = (c.entity, theirTop.y, theirTop)
+            }
+        }
+        guard let partner = bestPartner else { return }
+        // Snap our XZ so our top midpoint = partner's top midpoint.
+        // We need to compute the position offset that achieves this:
+        //   targetCenter = ourCenter + (partner.topPos - ourTop)
+        let offset = partner.topPos - ourTop
+        card.entity.position.x = ourCenter.x + offset.x
+        card.entity.position.z = ourCenter.z + offset.z
+        // Re-snap bottom to surface (the surface may have changed
+        // because we moved over a different supporting card).
+        applySurfaceSnap(to: card)
+    }
+
+    /// Decompose an entity's orientation to extract its tilt
+    /// (signed angle around world X). Approximation valid when
+    /// the card's "up" axis (local +Z post-standUp) lies in the
+    /// world YZ plane — true for cards manipulated only by pitch
+    /// + yaw, which is the only case the playground produces.
+    private func pitchAngle(of entity: Entity) -> Float {
+        // Local +Z transformed to world.
+        let worldUp = entity.convert(direction: SIMD3<Float>(0, 0, 1), to: nil as Entity?)
+        // Pitch around world X is the angle between worldUp's
+        // projection onto the YZ plane and world +Y.
+        return atan2(worldUp.z, worldUp.y)
     }
 
     // MARK: Selection (pause-mode-only manipulation)

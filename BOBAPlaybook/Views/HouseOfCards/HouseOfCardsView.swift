@@ -1409,14 +1409,25 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// the spawn-location decision back to the user — they point
     /// at the surface they want the next layer on top of.
     ///
-    /// Returns nil for taps that hit a tilted card (let the
-    /// caller fall through to its normal selection behavior so
-    /// tap-tilted-card-to-select still works when there happens
-    /// to be a strip selection). Returns the table-plane
-    /// projection when nothing is hit OR the hit isn't a card
-    /// (table is fine — it's already horizontal).
+    /// Three lookups, in order:
+    ///   1. Direct hit-test (v2.199): tap lands ON a horizontal
+    ///      platform → spawn ON it. Tap on a tilted card returns
+    ///      nil so tap-to-select still works.
+    ///   2. Footprint sweep (v2.201): tap projection onto the
+    ///      table plane at Y=0 lands INSIDE an existing platform's
+    ///      XZ footprint → spawn on that platform. Recognizes
+    ///      taps that the user intended for the platform but
+    ///      landed slightly off (parallax, small target, occlusion
+    ///      by user's finger).
+    ///   3. Plane projection (legacy): no platform found → spawn
+    ///      at the table-plane projection.
+    ///
+    /// Returns nil only when a TILTED card was hit directly —
+    /// keeps the tap-tilted-card-to-select affordance intact.
     private func spawnLocationFromTap(at point: CGPoint) -> SIMD3<Float>? {
         guard let view = arView else { return nil }
+
+        // 1. Direct screen-space hit.
         let hits = view.hitTest(point, query: .nearest, mask: .all)
         for hit in hits {
             var entity: Entity? = hit.entity
@@ -1424,20 +1435,51 @@ private final class HouseOfCardsCoordinator: NSObject {
                 if e.name == "card-root" {
                     let topNormal = upwardFaceWorldNormal(of: e)
                     if topNormal.y > 0.85 {
-                        // Horizontal platform — spawn at the tap
-                        // point's XZ on this card's top face.
                         let topY = upwardFaceCenter(of: e).y
                         return SIMD3<Float>(hit.position.x, topY, hit.position.z)
                     }
-                    // Tilted card: defer to caller's normal tap
-                    // handling so tap-to-select continues to work.
+                    // Tilted card — let caller handle tap-to-select.
                     return nil
                 }
                 entity = e.parent
             }
         }
-        // No card hit (table or empty space): existing behavior.
-        return view.project(point, ontoPlaneAt: 0)
+
+        // 2 + 3. Project to the table plane to find an XZ point,
+        // then look for an existing platform that covers it.
+        guard let world = view.project(point, ontoPlaneAt: 0) else { return nil }
+
+        // Footprint sweep: raycast straight down from far above
+        // through the tap XZ. The first card-root hit with a
+        // horizontal upward face is the topmost platform covering
+        // that XZ. If found, spawn there.
+        let probeOrigin = SIMD3<Float>(world.x, 5.0, world.z)
+        let downHits = view.scene.raycast(
+            origin: probeOrigin,
+            direction: SIMD3<Float>(0, -1, 0),
+            length: 10.0,
+            query: .all,
+            mask: .default,
+            relativeTo: nil
+        )
+        for h in downHits {
+            var entity: Entity? = h.entity
+            while let e = entity {
+                if e.name == "card-root" {
+                    let topNormal = upwardFaceWorldNormal(of: e)
+                    if topNormal.y > 0.85 {
+                        let topY = upwardFaceCenter(of: e).y
+                        return SIMD3<Float>(world.x, topY, world.z)
+                    }
+                    // Topmost card at this XZ is tilted (e.g., an
+                    // A-frame leaning card under an unfinished
+                    // structure) — fall back to table-level spawn.
+                    return world
+                }
+                entity = e.parent
+            }
+        }
+        return world
     }
 
     /// Set card.position.y so the card's bottom-edge midpoint
@@ -1580,14 +1622,6 @@ private final class HouseOfCardsCoordinator: NSObject {
             let ourFeature: SIMD3<Float>
             let dist: Float
             let partner: Entity
-            /// v2.200: priority tier. Higher always wins.
-            ///   2 = lift-escape sit-on-top (target ≥ one card-height
-            ///       above us — tower-building intent, dominates
-            ///       ground-level snaps so the user isn't dragged
-            ///       back down).
-            ///   1 = same-layer sit-on-top (broad-face / standard).
-            ///   0 = A-frame / side-by-side / horizontal-spread.
-            let priority: Int
         }
         // v2.193 diagnostics: track the closest sit-on-top
         // candidate that was REJECTED (out of range or Y check
@@ -1596,18 +1630,6 @@ private final class HouseOfCardsCoordinator: NSObject {
         var nearestSitDist: Float = .greatestFiniteMagnitude
         var nearestSitReason: String = "no candidates"
         var best: Best? = nil
-
-        /// Tier-aware best-update: a higher-priority candidate
-        /// always wins, regardless of XZ distance. Within a tier,
-        /// the closer candidate wins.
-        func consider(_ candidate: Best) {
-            guard let b = best else { best = candidate; return }
-            if candidate.priority > b.priority {
-                best = candidate
-            } else if candidate.priority == b.priority, candidate.dist < b.dist {
-                best = candidate
-            }
-        }
 
         for c in candidates {
             let theirTop  = c.entity.convert(position: topLocal,    to: nil as Entity?)
@@ -1629,8 +1651,8 @@ private final class HouseOfCardsCoordinator: NSObject {
                 let dxA = theirTop.x - ourTop.x
                 let dzA = theirTop.z - ourTop.z
                 let dA = sqrt(dxA * dxA + dzA * dzA)
-                if dA < Self.snapDistance {
-                    consider(Best(kind: .aFrame, target: theirTop, ourFeature: ourTop, dist: dA, partner: c.entity, priority: 0))
+                if dA < Self.snapDistance, best == nil || dA < best!.dist {
+                    best = Best(kind: .aFrame, target: theirTop, ourFeature: ourTop, dist: dA, partner: c.entity)
                 }
             }
 
@@ -1641,37 +1663,28 @@ private final class HouseOfCardsCoordinator: NSObject {
             //    support to start the next A-frame, not always at
             //    the geometric middle.
             //
-            //    v2.200 lifting model:
-            //      dY = theirTopFace.y - ourBottomFace.y
-            //      • No-drop:    dY < -0.05 → skip. Snapping to
-            //        something significantly below us pulls us
-            //        DOWN, which is never the user's intent when
-            //        they're building up.
-            //      • Same-layer (priority 1): dY in [-0.05,
-            //        cardHeight). Our bottom is roughly at or
-            //        slightly above their top. Standard contact-
-            //        snap. Range = snapDistance (12cm) or 25cm
-            //        when our card is horizontal.
-            //      • Lift escape (priority 2): dY ≥ cardHeight.
-            //        Target is clearly above us — interpret as
-            //        "lift onto next layer." Range stays 12cm so
-            //        the user has to drag near the support's XZ;
-            //        if they do, the lift wins outright over any
-            //        ground-level side-by-side / A-frame.
-            //      • Awkward middle: dY in [-0.05, 0.04). v2.199's
-            //        gap — covers when our bottom is just a hair
-            //        below their top. Allow normal snap.
+            //    Y-gate (v2.201): restored. The card must be at or
+            //    above the candidate's top (within 1cm tolerance)
+            //    to fire sit-on-top. Horizontal cards bypass the
+            //    Y-gate (they're laying flat onto a support and
+            //    range 25cm reaches across the structure). The
+            //    v2.200 lift-escape priority was reverted — it
+            //    caused every ground-level spawn to fly up onto
+            //    the nearest tall structure, which is the opposite
+            //    of the user's intent in most cases. Tower
+            //    building flows through platform-tap spawn
+            //    (spawnLocationFromTap, v2.199 + v2.201) and
+            //    explicit 2-finger vertical lift, both of which
+            //    place the card AT the destination layer so the
+            //    standard Y-gate clears.
             let theirTopRect = upwardFaceRect(of: c.entity)
             let theirTopNearest = nearestPointOnFace(theirTopRect, to: ourBottomFace)
-            let dY = theirTopRect.center.y - ourBottomFace.y
             let isHorizontalish = abs(abs(ourTilt) - .pi / 2) < 0.3
-            let canDrop = dY >= -0.05
-            let isLiftEscape = dY >= Self.cardHeight
-            let canSit = canDrop && (isHorizontalish || dY >= -0.01 || isLiftEscape)
-
+            let canSit: Bool = isHorizontalish
+                || (ourBottomFace.y >= theirTopRect.center.y - 0.01)
             // XZ distance to the nearest point on the support
-            // face (not the face center — that was the v2.193
-            // "halfway up" mistake).
+            // face. v2.200 change preserved: snap target is the
+            // edge-aware nearest point, not the face center.
             let dxS = theirTopNearest.x - ourBottomFace.x
             let dzS = theirTopNearest.z - ourBottomFace.z
             let dS = sqrt(dxS * dxS + dzS * dzS)
@@ -1680,20 +1693,15 @@ private final class HouseOfCardsCoordinator: NSObject {
             if dS < nearestSitDist {
                 nearestSitDist = dS
                 if !canSit {
-                    if !canDrop {
-                        nearestSitReason = "no-drop (top \(String(format: "%.3f", theirTopRect.center.y)) below bottom \(String(format: "%.3f", ourBottomFace.y)))"
-                    } else {
-                        nearestSitReason = "Y-gap (dY=\(String(format: "%.3f", dY))m in awkward band)"
-                    }
+                    nearestSitReason = "Y-check (bottom \(String(format: "%.3f", ourBottomFace.y)) below top \(String(format: "%.3f", theirTopRect.center.y)))"
                 } else if dS >= range {
                     nearestSitReason = "out of range (\(String(format: "%.3f", dS))m > \(String(format: "%.2f", range))m)"
                 } else {
                     nearestSitReason = "fired"
                 }
             }
-            if canSit, dS < range {
-                let priority = isLiftEscape ? 2 : 1
-                consider(Best(kind: .sitOnTop, target: theirTopNearest, ourFeature: ourBottomFace, dist: dS, partner: c.entity, priority: priority))
+            if canSit, dS < range, best == nil || dS < best!.dist {
+                best = Best(kind: .sitOnTop, target: theirTopNearest, ourFeature: ourBottomFace, dist: dS, partner: c.entity)
             }
 
             // 3) Side-by-side bottom-to-bottom: place our card
@@ -1732,8 +1740,8 @@ private final class HouseOfCardsCoordinator: NSObject {
                     let dirUnit = dirToOurs / len
                     let target = theirBottom + Self.cardWidth * dirUnit
                     let d = simd_length(target - ourBottom)
-                    if d < Self.sideBySideTolerance {
-                        consider(Best(kind: .sideBySide, target: target, ourFeature: ourBottom, dist: d, partner: c.entity, priority: 0))
+                    if d < Self.sideBySideTolerance, best == nil || d < best!.dist {
+                        best = Best(kind: .sideBySide, target: target, ourFeature: ourBottom, dist: d, partner: c.entity)
                     }
                 }
             }

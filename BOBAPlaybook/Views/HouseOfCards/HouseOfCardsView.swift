@@ -2399,13 +2399,33 @@ extension HouseOfCardsCoordinator: UIGestureRecognizerDelegate {
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
     ) -> Bool {
-        // Pan + pinch + Apple's entity gestures coexist. Long-press
-        // stays exclusive.
+        // Long-press is always exclusive.
         if gestureRecognizer is UILongPressGestureRecognizer ||
            other is UILongPressGestureRecognizer {
             return false
         }
-        return true
+        // v2.186: our 2-finger pan and our pinch are MUTUALLY
+        // EXCLUSIVE. Both compete for the same 2-finger touches
+        // but represent different intents (camera-target translate
+        // vs. camera zoom). Allowing them to recognize
+        // simultaneously meant any small finger-distance change
+        // during a pan triggered the pinch zoom in parallel, while
+        // the pan dragged the target — the camera moved
+        // unpredictably. Now iOS picks whichever recognition
+        // threshold is met first: parallel finger motion → pan
+        // wins; pinch/spread → pinch wins. Apple's
+        // EntityRotationGestureRecognizer (yaw) stays simultaneous
+        // with both because twist+zoom is a real combined gesture.
+        return MainActor.assumeIsolated {
+            let pan = self.twoFingerPanGesture
+            let pinch = self.pinchGesture
+            let isPan = (gestureRecognizer === pan) || (other === pan)
+            let isPinch = (gestureRecognizer === pinch) || (other === pinch)
+            if isPan, isPinch {
+                return false
+            }
+            return true
+        }
     }
 
     nonisolated func gestureRecognizer(

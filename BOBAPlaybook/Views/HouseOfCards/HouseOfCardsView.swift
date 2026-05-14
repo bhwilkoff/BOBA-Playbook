@@ -1107,42 +1107,108 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     private func surfaceYBelow(card: CardEntity) -> SurfaceHit? {
         guard let arView = self.arView else { return nil }
-        // v2.189: raycast from the orientation-aware downward-face
-        // center, not the local-frame -Z midpoint. For horizontal
-        // cards the local -Z midpoint is at the BACK EDGE of the
-        // broad face (same Y as center), not the actual bottom —
-        // the raycast missed the supporting card and hit the
-        // table, dropping horizontal roof cards to mid-pyramid.
-        let lowestFace = downwardFaceCenter(of: card.entity)
-        let origin = SIMD3<Float>(lowestFace.x, lowestFace.y + 0.01, lowestFace.z)
-        let hits = arView.scene.raycast(
-            origin: origin,
-            direction: SIMD3<Float>(0, -1, 0),
-            length: 2.0,
-            query: .all,
-            mask: .default,
-            relativeTo: nil
-        )
-        for hit in hits {
-            // Walk up the entity tree to find a card-root ancestor.
-            // If we find one and it's our own card, skip this hit
-            // and try the next. Otherwise return this hit's Y plus
-            // whether the supporting entity is a card.
-            var e: Entity? = hit.entity
-            var isSelf = false
-            var isCard = false
-            while let cur = e {
-                if cur.name == "card-root" {
-                    if cur === card.entity { isSelf = true } else { isCard = true }
-                    break
+        // v2.192: multi-point probe. We previously raycast from a
+        // single point (downward-face center). For a flat roof card
+        // whose center is over empty space but whose CORNERS are
+        // over a supporting card, that single ray missed and the
+        // card snapped to the table. Now we probe the downward
+        // face center AND its 4 corners, then return the HIGHEST
+        // non-self hit. This implements the user-stated intent:
+        // "if any part of the card is over another card, rest on
+        // that card — never the table."
+        let probes = downwardFaceProbePoints(of: card.entity)
+        var bestY: Float = -Float.greatestFiniteMagnitude
+        var bestIsTable = true
+        var foundAny = false
+        for probe in probes {
+            let origin = SIMD3<Float>(probe.x, probe.y + 0.01, probe.z)
+            let hits = arView.scene.raycast(
+                origin: origin,
+                direction: SIMD3<Float>(0, -1, 0),
+                length: 2.0,
+                query: .all,
+                mask: .default,
+                relativeTo: nil
+            )
+            for hit in hits {
+                var e: Entity? = hit.entity
+                var isSelf = false
+                var isCard = false
+                while let cur = e {
+                    if cur.name == "card-root" {
+                        if cur === card.entity { isSelf = true } else { isCard = true }
+                        break
+                    }
+                    e = cur.parent
                 }
-                e = cur.parent
-            }
-            if !isSelf {
-                return SurfaceHit(y: hit.position.y, isTable: !isCard)
+                if !isSelf {
+                    if hit.position.y > bestY {
+                        bestY = hit.position.y
+                        bestIsTable = !isCard
+                    }
+                    foundAny = true
+                    break  // first non-self hit on this probe
+                }
             }
         }
-        return nil
+        return foundAny ? SurfaceHit(y: bestY, isTable: bestIsTable) : nil
+    }
+
+    /// Probe points for surfaceYBelow's multi-point raycast: the
+    /// orientation-aware downward face's center plus its 4 corners.
+    /// For a vertical card the "downward face" is the bottom edge
+    /// strip (cardWidth × cardThick); for a horizontal card it's
+    /// the broad bottom face (cardWidth × cardHeight). Either way
+    /// we probe the full extent so any corner over a supporting
+    /// card pulls the whole card to that support's level.
+    private func downwardFaceProbePoints(of entity: Entity) -> [SIMD3<Float>] {
+        // Identify which of the 6 local-frame face centers has the
+        // lowest world Y. That's the downward face.
+        let faceLocalCenters: [SIMD3<Float>] = [
+            SIMD3<Float>( Self.cardWidth  / 2, 0, 0),
+            SIMD3<Float>(-Self.cardWidth  / 2, 0, 0),
+            SIMD3<Float>(0,  Self.cardThick / 2, 0),
+            SIMD3<Float>(0, -Self.cardThick / 2, 0),
+            SIMD3<Float>(0, 0,  Self.cardHeight / 2),
+            SIMD3<Float>(0, 0, -Self.cardHeight / 2),
+        ]
+        var bestIdx = 0
+        var bestY = Float.greatestFiniteMagnitude
+        for (i, faceCenter) in faceLocalCenters.enumerated() {
+            let world = entity.convert(position: faceCenter, to: nil as Entity?)
+            if world.y < bestY {
+                bestY = world.y
+                bestIdx = i
+            }
+        }
+        let bestFaceCenter = faceLocalCenters[bestIdx]
+        // The downward face is perpendicular to whichever axis has
+        // bestFaceCenter's nonzero coordinate. The corners vary the
+        // other two axes by ±extent.
+        let halfExtents = SIMD3<Float>(
+            Self.cardWidth  / 2,
+            Self.cardThick  / 2,
+            Self.cardHeight / 2
+        )
+        var perpAxis = 0
+        if abs(bestFaceCenter.y) > 0 { perpAxis = 1 }
+        if abs(bestFaceCenter.z) > 0 { perpAxis = 2 }
+        let otherAxes = [0, 1, 2].filter { $0 != perpAxis }
+        var probes: [SIMD3<Float>] = [entity.convert(position: bestFaceCenter, to: nil as Entity?)]
+        for sa: Float in [-1, 1] {
+            for sb: Float in [-1, 1] {
+                var corner = bestFaceCenter
+                let ax0 = otherAxes[0], ax1 = otherAxes[1]
+                if ax0 == 0 { corner.x = sa * halfExtents.x }
+                else if ax0 == 1 { corner.y = sa * halfExtents.y }
+                else { corner.z = sa * halfExtents.z }
+                if ax1 == 0 { corner.x = sb * halfExtents.x }
+                else if ax1 == 1 { corner.y = sb * halfExtents.y }
+                else { corner.z = sb * halfExtents.z }
+                probes.append(entity.convert(position: corner, to: nil as Entity?))
+            }
+        }
+        return probes
     }
 
     // v2.183: orientation-aware face centers. For sit-on-top
@@ -1356,7 +1422,18 @@ private final class HouseOfCardsCoordinator: NSObject {
                 let dxS = theirTopFace.x - ourBottomFace.x
                 let dzS = theirTopFace.z - ourBottomFace.z
                 let dS = sqrt(dxS * dxS + dzS * dzS)
-                if dS < Self.snapDistance, best == nil || dS < best!.dist {
+                // v2.192: extend sit-on-top range when our card is
+                // CLEARLY in roof-placement mode — tilt within ~17°
+                // of horizontal AND lifted noticeably above the
+                // table. In that case the user's intent is
+                // unambiguous ("place this flat card on whatever's
+                // up there") and reaching from further is the
+                // helpful behavior. For all other orientations the
+                // standard 12cm range still applies.
+                let isHorizontalish = abs(abs(ourTilt) - .pi / 2) < 0.3
+                let isLifted = ourBottomFace.y > 0.025  // > 2.5cm above the table
+                let range: Float = (isHorizontalish && isLifted) ? 0.25 : Self.snapDistance
+                if dS < range, best == nil || dS < best!.dist {
                     best = Best(kind: .sitOnTop, target: theirTopFace, ourFeature: ourBottomFace, dist: dS, partner: c.entity)
                 }
             }

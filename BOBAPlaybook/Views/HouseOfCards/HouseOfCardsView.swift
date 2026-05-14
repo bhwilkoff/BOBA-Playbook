@@ -1936,25 +1936,76 @@ private final class HouseOfCardsCoordinator: NSObject {
             }
         }
 
-        // 4) Span-roof: a HORIZONTAL card resting on TWO apex
-        //    supports, with each apex under one END of the card
-        //    (apex-to-apex ≈ cardHeight, the card's long axis).
-        //    A single-apex sit-on-top would place the apex at the
-        //    card's CENTER, leaving both ends in mid-air — that's
+        // 4) Span-roof: a HORIZONTAL card resting on TWO support
+        //    points, with each point under one END of the card
+        //    (point-to-point ≈ cardHeight, the card's long axis).
+        //    A single-support sit-on-top would place the support
+        //    at the card's CENTER, leaving both ends in mid-air —
         //    the "physically impossible" result the user flagged
-        //    in v2.202 testing. Span-roof targets the MIDPOINT
-        //    between two apices and yaw-aligns the card so its
-        //    long axis points along the apex line.
+        //    in v2.202. Span-roof targets the MIDPOINT between
+        //    two support points and yaw-aligns the card so its
+        //    long axis points along the pair line.
+        //
+        //    v2.206: support points are richer than just
+        //    "upwardFaceCenter of each candidate." A horizontal
+        //    flat card (already on the table at layer N) provides
+        //    TWO support points — one at each long-axis END —
+        //    because a NEW flat card can rest on one end of an
+        //    existing flat card and bridge to a separate support.
+        //    This is the canonical "stack the second roof tile
+        //    partially on the first, partially on the next apex"
+        //    pattern the user described: layer 1 has flat-card-1
+        //    spanning A1+A2, and the user wants flat-card-2 to
+        //    span A2+A3 by resting its left end on flat-card-1's
+        //    right end (the A2-side end) and its right end on
+        //    A3's bare apex. Without flat-card-end support points
+        //    that pair never matched the pair-distance check.
+        //
+        //    Tilted/vertical candidates still contribute a single
+        //    support point (their top edge midpoint) — they don't
+        //    have a "long axis end" in the same sense.
         //
         //    Only fires for horizontal "us" cards. Runs as a
         //    post-pass because it needs PAIRS of candidates.
         let isHorizontalishUs = abs(abs(ourTilt) - .pi / 2) < 0.3
         if isHorizontalishUs {
-            // Collect every candidate's upward-face center
-            // (apex point for a tilted A-frame card; broad-face
-            // center for a flat support).
-            let apexPoints: [(point: SIMD3<Float>, partner: Entity)] = candidates.map {
-                (upwardFaceCenter(of: $0.entity), $0.entity)
+            var apexPoints: [(point: SIMD3<Float>, partner: Entity)] = []
+            for c in candidates {
+                let topNormal = upwardFaceWorldNormal(of: c.entity)
+                let topRect = upwardFaceRect(of: c.entity)
+                if topNormal.y > 0.85 {
+                    // Horizontal candidate — contributes TWO
+                    // support points at its long-axis ends.
+                    // Long axis in local space is +Z (the card's
+                    // "top edge" before stand-up rotation; after
+                    // stand-up + horizontal-pitch it lies in the
+                    // horizontal plane).
+                    let worldLong = c.entity.convert(direction: SIMD3<Float>(0, 0, 1), to: nil as Entity?)
+                    let worldLongXZ = SIMD3<Float>(worldLong.x, 0, worldLong.z)
+                    let lenXZ = simd_length(worldLongXZ)
+                    if lenXZ > 1e-4 {
+                        let unit = worldLongXZ / lenXZ
+                        let half = Self.cardHeight / 2
+                        let end1 = SIMD3<Float>(
+                            topRect.center.x + unit.x * half,
+                            topRect.center.y,
+                            topRect.center.z + unit.z * half
+                        )
+                        let end2 = SIMD3<Float>(
+                            topRect.center.x - unit.x * half,
+                            topRect.center.y,
+                            topRect.center.z - unit.z * half
+                        )
+                        apexPoints.append((end1, c.entity))
+                        apexPoints.append((end2, c.entity))
+                    } else {
+                        apexPoints.append((topRect.center, c.entity))
+                    }
+                } else {
+                    // Tilted / vertical candidate — single top
+                    // edge midpoint as before.
+                    apexPoints.append((topRect.center, c.entity))
+                }
             }
             // Tolerances:
             //   pair distance ≈ cardHeight ± 1.5cm (the natural
@@ -1972,6 +2023,15 @@ private final class HouseOfCardsCoordinator: NSObject {
             let spanRangeXZ: Float = Self.snapDistance
             for i in 0..<apexPoints.count {
                 for j in (i + 1)..<apexPoints.count {
+                    // v2.206: skip pairs whose two points are
+                    // contributed by the SAME partner card. A
+                    // horizontal candidate emits its two long-axis
+                    // ends — and those are exactly cardHeight
+                    // apart by construction (that's just the
+                    // card's length), which would match the
+                    // pair-distance gate and propose a degenerate
+                    // "span the card by itself" snap.
+                    if apexPoints[i].partner === apexPoints[j].partner { continue }
                     let p1 = apexPoints[i].point
                     let p2 = apexPoints[j].point
                     let pairDist = xzDistance(p1, p2)

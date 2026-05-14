@@ -2260,19 +2260,20 @@ private final class HouseOfCardsCoordinator: NSObject {
         let count = min(cards.count, 4)
         let firstX = -Float(count - 1) * 0.5 * spacing
 
-        // Base rotation: stand vertical, front facing camera.
-        // standUp = -π/2 around X puts height up; flipY = π
-        // around Y rotates the card so its front (originally
-        // local +Y → world -Z after standUp) now faces +Z.
-        // v2.193: an additional yaw of camAzimuth orients the
-        // front toward wherever the camera currently is —
-        // previously cards always faced world +Z even when the
-        // user had orbited the camera around, leaving their
-        // backs facing the user from many angles.
+        // Base rotation: stand vertical, front facing world +Z.
+        // v2.194: reverted v2.193's "yaw by camAzimuth" addition.
+        // The added yaw made cards face the current camera, but
+        // broke A-frame pitch — pitch is applied around world X,
+        // and for a yawed card world X is no longer aligned with
+        // the card's lateral edge, so tilting forward made one
+        // corner dip into the table. Cards now spawn in a fixed
+        // orientation along world X axis. Returning to camera-
+        // facing spawn would require also rewriting pitch to
+        // rotate around the card's LOCAL X axis instead of world
+        // X — bundled change for a future commit if requested.
         let standUp = simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
         let faceCamera = simd_quatf(angle: .pi, axis: SIMD3<Float>(0, 1, 0))
-        let faceCurrentCamera = simd_quatf(angle: camAzimuth, axis: SIMD3<Float>(0, 1, 0))
-        let rotation = faceCurrentCamera * faceCamera * standUp
+        let rotation = faceCamera * standUp
 
         var newHeld: [CardEntity] = []
         for i in 0..<count {

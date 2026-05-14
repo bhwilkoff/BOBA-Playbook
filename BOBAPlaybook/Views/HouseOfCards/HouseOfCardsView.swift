@@ -1100,19 +1100,44 @@ private final class HouseOfCardsCoordinator: NSObject {
         updateCameraTransform()
     }
 
+    /// World-Y of the card's LOWEST corner (across all 8 box
+    /// corners). v2.198: this is what should anchor to a support
+    /// surface, not the bottom-edge midpoint. For a tilted card,
+    /// the bottom-face corners offset along local Y direction sit
+    /// up to cardThick/2 * sin(tilt) BELOW the bottom-edge
+    /// midpoint in world Y. If surface-snap targets the bottom-
+    /// edge midpoint, a tilted card's actual lowest point ends up
+    /// below the clearance plane — visually "the new card snaps
+    /// to slightly above the bottom" of a leaning neighbor (the
+    /// user's report). Anchoring on lowest corner unifies the Y
+    /// position of every card's actual lowest point.
+    private func lowestWorldY(of entity: Entity) -> Float {
+        let hw = Self.cardWidth  / 2
+        let ht = Self.cardThick  / 2
+        let hh = Self.cardHeight / 2
+        let corners: [SIMD3<Float>] = [
+            SIMD3<Float>( hw,  ht,  hh), SIMD3<Float>( hw,  ht, -hh),
+            SIMD3<Float>( hw, -ht,  hh), SIMD3<Float>( hw, -ht, -hh),
+            SIMD3<Float>(-hw,  ht,  hh), SIMD3<Float>(-hw,  ht, -hh),
+            SIMD3<Float>(-hw, -ht,  hh), SIMD3<Float>(-hw, -ht, -hh),
+        ]
+        var minY = Float.greatestFiniteMagnitude
+        for c in corners {
+            let world = entity.convert(position: c, to: nil as Entity?)
+            if world.y < minY { minY = world.y }
+        }
+        return minY
+    }
+
     /// Minimum world-Y for the card's CENTER given clearance for
     /// the outline halo. Hard floor — bottoms out at table level.
-    /// v2.189: orientation-aware. For a vertical card the lowest
-    /// face is cardHeight/2 below the center; for a horizontal
-    /// card it's only cardThick/2 below. Computing this generally
-    /// from downwardFaceCenter avoids the bug where a horizontal
-    /// roof card was clamped to vertical-card-floor (cardHeight/2
-    /// above the table) and ended up at mid-pyramid height
-    /// intersecting cards instead of resting at the apex.
+    /// v2.198: orientation-aware AND corner-aware. Returns the
+    /// center.y at which the card's LOWEST corner sits exactly
+    /// at clearance above the table.
     private func minCardY(for card: CardEntity) -> Float {
-        let lowestFace = downwardFaceCenter(of: card.entity)
-        // How far below the center is the lowest face?
-        let belowCenter = card.entity.position.y - lowestFace.y
+        let lowest = lowestWorldY(of: card.entity)
+        // How far below the center is the lowest corner?
+        let belowCenter = card.entity.position.y - lowest
         return belowCenter + Self.minClearance
     }
 
@@ -1287,22 +1312,28 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     private func applySurfaceSnap(to card: CardEntity) {
         guard let hit = surfaceYBelow(card: card) else { return }
-        // v2.189: use the orientation-aware downward face center
-        // (matches surfaceYBelow's raycast origin). For a vertical
-        // card this IS the bottom-edge midpoint; for a horizontal
-        // card it's the broad bottom face center. Either way it's
-        // the actual lowest world-Y point of the card.
-        let currentBottomY = downwardFaceCenter(of: card.entity).y
+        // v2.198: anchor the LOWEST corner (across all 8 OBB
+        // corners) to the support surface, not the bottom-edge
+        // midpoint. A tilted card's lowest corner sits up to
+        // cardThick/2 * sin(tilt) BELOW its bottom-edge midpoint
+        // (~0.5mm at 20° tilt). When surface-snap targeted the
+        // midpoint, vertical cards landed at clearance while
+        // tilted cards' lowest corners dipped slightly below —
+        // visually "the new card snaps to slightly above the
+        // bottom" of a leaning neighbor, per the user report.
+        // Using lowest-corner unifies the actual lowest point of
+        // every card to the same Y across orientations.
+        let currentLowestY = lowestWorldY(of: card.entity)
         // v2.188: full minClearance (halo clearance) only when the
         // surface is the table. Card-on-card stacking uses tiny
         // cardStackClearance so cards actually touch their supports
         // — previously the 6mm gap meant stacked cards would drop
         // immediately when physics engaged.
         let clearance = hit.isTable ? Self.minClearance : Self.cardStackClearance
-        let targetBottomY = hit.y + clearance
-        let dy = targetBottomY - currentBottomY
+        let targetLowestY = hit.y + clearance
+        let dy = targetLowestY - currentLowestY
         card.entity.position.y += dy
-        // Safety floor: keep card's downward face above the table.
+        // Safety floor: keep card's lowest corner above the table.
         // Computed AFTER the dy adjustment so it reflects the new
         // orientation/position.
         let minCenter = minCardY(for: card)

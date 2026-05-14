@@ -1615,27 +1615,30 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// world YZ plane — true for cards manipulated only by pitch
     /// + yaw, which is the only case the playground produces.
     private func pitchAngle(of entity: Entity) -> Float {
-        // v2.195: pitch is now measured relative to the CARD's
-        // facing direction, not world +Z. For an un-yawed card
-        // this gives identical values to the old formula; for a
-        // yawed card it correctly reports the same magnitude of
-        // tilt regardless of which direction the card faces.
+        // v2.197: reference forward is now YAW-EXTRACTED, not the
+        // current cardForward direction. Past ±π/2 the current
+        // cardForward FLIPS in world XZ (it was pointing toward
+        // camera, now it's tipped past horizontal and points away),
+        // which inverted upForward's sign. That made the gesture
+        // clamp see a wrong-sign tilt and apply massive corrective
+        // rotations — the "card flashes around" the user reported.
         //
-        // The pitch is the signed angle between worldUp (local +Z)
-        // and world +Y, where the sign is determined by whether
-        // worldUp leans in the card's forward direction (local +Y
-        // projected to the horizontal plane).
+        // Using the yaw-extracted preForward (always pointing in
+        // the card's current yaw direction projected onto XZ,
+        // regardless of pitch) gives a sign-stable reference. Then
+        // saturate to [-π/2, π/2] so past-horizontal cards report
+        // a stable boundary value the clamp can converge from.
         let worldUp = entity.convert(direction: SIMD3<Float>(0, 0, 1), to: nil as Entity?)
-        let cardForward = entity.convert(direction: SIMD3<Float>(0, 1, 0), to: nil as Entity?)
-        let cardForwardXZ = SIMD3<Float>(cardForward.x, 0, cardForward.z)
-        let len = simd_length(cardForwardXZ)
-        guard len > 1e-3 else {
-            // Card facing straight up/down — fallback to old formula.
-            return atan2(worldUp.z, worldUp.y)
-        }
-        let cardForwardUnit = cardForwardXZ / len
-        let upForward = simd_dot(SIMD3<Float>(worldUp.x, 0, worldUp.z), cardForwardUnit)
-        return atan2(upForward, worldUp.y)
+        let yaw = yawAngle(of: entity)
+        let preForwardX = sin(yaw)
+        let preForwardZ = cos(yaw)
+        let upForward = worldUp.x * preForwardX + worldUp.z * preForwardZ
+        let raw = atan2(upForward, worldUp.y)
+        // Saturate. Past ±π/2 the card is upside-down — not a
+        // valid playable state. The clamp in handleTwoFingerPan
+        // .pitch can then steer the orientation back into range
+        // by sending a corrective rotation each drag.
+        return max(-.pi / 2, min(.pi / 2, raw))
     }
 
     /// Pitch rotation axis for a card: the card's local +X

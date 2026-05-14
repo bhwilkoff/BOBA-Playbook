@@ -43,7 +43,11 @@ struct HouseOfCardsView: View {
     var body: some View {
         ZStack {
             // RealityKit scene — fills the whole canvas
-            HouseOfCardsRealityView(session: session, cardPool: cardPool)
+            HouseOfCardsRealityView(
+                session: session,
+                cardPool: cardPool,
+                catalog: catalogByBobaId
+            )
                 .ignoresSafeArea()
 
             // Foreground UI overlay
@@ -226,6 +230,17 @@ struct HouseOfCardsView: View {
         return "PICK CARDS FROM DRAWER"
     }
 
+    /// v2.196: stable lookup from a card's bobaId to its full Card
+    /// data. Used by the coordinator when restoring a saved scene
+    /// — persisted card states reference bobaId because it's the
+    /// only guaranteed-unique identifier across treatments
+    /// (CLAUDE.md "One ID per Card"). cardPool isn't enough on its
+    /// own; it's pre-filtered by power/ownership and a persisted
+    /// card might fall outside the current pool.
+    private var catalogByBobaId: [String: Card] {
+        Dictionary(uniqueKeysWithValues: cardStore.displayCards.map { ($0.bobaId, $0) })
+    }
+
     // MARK: Card pool resolution
     //
     // v2.177: "Use my collection" now drops the power-135 filter
@@ -400,6 +415,13 @@ private struct DeckStripCard: View {
 private struct HouseOfCardsRealityView: UIViewRepresentable {
     let session: HouseOfCardsSession
     let cardPool: [Card]
+    /// v2.196: full catalog (bobaId → Card) so the coordinator
+    /// can resolve persisted cards back to their data on restore.
+    /// cardPool alone isn't enough — it's the filtered set
+    /// (power>135 or owned-only), and persisted cards might be
+    /// outside that filter if the user switched modes between
+    /// sessions.
+    let catalog: [String: Card]
 
     func makeCoordinator() -> Coordinator {
         Coordinator(session: session)
@@ -411,11 +433,15 @@ private struct HouseOfCardsRealityView: UIViewRepresentable {
         view.renderOptions.insert(.disableDepthOfField)
         view.renderOptions.insert(.disableCameraGrain)
         view.environment.background = .color(UIColor(red: 0.05, green: 0.04, blue: 0.04, alpha: 1))
-        context.coordinator.attach(to: view)
+        context.coordinator.attach(to: view, catalog: catalog)
         return view
     }
 
     func updateUIView(_ uiView: ARView, context: Context) {
+        // v2.196: retry restore until catalog is populated. attach
+        // is only called once and the catalog might still be
+        // loading at that point.
+        context.coordinator.restoreSavedSceneIfAvailable(catalog: catalog)
         context.coordinator.consumeSessionState()
     }
 }
@@ -545,7 +571,7 @@ private final class HouseOfCardsCoordinator: NSObject {
     }
 
     // MARK: Scene attach
-    func attach(to view: ARView) {
+    func attach(to view: ARView, catalog: [String: Card] = [:]) {
         self.arView = view
 
         // World anchor at origin.
@@ -569,6 +595,14 @@ private final class HouseOfCardsCoordinator: NSObject {
         buildTabletop(on: root)
         loadCardBack()
         installGestures(on: view)
+
+        // v2.196: restore previously-saved scene if available.
+        // Spawn cards at their saved positions/orientations,
+        // restore camera, restore pause state. Each user-driven
+        // change (gesture .ended, spawn, reset, play/pause) writes
+        // back to UserDefaults so the next visit picks up where
+        // the last one left off.
+        restoreSavedSceneIfAvailable(catalog: catalog)
 
         // Per-frame physics + scoring tick.
         sceneSubscription = view.scene.subscribe(to: SceneEvents.Update.self) { [weak self] event in
@@ -698,6 +732,7 @@ private final class HouseOfCardsCoordinator: NSObject {
                 applySurfaceSnap(to: selected)
             }
             applySmartSnap(to: selected)
+            saveScene()  // v2.196: persist after Apple gesture release
         }
     }
 
@@ -887,6 +922,7 @@ private final class HouseOfCardsCoordinator: NSObject {
             if case .rotatingCard(let card) = twoFingerMode, g.state == .ended {
                 applySurfaceSnap(to: card)
                 applySmartSnap(to: card)
+                saveScene()  // v2.196: persist after pitch/lift release
             }
             twoFingerMode = .idle
             cardManipAxis = .undetermined
@@ -1948,6 +1984,7 @@ private final class HouseOfCardsCoordinator: NSObject {
         if session.resetGeneration != lastResetGeneration {
             lastResetGeneration = session.resetGeneration
             clearAllCards()
+            saveScene()  // v2.196: persist the empty state so a fresh visit doesn't re-restore old cards
         }
 
         // Spawn-at-location: user tapped a location on the table
@@ -1969,6 +2006,7 @@ private final class HouseOfCardsCoordinator: NSObject {
             }
             spawnHeldCards(toSpawn, at: location)
             session.hasAnyCards = !heldCards.isEmpty || !dynamicCards.isEmpty
+            saveScene()  // v2.196: persist after spawn
         }
 
         // Pause/Play toggle. Auto-deselect any selected card so
@@ -1980,6 +2018,7 @@ private final class HouseOfCardsCoordinator: NSObject {
             }
             session.isPaused.toggle()
             applyPauseState()
+            saveScene()  // v2.196: persist after play/pause flip
         }
     }
 
@@ -2754,6 +2793,141 @@ private final class HouseOfCardsCoordinator: NSObject {
                 if let tex { completion(tex) }
             }
         }
+    }
+
+    // MARK: Persistence (v2.196)
+    //
+    // Every user action that changes the scene writes the full
+    // scene state to UserDefaults. On the next attach, we restore.
+    // This means leaving House of BoBA and coming back picks up
+    // exactly where you left off — same cards, same poses, same
+    // camera angle, same pause state.
+
+    private static let persistKey = "bp_houseOfBoba_persistedScene_v1"
+
+    /// Becomes true after the first restore-attempt with a
+    /// non-empty catalog. saveScene is gated on this so a user
+    /// who opens House of BoBA before cardStore.displayCards has
+    /// loaded doesn't overwrite their old saved state with an
+    /// empty scene. The flag flips even if no saved state was
+    /// found (in that case the user is starting fresh and saves
+    /// are fine).
+    private var restoreCompleted = false
+
+    private struct PersistedCard: Codable {
+        let bobaId: String
+        let posX, posY, posZ: Float
+        let quatX, quatY, quatZ, quatW: Float
+        let isDynamic: Bool
+    }
+
+    private struct PersistedScene: Codable {
+        let version: Int
+        let cards: [PersistedCard]
+        let isPaused: Bool
+        let camAzimuth: Float
+        let camElevation: Float
+        let camDistance: Float
+        let targetX, targetY, targetZ: Float
+    }
+
+    /// Serialize the current scene to UserDefaults. Called from
+    /// every code path that changes card state, camera state, or
+    /// pause state (gesture handlers' .ended branches, spawn,
+    /// reset, play/pause).
+    func saveScene() {
+        guard restoreCompleted else { return }
+        let snapshot: [(CardEntity, Bool)] =
+            heldCards.map { ($0, false) } + dynamicCards.map { ($0, true) }
+        let persistedCards: [PersistedCard] = snapshot.map { (c, isDynamic) in
+            let p = c.entity.position
+            let q = c.entity.orientation
+            return PersistedCard(
+                bobaId: c.card.bobaId,
+                posX: p.x, posY: p.y, posZ: p.z,
+                quatX: q.imag.x, quatY: q.imag.y, quatZ: q.imag.z, quatW: q.real,
+                isDynamic: isDynamic
+            )
+        }
+        let state = PersistedScene(
+            version: 1,
+            cards: persistedCards,
+            isPaused: session.isPaused,
+            camAzimuth: camAzimuth,
+            camElevation: camElevation,
+            camDistance: camDistance,
+            targetX: cameraTarget.x, targetY: cameraTarget.y, targetZ: cameraTarget.z
+        )
+        if let data = try? JSONEncoder().encode(state) {
+            UserDefaults.standard.set(data, forKey: Self.persistKey)
+        }
+    }
+
+    /// Attempts to restore from saved state. No-op if already
+    /// completed OR if the catalog is still empty (cardStore is
+    /// loading async). Safe to call from both attach() and
+    /// updateUIView so the restore happens as soon as the catalog
+    /// is ready, even if it wasn't ready at attach time.
+    func restoreSavedSceneIfAvailable(catalog: [String: Card]) {
+        guard !restoreCompleted, !catalog.isEmpty else { return }
+        restoreCompleted = true
+        // Sync lastResetGeneration so the first consumeSessionState
+        // call after attach doesn't trigger a clearAllCards that
+        // would wipe whatever we're about to restore (or already
+        // restored). Default was -1 vs session's initial 0 →
+        // first consume always cleared the scene as a no-op for
+        // empty scenes, which would wipe restored cards.
+        lastResetGeneration = session.resetGeneration
+        guard
+            let data = UserDefaults.standard.data(forKey: Self.persistKey),
+            let state = try? JSONDecoder().decode(PersistedScene.self, from: data)
+        else { return }
+
+        // Restore camera state first so the view shows the saved
+        // angle even before art finishes loading.
+        camAzimuth   = state.camAzimuth
+        camElevation = state.camElevation
+        camDistance  = state.camDistance
+        cameraTarget = SIMD3<Float>(state.targetX, state.targetY, state.targetZ)
+        updateCameraTransform()
+
+        // Restore each card.
+        guard let root = anchor else { return }
+        for ps in state.cards {
+            guard let card = catalog[ps.bobaId] else { continue }
+            let position = SIMD3<Float>(ps.posX, ps.posY, ps.posZ)
+            let orientation = simd_quatf(
+                ix: ps.quatX, iy: ps.quatY, iz: ps.quatZ, r: ps.quatW
+            )
+            let entity = buildCardEntity(for: card, position: position, rotation: orientation)
+            if var body = entity.components[PhysicsBodyComponent.self] {
+                // Restored cards always start kinematic — physics
+                // only re-engages when the user presses PLAY (which
+                // applyPauseState then flips them back to dynamic
+                // if !isPaused).
+                body.mode = .kinematic
+                body.isContinuousCollisionDetectionEnabled = false
+                entity.components.set(body)
+            }
+            root.addChild(entity)
+            let ce = CardEntity(entity: entity, card: card)
+            if ps.isDynamic {
+                dynamicCards.append(ce)
+            } else {
+                heldCards.append(ce)
+            }
+            loadFrontArt(for: card) { [weak self, weak entity] tex in
+                self?.applyArt(to: entity, texture: tex)
+            }
+        }
+
+        session.hasAnyCards = !state.cards.isEmpty
+        session.isPaused = state.isPaused
+        // If the saved state was running physics, re-engage now.
+        if !state.isPaused {
+            applyPauseState()
+        }
+        print("[HoB] Restored \(state.cards.count) cards from saved scene")
     }
 }
 

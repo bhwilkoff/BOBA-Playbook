@@ -1558,7 +1558,7 @@ private final class HouseOfCardsCoordinator: NSObject {
     // (smallest horizontal distance) wins. The user's "snap to the
     // closest card" intent emerges naturally from picking the
     // minimum-distance valid pairing — favors local geometry.
-    private static let snapDistance: Float = 0.12   // 12cm
+    private static let snapDistance: Float = 0.12   // 12cm — generic far range (sitOnTop tilted/vertical, spanRoof)
     private static let snapTiltMin: Float = 0.07     // ~4°
     private static let snapMirrorTolerance: Float = 0.35 // ~20°
     /// Two cards whose tops are within this distance are considered
@@ -1572,6 +1572,20 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// cardWidth-radius ring around the candidate for snap to
     /// engage; max pull is 4cm.
     private static let sideBySideTolerance: Float = 0.04 // 4cm
+    /// v2.204: aFrame and shareFoot ranges tightened. The user's
+    /// complaint that snap "stops creative ways of building" is
+    /// addressed by requiring the drag to land CLOSE to the
+    /// target before snap engages — wide magnetism was fighting
+    /// the playground feel. aFrame: 8cm (~ cardWidth). shareFoot:
+    /// 6cm. Anything farther = user is doing something else, let
+    /// them be.
+    private static let aFrameSnapRange: Float = 0.08
+    private static let shareFootSnapRange: Float = 0.06
+    /// v2.204: a snap target is "occupied" if any OTHER card's
+    /// bottom face is within this radius of the proposed target.
+    /// Prevents the snap from pulling a new card onto a position
+    /// already taken by an existing card in the structure.
+    private static let occupancyRadius: Float = 0.03  // 3cm
 
     private enum SmartSnapKind: String {
         case aFrame      // mirror-tilted, TOPS meet at apex (build a new A-frame)
@@ -1586,6 +1600,40 @@ private final class HouseOfCardsCoordinator: NSObject {
         let dx = a.x - b.x
         let dz = a.z - b.z
         return sqrt(dx * dx + dz * dz)
+    }
+
+    /// v2.204: is the proposed snap target already physically
+    /// occupied? Walks every OTHER card in the scene and checks if
+    /// its bottom-face center is within `radius` of `target`. A
+    /// "yes" means snapping there would place our card inside (or
+    /// on top of) an existing card — the bad behavior the user
+    /// reported when building taller towers. Snaps that fail this
+    /// check are silently skipped; the user's manual placement is
+    /// honored instead.
+    ///
+    /// Excludes `self` (the card being snapped) and `ignoring`
+    /// (the snap's intentional partner, e.g., the support whose
+    /// top we're sitting on — sit-on-top to apex card X is fine
+    /// even though X's bottom is somewhere else nearby).
+    private func slotOccupied(
+        at target: SIMD3<Float>,
+        excluding ourCard: CardEntity,
+        ignoring: Entity? = nil,
+        in others: [CardEntity],
+        radius: Float = HouseOfCardsCoordinator.occupancyRadius
+    ) -> Bool {
+        for o in others {
+            if o === ourCard { continue }
+            if let ignored = ignoring, o.entity === ignored { continue }
+            let oBottom = downwardFaceCenter(of: o.entity)
+            let dx = target.x - oBottom.x
+            let dy = target.y - oBottom.y
+            let dz = target.z - oBottom.z
+            if sqrt(dx * dx + dy * dy + dz * dz) < radius {
+                return true
+            }
+        }
+        return false
     }
 
     /// True if `c` is already in an A-frame with some other card
@@ -1686,13 +1734,17 @@ private final class HouseOfCardsCoordinator: NSObject {
             //     already has an A-frame mate (their apex is
             //     occupied; snapping us there would put us on top
             //     of the mate's stack, not a new pyramid).
+            //     v2.204: range tightened to 8cm (was 12cm) — the
+            //     user has to drag close to the apex for snap to
+            //     engage. Less wide-magnet, more agency.
             if abs(ourTilt) > Self.snapTiltMin,
                abs(theirTilt) > Self.snapTiltMin,
                ourTilt * theirTilt < 0,
                abs(abs(theirTilt) - abs(ourTilt)) < Self.snapMirrorTolerance,
                dTopXZ <= dBottomXZ,
-               !isAlreadyPartnered(c, in: candidates) {
-                if dTopXZ < Self.snapDistance, best == nil || dTopXZ < best!.dist {
+               !isAlreadyPartnered(c, in: candidates),
+               !slotOccupied(at: theirTop, excluding: card, ignoring: c.entity, in: candidates) {
+                if dTopXZ < Self.aFrameSnapRange, best == nil || dTopXZ < best!.dist {
                     best = Best(kind: .aFrame, target: theirTop, ourFeature: ourTop, dist: dTopXZ, partner: c.entity)
                 }
             }
@@ -1717,13 +1769,22 @@ private final class HouseOfCardsCoordinator: NSObject {
             //     so the new card lands on whatever surface is
             //     below the snapped XZ — table at layer 0, flat
             //     roof at layer 1+).
+            //     v2.204: range tightened to 6cm (was 12cm). The
+            //     foot-to-foot relationship is a precise structural
+            //     contact; loose magnetism here is what was
+            //     producing the "snap to 12cm away from the
+            //     partner" complaint. Occupancy check: skip if
+            //     some OTHER card's bottom is already at this
+            //     foot point.
             if abs(ourTilt) > Self.snapTiltMin,
                abs(theirTilt) > Self.snapTiltMin,
                ourTilt * theirTilt < 0,
                abs(abs(theirTilt) - abs(ourTilt)) < Self.snapMirrorTolerance,
                dBottomXZ < dTopXZ {
-                if dBottomXZ < Self.snapDistance, best == nil || dBottomXZ < best!.dist {
-                    let target = SIMD3<Float>(theirBottomForMirror.x, ourBottom.y, theirBottomForMirror.z)
+                let target = SIMD3<Float>(theirBottomForMirror.x, ourBottom.y, theirBottomForMirror.z)
+                if dBottomXZ < Self.shareFootSnapRange,
+                   !slotOccupied(at: target, excluding: card, ignoring: c.entity, in: candidates),
+                   best == nil || dBottomXZ < best!.dist {
                     best = Best(kind: .shareFoot, target: target, ourFeature: ourBottom, dist: dBottomXZ, partner: c.entity)
                 }
             }
@@ -1772,7 +1833,9 @@ private final class HouseOfCardsCoordinator: NSObject {
                     nearestSitReason = "fired"
                 }
             }
-            if canSit, dS < range, best == nil || dS < best!.dist {
+            if canSit, dS < range,
+               !slotOccupied(at: theirTopNearest, excluding: card, ignoring: c.entity, in: candidates),
+               best == nil || dS < best!.dist {
                 best = Best(kind: .sitOnTop, target: theirTopNearest, ourFeature: ourBottomFace, dist: dS, partner: c.entity)
             }
 
@@ -1810,7 +1873,9 @@ private final class HouseOfCardsCoordinator: NSObject {
                     let dirUnit = dirToOurs / len
                     let target = theirBottom + Self.cardWidth * dirUnit
                     let d = simd_length(target - ourBottom)
-                    if d < Self.sideBySideTolerance, best == nil || d < best!.dist {
+                    if d < Self.sideBySideTolerance,
+                       !slotOccupied(at: target, excluding: card, ignoring: c.entity, in: candidates),
+                       best == nil || d < best!.dist {
                         best = Best(kind: .sideBySide, target: target, ourFeature: ourBottom, dist: d, partner: c.entity)
                     }
                 }
@@ -1869,6 +1934,20 @@ private final class HouseOfCardsCoordinator: NSObject {
                     // whenever it's a closer XZ match than the
                     // currently-best snap. Standard "lowest dist
                     // wins" — no priority tier.
+                    // v2.204: occupancy check — skip if another
+                    // card already spans this midpoint (resting on
+                    // both apices already). Ignore both apex
+                    // partners; they're the supports, not occupants
+                    // of the roof slot.
+                    let p1Partner = apexPoints[i].partner
+                    let p2Partner = apexPoints[j].partner
+                    let occupiedByOther = candidates.contains { o in
+                        if o === card { return false }
+                        if o.entity === p1Partner || o.entity === p2Partner { return false }
+                        let oBottom = downwardFaceCenter(of: o.entity)
+                        return simd_length(midpoint - oBottom) < Self.occupancyRadius
+                    }
+                    if occupiedByOther { continue }
                     if best == nil || dToMid < best!.dist {
                         best = Best(kind: .spanRoof, target: midpoint, ourFeature: ourBottomFace, dist: dToMid, partner: apexPoints[i].partner, auxPoint: p2)
                     }

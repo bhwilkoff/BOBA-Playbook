@@ -1969,7 +1969,23 @@ private final class HouseOfCardsCoordinator: NSObject {
         //    post-pass because it needs PAIRS of candidates.
         let isHorizontalishUs = abs(abs(ourTilt) - .pi / 2) < 0.3
         if isHorizontalishUs {
-            var apexPoints: [(point: SIMD3<Float>, partner: Entity)] = []
+            // v2.207: STACK-AWARE support points. A column in the
+            // tower might have a bare A-frame apex (layer 0), a
+            // flat-card-end at apex + cardThick (layer 1), a
+            // flat-card-end at apex + 2 * cardThick (layer 2),
+            // etc. When the user wants to span over a column,
+            // they want the TOPMOST support at that column — the
+            // bare apex below an existing roof is unreachable
+            // (the roof is in the way) and including it as a
+            // pair endpoint would propose a snap that puts the
+            // new card EDGE-TO-EDGE with the existing roof
+            // instead of resting on top of it.
+            //
+            // Collect raw support points, then dedupe by XZ
+            // cluster keeping only the HIGHEST Y per cluster.
+            // Result: each tower column contributes exactly its
+            // current top support.
+            var rawSupportPoints: [(point: SIMD3<Float>, partner: Entity)] = []
             for c in candidates {
                 let topNormal = upwardFaceWorldNormal(of: c.entity)
                 let topRect = upwardFaceRect(of: c.entity)
@@ -1996,16 +2012,31 @@ private final class HouseOfCardsCoordinator: NSObject {
                             topRect.center.y,
                             topRect.center.z - unit.z * half
                         )
-                        apexPoints.append((end1, c.entity))
-                        apexPoints.append((end2, c.entity))
+                        rawSupportPoints.append((end1, c.entity))
+                        rawSupportPoints.append((end2, c.entity))
                     } else {
-                        apexPoints.append((topRect.center, c.entity))
+                        rawSupportPoints.append((topRect.center, c.entity))
                     }
                 } else {
                     // Tilted / vertical candidate — single top
                     // edge midpoint as before.
-                    apexPoints.append((topRect.center, c.entity))
+                    rawSupportPoints.append((topRect.center, c.entity))
                 }
+            }
+            // Stack-aware filter: sort by descending Y, then add
+            // points that aren't dominated by an already-added
+            // higher point in the same XZ cluster. A bare apex
+            // beneath an existing roof tile thereby drops out of
+            // the support pool — the roof is what a new card
+            // actually rests on at that column.
+            let stackClusterRadius: Float = 0.03
+            let sortedByY = rawSupportPoints.sorted { $0.point.y > $1.point.y }
+            var apexPoints: [(point: SIMD3<Float>, partner: Entity)] = []
+            for sp in sortedByY {
+                let dominated = apexPoints.contains { existing in
+                    xzDistance(sp.point, existing.point) < stackClusterRadius
+                }
+                if !dominated { apexPoints.append(sp) }
             }
             // Tolerances:
             //   pair distance ≈ cardHeight ± 1.5cm (the natural
@@ -2036,9 +2067,19 @@ private final class HouseOfCardsCoordinator: NSObject {
                     let p2 = apexPoints[j].point
                     let pairDist = xzDistance(p1, p2)
                     if abs(pairDist - Self.cardHeight) > spanLengthTolerance { continue }
+                    // v2.207: midpoint Y is the MAX of the two
+                    // support Ys, not the average. When one
+                    // support is a flat-card-end (slightly higher
+                    // than a bare apex by cardThick), averaging
+                    // would put the new card BELOW the higher
+                    // support — its body would intersect the
+                    // existing roof. Max puts the new card on
+                    // top of the higher support; the lower end
+                    // floats by cardThick (3mm), which physics
+                    // resolves with a slight tilt when played.
                     let midpoint = SIMD3<Float>(
                         (p1.x + p2.x) * 0.5,
-                        (p1.y + p2.y) * 0.5,
+                        max(p1.y, p2.y),
                         (p1.z + p2.z) * 0.5
                     )
                     // Skip pairs we'd snap DOWN onto (no-drop
@@ -2208,7 +2249,19 @@ private final class HouseOfCardsCoordinator: NSObject {
             card.entity.position.x += offset.x
             card.entity.position.z += offset.z
         }
-        applySurfaceSnap(to: card)
+        // v2.207: applySurfaceSnap is HARMFUL for spanRoof. The
+        // span Y was carefully computed from the two support
+        // points; a defensive surface-raycast from the card's
+        // center XZ would hit whatever is below (often the table,
+        // because the span midpoint is over the gap between two
+        // A-frames) and yank the card back down to that surface,
+        // undoing the span. Other snap kinds need surface-snap
+        // because their Y is delegated to surface (sideBySide,
+        // shareFoot) or because they want a defensive correction
+        // (aFrame).
+        if snap.kind != .spanRoof {
+            applySurfaceSnap(to: card)
+        }
         // v2.190: final collision-safety pass. The point-to-point
         // snap math is now correct, but a snapped position can
         // still place our body intersecting an unrelated card

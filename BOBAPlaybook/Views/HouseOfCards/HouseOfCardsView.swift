@@ -1079,15 +1079,21 @@ private final class HouseOfCardsCoordinator: NSObject {
     // tabletop OR the top of another card under this one).
     // Returns nil only if nothing is in range — defensive, the
     // table is always present.
-    private func surfaceYBelow(card: CardEntity) -> Float? {
+    /// Result of casting a ray straight down from a card's bottom-
+    /// edge midpoint: the Y where the ray hit something, plus
+    /// whether that surface is the table (true) or another card
+    /// (false). The distinction lets applySurfaceSnap use the
+    /// halo-safe clearance only on the table — card-on-card
+    /// contacts get a tiny air-gap so stacked cards actually touch.
+    private struct SurfaceHit {
+        let y: Float
+        let isTable: Bool
+    }
+
+    private func surfaceYBelow(card: CardEntity) -> SurfaceHit? {
         guard let arView = self.arView else { return nil }
-        // Bottom-edge midpoint in the card's LOCAL frame:
-        // local Z is the card's vertical axis post-standUp, so
-        // (0, 0, -h/2) is the midpoint of the bottom edge.
         let bottomMidLocal = SIMD3<Float>(0, 0, -Self.cardHeight / 2)
         let bottomMid = card.entity.convert(position: bottomMidLocal, to: nil as Entity?)
-        // Start the ray slightly above the bottom edge to avoid
-        // beginning the ray inside a supporting collision shape.
         let origin = SIMD3<Float>(bottomMid.x, bottomMid.y + 0.01, bottomMid.z)
         let hits = arView.scene.raycast(
             origin: origin,
@@ -1100,18 +1106,20 @@ private final class HouseOfCardsCoordinator: NSObject {
         for hit in hits {
             // Walk up the entity tree to find a card-root ancestor.
             // If we find one and it's our own card, skip this hit
-            // and try the next. Otherwise return this hit's Y.
+            // and try the next. Otherwise return this hit's Y plus
+            // whether the supporting entity is a card.
             var e: Entity? = hit.entity
             var isSelf = false
+            var isCard = false
             while let cur = e {
                 if cur.name == "card-root" {
-                    if cur === card.entity { isSelf = true }
+                    if cur === card.entity { isSelf = true } else { isCard = true }
                     break
                 }
                 e = cur.parent
             }
             if !isSelf {
-                return hit.position.y
+                return SurfaceHit(y: hit.position.y, isTable: !isCard)
             }
         }
         return nil
@@ -1161,13 +1169,25 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// the surface. v2.181: always on — lock button removed.
     /// During 2-finger vertical drag (.lift), this isn't called
     /// so the user can lift cards freely.
+    /// Tiny air-gap above a supporting CARD surface. Halo doesn't
+    /// need to clear another card (the card occludes any halo
+    /// poking through it), so the only requirement is preventing
+    /// collider intersection. 0.5mm is plenty.
+    private static let cardStackClearance: Float = 0.0005
+
     private func applySurfaceSnap(to card: CardEntity) {
-        guard let surfaceY = surfaceYBelow(card: card) else { return }
+        guard let hit = surfaceYBelow(card: card) else { return }
         let bottomMidLocal = SIMD3<Float>(0, 0, -Self.cardHeight / 2)
         let currentBottomY = card.entity.convert(
             position: bottomMidLocal, to: nil as Entity?
         ).y
-        let targetBottomY = surfaceY + Self.minClearance
+        // v2.188: full minClearance (halo clearance) only when the
+        // surface is the table. Card-on-card stacking uses tiny
+        // cardStackClearance so cards actually touch their supports
+        // — previously the 6mm gap meant stacked cards would drop
+        // immediately when physics engaged.
+        let clearance = hit.isTable ? Self.minClearance : Self.cardStackClearance
+        let targetBottomY = hit.y + clearance
         let dy = targetBottomY - currentBottomY
         card.entity.position.y += dy
         // Safety: keep entity center above table-floor even if
@@ -1368,7 +1388,23 @@ private final class HouseOfCardsCoordinator: NSObject {
         // Apply the snap.
         switch snap.kind {
         case .aFrame:
-            // v2.183 tilt-snap: align our pitch to mirror the
+            // v2.188: yaw-align FIRST so both cards' broad faces
+            // share the same world-Y rotation. Without this, even
+            // a small yaw mismatch between partners separates the
+            // apex corners by a few mm (cardWidth/2 * sin(yawDiff))
+            // — physics then fails to find a stable apex contact
+            // and the cards fall.
+            let partnerYaw = yawAngle(of: snap.partner)
+            let ourCurrentYaw = yawAngle(of: card.entity)
+            let yawDelta = partnerYaw - ourCurrentYaw
+            if abs(yawDelta) > 0.005 {
+                let pivotBefore = card.entity.convert(position: bottomLocal, to: nil as Entity?)
+                let yawQ = simd_quatf(angle: yawDelta, axis: SIMD3<Float>(0, 1, 0))
+                card.entity.orientation = yawQ * card.entity.orientation
+                let pivotAfter = card.entity.convert(position: bottomLocal, to: nil as Entity?)
+                card.entity.position += (pivotBefore - pivotAfter)
+            }
+            // v2.183 pitch tilt-snap: align our pitch to mirror the
             // partner's. Rotation around the bottom-edge pivot
             // keeps our base anchored while the top rotates into
             // mirror position. After the orientation change, our
@@ -1416,6 +1452,18 @@ private final class HouseOfCardsCoordinator: NSObject {
         // Pitch around world X is the angle between worldUp's
         // projection onto the YZ plane and world +Y.
         return atan2(worldUp.z, worldUp.y)
+    }
+
+    /// Yaw (signed angle CCW around world Y) of an entity's
+    /// orientation. Computed from the local +X direction projected
+    /// onto the world XZ plane — `atan2(-worldX.z, worldX.x)` puts
+    /// world +X at 0 and rotates CCW from above.
+    /// Used by A-frame snap to align partner yaws so the apex
+    /// contact is straight along the cardWidth, not skewed at
+    /// the corners.
+    private func yawAngle(of entity: Entity) -> Float {
+        let worldLateral = entity.convert(direction: SIMD3<Float>(1, 0, 0), to: nil as Entity?)
+        return atan2(-worldLateral.z, worldLateral.x)
     }
 
     // MARK: Selection (pause-mode-only manipulation)

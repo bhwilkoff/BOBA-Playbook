@@ -115,6 +115,30 @@ struct HouseOfCardsView: View {
             .accessibilityLabel("Reset Field")
 
             Menu {
+                // Undo — restores the previous scene state. Only
+                // enabled when the coordinator's undo stack has
+                // something to pop (a snap fired, a spawn, a
+                // physics fall, etc.).
+                Button {
+                    session.undoRequested = true
+                } label: {
+                    Label("Undo last action", systemImage: "arrow.uturn.backward")
+                }
+                .disabled(!session.canUndo)
+
+                // Snap toggle — when off, gestures release cards
+                // exactly where placed. Pure physics-sandbox mode.
+                Button {
+                    session.snapsEnabled.toggle()
+                } label: {
+                    Label(
+                        session.snapsEnabled ? "Smart snap  ✓" : "Smart snap",
+                        systemImage: session.snapsEnabled ? "wand.and.stars" : "wand.and.stars.inverse"
+                    )
+                }
+
+                Divider()
+
                 // Toggle in Menu can be flaky across iOS versions —
                 // use a manual Button with state-mirroring label.
                 Button {
@@ -442,6 +466,9 @@ private struct HouseOfCardsRealityView: UIViewRepresentable {
         // is only called once and the catalog might still be
         // loading at that point.
         context.coordinator.restoreSavedSceneIfAvailable(catalog: catalog)
+        // v2.205: undo trigger lives here so it has access to the
+        // catalog (needed to rebuild card entities from bobaIds).
+        context.coordinator.performUndoIfRequested(catalog: catalog)
         context.coordinator.consumeSessionState()
     }
 }
@@ -1572,14 +1599,15 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// cardWidth-radius ring around the candidate for snap to
     /// engage; max pull is 4cm.
     private static let sideBySideTolerance: Float = 0.04 // 4cm
-    /// v2.204: aFrame and shareFoot ranges tightened. The user's
-    /// complaint that snap "stops creative ways of building" is
-    /// addressed by requiring the drag to land CLOSE to the
-    /// target before snap engages — wide magnetism was fighting
-    /// the playground feel. aFrame: 8cm (~ cardWidth). shareFoot:
-    /// 6cm. Anything farther = user is doing something else, let
-    /// them be.
-    private static let aFrameSnapRange: Float = 0.08
+    /// v2.205: aFrame range restored to snapDistance (12cm).
+    /// v2.204's 8cm tightening broke the standard "two A-frame
+    /// partners close together" snap at the common drag radius
+    /// the user actually uses — most A-frame partner placements
+    /// approach from 8-12cm out. shareFoot stays tight at 6cm:
+    /// it's a structural-contact relationship (bottoms touching
+    /// AT a specific shared point) that benefits from requiring
+    /// deliberate drag precision.
+    private static let aFrameSnapRange: Float = 0.12
     private static let shareFootSnapRange: Float = 0.06
     /// v2.204: a snap target is "occupied" if any OTHER card's
     /// bottom face is within this radius of the proposed target.
@@ -1667,6 +1695,12 @@ private final class HouseOfCardsCoordinator: NSObject {
     }
 
     private func applySmartSnap(to card: CardEntity) {
+        // v2.205: user-controllable snap. When the session's
+        // master snap switch is OFF, every gesture release leaves
+        // the card exactly where the user placed it. Restores the
+        // physics-sandbox feel for creative play.
+        guard session.snapsEnabled else { return }
+
         let bottomLocal = SIMD3<Float>(0, 0, -Self.cardHeight / 2)
         let topLocal    = SIMD3<Float>(0, 0,  Self.cardHeight / 2)
 
@@ -1743,13 +1777,19 @@ private final class HouseOfCardsCoordinator: NSObject {
             //     already has an A-frame mate (their apex is
             //     occupied; snapping us there would put us on top
             //     of the mate's stack, not a new pyramid).
-            //     v2.204: range tightened to 8cm (was 12cm) — the
-            //     user has to drag close to the apex for snap to
-            //     engage. Less wide-magnet, more agency.
+            //
+            //     v2.205 LAYER-AWARE: also require the partner's
+            //     bottom to be at OUR layer (Y within ±2cm of
+            //     ours). A layer-0 partner with bottom at table
+            //     level shouldn't aFrame-snap with a layer-2 card
+            //     even if their tops happen to be close — they're
+            //     on different tower layers.
+            let layerAlignedTops = abs(theirBottomForMirror.y - ourBottom.y) < 0.02
             if abs(ourTilt) > Self.snapTiltMin,
                abs(theirTilt) > Self.snapTiltMin,
                ourTilt * theirTilt < 0,
                abs(abs(theirTilt) - abs(ourTilt)) < Self.snapMirrorTolerance,
+               layerAlignedTops,
                dTopXZ <= dBottomXZ,
                !isAlreadyPartnered(c, in: candidates),
                !slotOccupied(at: theirTop, excluding: card, ignoring: c.entity, in: candidates) {
@@ -1785,10 +1825,15 @@ private final class HouseOfCardsCoordinator: NSObject {
             //     partner" complaint. Occupancy check: skip if
             //     some OTHER card's bottom is already at this
             //     foot point.
+            //     v2.205 LAYER-AWARE: also require the partner's
+            //     bottom Y to match ours (within ±2cm). Two
+            //     cards sharing a foot must be at the same
+            //     elevation.
             if abs(ourTilt) > Self.snapTiltMin,
                abs(theirTilt) > Self.snapTiltMin,
                ourTilt * theirTilt < 0,
                abs(abs(theirTilt) - abs(ourTilt)) < Self.snapMirrorTolerance,
+               layerAlignedTops,
                dBottomXZ < dTopXZ {
                 let target = SIMD3<Float>(theirBottomForMirror.x, ourBottom.y, theirBottomForMirror.z)
                 if dBottomXZ < Self.shareFootSnapRange,
@@ -1916,7 +1961,14 @@ private final class HouseOfCardsCoordinator: NSObject {
             //     apex spacing of two adjacent A-frames at the
             //     canonical 30° lean is exactly cardHeight)
             //   our XZ-to-midpoint distance < 12cm (snapDistance)
-            let spanLengthTolerance: Float = 0.015
+            // v2.205: tolerance widened from 1.5cm to 3cm.
+            // Real-world A-frame builds rarely produce apices
+            // EXACTLY cardHeight apart — varying lean angles
+            // (28-32° rather than perfect 30°) easily produce
+            // spacings 7-10cm. The tighter tolerance was
+            // preventing spanRoof from firing on the user's
+            // actual towers.
+            let spanLengthTolerance: Float = 0.03
             let spanRangeXZ: Float = Self.snapDistance
             for i in 0..<apexPoints.count {
                 for j in (i + 1)..<apexPoints.count {
@@ -2493,6 +2545,11 @@ private final class HouseOfCardsCoordinator: NSObject {
         if session.resetGeneration != lastResetGeneration {
             lastResetGeneration = session.resetGeneration
             clearAllCards()
+            // v2.205: reset is an explicit "start over" — drop
+            // the undo history. We don't want a user to reset,
+            // then accidentally undo back into their last build.
+            undoStack.removeAll()
+            session.canUndo = false
             saveScene()  // v2.196: persist the empty state so a fresh visit doesn't re-restore old cards
         }
 
@@ -3340,12 +3397,23 @@ private final class HouseOfCardsCoordinator: NSObject {
         let targetX, targetY, targetZ: Float
     }
 
-    /// Serialize the current scene to UserDefaults. Called from
-    /// every code path that changes card state, camera state, or
-    /// pause state (gesture handlers' .ended branches, spawn,
-    /// reset, play/pause).
-    func saveScene() {
-        guard restoreCompleted else { return }
+    /// v2.205: in-memory stack of scene states for Undo. Each
+    /// saveScene() call pushes the PREVIOUS scene state (the one
+    /// already on disk) onto this stack BEFORE overwriting, so
+    /// undo restores the state just before the last action. Cap
+    /// at undoStackLimit; older states drop off the bottom when
+    /// the cap is reached. Cleared on reset (the user explicitly
+    /// asked to start over) and bounded to runtime — not
+    /// persisted across app launches.
+    private var undoStack: [Data] = []
+    private static let undoStackLimit = 25
+
+    /// Build a PersistedScene from the current scene state. Used
+    /// by both saveScene (to write to disk) and undo (to capture
+    /// the PRESENT state before restoring an older one — so undo
+    /// is itself reversible via a redo, though we don't yet
+    /// expose redo in the UI).
+    private func makePersistedScene() -> PersistedScene {
         let snapshot: [(CardEntity, Bool)] =
             heldCards.map { ($0, false) } + dynamicCards.map { ($0, true) }
         let persistedCards: [PersistedCard] = snapshot.map { (c, isDynamic) in
@@ -3358,7 +3426,7 @@ private final class HouseOfCardsCoordinator: NSObject {
                 isDynamic: isDynamic
             )
         }
-        let state = PersistedScene(
+        return PersistedScene(
             version: 1,
             cards: persistedCards,
             isPaused: session.isPaused,
@@ -3367,6 +3435,69 @@ private final class HouseOfCardsCoordinator: NSObject {
             camDistance: camDistance,
             targetX: cameraTarget.x, targetY: cameraTarget.y, targetZ: cameraTarget.z
         )
+    }
+
+    /// Serialize the current scene to UserDefaults AND push the
+    /// previous on-disk state onto the undo stack. Called from
+    /// every code path that changes card state, camera state, or
+    /// pause state (gesture handlers' .ended branches, spawn,
+    /// reset, play/pause).
+    func saveScene() {
+        guard restoreCompleted else { return }
+        // Push the EXISTING on-disk state (which is the
+        // pre-action snapshot) onto the undo stack BEFORE we
+        // overwrite it. This is what makes "undo last action"
+        // mean "go back one step."
+        if let prior = UserDefaults.standard.data(forKey: Self.persistKey) {
+            undoStack.append(prior)
+            if undoStack.count > Self.undoStackLimit {
+                undoStack.removeFirst(undoStack.count - Self.undoStackLimit)
+            }
+            session.canUndo = true
+        }
+        let state = makePersistedScene()
+        if let data = try? JSONEncoder().encode(state) {
+            UserDefaults.standard.set(data, forKey: Self.persistKey)
+        }
+    }
+
+    /// Pop the most recent state off the undo stack and rebuild
+    /// the scene from it. Reads `session.undoRequested` from the
+    /// update loop. Always restores in PAUSED state, regardless
+    /// of the saved isPaused, so the user can inspect / adjust
+    /// the recovered tower before re-engaging physics. Persists
+    /// the restored state as the new on-disk scene so a re-attach
+    /// picks up the undone state.
+    func performUndoIfRequested(catalog: [String: Card]) {
+        guard session.undoRequested else { return }
+        session.undoRequested = false
+        guard let prior = undoStack.popLast() else {
+            session.canUndo = false
+            return
+        }
+        session.canUndo = !undoStack.isEmpty
+        guard let raw = try? JSONDecoder().decode(PersistedScene.self, from: prior) else { return }
+        // Force-paused undo: the user undoes BECAUSE something
+        // unwanted happened (bad snap, tower fell, etc.). They
+        // need a moment to look at the recovered state, so we
+        // always restore as paused — even if the captured state
+        // was mid-physics. Re-engaging physics on the user's
+        // command is one tap away.
+        let state = PersistedScene(
+            version: raw.version,
+            cards: raw.cards,
+            isPaused: true,
+            camAzimuth: raw.camAzimuth,
+            camElevation: raw.camElevation,
+            camDistance: raw.camDistance,
+            targetX: raw.targetX, targetY: raw.targetY, targetZ: raw.targetZ
+        )
+        clearAllCards()
+        rebuildScene(from: state, catalog: catalog)
+        // Persist the restored state as the new on-disk scene,
+        // WITHOUT pushing yet another item onto the undo stack
+        // (we don't want undo itself to be undoable in a way
+        // that walks the stack backwards). Write directly.
         if let data = try? JSONEncoder().encode(state) {
             UserDefaults.standard.set(data, forKey: Self.persistKey)
         }
@@ -3391,7 +3522,15 @@ private final class HouseOfCardsCoordinator: NSObject {
             let data = UserDefaults.standard.data(forKey: Self.persistKey),
             let state = try? JSONDecoder().decode(PersistedScene.self, from: data)
         else { return }
+        rebuildScene(from: state, catalog: catalog)
+        print("[HoB] Restored \(state.cards.count) cards from saved scene")
+    }
 
+    /// Shared rebuild logic used by both initial restore and the
+    /// undo path (v2.205). Assumes the caller has already cleared
+    /// any existing in-scene cards (initial restore runs against
+    /// an empty scene; undo runs `clearAllCards` before calling).
+    private func rebuildScene(from state: PersistedScene, catalog: [String: Card]) {
         // Restore camera state first so the view shows the saved
         // angle even before art finishes loading.
         camAzimuth   = state.camAzimuth
@@ -3400,7 +3539,6 @@ private final class HouseOfCardsCoordinator: NSObject {
         cameraTarget = SIMD3<Float>(state.targetX, state.targetY, state.targetZ)
         updateCameraTransform()
 
-        // Restore each card.
         guard let root = anchor else { return }
         for ps in state.cards {
             guard let card = catalog[ps.bobaId] else { continue }
@@ -3432,11 +3570,9 @@ private final class HouseOfCardsCoordinator: NSObject {
 
         session.hasAnyCards = !state.cards.isEmpty
         session.isPaused = state.isPaused
-        // If the saved state was running physics, re-engage now.
         if !state.isPaused {
             applyPauseState()
         }
-        print("[HoB] Restored \(state.cards.count) cards from saved scene")
     }
 }
 
@@ -3586,6 +3722,26 @@ final class HouseOfCardsSession {
     /// Signal flag: user tapped the PLAY/PAUSE button. The
     /// coordinator reads + clears it and toggles isPaused.
     var togglePauseRequested: Bool = false
+
+    /// v2.205: master switch for smart-snap. When OFF, the
+    /// coordinator's applySmartSnap is a no-op — every gesture
+    /// release leaves the card exactly where the user placed it.
+    /// Default ON for first-time discovery; user toggles via the
+    /// ⋯ menu. The intent is that snap is a HELPER, not a
+    /// constraint — when it's fighting the user's creative
+    /// placement, they can switch it off and the playground works
+    /// like a real-world physics sandbox.
+    var snapsEnabled: Bool = true
+
+    /// Signal flag: user tapped the Undo menu item. Coordinator
+    /// reads + clears, pops the previous Codable scene off its
+    /// in-memory stack, and rebuilds the scene from that state.
+    var undoRequested: Bool = false
+
+    /// Mirrors the coordinator's undo-stack non-empty state for
+    /// the menu's "Undo" item enable check. Coordinator updates
+    /// it after every push / pop.
+    var canUndo: Bool = false
 
     /// True if at least one card is on the table (kinematic
     /// or dynamic). Drives play-button enabled state.

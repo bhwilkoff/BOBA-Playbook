@@ -1330,6 +1330,73 @@ private final class HouseOfCardsCoordinator: NSObject {
         return best!.world
     }
 
+    /// A rectangular face of a card, expressed in world space.
+    /// Used by sit-on-top to land the card at the NEAREST point on
+    /// the support's top face (clamped to its rectangle bounds)
+    /// instead of the face center — which the user perceived as
+    /// snapping to "the middle" of flat supports.
+    private struct CardFaceRect {
+        let center: SIMD3<Float>   // world center of the face
+        let normal: SIMD3<Float>   // world normal (outward)
+        let axisU: SIMD3<Float>    // unit vector along one in-face axis
+        let axisV: SIMD3<Float>    // unit vector along the other in-face axis
+        let halfU: Float           // half-extent along U
+        let halfV: Float           // half-extent along V
+    }
+
+    /// Returns the face whose outward normal points MOST in +Y —
+    /// the card's "up face" — as a rectangle with center, normal,
+    /// and two in-face axes plus half-extents. Lets sit-on-top
+    /// snap to the nearest point on the rectangle rather than the
+    /// face center.
+    private func upwardFaceRect(of entity: Entity) -> CardFaceRect {
+        let hw = Self.cardWidth  / 2
+        let ht = Self.cardThick  / 2
+        let hh = Self.cardHeight / 2
+        // (localCenter, localNormal, localU, localV, halfU, halfV)
+        let faces: [(SIMD3<Float>, SIMD3<Float>, SIMD3<Float>, SIMD3<Float>, Float, Float)] = [
+            (SIMD3<Float>( hw, 0, 0), SIMD3<Float>( 1, 0, 0), SIMD3<Float>(0, 1, 0), SIMD3<Float>(0, 0, 1), ht, hh),
+            (SIMD3<Float>(-hw, 0, 0), SIMD3<Float>(-1, 0, 0), SIMD3<Float>(0, 1, 0), SIMD3<Float>(0, 0, 1), ht, hh),
+            (SIMD3<Float>(0,  ht, 0), SIMD3<Float>(0,  1, 0), SIMD3<Float>(1, 0, 0), SIMD3<Float>(0, 0, 1), hw, hh),
+            (SIMD3<Float>(0, -ht, 0), SIMD3<Float>(0, -1, 0), SIMD3<Float>(1, 0, 0), SIMD3<Float>(0, 0, 1), hw, hh),
+            (SIMD3<Float>(0, 0,  hh), SIMD3<Float>(0, 0,  1), SIMD3<Float>(1, 0, 0), SIMD3<Float>(0, 1, 0), hw, ht),
+            (SIMD3<Float>(0, 0, -hh), SIMD3<Float>(0, 0, -1), SIMD3<Float>(1, 0, 0), SIMD3<Float>(0, 1, 0), hw, ht),
+        ]
+        var bestY: Float = -.greatestFiniteMagnitude
+        var bestRect: CardFaceRect = CardFaceRect(
+            center: .zero, normal: .zero, axisU: .zero, axisV: .zero, halfU: 0, halfV: 0
+        )
+        for f in faces {
+            let worldNormal = entity.convert(direction: f.1, to: nil as Entity?)
+            if worldNormal.y > bestY {
+                bestY = worldNormal.y
+                bestRect = CardFaceRect(
+                    center: entity.convert(position: f.0, to: nil as Entity?),
+                    normal: worldNormal,
+                    axisU: entity.convert(direction: f.2, to: nil as Entity?),
+                    axisV: entity.convert(direction: f.3, to: nil as Entity?),
+                    halfU: f.4,
+                    halfV: f.5
+                )
+            }
+        }
+        return bestRect
+    }
+
+    /// Closest point on a face rectangle to a query point in world
+    /// space. Projects the query onto the face plane, then clamps
+    /// to the rectangle's in-face bounds. Returns a point on the
+    /// face (including its boundary) — never inside or outside the
+    /// rectangle's edges.
+    private func nearestPointOnFace(_ face: CardFaceRect, to q: SIMD3<Float>) -> SIMD3<Float> {
+        let toQ = q - face.center
+        let u = simd_dot(toQ, face.axisU)
+        let v = simd_dot(toQ, face.axisV)
+        let uClamped = max(-face.halfU, min(face.halfU, u))
+        let vClamped = max(-face.halfV, min(face.halfV, v))
+        return face.center + face.axisU * uClamped + face.axisV * vClamped
+    }
+
     /// Resolve a screen-space tap to a spawn location in world.
     ///
     /// Why this matters: tower building beyond the first layer
@@ -1513,6 +1580,14 @@ private final class HouseOfCardsCoordinator: NSObject {
             let ourFeature: SIMD3<Float>
             let dist: Float
             let partner: Entity
+            /// v2.200: priority tier. Higher always wins.
+            ///   2 = lift-escape sit-on-top (target ≥ one card-height
+            ///       above us — tower-building intent, dominates
+            ///       ground-level snaps so the user isn't dragged
+            ///       back down).
+            ///   1 = same-layer sit-on-top (broad-face / standard).
+            ///   0 = A-frame / side-by-side / horizontal-spread.
+            let priority: Int
         }
         // v2.193 diagnostics: track the closest sit-on-top
         // candidate that was REJECTED (out of range or Y check
@@ -1521,6 +1596,18 @@ private final class HouseOfCardsCoordinator: NSObject {
         var nearestSitDist: Float = .greatestFiniteMagnitude
         var nearestSitReason: String = "no candidates"
         var best: Best? = nil
+
+        /// Tier-aware best-update: a higher-priority candidate
+        /// always wins, regardless of XZ distance. Within a tier,
+        /// the closer candidate wins.
+        func consider(_ candidate: Best) {
+            guard let b = best else { best = candidate; return }
+            if candidate.priority > b.priority {
+                best = candidate
+            } else if candidate.priority == b.priority, candidate.dist < b.dist {
+                best = candidate
+            }
+        }
 
         for c in candidates {
             let theirTop  = c.entity.convert(position: topLocal,    to: nil as Entity?)
@@ -1542,49 +1629,71 @@ private final class HouseOfCardsCoordinator: NSObject {
                 let dxA = theirTop.x - ourTop.x
                 let dzA = theirTop.z - ourTop.z
                 let dA = sqrt(dxA * dxA + dzA * dzA)
-                if dA < Self.snapDistance, best == nil || dA < best!.dist {
-                    best = Best(kind: .aFrame, target: theirTop, ourFeature: ourTop, dist: dA, partner: c.entity)
+                if dA < Self.snapDistance {
+                    consider(Best(kind: .aFrame, target: theirTop, ourFeature: ourTop, dist: dA, partner: c.entity, priority: 0))
                 }
             }
 
-            // 2) Sit-on-top: our bottom-face center near their
-            //    top-face center. Both are computed orientation-
-            //    aware so the snap targets the right surface
-            //    whether the supporting card is vertical, tilted,
-            //    or flat-roof horizontal. Only engages when our
-            //    card is at or above the candidate.
-            let theirTopFace = upwardFaceCenter(of: c.entity)
-            // v2.193 intent-based sit-on-top:
-            //   - HORIZONTAL card (tilt within ~17° of flat): the
-            //     intent is "place this flat thing on top of
-            //     something" regardless of current Y. Sit-on-top
-            //     can pull the card UP from the table to the
-            //     candidate's top. Range 25cm.
-            //   - Anything else (vertical / tilted / mid-angle):
-            //     only fire when our bottom is at or above their
-            //     top (within 1cm). Standard 12cm range. This
-            //     prevents weird "lift a vertical card up onto a
-            //     pyramid" snaps the user wouldn't want.
+            // 2) Sit-on-top: our downward face center meets the
+            //    NEAREST POINT on the candidate's upward face
+            //    rectangle (v2.200) — not the face center. Lets
+            //    the user place a card AT THE EDGE of a flat
+            //    support to start the next A-frame, not always at
+            //    the geometric middle.
+            //
+            //    v2.200 lifting model:
+            //      dY = theirTopFace.y - ourBottomFace.y
+            //      • No-drop:    dY < -0.05 → skip. Snapping to
+            //        something significantly below us pulls us
+            //        DOWN, which is never the user's intent when
+            //        they're building up.
+            //      • Same-layer (priority 1): dY in [-0.05,
+            //        cardHeight). Our bottom is roughly at or
+            //        slightly above their top. Standard contact-
+            //        snap. Range = snapDistance (12cm) or 25cm
+            //        when our card is horizontal.
+            //      • Lift escape (priority 2): dY ≥ cardHeight.
+            //        Target is clearly above us — interpret as
+            //        "lift onto next layer." Range stays 12cm so
+            //        the user has to drag near the support's XZ;
+            //        if they do, the lift wins outright over any
+            //        ground-level side-by-side / A-frame.
+            //      • Awkward middle: dY in [-0.05, 0.04). v2.199's
+            //        gap — covers when our bottom is just a hair
+            //        below their top. Allow normal snap.
+            let theirTopRect = upwardFaceRect(of: c.entity)
+            let theirTopNearest = nearestPointOnFace(theirTopRect, to: ourBottomFace)
+            let dY = theirTopRect.center.y - ourBottomFace.y
             let isHorizontalish = abs(abs(ourTilt) - .pi / 2) < 0.3
-            let canSit: Bool = isHorizontalish
-                || (ourBottomFace.y >= theirTopFace.y - 0.01)
-            let dxS = theirTopFace.x - ourBottomFace.x
-            let dzS = theirTopFace.z - ourBottomFace.z
+            let canDrop = dY >= -0.05
+            let isLiftEscape = dY >= Self.cardHeight
+            let canSit = canDrop && (isHorizontalish || dY >= -0.01 || isLiftEscape)
+
+            // XZ distance to the nearest point on the support
+            // face (not the face center — that was the v2.193
+            // "halfway up" mistake).
+            let dxS = theirTopNearest.x - ourBottomFace.x
+            let dzS = theirTopNearest.z - ourBottomFace.z
             let dS = sqrt(dxS * dxS + dzS * dzS)
             let range: Float = isHorizontalish ? 0.25 : Self.snapDistance
             // Track nearest for diagnostics (whether we used it or not).
             if dS < nearestSitDist {
                 nearestSitDist = dS
                 if !canSit {
-                    nearestSitReason = "Y-check (bottom \(String(format: "%.3f", ourBottomFace.y)) below top \(String(format: "%.3f", theirTopFace.y)))"
+                    if !canDrop {
+                        nearestSitReason = "no-drop (top \(String(format: "%.3f", theirTopRect.center.y)) below bottom \(String(format: "%.3f", ourBottomFace.y)))"
+                    } else {
+                        nearestSitReason = "Y-gap (dY=\(String(format: "%.3f", dY))m in awkward band)"
+                    }
                 } else if dS >= range {
                     nearestSitReason = "out of range (\(String(format: "%.3f", dS))m > \(String(format: "%.2f", range))m)"
                 } else {
                     nearestSitReason = "fired"
                 }
             }
-            if canSit, dS < range, best == nil || dS < best!.dist {
-                best = Best(kind: .sitOnTop, target: theirTopFace, ourFeature: ourBottomFace, dist: dS, partner: c.entity)
+            if canSit, dS < range {
+                let priority = isLiftEscape ? 2 : 1
+                consider(Best(kind: .sitOnTop, target: theirTopNearest, ourFeature: ourBottomFace, dist: dS, partner: c.entity, priority: priority))
             }
 
             // 3) Side-by-side bottom-to-bottom: place our card
@@ -1623,8 +1732,8 @@ private final class HouseOfCardsCoordinator: NSObject {
                     let dirUnit = dirToOurs / len
                     let target = theirBottom + Self.cardWidth * dirUnit
                     let d = simd_length(target - ourBottom)
-                    if d < Self.sideBySideTolerance, best == nil || d < best!.dist {
-                        best = Best(kind: .sideBySide, target: target, ourFeature: ourBottom, dist: d, partner: c.entity)
+                    if d < Self.sideBySideTolerance {
+                        consider(Best(kind: .sideBySide, target: target, ourFeature: ourBottom, dist: d, partner: c.entity, priority: 0))
                     }
                 }
             }

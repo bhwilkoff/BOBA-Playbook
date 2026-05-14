@@ -840,35 +840,38 @@ private final class HouseOfCardsCoordinator: NSObject {
                 g.setTranslation(.zero, in: view)
 
             case .panningCamera:
-                // v2.185: native RealityKit 3D-pan convention
-                // (joystick / AR Quick Look / Reality Composer
-                // style). Camera focal point follows the fingers
-                // in screen-aligned axes, projected onto world XZ.
+                // v2.187: drag-the-object direction. Matches Apple
+                // Maps, Photos pan, AR Quick Look, and every
+                // native iOS 3D viewer Ben has used: drag finger
+                // right → table moves right (camera target moves
+                // LEFT in world; world appears to shift right
+                // under the finger).
                 //
-                // Derivation (camAzimuth = angle CCW from +Z to
-                // camera offset, so camera sits at target +
-                // (sin(az), _, cos(az)) * distance, looking at
-                // target):
-                //   screen-right in world  = ( cos(az), 0, -sin(az))
-                //   screen-up    in world  = (-sin(az), 0, -cos(az))
-                //                            [XZ projection of cam forward]
+                // Derived from camera geometry (camAzimuth = CCW
+                // angle from +Z to camera offset; camera sits at
+                // target + (sin(az), _, cos(az)) * distance,
+                // looking AT target):
+                //   screen-right in world = ( cos(az), 0, -sin(az))
+                //   screen-up    in world = (-sin(az), 0, -cos(az))
+                //                           [XZ projection of cam fwd]
                 //
                 // For UIPan delta (dx right-positive, dy down-
-                // positive), the world delta is:
-                //   ΔX = dx*cos + dy*sin
-                //   ΔZ = -dx*sin + dy*cos
+                // positive), drag-the-world world delta is the
+                // NEGATION of screen-right and screen-down:
+                //   ΔX = -dx*cos(az) - dy*sin(az)
+                //   ΔZ =  dx*sin(az) - dy*cos(az)
                 //
-                // Previous v2.171/v2.184 implementations both had
-                // sign errors on the sin terms (cross-axis
-                // coupling), producing the "scrolling-space" feel
-                // where diagonal drags moved unexpectedly.
+                // Pinch (zoom) and Apple's entity rotation (yaw)
+                // stay simultaneous with this pan — the canonical
+                // Photos/Maps combined gesture. See v2.187
+                // delegate change.
                 let factor: Float = camDistance * 0.0018
                 let dx = Float(delta.x) * factor
                 let dy = Float(delta.y) * factor
                 let cosA = cos(camAzimuth)
                 let sinA = sin(camAzimuth)
-                cameraTarget.x +=  dx * cosA + dy * sinA
-                cameraTarget.z += -dx * sinA + dy * cosA
+                cameraTarget.x += -dx * cosA - dy * sinA
+                cameraTarget.z +=  dx * sinA - dy * cosA
                 g.setTranslation(.zero, in: view)
                 updateCameraTransform()
 
@@ -2399,33 +2402,20 @@ extension HouseOfCardsCoordinator: UIGestureRecognizerDelegate {
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
     ) -> Bool {
-        // Long-press is always exclusive.
+        // Long-press is always exclusive (different touch counts).
         if gestureRecognizer is UILongPressGestureRecognizer ||
            other is UILongPressGestureRecognizer {
             return false
         }
-        // v2.186: our 2-finger pan and our pinch are MUTUALLY
-        // EXCLUSIVE. Both compete for the same 2-finger touches
-        // but represent different intents (camera-target translate
-        // vs. camera zoom). Allowing them to recognize
-        // simultaneously meant any small finger-distance change
-        // during a pan triggered the pinch zoom in parallel, while
-        // the pan dragged the target — the camera moved
-        // unpredictably. Now iOS picks whichever recognition
-        // threshold is met first: parallel finger motion → pan
-        // wins; pinch/spread → pinch wins. Apple's
-        // EntityRotationGestureRecognizer (yaw) stays simultaneous
-        // with both because twist+zoom is a real combined gesture.
-        return MainActor.assumeIsolated {
-            let pan = self.twoFingerPanGesture
-            let pinch = self.pinchGesture
-            let isPan = (gestureRecognizer === pan) || (other === pan)
-            let isPinch = (gestureRecognizer === pinch) || (other === pinch)
-            if isPan, isPinch {
-                return false
-            }
-            return true
-        }
+        // v2.187: all other gesture pairs recognize simultaneously.
+        // The 2-finger pan, pinch, and Apple's rotation all fire
+        // together on the same 2-finger gesture — same as Photos
+        // and AR Quick Look. v2.186 made pan+pinch exclusive to
+        // try to fix unpredictable motion; that was the wrong fix.
+        // The right fix was the drag-the-object direction (v2.187
+        // .panningCamera math) which made the combined gesture
+        // feel natural again.
+        return true
     }
 
     nonisolated func gestureRecognizer(

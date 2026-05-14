@@ -39,8 +39,14 @@ KEY_FILE="AuthKey_${KEY_ID}.p8"
 BUNDLE_ID="app.bobaplaybook.ios"
 
 if [ ! -f "$KEY_FILE" ]; then
-    echo "ci_post_clone: $KEY_FILE not found — aborting build-number bump"
-    exit 1
+    echo "ci_post_clone: $KEY_FILE not found at workspace root — skipping ASC sync."
+    echo "  *.p8 is gitignored (correctly — private key). To enable ASC sync on"
+    echo "  Xcode Cloud, upload the key as a workflow File Variable in App Store"
+    echo "  Connect → Xcode Cloud → workflow → Environment → File Variables, named"
+    echo "  $KEY_FILE so it materializes at the workspace root during build."
+    echo "  Falling back to xcconfig CURRENT_PROJECT_VERSION + CI_BUILD_NUMBER."
+    grep -E '^(MARKETING_VERSION|CURRENT_PROJECT_VERSION)' AppVersion.xcconfig
+    exit 0
 fi
 
 MARKETING_VERSION=$(grep -E '^MARKETING_VERSION' AppVersion.xcconfig | awk '{print $3}')

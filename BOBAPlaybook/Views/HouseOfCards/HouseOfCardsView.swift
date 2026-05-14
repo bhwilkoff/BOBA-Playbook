@@ -1421,7 +1421,15 @@ private final class HouseOfCardsCoordinator: NSObject {
             let partnerYaw = yawAngle(of: snap.partner)
             let ourCurrentYaw = yawAngle(of: card.entity)
             let yawDelta = wrapAngle(partnerYaw - ourCurrentYaw)
-            if abs(yawDelta) > 0.005 {
+            // v2.191: only align SMALL yaw drifts (< 30°). A real
+            // card-house A-frame has its two partners yawed 180°
+            // apart so their bodies extend in opposite Z directions
+            // (no apex body-overlap, both fronts face outward).
+            // The user explicitly chose a 180° yaw to get that
+            // configuration; v2.188's unconditional yaw-align was
+            // flipping it back to 0° and breaking the orientation.
+            // Small accidental twist (< 30°) still gets aligned.
+            if abs(yawDelta) > 0.005, abs(yawDelta) < .pi / 6 {
                 let pivotBefore = card.entity.convert(position: bottomLocal, to: nil as Entity?)
                 let yawQ = simd_quatf(angle: yawDelta, axis: SIMD3<Float>(0, 1, 0))
                 card.entity.orientation = yawQ * card.entity.orientation
@@ -1601,27 +1609,28 @@ private final class HouseOfCardsCoordinator: NSObject {
     }
 
     /// Push the given card out of overlap with every other placed
-    /// card. Allowed overlap = cardThick — the natural body overlap
-    /// at an A-frame apex shouldn't be resolved away (it's the
-    /// intended contact). Larger overlaps (sit-on-top into another
-    /// pyramid's column, side-by-side too close, etc.) get pushed
-    /// out along the MTV. Iterates until no offending overlap
-    /// remains.
+    /// card EXCEPT its A-frame partner. Allowed overlap drops to
+    /// 0.5mm — basically any visible body overlap gets resolved.
+    /// A-frame partners are explicitly skipped because their
+    /// natural top-edge contact has ~cardThick body overlap from
+    /// thickness + mirror tilt, and resolving that would create
+    /// the apex gap the user is trying NOT to have.
     private func resolveCollisions(for card: CardEntity) {
-        let allowedOverlap: Float = Self.cardThick
+        let allowedOverlap: Float = 0.0005  // 0.5mm — any visible overlap resolved
         let margin: Float = 0.0002
-        let others = (heldCards + dynamicCards).filter { $0 !== card }
-        if others.isEmpty { return }
+        let allOthers = (heldCards + dynamicCards).filter { $0 !== card }
+        // Filter out A-frame partners — see isAFramePartner doc.
+        let resolveAgainst = allOthers.filter { !isAFramePartner(card, $0) }
+        if resolveAgainst.isEmpty { return }
         let maxIterations = 8
         for _ in 0..<maxIterations {
             let ourBox = obb(of: card.entity)
             var didResolve = false
-            for other in others {
+            for other in resolveAgainst {
                 let otherBox = obb(of: other.entity)
                 guard let mtv = obbOverlap(ourBox, otherBox) else { continue }
                 let mtvLen = simd_length(mtv)
                 if mtvLen <= allowedOverlap { continue }
-                // Push only the excess overlap + margin.
                 let unit = mtv / mtvLen
                 let pushDist = (mtvLen - allowedOverlap) + margin
                 card.entity.position += unit * pushDist
@@ -1630,6 +1639,23 @@ private final class HouseOfCardsCoordinator: NSObject {
             }
             if !didResolve { return }
         }
+    }
+
+    /// True if `a` and `b` are A-frame partners — their top-edge
+    /// midpoints are coincident (within partneredApexDistance) AND
+    /// their pitches have opposite sign. These cards SHOULD touch
+    /// at the apex (that's the whole point); SAT must not push
+    /// them apart.
+    private func isAFramePartner(_ a: CardEntity, _ b: CardEntity) -> Bool {
+        let topLocal = SIMD3<Float>(0, 0, Self.cardHeight / 2)
+        let aTop = a.entity.convert(position: topLocal, to: nil as Entity?)
+        let bTop = b.entity.convert(position: topLocal, to: nil as Entity?)
+        guard simd_length(aTop - bTop) < Self.partneredApexDistance else { return false }
+        let aTilt = pitchAngle(of: a.entity)
+        let bTilt = pitchAngle(of: b.entity)
+        return abs(aTilt) > Self.snapTiltMin &&
+               abs(bTilt) > Self.snapTiltMin &&
+               aTilt * bTilt < 0
     }
 
     // MARK: Selection (pause-mode-only manipulation)

@@ -298,7 +298,7 @@ struct HouseOfCardsView: View {
                         .foregroundStyle(.white.opacity(0.85))
                     Divider().overlay(.white.opacity(0.15))
                     helpRow("1. Select from strip", "Tap up to 4 cards in the bottom strip — orange numbered badge shows placement order.")
-                    helpRow("2. Tap to place",      "Tap anywhere on the table to spawn the selected cards there, standing vertical. Add more anytime by selecting more strip cards and tapping again.")
+                    helpRow("2. Tap to place",      "Tap the table to spawn the selected cards there, standing vertical — or tap the FLAT TOP of an existing card to spawn the next layer on top of your tower. Add more anytime by selecting more strip cards and tapping again.")
                     helpRow("3. Tap a card",        "Tap a placed card to SELECT it — an orange halo appears around it. While selected, ALL gestures manipulate that card (camera is paused).")
                     helpRow("Translate",            "One-finger drag STARTING ON the selected card → slide it across the table (X/Z). The bottom always rides whatever surface is below — table or top of another card.")
                     helpRow("Tilt (angle)",         "Two-finger HORIZONTAL drag → tilt the selected card forward/back, up to flat (90°). The bottom keeps riding the surface below as it leans.")
@@ -941,14 +941,23 @@ private final class HouseOfCardsCoordinator: NSObject {
         // Hit-test for a card under the tap.
         let tappedCard = hitTestCardEntity(at: point)
 
-        // Strip selection takes priority: if user has cards
-        // selected in the strip and tapped EMPTY SPACE, spawn
-        // them at the tap location.
-        if !session.selectedCards.isEmpty, tappedCard == nil {
-            if let world = view.project(point, ontoPlaneAt: 0) {
+        // v2.199: tower-builder spawn. Strip selection means
+        // "spawn here" — and "here" now includes the top of an
+        // existing flat-card platform, not just the table. Tap a
+        // horizontal-facing card top with strip cards held → next
+        // layer spawns ON TOP of that platform. Scales to any
+        // tower height without the user manually lifting cards
+        // out of the snap zone of ground-level neighbors.
+        //
+        // Falls back to the Y=0 plane projection for taps on the
+        // table or on non-platform surfaces (tilted cards), so
+        // the muscle-memory "tap anywhere on the table to spawn"
+        // path is preserved.
+        if !session.selectedCards.isEmpty {
+            if let world = spawnLocationFromTap(at: point) {
                 session.pendingSpawnLocation = world
+                return
             }
-            return
         }
 
         // Tap on a card: select/deselect.
@@ -1296,6 +1305,72 @@ private final class HouseOfCardsCoordinator: NSObject {
     }
     private func downwardFaceCenter(of entity: Entity) -> SIMD3<Float> {
         extremeFaceCenter(of: entity, towardWorldY: -1)
+    }
+
+    /// World-space normal of the face whose normal points MOST in
+    /// the +Y direction. Used to decide whether a placed card can
+    /// serve as a platform for the next spawn layer — a card whose
+    /// top normal has y > 0.85 is "horizontal enough" (within ~32°
+    /// of perfectly flat) that spawning cards above it produces a
+    /// stable next layer; tilted cards (leaning A-frame partners,
+    /// vertical singles) return small y and don't qualify.
+    private func upwardFaceWorldNormal(of entity: Entity) -> SIMD3<Float> {
+        let normals: [SIMD3<Float>] = [
+            SIMD3<Float>( 1, 0, 0), SIMD3<Float>(-1, 0, 0),
+            SIMD3<Float>( 0, 1, 0), SIMD3<Float>( 0,-1, 0),
+            SIMD3<Float>( 0, 0, 1), SIMD3<Float>( 0, 0,-1),
+        ]
+        var best: (world: SIMD3<Float>, y: Float)? = nil
+        for n in normals {
+            let world = entity.convert(direction: n, to: nil as Entity?)
+            if best == nil || world.y > best!.y {
+                best = (world, world.y)
+            }
+        }
+        return best!.world
+    }
+
+    /// Resolve a screen-space tap to a spawn location in world.
+    ///
+    /// Why this matters: tower building beyond the first layer
+    /// kept failing because cards spawned at table-level Y=0 had
+    /// to be manually lifted ~18-25cm up into the next layer's
+    /// snap zone before A-frame/sit-on-top could engage. Users
+    /// don't know about 2-finger vertical lift, and even when
+    /// they do, the constant fight against side-by-side snaps
+    /// with ground-level neighbors is friction. Solution: hand
+    /// the spawn-location decision back to the user — they point
+    /// at the surface they want the next layer on top of.
+    ///
+    /// Returns nil for taps that hit a tilted card (let the
+    /// caller fall through to its normal selection behavior so
+    /// tap-tilted-card-to-select still works when there happens
+    /// to be a strip selection). Returns the table-plane
+    /// projection when nothing is hit OR the hit isn't a card
+    /// (table is fine — it's already horizontal).
+    private func spawnLocationFromTap(at point: CGPoint) -> SIMD3<Float>? {
+        guard let view = arView else { return nil }
+        let hits = view.hitTest(point, query: .nearest, mask: .all)
+        for hit in hits {
+            var entity: Entity? = hit.entity
+            while let e = entity {
+                if e.name == "card-root" {
+                    let topNormal = upwardFaceWorldNormal(of: e)
+                    if topNormal.y > 0.85 {
+                        // Horizontal platform — spawn at the tap
+                        // point's XZ on this card's top face.
+                        let topY = upwardFaceCenter(of: e).y
+                        return SIMD3<Float>(hit.position.x, topY, hit.position.z)
+                    }
+                    // Tilted card: defer to caller's normal tap
+                    // handling so tap-to-select continues to work.
+                    return nil
+                }
+                entity = e.parent
+            }
+        }
+        // No card hit (table or empty space): existing behavior.
+        return view.project(point, ontoPlaneAt: 0)
     }
 
     /// Set card.position.y so the card's bottom-edge midpoint

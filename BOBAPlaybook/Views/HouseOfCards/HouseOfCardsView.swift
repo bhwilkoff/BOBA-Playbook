@@ -304,7 +304,7 @@ struct HouseOfCardsView: View {
                     helpRow("Tilt (angle)",         "Two-finger HORIZONTAL drag → tilt the selected card forward/back, up to flat (90°). The bottom keeps riding the surface below as it leans.")
                     helpRow("Lift / lower",         "Two-finger VERTICAL drag → raise or lower the selected card freely. Lift a card high to position it as a roof piece on top of an A-frame apex.")
                     helpRow("Rotate (yaw)",         "TWIST with two fingers → spin the selected card around its vertical axis. (Standard iOS rotation gesture, same as Photos / Maps.)")
-                    helpRow("Smart snap",           "When you release a drag, lift, or tilt near another card, the closest valid stacking pose snaps automatically. Three cases: (1) Both tilted in OPPOSITE directions and their tops are close → A-frame apex. (2) Your card is ABOVE another card with bottom near their top → your bottom rests on the supporting card. (3) Two similar-tilt cards' bottoms close together → bases snap side-by-side. Build pyramids, roofs, and adjacent towers without measuring.")
+                    helpRow("Smart snap",           "When you release a drag, lift, or tilt near another card, the closest valid stacking pose snaps automatically. Four cases: (1) Both tilted in OPPOSITE directions, your TOPS close → A-frame apex. (2) Both tilted in OPPOSITE directions, your BOTTOMS close → share a foot (start the NEXT A-frame in a row). (3) Your card is ABOVE another card with bottom near their top → your bottom rests on the supporting card. (4) Two FLAT cards' bottoms close together → roof tiles side-by-side. Build pyramids, rows, and roofs without measuring.")
                     helpRow("Deselect",             "Tap empty space (or tap the selected card again) to deselect.")
                     helpRow("Look around",          "When NOTHING is selected: one-finger drag orbits, two-finger drag pans the view, pinch zooms.")
                     helpRow("Play / Pause",        "Tap PLAY to engage physics. Tap PAUSE anytime to freeze mid-fall, repair, and play again.")
@@ -1574,9 +1574,10 @@ private final class HouseOfCardsCoordinator: NSObject {
     private static let sideBySideTolerance: Float = 0.04 // 4cm
 
     private enum SmartSnapKind: String {
-        case aFrame
-        case sitOnTop
-        case sideBySide
+        case aFrame      // mirror-tilted, TOPS meet at apex (build a new A-frame)
+        case shareFoot   // mirror-tilted, BOTTOMS meet at shared foot (extend a row of A-frames)
+        case sitOnTop    // our bottom rests on a candidate's top face
+        case sideBySide  // two flat roof tiles, edges touching (cardWidth apart)
     }
 
     /// True if `c` is already in an A-frame with some other card
@@ -1643,16 +1644,65 @@ private final class HouseOfCardsCoordinator: NSObject {
             //    Sit-on-top below is still allowed against
             //    partnered candidates (that's how you place a roof
             //    card on an A-frame apex).
+            // Helpers shared between A-frame and share-foot below.
+            let theirBottomForMirror = c.entity.convert(position: bottomLocal, to: nil as Entity?)
+            let dTopXZ: Float = {
+                let dx = theirTop.x - ourTop.x
+                let dz = theirTop.z - ourTop.z
+                return sqrt(dx * dx + dz * dz)
+            }()
+            let dBottomXZ: Float = {
+                let dx = theirBottomForMirror.x - ourBottom.x
+                let dz = theirBottomForMirror.z - ourBottom.z
+                return sqrt(dx * dx + dz * dz)
+            }()
+
+            // 1a) A-frame TOP-to-TOP. Both tilted, mirror sign,
+            //     similar magnitude. The user is closer to the
+            //     partner's TOP than their BOTTOM — that signals
+            //     "we're forming an apex." SKIP if the partner
+            //     already has an A-frame mate (their apex is
+            //     occupied; snapping us there would put us on top
+            //     of the mate's stack, not a new pyramid).
             if abs(ourTilt) > Self.snapTiltMin,
                abs(theirTilt) > Self.snapTiltMin,
                ourTilt * theirTilt < 0,
                abs(abs(theirTilt) - abs(ourTilt)) < Self.snapMirrorTolerance,
+               dTopXZ <= dBottomXZ,
                !isAlreadyPartnered(c, in: candidates) {
-                let dxA = theirTop.x - ourTop.x
-                let dzA = theirTop.z - ourTop.z
-                let dA = sqrt(dxA * dxA + dzA * dzA)
-                if dA < Self.snapDistance, best == nil || dA < best!.dist {
-                    best = Best(kind: .aFrame, target: theirTop, ourFeature: ourTop, dist: dA, partner: c.entity)
+                if dTopXZ < Self.snapDistance, best == nil || dTopXZ < best!.dist {
+                    best = Best(kind: .aFrame, target: theirTop, ourFeature: ourTop, dist: dTopXZ, partner: c.entity)
+                }
+            }
+
+            // 1b) Share-foot: BOTTOM-to-BOTTOM for mirror-tilted
+            //     cards. This is the snap that builds a ROW of
+            //     adjacent A-frames — the inner cards of two
+            //     neighboring A-frames share a foot point on the
+            //     table (or on a flat roof at layer 1+). Two
+            //     mirror-tilted cards whose tops point AWAY from
+            //     each other and whose bottoms coincide.
+            //
+            //     Gate: user is closer to the partner's BOTTOM than
+            //     their TOP — that signals "we're building outward
+            //     from this card's foot," not "forming an apex
+            //     above it." Unlike A-frame, share-foot is ALLOWED
+            //     for already-partnered candidates (extending the
+            //     row is the whole point).
+            //
+            //     Target: our bottom snaps to their bottom XZ.
+            //     The Y is preserved (surface-snap handles altitude
+            //     so the new card lands on whatever surface is
+            //     below the snapped XZ — table at layer 0, flat
+            //     roof at layer 1+).
+            if abs(ourTilt) > Self.snapTiltMin,
+               abs(theirTilt) > Self.snapTiltMin,
+               ourTilt * theirTilt < 0,
+               abs(abs(theirTilt) - abs(ourTilt)) < Self.snapMirrorTolerance,
+               dBottomXZ < dTopXZ {
+                if dBottomXZ < Self.snapDistance, best == nil || dBottomXZ < best!.dist {
+                    let target = SIMD3<Float>(theirBottomForMirror.x, ourBottom.y, theirBottomForMirror.z)
+                    best = Best(kind: .shareFoot, target: target, ourFeature: ourBottom, dist: dBottomXZ, partner: c.entity)
                 }
             }
 
@@ -1704,34 +1754,32 @@ private final class HouseOfCardsCoordinator: NSObject {
                 best = Best(kind: .sitOnTop, target: theirTopNearest, ourFeature: ourBottomFace, dist: dS, partner: c.entity)
             }
 
-            // 3) Side-by-side bottom-to-bottom: place our card
-            //    adjacent to the candidate at the same height,
-            //    edges touching. Used for: setting up the next
-            //    pyramid's base next to the existing one, laying
-            //    flat roof cards next to each other, etc.
+            // 3) Side-by-side: TWO FLAT ROOF TILES, edges touching.
             //
-            //    v2.180: direction-agnostic ring snap. Target is
-            //    exactly cardWidth from the candidate's bottom in
-            //    the direction the user dragged from — no enforced
-            //    axis, so it works for pyramids arranged in any
-            //    direction (lateral row, depth row, diagonal).
+            //    v2.202: restricted to horizontal cards only. The
+            //    prior "any tilts within 20° of each other"
+            //    semantic was the source of the user's "snaps the
+            //    card cardWidth away when I want it touching"
+            //    complaint — vertical + slightly-tilted cards
+            //    qualified, and the cardWidth offset is wrong for
+            //    every shape EXCEPT laying flat roof tiles next
+            //    to each other. Adjacent A-frames now use
+            //    share-foot (snap kind 1b above) instead.
             //
-            //    Gates: bottoms at similar heights (within 2cm),
-            //    AND tilts similar (same direction, within
-            //    mirrorTolerance). Tilt-similarity means we only
-            //    engage between cards that are "in the same layer"
-            //    — a vertical card and a tilted card don't
-            //    side-by-side snap (that pairing usually wants
-            //    A-frame instead).
+            //    The cardWidth offset is correct here: two flat
+            //    cards (broad face up) placed edge-to-edge along
+            //    their short axis are exactly cardWidth apart
+            //    center-to-center.
             //
-            //    Threshold 4cm (vs A-frame's 12cm): side-by-side
-            //    is a precise relationship, not a long-range
-            //    magnet. The user has to drag close to the
-            //    snap target for it to engage.
+            //    Gates: both cards horizontal (|tilt| within ~17°
+            //    of π/2), bottoms at similar heights (within 2cm).
+            //    Tolerance stays 4cm — precise relationship, not
+            //    a long-range magnet.
             let theirBottom = c.entity.convert(position: bottomLocal, to: nil as Entity?)
             let yAligned = abs(ourBottom.y - theirBottom.y) < 0.02
-            let tiltSame = abs(ourTilt - theirTilt) < Self.snapMirrorTolerance
-            if yAligned, tiltSame {
+            let ourFlat   = abs(abs(ourTilt)   - .pi / 2) < 0.3
+            let theirFlat = abs(abs(theirTilt) - .pi / 2) < 0.3
+            if yAligned, ourFlat, theirFlat {
                 let dirToOurs = SIMD3<Float>(
                     ourBottom.x - theirBottom.x, 0, ourBottom.z - theirBottom.z
                 )
@@ -1806,6 +1854,19 @@ private final class HouseOfCardsCoordinator: NSObject {
             // their (upward) face center.
             let offset = snap.target - snap.ourFeature
             card.entity.position += offset
+
+        case .shareFoot:
+            // XZ only — our bottom-edge midpoint lands at the
+            // partner's bottom-edge midpoint XZ. Tilt is preserved
+            // (the user chose it). Y is delegated to surface-snap,
+            // so a layer-0 share-foot lands on the table and a
+            // layer-1+ share-foot lands on whatever flat support is
+            // below the snapped XZ. This is the "extend a row of
+            // A-frames" gesture — two mirror-tilted cards sharing
+            // a foot point, the canonical adjacent-A-frame seed.
+            let offset = snap.target - snap.ourFeature
+            card.entity.position.x += offset.x
+            card.entity.position.z += offset.z
 
         case .sideBySide:
             // XZ only — Y delegated to surface-snap.

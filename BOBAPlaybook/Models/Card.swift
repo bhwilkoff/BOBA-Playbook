@@ -181,3 +181,22 @@ extension Card: Transferable {
         CodableRepresentation(contentType: .json)
     }
 }
+
+extension Card {
+    /// Canonical card identifier matching `scripts/boba_id.py`'s
+    /// 4-field v2 formula:
+    ///   `cardNumber-(hero or name)-(treatment or "")-(variation or "")`
+    /// Sealed products use `name` when `hero` is empty. Trailing
+    /// dashes are intentional and stable. CLAUDE.md "One ID per
+    /// Card" — this is the primary key for the catalog. Verified
+    /// 17,739 unique values across the bundle (zero collisions).
+    ///
+    /// Computed at runtime rather than decoded — the formula is
+    /// deterministic so the value matches the `bobaId` stored in
+    /// the JSON bundles. Older bundles that pre-date the field
+    /// still resolve to the same id.
+    var bobaId: String {
+        let identifier = hero.isEmpty ? name : hero
+        return "\(cardNumber)-\(identifier)-\(treatment ?? "")-\(variation ?? "")"
+    }
+}

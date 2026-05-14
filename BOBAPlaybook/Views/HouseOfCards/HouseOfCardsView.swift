@@ -831,7 +831,7 @@ private final class HouseOfCardsCoordinator: NSObject {
                     // its new XZ (table, another card's top, etc.).
                     let yDelta: Float = -Float(delta.y) * 0.0005
                     let newY = card.entity.position.y + yDelta
-                    card.entity.position.y = max(minCardY(), newY)
+                    card.entity.position.y = max(minCardY(for: card), newY)
 
                 case .undetermined:
                     // Haven't committed to an axis yet — apply nothing.
@@ -1005,12 +1005,12 @@ private final class HouseOfCardsCoordinator: NSObject {
                 guard let world = view.project(point, ontoPlaneAt: y) else { return }
                 let dx = world.x - first.entity.position.x
                 let dz = world.z - first.entity.position.z
-                let minY = minCardY()
                 for c in cards {
                     c.entity.position.x += dx
                     c.entity.position.z += dz
                     // Clamp Y to keep card and outline above the
                     // table at all times (user explicit rule #10).
+                    let minY = minCardY(for: c)
                     if c.entity.position.y < minY {
                         c.entity.position.y = minY
                     }
@@ -1064,11 +1064,26 @@ private final class HouseOfCardsCoordinator: NSObject {
         updateCameraTransform()
     }
 
-    /// Minimum world-Y for any card given clearance for the
-    /// outline halo. Hard floor — bottoms out at table level.
-    /// Surface-snap (applySurfaceSnap) handles the "snap to top
-    /// of supporting card" case on top of this.
-    private func minCardY() -> Float {
+    /// Minimum world-Y for the card's CENTER given clearance for
+    /// the outline halo. Hard floor — bottoms out at table level.
+    /// v2.189: orientation-aware. For a vertical card the lowest
+    /// face is cardHeight/2 below the center; for a horizontal
+    /// card it's only cardThick/2 below. Computing this generally
+    /// from downwardFaceCenter avoids the bug where a horizontal
+    /// roof card was clamped to vertical-card-floor (cardHeight/2
+    /// above the table) and ended up at mid-pyramid height
+    /// intersecting cards instead of resting at the apex.
+    private func minCardY(for card: CardEntity) -> Float {
+        let lowestFace = downwardFaceCenter(of: card.entity)
+        // How far below the center is the lowest face?
+        let belowCenter = card.entity.position.y - lowestFace.y
+        return belowCenter + Self.minClearance
+    }
+
+    /// Fallback when no card is available (called from 2-finger
+    /// pan .lift before a selection is established). Uses a
+    /// conservative vertical-card extent.
+    private func minCardYConservative() -> Float {
         return Self.cardHeight * 0.5 + Self.minClearance
     }
 
@@ -1092,9 +1107,14 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     private func surfaceYBelow(card: CardEntity) -> SurfaceHit? {
         guard let arView = self.arView else { return nil }
-        let bottomMidLocal = SIMD3<Float>(0, 0, -Self.cardHeight / 2)
-        let bottomMid = card.entity.convert(position: bottomMidLocal, to: nil as Entity?)
-        let origin = SIMD3<Float>(bottomMid.x, bottomMid.y + 0.01, bottomMid.z)
+        // v2.189: raycast from the orientation-aware downward-face
+        // center, not the local-frame -Z midpoint. For horizontal
+        // cards the local -Z midpoint is at the BACK EDGE of the
+        // broad face (same Y as center), not the actual bottom —
+        // the raycast missed the supporting card and hit the
+        // table, dropping horizontal roof cards to mid-pyramid.
+        let lowestFace = downwardFaceCenter(of: card.entity)
+        let origin = SIMD3<Float>(lowestFace.x, lowestFace.y + 0.01, lowestFace.z)
         let hits = arView.scene.raycast(
             origin: origin,
             direction: SIMD3<Float>(0, -1, 0),
@@ -1177,10 +1197,12 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     private func applySurfaceSnap(to card: CardEntity) {
         guard let hit = surfaceYBelow(card: card) else { return }
-        let bottomMidLocal = SIMD3<Float>(0, 0, -Self.cardHeight / 2)
-        let currentBottomY = card.entity.convert(
-            position: bottomMidLocal, to: nil as Entity?
-        ).y
+        // v2.189: use the orientation-aware downward face center
+        // (matches surfaceYBelow's raycast origin). For a vertical
+        // card this IS the bottom-edge midpoint; for a horizontal
+        // card it's the broad bottom face center. Either way it's
+        // the actual lowest world-Y point of the card.
+        let currentBottomY = downwardFaceCenter(of: card.entity).y
         // v2.188: full minClearance (halo clearance) only when the
         // surface is the table. Card-on-card stacking uses tiny
         // cardStackClearance so cards actually touch their supports
@@ -1190,10 +1212,12 @@ private final class HouseOfCardsCoordinator: NSObject {
         let targetBottomY = hit.y + clearance
         let dy = targetBottomY - currentBottomY
         card.entity.position.y += dy
-        // Safety: keep entity center above table-floor even if
-        // the math glitches (e.g., near-degenerate tilt).
-        if card.entity.position.y < minCardY() {
-            card.entity.position.y = minCardY()
+        // Safety floor: keep card's downward face above the table.
+        // Computed AFTER the dy adjustment so it reflects the new
+        // orientation/position.
+        let minCenter = minCardY(for: card)
+        if card.entity.position.y < minCenter {
+            card.entity.position.y = minCenter
         }
     }
 

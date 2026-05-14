@@ -1107,51 +1107,39 @@ private final class HouseOfCardsCoordinator: NSObject {
 
     private func surfaceYBelow(card: CardEntity) -> SurfaceHit? {
         guard let arView = self.arView else { return nil }
-        // v2.192: multi-point probe. We previously raycast from a
-        // single point (downward-face center). For a flat roof card
-        // whose center is over empty space but whose CORNERS are
-        // over a supporting card, that single ray missed and the
-        // card snapped to the table. Now we probe the downward
-        // face center AND its 4 corners, then return the HIGHEST
-        // non-self hit. This implements the user-stated intent:
-        // "if any part of the card is over another card, rest on
-        // that card — never the table."
-        let probes = downwardFaceProbePoints(of: card.entity)
-        var bestY: Float = -Float.greatestFiniteMagnitude
-        var bestIsTable = true
-        var foundAny = false
-        for probe in probes {
-            let origin = SIMD3<Float>(probe.x, probe.y + 0.01, probe.z)
-            let hits = arView.scene.raycast(
-                origin: origin,
-                direction: SIMD3<Float>(0, -1, 0),
-                length: 2.0,
-                query: .all,
-                mask: .default,
-                relativeTo: nil
-            )
-            for hit in hits {
-                var e: Entity? = hit.entity
-                var isSelf = false
-                var isCard = false
-                while let cur = e {
-                    if cur.name == "card-root" {
-                        if cur === card.entity { isSelf = true } else { isCard = true }
-                        break
-                    }
-                    e = cur.parent
+        // v2.193: reverted v2.192's multi-point probe. Multi-point
+        // caused regressions: corner probes near the edge of a
+        // supporting card sometimes hit a TALLER nearby card,
+        // jacking up the placed card to that taller support
+        // instead of resting it on its intended support. Back to
+        // a single ray from the downward face center, which is
+        // the most "intended support" point for the card.
+        let lowestFace = downwardFaceCenter(of: card.entity)
+        let origin = SIMD3<Float>(lowestFace.x, lowestFace.y + 0.01, lowestFace.z)
+        let hits = arView.scene.raycast(
+            origin: origin,
+            direction: SIMD3<Float>(0, -1, 0),
+            length: 2.0,
+            query: .all,
+            mask: .default,
+            relativeTo: nil
+        )
+        for hit in hits {
+            var e: Entity? = hit.entity
+            var isSelf = false
+            var isCard = false
+            while let cur = e {
+                if cur.name == "card-root" {
+                    if cur === card.entity { isSelf = true } else { isCard = true }
+                    break
                 }
-                if !isSelf {
-                    if hit.position.y > bestY {
-                        bestY = hit.position.y
-                        bestIsTable = !isCard
-                    }
-                    foundAny = true
-                    break  // first non-self hit on this probe
-                }
+                e = cur.parent
+            }
+            if !isSelf {
+                return SurfaceHit(y: hit.position.y, isTable: !isCard)
             }
         }
-        return foundAny ? SurfaceHit(y: bestY, isTable: bestIsTable) : nil
+        return nil
     }
 
     /// Probe points for surfaceYBelow's multi-point raycast: the
@@ -1384,6 +1372,12 @@ private final class HouseOfCardsCoordinator: NSObject {
             let dist: Float
             let partner: Entity
         }
+        // v2.193 diagnostics: track the closest sit-on-top
+        // candidate that was REJECTED (out of range or Y check
+        // failed). On a "no candidate" failure, the print includes
+        // this info so we can see why nothing engaged.
+        var nearestSitDist: Float = .greatestFiniteMagnitude
+        var nearestSitReason: String = "no candidates"
         var best: Best? = nil
 
         for c in candidates {
@@ -1418,24 +1412,37 @@ private final class HouseOfCardsCoordinator: NSObject {
             //    or flat-roof horizontal. Only engages when our
             //    card is at or above the candidate.
             let theirTopFace = upwardFaceCenter(of: c.entity)
-            if ourBottomFace.y >= theirTopFace.y - 0.01 {
-                let dxS = theirTopFace.x - ourBottomFace.x
-                let dzS = theirTopFace.z - ourBottomFace.z
-                let dS = sqrt(dxS * dxS + dzS * dzS)
-                // v2.192: extend sit-on-top range when our card is
-                // CLEARLY in roof-placement mode — tilt within ~17°
-                // of horizontal AND lifted noticeably above the
-                // table. In that case the user's intent is
-                // unambiguous ("place this flat card on whatever's
-                // up there") and reaching from further is the
-                // helpful behavior. For all other orientations the
-                // standard 12cm range still applies.
-                let isHorizontalish = abs(abs(ourTilt) - .pi / 2) < 0.3
-                let isLifted = ourBottomFace.y > 0.025  // > 2.5cm above the table
-                let range: Float = (isHorizontalish && isLifted) ? 0.25 : Self.snapDistance
-                if dS < range, best == nil || dS < best!.dist {
-                    best = Best(kind: .sitOnTop, target: theirTopFace, ourFeature: ourBottomFace, dist: dS, partner: c.entity)
+            // v2.193 intent-based sit-on-top:
+            //   - HORIZONTAL card (tilt within ~17° of flat): the
+            //     intent is "place this flat thing on top of
+            //     something" regardless of current Y. Sit-on-top
+            //     can pull the card UP from the table to the
+            //     candidate's top. Range 25cm.
+            //   - Anything else (vertical / tilted / mid-angle):
+            //     only fire when our bottom is at or above their
+            //     top (within 1cm). Standard 12cm range. This
+            //     prevents weird "lift a vertical card up onto a
+            //     pyramid" snaps the user wouldn't want.
+            let isHorizontalish = abs(abs(ourTilt) - .pi / 2) < 0.3
+            let canSit: Bool = isHorizontalish
+                || (ourBottomFace.y >= theirTopFace.y - 0.01)
+            let dxS = theirTopFace.x - ourBottomFace.x
+            let dzS = theirTopFace.z - ourBottomFace.z
+            let dS = sqrt(dxS * dxS + dzS * dzS)
+            let range: Float = isHorizontalish ? 0.25 : Self.snapDistance
+            // Track nearest for diagnostics (whether we used it or not).
+            if dS < nearestSitDist {
+                nearestSitDist = dS
+                if !canSit {
+                    nearestSitReason = "Y-check (bottom \(String(format: "%.3f", ourBottomFace.y)) below top \(String(format: "%.3f", theirTopFace.y)))"
+                } else if dS >= range {
+                    nearestSitReason = "out of range (\(String(format: "%.3f", dS))m > \(String(format: "%.2f", range))m)"
+                } else {
+                    nearestSitReason = "fired"
                 }
+            }
+            if canSit, dS < range, best == nil || dS < best!.dist {
+                best = Best(kind: .sitOnTop, target: theirTopFace, ourFeature: ourBottomFace, dist: dS, partner: c.entity)
             }
 
             // 3) Side-by-side bottom-to-bottom: place our card
@@ -1482,7 +1489,8 @@ private final class HouseOfCardsCoordinator: NSObject {
         }
 
         guard let snap = best else {
-            print("[HoB] Smart snap: no candidate in 12cm (tilt=\(String(format: "%.2f", ourTilt))rad)")
+            let horiz = abs(abs(ourTilt) - .pi / 2) < 0.3 ? "(horizontal)" : ""
+            print("[HoB] Smart snap MISS: tilt=\(String(format: "%.2f", ourTilt))rad\(horiz) ourBottomY=\(String(format: "%.3f", ourBottomFace.y)) nearestSit=\(String(format: "%.3f", nearestSitDist))m reason=\(nearestSitReason)")
             return
         }
 
@@ -2252,13 +2260,19 @@ private final class HouseOfCardsCoordinator: NSObject {
         let count = min(cards.count, 4)
         let firstX = -Float(count - 1) * 0.5 * spacing
 
-        // Base rotation: stand vertical, front facing camera (+Z).
+        // Base rotation: stand vertical, front facing camera.
         // standUp = -π/2 around X puts height up; flipY = π
         // around Y rotates the card so its front (originally
         // local +Y → world -Z after standUp) now faces +Z.
+        // v2.193: an additional yaw of camAzimuth orients the
+        // front toward wherever the camera currently is —
+        // previously cards always faced world +Z even when the
+        // user had orbited the camera around, leaving their
+        // backs facing the user from many angles.
         let standUp = simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
         let faceCamera = simd_quatf(angle: .pi, axis: SIMD3<Float>(0, 1, 0))
-        let rotation = faceCamera * standUp
+        let faceCurrentCamera = simd_quatf(angle: camAzimuth, axis: SIMD3<Float>(0, 1, 0))
+        let rotation = faceCurrentCamera * faceCamera * standUp
 
         var newHeld: [CardEntity] = []
         for i in 0..<count {

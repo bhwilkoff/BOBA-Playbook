@@ -1585,7 +1585,16 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// bottom face is within this radius of the proposed target.
     /// Prevents the snap from pulling a new card onto a position
     /// already taken by an existing card in the structure.
-    private static let occupancyRadius: Float = 0.03  // 3cm
+    ///
+    /// `nonisolated` because this is referenced as a default
+    /// parameter value in `slotOccupied(...)`. Default param
+    /// values evaluate outside the method's isolation context, so
+    /// a MainActor-isolated static (the implicit isolation under
+    /// SWIFT_DEFAULT_ACTOR_ISOLATION=MainActor) wouldn't be
+    /// reachable. Float is Sendable and immutable; no concurrency
+    /// hazard. Same pattern as the existing `nonisolated` Card
+    /// struct override (see Models/Card.swift).
+    private nonisolated static let occupancyRadius: Float = 0.03  // 3cm
 
     private enum SmartSnapKind: String {
         case aFrame      // mirror-tilted, TOPS meet at apex (build a new A-frame)

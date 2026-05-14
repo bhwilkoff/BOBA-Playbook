@@ -809,7 +809,7 @@ private final class HouseOfCardsCoordinator: NSObject {
                     let clamped = max(-maxTilt, min(maxTilt, proposed))
                     let actualAngle = clamped - currentTilt
                     if abs(actualAngle) > 1e-5 {
-                        let pitchQ = simd_quatf(angle: actualAngle, axis: SIMD3<Float>(1, 0, 0))
+                        let pitchQ = simd_quatf(angle: actualAngle, axis: pitchAxis(of: card.entity))
                         card.entity.orientation = pitchQ * card.entity.orientation
                         let pivotAfter = card.entity.convert(position: bottomLocal, to: nil as Entity?)
                         card.entity.position += (pivotBefore - pivotAfter)
@@ -1532,7 +1532,7 @@ private final class HouseOfCardsCoordinator: NSObject {
             let tiltDelta = -partnerTilt - ourCurrentTilt
             if abs(tiltDelta) > 0.005 {
                 let pivotBefore = card.entity.convert(position: bottomLocal, to: nil as Entity?)
-                let pitchQ = simd_quatf(angle: tiltDelta, axis: SIMD3<Float>(1, 0, 0))
+                let pitchQ = simd_quatf(angle: tiltDelta, axis: pitchAxis(of: card.entity))
                 card.entity.orientation = pitchQ * card.entity.orientation
                 let pivotAfter = card.entity.convert(position: bottomLocal, to: nil as Entity?)
                 card.entity.position += (pivotBefore - pivotAfter)
@@ -1579,11 +1579,45 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// world YZ plane — true for cards manipulated only by pitch
     /// + yaw, which is the only case the playground produces.
     private func pitchAngle(of entity: Entity) -> Float {
-        // Local +Z transformed to world.
+        // v2.195: pitch is now measured relative to the CARD's
+        // facing direction, not world +Z. For an un-yawed card
+        // this gives identical values to the old formula; for a
+        // yawed card it correctly reports the same magnitude of
+        // tilt regardless of which direction the card faces.
+        //
+        // The pitch is the signed angle between worldUp (local +Z)
+        // and world +Y, where the sign is determined by whether
+        // worldUp leans in the card's forward direction (local +Y
+        // projected to the horizontal plane).
         let worldUp = entity.convert(direction: SIMD3<Float>(0, 0, 1), to: nil as Entity?)
-        // Pitch around world X is the angle between worldUp's
-        // projection onto the YZ plane and world +Y.
-        return atan2(worldUp.z, worldUp.y)
+        let cardForward = entity.convert(direction: SIMD3<Float>(0, 1, 0), to: nil as Entity?)
+        let cardForwardXZ = SIMD3<Float>(cardForward.x, 0, cardForward.z)
+        let len = simd_length(cardForwardXZ)
+        guard len > 1e-3 else {
+            // Card facing straight up/down — fallback to old formula.
+            return atan2(worldUp.z, worldUp.y)
+        }
+        let cardForwardUnit = cardForwardXZ / len
+        let upForward = simd_dot(SIMD3<Float>(worldUp.x, 0, worldUp.z), cardForwardUnit)
+        return atan2(upForward, worldUp.y)
+    }
+
+    /// Pitch rotation axis for a card: the card's local +X
+    /// direction projected to the horizontal plane and negated.
+    /// Negation makes positive-input pitch tilt the top toward
+    /// the card's facing direction (matching user intent at any
+    /// yaw). The card's local +X direction IS the bottom-edge
+    /// line of the card, so rotating around this axis keeps the
+    /// entire bottom edge fixed in world — no corner dips into
+    /// the table regardless of yaw.
+    private func pitchAxis(of entity: Entity) -> SIMD3<Float> {
+        let localX = entity.convert(direction: SIMD3<Float>(1, 0, 0), to: nil as Entity?)
+        let xz = SIMD3<Float>(localX.x, 0, localX.z)
+        let len = simd_length(xz)
+        if len > 1e-3 {
+            return -(xz / len)
+        }
+        return SIMD3<Float>(1, 0, 0)
     }
 
     /// Yaw (signed angle around world Y) of an entity's
@@ -2260,26 +2294,26 @@ private final class HouseOfCardsCoordinator: NSObject {
         let count = min(cards.count, 4)
         let firstX = -Float(count - 1) * 0.5 * spacing
 
-        // Base rotation: stand vertical, front facing world +Z.
-        // v2.194: reverted v2.193's "yaw by camAzimuth" addition.
-        // The added yaw made cards face the current camera, but
-        // broke A-frame pitch — pitch is applied around world X,
-        // and for a yawed card world X is no longer aligned with
-        // the card's lateral edge, so tilting forward made one
-        // corner dip into the table. Cards now spawn in a fixed
-        // orientation along world X axis. Returning to camera-
-        // facing spawn would require also rewriting pitch to
-        // rotate around the card's LOCAL X axis instead of world
-        // X — bundled change for a future commit if requested.
+        // Base rotation: stand vertical, front facing the user's
+        // current camera direction. v2.195: now safe to add the
+        // camera yaw because pitch was rewritten to rotate around
+        // the card's local X axis (pitchAxis helper), not world X.
+        // No corner dips into the table at any yaw.
         let standUp = simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
         let faceCamera = simd_quatf(angle: .pi, axis: SIMD3<Float>(0, 1, 0))
-        let rotation = faceCamera * standUp
+        let faceCurrentCamera = simd_quatf(angle: camAzimuth, axis: SIMD3<Float>(0, 1, 0))
+        let rotation = faceCurrentCamera * faceCamera * standUp
+        // Spread along camera-right direction (not world X) so
+        // cards appear "in a row, next to one another" from the
+        // user's view regardless of camera azimuth.
+        let cameraRight = SIMD3<Float>(cos(camAzimuth), 0, -sin(camAzimuth))
 
         var newHeld: [CardEntity] = []
         for i in 0..<count {
-            let entityX = location.x + firstX + Float(i) * spacing
+            let lateralOffset = (firstX + Float(i) * spacing) * cameraRight
+            let entityX = location.x + lateralOffset.x
             let entityY = location.y + centerY
-            let entityZ = location.z
+            let entityZ = location.z + lateralOffset.z
 
             let entity = buildCardEntity(
                 for: cards[i],

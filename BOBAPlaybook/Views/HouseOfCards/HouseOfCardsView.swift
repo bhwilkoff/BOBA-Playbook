@@ -304,7 +304,7 @@ struct HouseOfCardsView: View {
                     helpRow("Tilt (angle)",         "Two-finger HORIZONTAL drag → tilt the selected card forward/back, up to flat (90°). The bottom keeps riding the surface below as it leans.")
                     helpRow("Lift / lower",         "Two-finger VERTICAL drag → raise or lower the selected card freely. Lift a card high to position it as a roof piece on top of an A-frame apex.")
                     helpRow("Rotate (yaw)",         "TWIST with two fingers → spin the selected card around its vertical axis. (Standard iOS rotation gesture, same as Photos / Maps.)")
-                    helpRow("Smart snap",           "When you release a drag, lift, or tilt near another card, the closest valid stacking pose snaps automatically. Four cases: (1) Both tilted in OPPOSITE directions, your TOPS close → A-frame apex. (2) Both tilted in OPPOSITE directions, your BOTTOMS close → share a foot (start the NEXT A-frame in a row). (3) Your card is ABOVE another card with bottom near their top → your bottom rests on the supporting card. (4) Two FLAT cards' bottoms close together → roof tiles side-by-side. Build pyramids, rows, and roofs without measuring.")
+                    helpRow("Smart snap",           "When you release a drag, lift, or tilt near another card, the closest valid stacking pose snaps automatically. Five cases: (1) Both tilted in OPPOSITE directions, your TOPS close → A-frame apex. (2) Both tilted in OPPOSITE directions, your BOTTOMS close → share a foot (start the NEXT A-frame in a row). (3) Your FLAT card dragged between TWO apex points (cardHeight apart) → roof tile spans both, one apex under each end. (4) Your card is ABOVE a support → bottom rests on the support's top. (5) Two FLAT cards' bottoms close together → roof tiles side-by-side. Build pyramids, rows, and roofs without measuring.")
                     helpRow("Deselect",             "Tap empty space (or tap the selected card again) to deselect.")
                     helpRow("Look around",          "When NOTHING is selected: one-finger drag orbits, two-finger drag pans the view, pinch zooms.")
                     helpRow("Play / Pause",        "Tap PLAY to engage physics. Tap PAUSE anytime to freeze mid-fall, repair, and play again.")
@@ -1576,8 +1576,16 @@ private final class HouseOfCardsCoordinator: NSObject {
     private enum SmartSnapKind: String {
         case aFrame      // mirror-tilted, TOPS meet at apex (build a new A-frame)
         case shareFoot   // mirror-tilted, BOTTOMS meet at shared foot (extend a row of A-frames)
-        case sitOnTop    // our bottom rests on a candidate's top face
+        case spanRoof    // flat card spans TWO apex supports (each apex under one END of the card)
+        case sitOnTop    // our bottom rests on a single candidate's top face
         case sideBySide  // two flat roof tiles, edges touching (cardWidth apart)
+    }
+
+    /// XZ distance between two points (Y ignored).
+    private func xzDistance(_ a: SIMD3<Float>, _ b: SIMD3<Float>) -> Float {
+        let dx = a.x - b.x
+        let dz = a.z - b.z
+        return sqrt(dx * dx + dz * dz)
     }
 
     /// True if `c` is already in an A-frame with some other card
@@ -1623,6 +1631,20 @@ private final class HouseOfCardsCoordinator: NSObject {
             let ourFeature: SIMD3<Float>
             let dist: Float
             let partner: Entity
+            /// Used by spanRoof only: the SECOND apex point of the
+            /// pair the flat card is spanning. Lets the apply
+            /// branch yaw-align the card so its long axis points
+            /// along the apex line. Nil for all other snap kinds.
+            let auxPoint: SIMD3<Float>?
+
+            init(kind: SmartSnapKind, target: SIMD3<Float>, ourFeature: SIMD3<Float>, dist: Float, partner: Entity, auxPoint: SIMD3<Float>? = nil) {
+                self.kind = kind
+                self.target = target
+                self.ourFeature = ourFeature
+                self.dist = dist
+                self.partner = partner
+                self.auxPoint = auxPoint
+            }
         }
         // v2.193 diagnostics: track the closest sit-on-top
         // candidate that was REJECTED (out of range or Y check
@@ -1795,6 +1817,65 @@ private final class HouseOfCardsCoordinator: NSObject {
             }
         }
 
+        // 4) Span-roof: a HORIZONTAL card resting on TWO apex
+        //    supports, with each apex under one END of the card
+        //    (apex-to-apex ≈ cardHeight, the card's long axis).
+        //    A single-apex sit-on-top would place the apex at the
+        //    card's CENTER, leaving both ends in mid-air — that's
+        //    the "physically impossible" result the user flagged
+        //    in v2.202 testing. Span-roof targets the MIDPOINT
+        //    between two apices and yaw-aligns the card so its
+        //    long axis points along the apex line.
+        //
+        //    Only fires for horizontal "us" cards. Runs as a
+        //    post-pass because it needs PAIRS of candidates.
+        let isHorizontalishUs = abs(abs(ourTilt) - .pi / 2) < 0.3
+        if isHorizontalishUs {
+            // Collect every candidate's upward-face center
+            // (apex point for a tilted A-frame card; broad-face
+            // center for a flat support).
+            let apexPoints: [(point: SIMD3<Float>, partner: Entity)] = candidates.map {
+                (upwardFaceCenter(of: $0.entity), $0.entity)
+            }
+            // Tolerances:
+            //   pair distance ≈ cardHeight ± 1.5cm (the natural
+            //     apex spacing of two adjacent A-frames at the
+            //     canonical 30° lean is exactly cardHeight)
+            //   our XZ-to-midpoint distance < 12cm (snapDistance)
+            let spanLengthTolerance: Float = 0.015
+            let spanRangeXZ: Float = Self.snapDistance
+            for i in 0..<apexPoints.count {
+                for j in (i + 1)..<apexPoints.count {
+                    let p1 = apexPoints[i].point
+                    let p2 = apexPoints[j].point
+                    let pairDist = xzDistance(p1, p2)
+                    if abs(pairDist - Self.cardHeight) > spanLengthTolerance { continue }
+                    let midpoint = SIMD3<Float>(
+                        (p1.x + p2.x) * 0.5,
+                        (p1.y + p2.y) * 0.5,
+                        (p1.z + p2.z) * 0.5
+                    )
+                    // Skip pairs we'd snap DOWN onto (no-drop
+                    // rule — our flat card sits at Y ≈ 0.006 at
+                    // table level; a pair at Y < -0.05 from us
+                    // would mean snapping down through the table,
+                    // which never happens in this geometry but
+                    // keep the symmetry with sit-on-top).
+                    let dY = midpoint.y - ourBottomFace.y
+                    if dY < -0.05 { continue }
+                    let dToMid = xzDistance(ourBottomFace, midpoint)
+                    if dToMid >= spanRangeXZ { continue }
+                    // Span-roof wins over single sit-on-top
+                    // whenever it's a closer XZ match than the
+                    // currently-best snap. Standard "lowest dist
+                    // wins" — no priority tier.
+                    if best == nil || dToMid < best!.dist {
+                        best = Best(kind: .spanRoof, target: midpoint, ourFeature: ourBottomFace, dist: dToMid, partner: apexPoints[i].partner, auxPoint: p2)
+                    }
+                }
+            }
+        }
+
         guard let snap = best else {
             let horiz = abs(abs(ourTilt) - .pi / 2) < 0.3 ? "(horizontal)" : ""
             print("[HoB] Smart snap MISS: tilt=\(String(format: "%.2f", ourTilt))rad\(horiz) ourBottomY=\(String(format: "%.3f", ourBottomFace.y)) nearestSit=\(String(format: "%.3f", nearestSitDist))m reason=\(nearestSitReason)")
@@ -1867,6 +1948,59 @@ private final class HouseOfCardsCoordinator: NSObject {
             let offset = snap.target - snap.ourFeature
             card.entity.position.x += offset.x
             card.entity.position.z += offset.z
+
+        case .spanRoof:
+            // YAW-ALIGN, then position. The card's long axis
+            // (local +Z, which is "up" before standUp and a
+            // horizontal axis after stand-up + horizontal pitch)
+            // is aligned to point from one apex to the other so
+            // the card's two cardHeight/2 ends land ON the apex
+            // points. Then we set the entity position so our
+            // bottom face center (the broad face facing down)
+            // ends up at the apex-midpoint.
+            if let p2 = snap.auxPoint {
+                let midpoint = snap.target
+                // Direction we want our long axis to point.
+                let pairDir = SIMD2<Float>(p2.x - midpoint.x, p2.z - midpoint.z)
+                let pairLen = simd_length(pairDir)
+                if pairLen > 1e-4 {
+                    let targetAngle = atan2(pairDir.x, pairDir.y)
+                    // Card's current local +Z direction in world.
+                    let currentLong = card.entity.convert(direction: SIMD3<Float>(0, 0, 1), to: nil as Entity?)
+                    let currentAngle = atan2(currentLong.x, currentLong.z)
+                    let rawDelta = wrapAngle(targetAngle - currentAngle)
+                    // The long axis has 180° symmetry — flipping
+                    // the card end-for-end produces the same span.
+                    // Take whichever rotation is smaller.
+                    let yawDelta: Float
+                    if rawDelta > .pi / 2 {
+                        yawDelta = rawDelta - .pi
+                    } else if rawDelta < -.pi / 2 {
+                        yawDelta = rawDelta + .pi
+                    } else {
+                        yawDelta = rawDelta
+                    }
+                    if abs(yawDelta) > 0.005 {
+                        let pivotBefore = ourBottomFace
+                        let yawQ = simd_quatf(angle: yawDelta, axis: SIMD3<Float>(0, 1, 0))
+                        card.entity.orientation = yawQ * card.entity.orientation
+                        let pivotAfter = downwardFaceCenter(of: card.entity)
+                        card.entity.position += (pivotBefore - pivotAfter)
+                    }
+                }
+                // Now move our (re-computed) bottom face center to
+                // the midpoint. Full XYZ — the midpoint's Y is the
+                // apex-pair's average Y, which is where the card
+                // should sit (resting on both apices).
+                let bottomNow = downwardFaceCenter(of: card.entity)
+                let offset = midpoint - bottomNow
+                card.entity.position += offset
+            } else {
+                // Defensive: auxPoint missing — fall back to
+                // single-target sit-on-top semantics.
+                let offset = snap.target - snap.ourFeature
+                card.entity.position += offset
+            }
 
         case .sideBySide:
             // XZ only — Y delegated to surface-snap.

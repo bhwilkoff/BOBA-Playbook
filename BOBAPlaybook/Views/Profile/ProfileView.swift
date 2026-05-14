@@ -167,14 +167,21 @@ struct ProfileView: View {
     @ToolbarContentBuilder
     private var profileToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            Button {
-                showingHouseOfCards = true
+            // v2.196: easter-eggs menu. Single entry today
+            // ("House of BoBA"); the menu is the structure for
+            // future hidden features to live under one icon.
+            Menu {
+                Button {
+                    showingHouseOfCards = true
+                } label: {
+                    Label("House of BoBA", systemImage: "square.stack.3d.up")
+                }
             } label: {
-                Image(systemName: "square.stack.3d.up")
+                Image(systemName: "sparkles")
                     .font(.system(size: 16, weight: .regular))
                     .foregroundStyle(.white.opacity(0.6))
             }
-            .accessibilityLabel("House of BoBA")
+            .accessibilityLabel("Easter eggs")
         }
         ToolbarItem(placement: .principal) { BOBAWordmark() }
         ToolbarItem(placement: .topBarTrailing) {

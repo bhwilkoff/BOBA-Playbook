@@ -1420,7 +1420,7 @@ private final class HouseOfCardsCoordinator: NSObject {
             // and the cards fall.
             let partnerYaw = yawAngle(of: snap.partner)
             let ourCurrentYaw = yawAngle(of: card.entity)
-            let yawDelta = partnerYaw - ourCurrentYaw
+            let yawDelta = wrapAngle(partnerYaw - ourCurrentYaw)
             if abs(yawDelta) > 0.005 {
                 let pivotBefore = card.entity.convert(position: bottomLocal, to: nil as Entity?)
                 let yawQ = simd_quatf(angle: yawDelta, axis: SIMD3<Float>(0, 1, 0))
@@ -1462,6 +1462,21 @@ private final class HouseOfCardsCoordinator: NSObject {
             card.entity.position.z += offset.z
         }
         applySurfaceSnap(to: card)
+        // v2.190: final collision-safety pass. The point-to-point
+        // snap math is now correct, but a snapped position can
+        // still place our body intersecting an unrelated card
+        // (e.g., a roof sit-on-top'd on apex 1 whose broad face
+        // extends into pyramid 2's column). SAT-based resolve
+        // pushes us out of any overlap exceeding cardThick (which
+        // is the natural body overlap at an A-frame apex from
+        // card thickness — we keep that contact intact).
+        resolveCollisions(for: card)
+        // Re-floor in case collision-resolve pushed us below the
+        // table-clearance level.
+        let minCenter = minCardY(for: card)
+        if card.entity.position.y < minCenter {
+            card.entity.position.y = minCenter
+        }
         print("[HoB] Smart snap: \(snap.kind.rawValue), \(String(format: "%.2f", snap.dist))m")
     }
 
@@ -1478,16 +1493,143 @@ private final class HouseOfCardsCoordinator: NSObject {
         return atan2(worldUp.z, worldUp.y)
     }
 
-    /// Yaw (signed angle CCW around world Y) of an entity's
-    /// orientation. Computed from the local +X direction projected
-    /// onto the world XZ plane — `atan2(-worldX.z, worldX.x)` puts
-    /// world +X at 0 and rotates CCW from above.
-    /// Used by A-frame snap to align partner yaws so the apex
-    /// contact is straight along the cardWidth, not skewed at
-    /// the corners.
+    /// Yaw (signed angle around world Y) of an entity's
+    /// orientation, returned in [-π, π]. v2.190: redefined so that
+    /// a card with NO additional yaw (just base standUp +
+    /// faceCamera) returns 0 — the previous version returned ±π
+    /// at the default orientation, which broke yaw-delta math
+    /// across the wraparound.
+    ///
+    /// Derivation: post-standUp+faceCamera, local +X direction in
+    /// world is `(-1, 0, 0)`. We want yaw = 0 in that case, so
+    /// invert the X component: `atan2(worldLateral.z, -worldLateral.x)`.
+    /// CCW yaw +30° → returns +30°; CW -30° → returns -30°.
     private func yawAngle(of entity: Entity) -> Float {
         let worldLateral = entity.convert(direction: SIMD3<Float>(1, 0, 0), to: nil as Entity?)
-        return atan2(-worldLateral.z, worldLateral.x)
+        return atan2(worldLateral.z, -worldLateral.x)
+    }
+
+    /// Wrap an angle delta into [-π, π] so e.g. a card at +179° vs
+    /// a partner at -179° resolves as a 2° turn, not 358°.
+    private func wrapAngle(_ a: Float) -> Float {
+        var v = a
+        while v >  .pi { v -= 2 * .pi }
+        while v < -.pi { v += 2 * .pi }
+        return v
+    }
+
+    // MARK: OBB collision resolution (v2.190)
+    //
+    // After every smart snap, check the snapped card against every
+    // other placed card via Separating Axis Theorem (SAT). If our
+    // body overlaps another by more than the allowed-overlap
+    // threshold (= cardThick, the natural overlap at an A-frame
+    // apex from card thickness), push us out along the
+    // minimum-translation-vector. Iterates until no offending
+    // overlap remains, so resolving against card A doesn't leave
+    // us overlapping card B.
+    //
+    // This is the only mechanism that prevents cards from
+    // intersecting in pause mode. Snap math places cards by
+    // point-to-point constraints (face center → face center);
+    // it has no awareness of full-body overlap. SAT closes that
+    // gap and makes the smart-snap output collision-safe.
+
+    private struct OBB {
+        let center: SIMD3<Float>
+        let halfExtents: SIMD3<Float>
+        let axisX: SIMD3<Float>
+        let axisY: SIMD3<Float>
+        let axisZ: SIMD3<Float>
+    }
+
+    private func obb(of entity: Entity) -> OBB {
+        return OBB(
+            center: entity.position,
+            halfExtents: SIMD3<Float>(
+                Self.cardWidth  / 2,
+                Self.cardThick  / 2,
+                Self.cardHeight / 2
+            ),
+            axisX: entity.convert(direction: SIMD3<Float>(1, 0, 0), to: nil as Entity?),
+            axisY: entity.convert(direction: SIMD3<Float>(0, 1, 0), to: nil as Entity?),
+            axisZ: entity.convert(direction: SIMD3<Float>(0, 0, 1), to: nil as Entity?)
+        )
+    }
+
+    /// Separating Axis Theorem test for two OBBs. Returns the
+    /// minimum-translation-vector that, when added to `a.center`,
+    /// separates the boxes — or nil if they don't overlap.
+    private func obbOverlap(_ a: OBB, _ b: OBB) -> SIMD3<Float>? {
+        let axes: [SIMD3<Float>] = [
+            a.axisX, a.axisY, a.axisZ,
+            b.axisX, b.axisY, b.axisZ,
+            simd_cross(a.axisX, b.axisX),
+            simd_cross(a.axisX, b.axisY),
+            simd_cross(a.axisX, b.axisZ),
+            simd_cross(a.axisY, b.axisX),
+            simd_cross(a.axisY, b.axisY),
+            simd_cross(a.axisY, b.axisZ),
+            simd_cross(a.axisZ, b.axisX),
+            simd_cross(a.axisZ, b.axisY),
+            simd_cross(a.axisZ, b.axisZ),
+        ]
+        let centerDiff = a.center - b.center
+        var minOverlap: Float = .infinity
+        var minAxis = SIMD3<Float>(0, 0, 0)
+        for axis in axes {
+            let len = simd_length(axis)
+            if len < 1e-6 { continue }  // skip degenerate cross products
+            let unit = axis / len
+            let projA = abs(simd_dot(a.axisX, unit)) * a.halfExtents.x +
+                        abs(simd_dot(a.axisY, unit)) * a.halfExtents.y +
+                        abs(simd_dot(a.axisZ, unit)) * a.halfExtents.z
+            let projB = abs(simd_dot(b.axisX, unit)) * b.halfExtents.x +
+                        abs(simd_dot(b.axisY, unit)) * b.halfExtents.y +
+                        abs(simd_dot(b.axisZ, unit)) * b.halfExtents.z
+            let centerProj = abs(simd_dot(centerDiff, unit))
+            let overlap = projA + projB - centerProj
+            if overlap <= 0 { return nil }  // separating axis found
+            if overlap < minOverlap {
+                minOverlap = overlap
+                // Orient axis so adding mtv to a separates it from b.
+                let signedDot = simd_dot(centerDiff, unit)
+                minAxis = signedDot >= 0 ? unit : -unit
+            }
+        }
+        return minAxis * minOverlap
+    }
+
+    /// Push the given card out of overlap with every other placed
+    /// card. Allowed overlap = cardThick — the natural body overlap
+    /// at an A-frame apex shouldn't be resolved away (it's the
+    /// intended contact). Larger overlaps (sit-on-top into another
+    /// pyramid's column, side-by-side too close, etc.) get pushed
+    /// out along the MTV. Iterates until no offending overlap
+    /// remains.
+    private func resolveCollisions(for card: CardEntity) {
+        let allowedOverlap: Float = Self.cardThick
+        let margin: Float = 0.0002
+        let others = (heldCards + dynamicCards).filter { $0 !== card }
+        if others.isEmpty { return }
+        let maxIterations = 8
+        for _ in 0..<maxIterations {
+            let ourBox = obb(of: card.entity)
+            var didResolve = false
+            for other in others {
+                let otherBox = obb(of: other.entity)
+                guard let mtv = obbOverlap(ourBox, otherBox) else { continue }
+                let mtvLen = simd_length(mtv)
+                if mtvLen <= allowedOverlap { continue }
+                // Push only the excess overlap + margin.
+                let unit = mtv / mtvLen
+                let pushDist = (mtvLen - allowedOverlap) + margin
+                card.entity.position += unit * pushDist
+                didResolve = true
+                break  // restart with the new position
+            }
+            if !didResolve { return }
+        }
     }
 
     // MARK: Selection (pause-mode-only manipulation)

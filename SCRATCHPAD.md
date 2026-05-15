@@ -4,11 +4,19 @@
 
 ## Current State (2026-05-15)
 
-- **Catalog**: 17,968 cards · ~90% image coverage on R2 · OKC art still pending
-- **Latest version**: iOS 2.212 / 475 — House of BoBA snap + undo + tiered-level counter shipped; called complete
-- **Latest commit**: House of BoBA help-sheet copy rewritten in the playbook's human/playful voice
+- **Catalog**: 17,974 cards · ~90% image coverage on R2 · OKC art still pending · 30 invalid-power records repaired
+- **Latest version**: iOS 2.223 / 486 — power-value cleanup (truth-from-image) + custom rainbows complete
+- **Latest commit**: redo power fixes by reading the printed value off each card image (supersedes v2.222 fallback)
 
 ## What Just Shipped (recent)
+
+- **Power-value cleanup — v2.223** (2026-05-15). 30 catalog cards with `power % 5 != 0` (invalid — every BoBA card prints a power ending in 0 or 5) repaired by READING the truth off each card's R2 image, not by sibling-mode fallback. v2.222 used mode-of-siblings and got 23/30 wrong; v2.223's TRUTH dict in `scripts/apply_verified_powers.py` is the canonical record. Beta tester flagged Emmitt-164 cards specifically. Follow-up planned: [[project_power_audit_followup]] for valid-but-wrong values OCR may have landed on by chance. Don't repeat: [[feedback_card_data_truth_from_image]].
+
+- **Custom rainbows — v2.219–v2.221** (2026-05-15). User-defined collecting goals as saved filters over the catalog. Backend: `user_custom_rainbows` Supabase table with own-row RLS + criteria jsonb. iOS: `CustomRainbow` + `RainbowCriteria` Codable + `CustomRainbowStore @Observable`. Editor sheet with eight filter dimensions (heroes/sets/sub-sets/weapons/treatments/cardTypes/releases + inspired-ink toggle) and live progress preview. Shared `RainbowDetailView` for BOTH custom AND per-hero auto-rainbows (`Kind.hero(String)` / `Kind.custom(UUID)`). Custom rainbows sit above the auto-generated per-hero list with a "+ New" button. Architecture in [[project_custom_rainbows_architecture]].
+
+- **Mod add-card + in-app cropping — v2.213, v2.218** (2026-05-15). Moderators can add net-new cards with the same field surface as the edit flow; `card_corrections` extended with `kind text` ('correction'|'addition'), `image_storage_path text`, `merged_at timestamptz`. Merge worker `scripts/merge_approved_additions.py` pulls approved additions → cards.json + R2. In-app 5:7 freeform cropper rebuilt as pure UIKit (CardCropViewController + CardCropOverlayView) after 5 iterations of broken SwiftUI gesture overlays — `hitTest(_:with:)` returning nil passes touches through to the UIScrollView for native pan/zoom. Architecture in [[project_mod_add_card_architecture]]; gesture lesson in [[feedback_swiftui_uiscrollview_gesture_passthrough]].
+
+- **Promo data import — v2.213** (2026-05-15). 6 new cards seeded into the catalog (5 First Reward Promo: A.I. / Amon-Ra / Bojax / Brandi / Cruschman; 1 Top 8 Bojax). 4 with images shipped to R2 via WebP tiers; 2 added without images for the auto-pipeline to find later. Skeee RPU-1 already existed. Reusable script: `scripts/import_new_cards.py`.
 
 - **House of BoBA (Easter egg) — called complete 2026-05-15** at v2.212. Paused-physics card-tower playground in Profile → easter-eggs menu. Five intent-named snap kinds (aFrame, shareFoot, spanRoof, sitOnTop, sideBySide) with slot-occupancy guards + stack-aware column filter. Undo button next to PLAY with 25-deep state stack; Reset moved to ⋯ menu; Smart-snap toggle there too as the creative escape valve. Live level counter tracks A-frame tiers only (flat-roof transitions don't count). Help sheet rewritten in the app's playful voice. Architecture in [[project_house_of_boba_architecture]].
 

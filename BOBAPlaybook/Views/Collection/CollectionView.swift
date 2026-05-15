@@ -80,6 +80,10 @@ struct CollectionView: View {
     enum CollectionRoute: Hashable {
         case rainbow
         case shows
+        /// v2.221: tapping a per-hero auto-rainbow now pushes the
+        /// same grid-of-cards detail view that custom rainbows use,
+        /// instead of jumping straight into a single card.
+        case heroRainbow(String)
     }
 
     /// iPad regular uses a NavigationSplitView sidebar for lens
@@ -259,8 +263,15 @@ struct CollectionView: View {
             .toolbarBackground(.visible, for: .navigationBar)
             .navigationDestination(for: CollectionRoute.self) { route in
                 switch route {
-                case .rainbow: rainbowDestination
-                case .shows:   ShowsListView()
+                case .rainbow:
+                    rainbowDestination
+                case .shows:
+                    ShowsListView()
+                case .heroRainbow(let hero):
+                    RainbowDetailView(
+                        kind: .hero(hero),
+                        navigationPath: $navigationPath
+                    )
                 }
             }
             .navigationDestination(for: String.self) { bobaId in
@@ -277,8 +288,8 @@ struct CollectionView: View {
                 CardDetailView(card: card, wrapInNavStack: false)
             }
             .navigationDestination(for: CustomRainbow.self) { rainbow in
-                CustomRainbowDetailView(
-                    rainbowId: rainbow.id,
+                RainbowDetailView(
+                    kind: .custom(rainbow.id),
                     navigationPath: $navigationPath
                 )
             }
@@ -318,10 +329,25 @@ struct CollectionView: View {
                         CardDetailView(card: card, wrapInNavStack: false)
                     }
                     .navigationDestination(for: CustomRainbow.self) { rainbow in
-                        CustomRainbowDetailView(
-                            rainbowId: rainbow.id,
+                        RainbowDetailView(
+                            kind: .custom(rainbow.id),
                             navigationPath: $navigationPath
                         )
+                    }
+                    .navigationDestination(for: CollectionRoute.self) { route in
+                        switch route {
+                        case .rainbow, .shows:
+                            // iPad reaches Rainbow / Shows via the sidebar
+                            // lens picker, not via a navigation push. Both
+                            // cases here are unreachable on iPad but
+                            // declaring them keeps the switch exhaustive.
+                            EmptyView()
+                        case .heroRainbow(let hero):
+                            RainbowDetailView(
+                                kind: .hero(hero),
+                                navigationPath: $navigationPath
+                            )
+                        }
                     }
             }
         }
@@ -719,17 +745,14 @@ struct CollectionView: View {
             HStack(spacing: 6) {
                 Image(systemName: "rainbow").font(.system(size: 16))
                     .foregroundStyle(Design.Colors.bobaCyan)
-                Text("What is a Rainbow?")
+                Text("Rainbows")
                     .font(Design.Fonts.display(16))
                     .foregroundStyle(Design.Colors.textPrimary)
             }
-            Text("Community collecting goal — owning every treatment (Base + every foil + every autograph) of a single hero. If you own at least one card of a hero, that hero shows up here with progress toward a complete set.")
+            Text("Track what you're chasing. Tap any rainbow to see every card it covers — yours are highlighted.")
                 .font(Design.Fonts.mono(12))
                 .foregroundStyle(Design.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("Sorted by percent complete. Tap a row to jump to the card.")
-                .font(Design.Fonts.mono(11))
-                .foregroundStyle(Design.Colors.textMuted)
         }
         .padding(Design.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -965,7 +988,12 @@ struct CollectionView: View {
                     ForEach(rows) { row in
                         rainbowRow(row)
                             .onTapGesture {
-                                navigationPath.append(row.coverCard.id)
+                                // v2.221: tap → grid of every printing
+                                // for that hero, owned + unowned, same
+                                // surface custom rainbows use. Was
+                                // previously a jump straight into a
+                                // single card detail.
+                                navigationPath.append(CollectionRoute.heroRainbow(row.hero))
                             }
                     }
                 }
@@ -1033,16 +1061,29 @@ struct CollectionView: View {
     /// per-hero rows below so the eye can compare progress at a
     /// glance.
     private func customRainbowRow(_ rainbow: CustomRainbow) -> some View {
-        let (owned, total) = customRainbowProgress(rainbow)
+        let (owned, total, thumb) = customRainbowProgress(rainbow)
         let percent = total == 0 ? 0.0 : Double(owned) / Double(total)
         return HStack(spacing: Design.Spacing.md) {
-            ZStack {
-                RoundedRectangle(cornerRadius: Design.Radius.sm)
-                    .fill(Design.Colors.glass)
+            // v2.221: thumbnail comes from the user's OWNED cards
+            // that match the rainbow (first owned match with an
+            // imageFile); if they don't own any yet, fall back to
+            // the first matching card in the catalog. Sparkles
+            // placeholder only when the rainbow matches zero cards
+            // (e.g. a freshly-edited rainbow whose criteria
+            // produces no results).
+            if let thumb {
+                CardImageView(card: thumb, size: .thumb)
                     .frame(width: 44, height: 62)
-                Image(systemName: "sparkles")
-                    .font(.system(size: 22))
-                    .foregroundStyle(Design.Colors.bobaCyan)
+                    .clipShape(RoundedRectangle(cornerRadius: Design.Radius.sm))
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: Design.Radius.sm)
+                        .fill(Design.Colors.glass)
+                        .frame(width: 44, height: 62)
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                }
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text(rainbow.name)
@@ -1075,13 +1116,26 @@ struct CollectionView: View {
         .contentShape(Rectangle())
     }
 
-    private func customRainbowProgress(_ rainbow: CustomRainbow) -> (owned: Int, total: Int) {
+    /// Custom-rainbow row stats. Returns (ownedCount, total,
+    /// thumbnailCard). Thumbnail prefers the first OWNED matching
+    /// card that has an image file — gives the user a visual
+    /// preview of their actual collection. Falls back to the first
+    /// matching card in the catalog when nothing is owned yet, and
+    /// to nil only if the rainbow matches zero cards entirely
+    /// (rare; the row falls back to the sparkles placeholder).
+    private func customRainbowProgress(_ rainbow: CustomRainbow) -> (owned: Int, total: Int, thumb: Card?) {
         let matching = cardStore.displayCards.filter { rainbow.criteria.matches($0) }
         let ownedIds = Set(collection.userCards
                                .filter { $0.designation.isOwned }
                                .compactMap { $0.bobaId })
-        let owned = matching.filter { ownedIds.contains($0.id) }.count
-        return (owned, matching.count)
+        let ownedMatching = matching.filter { ownedIds.contains($0.id) }
+        // Prefer an owned card with a real image; else any owned;
+        // else first match overall.
+        let thumb = ownedMatching.first(where: { $0.imageFile?.isEmpty == false })
+                    ?? ownedMatching.first
+                    ?? matching.first(where: { $0.imageFile?.isEmpty == false })
+                    ?? matching.first
+        return (ownedMatching.count, matching.count, thumb)
     }
 
     private func rainbowRow(_ row: RainbowProgress) -> some View {

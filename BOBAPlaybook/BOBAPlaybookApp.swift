@@ -15,6 +15,7 @@ struct BOBAPlaybookApp: App {
     @State private var scanStore = ScanStore()
     @State private var scanCoordinator = ScanCoordinator()
     @State private var showsStore = ShowsStore()
+    @State private var customRainbowStore = CustomRainbowStore()
     @State private var selectedTab = 0
 
     /// Set of known Learn category slugs — gates the
@@ -43,6 +44,7 @@ struct BOBAPlaybookApp: App {
                 .environment(scanStore)
                 .environment(scanCoordinator)
                 .environment(showsStore)
+                .environment(customRainbowStore)
                 .preferredColorScheme(.dark)
                 .task(id: authManager.userId) {
                     // Reload image removal overrides whenever auth state changes.

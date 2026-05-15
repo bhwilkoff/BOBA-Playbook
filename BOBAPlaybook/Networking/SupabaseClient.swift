@@ -538,6 +538,55 @@ final class SupabaseClient {
         try await voidExecute(request)
     }
 
+    /// Submits a NEW-CARD ADDITION via the same card_corrections table
+    /// (kind='addition'). The `cardSpec` dict carries the FULL card
+    /// record (every field from CLAUDE.md "One ID per Card" — see
+    /// scripts/import_new_cards.py NewCardSpec for the shape).
+    ///
+    /// `imageStoragePath` is the Supabase Storage path returned by an
+    /// upload to the `mod-card-images` bucket. May be nil if the
+    /// moderator submitted the card without an image — the auto-
+    /// pipeline (Stage A→B→C) will hunt for art separately.
+    ///
+    /// `bobaId` is the canonical 4-field ID computed client-side
+    /// (cardNumber-hero-treatment-variation). The merge worker
+    /// re-validates against the catalog before committing.
+    func submitCardAddition(
+        cardSpec:          [String: Any],
+        bobaId:            String,
+        notes:             String?,
+        imageStoragePath:  String?,
+        status:            String = "pending"
+    ) async throws {
+        guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
+        let url = try makeURL(path: "/rest/v1/card_corrections")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        addHeaders(&request, authenticated: true)
+        let cardNumber = (cardSpec["cardNumber"] as? String) ?? ""
+        let cardHero   = (cardSpec["hero"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+                         ?? (cardSpec["name"] as? String) ?? ""
+        let cardElement = (cardSpec["element"] as? String) ?? "NONE"
+        var body: [String: Any] = [
+            "kind":          "addition",
+            "card_number":   cardNumber,
+            "corrections":   cardSpec,      // full spec lives in the jsonb
+            "notes":         notes as Any,
+            "submitted_by":  uid.uuidString.lowercased(),
+            "status":        status,
+            "card_hero":     cardHero,
+            "card_element":  cardElement,
+            "boba_id":       bobaId,
+        ]
+        if let power = cardSpec["power"] as? Int    { body["card_power"]     = power }
+        if let treat = cardSpec["treatment"] as? String, !treat.isEmpty {
+            body["card_treatment"] = treat
+        }
+        if let path = imageStoragePath              { body["image_storage_path"] = path }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        try await voidExecute(request)
+    }
+
     // MARK: - Admin: corrections review
 
     struct PendingCorrection: Identifiable, Decodable {

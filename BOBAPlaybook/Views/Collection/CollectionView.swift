@@ -8,6 +8,7 @@ struct CollectionView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(CollectionStore.self) private var collection
     @Environment(CardStore.self) private var cardStore
+    @Environment(CustomRainbowStore.self) private var customRainbowStore
     @Environment(ScanStore.self) private var scanStore
     @Environment(ScanCoordinator.self) private var scanCoordinator
 
@@ -41,6 +42,8 @@ struct CollectionView: View {
     @State private var showingProfile      = false
     @State private var showingWall         = false
     @State private var showingShowcase     = false
+    /// Custom-rainbow creation sheet trigger (v2.219).
+    @State private var showingCustomRainbowEditor = false
     @State private var showingShareSheet   = false
     @State private var shareItems: [Any]   = []
     @AppStorage("selectedIconName") private var selectedIconName: String = "default"
@@ -191,6 +194,7 @@ struct CollectionView: View {
         .task {
             if auth.isAuthenticated {
                 await collection.loadCollection()
+                await customRainbowStore.load()
             }
         }
         .onAppear {
@@ -217,9 +221,13 @@ struct CollectionView: View {
         }
         .onChange(of: auth.isAuthenticated) { _, isAuthenticated in
             if isAuthenticated {
-                Task { await collection.loadCollection() }
+                Task {
+                    await collection.loadCollection()
+                    await customRainbowStore.load()
+                }
             } else {
                 collection.clearCollection()
+                customRainbowStore.clear()
             }
         }
     }
@@ -268,6 +276,12 @@ struct CollectionView: View {
             .navigationDestination(for: Card.self) { card in
                 CardDetailView(card: card, wrapInNavStack: false)
             }
+            .navigationDestination(for: CustomRainbow.self) { rainbow in
+                CustomRainbowDetailView(
+                    rainbowId: rainbow.id,
+                    navigationPath: $navigationPath
+                )
+            }
         }
     }
 
@@ -302,6 +316,12 @@ struct CollectionView: View {
                     // catalog detail.
                     .navigationDestination(for: Card.self) { card in
                         CardDetailView(card: card, wrapInNavStack: false)
+                    }
+                    .navigationDestination(for: CustomRainbow.self) { rainbow in
+                        CustomRainbowDetailView(
+                            rainbowId: rainbow.id,
+                            navigationPath: $navigationPath
+                        )
                     }
             }
         }
@@ -904,10 +924,15 @@ struct CollectionView: View {
 
     private var rainbowList: some View {
         let rows = rainbowRows
+        let customs = customRainbowStore.rainbows
         // Same pattern as cardList — always in a ScrollView so pull-to-
         // refresh has a real scroll view to attach to.
         return ScrollView {
-            if rows.isEmpty {
+            // v2.219: custom rainbows section. Sits ABOVE the per-hero
+            // auto-rainbows so the user sees their own goals first.
+            customRainbowSection(customs)
+
+            if rows.isEmpty && customs.isEmpty {
                 VStack(spacing: Design.Spacing.md) {
                     Image(systemName: "rainbow")
                         .font(.system(size: 36))
@@ -915,7 +940,7 @@ struct CollectionView: View {
                     Text("No rainbows in progress yet")
                         .font(Design.Fonts.display(16))
                         .foregroundStyle(Design.Colors.textMuted)
-                    Text("Add any hero card to your collection — we'll show rainbow progress here.")
+                    Text("Add any hero card to your collection or tap + to set up a custom goal.")
                         .font(Design.Fonts.mono(13))
                         .foregroundStyle(Design.Colors.textMuted)
                         .multilineTextAlignment(.center)
@@ -923,7 +948,19 @@ struct CollectionView: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 300)
                 .padding(.top, Design.Spacing.xl)
-            } else {
+            } else if !rows.isEmpty {
+                // Section header for the auto-generated per-hero list.
+                HStack {
+                    Text("HEROES")
+                        .font(Design.Fonts.mono(11, weight: .bold))
+                        .tracking(1.5)
+                        .foregroundStyle(Design.Colors.textMuted)
+                    Spacer()
+                }
+                .padding(.horizontal, Design.Spacing.lg)
+                .padding(.top, Design.Spacing.md)
+                .padding(.bottom, Design.Spacing.xs)
+
                 LazyVStack(spacing: Design.Spacing.sm) {
                     ForEach(rows) { row in
                         rainbowRow(row)
@@ -932,13 +969,119 @@ struct CollectionView: View {
                             }
                     }
                 }
-                .padding(Design.Spacing.lg)
+                .padding(.horizontal, Design.Spacing.lg)
+                .padding(.bottom, Design.Spacing.lg)
             }
         }
-        .scrollEdgeEffectStyle(.hard, for: .top)  // §5.6 dense scroll
+        .scrollEdgeEffectStyle(.hard, for: .top)
         .refreshable {
             await collection.loadCollection()
+            await customRainbowStore.load()
         }
+        .sheet(isPresented: $showingCustomRainbowEditor) {
+            CustomRainbowEditorSheet(existing: nil)
+        }
+    }
+
+    // MARK: - Custom rainbow section (top of the Rainbow view)
+
+    @ViewBuilder
+    private func customRainbowSection(_ customs: [CustomRainbow]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("YOUR RAINBOWS")
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .tracking(1.5)
+                    .foregroundStyle(Design.Colors.bobaCyan)
+                Spacer()
+                Button {
+                    showingCustomRainbowEditor = true
+                } label: {
+                    Label("New", systemImage: "plus.circle.fill")
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                }
+            }
+            .padding(.horizontal, Design.Spacing.lg)
+            .padding(.top, Design.Spacing.md)
+            .padding(.bottom, Design.Spacing.xs)
+
+            if customs.isEmpty {
+                Text("Track specific collecting goals — like “Cupid in Griffey” or “All Glows.” Tap + to set up your first one.")
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Design.Spacing.lg)
+                    .padding(.bottom, Design.Spacing.md)
+            } else {
+                LazyVStack(spacing: Design.Spacing.sm) {
+                    ForEach(customs) { rainbow in
+                        customRainbowRow(rainbow)
+                            .onTapGesture {
+                                navigationPath.append(rainbow)
+                            }
+                    }
+                }
+                .padding(.horizontal, Design.Spacing.lg)
+                .padding(.bottom, Design.Spacing.md)
+            }
+        }
+    }
+
+    /// Compact row for a custom rainbow — same visual weight as the
+    /// per-hero rows below so the eye can compare progress at a
+    /// glance.
+    private func customRainbowRow(_ rainbow: CustomRainbow) -> some View {
+        let (owned, total) = customRainbowProgress(rainbow)
+        let percent = total == 0 ? 0.0 : Double(owned) / Double(total)
+        return HStack(spacing: Design.Spacing.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: Design.Radius.sm)
+                    .fill(Design.Colors.glass)
+                    .frame(width: 44, height: 62)
+                Image(systemName: "sparkles")
+                    .font(.system(size: 22))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(rainbow.name)
+                    .font(Design.Fonts.display(16))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                    .lineLimit(1)
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Design.Colors.glass)
+                        Capsule().fill(Design.Colors.bobaCyan)
+                            .frame(width: proxy.size.width * CGFloat(percent))
+                    }
+                }
+                .frame(height: 4)
+                Text(rainbow.criteria.summary.isEmpty
+                     ? "\(owned) of \(total) collected"
+                     : "\(owned) / \(total) · \(rainbow.criteria.summary)")
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .lineLimit(1)
+            }
+            Spacer()
+            Text("\(Int((percent * 100).rounded()))%")
+                .font(Design.Fonts.mono(13, weight: .bold))
+                .foregroundStyle(percent == 1.0 ? Color(hex: "4CAF50") : Design.Colors.bobaCyan)
+        }
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.sm)
+        .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface))
+        .contentShape(Rectangle())
+    }
+
+    private func customRainbowProgress(_ rainbow: CustomRainbow) -> (owned: Int, total: Int) {
+        let matching = cardStore.displayCards.filter { rainbow.criteria.matches($0) }
+        let ownedIds = Set(collection.userCards
+                               .filter { $0.designation.isOwned }
+                               .compactMap { $0.bobaId })
+        let owned = matching.filter { ownedIds.contains($0.id) }.count
+        return (owned, matching.count)
     }
 
     private func rainbowRow(_ row: RainbowProgress) -> some View {

@@ -587,6 +587,111 @@ final class SupabaseClient {
         try await voidExecute(request)
     }
 
+    // MARK: - Custom Rainbows
+    //
+    // User-defined collecting goals — see Models/CustomRainbow.swift.
+    // RLS policies (migration 2026_05_15_user_custom_rainbows.sql)
+    // restrict each user to their own rows.
+
+    /// Wire-shape of a user_custom_rainbows row. PostgREST sends
+    /// snake_case columns; we map to the camel-case CustomRainbow
+    /// struct via custom Codable.
+    private struct CustomRainbowRow: Codable {
+        let id: UUID
+        let userId: UUID
+        let name: String
+        let criteria: RainbowCriteria
+        let createdAt: Date
+        let updatedAt: Date
+
+        enum CodingKeys: String, CodingKey {
+            case id, name, criteria
+            case userId    = "user_id"
+            case createdAt = "created_at"
+            case updatedAt = "updated_at"
+        }
+
+        var asModel: CustomRainbow {
+            CustomRainbow(id: id, name: name, criteria: criteria,
+                          createdAt: createdAt, updatedAt: updatedAt)
+        }
+    }
+
+    func fetchCustomRainbows() async throws -> [CustomRainbow] {
+        guard userId != nil else { return [] }
+        let url = try makeURL(path: "/rest/v1/user_custom_rainbows?order=created_at.desc&select=id,user_id,name,criteria,created_at,updated_at")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+        let rows = try makeDecoder().decode([CustomRainbowRow].self, from: data)
+        return rows.map(\.asModel)
+    }
+
+    /// Returns the new rainbow's UUID so the client can drop it
+    /// into the local store without re-fetching.
+    @discardableResult
+    func createCustomRainbow(name: String, criteria: RainbowCriteria) async throws -> CustomRainbow {
+        guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
+        let url = try makeURL(path: "/rest/v1/user_custom_rainbows?select=id,user_id,name,criteria,created_at,updated_at")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        addHeaders(&request, authenticated: true)
+        // Prefer header asks PostgREST to return the inserted row(s).
+        request.setValue("return=representation", forHTTPHeaderField: "Prefer")
+        let body: [String: Any] = [
+            "user_id":  uid.uuidString.lowercased(),
+            "name":     name,
+            "criteria": criteriaJSON(criteria),
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+        let rows = try makeDecoder().decode([CustomRainbowRow].self, from: data)
+        guard let row = rows.first else {
+            throw APIError.serverError(0, "Create returned no row")
+        }
+        return row.asModel
+    }
+
+    func updateCustomRainbow(id: UUID, name: String, criteria: RainbowCriteria) async throws {
+        let url = try makeURL(path: "/rest/v1/user_custom_rainbows?id=eq.\(id.uuidString.lowercased())")
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        addHeaders(&request, authenticated: true)
+        let body: [String: Any] = [
+            "name":     name,
+            "criteria": criteriaJSON(criteria),
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        try await voidExecute(request)
+    }
+
+    func deleteCustomRainbow(id: UUID) async throws {
+        let url = try makeURL(path: "/rest/v1/user_custom_rainbows?id=eq.\(id.uuidString.lowercased())")
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        addHeaders(&request, authenticated: true)
+        try await voidExecute(request)
+    }
+
+    /// Convert a RainbowCriteria to a JSON-serializable dict for
+    /// PostgREST. The criteria column is jsonb so we just nest the
+    /// dict directly inside the request body.
+    private func criteriaJSON(_ c: RainbowCriteria) -> [String: Any] {
+        [
+            "heroes":          c.heroes,
+            "sets":            c.sets,
+            "subSets":         c.subSets,
+            "elements":        c.elements,
+            "treatments":      c.treatments,
+            "cardTypes":       c.cardTypes,
+            "releases":        c.releases,
+            "inspiredInkOnly": c.inspiredInkOnly,
+        ]
+    }
+
     // MARK: - Admin: corrections review
 
     struct PendingCorrection: Identifiable, Decodable {

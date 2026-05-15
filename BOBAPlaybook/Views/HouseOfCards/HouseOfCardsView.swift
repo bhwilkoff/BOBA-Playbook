@@ -324,24 +324,43 @@ struct HouseOfCardsView: View {
                     Text("HOUSE OF BOBA")
                         .font(Design.Fonts.display(22))
                         .foregroundStyle(.white)
-                    Text("Build first, then play. Set up your tower in a frozen physics playground, then hit PLAY to see if it stands.")
+                    Text("Stack leaning cards into the tallest tower you can make. Gravity stays paused until you tap PLAY.")
                         .font(Design.Fonts.mono(15))
                         .foregroundStyle(.white.opacity(0.85))
                     Divider().overlay(.white.opacity(0.15))
-                    helpRow("1. Select from strip", "Tap up to 4 cards in the bottom strip — orange numbered badge shows placement order.")
-                    helpRow("2. Tap to place",      "Tap the table to spawn the selected cards there, standing vertical — or tap the FLAT TOP of an existing card to spawn the next layer on top of your tower. Add more anytime by selecting more strip cards and tapping again.")
-                    helpRow("3. Tap a card",        "Tap a placed card to SELECT it — an orange halo appears around it. While selected, ALL gestures manipulate that card (camera is paused).")
-                    helpRow("Translate",            "One-finger drag STARTING ON the selected card → slide it across the table (X/Z). The bottom always rides whatever surface is below — table or top of another card.")
-                    helpRow("Tilt (angle)",         "Two-finger HORIZONTAL drag → tilt the selected card forward/back, up to flat (90°). The bottom keeps riding the surface below as it leans.")
-                    helpRow("Lift / lower",         "Two-finger VERTICAL drag → raise or lower the selected card freely. Lift a card high to position it as a roof piece on top of an A-frame apex.")
-                    helpRow("Rotate (yaw)",         "TWIST with two fingers → spin the selected card around its vertical axis. (Standard iOS rotation gesture, same as Photos / Maps.)")
-                    helpRow("Smart snap",           "When you release a drag, lift, or tilt near another card, the closest valid stacking pose snaps automatically. Five cases: (1) Both tilted in OPPOSITE directions, your TOPS close → A-frame apex. (2) Both tilted in OPPOSITE directions, your BOTTOMS close → share a foot (start the NEXT A-frame in a row). (3) Your FLAT card dragged between TWO apex points (cardHeight apart) → roof tile spans both, one apex under each end. (4) Your card is ABOVE a support → bottom rests on the support's top. (5) Two FLAT cards' bottoms close together → roof tiles side-by-side. Build pyramids, rows, and roofs without measuring.")
-                    helpRow("Deselect",             "Tap empty space (or tap the selected card again) to deselect.")
-                    helpRow("Look around",          "When NOTHING is selected: one-finger drag orbits, two-finger drag pans the view, pinch zooms.")
-                    helpRow("Play / Pause",        "Tap PLAY to engage physics. Tap PAUSE anytime to freeze mid-fall, repair, and play again.")
-                    helpRow("Reset",                "The ↺ button in the top bar clears the field immediately.")
-                    helpRow("Score",                "Each stable layer adds to your tower height. 10+ is the dream.")
-                    helpRow("Switch deck",          "Toggle 'Use my collection' to build with cards you own (power > 135).")
+
+                    helpRow("Pick your cards",
+                            "Tap up to four cards in the strip below. The orange numbers tell you the order they'll show up in.")
+                    helpRow("Drop them in",
+                            "Tap anywhere on the table and your cards land standing up, ready to lean. Got a flat roof higher up? Tap that and the next batch lands on top of it.")
+                    helpRow("Grab a card",
+                            "Tap any card you've placed and an orange glow means it's yours. From here on, every gesture talks to that card — the camera holds still while you work.")
+                    helpRow("Slide it",
+                            "One finger on a held card scoots it around. The bottom edge stays on whatever's underneath.")
+                    helpRow("Lean it",
+                            "Two fingers side-to-side tips the card forward or back. Two cards leaning into each other make an A-frame — the bread and butter of every house of cards.")
+                    helpRow("Lift it",
+                            "Two fingers up or down moves the card higher or lower in the air. Useful when you want a flat card to land on a peak instead of the table.")
+                    helpRow("Spin it",
+                            "Twist with two fingers (same as rotating a photo) to spin the card around its middle.")
+                    helpRow("Let it go",
+                            "Tap empty space — or tap the same card again — to put the card down and get the camera back.")
+                    helpRow("Smart snap",
+                            "When you release a card near something it could naturally rest on, BoBA snaps it into place: two leaners click into an A-frame, a flat card stretches between two peaks, the next A-frame in a row shares a foot with the last one. If a snap isn't what you wanted, hit Undo and try again.")
+                    helpRow("Snap off",
+                            "Want pure physics with no help? Open the ⋯ menu and tap Smart snap to turn it off. The cards stay exactly where you let go.")
+                    helpRow("Undo",
+                            "The back-arrow next to PLAY rewinds your last move. Works for snaps you didn't want, cards you placed in the wrong spot, even towers that just toppled.")
+                    helpRow("Look around",
+                            "Tap empty space to drop any selection. Then one finger orbits the table, two fingers slide the view around, and pinch zooms in and out.")
+                    helpRow("Play and pause",
+                            "PLAY lets gravity back in — your tower has to stand on its own merits. PAUSE freezes the moment, so when something starts to fall you can catch it mid-tumble and decide what to fix.")
+                    helpRow("Reset",
+                            "When you want a blank table to start over, open the ⋯ menu and tap Reset field.")
+                    helpRow("Levels & Best",
+                            "A level is a layer of A-frames. The flat cards that bridge between them are transitions — they're how you get from one level to the next, but they don't count on their own. Best is the tallest tower you've stood up so far.")
+                    helpRow("Use your own cards",
+                            "Flip Use my collection on in the ⋯ menu to swap in cards you actually own.")
                 }
                 .padding(20)
             }

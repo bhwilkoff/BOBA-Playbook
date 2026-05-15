@@ -2758,27 +2758,37 @@ private final class HouseOfCardsCoordinator: NSObject {
             }
         }
 
-        // v2.210: levels now count ALL cards on the table, not
-        // just settled-and-dynamic ones. The previous formula
-        // required `settledCount > 0` which is only true when
-        // physics has run AND cards have come to rest — in the
-        // normal paused build-mode the level counter sat at 0
-        // even with a tall tower visible.
+        // v2.211: levels count A-FRAME TIERS only, not the flat
+        // roof tiles between them. A user-visible "level" is a
+        // distinct layer of leaning A-frame cards; the flat
+        // cards bridging two A-frames are STRUCTURAL TRANSITIONS
+        // between tiers, not tiers themselves. The previous
+        // formula counted every Y-band of cards (A-frames AND
+        // flats) which inflated a 3-tier tower to LEVEL 5.
         //
-        // Live count: take the max center-Y across every card
-        // (held + dynamic). Each "layer" adds ~0.045m to the
-        // center-Y (cardHeight × cos(30°) ÷ 2 — a 30°-leaning
-        // A-frame card's center sits half-cardHeight × cos above
-        // its bottom). Add 1 so a single ground layer reads as
-        // LEVEL 1 (not 0).
+        // Algorithm: filter to LEANING cards only (tilt between
+        // mirrorMinTilt ≈ 10° and roughly horizontal ≈ 73°) — that
+        // covers everything from a barely-tilted A-frame card up
+        // to a steep one without including flat roof tiles or
+        // upright cards that haven't been tilted yet. Take the
+        // max BOTTOM-Y of those leaning cards. perAFrameLevel ≈
+        // 0.080m is the height gain between two A-frame tiers
+        // (apex of one ≈ 0.077m, plus cardThick ≈ 0.003m for the
+        // flat tile that bridges to the next tier). LEVEL 1 = the
+        // ground tier; +1 per additional tier on top.
         let allTowerCards = heldCards + dynamicCards
-        let maxAnyY: Float = allTowerCards
-            .map { $0.entity.transform.translation.y }
-            .max() ?? 0
-        let perLevel: Float = 0.045
-        let liveLevels: Int = allTowerCards.isEmpty
-            ? 0
-            : max(1, Int((maxAnyY / perLevel).rounded(.down)) + 1)
+        let leaningBottomYs: [Float] = allTowerCards.compactMap { c in
+            let t = abs(pitchAngle(of: c.entity))
+            guard t > Self.mirrorMinTilt, t < (.pi / 2 - 0.3) else { return nil }
+            return downwardFaceCenter(of: c.entity).y
+        }
+        let perAFrameLevel: Float = 0.080
+        let liveLevels: Int
+        if let maxLeaningY = leaningBottomYs.max() {
+            liveLevels = max(1, Int((maxLeaningY / perAFrameLevel).rounded(.down)) + 1)
+        } else {
+            liveLevels = 0
+        }
         if liveLevels != session.currentLevels {
             session.currentLevels = liveLevels
         }

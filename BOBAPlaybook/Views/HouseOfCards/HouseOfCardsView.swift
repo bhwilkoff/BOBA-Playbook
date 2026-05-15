@@ -64,7 +64,15 @@ struct HouseOfCardsView: View {
         .statusBarHidden(true)
         .sheet(isPresented: $showingHelp) { helpSheet }
         .onChange(of: session.currentLevels) { _, newValue in
-            if newValue > highScore { highScore = newValue }
+            // v2.210: only record a new BEST when the user is in
+            // PAUSED state (tower as built, not as mid-physics
+            // spike). The old behavior recorded transient peaks
+            // during physics — a falling stack could briefly hit
+            // a higher Y reading than the user ever actually
+            // built, producing an inflated BEST.
+            if session.isPaused, newValue > highScore {
+                highScore = newValue
+            }
         }
         .onAppear {
             // Refresh pool when user toggles collection source.
@@ -2190,7 +2198,24 @@ private final class HouseOfCardsCoordinator: NSObject {
                         return simd_length(midpoint - oBottom) < Self.occupancyRadius
                     }
                     if occupiedByOther { continue }
-                    if best == nil || dToMid < best!.dist {
+                    // v2.210: spanRoof has a STRUCTURAL PREFERENCE
+                    // over single-apex sitOnTop for flat cards. A
+                    // flat card resting on two supports is the
+                    // canonical roof; balancing on one apex is
+                    // unstable. When sitOnTop is best so far, give
+                    // spanRoof a 5cm XZ advantage — span wins
+                    // unless the user is significantly closer to a
+                    // single apex than to any midpoint. Among
+                    // multiple spanRoof pairs, lowest-dist still
+                    // wins (no bonus applied span-vs-span).
+                    let spanBonus: Float = 0.05
+                    let comparisonDist: Float
+                    if let b = best, b.kind == .sitOnTop {
+                        comparisonDist = dToMid - spanBonus
+                    } else {
+                        comparisonDist = dToMid
+                    }
+                    if best == nil || comparisonDist < best!.dist {
                         best = Best(kind: .spanRoof, target: midpoint, ourFeature: ourBottomFace, dist: dToMid, partner: apexPoints[i].partner, auxPoint: p2)
                     }
                 }
@@ -2733,13 +2758,29 @@ private final class HouseOfCardsCoordinator: NSObject {
             }
         }
 
-        // Levels: settled top-of-pile divided by an empirical
-        // lean-height per level. Cards leaning at ~30° contribute
-        // about half their long axis to height.
+        // v2.210: levels now count ALL cards on the table, not
+        // just settled-and-dynamic ones. The previous formula
+        // required `settledCount > 0` which is only true when
+        // physics has run AND cards have come to rest — in the
+        // normal paused build-mode the level counter sat at 0
+        // even with a tall tower visible.
+        //
+        // Live count: take the max center-Y across every card
+        // (held + dynamic). Each "layer" adds ~0.045m to the
+        // center-Y (cardHeight × cos(30°) ÷ 2 — a 30°-leaning
+        // A-frame card's center sits half-cardHeight × cos above
+        // its bottom). Add 1 so a single ground layer reads as
+        // LEVEL 1 (not 0).
+        let allTowerCards = heldCards + dynamicCards
+        let maxAnyY: Float = allTowerCards
+            .map { $0.entity.transform.translation.y }
+            .max() ?? 0
         let perLevel: Float = 0.045
-        let levels = settledCount > 0 ? Int((maxSettledY / perLevel).rounded(.down)) : 0
-        if levels != session.currentLevels {
-            session.currentLevels = max(0, levels)
+        let liveLevels: Int = allTowerCards.isEmpty
+            ? 0
+            : max(1, Int((maxAnyY / perLevel).rounded(.down)) + 1)
+        if liveLevels != session.currentLevels {
+            session.currentLevels = liveLevels
         }
 
         // Track tower height (used for next-card spawn altitude).

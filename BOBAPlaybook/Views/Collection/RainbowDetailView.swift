@@ -1,42 +1,46 @@
 import SwiftUI
 
-// MARK: - CustomRainbowDetailView
+// MARK: - RainbowDetailView
 //
-// Pushed when a user taps one of their own rainbows in the Rainbow
-// list. Renders every card that matches the rainbow's criteria as
-// a grid; owned cards display at full opacity, missing cards dim
-// to 30% so the gap is obvious at a glance.
+// Shared detail view for BOTH per-hero auto-rainbows AND user-
+// defined custom rainbows (v2.221). Renders the same 3-column
+// grid in either case: every card matching the rainbow's
+// criteria, with owned cards full opacity + cyan seal and missing
+// cards dimmed to 30%. Tapping any card opens the standard card
+// detail.
 //
-// Top: a header with the rainbow's name, criteria summary, and
-// progress (X / Y, percent). Tapping a card pushes to the standard
-// card detail. The toolbar Edit button opens the editor sheet.
+// Custom rainbows get a toolbar Edit button (slider icon) that
+// re-opens the editor sheet. Hero rainbows omit it — they're
+// auto-derived from "every card whose hero == X" so there's
+// nothing to edit.
 
-struct CustomRainbowDetailView: View {
+struct RainbowDetailView: View {
     @Environment(CardStore.self)          private var cardStore
     @Environment(CollectionStore.self)    private var collection
     @Environment(CustomRainbowStore.self) private var rainbowStore
 
-    /// The rainbow id is the stable identity — we re-read the row
-    /// from the store on each render so edits picked up via the
-    /// editor sheet flow through automatically.
-    let rainbowId: UUID
+    enum Kind: Hashable {
+        /// Auto-generated rainbow for a single hero — every
+        /// catalog card whose hero matches.
+        case hero(String)
+        /// User-defined rainbow looked up by id from the store.
+        case custom(UUID)
+    }
 
+    let kind: Kind
     @Binding var navigationPath: NavigationPath
     @State private var showingEditor = false
 
-    private var rainbow: CustomRainbow? {
-        rainbowStore.rainbows.first(where: { $0.id == rainbowId })
-    }
-
     var body: some View {
+        let context = self.context
         Group {
-            if let rainbow {
-                let cards   = matchingCards(for: rainbow)
+            if let context {
+                let cards   = matchingCards(for: context.criteria)
                 let owned   = ownedIds()
                 let ownedN  = cards.filter { owned.contains($0.id) }.count
 
                 ScrollView {
-                    header(name: rainbow.name, summary: rainbow.criteria.summary,
+                    header(name: context.title, summary: context.summary,
                            owned: ownedN, total: cards.count)
                     if cards.isEmpty {
                         empty
@@ -61,13 +65,13 @@ struct CustomRainbowDetailView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .navigationTitle(rainbow?.name ?? "Custom Rainbow")
+        .navigationTitle(context?.title ?? "Rainbow")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.regularMaterial, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .background(Design.Colors.nearBlack)
         .toolbar {
-            if rainbow != nil {
+            if context?.isCustom == true {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showingEditor = true } label: {
                         Image(systemName: "slider.horizontal.3")
@@ -79,9 +83,42 @@ struct CustomRainbowDetailView: View {
             }
         }
         .sheet(isPresented: $showingEditor) {
-            if let r = rainbow {
+            if case .custom(let id) = kind,
+               let r = rainbowStore.rainbows.first(where: { $0.id == id }) {
                 CustomRainbowEditorSheet(existing: r)
             }
+        }
+    }
+
+    // MARK: - Context resolution
+
+    private struct Context {
+        let title:    String
+        let summary:  String
+        let criteria: RainbowCriteria
+        let isCustom: Bool
+    }
+
+    private var context: Context? {
+        switch kind {
+        case .hero(let hero):
+            // Synthesize a criteria of "all cards whose hero == X"
+            // and label the page with the hero's name. Matches the
+            // pre-existing auto-rainbow definition: every printing
+            // of a hero across all sets / treatments.
+            var c = RainbowCriteria()
+            c.heroes = [hero]
+            return Context(title: hero,
+                           summary: "All treatments",
+                           criteria: c,
+                           isCustom: false)
+        case .custom(let id):
+            guard let r = rainbowStore.rainbows.first(where: { $0.id == id })
+            else { return nil }
+            return Context(title:   r.name,
+                           summary: r.criteria.summary,
+                           criteria: r.criteria,
+                           isCustom: true)
         }
     }
 
@@ -134,10 +171,12 @@ struct CustomRainbowDetailView: View {
             Text("No cards match this rainbow's criteria")
                 .font(Design.Fonts.display(15))
                 .foregroundStyle(Design.Colors.textMuted)
-            Text("Tap the slider button to edit the filters.")
-                .font(Design.Fonts.mono(12))
-                .foregroundStyle(Design.Colors.textMuted)
-                .multilineTextAlignment(.center)
+            if context?.isCustom == true {
+                Text("Tap the slider button to edit the filters.")
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .multilineTextAlignment(.center)
+            }
         }
         .frame(maxWidth: .infinity, minHeight: 300)
         .padding(.top, Design.Spacing.xl)
@@ -179,12 +218,10 @@ struct CustomRainbowDetailView: View {
 
     // MARK: - Data
 
-    private func matchingCards(for rainbow: CustomRainbow) -> [Card] {
+    private func matchingCards(for criteria: RainbowCriteria) -> [Card] {
         cardStore.displayCards
-            .filter { rainbow.criteria.matches($0) }
+            .filter { criteria.matches($0) }
             .sorted { lhs, rhs in
-                // Group by hero, then by card number — readable when the
-                // rainbow spans multiple heroes.
                 if lhs.hero != rhs.hero {
                     return lhs.hero.localizedCaseInsensitiveCompare(rhs.hero) == .orderedAscending
                 }

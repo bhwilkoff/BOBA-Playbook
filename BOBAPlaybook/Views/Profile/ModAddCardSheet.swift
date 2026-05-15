@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 import UIKit
 
 // MARK: - ModAddCardSheet
@@ -58,10 +59,15 @@ struct ModAddCardSheet: View {
 
     @State private var notes: String = ""
 
-    // MARK: Image flow — iOS native pick + crop, JPEG payload out
+    // MARK: Image flow — PhotosPicker → CardCropView (5:7 freeform)
+    @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var croppedPreview:    UIImage?
     @State private var selectedImageData: Data?
-    @State private var showingCropper:    Bool = false
+    private struct CroppingPayload: Identifiable {
+        let id = UUID()
+        let image: UIImage
+    }
+    @State private var croppingPayload: CroppingPayload?
 
     // MARK: Submit / validation state
     @State private var isSaving = false
@@ -124,16 +130,16 @@ struct ModAddCardSheet: View {
                     }
                 }
             }
-            .fullScreenCover(isPresented: $showingCropper) {
-                NativeImageCropper(
-                    onPick: { cropped in
+            .fullScreenCover(item: $croppingPayload) { payload in
+                CardCropView(
+                    sourceImage: payload.image,
+                    onConfirm: { cropped in
                         croppedPreview = cropped
                         selectedImageData = jpegForUpload(cropped, maxDim: 1200, quality: 0.85)
-                        showingCropper = false
+                        croppingPayload = nil
                     },
-                    onCancel: { showingCropper = false }
+                    onCancel: { croppingPayload = nil }
                 )
-                .ignoresSafeArea()
             }
             .onChange(of: cardNumber) { _, _ in checkCollision() }
             .onChange(of: hero)       { _, _ in checkCollision() }
@@ -202,15 +208,24 @@ struct ModAddCardSheet: View {
 
     private var imageSection: some View {
         Section("IMAGE") {
-            Button {
-                showingCropper = true
-            } label: {
+            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                 Label(
-                    selectedImageData != nil ? "Photo Cropped ✓  ·  Pick again" : "Pick & crop a photo",
+                    selectedImageData != nil ? "Photo Cropped ✓  ·  Pick again" : "Pick a photo",
                     systemImage: "photo.badge.plus"
                 )
                 .font(Design.Fonts.mono(14))
                 .foregroundStyle(selectedImageData != nil ? Design.Colors.bobaCyan : Design.Colors.bobaOrange)
+            }
+            .onChange(of: selectedPhotoItem) { _, item in
+                Task {
+                    guard let data = try? await item?.loadTransferable(type: Data.self),
+                          let img = UIImage(data: data) else { return }
+                    await MainActor.run {
+                        selectedImageData = nil
+                        croppedPreview = nil
+                        croppingPayload = CroppingPayload(image: img)
+                    }
+                }
             }
             if let preview = croppedPreview {
                 HStack(spacing: 12) {
@@ -219,10 +234,17 @@ struct ModAddCardSheet: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 60, height: 84)
                         .clipShape(RoundedRectangle(cornerRadius: 6))
-                    Text("Cropped preview")
-                        .font(Design.Fonts.mono(11, weight: .semibold))
-                        .tracking(1)
-                        .foregroundStyle(Design.Colors.bobaCyan)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Cropped preview")
+                            .font(Design.Fonts.mono(11, weight: .semibold))
+                            .tracking(1)
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                        Button("Re-crop") {
+                            croppingPayload = CroppingPayload(image: preview)
+                        }
+                        .font(Design.Fonts.mono(12))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                    }
                     Spacer()
                 }
             } else {

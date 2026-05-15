@@ -115,25 +115,27 @@ final class CardCropViewController: UIViewController, UIScrollViewDelegate {
         hintLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(hintLabel)
 
-        // 4. Bottom toolbar — two buttons, no chrome.
-        cancelButton.setTitle("Cancel", for: .normal)
-        cancelButton.titleLabel?.font = .monospacedSystemFont(ofSize: 14, weight: .bold)
-        cancelButton.setTitleColor(.white, for: .normal)
-        cancelButton.backgroundColor = UIColor.white.withAlphaComponent(0.18)
-        cancelButton.layer.cornerRadius = 22
-        cancelButton.contentEdgeInsets = UIEdgeInsets(top: 10, left: 22, bottom: 10, right: 22)
-        cancelButton.addTarget(self, action: #selector(handleCancel), for: .touchUpInside)
-        cancelButton.translatesAutoresizingMaskIntoConstraints = false
+        // 4. Bottom toolbar — two buttons. iOS 15+ requires
+        //    UIButton.Configuration for inset / style customization;
+        //    the older contentEdgeInsets property is silently
+        //    ignored when the button auto-creates a configuration
+        //    (the deprecation Xcode flagged at v2.218).
+        configureToolbarButton(
+            cancelButton,
+            title: "Cancel",
+            background: UIColor.white.withAlphaComponent(0.18),
+            horizontalInset: 22,
+            action: #selector(handleCancel)
+        )
         view.addSubview(cancelButton)
 
-        confirmButton.setTitle("Use Crop", for: .normal)
-        confirmButton.titleLabel?.font = .monospacedSystemFont(ofSize: 14, weight: .bold)
-        confirmButton.setTitleColor(.white, for: .normal)
-        confirmButton.backgroundColor = UIColor(red: 1.0, green: 0.3, blue: 0.0, alpha: 1.0)  // BoBA orange
-        confirmButton.layer.cornerRadius = 22
-        confirmButton.contentEdgeInsets = UIEdgeInsets(top: 10, left: 26, bottom: 10, right: 26)
-        confirmButton.addTarget(self, action: #selector(handleConfirm), for: .touchUpInside)
-        confirmButton.translatesAutoresizingMaskIntoConstraints = false
+        configureToolbarButton(
+            confirmButton,
+            title: "Use Crop",
+            background: UIColor(red: 1.0, green: 0.3, blue: 0.0, alpha: 1.0),  // BoBA orange
+            horizontalInset: 26,
+            action: #selector(handleConfirm)
+        )
         view.addSubview(confirmButton)
 
         // 5. Constraints — scroll + overlay fill the screen; hint
@@ -236,6 +238,37 @@ final class CardCropViewController: UIViewController, UIScrollViewDelegate {
     }
 
     // MARK: Actions
+
+    /// Build a pill button via the modern `UIButton.Configuration`
+    /// API. Replaces the deprecated `contentEdgeInsets` setup —
+    /// iOS 15+ silently ignores that property because the system
+    /// button now ships with a configuration that owns insets +
+    /// background instead.
+    private func configureToolbarButton(
+        _ button: UIButton,
+        title: String,
+        background: UIColor,
+        horizontalInset: CGFloat,
+        action: Selector
+    ) {
+        var config = UIButton.Configuration.filled()
+        config.title = title
+        config.baseForegroundColor = .white
+        config.baseBackgroundColor = background
+        config.background.backgroundColor = background
+        config.background.cornerRadius = 22
+        config.contentInsets = NSDirectionalEdgeInsets(
+            top: 10, leading: horizontalInset, bottom: 10, trailing: horizontalInset
+        )
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming
+            outgoing.font = .monospacedSystemFont(ofSize: 14, weight: .bold)
+            return outgoing
+        }
+        button.configuration = config
+        button.addTarget(self, action: action, for: .touchUpInside)
+        button.translatesAutoresizingMaskIntoConstraints = false
+    }
 
     @objc private func handleCancel() { onCancel() }
 

@@ -2,13 +2,16 @@
 
 > Active working notes only. Completed milestone implementation detail and the full session log live in [ARCHIVE.md](./ARCHIVE.md). See [DECISIONS.md](./DECISIONS.md) for architecture decisions and [DESIGN.md](./DESIGN.md) for binding iOS design rules.
 
-## Current State (2026-05-05)
+## Current State (2026-05-15)
 
 - **Catalog**: 17,968 cards · ~90% image coverage on R2 · OKC art still pending
-- **Latest version**: iOS 2.113 / 376 — Universal Links validated end-to-end; route-based deep linking pattern shipped
-- **Latest commit**: walkthrough diagnostics removed (validated; pattern preserved in memory)
+- **Latest version**: iOS 2.212 / 475 — House of BoBA snap + undo + tiered-level counter shipped; called complete
+- **Latest commit**: House of BoBA help-sheet copy rewritten in the playbook's human/playful voice
 
 ## What Just Shipped (recent)
+
+- **House of BoBA (Easter egg) — called complete 2026-05-15** at v2.212. Paused-physics card-tower playground in Profile → easter-eggs menu. Five intent-named snap kinds (aFrame, shareFoot, spanRoof, sitOnTop, sideBySide) with slot-occupancy guards + stack-aware column filter. Undo button next to PLAY with 25-deep state stack; Reset moved to ⋯ menu; Smart-snap toggle there too as the creative escape valve. Live level counter tracks A-frame tiers only (flat-roof transitions don't count). Help sheet rewritten in the app's playful voice. Architecture in [[project_house_of_boba_architecture]].
+
 
 - **iPad first-class pass — PR 1+2+3** (DESIGN.md §6.6 + §6.6.1 + §6.6.2, ratified binding). Phone path untouched.
   - **PR 1 — visible breakage (P0):** TabView gets `.tabViewStyle(.sidebarAdaptable)` so iPad regular morphs the tab bar to a sidebar. Walkthrough overlays (`BOBAWalkthrough.swift`, `DeckBuilderTutorialOverlay.swift`) read `safeAreaInsets.top` + `.bottom` from a non-ignoring `GeometryReader` instead of the magic 60pt-top/96pt-bottom that broke on iPad menu bar. New `compactZoomSource` / `compactZoomDestination` modifiers in `Design.swift` gate `.matchedTransitionSource` + `.navigationTransition(.zoom)` to compact-only — 15 call sites swept (Find / Decks / Collection / Learn). On regular width these are no-ops; system push fires instead.

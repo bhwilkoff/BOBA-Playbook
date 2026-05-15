@@ -423,27 +423,78 @@ final class CardStore {
         selectedShowcaseId = nil
     }
 
-    /// Smart-search surface check. Kept out of `applyFilters`'s closure
-    /// because Swift 6's type-checker timed out trying to infer the
-    /// 10-way OR of optional-chained .contains calls in a single
-    /// expression.
+    /// Word-prefix match: the query and every searchable field are split
+    /// into words, and the card matches when every query word is a
+    /// prefix of at least one card word. Mirrors how humans search —
+    /// "griff" finds Griffey, "amon" finds Amon-Ra, but "amon" does NOT
+    /// find Johnny **D**amon (mid-word substring). Matches the web's
+    /// pre-built `searchTokens` behavior so iOS + web stay aligned.
     private nonisolated func cardMatchesSearchTerm(_ card: Card, term: String) -> Bool {
-        if card.name.lowercased().contains(term)              { return true }
-        if card.cardNumber.lowercased().contains(term)        { return true }
-        if card.hero.lowercased().contains(term)              { return true }
-        if card.element.lowercased().contains(term)           { return true }
-        if card.set.lowercased().contains(term)               { return true }
-        if let athlete = card.athleteInspiration?.lowercased(),
-           athlete.contains(term)                             { return true }
-        if let treatment = card.treatment?.lowercased(),
-           treatment.contains(term)                           { return true }
-        if let subSet = card.subSet?.lowercased(),
-           subSet.contains(term)                              { return true }
-        if let variation = card.variation?.lowercased(),
-           variation.contains(term)                           { return true }
-        // (Card doesn't currently decode the catalog's pre-built
-        // searchTokens array. If/when we add that field to Card.swift
-        // the check goes here.)
-        return false
+        let queryWords = wordSplit(term)
+        if queryWords.isEmpty { return true }
+        let haystack = haystackWords(for: card)
+        return queryWords.allSatisfy { q in
+            haystack.contains { $0.hasPrefix(q) }
+        }
+    }
+
+    private nonisolated func wordSplit(_ s: String) -> [String] {
+        CardSearch.wordSplit(s)
+    }
+
+    private nonisolated func haystackWords(for card: Card) -> [String] {
+        CardSearch.haystackWords(for: card)
+    }
+}
+
+/// Shared word-prefix search helpers. Used by `CardStore`'s Find filter
+/// AND by Collection / Deck pool searches so every card-search surface
+/// behaves the same: "amon" finds Amon-Ra but NOT Johnny Damon.
+/// `nonisolated` because the project default isolation is MainActor
+/// and callers run from background filter tasks.
+nonisolated enum CardSearch {
+    static func wordSplit(_ s: String) -> [String] {
+        s.lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+    }
+
+    static func haystackWords(for card: Card) -> [String] {
+        var w: [String] = []
+        w.append(contentsOf: wordSplit(card.name))
+        w.append(contentsOf: wordSplit(card.cardNumber))
+        w.append(contentsOf: wordSplit(card.hero))
+        w.append(contentsOf: wordSplit(card.element))
+        w.append(contentsOf: wordSplit(card.set))
+        if let a = card.athleteInspiration { w.append(contentsOf: wordSplit(a)) }
+        if let t = card.treatment          { w.append(contentsOf: wordSplit(t)) }
+        if let s = card.subSet             { w.append(contentsOf: wordSplit(s)) }
+        if let v = card.variation          { w.append(contentsOf: wordSplit(v)) }
+        return w
+    }
+
+    /// True when every word in `query` is a prefix of at least one word
+    /// in `haystack`. Empty query matches everything.
+    static func matches(query: String, in haystack: [String]) -> Bool {
+        let qWords = wordSplit(query)
+        if qWords.isEmpty { return true }
+        return qWords.allSatisfy { q in
+            haystack.contains { $0.hasPrefix(q) }
+        }
+    }
+
+    /// Match against a card's full searchable surface (Find tab fields).
+    static func matches(query: String, card: Card) -> Bool {
+        matches(query: query, in: haystackWords(for: card))
+    }
+
+    /// Match against an arbitrary scoped list of fields (Collection /
+    /// Deck pool search a narrower set than Find).
+    static func matches(query: String, fields: [String?]) -> Bool {
+        var words: [String] = []
+        for f in fields {
+            if let f { words.append(contentsOf: wordSplit(f)) }
+        }
+        return matches(query: query, in: words)
     }
 }

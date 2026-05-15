@@ -1578,9 +1578,7 @@ struct CollectionView: View {
                    let cardCost = card.playCost {
                     return cardCost == cost
                 }
-                return card.name.lowercased().contains(trimmed)
-                    || card.cardNumber.lowercased().contains(trimmed)
-                    || card.hero.lowercased().contains(trimmed)
+                return CardSearch.matches(query: trimmed, fields: [card.name, card.cardNumber, card.hero])
             }
         }
         return sortIdentifiers(owned, designation: designation)

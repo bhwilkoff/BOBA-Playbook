@@ -35,8 +35,9 @@ struct CardCropView: View {
 
     // Scroll state — populated by the scroll-view coordinator each
     // gesture .ended frame. Used at confirm time to map crop-rect
-    // container coords → source pixel coords.
-    @StateObject private var scrollState = ScrollState()
+    // container coords → source pixel coords. iOS 17+ @Observable
+    // pattern so the file doesn't need to import Combine.
+    @State private var scrollState = ScrollState()
 
     // Crop rect lives in CONTAINER (SwiftUI screen-space) coords.
     @State private var cropRect: CGRect = .zero
@@ -300,12 +301,21 @@ struct CardCropView: View {
 /// Shared state object updated by ZoomableImageScrollView's
 /// coordinator on every scroll/zoom change. CardCropView reads
 /// these values at confirm time to compute the cropped image.
+///
+/// Uses the iOS 17+ `@Observable` macro (NOT `ObservableObject` +
+/// `@Published`) so this file doesn't need to import Combine — the
+/// older Combine-based pattern triggered a cascade of "missing
+/// import of defining module 'Combine'" errors across the build
+/// because the SwiftUI module forwards the @StateObject /
+/// @ObservedObject types from Combine. @Observable lives entirely
+/// in the Observation framework which SwiftUI re-exports.
 @MainActor
-final class ScrollState: ObservableObject {
-    @Published var zoomScale: CGFloat = 1.0
-    @Published var contentOffset: CGPoint = .zero
-    @Published var imageViewBounds: CGRect? = nil
-    @Published var scrollFrame: CGRect? = nil
+@Observable
+final class ScrollState {
+    var zoomScale: CGFloat = 1.0
+    var contentOffset: CGPoint = .zero
+    var imageViewBounds: CGRect? = nil
+    var scrollFrame: CGRect? = nil
 }
 
 // MARK: - ZoomableImageScrollView

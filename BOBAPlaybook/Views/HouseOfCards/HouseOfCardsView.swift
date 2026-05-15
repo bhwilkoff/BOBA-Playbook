@@ -101,33 +101,10 @@ struct HouseOfCardsView: View {
 
             Spacer()
 
-            // Reset Field — prominent, immediate (no confirm per
-            // user choice). Clears the tower so they can start over.
-            Button {
-                session.resetScene()
-            } label: {
-                Image(systemName: "arrow.counterclockwise")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.85))
-                    .frame(width: 36, height: 36)
-                    .background(.ultraThinMaterial, in: Circle())
-            }
-            .accessibilityLabel("Reset Field")
-
+            // v2.208: ⋯ menu now hosts Reset (moved out of the
+            // top bar) plus the secondary toggles. Reset uses the
+            // sparkle-burst trash icon to differentiate from undo.
             Menu {
-                // Undo — restores the previous scene state. Only
-                // enabled when the coordinator's undo stack has
-                // something to pop (a snap fired, a spawn, a
-                // physics fall, etc.).
-                Button {
-                    session.undoRequested = true
-                } label: {
-                    Label("Undo last action", systemImage: "arrow.uturn.backward")
-                }
-                .disabled(!session.canUndo)
-
-                // Snap toggle — when off, gestures release cards
-                // exactly where placed. Pure physics-sandbox mode.
                 Button {
                     session.snapsEnabled.toggle()
                 } label: {
@@ -136,16 +113,7 @@ struct HouseOfCardsView: View {
                         systemImage: session.snapsEnabled ? "wand.and.stars" : "wand.and.stars.inverse"
                     )
                 }
-
-                Divider()
-
-                // Toggle in Menu can be flaky across iOS versions —
-                // use a manual Button with state-mirroring label.
                 Button {
-                    // v2.177: just flip the flag. The
-                    // .onChange(of: useCollection) handler on the
-                    // root body fires reseedDeck once — no need
-                    // to also call it here.
                     useCollection.toggle()
                 } label: {
                     Label(
@@ -153,8 +121,14 @@ struct HouseOfCardsView: View {
                         systemImage: useCollection ? "checkmark.circle.fill" : "person.crop.circle"
                     )
                 }
-                Button("How to Play",  systemImage: "questionmark.circle") {
+                Button("How to Play", systemImage: "questionmark.circle") {
                     showingHelp = true
+                }
+                Divider()
+                Button(role: .destructive) {
+                    session.resetScene()
+                } label: {
+                    Label("Reset field", systemImage: "trash")
                 }
             } label: {
                 Image(systemName: "ellipsis")
@@ -181,7 +155,10 @@ struct HouseOfCardsView: View {
     // MARK: Bottom deck strip — upcoming cards + Place button
     private var bottomDeckStrip: some View {
         VStack(spacing: 8) {
-            // Status + LOCK + PLAY/PAUSE row.
+            // Status + UNDO + PLAY/PAUSE row.
+            // v2.208: undo lifted out of the ⋯ menu and parked
+            // next to PLAY for one-tap access. Same place the
+            // user looks for the primary playground action.
             HStack(spacing: 10) {
                 Text(stripStatusText)
                     .font(Design.Fonts.mono(10, weight: .semibold))
@@ -190,6 +167,7 @@ struct HouseOfCardsView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 Spacer(minLength: 4)
+                undoButton
                 playPauseButton
             }
             .padding(.horizontal, 14)
@@ -213,6 +191,27 @@ struct HouseOfCardsView: View {
         }
         .padding(.vertical, 8)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var undoButton: some View {
+        Button {
+            session.undoRequested = true
+        } label: {
+            Image(systemName: "arrow.uturn.backward")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle().fill(
+                        session.canUndo
+                            ? Color.white.opacity(0.25)
+                            : Color.white.opacity(0.10)
+                    )
+                )
+        }
+        .disabled(!session.canUndo)
+        .accessibilityLabel("Undo last action")
     }
 
     @ViewBuilder
@@ -1743,6 +1742,16 @@ private final class HouseOfCardsCoordinator: NSObject {
         // this info so we can see why nothing engaged.
         var nearestSitDist: Float = .greatestFiniteMagnitude
         var nearestSitReason: String = "no candidates"
+        // v2.208: per-snap-kind near-miss tracking so a MISS print
+        // tells the user WHY each candidate snap kind didn't fire,
+        // not just sit-on-top. Each tracker holds the closest
+        // candidate (by the snap's own distance metric) and the
+        // reason it was rejected.
+        var mirrorCandidateCount = 0       // count of mirror-tilt eligible partners
+        var nearestAFrameDist: Float = .greatestFiniteMagnitude
+        var nearestAFrameReason: String = "no mirror-tilt partner"
+        var nearestShareFootDist: Float = .greatestFiniteMagnitude
+        var nearestShareFootReason: String = "no mirror-tilt partner"
         var best: Best? = nil
 
         for c in candidates {
@@ -1785,10 +1794,34 @@ private final class HouseOfCardsCoordinator: NSObject {
             //     even if their tops happen to be close — they're
             //     on different tower layers.
             let layerAlignedTops = abs(theirBottomForMirror.y - ourBottom.y) < 0.02
-            if abs(ourTilt) > Self.snapTiltMin,
-               abs(theirTilt) > Self.snapTiltMin,
-               ourTilt * theirTilt < 0,
-               abs(abs(theirTilt) - abs(ourTilt)) < Self.snapMirrorTolerance,
+            // Eligibility for mirror-tilt snaps (aFrame +
+            // shareFoot share the same eligibility — both tilted,
+            // mirror signs, magnitudes within tolerance).
+            let mirrorEligible = abs(ourTilt) > Self.snapTiltMin
+                && abs(theirTilt) > Self.snapTiltMin
+                && ourTilt * theirTilt < 0
+                && abs(abs(theirTilt) - abs(ourTilt)) < Self.snapMirrorTolerance
+            if mirrorEligible {
+                mirrorCandidateCount += 1
+                // Track nearest aFrame candidate's blocking reason.
+                if dTopXZ < nearestAFrameDist {
+                    nearestAFrameDist = dTopXZ
+                    if !layerAlignedTops {
+                        nearestAFrameReason = "layer-misaligned (Δy=\(String(format: "%.3f", abs(theirBottomForMirror.y - ourBottom.y)))m)"
+                    } else if dTopXZ > dBottomXZ {
+                        nearestAFrameReason = "bottoms closer than tops — shareFoot intent"
+                    } else if isAlreadyPartnered(c, in: candidates) {
+                        nearestAFrameReason = "partner already in an A-frame"
+                    } else if slotOccupied(at: theirTop, excluding: card, ignoring: c.entity, in: candidates) {
+                        nearestAFrameReason = "apex slot occupied"
+                    } else if dTopXZ >= Self.aFrameSnapRange {
+                        nearestAFrameReason = "out of range (>\(String(format: "%.2f", Self.aFrameSnapRange))m)"
+                    } else {
+                        nearestAFrameReason = "fired"
+                    }
+                }
+            }
+            if mirrorEligible,
                layerAlignedTops,
                dTopXZ <= dBottomXZ,
                !isAlreadyPartnered(c, in: candidates),
@@ -1829,10 +1862,25 @@ private final class HouseOfCardsCoordinator: NSObject {
             //     bottom Y to match ours (within ±2cm). Two
             //     cards sharing a foot must be at the same
             //     elevation.
-            if abs(ourTilt) > Self.snapTiltMin,
-               abs(theirTilt) > Self.snapTiltMin,
-               ourTilt * theirTilt < 0,
-               abs(abs(theirTilt) - abs(ourTilt)) < Self.snapMirrorTolerance,
+            if mirrorEligible {
+                let target = SIMD3<Float>(theirBottomForMirror.x, ourBottom.y, theirBottomForMirror.z)
+                // Track nearest shareFoot near miss.
+                if dBottomXZ < nearestShareFootDist {
+                    nearestShareFootDist = dBottomXZ
+                    if !layerAlignedTops {
+                        nearestShareFootReason = "layer-misaligned (Δy=\(String(format: "%.3f", abs(theirBottomForMirror.y - ourBottom.y)))m)"
+                    } else if dBottomXZ >= dTopXZ {
+                        nearestShareFootReason = "tops closer than bottoms — aFrame intent"
+                    } else if slotOccupied(at: target, excluding: card, ignoring: c.entity, in: candidates) {
+                        nearestShareFootReason = "foot slot occupied"
+                    } else if dBottomXZ >= Self.shareFootSnapRange {
+                        nearestShareFootReason = "out of range (>\(String(format: "%.2f", Self.shareFootSnapRange))m)"
+                    } else {
+                        nearestShareFootReason = "fired"
+                    }
+                }
+            }
+            if mirrorEligible,
                layerAlignedTops,
                dBottomXZ < dTopXZ {
                 let target = SIMD3<Float>(theirBottomForMirror.x, ourBottom.y, theirBottomForMirror.z)
@@ -2119,7 +2167,22 @@ private final class HouseOfCardsCoordinator: NSObject {
 
         guard let snap = best else {
             let horiz = abs(abs(ourTilt) - .pi / 2) < 0.3 ? "(horizontal)" : ""
-            print("[HoB] Smart snap MISS: tilt=\(String(format: "%.2f", ourTilt))rad\(horiz) ourBottomY=\(String(format: "%.3f", ourBottomFace.y)) nearestSit=\(String(format: "%.3f", nearestSitDist))m reason=\(nearestSitReason)")
+            print("[HoB] Smart snap MISS: tilt=\(String(format: "%.2f", ourTilt))rad\(horiz) ourBottomY=\(String(format: "%.3f", ourBottomFace.y))")
+            // v2.208: per-snap-kind breakdown. Tells the user
+            // exactly which snap kind almost fired and why it
+            // didn't, instead of only showing the sit-on-top
+            // reason. If a snap line shows "no mirror-tilt
+            // partner" the user knows they need to tilt another
+            // card in the opposite direction. If it shows "out
+            // of range" the user knows to drag closer. Etc.
+            print("  · sitOnTop     nearest=\(String(format: "%.3f", nearestSitDist))m  \(nearestSitReason)")
+            print("  · aFrame       nearest=\(String(format: "%.3f", nearestAFrameDist))m  \(nearestAFrameReason)")
+            print("  · shareFoot    nearest=\(String(format: "%.3f", nearestShareFootDist))m  \(nearestShareFootReason)")
+            if mirrorCandidateCount == 0 && abs(ourTilt) > Self.snapTiltMin {
+                print("  hint: tilt a nearby card in the OPPOSITE direction to enable aFrame / shareFoot.")
+            } else if abs(ourTilt) <= Self.snapTiltMin {
+                print("  hint: tilt this card with a 2-finger horizontal drag to enable aFrame / shareFoot.")
+            }
             return
         }
 
@@ -3640,12 +3703,24 @@ private final class HouseOfCardsCoordinator: NSObject {
     }
 
     /// Shared rebuild logic used by both initial restore and the
-    /// undo path (v2.205). Assumes the caller has already cleared
+    /// undo path (v2.205+). Assumes the caller has already cleared
     /// any existing in-scene cards (initial restore runs against
     /// an empty scene; undo runs `clearAllCards` before calling).
+    ///
+    /// v2.208: physics-state alignment fix. Previously, cards
+    /// were ALWAYS built kinematic and added to the appropriate
+    /// array based on `ps.isDynamic`. That left cards in the
+    /// dynamicCards array with kinematic bodies — and
+    /// applyPauseState's PLAY branch (which iterates heldCards →
+    /// dynamic) would never see them. So after an undo of a
+    /// "playing" snapshot, pressing PLAY did NOTHING and the
+    /// physics stayed dormant despite the UI showing dynamic
+    /// cards. Now `effectiveDynamic` honors `state.isPaused`:
+    /// when paused, every card goes to heldCards w/ kinematic
+    /// body. When playing, dynamic-flagged cards go to
+    /// dynamicCards w/ dynamic body + CCD. The two arrays and
+    /// the PhysX bodies stay in sync.
     private func rebuildScene(from state: PersistedScene, catalog: [String: Card]) {
-        // Restore camera state first so the view shows the saved
-        // angle even before art finishes loading.
         camAzimuth   = state.camAzimuth
         camElevation = state.camElevation
         camDistance  = state.camDistance
@@ -3660,18 +3735,15 @@ private final class HouseOfCardsCoordinator: NSObject {
                 ix: ps.quatX, iy: ps.quatY, iz: ps.quatZ, r: ps.quatW
             )
             let entity = buildCardEntity(for: card, position: position, rotation: orientation)
+            let effectiveDynamic = !state.isPaused && ps.isDynamic
             if var body = entity.components[PhysicsBodyComponent.self] {
-                // Restored cards always start kinematic — physics
-                // only re-engages when the user presses PLAY (which
-                // applyPauseState then flips them back to dynamic
-                // if !isPaused).
-                body.mode = .kinematic
-                body.isContinuousCollisionDetectionEnabled = false
+                body.mode = effectiveDynamic ? .dynamic : .kinematic
+                body.isContinuousCollisionDetectionEnabled = effectiveDynamic
                 entity.components.set(body)
             }
             root.addChild(entity)
             let ce = CardEntity(entity: entity, card: card)
-            if ps.isDynamic {
+            if effectiveDynamic {
                 dynamicCards.append(ce)
             } else {
                 heldCards.append(ce)
@@ -3683,9 +3755,8 @@ private final class HouseOfCardsCoordinator: NSObject {
 
         session.hasAnyCards = !state.cards.isEmpty
         session.isPaused = state.isPaused
-        if !state.isPaused {
-            applyPauseState()
-        }
+        // No applyPauseState() call needed — body modes and
+        // array membership are already aligned with state.isPaused.
     }
 }
 

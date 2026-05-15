@@ -797,12 +797,10 @@ struct DeckBuilderView: View {
             case .sideboard:
                 guard card.cardType == "Play" else { return false }
             }
-            // Search
+            // Search — word-prefix match so "amon" finds Amon-Ra but
+            // not Johnny Damon. Shared with Find + Collection via CardSearch.
             if !query.isEmpty {
-                let matchesHero = card.hero.lowercased().contains(query)
-                let matchesName = card.name.lowercased().contains(query)
-                let matchesNum  = card.cardNumber.lowercased().contains(query)
-                guard matchesHero || matchesName || matchesNum else { return false }
+                guard CardSearch.matches(query: query, fields: [card.hero, card.name, card.cardNumber]) else { return false }
             }
             return true
         }

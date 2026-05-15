@@ -1602,12 +1602,39 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// v2.204's 8cm tightening broke the standard "two A-frame
     /// partners close together" snap at the common drag radius
     /// the user actually uses — most A-frame partner placements
-    /// approach from 8-12cm out. shareFoot stays tight at 6cm:
-    /// it's a structural-contact relationship (bottoms touching
-    /// AT a specific shared point) that benefits from requiring
-    /// deliberate drag precision.
+    /// approach from 8-12cm out.
+    /// v2.209: shareFoot tightened further from 6cm to 4cm. The
+    /// user reported shareFoot firing for cards 5cm apart and
+    /// producing "cards essentially on top of one another."
+    /// A foot-sharing relationship is genuinely tight (the two
+    /// bottom-edge midpoints should coincide), so the snap should
+    /// only engage on close approach.
     private static let aFrameSnapRange: Float = 0.12
-    private static let shareFootSnapRange: Float = 0.06
+    private static let shareFootSnapRange: Float = 0.04
+    /// v2.209: tighter magnitude requirement for the mirror-tilt
+    /// snaps (aFrame + shareFoot). snapMirrorTolerance (0.35 rad
+    /// ≈ 20°) is the general "tilt diff" tolerance; for the
+    /// MAGNITUDE comparison between mirror partners we now want
+    /// closer symmetry — a card at +0.10 rad and another at
+    /// -0.30 rad nominally passes the mirror-magnitude check at
+    /// 0.35 (|0.30 - 0.10| = 0.20 < 0.35) but produces a visually
+    /// asymmetric "half-A-frame" the user flagged as wrong. 0.15
+    /// rad ≈ 8.5° magnitude diff allows real-world A-frame builds
+    /// where the user can't perfectly mirror two tilts but is
+    /// close.
+    private static let mirrorMagnitudeTolerance: Float = 0.15
+
+    /// v2.209: minimum tilt for the mirror-tilt snaps. Replaces
+    /// snapTiltMin (0.07 rad ≈ 4°) for aFrame + shareFoot
+    /// eligibility. Below this threshold, both partners are
+    /// "barely tilted" — their bodies stay nearly parallel even
+    /// in mirror orientation, and shareFoot puts their bottoms
+    /// at the same point producing the "cards essentially on top
+    /// of each other" outcome the user flagged. 0.17 rad ≈ 10°
+    /// is the minimum tilt at which a mirror pair forms a
+    /// visually recognizable A-frame (cards diverge by ≥ 20°).
+    /// Below that, the cards look stacked, not staged.
+    private static let mirrorMinTilt: Float = 0.17
     /// v2.204: a snap target is "occupied" if any OTHER card's
     /// bottom face is within this radius of the proposed target.
     /// Prevents the snap from pulling a new card onto a position
@@ -1795,12 +1822,17 @@ private final class HouseOfCardsCoordinator: NSObject {
             //     on different tower layers.
             let layerAlignedTops = abs(theirBottomForMirror.y - ourBottom.y) < 0.02
             // Eligibility for mirror-tilt snaps (aFrame +
-            // shareFoot share the same eligibility — both tilted,
-            // mirror signs, magnitudes within tolerance).
-            let mirrorEligible = abs(ourTilt) > Self.snapTiltMin
-                && abs(theirTilt) > Self.snapTiltMin
+            // shareFoot share the same eligibility — both tilted
+            // significantly (≥10°), mirror signs, magnitudes
+            // within ~8.5° of each other). v2.209 tightened both
+            // the magnitude check (down from 20° → 8.5° to reject
+            // asymmetric "half-A-frame" pairs) and the minimum
+            // tilt (up from 4° → 10° to reject "barely tilted"
+            // pairs that look like cards on top of each other).
+            let mirrorEligible = abs(ourTilt) > Self.mirrorMinTilt
+                && abs(theirTilt) > Self.mirrorMinTilt
                 && ourTilt * theirTilt < 0
-                && abs(abs(theirTilt) - abs(ourTilt)) < Self.snapMirrorTolerance
+                && abs(abs(theirTilt) - abs(ourTilt)) < Self.mirrorMagnitudeTolerance
             if mirrorEligible {
                 mirrorCandidateCount += 1
                 // Track nearest aFrame candidate's blocking reason.
@@ -2168,20 +2200,19 @@ private final class HouseOfCardsCoordinator: NSObject {
         guard let snap = best else {
             let horiz = abs(abs(ourTilt) - .pi / 2) < 0.3 ? "(horizontal)" : ""
             print("[HoB] Smart snap MISS: tilt=\(String(format: "%.2f", ourTilt))rad\(horiz) ourBottomY=\(String(format: "%.3f", ourBottomFace.y))")
-            // v2.208: per-snap-kind breakdown. Tells the user
-            // exactly which snap kind almost fired and why it
-            // didn't, instead of only showing the sit-on-top
-            // reason. If a snap line shows "no mirror-tilt
-            // partner" the user knows they need to tilt another
-            // card in the opposite direction. If it shows "out
-            // of range" the user knows to drag closer. Etc.
-            print("  · sitOnTop     nearest=\(String(format: "%.3f", nearestSitDist))m  \(nearestSitReason)")
-            print("  · aFrame       nearest=\(String(format: "%.3f", nearestAFrameDist))m  \(nearestAFrameReason)")
-            print("  · shareFoot    nearest=\(String(format: "%.3f", nearestShareFootDist))m  \(nearestShareFootReason)")
-            if mirrorCandidateCount == 0 && abs(ourTilt) > Self.snapTiltMin {
-                print("  hint: tilt a nearby card in the OPPOSITE direction to enable aFrame / shareFoot.")
-            } else if abs(ourTilt) <= Self.snapTiltMin {
-                print("  hint: tilt this card with a 2-finger horizontal drag to enable aFrame / shareFoot.")
+            // v2.208 + v2.209: per-snap-kind breakdown. Untracked
+            // distances (no eligible candidate) print as "n/a"
+            // rather than Float.greatestFiniteMagnitude.
+            func fmtDist(_ d: Float) -> String {
+                d > 1e3 ? "n/a   " : "\(String(format: "%.3f", d))m"
+            }
+            print("  · sitOnTop     nearest=\(fmtDist(nearestSitDist))  \(nearestSitReason)")
+            print("  · aFrame       nearest=\(fmtDist(nearestAFrameDist))  \(nearestAFrameReason)")
+            print("  · shareFoot    nearest=\(fmtDist(nearestShareFootDist))  \(nearestShareFootReason)")
+            if mirrorCandidateCount == 0 && abs(ourTilt) > Self.mirrorMinTilt {
+                print("  hint: tilt a nearby card in the OPPOSITE direction (≥10°) to enable aFrame / shareFoot.")
+            } else if abs(ourTilt) <= Self.mirrorMinTilt {
+                print("  hint: tilt this card with a 2-finger horizontal drag (≥10°) to enable aFrame / shareFoot.")
             }
             return
         }

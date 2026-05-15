@@ -20,9 +20,21 @@ struct ModCardEditSheet: View {
     @State private var playAbility: String
     @State private var notes: String = ""
 
-    // Image upload
+    // Image upload — picked photo flows through CardCropView before
+    // becoming the JPEG payload sent to Supabase Storage. v2.213:
+    // moderator no longer needs to pre-crop outside the app.
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedImageData: Data?
+    @State private var croppedPreview: UIImage?
+    /// Identifiable carrier so `fullScreenCover(item:)` can trigger
+    /// presentation when a photo is picked. Per
+    /// [[feedback_swiftui_chained_presentation]] — sheets that
+    /// carry data need an Identifiable item, not a Bool flag.
+    private struct CroppingPayload: Identifiable {
+        let id = UUID()
+        let image: UIImage
+    }
+    @State private var croppingPayload: CroppingPayload?
     @State private var imageAction: ImageAction = .none
 
     // State
@@ -91,7 +103,7 @@ struct ModCardEditSheet: View {
                     if imageAction == .replace {
                         PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                             Label(
-                                selectedImageData != nil ? "Photo Selected ✓" : "Choose Photo",
+                                selectedImageData != nil ? "Photo Cropped ✓" : "Choose Photo",
                                 systemImage: "photo.badge.plus"
                             )
                             .font(Design.Fonts.mono(14))
@@ -99,7 +111,37 @@ struct ModCardEditSheet: View {
                         }
                         .onChange(of: selectedPhotoItem) { _, item in
                             Task {
-                                selectedImageData = try? await item?.loadTransferable(type: Data.self)
+                                guard let data = try? await item?.loadTransferable(type: Data.self),
+                                      let img = UIImage(data: data) else { return }
+                                await MainActor.run {
+                                    // Reset previous crop, kick off the
+                                    // cropping sheet by setting the
+                                    // croppingPayload state.
+                                    selectedImageData = nil
+                                    croppedPreview = nil
+                                    croppingPayload = CroppingPayload(image: img)
+                                }
+                            }
+                        }
+                        if let preview = croppedPreview {
+                            HStack(spacing: 12) {
+                                Image(uiImage: preview)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 60, height: 84)
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Cropped preview")
+                                        .font(Design.Fonts.mono(11, weight: .semibold))
+                                        .tracking(1)
+                                        .foregroundStyle(Design.Colors.bobaCyan)
+                                    Button("Recrop") {
+                                        croppingPayload = CroppingPayload(image: preview)
+                                    }
+                                    .font(Design.Fonts.mono(12))
+                                    .foregroundStyle(Design.Colors.bobaOrange)
+                                }
+                                Spacer()
                             }
                         }
                     }
@@ -175,7 +217,48 @@ struct ModCardEditSheet: View {
                     }
                 }
             }
+            .fullScreenCover(item: $croppingPayload) { payload in
+                CardCropView(
+                    sourceImage: payload.image,
+                    onConfirm: { cropped in
+                        croppedPreview = cropped
+                        // JPEG Q85 ≤ 1200px on the longest side matches
+                        // the production "full" tier roughly (R2 stores
+                        // WebP Q75 ≤1200px; here we hand Supabase Storage
+                        // a JPEG because the existing replace pipeline
+                        // accepts that). The pipeline merge step will
+                        // re-encode to WebP later.
+                        selectedImageData = jpegForUpload(cropped, maxDim: 1200, quality: 0.85)
+                        croppingPayload = nil
+                    },
+                    onCancel: {
+                        croppingPayload = nil
+                    }
+                )
+            }
         }
+    }
+
+    /// Re-encode a cropped UIImage as JPEG for upload: cap the longer
+    /// side at `maxDim` pixels (avoids 12MP straight-from-camera
+    /// payloads bloating storage), then jpegData at `quality`.
+    private func jpegForUpload(_ image: UIImage, maxDim: CGFloat, quality: CGFloat) -> Data? {
+        let resized: UIImage
+        let longest = max(image.size.width, image.size.height)
+        if longest > maxDim {
+            let scale = maxDim / longest
+            let target = CGSize(width: image.size.width * scale,
+                                height: image.size.height * scale)
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1.0
+            format.opaque = false
+            resized = UIGraphicsImageRenderer(size: target, format: format).image { _ in
+                image.draw(in: CGRect(origin: .zero, size: target))
+            }
+        } else {
+            resized = image
+        }
+        return resized.jpegData(compressionQuality: quality)
     }
 
     // MARK: - Helpers

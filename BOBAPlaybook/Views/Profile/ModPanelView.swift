@@ -8,6 +8,7 @@ struct ModPanelView: View {
     @Environment(CardStore.self) private var cardStore
     @State private var searchText = ""
     @State private var selectedCard: Card?
+    @State private var showingAddCard = false
 
     var body: some View {
         List {
@@ -15,6 +16,21 @@ struct ModPanelView: View {
                 Label("Logged in as \(auth.isAdmin ? "Admin" : "Moderator")", systemImage: "shield.lefthalf.filled")
                     .font(Design.Fonts.mono(13))
                     .foregroundStyle(auth.isAdmin ? Design.Colors.bobaOrange : Design.Colors.bobaCyan)
+            }
+            .listRowBackground(Design.Colors.surface)
+
+            Section("ADD A NEW CARD") {
+                Button {
+                    showingAddCard = true
+                } label: {
+                    Label("Add a card to the catalog", systemImage: "plus.rectangle.on.rectangle")
+                        .font(Design.Fonts.mono(14, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                }
+                Text("For cards that aren't in the catalog yet — Promos, Top 8, anything missing. Admin reviews before it ships to everyone.")
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .listRowBackground(Design.Colors.surface)
 
@@ -73,6 +89,9 @@ struct ModPanelView: View {
         .searchable(text: $searchText, prompt: "Search by card # or hero name")
         .sheet(item: $selectedCard) { card in
             ModCardEditSheet(card: card)
+        }
+        .sheet(isPresented: $showingAddCard) {
+            ModAddCardSheet()
         }
     }
 }

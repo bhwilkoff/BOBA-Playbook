@@ -56,12 +56,21 @@ struct CardCropView: View {
                 Color.black.ignoresSafeArea()
 
                 // Source image with pinch + drag transform.
+                //
+                // v2.214: `.contentShape(Rectangle())` makes the
+                // pinch+drag gesture hittable across the FULL frame
+                // — including the letterbox area outside the
+                // .scaledToFit-rendered image. Without that, the
+                // gesture only fired on the visible image pixels,
+                // so dragging in the empty sides of the container
+                // did nothing.
                 Image(uiImage: sourceImage)
                     .resizable()
                     .scaledToFit()
                     .scaleEffect(imageScale)
                     .offset(imageOffset)
                     .frame(width: geo.size.width, height: geo.size.height)
+                    .contentShape(Rectangle())
                     .gesture(
                         SimultaneousGesture(
                             MagnificationGesture()
@@ -84,39 +93,51 @@ struct CardCropView: View {
                         )
                     )
 
-                // Dim everything outside the crop rectangle.
+                // Dim everything outside the crop rectangle. Non-
+                // hittable so taps in the dim area pass through to
+                // the Image's gesture.
                 cropMask(in: geo.size)
                     .fill(Color.black.opacity(0.6))
                     .allowsHitTesting(false)
 
-                // Crop overlay border + corner handles.
-                ZStack {
-                    Rectangle()
-                        .strokeBorder(Color.white, lineWidth: 2)
-                        .frame(width: cropRect.width, height: cropRect.height)
-                        .position(x: cropRect.midX, y: cropRect.midY)
-                    // Grid lines (rule of thirds) — visual aid only.
-                    Path { p in
-                        let r = cropRect
-                        // Vertical thirds
-                        p.move(to: CGPoint(x: r.minX + r.width / 3, y: r.minY))
-                        p.addLine(to: CGPoint(x: r.minX + r.width / 3, y: r.maxY))
-                        p.move(to: CGPoint(x: r.minX + 2 * r.width / 3, y: r.minY))
-                        p.addLine(to: CGPoint(x: r.minX + 2 * r.width / 3, y: r.maxY))
-                        // Horizontal thirds
-                        p.move(to: CGPoint(x: r.minX, y: r.minY + r.height / 3))
-                        p.addLine(to: CGPoint(x: r.maxX, y: r.minY + r.height / 3))
-                        p.move(to: CGPoint(x: r.minX, y: r.minY + 2 * r.height / 3))
-                        p.addLine(to: CGPoint(x: r.maxX, y: r.minY + 2 * r.height / 3))
-                    }
-                    .stroke(Color.white.opacity(0.5), lineWidth: 0.5)
+                // Crop overlay border + grid + corner handles. The
+                // BORDER and GRID are visual only — both are
+                // `.allowsHitTesting(false)` so a touch anywhere
+                // INSIDE the rectangle passes through to the Image
+                // (pan + zoom). Only the four corner dots are
+                // hittable, and only on their own enlarged hit
+                // area. v2.214 fix: previously the strokeBorder
+                // Rectangle was hittable across its whole interior,
+                // which silently swallowed every tap inside the
+                // crop frame — the symptom the user described as
+                // "you move the crop rectangle around by means
+                // that are very difficult to decipher."
+                Rectangle()
+                    .strokeBorder(Color.white, lineWidth: 2)
+                    .frame(width: cropRect.width, height: cropRect.height)
+                    .position(x: cropRect.midX, y: cropRect.midY)
                     .allowsHitTesting(false)
 
-                    cornerHandle(.topLeft,     at: CGPoint(x: cropRect.minX, y: cropRect.minY), in: geo.size)
-                    cornerHandle(.topRight,    at: CGPoint(x: cropRect.maxX, y: cropRect.minY), in: geo.size)
-                    cornerHandle(.bottomLeft,  at: CGPoint(x: cropRect.minX, y: cropRect.maxY), in: geo.size)
-                    cornerHandle(.bottomRight, at: CGPoint(x: cropRect.maxX, y: cropRect.maxY), in: geo.size)
+                Path { p in
+                    let r = cropRect
+                    p.move(to: CGPoint(x: r.minX + r.width / 3, y: r.minY))
+                    p.addLine(to: CGPoint(x: r.minX + r.width / 3, y: r.maxY))
+                    p.move(to: CGPoint(x: r.minX + 2 * r.width / 3, y: r.minY))
+                    p.addLine(to: CGPoint(x: r.minX + 2 * r.width / 3, y: r.maxY))
+                    p.move(to: CGPoint(x: r.minX, y: r.minY + r.height / 3))
+                    p.addLine(to: CGPoint(x: r.maxX, y: r.minY + r.height / 3))
+                    p.move(to: CGPoint(x: r.minX, y: r.minY + 2 * r.height / 3))
+                    p.addLine(to: CGPoint(x: r.maxX, y: r.minY + 2 * r.height / 3))
                 }
+                .stroke(Color.white.opacity(0.5), lineWidth: 0.5)
+                .allowsHitTesting(false)
+
+                // Corner handles last so they sit on top + win the
+                // hit test for their own ~44pt circles.
+                cornerHandle(.topLeft,     at: CGPoint(x: cropRect.minX, y: cropRect.minY), in: geo.size)
+                cornerHandle(.topRight,    at: CGPoint(x: cropRect.maxX, y: cropRect.minY), in: geo.size)
+                cornerHandle(.bottomLeft,  at: CGPoint(x: cropRect.minX, y: cropRect.maxY), in: geo.size)
+                cornerHandle(.bottomRight, at: CGPoint(x: cropRect.maxX, y: cropRect.maxY), in: geo.size)
             }
             .onAppear {
                 containerSize = geo.size
@@ -141,10 +162,10 @@ struct CardCropView: View {
     // MARK: - Subviews
 
     private var hint: some View {
-        Text("Pinch + drag the photo behind the frame. Pull the corners to fine-tune.")
+        Text("Pinch and drag anywhere to move the photo. Pull an orange corner to resize the crop.")
             .font(Design.Fonts.mono(11, weight: .semibold))
             .tracking(0.5)
-            .foregroundStyle(.white.opacity(0.75))
+            .foregroundStyle(.white.opacity(0.78))
             .multilineTextAlignment(.center)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -183,33 +204,41 @@ struct CardCropView: View {
 
     @ViewBuilder
     private func cornerHandle(_ corner: Handle, at point: CGPoint, in size: CGSize) -> some View {
-        Circle()
-            .fill(Color.white)
-            .frame(width: 22, height: 22)
-            .overlay(Circle().stroke(Color.black.opacity(0.4), lineWidth: 1))
-            .position(point)
-            // Generous hit area to make the small visible dot easy
-            // to grab on touch. Apple's HIG suggests ≥ 44pt min for
-            // touch targets.
-            .contentShape(Circle().inset(by: -22))
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        if activeHandle == nil {
-                            activeHandle = corner
-                            dragStartRect = cropRect
-                        }
-                        cropRect = updatedRect(
-                            from: dragStartRect,
-                            corner: corner,
-                            translation: value.translation,
-                            inSize: size
-                        )
+        // Visible glyph: BoBA-orange filled circle, white ring, ~28pt
+        // diameter so it reads as a clear handle (the earlier 22pt
+        // dot felt incidental and the user couldn't see what to
+        // grab). The hit-test shape is a 56pt circle (~Apple's HIG
+        // 44pt minimum + a bit, since the handle sits at the edge
+        // of the crop rect and partial overlap with the rect
+        // interior is expected).
+        ZStack {
+            Circle()
+                .fill(Design.Colors.bobaOrange)
+                .frame(width: 22, height: 22)
+            Circle()
+                .stroke(Color.white, lineWidth: 3)
+                .frame(width: 22, height: 22)
+        }
+        .position(point)
+        .contentShape(Circle().inset(by: -17))   // ~56pt diameter hit
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    if activeHandle == nil {
+                        activeHandle = corner
+                        dragStartRect = cropRect
                     }
-                    .onEnded { _ in
-                        activeHandle = nil
-                    }
-            )
+                    cropRect = updatedRect(
+                        from: dragStartRect,
+                        corner: corner,
+                        translation: value.translation,
+                        inSize: size
+                    )
+                }
+                .onEnded { _ in
+                    activeHandle = nil
+                }
+        )
     }
 
     private func cropMask(in size: CGSize) -> Path {

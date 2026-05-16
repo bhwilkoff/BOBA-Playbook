@@ -481,6 +481,8 @@ final class HeroShotRenderer {
                                            motion: config.cardMotion)
         HeroShotRenderer.applyCameraPose(camPose, to: scene.camera)
         scene.cardPivot.orientation = simd_quatf(angle: yaw, axis: SIMD3<Float>(0, 1, 0))
+        HeroShotRenderer.applyKeyLightPose(time: time, duration: config.duration,
+                                            light: scene.keyLight)
 
         // Build the buffer + texture, render one frame.
         var pixelBuffer: CVPixelBuffer?
@@ -571,6 +573,9 @@ final class HeroShotRenderer {
                                                motion: config.cardMotion)
             HeroShotRenderer.applyCameraPose(camPose, to: scene.camera)
             scene.cardPivot.orientation = simd_quatf(angle: yaw, axis: SIMD3<Float>(0, 1, 0))
+            HeroShotRenderer.applyKeyLightPose(time: time,
+                                                duration: config.duration,
+                                                light: scene.keyLight)
 
             // Build a fresh CVPixelBuffer for this frame.
             var pixelBuffer: CVPixelBuffer?
@@ -637,6 +642,11 @@ final class HeroShotRenderer {
         /// The CARD pivot — child of root, parent of front+back planes.
         /// Rotated around Y per frame during phase 1 to spin the card.
         let cardPivot: Entity
+        /// Key directional light. Per-frame `look(at:from:)` updates
+        /// rotate it slowly around the card so foil treatments catch
+        /// the light at different angles — the "rim-pass" beat from
+        /// the research synthesis (the MKBHD silhouette-rake move).
+        let keyLight: DirectionalLight
     }
 
     private func buildScene(config: Config) throws -> SceneBundle {
@@ -827,7 +837,8 @@ final class HeroShotRenderer {
         )
         HeroShotRenderer.applyCameraPose(firstPose, to: camera)
 
-        return SceneBundle(renderer: renderer, camera: camera, cardPivot: cardPivot)
+        return SceneBundle(renderer: renderer, camera: camera,
+                           cardPivot: cardPivot, keyLight: keyLight)
     }
 
     // MARK: - Color helpers
@@ -1063,6 +1074,33 @@ final class HeroShotRenderer {
     }
 
     // MARK: - Camera math
+
+    /// Animate the key light through a slow rim-light sweep across
+    /// the clip duration. Base position (0.3, 0.4, 0.5) → sweep around
+    /// Y axis by ±45° centered on the base azimuth. This makes foil
+    /// treatments (Battlefoil's diagonal stripes, Superfoil's noise,
+    /// Inspired Ink's vertical bands) catch the light at different
+    /// angles as the clip progresses — the "silhouette rake" beat per
+    /// the research synthesis on MKBHD tech-demo camera-and-light
+    /// dynamics. For non-foil cards the effect is subtle but adds the
+    /// "alive frame" feel the eye reads as production value.
+    static func applyKeyLightPose(time: Double, duration: Double,
+                                   light: DirectionalLight) {
+        let progress = duration > 0 ? max(0, min(1, time / duration)) : 0
+        // Smooth oscillation: -45° → +45° → -45° across the clip via
+        // sine. Avoids constant velocity (hobbyist tell) and gives the
+        // settle beats moments of held rim emphasis.
+        let phase = progress * .pi * 2.0
+        let sweepDeg: Float = 45.0
+        let azOffset = Float(sin(phase)) * sweepDeg * .pi / 180
+        // Base position: (0.3, 0.4, 0.5). Distance from origin ≈ 0.71.
+        // Rotate (x, z) around Y by azOffset.
+        let r: Float = 0.71
+        let baseAz: Float = atan2(0.3, 0.5)
+        let az = baseAz + azOffset
+        let pos = SIMD3<Float>(sin(az) * r, 0.4, cos(az) * r)
+        light.look(at: .zero, from: pos, relativeTo: nil)
+    }
 
     /// Smoothstep: 3t² - 2t³. Matches `easeInOut` shape.
     /// Ease-out cubic — fast start, slow finish. Reads as the camera

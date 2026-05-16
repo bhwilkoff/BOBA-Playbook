@@ -321,6 +321,13 @@ nonisolated enum BOBACardEntity {
             } else {
                 mat.color = .init(tint: placeholderFrontColor)
             }
+            // Alpha-test the rounded corners. Without this, UnlitMaterial
+            // defaults to `.opaque` blending and the transparent corner
+            // pixels in the rounded-corner-clipped texture render BLACK
+            // (the bitmap's RGB under alpha=0). With opacityThreshold,
+            // pixels below threshold are discarded entirely — revealing
+            // the backdrop behind the rounded silhouette.
+            mat.opacityThreshold = 0.5
             return mat
         case .physicallyBased:
             return makeFrontPBRMaterial(config: config)
@@ -337,6 +344,7 @@ nonisolated enum BOBACardEntity {
             } else {
                 mat.color = .init(tint: placeholderBackColor)
             }
+            mat.opacityThreshold = 0.5
             return mat
         case .physicallyBased:
             var mat = PhysicallyBasedMaterial()

@@ -281,9 +281,13 @@ final class HeroShotRenderer {
             }
             return 0  // 2π = 0 (snap to face camera for the rest)
         case .slowRotate:
-            // One slow 360° rotation across the WHOLE clip, linear so
-            // the clip is loopable (constant angular velocity).
-            return Float(progress) * 2 * .pi
+            // v5.1: gentle ±30° sinusoidal sway. v5's linear 0→2π
+            // spent half the clip showing the BACK of the card — user
+            // explicitly flagged this. New behavior: card sways
+            // left/right showing its 3D edges without ever turning
+            // away from camera. One full oscillation per clip.
+            let phase = Float(progress) * 2 * .pi
+            return sin(phase) * (.pi / 6)   // ±30° amplitude
         }
     }
 
@@ -582,13 +586,15 @@ final class HeroShotRenderer {
         backdrop.position = SIMD3<Float>(0, 0.10, -0.85)
         root.addChild(backdrop)
 
-        // ── Stage floor (Unlit, tinted dark) ─────────────────────────
-        // Solid plane under the card with a darkened palette-tinted
-        // color — gives the card a base to "stand on" without
-        // competing with the backdrop.
+        // ── Stage floor (Unlit, tinted) ──────────────────────────────
+        // Solid plane under the card. Palette-tinted, NOT
+        // crushed-to-near-black. v5 had t=0.78 (78% black, 22% palette)
+        // which produced an entirely-black floor for most palettes.
+        // v5.1 keeps 55% of the palette tint visible so the floor
+        // reads as a real surface, not a void.
         var floorMat = UnlitMaterial()
         floorMat.color = .init(tint: Self.blendColor(
-            palette.first ?? .darkGray, with: .black, t: 0.78))
+            palette.first ?? .darkGray, with: .black, t: 0.45))
         let floor = ModelEntity(
             mesh: MeshResource.generatePlane(width: 1.6, depth: 1.6),
             materials: [floorMat]
@@ -630,13 +636,16 @@ final class HeroShotRenderer {
         emitter.birthDirection = .world
         emitter.birthLocation = .volume
         emitter.simulationState = .play
-        // ~12-20 particles in-frame at any time (birthRate × lifeSpan).
-        emitter.mainEmitter.birthRate = 6
-        emitter.mainEmitter.birthRateVariation = 1.5
-        emitter.mainEmitter.lifeSpan = 4.0
-        emitter.mainEmitter.lifeSpanVariation = 1.0
-        emitter.mainEmitter.size = 0.015
-        emitter.mainEmitter.sizeVariation = 0.008
+        // v5.1: more plentiful per user feedback. birthRate 6→18 with
+        // 5s lifeSpan = ~90 in frame at any time. Size variation
+        // raised so the cloud has depth — some big soft motes, some
+        // tiny twinkles.
+        emitter.mainEmitter.birthRate = 18
+        emitter.mainEmitter.birthRateVariation = 4
+        emitter.mainEmitter.lifeSpan = 5.0
+        emitter.mainEmitter.lifeSpanVariation = 1.5
+        emitter.mainEmitter.size = 0.018
+        emitter.mainEmitter.sizeVariation = 0.012
         // Slow upward drift with very mild lateral noise.
         emitter.mainEmitter.acceleration = SIMD3<Float>(0, 0.005, 0)
         emitter.mainEmitter.dampingFactor = 0.5

@@ -69,13 +69,16 @@ enum HeroShotEnvironment {
         guard let cg = image.cgImage else { return nil }
         let ci = CIImage(cgImage: cg)
 
-        // Saturation boost — raw album art / card art washes out
-        // under heavy blur. Apple Music's reference implementation
-        // explicitly oversaturates pre-blur.
+        // Saturation boost — raw card art washes out under heavy blur.
+        // v4 used 1.7 + brightness 0.05 — too aggressive, env became a
+        // yellow/pale wash competing with the card. v4.1 tunes for
+        // "tinted ambient frame" not "saturated centerpiece": modest
+        // sat lift + slight brightness DROP so the env is dim enough
+        // to let the card pop.
         let saturate = CIFilter.colorControls()
         saturate.inputImage = ci
-        saturate.saturation = 1.7
-        saturate.brightness = 0.05    // very subtle lift
+        saturate.saturation = 1.20
+        saturate.brightness = -0.10    // slight DIM so env recedes
         saturate.contrast = 1.0
         guard let saturated = saturate.outputImage else { return nil }
 
@@ -145,15 +148,19 @@ enum HeroShotEnvironment {
             // No overlay for base set — just the ambient blur.
             return
 
+        // Treatment overlays in v4.1 are SUBTLE — they hint at the
+        // treatment without competing with the card. v4's 0.55 / 0.40
+        // / 0.55 alphas were too aggressive given the env-extension
+        // backdrop is already prominent.
+
         case .battlefoil:
-            // Diagonal stripes at 30°, primary palette color, low
-            // alpha so it overlays the ambient without obscuring it.
+            // Diagonal stripes at 30°, primary palette color.
             cg.saveGState()
             cg.translateBy(x: size.width / 2, y: size.height / 2)
             cg.rotate(by: CGFloat.pi / 6)
             cg.translateBy(x: -size.width, y: -size.height)
             cg.setBlendMode(.softLight)
-            cg.setFillColor(primary.withAlphaComponent(0.55).cgColor)
+            cg.setFillColor(primary.withAlphaComponent(0.28).cgColor)
             let stripeW: CGFloat = 80
             let gap: CGFloat = 140
             var x: CGFloat = 0
@@ -164,15 +171,13 @@ enum HeroShotEnvironment {
             cg.restoreGState()
 
         case .superfoil:
-            // Angle-shifted rainbow — three diagonal bands of
-            // primary / accent / secondary hues, super-soft.
             cg.saveGState()
             cg.setBlendMode(.softLight)
             let colors: [UIColor] = palette.count >= 3
                 ? Array(palette.prefix(3))
                 : [primary, primary.shifted(hue: 0.33), primary.shifted(hue: -0.33)]
             for (i, color) in colors.enumerated() {
-                cg.setFillColor(color.withAlphaComponent(0.30).cgColor)
+                cg.setFillColor(color.withAlphaComponent(0.18).cgColor)
                 let offset = CGFloat(i) * size.height / CGFloat(colors.count + 1)
                 cg.fill(CGRect(
                     x: 0,
@@ -184,20 +189,19 @@ enum HeroShotEnvironment {
             cg.restoreGState()
 
         case .blizzard:
-            // Crackle — random thin radiating lines in cool white-blue.
             cg.saveGState()
             cg.setBlendMode(.screen)
-            cg.setStrokeColor(UIColor(red: 0.85, green: 0.95, blue: 1.0, alpha: 0.55).cgColor)
-            cg.setLineWidth(2.0)
+            cg.setStrokeColor(UIColor(red: 0.85, green: 0.95, blue: 1.0, alpha: 0.28).cgColor)
+            cg.setLineWidth(1.5)
             var rng = SystemRandomNumberGenerator()
-            for _ in 0..<140 {
+            for _ in 0..<100 {
                 let cx = CGFloat.random(in: 0..<size.width, using: &rng)
                 let cy = CGFloat.random(in: 0..<size.height, using: &rng)
                 let spokes = Int.random(in: 3...5, using: &rng)
                 for i in 0..<spokes {
                     let angle = CGFloat(i) * (2 * .pi / CGFloat(spokes))
                         + CGFloat.random(in: -0.4...0.4, using: &rng)
-                    let len = CGFloat.random(in: 50...160, using: &rng)
+                    let len = CGFloat.random(in: 40...120, using: &rng)
                     cg.move(to: CGPoint(x: cx, y: cy))
                     cg.addLine(to: CGPoint(x: cx + cos(angle) * len, y: cy + sin(angle) * len))
                 }
@@ -206,7 +210,6 @@ enum HeroShotEnvironment {
             cg.restoreGState()
 
         case .inspiredInk:
-            // Vertical iridescent bands.
             cg.saveGState()
             cg.setBlendMode(.softLight)
             let colors = palette.prefix(2).map { $0 } + [primary]
@@ -214,7 +217,7 @@ enum HeroShotEnvironment {
             let bandW = size.width / CGFloat(bands)
             for i in 0..<bands {
                 let color = colors[i % colors.count]
-                cg.setFillColor(color.withAlphaComponent(0.40).cgColor)
+                cg.setFillColor(color.withAlphaComponent(0.22).cgColor)
                 cg.fill(CGRect(x: CGFloat(i) * bandW, y: 0, width: bandW * 0.6, height: size.height))
             }
             cg.restoreGState()

@@ -127,7 +127,10 @@ void holofoilSurface(realitykit::surface_parameters params)
     // ── 7. PBR-style material output ─────────────────────────────
     // Paper-like: dielectric (metallic 0), slight gloss for the
     // protective clearcoat on real trading cards.
-    surface.set_base_color(half4(finalColor, base.a));
+    // set_base_color expects half3 (RGB). Alpha is handled by the
+    // discard_fragment block below (alpha-test), so we don't need to
+    // pack alpha into the base color.
+    surface.set_base_color(finalColor);
     surface.set_metallic(0.0);
     surface.set_roughness(0.40);
     // Alpha-test: discard fully-transparent corner pixels so the

@@ -36,6 +36,21 @@ enum HeroShotEnvironment {
     /// Net effect: looking past the card, you see a dark gallery with
     /// soft palette-color light spilling from BEHIND the card. The card
     /// itself remains the only fully-saturated thing in the frame.
+    /// v5.2: "premium photo studio" approach. Selected from 21-tile
+    /// simulator sweep (tools/HeroShotSim/). Three layers:
+    ///
+    ///   1. Dark palette-tinted base (95% black + 5% palette tint)
+    ///   2. Multi-rotated ambient card-art-blur (4 copies, varying
+    ///      scale + rotation + alpha — Apple Music's animated
+    ///      background technique, baked static). Carries the
+    ///      card-art-extension cue but doesn't dominate.
+    ///   3. TWO opposing lights (key + rim) using COMPLEMENTARY colors
+    ///      — key in the palette primary (warm), rim 150° hue-rotated
+    ///      (cool, if warm primary) — placed at opposite corners
+    ///      of the canvas. This is the premium photo-studio warm/cool
+    ///      lighting contrast that makes every product reveal feel
+    ///      cinematic, regardless of source palette.
+    ///   4. Edge vignette pulling corners darker for focus.
     static func generateImage(frontArt: UIImage,
                               treatment _: String?,
                               palette: [UIColor]) -> CGImage? {
@@ -44,79 +59,137 @@ enum HeroShotEnvironment {
         let composed = renderer.image { ctx in
             let cg = ctx.cgContext
 
-            // ── Layer 1: dark cinematic base ────────────────────────
-            // Near-black, slightly tinted by the palette so the whole
-            // scene has a unified color identity.
-            let baseDark = blendColor(palette.first ?? .darkGray, with: .black, t: 0.88)
+            // Layer 1: dark base
+            let baseDark = blendColor(palette.first ?? .darkGray, with: .black, t: 0.85)
             cg.setFillColor(baseDark.cgColor)
             cg.fill(CGRect(origin: .zero, size: outSize))
 
-            // ── Layer 2: visible blurred card art ───────────────────
-            // The "extension of the card art" cue. v5 had this at 30%
-            // alpha — user couldn't see it at all, env read as "just
-            // a gradient." v5.1 raises to 65% so the card art clearly
-            // extends into the env. Ambient-blur saturation also
-            // raised so the colors are vivid (see `ambientBlur`).
+            // Layer 2: multi-rotated ambient (the card art extension cue)
             if let ambient = ambientBlur(of: frontArt, targetSize: outSize) {
-                cg.saveGState()
-                cg.setAlpha(0.65)
-                ambient.draw(in: CGRect(origin: .zero, size: outSize))
-                cg.restoreGState()
+                drawMultiRotatedAmbient(ambient: ambient,
+                                        in: cg,
+                                        size: outSize,
+                                        baseAlpha: 0.45)
             }
 
-            // ── Layer 3: centered palette glow ──────────────────────
-            // The "backlight" behind the card. v5 was too dim
-            // (peak alpha 0.85, radius 55%). v5.1 boosts to alpha 1.0
-            // at center and radius 75% so the glow actually fills the
-            // visible frame at every camera framing.
-            let glowCenter = CGPoint(x: outSize.width / 2, y: outSize.height / 2)
-            let glowRadius = outSize.height * 0.75
+            // Layer 3a: KEY light (palette primary, lower-left)
             let primary = palette.first ?? .white
-            let glowColors = [
-                primary.cgColor,                              // full alpha at center
-                primary.withAlphaComponent(0.75).cgColor,
-                primary.withAlphaComponent(0.25).cgColor,
-                primary.withAlphaComponent(0.0).cgColor
-            ] as CFArray
-            let glowLocs: [CGFloat] = [0.0, 0.30, 0.70, 1.0]
-            let space = CGColorSpaceCreateDeviceRGB()
-            if let glowGrad = CGGradient(colorsSpace: space,
-                                         colors: glowColors,
-                                         locations: glowLocs) {
-                cg.saveGState()
-                cg.setBlendMode(.screen)
-                cg.drawRadialGradient(
-                    glowGrad,
-                    startCenter: glowCenter, startRadius: 0,
-                    endCenter:   glowCenter, endRadius:   glowRadius,
-                    options: []
-                )
-                cg.restoreGState()
-            }
+            drawLightSpot(in: cg,
+                          color: primary,
+                          center: CGPoint(x: outSize.width * 0.28,
+                                          y: outSize.height * 0.72),
+                          radius: outSize.height * 1.10,
+                          centerAlpha: 1.0, midAlpha: 0.55, midStop: 0.30)
 
-            // ── Layer 4: edge vignette (lighter) ────────────────────
-            // v5's vignette at alpha 0.55 was crushing the env into
-            // darkness. v5.1 drops to 0.30 so vignette frames the
-            // composition without dimming the whole stage.
+            // Layer 3b: RIM light (complementary hue, upper-right)
+            // Hue rotated +150° from primary, mild desaturation. For a
+            // warm primary (orange/red) → cool rim (teal/blue). For a
+            // cool primary (blue) → warm rim (orange/red). Universal
+            // warm/cool contrast regardless of palette.
+            let rim = hueShifted(primary, byHue: 0.42, satScale: 0.85)
+            drawLightSpot(in: cg,
+                          color: rim,
+                          center: CGPoint(x: outSize.width * 0.78,
+                                          y: outSize.height * 0.28),
+                          radius: outSize.height * 0.85,
+                          centerAlpha: 0.80, midAlpha: 0.35, midStop: 0.35)
+
+            // Layer 4: edge vignette
+            let space = CGColorSpaceCreateDeviceRGB()
             let vignetteColors = [
                 UIColor.clear.cgColor,
                 UIColor.clear.cgColor,
-                UIColor.black.withAlphaComponent(0.30).cgColor
+                UIColor.black.withAlphaComponent(0.25).cgColor
             ] as CFArray
             let vignetteLocs: [CGFloat] = [0.0, 0.60, 1.0]
             let vignetteRadius = max(outSize.width, outSize.height) * 0.70
+            let vignetteCenter = CGPoint(x: outSize.width / 2,
+                                         y: outSize.height / 2)
             if let vGrad = CGGradient(colorsSpace: space,
                                       colors: vignetteColors,
                                       locations: vignetteLocs) {
                 cg.drawRadialGradient(
                     vGrad,
-                    startCenter: glowCenter, startRadius: 0,
-                    endCenter:   glowCenter, endRadius:   vignetteRadius,
+                    startCenter: vignetteCenter, startRadius: 0,
+                    endCenter: vignetteCenter, endRadius: vignetteRadius,
                     options: []
                 )
             }
         }
         return composed.cgImage
+    }
+
+    /// Draw 4 rotated copies of the ambient image at varying scales +
+    /// positions + per-copy alpha. Produces an organic non-symmetric
+    /// "card art carried into space" texture without the kaleidoscope
+    /// of mirror-tiling.
+    private static func drawMultiRotatedAmbient(ambient: UIImage,
+                                                in cg: CGContext,
+                                                size: CGSize,
+                                                baseAlpha: CGFloat) {
+        let copies: [(scale: CGFloat, rot: CGFloat, x: CGFloat, y: CGFloat, alpha: CGFloat)] = [
+            (1.4, .pi * 0.05, 0.3, 0.5, 0.85),
+            (1.2, .pi * -0.10, 0.7, 0.55, 0.75),
+            (1.6, .pi * 0.20, 0.4, 0.7, 0.60),
+            (1.0, .pi * -0.05, 0.6, 0.35, 0.70)
+        ]
+        guard let cgi = ambient.cgImage else { return }
+        for c in copies {
+            cg.saveGState()
+            cg.setAlpha(baseAlpha * c.alpha)
+            let cx = c.x * size.width
+            let cy = c.y * size.height
+            let drawW = size.width * c.scale
+            let drawH = drawW * CGFloat(cgi.height) / CGFloat(cgi.width)
+            cg.translateBy(x: cx, y: cy)
+            cg.rotate(by: c.rot)
+            cg.translateBy(x: -drawW / 2, y: -drawH / 2)
+            cg.draw(cgi, in: CGRect(x: 0, y: 0, width: drawW, height: drawH))
+            cg.restoreGState()
+        }
+    }
+
+    /// Draw a single radial light spot at the given canvas position
+    /// in the given color, screen-blended.
+    private static func drawLightSpot(in cg: CGContext,
+                                      color: UIColor,
+                                      center: CGPoint,
+                                      radius: CGFloat,
+                                      centerAlpha: CGFloat,
+                                      midAlpha: CGFloat = 0.40,
+                                      midStop: CGFloat = 0.40) {
+        let space = CGColorSpaceCreateDeviceRGB()
+        let colors = [
+            color.withAlphaComponent(centerAlpha).cgColor,
+            color.withAlphaComponent(centerAlpha * midAlpha).cgColor,
+            color.withAlphaComponent(0).cgColor
+        ] as CFArray
+        let locs: [CGFloat] = [0.0, midStop, 1.0]
+        guard let g = CGGradient(colorsSpace: space, colors: colors, locations: locs)
+        else { return }
+        cg.saveGState()
+        cg.setBlendMode(.screen)
+        cg.drawRadialGradient(g,
+                              startCenter: center, startRadius: 0,
+                              endCenter: center, endRadius: radius,
+                              options: [])
+        cg.restoreGState()
+    }
+
+    /// Hue-rotate a UIColor by `delta` (in [-1, 1] where 1 = 360°)
+    /// and optionally scale its saturation. Used to derive a
+    /// complementary rim-light color from the palette primary so
+    /// the env has warm/cool lighting contrast even on monochromatic
+    /// source palettes.
+    private static func hueShifted(_ color: UIColor,
+                                   byHue delta: CGFloat,
+                                   satScale: CGFloat = 1.0) -> UIColor {
+        var h: CGFloat = 0, s: CGFloat = 0, v: CGFloat = 0, a: CGFloat = 1
+        color.getHue(&h, saturation: &s, brightness: &v, alpha: &a)
+        var newH = h + delta
+        if newH > 1 { newH -= 1 } else if newH < 0 { newH += 1 }
+        let newS = max(0, min(1, s * satScale))
+        return UIColor(hue: newH, saturation: newS, brightness: v, alpha: a)
     }
 
     /// Linear blend of two UIColors in sRGB.

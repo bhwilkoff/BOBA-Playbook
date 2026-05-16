@@ -19,6 +19,7 @@ struct HeroShotView: View {
     @State private var renderedURL: URL?
     @State private var renderError: String?
     @State private var frontTexture: TextureResource?
+    @State private var backTexture: TextureResource?
     @State private var renderTask: Task<Void, Never>?
     @State private var showingShareSheet: Bool = false
 
@@ -60,7 +61,11 @@ struct HeroShotView: View {
                     .foregroundStyle(Design.Colors.bobaOrange)
                 }
             }
-            .task { await loadFrontTexture() }
+            .task {
+                async let front: Void = loadFrontTexture()
+                async let back:  Void = loadBackTexture()
+                _ = await (front, back)
+            }
             .sheet(isPresented: $showingShareSheet) {
                 if let renderedURL {
                     ActivityShareSheet(items: [renderedURL])
@@ -273,6 +278,27 @@ struct HeroShotView: View {
         }
     }
 
+    /// Bundled card-back PNG (same asset HouseOfCardsView uses). The
+    /// back plane in the renderer is mounted with a `-π/2` X rotation
+    /// that already flips its V axis, so no compensating image rotation
+    /// is needed when the source PNG is bundled as-is.
+    private func loadBackTexture() async {
+        let tex: TextureResource? = await Task.detached(priority: .userInitiated) { () -> TextureResource? in
+            guard
+                let path = Bundle.main.url(forResource: "card-back", withExtension: "png"),
+                let image = UIImage(contentsOfFile: path.path),
+                let cg = image.cgImage
+            else { return nil }
+            return await MainActor.run {
+                let opts = TextureResource.CreateOptions(semantic: .color)
+                return try? TextureResource(image: cg, withName: nil, options: opts)
+            }
+        }.value
+        await MainActor.run {
+            self.backTexture = tex
+        }
+    }
+
     private func startRender() {
         guard let texture = frontTexture else { return }
         phase = .rendering
@@ -284,7 +310,7 @@ struct HeroShotView: View {
                 let config = HeroShotRenderer.Config(
                     card: card,
                     frontTexture: texture,
-                    backTexture: nil,
+                    backTexture: backTexture,
                     includeWatermark: includeWatermark
                 )
                 let url = try await renderer.render(config) { p in

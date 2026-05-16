@@ -24,40 +24,115 @@ enum HeroShotEnvironment {
     static let envWidth = 2048
     static let envHeight = 1024
 
-    /// Generate the env-extension image from a card. Returns a CGImage
-    /// safe to pass to `EnvironmentResource(equirectangular:)` AND
-    /// `TextureResource(image:)`.
+    /// Generate the env-extension image from a card.
+    ///
+    /// v5 layout: dark cinematic stage with a centered palette-color
+    /// glow halo behind the card. The card-art-extension is present
+    /// as a SUBTLE blurred underlayer (alpha 0.30) — the colors carry
+    /// through but don't compete with the card itself. Drops the
+    /// treatment overlay (was too aggressive — particles + glow now
+    /// carry the treatment energy instead).
+    ///
+    /// Net effect: looking past the card, you see a dark gallery with
+    /// soft palette-color light spilling from BEHIND the card. The card
+    /// itself remains the only fully-saturated thing in the frame.
     static func generateImage(frontArt: UIImage,
-                              treatment: String?,
+                              treatment _: String?,
                               palette: [UIColor]) -> CGImage? {
         let outSize = CGSize(width: envWidth, height: envHeight)
         let renderer = UIGraphicsImageRenderer(size: outSize)
         let composed = renderer.image { ctx in
-            // ── Step 1: ambient blur ────────────────────────────────
-            // The "Apple Music technique": saturate the source image,
-            // then blur it heavily, then mirror-tile to fill the
-            // canvas. The result reads as "the same colors/vibe as
-            // the card, extended through space."
+            let cg = ctx.cgContext
+
+            // ── Layer 1: dark cinematic base ────────────────────────
+            // Near-black, slightly tinted by the palette so the whole
+            // scene has a unified color identity.
+            let baseDark = blendColor(palette.first ?? .darkGray, with: .black, t: 0.88)
+            cg.setFillColor(baseDark.cgColor)
+            cg.fill(CGRect(origin: .zero, size: outSize))
+
+            // ── Layer 2: subtle blurred card art ────────────────────
+            // The "extension of the card art" cue — heavily blurred,
+            // low opacity, mirror-tiled. Reads as ambient atmosphere
+            // not a competing image. Saturation now 1.05 (was 1.2)
+            // so colors stay muted; brightness -0.20 so it never
+            // upstages the card.
             if let ambient = ambientBlur(of: frontArt, targetSize: outSize) {
+                cg.saveGState()
+                cg.setAlpha(0.30)
                 ambient.draw(in: CGRect(origin: .zero, size: outSize))
-            } else {
-                // Fallback: fill with the dominant palette color.
-                ctx.cgContext.setFillColor((palette.first ?? .darkGray).cgColor)
-                ctx.cgContext.fill(CGRect(origin: .zero, size: outSize))
+                cg.restoreGState()
             }
 
-            // ── Step 2: treatment overlay ───────────────────────────
-            // Procedurally drawn pattern keyed by `treatment`. Blended
-            // ON TOP of the ambient layer so the card's foil signature
-            // (battlefoil stripes, superfoil rainbow, etc.) shows in
-            // the environment too. Each overlay knows what blend mode
-            // best preserves the ambient color.
-            drawTreatmentOverlay(treatment: treatment,
-                                 palette: palette,
-                                 in: ctx.cgContext,
-                                 size: outSize)
+            // ── Layer 3: centered palette glow ──────────────────────
+            // The "backlight" effect behind the card. Bright palette
+            // color in the dead center fading to fully transparent
+            // before reaching the edges. Card sits in front of this
+            // glow — the result reads as the card being lit from
+            // behind by its own dominant color.
+            let glowCenter = CGPoint(x: outSize.width / 2, y: outSize.height / 2)
+            let glowRadius = outSize.height * 0.55
+            let primary = palette.first ?? .white
+            let glowColors = [
+                primary.withAlphaComponent(0.85).cgColor,
+                primary.withAlphaComponent(0.45).cgColor,
+                primary.withAlphaComponent(0.10).cgColor,
+                primary.withAlphaComponent(0.0).cgColor
+            ] as CFArray
+            let glowLocs: [CGFloat] = [0.0, 0.30, 0.70, 1.0]
+            let space = CGColorSpaceCreateDeviceRGB()
+            if let glowGrad = CGGradient(colorsSpace: space,
+                                         colors: glowColors,
+                                         locations: glowLocs) {
+                cg.saveGState()
+                cg.setBlendMode(.screen)  // brightens whatever's behind
+                cg.drawRadialGradient(
+                    glowGrad,
+                    startCenter: glowCenter, startRadius: 0,
+                    endCenter:   glowCenter, endRadius:   glowRadius,
+                    options: []
+                )
+                cg.restoreGState()
+            }
+
+            // ── Layer 4: edge vignette ──────────────────────────────
+            // Pulls the corners darker so any peek-through at the
+            // wider camera angles reads as "into the void" not
+            // "noisy backdrop." Keeps focus on the center.
+            let vignetteColors = [
+                UIColor.clear.cgColor,
+                UIColor.clear.cgColor,
+                UIColor.black.withAlphaComponent(0.55).cgColor
+            ] as CFArray
+            let vignetteLocs: [CGFloat] = [0.0, 0.55, 1.0]
+            let vignetteRadius = max(outSize.width, outSize.height) * 0.65
+            if let vGrad = CGGradient(colorsSpace: space,
+                                      colors: vignetteColors,
+                                      locations: vignetteLocs) {
+                cg.drawRadialGradient(
+                    vGrad,
+                    startCenter: glowCenter, startRadius: 0,
+                    endCenter:   glowCenter, endRadius:   vignetteRadius,
+                    options: []
+                )
+            }
         }
         return composed.cgImage
+    }
+
+    /// Linear blend of two UIColors in sRGB.
+    private static func blendColor(_ a: UIColor, with b: UIColor, t: CGFloat) -> UIColor {
+        var ar: CGFloat = 0, ag: CGFloat = 0, ab: CGFloat = 0, aa: CGFloat = 1
+        var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 1
+        a.getRed(&ar, green: &ag, blue: &ab, alpha: &aa)
+        b.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
+        let s = max(0, min(1, t))
+        return UIColor(
+            red:   ar + (br - ar) * s,
+            green: ag + (bg - ag) * s,
+            blue:  ab + (bb - ab) * s,
+            alpha: aa + (ba - aa) * s
+        )
     }
 
     // MARK: - Ambient blur (Apple Music technique)
@@ -69,17 +144,15 @@ enum HeroShotEnvironment {
         guard let cg = image.cgImage else { return nil }
         let ci = CIImage(cgImage: cg)
 
-        // Saturation boost — raw card art washes out under heavy blur.
-        // v4 used 1.7 + brightness 0.05 — too aggressive, env became a
-        // yellow/pale wash competing with the card. v4.1 tunes for
-        // "tinted ambient frame" not "saturated centerpiece": modest
-        // sat lift + slight brightness DROP so the env is dim enough
-        // to let the card pop.
+        // v5 — even more muted than v4.1. This ambient layer renders
+        // at alpha 0.30 over a dark base, so it's already going to be
+        // faint. Saturation 1.05 = mild lift, brightness -0.20 = dim,
+        // contrast 0.92 = flatten. Goal: PRESENT but never UPSTAGE.
         let saturate = CIFilter.colorControls()
         saturate.inputImage = ci
-        saturate.saturation = 1.20
-        saturate.brightness = -0.10    // slight DIM so env recedes
-        saturate.contrast = 1.0
+        saturate.saturation = 1.05
+        saturate.brightness = -0.20
+        saturate.contrast = 0.92
         guard let saturated = saturate.outputImage else { return nil }
 
         // Massive Gaussian blur — radius scaled to the source image
@@ -132,112 +205,12 @@ enum HeroShotEnvironment {
 
     // MARK: - Treatment overlays
 
-    /// Draw a treatment-specific procedural overlay (stripes for
-    /// Battlefoil, rainbow for Superfoil, crackle for Blizzard, etc.)
-    /// onto the given context. Uses extracted palette colors so the
-    /// pattern matches the card's color identity.
-    private static func drawTreatmentOverlay(treatment: String?,
-                                             palette: [UIColor],
-                                             in cg: CGContext,
-                                             size: CGSize) {
-        let kind = treatmentKind(for: treatment)
-        let primary = palette.first ?? .gray
-
-        switch kind {
-        case .none:
-            // No overlay for base set — just the ambient blur.
-            return
-
-        // Treatment overlays in v4.1 are SUBTLE — they hint at the
-        // treatment without competing with the card. v4's 0.55 / 0.40
-        // / 0.55 alphas were too aggressive given the env-extension
-        // backdrop is already prominent.
-
-        case .battlefoil:
-            // Diagonal stripes at 30°, primary palette color.
-            cg.saveGState()
-            cg.translateBy(x: size.width / 2, y: size.height / 2)
-            cg.rotate(by: CGFloat.pi / 6)
-            cg.translateBy(x: -size.width, y: -size.height)
-            cg.setBlendMode(.softLight)
-            cg.setFillColor(primary.withAlphaComponent(0.28).cgColor)
-            let stripeW: CGFloat = 80
-            let gap: CGFloat = 140
-            var x: CGFloat = 0
-            while x < size.width * 2 {
-                cg.fill(CGRect(x: x, y: 0, width: stripeW, height: size.height * 2))
-                x += stripeW + gap
-            }
-            cg.restoreGState()
-
-        case .superfoil:
-            cg.saveGState()
-            cg.setBlendMode(.softLight)
-            let colors: [UIColor] = palette.count >= 3
-                ? Array(palette.prefix(3))
-                : [primary, primary.shifted(hue: 0.33), primary.shifted(hue: -0.33)]
-            for (i, color) in colors.enumerated() {
-                cg.setFillColor(color.withAlphaComponent(0.18).cgColor)
-                let offset = CGFloat(i) * size.height / CGFloat(colors.count + 1)
-                cg.fill(CGRect(
-                    x: 0,
-                    y: offset + size.height * 0.1,
-                    width: size.width,
-                    height: size.height / CGFloat(colors.count + 1) * 0.9
-                ))
-            }
-            cg.restoreGState()
-
-        case .blizzard:
-            cg.saveGState()
-            cg.setBlendMode(.screen)
-            cg.setStrokeColor(UIColor(red: 0.85, green: 0.95, blue: 1.0, alpha: 0.28).cgColor)
-            cg.setLineWidth(1.5)
-            var rng = SystemRandomNumberGenerator()
-            for _ in 0..<100 {
-                let cx = CGFloat.random(in: 0..<size.width, using: &rng)
-                let cy = CGFloat.random(in: 0..<size.height, using: &rng)
-                let spokes = Int.random(in: 3...5, using: &rng)
-                for i in 0..<spokes {
-                    let angle = CGFloat(i) * (2 * .pi / CGFloat(spokes))
-                        + CGFloat.random(in: -0.4...0.4, using: &rng)
-                    let len = CGFloat.random(in: 40...120, using: &rng)
-                    cg.move(to: CGPoint(x: cx, y: cy))
-                    cg.addLine(to: CGPoint(x: cx + cos(angle) * len, y: cy + sin(angle) * len))
-                }
-            }
-            cg.strokePath()
-            cg.restoreGState()
-
-        case .inspiredInk:
-            cg.saveGState()
-            cg.setBlendMode(.softLight)
-            let colors = palette.prefix(2).map { $0 } + [primary]
-            let bands = 12
-            let bandW = size.width / CGFloat(bands)
-            for i in 0..<bands {
-                let color = colors[i % colors.count]
-                cg.setFillColor(color.withAlphaComponent(0.22).cgColor)
-                cg.fill(CGRect(x: CGFloat(i) * bandW, y: 0, width: bandW * 0.6, height: size.height))
-            }
-            cg.restoreGState()
-        }
-    }
-
-    private enum TreatmentKind {
-        case none, battlefoil, superfoil, blizzard, inspiredInk
-    }
-
-    private static func treatmentKind(for treatment: String?) -> TreatmentKind {
-        guard let t = treatment?.lowercased(), !t.isEmpty else { return .none }
-        if t == "base" || t == "base set" || t == "standard" { return .none }
-        if t.contains("superfoil") || t.contains("logofoil") { return .superfoil }
-        if t.contains("blizzard")  { return .blizzard }
-        if t.contains("inspired") || t.contains("ink") { return .inspiredInk }
-        if t.contains("battlefoil") { return .battlefoil }
-        if t.contains("blast") || t.contains("paper") { return .none }
-        return .battlefoil  // unknown foil → diagonal stripes
-    }
+    // v5 dropped the per-treatment procedural overlay (stripes / rainbow
+    // / crackle / bands). It read as noise that competed with the card
+    // instead of complementing it. The treatment SIGNATURE now comes
+    // from the (a) blurred-art ambient layer and (b) particle color in
+    // the foreground — both of which inherit from the same palette as
+    // the treatment they're trying to evoke.
 
     // MARK: - Palette extraction
 

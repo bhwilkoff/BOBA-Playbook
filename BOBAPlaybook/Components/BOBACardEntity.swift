@@ -720,10 +720,19 @@ nonisolated enum BOBACardEntity {
             bitsPerComponent: 8, bytesPerRow: 0, space: cs,
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ) else { return nil }
-        // Hue 0 → 1 across width, full sat + brightness.
+        // v6.0.5: brightness 0.55 (was 1.0). With full-brightness
+        // rainbow, ANY rainbow channel at 1.0 snapped the
+        // corresponding base-color channel to 1.0 through SCREEN
+        // blend math — pixels got recolored to the rainbow's hue
+        // instead of subtly shifted. e.g. magenta pixel + cyan
+        // shimmer → all three channels approach 1 → washed-out
+        // off-white. At brightness 0.55, no rainbow channel ever
+        // pushes the base past ~0.7 even at full shimmer, so the
+        // underlying art's hue is preserved with a subtle iridescent
+        // tint rather than CHANNEL REPLACEMENT.
         let colors: [CGColor] = (0..<7).map { i in
             UIColor(hue: CGFloat(i) / 6.0, saturation: 1.0,
-                    brightness: 1.0, alpha: 1.0).cgColor
+                    brightness: 0.55, alpha: 1.0).cgColor
         }
         let locs: [CGFloat] = (0..<7).map { CGFloat($0) / 6.0 }
         guard let g = CGGradient(colorsSpace: cs, colors: colors as CFArray,

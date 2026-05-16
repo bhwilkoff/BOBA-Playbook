@@ -94,10 +94,14 @@ void holofoilSurface(realitykit::surface_parameters params)
 
     // ── 4. Fresnel gate (grazing-only) ──────────────────────────
     float3 N = float3(surface.normal());
-    // dot(N, V) is 1 head-on, 0 at grazing. Fresnel ramp k=5 gives
-    // a tight grazing-only response (head-on essentially zero; the
-    // shimmer kicks in only past ~50° off normal).
-    float fresnel = pow(1.0 - saturate(dot(N, V)), 5.0);
+    // v6.0.5: exponent 5 → 7. With exp=5, fresnel at 45° was 0.0022
+    // — visually invisible — but at 60° it was 0.031, and at 75° it
+    // was 0.225. The 60-75° band is where the user reported "still
+    // washed out." Exp=7 makes that band almost-invisible too
+    // (60°: 0.008, 75°: 0.124). Shimmer only fully kicks in past ~80°
+    // off normal, which is the dramatic grazing zone for the
+    // entranceSpin rotation phase or extreme tilt poses.
+    float fresnel = pow(1.0 - saturate(dot(N, V)), 7.0);
 
     // ── 5. Foil mask (where foil exists vs paper) ────────────────
     // v6.0 uses a uniform white mask = full-card foil. v6.1 will

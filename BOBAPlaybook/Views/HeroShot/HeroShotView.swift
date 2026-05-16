@@ -275,7 +275,7 @@ struct HeroShotView: View {
             // card its visible rounded shape. `MeshResource.generatePlane`
             // has a `cornerRadius:` parameter that's silently ignored on
             // iOS 17/18/26, so the mask must live in the texture.
-            let rounded = await HeroShotView.roundedCorners(image) ?? image
+            let rounded = BOBACardEntity.roundedCorners(image) ?? image
             return await MainActor.run {
                 guard let cg = rounded.cgImage else { return nil as TextureResource? }
                 // mipmapsMode: .none forces RealityKit to always sample
@@ -306,7 +306,7 @@ struct HeroShotView: View {
                 let path = Bundle.main.url(forResource: "card-back", withExtension: "png"),
                 let image = UIImage(contentsOfFile: path.path)
             else { return nil }
-            let rounded = await HeroShotView.roundedCorners(image) ?? image
+            let rounded = BOBACardEntity.roundedCorners(image) ?? image
             return await MainActor.run {
                 guard let cg = rounded.cgImage else { return nil as TextureResource? }
                 let opts = TextureResource.CreateOptions(semantic: .color, mipmapsMode: .none)
@@ -315,26 +315,6 @@ struct HeroShotView: View {
         }.value
         await MainActor.run {
             self.backTexture = tex
-        }
-    }
-
-    /// Clip a card image to rounded corners. The radius is `0.045 ×
-    /// min(width, height)` to match HouseOfCardsView's card silhouette
-    /// AND `HeroShotRenderer.cornerRadiusRatio` so the edge box sizing
-    /// stays in sync. Output is an alpha-channel image — transparent
-    /// outside the rounded rect, opaque inside.
-    static func roundedCorners(_ image: UIImage) -> UIImage? {
-        let size = image.size
-        guard size.width > 0, size.height > 0 else { return image }
-        let radius = min(size.width, size.height) * CGFloat(HeroShotRenderer.cornerRadiusRatio)
-        let rect = CGRect(origin: .zero, size: size)
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = image.scale
-        format.opaque = false
-        let renderer = UIGraphicsImageRenderer(size: size, format: format)
-        return renderer.image { _ in
-            UIBezierPath(roundedRect: rect, cornerRadius: radius).addClip()
-            image.draw(in: rect)
         }
     }
 

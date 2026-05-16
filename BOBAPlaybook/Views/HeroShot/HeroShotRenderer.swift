@@ -738,7 +738,8 @@ final class HeroShotRenderer {
             includeEdge: true,
             pose: .upright,
             material: .physicallyBased,
-            treatment: config.card.treatment
+            treatment: config.card.treatment,
+            useHolofoil: true   // v6.0 — Metal holofoil shader on front
         ))
         cardPivot.position = .zero
         root.addChild(cardPivot)

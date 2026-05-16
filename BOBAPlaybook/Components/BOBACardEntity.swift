@@ -1,6 +1,9 @@
 import Foundation
 import RealityKit
 import UIKit
+import Metal
+import CoreImage
+import CoreImage.CIFilterBuiltins
 
 /// Canonical 3D BoBA card entity — the one shared model used wherever
 /// the app shows a card in 3D. Used by House of BoBA (interactive
@@ -162,19 +165,28 @@ nonisolated enum BOBACardEntity {
         /// regions actually reflect light differently from paper
         /// regions. Pass nil for non-foil cards (base set, paper).
         var treatment: String?
+        /// v6.0: enable the Metal holofoil surface shader on the front
+        /// plane. Produces real view-direction-dependent rainbow
+        /// shimmer + fresnel gating + perturbation distortion. Only
+        /// active when `material == .physicallyBased` (the shader
+        /// requires the lit-PBR pipeline). Falls back to standard PBR
+        /// if the Holofoil.metal library fails to load.
+        var useHolofoil: Bool
 
         init(frontTexture: TextureResource? = nil,
              backTexture: TextureResource? = nil,
              includeEdge: Bool = true,
              pose: Pose = .upright,
              material: MaterialKind = .unlit,
-             treatment: String? = nil) {
+             treatment: String? = nil,
+             useHolofoil: Bool = false) {
             self.frontTexture = frontTexture
             self.backTexture = backTexture
             self.includeEdge = includeEdge
             self.pose = pose
             self.material = material
             self.treatment = treatment
+            self.useHolofoil = useHolofoil
         }
     }
 
@@ -332,6 +344,12 @@ nonisolated enum BOBACardEntity {
             mat.blending = .transparent(opacity: 1.0)
             return mat
         case .physicallyBased:
+            // v6.0: try holofoil CustomMaterial first if requested.
+            // Falls back to PBR if the Metal shader fails to load.
+            if config.useHolofoil,
+               let holo = makeFrontHolofoilMaterial(config: config) {
+                return holo
+            }
             return makeFrontPBRMaterial(config: config)
         }
     }
@@ -649,5 +667,184 @@ nonisolated enum BOBACardEntity {
             UIBezierPath(roundedRect: rect, cornerRadius: radius).addClip()
             image.draw(in: rect)
         }
+    }
+
+    // MARK: - Holofoil (v6.0)
+    //
+    // CustomMaterial-based holofoil shimmer. Per the research synthesis:
+    // real foil reads as "shimmer at grazing angles, not from straight-
+    // on" — needs view-direction-dependent rainbow LUT + fresnel gate
+    // + perturbation distortion. Stock PhysicallyBasedMaterial can't do
+    // this (a roughness map IS a pattern when sampled — produces
+    // visible stripes at every angle).
+    //
+    // Three GPU resources (all generated procedurally, cached):
+    //   - holofoilLibrary: MTLLibrary loaded from default.metallib
+    //     containing the compiled Holofoil.metal surface shader.
+    //   - rainbowLUT: 256×2 horizontal rainbow gradient
+    //     (red→yellow→green→cyan→blue→magenta→red).
+    //   - perturbationNoise: 256×256 low-freq noise for oil-slick
+    //     distortion of the rainbow.
+    //   - foilMask: 8×8 uniform white for v6.0 (per-treatment masks
+    //     for v6.1+).
+
+    private static var _holofoilLibrary: MTLLibrary?
+    private static var _holofoilShader: CustomMaterial.SurfaceShader?
+    private static var _rainbowLUT: TextureResource?
+    private static var _perturbationNoise: TextureResource?
+    private static var _foilMask: TextureResource?
+
+    @MainActor
+    private static func holofoilShader() -> CustomMaterial.SurfaceShader? {
+        if let cached = _holofoilShader { return cached }
+        guard let device = MTLCreateSystemDefaultDevice(),
+              let library = try? device.makeDefaultLibrary(bundle: .main)
+        else {
+            print("[Holofoil] failed to load default Metal library")
+            return nil
+        }
+        let shader = CustomMaterial.SurfaceShader(named: "holofoilSurface",
+                                                   in: library)
+        _holofoilLibrary = library
+        _holofoilShader = shader
+        return shader
+    }
+
+    @MainActor
+    private static func rainbowLUTTexture() -> TextureResource? {
+        if let cached = _rainbowLUT { return cached }
+        let width = 256, height = 2
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: width, height: height,
+            bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        // Hue 0 → 1 across width, full sat + brightness.
+        let colors: [CGColor] = (0..<7).map { i in
+            UIColor(hue: CGFloat(i) / 6.0, saturation: 1.0,
+                    brightness: 1.0, alpha: 1.0).cgColor
+        }
+        let locs: [CGFloat] = (0..<7).map { CGFloat($0) / 6.0 }
+        guard let g = CGGradient(colorsSpace: cs, colors: colors as CFArray,
+                                 locations: locs) else { return nil }
+        ctx.drawLinearGradient(g,
+                               start: CGPoint(x: 0, y: 0),
+                               end: CGPoint(x: CGFloat(width), y: 0),
+                               options: [])
+        guard let cg = ctx.makeImage() else { return nil }
+        let opts = TextureResource.CreateOptions(semantic: .color,
+                                                 mipmapsMode: .allocateAndGenerateAll)
+        let tex = try? TextureResource(image: cg, withName: "rainbowLUT",
+                                        options: opts)
+        _rainbowLUT = tex
+        return tex
+    }
+
+    @MainActor
+    private static func perturbationTexture() -> TextureResource? {
+        if let cached = _perturbationNoise { return cached }
+        let size = 256
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: size, height: size,
+            bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        // Fill with low-freq pseudo-Perlin via overlapping radial
+        // gradients at random positions. Cheap stand-in for true
+        // Perlin noise that ships acceptable oil-slick flow.
+        ctx.setFillColor(CGColor(srgbRed: 0.5, green: 0.5, blue: 0.5,
+                                  alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: size, height: size))
+        var rng = SystemRandomNumberGenerator()
+        for _ in 0..<24 {
+            let cx = CGFloat.random(in: -0.2...1.2, using: &rng) * CGFloat(size)
+            let cy = CGFloat.random(in: -0.2...1.2, using: &rng) * CGFloat(size)
+            let r = CGFloat.random(in: 0.15...0.45, using: &rng) * CGFloat(size)
+            let dx = CGFloat.random(in: -1...1, using: &rng)
+            let dy = CGFloat.random(in: -1...1, using: &rng)
+            let centerColor = CGColor(
+                srgbRed: 0.5 + dx * 0.45,
+                green:   0.5 + dy * 0.45,
+                blue:    0.5,
+                alpha:   0.5
+            )
+            let edgeColor = CGColor(srgbRed: 0.5, green: 0.5, blue: 0.5, alpha: 0)
+            let colors = [centerColor, edgeColor] as CFArray
+            guard let g = CGGradient(colorsSpace: cs, colors: colors,
+                                     locations: [0, 1]) else { continue }
+            ctx.drawRadialGradient(g,
+                                   startCenter: CGPoint(x: cx, y: cy),
+                                   startRadius: 0,
+                                   endCenter: CGPoint(x: cx, y: cy),
+                                   endRadius: r,
+                                   options: [])
+        }
+        guard let cg = ctx.makeImage() else { return nil }
+        let opts = TextureResource.CreateOptions(semantic: .raw,
+                                                 mipmapsMode: .allocateAndGenerateAll)
+        let tex = try? TextureResource(image: cg, withName: "holoPerturbation",
+                                        options: opts)
+        _perturbationNoise = tex
+        return tex
+    }
+
+    @MainActor
+    private static func foilMaskTexture() -> TextureResource? {
+        if let cached = _foilMask { return cached }
+        let size = 8
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: size, height: size,
+            bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        // v6.0: uniform white = full-card foil shimmer.
+        ctx.setFillColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: size, height: size))
+        guard let cg = ctx.makeImage() else { return nil }
+        let opts = TextureResource.CreateOptions(semantic: .raw,
+                                                 mipmapsMode: .none)
+        let tex = try? TextureResource(image: cg, withName: "foilMask",
+                                        options: opts)
+        _foilMask = tex
+        return tex
+    }
+
+    @MainActor
+    static func makeFrontHolofoilMaterial(config: Config) -> CustomMaterial? {
+        guard let shader = holofoilShader(),
+              let rainbowLUT = rainbowLUTTexture(),
+              let perturbation = perturbationTexture(),
+              let foilMask = foilMaskTexture()
+        else { return nil }
+        var mat: CustomMaterial
+        do {
+            mat = try CustomMaterial(surfaceShader: shader,
+                                     lightingModel: .lit)
+        } catch {
+            print("[Holofoil] CustomMaterial init failed: \(error)")
+            return nil
+        }
+        // Bind the card art into baseColor — the shader samples it as
+        // base.rgb and adds rainbow shimmer on top.
+        if let tex = config.frontTexture {
+            mat.baseColor = .init(tint: .white, texture: .init(tex))
+        } else {
+            mat.baseColor = .init(tint: placeholderFrontColor)
+        }
+        // Bind the auxiliary holofoil textures into the unused PBR
+        // slots (the shader knows which slot maps to which purpose):
+        //   .normal           ← rainbow LUT
+        //   .emissiveColor    ← perturbation noise
+        //   .ambientOcclusion ← foil mask
+        mat.normal = .init(texture: .init(rainbowLUT))
+        mat.emissiveColor = .init(color: .black,
+                                   texture: .init(perturbation))
+        mat.ambientOcclusion = .init(texture: .init(foilMask))
+        // Two-sided for rotation visibility (matches PBR fix).
+        mat.faceCulling = .none
+        return mat
     }
 }

@@ -1,0 +1,628 @@
+// Phase 2 simulator — actually renders a RealityKit scene on Mac and
+// produces a contact sheet of card-material × lighting variants. Lets
+// me iterate on card material (Unlit / PBR / Unlit+overlay) and
+// lighting (none / directional / IBL / etc.) WITHOUT per-tweak iOS
+// test cycles, just like the env-image sim does for backdrop work.
+//
+// RealityFoundation + Metal + AVFoundation all work on macOS 15+ so
+// the same offline-render pipeline that ships on iOS 18 runs here.
+//
+// Build + run:
+//   cd tools/HeroShotSim
+//   swiftc -O sim3d.swift -o sim3d
+//   ./sim3d test_card.jpg [output-dir]
+//
+// Output: sim3d_sweep.png in output dir — contact sheet of all
+// (material × lighting) variants rendered at fixed hero-pose camera.
+
+import Foundation
+import CoreGraphics
+import CoreImage
+import RealityKit
+import Metal
+import MetalKit
+import CoreVideo
+import ImageIO
+import UniformTypeIdentifiers
+import AppKit
+
+// MARK: - Variants
+
+enum MaterialMode: String, CaseIterable {
+    /// Current iOS ship — UnlitMaterial with alpha-blend. Texture
+    /// shows exactly as printed, no lighting interaction.
+    case unlit
+    /// PhysicallyBasedMaterial, low roughness (0.30), no clearcoat.
+    /// Reacts to lights and IBL. Was rejected in v4 because it blew
+    /// out — re-testing here with much dimmer lighting.
+    case pbr_lowR
+    /// PBR with clearcoat 0.30 / clearcoatRoughness 0.10. Simulates
+    /// the card's protective varnish layer for a "fresh from pack"
+    /// sheen on top of the matte baseColor.
+    case pbr_clearcoat
+    /// PBR mostly-matte (roughness 0.65) — closer to actual printed
+    /// card paper than the glossier variants.
+    case pbr_matte
+    /// UnlitMaterial + an additive "fake rim glow" plane in front of
+    /// the card. Card art shows true to source AND there's a soft
+    /// palette-tinted glow halo around the edges. No PBR, no risk of
+    /// blowout.
+    case unlit_with_glow_plane
+
+    var displayName: String { rawValue.replacingOccurrences(of: "_", with: " ") }
+}
+
+enum LightingMode: String, CaseIterable {
+    /// No lights, no IBL.
+    case none
+    /// DirectionalLight 10,000 (lumen/m²).
+    case dir_10k
+    /// DirectionalLight 30,000.
+    case dir_30k
+    /// DirectionalLight 80,000.
+    case dir_80k
+    /// IBL at intensityExponent 1.0 (2× default).
+    case ibl_1
+    /// IBL at intensityExponent 2.0 (4× default).
+    case ibl_2
+    /// IBL exp 1.0 + DirectionalLight 30k.
+    case ibl_1_plus_dir
+    /// IBL exp 2.0 + DirectionalLight 30k.
+    case ibl_2_plus_dir
+
+    var displayName: String { rawValue.replacingOccurrences(of: "_", with: " ") }
+}
+
+// MARK: - Color helpers (duplicated from main.swift; tiny and self-contained)
+
+typealias RGB = (r: CGFloat, g: CGFloat, b: CGFloat)
+
+func toCGColor(_ c: RGB, alpha: CGFloat = 1) -> CGColor {
+    CGColor(srgbRed: c.r, green: c.g, blue: c.b, alpha: alpha)
+}
+
+func blendRGB(_ a: RGB, _ b: RGB, t: CGFloat) -> RGB {
+    let s = max(0, min(1, t))
+    return (a.r + (b.r - a.r) * s,
+            a.g + (b.g - a.g) * s,
+            a.b + (b.b - a.b) * s)
+}
+
+func hueShifted(_ c: RGB, byHue delta: CGFloat, satScale: CGFloat = 1.0) -> RGB {
+    let (h, s, v) = rgbToHSV(c.r, c.g, c.b)
+    var newH = h + delta
+    if newH > 1 { newH -= 1 } else if newH < 0 { newH += 1 }
+    let newS = max(0, min(1, s * satScale))
+    return hsvToRGB(newH, newS, v)
+}
+
+func rgbToHSV(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat) -> (CGFloat, CGFloat, CGFloat) {
+    let mx = max(r, g, b)
+    let mn = min(r, g, b)
+    let d = mx - mn
+    var h: CGFloat = 0
+    if d > 0 {
+        if mx == r {
+            h = ((g - b) / d).truncatingRemainder(dividingBy: 6)
+        } else if mx == g {
+            h = (b - r) / d + 2
+        } else {
+            h = (r - g) / d + 4
+        }
+        h /= 6
+        if h < 0 { h += 1 }
+    }
+    return (h, mx > 0 ? d / mx : 0, mx)
+}
+
+func hsvToRGB(_ h: CGFloat, _ s: CGFloat, _ v: CGFloat) -> RGB {
+    let i = floor(h * 6)
+    let f = h * 6 - i
+    let p = v * (1 - s)
+    let q = v * (1 - f * s)
+    let t = v * (1 - (1 - f) * s)
+    switch Int(i) % 6 {
+    case 0: return (v, t, p)
+    case 1: return (q, v, p)
+    case 2: return (p, v, t)
+    case 3: return (p, q, v)
+    case 4: return (t, p, v)
+    default: return (v, p, q)
+    }
+}
+
+// MARK: - Palette extraction (HSV bucketing, same as main.swift)
+
+func extractPalette(from image: CGImage, count: Int = 3) -> [RGB] {
+    let cropRect = CGRect(
+        x: image.width / 8, y: image.height * 12 / 100,
+        width: image.width * 3 / 4, height: image.height * 76 / 100
+    )
+    let cropped = image.cropping(to: cropRect) ?? image
+    let downSize = 64
+    let cs = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(
+        data: nil, width: downSize, height: downSize,
+        bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return [(0.5, 0.5, 0.5)] }
+    ctx.draw(cropped, in: CGRect(x: 0, y: 0, width: downSize, height: downSize))
+    guard let smallCG = ctx.makeImage(),
+          let provider = smallCG.dataProvider,
+          let data = provider.data,
+          let bytes = CFDataGetBytePtr(data) else { return [(0.5, 0.5, 0.5)] }
+    let bpp = smallCG.bitsPerPixel / 8
+    let total = downSize * downSize
+    let bins = 24
+    var weights = [CGFloat](repeating: 0, count: bins)
+    var rsum = [CGFloat](repeating: 0, count: bins)
+    var gsum = [CGFloat](repeating: 0, count: bins)
+    var bsum = [CGFloat](repeating: 0, count: bins)
+    for i in 0..<total {
+        let r = CGFloat(bytes[i * bpp + 0]) / 255
+        let g = CGFloat(bytes[i * bpp + 1]) / 255
+        let b = CGFloat(bytes[i * bpp + 2]) / 255
+        let (h, s, v) = rgbToHSV(r, g, b)
+        if v < 0.15 || s < 0.20 { continue }
+        let bin = min(bins - 1, Int(h * CGFloat(bins)))
+        let w: CGFloat = s * v
+        weights[bin] += w
+        rsum[bin] += r * w
+        gsum[bin] += g * w
+        bsum[bin] += b * w
+    }
+    let sorted = (0..<bins).map { ($0, weights[$0]) }
+        .filter { $0.1 > 0 }
+        .sorted { $0.1 > $1.1 }
+        .prefix(count)
+    let result: [RGB] = sorted.map { (bin, w) in
+        (rsum[bin] / w, gsum[bin] / w, bsum[bin] / w)
+    }
+    return result.isEmpty ? [(0.5, 0.5, 0.5)] : result
+}
+
+// MARK: - Generate env image (simplified B10 algorithm)
+
+func makeEnvImage(cardArt: CGImage, palette: [RGB]) -> CGImage? {
+    let envW = 1536, envH = 2048
+    let cs = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(
+        data: nil, width: envW, height: envH,
+        bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return nil }
+    // Dark base
+    let primary = palette.first ?? (0.5, 0.5, 0.5)
+    let dark = blendRGB(primary, (0, 0, 0), t: 0.85)
+    ctx.setFillColor(toCGColor(dark))
+    ctx.fill(CGRect(x: 0, y: 0, width: envW, height: envH))
+    // Ambient blurred card art
+    if let blurred = ambientBlur(of: cardArt) {
+        ctx.saveGState()
+        ctx.setAlpha(0.45)
+        ctx.draw(blurred, in: CGRect(x: 0, y: 0, width: envW, height: envH))
+        ctx.restoreGState()
+    }
+    // KEY light (warm, lower-left of visible)
+    drawLightSpot(ctx: ctx, color: primary,
+                  center: CGPoint(x: CGFloat(envW) * 0.40, y: CGFloat(envH) * 0.55),
+                  radius: CGFloat(envH) * 0.45,
+                  centerAlpha: 1.0, midAlpha: 0.55, midStop: 0.30)
+    // RIM light (cool, upper-right of visible)
+    let rim = hueShifted(primary, byHue: 0.42, satScale: 0.85)
+    drawLightSpot(ctx: ctx, color: rim,
+                  center: CGPoint(x: CGFloat(envW) * 0.60, y: CGFloat(envH) * 0.40),
+                  radius: CGFloat(envH) * 0.40,
+                  centerAlpha: 0.85, midAlpha: 0.40, midStop: 0.32)
+    return ctx.makeImage()
+}
+
+func ambientBlur(of image: CGImage) -> CGImage? {
+    let ci = CIImage(cgImage: image)
+    let sat = CIFilter(name: "CIColorControls")!
+    sat.setValue(ci, forKey: "inputImage")
+    sat.setValue(1.20, forKey: "inputSaturation")
+    sat.setValue(-0.05, forKey: "inputBrightness")
+    sat.setValue(1.0, forKey: "inputContrast")
+    guard let saturated = sat.outputImage else { return nil }
+    let blur = CIFilter(name: "CIGaussianBlur")!
+    blur.setValue(saturated.clampedToExtent(), forKey: "inputImage")
+    blur.setValue(CGFloat(max(image.width, image.height)) * 0.21, forKey: "inputRadius")
+    guard let blurred = blur.outputImage?.cropped(to: ci.extent) else { return nil }
+    return CIContext().createCGImage(blurred, from: ci.extent)
+}
+
+func drawLightSpot(ctx: CGContext, color: RGB, center: CGPoint, radius: CGFloat,
+                   centerAlpha: CGFloat, midAlpha: CGFloat, midStop: CGFloat) {
+    let cs = CGColorSpaceCreateDeviceRGB()
+    let colors = [
+        toCGColor(color, alpha: centerAlpha),
+        toCGColor(color, alpha: centerAlpha * midAlpha),
+        toCGColor(color, alpha: 0)
+    ] as CFArray
+    guard let g = CGGradient(colorsSpace: cs, colors: colors, locations: [0.0, midStop, 1.0])
+    else { return }
+    ctx.saveGState()
+    ctx.setBlendMode(.screen)
+    ctx.drawRadialGradient(g, startCenter: center, startRadius: 0,
+                           endCenter: center, endRadius: radius, options: [])
+    ctx.restoreGState()
+}
+
+// MARK: - Build RealityKit scene
+
+let cardW: Float = 0.0635
+let cardH: Float = 0.0889
+let halfT: Float = 0.00015
+
+struct SceneBundle {
+    let renderer: RealityRenderer
+    let camera: PerspectiveCamera
+}
+
+@MainActor
+func buildScene(cardCG: CGImage,
+                envCG: CGImage?,
+                palette: [RGB],
+                material: MaterialMode,
+                lighting: LightingMode) throws -> SceneBundle {
+    let renderer = try RealityRenderer()
+    renderer.cameraSettings.colorBackground = .color(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1))
+
+    let root = Entity()
+    renderer.entities.append(root)
+
+    // Backdrop with env image (so the card has something behind it to
+    // interact with).
+    if let envCG = envCG {
+        let backdrop = ModelEntity(
+            mesh: MeshResource.generatePlane(width: 2.4, depth: 3.2),
+            materials: [try makeBackdropMaterial(envCG: envCG)]
+        )
+        backdrop.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
+        backdrop.position = SIMD3<Float>(0, 0.10, -0.85)
+        root.addChild(backdrop)
+    }
+
+    // Card front plane.
+    let frontMesh = MeshResource.generatePlane(width: cardW, depth: cardH)
+    let texOpts = TextureResource.CreateOptions(semantic: .color, mipmapsMode: .none)
+    let cardTex = try TextureResource(image: cardCG, withName: nil, options: texOpts)
+
+    let frontMaterial: any Material = try makeFrontMaterial(material: material, texture: cardTex)
+
+    let frontEntity = ModelEntity(mesh: frontMesh, materials: [frontMaterial])
+    frontEntity.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
+    frontEntity.position = SIMD3<Float>(0, 0, halfT)
+    root.addChild(frontEntity)
+
+    // Optional: additive front-glow plane (for unlit_with_glow_plane).
+    if material == .unlit_with_glow_plane {
+        let glowPlane = ModelEntity(
+            mesh: MeshResource.generatePlane(width: cardW * 1.4, depth: cardH * 1.4),
+            materials: [try makeAdditiveGlowMaterial(palette: palette)]
+        )
+        glowPlane.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
+        // Position the glow plane just BEHIND the card (negative Z),
+        // so it shows as a halo around the card edges.
+        glowPlane.position = SIMD3<Float>(0, 0, -halfT * 4)
+        root.addChild(glowPlane)
+    }
+
+    // Lighting setup.
+    try applyLighting(mode: lighting, root: root, renderer: renderer,
+                      envCG: envCG, palette: palette,
+                      receivers: [frontEntity])
+
+    // Camera at hero pose.
+    let camera = PerspectiveCamera()
+    renderer.entities.append(camera)
+    renderer.activeCamera = camera
+    camera.look(at: .zero, from: SIMD3<Float>(0, 0.018, 0.21),
+                upVector: SIMD3<Float>(0, 1, 0), relativeTo: nil)
+    camera.camera.fieldOfViewInDegrees = 30
+
+    return SceneBundle(renderer: renderer, camera: camera)
+}
+
+@MainActor
+func makeBackdropMaterial(envCG: CGImage) throws -> any Material {
+    var mat = UnlitMaterial()
+    let opts = TextureResource.CreateOptions(semantic: .color, mipmapsMode: .allocateAndGenerateAll)
+    let tex = try TextureResource(image: envCG, withName: nil, options: opts)
+    mat.color = .init(tint: .white, texture: .init(tex))
+    return mat
+}
+
+@MainActor
+func makeFrontMaterial(material: MaterialMode, texture: TextureResource) throws -> any Material {
+    switch material {
+    case .unlit, .unlit_with_glow_plane:
+        var mat = UnlitMaterial()
+        mat.color = .init(tint: .white, texture: .init(texture))
+        mat.blending = .transparent(opacity: 1.0)
+        return mat
+    case .pbr_lowR:
+        var mat = PhysicallyBasedMaterial()
+        mat.baseColor = .init(tint: .white, texture: .init(texture))
+        mat.metallic = 0.0
+        mat.roughness = 0.30
+        mat.blending = .transparent(opacity: 1.0)
+        return mat
+    case .pbr_clearcoat:
+        var mat = PhysicallyBasedMaterial()
+        mat.baseColor = .init(tint: .white, texture: .init(texture))
+        mat.metallic = 0.0
+        mat.roughness = 0.40
+        mat.clearcoat = 0.30
+        mat.clearcoatRoughness = 0.10
+        mat.blending = .transparent(opacity: 1.0)
+        return mat
+    case .pbr_matte:
+        var mat = PhysicallyBasedMaterial()
+        mat.baseColor = .init(tint: .white, texture: .init(texture))
+        mat.metallic = 0.0
+        mat.roughness = 0.65
+        mat.blending = .transparent(opacity: 1.0)
+        return mat
+    }
+}
+
+@MainActor
+func makeAdditiveGlowMaterial(palette: [RGB]) throws -> any Material {
+    // Generate a small radial-glow texture in the primary palette
+    // color, then apply with transparent blending.
+    let size = 512
+    let cs = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(
+        data: nil, width: size, height: size,
+        bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { throw NSError(domain: "sim3d", code: 1) }
+    let primary = palette.first ?? (0.5, 0.5, 0.5)
+    // Fully transparent base.
+    ctx.setFillColor(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 0))
+    ctx.fill(CGRect(x: 0, y: 0, width: size, height: size))
+    let center = CGPoint(x: size / 2, y: size / 2)
+    let colors = [
+        toCGColor(primary, alpha: 0.55),
+        toCGColor(primary, alpha: 0.30),
+        toCGColor(primary, alpha: 0)
+    ] as CFArray
+    if let g = CGGradient(colorsSpace: cs, colors: colors, locations: [0.0, 0.30, 1.0]) {
+        ctx.drawRadialGradient(g, startCenter: center, startRadius: 0,
+                               endCenter: center, endRadius: CGFloat(size) / 2,
+                               options: [])
+    }
+    guard let cg = ctx.makeImage() else { throw NSError(domain: "sim3d", code: 2) }
+    var mat = UnlitMaterial()
+    let opts = TextureResource.CreateOptions(semantic: .color, mipmapsMode: .allocateAndGenerateAll)
+    let tex = try TextureResource(image: cg, withName: nil, options: opts)
+    mat.color = .init(tint: .white, texture: .init(tex))
+    mat.blending = .transparent(opacity: 1.0)
+    return mat
+}
+
+@MainActor
+func applyLighting(mode: LightingMode,
+                   root: Entity,
+                   renderer: RealityRenderer,
+                   envCG: CGImage?,
+                   palette: [RGB],
+                   receivers: [Entity]) throws {
+    // DirectionalLight
+    let dirIntensity: Float
+    switch mode {
+    case .none, .ibl_1, .ibl_2:
+        dirIntensity = 0
+    case .dir_10k:
+        dirIntensity = 10_000
+    case .dir_30k, .ibl_1_plus_dir, .ibl_2_plus_dir:
+        dirIntensity = 30_000
+    case .dir_80k:
+        dirIntensity = 80_000
+    }
+    if dirIntensity > 0 {
+        let light = DirectionalLight()
+        light.light.intensity = dirIntensity
+        light.light.color = .white
+        light.look(at: .zero, from: SIMD3<Float>(0.3, 0.4, 0.5),
+                   relativeTo: nil)
+        root.addChild(light)
+    }
+
+    // IBL
+    let iblExp: Float?
+    switch mode {
+    case .none, .dir_10k, .dir_30k, .dir_80k:
+        iblExp = nil
+    case .ibl_1, .ibl_1_plus_dir:
+        iblExp = 1.0
+    case .ibl_2, .ibl_2_plus_dir:
+        iblExp = 2.0
+    }
+    if let exp = iblExp, let envCG = envCG {
+        if let env = try? EnvironmentResource(equirectangular: envCG, withName: nil) {
+            let iblComp = ImageBasedLightComponent(source: .single(env),
+                                                   intensityExponent: exp)
+            root.components.set(iblComp)
+            for receiver in receivers {
+                receiver.components.set(ImageBasedLightReceiverComponent(imageBasedLight: root))
+            }
+        }
+    }
+}
+
+// MARK: - Render one frame to CGImage
+
+@MainActor
+func renderFrame(scene: SceneBundle, size: CGSize, device: MTLDevice) throws -> CGImage {
+    let texDesc = MTLTextureDescriptor.texture2DDescriptor(
+        pixelFormat: .bgra8Unorm,
+        width: Int(size.width), height: Int(size.height),
+        mipmapped: false
+    )
+    texDesc.usage = [.renderTarget, .shaderRead]
+    texDesc.storageMode = .shared
+    guard let outTex = device.makeTexture(descriptor: texDesc) else {
+        throw NSError(domain: "sim3d", code: 10)
+    }
+    let camOutput = try RealityRenderer.CameraOutput(
+        .singleProjection(colorTexture: outTex)
+    )
+    let group = DispatchGroup()
+    group.enter()
+    try scene.renderer.updateAndRender(
+        deltaTime: 1.0 / 60.0,
+        cameraOutput: camOutput,
+        onComplete: { _ in group.leave() }
+    )
+    group.wait()
+
+    // Convert MTLTexture → CGImage via CIImage.
+    guard let ci = CIImage(mtlTexture: outTex, options: nil) else {
+        throw NSError(domain: "sim3d", code: 11)
+    }
+    let ciCtx = CIContext(mtlDevice: device)
+    // CIImage from MTLTexture is flipped — flip back.
+    let transformed = ci.oriented(.downMirrored)
+    guard let cg = ciCtx.createCGImage(transformed, from: transformed.extent) else {
+        throw NSError(domain: "sim3d", code: 12)
+    }
+    return cg
+}
+
+// MARK: - Contact sheet (same shape as main.swift)
+
+func makeContactSheet(tiles: [(image: CGImage, label: String)], cols: Int) -> CGImage? {
+    let rows = (tiles.count + cols - 1) / cols
+    let tileW = 304
+    let tileH = 540  // 9:16 portrait
+    let labelH = 36
+    let padding = 12
+
+    let sheetW = cols * (tileW + padding) + padding
+    let sheetH = rows * (tileH + labelH + padding) + padding
+    let cs = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(
+        data: nil, width: sheetW, height: sheetH,
+        bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return nil }
+    ctx.setFillColor(CGColor(srgbRed: 0.05, green: 0.05, blue: 0.05, alpha: 1))
+    ctx.fill(CGRect(x: 0, y: 0, width: sheetW, height: sheetH))
+
+    for (idx, tile) in tiles.enumerated() {
+        let col = idx % cols
+        let row = idx / cols
+        let rowFromTop = rows - 1 - row
+        let x = padding + col * (tileW + padding)
+        let y = padding + rowFromTop * (tileH + labelH + padding)
+        ctx.draw(tile.image, in: CGRect(x: x, y: y + labelH, width: tileW, height: tileH))
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .medium),
+            .foregroundColor: NSColor.white
+        ]
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
+        NSAttributedString(string: tile.label, attributes: attrs)
+            .draw(in: CGRect(x: x + 6, y: y + 6, width: tileW - 12, height: labelH - 12))
+        NSGraphicsContext.restoreGraphicsState()
+    }
+    return ctx.makeImage()
+}
+
+// MARK: - I/O
+
+func loadImage(at path: String) -> CGImage? {
+    let url = URL(fileURLWithPath: path)
+    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+    return CGImageSourceCreateImageAtIndex(source, 0, nil)
+}
+
+func savePNG(_ image: CGImage, to path: String) -> Bool {
+    let url = URL(fileURLWithPath: path)
+    guard let dest = CGImageDestinationCreateWithURL(
+        url as CFURL, UTType.png.identifier as CFString, 1, nil
+    ) else { return false }
+    CGImageDestinationAddImage(dest, image, nil)
+    return CGImageDestinationFinalize(dest)
+}
+
+// MARK: - Entry
+
+@MainActor
+func run() async throws {
+    let args = CommandLine.arguments
+    guard args.count >= 2 else {
+        print("Usage: sim3d <card-art> [output-dir]")
+        exit(1)
+    }
+    let cardPath = args[1]
+    let outDir = args.count >= 3 ? args[2] : FileManager.default.currentDirectoryPath
+    guard let cardCG = loadImage(at: cardPath) else {
+        print("Failed to load \(cardPath)"); exit(1)
+    }
+    print("Card: \(cardCG.width)×\(cardCG.height)")
+    let palette = extractPalette(from: cardCG)
+    print("Palette: \(palette.map { String(format: "(%.2f,%.2f,%.2f)", $0.r, $0.g, $0.b) }.joined(separator: " "))")
+    let envCG = makeEnvImage(cardArt: cardCG, palette: palette)
+    print("Env image generated: \(envCG != nil)")
+
+    guard let device = MTLCreateSystemDefaultDevice() else {
+        print("No Metal device"); exit(1)
+    }
+    print("Metal: \(device.name)")
+
+    let frameSize = CGSize(width: 540, height: 960)
+    let materials: [MaterialMode] = [.unlit, .unlit_with_glow_plane, .pbr_clearcoat, .pbr_matte]
+    let lightings: [LightingMode] = [.none, .dir_10k, .dir_30k, .dir_80k, .ibl_1, .ibl_2, .ibl_1_plus_dir, .ibl_2_plus_dir]
+
+    print("Rendering \(materials.count) × \(lightings.count) = \(materials.count * lightings.count) variants…")
+    var tiles: [(image: CGImage, label: String)] = []
+    for material in materials {
+        for lighting in lightings {
+            do {
+                let scene = try buildScene(
+                    cardCG: cardCG, envCG: envCG, palette: palette,
+                    material: material, lighting: lighting
+                )
+                let frame = try renderFrame(scene: scene, size: frameSize, device: device)
+                tiles.append((image: frame, label: "\(material.displayName) | \(lighting.displayName)"))
+                print("  ✓ \(material.displayName) × \(lighting.displayName)")
+            } catch {
+                print("  ✗ \(material.displayName) × \(lighting.displayName): \(error)")
+            }
+        }
+    }
+    print("Building contact sheet (\(tiles.count) tiles, \(lightings.count) cols)…")
+    guard let sheet = makeContactSheet(tiles: tiles, cols: lightings.count) else {
+        print("Failed to build sheet"); exit(1)
+    }
+    let outPath = (outDir as NSString).appendingPathComponent("sim3d_sweep.png")
+    if savePNG(sheet, to: outPath) {
+        print("→ \(outPath)")
+    } else {
+        print("Failed to save")
+        exit(1)
+    }
+}
+
+// Pattern explanation: a single-file Swift CLI compiled with `swiftc`
+// runs top-level code synchronously on the main thread, but main is
+// NOT MainActor-isolated. `Task { @MainActor in ... }` schedules onto
+// the MainActor executor, which needs the main thread's run loop to
+// be active. If we block main with `semaphore.wait()`, the executor
+// can't run and the task deadlocks. `RunLoop.main.run()` keeps main
+// processing events instead; `exit(0)` from within the task ends the
+// process when the work is done.
+Task { @MainActor in
+    do {
+        try await run()
+        exit(0)
+    } catch {
+        print("Top-level error: \(error)")
+        exit(1)
+    }
+}
+RunLoop.main.run()

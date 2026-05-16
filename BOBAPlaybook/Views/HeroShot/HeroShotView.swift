@@ -2,6 +2,8 @@ import SwiftUI
 import AVKit
 import RealityKit
 import UIKit
+import CoreImage
+import CoreImage.CIFilterBuiltins
 
 /// Full-screen sheet that lets a collector generate + share a 3D
 /// "Hero Shot" video of one of their cards. Entry from Collection card
@@ -330,9 +332,14 @@ struct HeroShotView: View {
     // MARK: - Actions
 
     private func loadFrontTexture() async {
-        // Force the full-resolution CDN URL — never the thumbnail. The
-        // hero shot output frames the card large; the 1200px-max full
-        // image is what reads as crisp at 1080×1920 portrait.
+        // v5.4 — /full/ on R2 is far smaller than CLAUDE.md's "≤1200px"
+        // schema claim (measured: 477×667 for "1-Maverick", 745×1040 for
+        // "1-LeBoss"). At 1080×1920 output the card art is otherwise
+        // UPsampled 1.5-2.3×, producing the "thumbnail blown up" look
+        // the user kept calling out. Stopgap: Lanczos 3× pre-upscale +
+        // CISharpenLuminance before TextureResource, plus mipmaps. Won't
+        // add detail, but turns the GPU sampling step from a jagged
+        // UPsample into a clean DOWNsample.
         guard let url = CDN.fullURL(for: card) else { return }
         struct LoadResult {
             let rounded: UIImage
@@ -343,17 +350,15 @@ struct HeroShotView: View {
                 let (data, _) = try? await URLSession.shared.data(from: url),
                 let image = UIImage(data: data)
             else { return nil }
-            // Clip to rounded corners BEFORE generating the texture —
-            // the alpha channel from the rounded-rect mask gives the
-            // card its visible rounded shape. `MeshResource.generatePlane`
-            // has a `cornerRadius:` parameter that's silently ignored on
-            // iOS 17/18/26, so the mask must live in the texture.
-            let rounded = BOBACardEntity.roundedCorners(image) ?? image
+            // Upsample-and-sharpen BEFORE rounded-corner masking so the
+            // mask itself is at the higher resolution (smoother edge).
+            let upsampled = Self.upsampleAndSharpen(image, scale: 3.0) ?? image
+            let rounded = BOBACardEntity.roundedCorners(upsampled) ?? upsampled
             let tex: TextureResource? = await MainActor.run {
                 guard let cg = rounded.cgImage else { return nil as TextureResource? }
                 let opts = TextureResource.CreateOptions(
                     semantic: .color,
-                    mipmapsMode: .none
+                    mipmapsMode: .allocateAndGenerateAll
                 )
                 return try? TextureResource(image: cg, withName: nil, options: opts)
             }
@@ -363,6 +368,32 @@ struct HeroShotView: View {
             self.frontTexture = result?.texture
             self.frontImage = result?.rounded
         }
+    }
+
+    /// Lanczos scaleTransform + luminance sharpen. Pure CoreImage — runs
+    /// off-main on the Task.detached context. Returns nil only if CI
+    /// can't produce a CGImage, in which case the caller falls back to
+    /// the unscaled input (no worse than before).
+    private static func upsampleAndSharpen(_ image: UIImage, scale: CGFloat) -> UIImage? {
+        guard let cg = image.cgImage else { return nil }
+        let ci = CIImage(cgImage: cg)
+        guard let lanczos = CIFilter(name: "CILanczosScaleTransform") else { return nil }
+        lanczos.setValue(ci, forKey: kCIInputImageKey)
+        lanczos.setValue(scale, forKey: kCIInputScaleKey)
+        lanczos.setValue(1.0, forKey: kCIInputAspectRatioKey)
+        guard let scaled = lanczos.outputImage else { return nil }
+        // Light luminance sharpen — compensates for the unavoidable
+        // softness from upsampling. Sharpness 0.4 is restrained; 0.8+
+        // visibly halos the line art.
+        guard let sharpen = CIFilter(name: "CISharpenLuminance") else { return nil }
+        sharpen.setValue(scaled, forKey: kCIInputImageKey)
+        sharpen.setValue(0.4, forKey: kCIInputSharpnessKey)
+        guard let sharpened = sharpen.outputImage else { return nil }
+        let ctx = CIContext(options: [.useSoftwareRenderer: false])
+        guard let outCG = ctx.createCGImage(sharpened, from: sharpened.extent) else {
+            return nil
+        }
+        return UIImage(cgImage: outCG, scale: image.scale, orientation: image.imageOrientation)
     }
 
     /// Bundled card-back PNG (same asset HouseOfCardsView uses). The

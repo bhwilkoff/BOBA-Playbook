@@ -61,7 +61,12 @@ void holofoilSurface(realitykit::surface_parameters params)
                         t_address::repeat);
 
     // ── 1. Base card art ─────────────────────────────────────────
-    float2 uv = geometry.uv0();
+    // v6.0.3: flip UV.y. CustomMaterial.SurfaceShader receives UVs in
+    // the raw mesh attribute space, which is Y-flipped vs the layout
+    // RealityKit's stock PhysicallyBasedMaterial uses internally.
+    // Without this, the card art renders upside-down when the card
+    // is in the front-mesh upright pose. (User-reported v6.0.1 bug.)
+    float2 uv = float2(geometry.uv0().x, 1.0 - geometry.uv0().y);
     half4 base = textures.base_color().sample(s, uv);
     // RealityKit's rounded-corner alpha is in base.a; we keep it.
 

@@ -570,9 +570,73 @@ private final class HouseOfCardsCoordinator: NSObject {
     }()
     private lazy var outlineMaterial: UnlitMaterial = {
         var m = UnlitMaterial()
-        m.color = .init(tint: UIColor(red: 1.0, green: 0.5, blue: 0.05, alpha: 1.0))
+        if let ring = Self.makeRingTexture() {
+            m.color = .init(tint: .white, texture: .init(ring))
+        } else {
+            m.color = .init(tint: UIColor(red: 1.0, green: 0.5, blue: 0.05, alpha: 1.0))
+        }
+        // Ring texture has transparent center + opaque orange border;
+        // .transparent blending honors that alpha so only the rim is
+        // visible. Without this, even with the ring texture the plane
+        // would render as solid orange and the user would see the
+        // "entire card turns orange" bug.
+        m.blending = .transparent(opacity: 1.0)
         return m
     }()
+
+    /// Pre-rendered orange ring on a transparent background, sized to
+    /// match the outlineMesh's aspect ratio. Border thickness matches
+    /// `outlineMargin / total` in both dimensions; corner radii are
+    /// scaled from the same constants used for the mesh, so the ring's
+    /// inner edge tracks the card's rounded corners exactly. Without
+    /// this, the outline plane was solid orange — placed in FRONT of
+    /// the card-front plane (positive Y offset) — and visually covered
+    /// the entire card whenever it was selected.
+    @MainActor
+    private static func makeRingTexture() -> TextureResource? {
+        let totalW: CGFloat = 1024
+        let totalH: CGFloat = 1024 * CGFloat(cardHeight + 2 * outlineMargin)
+                                    / CGFloat(cardWidth  + 2 * outlineMargin)
+        let marginPxX = totalW * CGFloat(outlineMargin / (cardWidth  + 2 * outlineMargin))
+        let marginPxY = totalH * CGFloat(outlineMargin / (cardHeight + 2 * outlineMargin))
+        let outerCorner = totalW * CGFloat((cornerR + outlineMargin) / (cardWidth + 2 * outlineMargin))
+        let innerCorner = totalW * CGFloat(cornerR / (cardWidth + 2 * outlineMargin))
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: Int(totalW), height: Int(totalH),
+            bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        // 1) Fill outer rounded rect with orange.
+        let outerRect = CGRect(x: 0, y: 0, width: totalW, height: totalH)
+        let outerPath = CGPath(
+            roundedRect: outerRect,
+            cornerWidth: outerCorner, cornerHeight: outerCorner,
+            transform: nil
+        )
+        ctx.setFillColor(CGColor(srgbRed: 1.0, green: 0.5, blue: 0.05, alpha: 1.0))
+        ctx.addPath(outerPath)
+        ctx.fillPath()
+        // 2) Clear (alpha=0) the inner rounded rect → leaves a ring.
+        let innerRect = CGRect(
+            x: marginPxX, y: marginPxY,
+            width: totalW - 2 * marginPxX, height: totalH - 2 * marginPxY
+        )
+        let innerPath = CGPath(
+            roundedRect: innerRect,
+            cornerWidth: innerCorner, cornerHeight: innerCorner,
+            transform: nil
+        )
+        ctx.setBlendMode(.clear)
+        ctx.addPath(innerPath)
+        ctx.fillPath()
+        guard let cg = ctx.makeImage() else { return nil }
+        let opts = TextureResource.CreateOptions(
+            semantic: .color,
+            mipmapsMode: .allocateAndGenerateAll
+        )
+        return try? TextureResource(image: cg, withName: "outline-ring", options: opts)
+    }
 
 
     /// Spherical-coordinate camera state (orbit around the
@@ -3354,6 +3418,13 @@ private final class HouseOfCardsCoordinator: NSObject {
         }
         var art = UnlitMaterial()
         art.color = .init(tint: .white, texture: .init(texture))
+        // The card-front texture carries an alpha-channel rounded-rect
+        // mask (BOBACardEntity.roundedCorners). Without .transparent
+        // blending the alpha is treated as opaque and the corners
+        // render as solid black. Same fix as v5.4 in
+        // BOBACardEntity.makeFrontMaterial — House of BoBA's applyArt
+        // builds its own material so it needs the fix applied here too.
+        art.blending = .transparent(opacity: 1.0)
         model.materials = [art]
         front.components.set(model)
         print("[HoC] Art applied (tex \(texture.width)×\(texture.height))")

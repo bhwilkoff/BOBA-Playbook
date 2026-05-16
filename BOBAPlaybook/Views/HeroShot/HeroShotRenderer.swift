@@ -602,23 +602,49 @@ final class HeroShotRenderer {
         floor.position = SIMD3<Float>(0, -Self.cardH * 0.5 - 0.003, 0)
         root.addChild(floor)
 
-        // ── Card (Unlit — texture shows as printed, no blowout) ──────
-        // v4 used PhysicallyBasedMaterial here. With lights + IBL +
-        // env-as-IBL, the card art got multiplied by its own colors
-        // from every direction and blew out to white. v4.1 reverts
-        // to UnlitMaterial — the card shows EXACTLY as the source PNG
-        // looks, same as it does in House of BoBA and Collection card
-        // detail. Cost: no treatment-foil specular sheen (will revisit
-        // with a different technique once the basics look right).
+        // ── Card (PBR — sim-validated lighting setup) ────────────────
+        // v4 used PBR with whatever lights happened to be in the scene
+        // and blew out. v4.1-v5.3 reverted to Unlit (safe, but
+        // visually flat — no dimension, no env participation).
+        // v5.4 returns to PBR with sim-tuned lighting: DirectionalLight
+        // at 30,000 lumen + IBL from env at intensityExponent 1.0. The
+        // Phase 2 simulator's 4×8 sweep showed this combo lights the
+        // card uniformly without blowout (80k blew out, dim & IBL-only
+        // were near-black) AND gives ambient color shift from the env.
         let cardPivot = BOBACardEntity.build(BOBACardEntity.Config(
             frontTexture: config.frontTexture,
             backTexture: config.backTexture,
             includeEdge: true,
             pose: .upright,
-            material: .unlit
+            material: .physicallyBased,
+            treatment: config.card.treatment
         ))
         cardPivot.position = .zero
         root.addChild(cardPivot)
+
+        // ── Lights (sim winner: dir 30k + IBL exp 1.0) ───────────────
+        let keyLight = DirectionalLight()
+        keyLight.light.intensity = 30_000
+        keyLight.light.color = .white
+        keyLight.look(at: .zero,
+                      from: SIMD3<Float>(0.3, 0.4, 0.5),
+                      relativeTo: nil)
+        root.addChild(keyLight)
+        if let envCG,
+           let env = try? EnvironmentResource(equirectangular: envCG, withName: nil) {
+            let ibl = ImageBasedLightComponent(source: .single(env),
+                                               intensityExponent: 1.0)
+            root.components.set(ibl)
+            // ImageBasedLightReceiverComponent doesn't propagate through
+            // the entity hierarchy — must be set on each ModelEntity
+            // that should be lit. cardPivot is an empty parent; its
+            // children (card-front, card-back, card-edge) are the
+            // actual ModelEntities holding the PBR materials.
+            let receiver = ImageBasedLightReceiverComponent(imageBasedLight: root)
+            for child in cardPivot.children where child is ModelEntity {
+                child.components.set(receiver)
+            }
+        }
 
         // ── Atmospheric particles ────────────────────────────────────
         // Subtle dust drifting upward in the dominant palette color.

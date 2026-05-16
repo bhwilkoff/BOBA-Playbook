@@ -100,34 +100,42 @@ final class HeroShotRenderer {
     // produce camera transforms only; card yaw is computed separately.
 
     /// "Reveal" — slide-in → settle → push-in close-up.
-    ///   0.00 → 0.25  SLIDE IN  — far+offaxis dolly to hero-wide.
+    ///   0.00 → 0.25  SLIDE IN  — off-axis dolly to hero-wide.
+    ///                            Card ~35% of frame, FOV 36°.
     ///   0.25 → 0.65  SETTLE    — small drift; absorb the card.
     ///   0.65 → 0.95  PUSH IN   — camera + FOV both close on detail.
+    ///                            Card fills most of frame at climax.
     ///   0.95 → 1.00  HOLD
     static func revealFrame(at time: Double, duration: Double) -> CameraPose {
         let slideEnd:  Double = duration * 0.25
         let settleEnd: Double = duration * 0.65
         let pushEnd:   Double = duration * 0.95
 
+        // v4.1: tighter framing everywhere. v4's slideStart at z=0.55
+        // FOV 46° made the card ~13% of frame width — the user
+        // explicitly flagged "camera too far". v4.1 puts the slide at
+        // z=0.32 FOV 36° so the card occupies ~30-35% throughout the
+        // slide phase. The push-in climax narrows to z=0.09 FOV 26°
+        // for a card-fills-frame finale.
         let slideStart = CameraPose(
-            position: SIMD3<Float>(-0.32, -0.08, 0.55),
-            lookAt:   SIMD3<Float>(-0.04, -0.02, 0),
-            fovDeg:   46
+            position: SIMD3<Float>(-0.18, -0.05, 0.32),
+            lookAt:   SIMD3<Float>(-0.02, -0.01, 0),
+            fovDeg:   36
         )
         let heroWide = CameraPose(
-            position: SIMD3<Float>(0.02, 0.03, 0.24),
+            position: SIMD3<Float>(0.02, 0.025, 0.20),
             lookAt:   .zero,
-            fovDeg:   34
+            fovDeg:   30
         )
         let settleHold = CameraPose(
-            position: SIMD3<Float>(-0.02, 0.025, 0.22),
+            position: SIMD3<Float>(-0.02, 0.020, 0.18),
             lookAt:   .zero,
-            fovDeg:   32
+            fovDeg:   28
         )
         let pushClose = CameraPose(
-            position: SIMD3<Float>(0.015, 0.015, 0.10),
+            position: SIMD3<Float>(0.015, 0.012, 0.085),
             lookAt:   SIMD3<Float>(0, 0.005, 0),
-            fovDeg:   28
+            fovDeg:   24
         )
 
         if time <= slideEnd {
@@ -148,14 +156,18 @@ final class HeroShotRenderer {
     }
 
     /// "Showcase" — slow arc → dolly-push climax. Card stays static.
-    ///   0.00 → 0.85  ARC       — orbit -25° → +25° at constant 0.30m.
-    ///   0.85 → 0.96  PUSH IN   — dolly forward to 0.11m + tighten FOV.
+    ///   0.00 → 0.85  ARC       — orbit -25° → +25° at constant 0.22m.
+    ///                            Card ~40% of frame at FOV 32°.
+    ///   0.85 → 0.96  PUSH IN   — dolly forward to 0.09m + FOV tightens.
     ///   0.96 → 1.00  HOLD
     static func showcaseFrame(at time: Double, duration: Double) -> CameraPose {
         let arcEnd:  Double = duration * 0.85
         let pushEnd: Double = duration * 0.96
 
-        let arcDistance: Float = 0.30
+        // v4.1: arc distance 0.30 → 0.22 brings the card closer
+        // throughout the whole orbit. FOV 36° → 32° for tighter framing
+        // (the card subtends a bigger fraction of the frame).
+        let arcDistance: Float = 0.22
         let arcElev:     Float = 5 * .pi / 180
         let arcAzMin:    Float = -25 * .pi / 180
         let arcAzMax:    Float =  25 * .pi / 180
@@ -168,19 +180,17 @@ final class HeroShotRenderer {
         if time <= arcEnd {
             let t = Float(easedProgress(arcEnd == 0 ? 1.0 : time / arcEnd))
             let az = lerp(arcAzMin, arcAzMax, t)
-            return CameraPose(position: orbital(az), lookAt: .zero, fovDeg: 36)
+            return CameraPose(position: orbital(az), lookAt: .zero, fovDeg: 32)
         } else {
-            // PUSH IN from arc-end position toward a closer hero pose,
-            // narrowing FOV simultaneously (subtle dolly-zoom feel).
             let arcEndPose = CameraPose(
                 position: orbital(arcAzMax),
                 lookAt: .zero,
-                fovDeg: 36
+                fovDeg: 32
             )
             let closePose = CameraPose(
-                position: SIMD3<Float>(0.05, 0.015, 0.11),
+                position: SIMD3<Float>(0.04, 0.012, 0.09),
                 lookAt: SIMD3<Float>(0, 0, 0),
-                fovDeg: 26
+                fovDeg: 22
             )
             if time <= pushEnd {
                 let t = Float(easedProgress((time - arcEnd) / (pushEnd - arcEnd)))
@@ -192,21 +202,27 @@ final class HeroShotRenderer {
     }
 
     /// "Detail" — wide opener → macro orbit. Best for foil cards.
-    ///   0.00 → 0.18  WIDE      — far establishing shot, card small.
-    ///   0.18 → 0.32  DOLLY IN  — fast push into the art's center 60%.
-    ///   0.32 → 0.92  MACRO ARC — small orbit at very close range.
+    ///   0.00 → 0.18  WIDE      — establishing shot at z=0.28, FOV 34°.
+    ///                            Card ~35% of frame.
+    ///   0.18 → 0.32  DOLLY IN  — fast push into the art's center.
+    ///   0.32 → 0.92  MACRO ARC — small orbit at z=0.075, FOV 22°.
+    ///                            Card fills most of frame.
     ///   0.92 → 1.00  HOLD
     static func detailFrame(at time: Double, duration: Double) -> CameraPose {
         let wideEnd:  Double = duration * 0.18
         let dollyEnd: Double = duration * 0.32
         let macroEnd: Double = duration * 0.92
 
+        // v4.1: wide-shot distance 0.50 → 0.28 so the establishing
+        // shot still SHOWS the card (not just a stage with a tiny
+        // dot in it). The macro phase tightens further from 0.085 →
+        // 0.075 for a true close-inspection feel.
         let wide = CameraPose(
-            position: SIMD3<Float>(-0.10, 0.04, 0.50),
+            position: SIMD3<Float>(-0.06, 0.025, 0.28),
             lookAt:   SIMD3<Float>(0, -0.005, 0),
-            fovDeg:   42
+            fovDeg:   34
         )
-        let macroDistance: Float = 0.085
+        let macroDistance: Float = 0.075
         let macroElev:     Float = 4 * .pi / 180
         let macroAzMin:    Float = -10 * .pi / 180
         let macroAzMax:    Float =  10 * .pi / 180
@@ -218,7 +234,7 @@ final class HeroShotRenderer {
         let macroStart = CameraPose(
             position: macroOrbital(macroAzMin),
             lookAt:   .zero,
-            fovDeg:   26
+            fovDeg:   22
         )
 
         if time <= wideEnd {
@@ -227,14 +243,13 @@ final class HeroShotRenderer {
             let t = Float(easedProgress((time - wideEnd) / (dollyEnd - wideEnd)))
             return lerpPose(wide, macroStart, t)
         } else if time <= macroEnd {
-            // Macro orbit at ~8.5cm — close enough to see foil texture.
             let t = Float(easedProgress((time - dollyEnd) / (macroEnd - dollyEnd)))
             let az = lerp(macroAzMin, macroAzMax, t)
-            return CameraPose(position: macroOrbital(az), lookAt: .zero, fovDeg: 26)
+            return CameraPose(position: macroOrbital(az), lookAt: .zero, fovDeg: 22)
         } else {
             return CameraPose(position: macroOrbital(macroAzMax),
                               lookAt: .zero,
-                              fovDeg: 26)
+                              fovDeg: 22)
         }
     }
 
@@ -513,19 +528,23 @@ final class HeroShotRenderer {
     private func buildScene(config: Config) throws -> SceneBundle {
         let renderer = try RealityRenderer()
 
-        // Scene clear is irrelevant — the backdrop plane covers the
-        // whole camera frustum at all preset cameras. Keep it dark so
-        // any misframe at least reads as intentional.
+        // Pure black scene clear — the backdrop plane covers the camera
+        // frustum at all preset poses. Any peek-through reads as void.
         renderer.cameraSettings.colorBackground = .color(UIColor.black.cgColor)
 
         let root = Entity()
         renderer.entities.append(root)
 
-        // ── Env-extension texture ────────────────────────────────────
-        // Generate ONE 2048×1024 image from the card art: heavy blur +
-        // saturation + mirror-tile + treatment overlay. Used as BOTH
-        // the visible backdrop texture AND the IBL environment, so
-        // the lighting tone literally comes from the card's colors.
+        // ── Env-extension texture (Apple-Music ambient style) ────────
+        // Generate ONE 2048×1024 image from the card art: gentle blur +
+        // mild saturation + mirror-tile + a low-opacity treatment
+        // overlay (Battlefoil stripes, etc.). Used purely as a TEXTURE
+        // on the backdrop plane — no IBL, no lighting interaction.
+        //
+        // v4 over-applied this: saturation 1.7× + heavy IBL + PBR
+        // lights all multiplied, blowing the card out. v4.1 tunes
+        // saturation down and ditches the lighting that was the source
+        // of the blowout.
         let palette = HeroShotEnvironment.extractPalette(from: config.frontImage)
         let envCG = HeroShotEnvironment.generateImage(
             frontArt: config.frontImage,
@@ -533,22 +552,20 @@ final class HeroShotRenderer {
             palette: palette
         )
 
-        // ── Stage backdrop ───────────────────────────────────────────
-        // Big plane behind everything, textured with the env-extension
-        // image. PBR matte so it picks up rim lighting from the back
-        // light + IBL — gives the backdrop depth.
-        var backdropMat = PhysicallyBasedMaterial()
+        // ── Stage backdrop (Unlit) ───────────────────────────────────
+        // Large plane far behind, textured with the env-extension
+        // image. UnlitMaterial = the texture shows EXACTLY as drawn,
+        // no PBR shading can over-bright it.
+        var backdropMat = UnlitMaterial()
         if let cg = envCG,
            let tex = try? TextureResource(image: cg, withName: nil,
                                           options: TextureResource.CreateOptions(
                                               semantic: .color,
                                               mipmapsMode: .allocateAndGenerateAll)) {
-            backdropMat.baseColor = .init(tint: .white, texture: .init(tex))
+            backdropMat.color = .init(tint: .white, texture: .init(tex))
         } else {
-            backdropMat.baseColor = .init(tint: palette.first ?? .darkGray)
+            backdropMat.color = .init(tint: palette.first ?? .darkGray)
         }
-        backdropMat.roughness = 0.85
-        backdropMat.metallic = 0.0
         let backdrop = ModelEntity(
             mesh: MeshResource.generatePlane(width: 2.4, depth: 3.2),
             materials: [backdropMat]
@@ -557,15 +574,13 @@ final class HeroShotRenderer {
         backdrop.position = SIMD3<Float>(0, 0.10, -0.85)
         root.addChild(backdrop)
 
-        // ── Stage floor ──────────────────────────────────────────────
-        // PBR matte floor that picks up the rim/fill lights. Tinted
-        // by the primary palette color so the ground reads as part
-        // of the same environment as the backdrop, just dimmer.
-        var floorMat = PhysicallyBasedMaterial()
-        floorMat.baseColor = .init(tint: Self.blendColor(
-            palette.first ?? .darkGray, with: .black, t: 0.65))
-        floorMat.roughness = 0.55
-        floorMat.metallic = 0.0
+        // ── Stage floor (Unlit, tinted dark) ─────────────────────────
+        // Solid plane under the card with a darkened palette-tinted
+        // color — gives the card a base to "stand on" without
+        // competing with the backdrop.
+        var floorMat = UnlitMaterial()
+        floorMat.color = .init(tint: Self.blendColor(
+            palette.first ?? .darkGray, with: .black, t: 0.78))
         let floor = ModelEntity(
             mesh: MeshResource.generatePlane(width: 1.6, depth: 1.6),
             materials: [floorMat]
@@ -573,76 +588,32 @@ final class HeroShotRenderer {
         floor.position = SIMD3<Float>(0, -Self.cardH * 0.5 - 0.003, 0)
         root.addChild(floor)
 
-        // ── Card (PBR with treatment-keyed roughness) ────────────────
-        // The card now renders with PhysicallyBasedMaterial so it
-        // responds to the lighting rig AND to the IBL environment.
-        // Foil treatments use a localized roughness texture so the
-        // foil regions reflect light differently from paper regions —
-        // real specular sheen as the camera arcs around.
+        // ── Card (Unlit — texture shows as printed, no blowout) ──────
+        // v4 used PhysicallyBasedMaterial here. With lights + IBL +
+        // env-as-IBL, the card art got multiplied by its own colors
+        // from every direction and blew out to white. v4.1 reverts
+        // to UnlitMaterial — the card shows EXACTLY as the source PNG
+        // looks, same as it does in House of BoBA and Collection card
+        // detail. Cost: no treatment-foil specular sheen (will revisit
+        // with a different technique once the basics look right).
         let cardPivot = BOBACardEntity.build(BOBACardEntity.Config(
             frontTexture: config.frontTexture,
             backTexture: config.backTexture,
             includeEdge: true,
             pose: .upright,
-            material: .physicallyBased,
-            treatment: config.card.treatment
+            material: .unlit
         ))
         cardPivot.position = .zero
         root.addChild(cardPivot)
 
-        // ── Image-Based Lighting ─────────────────────────────────────
-        // The IBL environment is the SAME env-extension image used on
-        // the backdrop plane. The card lights itself from its own
-        // colors. intensityExponent: 1.2 compensates for the source
-        // being LDR (real HDRIs are brighter so they need less boost).
-        if let cg = envCG,
-           let env = try? EnvironmentResource(equirectangular: cg, withName: nil) {
-            let iblComponent = ImageBasedLightComponent(
-                source: .single(env),
-                intensityExponent: 1.2
-            )
-            cardPivot.components.set(iblComponent)
-            cardPivot.components.set(ImageBasedLightReceiverComponent(imageBasedLight: cardPivot))
-            // Backdrop + floor receive too, so their PBR materials sample
-            // the same ambient color contribution.
-            backdrop.components.set(ImageBasedLightReceiverComponent(imageBasedLight: cardPivot))
-            floor.components.set(ImageBasedLightReceiverComponent(imageBasedLight: cardPivot))
-        }
-
-        // ── 3-point lighting rig ─────────────────────────────────────
-        // Calibrated intensities per the lighting research — these
-        // values produce a bright cinematic look (NOT defaults, which
-        // read as dim AR-style). RealityKit caps: 1 DirectionalLight,
-        // 8 total dynamic lights. We use 3 (key + fill + rim).
-
-        // KEY — DirectionalLight, camera-right + above. Dominant source.
-        let key = DirectionalLight()
-        key.light.intensity = 20_000           // lumen/m² — bright but not blown
-        key.light.color = .white
-        key.look(at: .zero, from: SIMD3<Float>(0.4, 0.35, 0.35), relativeTo: nil)
-        root.addChild(key)
-
-        // FILL — PointLight, camera-left, softer, no shadows. Lifts
-        // shadows on the camera-left side of the card.
-        let fill = PointLight()
-        fill.light.intensity = 3_000_000        // lumen
-        fill.light.attenuationRadius = 1.5
-        fill.light.color = Self.blendUIColor(palette.first ?? .white, with: .white, t: 0.55)
-        fill.position = SIMD3<Float>(-0.35, 0.18, 0.30)
-        root.addChild(fill)
-
-        // RIM — SpotLight, behind + above, tight cone, aimed at card
-        // top edge. Produces the "keynote glow" silhouette stripe.
-        let rim = SpotLight()
-        rim.light.intensity = 5_000_000         // lumen
-        rim.light.innerAngleInDegrees = 20
-        rim.light.outerAngleInDegrees = 35
-        rim.light.attenuationRadius = 2.0
-        rim.light.color = Self.blendUIColor(palette.first ?? .white, with: .white, t: 0.30)
-        rim.look(at: SIMD3<Float>(0, BOBACardEntity.height * 0.4, 0),
-                 from: SIMD3<Float>(0.05, 0.30, -0.20),
-                 relativeTo: nil)
-        root.addChild(rim)
+        // NOTE: NO LIGHTS, NO IBL.
+        //
+        // UnlitMaterial doesn't sample lighting or IBL, so adding them
+        // would only affect floor/backdrop — and we use Unlit on those
+        // too for predictable brightness. Once we have a proper PBR
+        // pipeline that doesn't blow the card out (custom shader, or
+        // tonemapped IBL, or PBR-card + Unlit-everything-else with
+        // careful tuning), we can layer lights back in.
 
         // ── Camera ───────────────────────────────────────────────────
         let camera = PerspectiveCamera()

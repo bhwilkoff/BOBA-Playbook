@@ -39,8 +39,12 @@ let kWhite: RGB = (1, 1, 1)
 
 // MARK: - Output dimensions
 
-let envWidth = 2048
-let envHeight = 1024
+/// Match the iOS backdrop plane aspect (2.4m × 3.2m = 3:4 portrait).
+/// Earlier 2:1 landscape meant simulator output didn't match what
+/// iOS actually rendered (camera saw only a small portrait slice of
+/// my landscape design).
+let envWidth = 1536
+let envHeight = 2048
 
 // MARK: - Palette extraction (HSV bucketing on 64×64 center-crop)
 
@@ -874,6 +878,101 @@ func envB9_HighContrastThreeLight(cardArt: CGImage, palette: [RGB]) -> CGImage? 
     return ctx.makeImage()
 }
 
+// MARK: - Approach B10: lights positioned INSIDE camera visible window
+//
+// The camera-visible-crop preview revealed that B3/B7/B8/B9 all
+// look like dim simple gradients in the actual iOS render —
+// the lights at image corners (0.28,0.72)/(0.78,0.28) are mostly
+// OFF-CAMERA. Only their falloff edges reach the camera's tiny
+// center strip. v5.2 shipped this and the user saw a "simple
+// gradient" because that's what was actually visible.
+//
+// B10 puts the lights INSIDE the visible region with tighter radii
+// so the warm/cool gradient is FULLY VISIBLE within the camera
+// window. The lights still extend beyond the visible window into
+// the off-camera area, but their CENTERS are now where the camera
+// can see them.
+
+func envB10_LightsInVisibleWindow(cardArt: CGImage, palette: [RGB]) -> CGImage? {
+    guard let ctx = newCanvas() else { return nil }
+    fillBase(ctx: ctx, palette: palette, darkness: 0.85)
+    if let ambient = ambientBlur(of: cardArt) {
+        drawAmbientMultiRotated(ctx: ctx, image: ambient, baseAlpha: 0.45)
+    }
+    let primary = palette.first ?? kWhite
+    let rim = hueShift(primary, byHue: 0.42, satScale: 0.85)
+    // KEY inside visible window (UV 0.40, 0.55) — lower-left of visible.
+    // Smaller radius (0.45×envHeight) so the gradient falloff is
+    // steep enough to be VISIBLE within the camera's 13%×18% window.
+    drawLightSpot(ctx: ctx, color: primary,
+                  center: CGPoint(x: CGFloat(envWidth) * 0.40,
+                                  y: CGFloat(envHeight) * 0.55),
+                  radius: CGFloat(envHeight) * 0.45,
+                  centerAlpha: 1.0, midAlpha: 0.55, midStop: 0.30)
+    // RIM inside visible window (UV 0.60, 0.40) — upper-right of visible.
+    // Complementary hue. Smaller radius for steep falloff.
+    drawLightSpot(ctx: ctx, color: rim,
+                  center: CGPoint(x: CGFloat(envWidth) * 0.60,
+                                  y: CGFloat(envHeight) * 0.40),
+                  radius: CGFloat(envHeight) * 0.40,
+                  centerAlpha: 0.85, midAlpha: 0.40, midStop: 0.32)
+    applyVignette(ctx: ctx, alpha: 0.20)
+    return ctx.makeImage()
+}
+
+// MARK: - Approach B11: even tighter lights, more saturated, NO ambient art
+
+func envB11_PureTwoLight(cardArt _: CGImage, palette: [RGB]) -> CGImage? {
+    guard let ctx = newCanvas() else { return nil }
+    fillBase(ctx: ctx, palette: palette, darkness: 0.92)
+    let primary = palette.first ?? kWhite
+    let rim = hueShift(primary, byHue: 0.42, satScale: 1.10)
+    drawLightSpot(ctx: ctx, color: primary,
+                  center: CGPoint(x: CGFloat(envWidth) * 0.38,
+                                  y: CGFloat(envHeight) * 0.55),
+                  radius: CGFloat(envHeight) * 0.40,
+                  centerAlpha: 1.10, midAlpha: 0.60, midStop: 0.28)
+    drawLightSpot(ctx: ctx, color: rim,
+                  center: CGPoint(x: CGFloat(envWidth) * 0.62,
+                                  y: CGFloat(envHeight) * 0.40),
+                  radius: CGFloat(envHeight) * 0.35,
+                  centerAlpha: 1.0, midAlpha: 0.45, midStop: 0.30)
+    applyVignette(ctx: ctx, alpha: 0.25)
+    return ctx.makeImage()
+}
+
+// MARK: - Approach B12: B10 ambient + tighter lights + bottom floor glow
+
+func envB12_StudioWithFloorGlow(cardArt: CGImage, palette: [RGB]) -> CGImage? {
+    guard let ctx = newCanvas() else { return nil }
+    fillBase(ctx: ctx, palette: palette, darkness: 0.88)
+    if let ambient = ambientBlur(of: cardArt) {
+        drawAmbientMultiRotated(ctx: ctx, image: ambient, baseAlpha: 0.40)
+    }
+    let primary = palette.first ?? kWhite
+    let rim = hueShift(primary, byHue: 0.42, satScale: 0.90)
+    // KEY (warm, lower-left of visible)
+    drawLightSpot(ctx: ctx, color: primary,
+                  center: CGPoint(x: CGFloat(envWidth) * 0.40,
+                                  y: CGFloat(envHeight) * 0.55),
+                  radius: CGFloat(envHeight) * 0.45,
+                  centerAlpha: 1.0, midAlpha: 0.55, midStop: 0.30)
+    // RIM (cool, upper-right of visible)
+    drawLightSpot(ctx: ctx, color: rim,
+                  center: CGPoint(x: CGFloat(envWidth) * 0.60,
+                                  y: CGFloat(envHeight) * 0.40),
+                  radius: CGFloat(envHeight) * 0.38,
+                  centerAlpha: 0.85, midAlpha: 0.40, midStop: 0.32)
+    // FLOOR glow (warm, BOTTOM of visible — bleeds into the floor plane area)
+    drawLightSpot(ctx: ctx, color: primary,
+                  center: CGPoint(x: CGFloat(envWidth) * 0.50,
+                                  y: CGFloat(envHeight) * 0.68),
+                  radius: CGFloat(envHeight) * 0.30,
+                  centerAlpha: 0.55, midAlpha: 0.25, midStop: 0.35)
+    applyVignette(ctx: ctx, alpha: 0.20)
+    return ctx.makeImage()
+}
+
 // MARK: - Approach B6: minimal premium (key + rim + nothing else)
 
 func envB6_MinimalPremium(cardArt: CGImage, palette: [RGB]) -> CGImage? {
@@ -901,12 +1000,38 @@ func envB6_MinimalPremium(cardArt: CGImage, palette: [RGB]) -> CGImage? {
     return ctx.makeImage()
 }
 
+// MARK: - Camera-visible crop
+//
+// The iOS camera only sees a small portion of the backdrop plane — at
+// hero-pose framing (z=0.22, FOV 30°), the visible window is ~13%
+// horizontal × ~18% vertical of the plane, centered at UV (0.50, 0.47)
+// (V is image-Y-down convention). To know what the user actually sees,
+// crop the rendered env to this visible region.
+
+func cameraVisibleCrop(of env: CGImage) -> CGImage? {
+    // Center of visible region in env pixel coords.
+    // Camera looks at world (0,0,0), plane positioned at world (0, 0.10, -0.85).
+    // The lookAt projection on the plane lands ~3% below image center.
+    let centerX = CGFloat(env.width) * 0.500
+    let centerY = CGFloat(env.height) * 0.470
+    let cropW = CGFloat(env.width) * 0.135
+    let cropH = CGFloat(env.height) * 0.180
+    let rect = CGRect(
+        x: centerX - cropW / 2,
+        y: centerY - cropH / 2,
+        width: cropW, height: cropH
+    )
+    return env.cropping(to: rect)
+}
+
 // MARK: - Contact sheet
 
 func makeContactSheet(tiles: [(image: CGImage, label: String)], cols: Int) -> CGImage? {
     let rows = (tiles.count + cols - 1) / cols
-    let tileW: Int = 512
-    let tileH: Int = 256
+    // Tile aspect matches the env aspect (3:4 portrait) so thumbnails
+    // aren't stretched. 256×340 ≈ 3:4.
+    let tileW: Int = 256
+    let tileH: Int = 340
     let labelH: Int = 28
     let padding: Int = 10
 
@@ -970,14 +1095,15 @@ func savePNG(_ image: CGImage, to path: String) -> Bool {
 
 typealias EnvGen = (CGImage, [RGB]) -> CGImage?
 
-/// Round 3 sweep — finalist contenders. B3 (3-light warm/cool) was
-/// the round-2 winner; this round tries variants that add ambient
-/// card-art visibility (B7/B8) and a higher-contrast variant (B9).
+/// Round 4 sweep — lights moved INSIDE the camera visible window.
+/// Camera-visible crops in round 3 showed B3/B7/B8/B9 all looked
+/// like simple gradients because lights were too far from center.
+/// B10/B11/B12 reposition them WITHIN the visible window.
 let approaches: [(label: String, gen: EnvGen)] = [
-    ("B3 baseline 3-light",                    envB3_ThreeLightStudio),
-    ("B7 3-light + multi-rotated ambient",     envB7_ThreeLightOverAmbient),
-    ("B8 3-light + directional regions",       envB8_ThreeLightOverDirectional),
-    ("B9 high-contrast 3-light",               envB9_HighContrastThreeLight)
+    ("B7 (v5.2 ship) — lights off-screen",   envB7_ThreeLightOverAmbient),
+    ("B10 in-window + ambient",              envB10_LightsInVisibleWindow),
+    ("B11 in-window pure 2-light",           envB11_PureTwoLight),
+    ("B12 in-window + ambient + floor glow", envB12_StudioWithFloorGlow)
 ]
 
 // MARK: - Entry point
@@ -1020,26 +1146,34 @@ for path in cardPaths {
 }
 guard !cards.isEmpty else { print("No cards loaded"); exit(1) }
 
-print("Rendering \(approaches.count) approaches × \(cards.count) cards = \(approaches.count * cards.count) tiles…")
-// Contact-sheet layout: rows = approaches, cols = cards.
-// Tiles ordered approach-first so they render correctly.
+print("Rendering \(approaches.count) approaches × \(cards.count) cards × 2 views = \(approaches.count * cards.count * 2) tiles…")
+// Contact-sheet layout: for each (approach, card), TWO tiles side-by-side:
+// [full env preview] [what camera actually sees in iOS].
+// This way I can see whether a good-looking env survives the camera's
+// tiny visible window.
 var tiles: [(image: CGImage, label: String)] = []
 for (approachLabel, gen) in approaches {
     for card in cards {
-        if let img = gen(card.image, card.palette) {
-            let cardTag = (card.name as NSString).deletingPathExtension
-                .replacingOccurrences(of: "test_card_", with: "")
-                .replacingOccurrences(of: "test_card", with: "card")
-            tiles.append((image: img, label: "\(approachLabel)  [\(cardTag)]"))
-            print("  ✓ \(approachLabel) × \(card.name)")
-        } else {
+        guard let img = gen(card.image, card.palette) else {
             print("  ✗ \(approachLabel) × \(card.name)")
+            continue
         }
+        let cardTag = (card.name as NSString).deletingPathExtension
+            .replacingOccurrences(of: "test_card_", with: "")
+            .replacingOccurrences(of: "test_card", with: "card")
+        tiles.append((image: img, label: "\(approachLabel) [\(cardTag)] FULL"))
+        if let crop = cameraVisibleCrop(of: img) {
+            tiles.append((image: crop, label: "\(approachLabel) [\(cardTag)] CAM"))
+        }
+        print("  ✓ \(approachLabel) × \(card.name)")
     }
 }
 
-print("Building contact sheet (\(tiles.count) tiles, \(cards.count) cols)…")
-guard let sheet = makeContactSheet(tiles: tiles, cols: cards.count) else {
+// Layout: 2 cols per card-approach (full | cam). With 3 cards × 4
+// approaches = 24 tiles, fits as 6 cols × 4 rows (3 cards × 2 views
+// per card per row).
+print("Building contact sheet (\(tiles.count) tiles, \(cards.count * 2) cols)…")
+guard let sheet = makeContactSheet(tiles: tiles, cols: cards.count * 2) else {
     print("Failed contact sheet")
     exit(1)
 }

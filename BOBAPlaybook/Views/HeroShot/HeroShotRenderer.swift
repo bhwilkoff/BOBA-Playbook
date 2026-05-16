@@ -49,6 +49,13 @@ final class HeroShotRenderer {
         /// "macro inspection" pattern. Best for foil/treatment cards
         /// where the texture detail is the story.
         case detail
+        /// MKBHD-style three-beat tech demo. Beat 1: pulled-back
+        /// crane-up (3s) showing pedestal + halo + light beams.
+        /// Beat 2: partial orbit at hero-wide distance (4s). Beat 3:
+        /// slow push-in to hero pose with dead-still final hold (3s).
+        /// v5.6 — designed against the research-agent synthesis on
+        /// what separates premium product reveal from hobbyist 3D.
+        case techDemo
 
         var id: String { rawValue }
         var displayName: String {
@@ -56,6 +63,7 @@ final class HeroShotRenderer {
             case .reveal:   return "Reveal"
             case .showcase: return "Showcase"
             case .detail:   return "Detail"
+            case .techDemo: return "Tech Demo"
             }
         }
 
@@ -67,6 +75,8 @@ final class HeroShotRenderer {
                 return "A slow orbit around the card, then settles"
             case .detail:
                 return "Pushes in to frame the hero portrait"
+            case .techDemo:
+                return "Three-beat reveal · stage · orbit · push-in"
             }
         }
 
@@ -85,6 +95,8 @@ final class HeroShotRenderer {
                 return HeroShotRenderer.showcaseFrame(at: time, duration: duration)
             case .detail:
                 return HeroShotRenderer.detailFrame(at: time, duration: duration)
+            case .techDemo:
+                return HeroShotRenderer.techDemoFrame(at: time, duration: duration)
             }
         }
     }
@@ -258,6 +270,89 @@ final class HeroShotRenderer {
             return lerpPose(upperFramed, driftEndPose, t)
         } else {
             return breathing(driftEndPose, at: time)
+        }
+    }
+
+    /// "Tech Demo" — MKBHD-style 3-beat reveal.
+    ///   0.00 → 0.30  ESTABLISH  — pulled-back crane-up showing the
+    ///                              full stage: pedestal, halo, light
+    ///                              beams, env spilling around the card.
+    ///                              Ease-out cubic into Beat 2 start pose.
+    ///   0.30 → 0.65  ORBIT      — partial 25° arc on Y at hero-wide
+    ///                              distance, shows card's dimension +
+    ///                              keeps stage elements peeking in
+    ///                              from frame edges. Smoothstep both
+    ///                              ends.
+    ///   0.65 → 0.95  PUSH-IN    — slow dolly to hero pose. Card fills
+    ///                              the frame for the texture climax.
+    ///                              Ease-out cubic (decelerate into hero).
+    ///   0.95 → 1.00  HOLD       — dead still on hero pose. Per the
+    ///                              research synthesis: the last 0.4-
+    ///                              0.5s must NOT move — that's where
+    ///                              the eye lands and locks in.
+    static func techDemoFrame(at time: Double, duration: Double) -> CameraPose {
+        let establishEnd: Double = duration * 0.30
+        let orbitEnd:     Double = duration * 0.65
+        let pushEnd:      Double = duration * 0.95
+
+        // Beat 1 keyframes — pulled-back crane-up. Start lower-left,
+        // end slightly higher and centered. Wide FOV reveals stage.
+        let establishStart = CameraPose(
+            position: SIMD3<Float>(-0.06, -0.030, 0.34),
+            lookAt:   SIMD3<Float>(0, 0.005, 0),
+            fovDeg:   38
+        )
+        let establishEndPose = CameraPose(
+            position: SIMD3<Float>(0.06, 0.035, 0.32),
+            lookAt:   .zero,
+            fovDeg:   34
+        )
+        // Beat 2 keyframes — partial orbit at hero-wide distance.
+        // Same radius as establishEnd, rotates around Y from +12° to -10°.
+        let orbitRadius: Float = 0.30
+        let orbitElevation: Float = 0.025
+        func orbital(azDeg: Float) -> SIMD3<Float> {
+            let az = azDeg * .pi / 180
+            return SIMD3<Float>(sin(az) * orbitRadius,
+                                orbitElevation,
+                                cos(az) * orbitRadius)
+        }
+        let orbitStart = CameraPose(
+            position: orbital(azDeg: 12),
+            lookAt:   .zero,
+            fovDeg:   34
+        )
+        let orbitEndPose = CameraPose(
+            position: orbital(azDeg: -10),
+            lookAt:   .zero,
+            fovDeg:   34
+        )
+        // Beat 3 keyframe — hero pose. Card fills frame; texture climax.
+        let heroPose = CameraPose(
+            position: SIMD3<Float>(0, 0.015, 0.22),
+            lookAt:   .zero,
+            fovDeg:   30
+        )
+
+        if time <= establishEnd {
+            // Ease-out cubic: decelerate into Beat 1 end (the "arrive"
+            // beat the research called out — never constant velocity).
+            let t = easeOutCubic(time / establishEnd)
+            return breathing(lerpPose(establishStart, establishEndPose, Float(t)),
+                              at: time)
+        } else if time <= orbitEnd {
+            let t = easedProgress((time - establishEnd) / (orbitEnd - establishEnd))
+            // Orbit start ≈ Beat 1 end, so this cuts smoothly into the orbit.
+            return lerpPose(orbitStart, orbitEndPose, Float(t))
+        } else if time <= pushEnd {
+            // Ease-out cubic again — landing into hero pose. Camera
+            // "arrives" rather than coasting.
+            let t = easeOutCubic((time - orbitEnd) / (pushEnd - orbitEnd))
+            return lerpPose(orbitEndPose, heroPose, Float(t))
+        } else {
+            // Dead still. NO breathing on the final beat — research
+            // synthesis: the eye locks in during a frozen final beat.
+            return heroPose
         }
     }
 
@@ -617,6 +712,24 @@ final class HeroShotRenderer {
         floor.position = SIMD3<Float>(0, -Self.cardH * 0.5 - 0.003, 0)
         root.addChild(floor)
 
+        // ── 3D scene elements (v5.6) ─────────────────────────────────
+        // Real geometry: rim halo + light beams + accent glows +
+        // pedestal. Sim-validated to read most prominently at the
+        // pulled-back beats of the techDemo arc — at the tight hero
+        // pose they're partly occluded but contribute subtle backlight.
+        if let halo = try? Self.makeRimHalo(palette: palette) {
+            root.addChild(halo)
+        }
+        if let beams = try? Self.makeLightBeams(palette: palette) {
+            for beam in beams { root.addChild(beam) }
+        }
+        for glow in Self.makeAccentGlows(palette: palette) {
+            root.addChild(glow)
+        }
+        for piece in Self.makePedestal(palette: palette) {
+            root.addChild(piece)
+        }
+
         // ── Card (PBR — sim-validated lighting setup) ────────────────
         // v4 used PBR with whatever lights happened to be in the scene
         // and blew out. v4.1-v5.3 reverted to Unlit (safe, but
@@ -783,6 +896,187 @@ final class HeroShotRenderer {
                                endRadius: CGFloat(size) * 0.65,
                                options: [])
         return ctx.makeImage()
+    }
+
+    // MARK: - 3D scene element builders (v5.6)
+    //
+    // Real geometry added to the world — visible to the camera as
+    // actual objects, not painted into env image. Sim-validated:
+    // these read prominently at pulled-back camera poses (the
+    // pulled/craneUp beats of the new MKBHD-style arc), and add
+    // subtle peeks-around-the-silhouette at hero pose.
+
+    /// Glow-circle plane positioned just behind the card. The card
+    /// occludes the bright center; the outer falloff reads as a
+    /// backlit halo around the card silhouette. ~2.4× card size.
+    @MainActor
+    static func makeRimHalo(palette: [UIColor]) throws -> ModelEntity {
+        let primary = palette.first ?? .darkGray
+        let texSize = 512
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: texSize, height: texSize,
+            bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { throw NSError(domain: "HeroShot", code: 100) }
+        let center = primary.withAlphaComponent(0.95).cgColor
+        let mid = primary.withAlphaComponent(0.55).cgColor
+        let edge = primary.withAlphaComponent(0).cgColor
+        let colors = [center, mid, edge] as CFArray
+        guard let g = CGGradient(colorsSpace: cs, colors: colors,
+                                 locations: [0.0, 0.40, 1.0]) else {
+            throw NSError(domain: "HeroShot", code: 101)
+        }
+        let cx = CGFloat(texSize) / 2
+        ctx.drawRadialGradient(g,
+                               startCenter: CGPoint(x: cx, y: cx),
+                               startRadius: 0,
+                               endCenter: CGPoint(x: cx, y: cx),
+                               endRadius: cx,
+                               options: [])
+        guard let cg = ctx.makeImage() else {
+            throw NSError(domain: "HeroShot", code: 102)
+        }
+        var mat = UnlitMaterial()
+        let opts = TextureResource.CreateOptions(semantic: .color,
+                                                  mipmapsMode: .allocateAndGenerateAll)
+        let tex = try TextureResource(image: cg, withName: nil, options: opts)
+        mat.color = .init(tint: .white, texture: .init(tex))
+        mat.blending = .transparent(opacity: 1.0)
+        let halo = ModelEntity(
+            mesh: MeshResource.generatePlane(width: Self.cardW * 2.4,
+                                             depth: Self.cardH * 2.4),
+            materials: [mat]
+        )
+        halo.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
+        halo.position = SIMD3<Float>(0, 0, -0.015)
+        return halo
+    }
+
+    /// Three thin vertical light-beam planes positioned diagonally
+    /// behind the card. Read as "shafts from off-screen spotlights."
+    @MainActor
+    static func makeLightBeams(palette: [UIColor]) throws -> [ModelEntity] {
+        let primary = palette.first ?? .darkGray
+        let rim = Self.hueShifted(primary, byHue: 0.42, satScale: 0.85)
+
+        func beam(color: UIColor, alpha: CGFloat) throws -> ModelEntity {
+            let w = 64, h = 512
+            let cs = CGColorSpaceCreateDeviceRGB()
+            guard let ctx = CGContext(
+                data: nil, width: w, height: h,
+                bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { throw NSError(domain: "HeroShot", code: 110) }
+            let colors = [
+                color.withAlphaComponent(0).cgColor,
+                color.withAlphaComponent(alpha).cgColor,
+                color.withAlphaComponent(0).cgColor
+            ] as CFArray
+            guard let g = CGGradient(colorsSpace: cs, colors: colors,
+                                     locations: [0.0, 0.5, 1.0]) else {
+                throw NSError(domain: "HeroShot", code: 111)
+            }
+            ctx.drawLinearGradient(g,
+                                   start: CGPoint(x: 0, y: 0),
+                                   end: CGPoint(x: CGFloat(w), y: 0),
+                                   options: [])
+            guard let cg = ctx.makeImage() else {
+                throw NSError(domain: "HeroShot", code: 112)
+            }
+            var mat = UnlitMaterial()
+            let opts = TextureResource.CreateOptions(semantic: .color,
+                                                      mipmapsMode: .allocateAndGenerateAll)
+            let tex = try TextureResource(image: cg, withName: nil, options: opts)
+            mat.color = .init(tint: .white, texture: .init(tex))
+            mat.blending = .transparent(opacity: 1.0)
+            let entity = ModelEntity(
+                mesh: MeshResource.generatePlane(width: 0.02, depth: 0.30),
+                materials: [mat]
+            )
+            return entity
+        }
+
+        let beamL = try beam(color: primary, alpha: 0.65)
+        beamL.position = SIMD3<Float>(-0.09, 0.02, -0.08)
+        beamL.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0)) *
+                            simd_quatf(angle: -0.18, axis: SIMD3<Float>(0, 0, 1))
+
+        let beamR = try beam(color: rim, alpha: 0.55)
+        beamR.position = SIMD3<Float>(0.09, 0.02, -0.08)
+        beamR.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0)) *
+                            simd_quatf(angle: 0.18, axis: SIMD3<Float>(0, 0, 1))
+
+        let beamC = try beam(color: primary, alpha: 0.45)
+        beamC.position = SIMD3<Float>(0, 0.03, -0.12)
+        beamC.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
+
+        return [beamL, beamR, beamC]
+    }
+
+    /// Six small glow spheres scattered behind/beside the card.
+    /// Read as floating specular highlights or particles.
+    @MainActor
+    static func makeAccentGlows(palette: [UIColor]) -> [ModelEntity] {
+        let primary = palette.first ?? .darkGray
+        let rim = Self.hueShifted(primary, byHue: 0.42, satScale: 0.85)
+        let positions: [(SIMD3<Float>, UIColor)] = [
+            (SIMD3<Float>(-0.08,  0.05, -0.04), primary),
+            (SIMD3<Float>( 0.08,  0.04, -0.04), rim),
+            (SIMD3<Float>(-0.07, -0.04, -0.06), rim),
+            (SIMD3<Float>( 0.07, -0.05, -0.06), primary),
+            (SIMD3<Float>(-0.04,  0.07, -0.10), primary),
+            (SIMD3<Float>( 0.04, -0.07, -0.10), rim)
+        ]
+        return positions.map { pos, color in
+            var mat = UnlitMaterial()
+            mat.color = .init(tint: color)
+            let glow = ModelEntity(
+                mesh: MeshResource.generateSphere(radius: 0.004),
+                materials: [mat]
+            )
+            glow.position = pos
+            return glow
+        }
+    }
+
+    /// Low, wide pedestal beneath the card. The card visibly sits ON
+    /// something instead of floating. Top palette-bright, front face
+    /// darker (faux ambient occlusion).
+    @MainActor
+    static func makePedestal(palette: [UIColor]) -> [ModelEntity] {
+        let primary = palette.first ?? .darkGray
+        let top = Self.blendColor(primary, with: .white, t: 0.20)
+        let side = Self.blendColor(primary, with: .black, t: 0.55)
+
+        var topMat = UnlitMaterial()
+        topMat.color = .init(tint: top)
+        let pedTop = ModelEntity(
+            mesh: MeshResource.generatePlane(width: 0.12, depth: 0.10),
+            materials: [topMat]
+        )
+        pedTop.position = SIMD3<Float>(0, -Self.cardH * 0.5 + 0.001, 0)
+
+        var sideMat = UnlitMaterial()
+        sideMat.color = .init(tint: side)
+        let pedFront = ModelEntity(
+            mesh: MeshResource.generatePlane(width: 0.12, depth: 0.012),
+            materials: [sideMat]
+        )
+        pedFront.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
+        pedFront.position = SIMD3<Float>(0, -Self.cardH * 0.5 - 0.005, 0.050)
+        return [pedTop, pedFront]
+    }
+
+    /// Hue rotation helper for rim color (mirrors sim3d.swift recipe).
+    nonisolated static func hueShifted(_ color: UIColor, byHue delta: CGFloat,
+                                       satScale: CGFloat = 1.0) -> UIColor {
+        var h: CGFloat = 0, s: CGFloat = 0, v: CGFloat = 0, a: CGFloat = 1
+        color.getHue(&h, saturation: &s, brightness: &v, alpha: &a)
+        var newH = h + delta
+        if newH > 1 { newH -= 1 } else if newH < 0 { newH += 1 }
+        return UIColor(hue: newH, saturation: max(0, min(1, s * satScale)),
+                       brightness: v, alpha: a)
     }
 
     // MARK: - Camera math

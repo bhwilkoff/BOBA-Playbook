@@ -94,10 +94,10 @@ void holofoilSurface(realitykit::surface_parameters params)
 
     // ── 4. Fresnel gate (grazing-only) ──────────────────────────
     float3 N = float3(surface.normal());
-    // dot(N, V) is 1 head-on, 0 at grazing. Fresnel ramp k=4 gives
-    // a tight grazing-only response (head-on is essentially zero;
-    // shimmer only kicks in past ~45° off normal).
-    float fresnel = pow(1.0 - saturate(dot(N, V)), 4.0);
+    // dot(N, V) is 1 head-on, 0 at grazing. Fresnel ramp k=5 gives
+    // a tight grazing-only response (head-on essentially zero; the
+    // shimmer kicks in only past ~50° off normal).
+    float fresnel = pow(1.0 - saturate(dot(N, V)), 5.0);
 
     // ── 5. Foil mask (where foil exists vs paper) ────────────────
     // v6.0 uses a uniform white mask = full-card foil. v6.1 will
@@ -105,29 +105,28 @@ void holofoilSurface(realitykit::surface_parameters params)
     // background, Inspired Ink only on the serialized strip, etc.).
     float foilMask = textures.ambient_occlusion().sample(s, uv).r;
 
-    // ── 6. Composite (v6.0.1) ────────────────────────────────────
-    // User feedback v6.0: "shimmer is definitely shimmering but reads
-    // as quite washed out much of the time." Root causes:
+    // ── 6. Composite (v6.0.4 — SCREEN blend) ─────────────────────
+    // v6.0.1 used ADDITIVE blending with a luma damp. User after
+    // ship: "still quite bright/white at multiple moments." Root
+    // cause: ADDITIVE pushes bright pixels past 1.0 → clamped white.
+    // Even with the luma damp protecting fully-saturated pixels,
+    // anything in the 0.6-0.9 luma band (skin tones, light backgrounds,
+    // off-white borders) gets pushed into clipping.
     //
-    //   (a) Shimmer intensity 0.85 was too high — bright areas of
-    //       the card art saturated to white when summed with rainbow.
-    //   (b) metallic = 0.7 turned the card into a polished metal
-    //       (no diffuse, mostly specular) which fights paper card
-    //       readability.
-    //   (c) No protection for already-bright pixels (white border,
-    //       skin tones) — they pushed past 1.0 and clamped.
+    // Fix: SCREEN blend. `screen(a, b) = 1 - (1-a)*(1-b)`. Property:
+    // bright pixels (a close to 1) stay close to 1 regardless of b;
+    // dark pixels brighten by ~b. This is how iridescent foil ACTUALLY
+    // composites onto a card optically: the rainbow doesn't ADD to
+    // the base color, it REFLECTS the back-light through the foil
+    // layer. Never overflows white.
     //
-    // Fixes:
-    //   (a) shimmer intensity 0.85 → 0.30
-    //   (b) metallic 0.7 → 0.0 (paper-like dielectric); roughness
-    //       0.25 → 0.40 (slight gloss, not polished)
-    //   (c) base-luma damp: shimmer *= (1 - luma * 0.65), so dark
-    //       areas get strong shimmer, bright areas barely any.
-    //   (d) Fresnel exponent 3 → 4 — tighter grazing-only response.
-    float luma = dot(float3(base.rgb), float3(0.299, 0.587, 0.114));
-    float lumaDamp = 1.0 - luma * 0.65;
-    half3 shimmer = rainbow * half(fresnel * foilMask * 0.30 * lumaDamp);
-    half3 finalColor = base.rgb + shimmer;
+    // Intensity tuned to 0.55 — higher than v6.0.1's 0.30 because
+    // SCREEN blend's natural bright-pixel-protection means we can
+    // push the dark-region shimmer harder without washing out.
+    half3 shimmer = rainbow * half(fresnel * foilMask * 0.55);
+    half3 inv_base = half3(1.0h) - base.rgb;
+    half3 inv_shimmer = half3(1.0h) - shimmer;
+    half3 finalColor = half3(1.0h) - inv_base * inv_shimmer;
 
     // ── 7. PBR-style material output ─────────────────────────────
     // Paper-like: dielectric (metallic 0), slight gloss for the

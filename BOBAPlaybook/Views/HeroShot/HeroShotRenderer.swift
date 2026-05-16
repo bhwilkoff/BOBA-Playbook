@@ -350,39 +350,36 @@ final class HeroShotRenderer {
     private func buildScene(config: Config) throws -> SceneBundle {
         let renderer = try RealityRenderer()
 
-        // Deep-space scene clear. Everything inside the camera frustum
-        // is covered by the backdrop or floor planes; the clear color
-        // only shows in case of misframe.
-        let bg = UIColor(red: 0.015, green: 0.015, blue: 0.035, alpha: 1.0).cgColor
-        renderer.cameraSettings.colorBackground = .color(bg)
+        // Scene clear = stage navy. Lighter than the v2.229 jet-black
+        // so any peek-through between backdrop and floor reads as
+        // intentional lighting.
+        renderer.cameraSettings.colorBackground = .color(Self.stageNavy.cgColor)
 
         let root = Entity()
         renderer.entities.append(root)
 
-        let elem = Self.elementColor(for: config.card)
-
         // ── Stage backdrop ────────────────────────────────────────────
-        // Large element-tinted vertical plane far behind the card.
-        // Radial gradient with element color blooming from the
-        // horizon line, fading to deep-space at the edges. Larger
-        // dimensions + further pushed back than v2 so wide camera
-        // shots in phase 1 still frame inside it.
+        // Large element-driven vertical plane far behind the card.
+        // Opaque gradient: element color blooms from a position that
+        // varies by element (FIRE/BRAWL from below, ICE from above,
+        // etc.) and fades into stage navy at the edges.
         let backdrop = ModelEntity(
             mesh: MeshResource.generatePlane(width: 2.4, depth: 3.2),
-            materials: [Self.backdropMaterial(elementColor: elem)]
+            materials: [Self.backdropMaterial(for: config.card)]
         )
         backdrop.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
         backdrop.position = SIMD3<Float>(0, 0.10, -0.85)
         root.addChild(backdrop)
 
         // ── Stage floor ───────────────────────────────────────────────
-        // Horizontal plane under the card. Gradient texture: small
-        // brighter element-tinted spot directly beneath the card,
-        // fading to deep-space at the edges. Grounds the card visually
-        // and gives a "stage" feel during the wide approach.
+        // Horizontal plane under the card. Element-tinted spotlight
+        // directly beneath the card fading to a slightly-lit floor
+        // dark at the edges. Spotlight radius varies by element so
+        // GLOW / SUPER bathe the whole floor in their color and
+        // STEEL / NONE keep a tighter focused pool.
         let floor = ModelEntity(
             mesh: MeshResource.generatePlane(width: 1.6, depth: 1.6),
-            materials: [Self.floorMaterial(elementColor: elem)]
+            materials: [Self.floorMaterial(for: config.card)]
         )
         // Plane is XZ with normal +Y by default. Place just below the
         // card's bottom edge so the card "stands on" the floor.
@@ -418,25 +415,51 @@ final class HeroShotRenderer {
         return SceneBundle(renderer: renderer, camera: camera, cardPivot: cardPivot)
     }
 
-    /// Backdrop material — element bloom fading to deep space.
-    private static func backdropMaterial(elementColor elem: UIColor) -> UnlitMaterial {
+    // ── Stage palette ────────────────────────────────────────────────
+    //
+    // Both gradients use FULLY OPAQUE color stops (alpha=1 everywhere)
+    // instead of fading to transparent over a near-black fill. The
+    // previous transparent-edge approach diluted the element color
+    // by ~50% and let the jet-black scene-clear show through at the
+    // edges — that's the "extremely dark" failure mode the user hit
+    // on v2.229. Opaque element-to-deep-navy gradient is ~2× brighter
+    // and reads as a real lit stage.
+
+    /// Deep navy used as the gradient end-stop and scene-clear color.
+    /// Lighter than the v2.229 jet-black so any peek-through reads
+    /// as intentional stage lighting, not as missing pixels.
+    private static let stageNavy = UIColor(red: 0.06, green: 0.06, blue: 0.13, alpha: 1)
+
+    /// Floor end-stop — slightly darker than stageNavy to feel like
+    /// ground vs. the backdrop's "sky."
+    private static let floorDark = UIColor(red: 0.04, green: 0.04, blue: 0.10, alpha: 1)
+
+    /// Backdrop material — bright element bloom over a stage-navy
+    /// background. Bloom position + radius vary by `card.element`
+    /// so FIRE / BRAWL bloom from below, ICE from above, etc. — each
+    /// element gets a visibly distinct stage.
+    private static func backdropMaterial(for card: Card) -> UnlitMaterial {
         let w = 1024, h = 1024
+        let elem = elementColor(for: card)
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: w, height: h))
         let img = renderer.image { ctx in
             let cg = ctx.cgContext
-            // First fill with deep-space.
-            cg.setFillColor(UIColor(red: 0.015, green: 0.015, blue: 0.035, alpha: 1).cgColor)
+            // Opaque navy base (so transparent gradient edges don't
+            // reveal the scene clear).
+            cg.setFillColor(stageNavy.cgColor)
             cg.fill(CGRect(x: 0, y: 0, width: w, height: h))
-            // Then bloom element color from slightly below center
-            // (sits at the horizon line behind the floor).
-            let center = CGPoint(x: CGFloat(w) / 2, y: CGFloat(h) * 0.62)
-            let radius = CGFloat(max(w, h)) * 0.70
-            let colors = [
-                elem.withAlphaComponent(0.85).cgColor,
-                elem.withAlphaComponent(0.30).cgColor,
-                UIColor(red: 0.015, green: 0.015, blue: 0.035, alpha: 0).cgColor
-            ] as CFArray
-            let locations: [CGFloat] = [0.0, 0.35, 1.0]
+
+            let center = backdropBloomCenter(for: card, w: CGFloat(w), h: CGFloat(h))
+            let radius = backdropBloomRadius(for: card,
+                                             base: CGFloat(max(w, h)) * 0.85)
+
+            // Opaque three-stop gradient. The mid stop is a 50/50
+            // blend of element + navy so the falloff feels smooth
+            // (NOT alpha-blended which gets muddy on dark scene
+            // clears).
+            let mid = blendColor(elem, with: stageNavy, t: 0.55)
+            let colors = [elem.cgColor, mid.cgColor, stageNavy.cgColor] as CFArray
+            let locations: [CGFloat] = [0.0, 0.45, 1.0]
             let space = CGColorSpaceCreateDeviceRGB()
             let gradient = CGGradient(colorsSpace: space, colors: colors, locations: locations)!
             cg.drawRadialGradient(
@@ -454,28 +477,29 @@ final class HeroShotRenderer {
                                               mipmapsMode: .allocateAndGenerateAll)) {
             mat.color = .init(tint: .white, texture: .init(tex))
         } else {
-            mat.color = .init(tint: UIColor(red: 0.015, green: 0.015, blue: 0.035, alpha: 1))
+            mat.color = .init(tint: stageNavy)
         }
         return mat
     }
 
-    /// Floor material — small bright spot under the card fading to dark.
-    private static func floorMaterial(elementColor elem: UIColor) -> UnlitMaterial {
+    /// Floor material — bright element spotlight under the card.
+    /// Spotlight intensity scales with element (GLOW / SUPER brighter,
+    /// STEEL / NONE more muted).
+    private static func floorMaterial(for card: Card) -> UnlitMaterial {
         let w = 1024, h = 1024
+        let elem = elementColor(for: card)
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: w, height: h))
         let img = renderer.image { ctx in
             let cg = ctx.cgContext
-            cg.setFillColor(UIColor(red: 0.020, green: 0.020, blue: 0.045, alpha: 1).cgColor)
+            cg.setFillColor(floorDark.cgColor)
             cg.fill(CGRect(x: 0, y: 0, width: w, height: h))
-            // Spotlight under the card — element-tinted radial bloom.
+
             let center = CGPoint(x: CGFloat(w) / 2, y: CGFloat(h) / 2)
-            let radius = CGFloat(min(w, h)) * 0.40
-            let colors = [
-                elem.withAlphaComponent(0.55).cgColor,
-                elem.withAlphaComponent(0.18).cgColor,
-                UIColor(red: 0.020, green: 0.020, blue: 0.045, alpha: 0).cgColor
-            ] as CFArray
-            let locations: [CGFloat] = [0.0, 0.5, 1.0]
+            let radius = CGFloat(min(w, h)) * floorSpotlightRadius(for: card)
+
+            let mid = blendColor(elem, with: floorDark, t: 0.55)
+            let colors = [elem.cgColor, mid.cgColor, floorDark.cgColor] as CFArray
+            let locations: [CGFloat] = [0.0, 0.45, 1.0]
             let space = CGColorSpaceCreateDeviceRGB()
             let gradient = CGGradient(colorsSpace: space, colors: colors, locations: locations)!
             cg.drawRadialGradient(
@@ -493,9 +517,83 @@ final class HeroShotRenderer {
                                               mipmapsMode: .allocateAndGenerateAll)) {
             mat.color = .init(tint: .white, texture: .init(tex))
         } else {
-            mat.color = .init(tint: UIColor(red: 0.020, green: 0.020, blue: 0.045, alpha: 1))
+            mat.color = .init(tint: floorDark)
         }
         return mat
+    }
+
+    // ── Per-element environment behavior ─────────────────────────────
+
+    /// Where the backdrop's element bloom is centered, in image-space
+    /// (UIKit y increases downward; the image's TOP maps to world +Y,
+    /// BOTTOM to world -Y).
+    ///
+    /// FIRE / BRAWL bloom from below (warm light rises). ICE blooms
+    /// from above (cold descends). STEEL pulls off-axis (metallic
+    /// stage gleam). Others center.
+    private static func backdropBloomCenter(for card: Card, w: CGFloat, h: CGFloat) -> CGPoint {
+        switch card.element.uppercased() {
+        case "FIRE", "BRAWL":
+            return CGPoint(x: w * 0.50, y: h * 0.78)
+        case "ICE":
+            return CGPoint(x: w * 0.50, y: h * 0.25)
+        case "STEEL":
+            return CGPoint(x: w * 0.32, y: h * 0.50)
+        case "GUM":
+            return CGPoint(x: w * 0.50, y: h * 0.40)
+        default:
+            return CGPoint(x: w * 0.50, y: h * 0.50)
+        }
+    }
+
+    /// Backdrop bloom radius — element-driven so GLOW / SUPER fill the
+    /// whole scene with light and STEEL / NONE stay focused.
+    private static func backdropBloomRadius(for card: Card, base: CGFloat) -> CGFloat {
+        switch card.element.uppercased() {
+        case "GLOW", "SUPER":
+            return base * 1.30
+        case "FIRE", "BRAWL":
+            return base * 1.15
+        case "ICE", "HEX":
+            return base * 1.05
+        case "STEEL":
+            return base * 0.80
+        case "NONE", "":
+            return base * 0.75
+        default:
+            return base
+        }
+    }
+
+    /// Floor spotlight radius as a fraction of `min(w, h)`.
+    private static func floorSpotlightRadius(for card: Card) -> CGFloat {
+        switch card.element.uppercased() {
+        case "GLOW", "SUPER":
+            return 0.55
+        case "FIRE", "BRAWL":
+            return 0.50
+        case "STEEL", "NONE", "":
+            return 0.35
+        default:
+            return 0.45
+        }
+    }
+
+    // ── Color helpers ────────────────────────────────────────────────
+
+    /// Linear blend two UIColors. t=0 → a, t=1 → b.
+    private static func blendColor(_ a: UIColor, with b: UIColor, t: CGFloat) -> UIColor {
+        var ar: CGFloat = 0, ag: CGFloat = 0, ab: CGFloat = 0, aa: CGFloat = 1
+        var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 1
+        a.getRed(&ar, green: &ag, blue: &ab, alpha: &aa)
+        b.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
+        let s = max(0, min(1, t))
+        return UIColor(
+            red:   ar + (br - ar) * s,
+            green: ag + (bg - ag) * s,
+            blue:  ab + (bb - ab) * s,
+            alpha: aa + (ba - aa) * s
+        )
     }
 
     /// Map the catalog `element` field to the canonical UI color, mirroring

@@ -143,7 +143,7 @@ struct HeroShotView: View {
             HStack(spacing: Design.Spacing.md) {
                 pill("9:16")
                 pill("60 FPS")
-                pill("5 SEC")
+                pill("10 SEC")
                 Spacer()
             }
             .padding(.horizontal, Design.Spacing.xs)
@@ -270,8 +270,14 @@ struct HeroShotView: View {
                 let (data, _) = try? await URLSession.shared.data(from: url),
                 let image = UIImage(data: data)
             else { return nil }
+            // Clip to rounded corners BEFORE generating the texture —
+            // the alpha channel from the rounded-rect mask gives the
+            // card its visible rounded shape. `MeshResource.generatePlane`
+            // has a `cornerRadius:` parameter that's silently ignored on
+            // iOS 17/18/26, so the mask must live in the texture.
+            let rounded = await HeroShotView.roundedCorners(image) ?? image
             return await MainActor.run {
-                guard let cg = image.cgImage else { return nil as TextureResource? }
+                guard let cg = rounded.cgImage else { return nil as TextureResource? }
                 // mipmapsMode: .none forces RealityKit to always sample
                 // the full-res mip. The default `.allocateAndGenerateAll`
                 // generates a mip chain and the renderer picks a low mip
@@ -290,23 +296,45 @@ struct HeroShotView: View {
     }
 
     /// Bundled card-back PNG (same asset HouseOfCardsView uses). The
-    /// back plane in the renderer is mounted with a `-π/2` X rotation
-    /// that already flips its V axis, so no compensating image rotation
-    /// is needed when the source PNG is bundled as-is.
+    /// back plane in the renderer is mounted with `R_x(-π/2) * R_y(π)`
+    /// (math derived in HeroShotRenderer) so the image-V direction
+    /// flips through to right-side-up. Source PNG used as-is — same
+    /// rounded-corner clipping applies as the front.
     private func loadBackTexture() async {
         let tex: TextureResource? = await Task.detached(priority: .userInitiated) { () -> TextureResource? in
             guard
                 let path = Bundle.main.url(forResource: "card-back", withExtension: "png"),
-                let image = UIImage(contentsOfFile: path.path),
-                let cg = image.cgImage
+                let image = UIImage(contentsOfFile: path.path)
             else { return nil }
+            let rounded = await HeroShotView.roundedCorners(image) ?? image
             return await MainActor.run {
-                let opts = TextureResource.CreateOptions(semantic: .color)
+                guard let cg = rounded.cgImage else { return nil as TextureResource? }
+                let opts = TextureResource.CreateOptions(semantic: .color, mipmapsMode: .none)
                 return try? TextureResource(image: cg, withName: nil, options: opts)
             }
         }.value
         await MainActor.run {
             self.backTexture = tex
+        }
+    }
+
+    /// Clip a card image to rounded corners. The radius is `0.045 ×
+    /// min(width, height)` to match HouseOfCardsView's card silhouette
+    /// AND `HeroShotRenderer.cornerRadiusRatio` so the edge box sizing
+    /// stays in sync. Output is an alpha-channel image — transparent
+    /// outside the rounded rect, opaque inside.
+    static func roundedCorners(_ image: UIImage) -> UIImage? {
+        let size = image.size
+        guard size.width > 0, size.height > 0 else { return image }
+        let radius = min(size.width, size.height) * CGFloat(HeroShotRenderer.cornerRadiusRatio)
+        let rect = CGRect(origin: .zero, size: size)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = image.scale
+        format.opaque = false
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        return renderer.image { _ in
+            UIBezierPath(roundedRect: rect, cornerRadius: radius).addClip()
+            image.draw(in: rect)
         }
     }
 

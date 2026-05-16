@@ -45,17 +45,26 @@ final class HeroShotRenderer {
             }
         }
 
-        /// The animation state at the given time in seconds. Total
-        /// duration is the renderer's `config.duration`. Phase
-        /// boundaries scale with duration so 5s / 7s / 10s clips all
-        /// look proportionally similar.
+        /// Per-frame animation state. Phase boundaries scale with
+        /// `duration` so longer clips stretch proportionally and look
+        /// the same shape at any length.
         ///
-        /// Phases (fractions of `duration`):
-        ///   0     → 0.32   spin: card yaw 0 → 2π, camera fixed straight-on
-        ///   0.32  → 0.40   settle: hold spin-end, camera fixed
-        ///   0.40  → 0.46   transition: ease into pan start (close-up TL)
-        ///   0.46  → 0.94   pan: TL → BR across the card art
-        ///   0.94  → 1.0    hold: final framing
+        /// Four phases of `.heroReveal` (fractions of `duration`):
+        ///
+        ///   0     → 0.30   APPROACH  — cinematic wide → tighter dolly.
+        ///                              Card holds at yaw=0 (front-facing).
+        ///                              FOV 44° → 36°. Camera arcs from a
+        ///                              low-left wide establishing shot to
+        ///                              a slight 3/4 over-the-shoulder.
+        ///   0.30  → 0.66   SPIN      — Camera fixed at end-of-approach.
+        ///                              cardPivot yaw 0 → 2π. Front → edge
+        ///                              → BOBA card-back → edge → front.
+        ///                              Edge box visible at the yaw=π/2 /
+        ///                              3π/2 thin-strip moments.
+        ///   0.66  → 0.92   GLIDE     — Slight horizontal arc to settle on
+        ///                              a final 3/4 hero pose. Card holds
+        ///                              at yaw=0.
+        ///   0.92  → 1.00   HOLD      — Locked on the hero pose.
         func frame(at time: Double,
                    duration: Double,
                    cardW: Float, cardH: Float, halfT: Float) -> AnimationFrame {
@@ -69,77 +78,65 @@ final class HeroShotRenderer {
         }
     }
 
-    /// Camera arc for `.heroReveal`. Pure function — same `time` always
-    /// yields the same frame state, so the render loop is deterministic.
+    /// Camera arc for `.heroReveal`. Pure function of time — same input
+    /// always returns the same frame state (deterministic offline render).
     static func heroRevealFrame(at time: Double,
                                 duration: Double,
                                 cardW: Float, cardH: Float, halfT: Float) -> AnimationFrame {
         // Phase boundaries in absolute time.
-        let spinEnd:        Double = duration * 0.32   // 1.60s @ 5s
-        let settleEnd:      Double = duration * 0.40   // 2.00s @ 5s
-        let transitionEnd:  Double = duration * 0.46   // 2.30s @ 5s
-        let panEnd:         Double = duration * 0.94   // 4.70s @ 5s
+        let approachEnd: Double = duration * 0.30   // 1.50s @ 5s
+        let spinEnd:     Double = duration * 0.66   // 3.30s @ 5s
+        let glideEnd:    Double = duration * 0.92   // 4.60s @ 5s
 
-        // Spin-phase camera: slightly elevated 3/4 angle so the card
-        // reads as a 3D object even when fully front-facing. Edge-on
-        // moments at yaw=π/2 and yaw=3π/2 stay brief (~1 frame at 60fps).
-        let spinCamera = CameraPose(
-            position: SIMD3<Float>(0.015, 0.015, 0.20),
+        // Camera keyframes. All look-at points sit at the card center
+        // (origin) so the card stays composed in frame regardless of
+        // camera angle. Cartesian positions in meters.
+        let approachStart = CameraPose(
+            position: SIMD3<Float>(-0.08, -0.04, 0.42),  // low, left, far
+            lookAt:   SIMD3<Float>(0, -0.01, 0),
+            fovDeg:   44
+        )
+        let approachStop = CameraPose(
+            position: SIMD3<Float>(0.02, 0.04, 0.26),    // slight 3/4 high
             lookAt:   SIMD3<Float>(0, 0, 0),
-            fovDeg:   34
+            fovDeg:   36
+        )
+        let glideStop = CameraPose(
+            position: SIMD3<Float>(0.10, 0.025, 0.22),   // hero pose, more right
+            lookAt:   SIMD3<Float>(0, 0, 0),
+            fovDeg:   32
         )
 
-        // Pan poses. Position is slightly in front of the card face;
-        // look-at sits ON the card face directly under the camera so
-        // the pan stays perfectly square (no parallax distortion of
-        // the art). Narrower FOV = tighter framing.
-        let panOffsetX: Float = cardW * 0.30
-        let panOffsetY: Float = cardH * 0.30
-        let panZ: Float = 0.085
-
-        let panStart = CameraPose(
-            position: SIMD3<Float>(-panOffsetX,  panOffsetY, panZ),
-            lookAt:   SIMD3<Float>(-panOffsetX,  panOffsetY, halfT),
-            fovDeg:   22
-        )
-        let panEndPose = CameraPose(
-            position: SIMD3<Float>( panOffsetX, -panOffsetY, panZ),
-            lookAt:   SIMD3<Float>( panOffsetX, -panOffsetY, halfT),
-            fovDeg:   22
-        )
-
-        if time <= spinEnd {
-            // SPIN — full 360° rotation, eased so the card pauses
-            // slightly at the start + end.
-            let raw = spinEnd == 0 ? 1.0 : time / spinEnd
+        if time <= approachEnd {
+            // APPROACH — wide cinematic dolly. Camera moves +
+            // FOV narrows from 44° (establishing) to 36° (over-shoulder).
+            let raw = approachEnd == 0 ? 1.0 : time / approachEnd
             let eased = easedProgress(raw)
             return AnimationFrame(
-                cameraPose: spinCamera,
-                cardYaw: Float(eased) * 2 * .pi
-            )
-        } else if time <= settleEnd {
-            // SETTLE — card fully facing camera, brief beat before
-            // the pan kicks in.
-            return AnimationFrame(cameraPose: spinCamera, cardYaw: 0)
-        } else if time <= transitionEnd {
-            // TRANSITION — camera glides from spin pose to pan-start.
-            let raw = (time - settleEnd) / (transitionEnd - settleEnd)
-            let eased = easedProgress(raw)
-            return AnimationFrame(
-                cameraPose: lerpPose(spinCamera, panStart, Float(eased)),
+                cameraPose: lerpPose(approachStart, approachStop, Float(eased)),
                 cardYaw: 0
             )
-        } else if time <= panEnd {
-            // PAN — top-left → bottom-right, straight-on framing.
-            let raw = (time - transitionEnd) / (panEnd - transitionEnd)
+        } else if time <= spinEnd {
+            // SPIN — camera holds at end-of-approach; card rotates.
+            // Easing gives the spin slight start-pause and end-pause
+            // so the front-facing moments feel like landings.
+            let raw = (time - approachEnd) / (spinEnd - approachEnd)
             let eased = easedProgress(raw)
             return AnimationFrame(
-                cameraPose: lerpPose(panStart, panEndPose, Float(eased)),
+                cameraPose: approachStop,
+                cardYaw: Float(eased) * 2 * .pi
+            )
+        } else if time <= glideEnd {
+            // GLIDE — slight rightward arc into the hero pose.
+            let raw = (time - spinEnd) / (glideEnd - spinEnd)
+            let eased = easedProgress(raw)
+            return AnimationFrame(
+                cameraPose: lerpPose(approachStop, glideStop, Float(eased)),
                 cardYaw: 0
             )
         } else {
-            // HOLD — frozen on the final framing.
-            return AnimationFrame(cameraPose: panEndPose, cardYaw: 0)
+            // HOLD — frozen on the hero pose.
+            return AnimationFrame(cameraPose: glideStop, cardYaw: 0)
         }
     }
 
@@ -318,43 +315,59 @@ final class HeroShotRenderer {
     private func buildScene(config: Config) throws -> SceneBundle {
         let renderer = try RealityRenderer()
 
-        // Near-black scene clear. The visible backdrop is a textured plane
-        // (see below) — the clear color shows only outside the backdrop's
-        // footprint, which the camera framing keeps off-screen.
-        let bg = UIColor(red: 0.025, green: 0.025, blue: 0.055, alpha: 1.0).cgColor
+        // Deep-space scene clear. Everything inside the camera frustum
+        // is covered by the backdrop or floor planes; the clear color
+        // only shows in case of misframe.
+        let bg = UIColor(red: 0.015, green: 0.015, blue: 0.035, alpha: 1.0).cgColor
         renderer.cameraSettings.colorBackground = .color(bg)
 
         let root = Entity()
         renderer.entities.append(root)
 
-        // ── Backdrop plane ────────────────────────────────────────────
-        // Large textured quad behind the card. Element-tinted radial
-        // gradient (FIRE = orange, ICE = cyan, etc) fading to near-black
-        // at the edges. UnlitMaterial — ignores lighting, which is what
-        // we want here because UnlitMaterial on the card faces does too.
+        let elem = Self.elementColor(for: config.card)
+
+        // ── Stage backdrop ────────────────────────────────────────────
+        // Large element-tinted vertical plane far behind the card.
+        // Radial gradient with element color blooming from the
+        // horizon line, fading to deep-space at the edges. Larger
+        // dimensions + further pushed back than v2 so wide camera
+        // shots in phase 1 still frame inside it.
         let backdrop = ModelEntity(
-            mesh: MeshResource.generatePlane(width: 1.0, depth: 1.6),
-            materials: [Self.backdropMaterial(for: config.card)]
+            mesh: MeshResource.generatePlane(width: 2.4, depth: 3.2),
+            materials: [Self.backdropMaterial(elementColor: elem)]
         )
-        // Plane sits in XZ with normal +Y; rotate +π/2 X to make it
-        // stand vertical with normal +Z. Push it well behind the card.
         backdrop.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
-        backdrop.position = SIMD3<Float>(0, 0, -0.45)
+        backdrop.position = SIMD3<Float>(0, 0.10, -0.85)
         root.addChild(backdrop)
 
+        // ── Stage floor ───────────────────────────────────────────────
+        // Horizontal plane under the card. Gradient texture: small
+        // brighter element-tinted spot directly beneath the card,
+        // fading to deep-space at the edges. Grounds the card visually
+        // and gives a "stage" feel during the wide approach.
+        let floor = ModelEntity(
+            mesh: MeshResource.generatePlane(width: 1.6, depth: 1.6),
+            materials: [Self.floorMaterial(elementColor: elem)]
+        )
+        // Plane is XZ with normal +Y by default. Place just below the
+        // card's bottom edge so the card "stands on" the floor.
+        floor.position = SIMD3<Float>(0, -Self.cardH * 0.5 - 0.003, 0)
+        root.addChild(floor)
+
         // ── Card pivot ────────────────────────────────────────────────
-        // Front + back planes are children of this pivot so we can spin
-        // them around Y as a single unit (phase 1 of the camera arc).
-        // The pivot itself is at the world origin.
+        // Front + back planes + edge box are children of this pivot.
+        // Spinning the pivot around its Y rotates the whole card as a
+        // single unit. Pivot at world origin = card center.
         let cardPivot = Entity()
         cardPivot.position = .zero
         root.addChild(cardPivot)
 
-        // Front plane.
-        // MeshResource.generatePlane lives in XZ (width X, depth Z),
-        // normal +Y, image-V mapped top→-Z. Rotate +π/2 around X:
-        //   normal +Y    → world +Z  (faces the default-position camera)
-        //   image-top -Z → world +Y  (right-side up)
+        // ── Front plane ──────────────────────────────────────────────
+        // `MeshResource.generatePlane(width:depth:)` lives in XZ (width
+        // X, depth Z), normal +Y, image-V mapped top → -Z. Rotate
+        // +π/2 around X to get:
+        //    normal +Y    → +Z  (faces the front-of-card direction)
+        //    image-top -Z → +Y  (right-side up)
         let frontMesh = MeshResource.generatePlane(width: Self.cardW, depth: Self.cardH)
         var frontMat = UnlitMaterial()
         frontMat.color = .init(tint: .white, texture: .init(config.frontTexture))
@@ -363,25 +376,66 @@ final class HeroShotRenderer {
         front.position = SIMD3<Float>(0, 0, Self.halfT)
         cardPivot.addChild(front)
 
-        // Back plane.
+        // ── Back plane ──────────────────────────────────────────────
+        // We need:
+        //   normal at -Z (faces the back direction)
+        //   image-top at +Y (so the bundled card-back PNG isn't
+        //                    upside-down when the spin shows the back)
+        //
+        // R_x(-π/2) alone gives normal at -Z but image-top at -Y
+        // (upside-down). Compose with R_y(π) first (applied to the
+        // local axes before the X tilt) to flip image-V:
+        //
+        //   R_back = R_x(-π/2) * R_y(π)
+        //
+        // Swift quaternion compose: q1 * q2 applies q2 first. So this
+        // means R_y(π) acts on the local axes first, then R_x(-π/2)
+        // tilts. Result: normal → -Z, image-top → +Y. Verified.
         let backMesh = MeshResource.generatePlane(width: Self.cardW, depth: Self.cardH)
         var backMat = UnlitMaterial()
         if let backTex = config.backTexture {
             backMat.color = .init(tint: .white, texture: .init(backTex))
         } else {
-            // Fallback solid color matching the existing card-back red palette.
             backMat.color = .init(tint: UIColor(red: 0.65, green: 0.20, blue: 0.18, alpha: 1))
         }
         let back = ModelEntity(mesh: backMesh, materials: [backMat])
-        back.orientation = simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
+        back.orientation =
+            simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
+            * simd_quatf(angle: .pi, axis: SIMD3<Float>(0, 1, 0))
         back.position = SIMD3<Float>(0, 0, -Self.halfT)
         cardPivot.addChild(back)
 
-        // ── Camera ────────────────────────────────────────────────────
+        // ── Card edge ───────────────────────────────────────────────
+        // Thin element-tinted box that sits BETWEEN the front and back
+        // planes. When the camera sees the card at an angle (and during
+        // the spin's edge-on moments), the box's side faces show a
+        // visible element-colored stripe — the card reads as a physical
+        // object with real thickness rather than two coplanar planes
+        // with nothing between them.
+        //
+        // Dimensions slightly smaller than the planes so the box's
+        // own +Z/-Z faces are HIDDEN behind the planes (no z-fighting).
+        // The box's X and Y faces (the side edges) remain visible.
+        let edgeInset: Float = 0.0008
+        let edgeMesh = MeshResource.generateBox(
+            size: SIMD3<Float>(
+                Self.cardW - edgeInset * 2,
+                Self.cardH - edgeInset * 2,
+                Self.halfT * 1.5    // slightly less than 2*halfT so it sits inside
+            )
+        )
+        var edgeMat = UnlitMaterial()
+        // Lighten the element color so the edge reads against the dark
+        // backdrop without overpowering the art.
+        edgeMat.color = .init(tint: Self.blendColor(elem, with: .white, t: 0.35))
+        let edge = ModelEntity(mesh: edgeMesh, materials: [edgeMat])
+        edge.position = .zero
+        cardPivot.addChild(edge)
+
+        // ── Camera ──────────────────────────────────────────────────
         let camera = PerspectiveCamera()
         renderer.entities.append(camera)
         renderer.activeCamera = camera
-        // Apply the first frame's pose as a sensible initial state.
         let firstFrame = config.arc.frame(
             at: 0,
             duration: config.duration,
@@ -392,22 +446,25 @@ final class HeroShotRenderer {
         return SceneBundle(renderer: renderer, camera: camera, cardPivot: cardPivot)
     }
 
-    /// Build a backdrop UnlitMaterial — an element-tinted radial gradient
-    /// fading to near-black at the edges. Generated once per render call.
-    private static func backdropMaterial(for card: Card) -> UnlitMaterial {
+    /// Backdrop material — element bloom fading to deep space.
+    private static func backdropMaterial(elementColor elem: UIColor) -> UnlitMaterial {
         let w = 1024, h = 1024
-        let elem = elementColor(for: card)
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: w, height: h))
         let img = renderer.image { ctx in
             let cg = ctx.cgContext
-            // Center of the canvas; gradient radius covers the whole image.
-            let center = CGPoint(x: CGFloat(w) / 2, y: CGFloat(h) / 2)
-            let radius = CGFloat(max(w, h)) * 0.65
+            // First fill with deep-space.
+            cg.setFillColor(UIColor(red: 0.015, green: 0.015, blue: 0.035, alpha: 1).cgColor)
+            cg.fill(CGRect(x: 0, y: 0, width: w, height: h))
+            // Then bloom element color from slightly below center
+            // (sits at the horizon line behind the floor).
+            let center = CGPoint(x: CGFloat(w) / 2, y: CGFloat(h) * 0.62)
+            let radius = CGFloat(max(w, h)) * 0.70
             let colors = [
-                elem.withAlphaComponent(0.55).cgColor,
-                UIColor(red: 0.025, green: 0.025, blue: 0.055, alpha: 1.0).cgColor
+                elem.withAlphaComponent(0.85).cgColor,
+                elem.withAlphaComponent(0.30).cgColor,
+                UIColor(red: 0.015, green: 0.015, blue: 0.035, alpha: 0).cgColor
             ] as CFArray
-            let locations: [CGFloat] = [0.0, 1.0]
+            let locations: [CGFloat] = [0.0, 0.35, 1.0]
             let space = CGColorSpaceCreateDeviceRGB()
             let gradient = CGGradient(colorsSpace: space, colors: colors, locations: locations)!
             cg.drawRadialGradient(
@@ -420,12 +477,68 @@ final class HeroShotRenderer {
         var mat = UnlitMaterial()
         if let cg = img.cgImage,
            let tex = try? TextureResource(image: cg, withName: nil,
-                                          options: TextureResource.CreateOptions(semantic: .color)) {
+                                          options: TextureResource.CreateOptions(
+                                              semantic: .color,
+                                              mipmapsMode: .allocateAndGenerateAll)) {
             mat.color = .init(tint: .white, texture: .init(tex))
         } else {
-            mat.color = .init(tint: UIColor(red: 0.025, green: 0.025, blue: 0.055, alpha: 1))
+            mat.color = .init(tint: UIColor(red: 0.015, green: 0.015, blue: 0.035, alpha: 1))
         }
         return mat
+    }
+
+    /// Floor material — small bright spot under the card fading to dark.
+    private static func floorMaterial(elementColor elem: UIColor) -> UnlitMaterial {
+        let w = 1024, h = 1024
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: w, height: h))
+        let img = renderer.image { ctx in
+            let cg = ctx.cgContext
+            cg.setFillColor(UIColor(red: 0.020, green: 0.020, blue: 0.045, alpha: 1).cgColor)
+            cg.fill(CGRect(x: 0, y: 0, width: w, height: h))
+            // Spotlight under the card — element-tinted radial bloom.
+            let center = CGPoint(x: CGFloat(w) / 2, y: CGFloat(h) / 2)
+            let radius = CGFloat(min(w, h)) * 0.40
+            let colors = [
+                elem.withAlphaComponent(0.55).cgColor,
+                elem.withAlphaComponent(0.18).cgColor,
+                UIColor(red: 0.020, green: 0.020, blue: 0.045, alpha: 0).cgColor
+            ] as CFArray
+            let locations: [CGFloat] = [0.0, 0.5, 1.0]
+            let space = CGColorSpaceCreateDeviceRGB()
+            let gradient = CGGradient(colorsSpace: space, colors: colors, locations: locations)!
+            cg.drawRadialGradient(
+                gradient,
+                startCenter: center, startRadius: 0,
+                endCenter:   center, endRadius:   radius,
+                options: []
+            )
+        }
+        var mat = UnlitMaterial()
+        if let cg = img.cgImage,
+           let tex = try? TextureResource(image: cg, withName: nil,
+                                          options: TextureResource.CreateOptions(
+                                              semantic: .color,
+                                              mipmapsMode: .allocateAndGenerateAll)) {
+            mat.color = .init(tint: .white, texture: .init(tex))
+        } else {
+            mat.color = .init(tint: UIColor(red: 0.020, green: 0.020, blue: 0.045, alpha: 1))
+        }
+        return mat
+    }
+
+    /// Blend two UIColors in sRGB.
+    private static func blendColor(_ a: UIColor, with b: UIColor, t: CGFloat) -> UIColor {
+        var ar: CGFloat = 0, ag: CGFloat = 0, ab: CGFloat = 0, aa: CGFloat = 1
+        var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 1
+        a.getRed(&ar, green: &ag, blue: &ab, alpha: &aa)
+        b.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
+        let s = max(0, min(1, t))
+        return UIColor(
+            red:   ar + (br - ar) * s,
+            green: ag + (bg - ag) * s,
+            blue:  ab + (bb - ab) * s,
+            alpha: aa + (ba - aa) * s
+        )
     }
 
     /// Map the catalog `element` field to the canonical UI color, mirroring

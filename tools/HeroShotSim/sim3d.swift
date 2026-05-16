@@ -220,6 +220,31 @@ enum FloorVariant: String, CaseIterable {
     var displayName: String { rawValue }
 }
 
+/// Sets of real 3D scene elements to add (positioned in world space,
+/// visible to the camera as actual geometry — not painted into the env).
+enum SceneElements: String, CaseIterable {
+    /// v5.5 baseline — no extra scene elements beyond card + backdrop +
+    /// floor.
+    case none
+    /// Rim-light halo plane behind the card. Glowing circle texture
+    /// in palette color; peeks out around the card silhouette.
+    case rimHalo
+    /// Three thin vertical light-beam planes positioned diagonally
+    /// behind the card. Glowing palette + rim colors.
+    case lightBeams
+    /// Six small accent glow spheres at specific 3D positions around
+    /// the card. Read as floating specular highlights.
+    case accentGlows
+    /// Low cylindrical pedestal under the card. Palette-tinted top,
+    /// dark sides — the card sits ON a stage instead of floating.
+    case pedestal
+    /// All elements combined: rim halo + light beams + accent glows
+    /// + pedestal. The "premium tech demo" stack.
+    case fullStage
+
+    var displayName: String { rawValue }
+}
+
 func makeEnvImage(cardArt: CGImage, palette: [RGB],
                   variant: EnvVariant = .baseline) -> CGImage? {
     let envW = 1536, envH = 2048
@@ -655,7 +680,8 @@ func buildScene(cardCG: CGImage,
                 material: MaterialMode,
                 lighting: LightingMode,
                 floor: FloorVariant = .solid,
-                backdropZ: Float = -0.85) throws -> SceneBundle {
+                backdropZ: Float = -0.85,
+                elements: SceneElements = .none) throws -> SceneBundle {
     let renderer = try RealityRenderer()
     renderer.cameraSettings.colorBackground = .color(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1))
 
@@ -707,6 +733,12 @@ func buildScene(cardCG: CGImage,
         glowPlane.position = SIMD3<Float>(0, 0, -halfT * 4)
         root.addChild(glowPlane)
     }
+
+    // ── 3D scene elements (v5.6) ─────────────────────────────────────
+    // Real geometry positioned in world space — visible to the camera
+    // as actual scene objects, not painted into the env image. Designed
+    // so heroPose camera sees them around/behind the card silhouette.
+    try addSceneElements(set: elements, root: root, palette: palette)
 
     // Lighting setup.
     try applyLighting(mode: lighting, root: root, renderer: renderer,
@@ -800,6 +832,207 @@ func makeAdditiveGlowMaterial(palette: [RGB]) throws -> any Material {
     mat.color = .init(tint: .white, texture: .init(tex))
     mat.blending = .transparent(opacity: 1.0)
     return mat
+}
+
+// MARK: - 3D scene element builders (v5.6)
+
+@MainActor
+func addSceneElements(set: SceneElements, root: Entity, palette: [RGB]) throws {
+    switch set {
+    case .none:
+        return
+    case .rimHalo:
+        try addRimHalo(to: root, palette: palette)
+    case .lightBeams:
+        try addLightBeams(to: root, palette: palette)
+    case .accentGlows:
+        try addAccentGlows(to: root, palette: palette)
+    case .pedestal:
+        try addPedestal(to: root, palette: palette)
+    case .fullStage:
+        try addPedestal(to: root, palette: palette)
+        try addRimHalo(to: root, palette: palette)
+        try addLightBeams(to: root, palette: palette)
+        try addAccentGlows(to: root, palette: palette)
+    }
+}
+
+/// Glow-circle plane positioned just behind the card. The card occludes
+/// the bright center; the outer falloff peeks around the silhouette as
+/// a halo backlight. ~3× card size so the falloff is visible on all
+/// edges. Texture: bright-center radial gradient.
+@MainActor
+func addRimHalo(to root: Entity, palette: [RGB]) throws {
+    let primary = palette.first ?? (0.5, 0.5, 0.5)
+    let texSize = 512
+    let cs = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(
+        data: nil, width: texSize, height: texSize,
+        bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { throw NSError(domain: "sim3d", code: 30) }
+    let colors = [
+        toCGColor(primary, alpha: 0.95),
+        toCGColor(primary, alpha: 0.55),
+        toCGColor(primary, alpha: 0)
+    ] as CFArray
+    guard let g = CGGradient(colorsSpace: cs, colors: colors,
+                             locations: [0.0, 0.40, 1.0])
+    else { throw NSError(domain: "sim3d", code: 31) }
+    let cx = CGFloat(texSize) / 2
+    ctx.drawRadialGradient(g,
+                           startCenter: CGPoint(x: cx, y: cx),
+                           startRadius: 0,
+                           endCenter: CGPoint(x: cx, y: cx),
+                           endRadius: cx,
+                           options: [])
+    guard let cg = ctx.makeImage() else {
+        throw NSError(domain: "sim3d", code: 32)
+    }
+    var mat = UnlitMaterial()
+    let opts = TextureResource.CreateOptions(semantic: .color,
+                                              mipmapsMode: .allocateAndGenerateAll)
+    let tex = try TextureResource(image: cg, withName: nil, options: opts)
+    mat.color = .init(tint: .white, texture: .init(tex))
+    mat.blending = .transparent(opacity: 1.0)
+    let halo = ModelEntity(
+        mesh: MeshResource.generatePlane(width: cardW * 3.0, depth: cardH * 3.0),
+        materials: [mat]
+    )
+    halo.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
+    // Just behind the card, but not so far that perspective shrinks it.
+    halo.position = SIMD3<Float>(0, 0, -0.015)
+    root.addChild(halo)
+}
+
+/// Three thin vertical light-beam planes positioned diagonally behind
+/// the card. Glowing palette + rim colors with low alpha. Read as
+/// "light shafts from off-screen spotlights cutting through the scene."
+@MainActor
+func addLightBeams(to root: Entity, palette: [RGB]) throws {
+    let primary = palette.first ?? (0.5, 0.5, 0.5)
+    let rim = hueShifted(primary, byHue: 0.42, satScale: 0.85)
+
+    func makeBeam(color: RGB, alpha: CGFloat) throws -> ModelEntity {
+        // Beam texture: vertical bright-line gradient (bright center
+        // fading to transparent at left/right edges).
+        let w = 64, h = 512
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: w, height: h,
+            bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { throw NSError(domain: "sim3d", code: 33) }
+        let colors = [
+            toCGColor(color, alpha: 0),
+            toCGColor(color, alpha: alpha),
+            toCGColor(color, alpha: 0)
+        ] as CFArray
+        guard let g = CGGradient(colorsSpace: cs, colors: colors,
+                                 locations: [0.0, 0.5, 1.0])
+        else { throw NSError(domain: "sim3d", code: 34) }
+        ctx.drawLinearGradient(g,
+                               start: CGPoint(x: 0, y: 0),
+                               end: CGPoint(x: CGFloat(w), y: 0),
+                               options: [])
+        guard let cg = ctx.makeImage() else {
+            throw NSError(domain: "sim3d", code: 35)
+        }
+        var mat = UnlitMaterial()
+        let opts = TextureResource.CreateOptions(semantic: .color,
+                                                  mipmapsMode: .allocateAndGenerateAll)
+        let tex = try TextureResource(image: cg, withName: nil, options: opts)
+        mat.color = .init(tint: .white, texture: .init(tex))
+        mat.blending = .transparent(opacity: 1.0)
+        let beam = ModelEntity(
+            mesh: MeshResource.generatePlane(width: 0.02, depth: 0.30),
+            materials: [mat]
+        )
+        beam.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
+        return beam
+    }
+
+    let beamL = try makeBeam(color: primary, alpha: 0.65)
+    beamL.position = SIMD3<Float>(-0.09, 0.02, -0.08)
+    beamL.orientation = simd_quatf(angle: .pi / 2,
+                                    axis: SIMD3<Float>(1, 0, 0)) *
+                        simd_quatf(angle: -0.18,
+                                    axis: SIMD3<Float>(0, 0, 1))
+    root.addChild(beamL)
+
+    let beamR = try makeBeam(color: rim, alpha: 0.55)
+    beamR.position = SIMD3<Float>(0.09, 0.02, -0.08)
+    beamR.orientation = simd_quatf(angle: .pi / 2,
+                                    axis: SIMD3<Float>(1, 0, 0)) *
+                        simd_quatf(angle: 0.18,
+                                    axis: SIMD3<Float>(0, 0, 1))
+    root.addChild(beamR)
+
+    let beamC = try makeBeam(color: primary, alpha: 0.45)
+    beamC.position = SIMD3<Float>(0, 0.03, -0.12)
+    beamC.orientation = simd_quatf(angle: .pi / 2,
+                                    axis: SIMD3<Float>(1, 0, 0))
+    root.addChild(beamC)
+}
+
+/// Six small bright glow spheres scattered behind/beside the card.
+/// Read as floating specular highlights or particles, adding depth.
+@MainActor
+func addAccentGlows(to root: Entity, palette: [RGB]) throws {
+    let primary = palette.first ?? (0.5, 0.5, 0.5)
+    let rim = hueShifted(primary, byHue: 0.42, satScale: 0.85)
+
+    let positions: [(SIMD3<Float>, RGB)] = [
+        (SIMD3<Float>(-0.08,  0.05, -0.04), primary),
+        (SIMD3<Float>( 0.08,  0.04, -0.04), rim),
+        (SIMD3<Float>(-0.07, -0.04, -0.06), rim),
+        (SIMD3<Float>( 0.07, -0.05, -0.06), primary),
+        (SIMD3<Float>(-0.04,  0.07, -0.10), primary),
+        (SIMD3<Float>( 0.04, -0.07, -0.10), rim),
+    ]
+    for (pos, color) in positions {
+        var mat = UnlitMaterial()
+        mat.color = .init(tint: UIColorLikeFromRGB(color))
+        // sphere mesh — small glowing dot
+        let glow = ModelEntity(
+            mesh: MeshResource.generateSphere(radius: 0.004),
+            materials: [mat]
+        )
+        glow.position = pos
+        root.addChild(glow)
+    }
+}
+
+/// Low, wide box pedestal beneath the card. The card visibly sits ON
+/// something instead of floating in space. Top surface palette-tinted
+/// brighter, sides darker (faux ambient occlusion).
+@MainActor
+func addPedestal(to root: Entity, palette: [RGB]) throws {
+    let primary = palette.first ?? (0.5, 0.5, 0.5)
+    let top = blendRGB(primary, (1, 1, 1), t: 0.20)
+    let side = blendRGB(primary, (0, 0, 0), t: 0.55)
+
+    // Top: thin wide plate, palette-bright.
+    var topMat = UnlitMaterial()
+    topMat.color = .init(tint: UIColorLikeFromRGB(top))
+    let pedestalTop = ModelEntity(
+        mesh: MeshResource.generatePlane(width: 0.12, depth: 0.10),
+        materials: [topMat]
+    )
+    pedestalTop.position = SIMD3<Float>(0, -cardH * 0.5 + 0.001, 0)
+    root.addChild(pedestalTop)
+
+    // Front face — short rectangle visible from camera-front.
+    var sideMat = UnlitMaterial()
+    sideMat.color = .init(tint: UIColorLikeFromRGB(side))
+    let pedestalFront = ModelEntity(
+        mesh: MeshResource.generatePlane(width: 0.12, depth: 0.012),
+        materials: [sideMat]
+    )
+    // Stand it upright facing camera (+Z).
+    pedestalFront.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
+    pedestalFront.position = SIMD3<Float>(0, -cardH * 0.5 - 0.005, 0.050)
+    root.addChild(pedestalFront)
 }
 
 @MainActor
@@ -1002,38 +1235,50 @@ func run() async throws {
     // concentrated in the camera-visible window), at two backdrop
     // distances. Hero pose only. Tiles big enough that the contact
     // sheet survives chat's downsample.
-    let envCompare: [EnvVariant] = [.baseline, .tightFocus, .deepDive]
-    let backdropZs: [Float] = [-0.85, -0.30]
-    print("Rendering 2×2 focused sweep (\(envCompare.count) env × \(backdropZs.count) backdrop-Z)…")
+    // v5.6 scene-elements sweep — element-set × camera pose so we can
+    // see what each element contributes at various MKBHD-style angles.
+    let sweepEnvCG = envByVariant[.deepDive]
+    let elementSets: [SceneElements] = SceneElements.allCases
+    let backdropZ: Float = -0.40
+    // Three poses sourced from research-agent recommendations:
+    //  hero — straight-on, tight (current ship)
+    //  pulled — back further + slightly higher (shows scene)
+    //  craneUp — lower-camera looking up + slight Y rotation (reveals pedestal + halo)
+    let poses: [(label: String, camPos: SIMD3<Float>, lookAt: SIMD3<Float>, fov: Float)] = [
+        ("hero",    SIMD3<Float>(0,  0.018, 0.21),  .zero, 30),
+        ("pulled",  SIMD3<Float>(0.06, 0.030, 0.32),  .zero, 32),
+        ("craneUp", SIMD3<Float>(0.04, -0.025, 0.22), SIMD3<Float>(0, 0.01, 0), 34)
+    ]
+    print("Rendering scene-elements sweep (\(elementSets.count) sets × \(poses.count) poses)…")
     var renderTiles: [(image: CGImage, label: String)] = []
-    for envV in envCompare {
-        let envCG = envByVariant[envV]
-        for bz in backdropZs {
+    for els in elementSets {
+        for pose in poses {
             do {
                 let scene = try buildScene(
-                    cardCG: cardCG, envCG: envCG, palette: palette,
+                    cardCG: cardCG, envCG: sweepEnvCG, palette: palette,
                     material: material, lighting: lighting,
-                    floor: .radialSpot, backdropZ: bz
+                    floor: .radialSpot, backdropZ: backdropZ,
+                    elements: els
                 )
+                scene.camera.look(at: pose.lookAt, from: pose.camPos,
+                                   upVector: SIMD3<Float>(0, 1, 0), relativeTo: nil)
+                scene.camera.camera.fieldOfViewInDegrees = pose.fov
                 let frame = try renderFrame(scene: scene, size: frameSize, device: device)
-                let label = "\(envV.displayName) | bz=\(bz)"
+                let label = "\(els.displayName) @ \(pose.label)"
                 renderTiles.append((image: frame, label: label))
-                // Save each tile individually for at-full-res viewing.
-                let safeName = label
-                    .replacingOccurrences(of: " | ", with: "_")
-                    .replacingOccurrences(of: "=", with: "-")
+                let safeName = "\(els.displayName)_\(pose.label)"
                 let tilePath = (outDir as NSString)
                     .appendingPathComponent("sim3d_tile_\(safeName).png")
                 _ = savePNG(frame, to: tilePath)
                 print("  ✓ \(label) → \(tilePath)")
             } catch {
-                print("  ✗ \(envV.displayName) bz=\(bz): \(error)")
+                print("  ✗ \(els.displayName) @ \(pose.label): \(error)")
             }
         }
     }
-    print("Building render contact sheet (\(renderTiles.count) tiles, 2 cols)…")
-    guard let sheet = makeContactSheet(tiles: renderTiles, cols: 2,
-                                       tileW: 540, tileH: 960) else {
+    print("Building render contact sheet (\(renderTiles.count) tiles, 3 cols)…")
+    guard let sheet = makeContactSheet(tiles: renderTiles, cols: 3,
+                                       tileW: 432, tileH: 768) else {
         print("Failed to build sheet"); exit(1)
     }
     let outPath = (outDir as NSString).appendingPathComponent("sim3d_sweep.png")

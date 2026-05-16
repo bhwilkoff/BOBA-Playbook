@@ -361,6 +361,11 @@ nonisolated enum BOBACardEntity {
             mat.roughness = 0.55
             mat.clearcoat = 0.20
             mat.clearcoatRoughness = 0.15
+            // Honor the rounded-corner alpha mask in the back texture
+            // (loadBackTexture → BOBACardEntity.roundedCorners). Same
+            // fix v5.4 applied to front PBR — without this the back
+            // corners render as solid black.
+            mat.blending = .transparent(opacity: 1.0)
             return mat
         }
     }

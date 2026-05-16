@@ -51,32 +51,31 @@ enum HeroShotEnvironment {
             cg.setFillColor(baseDark.cgColor)
             cg.fill(CGRect(origin: .zero, size: outSize))
 
-            // ── Layer 2: subtle blurred card art ────────────────────
-            // The "extension of the card art" cue — heavily blurred,
-            // low opacity, mirror-tiled. Reads as ambient atmosphere
-            // not a competing image. Saturation now 1.05 (was 1.2)
-            // so colors stay muted; brightness -0.20 so it never
-            // upstages the card.
+            // ── Layer 2: visible blurred card art ───────────────────
+            // The "extension of the card art" cue. v5 had this at 30%
+            // alpha — user couldn't see it at all, env read as "just
+            // a gradient." v5.1 raises to 65% so the card art clearly
+            // extends into the env. Ambient-blur saturation also
+            // raised so the colors are vivid (see `ambientBlur`).
             if let ambient = ambientBlur(of: frontArt, targetSize: outSize) {
                 cg.saveGState()
-                cg.setAlpha(0.30)
+                cg.setAlpha(0.65)
                 ambient.draw(in: CGRect(origin: .zero, size: outSize))
                 cg.restoreGState()
             }
 
             // ── Layer 3: centered palette glow ──────────────────────
-            // The "backlight" effect behind the card. Bright palette
-            // color in the dead center fading to fully transparent
-            // before reaching the edges. Card sits in front of this
-            // glow — the result reads as the card being lit from
-            // behind by its own dominant color.
+            // The "backlight" behind the card. v5 was too dim
+            // (peak alpha 0.85, radius 55%). v5.1 boosts to alpha 1.0
+            // at center and radius 75% so the glow actually fills the
+            // visible frame at every camera framing.
             let glowCenter = CGPoint(x: outSize.width / 2, y: outSize.height / 2)
-            let glowRadius = outSize.height * 0.55
+            let glowRadius = outSize.height * 0.75
             let primary = palette.first ?? .white
             let glowColors = [
-                primary.withAlphaComponent(0.85).cgColor,
-                primary.withAlphaComponent(0.45).cgColor,
-                primary.withAlphaComponent(0.10).cgColor,
+                primary.cgColor,                              // full alpha at center
+                primary.withAlphaComponent(0.75).cgColor,
+                primary.withAlphaComponent(0.25).cgColor,
                 primary.withAlphaComponent(0.0).cgColor
             ] as CFArray
             let glowLocs: [CGFloat] = [0.0, 0.30, 0.70, 1.0]
@@ -85,7 +84,7 @@ enum HeroShotEnvironment {
                                          colors: glowColors,
                                          locations: glowLocs) {
                 cg.saveGState()
-                cg.setBlendMode(.screen)  // brightens whatever's behind
+                cg.setBlendMode(.screen)
                 cg.drawRadialGradient(
                     glowGrad,
                     startCenter: glowCenter, startRadius: 0,
@@ -95,17 +94,17 @@ enum HeroShotEnvironment {
                 cg.restoreGState()
             }
 
-            // ── Layer 4: edge vignette ──────────────────────────────
-            // Pulls the corners darker so any peek-through at the
-            // wider camera angles reads as "into the void" not
-            // "noisy backdrop." Keeps focus on the center.
+            // ── Layer 4: edge vignette (lighter) ────────────────────
+            // v5's vignette at alpha 0.55 was crushing the env into
+            // darkness. v5.1 drops to 0.30 so vignette frames the
+            // composition without dimming the whole stage.
             let vignetteColors = [
                 UIColor.clear.cgColor,
                 UIColor.clear.cgColor,
-                UIColor.black.withAlphaComponent(0.55).cgColor
+                UIColor.black.withAlphaComponent(0.30).cgColor
             ] as CFArray
-            let vignetteLocs: [CGFloat] = [0.0, 0.55, 1.0]
-            let vignetteRadius = max(outSize.width, outSize.height) * 0.65
+            let vignetteLocs: [CGFloat] = [0.0, 0.60, 1.0]
+            let vignetteRadius = max(outSize.width, outSize.height) * 0.70
             if let vGrad = CGGradient(colorsSpace: space,
                                       colors: vignetteColors,
                                       locations: vignetteLocs) {
@@ -144,15 +143,15 @@ enum HeroShotEnvironment {
         guard let cg = image.cgImage else { return nil }
         let ci = CIImage(cgImage: cg)
 
-        // v5 — even more muted than v4.1. This ambient layer renders
-        // at alpha 0.30 over a dark base, so it's already going to be
-        // faint. Saturation 1.05 = mild lift, brightness -0.20 = dim,
-        // contrast 0.92 = flatten. Goal: PRESENT but never UPSTAGE.
+        // v5.1 — ambient layer is rendered at 65% alpha (was 30%) so
+        // we want the colors VIVID, not muted. Saturation 1.30 lifts
+        // the card art's hues; brightness -0.05 (barely below neutral)
+        // so the blurred art carries its own light into the env.
         let saturate = CIFilter.colorControls()
         saturate.inputImage = ci
-        saturate.saturation = 1.05
-        saturate.brightness = -0.20
-        saturate.contrast = 0.92
+        saturate.saturation = 1.30
+        saturate.brightness = -0.05
+        saturate.contrast = 1.00
         guard let saturated = saturate.outputImage else { return nil }
 
         // Massive Gaussian blur — radius scaled to the source image

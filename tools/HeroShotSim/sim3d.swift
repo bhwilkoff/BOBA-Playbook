@@ -196,15 +196,17 @@ enum EnvVariant: String, CaseIterable {
     case dramaticSpotlight
     /// Architectural radial-burst lines + chunky vignette frame.
     case architecturalBurst
-    /// **New**: design tightly concentrated in the camera-visible
-    /// window (~13×18% center of the env canvas). All design lives
-    /// where the camera will actually see it.
+    /// design tightly concentrated in the camera-visible window
+    /// (~13×18% center of the env canvas).
     case tightFocus
-    /// **Newer**: env IS the card art. One huge zoomed copy (1.8×),
-    /// heavy blur, fills the canvas. No multi-rotated tiling — pure
-    /// watercolor wash of the card's own colors. Vignette pulls
-    /// corners dark, two complementary accents top/bottom.
+    /// v5.5 ship — huge zoomed card art (1.8×), blurred, alpha 0.85.
     case deepDive
+    /// **v7 (cleanStudio)** — no card-art carry-through; neutral dark
+    /// near-black canvas (#0A0A12) with a single very-subtle palette-
+    /// accent radial spot and a complementary rim-color spot. NO
+    /// architectural shapes, NO card art zoom. Lets the card's own
+    /// art carry all the chroma in the frame — env is pure stage.
+    case cleanStudio
 
     var displayName: String { rawValue }
 }
@@ -216,6 +218,16 @@ enum FloorVariant: String, CaseIterable {
     case radialSpot
     /// Env image darkened, used as floor texture.
     case envEcho
+    /// **v7** — neutral dark radial gradient. NO palette tinting.
+    /// Center: charcoal-blue #2A2A36. Edges: near-black #050508.
+    /// Removes the "brown floor for warm palettes" failure mode.
+    /// Sim with test_card_fire confirmed palette-tinted floors go
+    /// muddy brown for warm cards; neutral dark stays clean.
+    case neutralDark
+    /// **v7 alt** — no floor visible. Backdrop only. Tests whether
+    /// the card "floating in dark space" reads as more premium than
+    /// any floor at all.
+    case none
 
     var displayName: String { rawValue }
 }
@@ -258,15 +270,35 @@ func makeEnvImage(cardArt: CGImage, palette: [RGB],
     let rim = hueShifted(primary, byHue: 0.42, satScale: 0.85)
 
     // Dark base — variant-specific darkness.
-    let darkT: CGFloat = variant == .dramaticSpotlight ? 0.95 : 0.85
-    let dark = blendRGB(primary, (0, 0, 0), t: darkT)
+    let darkT: CGFloat
+    let basePalette: RGB
+    switch variant {
+    case .dramaticSpotlight:
+        darkT = 0.95
+        basePalette = primary
+    case .cleanStudio:
+        // v7 — base is BLUE-charcoal, NOT palette-tinted. Mixing the
+        // palette into the base is what produced "brown for warm
+        // cards" feedback. The base must stay palette-neutral; only
+        // the accent spots above tint with palette.
+        darkT = 0.0   // not used — direct color
+        basePalette = (0.04, 0.04, 0.07)   // #0A0A12 charcoal-blue
+    default:
+        darkT = 0.85
+        basePalette = primary
+    }
+    let dark: RGB = variant == .cleanStudio
+        ? basePalette
+        : blendRGB(basePalette, (0, 0, 0), t: darkT)
     ctx.setFillColor(toCGColor(dark))
     ctx.fill(CGRect(x: 0, y: 0, width: envW, height: envH))
 
     // Card-art ambient layer — alpha + blur varies by variant.
-    // deepDive handles its own card-art layer further down (zoomed,
-    // single copy, no tiling), so skip the default here.
-    if variant != .deepDive {
+    // deepDive + cleanStudio both skip the default ambient blur:
+    //   deepDive draws its own (zoomed, single copy, no tiling)
+    //   cleanStudio uses NO card-art carry-through (the whole point —
+    //   was the "brown stain" source for warm palettes).
+    if variant != .deepDive && variant != .cleanStudio {
         let ambientAlpha: CGFloat
         let ambientBlurFrac: CGFloat
         switch variant {
@@ -383,11 +415,32 @@ func makeEnvImage(cardArt: CGImage, palette: [RGB],
                                       y: CGFloat(envH) * 0.72),
                       radius: CGFloat(envH) * 0.40,
                       centerAlpha: 0.75, midAlpha: 0.40, midStop: 0.35)
+    case .cleanStudio:
+        // v7 — pure dark studio. No card-art carry-through (that's
+        // what produced "brown stains" for warm palettes — confirmed
+        // by sim with test_card_fire). The canvas is already filled
+        // with the dark base above; we only add a single very-subtle
+        // palette accent + complementary rim accent. NO architectural
+        // shapes. Let the card's own art carry chroma in the frame.
+        drawLightSpot(ctx: ctx, color: primary,
+                      center: CGPoint(x: CGFloat(envW) * 0.5,
+                                      y: CGFloat(envH) * 0.42),
+                      radius: CGFloat(envH) * 0.55,
+                      centerAlpha: 0.55, midAlpha: 0.25, midStop: 0.35)
+        drawLightSpot(ctx: ctx, color: rim,
+                      center: CGPoint(x: CGFloat(envW) * 0.5,
+                                      y: CGFloat(envH) * 0.62),
+                      radius: CGFloat(envH) * 0.40,
+                      centerAlpha: 0.35, midAlpha: 0.18, midStop: 0.35)
+        // Subtle inward vignette to focus the eye.
+        drawEdgeVignette(ctx: ctx, w: envW, h: envH, strength: 0.45)
     }
 
-    // Two lights (skipped for dramaticSpotlight, tightFocus, deepDive
-    // — all have their own integrated light design).
-    if variant != .dramaticSpotlight && variant != .tightFocus && variant != .deepDive {
+    // Two lights (skipped for variants with integrated light design).
+    if variant != .dramaticSpotlight
+        && variant != .tightFocus
+        && variant != .deepDive
+        && variant != .cleanStudio {
         drawLightSpot(ctx: ctx, color: primary,
                       center: CGPoint(x: CGFloat(envW) * 0.40,
                                       y: CGFloat(envH) * 0.55),
@@ -663,6 +716,49 @@ func makeFloorMaterial(variant: FloorVariant,
         let tex = try TextureResource(image: cg, withName: nil, options: opts)
         mat.color = .init(tint: .white, texture: .init(tex))
         return mat
+    case .neutralDark:
+        // v7 — radial gradient using NEUTRAL DARK colors, not palette.
+        // Center: #2A2A36 (charcoal-blue). Edges: #050508 (near-black).
+        // Fixes the "warm palette → muddy brown floor" bug confirmed
+        // in sim with test_card_fire.
+        let size = 1024
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: size, height: size,
+            bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { throw NSError(domain: "sim3d", code: 25) }
+        let colors = [
+            CGColor(srgbRed: 0.165, green: 0.165, blue: 0.213, alpha: 1),  // #2A2A36
+            CGColor(srgbRed: 0.078, green: 0.078, blue: 0.110, alpha: 1),  // #14141C
+            CGColor(srgbRed: 0.020, green: 0.020, blue: 0.031, alpha: 1)   // #050508
+        ] as CFArray
+        guard let g = CGGradient(colorsSpace: cs, colors: colors,
+                                 locations: [0.0, 0.45, 1.0])
+        else { throw NSError(domain: "sim3d", code: 26) }
+        ctx.drawRadialGradient(g,
+                               startCenter: CGPoint(x: CGFloat(size) / 2, y: CGFloat(size) / 2),
+                               startRadius: 0,
+                               endCenter: CGPoint(x: CGFloat(size) / 2, y: CGFloat(size) / 2),
+                               endRadius: CGFloat(size) * 0.65,
+                               options: [])
+        guard let cg = ctx.makeImage() else {
+            throw NSError(domain: "sim3d", code: 27)
+        }
+        var mat = UnlitMaterial()
+        let opts = TextureResource.CreateOptions(semantic: .color,
+                                                 mipmapsMode: .allocateAndGenerateAll)
+        let tex = try TextureResource(image: cg, withName: nil, options: opts)
+        mat.color = .init(tint: .white, texture: .init(tex))
+        return mat
+    case .none:
+        // No floor — caller should skip adding floor entity. Return
+        // a fully-transparent material as a fallback if caller doesn't
+        // check.
+        var mat = UnlitMaterial()
+        mat.color = .init(tint: NSColor(white: 0, alpha: 0))
+        mat.blending = .transparent(opacity: 0.0)
+        return mat
     }
 }
 
@@ -701,13 +797,17 @@ func buildScene(cardCG: CGImage,
     }
 
     // Floor plane — beneath the card. Match iOS HeroShotRenderer
-    // geometry: 1.6 × 1.6m at Y = -cardH * 0.5 - 0.003.
-    let floorEntity = ModelEntity(
-        mesh: MeshResource.generatePlane(width: 1.6, depth: 1.6),
-        materials: [try makeFloorMaterial(variant: floor, envCG: envCG, palette: palette)]
-    )
-    floorEntity.position = SIMD3<Float>(0, -cardH * 0.5 - 0.003, 0)
-    root.addChild(floorEntity)
+    // geometry: 1.6 × 1.6m at Y = -cardH * 0.5 - 0.003. Skip entirely
+    // for FloorVariant.none (research: premium reels often have NO
+    // visible floor — subject floats in dark space with rim lighting).
+    if floor != .none {
+        let floorEntity = ModelEntity(
+            mesh: MeshResource.generatePlane(width: 1.6, depth: 1.6),
+            materials: [try makeFloorMaterial(variant: floor, envCG: envCG, palette: palette)]
+        )
+        floorEntity.position = SIMD3<Float>(0, -cardH * 0.5 - 0.003, 0)
+        root.addChild(floorEntity)
+    }
 
     // Card front plane.
     let frontMesh = MeshResource.generatePlane(width: cardW, depth: cardH)
@@ -1235,47 +1335,55 @@ func run() async throws {
     // concentrated in the camera-visible window), at two backdrop
     // distances. Hero pose only. Tiles big enough that the contact
     // sheet survives chat's downsample.
-    // v5.6 scene-elements sweep — element-set × camera pose so we can
-    // see what each element contributes at various MKBHD-style angles.
-    let sweepEnvCG = envByVariant[.deepDive]
+    // v5.7 sweep — research-driven minimal recipe:
+    //   env=cleanStudio (apple-style radial gradient, NO card-art zoom)
+    //   floor=neutralDark (no palette tinting; fixes "brown for warm")
+    //   elements=.none (no pedestal, no beams, no glows — element budget)
+    //   camera pulled back so card is ~50% of frame (research: 35-55%)
+    // Compares against v5.6 deepDive+radialSpot+fullStage at same pose.
+    let v57EnvCG = envByVariant[.cleanStudio]
+    let v56EnvCG = envByVariant[.deepDive]
     let elementSets: [SceneElements] = SceneElements.allCases
     let backdropZ: Float = -0.40
-    // Three poses sourced from research-agent recommendations:
-    //  hero — straight-on, tight (current ship)
-    //  pulled — back further + slightly higher (shows scene)
-    //  craneUp — lower-camera looking up + slight Y rotation (reveals pedestal + halo)
-    let poses: [(label: String, camPos: SIMD3<Float>, lookAt: SIMD3<Float>, fov: Float)] = [
-        ("hero",    SIMD3<Float>(0,  0.018, 0.21),  .zero, 30),
-        ("pulled",  SIMD3<Float>(0.06, 0.030, 0.32),  .zero, 32),
-        ("craneUp", SIMD3<Float>(0.04, -0.025, 0.22), SIMD3<Float>(0, 0.01, 0), 34)
+    // Pulled-back hero pose — card occupies ~50% of frame (research:
+    // 35-55%). Current ship z=0.21 → card ~70% of frame.
+    let heroPose = (camPos: SIMD3<Float>(0, 0.018, 0.32), lookAt: SIMD3<Float>(0, 0, 0), fov: Float(30))
+    // 4-way comparison @ hero pose:
+    //   A. v5.6 ship — deepDive env + radialSpot floor + fullStage elements
+    //   B. v5.7 minimal — cleanStudio env + neutralDark floor + no elements
+    //   C. v5.7 + no floor (card floats — research recommended)
+    //   D. v5.7 + rim halo only — minimal element budget test
+    let configs: [(label: String, env: CGImage?, floor: FloorVariant, els: SceneElements)] = [
+        ("v5.6-shipped",        v56EnvCG, .radialSpot, .fullStage),
+        ("v5.7-minimal",        v57EnvCG, .neutralDark, .none),
+        ("v5.7-floating",       v57EnvCG, .none, .none),
+        ("v5.7-halo-only",      v57EnvCG, .neutralDark, .rimHalo)
     ]
-    print("Rendering scene-elements sweep (\(elementSets.count) sets × \(poses.count) poses)…")
+    print("Rendering v5.7 comparison (\(configs.count) configs @ hero pose)…")
     var renderTiles: [(image: CGImage, label: String)] = []
-    for els in elementSets {
-        for pose in poses {
-            do {
-                let scene = try buildScene(
-                    cardCG: cardCG, envCG: sweepEnvCG, palette: palette,
-                    material: material, lighting: lighting,
-                    floor: .radialSpot, backdropZ: backdropZ,
-                    elements: els
-                )
-                scene.camera.look(at: pose.lookAt, from: pose.camPos,
-                                   upVector: SIMD3<Float>(0, 1, 0), relativeTo: nil)
-                scene.camera.camera.fieldOfViewInDegrees = pose.fov
-                let frame = try renderFrame(scene: scene, size: frameSize, device: device)
-                let label = "\(els.displayName) @ \(pose.label)"
-                renderTiles.append((image: frame, label: label))
-                let safeName = "\(els.displayName)_\(pose.label)"
-                let tilePath = (outDir as NSString)
-                    .appendingPathComponent("sim3d_tile_\(safeName).png")
-                _ = savePNG(frame, to: tilePath)
-                print("  ✓ \(label) → \(tilePath)")
-            } catch {
-                print("  ✗ \(els.displayName) @ \(pose.label): \(error)")
-            }
+    for cfg in configs {
+        do {
+            let scene = try buildScene(
+                cardCG: cardCG, envCG: cfg.env, palette: palette,
+                material: material, lighting: lighting,
+                floor: cfg.floor, backdropZ: backdropZ,
+                elements: cfg.els
+            )
+            scene.camera.look(at: heroPose.lookAt, from: heroPose.camPos,
+                               upVector: SIMD3<Float>(0, 1, 0), relativeTo: nil)
+            scene.camera.camera.fieldOfViewInDegrees = heroPose.fov
+            let frame = try renderFrame(scene: scene, size: frameSize, device: device)
+            renderTiles.append((image: frame, label: cfg.label))
+            let safeName = cfg.label.replacingOccurrences(of: " ", with: "_")
+            let tilePath = (outDir as NSString)
+                .appendingPathComponent("sim3d_tile_\(safeName).png")
+            _ = savePNG(frame, to: tilePath)
+            print("  ✓ \(cfg.label) → \(tilePath)")
+        } catch {
+            print("  ✗ \(cfg.label): \(error)")
         }
     }
+    _ = elementSets  // silence unused warning
     print("Building render contact sheet (\(renderTiles.count) tiles, 3 cols)…")
     guard let sheet = makeContactSheet(tiles: renderTiles, cols: 3,
                                        tileW: 432, tileH: 768) else {

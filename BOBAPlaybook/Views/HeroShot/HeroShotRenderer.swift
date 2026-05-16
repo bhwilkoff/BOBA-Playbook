@@ -133,13 +133,17 @@ final class HeroShotRenderer {
             lookAt:   SIMD3<Float>(-0.025, -0.01, 0),
             fovDeg:   38
         )
+        // v5.7 — pull back so card occupies ~50% of frame (research:
+        // 35-55% is the cinema sweet spot; 70%+ leaves no room for
+        // the env to do its work). Was z=0.25 → ~67%, push z=0.21 →
+        // ~75%. New z=0.34 settle, z=0.30 push climax → ~46% and ~53%.
         let heroPose = CameraPose(
-            position: SIMD3<Float>(0.0, 0.015, 0.25),
+            position: SIMD3<Float>(0.0, 0.015, 0.34),
             lookAt:   .zero,
             fovDeg:   32
         )
         let pushPose = CameraPose(
-            position: SIMD3<Float>(0.0, 0.018, 0.21),
+            position: SIMD3<Float>(0.0, 0.018, 0.30),
             lookAt:   .zero,
             fovDeg:   30
         )
@@ -203,16 +207,18 @@ final class HeroShotRenderer {
                 lookAt: .zero,
                 fovDeg: 32
             )
+            // v5.7 — pull back to ~50% framing.
             let heroPose = CameraPose(
-                position: SIMD3<Float>(0.05, 0.018, 0.22),
+                position: SIMD3<Float>(0.05, 0.018, 0.31),
                 lookAt: .zero,
                 fovDeg: 30
             )
             let t = easeOutCubic((time - arcEnd) / (settleEnd - arcEnd))
             return lerpPose(arcEndPose, heroPose, Float(t))
         } else {
+            // v5.7 — pull back to ~50% framing.
             let heroPose = CameraPose(
-                position: SIMD3<Float>(0.05, 0.018, 0.22),
+                position: SIMD3<Float>(0.05, 0.018, 0.31),
                 lookAt: .zero,
                 fovDeg: 30
             )
@@ -327,9 +333,10 @@ final class HeroShotRenderer {
             lookAt:   .zero,
             fovDeg:   34
         )
-        // Beat 3 keyframe — hero pose. Card fills frame; texture climax.
+        // Beat 3 keyframe — v5.7 pulled back to ~50% framing (was 0.22
+        // → ~75%). Card no longer dominates; env breathes around it.
         let heroPose = CameraPose(
-            position: SIMD3<Float>(0, 0.015, 0.22),
+            position: SIMD3<Float>(0, 0.015, 0.32),
             lookAt:   .zero,
             fovDeg:   30
         )
@@ -687,48 +694,24 @@ final class HeroShotRenderer {
         backdrop.position = SIMD3<Float>(0, 0.10, -0.40)
         root.addChild(backdrop)
 
-        // ── Stage floor (Unlit, radial-spot gradient) ────────────────
-        // v5.5: replace flat palette tint with a radial gradient
-        // texture — bright palette at center fading to dark at the
-        // edges. User feedback after v5.4: "brown floor." The flat
-        // palette-tint plane reads as featureless at most camera
-        // angles; the radial gradient gives the floor structure that
-        // looks like stage lighting from above.
-        var floorMat = UnlitMaterial()
-        if let floorCG = Self.makeRadialFloorTexture(palette: palette),
-           let floorTex = try? TextureResource(image: floorCG, withName: nil,
-                                               options: TextureResource.CreateOptions(
-                                                   semantic: .color,
-                                                   mipmapsMode: .allocateAndGenerateAll)) {
-            floorMat.color = .init(tint: .white, texture: .init(floorTex))
-        } else {
-            floorMat.color = .init(tint: Self.blendColor(
-                palette.first ?? .darkGray, with: .black, t: 0.45))
-        }
-        let floor = ModelEntity(
-            mesh: MeshResource.generatePlane(width: 1.6, depth: 1.6),
-            materials: [floorMat]
-        )
-        floor.position = SIMD3<Float>(0, -Self.cardH * 0.5 - 0.003, 0)
-        root.addChild(floor)
-
-        // ── 3D scene elements (v5.6) ─────────────────────────────────
-        // Real geometry: rim halo + light beams + accent glows +
-        // pedestal. Sim-validated to read most prominently at the
-        // pulled-back beats of the techDemo arc — at the tight hero
-        // pose they're partly occluded but contribute subtle backlight.
-        if let halo = try? Self.makeRimHalo(palette: palette) {
-            root.addChild(halo)
-        }
-        if let beams = try? Self.makeLightBeams(palette: palette) {
-            for beam in beams { root.addChild(beam) }
-        }
-        for glow in Self.makeAccentGlows(palette: palette) {
-            root.addChild(glow)
-        }
-        for piece in Self.makePedestal(palette: palette) {
-            root.addChild(piece)
-        }
+        // ── v5.7: NO floor, NO pedestal, NO light beams, NO accent
+        // glows, NO rim halo. Research finding: "the dominant pattern
+        // in product reveal cinema is no visible floor. The subject
+        // floats in dark space, defined by rim lighting and a faint
+        // contact shadow." Apple iPhone 17 reveal, MKBHD B-roll, Nike
+        // product films — all skip the floor + staging elements.
+        //
+        // v5.6 stacked floor + pedestal + beams + halo + glows + env
+        // overlays — 12+ alpha layers that averaged to mud. v5.7 drops
+        // every one of them. The CARD carries all the chroma; the env
+        // image (cleanStudio in HeroShotEnvironment) provides subtle
+        // accent spill via the backdrop + IBL.
+        //
+        // Sim-validated against three palettes (Hex purple, Fire
+        // orange, Ice blue) — all rendered clean, no muddy floor, no
+        // brown stains. v5.6's same test produced "brown on brown"
+        // mud for Fire (warm-palette compounding via palette-tinted
+        // surfaces).
 
         // ── Card (PBR — sim-validated lighting setup) ────────────────
         // v4 used PBR with whatever lights happened to be in the scene

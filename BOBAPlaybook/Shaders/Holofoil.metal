@@ -77,31 +77,41 @@ void holofoilSurface(realitykit::surface_parameters params)
     float2 distortion = float2(perturbSample.x, perturbSample.y) * 2.0 - 1.0;
     distortion *= 0.15;
 
-    // ── 3. View direction → stripe-axis projection → rainbow LUT
-    // Per WWDC25 Metal-RealityKit-APIs guidance: view_direction()
-    // is in WORLD space; we want tangent-space-relative, but for a
-    // flat card the tangent space is well-aligned with X/Y of the
-    // model. For Battlefoil the stripe axis is 45° diagonal (X+Y).
+    // ── 3. UV-dominant rainbow LUT lookup (v6.0.7) ───────────────
+    // v6.0–v6.0.6 used `dot(V.xy, stripeAxis)` which biased the LUT
+    // to ONE hue region for any given camera angle. For a card whose
+    // base art shared that hue (e.g., magenta Bojax + red-rainbow at
+    // yaw=50°), the shimmer was INVISIBLE because adding red to red
+    // doesn't change much. Sim emulator confirmed this — even at
+    // intensity=1.0 the shimmer was invisible at moderate angles.
+    //
+    // Fix: drive the LUT primarily by UV (so DIFFERENT regions of
+    // the card show DIFFERENT rainbow hues simultaneously) plus a
+    // view-direction term for the "rainbow flows as you tilt" feel.
+    // This is how real holofoil reads.
     float3 V = normalize(geometry.view_direction());
 
-    // Tangent-space projection: dot V's XY against the stripe axis.
-    // float2(0.707, 0.707) = unit vector at 45°.
-    float2 stripeAxis = float2(0.7071, 0.7071);
-    float t = dot(V.xy, stripeAxis) + distortion.x;
-    // Remap [-1, 1] → [0, 1] for the LUT lookup.
-    float lutU = t * 0.5 + 0.5;
+    float viewOffset = V.x * 0.6 + V.y * 0.4;
+    float t = uv.x * 1.5 + uv.y * 0.7
+              + viewOffset
+              + distortion.x * 0.2;
+    // Wrap to [0,1) so the rainbow tiles cleanly across the card.
+    float lutU = fract(t);
     half3 rainbow = textures.normal().sample(s, float2(lutU, 0.5)).rgb;
 
-    // ── 4. Fresnel gate (grazing-only) ──────────────────────────
+    // ── 4. Fresnel gate (grazing ramp) — v6.0.7 exp 1.5 ──────────
+    // Sim emulator at yaw=50° revealed exp=5-7 made shimmer effectively
+    // INVISIBLE even at high intensity — at moderate viewing angles
+    // (which is most of the animation), fresnel was 0.5-3% with those
+    // exponents. Exp 1.5 ramps gracefully:
+    //   yaw=0° → 0% (no shimmer head-on)
+    //   yaw=30° → 5% (subtle hint)
+    //   yaw=60° → 35% (visible)
+    //   yaw=90° → 100% (full shimmer at grazing)
+    // This is the holofoil progression: invisible head-on, increasingly
+    // dramatic as the card tilts.
     float3 N = float3(surface.normal());
-    // v6.0.5: exponent 5 → 7. With exp=5, fresnel at 45° was 0.0022
-    // — visually invisible — but at 60° it was 0.031, and at 75° it
-    // was 0.225. The 60-75° band is where the user reported "still
-    // washed out." Exp=7 makes that band almost-invisible too
-    // (60°: 0.008, 75°: 0.124). Shimmer only fully kicks in past ~80°
-    // off normal, which is the dramatic grazing zone for the
-    // entranceSpin rotation phase or extreme tilt poses.
-    float fresnel = pow(1.0 - saturate(dot(N, V)), 7.0);
+    float fresnel = pow(1.0 - saturate(dot(N, V)), 1.5);
 
     // ── 5. Foil mask (where foil exists vs paper) ────────────────
     // v6.0 uses a uniform white mask = full-card foil. v6.1 will
@@ -124,10 +134,12 @@ void holofoilSurface(realitykit::surface_parameters params)
     // the base color, it REFLECTS the back-light through the foil
     // layer. Never overflows white.
     //
-    // Intensity tuned to 0.55 — higher than v6.0.1's 0.30 because
-    // SCREEN blend's natural bright-pixel-protection means we can
-    // push the dark-region shimmer harder without washing out.
-    half3 shimmer = rainbow * half(fresnel * foilMask * 0.55);
+    // Intensity 0.60 (v6.0.7). With UV-dominant lookup + gentle
+    // fresnel ramp, this combo is sim-emulator-validated as visibly
+    // iridescent across the rotation animation without washing out
+    // the card art (SCREEN blend's bright-pixel protection + LUT
+    // brightness 0.55 cap = no channel saturation).
+    half3 shimmer = rainbow * half(fresnel * foilMask * 0.60);
     half3 inv_base = half3(1.0h) - base.rgb;
     half3 inv_shimmer = half3(1.0h) - shimmer;
     half3 finalColor = half3(1.0h) - inv_base * inv_shimmer;

@@ -1534,12 +1534,21 @@ func applyHolofoilOverlay(_ source: CGImage,
 
     for y in 0..<height {
         let perturbY = (y * pSize / height) % pSize
+        // UV varies across the card; we use uv.x + uv.y * 0.5 as the
+        // primary LUT driver so DIFFERENT REGIONS of the card show
+        // DIFFERENT rainbow hues simultaneously. View angle (tBase)
+        // shifts the whole rainbow over time. This is how real
+        // holofoil reads: the rainbow flows across the card surface
+        // as you tilt, instead of every pixel showing one fixed hue.
+        let uvY = Float(y) / Float(height)
         for x in 0..<width {
             let perturbX = (x * pSize / width) % pSize
             let p = perturb[perturbY][perturbX]
-            let t = tBase + p.x * params.perturbStrength
-            let lutU = max(0, min(0.999, (t * 0.5 + 0.5)))
-            let rainbow = lut[Int(lutU * 255.0)]
+            let uvX = Float(x) / Float(width)
+            let t = uvX * 1.5 + uvY * 0.7 + tBase + p.x * params.perturbStrength
+            // Wrap to [0, 1) so the rainbow tiles cleanly.
+            let lutU = t - floor(t)
+            let rainbow = lut[Int(min(0.999, Float(lutU)) * 255.0)]
 
             let shimmerR = Float(rainbow.r) * fresnel * params.intensity
             let shimmerG = Float(rainbow.g) * fresnel * params.intensity
@@ -1688,18 +1697,19 @@ func run() async throws {
         }
     }
 
-    // Parameter sweep: SAME yaw (70°, high but not edge-on) with
-    // varying intensity + fresnel exp + LUT V. Lets me see how each
-    // knob shifts the visible effect — the lever for tuning.
-    print("Parameter sweep @ yaw=70°…")
-    let testYaw: Float = 70
+    // Parameter sweep at TWO yaws (50° and 70°). Want shimmer visible
+    // at moderate angles, not just edge-on. v6.0.5 ship was invisible
+    // at yaw=70°; want to find a combo that's CLEARLY visible there
+    // but not WASHING the head-on view.
+    print("Parameter sweep @ yaw=50° and yaw=70°…")
+    let testYaw: Float = 50
     let sweepTiles: [(label: String, params: HolofoilParams)] = [
         ("v6.0.5_ship", HolofoilParams(intensity: 0.55, fresnelExponent: 7, lutBrightness: 0.55, perturbStrength: 0.15)),
-        ("subtle",     HolofoilParams(intensity: 0.30, fresnelExponent: 7, lutBrightness: 0.40, perturbStrength: 0.15)),
-        ("moderate",   HolofoilParams(intensity: 0.50, fresnelExponent: 8, lutBrightness: 0.50, perturbStrength: 0.20)),
-        ("vivid",      HolofoilParams(intensity: 0.70, fresnelExponent: 6, lutBrightness: 0.60, perturbStrength: 0.20)),
-        ("tight",      HolofoilParams(intensity: 0.60, fresnelExponent: 10, lutBrightness: 0.55, perturbStrength: 0.15)),
-        ("dimLUT",     HolofoilParams(intensity: 0.70, fresnelExponent: 7, lutBrightness: 0.30, perturbStrength: 0.20))
+        ("exp_3_int_70", HolofoilParams(intensity: 0.70, fresnelExponent: 3, lutBrightness: 0.55, perturbStrength: 0.20)),
+        ("exp_2_int_85", HolofoilParams(intensity: 0.85, fresnelExponent: 2, lutBrightness: 0.55, perturbStrength: 0.20)),
+        ("exp_2_int_60", HolofoilParams(intensity: 0.60, fresnelExponent: 2, lutBrightness: 0.55, perturbStrength: 0.20)),
+        ("exp_1_5_int_60", HolofoilParams(intensity: 0.60, fresnelExponent: 1.5, lutBrightness: 0.55, perturbStrength: 0.20)),
+        ("exp_1_int_50", HolofoilParams(intensity: 0.50, fresnelExponent: 1.0, lutBrightness: 0.50, perturbStrength: 0.20))
     ]
     var paramTiles: [(image: CGImage, label: String)] = []
     for cfg in sweepTiles {

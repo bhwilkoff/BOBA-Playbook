@@ -66,71 +66,48 @@ enum HeroShotEnvironment {
         let composed = renderer.image { ctx in
             let cg = ctx.cgContext
 
-            // Layer 1: dark base
-            let baseDark = blendColor(palette.first ?? .darkGray, with: .black, t: 0.85)
-            cg.setFillColor(baseDark.cgColor)
+            // v5.7 — cleanStudio. NO card-art carry-through.
+            // Research synthesis 2026-05-16: averaging a card painting
+            // (skin, uniform, sky, leather) gives a brown mean tone;
+            // v5.5's zoomed-art-at-α=0.85 was producing "brown stains"
+            // on warm-palette cards (confirmed in sim with the FIRE
+            // test card). Replaced with: charcoal-blue base + subtle
+            // palette/rim accents + edge vignette.
+            //
+            // Base #0A0A12 (charcoal-blue), NOT palette-tinted. Mixing
+            // palette into the base was the warm-cards-go-brown bug.
+            cg.setFillColor(CGColor(srgbRed: 0.04, green: 0.04,
+                                    blue: 0.07, alpha: 1))
             cg.fill(CGRect(origin: .zero, size: outSize))
 
-            // Layer 2 (v5.5 — deepDive): ONE huge zoomed-and-blurred
-            // copy of the card art, no multi-rotated tiling. Pure
-            // organic "watercolor wash" of the card's own colors.
-            // Sim sweep showed multi-rotated tiling homogenized into a
-            // smooth gradient at the camera-visible window — the
-            // single zoomed copy keeps more local color variation.
-            if let ambient = ambientBlur(of: frontArt, targetSize: outSize) {
-                let cgi = ambient.cgImage ?? frontArt.cgImage!
-                let scale: CGFloat = 1.8
-                let srcAR = CGFloat(cgi.width) / CGFloat(cgi.height)
-                let drawW = outSize.width * scale
-                let drawH = drawW / srcAR
-                let x = (outSize.width - drawW) * 0.5
-                let y = (outSize.height - drawH) * 0.5
-                cg.saveGState()
-                cg.setAlpha(0.85)
-                cg.draw(cgi, in: CGRect(x: x, y: y, width: drawW, height: drawH))
-                cg.restoreGState()
-            }
-
-            // Layer 3a + 3b: TWO LIGHTS INSIDE the camera-visible
-            // window with TIGHT radii.
-            //
-            // v5.2 had lights at (0.28, 0.72) and (0.78, 0.28) — the
-            // env corners. Camera's tiny visible window saw only the
-            // gradients' outer falloff, reading as "simple gradient."
-            // Confirmed in tools/HeroShotSim/ camera-visible-crop
-            // previews — v5.2 CAM tiles looked like single-tone
-            // gradients. v5.3 puts the lights at (0.40, 0.55) and
-            // (0.60, 0.40) — INSIDE the visible window — with much
-            // tighter radii (0.45 / 0.40 × outHeight, vs v5.2's 1.10 /
-            // 0.85). The gradient FALLOFF EDGES now land within the
-            // visible window, producing CLEAR two-light contrast at
-            // hero-pose framing.
+            // Two SUBTLE accent radial spots inside camera-visible
+            // window. Palette primary above, complementary rim below.
+            // Lower alpha than v5.x (palette α 0.55 vs 1.0) so the
+            // accents contribute as light SPILL, not as full-frame wash.
+            // 80/20 rule (research): 80% neutral, 20% chromatic accent.
             let primary = palette.first ?? .white
             drawLightSpot(in: cg,
                           color: primary,
-                          center: CGPoint(x: outSize.width * 0.40,
-                                          y: outSize.height * 0.55),
-                          radius: outSize.height * 0.45,
-                          centerAlpha: 1.0, midAlpha: 0.55, midStop: 0.30)
-            // RIM: complementary hue (palette primary rotated +150°,
-            // mild desaturation). Universal warm/cool contrast even
-            // when the source palette is monochromatic.
+                          center: CGPoint(x: outSize.width * 0.50,
+                                          y: outSize.height * 0.42),
+                          radius: outSize.height * 0.55,
+                          centerAlpha: 0.55, midAlpha: 0.25, midStop: 0.35)
             let rim = hueShifted(primary, byHue: 0.42, satScale: 0.85)
             drawLightSpot(in: cg,
                           color: rim,
-                          center: CGPoint(x: outSize.width * 0.60,
-                                          y: outSize.height * 0.40),
+                          center: CGPoint(x: outSize.width * 0.50,
+                                          y: outSize.height * 0.62),
                           radius: outSize.height * 0.40,
-                          centerAlpha: 0.85, midAlpha: 0.40, midStop: 0.32)
+                          centerAlpha: 0.35, midAlpha: 0.18, midStop: 0.35)
 
-            // Layer 4: edge vignette
+            // Edge vignette — pulls corners darker for focus.
             let space = CGColorSpaceCreateDeviceRGB()
             let vignetteColors = [
                 UIColor.clear.cgColor,
                 UIColor.clear.cgColor,
-                UIColor.black.withAlphaComponent(0.25).cgColor
+                UIColor.black.withAlphaComponent(0.45).cgColor
             ] as CFArray
-            let vignetteLocs: [CGFloat] = [0.0, 0.60, 1.0]
+            let vignetteLocs: [CGFloat] = [0.0, 0.55, 1.0]
             let vignetteRadius = max(outSize.width, outSize.height) * 0.70
             let vignetteCenter = CGPoint(x: outSize.width / 2,
                                          y: outSize.height / 2)

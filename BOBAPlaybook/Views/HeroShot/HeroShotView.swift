@@ -261,7 +261,10 @@ struct HeroShotView: View {
     // MARK: - Actions
 
     private func loadFrontTexture() async {
-        guard let url = CDN.fullURL(for: card) ?? CDN.thumbURL(for: card) else { return }
+        // Force the full-resolution CDN URL — never the thumbnail. The
+        // hero shot output frames the card large; the 1200px-max full
+        // image is what reads as crisp at 1080×1920 portrait.
+        guard let url = CDN.fullURL(for: card) else { return }
         let texture: TextureResource? = await Task.detached(priority: .userInitiated) { () -> TextureResource? in
             guard
                 let (data, _) = try? await URLSession.shared.data(from: url),
@@ -269,7 +272,15 @@ struct HeroShotView: View {
             else { return nil }
             return await MainActor.run {
                 guard let cg = image.cgImage else { return nil as TextureResource? }
-                let opts = TextureResource.CreateOptions(semantic: .color)
+                // mipmapsMode: .none forces RealityKit to always sample
+                // the full-res mip. The default `.allocateAndGenerateAll`
+                // generates a mip chain and the renderer picks a low mip
+                // when the card is small in world-space (~6cm wide),
+                // which softens the art even when the camera is close.
+                let opts = TextureResource.CreateOptions(
+                    semantic: .color,
+                    mipmapsMode: .none
+                )
                 return try? TextureResource(image: cg, withName: nil, options: opts)
             }
         }.value

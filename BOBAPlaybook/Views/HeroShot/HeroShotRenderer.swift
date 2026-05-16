@@ -583,18 +583,33 @@ final class HeroShotRenderer {
             materials: [backdropMat]
         )
         backdrop.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
-        backdrop.position = SIMD3<Float>(0, 0.10, -0.85)
+        // v5.5: pull backdrop closer (was -0.85 since v5.1). At -0.85,
+        // the camera sees only ~13% × 18% of the env image at hero
+        // pose — any heavy-blur env design converged to a smooth
+        // gradient (sim-confirmed). At -0.40 the visible env window
+        // is ~28% × 39%, showing actual color/composition detail from
+        // the deepDive zoomed art.
+        backdrop.position = SIMD3<Float>(0, 0.10, -0.40)
         root.addChild(backdrop)
 
-        // ── Stage floor (Unlit, tinted) ──────────────────────────────
-        // Solid plane under the card. Palette-tinted, NOT
-        // crushed-to-near-black. v5 had t=0.78 (78% black, 22% palette)
-        // which produced an entirely-black floor for most palettes.
-        // v5.1 keeps 55% of the palette tint visible so the floor
-        // reads as a real surface, not a void.
+        // ── Stage floor (Unlit, radial-spot gradient) ────────────────
+        // v5.5: replace flat palette tint with a radial gradient
+        // texture — bright palette at center fading to dark at the
+        // edges. User feedback after v5.4: "brown floor." The flat
+        // palette-tint plane reads as featureless at most camera
+        // angles; the radial gradient gives the floor structure that
+        // looks like stage lighting from above.
         var floorMat = UnlitMaterial()
-        floorMat.color = .init(tint: Self.blendColor(
-            palette.first ?? .darkGray, with: .black, t: 0.45))
+        if let floorCG = Self.makeRadialFloorTexture(palette: palette),
+           let floorTex = try? TextureResource(image: floorCG, withName: nil,
+                                               options: TextureResource.CreateOptions(
+                                                   semantic: .color,
+                                                   mipmapsMode: .allocateAndGenerateAll)) {
+            floorMat.color = .init(tint: .white, texture: .init(floorTex))
+        } else {
+            floorMat.color = .init(tint: Self.blendColor(
+                palette.first ?? .darkGray, with: .black, t: 0.45))
+        }
         let floor = ModelEntity(
             mesh: MeshResource.generatePlane(width: 1.6, depth: 1.6),
             materials: [floorMat]
@@ -622,9 +637,14 @@ final class HeroShotRenderer {
         cardPivot.position = .zero
         root.addChild(cardPivot)
 
-        // ── Lights (sim winner: dir 30k + IBL exp 1.0) ───────────────
+        // ── Lights (sim winner @ 75% — user "card looks washed out") ─
+        // v5.4 shipped dir 30k + IBL exp 1.0 from the Phase 2 sim's
+        // 4×8 sweep. User reported the card art reading "washed out"
+        // and suggested 75%. dir 30k → 22.5k; IBL exp 1.0 → 0.6
+        // (one stop is 2×, so 0.6 ≈ 1.5× the unit-exponent baseline,
+        // which is roughly 75% of the 2× boost full exp 1.0 gives).
         let keyLight = DirectionalLight()
-        keyLight.light.intensity = 30_000
+        keyLight.light.intensity = 22_500
         keyLight.light.color = .white
         keyLight.look(at: .zero,
                       from: SIMD3<Float>(0.3, 0.4, 0.5),
@@ -633,7 +653,7 @@ final class HeroShotRenderer {
         if let envCG,
            let env = try? EnvironmentResource(equirectangular: envCG, withName: nil) {
             let ibl = ImageBasedLightComponent(source: .single(env),
-                                               intensityExponent: 1.0)
+                                               intensityExponent: 0.6)
             root.components.set(ibl)
             // ImageBasedLightReceiverComponent doesn't propagate through
             // the entity hierarchy — must be set on each ModelEntity
@@ -732,6 +752,37 @@ final class HeroShotRenderer {
 
     nonisolated private static func blendUIColor(_ a: UIColor, with b: UIColor, t: CGFloat) -> UIColor {
         Self.blendColor(a, with: b, t: t)
+    }
+
+    /// Generate a radial gradient CGImage for the floor: palette-bright
+    /// at center → near-black at edges. v5.5 replaces the flat solid-
+    /// tinted floor with this so the stage reads as "spotlight from
+    /// above" instead of "uniformly-lit brown plane." Sim-validated:
+    /// the gradient is visible at every camera pose in the arc.
+    nonisolated private static func makeRadialFloorTexture(palette: [UIColor]) -> CGImage? {
+        let size = 1024
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: size, height: size,
+            bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        let primary = palette.first ?? .darkGray
+        let bright = Self.blendColor(primary, with: .white, t: 0.25)
+        let mid = Self.blendColor(primary, with: .black, t: 0.30)
+        let dark = Self.blendColor(primary, with: .black, t: 0.70)
+        let colors = [bright.cgColor, mid.cgColor, dark.cgColor] as CFArray
+        guard let g = CGGradient(colorsSpace: cs, colors: colors,
+                                 locations: [0.0, 0.40, 1.0]) else { return nil }
+        let cx = CGFloat(size) / 2
+        let cy = CGFloat(size) / 2
+        ctx.drawRadialGradient(g,
+                               startCenter: CGPoint(x: cx, y: cy),
+                               startRadius: 0,
+                               endCenter: CGPoint(x: cx, y: cy),
+                               endRadius: CGFloat(size) * 0.65,
+                               options: [])
+        return ctx.makeImage()
     }
 
     // MARK: - Camera math

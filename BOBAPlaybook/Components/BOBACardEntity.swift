@@ -414,6 +414,11 @@ nonisolated enum BOBACardEntity {
         // uniformly above the baseColor + roughness/metallic stack.
         mat.clearcoat = 0.30
         mat.clearcoatRoughness = 0.10
+        // Honor the rounded-corner alpha mask in the baseColor texture
+        // — without this, PhysicallyBasedMaterial treats the texture
+        // as opaque and the corners render as solid black. Same fix
+        // shipped for UnlitMaterial in makeFrontMaterial.
+        mat.blending = .transparent(opacity: 1.0)
         return mat
     }
 

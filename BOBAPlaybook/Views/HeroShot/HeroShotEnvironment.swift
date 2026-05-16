@@ -71,12 +71,24 @@ enum HeroShotEnvironment {
             cg.setFillColor(baseDark.cgColor)
             cg.fill(CGRect(origin: .zero, size: outSize))
 
-            // Layer 2: multi-rotated ambient (the card art extension cue)
+            // Layer 2 (v5.5 — deepDive): ONE huge zoomed-and-blurred
+            // copy of the card art, no multi-rotated tiling. Pure
+            // organic "watercolor wash" of the card's own colors.
+            // Sim sweep showed multi-rotated tiling homogenized into a
+            // smooth gradient at the camera-visible window — the
+            // single zoomed copy keeps more local color variation.
             if let ambient = ambientBlur(of: frontArt, targetSize: outSize) {
-                drawMultiRotatedAmbient(ambient: ambient,
-                                        in: cg,
-                                        size: outSize,
-                                        baseAlpha: 0.45)
+                let cgi = ambient.cgImage ?? frontArt.cgImage!
+                let scale: CGFloat = 1.8
+                let srcAR = CGFloat(cgi.width) / CGFloat(cgi.height)
+                let drawW = outSize.width * scale
+                let drawH = drawW / srcAR
+                let x = (outSize.width - drawW) * 0.5
+                let y = (outSize.height - drawH) * 0.5
+                cg.saveGState()
+                cg.setAlpha(0.85)
+                cg.draw(cgi, in: CGRect(x: x, y: y, width: drawW, height: drawH))
+                cg.restoreGState()
             }
 
             // Layer 3a + 3b: TWO LIGHTS INSIDE the camera-visible

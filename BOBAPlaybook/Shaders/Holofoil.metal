@@ -89,9 +89,10 @@ void holofoilSurface(realitykit::surface_parameters params)
 
     // ── 4. Fresnel gate (grazing-only) ──────────────────────────
     float3 N = float3(surface.normal());
-    // dot(N, V) is 1 head-on, 0 at grazing. Fresnel ramp k=3 gives
-    // a tight grazing-only response.
-    float fresnel = pow(1.0 - saturate(dot(N, V)), 3.0);
+    // dot(N, V) is 1 head-on, 0 at grazing. Fresnel ramp k=4 gives
+    // a tight grazing-only response (head-on is essentially zero;
+    // shimmer only kicks in past ~45° off normal).
+    float fresnel = pow(1.0 - saturate(dot(N, V)), 4.0);
 
     // ── 5. Foil mask (where foil exists vs paper) ────────────────
     // v6.0 uses a uniform white mask = full-card foil. v6.1 will
@@ -99,21 +100,36 @@ void holofoilSurface(realitykit::surface_parameters params)
     // background, Inspired Ink only on the serialized strip, etc.).
     float foilMask = textures.ambient_occlusion().sample(s, uv).r;
 
-    // ── 6. Composite ─────────────────────────────────────────────
-    // Add rainbow shimmer on top of base art. Multiplied by mask
-    // (where foil is) and fresnel (only at grazing angles). The 0.85
-    // scale prevents the rainbow from overpowering the card art.
-    half3 shimmer = rainbow * half(fresnel * foilMask * 0.85);
+    // ── 6. Composite (v6.0.1) ────────────────────────────────────
+    // User feedback v6.0: "shimmer is definitely shimmering but reads
+    // as quite washed out much of the time." Root causes:
+    //
+    //   (a) Shimmer intensity 0.85 was too high — bright areas of
+    //       the card art saturated to white when summed with rainbow.
+    //   (b) metallic = 0.7 turned the card into a polished metal
+    //       (no diffuse, mostly specular) which fights paper card
+    //       readability.
+    //   (c) No protection for already-bright pixels (white border,
+    //       skin tones) — they pushed past 1.0 and clamped.
+    //
+    // Fixes:
+    //   (a) shimmer intensity 0.85 → 0.30
+    //   (b) metallic 0.7 → 0.0 (paper-like dielectric); roughness
+    //       0.25 → 0.40 (slight gloss, not polished)
+    //   (c) base-luma damp: shimmer *= (1 - luma * 0.65), so dark
+    //       areas get strong shimmer, bright areas barely any.
+    //   (d) Fresnel exponent 3 → 4 — tighter grazing-only response.
+    float luma = dot(float3(base.rgb), float3(0.299, 0.587, 0.114));
+    float lumaDamp = 1.0 - luma * 0.65;
+    half3 shimmer = rainbow * half(fresnel * foilMask * 0.30 * lumaDamp);
     half3 finalColor = base.rgb + shimmer;
 
     // ── 7. PBR-style material output ─────────────────────────────
-    // Set scalar metallic/roughness for the lighting calculation.
-    // Foil regions are metallic (0.7) and slightly rough (0.25) so
-    // they catch sparkle highlights; paper would be (0.0, 0.55) but
-    // for v6.0 we use the foil values uniformly.
+    // Paper-like: dielectric (metallic 0), slight gloss for the
+    // protective clearcoat on real trading cards.
     surface.set_base_color(half4(finalColor, base.a));
-    surface.set_metallic(0.7);
-    surface.set_roughness(0.25);
+    surface.set_metallic(0.0);
+    surface.set_roughness(0.40);
     // Alpha-test: discard fully-transparent corner pixels so the
     // rounded card silhouette renders correctly even at oblique
     // camera angles (no transparency-sort issues — discard avoids

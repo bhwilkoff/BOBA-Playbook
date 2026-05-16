@@ -1258,8 +1258,18 @@ func applyLighting(mode: LightingMode,
         dirIntensity = 0
     case .dir_10k:
         dirIntensity = 10_000
-    case .dir_30k, .ibl_1_plus_dir, .ibl_2_plus_dir:
+    case .dir_30k, .ibl_2_plus_dir:
         dirIntensity = 30_000
+    case .ibl_1_plus_dir:
+        // v6.0.6: 15k. iOS HeroShotRenderer ships 22.5k, but
+        // RealityFoundation on macOS overexposes the card at that
+        // intensity vs RealityKit on iOS (the two renderers seem to
+        // tonemap differently). Empirically 15k in sim produces an
+        // image matching iOS's 22.5k exposure. The point of the sim
+        // here is visual validation of the SHIMMER effect, not iOS
+        // lighting parity — the shimmer overlay is a pure post-
+        // process and looks the same regardless of base exposure.
+        dirIntensity = 15_000
     case .dir_80k:
         dirIntensity = 80_000
     }
@@ -1302,8 +1312,11 @@ func applyLighting(mode: LightingMode,
     switch mode {
     case .none, .dir_10k, .dir_30k, .dir_80k:
         iblExp = nil
-    case .ibl_1, .ibl_1_plus_dir:
+    case .ibl_1:
         iblExp = 1.0
+    case .ibl_1_plus_dir:
+        // v6.0.6: match iOS HeroShotRenderer's IBL exp = 0.6.
+        iblExp = 0.6
     case .ibl_2, .ibl_2_plus_dir:
         iblExp = 2.0
     }
@@ -1395,6 +1408,161 @@ func makeContactSheet(tiles: [(image: CGImage, label: String)], cols: Int,
         NSGraphicsContext.restoreGraphicsState()
     }
     return ctx.makeImage()
+}
+
+// MARK: - Holofoil shader emulator
+//
+// The Metal surface shader in BOBAPlaybook/Shaders/Holofoil.metal
+// cannot run in this sim (CustomMaterial requires Xcode's metallib
+// build). This CPU-side function applies the SAME screen-blend
+// formula to each pixel of an already-rendered frame, so I can see
+// how the shader's output varies across yaw angles BEFORE shipping
+// to iOS. Approximation only — the actual shader has access to
+// per-fragment normals and tangents; we synthesize an approximate
+// fresnel from the global yaw angle.
+
+struct HolofoilParams {
+    var intensity: Float = 0.55
+    var fresnelExponent: Float = 7.0
+    var lutBrightness: Float = 0.55     // matches Swift LUT V
+    var perturbStrength: Float = 0.15
+}
+
+/// Cached rainbow LUT: 256 RGB samples across the hue wheel at the
+/// given brightness. Hue 0 → red, 1/6 → yellow, 2/6 → green, etc.
+private var _cachedRainbowLUT: [RGB] = []
+private var _cachedRainbowLUTBrightness: Float = -1
+
+func rainbowLUTArray(brightness: Float) -> [RGB] {
+    if abs(_cachedRainbowLUTBrightness - brightness) < 0.001
+       && _cachedRainbowLUT.count == 256 {
+        return _cachedRainbowLUT
+    }
+    var lut: [RGB] = []
+    lut.reserveCapacity(256)
+    for i in 0..<256 {
+        let h = CGFloat(i) / 255.0
+        let rgb = hsvToRGB(h, 1.0, CGFloat(brightness))
+        lut.append(rgb)
+    }
+    _cachedRainbowLUT = lut
+    _cachedRainbowLUTBrightness = brightness
+    return lut
+}
+
+/// Cached perturbation map: 256x256 noise array. Two channels used
+/// (x and y) as float values in [-1, 1].
+private var _cachedPerturb: [[(x: Float, y: Float)]] = []
+
+func perturbationArray() -> [[(x: Float, y: Float)]] {
+    if !_cachedPerturb.isEmpty { return _cachedPerturb }
+    let size = 256
+    var noise: [[(x: Float, y: Float)]] = Array(
+        repeating: Array(repeating: (x: 0.0 as Float, y: 0.0 as Float),
+                         count: size),
+        count: size
+    )
+    var rng = SystemRandomNumberGenerator()
+    // 24 overlapping radial gradients with random offsets, summed.
+    for _ in 0..<24 {
+        let cx = Float.random(in: -50...Float(size + 50), using: &rng)
+        let cy = Float.random(in: -50...Float(size + 50), using: &rng)
+        let r = Float.random(in: 50...140, using: &rng)
+        let dx = Float.random(in: -1...1, using: &rng)
+        let dy = Float.random(in: -1...1, using: &rng)
+        for y in 0..<size {
+            for x in 0..<size {
+                let dxp = Float(x) - cx, dyp = Float(y) - cy
+                let dist = sqrt(dxp * dxp + dyp * dyp)
+                if dist < r {
+                    let falloff = 1.0 - dist / r
+                    noise[y][x].x += dx * falloff * 0.18
+                    noise[y][x].y += dy * falloff * 0.18
+                }
+            }
+        }
+    }
+    // Clamp to [-1, 1].
+    for y in 0..<size {
+        for x in 0..<size {
+            noise[y][x].x = max(-1, min(1, noise[y][x].x))
+            noise[y][x].y = max(-1, min(1, noise[y][x].y))
+        }
+    }
+    _cachedPerturb = noise
+    return noise
+}
+
+/// Approximate the Metal Holofoil shader on a rendered frame. Applies
+/// to ALL pixels — the rendered frame has the env in the background,
+/// so the shimmer effect will subtly tint env pixels too, but at the
+/// fresnel/intensity levels we use the visual difference is minor.
+/// The dominant effect is visible on the bright card pixels.
+func applyHolofoilOverlay(_ source: CGImage,
+                           yawDeg: Float,
+                           params: HolofoilParams = HolofoilParams()) -> CGImage? {
+    let width = source.width, height = source.height
+    let cs = CGColorSpaceCreateDeviceRGB()
+    guard let inCtx = CGContext(
+        data: nil, width: width, height: height,
+        bitsPerComponent: 8, bytesPerRow: width * 4, space: cs,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return nil }
+    inCtx.draw(source, in: CGRect(x: 0, y: 0, width: width, height: height))
+    guard let data = inCtx.data else { return nil }
+    let pixels = data.bindMemory(to: UInt8.self,
+                                  capacity: width * height * 4)
+
+    // Shader math:
+    //   yaw rotation around Y. Card normal in world: (sin(yaw), 0, cos(yaw))
+    //   View dir (world, camera at +Z): ~(0, 0, 1)
+    //   dot(N, V) = cos(yaw)
+    //   fresnel = pow(1 - |cos(yaw)|, k)
+    //
+    //   Tangent-space view dir for rainbow lookup:
+    //     V_tangent.x = V · card_tangent_x = -sin(yaw) (after Y rotation)
+    //     t_base = dot(V_tangent.xy, (0.707, 0.707)) = -0.707 * sin(yaw)
+    //   lutU = (t_base + perturb_x * perturbStrength) * 0.5 + 0.5
+    let yawRad = yawDeg * .pi / 180
+    let cosYaw = cos(yawRad)
+    let fresnel = pow(1.0 - abs(cosYaw), params.fresnelExponent)
+    let tBase = -0.707 * sin(yawRad)
+
+    let lut = rainbowLUTArray(brightness: params.lutBrightness)
+    let perturb = perturbationArray()
+    let pSize = perturb.count
+
+    for y in 0..<height {
+        let perturbY = (y * pSize / height) % pSize
+        for x in 0..<width {
+            let perturbX = (x * pSize / width) % pSize
+            let p = perturb[perturbY][perturbX]
+            let t = tBase + p.x * params.perturbStrength
+            let lutU = max(0, min(0.999, (t * 0.5 + 0.5)))
+            let rainbow = lut[Int(lutU * 255.0)]
+
+            let shimmerR = Float(rainbow.r) * fresnel * params.intensity
+            let shimmerG = Float(rainbow.g) * fresnel * params.intensity
+            let shimmerB = Float(rainbow.b) * fresnel * params.intensity
+
+            let idx = (y * width + x) * 4
+            let baseR = Float(pixels[idx + 0]) / 255.0
+            let baseG = Float(pixels[idx + 1]) / 255.0
+            let baseB = Float(pixels[idx + 2]) / 255.0
+
+            // SCREEN blend: 1 - (1 - a)(1 - b)
+            let finalR = 1.0 - (1.0 - baseR) * (1.0 - shimmerR)
+            let finalG = 1.0 - (1.0 - baseG) * (1.0 - shimmerG)
+            let finalB = 1.0 - (1.0 - baseB) * (1.0 - shimmerB)
+
+            pixels[idx + 0] = UInt8(max(0, min(255, finalR * 255.0)))
+            pixels[idx + 1] = UInt8(max(0, min(255, finalG * 255.0)))
+            pixels[idx + 2] = UInt8(max(0, min(255, finalB * 255.0)))
+            // pixels[idx + 3] stays the same (alpha unchanged)
+        }
+    }
+
+    return inCtx.makeImage()
 }
 
 // MARK: - I/O
@@ -1498,7 +1666,65 @@ func run() async throws {
         print("WARN: card-back image not found; will use placeholder color")
     }
     let yawAngles: [Float] = stride(from: Float(0), to: Float(360), by: 30).map { $0 }
-    print("Rendering rotation sweep (\(yawAngles.count) yaw angles, full card)…")
+    // v6.0.6: clean-source emulator test — apply the holofoil
+    // emulator DIRECTLY to the raw card art (no 3D render). This
+    // isolates the shimmer effect from the sim's RealityFoundation
+    // tonemapping. Saved as sim3d_holo_raw_yaw_NNN.png.
+    let holoParams = HolofoilParams(
+        intensity: 0.55,
+        fresnelExponent: 7.0,
+        lutBrightness: 0.55,
+        perturbStrength: 0.15
+    )
+    print("Rendering RAW-CARD holo sweep (\(yawAngles.count) yaw)…")
+    for yawDeg in yawAngles {
+        if let holoFrame = applyHolofoilOverlay(cardCG, yawDeg: yawDeg,
+                                                  params: holoParams) {
+            let safeName = String(format: "yaw_%03.0f", yawDeg)
+            _ = savePNG(holoFrame,
+                        to: (outDir as NSString)
+                          .appendingPathComponent("sim3d_holo_raw_\(safeName).png"))
+            print("  ✓ raw card @ yaw=\(Int(yawDeg))°")
+        }
+    }
+
+    // Parameter sweep: SAME yaw (70°, high but not edge-on) with
+    // varying intensity + fresnel exp + LUT V. Lets me see how each
+    // knob shifts the visible effect — the lever for tuning.
+    print("Parameter sweep @ yaw=70°…")
+    let testYaw: Float = 70
+    let sweepTiles: [(label: String, params: HolofoilParams)] = [
+        ("v6.0.5_ship", HolofoilParams(intensity: 0.55, fresnelExponent: 7, lutBrightness: 0.55, perturbStrength: 0.15)),
+        ("subtle",     HolofoilParams(intensity: 0.30, fresnelExponent: 7, lutBrightness: 0.40, perturbStrength: 0.15)),
+        ("moderate",   HolofoilParams(intensity: 0.50, fresnelExponent: 8, lutBrightness: 0.50, perturbStrength: 0.20)),
+        ("vivid",      HolofoilParams(intensity: 0.70, fresnelExponent: 6, lutBrightness: 0.60, perturbStrength: 0.20)),
+        ("tight",      HolofoilParams(intensity: 0.60, fresnelExponent: 10, lutBrightness: 0.55, perturbStrength: 0.15)),
+        ("dimLUT",     HolofoilParams(intensity: 0.70, fresnelExponent: 7, lutBrightness: 0.30, perturbStrength: 0.20))
+    ]
+    var paramTiles: [(image: CGImage, label: String)] = []
+    for cfg in sweepTiles {
+        if let holoFrame = applyHolofoilOverlay(cardCG, yawDeg: testYaw,
+                                                  params: cfg.params) {
+            paramTiles.append((image: holoFrame, label: cfg.label))
+            let path = (outDir as NSString)
+                .appendingPathComponent("sim3d_holo_param_\(cfg.label).png")
+            _ = savePNG(holoFrame, to: path)
+            print("  ✓ \(cfg.label) (int=\(cfg.params.intensity) exp=\(cfg.params.fresnelExponent) LUT=\(cfg.params.lutBrightness))")
+        }
+    }
+    // Also save the source for reference.
+    if let src = applyHolofoilOverlay(cardCG, yawDeg: 0,
+                                         params: HolofoilParams(intensity: 0, fresnelExponent: 1, lutBrightness: 1, perturbStrength: 0)) {
+        paramTiles.insert((image: src, label: "SOURCE"), at: 0)
+    }
+    if let sheet = makeContactSheet(tiles: paramTiles, cols: 4,
+                                     tileW: 320, tileH: 448) {
+        let path = (outDir as NSString)
+            .appendingPathComponent("sim3d_holo_param_sweep.png")
+        _ = savePNG(sheet, to: path)
+        print("  → \(path)")
+    }
+    print("Rendering rotation+holo sweep (\(yawAngles.count) yaw × 2 = \(yawAngles.count * 2) frames)…")
     var renderTiles: [(image: CGImage, label: String)] = []
     for yawDeg in yawAngles {
         do {
@@ -1514,21 +1740,26 @@ func run() async throws {
             scene.camera.look(at: heroPose.lookAt, from: heroPose.camPos,
                                upVector: SIMD3<Float>(0, 1, 0), relativeTo: nil)
             scene.camera.camera.fieldOfViewInDegrees = heroPose.fov
-            let frame = try renderFrame(scene: scene, size: frameSize, device: device)
-            let label = String(format: "yaw=%3.0f°", yawDeg)
-            renderTiles.append((image: frame, label: label))
+            let baseFrame = try renderFrame(scene: scene, size: frameSize, device: device)
+            let holoFrame = applyHolofoilOverlay(baseFrame, yawDeg: yawDeg,
+                                                  params: holoParams) ?? baseFrame
+            let baseLabel = String(format: "yaw=%3.0f° base", yawDeg)
+            let holoLabel = String(format: "yaw=%3.0f° holo", yawDeg)
+            renderTiles.append((image: baseFrame, label: baseLabel))
+            renderTiles.append((image: holoFrame, label: holoLabel))
             let safeName = String(format: "yaw_%03.0f", yawDeg)
-            let tilePath = (outDir as NSString)
-                .appendingPathComponent("sim3d_rot_\(safeName).png")
-            _ = savePNG(frame, to: tilePath)
-            print("  ✓ \(label) → \(tilePath)")
+            _ = savePNG(baseFrame,
+                        to: (outDir as NSString).appendingPathComponent("sim3d_rot_\(safeName)_base.png"))
+            _ = savePNG(holoFrame,
+                        to: (outDir as NSString).appendingPathComponent("sim3d_rot_\(safeName)_holo.png"))
+            print("  ✓ yaw=\(Int(yawDeg))° rendered (base + holo)")
         } catch {
             print("  ✗ yaw=\(yawDeg): \(error)")
         }
     }
     _ = (elementSets, v56EnvCG)  // suppress unused
-    print("Building render contact sheet (\(renderTiles.count) tiles, 3 cols)…")
-    guard let sheet = makeContactSheet(tiles: renderTiles, cols: 3,
+    print("Building render contact sheet (\(renderTiles.count) tiles, 2 cols base|holo)…")
+    guard let sheet = makeContactSheet(tiles: renderTiles, cols: 2,
                                        tileW: 432, tileH: 768) else {
         print("Failed to build sheet"); exit(1)
     }

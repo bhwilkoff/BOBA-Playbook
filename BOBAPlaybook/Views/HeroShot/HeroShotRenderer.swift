@@ -779,8 +779,17 @@ final class HeroShotRenderer {
         root.addChild(rimLight)
         if let envCG,
            let env = try? EnvironmentResource(equirectangular: envCG, withName: nil) {
+            // v6.0.6: IBL exp 0.6 → 0.0. Sim parameter sweep confirmed
+            // the v6.0.5 holofoil shimmer is visually indistinguishable
+            // from raw source at yaw=70° — i.e., it is NOT the cause of
+            // the user's "washed out" perception. The wash must come
+            // from PBR ambient illumination via IBL. exp=0.6 was 1.5×
+            // the unit baseline (env image's own light values); exp=0.0
+            // is the raw env contribution. Card now gets its color
+            // from direct lighting (3-point key+fill+rim) rather than
+            // ambient bath, restoring contrast/pigment punch.
             let ibl = ImageBasedLightComponent(source: .single(env),
-                                               intensityExponent: 0.6)
+                                               intensityExponent: 0.0)
             root.components.set(ibl)
             // ImageBasedLightReceiverComponent doesn't propagate through
             // the entity hierarchy — must be set on each ModelEntity

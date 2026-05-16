@@ -361,11 +361,9 @@ nonisolated enum BOBACardEntity {
             mat.roughness = 0.55
             mat.clearcoat = 0.20
             mat.clearcoatRoughness = 0.15
-            // Honor the rounded-corner alpha mask in the back texture
-            // (loadBackTexture → BOBACardEntity.roundedCorners). Same
-            // fix v5.4 applied to front PBR — without this the back
-            // corners render as solid black.
-            mat.blending = .transparent(opacity: 1.0)
+            // v5.7.1: alpha-test instead of .transparent — same fix
+            // as front PBR. See comment in makeFrontPBRMaterial.
+            mat.opacityThreshold = 0.001
             return mat
         }
     }
@@ -419,11 +417,21 @@ nonisolated enum BOBACardEntity {
         // uniformly above the baseColor + roughness/metallic stack.
         mat.clearcoat = 0.30
         mat.clearcoatRoughness = 0.10
-        // Honor the rounded-corner alpha mask in the baseColor texture
-        // — without this, PhysicallyBasedMaterial treats the texture
-        // as opaque and the corners render as solid black. Same fix
-        // shipped for UnlitMaterial in makeFrontMaterial.
-        mat.blending = .transparent(opacity: 1.0)
+        // v5.7.1: switch from .transparent blending → opacityThreshold
+        // alpha-test. User reported "card flashes black as it turns"
+        // during entranceSpin (360° rotation around Y). Per research
+        // synthesis: PBR with .transparent blending suffers from
+        // RealityKit's center-point transparent sorting — when card
+        // rotates past 90°, front + back plane entity-center distances
+        // get close to identical, sort order pops, and depth-write-off
+        // transparent fragments overwrite each other inconsistently.
+        // opacityThreshold = 0.001 switches the material to ALPHA-TEST
+        // (discard, no blending) which writes to depth and sorts
+        // per-pixel. Trade-off: rounded corners get hard-edged at the
+        // 0.001 alpha cutoff. At v5.4's 3× Lanczos upscale, the alpha
+        // gradient spans 9× more pixels than at native res so the
+        // cutoff edge stays smooth-looking.
+        mat.opacityThreshold = 0.001
         return mat
     }
 

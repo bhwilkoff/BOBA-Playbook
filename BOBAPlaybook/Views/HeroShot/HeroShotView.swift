@@ -20,6 +20,23 @@ struct HeroShotView: View {
     @State private var renderError: String?
     @State private var frontTexture: TextureResource?
     @State private var backTexture: TextureResource?
+    /// Keep the rounded-corner UIImage of the front art around — the
+    /// renderer needs it at scene-build time to extract a color palette
+    /// and generate the IBL/backdrop environment.
+    @State private var frontImage: UIImage?
+
+    // User-customizable render options. Defaults: Reveal preset, 10s,
+    // Entrance Spin, watermark on.
+    @State private var arcPreset: HeroShotRenderer.ArcPreset = .reveal
+    @State private var clipLength: TimeInterval = 10
+    @State private var cardMotion: HeroShotRenderer.CardMotion = .entranceSpin
+
+    /// Inline preview thumbnail — a single rendered frame of the FINAL
+    /// hero pose so the user sees their composition before they
+    /// commit to a 30s render. Recomputed (debounced) whenever
+    /// preset / length / motion changes.
+    @State private var previewFrame: UIImage?
+    @State private var previewTask: Task<Void, Never>?
     @State private var renderTask: Task<Void, Never>?
     @State private var showingShareSheet: Bool = false
 
@@ -65,7 +82,12 @@ struct HeroShotView: View {
                 async let front: Void = loadFrontTexture()
                 async let back:  Void = loadBackTexture()
                 _ = await (front, back)
+                // Initial preview render once textures are loaded.
+                schedulePreviewRender()
             }
+            .onChange(of: arcPreset) { _, _ in schedulePreviewRender() }
+            .onChange(of: clipLength) { _, _ in schedulePreviewRender() }
+            .onChange(of: cardMotion) { _, _ in schedulePreviewRender() }
             .sheet(isPresented: $showingShareSheet) {
                 if let renderedURL {
                     ActivityShareSheet(items: [renderedURL])
@@ -102,7 +124,23 @@ struct HeroShotView: View {
                                 .strokeBorder(Design.Colors.bobaCyan.opacity(0.3), lineWidth: 1)
                         )
                         .shadow(color: .black.opacity(0.5), radius: 20, y: 10)
+                } else if let preview = previewFrame {
+                    // Live preview of the hero pose — a single rendered
+                    // frame at time = 0.95 * duration. Updates when the
+                    // user picks a different preset / length / motion.
+                    Image(uiImage: preview)
+                        .resizable()
+                        .aspectRatio(9.0 / 16.0, contentMode: .fit)
+                        .frame(height: 320)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(Design.Colors.bobaCyan.opacity(0.3), lineWidth: 1)
+                        )
+                        .shadow(color: .black.opacity(0.5), radius: 20, y: 10)
                 } else {
+                    // Fallback before textures load / before the first
+                    // preview is rendered.
                     CardImageView(card: card, size: .full)
                         .aspectRatio(5.0 / 7.0, contentMode: .fit)
                         .frame(height: 320)
@@ -121,13 +159,61 @@ struct HeroShotView: View {
 
     private var controlsBlock: some View {
         VStack(spacing: Design.Spacing.md) {
+            // STYLE — camera arc preset (Reveal / Showcase / Detail)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("STYLE")
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                Picker("Style", selection: $arcPreset) {
+                    ForEach(HeroShotRenderer.ArcPreset.allCases) { preset in
+                        Text(preset.displayName).tag(preset)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .disabled(phase == .rendering)
+                Text(arcPreset.caption)
+                    .font(Design.Fonts.mono(10))
+                    .foregroundStyle(Design.Colors.textSecondary.opacity(0.7))
+                    .lineLimit(1)
+            }
+
+            // LENGTH — discrete chips (5 / 10 / 15 / 30 s)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("LENGTH")
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                Picker("Length", selection: $clipLength) {
+                    Text("5s").tag(TimeInterval(5))
+                    Text("10s").tag(TimeInterval(10))
+                    Text("15s").tag(TimeInterval(15))
+                    Text("30s").tag(TimeInterval(30))
+                }
+                .pickerStyle(.segmented)
+                .disabled(phase == .rendering)
+            }
+
+            // MOTION — card motion (Static / Entrance Spin / Slow Rotate)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("CARD MOTION")
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                Picker("Motion", selection: $cardMotion) {
+                    ForEach(HeroShotRenderer.CardMotion.allCases) { motion in
+                        Text(motion.displayName).tag(motion)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .disabled(phase == .rendering)
+            }
+
+            // WATERMARK toggle
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("BOBA PLAYBOOK WATERMARK")
-                        .font(Design.Fonts.mono(11, weight: .bold))
+                    Text("BOBA WATERMARK")
+                        .font(Design.Fonts.mono(10, weight: .bold))
                         .foregroundStyle(Design.Colors.textSecondary)
                     Text("Anchored bottom-right of the video")
-                        .font(Design.Fonts.mono(10))
+                        .font(Design.Fonts.mono(9))
                         .foregroundStyle(Design.Colors.textSecondary.opacity(0.7))
                 }
                 Spacer()
@@ -138,26 +224,8 @@ struct HeroShotView: View {
             }
             .padding(Design.Spacing.md)
             .background(RoundedRectangle(cornerRadius: 10).fill(Design.Colors.surface))
-
-            // Hero-shot info row
-            HStack(spacing: Design.Spacing.md) {
-                pill("9:16")
-                pill("60 FPS")
-                pill("10 SEC")
-                Spacer()
-            }
-            .padding(.horizontal, Design.Spacing.xs)
         }
         .padding(.horizontal, Design.Spacing.lg)
-    }
-
-    private func pill(_ text: String) -> some View {
-        Text(text)
-            .font(Design.Fonts.mono(10, weight: .bold))
-            .foregroundStyle(Design.Colors.textSecondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Capsule().strokeBorder(Design.Colors.textSecondary.opacity(0.3), lineWidth: 1))
     }
 
     // MARK: - Primary CTA
@@ -265,7 +333,11 @@ struct HeroShotView: View {
         // hero shot output frames the card large; the 1200px-max full
         // image is what reads as crisp at 1080×1920 portrait.
         guard let url = CDN.fullURL(for: card) else { return }
-        let texture: TextureResource? = await Task.detached(priority: .userInitiated) { () -> TextureResource? in
+        struct LoadResult {
+            let rounded: UIImage
+            let texture: TextureResource?
+        }
+        let result: LoadResult? = await Task.detached(priority: .userInitiated) { () -> LoadResult? in
             guard
                 let (data, _) = try? await URLSession.shared.data(from: url),
                 let image = UIImage(data: data)
@@ -276,22 +348,19 @@ struct HeroShotView: View {
             // has a `cornerRadius:` parameter that's silently ignored on
             // iOS 17/18/26, so the mask must live in the texture.
             let rounded = BOBACardEntity.roundedCorners(image) ?? image
-            return await MainActor.run {
+            let tex: TextureResource? = await MainActor.run {
                 guard let cg = rounded.cgImage else { return nil as TextureResource? }
-                // mipmapsMode: .none forces RealityKit to always sample
-                // the full-res mip. The default `.allocateAndGenerateAll`
-                // generates a mip chain and the renderer picks a low mip
-                // when the card is small in world-space (~6cm wide),
-                // which softens the art even when the camera is close.
                 let opts = TextureResource.CreateOptions(
                     semantic: .color,
                     mipmapsMode: .none
                 )
                 return try? TextureResource(image: cg, withName: nil, options: opts)
             }
+            return LoadResult(rounded: rounded, texture: tex)
         }.value
         await MainActor.run {
-            self.frontTexture = texture
+            self.frontTexture = result?.texture
+            self.frontImage = result?.rounded
         }
     }
 
@@ -318,8 +387,48 @@ struct HeroShotView: View {
         }
     }
 
+    /// Trigger a debounced preview render of the FINAL hero pose
+    /// (time = 95% of duration). Cancels any in-flight preview so
+    /// rapid picker changes don't queue up renders.
+    private func schedulePreviewRender() {
+        previewTask?.cancel()
+        guard let texture = frontTexture, let image = frontImage else { return }
+        let snapshotArc = arcPreset
+        let snapshotLength = clipLength
+        let snapshotMotion = cardMotion
+        previewTask = Task { @MainActor in
+            // Tiny debounce so quickly-tapping pickers doesn't fire
+            // 4 renders.
+            try? await Task.sleep(for: .milliseconds(120))
+            if Task.isCancelled { return }
+            do {
+                let renderer = HeroShotRenderer()
+                let config = HeroShotRenderer.Config(
+                    card: card,
+                    frontTexture: texture,
+                    backTexture: backTexture,
+                    frontImage: image,
+                    includeWatermark: false,   // no watermark on preview
+                    arc: snapshotArc,
+                    cardMotion: snapshotMotion,
+                    duration: snapshotLength
+                )
+                let frame = try await renderer.renderPreviewFrame(
+                    config,
+                    normalizedTime: 0.95
+                )
+                if Task.isCancelled { return }
+                previewFrame = frame
+            } catch {
+                // Silent on preview failure — the static card image
+                // fallback is fine. We don't want preview failures to
+                // block the user from trying the full render.
+            }
+        }
+    }
+
     private func startRender() {
-        guard let texture = frontTexture else { return }
+        guard let texture = frontTexture, let image = frontImage else { return }
         phase = .rendering
         renderProgress = 0
         renderError = nil
@@ -330,7 +439,11 @@ struct HeroShotView: View {
                     card: card,
                     frontTexture: texture,
                     backTexture: backTexture,
-                    includeWatermark: includeWatermark
+                    frontImage: image,
+                    includeWatermark: includeWatermark,
+                    arc: arcPreset,
+                    cardMotion: cardMotion,
+                    duration: clipLength
                 )
                 let url = try await renderer.render(config) { p in
                     renderProgress = p

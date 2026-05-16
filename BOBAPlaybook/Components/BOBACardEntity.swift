@@ -78,6 +78,25 @@ nonisolated enum BOBACardEntity {
         case flat
     }
 
+    // MARK: - Material kind
+
+    /// Material shading model for the card faces + edge. Pick `.unlit`
+    /// for scenes that have NO lights or IBL (the texture's colors are
+    /// rendered as-is — what HouseOfCards uses since its AR-like scene
+    /// has no lights). Pick `.physicallyBased` for lit scenes (Hero
+    /// Shot's stage with 3-point rig + IBL) — the card responds to
+    /// lighting, treatment foils develop real specular sheen via a
+    /// roughness texture map, and a clearcoat varnish layer simulates
+    /// the card's protective coating.
+    ///
+    /// PBR REQUIRES a scene with lights and/or an IBL environment.
+    /// Without those, PBR materials render dark. UnlitMaterial doesn't
+    /// care about lighting at all.
+    enum MaterialKind {
+        case unlit
+        case physicallyBased
+    }
+
     // MARK: - Dimensions
 
     /// Real BoBA card width in meters (~63.5mm).
@@ -133,15 +152,29 @@ nonisolated enum BOBACardEntity {
         var includeEdge: Bool
         /// Pose to build the card in. See the `Pose` enum.
         var pose: Pose
+        /// Material shading model. `.unlit` for scenes without lights
+        /// (HouseOfCards); `.physicallyBased` for lit scenes with IBL
+        /// (Hero Shot). See the `MaterialKind` enum.
+        var material: MaterialKind
+        /// The card's `treatment` string (e.g. "Red Battlefoil",
+        /// "Superfoil", "Blizzard"). Used by `.physicallyBased` to
+        /// generate the right localized roughness map so foil
+        /// regions actually reflect light differently from paper
+        /// regions. Pass nil for non-foil cards (base set, paper).
+        var treatment: String?
 
         init(frontTexture: TextureResource? = nil,
              backTexture: TextureResource? = nil,
              includeEdge: Bool = true,
-             pose: Pose = .upright) {
+             pose: Pose = .upright,
+             material: MaterialKind = .unlit,
+             treatment: String? = nil) {
             self.frontTexture = frontTexture
             self.backTexture = backTexture
             self.includeEdge = includeEdge
             self.pose = pose
+            self.material = material
+            self.treatment = treatment
         }
     }
 
@@ -160,24 +193,14 @@ nonisolated enum BOBACardEntity {
 
         // ── Front plane ──
         let frontMesh = MeshResource.generatePlane(width: width, depth: height)
-        var frontMat = UnlitMaterial()
-        if let tex = config.frontTexture {
-            frontMat.color = .init(tint: .white, texture: .init(tex))
-        } else {
-            frontMat.color = .init(tint: placeholderFrontColor)
-        }
-        let front = ModelEntity(mesh: frontMesh, materials: [frontMat])
+        let frontMaterial: any Material = makeFrontMaterial(config: config)
+        let front = ModelEntity(mesh: frontMesh, materials: [frontMaterial])
         front.name = "card-front"
 
         // ── Back plane ──
         let backMesh = MeshResource.generatePlane(width: width, depth: height)
-        var backMat = UnlitMaterial()
-        if let tex = config.backTexture {
-            backMat.color = .init(tint: .white, texture: .init(tex))
-        } else {
-            backMat.color = .init(tint: placeholderBackColor)
-        }
-        let back = ModelEntity(mesh: backMesh, materials: [backMat])
+        let backMaterial: any Material = makeBackMaterial(config: config)
+        let back = ModelEntity(mesh: backMesh, materials: [backMaterial])
         back.name = "card-back"
 
         // ── Edge box ──
@@ -211,9 +234,8 @@ nonisolated enum BOBACardEntity {
                     )
                 )
             }
-            var edgeMat = UnlitMaterial()
-            edgeMat.color = .init(tint: edgeColor)
-            let e = ModelEntity(mesh: edgeMesh, materials: [edgeMat])
+            let edgeMaterial: any Material = makeEdgeMaterial(config: config)
+            let e = ModelEntity(mesh: edgeMesh, materials: [edgeMaterial])
             e.name = "card-edge"
             e.position = .zero
             edge = e
@@ -285,6 +307,279 @@ nonisolated enum BOBACardEntity {
         mat.color = .init(tint: .white, texture: .init(texture))
         model.materials = [mat]
         back.components.set(model)
+    }
+
+    // MARK: - Material builders
+
+    @MainActor
+    private static func makeFrontMaterial(config: Config) -> any Material {
+        switch config.material {
+        case .unlit:
+            var mat = UnlitMaterial()
+            if let tex = config.frontTexture {
+                mat.color = .init(tint: .white, texture: .init(tex))
+            } else {
+                mat.color = .init(tint: placeholderFrontColor)
+            }
+            return mat
+        case .physicallyBased:
+            return makeFrontPBRMaterial(config: config)
+        }
+    }
+
+    @MainActor
+    private static func makeBackMaterial(config: Config) -> any Material {
+        switch config.material {
+        case .unlit:
+            var mat = UnlitMaterial()
+            if let tex = config.backTexture {
+                mat.color = .init(tint: .white, texture: .init(tex))
+            } else {
+                mat.color = .init(tint: placeholderBackColor)
+            }
+            return mat
+        case .physicallyBased:
+            var mat = PhysicallyBasedMaterial()
+            if let tex = config.backTexture {
+                mat.baseColor = .init(tint: .white, texture: .init(tex))
+            } else {
+                mat.baseColor = .init(tint: placeholderBackColor)
+            }
+            // Card back is matte paper — no foil, no metallic, slight
+            // clearcoat for the protective varnish layer.
+            mat.metallic = 0.0
+            mat.roughness = 0.55
+            mat.clearcoat = 0.20
+            mat.clearcoatRoughness = 0.15
+            return mat
+        }
+    }
+
+    @MainActor
+    private static func makeEdgeMaterial(config: Config) -> any Material {
+        switch config.material {
+        case .unlit:
+            var mat = UnlitMaterial()
+            mat.color = .init(tint: edgeColor)
+            return mat
+        case .physicallyBased:
+            var mat = PhysicallyBasedMaterial()
+            mat.baseColor = .init(tint: edgeColor)
+            // Card-stock paper edges — no specular, fairly rough.
+            mat.metallic = 0.0
+            mat.roughness = 0.65
+            return mat
+        }
+    }
+
+    /// PBR front-face material. The killer feature here is the
+    /// treatment-keyed roughness map: foil regions render at very low
+    /// roughness (specular sheen) while paper regions are matte. As
+    /// the camera moves, the foil pattern visibly catches the lights.
+    @MainActor
+    private static func makeFrontPBRMaterial(config: Config) -> PhysicallyBasedMaterial {
+        var mat = PhysicallyBasedMaterial()
+        if let tex = config.frontTexture {
+            mat.baseColor = .init(tint: .white, texture: .init(tex))
+        } else {
+            mat.baseColor = .init(tint: placeholderFrontColor)
+        }
+
+        // Treatment determines roughness behavior.
+        let kind = foilKind(for: config.treatment)
+        if let roughnessTex = roughnessTexture(for: kind) {
+            // Foil cards: localized low-roughness regions where the
+            // foil sits, high-roughness elsewhere. Drives real
+            // specular sheen as the card rotates against the lights.
+            mat.roughness = .init(scale: 1.0, texture: .init(roughnessTex))
+            mat.metallic = .init(floatLiteral: kind.metallicScale)
+        } else {
+            // Base / paper cards: uniform matte gloss.
+            mat.roughness = 0.40
+            mat.metallic = 0.0
+        }
+
+        // Clearcoat varnish — the protective layer printed cards have
+        // that gives them their "fresh from the pack" sheen. Applied
+        // uniformly above the baseColor + roughness/metallic stack.
+        mat.clearcoat = 0.30
+        mat.clearcoatRoughness = 0.10
+        return mat
+    }
+
+    // MARK: - Treatment-keyed roughness textures
+
+    /// Coarse-grained category for the card's treatment, used to pick
+    /// the right procedural roughness pattern.
+    private enum FoilKind {
+        case none           // base set, paper — no foil, scalar roughness
+        case battlefoil     // colored foils (Red, Blue, Silver, etc.) — diagonal stripes
+        case superfoil      // rainbow / holographic — noise flakes
+        case blizzard       // icy crackle — voronoi
+        case inspiredInk    // serialized vertical bands
+        case logofoil       // repeating logo — denser noise
+        case blast          // paper-grain — mild noise
+
+        var metallicScale: Float {
+            switch self {
+            case .none:        return 0.0
+            case .battlefoil:  return 0.55
+            case .superfoil:   return 0.65
+            case .blizzard:    return 0.45
+            case .inspiredInk: return 0.60
+            case .logofoil:    return 0.45
+            case .blast:       return 0.10
+            }
+        }
+    }
+
+    private static func foilKind(for treatment: String?) -> FoilKind {
+        guard let t = treatment?.lowercased(), !t.isEmpty else { return .none }
+        if t == "base" || t == "base set" || t == "standard" { return .none }
+        if t.contains("battlefoil") || t.contains("logofoil") {
+            // Logofoils get their own pattern despite the similar name —
+            // they print a repeating logo over the art, not stripes.
+            return t.contains("logofoil") ? .logofoil : .battlefoil
+        }
+        if t.contains("superfoil") { return .superfoil }
+        if t.contains("blizzard")  { return .blizzard }
+        if t.contains("inspired") || t.contains("ink") { return .inspiredInk }
+        if t.contains("blast") || t.contains("paper") { return .blast }
+        // Unknown treatment — treat as a generic foil with mild stripes
+        // (better than scalar-matte for unrecognized foil names).
+        return .battlefoil
+    }
+
+    /// Cache for procedural roughness textures, keyed by `FoilKind`.
+    /// One pattern per kind; computed lazily on first use. Static so
+    /// every card of the same treatment shares one texture.
+    @MainActor
+    private static var roughnessTextureCache: [String: TextureResource] = [:]
+
+    @MainActor
+    private static func roughnessTexture(for kind: FoilKind) -> TextureResource? {
+        if kind == .none { return nil }
+        let key = "\(kind)"
+        if let cached = roughnessTextureCache[key] { return cached }
+        guard let img = makeRoughnessImage(for: kind),
+              let cg = img.cgImage,
+              let tex = try? TextureResource(
+                  image: cg,
+                  withName: "boba-roughness-\(key)",
+                  options: TextureResource.CreateOptions(semantic: .raw))
+        else { return nil }
+        roughnessTextureCache[key] = tex
+        return tex
+    }
+
+    /// Generate the per-treatment roughness pattern as a UIImage. In
+    /// roughness textures, BLACK (0) = mirror-smooth, WHITE (1) =
+    /// fully diffuse. We paint the FOIL regions black-ish (~0.05) and
+    /// the paper regions grey-ish (~0.6).
+    private static func makeRoughnessImage(for kind: FoilKind) -> UIImage? {
+        let size = CGSize(width: 1024, height: 1024)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { ctx in
+            let cg = ctx.cgContext
+            // Paper baseline — grey ~0.6 roughness.
+            cg.setFillColor(UIColor(white: 0.60, alpha: 1).cgColor)
+            cg.fill(CGRect(origin: .zero, size: size))
+
+            switch kind {
+            case .none:
+                break  // shouldn't happen — kind == .none returns nil above
+
+            case .battlefoil:
+                // Diagonal stripes at 30°. Foil bands are nearly mirror
+                // (white = 0.05 means GLOSSY in shader terms; here we
+                // draw DARK to indicate low roughness).
+                cg.saveGState()
+                cg.translateBy(x: size.width / 2, y: size.height / 2)
+                cg.rotate(by: CGFloat.pi / 6)
+                cg.translateBy(x: -size.width, y: -size.height)
+                cg.setFillColor(UIColor(white: 0.08, alpha: 1).cgColor)
+                let stripeW: CGFloat = 60
+                let gap: CGFloat = 90
+                var x: CGFloat = 0
+                while x < size.width * 2 {
+                    cg.fill(CGRect(x: x, y: 0, width: stripeW, height: size.height * 2))
+                    x += stripeW + gap
+                }
+                cg.restoreGState()
+
+            case .superfoil:
+                // Holographic flake field — small dark spots
+                // (low-roughness "flakes") scattered over the paper.
+                cg.setFillColor(UIColor(white: 0.10, alpha: 1).cgColor)
+                var rng = SystemRandomNumberGenerator()
+                for _ in 0..<900 {
+                    let x = CGFloat.random(in: 0..<size.width, using: &rng)
+                    let y = CGFloat.random(in: 0..<size.height, using: &rng)
+                    let r = CGFloat.random(in: 3...8, using: &rng)
+                    cg.fillEllipse(in: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2))
+                }
+
+            case .blizzard:
+                // Voronoi-ish crackle — scatter "ice fracture" line
+                // segments. Real voronoi would be more work; approximate
+                // with random thin dark lines radiating from random seeds.
+                cg.setStrokeColor(UIColor(white: 0.12, alpha: 1).cgColor)
+                cg.setLineWidth(2.5)
+                var rng = SystemRandomNumberGenerator()
+                for _ in 0..<60 {
+                    let cx = CGFloat.random(in: 0..<size.width, using: &rng)
+                    let cy = CGFloat.random(in: 0..<size.height, using: &rng)
+                    let spokes = Int.random(in: 3...6, using: &rng)
+                    for i in 0..<spokes {
+                        let angle = CGFloat(i) * (2 * .pi / CGFloat(spokes))
+                            + CGFloat.random(in: -0.4...0.4, using: &rng)
+                        let len = CGFloat.random(in: 30...90, using: &rng)
+                        cg.move(to: CGPoint(x: cx, y: cy))
+                        cg.addLine(to: CGPoint(x: cx + cos(angle) * len, y: cy + sin(angle) * len))
+                    }
+                }
+                cg.strokePath()
+
+            case .inspiredInk:
+                // Vertical iridescent bands — denser than Battlefoil,
+                // narrower stripes.
+                cg.setFillColor(UIColor(white: 0.10, alpha: 1).cgColor)
+                let stripeW: CGFloat = 18
+                let gap: CGFloat = 22
+                var x: CGFloat = 0
+                while x < size.width {
+                    cg.fill(CGRect(x: x, y: 0, width: stripeW, height: size.height))
+                    x += stripeW + gap
+                }
+
+            case .logofoil:
+                // Repeating round dots — surrogate for a small repeating
+                // BoBA logo pattern across the surface.
+                cg.setFillColor(UIColor(white: 0.15, alpha: 1).cgColor)
+                let spacing: CGFloat = 70
+                let r: CGFloat = 18
+                var y: CGFloat = spacing / 2
+                while y < size.height {
+                    var x: CGFloat = spacing / 2
+                    while x < size.width {
+                        cg.fillEllipse(in: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2))
+                        x += spacing
+                    }
+                    y += spacing
+                }
+
+            case .blast:
+                // Paper-grain — fine random speckle. Slightly less
+                // contrast than the other foil patterns.
+                cg.setFillColor(UIColor(white: 0.40, alpha: 1).cgColor)
+                var rng = SystemRandomNumberGenerator()
+                for _ in 0..<3500 {
+                    let x = CGFloat.random(in: 0..<size.width, using: &rng)
+                    let y = CGFloat.random(in: 0..<size.height, using: &rng)
+                    cg.fill(CGRect(x: x, y: y, width: 2, height: 2))
+                }
+            }
+        }
     }
 
     // MARK: - Texture prep

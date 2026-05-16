@@ -20,6 +20,7 @@ struct CollectionCardDetailView: View {
     @State private var showingAddSheet = false
     @State private var showingAddToDeck = false
     @State private var showingAddToShow = false
+    @State private var showingHeroShot = false
     @State private var deleteError: String?
     @State private var isRefreshingPrice = false
     @State private var addedToDeckName: String?
@@ -121,6 +122,17 @@ struct CollectionCardDetailView: View {
                         .foregroundStyle(Design.Colors.textPrimary)
                         .lineLimit(1)
                 }
+                if #available(iOS 18.0, *), catalogCard != nil {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showingHeroShot = true
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundStyle(Design.Colors.bobaCyan)
+                        }
+                        .accessibilityLabel("Hero Shot — share a 3D video of this card")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     if let card = catalogCard {
                         // Menu drops from the Add button itself (replaces the
@@ -187,6 +199,11 @@ struct CollectionCardDetailView: View {
                 if let card = catalogCard {
                     EditCollectionEntrySheet(entry: entry, card: card)
                         .presentationCompactAdaptation(.popover)
+                }
+            }
+            .fullScreenCover(isPresented: $showingHeroShot) {
+                if #available(iOS 18.0, *), let card = catalogCard {
+                    HeroShotView(card: card)
                 }
             }
             .task {

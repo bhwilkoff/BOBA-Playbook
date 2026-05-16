@@ -321,13 +321,15 @@ nonisolated enum BOBACardEntity {
             } else {
                 mat.color = .init(tint: placeholderFrontColor)
             }
-            // Alpha-test the rounded corners. Without this, UnlitMaterial
-            // defaults to `.opaque` blending and the transparent corner
-            // pixels in the rounded-corner-clipped texture render BLACK
-            // (the bitmap's RGB under alpha=0). With opacityThreshold,
-            // pixels below threshold are discarded entirely — revealing
-            // the backdrop behind the rounded silhouette.
-            mat.opacityThreshold = 0.5
+            // Anti-aliased rounded corners. Was `opacityThreshold = 0.5`
+            // (alpha-test, binary cutout) — that produces jagged
+            // stair-step edges at the rounded corners which read as
+            // "pixelated card." `.transparent` blends the alpha properly.
+            // Dither risk per feedback_realitykit_alpha_dither is minimal
+            // because the texture is ~99% alpha=1 with only a few-pixel
+            // transition band at the corners (vs. the failed sheen quad
+            // which was partial-alpha everywhere).
+            mat.blending = .transparent(opacity: 1.0)
             return mat
         case .physicallyBased:
             return makeFrontPBRMaterial(config: config)
@@ -344,7 +346,7 @@ nonisolated enum BOBACardEntity {
             } else {
                 mat.color = .init(tint: placeholderBackColor)
             }
-            mat.opacityThreshold = 0.5
+            mat.blending = .transparent(opacity: 1.0)
             return mat
         case .physicallyBased:
             var mat = PhysicallyBasedMaterial()

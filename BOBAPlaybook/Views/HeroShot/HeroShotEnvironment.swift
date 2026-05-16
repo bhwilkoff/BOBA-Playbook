@@ -21,8 +21,15 @@ enum HeroShotEnvironment {
 
     /// Equirectangular dimensions — 2:1 ratio as RealityKit's IBL
     /// expects. 2048×1024 is a good balance of detail vs memory.
-    static let envWidth = 2048
-    static let envHeight = 1024
+    /// Env image aspect MUST match the backdrop plane's aspect or
+    /// RealityKit stretches the texture and the carefully-placed
+    /// lights become tall ovals. Plane is 2.4m × 3.2m (3:4 portrait),
+    /// so env is 1536×2048 portrait. v5.2 had this at 2:1 landscape
+    /// 2048×1024 — the simulator output looked right but the iOS
+    /// render only showed a small portrait slice of it, missing
+    /// most of the designed lights.
+    static let envWidth = 1536
+    static let envHeight = 2048
 
     /// Generate the env-extension image from a card.
     ///
@@ -72,27 +79,37 @@ enum HeroShotEnvironment {
                                         baseAlpha: 0.45)
             }
 
-            // Layer 3a: KEY light (palette primary, lower-left)
+            // Layer 3a + 3b: TWO LIGHTS INSIDE the camera-visible
+            // window with TIGHT radii.
+            //
+            // v5.2 had lights at (0.28, 0.72) and (0.78, 0.28) — the
+            // env corners. Camera's tiny visible window saw only the
+            // gradients' outer falloff, reading as "simple gradient."
+            // Confirmed in tools/HeroShotSim/ camera-visible-crop
+            // previews — v5.2 CAM tiles looked like single-tone
+            // gradients. v5.3 puts the lights at (0.40, 0.55) and
+            // (0.60, 0.40) — INSIDE the visible window — with much
+            // tighter radii (0.45 / 0.40 × outHeight, vs v5.2's 1.10 /
+            // 0.85). The gradient FALLOFF EDGES now land within the
+            // visible window, producing CLEAR two-light contrast at
+            // hero-pose framing.
             let primary = palette.first ?? .white
             drawLightSpot(in: cg,
                           color: primary,
-                          center: CGPoint(x: outSize.width * 0.28,
-                                          y: outSize.height * 0.72),
-                          radius: outSize.height * 1.10,
+                          center: CGPoint(x: outSize.width * 0.40,
+                                          y: outSize.height * 0.55),
+                          radius: outSize.height * 0.45,
                           centerAlpha: 1.0, midAlpha: 0.55, midStop: 0.30)
-
-            // Layer 3b: RIM light (complementary hue, upper-right)
-            // Hue rotated +150° from primary, mild desaturation. For a
-            // warm primary (orange/red) → cool rim (teal/blue). For a
-            // cool primary (blue) → warm rim (orange/red). Universal
-            // warm/cool contrast regardless of palette.
+            // RIM: complementary hue (palette primary rotated +150°,
+            // mild desaturation). Universal warm/cool contrast even
+            // when the source palette is monochromatic.
             let rim = hueShifted(primary, byHue: 0.42, satScale: 0.85)
             drawLightSpot(in: cg,
                           color: rim,
-                          center: CGPoint(x: outSize.width * 0.78,
-                                          y: outSize.height * 0.28),
-                          radius: outSize.height * 0.85,
-                          centerAlpha: 0.80, midAlpha: 0.35, midStop: 0.35)
+                          center: CGPoint(x: outSize.width * 0.60,
+                                          y: outSize.height * 0.40),
+                          radius: outSize.height * 0.40,
+                          centerAlpha: 0.85, midAlpha: 0.40, midStop: 0.32)
 
             // Layer 4: edge vignette
             let space = CGColorSpaceCreateDeviceRGB()

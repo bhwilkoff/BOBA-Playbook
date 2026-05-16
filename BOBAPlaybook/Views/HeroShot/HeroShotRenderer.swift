@@ -51,20 +51,22 @@ final class HeroShotRenderer {
         ///
         /// Four phases of `.heroReveal` (fractions of `duration`):
         ///
-        ///   0     → 0.30   APPROACH  — cinematic wide → tighter dolly.
-        ///                              Card holds at yaw=0 (front-facing).
-        ///                              FOV 44° → 36°. Camera arcs from a
-        ///                              low-left wide establishing shot to
-        ///                              a slight 3/4 over-the-shoulder.
-        ///   0.30  → 0.66   SPIN      — Camera fixed at end-of-approach.
-        ///                              cardPivot yaw 0 → 2π. Front → edge
-        ///                              → BOBA card-back → edge → front.
-        ///                              Edge box visible at the yaw=π/2 /
-        ///                              3π/2 thin-strip moments.
-        ///   0.66  → 0.92   GLIDE     — Slight horizontal arc to settle on
-        ///                              a final 3/4 hero pose. Card holds
-        ///                              at yaw=0.
-        ///   0.92  → 1.00   HOLD      — Locked on the hero pose.
+        ///   0     → 0.20   APPROACH  — wide cinematic dolly from a far
+        ///                              low-left establishing shot to the
+        ///                              spin viewpoint (left of center,
+        ///                              slight high angle). FOV 48° → 38°.
+        ///   0.20  → 0.50   SPIN      — camera fixed; cardPivot yaw 0→2π.
+        ///                              Front → edge → BOBA card-back →
+        ///                              edge → front. Edge box visible at
+        ///                              the edge-on moments.
+        ///   0.50  → 0.92   HERO PAN  — true orbital arc at constant
+        ///                              distance (~36cm) from the left
+        ///                              spin viewpoint across to the
+        ///                              right. Card stays at yaw=0 so the
+        ///                              camera sees the art the whole
+        ///                              time, but from changing angles.
+        ///                              This is the centerpiece move.
+        ///   0.92  → 1.00   HOLD      — locked on the right-side hero pose.
         func frame(at time: Double,
                    duration: Double,
                    cardW: Float, cardH: Float, halfT: Float) -> AnimationFrame {
@@ -84,59 +86,89 @@ final class HeroShotRenderer {
                                 duration: Double,
                                 cardW: Float, cardH: Float, halfT: Float) -> AnimationFrame {
         // Phase boundaries in absolute time.
-        let approachEnd: Double = duration * 0.30   // 1.50s @ 5s
-        let spinEnd:     Double = duration * 0.66   // 3.30s @ 5s
-        let glideEnd:    Double = duration * 0.92   // 4.60s @ 5s
+        let approachEnd: Double = duration * 0.20   //  2.0s @ 10s
+        let spinEnd:     Double = duration * 0.50   //  5.0s @ 10s
+        let panEnd:      Double = duration * 0.92   //  9.2s @ 10s
 
-        // Camera keyframes. All look-at points sit at the card center
-        // (origin) so the card stays composed in frame regardless of
-        // camera angle. Cartesian positions in meters.
+        // Orbital pan parameters. The pan stays at constant distance from
+        // the card center (orbits a sphere) with a slight upward tilt.
+        // "From a good distance" = 36cm in front of the card, which at
+        // FOV 36° frames the card with comfortable headroom and lets the
+        // stage environment show around it.
+        let panDistance:  Float = 0.36
+        let panElevation: Float = 7 * .pi / 180     // ~7° above horizon
+        let panAzMin:     Float = -22 * .pi / 180   // left side
+        let panAzMax:     Float =  22 * .pi / 180   // right side
+        let panR: Float = panDistance * cos(panElevation)
+        let panY: Float = panDistance * sin(panElevation)
+        let orbitalPos: (Float) -> SIMD3<Float> = { az in
+            SIMD3<Float>(panR * sin(az), panY, panR * cos(az))
+        }
+
+        // Approach + spin viewpoint = orbital position at the LEFT edge
+        // of the hero pan. Ending the approach exactly at the pan's
+        // start point means there's no awkward camera jump between
+        // spin and pan — the pan continues seamlessly from where the
+        // spin ended.
+        let spinViewpoint = orbitalPos(panAzMin)
+        let spinPose = CameraPose(
+            position: spinViewpoint,
+            lookAt:   .zero,
+            fovDeg:   38
+        )
+
         let approachStart = CameraPose(
-            position: SIMD3<Float>(-0.08, -0.04, 0.42),  // low, left, far
-            lookAt:   SIMD3<Float>(0, -0.01, 0),
-            fovDeg:   44
+            position: SIMD3<Float>(-0.28, -0.06, 0.55),
+            lookAt:   SIMD3<Float>(0, -0.02, 0),
+            fovDeg:   48
         )
-        let approachStop = CameraPose(
-            position: SIMD3<Float>(0.02, 0.04, 0.26),    // slight 3/4 high
-            lookAt:   SIMD3<Float>(0, 0, 0),
+
+        let panEndPose = CameraPose(
+            position: orbitalPos(panAzMax),
+            lookAt:   .zero,
             fovDeg:   36
-        )
-        let glideStop = CameraPose(
-            position: SIMD3<Float>(0.10, 0.025, 0.22),   // hero pose, more right
-            lookAt:   SIMD3<Float>(0, 0, 0),
-            fovDeg:   32
         )
 
         if time <= approachEnd {
-            // APPROACH — wide cinematic dolly. Camera moves +
-            // FOV narrows from 44° (establishing) to 36° (over-shoulder).
+            // APPROACH — wide dolly from far-low-left to the spin
+            // viewpoint. FOV narrows from 48° (wide establishing) to
+            // 38° (3/4 over-the-shoulder).
             let raw = approachEnd == 0 ? 1.0 : time / approachEnd
             let eased = easedProgress(raw)
             return AnimationFrame(
-                cameraPose: lerpPose(approachStart, approachStop, Float(eased)),
+                cameraPose: lerpPose(approachStart, spinPose, Float(eased)),
                 cardYaw: 0
             )
         } else if time <= spinEnd {
-            // SPIN — camera holds at end-of-approach; card rotates.
-            // Easing gives the spin slight start-pause and end-pause
-            // so the front-facing moments feel like landings.
+            // SPIN — camera holds at spin viewpoint; card rotates.
+            // Smoothstep easing makes the spin start + end feel like
+            // landings; the front- and back-facing moments read as
+            // intentional poses, not midpoints of constant motion.
             let raw = (time - approachEnd) / (spinEnd - approachEnd)
             let eased = easedProgress(raw)
             return AnimationFrame(
-                cameraPose: approachStop,
+                cameraPose: spinPose,
                 cardYaw: Float(eased) * 2 * .pi
             )
-        } else if time <= glideEnd {
-            // GLIDE — slight rightward arc into the hero pose.
-            let raw = (time - spinEnd) / (glideEnd - spinEnd)
-            let eased = easedProgress(raw)
-            return AnimationFrame(
-                cameraPose: lerpPose(approachStop, glideStop, Float(eased)),
-                cardYaw: 0
+        } else if time <= panEnd {
+            // HERO PAN — orbital arc from -22° to +22° azimuth at
+            // constant 36cm distance. The camera traces a true circular
+            // path (not a linear lerp between two endpoints) so the
+            // pan feels like a real "around" move with constant
+            // framing distance. FOV narrows slightly through the move
+            // (38° → 36°) to add a subtle push-in feel.
+            let raw = (time - spinEnd) / (panEnd - spinEnd)
+            let eased = Float(easedProgress(raw))
+            let az = lerp(panAzMin, panAzMax, eased)
+            let pose = CameraPose(
+                position: orbitalPos(az),
+                lookAt:   .zero,
+                fovDeg:   lerp(38, 36, eased)
             )
+            return AnimationFrame(cameraPose: pose, cardYaw: 0)
         } else {
-            // HOLD — frozen on the hero pose.
-            return AnimationFrame(cameraPose: glideStop, cardYaw: 0)
+            // HOLD — frozen on the right-side hero pose.
+            return AnimationFrame(cameraPose: panEndPose, cardYaw: 0)
         }
     }
 
@@ -162,7 +194,9 @@ final class HeroShotRenderer {
         var backTexture: TextureResource?
         var includeWatermark: Bool = true
         var arc: ArcPreset = .heroReveal
-        var duration: TimeInterval = 5.0
+        /// Default: 10s. Long enough for an approach + spin + cinematic
+        /// hero pan + hold without any phase feeling rushed.
+        var duration: TimeInterval = 10.0
         var fps: Int = 60
         var size: CGSize = CGSize(width: 1080, height: 1920)
         var bitrate: Int = 12_000_000
@@ -303,6 +337,17 @@ final class HeroShotRenderer {
     static let cardH: Float = 0.0889
     static let halfT: Float = 0.0015
 
+    /// Rounded-corner radius ratio applied to the card art textures.
+    /// Matches HouseOfCardsView (`0.045` of the shorter card dimension)
+    /// so the rounded silhouette looks identical across both surfaces.
+    /// MUST match the ratio in `HeroShotView.roundedCorners(...)`.
+    static let cornerRadiusRatio: Float = 0.045
+
+    /// Absolute corner radius in meters — used both for the texture
+    /// clipping AND for sizing the card-edge box so its corners stay
+    /// hidden behind the rounded plane mask.
+    static var cornerRadius: Float { min(cardW, cardH) * cornerRadiusRatio }
+
     /// Bundle of references the render loop drives per-frame.
     private struct SceneBundle {
         let renderer: RealityRenderer
@@ -407,21 +452,29 @@ final class HeroShotRenderer {
 
         // ── Card edge ───────────────────────────────────────────────
         // Thin element-tinted box that sits BETWEEN the front and back
-        // planes. When the camera sees the card at an angle (and during
-        // the spin's edge-on moments), the box's side faces show a
-        // visible element-colored stripe — the card reads as a physical
-        // object with real thickness rather than two coplanar planes
-        // with nothing between them.
+        // planes. The box's X and Y faces (the side edges) read as a
+        // physical card thickness; the spin's edge-on moments and any
+        // 3/4 view show this element-colored stripe.
         //
-        // Dimensions slightly smaller than the planes so the box's
-        // own +Z/-Z faces are HIDDEN behind the planes (no z-fighting).
-        // The box's X and Y faces (the side edges) remain visible.
-        let edgeInset: Float = 0.0008
+        // Box dimensions are inset by ONE corner-radius in X and Y so
+        // the box's footprint is contained inside the rounded plane
+        // silhouette. (See v2.160 in HouseOfCardsView for the failure
+        // mode of a full-rectangle box behind rounded planes: the
+        // box's corners poked through the transparent corner regions
+        // and the card looked like "rounded art inside a sharp white
+        // rectangle." Insetting by the corner radius keeps the box
+        // corners inside the quarter-circles' centers, hidden behind
+        // solid texture.)
+        //
+        // Box Z thickness is slightly LESS than `2 * halfT` so the
+        // box's ±Z faces sit inside the front/back planes (no
+        // z-fighting). Only the box's X and Y side faces are visible.
+        let r = Self.cornerRadius
         let edgeMesh = MeshResource.generateBox(
             size: SIMD3<Float>(
-                Self.cardW - edgeInset * 2,
-                Self.cardH - edgeInset * 2,
-                Self.halfT * 1.5    // slightly less than 2*halfT so it sits inside
+                Self.cardW - r * 2,
+                Self.cardH - r * 2,
+                Self.halfT * 1.5
             )
         )
         var edgeMat = UnlitMaterial()

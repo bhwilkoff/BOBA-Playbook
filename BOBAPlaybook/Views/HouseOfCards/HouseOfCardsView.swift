@@ -3403,78 +3403,33 @@ private final class HouseOfCardsCoordinator: NSObject {
     private func buildCardEntity(for card: Card,
                                  position: SIMD3<Float>,
                                  rotation: simd_quatf = simd_quatf(angle: 0, axis: SIMD3<Float>(1,0,0))) -> ModelEntity {
-        let halfT = Self.cardThick * 0.5
-
         // ── Root entity: physics body + collision live here.
-        //    Invisible (no mesh on the root).
+        //    Invisible (no mesh on the root). The visual card lives
+        //    inside as a child built by BOBACardEntity.
         let entity = ModelEntity()
         entity.position = position
         entity.orientation = rotation
         entity.name = "card-root"
 
-        // ── No card-body box: v2.160 used a thin off-white box
-        //    for visible thickness, but its full-rectangle top/
-        //    bottom faces poked past the rounded-texture planes'
-        //    transparent corners — the white box showed THROUGH
-        //    the rounded mask, making the cards look like rounded
-        //    images inside sharp white rectangles. The card now
-        //    visually is just two planes (front + back) with
-        //    near-zero gap. Physics still works because the
-        //    CollisionComponent on the root entity uses a box
-        //    shape with the same dimensions.
-
-        // ── Plane orientation math (v3 / v2.160):
+        // ── Visual card — shared across House of BoBA + Hero Shot +
+        //    any future 3D-card surface. Pose `.flat` matches HouseOfCards's
+        //    "lying-on-table native" so the existing entity-rotation
+        //    chain (standUp + faceCamera + faceCurrentCamera) AND the
+        //    collision-shape dimensions below stay valid. `includeEdge`
+        //    adds an off-white card-stock side strip — visible
+        //    thickness when cards are at angles or fanning out.
         //
-        //    Entity rotation for card 1 (left/at-Z): -π/4 around X.
-        //    That maps local axes to world directions as:
-        //       local +X → world +X (width, parallel to table edge)
-        //       local +Y → world (0, +sin45, -cos45) = up + -Z
-        //         (the "outward" tent slope for card 1)
-        //       local +Z → world (0, +cos45, +sin45) = up + +Z
-        //         (toward apex)
-        //
-        //    For the FRONT face (art) to be on the OUTWARD slope
-        //    of the tent — i.e., facing away from the apex — its
-        //    normal direction in world space should match local +Y's
-        //    world direction. So put the front plane at entity-local
-        //    +Y position with default (+Y normal) orientation.
-        //
-        //    The back plane goes at entity-local -Y, with its normal
-        //    flipped (rotated π around X) so it points inward toward
-        //    the apex (the inside of the tent).
-        let frontMesh = MeshResource.generatePlane(width: Self.cardWidth,
-                                                   depth: Self.cardHeight,
-                                                   cornerRadius: Self.cornerR)
-        // Neutral dark placeholder until CDN art loads. Previously
-        // used the back-texture which made the front face briefly
-        // look like a flipped card back — user reported the
-        // half-second of "back" appearance on spawn.
-        var placeholder = UnlitMaterial()
-        placeholder.color = .init(tint: UIColor(white: 0.08, alpha: 1))
-        let frontEntity = ModelEntity(mesh: frontMesh, materials: [placeholder])
-        // Front plane: at entity-local +Y; default normal +Y maps
-        // to the outward-facing direction after entity rotation.
-        frontEntity.position = SIMD3<Float>(0, halfT + 0.00012, 0)
-        frontEntity.name = "card-front"
-        entity.addChild(frontEntity)
-
-        // ── Back plane: at entity-local -Y, flipped π around X so
-        //    its normal points inward (toward the apex / inside
-        //    the tent).
-        let backMesh = MeshResource.generatePlane(width: Self.cardWidth,
-                                                  depth: Self.cardHeight,
-                                                  cornerRadius: Self.cornerR)
-        var backMatUnlit = UnlitMaterial()
-        if let tex = backTexture {
-            backMatUnlit.color = .init(tint: .white, texture: .init(tex))
-        } else {
-            backMatUnlit.color = .init(tint: UIColor(red: 0.65, green: 0.20, blue: 0.18, alpha: 1))
-        }
-        let backEntity = ModelEntity(mesh: backMesh, materials: [backMatUnlit])
-        backEntity.position = SIMD3<Float>(0, -halfT - 0.00012, 0)
-        backEntity.orientation = simd_quatf(angle: .pi, axis: SIMD3<Float>(1, 0, 0))
-        backEntity.name = "card-back"
-        entity.addChild(backEntity)
+        //    The front plane starts with a dark placeholder (matching
+        //    BOBACardEntity.placeholderFrontColor); per-card art lands
+        //    later via `applyArt(to:texture:)` once the CDN download
+        //    completes.
+        let visual = BOBACardEntity.build(BOBACardEntity.Config(
+            frontTexture: nil,
+            backTexture: backTexture,
+            includeEdge: true,
+            pose: .flat
+        ))
+        entity.addChild(visual)
 
         // ── Collision + physics on the root (so the planes
         //    move with the box rigid body).
@@ -3546,52 +3501,23 @@ private final class HouseOfCardsCoordinator: NSObject {
         }
     }
 
-    // MARK: Texture helpers — rounded-corner clipping + vertical flip
+    // MARK: Texture helpers — rounded-corner clipping
     //
-    // Two image preprocessing steps before texture upload:
-    //
-    // 1. Rounded corners: MeshResource.generatePlane(cornerRadius:)
-    //    doesn't actually round the visible plane mesh — the
-    //    parameter is silently ignored on iOS 17/18. So we clip
-    //    the underlying image to a rounded rect and let the alpha
-    //    channel cut the corners.
-    //
-    // 2. Vertical flip: MeshResource.generatePlane maps the image's
-    //    top edge to the plane's -Z direction. With the v2.160
-    //    entity rotation, plane-local -Z ends up at world -Y
-    //    (downward). The card visually appears upside-down. Pre-
-    //    flipping the image vertically inverts the V mapping so
-    //    the card's top (where the hero name is) ends up at the
-    //    highest point in world space.
+    // Delegates to `BOBACardEntity.roundedCorners(_:applyRotation:)`
+    // so House of BoBA and Hero Shot and any future 3D-card surface
+    // share one rounded-corner implementation. The `applyRotation`
+    // parameter still matters here: HouseOfCards uses pose `.flat`
+    // where the front image lands upside-down after the entity-
+    // rotation chain, so the front art is pre-rotated 180°
+    // (`applyRotation: true`). The card-back PNG keeps `false`
+    // since the back plane's R_x(π) local rotation already flips
+    // image-V correctly.
     static func roundedCorners(_ image: UIImage,
                                radiusRatio: CGFloat = 0.045,
                                applyRotation: Bool = true) -> UIImage? {
-        let size = image.size
-        guard size.width > 0, size.height > 0 else { return image }
-        let radius = min(size.width, size.height) * radiusRatio
-        let rect = CGRect(origin: .zero, size: size)
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = image.scale
-        format.opaque = false
-        let renderer = UIGraphicsImageRenderer(size: size, format: format)
-        return renderer.image { ctx in
-            let cg = ctx.cgContext
-            if applyRotation {
-                // 180° rotation for the FRONT-plane texture only.
-                // The front plane has no local rotation, so we
-                // compensate for the plane's UV mapping (image top
-                // → plane -Z) by rotating the image. The BACK plane
-                // already has a π-around-X local rotation which
-                // does this flip implicitly — applying the same
-                // image rotation to the back-card texture would
-                // double-flip and show upside-down.
-                cg.translateBy(x: size.width, y: size.height)
-                cg.scaleBy(x: -1, y: -1)
-            }
-            let path = UIBezierPath(roundedRect: rect, cornerRadius: radius)
-            path.addClip()
-            image.draw(in: rect)
-        }
+        _ = radiusRatio  // shared helper uses the canonical 0.045 — only
+                         // value HouseOfCards ever passed.
+        return BOBACardEntity.roundedCorners(image, applyRotation: applyRotation)
     }
 
     private func makeEdgeMaterial() -> PhysicallyBasedMaterial {

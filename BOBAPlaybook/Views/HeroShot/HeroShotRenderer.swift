@@ -329,24 +329,14 @@ final class HeroShotRenderer {
 
     // MARK: - Scene
 
-    /// Standard BoBA card dimensions in meters (~63.5mm × 88.9mm — real
-    /// physical card size). The 1.5mm `halfT` is purely visual offset
-    /// between the front and back planes; the card has no rigid body
-    /// here (Hero Shot is a pure render).
-    static let cardW: Float = 0.0635
-    static let cardH: Float = 0.0889
-    static let halfT: Float = 0.0015
-
-    /// Rounded-corner radius ratio applied to the card art textures.
-    /// Matches HouseOfCardsView (`0.045` of the shorter card dimension)
-    /// so the rounded silhouette looks identical across both surfaces.
-    /// MUST match the ratio in `HeroShotView.roundedCorners(...)`.
-    static let cornerRadiusRatio: Float = 0.045
-
-    /// Absolute corner radius in meters — used both for the texture
-    /// clipping AND for sizing the card-edge box so its corners stay
-    /// hidden behind the rounded plane mask.
-    static var cornerRadius: Float { min(cardW, cardH) * cornerRadiusRatio }
+    /// Card dimensions — single source of truth in `BOBACardEntity`.
+    /// Re-exposed here for the camera-animation math (it needs cardW
+    /// and cardH to compute pan positions and look-at offsets).
+    static var cardW: Float { BOBACardEntity.width }
+    static var cardH: Float { BOBACardEntity.height }
+    static var halfT: Float { BOBACardEntity.halfThickness }
+    static var cornerRadiusRatio: Float { BOBACardEntity.cornerRadiusRatio }
+    static var cornerRadius: Float { BOBACardEntity.cornerRadius }
 
     /// Bundle of references the render loop drives per-frame.
     private struct SceneBundle {
@@ -399,91 +389,20 @@ final class HeroShotRenderer {
         floor.position = SIMD3<Float>(0, -Self.cardH * 0.5 - 0.003, 0)
         root.addChild(floor)
 
-        // ── Card pivot ────────────────────────────────────────────────
-        // Front + back planes + edge box are children of this pivot.
-        // Spinning the pivot around its Y rotates the whole card as a
-        // single unit. Pivot at world origin = card center.
-        let cardPivot = Entity()
+        // ── Card ────────────────────────────────────────────────────
+        // Front + back planes + off-white card-stock edge, all from
+        // the shared BOBACardEntity helper. Canonical `.upright` pose:
+        // front normal +Z (toward the default camera), image-top +Y.
+        // Cinematic Hero Shot env tints come from the backdrop/floor;
+        // the card itself uses cream off-white edge stock for realism.
+        let cardPivot = BOBACardEntity.build(BOBACardEntity.Config(
+            frontTexture: config.frontTexture,
+            backTexture: config.backTexture,
+            includeEdge: true,
+            pose: .upright
+        ))
         cardPivot.position = .zero
         root.addChild(cardPivot)
-
-        // ── Front plane ──────────────────────────────────────────────
-        // `MeshResource.generatePlane(width:depth:)` lives in XZ (width
-        // X, depth Z), normal +Y, image-V mapped top → -Z. Rotate
-        // +π/2 around X to get:
-        //    normal +Y    → +Z  (faces the front-of-card direction)
-        //    image-top -Z → +Y  (right-side up)
-        let frontMesh = MeshResource.generatePlane(width: Self.cardW, depth: Self.cardH)
-        var frontMat = UnlitMaterial()
-        frontMat.color = .init(tint: .white, texture: .init(config.frontTexture))
-        let front = ModelEntity(mesh: frontMesh, materials: [frontMat])
-        front.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
-        front.position = SIMD3<Float>(0, 0, Self.halfT)
-        cardPivot.addChild(front)
-
-        // ── Back plane ──────────────────────────────────────────────
-        // We need:
-        //   normal at -Z (faces the back direction)
-        //   image-top at +Y (so the bundled card-back PNG isn't
-        //                    upside-down when the spin shows the back)
-        //
-        // R_x(-π/2) alone gives normal at -Z but image-top at -Y
-        // (upside-down). Compose with R_y(π) first (applied to the
-        // local axes before the X tilt) to flip image-V:
-        //
-        //   R_back = R_x(-π/2) * R_y(π)
-        //
-        // Swift quaternion compose: q1 * q2 applies q2 first. So this
-        // means R_y(π) acts on the local axes first, then R_x(-π/2)
-        // tilts. Result: normal → -Z, image-top → +Y. Verified.
-        let backMesh = MeshResource.generatePlane(width: Self.cardW, depth: Self.cardH)
-        var backMat = UnlitMaterial()
-        if let backTex = config.backTexture {
-            backMat.color = .init(tint: .white, texture: .init(backTex))
-        } else {
-            backMat.color = .init(tint: UIColor(red: 0.65, green: 0.20, blue: 0.18, alpha: 1))
-        }
-        let back = ModelEntity(mesh: backMesh, materials: [backMat])
-        back.orientation =
-            simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
-            * simd_quatf(angle: .pi, axis: SIMD3<Float>(0, 1, 0))
-        back.position = SIMD3<Float>(0, 0, -Self.halfT)
-        cardPivot.addChild(back)
-
-        // ── Card edge ───────────────────────────────────────────────
-        // Thin element-tinted box that sits BETWEEN the front and back
-        // planes. The box's X and Y faces (the side edges) read as a
-        // physical card thickness; the spin's edge-on moments and any
-        // 3/4 view show this element-colored stripe.
-        //
-        // Box dimensions are inset by ONE corner-radius in X and Y so
-        // the box's footprint is contained inside the rounded plane
-        // silhouette. (See v2.160 in HouseOfCardsView for the failure
-        // mode of a full-rectangle box behind rounded planes: the
-        // box's corners poked through the transparent corner regions
-        // and the card looked like "rounded art inside a sharp white
-        // rectangle." Insetting by the corner radius keeps the box
-        // corners inside the quarter-circles' centers, hidden behind
-        // solid texture.)
-        //
-        // Box Z thickness is slightly LESS than `2 * halfT` so the
-        // box's ±Z faces sit inside the front/back planes (no
-        // z-fighting). Only the box's X and Y side faces are visible.
-        let r = Self.cornerRadius
-        let edgeMesh = MeshResource.generateBox(
-            size: SIMD3<Float>(
-                Self.cardW - r * 2,
-                Self.cardH - r * 2,
-                Self.halfT * 1.5
-            )
-        )
-        var edgeMat = UnlitMaterial()
-        // Lighten the element color so the edge reads against the dark
-        // backdrop without overpowering the art.
-        edgeMat.color = .init(tint: Self.blendColor(elem, with: .white, t: 0.35))
-        let edge = ModelEntity(mesh: edgeMesh, materials: [edgeMat])
-        edge.position = .zero
-        cardPivot.addChild(edge)
 
         // ── Camera ──────────────────────────────────────────────────
         let camera = PerspectiveCamera()
@@ -577,21 +496,6 @@ final class HeroShotRenderer {
             mat.color = .init(tint: UIColor(red: 0.020, green: 0.020, blue: 0.045, alpha: 1))
         }
         return mat
-    }
-
-    /// Blend two UIColors in sRGB.
-    private static func blendColor(_ a: UIColor, with b: UIColor, t: CGFloat) -> UIColor {
-        var ar: CGFloat = 0, ag: CGFloat = 0, ab: CGFloat = 0, aa: CGFloat = 1
-        var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 1
-        a.getRed(&ar, green: &ag, blue: &ab, alpha: &aa)
-        b.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
-        let s = max(0, min(1, t))
-        return UIColor(
-            red:   ar + (br - ar) * s,
-            green: ag + (bg - ag) * s,
-            blue:  ab + (bb - ab) * s,
-            alpha: aa + (ba - aa) * s
-        )
     }
 
     /// Map the catalog `element` field to the canonical UI color, mirroring

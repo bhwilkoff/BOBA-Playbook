@@ -181,9 +181,47 @@ func extractPalette(from image: CGImage, count: Int = 3) -> [RGB] {
     return result.isEmpty ? [(0.5, 0.5, 0.5)] : result
 }
 
-// MARK: - Generate env image (simplified B10 algorithm)
+// MARK: - Generate env image (v6 — sweep multiple approaches)
 
-func makeEnvImage(cardArt: CGImage, palette: [RGB]) -> CGImage? {
+enum EnvVariant: String, CaseIterable {
+    /// v5.3 baseline — dark base + ambient blur + two screen lights.
+    case baseline
+    /// + 5 hard-edge diagonal stripes in rim color (Battlefoil-cue).
+    case diagonalStripes
+    /// + 2 converging "stage spotlight" beams from upper corners.
+    case spotlightBeams
+    /// + Sharper card-art carry-through (less blur, larger copies).
+    case sharperAmbient
+    /// Single intense centered spotlight, very dark periphery.
+    case dramaticSpotlight
+    /// Architectural radial-burst lines + chunky vignette frame.
+    case architecturalBurst
+    /// **New**: design tightly concentrated in the camera-visible
+    /// window (~13×18% center of the env canvas). All design lives
+    /// where the camera will actually see it.
+    case tightFocus
+    /// **Newer**: env IS the card art. One huge zoomed copy (1.8×),
+    /// heavy blur, fills the canvas. No multi-rotated tiling — pure
+    /// watercolor wash of the card's own colors. Vignette pulls
+    /// corners dark, two complementary accents top/bottom.
+    case deepDive
+
+    var displayName: String { rawValue }
+}
+
+enum FloorVariant: String, CaseIterable {
+    /// v5.4 ship — solid palette tint blended 45% to black.
+    case solid
+    /// Radial gradient: palette primary at card center → near-black.
+    case radialSpot
+    /// Env image darkened, used as floor texture.
+    case envEcho
+
+    var displayName: String { rawValue }
+}
+
+func makeEnvImage(cardArt: CGImage, palette: [RGB],
+                  variant: EnvVariant = .baseline) -> CGImage? {
     let envW = 1536, envH = 2048
     let cs = CGColorSpaceCreateDeviceRGB()
     guard let ctx = CGContext(
@@ -191,33 +229,290 @@ func makeEnvImage(cardArt: CGImage, palette: [RGB]) -> CGImage? {
         bitsPerComponent: 8, bytesPerRow: 0, space: cs,
         bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
     ) else { return nil }
-    // Dark base
     let primary = palette.first ?? (0.5, 0.5, 0.5)
-    let dark = blendRGB(primary, (0, 0, 0), t: 0.85)
+    let rim = hueShifted(primary, byHue: 0.42, satScale: 0.85)
+
+    // Dark base — variant-specific darkness.
+    let darkT: CGFloat = variant == .dramaticSpotlight ? 0.95 : 0.85
+    let dark = blendRGB(primary, (0, 0, 0), t: darkT)
     ctx.setFillColor(toCGColor(dark))
     ctx.fill(CGRect(x: 0, y: 0, width: envW, height: envH))
-    // Ambient blurred card art
-    if let blurred = ambientBlur(of: cardArt) {
-        ctx.saveGState()
-        ctx.setAlpha(0.45)
-        ctx.draw(blurred, in: CGRect(x: 0, y: 0, width: envW, height: envH))
-        ctx.restoreGState()
+
+    // Card-art ambient layer — alpha + blur varies by variant.
+    // deepDive handles its own card-art layer further down (zoomed,
+    // single copy, no tiling), so skip the default here.
+    if variant != .deepDive {
+        let ambientAlpha: CGFloat
+        let ambientBlurFrac: CGFloat
+        switch variant {
+        case .sharperAmbient: ambientAlpha = 0.65; ambientBlurFrac = 0.10
+        case .dramaticSpotlight: ambientAlpha = 0.25; ambientBlurFrac = 0.21
+        default: ambientAlpha = 0.45; ambientBlurFrac = 0.21
+        }
+        if let blurred = ambientBlur(of: cardArt, blurFraction: ambientBlurFrac) {
+            ctx.saveGState()
+            ctx.setAlpha(ambientAlpha)
+            ctx.draw(blurred, in: CGRect(x: 0, y: 0, width: envW, height: envH))
+            ctx.restoreGState()
+        }
     }
-    // KEY light (warm, lower-left of visible)
-    drawLightSpot(ctx: ctx, color: primary,
-                  center: CGPoint(x: CGFloat(envW) * 0.40, y: CGFloat(envH) * 0.55),
-                  radius: CGFloat(envH) * 0.45,
-                  centerAlpha: 1.0, midAlpha: 0.55, midStop: 0.30)
-    // RIM light (cool, upper-right of visible)
-    let rim = hueShifted(primary, byHue: 0.42, satScale: 0.85)
-    drawLightSpot(ctx: ctx, color: rim,
-                  center: CGPoint(x: CGFloat(envW) * 0.60, y: CGFloat(envH) * 0.40),
-                  radius: CGFloat(envH) * 0.40,
-                  centerAlpha: 0.85, midAlpha: 0.40, midStop: 0.32)
+
+    // Architectural overlays per variant.
+    switch variant {
+    case .baseline, .sharperAmbient:
+        break
+    case .diagonalStripes:
+        drawDiagonalStripes(ctx: ctx, w: envW, h: envH, color: rim,
+                            count: 5, alpha: 0.28)
+    case .spotlightBeams:
+        drawSpotlightBeams(ctx: ctx, w: envW, h: envH,
+                           palette: primary, rim: rim)
+    case .dramaticSpotlight:
+        // Single intense central spotlight — palette primary.
+        drawLightSpot(ctx: ctx, color: primary,
+                      center: CGPoint(x: CGFloat(envW) * 0.5,
+                                      y: CGFloat(envH) * 0.5),
+                      radius: CGFloat(envH) * 0.55,
+                      centerAlpha: 1.0, midAlpha: 0.50, midStop: 0.20)
+        // Heavy edge vignette pulls periphery to black.
+        drawEdgeVignette(ctx: ctx, w: envW, h: envH, strength: 0.65)
+    case .architecturalBurst:
+        drawRadialBurst(ctx: ctx, w: envW, h: envH,
+                        color: rim, rayCount: 12, alpha: 0.22)
+        // Thin frame inset (architecture rectangle) inside visible window.
+        drawFrameLine(ctx: ctx, w: envW, h: envH,
+                      insetFrac: 0.42, color: rim, alpha: 0.45,
+                      lineWidthPx: 6)
+    case .tightFocus:
+        // The camera at hero pose only sees ~13% × 18% of the env at
+        // center. Pack the design into that window so the user
+        // actually sees it. Three design layers, all tight:
+        //  1. Bright palette glow centered (visible behind card)
+        //  2. Thin rim-color halo ring around the visible window
+        //  3. Two short radial accents (top + bottom of visible window)
+        //
+        // The rest of the canvas can stay quite dark — only the IBL
+        // contribution from off-screen matters at the periphery.
+        let cx = CGFloat(envW) * 0.5
+        let cy = CGFloat(envH) * 0.5
+        let visW = CGFloat(envW) * 0.18  // slightly wider than camera FOV
+        let visH = CGFloat(envH) * 0.22
+        // (1) Bright palette glow filling the visible window — drives
+        // strong color cast on the card area + IBL ambient.
+        drawLightSpot(ctx: ctx, color: primary,
+                      center: CGPoint(x: cx, y: cy),
+                      radius: max(visW, visH) * 1.1,
+                      centerAlpha: 1.0, midAlpha: 0.70, midStop: 0.45)
+        // (2) Rim halo ring just outside the camera FOV — read as
+        // "light coming from behind the card edges."
+        let ringRect = CGRect(
+            x: cx - visW, y: cy - visH,
+            width: visW * 2, height: visH * 2
+        )
+        ctx.saveGState()
+        ctx.setBlendMode(.screen)
+        ctx.setStrokeColor(toCGColor(rim, alpha: 0.65))
+        ctx.setLineWidth(12.0)
+        ctx.strokeEllipse(in: ringRect)
+        ctx.restoreGState()
+        // (3) Two short radial accents from top + bottom of visible
+        // window pointing inward — gives the env directional energy.
+        drawLightSpot(ctx: ctx, color: rim,
+                      center: CGPoint(x: cx, y: cy - visH * 0.85),
+                      radius: visW * 1.4,
+                      centerAlpha: 0.75, midAlpha: 0.30, midStop: 0.35)
+        drawLightSpot(ctx: ctx, color: primary,
+                      center: CGPoint(x: cx, y: cy + visH * 0.85),
+                      radius: visW * 1.4,
+                      centerAlpha: 0.75, midAlpha: 0.30, midStop: 0.35)
+    case .deepDive:
+        // ONE huge, heavily-blurred copy of the card art that fills
+        // and overflows the canvas. No multi-rotated tiling — pure
+        // organic watercolor wash. The env IS the card's color world.
+        if let blurred = ambientBlur(of: cardArt, blurFraction: 0.35) {
+            let cgi = blurred
+            // Scale 1.8× and center — the card art "zooms outward" past
+            // the canvas edges, so corners get strong color spill.
+            let scale: CGFloat = 1.8
+            let srcAR = CGFloat(cgi.width) / CGFloat(cgi.height)
+            let drawW = CGFloat(envW) * scale
+            let drawH = drawW / srcAR
+            let x = (CGFloat(envW) - drawW) * 0.5
+            let y = (CGFloat(envH) - drawH) * 0.5
+            ctx.saveGState()
+            ctx.setAlpha(0.85)
+            ctx.draw(cgi, in: CGRect(x: x, y: y, width: drawW, height: drawH))
+            ctx.restoreGState()
+        }
+        // Vignette pulls corners toward black, focuses attention.
+        drawEdgeVignette(ctx: ctx, w: envW, h: envH, strength: 0.55)
+        // Two accents: warm palette above, cool rim below — these
+        // are LARGE-radius soft lights that drive IBL contribution.
+        drawLightSpot(ctx: ctx, color: primary,
+                      center: CGPoint(x: CGFloat(envW) * 0.5,
+                                      y: CGFloat(envH) * 0.28),
+                      radius: CGFloat(envH) * 0.40,
+                      centerAlpha: 0.85, midAlpha: 0.45, midStop: 0.35)
+        drawLightSpot(ctx: ctx, color: rim,
+                      center: CGPoint(x: CGFloat(envW) * 0.5,
+                                      y: CGFloat(envH) * 0.72),
+                      radius: CGFloat(envH) * 0.40,
+                      centerAlpha: 0.75, midAlpha: 0.40, midStop: 0.35)
+    }
+
+    // Two lights (skipped for dramaticSpotlight, tightFocus, deepDive
+    // — all have their own integrated light design).
+    if variant != .dramaticSpotlight && variant != .tightFocus && variant != .deepDive {
+        drawLightSpot(ctx: ctx, color: primary,
+                      center: CGPoint(x: CGFloat(envW) * 0.40,
+                                      y: CGFloat(envH) * 0.55),
+                      radius: CGFloat(envH) * 0.45,
+                      centerAlpha: 1.0, midAlpha: 0.55, midStop: 0.30)
+        drawLightSpot(ctx: ctx, color: rim,
+                      center: CGPoint(x: CGFloat(envW) * 0.60,
+                                      y: CGFloat(envH) * 0.40),
+                      radius: CGFloat(envH) * 0.40,
+                      centerAlpha: 0.85, midAlpha: 0.40, midStop: 0.32)
+    }
     return ctx.makeImage()
 }
 
-func ambientBlur(of image: CGImage) -> CGImage? {
+/// Diagonal hard-edge stripes — Battlefoil architectural cue.
+func drawDiagonalStripes(ctx: CGContext, w: Int, h: Int, color: RGB,
+                         count: Int, alpha: CGFloat) {
+    ctx.saveGState()
+    ctx.setBlendMode(.screen)
+    ctx.setFillColor(toCGColor(color, alpha: alpha))
+    let envW = CGFloat(w), envH = CGFloat(h)
+    let bandH = envH / CGFloat(count * 3)  // stripe = 1/3 of band cell
+    let spacing = envH / CGFloat(count)
+    let dx = envW * 0.6                     // diagonal slope
+    for i in 0..<count {
+        let y = CGFloat(i) * spacing - bandH
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: -envW * 0.2, y: y))
+        path.addLine(to: CGPoint(x: -envW * 0.2 + dx, y: y - bandH * 4))
+        path.addLine(to: CGPoint(x: envW * 1.2 + dx, y: y - bandH * 4 + envH))
+        path.addLine(to: CGPoint(x: envW * 1.2, y: y + envH))
+        path.closeSubpath()
+        ctx.addPath(path)
+        ctx.fillPath()
+    }
+    ctx.restoreGState()
+}
+
+/// Two converging triangular "spotlight beams" from upper corners
+/// pointing at the card position (center of canvas, where camera frames).
+func drawSpotlightBeams(ctx: CGContext, w: Int, h: Int,
+                        palette: RGB, rim: RGB) {
+    let envW = CGFloat(w), envH = CGFloat(h)
+    let target = CGPoint(x: envW * 0.5, y: envH * 0.45)
+    func drawBeam(origin: CGPoint, color: RGB, alpha: CGFloat, width: CGFloat) {
+        ctx.saveGState()
+        ctx.setBlendMode(.screen)
+        // Build a triangle from origin (narrow) widening toward target.
+        let dx = target.x - origin.x
+        let dy = target.y - origin.y
+        let len = sqrt(dx * dx + dy * dy)
+        let ux = dx / len, uy = dy / len
+        // Perpendicular vector
+        let px = -uy, py = ux
+        // Triangle: apex at origin, two corners at target ± perp * width
+        let apex = origin
+        let baseL = CGPoint(x: target.x + px * width, y: target.y + py * width)
+        let baseR = CGPoint(x: target.x - px * width, y: target.y - py * width)
+        let path = CGMutablePath()
+        path.move(to: apex)
+        path.addLine(to: baseL)
+        path.addLine(to: baseR)
+        path.closeSubpath()
+        // Linear-gradient fill from apex (bright) to base (transparent).
+        let cs = CGColorSpaceCreateDeviceRGB()
+        let colors = [
+            toCGColor(color, alpha: alpha),
+            toCGColor(color, alpha: 0)
+        ] as CFArray
+        guard let grad = CGGradient(colorsSpace: cs, colors: colors, locations: [0, 1])
+        else { ctx.restoreGState(); return }
+        ctx.addPath(path)
+        ctx.clip()
+        ctx.drawLinearGradient(grad,
+                               start: apex, end: target,
+                               options: [])
+        ctx.restoreGState()
+    }
+    drawBeam(origin: CGPoint(x: envW * 0.10, y: envH * 0.10),
+             color: palette, alpha: 0.55, width: envW * 0.22)
+    drawBeam(origin: CGPoint(x: envW * 0.90, y: envH * 0.10),
+             color: rim, alpha: 0.45, width: envW * 0.22)
+}
+
+/// Radial burst of thin lines from center (architectural starburst).
+func drawRadialBurst(ctx: CGContext, w: Int, h: Int, color: RGB,
+                     rayCount: Int, alpha: CGFloat) {
+    let envW = CGFloat(w), envH = CGFloat(h)
+    let cx = envW * 0.5, cy = envH * 0.5
+    let maxR = sqrt(envW * envW + envH * envH) * 0.6
+    ctx.saveGState()
+    ctx.setBlendMode(.screen)
+    ctx.setStrokeColor(toCGColor(color, alpha: alpha))
+    ctx.setLineWidth(2.0)
+    for i in 0..<rayCount {
+        let angle = CGFloat(i) * .pi * 2 / CGFloat(rayCount)
+        // Two rays per "ray" (slightly offset) for thicker reading.
+        for off in [-0.02, 0.02] as [CGFloat] {
+            let a = angle + off
+            let x = cx + cos(a) * maxR
+            let y = cy + sin(a) * maxR
+            ctx.move(to: CGPoint(x: cx, y: cy))
+            ctx.addLine(to: CGPoint(x: x, y: y))
+            ctx.strokePath()
+        }
+    }
+    ctx.restoreGState()
+}
+
+/// A thin rectangular frame inside the canvas — architectural inset.
+func drawFrameLine(ctx: CGContext, w: Int, h: Int,
+                   insetFrac: CGFloat, color: RGB,
+                   alpha: CGFloat, lineWidthPx: CGFloat) {
+    let envW = CGFloat(w), envH = CGFloat(h)
+    let insetX = envW * insetFrac
+    let insetY = envH * insetFrac
+    let rect = CGRect(
+        x: insetX, y: insetY,
+        width: envW - 2 * insetX, height: envH - 2 * insetY
+    )
+    ctx.saveGState()
+    ctx.setBlendMode(.screen)
+    ctx.setStrokeColor(toCGColor(color, alpha: alpha))
+    ctx.setLineWidth(lineWidthPx)
+    ctx.stroke(rect)
+    ctx.restoreGState()
+}
+
+/// Edge vignette — radial gradient pulling corners darker.
+func drawEdgeVignette(ctx: CGContext, w: Int, h: Int, strength: CGFloat) {
+    let envW = CGFloat(w), envH = CGFloat(h)
+    let cs = CGColorSpaceCreateDeviceRGB()
+    let colors = [
+        toCGColor((0, 0, 0), alpha: 0),
+        toCGColor((0, 0, 0), alpha: 0),
+        toCGColor((0, 0, 0), alpha: strength)
+    ] as CFArray
+    guard let g = CGGradient(colorsSpace: cs, colors: colors, locations: [0.0, 0.50, 1.0])
+    else { return }
+    ctx.saveGState()
+    ctx.drawRadialGradient(g,
+                           startCenter: CGPoint(x: envW / 2, y: envH / 2),
+                           startRadius: 0,
+                           endCenter: CGPoint(x: envW / 2, y: envH / 2),
+                           endRadius: max(envW, envH) * 0.70,
+                           options: [])
+    ctx.restoreGState()
+}
+
+func ambientBlur(of image: CGImage, blurFraction: CGFloat = 0.21) -> CGImage? {
     let ci = CIImage(cgImage: image)
     let sat = CIFilter(name: "CIColorControls")!
     sat.setValue(ci, forKey: "inputImage")
@@ -227,7 +522,7 @@ func ambientBlur(of image: CGImage) -> CGImage? {
     guard let saturated = sat.outputImage else { return nil }
     let blur = CIFilter(name: "CIGaussianBlur")!
     blur.setValue(saturated.clampedToExtent(), forKey: "inputImage")
-    blur.setValue(CGFloat(max(image.width, image.height)) * 0.21, forKey: "inputRadius")
+    blur.setValue(CGFloat(max(image.width, image.height)) * blurFraction, forKey: "inputRadius")
     guard let blurred = blur.outputImage?.cropped(to: ci.extent) else { return nil }
     return CIContext().createCGImage(blurred, from: ci.extent)
 }
@@ -261,11 +556,106 @@ struct SceneBundle {
 }
 
 @MainActor
+func makeFloorMaterial(variant: FloorVariant,
+                       envCG: CGImage?,
+                       palette: [RGB]) throws -> any Material {
+    switch variant {
+    case .solid:
+        var mat = UnlitMaterial()
+        let primary = palette.first ?? (0.5, 0.5, 0.5)
+        let dark = blendRGB(primary, (0, 0, 0), t: 0.45)
+        mat.color = .init(tint: UIColorLikeFromRGB(dark))
+        return mat
+    case .radialSpot:
+        // Generate a radial-gradient texture: palette primary bright at
+        // center → near-black at edges. Stage spotlight feel.
+        let size = 1024
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: size, height: size,
+            bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { throw NSError(domain: "sim3d", code: 20) }
+        let primary = palette.first ?? (0.5, 0.5, 0.5)
+        // Brighter top end — floor center should READ as palette color,
+        // not mostly-dark. Was t=0.10 (90% palette + 10% white) — that
+        // came through too desaturated against the dark periphery so
+        // the floor read as flat grey at sweep view. v5.5: t=-0.20
+        // (clamped via blend = 120% palette = brighter than palette
+        // alone) so the highlight is a touch warmer than the base.
+        let bright = blendRGB(primary, (1, 1, 1), t: 0.25)
+        let mid = blendRGB(primary, (0, 0, 0), t: 0.30)
+        let darkEdge = blendRGB(primary, (0, 0, 0), t: 0.70)
+        let colors = [
+            toCGColor(bright, alpha: 1.0),
+            toCGColor(mid, alpha: 1.0),
+            toCGColor(darkEdge, alpha: 1.0)
+        ] as CFArray
+        guard let g = CGGradient(colorsSpace: cs, colors: colors,
+                                 locations: [0.0, 0.40, 1.0])
+        else { throw NSError(domain: "sim3d", code: 21) }
+        let cx = CGFloat(size) / 2
+        let cy = CGFloat(size) / 2
+        ctx.drawRadialGradient(g,
+                               startCenter: CGPoint(x: cx, y: cy),
+                               startRadius: 0,
+                               endCenter: CGPoint(x: cx, y: cy),
+                               endRadius: CGFloat(size) * 0.65,
+                               options: [])
+        guard let cg = ctx.makeImage() else {
+            throw NSError(domain: "sim3d", code: 22)
+        }
+        var mat = UnlitMaterial()
+        let opts = TextureResource.CreateOptions(semantic: .color,
+                                                 mipmapsMode: .allocateAndGenerateAll)
+        let tex = try TextureResource(image: cg, withName: nil, options: opts)
+        mat.color = .init(tint: .white, texture: .init(tex))
+        return mat
+    case .envEcho:
+        // Floor uses a darkened copy of the env image — same world, the
+        // floor IS the env. Apply 60% darken via overlay alpha.
+        guard let envCG else {
+            return try makeFloorMaterial(variant: .solid,
+                                          envCG: nil, palette: palette)
+        }
+        let cs = CGColorSpaceCreateDeviceRGB()
+        let envW = envCG.width, envH = envCG.height
+        guard let ctx = CGContext(
+            data: nil, width: envW, height: envH,
+            bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { throw NSError(domain: "sim3d", code: 23) }
+        ctx.draw(envCG, in: CGRect(x: 0, y: 0, width: envW, height: envH))
+        // Darken overlay.
+        ctx.setFillColor(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 0.55))
+        ctx.fill(CGRect(x: 0, y: 0, width: envW, height: envH))
+        guard let cg = ctx.makeImage() else {
+            throw NSError(domain: "sim3d", code: 24)
+        }
+        var mat = UnlitMaterial()
+        let opts = TextureResource.CreateOptions(semantic: .color,
+                                                 mipmapsMode: .allocateAndGenerateAll)
+        let tex = try TextureResource(image: cg, withName: nil, options: opts)
+        mat.color = .init(tint: .white, texture: .init(tex))
+        return mat
+    }
+}
+
+/// Helper to convert our RGB tuple to a sim-side UIColor analog. AppKit
+/// on macOS doesn't have UIColor; RealityKit's MaterialColorParameter
+/// uses NSColor on Mac. Use sRGB-init NSColor.
+func UIColorLikeFromRGB(_ c: RGB) -> NSColor {
+    return NSColor(srgbRed: c.r, green: c.g, blue: c.b, alpha: 1)
+}
+
+@MainActor
 func buildScene(cardCG: CGImage,
                 envCG: CGImage?,
                 palette: [RGB],
                 material: MaterialMode,
-                lighting: LightingMode) throws -> SceneBundle {
+                lighting: LightingMode,
+                floor: FloorVariant = .solid,
+                backdropZ: Float = -0.85) throws -> SceneBundle {
     let renderer = try RealityRenderer()
     renderer.cameraSettings.colorBackground = .color(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1))
 
@@ -280,9 +670,18 @@ func buildScene(cardCG: CGImage,
             materials: [try makeBackdropMaterial(envCG: envCG)]
         )
         backdrop.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
-        backdrop.position = SIMD3<Float>(0, 0.10, -0.85)
+        backdrop.position = SIMD3<Float>(0, 0.10, backdropZ)
         root.addChild(backdrop)
     }
+
+    // Floor plane — beneath the card. Match iOS HeroShotRenderer
+    // geometry: 1.6 × 1.6m at Y = -cardH * 0.5 - 0.003.
+    let floorEntity = ModelEntity(
+        mesh: MeshResource.generatePlane(width: 1.6, depth: 1.6),
+        materials: [try makeFloorMaterial(variant: floor, envCG: envCG, palette: palette)]
+    )
+    floorEntity.position = SIMD3<Float>(0, -cardH * 0.5 - 0.003, 0)
+    root.addChild(floorEntity)
 
     // Card front plane.
     let frontMesh = MeshResource.generatePlane(width: cardW, depth: cardH)
@@ -494,10 +893,9 @@ func renderFrame(scene: SceneBundle, size: CGSize, device: MTLDevice) throws -> 
 
 // MARK: - Contact sheet (same shape as main.swift)
 
-func makeContactSheet(tiles: [(image: CGImage, label: String)], cols: Int) -> CGImage? {
+func makeContactSheet(tiles: [(image: CGImage, label: String)], cols: Int,
+                      tileW: Int = 304, tileH: Int = 540) -> CGImage? {
     let rows = (tiles.count + cols - 1) / cols
-    let tileW = 304
-    let tileH = 540  // 9:16 portrait
     let labelH = 36
     let padding = 12
 
@@ -574,29 +972,68 @@ func run() async throws {
     }
     print("Metal: \(device.name)")
 
-    let frameSize = CGSize(width: 540, height: 960)
-    let materials: [MaterialMode] = [.unlit, .unlit_with_glow_plane, .pbr_clearcoat, .pbr_matte]
-    let lightings: [LightingMode] = [.none, .dir_10k, .dir_30k, .dir_80k, .ibl_1, .ibl_2, .ibl_1_plus_dir, .ibl_2_plus_dir]
+    let frameSize = CGSize(width: 720, height: 1280)
+    let material: MaterialMode = .pbr_clearcoat
+    let lighting: LightingMode = .ibl_1_plus_dir
+    let envVariants: [EnvVariant] = EnvVariant.allCases
 
-    print("Rendering \(materials.count) × \(lightings.count) = \(materials.count * lightings.count) variants…")
-    var tiles: [(image: CGImage, label: String)] = []
-    for material in materials {
-        for lighting in lightings {
+    // Step 1: render the raw env images themselves so we can verify the
+    // variants are actually producing different output. Each env image
+    // is 1536×2048 — too big to view raw, so tile them at ~360×480.
+    print("Rendering env-image sheet (\(envVariants.count) variants)…")
+    var envTiles: [(image: CGImage, label: String)] = []
+    var envByVariant: [EnvVariant: CGImage] = [:]
+    for envV in envVariants {
+        if let cg = makeEnvImage(cardArt: cardCG, palette: palette, variant: envV) {
+            envTiles.append((image: cg, label: "env: \(envV.displayName)"))
+            envByVariant[envV] = cg
+            print("  ✓ env=\(envV.displayName) (\(cg.width)×\(cg.height))")
+        }
+    }
+    if let envSheet = makeContactSheet(tiles: envTiles, cols: 3,
+                                       tileW: 360, tileH: 480) {
+        let envSheetPath = (outDir as NSString).appendingPathComponent("sim3d_env_sheet.png")
+        _ = savePNG(envSheet, to: envSheetPath)
+        print("→ \(envSheetPath)")
+    }
+
+    // Step 2: focused 2×2 sweep — baseline (current ship) vs the
+    // most promising new variant (tightFocus, with design tightly
+    // concentrated in the camera-visible window), at two backdrop
+    // distances. Hero pose only. Tiles big enough that the contact
+    // sheet survives chat's downsample.
+    let envCompare: [EnvVariant] = [.baseline, .tightFocus, .deepDive]
+    let backdropZs: [Float] = [-0.85, -0.30]
+    print("Rendering 2×2 focused sweep (\(envCompare.count) env × \(backdropZs.count) backdrop-Z)…")
+    var renderTiles: [(image: CGImage, label: String)] = []
+    for envV in envCompare {
+        let envCG = envByVariant[envV]
+        for bz in backdropZs {
             do {
                 let scene = try buildScene(
                     cardCG: cardCG, envCG: envCG, palette: palette,
-                    material: material, lighting: lighting
+                    material: material, lighting: lighting,
+                    floor: .radialSpot, backdropZ: bz
                 )
                 let frame = try renderFrame(scene: scene, size: frameSize, device: device)
-                tiles.append((image: frame, label: "\(material.displayName) | \(lighting.displayName)"))
-                print("  ✓ \(material.displayName) × \(lighting.displayName)")
+                let label = "\(envV.displayName) | bz=\(bz)"
+                renderTiles.append((image: frame, label: label))
+                // Save each tile individually for at-full-res viewing.
+                let safeName = label
+                    .replacingOccurrences(of: " | ", with: "_")
+                    .replacingOccurrences(of: "=", with: "-")
+                let tilePath = (outDir as NSString)
+                    .appendingPathComponent("sim3d_tile_\(safeName).png")
+                _ = savePNG(frame, to: tilePath)
+                print("  ✓ \(label) → \(tilePath)")
             } catch {
-                print("  ✗ \(material.displayName) × \(lighting.displayName): \(error)")
+                print("  ✗ \(envV.displayName) bz=\(bz): \(error)")
             }
         }
     }
-    print("Building contact sheet (\(tiles.count) tiles, \(lightings.count) cols)…")
-    guard let sheet = makeContactSheet(tiles: tiles, cols: lightings.count) else {
+    print("Building render contact sheet (\(renderTiles.count) tiles, 2 cols)…")
+    guard let sheet = makeContactSheet(tiles: renderTiles, cols: 2,
+                                       tileW: 540, tileH: 960) else {
         print("Failed to build sheet"); exit(1)
     }
     let outPath = (outDir as NSString).appendingPathComponent("sim3d_sweep.png")

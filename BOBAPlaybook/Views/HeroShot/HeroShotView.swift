@@ -85,9 +85,10 @@ struct HeroShotView: View {
                 // Initial preview render once textures are loaded.
                 schedulePreviewRender()
             }
-            .onChange(of: arcPreset) { _, _ in schedulePreviewRender() }
-            .onChange(of: clipLength) { _, _ in schedulePreviewRender() }
-            .onChange(of: cardMotion) { _, _ in schedulePreviewRender() }
+            .onChange(of: arcPreset)   { _, _ in settingsChanged() }
+            .onChange(of: clipLength)  { _, _ in settingsChanged() }
+            .onChange(of: cardMotion)  { _, _ in settingsChanged() }
+            .onChange(of: includeWatermark) { _, _ in settingsChanged() }
             .sheet(isPresented: $showingShareSheet) {
                 if let renderedURL {
                     ActivityShareSheet(items: [renderedURL])
@@ -385,6 +386,21 @@ struct HeroShotView: View {
         await MainActor.run {
             self.backTexture = tex
         }
+    }
+
+    /// Called whenever any user-facing setting changes. If we already
+    /// completed a render, that rendered video no longer matches the
+    /// new settings — revert to `.ready` so the user gets a fresh
+    /// "Create Hero Shot" button instead of "Share / Render Again"
+    /// (which would share the stale video). Also refresh the preview.
+    private func settingsChanged() {
+        if phase == .finished {
+            renderedURL = nil
+            renderError = nil
+            renderProgress = 0
+            phase = .ready
+        }
+        schedulePreviewRender()
     }
 
     /// Trigger a debounced preview render of the FINAL hero pose

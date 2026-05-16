@@ -62,11 +62,11 @@ final class HeroShotRenderer {
         var caption: String {
             switch self {
             case .reveal:
-                return "Slides in, settles, pushes for the close-up"
+                return "Slides in, settles into the hero pose"
             case .showcase:
-                return "Slow arc, then a dolly-push to the hero pose"
+                return "A slow orbit around the card, then settles"
             case .detail:
-                return "Wide opener, then a macro orbit of the art"
+                return "Pushes in to frame the hero portrait"
             }
         }
 
@@ -108,50 +108,46 @@ final class HeroShotRenderer {
     ///   0.95 → 1.00  HOLD
     static func revealFrame(at time: Double, duration: Double) -> CameraPose {
         let slideEnd:  Double = duration * 0.25
-        let settleEnd: Double = duration * 0.65
-        let pushEnd:   Double = duration * 0.95
+        let settleEnd: Double = duration * 0.55
+        let pushEnd:   Double = duration * 0.92
 
-        // v4.1: tighter framing everywhere. v4's slideStart at z=0.55
-        // FOV 46° made the card ~13% of frame width — the user
-        // explicitly flagged "camera too far". v4.1 puts the slide at
-        // z=0.32 FOV 36° so the card occupies ~30-35% throughout the
-        // slide phase. The push-in climax narrows to z=0.09 FOV 26°
-        // for a card-fills-frame finale.
+        // v5 — full card visible throughout. Closest the camera ever
+        // gets is z=0.21m (FOV 30°), which puts the card at ~70%
+        // vertical fill while keeping the 1200px source texture
+        // downsampling (sharp), not upsampling (blurry). Hero pose
+        // is the climax — no macro center-crop.
         let slideStart = CameraPose(
-            position: SIMD3<Float>(-0.18, -0.05, 0.32),
-            lookAt:   SIMD3<Float>(-0.02, -0.01, 0),
-            fovDeg:   36
+            position: SIMD3<Float>(-0.16, -0.04, 0.32),
+            lookAt:   SIMD3<Float>(-0.025, -0.01, 0),
+            fovDeg:   38
         )
-        let heroWide = CameraPose(
-            position: SIMD3<Float>(0.02, 0.025, 0.20),
+        let heroPose = CameraPose(
+            position: SIMD3<Float>(0.0, 0.015, 0.25),
+            lookAt:   .zero,
+            fovDeg:   32
+        )
+        let pushPose = CameraPose(
+            position: SIMD3<Float>(0.0, 0.018, 0.21),
             lookAt:   .zero,
             fovDeg:   30
         )
-        let settleHold = CameraPose(
-            position: SIMD3<Float>(-0.02, 0.020, 0.18),
-            lookAt:   .zero,
-            fovDeg:   28
-        )
-        let pushClose = CameraPose(
-            position: SIMD3<Float>(0.015, 0.012, 0.085),
-            lookAt:   SIMD3<Float>(0, 0.005, 0),
-            fovDeg:   24
-        )
 
         if time <= slideEnd {
-            let t = Float(easedProgress(slideEnd == 0 ? 1.0 : time / slideEnd))
-            return lerpPose(slideStart, heroWide, t)
+            // SLIDE — ease-out arrival into the hero pose. Camera
+            // decelerates into the pose, doesn't lerp linearly.
+            let t = easeOutCubic(slideEnd == 0 ? 1.0 : time / slideEnd)
+            return lerpPose(slideStart, heroPose, Float(t))
         } else if time <= settleEnd {
-            let t = Float(easedProgress((time - slideEnd) / (settleEnd - slideEnd)))
-            return lerpPose(heroWide, settleHold, t)
+            // SETTLE — hold on the hero pose with subtle breathing.
+            return breathing(heroPose, at: time)
         } else if time <= pushEnd {
-            // Cubic ease-in for the last 30% — feels like the camera
-            // is grabbed and pulled toward the card.
+            // PUSH — slow ease-out push to the climax framing. Not
+            // a zoom-into-detail; just a tasteful closing of distance.
             let raw = (time - settleEnd) / (pushEnd - settleEnd)
-            let eased = Float(raw * raw * (3 - 2 * raw))   // smoothstep
-            return lerpPose(settleHold, pushClose, eased)
+            let eased = Float(easeOutCubic(raw))
+            return lerpPose(heroPose, pushPose, eased)
         } else {
-            return pushClose
+            return breathing(pushPose, at: time)
         }
     }
 
@@ -161,16 +157,18 @@ final class HeroShotRenderer {
     ///   0.85 → 0.96  PUSH IN   — dolly forward to 0.09m + FOV tightens.
     ///   0.96 → 1.00  HOLD
     static func showcaseFrame(at time: Double, duration: Double) -> CameraPose {
-        let arcEnd:  Double = duration * 0.85
-        let pushEnd: Double = duration * 0.96
+        let arcEnd:    Double = duration * 0.80
+        let settleEnd: Double = duration * 0.95
 
-        // v4.1: arc distance 0.30 → 0.22 brings the card closer
-        // throughout the whole orbit. FOV 36° → 32° for tighter framing
-        // (the card subtends a bigger fraction of the frame).
-        let arcDistance: Float = 0.22
+        // v5 — orbit stays at constant 0.25m so the card sits at ~65%
+        // vertical fill the WHOLE arc. The "push to detail" climax is
+        // gone — premium reveals don't punch in past the subject's
+        // edges. Instead, after the orbit completes, settle onto a
+        // slight 3/4 hero pose at ~70% fill and breathe.
+        let arcDistance: Float = 0.25
         let arcElev:     Float = 5 * .pi / 180
-        let arcAzMin:    Float = -25 * .pi / 180
-        let arcAzMax:    Float =  25 * .pi / 180
+        let arcAzMin:    Float = -22 * .pi / 180
+        let arcAzMax:    Float =  22 * .pi / 180
         let arcR: Float = arcDistance * cos(arcElev)
         let arcY: Float = arcDistance * sin(arcElev)
         let orbital: (Float) -> SIMD3<Float> = { az in
@@ -178,78 +176,88 @@ final class HeroShotRenderer {
         }
 
         if time <= arcEnd {
-            let t = Float(easedProgress(arcEnd == 0 ? 1.0 : time / arcEnd))
+            // Linear orbit — constant angular velocity reads as a real
+            // dolly track around the subject, not a lerp between two
+            // points. The "decelerated landing" feel comes from the
+            // settle phase, not from easing the orbit itself.
+            let t = Float(arcEnd == 0 ? 1.0 : time / arcEnd)
             let az = lerp(arcAzMin, arcAzMax, t)
             return CameraPose(position: orbital(az), lookAt: .zero, fovDeg: 32)
-        } else {
+        } else if time <= settleEnd {
+            // SETTLE — ease-out arrival from arc-end to slight 3/4
+            // hero pose at ~70% fill, closer than the orbit.
             let arcEndPose = CameraPose(
                 position: orbital(arcAzMax),
                 lookAt: .zero,
                 fovDeg: 32
             )
-            let closePose = CameraPose(
-                position: SIMD3<Float>(0.04, 0.012, 0.09),
-                lookAt: SIMD3<Float>(0, 0, 0),
-                fovDeg: 22
+            let heroPose = CameraPose(
+                position: SIMD3<Float>(0.05, 0.018, 0.22),
+                lookAt: .zero,
+                fovDeg: 30
             )
-            if time <= pushEnd {
-                let t = Float(easedProgress((time - arcEnd) / (pushEnd - arcEnd)))
-                return lerpPose(arcEndPose, closePose, t)
-            } else {
-                return closePose
-            }
+            let t = easeOutCubic((time - arcEnd) / (settleEnd - arcEnd))
+            return lerpPose(arcEndPose, heroPose, Float(t))
+        } else {
+            let heroPose = CameraPose(
+                position: SIMD3<Float>(0.05, 0.018, 0.22),
+                lookAt: .zero,
+                fovDeg: 30
+            )
+            return breathing(heroPose, at: time)
         }
     }
 
-    /// "Detail" — wide opener → macro orbit. Best for foil cards.
-    ///   0.00 → 0.18  WIDE      — establishing shot at z=0.28, FOV 34°.
-    ///                            Card ~35% of frame.
-    ///   0.18 → 0.32  DOLLY IN  — fast push into the art's center.
-    ///   0.32 → 0.92  MACRO ARC — small orbit at z=0.075, FOV 22°.
-    ///                            Card fills most of frame.
-    ///   0.92 → 1.00  HOLD
+    /// "Detail" — wide opener → push to UPPER region of the card
+    /// (where the hero portrait sits). The card stays in frame the
+    /// whole time; the camera shifts its lookAt UP so the final pose
+    /// frames the hero's face, not the dead center of the card.
+    ///   0.00 → 0.20  WIDE       — full card at ~50% fill, FOV 36°.
+    ///   0.20 → 0.55  DOLLY UP   — camera pushes IN + lookAt drifts UP.
+    ///                             Card stays mostly visible; framing
+    ///                             centers on upper third (face).
+    ///   0.55 → 0.90  DRIFT      — slow horizontal drift across the
+    ///                             face, micro-amplitude.
+    ///   0.90 → 1.00  HOLD       — locked on upper-third hero pose.
     static func detailFrame(at time: Double, duration: Double) -> CameraPose {
-        let wideEnd:  Double = duration * 0.18
-        let dollyEnd: Double = duration * 0.32
-        let macroEnd: Double = duration * 0.92
+        let wideEnd:  Double = duration * 0.20
+        let dollyEnd: Double = duration * 0.55
+        let driftEnd: Double = duration * 0.90
 
-        // v4.1: wide-shot distance 0.50 → 0.28 so the establishing
-        // shot still SHOWS the card (not just a stage with a tiny
-        // dot in it). The macro phase tightens further from 0.085 →
-        // 0.075 for a true close-inspection feel.
+        // The "upper third" lookAt — y = +0.022 puts the camera's gaze
+        // on the hero portrait region of the card (top quarter to top
+        // third on most BoBA cards). The push-in keeps the card 80%
+        // visible at the closest framing.
+        let upperLookAt = SIMD3<Float>(0, 0.022, 0)
+
         let wide = CameraPose(
-            position: SIMD3<Float>(-0.06, 0.025, 0.28),
+            position: SIMD3<Float>(-0.05, 0.020, 0.30),
             lookAt:   SIMD3<Float>(0, -0.005, 0),
-            fovDeg:   34
+            fovDeg:   36
         )
-        let macroDistance: Float = 0.075
-        let macroElev:     Float = 4 * .pi / 180
-        let macroAzMin:    Float = -10 * .pi / 180
-        let macroAzMax:    Float =  10 * .pi / 180
-        let macroR: Float = macroDistance * cos(macroElev)
-        let macroY: Float = macroDistance * sin(macroElev)
-        let macroOrbital: (Float) -> SIMD3<Float> = { az in
-            SIMD3<Float>(macroR * sin(az), macroY, macroR * cos(az))
-        }
-        let macroStart = CameraPose(
-            position: macroOrbital(macroAzMin),
-            lookAt:   .zero,
-            fovDeg:   22
+        let upperFramed = CameraPose(
+            position: SIMD3<Float>(0.02, 0.04, 0.22),
+            lookAt:   upperLookAt,
+            fovDeg:   28
+        )
+        let driftEndPose = CameraPose(
+            position: SIMD3<Float>(-0.025, 0.04, 0.22),
+            lookAt:   upperLookAt,
+            fovDeg:   28
         )
 
         if time <= wideEnd {
-            return wide
+            return breathing(wide, at: time)
         } else if time <= dollyEnd {
-            let t = Float(easedProgress((time - wideEnd) / (dollyEnd - wideEnd)))
-            return lerpPose(wide, macroStart, t)
-        } else if time <= macroEnd {
-            let t = Float(easedProgress((time - dollyEnd) / (macroEnd - dollyEnd)))
-            let az = lerp(macroAzMin, macroAzMax, t)
-            return CameraPose(position: macroOrbital(az), lookAt: .zero, fovDeg: 22)
+            let t = easeOutCubic((time - wideEnd) / (dollyEnd - wideEnd))
+            return lerpPose(wide, upperFramed, Float(t))
+        } else if time <= driftEnd {
+            // Gentle horizontal drift across the hero portrait,
+            // linear (constant velocity reads as a real dolly).
+            let t = Float((time - dollyEnd) / (driftEnd - dollyEnd))
+            return lerpPose(upperFramed, driftEndPose, t)
         } else {
-            return CameraPose(position: macroOrbital(macroAzMax),
-                              lookAt: .zero,
-                              fovDeg: 22)
+            return breathing(driftEndPose, at: time)
         }
     }
 
@@ -606,14 +614,56 @@ final class HeroShotRenderer {
         cardPivot.position = .zero
         root.addChild(cardPivot)
 
-        // NOTE: NO LIGHTS, NO IBL.
+        // ── Atmospheric particles ────────────────────────────────────
+        // Subtle dust drifting upward in the dominant palette color.
+        // 10-30 particles, large-soft size, fully additive blend so
+        // they BRIGHTEN the scene without dithering issues.
+        // The emitter sits slightly in front of the card so particles
+        // appear in the camera's foreground — adds the "premium
+        // moving frame" feel that distinguishes a sizzle reel from
+        // a still photo.
+        let particles = Entity()
+        particles.position = SIMD3<Float>(0, 0, 0.06)
+        var emitter = ParticleEmitterComponent()
+        emitter.emitterShape = .box
+        emitter.emitterShapeSize = SIMD3<Float>(0.30, 0.20, 0.04)
+        emitter.birthDirection = .world
+        emitter.birthLocation = .volume
+        emitter.simulationState = .play
+        // ~12-20 particles in-frame at any time (birthRate × lifeSpan).
+        emitter.mainEmitter.birthRate = 6
+        emitter.mainEmitter.birthRateVariation = 1.5
+        emitter.mainEmitter.lifeSpan = 4.0
+        emitter.mainEmitter.lifeSpanVariation = 1.0
+        emitter.mainEmitter.size = 0.015
+        emitter.mainEmitter.sizeVariation = 0.008
+        // Slow upward drift with very mild lateral noise.
+        emitter.mainEmitter.acceleration = SIMD3<Float>(0, 0.005, 0)
+        emitter.mainEmitter.dampingFactor = 0.5
+        emitter.mainEmitter.noiseStrength = 0.012
+        emitter.mainEmitter.noiseScale = 1.0
+        emitter.mainEmitter.noiseAnimationSpeed = 0.5
+        emitter.mainEmitter.spreadingAngle = .pi
+        emitter.mainEmitter.opacityCurve = .gradualFadeInOut
+        emitter.mainEmitter.blendMode = .additive
+        emitter.mainEmitter.billboardMode = .billboard
+        emitter.mainEmitter.colorEvolutionPower = 1.0
+        // Palette-tinted color, very low alpha — additive so even a
+        // dim color contributes visible light.
+        let particleColor = palette.first ?? .white
+        emitter.mainEmitter.color = .constant(.single(
+            particleColor.withAlphaComponent(0.6)
+        ))
+        particles.components.set(emitter)
+        root.addChild(particles)
+
+        // NOTE: STILL NO PBR LIGHTS / IBL on the card.
         //
-        // UnlitMaterial doesn't sample lighting or IBL, so adding them
-        // would only affect floor/backdrop — and we use Unlit on those
-        // too for predictable brightness. Once we have a proper PBR
-        // pipeline that doesn't blow the card out (custom shader, or
-        // tonemapped IBL, or PBR-card + Unlit-everything-else with
-        // careful tuning), we can layer lights back in.
+        // UnlitMaterial card means the card art always renders true to
+        // the source PNG — known-good visual that works everywhere.
+        // The "lit" feel comes from the backdrop's center-glow layer
+        // (rendered into the env image during HeroShotEnvironment
+        // generation) and the additive particles overhead.
 
         // ── Camera ───────────────────────────────────────────────────
         let camera = PerspectiveCamera()
@@ -652,6 +702,32 @@ final class HeroShotRenderer {
     // MARK: - Camera math
 
     /// Smoothstep: 3t² - 2t³. Matches `easeInOut` shape.
+    /// Ease-out cubic — fast start, slow finish. Reads as the camera
+    /// "arriving" or "settling" into a pose, which is what premium
+    /// product reveals do at every keyframe landing. Smoothstep
+    /// (used elsewhere) is symmetric and reads as constant motion;
+    /// this asymmetric curve is what gives weight to the arrival.
+    static func easeOutCubic(_ t: Double) -> Double {
+        let c = max(0, min(1, t))
+        return 1.0 - pow(1.0 - c, 3.0)
+    }
+
+    /// Apply a tiny sinusoidal "breath" to a camera pose. Used during
+    /// hold phases (and for stylistic effect inside long static beats)
+    /// so the frame doesn't feel frozen. Amplitude is below the
+    /// perceptual threshold for "motion" but above zero — the eye
+    /// reads the frame as alive.
+    static func breathing(_ pose: CameraPose, at time: Double) -> CameraPose {
+        let dx = Float(sin(time * 0.7)) * 0.0008
+        let dy = Float(cos(time * 0.5)) * 0.0006
+        let dfov = Float(sin(time * 0.3)) * 0.15
+        return CameraPose(
+            position: pose.position + SIMD3<Float>(dx, dy, 0),
+            lookAt:   pose.lookAt,
+            fovDeg:   pose.fovDeg + dfov
+        )
+    }
+
     static func easedProgress(_ t: Double) -> Double {
         let c = max(0, min(1, t))
         return c * c * (3 - 2 * c)

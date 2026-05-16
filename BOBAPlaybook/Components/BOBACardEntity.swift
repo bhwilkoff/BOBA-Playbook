@@ -364,6 +364,10 @@ nonisolated enum BOBACardEntity {
             // v5.7.1: alpha-test instead of .transparent — same fix
             // as front PBR. See comment in makeFrontPBRMaterial.
             mat.opacityThreshold = 0.001
+            // v5.7.2: two-sided render so rotation past 90° shows the
+            // back image instead of culling-induced black. See front
+            // PBR for the full diagnosis (sim-captured at yaw=120°).
+            mat.faceCulling = .none
             return mat
         }
     }
@@ -398,19 +402,19 @@ nonisolated enum BOBACardEntity {
             mat.baseColor = .init(tint: placeholderFrontColor)
         }
 
-        // Treatment determines roughness behavior.
-        let kind = foilKind(for: config.treatment)
-        if let roughnessTex = roughnessTexture(for: kind) {
-            // Foil cards: localized low-roughness regions where the
-            // foil sits, high-roughness elsewhere. Drives real
-            // specular sheen as the card rotates against the lights.
-            mat.roughness = .init(scale: 1.0, texture: .init(roughnessTex))
-            mat.metallic = .init(floatLiteral: kind.metallicScale)
-        } else {
-            // Base / paper cards: uniform matte gloss.
-            mat.roughness = 0.40
-            mat.metallic = 0.0
-        }
+        // v5.7.2: roughness map disabled. The procedural treatment
+        // roughness maps (Battlefoil diagonals, Superfoil noise,
+        // Blizzard voronoi, etc.) IS a striped/textured pattern when
+        // sampled — roughness modulates specular SPREAD, not direction.
+        // User saw the hard-edge diagonal stripes from the Battlefoil
+        // map reading as "diagonal lines across the card" rather than
+        // foil shimmer. Real holofoil shimmer requires a custom Metal
+        // surface shader (view-direction-dependent rainbow LUT +
+        // fresnel + perturbation + masking) — deferred to v6.0. For
+        // now: uniform roughness on all treatments.
+        mat.roughness = 0.40
+        mat.metallic = 0.0
+        _ = foilKind(for: config.treatment)  // suppress unused warning
 
         // Clearcoat varnish — the protective layer printed cards have
         // that gives them their "fresh from the pack" sheen. Applied
@@ -432,6 +436,12 @@ nonisolated enum BOBACardEntity {
         // gradient spans 9× more pixels than at native res so the
         // cutoff edge stays smooth-looking.
         mat.opacityThreshold = 0.001
+        // v5.7.2: research-validated fix for "card flashes black during
+        // rotation" — opacityThreshold doesn't enable two-sided
+        // rendering and faceCulling defaults to .back. With .none, both
+        // sides of the plane render and the back-plane's R_y(π) winding
+        // inversion no longer matters.
+        mat.faceCulling = .none
         return mat
     }
 

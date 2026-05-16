@@ -743,19 +743,39 @@ final class HeroShotRenderer {
         cardPivot.position = .zero
         root.addChild(cardPivot)
 
-        // ── Lights (sim winner @ 75% — user "card looks washed out") ─
-        // v5.4 shipped dir 30k + IBL exp 1.0 from the Phase 2 sim's
-        // 4×8 sweep. User reported the card art reading "washed out"
-        // and suggested 75%. dir 30k → 22.5k; IBL exp 1.0 → 0.6
-        // (one stop is 2×, so 0.6 ≈ 1.5× the unit-exponent baseline,
-        // which is roughly 75% of the 2× boost full exp 1.0 gives).
+        // ── 3-point lighting (v5.7.2) ────────────────────────────────
+        // User: "card flashes black during rotation." Captured the bug
+        // in the rotation sim (yaw=120° → solid black silhouette). The
+        // root cause is NOT face culling — it's Lambert math. At
+        // yaw=120° the back plane's normal points to (-0.866, 0, +0.5)
+        // and the single upper-front-right key light's direction gives
+        // dot product ≈ 0. The PBR shader correctly renders the surface
+        // at near-zero brightness → black. cleanStudio env's IBL is
+        // too dim to fill in.
+        //
+        // Fix: classic 3-point setup. Key (upper-front-right) + Fill
+        // (from camera direction, ~40% intensity, ensures any visible
+        // surface gets Lambert > 0) + Rim (upper-back, lights the
+        // silhouette + the back face when card rotates 180°). Sim-
+        // validated across yaw=0/60/120/180/240/300° — no more black.
         let keyLight = DirectionalLight()
         keyLight.light.intensity = 22_500
         keyLight.light.color = .white
-        keyLight.look(at: .zero,
-                      from: SIMD3<Float>(0.3, 0.4, 0.5),
+        keyLight.look(at: .zero, from: SIMD3<Float>(0.3, 0.4, 0.5),
                       relativeTo: nil)
         root.addChild(keyLight)
+        let fillLight = DirectionalLight()
+        fillLight.light.intensity = 22_500 * 0.40
+        fillLight.light.color = .white
+        fillLight.look(at: .zero, from: SIMD3<Float>(0, 0.05, 0.5),
+                       relativeTo: nil)
+        root.addChild(fillLight)
+        let rimLight = DirectionalLight()
+        rimLight.light.intensity = 22_500
+        rimLight.light.color = .white
+        rimLight.look(at: .zero, from: SIMD3<Float>(-0.3, 0.4, -0.5),
+                      relativeTo: nil)
+        root.addChild(rimLight)
         if let envCG,
            let env = try? EnvironmentResource(equirectangular: envCG, withName: nil) {
             let ibl = ImageBasedLightComponent(source: .single(env),

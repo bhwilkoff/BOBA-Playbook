@@ -627,6 +627,91 @@ func drawLightSpot(ctx: CGContext, color: RGB, center: CGPoint, radius: CGFloat,
 let cardW: Float = 0.0635
 let cardH: Float = 0.0889
 let halfT: Float = 0.00015
+let cornerR: Float = 0.0025
+
+// MARK: - Full card-pivot setup (mirrors BOBACardEntity.build, .upright)
+//
+// Sim parity with iOS BOBACardEntity is essential for diagnosing the
+// "card flashes black during rotation" bug — needs front + back + edge
+// planes with exact same orientation chain + materials as iOS.
+
+@MainActor
+func buildCardPivot(frontTex: TextureResource,
+                    backTex: TextureResource?,
+                    palette: [RGB]) throws -> (pivot: Entity,
+                                                front: ModelEntity,
+                                                back: ModelEntity,
+                                                edge: ModelEntity) {
+    let pivot = Entity()
+    pivot.name = "card-pivot"
+
+    // FRONT plane — PhysicallyBasedMaterial, opacityThreshold alpha-test.
+    var frontMat = PhysicallyBasedMaterial()
+    frontMat.baseColor = .init(tint: .white, texture: .init(frontTex))
+    frontMat.metallic = 0.0
+    frontMat.roughness = 0.40
+    frontMat.clearcoat = 0.30
+    frontMat.clearcoatRoughness = 0.10
+    frontMat.opacityThreshold = 0.001
+    // v5.7.2 — research-validated fix for "card flashes black during
+    // rotation": opacityThreshold alone does NOT enable two-sided
+    // rendering. Default faceCulling = .back culls the away-from-
+    // camera face. Plus the back-plane's R_y(π) inverts winding so
+    // its "outward" face is actually being treated as back-face. With
+    // faceCulling=.none, neither problem matters — both sides render.
+    frontMat.faceCulling = .none
+    let front = ModelEntity(
+        mesh: MeshResource.generatePlane(width: cardW, depth: cardH),
+        materials: [frontMat]
+    )
+    front.name = "card-front"
+    front.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
+    front.position = SIMD3<Float>(0, 0, halfT)
+    pivot.addChild(front)
+
+    // BACK plane — same material treatment, different orientation chain.
+    var backMat = PhysicallyBasedMaterial()
+    if let backTex {
+        backMat.baseColor = .init(tint: .white, texture: .init(backTex))
+    } else {
+        backMat.baseColor = .init(tint: NSColor(red: 0.65, green: 0.20, blue: 0.18, alpha: 1))
+    }
+    backMat.metallic = 0.0
+    backMat.roughness = 0.55
+    backMat.clearcoat = 0.20
+    backMat.clearcoatRoughness = 0.15
+    backMat.opacityThreshold = 0.001
+    backMat.faceCulling = .none
+    let back = ModelEntity(
+        mesh: MeshResource.generatePlane(width: cardW, depth: cardH),
+        materials: [backMat]
+    )
+    back.name = "card-back"
+    back.orientation =
+        simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
+        * simd_quatf(angle: .pi, axis: SIMD3<Float>(0, 1, 0))
+    back.position = SIMD3<Float>(0, 0, -halfT)
+    pivot.addChild(back)
+
+    // EDGE box — cream off-white opaque PBR.
+    var edgeMat = PhysicallyBasedMaterial()
+    edgeMat.baseColor = .init(tint: NSColor(white: 0.92, alpha: 1))
+    edgeMat.metallic = 0.0
+    edgeMat.roughness = 0.65
+    let edge = ModelEntity(
+        mesh: MeshResource.generateBox(size: SIMD3<Float>(
+            cardW - 2 * cornerR,
+            cardH - 2 * cornerR,
+            halfT * 1.5
+        )),
+        materials: [edgeMat]
+    )
+    edge.name = "card-edge"
+    edge.position = .zero
+    pivot.addChild(edge)
+
+    return (pivot, front, back, edge)
+}
 
 struct SceneBundle {
     let renderer: RealityRenderer
@@ -769,15 +854,25 @@ func UIColorLikeFromRGB(_ c: RGB) -> NSColor {
     return NSColor(srgbRed: c.r, green: c.g, blue: c.b, alpha: 1)
 }
 
+/// Locate the card-back PNG in this sim directory.
+func locateCardBack() -> String? {
+    let path = "test_card_back.png"
+    if FileManager.default.fileExists(atPath: path) { return path }
+    return nil
+}
+
 @MainActor
 func buildScene(cardCG: CGImage,
+                cardBackCG: CGImage? = nil,
                 envCG: CGImage?,
                 palette: [RGB],
                 material: MaterialMode,
                 lighting: LightingMode,
                 floor: FloorVariant = .solid,
                 backdropZ: Float = -0.85,
-                elements: SceneElements = .none) throws -> SceneBundle {
+                elements: SceneElements = .none,
+                cardYaw: Float = 0,
+                useFullCard: Bool = false) throws -> SceneBundle {
     let renderer = try RealityRenderer()
     renderer.cameraSettings.colorBackground = .color(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1))
 
@@ -809,17 +904,31 @@ func buildScene(cardCG: CGImage,
         root.addChild(floorEntity)
     }
 
-    // Card front plane.
-    let frontMesh = MeshResource.generatePlane(width: cardW, depth: cardH)
+    // Card setup — single front plane (simple, for env iteration) OR
+    // full pivot with front + back + edge (matches iOS BOBACardEntity,
+    // used for rotation diagnostics).
     let texOpts = TextureResource.CreateOptions(semantic: .color, mipmapsMode: .none)
     let cardTex = try TextureResource(image: cardCG, withName: nil, options: texOpts)
-
-    let frontMaterial: any Material = try makeFrontMaterial(material: material, texture: cardTex)
-
-    let frontEntity = ModelEntity(mesh: frontMesh, materials: [frontMaterial])
-    frontEntity.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
-    frontEntity.position = SIMD3<Float>(0, 0, halfT)
-    root.addChild(frontEntity)
+    let frontEntity: ModelEntity
+    if useFullCard {
+        let backTex: TextureResource?
+        if let cbCG = cardBackCG {
+            backTex = try? TextureResource(image: cbCG, withName: nil, options: texOpts)
+        } else { backTex = nil }
+        let card = try buildCardPivot(frontTex: cardTex, backTex: backTex,
+                                       palette: palette)
+        card.pivot.orientation = simd_quatf(angle: cardYaw,
+                                             axis: SIMD3<Float>(0, 1, 0))
+        root.addChild(card.pivot)
+        frontEntity = card.front   // used as IBL receiver target
+    } else {
+        let frontMesh = MeshResource.generatePlane(width: cardW, depth: cardH)
+        let frontMaterial: any Material = try makeFrontMaterial(material: material, texture: cardTex)
+        frontEntity = ModelEntity(mesh: frontMesh, materials: [frontMaterial])
+        frontEntity.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
+        frontEntity.position = SIMD3<Float>(0, 0, halfT)
+        root.addChild(frontEntity)
+    }
 
     // Optional: additive front-glow plane (for unlit_with_glow_plane).
     if material == .unlit_with_glow_plane {
@@ -1155,12 +1264,37 @@ func applyLighting(mode: LightingMode,
         dirIntensity = 80_000
     }
     if dirIntensity > 0 {
-        let light = DirectionalLight()
-        light.light.intensity = dirIntensity
-        light.light.color = .white
-        light.look(at: .zero, from: SIMD3<Float>(0.3, 0.4, 0.5),
-                   relativeTo: nil)
-        root.addChild(light)
+        // KEY light — upper-front-right (current, casts main shadows).
+        let key = DirectionalLight()
+        key.light.intensity = dirIntensity
+        key.light.color = .white
+        key.look(at: .zero, from: SIMD3<Float>(0.3, 0.4, 0.5),
+                 relativeTo: nil)
+        root.addChild(key)
+        // FILL light — from camera-direction at ~40% intensity. Ensures
+        // any plane visible to the camera receives some direct
+        // illumination, eliminating the "black flash" failure mode I
+        // diagnosed in sim — at yaw=120° the back plane's front face
+        // had Lambert ≈ 0 against the upper-front key, rendering black.
+        // Fill from camera direction guarantees lambert > 0 whenever
+        // a surface is visible.
+        let fill = DirectionalLight()
+        fill.light.intensity = dirIntensity * 0.40
+        fill.light.color = .white
+        fill.look(at: .zero, from: SIMD3<Float>(0, 0.05, 0.5),
+                  relativeTo: nil)
+        root.addChild(fill)
+        // RIM light — upper-back, opposite the key. Lights the back of
+        // the card when it rotates past 90° so the back image isn't
+        // shadowed from the key OR the fill. Intensity matches key
+        // (rim is the smaller surface area; per cinematography
+        // research key:fill≈3:1, key:rim≈1:1).
+        let rim = DirectionalLight()
+        rim.light.intensity = dirIntensity * 1.0
+        rim.light.color = .white
+        rim.look(at: .zero, from: SIMD3<Float>(-0.3, 0.4, -0.5),
+                 relativeTo: nil)
+        root.addChild(rim)
     }
 
     // IBL
@@ -1345,45 +1479,54 @@ func run() async throws {
     let v56EnvCG = envByVariant[.deepDive]
     let elementSets: [SceneElements] = SceneElements.allCases
     let backdropZ: Float = -0.40
-    // Pulled-back hero pose — card occupies ~50% of frame (research:
-    // 35-55%). Current ship z=0.21 → card ~70% of frame.
-    let heroPose = (camPos: SIMD3<Float>(0, 0.018, 0.32), lookAt: SIMD3<Float>(0, 0, 0), fov: Float(30))
-    // 4-way comparison @ hero pose:
-    //   A. v5.6 ship — deepDive env + radialSpot floor + fullStage elements
-    //   B. v5.7 minimal — cleanStudio env + neutralDark floor + no elements
-    //   C. v5.7 + no floor (card floats — research recommended)
-    //   D. v5.7 + rim halo only — minimal element budget test
-    let configs: [(label: String, env: CGImage?, floor: FloorVariant, els: SceneElements)] = [
-        ("v5.6-shipped",        v56EnvCG, .radialSpot, .fullStage),
-        ("v5.7-minimal",        v57EnvCG, .neutralDark, .none),
-        ("v5.7-floating",       v57EnvCG, .none, .none),
-        ("v5.7-halo-only",      v57EnvCG, .neutralDark, .rimHalo)
-    ]
-    print("Rendering v5.7 comparison (\(configs.count) configs @ hero pose)…")
+    // Pulled-back hero pose — card occupies ~50% of frame.
+    let heroPose = (camPos: SIMD3<Float>(0, 0.018, 0.32),
+                    lookAt: SIMD3<Float>(0, 0, 0),
+                    fov: Float(30))
+
+    // v5.7.x ROTATION SWEEP — render the full card pivot (front + back
+    // + edge planes, matching iOS BOBACardEntity) at 12 yaw angles
+    // around Y axis. Diagnoses the user-reported "card flashes black
+    // during rotation" bug — lets us SEE every angle through the same
+    // PBR + opacityThreshold setup the iOS app uses.
+    let cardBackCG: CGImage?
+    if let backPath = locateCardBack(),
+       let src = CGImageSourceCreateWithURL(URL(fileURLWithPath: backPath) as CFURL, nil) {
+        cardBackCG = CGImageSourceCreateImageAtIndex(src, 0, nil)
+    } else {
+        cardBackCG = nil
+        print("WARN: card-back image not found; will use placeholder color")
+    }
+    let yawAngles: [Float] = stride(from: Float(0), to: Float(360), by: 30).map { $0 }
+    print("Rendering rotation sweep (\(yawAngles.count) yaw angles, full card)…")
     var renderTiles: [(image: CGImage, label: String)] = []
-    for cfg in configs {
+    for yawDeg in yawAngles {
         do {
             let scene = try buildScene(
-                cardCG: cardCG, envCG: cfg.env, palette: palette,
+                cardCG: cardCG, cardBackCG: cardBackCG,
+                envCG: v57EnvCG, palette: palette,
                 material: material, lighting: lighting,
-                floor: cfg.floor, backdropZ: backdropZ,
-                elements: cfg.els
+                floor: .none, backdropZ: backdropZ,
+                elements: .none,
+                cardYaw: yawDeg * .pi / 180,
+                useFullCard: true
             )
             scene.camera.look(at: heroPose.lookAt, from: heroPose.camPos,
                                upVector: SIMD3<Float>(0, 1, 0), relativeTo: nil)
             scene.camera.camera.fieldOfViewInDegrees = heroPose.fov
             let frame = try renderFrame(scene: scene, size: frameSize, device: device)
-            renderTiles.append((image: frame, label: cfg.label))
-            let safeName = cfg.label.replacingOccurrences(of: " ", with: "_")
+            let label = String(format: "yaw=%3.0f°", yawDeg)
+            renderTiles.append((image: frame, label: label))
+            let safeName = String(format: "yaw_%03.0f", yawDeg)
             let tilePath = (outDir as NSString)
-                .appendingPathComponent("sim3d_tile_\(safeName).png")
+                .appendingPathComponent("sim3d_rot_\(safeName).png")
             _ = savePNG(frame, to: tilePath)
-            print("  ✓ \(cfg.label) → \(tilePath)")
+            print("  ✓ \(label) → \(tilePath)")
         } catch {
-            print("  ✗ \(cfg.label): \(error)")
+            print("  ✗ yaw=\(yawDeg): \(error)")
         }
     }
-    _ = elementSets  // silence unused warning
+    _ = (elementSets, v56EnvCG)  // suppress unused
     print("Building render contact sheet (\(renderTiles.count) tiles, 3 cols)…")
     guard let sheet = makeContactSheet(tiles: renderTiles, cols: 3,
                                        tileW: 432, tileH: 768) else {

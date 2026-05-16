@@ -84,10 +84,12 @@ nonisolated enum BOBACardEntity {
     static let width: Float = 0.0635
     /// Real BoBA card height in meters (~88.9mm).
     static let height: Float = 0.0889
-    /// Half-thickness in meters. Total visual card thickness is
-    /// `2 * halfThickness` ≈ 3mm. Picked thick enough for physics
-    /// solver stability AND visible edge profile at viewing angles.
-    static let halfThickness: Float = 0.0015
+    /// Half-thickness in meters. Total VISUAL card thickness is
+    /// `2 * halfThickness` = 0.3mm — matches a real trading card.
+    /// (House of BoBA's physics collision uses its own thicker value
+    /// `Self.cardThick = 3mm` for PhysX solver stability — that's
+    /// independent from the visual thickness here.)
+    static let halfThickness: Float = 0.00015
 
     /// Corner-radius ratio applied via texture-alpha clipping.
     /// 0.045 of the shorter card dimension.

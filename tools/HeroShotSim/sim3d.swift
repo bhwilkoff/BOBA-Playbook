@@ -2006,10 +2006,16 @@ func renderIOSv67RotationStrip(cardCG: CGImage,
         let cardPivot = Entity()
         root.addChild(cardPivot)
 
-        // Front plane — UnlitMaterial (.unlitTexture variant)
-        var frontMat = UnlitMaterial()
-        frontMat.color = .init(tint: .white, texture: .init(cardTex))
-        frontMat.blending = .transparent(opacity: 1.0)
+        // v7.1 — front: PBR matte (card art on baseColor). Lambert
+        // diffuse averages source texels = inherent anti-aliasing
+        // that masks the under-resolved /full/ R2 tier without
+        // washing the colors (no clearcoat, no spec).
+        var frontMat = PhysicallyBasedMaterial()
+        frontMat.baseColor = .init(tint: .white, texture: .init(cardTex))
+        frontMat.metallic = 0.0
+        frontMat.roughness = 0.95
+        frontMat.opacityThreshold = 0.001
+        frontMat.faceCulling = .none
         let front = ModelEntity(
             mesh: MeshResource.generatePlane(width: cardW, depth: cardH),
             materials: [frontMat]
@@ -2018,15 +2024,17 @@ func renderIOSv67RotationStrip(cardCG: CGImage,
         front.position = SIMD3<Float>(0, 0, halfT)
         cardPivot.addChild(front)
 
-        // Back plane — v6.8: UnlitMaterial (was PBR with clearcoat 0.20).
-        // Sim-confirmed at yaw=180° the PBR back's clearcoat reflected
-        // rim light straight into camera, washing out the back center.
-        // Unlit kills the specular highlight; back image renders at
-        // source pigment through full rotation.
+        // v7.1 — back: PBR matte (clearcoat REMOVED). Original v6.8
+        // PBR back had clearcoat 0.20 which washed out at yaw=180°.
+        // No clearcoat + roughness 0.85 = matte paper that catches
+        // light gently without specular hotspots.
         if let backTex {
-            var backMat = UnlitMaterial()
-            backMat.color = .init(tint: .white, texture: .init(backTex))
-            backMat.blending = .transparent(opacity: 1.0)
+            var backMat = PhysicallyBasedMaterial()
+            backMat.baseColor = .init(tint: .white, texture: .init(backTex))
+            backMat.metallic = 0.0
+            backMat.roughness = 0.85
+            backMat.opacityThreshold = 0.001
+            backMat.faceCulling = .none
             let back = ModelEntity(
                 mesh: MeshResource.generatePlane(width: cardW, depth: cardH),
                 materials: [backMat]
@@ -2074,28 +2082,24 @@ func renderIOSv67RotationStrip(cardCG: CGImage,
         // YAW THE CARD
         cardPivot.orientation = simd_quatf(angle: yawRad, axis: SIMD3<Float>(0, 1, 0))
 
-        // 3-point lights
+        // v7.1 — light intensities reduced for PBR matte front.
         let key = DirectionalLight()
-        key.light.intensity = 22_500
+        key.light.intensity = 11_000
         key.light.color = .white
         key.look(at: .zero, from: SIMD3<Float>(0.3, 0.4, 0.5), relativeTo: nil)
         root.addChild(key)
         let fill = DirectionalLight()
-        fill.light.intensity = 22_500 * 0.40
+        fill.light.intensity = 4_500
         fill.light.color = .white
         fill.look(at: .zero, from: SIMD3<Float>(0, 0.05, 0.5), relativeTo: nil)
         root.addChild(fill)
-        let rim = DirectionalLight()
-        rim.light.intensity = 22_500
-        rim.light.color = .white
-        rim.look(at: .zero, from: SIMD3<Float>(-0.3, 0.4, -0.5), relativeTo: nil)
-        root.addChild(rim)
+        // v7.1 — rim light REMOVED to prevent back wash at yaw=180°.
 
-        // IBL
+        // IBL — v7.1: -5.0 = 1/32 baseline (was -3.0 = 1/8).
         if let envCG,
            let env = try? await EnvironmentResource(equirectangular: envCG, withName: nil) {
             let ibl = ImageBasedLightComponent(source: .single(env),
-                                                intensityExponent: -3.0)
+                                                intensityExponent: -5.0)
             root.components.set(ibl)
             // Apply IBL receiver to all card-pivot children (the lit ones)
             for child in cardPivot.children where child is ModelEntity {
@@ -2103,12 +2107,11 @@ func renderIOSv67RotationStrip(cardCG: CGImage,
             }
         }
 
-        // v7.0 — camera at hero pose pulled back 1.7×. Matches
-        // iOS revealFrame heroPose (z=0.58, FOV=32).
+        // v7.1 — camera at original hero pose (z=0.34, FOV=32).
         let camera = PerspectiveCamera()
         renderer.entities.append(camera)
         renderer.activeCamera = camera
-        camera.look(at: .zero, from: SIMD3<Float>(0, 0.025, 0.58),
+        camera.look(at: .zero, from: SIMD3<Float>(0, 0.015, 0.34),
                     upVector: SIMD3<Float>(0, 1, 0), relativeTo: nil)
         camera.camera.fieldOfViewInDegrees = 32
 

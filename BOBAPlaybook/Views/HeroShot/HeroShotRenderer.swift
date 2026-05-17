@@ -128,28 +128,25 @@ final class HeroShotRenderer {
         // vertical fill while keeping the 1200px source texture
         // downsampling (sharp), not upsampling (blurry). Hero pose
         // is the climax — no macro center-crop.
+        // v7.1 — REVERTED the v7.0 1.7× camera pullback. User: "The
+        // card is far too small now. This is not the right way to
+        // downsample or eliminate the pixelation." Back to ~45-53%
+        // frame fill — proper hero presence. The pixelation fix moves
+        // back into the texture/material pipeline (PBR emissive front
+        // with mipmaps) so source-pixel sampling stays clean at
+        // close framing.
         let slideStart = CameraPose(
-            position: SIMD3<Float>(-0.28, -0.07, 0.54),
+            position: SIMD3<Float>(-0.16, -0.04, 0.32),
             lookAt:   SIMD3<Float>(-0.025, -0.01, 0),
             fovDeg:   38
         )
-        // v7.0 — camera distances multiplied by ~1.7×. Diagnostic
-        // showed cards with small /full/ R2 source (477×667 for
-        // 1-Maverick) couldn't render crisp at the previous 45-53%
-        // frame fill because source pixels < display pixels → forced
-        // GPU upsample → pixelation. Pulling camera back to z=0.58
-        // settle / z=0.51 push gives ~27-33% frame fill, which makes
-        // source pixels ≥ display pixels for the majority of cards
-        // (HouseOfCards renders crisp at ~14% fill on ARView for
-        // exactly this reason). Card still reads as the hero subject;
-        // env now breathes around it.
         let heroPose = CameraPose(
-            position: SIMD3<Float>(0.0, 0.025, 0.58),
+            position: SIMD3<Float>(0.0, 0.015, 0.34),
             lookAt:   .zero,
             fovDeg:   32
         )
         let pushPose = CameraPose(
-            position: SIMD3<Float>(0.0, 0.030, 0.51),
+            position: SIMD3<Float>(0.0, 0.018, 0.30),
             lookAt:   .zero,
             fovDeg:   30
         )
@@ -187,8 +184,8 @@ final class HeroShotRenderer {
         // gone — premium reveals don't punch in past the subject's
         // edges. Instead, after the orbit completes, settle onto a
         // slight 3/4 hero pose at ~70% fill and breathe.
-        // v7.0 — 1.7× pullback for source-pixel crispness (see revealFrame).
-        let arcDistance: Float = 0.43
+        // v7.1 — reverted v7.0 pullback. Original v5.7 distance.
+        let arcDistance: Float = 0.25
         let arcElev:     Float = 5 * .pi / 180
         let arcAzMin:    Float = -22 * .pi / 180
         let arcAzMax:    Float =  22 * .pi / 180
@@ -214,18 +211,18 @@ final class HeroShotRenderer {
                 lookAt: .zero,
                 fovDeg: 32
             )
-            // v7.0 — 1.7× pullback for source-pixel crispness.
+            // v7.1 — reverted v7.0 pullback.
             let heroPose = CameraPose(
-                position: SIMD3<Float>(0.05, 0.030, 0.53),
+                position: SIMD3<Float>(0.05, 0.018, 0.31),
                 lookAt: .zero,
                 fovDeg: 30
             )
             let t = easeOutCubic((time - arcEnd) / (settleEnd - arcEnd))
             return lerpPose(arcEndPose, heroPose, Float(t))
         } else {
-            // v7.0 — 1.7× pullback for source-pixel crispness.
+            // v7.1 — reverted v7.0 pullback.
             let heroPose = CameraPose(
-                position: SIMD3<Float>(0.05, 0.030, 0.53),
+                position: SIMD3<Float>(0.05, 0.018, 0.31),
                 lookAt: .zero,
                 fovDeg: 30
             )
@@ -255,19 +252,19 @@ final class HeroShotRenderer {
         // visible at the closest framing.
         let upperLookAt = SIMD3<Float>(0, 0.022, 0)
 
-        // v7.0 — 1.7× pullback for source-pixel crispness.
+        // v7.1 — reverted v7.0 pullback.
         let wide = CameraPose(
-            position: SIMD3<Float>(-0.08, 0.034, 0.51),
+            position: SIMD3<Float>(-0.05, 0.020, 0.30),
             lookAt:   SIMD3<Float>(0, -0.005, 0),
             fovDeg:   36
         )
         let upperFramed = CameraPose(
-            position: SIMD3<Float>(0.034, 0.068, 0.37),
+            position: SIMD3<Float>(0.02, 0.04, 0.22),
             lookAt:   upperLookAt,
             fovDeg:   28
         )
         let driftEndPose = CameraPose(
-            position: SIMD3<Float>(-0.043, 0.068, 0.37),
+            position: SIMD3<Float>(-0.025, 0.04, 0.22),
             lookAt:   upperLookAt,
             fovDeg:   28
         )
@@ -311,19 +308,19 @@ final class HeroShotRenderer {
 
         // Beat 1 keyframes — pulled-back crane-up. Start lower-left,
         // end slightly higher and centered. Wide FOV reveals stage.
-        // v7.0 — 1.7× pullback for source-pixel crispness.
+        // v7.1 — reverted v7.0 pullback.
         let establishStart = CameraPose(
-            position: SIMD3<Float>(-0.10, -0.051, 0.58),
+            position: SIMD3<Float>(-0.06, -0.030, 0.34),
             lookAt:   SIMD3<Float>(0, 0.005, 0),
             fovDeg:   38
         )
         let establishEndPose = CameraPose(
-            position: SIMD3<Float>(0.10, 0.060, 0.54),
+            position: SIMD3<Float>(0.06, 0.035, 0.32),
             lookAt:   .zero,
             fovDeg:   34
         )
         // Beat 2 keyframes — partial orbit at hero-wide distance.
-        let orbitRadius: Float = 0.51
+        let orbitRadius: Float = 0.30
         let orbitElevation: Float = 0.025
         func orbital(azDeg: Float) -> SIMD3<Float> {
             let az = azDeg * .pi / 180
@@ -341,9 +338,9 @@ final class HeroShotRenderer {
             lookAt:   .zero,
             fovDeg:   34
         )
-        // Beat 3 keyframe — v7.0 1.7× pullback for source-pixel crispness.
+        // Beat 3 keyframe — v7.1 reverted v7.0 pullback.
         let heroPose = CameraPose(
-            position: SIMD3<Float>(0, 0.025, 0.54),
+            position: SIMD3<Float>(0, 0.015, 0.32),
             lookAt:   .zero,
             fovDeg:   30
         )
@@ -380,15 +377,22 @@ final class HeroShotRenderer {
         case .`static`:
             return 0
         case .entranceSpin:
-            // One full 2π rotation over the first 35% of the clip,
-            // then hold. Smoothstep so the spin feels like a controlled
-            // landing rather than constant velocity.
+            // v7.1 — was 2π full rotation. The card passed through
+            // yaw=90° and 270° where a 0.3mm card is PHYSICALLY a
+            // thin sliver (accurate physics, but user-reported as
+            // "card disappears partially as it turns"). New: peak
+            // amplitude ±70° (never edge-on) over an EaseInOutCubic
+            // sway. Card tilts dramatically left, settles to face
+            // camera, never showing its back or going edge-on.
             let spinPhase = 0.35
             if progress <= spinPhase {
                 let t = progress / spinPhase
-                return Float(easedProgress(t)) * 2 * .pi
+                let eased = Float(easedProgress(t))
+                let maxYaw: Float = 70 * .pi / 180
+                // Goes from -maxYaw → 0 (settles facing camera)
+                return -maxYaw + eased * maxYaw
             }
-            return 0  // 2π = 0 (snap to face camera for the rest)
+            return 0
         case .slowRotate:
             // v5.1: gentle ±30° sinusoidal sway. v5's linear 0→2π
             // spent half the clip showing the BACK of the card — user
@@ -879,32 +883,38 @@ final class HeroShotRenderer {
         // the specular layer entirely; back image renders at source
         // pigment through full rotation. Front already used unlit via
         // .unlitTexture variant; this aligns the rest of the card.
-        // v6.9 — re-enable edge, but with a palette-sampled tone (not
-        // the default cream 0.92 white). v6.8 disabled the edge to
-        // kill the "white sliver" artifact, but that introduced a
-        // worse bug: without the edge providing thickness, near
-        // yaw=90°/270° the two parallel planes were edge-on and the
-        // card briefly disappeared (user: "part of the card disappears
-        // as it rotates"). The right fix is to keep the edge but make
-        // its color blend with the card art (4-corner average of the
-        // front image) — visible thickness, no white sliver.
+        // v7.1 — back to PhysicallyBasedMaterial with `.pbrEmissive`
+        // front variant. Diagnostic: during the v6.0 "washed-out" era
+        // the card was rendered with PBR + holofoil shader. The user
+        // reports that era had NO pixelation and NO disappearance.
+        // Switching to .unlit in v6.3 fixed washout but introduced
+        // both bugs because:
+        //   • UnlitMaterial outputs source texels raw — no Lambert
+        //     averaging that softens texel boundaries. Pixelation
+        //     becomes visible.
+        //   • UnlitMaterial edges (flat color, no specular) read as
+        //     "thin line" at yaw≈90° instead of catching light.
+        // The right fix: PBR for the MESH (so the edge catches light
+        // and the texture sampling benefits from PBR's filtering),
+        // but the FRONT ART rides on the emissive channel — emissive
+        // bypasses Lambert/IBL/spec modulation entirely, so the card
+        // renders at source pigment with no washout.
+        //
+        // back: also PBR but with clearcoat REMOVED (the v6.8 wash
+        // issue at yaw=180° was clearcoat reflecting rim light
+        // directly into camera — see makeBackMaterial).
         let cardPivot = BOBACardEntity.build(BOBACardEntity.Config(
             frontTexture: config.frontTexture,
             backTexture: config.backTexture,
             includeEdge: true,
             pose: .upright,
-            material: .unlit,
+            material: .physicallyBased,
             treatment: config.card.treatment,
             useHolofoil: false,
-            frontVariant: .unlitTexture,
+            frontVariant: .pbrMatte,  // base=art, no clearcoat, no emissive HDR risk
             edgeTint: Self.sampleEdgeTint(from: config.frontImage),
-            // 1.9 × halfThickness = 0.285mm. Real card stock is 0.30mm
-            // (2.0 × halfThickness), but exactly 2.0 places the edge
-            // box's ±Z faces flush with the front+back planes →
-            // z-fighting where the edge color can occlude card art.
-            // 1.9 hides the edge faces behind the planes by 0.0075mm
-            // margin, no occlusion, while staying under the 0.30mm
-            // real-thickness cap.
+            // 1.9 × halfThickness = 0.285mm. User cap: 0.30mm
+            // (= 2.0 × halfT); 2.0 exactly = z-fight with planes.
             edgeThicknessMultiplier: 1.9
         ))
         cardPivot.position = .zero
@@ -962,24 +972,33 @@ final class HeroShotRenderer {
         // surface gets Lambert > 0) + Rim (upper-back, lights the
         // silhouette + the back face when card rotates 180°). Sim-
         // validated across yaw=0/60/120/180/240/300° — no more black.
+        // v7.1 — light intensities reduced for PBR matte front. The
+        // original 22_500 across key/rim was tuned for the v6.0
+        // PBR + holofoil shader which had the shader's SCREEN-blend
+        // protecting against light wash. With pbrMatte alone, the
+        // same intensities push the front + back toward washed
+        // diffuse. Halved + reduced rim further so the BACK at
+        // yaw=180° doesn't catch rim-light Lambert head-on.
         let keyLight = DirectionalLight()
-        keyLight.light.intensity = 22_500
+        keyLight.light.intensity = 11_000
         keyLight.light.color = .white
         keyLight.look(at: .zero, from: SIMD3<Float>(0.3, 0.4, 0.5),
                       relativeTo: nil)
         root.addChild(keyLight)
         let fillLight = DirectionalLight()
-        fillLight.light.intensity = 22_500 * 0.40
+        fillLight.light.intensity = 4_500
         fillLight.light.color = .white
         fillLight.look(at: .zero, from: SIMD3<Float>(0, 0.05, 0.5),
                        relativeTo: nil)
         root.addChild(fillLight)
-        let rimLight = DirectionalLight()
-        rimLight.light.intensity = 22_500
-        rimLight.light.color = .white
-        rimLight.look(at: .zero, from: SIMD3<Float>(-0.3, 0.4, -0.5),
-                      relativeTo: nil)
-        root.addChild(rimLight)
+        // v7.1 — rim light REMOVED. Was positioned at (-0.3, 0.4, -0.5)
+        // shining toward the card. At yaw=180° the back plane's
+        // normal becomes +Z and the rim light hits it at dot=0.69 —
+        // Lambert wash on the back. Without rim, the back at yaw=180°
+        // gets only IBL (low) + no direct light = dim but visible.
+        // Trade-off: silhouette pop at oblique angles is weaker, but
+        // the alternative (rim wash on back) is the user-reported
+        // bug.
         if let envCG,
            let env = try? EnvironmentResource(equirectangular: envCG, withName: nil) {
             // v6.0.7: IBL exp -3.0. v6.0.6 used 0.0 thinking that was
@@ -991,8 +1010,12 @@ final class HeroShotRenderer {
             // gets its illumination overwhelmingly from the 3-point
             // direct lights, not the env's ambient bath. Pigment punch
             // restored; "washed out" appearance should go away.
+            // v7.1 — IBL exp -3.0 → -5.0. 2^-5 = 1/32 of baseline.
+            // With PBR matte (no shader screen-blend) the env's
+            // hemispherical ambient was a major washout source.
+            // Closer to off than to on.
             let ibl = ImageBasedLightComponent(source: .single(env),
-                                               intensityExponent: -3.0)
+                                               intensityExponent: -5.0)
             root.components.set(ibl)
             // ImageBasedLightReceiverComponent doesn't propagate through
             // the entity hierarchy — must be set on each ModelEntity

@@ -362,14 +362,23 @@ struct HeroShotView: View {
             // user reports renders crisply) skips both — passes raw
             // R2 image straight through with mipmapsMode: .none.
             // Match that pattern here.
-            let rounded = BOBACardEntity.roundedCorners(image) ?? image
+            // v7.1 — restore the v5.4-era Lanczos upscale + mipmap
+            // chain. User: "during the washed-out era we didn't have
+            // an issue with pixelation." That era ran v5.4's Lanczos
+            // pipeline AND v6.0's PBR materials. Together they produce
+            // a SOFTER, anti-aliased look that visually reads as
+            // "no pixelation" — vs UnlitMaterial which exposes source
+            // texels raw. Lanczos doesn't add resolution but it gives
+            // the mipmap chain a higher-LOD source to downsample from
+            // at oblique angles, which PBR's per-fragment sampling
+            // can resolve to smooth output.
+            let upsampled = Self.upsampleAndSharpen(image, scale: 2.0) ?? image
+            let rounded = BOBACardEntity.roundedCorners(upsampled) ?? upsampled
             let tex: TextureResource? = await MainActor.run {
                 guard let cg = rounded.cgImage else { return nil as TextureResource? }
                 let opts = TextureResource.CreateOptions(
-                    semantic: .color
-                    // No mipmapsMode = .none — GPU samples source levels
-                    // directly without selecting a downsampled mip at
-                    // hero pose. Matches HouseOfCardsView line 3626.
+                    semantic: .color,
+                    mipmapsMode: .allocateAndGenerateAll
                 )
                 return try? TextureResource(image: cg, withName: nil, options: opts)
             }

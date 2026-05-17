@@ -139,6 +139,45 @@ nonisolated enum BOBACardEntity {
     /// fallback red palette.
     static let placeholderBackColor = UIColor(red: 0.65, green: 0.20, blue: 0.18, alpha: 1)
 
+    // MARK: - Front material variants (v6.2 comparison grid)
+    //
+    // Four candidate material setups for the FRONT card plane. The
+    // user has been seeing "washed out" front face across 12+ ship
+    // iterations of single-variable tweaks. Render all four side-by-
+    // side in HeroShotView's preview so we can identify which one
+    // looks correct via a single screenshot.
+
+    enum FrontMaterialVariant: String, CaseIterable {
+        /// A) Current ship: CustomMaterial(.lit) with holofoil shader.
+        /// PBR lighting modulates the shader's output. The
+        /// hypothesis: this is the source of the wash because PBR
+        /// averages source pigment with light contributions.
+        case holofoilLit
+        /// B) PhysicallyBasedMaterial, fully matte (metallic=0,
+        /// roughness=0.95), NO clearcoat. Eliminates spec highlights
+        /// which can over-brighten card areas. Pure diffuse response.
+        case pbrMatte
+        /// C) PhysicallyBasedMaterial with card art on the EMISSIVE
+        /// channel (baseColor = black). Emissive bypasses lighting —
+        /// art glows at source brightness regardless of scene lights.
+        /// PBR's normal lighting still affects the (black) base but
+        /// adds nothing visible; emissive dominates.
+        case pbrEmissive
+        /// D) UnlitMaterial — no PBR, no shader, just texture. Card
+        /// renders pixel-perfect to source PNG. No lighting math.
+        /// Trade-off: no shimmer (the shader requires CustomMaterial).
+        case unlitTexture
+
+        var displayLabel: String {
+            switch self {
+            case .holofoilLit:   return "A · holofoil lit"
+            case .pbrMatte:      return "B · PBR matte"
+            case .pbrEmissive:   return "C · PBR emissive"
+            case .unlitTexture:  return "D · unlit texture"
+            }
+        }
+    }
+
     // MARK: - Config
 
     struct Config {
@@ -172,6 +211,14 @@ nonisolated enum BOBACardEntity {
         /// requires the lit-PBR pipeline). Falls back to standard PBR
         /// if the Holofoil.metal library fails to load.
         var useHolofoil: Bool
+        /// v6.2: comparison-grid material variant. Drives which
+        /// material setup the FRONT plane uses, letting the user A/B
+        /// compare four candidate fixes for the "card looks washed
+        /// out" complaint side-by-side in a single screenshot.
+        ///
+        /// Active when `material == .physicallyBased`. Ignored for
+        /// `.unlit` HouseOfCards path. See enum for the 4 variants.
+        var frontVariant: FrontMaterialVariant
 
         init(frontTexture: TextureResource? = nil,
              backTexture: TextureResource? = nil,
@@ -179,7 +226,8 @@ nonisolated enum BOBACardEntity {
              pose: Pose = .upright,
              material: MaterialKind = .unlit,
              treatment: String? = nil,
-             useHolofoil: Bool = false) {
+             useHolofoil: Bool = false,
+             frontVariant: FrontMaterialVariant = .holofoilLit) {
             self.frontTexture = frontTexture
             self.backTexture = backTexture
             self.includeEdge = includeEdge
@@ -187,6 +235,7 @@ nonisolated enum BOBACardEntity {
             self.material = material
             self.treatment = treatment
             self.useHolofoil = useHolofoil
+            self.frontVariant = frontVariant
         }
     }
 
@@ -344,14 +393,69 @@ nonisolated enum BOBACardEntity {
             mat.blending = .transparent(opacity: 1.0)
             return mat
         case .physicallyBased:
-            // v6.0: try holofoil CustomMaterial first if requested.
-            // Falls back to PBR if the Metal shader fails to load.
-            if config.useHolofoil,
-               let holo = makeFrontHolofoilMaterial(config: config) {
-                return holo
+            // v6.2 — variant dispatch for the comparison grid.
+            switch config.frontVariant {
+            case .holofoilLit:
+                if config.useHolofoil,
+                   let holo = makeFrontHolofoilMaterial(config: config) {
+                    return holo
+                }
+                return makeFrontPBRMaterial(config: config)
+            case .pbrMatte:
+                return makeFrontMattePBRMaterial(config: config)
+            case .pbrEmissive:
+                return makeFrontEmissivePBRMaterial(config: config)
+            case .unlitTexture:
+                // UnlitMaterial regardless of the .physicallyBased
+                // outer enum: this variant tests pixel-perfect source
+                // art with NO lighting math at all.
+                var mat = UnlitMaterial()
+                if let tex = config.frontTexture {
+                    mat.color = .init(tint: .white, texture: .init(tex))
+                } else {
+                    mat.color = .init(tint: placeholderFrontColor)
+                }
+                mat.blending = .transparent(opacity: 1.0)
+                return mat
             }
-            return makeFrontPBRMaterial(config: config)
         }
+    }
+
+    @MainActor
+    private static func makeFrontMattePBRMaterial(config: Config) -> PhysicallyBasedMaterial {
+        var mat = PhysicallyBasedMaterial()
+        if let tex = config.frontTexture {
+            mat.baseColor = .init(tint: .white, texture: .init(tex))
+        } else {
+            mat.baseColor = .init(tint: placeholderFrontColor)
+        }
+        mat.metallic = 0.0
+        mat.roughness = 0.95          // fully matte — kills spec
+        // NO clearcoat — clearcoat is the spec layer that washes
+        // highlights with reflected light from the 3-point rig.
+        mat.opacityThreshold = 0.001
+        mat.faceCulling = .none
+        return mat
+    }
+
+    @MainActor
+    private static func makeFrontEmissivePBRMaterial(config: Config) -> PhysicallyBasedMaterial {
+        var mat = PhysicallyBasedMaterial()
+        // Base color black — PBR diffuse contributes nothing visible
+        // through this channel. Emissive carries the entire art.
+        mat.baseColor = .init(tint: .black)
+        if let tex = config.frontTexture {
+            // Emissive channel: card art, multiplied by white tint.
+            // Emissive bypasses lighting — outputs unchanged by
+            // directional/IBL/ambient. Card glows at source brightness.
+            mat.emissiveColor = .init(color: .white, texture: .init(tex))
+            mat.emissiveIntensity = 1.0
+        }
+        mat.metallic = 0.0
+        mat.roughness = 1.0          // matte, but doesn't matter — base is black
+        mat.opacityThreshold = 0.001
+        mat.faceCulling = .none
+        return mat
     }
 
     @MainActor

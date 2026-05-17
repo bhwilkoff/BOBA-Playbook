@@ -439,6 +439,9 @@ final class HeroShotRenderer {
         var fps: Int = 60
         var size: CGSize = CGSize(width: 1080, height: 1920)
         var bitrate: Int = 12_000_000
+        /// v6.2: which front-material variant to use. Used by the
+        /// comparison-grid preview to render each of the 4 candidates.
+        var frontVariant: BOBACardEntity.FrontMaterialVariant = .holofoilLit
     }
 
     enum RenderError: Error {
@@ -505,6 +508,67 @@ final class HeroShotRenderer {
             throw RenderError.textureCreateFailed
         }
         return UIImage(cgImage: cg)
+    }
+
+    /// v6.2 — render the 4 front-material variants in a 2×2 grid for
+    /// user A/B evaluation. After 12+ iterations of single-variable
+    /// tweaks that didn't fix the "card looks washed out" complaint,
+    /// this lets the user take ONE screenshot showing all four
+    /// candidates side-by-side and identify which one is correct.
+    ///
+    /// Each cell is labeled (A/B/C/D + name) so the user can name
+    /// the winner clearly.
+    func renderComparisonGrid(_ config: Config) async throws -> UIImage {
+        let variants = BOBACardEntity.FrontMaterialVariant.allCases
+        var tiles: [(image: UIImage, label: String)] = []
+        for variant in variants {
+            var v = config
+            v.frontVariant = variant
+            // Use a normalized time near the end of the clip — that's
+            // where the user reports the most visible wash.
+            let img = try await renderPreviewFrame(v, normalizedTime: 0.95)
+            tiles.append((image: img, label: variant.displayLabel))
+        }
+        return Self.compose2x2(tiles)
+    }
+
+    /// 2×2 grid compositor — used by renderComparisonGrid. Each tile
+    /// is drawn at half-resolution with a label band at the top.
+    static func compose2x2(_ tiles: [(image: UIImage, label: String)]) -> UIImage {
+        guard tiles.count == 4,
+              let firstCG = tiles[0].image.cgImage else {
+            return tiles.first?.image ?? UIImage()
+        }
+        let tileW = CGFloat(firstCG.width)
+        let tileH = CGFloat(firstCG.height)
+        let labelH: CGFloat = 28
+        let padding: CGFloat = 6
+        let sheetW = tileW * 2 + padding * 3
+        let sheetH = (tileH + labelH) * 2 + padding * 3
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: sheetW, height: sheetH))
+        return renderer.image { ctx in
+            UIColor.black.setFill()
+            ctx.fill(CGRect(origin: .zero, size: CGSize(width: sheetW, height: sheetH)))
+            let labelAttrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.boldSystemFont(ofSize: 22),
+                .foregroundColor: UIColor.white
+            ]
+            for (i, tile) in tiles.enumerated() {
+                let col = CGFloat(i % 2)
+                let row = CGFloat(i / 2)
+                let x = padding + col * (tileW + padding)
+                let y = padding + row * (tileH + labelH + padding)
+                // Label band
+                let labelRect = CGRect(x: x, y: y, width: tileW, height: labelH)
+                UIColor(white: 0.10, alpha: 1).setFill()
+                ctx.fill(labelRect)
+                NSAttributedString(string: tile.label, attributes: labelAttrs)
+                    .draw(at: CGPoint(x: x + 8, y: y + 2))
+                // Tile
+                tile.image.draw(in: CGRect(x: x, y: y + labelH,
+                                            width: tileW, height: tileH))
+            }
+        }
     }
 
     /// v6.0.9 — color-graded post-process: EV-stop exposure reduction
@@ -774,7 +838,8 @@ final class HeroShotRenderer {
             pose: .upright,
             material: .physicallyBased,
             treatment: config.card.treatment,
-            useHolofoil: true   // v6.0 — Metal holofoil shader on front
+            useHolofoil: true,             // shader available for variant A
+            frontVariant: config.frontVariant   // v6.2 variant selector
         ))
         cardPivot.position = .zero
         root.addChild(cardPivot)

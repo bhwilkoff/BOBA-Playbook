@@ -830,8 +830,21 @@ nonisolated enum BOBACardEntity {
         else { return nil }
         var mat: CustomMaterial
         do {
+            // v6.1.0 — root-cause fix for "washed out card" complaint
+            // across 12+ iterations. The card source art is FLAT,
+            // SUPER-SATURATED, unlit. ANY PBR lighting model (.lit)
+            // applied to it averages the colors with directional/
+            // ambient/IBL light contributions, softening the
+            // saturation and contrast vs the flat source — physics-
+            // mandated wash. My EV/saturation/contrast post-process
+            // tweaks (v6.0.8.1, v6.0.9) couldn't fix this because
+            // they happen AFTER the lighting wash. lightingModel:
+            // .unlit renders the baseColor EXACTLY as the source
+            // PNG, pixel-perfect, with the rainbow shimmer additive
+            // on top via SCREEN blend. The card art is preserved
+            // at full source-pigment punch.
             mat = try CustomMaterial(surfaceShader: shader,
-                                     lightingModel: .lit)
+                                     lightingModel: .unlit)
         } catch {
             print("[Holofoil] CustomMaterial init failed: \(error)")
             return nil

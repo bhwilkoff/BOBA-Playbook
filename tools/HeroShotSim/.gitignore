@@ -7,4 +7,5 @@ sim3d_tile_*.png
 *.dSYM
 sim3d_sweep_*.png
 sim3d_rot_*.png
+sim3d_holo_*.png
 test_card_back.png

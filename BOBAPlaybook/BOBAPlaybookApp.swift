@@ -306,7 +306,12 @@ struct BOBAPlaybookApp: App {
             includeWatermark: false
         )
         do {
-            let grid = try await renderer.renderComparisonGrid(config)
+            // v6.4 debug: single-frame preview (not comparison grid).
+            // The 4-variant comparison grid renders 4 frames which
+            // hangs in iOS Simulator's RealityRenderer. Single frame
+            // is what's currently shipped.
+            let grid = try await renderer.renderPreviewFrame(
+                config, normalizedTime: 0.95)
             if let pngData = grid.pngData() {
                 let docs = FileManager.default.urls(for: .documentDirectory,
                                                      in: .userDomainMask)[0]

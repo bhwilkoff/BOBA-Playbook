@@ -860,6 +860,29 @@ final class HeroShotRenderer {
         cardPivot.position = .zero
         root.addChild(cardPivot)
 
+        // v6.5 — sparkle shimmer overlay. Static rainbow overlay (v6.4
+        // attempt) looked like a tint stain. View-dependent shader was
+        // black on opaque (overlay obscured card). Solution: a NEW
+        // shader function `holofoilOverlaySparkle` that DISCARDs
+        // fragments where shimmer is dim, producing sparkle behavior
+        // — only the brightest shimmer pixels render, scattered
+        // across the card. Plus the underlying unlit card shows
+        // through everywhere else.
+        //
+        // Sim-validated as variant F: card art crystal clear + subtle
+        // scattered sparkles, no tint/wash. Real holofoil feel.
+        if let overlayMat = Self.makeSparkleOverlayMaterial() {
+            let overlayPlane = ModelEntity(
+                mesh: MeshResource.generatePlane(width: Self.cardW * 0.98,
+                                                  depth: Self.cardH * 0.98),
+                materials: [overlayMat]
+            )
+            overlayPlane.orientation = simd_quatf(angle: .pi / 2,
+                                                   axis: SIMD3<Float>(1, 0, 0))
+            overlayPlane.position = SIMD3<Float>(0, 0, Self.halfT + 0.0008)
+            cardPivot.addChild(overlayPlane)
+        }
+
         // ── 3-point lighting (v5.7.2) ────────────────────────────────
         // User: "card flashes black during rotation." Captured the bug
         // in the rotation sim (yaw=120° → solid black silhouette). The
@@ -1018,6 +1041,127 @@ final class HeroShotRenderer {
     /// tinted floor with this so the stage reads as "spotlight from
     /// above" instead of "uniformly-lit brown plane." Sim-validated:
     /// the gradient is visible at every camera pose in the arc.
+    /// v6.5 — create the CustomMaterial that runs `holofoilOverlaySparkle`
+    /// on an overlay plane in front of the unlit card. Uses the same
+    /// rainbow LUT + perturbation textures that BOBACardEntity built
+    /// for the original holofoil shader.
+    @MainActor
+    static func makeSparkleOverlayMaterial() -> CustomMaterial? {
+        guard let device = MTLCreateSystemDefaultDevice(),
+              let library = try? device.makeDefaultLibrary(bundle: .main)
+        else {
+            print("[Sparkle] no Metal library — overlay disabled")
+            return nil
+        }
+        let shader = CustomMaterial.SurfaceShader(named: "holofoilOverlaySparkle",
+                                                   in: library)
+        var mat: CustomMaterial
+        do {
+            mat = try CustomMaterial(surfaceShader: shader, lightingModel: .lit)
+        } catch {
+            print("[Sparkle] CustomMaterial init failed: \(error)")
+            return nil
+        }
+        // Need a 1×1 white as baseColor so the material has a texture
+        // bound (shader doesn't actually sample it).
+        let whiteData = Data([255, 255, 255, 255])
+        let cs = CGColorSpaceCreateDeviceRGB()
+        if let providerRef = CGDataProvider(data: whiteData as CFData),
+           let whiteCG = CGImage(width: 1, height: 1,
+                                  bitsPerComponent: 8, bitsPerPixel: 32,
+                                  bytesPerRow: 4, space: cs,
+                                  bitmapInfo: CGBitmapInfo(
+                                      rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+                                  provider: providerRef,
+                                  decode: nil, shouldInterpolate: false,
+                                  intent: .defaultIntent),
+           let wTex = try? TextureResource(
+               image: whiteCG, withName: "white1px",
+               options: TextureResource.CreateOptions(semantic: .color)) {
+            mat.baseColor = .init(tint: .white, texture: .init(wTex))
+        }
+        // Sparkle shader reads:
+        //   normal           → rainbow LUT
+        //   emissive_color   → perturbation noise
+        //   ambient_occlusion → foil mask (white = full coverage)
+        // BOBACardEntity exposes these already. Reuse for parity.
+        if let rainbowLUT = BOBACardEntity.exposedRainbowLUTTexture() {
+            mat.normal = .init(texture: .init(rainbowLUT))
+        }
+        if let perturb = BOBACardEntity.exposedPerturbationTexture() {
+            mat.emissiveColor = .init(color: .black, texture: .init(perturb))
+        }
+        if let mask = BOBACardEntity.exposedFoilMaskTexture() {
+            mat.ambientOcclusion = .init(texture: .init(mask))
+        }
+        mat.faceCulling = .none
+        return mat
+    }
+
+    /// v6.4 — generate a static iridescent shimmer overlay texture.
+    /// A diagonal rainbow gradient with vignette + per-pixel noise.
+    /// Applied via UnlitMaterial + .transparent blending so it shows
+    /// as a subtle iridescent tint floating over the card art.
+    ///
+    /// Trade-off vs the shader-based holofoil: not view-dependent
+    /// (rainbow doesn't shift as the card rotates) but reliably
+    /// visible without the alpha + lighting complexity that broke
+    /// the shader approach. Card stays vivid + has shimmer.
+    @MainActor
+    static func makeShimmerOverlayTexture(palette: [UIColor]) -> TextureResource? {
+        let size = 512
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: size, height: size,
+            bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        // 1) Diagonal rainbow gradient — 45° axis matches Battlefoil-
+        //    style holo pattern.
+        let rainbowColors: [CGColor] = (0..<7).map { i in
+            UIColor(hue: CGFloat(i) / 6.0, saturation: 0.85,
+                    brightness: 1.0, alpha: 0.18).cgColor
+        }
+        let locs: [CGFloat] = (0..<7).map { CGFloat($0) / 6.0 }
+        if let g = CGGradient(colorsSpace: cs,
+                              colors: rainbowColors as CFArray,
+                              locations: locs) {
+            let diag = CGFloat(size) * 1.414
+            ctx.drawLinearGradient(
+                g,
+                start: CGPoint(x: -CGFloat(size)/2, y: -CGFloat(size)/2),
+                end:   CGPoint(x: diag, y: diag),
+                options: []
+            )
+        }
+        // 2) Radial vignette — fades to transparent at edges so the
+        //    shimmer is centered on the figure region of the card.
+        let vColors: [CGColor] = [
+            UIColor.white.withAlphaComponent(0).cgColor,
+            UIColor.white.withAlphaComponent(0).cgColor,
+            UIColor.black.withAlphaComponent(0.85).cgColor
+        ]
+        if let vg = CGGradient(colorsSpace: cs,
+                                colors: vColors as CFArray,
+                                locations: [0.0, 0.40, 1.0]) {
+            ctx.setBlendMode(.destinationOut)
+            ctx.drawRadialGradient(
+                vg,
+                startCenter: CGPoint(x: CGFloat(size)/2, y: CGFloat(size)/2),
+                startRadius: 0,
+                endCenter:   CGPoint(x: CGFloat(size)/2, y: CGFloat(size)/2),
+                endRadius:   CGFloat(size) * 0.65,
+                options: []
+            )
+            ctx.setBlendMode(.normal)
+        }
+        guard let cg = ctx.makeImage() else { return nil }
+        let opts = TextureResource.CreateOptions(
+            semantic: .color, mipmapsMode: .allocateAndGenerateAll)
+        return try? TextureResource(image: cg, withName: "shimmerOverlay",
+                                     options: opts)
+    }
+
     nonisolated private static func makeRadialFloorTexture(palette: [UIColor]) -> CGImage? {
         let size = 1024
         let cs = CGColorSpaceCreateDeviceRGB()

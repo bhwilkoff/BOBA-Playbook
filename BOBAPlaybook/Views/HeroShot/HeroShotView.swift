@@ -350,15 +350,26 @@ struct HeroShotView: View {
                 let (data, _) = try? await URLSession.shared.data(from: url),
                 let image = UIImage(data: data)
             else { return nil }
-            // Upsample-and-sharpen BEFORE rounded-corner masking so the
-            // mask itself is at the higher resolution (smoother edge).
-            let upsampled = Self.upsampleAndSharpen(image, scale: 3.0) ?? image
-            let rounded = BOBACardEntity.roundedCorners(upsampled) ?? upsampled
+            // v6.9 — diagnostic-driven rewrite. The /full/ R2 tier is
+            // actually 477×667 to ~745×1040 (not the documented
+            // "≤1200px"). At hero pose the card occupies ~540×756 of
+            // the 1080×1920 frame — source pixels < screen pixels =
+            // genuine pixelation. The v5.4–v6.8 Lanczos 3× upscale +
+            // mipmap chain did NOT help: synthetic upscale produces
+            // soft pixels, then mipmap LOD selection at hero distance
+            // throws away the upscaled detail and samples a downsized
+            // mip → re-pixelated softness. HouseOfCardsView (which
+            // user reports renders crisply) skips both — passes raw
+            // R2 image straight through with mipmapsMode: .none.
+            // Match that pattern here.
+            let rounded = BOBACardEntity.roundedCorners(image) ?? image
             let tex: TextureResource? = await MainActor.run {
                 guard let cg = rounded.cgImage else { return nil as TextureResource? }
                 let opts = TextureResource.CreateOptions(
-                    semantic: .color,
-                    mipmapsMode: .allocateAndGenerateAll
+                    semantic: .color
+                    // No mipmapsMode = .none — GPU samples source levels
+                    // directly without selecting a downsampled mip at
+                    // hero pose. Matches HouseOfCardsView line 3626.
                 )
                 return try? TextureResource(image: cg, withName: nil, options: opts)
             }

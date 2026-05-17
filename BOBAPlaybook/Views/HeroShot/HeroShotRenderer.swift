@@ -863,24 +863,25 @@ final class HeroShotRenderer {
         // the specular layer entirely; back image renders at source
         // pigment through full rotation. Front already used unlit via
         // .unlitTexture variant; this aligns the rest of the card.
-        // v6.8 — includeEdge: false. The cream (white 0.92) edge box
-        // was producing a visible vertical white strip on the side
-        // of the card during rotation (yaw 30°/60°/300°/330°) — that
-        // was the user-reported "one third of card renders as white
-        // while it turns around." Sim-confirmed: removing the edge
-        // box eliminates the artifact entirely while the front+back
-        // planes at z=±halfT still read as a thin card. The 0.3mm
-        // real-world card edge isn't a useful visual cue at hero-pose
-        // distances anyway.
+        // v6.9 — re-enable edge, but with a palette-sampled tone (not
+        // the default cream 0.92 white). v6.8 disabled the edge to
+        // kill the "white sliver" artifact, but that introduced a
+        // worse bug: without the edge providing thickness, near
+        // yaw=90°/270° the two parallel planes were edge-on and the
+        // card briefly disappeared (user: "part of the card disappears
+        // as it rotates"). The right fix is to keep the edge but make
+        // its color blend with the card art (4-corner average of the
+        // front image) — visible thickness, no white sliver.
         let cardPivot = BOBACardEntity.build(BOBACardEntity.Config(
             frontTexture: config.frontTexture,
             backTexture: config.backTexture,
-            includeEdge: false,
+            includeEdge: true,
             pose: .upright,
             material: .unlit,
             treatment: config.card.treatment,
             useHolofoil: false,
-            frontVariant: .unlitTexture
+            frontVariant: .unlitTexture,
+            edgeTint: Self.sampleEdgeTint(from: config.frontImage)
         ))
         cardPivot.position = .zero
         root.addChild(cardPivot)
@@ -1091,6 +1092,55 @@ final class HeroShotRenderer {
     /// tinted floor with this so the stage reads as "spotlight from
     /// above" instead of "uniformly-lit brown plane." Sim-validated:
     /// the gradient is visible at every camera pose in the arc.
+    /// v6.9 — sample a representative edge tone from the card art's
+    /// outer rim. We average the 4 corner regions (16px × 16px each)
+    /// of the front image to derive a color that blends with the card
+    /// silhouette when the edge becomes visible during rotation. This
+    /// replaces the v6.7 cream-white edge that read as a "1/3 white
+    /// sliver" during rotation. Returning a slightly dimmer mix
+    /// (70% sampled, 30% black) so the edge reads as "card thickness"
+    /// rather than competing with the front art at the rim.
+    @MainActor
+    static func sampleEdgeTint(from image: UIImage) -> UIColor {
+        guard let cg = image.cgImage else {
+            return UIColor(white: 0.18, alpha: 1.0)
+        }
+        let w = cg.width, h = cg.height
+        let s = max(4, min(w, h) / 32)   // ~3% of card width per sample
+        // 4 corner samples — inset by 4px from each corner.
+        let regions: [CGRect] = [
+            CGRect(x: 4, y: 4, width: s, height: s),
+            CGRect(x: w - s - 4, y: 4, width: s, height: s),
+            CGRect(x: 4, y: h - s - 4, width: s, height: s),
+            CGRect(x: w - s - 4, y: h - s - 4, width: s, height: s)
+        ]
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, n: CGFloat = 0
+        for region in regions {
+            guard let crop = cg.cropping(to: region) else { continue }
+            let cs = CGColorSpaceCreateDeviceRGB()
+            var px: [UInt8] = [0, 0, 0, 0]
+            guard let cx = CGContext(
+                data: &px, width: 1, height: 1,
+                bitsPerComponent: 8, bytesPerRow: 4, space: cs,
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { continue }
+            // Downsample the cropped region to 1×1 — gives the mean.
+            cx.interpolationQuality = .medium
+            cx.draw(crop, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+            r += CGFloat(px[0]) / 255.0
+            g += CGFloat(px[1]) / 255.0
+            b += CGFloat(px[2]) / 255.0
+            n += 1
+        }
+        guard n > 0 else { return UIColor(white: 0.18, alpha: 1.0) }
+        // 70% sampled + 30% black: keeps the edge reading as "thickness"
+        // rather than a bright competitor to the front art.
+        let mixR = (r / n) * 0.70
+        let mixG = (g / n) * 0.70
+        let mixB = (b / n) * 0.70
+        return UIColor(red: mixR, green: mixG, blue: mixB, alpha: 1.0)
+    }
+
     /// v6.6 — generate a rim halo texture for the plane behind the card.
     /// Bright palette-tinted center fades to transparent at edges.
     /// Card occludes the center; only the outer falloff peeks around

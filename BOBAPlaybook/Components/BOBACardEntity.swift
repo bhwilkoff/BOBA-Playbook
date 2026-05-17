@@ -219,6 +219,12 @@ nonisolated enum BOBACardEntity {
         /// Active when `material == .physicallyBased`. Ignored for
         /// `.unlit` HouseOfCards path. See enum for the 4 variants.
         var frontVariant: FrontMaterialVariant
+        /// v6.9: edge color override. nil uses the default
+        /// `edgeColor` (cream 0.92 white). Pass a card-sampled tone
+        /// (Hero Shot does this via sampleEdgeTint) so the edge reads
+        /// as "card thickness" rather than a glaring white sliver
+        /// during rotation.
+        var edgeTint: UIColor?
 
         init(frontTexture: TextureResource? = nil,
              backTexture: TextureResource? = nil,
@@ -227,7 +233,8 @@ nonisolated enum BOBACardEntity {
              material: MaterialKind = .unlit,
              treatment: String? = nil,
              useHolofoil: Bool = false,
-             frontVariant: FrontMaterialVariant = .holofoilLit) {
+             frontVariant: FrontMaterialVariant = .holofoilLit,
+             edgeTint: UIColor? = nil) {
             self.frontTexture = frontTexture
             self.backTexture = backTexture
             self.includeEdge = includeEdge
@@ -236,6 +243,7 @@ nonisolated enum BOBACardEntity {
             self.treatment = treatment
             self.useHolofoil = useHolofoil
             self.frontVariant = frontVariant
+            self.edgeTint = edgeTint
         }
     }
 
@@ -496,14 +504,20 @@ nonisolated enum BOBACardEntity {
 
     @MainActor
     private static func makeEdgeMaterial(config: Config) -> any Material {
+        // v6.9: honor edgeTint override if provided. Hero Shot samples
+        // a darker tone from the card art's corners (via
+        // HeroShotRenderer.sampleEdgeTint) so the edge doesn't pop as
+        // a bright cream sliver during rotation; House of BoBA keeps
+        // the cream default since the camera barely sees the edge.
+        let tint = config.edgeTint ?? edgeColor
         switch config.material {
         case .unlit:
             var mat = UnlitMaterial()
-            mat.color = .init(tint: edgeColor)
+            mat.color = .init(tint: tint)
             return mat
         case .physicallyBased:
             var mat = PhysicallyBasedMaterial()
-            mat.baseColor = .init(tint: edgeColor)
+            mat.baseColor = .init(tint: tint)
             // Card-stock paper edges — no specular, fairly rough.
             mat.metallic = 0.0
             mat.roughness = 0.65

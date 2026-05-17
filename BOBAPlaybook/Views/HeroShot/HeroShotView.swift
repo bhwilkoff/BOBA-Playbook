@@ -460,10 +460,13 @@ struct HeroShotView: View {
                     cardMotion: snapshotMotion,
                     duration: snapshotLength
                 )
-                let frame = try await renderer.renderPreviewFrame(
-                    config,
-                    normalizedTime: 0.95
-                )
+                // v6.2 — comparison grid replaces single preview.
+                // Renders all 4 front-material variants (A holofoil
+                // lit, B PBR matte, C PBR emissive, D unlit texture)
+                // in a 2×2 grid. User takes ONE screenshot, reports
+                // which quadrant looks correct. Will revert to single
+                // preview after the winner ships as the default.
+                let frame = try await renderer.renderComparisonGrid(config)
                 if Task.isCancelled { return }
                 previewFrame = frame
             } catch {

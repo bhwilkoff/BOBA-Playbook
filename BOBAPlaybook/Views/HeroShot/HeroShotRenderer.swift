@@ -860,6 +860,16 @@ final class HeroShotRenderer {
         let camera = PerspectiveCamera()
         renderer.entities.append(camera)
         renderer.activeCamera = camera
+        // v6.0.8 — camera exposure compensation -2.0 EV (¼ baseline
+        // brightness). User: "the ending of the animation is still
+        // so so so washed out" — my per-knob tweaks (IBL exp, light
+        // intensity, shimmer strength) weren't moving the perceived
+        // exposure. RealityKit's PerspectiveCameraComponent.exposureCompensation
+        // is an EV adjustment applied to the entire scene, scaling
+        // ALL light contributions in one shot. -2 EV = 1/4 brightness
+        // overall. Direct control over the perceived washout instead
+        // of trying to balance individual light sources.
+        camera.camera.exposureCompensation = -2.0
         let firstPose = config.arc.cameraFrame(
             at: 0,
             duration: config.duration,

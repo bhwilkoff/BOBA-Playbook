@@ -460,13 +460,13 @@ struct HeroShotView: View {
                     cardMotion: snapshotMotion,
                     duration: snapshotLength
                 )
-                // v6.2 — comparison grid replaces single preview.
-                // Renders all 4 front-material variants (A holofoil
-                // lit, B PBR matte, C PBR emissive, D unlit texture)
-                // in a 2×2 grid. User takes ONE screenshot, reports
-                // which quadrant looks correct. Will revert to single
-                // preview after the winner ships as the default.
-                let frame = try await renderer.renderComparisonGrid(config)
+                // v6.2.1 — revert from comparison grid to single
+                // preview. Shipping emissive-channel shader (variant C)
+                // based on the logical conclusion that the wash is
+                // PBR diffuse modulation of flat source art, and
+                // emissive bypasses that modulation.
+                let frame = try await renderer.renderPreviewFrame(
+                    config, normalizedTime: 0.95)
                 if Task.isCancelled { return }
                 previewFrame = frame
             } catch {

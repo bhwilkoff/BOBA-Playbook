@@ -5,6 +5,8 @@
 
 import SwiftUI
 import CoreText
+import RealityKit
+import UIKit
 
 @main
 struct BOBAPlaybookApp: App {
@@ -35,7 +37,7 @@ struct BOBAPlaybookApp: App {
         }
     }
 
-    var body: some Scene {
+    var body: some SwiftUI.Scene {
         WindowGroup {
             ContentView(selectedTab: $selectedTab)
                 .environment(cardStore)
@@ -112,6 +114,16 @@ struct BOBAPlaybookApp: App {
     private func handleDeepLink(_ url: URL) {
         guard url.scheme == "bobaplaybook" else { return }
         switch url.host {
+        case "render-test-comparison":
+            // v6.2 debug entry: render the 4-up material comparison
+            // grid for the first card in the catalog, save to the
+            // app's documents dir, log the path. Lets the iOS Simulator
+            // generate a comparison render via simctl openurl — no
+            // UI navigation needed.
+            Task { @MainActor in
+                await runHeroShotComparisonDebug()
+            }
+            return
         case "scan":
             selectedTab = 0
             cardStore.pendingScan = true
@@ -220,6 +232,93 @@ struct BOBAPlaybookApp: App {
             selectedTab = 4
         default:
             break
+        }
+    }
+
+    /// v6.2 debug — render the Hero Shot 4-up material comparison grid
+    /// for the first foil-treatment card in the catalog. Saves PNG to
+    /// the app's documents dir at "hero-shot-comparison.png". Logs the
+    /// full path so the iOS Simulator harness can pull the file via
+    /// `simctl get_app_container … data`.
+    @MainActor
+    @available(iOS 18.0, *)
+    private func runHeroShotComparisonDebug() async {
+        // Marker file so we can confirm this function was reached
+        // even if subsequent steps fail.
+        let docs = FileManager.default.urls(for: .documentDirectory,
+                                             in: .userDomainMask)[0]
+        let marker = docs.appendingPathComponent("hero-debug-marker.txt")
+        try? "fn called at \(Date())".write(to: marker, atomically: true,
+                                             encoding: .utf8)
+        NSLog("[HoloDebug] runHeroShotComparisonDebug entered")
+
+        // Pick a foil card with a visible treatment so the comparison
+        // is meaningful. First non-base card we find. CardStore stores
+        // cards in `displayCards`; `cardStore` here is a non-Binding
+        // @State so we access properties directly.
+        let allCards = cardStore.displayCards
+        NSLog("[HoloDebug] displayCards count = \(allCards.count)")
+        try? "fn called; cards=\(allCards.count) at \(Date())"
+            .write(to: marker, atomically: true, encoding: .utf8)
+        let card = allCards.first { c in
+            guard let t = c.treatment?.lowercased(), !t.isEmpty else { return false }
+            return t.contains("battlefoil") || t.contains("superfoil")
+                || t.contains("blizzard") || t.contains("inspired")
+        } ?? allCards.first
+        guard let card else {
+            print("[HoloDebug] no card available")
+            return
+        }
+        guard let url = CDN.fullURL(for: card) else {
+            print("[HoloDebug] no CDN URL for \(card.id)")
+            return
+        }
+        guard let (data, _) = try? await URLSession.shared.data(from: url),
+              let image = UIImage(data: data) else {
+            print("[HoloDebug] failed to fetch \(url)")
+            return
+        }
+        let rounded = BOBACardEntity.roundedCorners(image) ?? image
+        guard let cg = rounded.cgImage,
+              let frontTex = try? await TextureResource(
+                  image: cg, withName: nil,
+                  options: TextureResource.CreateOptions(
+                      semantic: .color, mipmapsMode: .allocateAndGenerateAll
+                  )) else {
+            print("[HoloDebug] texture create failed")
+            return
+        }
+        var backTex: TextureResource?
+        if let path = Bundle.main.url(forResource: "card-back", withExtension: "png"),
+           let img = UIImage(contentsOfFile: path.path),
+           let bcg = (BOBACardEntity.roundedCorners(img) ?? img).cgImage {
+            backTex = try? await TextureResource(
+                image: bcg, withName: nil,
+                options: TextureResource.CreateOptions(
+                    semantic: .color, mipmapsMode: .none))
+        }
+        let renderer = HeroShotRenderer()
+        let config = HeroShotRenderer.Config(
+            card: card,
+            frontTexture: frontTex,
+            backTexture: backTex,
+            frontImage: rounded,
+            includeWatermark: false
+        )
+        do {
+            let grid = try await renderer.renderComparisonGrid(config)
+            if let pngData = grid.pngData() {
+                let docs = FileManager.default.urls(for: .documentDirectory,
+                                                     in: .userDomainMask)[0]
+                let out = docs.appendingPathComponent("hero-shot-comparison.png")
+                try? pngData.write(to: out)
+                print("[HoloDebug] wrote \(out.path) (\(pngData.count) bytes)")
+                print("[HoloDebug] card: \(card.id) treatment=\(card.treatment ?? "nil")")
+            } else {
+                print("[HoloDebug] pngData() failed")
+            }
+        } catch {
+            print("[HoloDebug] render failed: \(error)")
         }
     }
 }

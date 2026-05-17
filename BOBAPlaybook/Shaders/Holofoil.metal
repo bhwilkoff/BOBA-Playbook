@@ -144,15 +144,29 @@ void holofoilSurface(realitykit::surface_parameters params)
     half3 inv_shimmer = half3(1.0h) - shimmer;
     half3 finalColor = half3(1.0h) - inv_base * inv_shimmer;
 
-    // ── 7. PBR-style material output ─────────────────────────────
-    // Paper-like: dielectric (metallic 0), slight gloss for the
-    // protective clearcoat on real trading cards.
-    // set_base_color expects half3 (RGB). Alpha is handled by the
-    // discard_fragment block below (alpha-test), so we don't need to
-    // pack alpha into the base color.
-    surface.set_base_color(finalColor);
+    // ── 7. Output via EMISSIVE channel (v6.2.1) ──────────────────
+    // User across 12+ iterations: "card is washed out." Root cause
+    // identified: PBR .lit pipeline modulates base_color by Lambert
+    // diffuse + spec + IBL. Source card art (flat, saturated) is
+    // averaged with light contributions → physical softening that
+    // can't be undone with EV/sat/contrast post-process.
+    //
+    // FIX: write the final color via set_emissive_color instead of
+    // set_base_color. In RealityKit's .lit pipeline, emissive is
+    // ADDED to the lit base at full brightness with no light
+    // modulation. By setting base_color = black and emissive =
+    // (card_art + shimmer), the card renders at source-pigment
+    // punch regardless of scene lights. Shimmer is preserved as
+    // an additive contribution on top.
+    //
+    // Trade-off: card surface no longer reacts to 3-point lights
+    // (no specular highlights, no diffuse shading). For a flat
+    // printed card that matches what users want — the card should
+    // look like the printed art, not like a glossy 3D object.
+    surface.set_base_color(half3(0.0h));
+    surface.set_emissive_color(finalColor);
     surface.set_metallic(0.0);
-    surface.set_roughness(0.40);
+    surface.set_roughness(1.0);
     // Alpha-test: discard fully-transparent corner pixels so the
     // rounded card silhouette renders correctly even at oblique
     // camera angles (no transparency-sort issues — discard avoids

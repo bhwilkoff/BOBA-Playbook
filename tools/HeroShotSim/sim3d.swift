@@ -1410,6 +1410,192 @@ func makeContactSheet(tiles: [(image: CGImage, label: String)], cols: Int,
     return ctx.makeImage()
 }
 
+// MARK: - 4-variant iOS material comparison grid (v6.2 — REAL renders)
+//
+// Renders the SAME 4 material variants that iOS BOBACardEntity exposes
+// (holofoilLit / pbrMatte / pbrEmissive / unlitTexture) using the
+// compiled /tmp/Holofoil.metallib produced from BOBAPlaybook/Shaders/
+// Holofoil.metal. Output is a 2x2 grid PNG identifying which variant
+// produces the most-vivid card art.
+
+@MainActor
+func renderIOSVariant4Grid(cardCG: CGImage,
+                            cardBackCG: CGImage?,
+                            envCG: CGImage?,
+                            palette: [RGB],
+                            device: MTLDevice) async throws -> CGImage? {
+    // Load the compiled holofoil shader.
+    var holofoilShader: CustomMaterial.SurfaceShader?
+    let libURL = URL(fileURLWithPath: "/tmp/Holofoil.metallib")
+    if let lib = try? device.makeLibrary(URL: libURL) {
+        holofoilShader = CustomMaterial.SurfaceShader(named: "holofoilSurface", in: lib)
+    } else {
+        print("[Variant4] WARN: could not load /tmp/Holofoil.metallib — variant A will fall back")
+    }
+
+    let texOpts = TextureResource.CreateOptions(semantic: .color,
+                                                 mipmapsMode: .allocateAndGenerateAll)
+    let cardTex = try await TextureResource(image: cardCG, withName: nil, options: texOpts)
+
+    // Variant A — Holofoil .lit (current ship v6.2.0)
+    func makeVariantA() -> any Material {
+        guard let shader = holofoilShader,
+              let mat = try? CustomMaterial(surfaceShader: shader,
+                                             lightingModel: .lit) else {
+            // Fallback to PBR matte.
+            var fb = PhysicallyBasedMaterial()
+            fb.baseColor = .init(tint: .white, texture: .init(cardTex))
+            fb.metallic = 0.0
+            fb.roughness = 0.4
+            return fb
+        }
+        var m = mat
+        m.baseColor = .init(tint: .white, texture: .init(cardTex))
+        m.faceCulling = .none
+        return m
+    }
+    // Variant B — PBR matte (no clearcoat, no spec)
+    func makeVariantB() -> any Material {
+        var m = PhysicallyBasedMaterial()
+        m.baseColor = .init(tint: .white, texture: .init(cardTex))
+        m.metallic = 0.0
+        m.roughness = 0.95
+        m.opacityThreshold = 0.001
+        m.faceCulling = .none
+        return m
+    }
+    // Variant C — PBR emissive (base=black, art on emissive channel)
+    func makeVariantC() -> any Material {
+        var m = PhysicallyBasedMaterial()
+        m.baseColor = .init(tint: .black)
+        m.emissiveColor = .init(color: .white, texture: .init(cardTex))
+        m.emissiveIntensity = 1.0
+        m.metallic = 0.0
+        m.roughness = 1.0
+        m.opacityThreshold = 0.001
+        m.faceCulling = .none
+        return m
+    }
+    // Variant D — UnlitMaterial
+    func makeVariantD() -> any Material {
+        var m = UnlitMaterial()
+        m.color = .init(tint: .white, texture: .init(cardTex))
+        m.blending = .transparent(opacity: 1.0)
+        return m
+    }
+
+    let labels = ["A · holofoilLit", "B · pbrMatte", "C · pbrEmissive", "D · unlitTexture"]
+    let materials: [any Material] = [makeVariantA(), makeVariantB(), makeVariantC(), makeVariantD()]
+    var rendered: [(img: CGImage, label: String)] = []
+
+    let frameSize = CGSize(width: 540, height: 960)
+    for (i, material) in materials.enumerated() {
+        // Render one scene per variant — match v5.7.2 3-point lighting +
+        // env backdrop. Card front material is swapped per iteration;
+        // back + edge stay PBR.
+        let renderer = try RealityRenderer()
+        renderer.cameraSettings.colorBackground = .color(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1))
+        let root = Entity()
+        renderer.entities.append(root)
+
+        // Backdrop
+        if let envCG = envCG {
+            let bd = ModelEntity(
+                mesh: MeshResource.generatePlane(width: 2.4, depth: 3.2),
+                materials: [try makeBackdropMaterial(envCG: envCG)]
+            )
+            bd.orientation = simd_quatf(angle: .pi/2, axis: SIMD3<Float>(1,0,0))
+            bd.position = SIMD3<Float>(0, 0.10, -0.40)
+            root.addChild(bd)
+        }
+
+        // Card front using this variant's material
+        let front = ModelEntity(
+            mesh: MeshResource.generatePlane(width: cardW, depth: cardH),
+            materials: [material]
+        )
+        front.orientation = simd_quatf(angle: .pi/2, axis: SIMD3<Float>(1,0,0))
+        front.position = SIMD3<Float>(0, 0, halfT)
+        root.addChild(front)
+
+        // 3-point lights matching iOS v5.7.2
+        let key = DirectionalLight()
+        key.light.intensity = 22_500
+        key.light.color = .white
+        key.look(at: .zero, from: SIMD3<Float>(0.3, 0.4, 0.5), relativeTo: nil)
+        root.addChild(key)
+        let fill = DirectionalLight()
+        fill.light.intensity = 22_500 * 0.40
+        fill.light.color = .white
+        fill.look(at: .zero, from: SIMD3<Float>(0, 0.05, 0.5), relativeTo: nil)
+        root.addChild(fill)
+        let rim = DirectionalLight()
+        rim.light.intensity = 22_500
+        rim.light.color = .white
+        rim.look(at: .zero, from: SIMD3<Float>(-0.3, 0.4, -0.5), relativeTo: nil)
+        root.addChild(rim)
+
+        // IBL matching iOS v6.0.7 (-3.0 EV)
+        if let envCG,
+           let env = try? await EnvironmentResource(equirectangular: envCG, withName: nil) {
+            let ibl = ImageBasedLightComponent(source: .single(env),
+                                                intensityExponent: -3.0)
+            root.components.set(ibl)
+            front.components.set(ImageBasedLightReceiverComponent(imageBasedLight: root))
+        }
+
+        // Hero pose camera
+        let camera = PerspectiveCamera()
+        renderer.entities.append(camera)
+        renderer.activeCamera = camera
+        camera.look(at: .zero, from: SIMD3<Float>(0, 0.015, 0.32),
+                    upVector: SIMD3<Float>(0, 1, 0), relativeTo: nil)
+        camera.camera.fieldOfViewInDegrees = 30
+
+        // Render
+        let bundle = SceneBundle(renderer: renderer, camera: camera)
+        let frame = try renderFrame(scene: bundle, size: frameSize, device: device)
+        rendered.append((img: frame, label: labels[i]))
+        print("[Variant4] rendered \(labels[i])")
+        _ = cardBackCG  // suppress unused
+    }
+
+    // 2x2 composite with labels
+    let tileW: CGFloat = 540
+    let tileH: CGFloat = 960
+    let labelH: CGFloat = 36
+    let pad: CGFloat = 8
+    let sheetW = Int(tileW * 2 + pad * 3)
+    let sheetH = Int((tileH + labelH) * 2 + pad * 3)
+    let cs = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(
+        data: nil, width: sheetW, height: sheetH,
+        bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return nil }
+    ctx.setFillColor(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1))
+    ctx.fill(CGRect(x: 0, y: 0, width: sheetW, height: sheetH))
+
+    for (idx, r) in rendered.enumerated() {
+        let col = CGFloat(idx % 2)
+        let row = CGFloat(idx / 2)
+        let rowFromTop = 1.0 - row
+        let x = pad + col * (tileW + pad)
+        let y = pad + rowFromTop * (tileH + labelH + pad)
+        ctx.draw(r.img, in: CGRect(x: x, y: y + labelH, width: tileW, height: tileH))
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.boldSystemFont(ofSize: 24),
+            .foregroundColor: NSColor.white
+        ]
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
+        NSAttributedString(string: r.label, attributes: attrs)
+            .draw(in: CGRect(x: x + 12, y: y + 4, width: tileW - 12, height: labelH - 6))
+        NSGraphicsContext.restoreGraphicsState()
+    }
+    return ctx.makeImage()
+}
+
 // MARK: - Holofoil shader emulator
 //
 // The Metal surface shader in BOBAPlaybook/Shaders/Holofoil.metal
@@ -1661,11 +1847,29 @@ func run() async throws {
                     lookAt: SIMD3<Float>(0, 0, 0),
                     fov: Float(30))
 
-    // v5.7.x ROTATION SWEEP — render the full card pivot (front + back
-    // + edge planes, matching iOS BOBACardEntity) at 12 yaw angles
-    // around Y axis. Diagnoses the user-reported "card flashes black
-    // during rotation" bug — lets us SEE every angle through the same
-    // PBR + opacityThreshold setup the iOS app uses.
+    // v6.2 — 4-variant iOS material comparison via REAL Metal shader.
+    // Uses /tmp/Holofoil.metallib (compiled from the same Holofoil.metal
+    // source the iOS app ships) so variant A renders with the actual
+    // shader output. B/C/D use stock PhysicallyBasedMaterial /
+    // UnlitMaterial matching the iOS implementation exactly.
+    print("Rendering 4-variant iOS comparison grid…")
+    let envForGrid = envByVariant[.cleanStudio]
+    do {
+        if let grid = try await renderIOSVariant4Grid(
+            cardCG: cardCG,
+            cardBackCG: nil,
+            envCG: envForGrid,
+            palette: palette,
+            device: device
+        ) {
+            let p = (outDir as NSString).appendingPathComponent("sim3d_variant4_grid.png")
+            _ = savePNG(grid, to: p)
+            print("→ \(p)")
+        }
+    } catch {
+        print("[Variant4] failed: \(error)")
+    }
+
     let cardBackCG: CGImage?
     if let backPath = locateCardBack(),
        let src = CGImageSourceCreateWithURL(URL(fileURLWithPath: backPath) as CFURL, nil) {

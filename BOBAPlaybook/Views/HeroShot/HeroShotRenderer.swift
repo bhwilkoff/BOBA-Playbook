@@ -495,13 +495,27 @@ final class HeroShotRenderer {
         }
         try renderFrame(scene.renderer, into: mtlTex, deltaTime: 0)
 
-        // Convert CVPixelBuffer → UIImage.
+        // Convert CVPixelBuffer → CIImage → apply EV-stop reduction → UIImage.
         let ci = CIImage(cvPixelBuffer: pixelBuffer)
+        let exposed = Self.applyExposureEV(ci, ev: -2.0)
         let ctx = CIContext(mtlDevice: device)
-        guard let cg = ctx.createCGImage(ci, from: ci.extent) else {
+        guard let cg = ctx.createCGImage(exposed, from: ci.extent) else {
             throw RenderError.textureCreateFailed
         }
         return UIImage(cgImage: cg)
+    }
+
+    /// v6.0.8.1 — apply CIExposureAdjust as an EV-stop reduction post-
+    /// process. Scales all light contributions in the rendered frame
+    /// by 2^ev. Lives in CoreImage land so we don't depend on a
+    /// non-existent PerspectiveCameraComponent.exposureCompensation
+    /// property (my v6.0.8 ship referenced it; PBR camera API doesn't
+    /// actually expose it).
+    static func applyExposureEV(_ image: CIImage, ev: Float) -> CIImage {
+        let filter = CIFilter(name: "CIExposureAdjust")!
+        filter.setValue(image, forKey: kCIInputImageKey)
+        filter.setValue(ev, forKey: "inputEV")
+        return filter.outputImage ?? image
     }
 
     /// Renders the hero shot to a temporary file URL and returns it.
@@ -591,6 +605,12 @@ final class HeroShotRenderer {
             try renderFrame(scene.renderer,
                             into: mtlTex,
                             deltaTime: 1.0 / Double(config.fps))
+
+            // v6.0.8.1 — EV-stop exposure reduction. Run BEFORE the
+            // watermark composite so the watermark stays at full
+            // brightness over the darkened scene.
+            applyExposurePass(to: pixelBuffer, ev: -2.0,
+                               ciContext: ciContext)
 
             // Optional watermark composite.
             let finalBuffer: CVPixelBuffer
@@ -860,16 +880,12 @@ final class HeroShotRenderer {
         let camera = PerspectiveCamera()
         renderer.entities.append(camera)
         renderer.activeCamera = camera
-        // v6.0.8 — camera exposure compensation -2.0 EV (¼ baseline
-        // brightness). User: "the ending of the animation is still
-        // so so so washed out" — my per-knob tweaks (IBL exp, light
-        // intensity, shimmer strength) weren't moving the perceived
-        // exposure. RealityKit's PerspectiveCameraComponent.exposureCompensation
-        // is an EV adjustment applied to the entire scene, scaling
-        // ALL light contributions in one shot. -2 EV = 1/4 brightness
-        // overall. Direct control over the perceived washout instead
-        // of trying to balance individual light sources.
-        camera.camera.exposureCompensation = -2.0
+        // v6.0.8.1 — PerspectiveCameraComponent doesn't expose
+        // exposureCompensation (my v6.0.8 ship referenced a property
+        // that doesn't exist). The EV-stop reduction now lives in
+        // the per-frame render loop as a CoreImage CIExposureAdjust
+        // post-process pass. Same end result: -2 EV applied to every
+        // pixel of every output frame.
         let firstPose = config.arc.cameraFrame(
             at: 0,
             duration: config.duration,
@@ -1291,6 +1307,20 @@ final class HeroShotRenderer {
         renderer.isOpaque = false
         guard let cg = renderer.cgImage else { return nil }
         return CIImage(cgImage: cg)
+    }
+
+    /// v6.0.8.1 — render the pixel buffer through CIExposureAdjust
+    /// in place. Each EV stop halves brightness; -2 EV = 1/4
+    /// brightness. The user's "still so so so washed out" report
+    /// after individual lighting tweaks didn't move the needle
+    /// suggested I needed a single dial on perceived exposure
+    /// rather than balancing competing light sources.
+    private func applyExposurePass(to pixelBuffer: CVPixelBuffer,
+                                    ev: Float,
+                                    ciContext: CIContext) {
+        let base = CIImage(cvPixelBuffer: pixelBuffer)
+        let exposed = Self.applyExposureEV(base, ev: ev)
+        ciContext.render(exposed, to: pixelBuffer)
     }
 
     private func compositeWatermark(into pixelBuffer: CVPixelBuffer,

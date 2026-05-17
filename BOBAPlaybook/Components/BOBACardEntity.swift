@@ -225,6 +225,12 @@ nonisolated enum BOBACardEntity {
         /// as "card thickness" rather than a glaring white sliver
         /// during rotation.
         var edgeTint: UIColor?
+        /// v7.0: edge thickness multiplier on `halfThickness`. The
+        /// generated edge-box mesh uses `halfThickness * multiplier`
+        /// for its thin axis. Default 1.5 matches v5.x ship behavior;
+        /// Hero Shot passes ~4 so the edge is visible at yaw≈90°
+        /// edge-on rotations (otherwise sub-pixel at hero distances).
+        var edgeThicknessMultiplier: Float
 
         init(frontTexture: TextureResource? = nil,
              backTexture: TextureResource? = nil,
@@ -234,7 +240,8 @@ nonisolated enum BOBACardEntity {
              treatment: String? = nil,
              useHolofoil: Bool = false,
              frontVariant: FrontMaterialVariant = .holofoilLit,
-             edgeTint: UIColor? = nil) {
+             edgeTint: UIColor? = nil,
+             edgeThicknessMultiplier: Float = 1.5) {
             self.frontTexture = frontTexture
             self.backTexture = backTexture
             self.includeEdge = includeEdge
@@ -244,6 +251,7 @@ nonisolated enum BOBACardEntity {
             self.useHolofoil = useHolofoil
             self.frontVariant = frontVariant
             self.edgeTint = edgeTint
+            self.edgeThicknessMultiplier = edgeThicknessMultiplier
         }
     }
 
@@ -282,6 +290,15 @@ nonisolated enum BOBACardEntity {
         // "thin axis" rotates with the card.
         var edge: ModelEntity? = nil
         if config.includeEdge {
+            // v7.0 — edge thickness multiplier on halfThickness. Real
+            // cards are 0.3mm thick (halfThickness * 2). Default is
+            // 1.5× halfThickness (~0.23mm) which is sub-pixel at hero-
+            // shot distances. Hero Shot passes a larger multiplier
+            // (~4) so the edge has visible thickness at yaw≈90° edge-
+            // on views; otherwise the card "disappears" mid-rotation.
+            // House of BoBA keeps the 1.5 default since its viewing
+            // distance + table-cluster context don't expose the issue.
+            let edgeThickness = halfThickness * config.edgeThicknessMultiplier
             let edgeMesh: MeshResource
             switch config.pose {
             case .upright:
@@ -290,7 +307,7 @@ nonisolated enum BOBACardEntity {
                     size: SIMD3<Float>(
                         width - 2 * r,
                         height - 2 * r,
-                        halfThickness * 1.5
+                        edgeThickness
                     )
                 )
             case .flat:
@@ -298,7 +315,7 @@ nonisolated enum BOBACardEntity {
                 edgeMesh = MeshResource.generateBox(
                     size: SIMD3<Float>(
                         width - 2 * r,
-                        halfThickness * 1.5,
+                        edgeThickness,
                         height - 2 * r
                     )
                 )

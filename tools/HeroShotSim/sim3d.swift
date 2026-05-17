@@ -2047,15 +2047,18 @@ func renderIOSv67RotationStrip(cardCG: CGImage,
         // with 70% scale matches the HeroShotRenderer.sampleEdgeTint
         // intent — dark enough to read as "edge" not "white sliver."
         let cornerR: Float = 0.005
+        // v7.0 — 1.9 × halfT = 0.285mm. Just under the 0.30mm real-card
+        // cap; 2.0 exactly = z-fighting with front+back planes.
         let edgeBoxMesh = MeshResource.generateBox(
             size: SIMD3<Float>(cardW - 2 * cornerR,
                                 cardH - 2 * cornerR,
-                                halfT * 1.5)
+                                halfT * 1.9)
         )
         var edgeMat = UnlitMaterial()
-        let edgeR = (palette[0].r + palette[1].r) * 0.5 * 0.70
-        let edgeG = (palette[0].g + palette[1].g) * 0.5 * 0.70
-        let edgeB = (palette[0].b + palette[1].b) * 0.5 * 0.70
+        // v7.0 — match iOS sampleEdgeTint formula: sampled × 0.5 + 0.20.
+        let edgeR = (palette[0].r + palette[1].r) * 0.5 * 0.5 + 0.20
+        let edgeG = (palette[0].g + palette[1].g) * 0.5 * 0.5 + 0.20
+        let edgeB = (palette[0].b + palette[1].b) * 0.5 * 0.5 + 0.20
         edgeMat.color = .init(tint: NSColor(red: CGFloat(edgeR),
                                               green: CGFloat(edgeG),
                                               blue: CGFloat(edgeB),
@@ -2064,17 +2067,9 @@ func renderIOSv67RotationStrip(cardCG: CGImage,
         edgeBox.position = .zero
         cardPivot.addChild(edgeBox)
 
-        // Sparkle overlay
-        if let overlayMat = overlayMatOrNil {
-            let overlay = ModelEntity(
-                mesh: MeshResource.generatePlane(width: cardW * 0.88,
-                                                  depth: cardH * 0.92),
-                materials: [overlayMat]
-            )
-            overlay.orientation = simd_quatf(angle: .pi/2, axis: SIMD3<Float>(1,0,0))
-            overlay.position = SIMD3<Float>(0, 0, halfT + 0.0008)
-            cardPivot.addChild(overlay)
-        }
+        // v7.0 — sparkle overlay removed (matches iOS). Stock RealityKit
+        // pattern: unlit card + lighting + camera motion = premium feel.
+        _ = overlayMatOrNil  // unused now; kept for potential reintroduction
 
         // YAW THE CARD
         cardPivot.orientation = simd_quatf(angle: yawRad, axis: SIMD3<Float>(0, 1, 0))
@@ -2108,13 +2103,14 @@ func renderIOSv67RotationStrip(cardCG: CGImage,
             }
         }
 
-        // Camera at hero pose
+        // v7.0 — camera at hero pose pulled back 1.7×. Matches
+        // iOS revealFrame heroPose (z=0.58, FOV=32).
         let camera = PerspectiveCamera()
         renderer.entities.append(camera)
         renderer.activeCamera = camera
-        camera.look(at: .zero, from: SIMD3<Float>(0, 0.015, 0.32),
+        camera.look(at: .zero, from: SIMD3<Float>(0, 0.025, 0.58),
                     upVector: SIMD3<Float>(0, 1, 0), relativeTo: nil)
-        camera.camera.fieldOfViewInDegrees = 30
+        camera.camera.fieldOfViewInDegrees = 32
 
         let bundle = SceneBundle(renderer: renderer, camera: camera)
         let rawFrame = try renderFrame(scene: bundle, size: frameSize, device: device)

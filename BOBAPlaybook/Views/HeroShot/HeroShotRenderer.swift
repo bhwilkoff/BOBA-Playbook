@@ -129,21 +129,27 @@ final class HeroShotRenderer {
         // downsampling (sharp), not upsampling (blurry). Hero pose
         // is the climax — no macro center-crop.
         let slideStart = CameraPose(
-            position: SIMD3<Float>(-0.16, -0.04, 0.32),
+            position: SIMD3<Float>(-0.28, -0.07, 0.54),
             lookAt:   SIMD3<Float>(-0.025, -0.01, 0),
             fovDeg:   38
         )
-        // v5.7 — pull back so card occupies ~50% of frame (research:
-        // 35-55% is the cinema sweet spot; 70%+ leaves no room for
-        // the env to do its work). Was z=0.25 → ~67%, push z=0.21 →
-        // ~75%. New z=0.34 settle, z=0.30 push climax → ~46% and ~53%.
+        // v7.0 — camera distances multiplied by ~1.7×. Diagnostic
+        // showed cards with small /full/ R2 source (477×667 for
+        // 1-Maverick) couldn't render crisp at the previous 45-53%
+        // frame fill because source pixels < display pixels → forced
+        // GPU upsample → pixelation. Pulling camera back to z=0.58
+        // settle / z=0.51 push gives ~27-33% frame fill, which makes
+        // source pixels ≥ display pixels for the majority of cards
+        // (HouseOfCards renders crisp at ~14% fill on ARView for
+        // exactly this reason). Card still reads as the hero subject;
+        // env now breathes around it.
         let heroPose = CameraPose(
-            position: SIMD3<Float>(0.0, 0.015, 0.34),
+            position: SIMD3<Float>(0.0, 0.025, 0.58),
             lookAt:   .zero,
             fovDeg:   32
         )
         let pushPose = CameraPose(
-            position: SIMD3<Float>(0.0, 0.018, 0.30),
+            position: SIMD3<Float>(0.0, 0.030, 0.51),
             lookAt:   .zero,
             fovDeg:   30
         )
@@ -181,7 +187,8 @@ final class HeroShotRenderer {
         // gone — premium reveals don't punch in past the subject's
         // edges. Instead, after the orbit completes, settle onto a
         // slight 3/4 hero pose at ~70% fill and breathe.
-        let arcDistance: Float = 0.25
+        // v7.0 — 1.7× pullback for source-pixel crispness (see revealFrame).
+        let arcDistance: Float = 0.43
         let arcElev:     Float = 5 * .pi / 180
         let arcAzMin:    Float = -22 * .pi / 180
         let arcAzMax:    Float =  22 * .pi / 180
@@ -207,18 +214,18 @@ final class HeroShotRenderer {
                 lookAt: .zero,
                 fovDeg: 32
             )
-            // v5.7 — pull back to ~50% framing.
+            // v7.0 — 1.7× pullback for source-pixel crispness.
             let heroPose = CameraPose(
-                position: SIMD3<Float>(0.05, 0.018, 0.31),
+                position: SIMD3<Float>(0.05, 0.030, 0.53),
                 lookAt: .zero,
                 fovDeg: 30
             )
             let t = easeOutCubic((time - arcEnd) / (settleEnd - arcEnd))
             return lerpPose(arcEndPose, heroPose, Float(t))
         } else {
-            // v5.7 — pull back to ~50% framing.
+            // v7.0 — 1.7× pullback for source-pixel crispness.
             let heroPose = CameraPose(
-                position: SIMD3<Float>(0.05, 0.018, 0.31),
+                position: SIMD3<Float>(0.05, 0.030, 0.53),
                 lookAt: .zero,
                 fovDeg: 30
             )
@@ -248,18 +255,19 @@ final class HeroShotRenderer {
         // visible at the closest framing.
         let upperLookAt = SIMD3<Float>(0, 0.022, 0)
 
+        // v7.0 — 1.7× pullback for source-pixel crispness.
         let wide = CameraPose(
-            position: SIMD3<Float>(-0.05, 0.020, 0.30),
+            position: SIMD3<Float>(-0.08, 0.034, 0.51),
             lookAt:   SIMD3<Float>(0, -0.005, 0),
             fovDeg:   36
         )
         let upperFramed = CameraPose(
-            position: SIMD3<Float>(0.02, 0.04, 0.22),
+            position: SIMD3<Float>(0.034, 0.068, 0.37),
             lookAt:   upperLookAt,
             fovDeg:   28
         )
         let driftEndPose = CameraPose(
-            position: SIMD3<Float>(-0.025, 0.04, 0.22),
+            position: SIMD3<Float>(-0.043, 0.068, 0.37),
             lookAt:   upperLookAt,
             fovDeg:   28
         )
@@ -303,19 +311,19 @@ final class HeroShotRenderer {
 
         // Beat 1 keyframes — pulled-back crane-up. Start lower-left,
         // end slightly higher and centered. Wide FOV reveals stage.
+        // v7.0 — 1.7× pullback for source-pixel crispness.
         let establishStart = CameraPose(
-            position: SIMD3<Float>(-0.06, -0.030, 0.34),
+            position: SIMD3<Float>(-0.10, -0.051, 0.58),
             lookAt:   SIMD3<Float>(0, 0.005, 0),
             fovDeg:   38
         )
         let establishEndPose = CameraPose(
-            position: SIMD3<Float>(0.06, 0.035, 0.32),
+            position: SIMD3<Float>(0.10, 0.060, 0.54),
             lookAt:   .zero,
             fovDeg:   34
         )
         // Beat 2 keyframes — partial orbit at hero-wide distance.
-        // Same radius as establishEnd, rotates around Y from +12° to -10°.
-        let orbitRadius: Float = 0.30
+        let orbitRadius: Float = 0.51
         let orbitElevation: Float = 0.025
         func orbital(azDeg: Float) -> SIMD3<Float> {
             let az = azDeg * .pi / 180
@@ -333,10 +341,9 @@ final class HeroShotRenderer {
             lookAt:   .zero,
             fovDeg:   34
         )
-        // Beat 3 keyframe — v5.7 pulled back to ~50% framing (was 0.22
-        // → ~75%). Card no longer dominates; env breathes around it.
+        // Beat 3 keyframe — v7.0 1.7× pullback for source-pixel crispness.
         let heroPose = CameraPose(
-            position: SIMD3<Float>(0, 0.015, 0.32),
+            position: SIMD3<Float>(0, 0.025, 0.54),
             lookAt:   .zero,
             fovDeg:   30
         )
@@ -433,7 +440,16 @@ final class HeroShotRenderer {
         var frontImage: UIImage
         var includeWatermark: Bool = true
         var arc: ArcPreset = .reveal
-        var cardMotion: CardMotion = .entranceSpin
+        // v7.0 — default to .slowRotate. .entranceSpin's full 360°
+        // rotation passes through 90° and 270° where the 0.3mm card
+        // is physically edge-on (a thin vertical line) — user-
+        // reported as "card disappears partially as it rotates."
+        // That's not a rendering bug — it's accurate physics — but
+        // the sway motion of .slowRotate (±30°) keeps the card
+        // always camera-facing, never edge-on, so it always reads
+        // as "card with subtle 3D tilt." Users can still pick
+        // .entranceSpin explicitly if they want the full reveal.
+        var cardMotion: CardMotion = .slowRotate
         /// Default: 10s. Discrete picker values: 5 / 10 / 15 / 30.
         var duration: TimeInterval = 10.0
         var fps: Int = 60
@@ -881,7 +897,15 @@ final class HeroShotRenderer {
             treatment: config.card.treatment,
             useHolofoil: false,
             frontVariant: .unlitTexture,
-            edgeTint: Self.sampleEdgeTint(from: config.frontImage)
+            edgeTint: Self.sampleEdgeTint(from: config.frontImage),
+            // 1.9 × halfThickness = 0.285mm. Real card stock is 0.30mm
+            // (2.0 × halfThickness), but exactly 2.0 places the edge
+            // box's ±Z faces flush with the front+back planes →
+            // z-fighting where the edge color can occlude card art.
+            // 1.9 hides the edge faces behind the planes by 0.0075mm
+            // margin, no occlusion, while staying under the 0.30mm
+            // real-thickness cap.
+            edgeThicknessMultiplier: 1.9
         ))
         cardPivot.position = .zero
         root.addChild(cardPivot)
@@ -908,31 +932,20 @@ final class HeroShotRenderer {
             root.addChild(halo)
         }
 
-        // v6.5 — sparkle shimmer overlay. Static rainbow overlay (v6.4
-        // attempt) looked like a tint stain. View-dependent shader was
-        // black on opaque (overlay obscured card). Solution: a NEW
-        // shader function `holofoilOverlaySparkle` that DISCARDs
-        // fragments where shimmer is dim, producing sparkle behavior
-        // — only the brightest shimmer pixels render, scattered
-        // across the card. Plus the underlying unlit card shows
-        // through everywhere else.
-        //
-        // Sim-validated as variant F: card art crystal clear + subtle
-        // scattered sparkles, no tint/wash. Real holofoil feel.
-        if let overlayMat = Self.makeSparkleOverlayMaterial() {
-            // 88% of card so overlay stays inside the rounded-corner
-            // silhouette — sparkles otherwise show in the transparent
-            // card corners and bleed onto the env backdrop.
-            let overlayPlane = ModelEntity(
-                mesh: MeshResource.generatePlane(width: Self.cardW * 0.88,
-                                                  depth: Self.cardH * 0.92),
-                materials: [overlayMat]
-            )
-            overlayPlane.orientation = simd_quatf(angle: .pi / 2,
-                                                   axis: SIMD3<Float>(1, 0, 0))
-            overlayPlane.position = SIMD3<Float>(0, 0, Self.halfT + 0.0008)
-            cardPivot.addChild(overlayPlane)
-        }
+        // v7.0 — sparkle overlay REMOVED. User across v6.5–v6.9: "the
+        // dots are now all different colors" / "you are building all
+        // of these custom pieces that break the fundamental properties
+        // of RealityKit." The CustomMaterial overlay plane was a
+        // novel construction not grounded in stock RealityKit
+        // patterns — it generated visible per-pixel artifacts (black
+        // or colored dots blocking card art) at every iteration.
+        // Apple's own card-rendering surfaces (Wallet, Apple Music
+        // album art, Photos memories) use stock materials + camera
+        // motion + lighting; they don't paint shimmer onto a fragment
+        // overlay. We're following that pattern: UnlitMaterial card +
+        // 3-point lighting + camera motion = "premium card video"
+        // without the failure modes. Sparkles can return later via a
+        // proven pattern if needed.
 
         // ── 3-point lighting (v5.7.2) ────────────────────────────────
         // User: "card flashes black during rotation." Captured the bug
@@ -1132,12 +1145,18 @@ final class HeroShotRenderer {
             b += CGFloat(px[2]) / 255.0
             n += 1
         }
-        guard n > 0 else { return UIColor(white: 0.18, alpha: 1.0) }
-        // 70% sampled + 30% black: keeps the edge reading as "thickness"
-        // rather than a bright competitor to the front art.
-        let mixR = (r / n) * 0.70
-        let mixG = (g / n) * 0.70
-        let mixB = (b / n) * 0.70
+        guard n > 0 else { return UIColor(white: 0.45, alpha: 1.0) }
+        // v7.0 — sampled chroma + constant lift. v6.9's 70%-of-sampled
+        // produced near-black edges for dark cards (Bojax) that
+        // disappeared into the env backdrop at yaw≈90°. v6.7's pure
+        // cream 0.92 produced bright white slivers. Sweet spot: lift
+        // dark tones into the visible range (floor ~0.35) while keeping
+        // bright cards' edges from washing out. Mix = sampled × 0.5 +
+        // 0.20 keeps the card's color identity in the edge while
+        // making sure every card has a visible thickness.
+        let mixR = (r / n) * 0.5 + 0.20
+        let mixG = (g / n) * 0.5 + 0.20
+        let mixB = (b / n) * 0.5 + 0.20
         return UIColor(red: mixR, green: mixG, blue: mixB, alpha: 1.0)
     }
 

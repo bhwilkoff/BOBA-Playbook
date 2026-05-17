@@ -504,7 +504,10 @@ final class HeroShotRenderer {
         // EV +0.5 / sat 1.20 / con 1.10 produces a vivid, well-lit
         // card. Tested via sim_post_sweep.png with 6 EV settings
         // 0 to +1.0. +0.5 reads bright + saturated without bloom.
-        let exposed = Self.applyExposureEV(ci, ev: 0.5,
+        // v6.8 — bumped EV 0.5 → 0.8 to match the video render path
+        // (HeroShotRenderer.renderToFile applyExposurePass). Preview
+        // + video must agree or users will see a mismatch.
+        let exposed = Self.applyExposureEV(ci, ev: 0.8,
                                             saturation: 1.20,
                                             contrast: 1.10)
         let ctx = CIContext(mtlDevice: device)
@@ -693,7 +696,11 @@ final class HeroShotRenderer {
             // full brightness over the graded scene.
             // v6.4 — see comment in renderPreviewFrame. UnlitMaterial
             // card needs no darkening; brighten with mild grading.
-            applyExposurePass(to: pixelBuffer, ev: 0.5,
+            // v6.8 — bumped EV 0.5 → 0.8 per "card shows as a bit dark"
+            // user report. Card now reads at premium brightness while
+            // staying inside the saturated-color sweet spot (contrast
+            // 1.10 + sat 1.20 still gives pigment punch without clipping).
+            applyExposurePass(to: pixelBuffer, ev: 0.8,
                                saturation: 1.20, contrast: 1.10,
                                ciContext: ciContext)
 
@@ -847,15 +854,33 @@ final class HeroShotRenderer {
         // Future: add shimmer as a separate overlay plane in front of
         // the card using CustomMaterial — that surface CAN run the
         // shader while the underlying card stays unlit + source-vivid.
+        // v6.8 — material: .unlit (was .physicallyBased). At yaw=180°
+        // the PBR back's clearcoat (0.20) created a specular hotspot
+        // from the rim light reflecting straight into the camera, which
+        // washed out the back center to white — the user-reported "1/3
+        // of card renders as white during rotation." Sim-confirmed in
+        // sim3d_v68_rotation.png. UnlitMaterial back + edge eliminate
+        // the specular layer entirely; back image renders at source
+        // pigment through full rotation. Front already used unlit via
+        // .unlitTexture variant; this aligns the rest of the card.
+        // v6.8 — includeEdge: false. The cream (white 0.92) edge box
+        // was producing a visible vertical white strip on the side
+        // of the card during rotation (yaw 30°/60°/300°/330°) — that
+        // was the user-reported "one third of card renders as white
+        // while it turns around." Sim-confirmed: removing the edge
+        // box eliminates the artifact entirely while the front+back
+        // planes at z=±halfT still read as a thin card. The 0.3mm
+        // real-world card edge isn't a useful visual cue at hero-pose
+        // distances anyway.
         let cardPivot = BOBACardEntity.build(BOBACardEntity.Config(
             frontTexture: config.frontTexture,
             backTexture: config.backTexture,
-            includeEdge: true,
+            includeEdge: false,
             pose: .upright,
-            material: .physicallyBased,
+            material: .unlit,
             treatment: config.card.treatment,
             useHolofoil: false,
-            frontVariant: .unlitTexture      // ← sim-validated winner
+            frontVariant: .unlitTexture
         ))
         cardPivot.position = .zero
         root.addChild(cardPivot)
@@ -1153,6 +1178,12 @@ final class HeroShotRenderer {
         if let mask = BOBACardEntity.exposedFoilMaskTexture() {
             mat.ambientOcclusion = .init(texture: .init(mask))
         }
+        // v6.8 — transparent blending so the shader's alpha output
+        // (via surface.set_opacity()) controls coverage. Previous
+        // ship (opaque overlay + discard_fragment in shader) was the
+        // source of the user-reported "black specks moving across
+        // the card" — see Holofoil.metal v6.8 note.
+        mat.blending = .transparent(opacity: 1.0)
         mat.faceCulling = .none
         return mat
     }

@@ -831,6 +831,16 @@ final class HeroShotRenderer {
         // Phase 2 simulator's 4×8 sweep showed this combo lights the
         // card uniformly without blowout (80k blew out, dim & IBL-only
         // were near-black) AND gives ambient color shift from the env.
+        // v6.3 — winner from sim's 4-variant grid render: UnlitMaterial
+        // gives source-accurate vivid card art with no PBR wash. The
+        // shader-based variants (holofoilLit, pbrEmissive) come out
+        // either washed or completely blown out. UnlitMaterial is what
+        // ships.
+        //
+        // Trade-off: no shimmer (UnlitMaterial doesn't run the shader).
+        // Future: add shimmer as a separate overlay plane in front of
+        // the card using CustomMaterial — that surface CAN run the
+        // shader while the underlying card stays unlit + source-vivid.
         let cardPivot = BOBACardEntity.build(BOBACardEntity.Config(
             frontTexture: config.frontTexture,
             backTexture: config.backTexture,
@@ -838,8 +848,8 @@ final class HeroShotRenderer {
             pose: .upright,
             material: .physicallyBased,
             treatment: config.card.treatment,
-            useHolofoil: true,             // shader available for variant A
-            frontVariant: config.frontVariant   // v6.2 variant selector
+            useHolofoil: false,
+            frontVariant: .unlitTexture      // ← sim-validated winner
         ))
         cardPivot.position = .zero
         root.addChild(cardPivot)

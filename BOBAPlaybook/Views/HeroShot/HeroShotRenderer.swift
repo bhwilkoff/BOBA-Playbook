@@ -377,22 +377,19 @@ final class HeroShotRenderer {
         case .`static`:
             return 0
         case .entranceSpin:
-            // v7.1 — was 2π full rotation. The card passed through
-            // yaw=90° and 270° where a 0.3mm card is PHYSICALLY a
-            // thin sliver (accurate physics, but user-reported as
-            // "card disappears partially as it turns"). New: peak
-            // amplitude ±70° (never edge-on) over an EaseInOutCubic
-            // sway. Card tilts dramatically left, settles to face
-            // camera, never showing its back or going edge-on.
+            // v7.2 — restored full 2π spin (user: "The card no
+            // longer spins around"). The 0.3mm edge box DOES briefly
+            // present as a thin sliver at exactly yaw=90°/270°, but
+            // motion blur from the smoothstep velocity + the card
+            // sweeping through those angles quickly means the eye
+            // reads "spin" rather than "card vanishes." This is the
+            // same physics every 3D card animation has to accept.
             let spinPhase = 0.35
             if progress <= spinPhase {
                 let t = progress / spinPhase
-                let eased = Float(easedProgress(t))
-                let maxYaw: Float = 70 * .pi / 180
-                // Goes from -maxYaw → 0 (settles facing camera)
-                return -maxYaw + eased * maxYaw
+                return Float(easedProgress(t)) * 2 * .pi
             }
-            return 0
+            return 0  // 2π = 0 (snap to face camera for the rest)
         case .slowRotate:
             // v5.1: gentle ±30° sinusoidal sway. v5's linear 0→2π
             // spent half the clip showing the BACK of the card — user
@@ -524,12 +521,10 @@ final class HeroShotRenderer {
         // EV +0.5 / sat 1.20 / con 1.10 produces a vivid, well-lit
         // card. Tested via sim_post_sweep.png with 6 EV settings
         // 0 to +1.0. +0.5 reads bright + saturated without bloom.
-        // v6.8 — bumped EV 0.5 → 0.8 to match the video render path
-        // (HeroShotRenderer.renderToFile applyExposurePass). Preview
-        // + video must agree or users will see a mismatch.
-        let exposed = Self.applyExposureEV(ci, ev: 0.8,
-                                            saturation: 1.20,
-                                            contrast: 1.10)
+        // v7.2 — match video EV 0.0 (was 0.8 — caused washout).
+        let exposed = Self.applyExposureEV(ci, ev: 0.0,
+                                            saturation: 1.15,
+                                            contrast: 1.08)
         let ctx = CIContext(mtlDevice: device)
         guard let cg = ctx.createCGImage(exposed, from: ci.extent) else {
             throw RenderError.textureCreateFailed
@@ -716,12 +711,15 @@ final class HeroShotRenderer {
             // full brightness over the graded scene.
             // v6.4 — see comment in renderPreviewFrame. UnlitMaterial
             // card needs no darkening; brighten with mild grading.
-            // v6.8 — bumped EV 0.5 → 0.8 per "card shows as a bit dark"
-            // user report. Card now reads at premium brightness while
-            // staying inside the saturated-color sweet spot (contrast
-            // 1.10 + sat 1.20 still gives pigment punch without clipping).
-            applyExposurePass(to: pixelBuffer, ev: 0.8,
-                               saturation: 1.20, contrast: 1.10,
+            // v7.2 — EV 0.8 → 0.0. The post-process brightening was
+            // pushing the PBR-lit card into clipping at the push-
+            // climax frame (user: "incredibly washed out at the
+            // end of the video"). PBR's Lambert + IBL already
+            // produce a balanced exposure; the +0.8 EV stack was
+            // gratuitous. Saturation + contrast retained for the
+            // pigment-punch grade.
+            applyExposurePass(to: pixelBuffer, ev: 0.0,
+                               saturation: 1.15, contrast: 1.08,
                                ciContext: ciContext)
 
             // Optional watermark composite.

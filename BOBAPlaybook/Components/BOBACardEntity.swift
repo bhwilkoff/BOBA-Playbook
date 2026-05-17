@@ -502,18 +502,16 @@ nonisolated enum BOBACardEntity {
             } else {
                 mat.baseColor = .init(tint: placeholderBackColor)
             }
-            // Card back is matte paper — no foil, no metallic, slight
-            // clearcoat for the protective varnish layer.
+            // Card back is matte paper. v7.1: clearcoat REMOVED (was
+            // 0.20). At yaw=180° the clearcoat reflected the rim
+            // light directly into the camera through the back's
+            // specular highlight, washing the back center to white
+            // — sim-confirmed in sim3d_v68_rotation v6.8 era. With
+            // clearcoat 0 the back stays matte even at the worst
+            // rim-light angles.
             mat.metallic = 0.0
-            mat.roughness = 0.55
-            mat.clearcoat = 0.20
-            mat.clearcoatRoughness = 0.15
-            // v5.7.1: alpha-test instead of .transparent — same fix
-            // as front PBR. See comment in makeFrontPBRMaterial.
+            mat.roughness = 0.85    // higher roughness = even less specular pop
             mat.opacityThreshold = 0.001
-            // v5.7.2: two-sided render so rotation past 90° shows the
-            // back image instead of culling-induced black. See front
-            // PBR for the full diagnosis (sim-captured at yaw=120°).
             mat.faceCulling = .none
             return mat
         }

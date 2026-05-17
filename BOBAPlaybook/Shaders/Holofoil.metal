@@ -229,37 +229,44 @@ void holofoilOverlaySparkle(realitykit::surface_parameters params)
     // Foil mask
     float foilMask = textures.ambient_occlusion().sample(s, uv).r;
 
-    // SPARKLE behavior: discard fragments whose perturbation noise
-    // value is below threshold. This creates a SCATTERED PATTERN
-    // of visible sparkle pixels — fixed in UV space, so each card
-    // position is either "sparkle here" or "not sparkle here."
+    // v6.8 — switch from discard_fragment() to alpha output. The v6.7
+    // approach was: compute shimmer, then discard fragments with low
+    // perturbLum. The user-reported "black specks that move across
+    // the front of the image" maps to a real failure mode: on certain
+    // iOS Metal pipeline stages, `discard_fragment()` from a non-uniform
+    // control flow path can be elided, in which case the supposed-to-be-
+    // discarded fragments render with the computed shimmer color on an
+    // OPAQUE overlay plane — dim shimmer over black base = near-black
+    // opaque pixels overlaying the card. Plus the time-driven UV drift
+    // animates the failure region across the card → "moving black
+    // specks." Sim couldn't reproduce because RealityFoundation on macOS
+    // honors the discard reliably; on iOS Metal it's a latent risk.
     //
-    // v6.5.2: decoupled sparkle ALPHA from fresnel. At hero pose
-    // fresnel is near-zero (~5° off normal → 0.0002) so the v6.5.1
-    // formula discarded ALL sparkles. Real foil sparkles ARE
-    // visible head-on; they just shift color as you tilt. The
-    // RAINBOW COLOR still uses view direction (so sparkles change
-    // hue as the card rotates), but VISIBILITY is just perturbation.
-    // Sparkle discard also uses drifting UV so individual sparkles
-    // appear + disappear over time (twinkle effect). v6.7.1: threshold
-    // 0.55 → 0.48 — more sparkles render on dark cards (Bojax-style
-    // magenta dominant had too few visible sparkles).
+    // Fix: emit alpha through the base_color.a channel and rely on the
+    // overlay material's .transparent blending mode. Premultiplied
+    // alpha (RealityKit default): src_rgb stays as emissive, src_alpha
+    // controls coverage. Non-sparkle pixels (alpha=0) blend to full
+    // transparency regardless of emissive output → no speck risk.
     half3 perturbHF = textures.emissive_color().sample(s, uv * 5.0 + float2(t_anim * 1.7, -t_anim * 1.3)).rgb;
     half perturbLum = (perturbHF.r + perturbHF.g + perturbHF.b) / 3.0h;
-    if (perturbLum < 0.55h || foilMask < 0.1h) {
-        discard_fragment();
-    }
+    half sparkleAlpha = ((perturbLum >= 0.55h) && (foilMask >= 0.1h)) ? 1.0h : 0.0h;
+
     // Shimmer color: bright rainbow with fresnel boost for grazing
     // shine. Floor 0.7 so head-on sparkles stay visible against
-    // the card's colors.
+    // the card's colors. Multiply by alpha to keep premultiplied
+    // semantics — zero-alpha pixels contribute zero color too.
     float fresnelGain = 0.7 + fresnel * 0.9;
-    half3 shimmer = rainbow * half(fresnelGain);
+    half3 shimmer = rainbow * half(fresnelGain) * sparkleAlpha;
 
-    // Output shimmer color via emissive (unlit-style for this overlay).
-    // base 0 so no PBR diffuse contribution; emissive ADDS on top of
-    // the card behind us (rendered first, the unlit card art).
+    // base_color alpha controls coverage on the .transparent overlay.
+    // Output (0, 0, 0, alpha) so opaque-blend math gives:
+    //   alpha=0 (non-sparkle): card shows through unmodified
+    //   alpha=1 (sparkle): shimmer-colored pinpoint
+    // The set_base_color overload that takes a single half3 sets
+    // alpha=1 implicitly, so we route alpha via opacity instead.
     surface.set_base_color(half3(0.0h));
     surface.set_emissive_color(shimmer);
+    surface.set_opacity(sparkleAlpha);
     surface.set_metallic(0.0);
     surface.set_roughness(1.0);
 }

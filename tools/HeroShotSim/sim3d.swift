@@ -1894,6 +1894,264 @@ func renderIOSVariant4Grid(cardCG: CGImage,
     return ctx.makeImage()
 }
 
+// MARK: - v6.8 rotation diagnostic
+//
+// Renders the iOS v6.7.2 scene (UnlitMaterial card front + PBR card
+// back + cream edge box + sparkle overlay + rim halo + 3-point lights
+// + env IBL) at multiple yaw angles. Lets me see what the user sees
+// during card rotation — diagnosing:
+//   • pixelated card art
+//   • black specks moving across front
+//   • 1/3 white sliver during rotation (hypothesis: edge box exposure)
+//   • brightness
+//
+// Hypothesis on the white sliver: BOBACardEntity includes a cream
+// (UIColor white 0.92) edge BOX between the front + back planes. At
+// face-on angles the planes hide it; during rotation the box top/
+// bottom + side faces become visible as a glaring white band.
+
+@MainActor
+func renderIOSv67RotationStrip(cardCG: CGImage,
+                                cardBackCG: CGImage?,
+                                envCG: CGImage?,
+                                palette: [RGB],
+                                device: MTLDevice,
+                                yawSteps: Int = 12,
+                                tileW: CGFloat = 360,
+                                tileH: CGFloat = 640) async throws -> CGImage? {
+    let frameSize = CGSize(width: 540, height: 960)
+    let texOpts = TextureResource.CreateOptions(semantic: .color,
+                                                 mipmapsMode: .allocateAndGenerateAll)
+    let cardTex = try await TextureResource(image: cardCG, withName: nil, options: texOpts)
+    let backTex: TextureResource? = {
+        guard let backCG = cardBackCG else { return nil }
+        return try? TextureResource(image: backCG, withName: nil, options: texOpts)
+    }()
+
+    // Sparkle overlay material (CustomMaterial + holofoilOverlaySparkle).
+    let overlayMatOrNil: CustomMaterial? = await {
+        let libURL = URL(fileURLWithPath: "/tmp/Holofoil.metallib")
+        guard let lib = try? device.makeLibrary(URL: libURL) else { return nil }
+        let shader = CustomMaterial.SurfaceShader(named: "holofoilOverlaySparkle", in: lib)
+        guard var mat = try? CustomMaterial(surfaceShader: shader,
+                                             lightingModel: .lit) else { return nil }
+        let whiteData = Data([255, 255, 255, 255])
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let providerRef = CGDataProvider(data: whiteData as CFData),
+              let whiteCG = CGImage(width: 1, height: 1,
+                                     bitsPerComponent: 8, bitsPerPixel: 32,
+                                     bytesPerRow: 4, space: cs,
+                                     bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+                                     provider: providerRef, decode: nil,
+                                     shouldInterpolate: false,
+                                     intent: .defaultIntent),
+              let wTex = try? await TextureResource(image: whiteCG, withName: "white1px",
+                                                     options: TextureResource.CreateOptions(semantic: .color)),
+              let rainbowLUT = holofoilRainbowLUTTexture(device: device),
+              let perturbTex = try? await holofoilPerturbTexture(device: device),
+              let maskTex = try? await holofoilFoilMaskTexture(device: device)
+        else { return nil }
+        mat.baseColor = .init(tint: .white, texture: .init(wTex))
+        mat.normal = .init(texture: .init(rainbowLUT))
+        mat.emissiveColor = .init(color: .black, texture: .init(perturbTex))
+        mat.ambientOcclusion = .init(texture: .init(maskTex))
+        mat.blending = .transparent(opacity: 1.0)
+        mat.faceCulling = .none
+        return mat
+    }()
+
+    var rendered: [(img: CGImage, label: String)] = []
+
+    for step in 0..<yawSteps {
+        let yawDeg = Float(step) * (360.0 / Float(yawSteps))
+        let yawRad = yawDeg * .pi / 180
+
+        let renderer = try RealityRenderer()
+        renderer.cameraSettings.colorBackground = .color(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1))
+        let root = Entity()
+        renderer.entities.append(root)
+
+        // Backdrop (env)
+        if let envCG = envCG {
+            let bd = ModelEntity(
+                mesh: MeshResource.generatePlane(width: 2.4, depth: 3.2),
+                materials: [try makeBackdropMaterial(envCG: envCG)]
+            )
+            bd.orientation = simd_quatf(angle: .pi/2, axis: SIMD3<Float>(1,0,0))
+            bd.position = SIMD3<Float>(0, 0.10, -0.40)
+            root.addChild(bd)
+        }
+
+        // Rim halo (NOT a child of pivot — stays oriented behind card)
+        if let haloCG = makeRimHaloCG(palette: palette) {
+            do {
+                let haloTex = try await TextureResource(image: haloCG, withName: "halo",
+                    options: TextureResource.CreateOptions(semantic: .color,
+                                                            mipmapsMode: .allocateAndGenerateAll))
+                var haloMat = UnlitMaterial()
+                haloMat.color = .init(tint: .white, texture: .init(haloTex))
+                haloMat.blending = .transparent(opacity: 1.0)
+                let halo = ModelEntity(
+                    mesh: MeshResource.generatePlane(width: cardW * 1.8,
+                                                      depth: cardH * 1.8),
+                    materials: [haloMat]
+                )
+                halo.orientation = simd_quatf(angle: .pi/2, axis: SIMD3<Float>(1,0,0))
+                halo.position = SIMD3<Float>(0, 0, -0.012)
+                root.addChild(halo)
+            } catch {}
+        }
+
+        // Card pivot — front + back + edge + overlay (mimics BOBACardEntity)
+        let cardPivot = Entity()
+        root.addChild(cardPivot)
+
+        // Front plane — UnlitMaterial (.unlitTexture variant)
+        var frontMat = UnlitMaterial()
+        frontMat.color = .init(tint: .white, texture: .init(cardTex))
+        frontMat.blending = .transparent(opacity: 1.0)
+        let front = ModelEntity(
+            mesh: MeshResource.generatePlane(width: cardW, depth: cardH),
+            materials: [frontMat]
+        )
+        front.orientation = simd_quatf(angle: .pi/2, axis: SIMD3<Float>(1,0,0))
+        front.position = SIMD3<Float>(0, 0, halfT)
+        cardPivot.addChild(front)
+
+        // Back plane — v6.8: UnlitMaterial (was PBR with clearcoat 0.20).
+        // Sim-confirmed at yaw=180° the PBR back's clearcoat reflected
+        // rim light straight into camera, washing out the back center.
+        // Unlit kills the specular highlight; back image renders at
+        // source pigment through full rotation.
+        if let backTex {
+            var backMat = UnlitMaterial()
+            backMat.color = .init(tint: .white, texture: .init(backTex))
+            backMat.blending = .transparent(opacity: 1.0)
+            let back = ModelEntity(
+                mesh: MeshResource.generatePlane(width: cardW, depth: cardH),
+                materials: [backMat]
+            )
+            // Back: mirror flip via composed rotation (matches BOBACardEntity)
+            back.orientation =
+                simd_quatf(angle: -.pi/2, axis: SIMD3<Float>(1,0,0))
+                * simd_quatf(angle: .pi, axis: SIMD3<Float>(0,1,0))
+            back.position = SIMD3<Float>(0, 0, -halfT)
+            cardPivot.addChild(back)
+        }
+
+        // Edge box — cream off-white. v6.8 diagnostic: DISABLED to
+        // confirm whether this is the source of the white sliver
+        // visible at yaw=30/60/300/330° in the fire/ice rotation
+        // renders. If the strip disappears here, the edge box was
+        // the bug; we'll need to either thin it or recolor it.
+        let cornerR: Float = 0.005
+        _ = cornerR  // diagnostic — edge box disabled
+        // let edgeBoxMesh = MeshResource.generateBox(
+        //     size: SIMD3<Float>(cardW - 2 * cornerR,
+        //                         cardH - 2 * cornerR,
+        //                         halfT * 1.5)
+        // )
+        // var edgeMat = UnlitMaterial()
+        // edgeMat.color = .init(tint: NSColor(white: 0.92, alpha: 1.0))
+        // let edgeBox = ModelEntity(mesh: edgeBoxMesh, materials: [edgeMat])
+        // edgeBox.position = .zero
+        // cardPivot.addChild(edgeBox)
+
+        // Sparkle overlay
+        if let overlayMat = overlayMatOrNil {
+            let overlay = ModelEntity(
+                mesh: MeshResource.generatePlane(width: cardW * 0.88,
+                                                  depth: cardH * 0.92),
+                materials: [overlayMat]
+            )
+            overlay.orientation = simd_quatf(angle: .pi/2, axis: SIMD3<Float>(1,0,0))
+            overlay.position = SIMD3<Float>(0, 0, halfT + 0.0008)
+            cardPivot.addChild(overlay)
+        }
+
+        // YAW THE CARD
+        cardPivot.orientation = simd_quatf(angle: yawRad, axis: SIMD3<Float>(0, 1, 0))
+
+        // 3-point lights
+        let key = DirectionalLight()
+        key.light.intensity = 22_500
+        key.light.color = .white
+        key.look(at: .zero, from: SIMD3<Float>(0.3, 0.4, 0.5), relativeTo: nil)
+        root.addChild(key)
+        let fill = DirectionalLight()
+        fill.light.intensity = 22_500 * 0.40
+        fill.light.color = .white
+        fill.look(at: .zero, from: SIMD3<Float>(0, 0.05, 0.5), relativeTo: nil)
+        root.addChild(fill)
+        let rim = DirectionalLight()
+        rim.light.intensity = 22_500
+        rim.light.color = .white
+        rim.look(at: .zero, from: SIMD3<Float>(-0.3, 0.4, -0.5), relativeTo: nil)
+        root.addChild(rim)
+
+        // IBL
+        if let envCG,
+           let env = try? await EnvironmentResource(equirectangular: envCG, withName: nil) {
+            let ibl = ImageBasedLightComponent(source: .single(env),
+                                                intensityExponent: -3.0)
+            root.components.set(ibl)
+            // Apply IBL receiver to all card-pivot children (the lit ones)
+            for child in cardPivot.children where child is ModelEntity {
+                child.components.set(ImageBasedLightReceiverComponent(imageBasedLight: root))
+            }
+        }
+
+        // Camera at hero pose
+        let camera = PerspectiveCamera()
+        renderer.entities.append(camera)
+        renderer.activeCamera = camera
+        camera.look(at: .zero, from: SIMD3<Float>(0, 0.015, 0.32),
+                    upVector: SIMD3<Float>(0, 1, 0), relativeTo: nil)
+        camera.camera.fieldOfViewInDegrees = 30
+
+        let bundle = SceneBundle(renderer: renderer, camera: camera)
+        let rawFrame = try renderFrame(scene: bundle, size: frameSize, device: device)
+        let frame = applyiOSPostProcess(rawFrame, ev: 0.8, saturation: 1.20, contrast: 1.10) ?? rawFrame
+        let label = String(format: "yaw=%3.0f°", yawDeg)
+        rendered.append((img: frame, label: label))
+        print("[v68rot] yaw=\(Int(yawDeg))° rendered")
+    }
+
+    // Composite into 4 cols × 3 rows grid (12 tiles)
+    let cols = 4
+    let rows = (rendered.count + cols - 1) / cols
+    let labelH: CGFloat = 28
+    let pad: CGFloat = 6
+    let sheetW = Int(tileW * CGFloat(cols) + pad * CGFloat(cols + 1))
+    let sheetH = Int((tileH + labelH) * CGFloat(rows) + pad * CGFloat(rows + 1))
+    let cs = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(
+        data: nil, width: sheetW, height: sheetH,
+        bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return nil }
+    ctx.setFillColor(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1))
+    ctx.fill(CGRect(x: 0, y: 0, width: sheetW, height: sheetH))
+    for (idx, r) in rendered.enumerated() {
+        let col = CGFloat(idx % cols)
+        let row = CGFloat(idx / cols)
+        let rowFromTop = CGFloat(rows - 1) - row
+        let x = pad + col * (tileW + pad)
+        let y = pad + rowFromTop * (tileH + labelH + pad)
+        ctx.draw(r.img, in: CGRect(x: x, y: y + labelH, width: tileW, height: tileH))
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.boldSystemFont(ofSize: 16),
+            .foregroundColor: NSColor.white
+        ]
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
+        NSAttributedString(string: r.label, attributes: attrs)
+            .draw(in: CGRect(x: x + 8, y: y + 4, width: tileW - 12, height: labelH - 6))
+        NSGraphicsContext.restoreGraphicsState()
+    }
+    return ctx.makeImage()
+}
+
 // MARK: - Holofoil shader emulator
 //
 // The Metal surface shader in BOBAPlaybook/Shaders/Holofoil.metal
@@ -2150,6 +2408,30 @@ func run() async throws {
     // is incredibly hard to see." The unlit card doesn't need EV
     // reduction — that was for the PBR variants. Sweep over
     // (EV, sat, contrast) to find the right combination.
+    // v6.8 rotation diagnostic — runs FIRST so I can see rotation artifacts
+    // (pixelation, black specks, white sliver during rotation, brightness).
+    print("Rendering v6.8 rotation strip (12 yaw angles)…")
+    do {
+        let backCG: CGImage? = {
+            let backPath = locateCardBack()
+            guard let p = backPath,
+                  let src = CGImageSourceCreateWithURL(URL(fileURLWithPath: p) as CFURL, nil)
+            else { return nil }
+            return CGImageSourceCreateImageAtIndex(src, 0, nil)
+        }()
+        if let strip = try await renderIOSv67RotationStrip(
+            cardCG: cardCG, cardBackCG: backCG,
+            envCG: envByVariant[.cleanStudio],
+            palette: palette, device: device
+        ) {
+            let p = (outDir as NSString).appendingPathComponent("sim3d_v68_rotation.png")
+            _ = savePNG(strip, to: p)
+            print("→ \(p)")
+        }
+    } catch {
+        print("[v68rot] FAILED: \(error)")
+    }
+
     print("Rendering 4-variant iOS comparison grid…")
     let envForGrid = envByVariant[.cleanStudio]
     do {

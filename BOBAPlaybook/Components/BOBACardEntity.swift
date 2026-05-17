@@ -830,21 +830,21 @@ nonisolated enum BOBACardEntity {
         else { return nil }
         var mat: CustomMaterial
         do {
-            // v6.1.0 — root-cause fix for "washed out card" complaint
-            // across 12+ iterations. The card source art is FLAT,
-            // SUPER-SATURATED, unlit. ANY PBR lighting model (.lit)
-            // applied to it averages the colors with directional/
-            // ambient/IBL light contributions, softening the
-            // saturation and contrast vs the flat source — physics-
-            // mandated wash. My EV/saturation/contrast post-process
-            // tweaks (v6.0.8.1, v6.0.9) couldn't fix this because
-            // they happen AFTER the lighting wash. lightingModel:
-            // .unlit renders the baseColor EXACTLY as the source
-            // PNG, pixel-perfect, with the rainbow shimmer additive
-            // on top via SCREEN blend. The card art is preserved
-            // at full source-pigment punch.
+            // v6.1.1 — revert v6.1.0's .unlit experiment which broke
+            // the card front (rendered entirely black). RealityKit's
+            // CustomMaterial.lightingModel.unlit doesn't bind
+            // surface-shader textures the same way as .lit, so the
+            // baseColor texture sample returned 0 and the card was
+            // pitch black. Reverting to .lit restores rendering.
+            //
+            // The root cause of the "washed out" complaint remains
+            // unresolved — the PBR lighting model softens the flat
+            // source art. Fix needs to be: a different mechanism to
+            // preserve source punch under .lit lighting (e.g., set
+            // emissive_color = card art, scaling lighting toward 0).
+            // That's the next iteration — but verified in sim first.
             mat = try CustomMaterial(surfaceShader: shader,
-                                     lightingModel: .unlit)
+                                     lightingModel: .lit)
         } catch {
             print("[Holofoil] CustomMaterial init failed: \(error)")
             return nil

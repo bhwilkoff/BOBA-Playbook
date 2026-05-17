@@ -8,4 +8,9 @@ sim3d_tile_*.png
 sim3d_sweep_*.png
 sim3d_rot_*.png
 sim3d_holo_*.png
+sim3d_variant4_grid.png
 test_card_back.png
+test_custommaterial
+test_custommaterial.swift
+test_metallib
+test_metallib.swift

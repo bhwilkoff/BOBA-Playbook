@@ -2039,23 +2039,30 @@ func renderIOSv67RotationStrip(cardCG: CGImage,
             cardPivot.addChild(back)
         }
 
-        // Edge box — cream off-white. v6.8 diagnostic: DISABLED to
-        // confirm whether this is the source of the white sliver
-        // visible at yaw=30/60/300/330° in the fire/ice rotation
-        // renders. If the strip disappears here, the edge box was
-        // the bug; we'll need to either thin it or recolor it.
+        // v6.9 — edge box RE-ENABLED with palette-sampled dark tint.
+        // The v6.8 "disable edge" fix introduced a worse bug: card
+        // disappears at yaw≈90°/270° because front + back planes are
+        // edge-on with zero pixels visible. Edge mesh restores the
+        // card thickness. Palette mix of (palette[0], palette[1])
+        // with 70% scale matches the HeroShotRenderer.sampleEdgeTint
+        // intent — dark enough to read as "edge" not "white sliver."
         let cornerR: Float = 0.005
-        _ = cornerR  // diagnostic — edge box disabled
-        // let edgeBoxMesh = MeshResource.generateBox(
-        //     size: SIMD3<Float>(cardW - 2 * cornerR,
-        //                         cardH - 2 * cornerR,
-        //                         halfT * 1.5)
-        // )
-        // var edgeMat = UnlitMaterial()
-        // edgeMat.color = .init(tint: NSColor(white: 0.92, alpha: 1.0))
-        // let edgeBox = ModelEntity(mesh: edgeBoxMesh, materials: [edgeMat])
-        // edgeBox.position = .zero
-        // cardPivot.addChild(edgeBox)
+        let edgeBoxMesh = MeshResource.generateBox(
+            size: SIMD3<Float>(cardW - 2 * cornerR,
+                                cardH - 2 * cornerR,
+                                halfT * 1.5)
+        )
+        var edgeMat = UnlitMaterial()
+        let edgeR = (palette[0].r + palette[1].r) * 0.5 * 0.70
+        let edgeG = (palette[0].g + palette[1].g) * 0.5 * 0.70
+        let edgeB = (palette[0].b + palette[1].b) * 0.5 * 0.70
+        edgeMat.color = .init(tint: NSColor(red: CGFloat(edgeR),
+                                              green: CGFloat(edgeG),
+                                              blue: CGFloat(edgeB),
+                                              alpha: 1.0))
+        let edgeBox = ModelEntity(mesh: edgeBoxMesh, materials: [edgeMat])
+        edgeBox.position = .zero
+        cardPivot.addChild(edgeBox)
 
         // Sparkle overlay
         if let overlayMat = overlayMatOrNil {

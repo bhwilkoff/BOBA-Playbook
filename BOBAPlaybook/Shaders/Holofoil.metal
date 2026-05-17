@@ -258,14 +258,22 @@ void holofoilOverlaySparkle(realitykit::surface_parameters params)
     float fresnelGain = 0.7 + fresnel * 0.9;
     half3 shimmer = rainbow * half(fresnelGain) * sparkleAlpha;
 
-    // base_color alpha controls coverage on the .transparent overlay.
-    // Output (0, 0, 0, alpha) so opaque-blend math gives:
-    //   alpha=0 (non-sparkle): card shows through unmodified
-    //   alpha=1 (sparkle): shimmer-colored pinpoint
-    // The set_base_color overload that takes a single half3 sets
-    // alpha=1 implicitly, so we route alpha via opacity instead.
-    surface.set_base_color(half3(0.0h));
-    surface.set_emissive_color(shimmer);
+    // v6.9 — fix premultiplied-alpha bug. RealityKit's surface
+    // shader output is premultiplied: final_pixel = (base_color *
+    // opacity) + dst * (1 - opacity). The v6.8 code set
+    // base_color = (0, 0, 0) and opacity = sparkleAlpha. At sparkle
+    // pixels: (0,0,0) * 1 + dst * 0 = (0,0,0) = BLACK opaque. That's
+    // the user-reported "black specks moving across the card." The
+    // emissive_color was unused because emissive is ADDED post-blend
+    // in some pipelines but in RealityKit's premultiplied output the
+    // base IS the visible color.
+    //
+    // Fix: pass shimmer as base_color directly. At sparkle pixels:
+    // shimmer * 1 + dst * 0 = shimmer (colored sparkle ✓). At
+    // non-sparkle pixels: shimmer*sparkleAlpha=0, opacity=0:
+    // (0,0,0) * 0 + dst * 1 = dst (card shows ✓).
+    surface.set_base_color(shimmer);
+    surface.set_emissive_color(half3(0.0h));
     surface.set_opacity(sparkleAlpha);
     surface.set_metallic(0.0);
     surface.set_roughness(1.0);

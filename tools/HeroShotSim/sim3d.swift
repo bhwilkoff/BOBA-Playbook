@@ -1410,6 +1410,33 @@ func makeContactSheet(tiles: [(image: CGImage, label: String)], cols: Int,
     return ctx.makeImage()
 }
 
+/// v6.6 — mirror of HeroShotRenderer.makeRimHaloTexture.
+/// Bright palette glow with radial alpha falloff.
+func makeRimHaloCG(palette: [RGB]) -> CGImage? {
+    let size = 512
+    let cs = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(
+        data: nil, width: size, height: size,
+        bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return nil }
+    let primary = palette.first ?? (0.5, 0.5, 0.5)
+    let colors: [CGColor] = [
+        toCGColor(primary, alpha: 0.85),
+        toCGColor(primary, alpha: 0.45),
+        toCGColor(primary, alpha: 0)
+    ]
+    if let g = CGGradient(colorsSpace: cs, colors: colors as CFArray,
+                          locations: [0.0, 0.40, 1.0]) {
+        let cx = CGFloat(size) / 2
+        ctx.drawRadialGradient(g,
+            startCenter: CGPoint(x: cx, y: cx), startRadius: 0,
+            endCenter: CGPoint(x: cx, y: cx), endRadius: cx,
+            options: [])
+    }
+    return ctx.makeImage()
+}
+
 /// v6.5 — generate the rainbow LUT texture used by the holofoil
 /// shaders. Matches BOBACardEntity.rainbowLUTTexture: 256×2, hue
 /// wheel at sat 1.0 brightness 0.55.
@@ -1689,6 +1716,29 @@ func renderIOSVariant4Grid(cardCG: CGImage,
             bd.orientation = simd_quatf(angle: .pi/2, axis: SIMD3<Float>(1,0,0))
             bd.position = SIMD3<Float>(0, 0.10, -0.40)
             root.addChild(bd)
+        }
+
+        // v6.6 — rim halo behind card (matches iOS v6.6 setup).
+        if let haloCG = makeRimHaloCG(palette: palette) {
+            do {
+                let haloTex = try await TextureResource(image: haloCG,
+                    withName: "halo",
+                    options: TextureResource.CreateOptions(
+                        semantic: .color,
+                        mipmapsMode: .allocateAndGenerateAll))
+                var haloMat = UnlitMaterial()
+                haloMat.color = .init(tint: .white, texture: .init(haloTex))
+                haloMat.blending = .transparent(opacity: 1.0)
+                let halo = ModelEntity(
+                    mesh: MeshResource.generatePlane(width: cardW * 1.8,
+                                                      depth: cardH * 1.8),
+                    materials: [haloMat]
+                )
+                halo.orientation = simd_quatf(angle: .pi/2,
+                                                axis: SIMD3<Float>(1,0,0))
+                halo.position = SIMD3<Float>(0, 0, -0.012)
+                root.addChild(halo)
+            } catch {}
         }
 
         // Card front using this variant's material

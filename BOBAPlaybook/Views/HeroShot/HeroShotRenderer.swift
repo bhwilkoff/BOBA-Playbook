@@ -860,6 +860,28 @@ final class HeroShotRenderer {
         cardPivot.position = .zero
         root.addChild(cardPivot)
 
+        // v6.6 — subtle rim halo behind the card. A palette-tinted
+        // glow plane 1.5× card size positioned 1.5cm behind the card.
+        // The card silhouette occludes the bright center; only the
+        // outer falloff peeks around the card edges as a soft halo.
+        // Adds "premium product reveal" feel without competing with
+        // the card art (which the user has already complained gets
+        // washed by aggressive backdrop work).
+        if let haloTex = Self.makeRimHaloTexture(palette: palette) {
+            var haloMat = UnlitMaterial()
+            haloMat.color = .init(tint: .white, texture: .init(haloTex))
+            haloMat.blending = .transparent(opacity: 1.0)
+            let halo = ModelEntity(
+                mesh: MeshResource.generatePlane(width: Self.cardW * 1.8,
+                                                  depth: Self.cardH * 1.8),
+                materials: [haloMat]
+            )
+            halo.orientation = simd_quatf(angle: .pi / 2,
+                                            axis: SIMD3<Float>(1, 0, 0))
+            halo.position = SIMD3<Float>(0, 0, -0.012)
+            root.addChild(halo)
+        }
+
         // v6.5 — sparkle shimmer overlay. Static rainbow overlay (v6.4
         // attempt) looked like a tint stain. View-dependent shader was
         // black on opaque (overlay obscured card). Solution: a NEW
@@ -1044,6 +1066,40 @@ final class HeroShotRenderer {
     /// tinted floor with this so the stage reads as "spotlight from
     /// above" instead of "uniformly-lit brown plane." Sim-validated:
     /// the gradient is visible at every camera pose in the arc.
+    /// v6.6 — generate a rim halo texture for the plane behind the card.
+    /// Bright palette-tinted center fades to transparent at edges.
+    /// Card occludes the center; only the outer falloff peeks around
+    /// the silhouette as a soft glow.
+    @MainActor
+    static func makeRimHaloTexture(palette: [UIColor]) -> TextureResource? {
+        let size = 512
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: size, height: size,
+            bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        let primary = palette.first ?? UIColor.systemPurple
+        let colors: [CGColor] = [
+            primary.withAlphaComponent(0.85).cgColor,
+            primary.withAlphaComponent(0.45).cgColor,
+            primary.withAlphaComponent(0).cgColor
+        ]
+        if let g = CGGradient(colorsSpace: cs, colors: colors as CFArray,
+                              locations: [0.0, 0.40, 1.0]) {
+            let cx = CGFloat(size) / 2
+            ctx.drawRadialGradient(g,
+                startCenter: CGPoint(x: cx, y: cx), startRadius: 0,
+                endCenter: CGPoint(x: cx, y: cx), endRadius: cx,
+                options: [])
+        }
+        guard let cg = ctx.makeImage() else { return nil }
+        let opts = TextureResource.CreateOptions(
+            semantic: .color, mipmapsMode: .allocateAndGenerateAll)
+        return try? TextureResource(image: cg, withName: "rimHalo",
+                                     options: opts)
+    }
+
     /// v6.5 — create the CustomMaterial that runs `holofoilOverlaySparkle`
     /// on an overlay plane in front of the unlit card. Uses the same
     /// rainbow LUT + perturbation textures that BOBACardEntity built

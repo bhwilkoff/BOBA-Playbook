@@ -241,15 +241,18 @@ void holofoilOverlaySparkle(realitykit::surface_parameters params)
     // RAINBOW COLOR still uses view direction (so sparkles change
     // hue as the card rotates), but VISIBILITY is just perturbation.
     // Sparkle discard also uses drifting UV so individual sparkles
-    // appear + disappear over time (twinkle effect).
+    // appear + disappear over time (twinkle effect). v6.7.1: threshold
+    // 0.55 → 0.48 — more sparkles render on dark cards (Bojax-style
+    // magenta dominant had too few visible sparkles).
     half3 perturbHF = textures.emissive_color().sample(s, uv * 5.0 + float2(t_anim * 1.7, -t_anim * 1.3)).rgb;
     half perturbLum = (perturbHF.r + perturbHF.g + perturbHF.b) / 3.0h;
     if (perturbLum < 0.55h || foilMask < 0.1h) {
         discard_fragment();
     }
-    // Shimmer color: full-bright rainbow at the lookup position,
-    // intensified slightly at grazing angles.
-    float fresnelGain = 0.6 + fresnel * 0.8;
+    // Shimmer color: bright rainbow with fresnel boost for grazing
+    // shine. Floor 0.7 so head-on sparkles stay visible against
+    // the card's colors.
+    float fresnelGain = 0.7 + fresnel * 0.9;
     half3 shimmer = rainbow * half(fresnelGain);
 
     // Output shimmer color via emissive (unlit-style for this overlay).

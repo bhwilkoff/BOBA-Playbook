@@ -1418,12 +1418,34 @@ func makeContactSheet(tiles: [(image: CGImage, label: String)], cols: Int,
 // Holofoil.metal. Output is a 2x2 grid PNG identifying which variant
 // produces the most-vivid card art.
 
+/// CoreImage post-process matching iOS HeroShotRenderer's
+/// applyExposurePass / applyExposureEV. Lets sim renders look the
+/// same as iOS output so we can tune meaningfully.
+func applyiOSPostProcess(_ source: CGImage, ev: Float, saturation: Float,
+                          contrast: Float) -> CGImage? {
+    let ci = CIImage(cgImage: source)
+    let exp = CIFilter(name: "CIExposureAdjust")!
+    exp.setValue(ci, forKey: kCIInputImageKey)
+    exp.setValue(ev, forKey: "inputEV")
+    let exposed = exp.outputImage ?? ci
+    let col = CIFilter(name: "CIColorControls")!
+    col.setValue(exposed, forKey: kCIInputImageKey)
+    col.setValue(saturation, forKey: "inputSaturation")
+    col.setValue(contrast, forKey: "inputContrast")
+    col.setValue(0, forKey: "inputBrightness")
+    guard let out = col.outputImage else { return nil }
+    return CIContext().createCGImage(out, from: ci.extent)
+}
+
 @MainActor
 func renderIOSVariant4Grid(cardCG: CGImage,
                             cardBackCG: CGImage?,
                             envCG: CGImage?,
                             palette: [RGB],
-                            device: MTLDevice) async throws -> CGImage? {
+                            device: MTLDevice,
+                            postEV: Float = -1.0,
+                            postSaturation: Float = 1.40,
+                            postContrast: Float = 1.20) async throws -> CGImage? {
     // Load the compiled holofoil shader.
     var holofoilShader: CustomMaterial.SurfaceShader?
     let libURL = URL(fileURLWithPath: "/tmp/Holofoil.metallib")
@@ -1483,9 +1505,39 @@ func renderIOSVariant4Grid(cardCG: CGImage,
         m.blending = .transparent(opacity: 1.0)
         return m
     }
+    // Variant E — CustomMaterial (.unlit) + holofoil shader. Tests
+    // whether the shader can run on an unlit pipeline. v6.1.0 ship
+    // this exactly and the card came out BLACK on iOS — but that
+    // was on-device. Let me see what the sim does.
+    func makeVariantE() -> any Material {
+        guard let shader = holofoilShader,
+              let mat = try? CustomMaterial(surfaceShader: shader,
+                                             lightingModel: .unlit) else {
+            return makeVariantD()
+        }
+        var m = mat
+        m.baseColor = .init(tint: .white, texture: .init(cardTex))
+        m.faceCulling = .none
+        return m
+    }
+    // Variant F — Unlit card + transparent shimmer overlay plane.
+    // The shimmer overlay uses CustomMaterial(.lit) with the holofoil
+    // shader BUT the underlying card uses UnlitMaterial. The shimmer
+    // plane is positioned at z=halfT+0.001 (1mm in front of card)
+    // and uses .transparent blending so the unlit card shows through.
+    //
+    // Implementation note: variants A-E are MaterialMode that swap on
+    // a single mesh. Variant F is structurally different — it adds a
+    // SECOND mesh in front of the card. We render it via a special
+    // path below.
 
-    let labels = ["A · holofoilLit", "B · pbrMatte", "C · pbrEmissive", "D · unlitTexture"]
-    let materials: [any Material] = [makeVariantA(), makeVariantB(), makeVariantC(), makeVariantD()]
+    let labels = ["A · holofoilLit", "B · pbrMatte", "C · pbrEmissive",
+                  "D · unlitTexture", "E · custom(unlit)+shader",
+                  "F · unlit+shimmerOverlay"]
+    let materials: [any Material] = [makeVariantA(), makeVariantB(),
+                                      makeVariantC(), makeVariantD(),
+                                      makeVariantE(), makeVariantD()]
+                                      // F's base is unlit; overlay added below
     var rendered: [(img: CGImage, label: String)] = []
 
     let frameSize = CGSize(width: 540, height: 960)
@@ -1517,6 +1569,48 @@ func renderIOSVariant4Grid(cardCG: CGImage,
         front.orientation = simd_quatf(angle: .pi/2, axis: SIMD3<Float>(1,0,0))
         front.position = SIMD3<Float>(0, 0, halfT)
         root.addChild(front)
+
+        // Variant F: add shimmer overlay plane in front of card.
+        if i == 5, let shader = holofoilShader {
+            do {
+                var overlayMat = try CustomMaterial(surfaceShader: shader,
+                                                     lightingModel: .lit)
+                // Bind a BLACK 8x8 texture as baseColor so the shader's
+                // SCREEN blend with base=black degenerates to pure
+                // shimmer. The shader's discard_fragment block trips on
+                // base.a < 0.001 — give it a fully-opaque black texture
+                // (RGBA = 0,0,0,255).
+                let blackData: [UInt8] = Array(repeating: 0, count: 64 * 4)
+                    .enumerated().map { idx, _ in (idx % 4 == 3) ? 255 : 0 }
+                let cs = CGColorSpaceCreateDeviceRGB()
+                let providerRef = CGDataProvider(data: Data(blackData) as CFData)!
+                if let blackCG = CGImage(width: 8, height: 8,
+                                          bitsPerComponent: 8, bitsPerPixel: 32,
+                                          bytesPerRow: 32, space: cs,
+                                          bitmapInfo: CGBitmapInfo(
+                                              rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+                                          provider: providerRef,
+                                          decode: nil, shouldInterpolate: false,
+                                          intent: .defaultIntent),
+                   let blackTex = try? await TextureResource(
+                       image: blackCG, withName: "shimmerBase",
+                       options: TextureResource.CreateOptions(semantic: .color)) {
+                    overlayMat.baseColor = .init(tint: .white,
+                                                  texture: .init(blackTex))
+                    overlayMat.faceCulling = .none
+                }
+                let overlay = ModelEntity(
+                    mesh: MeshResource.generatePlane(width: cardW * 0.98,
+                                                      depth: cardH * 0.98),
+                    materials: [overlayMat]
+                )
+                overlay.orientation = simd_quatf(angle: .pi/2, axis: SIMD3<Float>(1,0,0))
+                overlay.position = SIMD3<Float>(0, 0, halfT + 0.001)
+                root.addChild(overlay)
+            } catch {
+                print("[Variant4] F overlay failed: \(error)")
+            }
+        }
 
         // 3-point lights matching iOS v5.7.2
         let key = DirectionalLight()
@@ -1552,21 +1646,29 @@ func renderIOSVariant4Grid(cardCG: CGImage,
                     upVector: SIMD3<Float>(0, 1, 0), relativeTo: nil)
         camera.camera.fieldOfViewInDegrees = 30
 
-        // Render
+        // Render + APPLY iOS POST-PROCESS (EV/sat/contrast matching
+        // HeroShotRenderer.applyExposurePass v6.0.9 settings). Without
+        // this, sim output != iOS output and we can't tune correctly.
         let bundle = SceneBundle(renderer: renderer, camera: camera)
-        let frame = try renderFrame(scene: bundle, size: frameSize, device: device)
+        let rawFrame = try renderFrame(scene: bundle, size: frameSize, device: device)
+        let frame = applyiOSPostProcess(rawFrame,
+                                         ev: postEV,
+                                         saturation: postSaturation,
+                                         contrast: postContrast) ?? rawFrame
         rendered.append((img: frame, label: labels[i]))
         print("[Variant4] rendered \(labels[i])")
         _ = cardBackCG  // suppress unused
     }
 
-    // 2x2 composite with labels
-    let tileW: CGFloat = 540
-    let tileH: CGFloat = 960
+    // 3x2 composite (3 cols × 2 rows = 6 tiles) with labels
+    let tileW: CGFloat = 360
+    let tileH: CGFloat = 640
     let labelH: CGFloat = 36
     let pad: CGFloat = 8
-    let sheetW = Int(tileW * 2 + pad * 3)
-    let sheetH = Int((tileH + labelH) * 2 + pad * 3)
+    let cols = 3
+    let rows = (rendered.count + cols - 1) / cols
+    let sheetW = Int(tileW * CGFloat(cols) + pad * CGFloat(cols + 1))
+    let sheetH = Int((tileH + labelH) * CGFloat(rows) + pad * CGFloat(rows + 1))
     let cs = CGColorSpaceCreateDeviceRGB()
     guard let ctx = CGContext(
         data: nil, width: sheetW, height: sheetH,
@@ -1577,20 +1679,20 @@ func renderIOSVariant4Grid(cardCG: CGImage,
     ctx.fill(CGRect(x: 0, y: 0, width: sheetW, height: sheetH))
 
     for (idx, r) in rendered.enumerated() {
-        let col = CGFloat(idx % 2)
-        let row = CGFloat(idx / 2)
-        let rowFromTop = 1.0 - row
+        let col = CGFloat(idx % cols)
+        let row = CGFloat(idx / cols)
+        let rowFromTop = CGFloat(rows - 1) - row
         let x = pad + col * (tileW + pad)
         let y = pad + rowFromTop * (tileH + labelH + pad)
         ctx.draw(r.img, in: CGRect(x: x, y: y + labelH, width: tileW, height: tileH))
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.boldSystemFont(ofSize: 24),
+            .font: NSFont.boldSystemFont(ofSize: 18),
             .foregroundColor: NSColor.white
         ]
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
         NSAttributedString(string: r.label, attributes: attrs)
-            .draw(in: CGRect(x: x + 12, y: y + 4, width: tileW - 12, height: labelH - 6))
+            .draw(in: CGRect(x: x + 8, y: y + 4, width: tileW - 12, height: labelH - 6))
         NSGraphicsContext.restoreGraphicsState()
     }
     return ctx.makeImage()
@@ -1847,11 +1949,11 @@ func run() async throws {
                     lookAt: SIMD3<Float>(0, 0, 0),
                     fov: Float(30))
 
-    // v6.2 — 4-variant iOS material comparison via REAL Metal shader.
-    // Uses /tmp/Holofoil.metallib (compiled from the same Holofoil.metal
-    // source the iOS app ships) so variant A renders with the actual
-    // shader output. B/C/D use stock PhysicallyBasedMaterial /
-    // UnlitMaterial matching the iOS implementation exactly.
+    // v6.4 — post-process parameter sweep with UnlitMaterial card
+    // (variant D, our v6.3 ship). User after v6.3: "so dark that it
+    // is incredibly hard to see." The unlit card doesn't need EV
+    // reduction — that was for the PBR variants. Sweep over
+    // (EV, sat, contrast) to find the right combination.
     print("Rendering 4-variant iOS comparison grid…")
     let envForGrid = envByVariant[.cleanStudio]
     do {
@@ -1860,7 +1962,8 @@ func run() async throws {
             cardBackCG: nil,
             envCG: envForGrid,
             palette: palette,
-            device: device
+            device: device,
+            postEV: 0.0, postSaturation: 1.15, postContrast: 1.10
         ) {
             let p = (outDir as NSString).appendingPathComponent("sim3d_variant4_grid.png")
             _ = savePNG(grid, to: p)
@@ -1868,6 +1971,41 @@ func run() async throws {
         }
     } catch {
         print("[Variant4] failed: \(error)")
+    }
+
+    print("Rendering post-process sweep on UnlitMaterial card…")
+    let postParamSets: [(label: String, ev: Float, sat: Float, con: Float)] = [
+        ("EV 0 sat1.15",     0.0, 1.15, 1.10),
+        ("EV+0.3 sat1.20",   0.3, 1.20, 1.10),
+        ("EV+0.5 sat1.20",   0.5, 1.20, 1.10),
+        ("EV+0.7 sat1.20",   0.7, 1.20, 1.10),
+        ("EV+1.0 sat1.15",   1.0, 1.15, 1.05),
+        ("EV+0.5 sat1.30",   0.5, 1.30, 1.10)
+    ]
+    var postTiles: [(image: CGImage, label: String)] = []
+    for s in postParamSets {
+        if let g = try? await renderIOSVariant4Grid(
+            cardCG: cardCG, cardBackCG: nil, envCG: envForGrid,
+            palette: palette, device: device,
+            postEV: s.ev, postSaturation: s.sat, postContrast: s.con
+        ) {
+            // Crop to just variant D — at bottom-left in our 3×2 grid.
+            // Tiles are 360w × 640h with 8px padding around each.
+            let w = g.width, h = g.height
+            let dW = w / 3, dH = h / 2
+            if let dQuad = g.cropping(to: CGRect(
+                x: 0, y: dH, width: dW, height: dH
+            )) {
+                postTiles.append((image: dQuad, label: s.label))
+                print("  ✓ \(s.label) ev=\(s.ev) sat=\(s.sat) con=\(s.con)")
+            }
+        }
+    }
+    if let postSheet = makeContactSheet(tiles: postTiles, cols: 3,
+                                         tileW: 320, tileH: 460) {
+        let p = (outDir as NSString).appendingPathComponent("sim3d_post_sweep.png")
+        _ = savePNG(postSheet, to: p)
+        print("→ \(p)")
     }
 
     let cardBackCG: CGImage?

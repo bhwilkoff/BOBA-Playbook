@@ -500,9 +500,13 @@ final class HeroShotRenderer {
 
         // Convert CVPixelBuffer → CIImage → apply EV+sat+contrast → UIImage.
         let ci = CIImage(cvPixelBuffer: pixelBuffer)
-        let exposed = Self.applyExposureEV(ci, ev: -1.0,
-                                            saturation: 1.40,
-                                            contrast: 1.20)
+        // v6.4 — Sim post-process sweep on Ice/cyan card showed
+        // EV +0.5 / sat 1.20 / con 1.10 produces a vivid, well-lit
+        // card. Tested via sim_post_sweep.png with 6 EV settings
+        // 0 to +1.0. +0.5 reads bright + saturated without bloom.
+        let exposed = Self.applyExposureEV(ci, ev: 0.5,
+                                            saturation: 1.20,
+                                            contrast: 1.10)
         let ctx = CIContext(mtlDevice: device)
         guard let cg = ctx.createCGImage(exposed, from: ci.extent) else {
             throw RenderError.textureCreateFailed
@@ -687,8 +691,10 @@ final class HeroShotRenderer {
             // v6.0.9 — color-graded post (EV + saturation + contrast).
             // Run BEFORE watermark composite so the watermark stays at
             // full brightness over the graded scene.
-            applyExposurePass(to: pixelBuffer, ev: -1.0,
-                               saturation: 1.40, contrast: 1.20,
+            // v6.4 — see comment in renderPreviewFrame. UnlitMaterial
+            // card needs no darkening; brighten with mild grading.
+            applyExposurePass(to: pixelBuffer, ev: 0.5,
+                               saturation: 1.20, contrast: 1.10,
                                ciContext: ciContext)
 
             // Optional watermark composite.

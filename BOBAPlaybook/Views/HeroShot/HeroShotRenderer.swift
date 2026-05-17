@@ -495,9 +495,11 @@ final class HeroShotRenderer {
         }
         try renderFrame(scene.renderer, into: mtlTex, deltaTime: 0)
 
-        // Convert CVPixelBuffer → CIImage → apply EV-stop reduction → UIImage.
+        // Convert CVPixelBuffer → CIImage → apply EV+sat+contrast → UIImage.
         let ci = CIImage(cvPixelBuffer: pixelBuffer)
-        let exposed = Self.applyExposureEV(ci, ev: -2.0)
+        let exposed = Self.applyExposureEV(ci, ev: -1.0,
+                                            saturation: 1.40,
+                                            contrast: 1.20)
         let ctx = CIContext(mtlDevice: device)
         guard let cg = ctx.createCGImage(exposed, from: ci.extent) else {
             throw RenderError.textureCreateFailed
@@ -505,17 +507,29 @@ final class HeroShotRenderer {
         return UIImage(cgImage: cg)
     }
 
-    /// v6.0.8.1 — apply CIExposureAdjust as an EV-stop reduction post-
-    /// process. Scales all light contributions in the rendered frame
-    /// by 2^ev. Lives in CoreImage land so we don't depend on a
-    /// non-existent PerspectiveCameraComponent.exposureCompensation
-    /// property (my v6.0.8 ship referenced it; PBR camera API doesn't
-    /// actually expose it).
-    static func applyExposureEV(_ image: CIImage, ev: Float) -> CIImage {
-        let filter = CIFilter(name: "CIExposureAdjust")!
-        filter.setValue(image, forKey: kCIInputImageKey)
-        filter.setValue(ev, forKey: "inputEV")
-        return filter.outputImage ?? image
+    /// v6.0.9 — color-graded post-process: EV-stop exposure reduction
+    /// PLUS saturation + contrast boost. v6.0.8.1 only did exposure,
+    /// which darkened the whole scene proportionally but didn't fix
+    /// the "card washed out" feel — wash is a contrast/saturation
+    /// problem, not a brightness one. Reducing brightness uniformly
+    /// preserves the wash. Boosting saturation and contrast IS what
+    /// removes it.
+    static func applyExposureEV(_ image: CIImage, ev: Float,
+                                 saturation: Float = 1.0,
+                                 contrast: Float = 1.0) -> CIImage {
+        // EV adjustment first.
+        let exp = CIFilter(name: "CIExposureAdjust")!
+        exp.setValue(image, forKey: kCIInputImageKey)
+        exp.setValue(ev, forKey: "inputEV")
+        let exposed = exp.outputImage ?? image
+
+        // Saturation + contrast pump.
+        let color = CIFilter(name: "CIColorControls")!
+        color.setValue(exposed, forKey: kCIInputImageKey)
+        color.setValue(saturation, forKey: "inputSaturation")
+        color.setValue(contrast, forKey: "inputContrast")
+        color.setValue(0, forKey: "inputBrightness")
+        return color.outputImage ?? exposed
     }
 
     /// Renders the hero shot to a temporary file URL and returns it.
@@ -606,10 +620,11 @@ final class HeroShotRenderer {
                             into: mtlTex,
                             deltaTime: 1.0 / Double(config.fps))
 
-            // v6.0.8.1 — EV-stop exposure reduction. Run BEFORE the
-            // watermark composite so the watermark stays at full
-            // brightness over the darkened scene.
-            applyExposurePass(to: pixelBuffer, ev: -2.0,
+            // v6.0.9 — color-graded post (EV + saturation + contrast).
+            // Run BEFORE watermark composite so the watermark stays at
+            // full brightness over the graded scene.
+            applyExposurePass(to: pixelBuffer, ev: -1.0,
+                               saturation: 1.40, contrast: 1.20,
                                ciContext: ciContext)
 
             // Optional watermark composite.
@@ -1309,17 +1324,21 @@ final class HeroShotRenderer {
         return CIImage(cgImage: cg)
     }
 
-    /// v6.0.8.1 — render the pixel buffer through CIExposureAdjust
-    /// in place. Each EV stop halves brightness; -2 EV = 1/4
-    /// brightness. The user's "still so so so washed out" report
-    /// after individual lighting tweaks didn't move the needle
-    /// suggested I needed a single dial on perceived exposure
-    /// rather than balancing competing light sources.
+    /// v6.0.9 — color-graded post-process pass on each frame.
+    ///   EV reduction:   darkens overall scene
+    ///   Saturation 1.4: card colors POP (was washed)
+    ///   Contrast 1.2:   blacks deepen, whites stay clean → kills the
+    ///                   milky mid-tone wash that brightness reduction
+    ///                   alone couldn't touch.
     private func applyExposurePass(to pixelBuffer: CVPixelBuffer,
                                     ev: Float,
+                                    saturation: Float,
+                                    contrast: Float,
                                     ciContext: CIContext) {
         let base = CIImage(cvPixelBuffer: pixelBuffer)
-        let exposed = Self.applyExposureEV(base, ev: ev)
+        let exposed = Self.applyExposureEV(base, ev: ev,
+                                            saturation: saturation,
+                                            contrast: contrast)
         ciContext.render(exposed, to: pixelBuffer)
     }
 

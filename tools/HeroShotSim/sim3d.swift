@@ -1410,6 +1410,136 @@ func makeContactSheet(tiles: [(image: CGImage, label: String)], cols: Int,
     return ctx.makeImage()
 }
 
+/// v6.5 — generate the rainbow LUT texture used by the holofoil
+/// shaders. Matches BOBACardEntity.rainbowLUTTexture: 256×2, hue
+/// wheel at sat 1.0 brightness 0.55.
+@MainActor
+func holofoilRainbowLUTTexture(device: MTLDevice) -> TextureResource? {
+    let width = 256, height = 2
+    let cs = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(
+        data: nil, width: width, height: height,
+        bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return nil }
+    let colors: [CGColor] = (0..<7).map { i in
+        let rgb = hsvToRGB(CGFloat(i) / 6.0, 1.0, 0.55)
+        return CGColor(srgbRed: rgb.r, green: rgb.g, blue: rgb.b, alpha: 1)
+    }
+    let locs: [CGFloat] = (0..<7).map { CGFloat($0) / 6.0 }
+    guard let g = CGGradient(colorsSpace: cs, colors: colors as CFArray,
+                              locations: locs) else { return nil }
+    ctx.drawLinearGradient(g,
+        start: CGPoint(x: 0, y: 0),
+        end: CGPoint(x: CGFloat(width), y: 0),
+        options: [])
+    guard let cg = ctx.makeImage() else { return nil }
+    let opts = TextureResource.CreateOptions(semantic: .color,
+                                             mipmapsMode: .allocateAndGenerateAll)
+    _ = device  // suppress unused warning
+    return try? TextureResource(image: cg, withName: "rainbowLUT", options: opts)
+}
+
+@MainActor
+func holofoilPerturbTexture(device: MTLDevice) async throws -> TextureResource? {
+    let size = 256
+    let cs = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(
+        data: nil, width: size, height: size,
+        bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return nil }
+    ctx.setFillColor(CGColor(srgbRed: 0.5, green: 0.5, blue: 0.5, alpha: 1))
+    ctx.fill(CGRect(x: 0, y: 0, width: size, height: size))
+    var rng = SystemRandomNumberGenerator()
+    for _ in 0..<24 {
+        let cx = CGFloat.random(in: -0.2...1.2, using: &rng) * CGFloat(size)
+        let cy = CGFloat.random(in: -0.2...1.2, using: &rng) * CGFloat(size)
+        let r = CGFloat.random(in: 0.15...0.45, using: &rng) * CGFloat(size)
+        let dx = CGFloat.random(in: -1...1, using: &rng)
+        let dy = CGFloat.random(in: -1...1, using: &rng)
+        let center = CGColor(srgbRed: 0.5 + dx * 0.45,
+                              green: 0.5 + dy * 0.45,
+                              blue: 0.5, alpha: 0.5)
+        let edge = CGColor(srgbRed: 0.5, green: 0.5, blue: 0.5, alpha: 0)
+        let colors = [center, edge] as CFArray
+        if let g = CGGradient(colorsSpace: cs, colors: colors,
+                              locations: [0, 1]) {
+            ctx.drawRadialGradient(g,
+                startCenter: CGPoint(x: cx, y: cy), startRadius: 0,
+                endCenter: CGPoint(x: cx, y: cy), endRadius: r,
+                options: [])
+        }
+    }
+    guard let cg = ctx.makeImage() else { return nil }
+    let opts = TextureResource.CreateOptions(semantic: .raw,
+                                             mipmapsMode: .allocateAndGenerateAll)
+    _ = device
+    return try? await TextureResource(image: cg, withName: "perturb",
+                                       options: opts)
+}
+
+@MainActor
+func holofoilFoilMaskTexture(device: MTLDevice) async throws -> TextureResource? {
+    let size = 8
+    let cs = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(
+        data: nil, width: size, height: size,
+        bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return nil }
+    ctx.setFillColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1))
+    ctx.fill(CGRect(x: 0, y: 0, width: size, height: size))
+    guard let cg = ctx.makeImage() else { return nil }
+    let opts = TextureResource.CreateOptions(semantic: .raw, mipmapsMode: .none)
+    _ = device
+    return try? await TextureResource(image: cg, withName: "foilMask", options: opts)
+}
+
+/// v6.4 — mirror of HeroShotRenderer.makeShimmerOverlayTexture.
+/// Produces a static diagonal-rainbow + vignette overlay texture.
+func makeShimmerOverlayCG() -> CGImage? {
+    let size = 512
+    let cs = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(
+        data: nil, width: size, height: size,
+        bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return nil }
+    // Diagonal rainbow
+    let cgRainbow: [CGColor] = (0..<7).map { i in
+        let h = CGFloat(i) / 6.0
+        let rgb = hsvToRGB(h, 0.85, 1.0)
+        return CGColor(srgbRed: rgb.r, green: rgb.g, blue: rgb.b, alpha: 0.18)
+    }
+    let locs: [CGFloat] = (0..<7).map { CGFloat($0) / 6.0 }
+    if let g = CGGradient(colorsSpace: cs, colors: cgRainbow as CFArray, locations: locs) {
+        let diag = CGFloat(size) * 1.414
+        ctx.drawLinearGradient(g,
+            start: CGPoint(x: -CGFloat(size)/2, y: -CGFloat(size)/2),
+            end: CGPoint(x: diag, y: diag),
+            options: [])
+    }
+    // Radial vignette (alpha fades at edges)
+    let vColors: [CGColor] = [
+        CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0),
+        CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0),
+        CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 0.85)
+    ]
+    if let vg = CGGradient(colorsSpace: cs, colors: vColors as CFArray,
+                            locations: [0.0, 0.40, 1.0]) {
+        ctx.setBlendMode(.destinationOut)
+        ctx.drawRadialGradient(vg,
+            startCenter: CGPoint(x: CGFloat(size)/2, y: CGFloat(size)/2),
+            startRadius: 0,
+            endCenter: CGPoint(x: CGFloat(size)/2, y: CGFloat(size)/2),
+            endRadius: CGFloat(size) * 0.65,
+            options: [])
+        ctx.setBlendMode(.normal)
+    }
+    return ctx.makeImage()
+}
+
 // MARK: - 4-variant iOS material comparison grid (v6.2 — REAL renders)
 //
 // Renders the SAME 4 material variants that iOS BOBACardEntity exposes
@@ -1570,43 +1700,80 @@ func renderIOSVariant4Grid(cardCG: CGImage,
         front.position = SIMD3<Float>(0, 0, halfT)
         root.addChild(front)
 
-        // Variant F: add shimmer overlay plane in front of card.
-        if i == 5, let shader = holofoilShader {
-            do {
-                var overlayMat = try CustomMaterial(surfaceShader: shader,
-                                                     lightingModel: .lit)
-                // Bind a BLACK 8x8 texture as baseColor so the shader's
-                // SCREEN blend with base=black degenerates to pure
-                // shimmer. The shader's discard_fragment block trips on
-                // base.a < 0.001 — give it a fully-opaque black texture
-                // (RGBA = 0,0,0,255).
-                let blackData: [UInt8] = Array(repeating: 0, count: 64 * 4)
-                    .enumerated().map { idx, _ in (idx % 4 == 3) ? 255 : 0 }
-                let cs = CGColorSpaceCreateDeviceRGB()
-                let providerRef = CGDataProvider(data: Data(blackData) as CFData)!
-                if let blackCG = CGImage(width: 8, height: 8,
-                                          bitsPerComponent: 8, bitsPerPixel: 32,
-                                          bytesPerRow: 32, space: cs,
-                                          bitmapInfo: CGBitmapInfo(
-                                              rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
-                                          provider: providerRef,
-                                          decode: nil, shouldInterpolate: false,
-                                          intent: .defaultIntent),
-                   let blackTex = try? await TextureResource(
-                       image: blackCG, withName: "shimmerBase",
-                       options: TextureResource.CreateOptions(semantic: .color)) {
-                    overlayMat.baseColor = .init(tint: .white,
-                                                  texture: .init(blackTex))
-                    overlayMat.faceCulling = .none
-                }
-                let overlay = ModelEntity(
-                    mesh: MeshResource.generatePlane(width: cardW * 0.98,
-                                                      depth: cardH * 0.98),
-                    materials: [overlayMat]
+        // v6.4 — also add the static shimmer overlay to variant D
+        // to match the iOS HeroShotRenderer.buildScene v6.4 setup.
+        // Lets sim show what D will look like on device after the
+        // shimmer overlay ships.
+        if i == 3 {  // variant D
+            if let shimmerCG = makeShimmerOverlayCG(),
+               let shimmerTex = try? await TextureResource(
+                   image: shimmerCG, withName: "shimmer",
+                   options: TextureResource.CreateOptions(
+                       semantic: .color, mipmapsMode: .allocateAndGenerateAll)) {
+                var sMat = UnlitMaterial()
+                sMat.color = .init(tint: .white, texture: .init(shimmerTex))
+                sMat.blending = .transparent(opacity: 1.0)
+                let sPlane = ModelEntity(
+                    mesh: MeshResource.generatePlane(width: cardW * 0.96,
+                                                      depth: cardH * 0.96),
+                    materials: [sMat]
                 )
-                overlay.orientation = simd_quatf(angle: .pi/2, axis: SIMD3<Float>(1,0,0))
-                overlay.position = SIMD3<Float>(0, 0, halfT + 0.001)
-                root.addChild(overlay)
+                sPlane.orientation = simd_quatf(angle: .pi/2,
+                                                 axis: SIMD3<Float>(1,0,0))
+                sPlane.position = SIMD3<Float>(0, 0, halfT + 0.0002)
+                root.addChild(sPlane)
+            }
+        }
+
+        // Variant F: shimmer overlay plane using the NEW shader
+        // `holofoilOverlaySparkle` which outputs shimmer with discard
+        // for dim pixels, producing sparkle behavior.
+        if i == 5 {
+            do {
+                let libURL = URL(fileURLWithPath: "/tmp/Holofoil.metallib")
+                if let lib = try? device.makeLibrary(URL: libURL) {
+                    let sparkleShader = CustomMaterial.SurfaceShader(
+                        named: "holofoilOverlaySparkle", in: lib)
+                    var overlayMat = try CustomMaterial(
+                        surfaceShader: sparkleShader, lightingModel: .lit)
+                    // Need a base color texture (any non-empty) for
+                    // the shader to load; it doesn't actually sample
+                    // it. Use a 1×1 white pixel.
+                    let whiteData = Data([255, 255, 255, 255])
+                    let cs = CGColorSpaceCreateDeviceRGB()
+                    let providerRef = CGDataProvider(data: whiteData as CFData)!
+                    if let whiteCG = CGImage(width: 1, height: 1,
+                                              bitsPerComponent: 8, bitsPerPixel: 32,
+                                              bytesPerRow: 4, space: cs,
+                                              bitmapInfo: CGBitmapInfo(
+                                                  rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+                                              provider: providerRef,
+                                              decode: nil, shouldInterpolate: false,
+                                              intent: .defaultIntent),
+                       let wTex = try? await TextureResource(
+                           image: whiteCG, withName: "white1px",
+                           options: TextureResource.CreateOptions(semantic: .color)),
+                       let rainbowLUT = holofoilRainbowLUTTexture(device: device),
+                       let perturbTex = try? await holofoilPerturbTexture(device: device),
+                       let maskTex = try? await holofoilFoilMaskTexture(device: device) {
+                        overlayMat.baseColor = .init(tint: .white,
+                                                      texture: .init(wTex))
+                        overlayMat.normal = .init(texture: .init(rainbowLUT))
+                        overlayMat.emissiveColor = .init(color: .black,
+                                                         texture: .init(perturbTex))
+                        overlayMat.ambientOcclusion = .init(texture: .init(maskTex))
+                        overlayMat.faceCulling = .none
+                    }
+                    let overlay = ModelEntity(
+                        mesh: MeshResource.generatePlane(width: cardW * 0.98,
+                                                          depth: cardH * 0.98),
+                        materials: [overlayMat]
+                    )
+                    overlay.orientation = simd_quatf(angle: .pi/2,
+                                                      axis: SIMD3<Float>(1,0,0))
+                    overlay.position = SIMD3<Float>(0, 0, halfT + 0.0008)
+                    root.addChild(overlay)
+                }
             } catch {
                 print("[Variant4] F overlay failed: \(error)")
             }

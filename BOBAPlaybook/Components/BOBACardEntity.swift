@@ -925,6 +925,20 @@ nonisolated enum BOBACardEntity {
         return tex
     }
 
+    /// v6.5 — public accessors so HeroShotRenderer's sparkle overlay
+    /// material can reuse the same rainbow LUT / perturbation / mask
+    /// textures the holofoil shader uses. Avoids duplicating the
+    /// texture generation in two places.
+    @MainActor static func exposedRainbowLUTTexture() -> TextureResource? {
+        rainbowLUTTexture()
+    }
+    @MainActor static func exposedPerturbationTexture() -> TextureResource? {
+        perturbationTexture()
+    }
+    @MainActor static func exposedFoilMaskTexture() -> TextureResource? {
+        foilMaskTexture()
+    }
+
     @MainActor
     static func makeFrontHolofoilMaterial(config: Config) -> CustomMaterial? {
         guard let shader = holofoilShader(),

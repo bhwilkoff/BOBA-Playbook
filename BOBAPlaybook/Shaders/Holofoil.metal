@@ -176,3 +176,72 @@ void holofoilSurface(realitykit::surface_parameters params)
         discard_fragment();
     }
 }
+
+/// v6.5 — sparkle-only overlay shader.
+///
+/// Used on a separate plane in front of the card that produces just
+/// the shimmer effect (no card art). Each fragment computes the same
+/// view-direction-dependent rainbow + fresnel + perturbation as
+/// holofoilSurface, but DISCARDS fragments where the shimmer
+/// luminance is below threshold — so only the BRIGHTEST shimmer
+/// pixels render, forming a sparkle pattern over the card.
+///
+/// Binding (same as holofoilSurface):
+///   normal           → rainbow LUT
+///   emissive_color   → perturbation noise
+///   ambient_occlusion → foil mask (uniform white for v6.5)
+[[visible]]
+void holofoilOverlaySparkle(realitykit::surface_parameters params)
+{
+    auto surface = params.surface();
+    auto geometry = params.geometry();
+    auto textures = params.textures();
+
+    constexpr sampler s(filter::linear, mip_filter::linear,
+                        s_address::repeat, t_address::repeat);
+
+    float2 uv = float2(geometry.uv0().x, 1.0 - geometry.uv0().y);
+
+    // Perturbation
+    half3 perturbSample = textures.emissive_color().sample(s, uv * 2.0).rgb;
+    float2 distortion = float2(perturbSample.x, perturbSample.y) * 2.0 - 1.0;
+
+    // UV + view → rainbow LUT lookup
+    float3 V = normalize(geometry.view_direction());
+    float viewOffset = V.x * 0.6 + V.y * 0.4;
+    float t = uv.x * 1.5 + uv.y * 0.7 + viewOffset + distortion.x * 0.20;
+    float lutU = fract(t);
+    half3 rainbow = textures.normal().sample(s, float2(lutU, 0.5)).rgb;
+
+    // Fresnel ramp
+    float3 N = float3(surface.normal());
+    float fresnel = pow(1.0 - saturate(dot(N, V)), 1.5);
+
+    // Foil mask
+    float foilMask = textures.ambient_occlusion().sample(s, uv).r;
+
+    // Shimmer intensity per pixel
+    half3 shimmer = rainbow * half(fresnel * foilMask * 0.85);
+
+    // SPARKLE behavior: discard fragments whose shimmer is too dim.
+    // Combined with the perturbation noise, this creates discrete
+    // bright "sparkle" pixels scattered across the card. Real foil
+    // shimmer looks like scattered bright specs, not a smooth glow.
+    half maxChannel = max(shimmer.r, max(shimmer.g, shimmer.b));
+    half3 perturbHF = textures.emissive_color().sample(s, uv * 6.0).rgb;
+    half perturbLum = (perturbHF.r + perturbHF.g + perturbHF.b) / 3.0h;
+    // Combine smooth perturbation × shimmer brightness, with a sharp
+    // threshold so only bright sparkles render.
+    half sparkleWeight = maxChannel * perturbLum * 2.5h;
+    if (sparkleWeight < 0.15h) {
+        discard_fragment();
+    }
+
+    // Output shimmer color via emissive (unlit-style for this overlay).
+    // base 0 so no PBR diffuse contribution; emissive ADDS on top of
+    // the card behind us (rendered first, the unlit card art).
+    surface.set_base_color(half3(0.0h));
+    surface.set_emissive_color(shimmer);
+    surface.set_metallic(0.0);
+    surface.set_roughness(1.0);
+}

@@ -196,14 +196,23 @@ void holofoilOverlaySparkle(realitykit::surface_parameters params)
     auto surface = params.surface();
     auto geometry = params.geometry();
     auto textures = params.textures();
+    auto uniforms = params.uniforms();
 
     constexpr sampler s(filter::linear, mip_filter::linear,
                         s_address::repeat, t_address::repeat);
 
     float2 uv = float2(geometry.uv0().x, 1.0 - geometry.uv0().y);
 
-    // Perturbation
-    half3 perturbSample = textures.emissive_color().sample(s, uv * 2.0).rgb;
+    // v6.7 — animated perturbation. The time uniform drifts the
+    // perturbation sample over the duration of the clip so sparkles
+    // visibly twinkle (some appear, others disappear) rather than
+    // staying static. Drift is slow (~0.5 UV units per 10s) so the
+    // pattern still reads as coherent foil texture, just alive.
+    float t_anim = uniforms.time() * 0.08;
+    float2 driftUV = uv * 2.0 + float2(t_anim, t_anim * 0.6);
+
+    // Perturbation (drifting in UV space over time)
+    half3 perturbSample = textures.emissive_color().sample(s, driftUV).rgb;
     float2 distortion = float2(perturbSample.x, perturbSample.y) * 2.0 - 1.0;
 
     // UV + view → rainbow LUT lookup
@@ -231,7 +240,9 @@ void holofoilOverlaySparkle(realitykit::surface_parameters params)
     // visible head-on; they just shift color as you tilt. The
     // RAINBOW COLOR still uses view direction (so sparkles change
     // hue as the card rotates), but VISIBILITY is just perturbation.
-    half3 perturbHF = textures.emissive_color().sample(s, uv * 5.0).rgb;
+    // Sparkle discard also uses drifting UV so individual sparkles
+    // appear + disappear over time (twinkle effect).
+    half3 perturbHF = textures.emissive_color().sample(s, uv * 5.0 + float2(t_anim * 1.7, -t_anim * 1.3)).rgb;
     half perturbLum = (perturbHF.r + perturbHF.g + perturbHF.b) / 3.0h;
     if (perturbLum < 0.55h || foilMask < 0.1h) {
         discard_fragment();

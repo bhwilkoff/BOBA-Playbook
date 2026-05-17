@@ -2117,7 +2117,7 @@ func renderIOSv67RotationStrip(cardCG: CGImage,
 
         let bundle = SceneBundle(renderer: renderer, camera: camera)
         let rawFrame = try renderFrame(scene: bundle, size: frameSize, device: device)
-        let frame = applyiOSPostProcess(rawFrame, ev: 0.8, saturation: 1.20, contrast: 1.10) ?? rawFrame
+        let frame = applyiOSPostProcess(rawFrame, ev: 0.0, saturation: 1.15, contrast: 1.08) ?? rawFrame
         let label = String(format: "yaw=%3.0f°", yawDeg)
         rendered.append((img: frame, label: label))
         print("[v68rot] yaw=\(Int(yawDeg))° rendered")

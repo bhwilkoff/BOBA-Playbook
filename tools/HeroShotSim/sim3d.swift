@@ -1700,30 +1700,9 @@ func renderIOSVariant4Grid(cardCG: CGImage,
         front.position = SIMD3<Float>(0, 0, halfT)
         root.addChild(front)
 
-        // v6.4 — also add the static shimmer overlay to variant D
-        // to match the iOS HeroShotRenderer.buildScene v6.4 setup.
-        // Lets sim show what D will look like on device after the
-        // shimmer overlay ships.
-        if i == 3 {  // variant D
-            if let shimmerCG = makeShimmerOverlayCG(),
-               let shimmerTex = try? await TextureResource(
-                   image: shimmerCG, withName: "shimmer",
-                   options: TextureResource.CreateOptions(
-                       semantic: .color, mipmapsMode: .allocateAndGenerateAll)) {
-                var sMat = UnlitMaterial()
-                sMat.color = .init(tint: .white, texture: .init(shimmerTex))
-                sMat.blending = .transparent(opacity: 1.0)
-                let sPlane = ModelEntity(
-                    mesh: MeshResource.generatePlane(width: cardW * 0.96,
-                                                      depth: cardH * 0.96),
-                    materials: [sMat]
-                )
-                sPlane.orientation = simd_quatf(angle: .pi/2,
-                                                 axis: SIMD3<Float>(1,0,0))
-                sPlane.position = SIMD3<Float>(0, 0, halfT + 0.0002)
-                root.addChild(sPlane)
-            }
-        }
+        // v6.5 — sim's variant D is plain UnlitMaterial (matches what
+        // ships in iOS) — no overlay. Variant F is unlit + sparkle
+        // shader overlay which is the v6.5 ship.
 
         // Variant F: shimmer overlay plane using the NEW shader
         // `holofoilOverlaySparkle` which outputs shimmer with discard
@@ -1765,8 +1744,8 @@ func renderIOSVariant4Grid(cardCG: CGImage,
                         overlayMat.faceCulling = .none
                     }
                     let overlay = ModelEntity(
-                        mesh: MeshResource.generatePlane(width: cardW * 0.98,
-                                                          depth: cardH * 0.98),
+                        mesh: MeshResource.generatePlane(width: cardW * 0.88,
+                                                          depth: cardH * 0.92),
                         materials: [overlayMat]
                     )
                     overlay.orientation = simd_quatf(angle: .pi/2,

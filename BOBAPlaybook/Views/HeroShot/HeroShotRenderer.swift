@@ -872,9 +872,12 @@ final class HeroShotRenderer {
         // Sim-validated as variant F: card art crystal clear + subtle
         // scattered sparkles, no tint/wash. Real holofoil feel.
         if let overlayMat = Self.makeSparkleOverlayMaterial() {
+            // 88% of card so overlay stays inside the rounded-corner
+            // silhouette — sparkles otherwise show in the transparent
+            // card corners and bleed onto the env backdrop.
             let overlayPlane = ModelEntity(
-                mesh: MeshResource.generatePlane(width: Self.cardW * 0.98,
-                                                  depth: Self.cardH * 0.98),
+                mesh: MeshResource.generatePlane(width: Self.cardW * 0.88,
+                                                  depth: Self.cardH * 0.92),
                 materials: [overlayMat]
             )
             overlayPlane.orientation = simd_quatf(angle: .pi / 2,

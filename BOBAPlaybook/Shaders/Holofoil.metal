@@ -220,22 +220,26 @@ void holofoilOverlaySparkle(realitykit::surface_parameters params)
     // Foil mask
     float foilMask = textures.ambient_occlusion().sample(s, uv).r;
 
-    // Shimmer intensity per pixel
-    half3 shimmer = rainbow * half(fresnel * foilMask * 0.85);
-
-    // SPARKLE behavior: discard fragments whose shimmer is too dim.
-    // Combined with the perturbation noise, this creates discrete
-    // bright "sparkle" pixels scattered across the card. Real foil
-    // shimmer looks like scattered bright specs, not a smooth glow.
-    half maxChannel = max(shimmer.r, max(shimmer.g, shimmer.b));
-    half3 perturbHF = textures.emissive_color().sample(s, uv * 6.0).rgb;
+    // SPARKLE behavior: discard fragments whose perturbation noise
+    // value is below threshold. This creates a SCATTERED PATTERN
+    // of visible sparkle pixels — fixed in UV space, so each card
+    // position is either "sparkle here" or "not sparkle here."
+    //
+    // v6.5.2: decoupled sparkle ALPHA from fresnel. At hero pose
+    // fresnel is near-zero (~5° off normal → 0.0002) so the v6.5.1
+    // formula discarded ALL sparkles. Real foil sparkles ARE
+    // visible head-on; they just shift color as you tilt. The
+    // RAINBOW COLOR still uses view direction (so sparkles change
+    // hue as the card rotates), but VISIBILITY is just perturbation.
+    half3 perturbHF = textures.emissive_color().sample(s, uv * 5.0).rgb;
     half perturbLum = (perturbHF.r + perturbHF.g + perturbHF.b) / 3.0h;
-    // Combine smooth perturbation × shimmer brightness, with a sharp
-    // threshold so only bright sparkles render.
-    half sparkleWeight = maxChannel * perturbLum * 2.5h;
-    if (sparkleWeight < 0.15h) {
+    if (perturbLum < 0.55h || foilMask < 0.1h) {
         discard_fragment();
     }
+    // Shimmer color: full-bright rainbow at the lookup position,
+    // intensified slightly at grazing angles.
+    float fresnelGain = 0.6 + fresnel * 0.8;
+    half3 shimmer = rainbow * half(fresnelGain);
 
     // Output shimmer color via emissive (unlit-style for this overlay).
     // base 0 so no PBR diffuse contribution; emissive ADDS on top of

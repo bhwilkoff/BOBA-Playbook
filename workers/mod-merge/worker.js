@@ -48,14 +48,17 @@
  *     in-process without paid Image Resizing. JPEG bytes stored at
  *     a .webp filename work fine — clients render image bytes
  *     regardless of extension. The pipeline normalizes long-term.
+ *   • Versioned filenames: every replacement writes to a NEW R2 key
+ *     ({safe-bobaId}-v{ts}.webp), so Cloudflare's edge cache misses
+ *     naturally without needing the cache-purge API (which can't
+ *     reach pub-*.r2.dev URLs anyway). Cost is ~200KB of orphaned
+ *     R2 storage per replacement — negligible at our rate.
  *
  * Configuration:
  *   wrangler.toml binds R2_CDN to boba-card-images bucket.
  *   Secrets via `wrangler secret put <NAME>`:
  *     SUPABASE_URL          https://<project>.supabase.co
  *     SUPABASE_SERVICE_KEY  service_role (bypasses RLS)
- *     CF_API_TOKEN          Zone-scoped token with Cache Purge permission
- *     CF_ZONE_ID            The zone serving pub-...r2.dev (or custom domain)
  */
 
 const CDN_BASE = "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev";
@@ -170,43 +173,26 @@ async function fetchImageBytes(env, storagePath) {
   return await res.arrayBuffer();
 }
 
-/// Compute the target R2 filename. Existing imageFile from cards.json
-/// wins (so replacements overwrite in place); falls back to a safe
-/// bobaId-derived filename for cards that had no image.
+/// Compute the target R2 filename. v2.276 — appends `-v{ts}` to
+/// guarantee a NEW URL on every replacement so Cloudflare's edge
+/// cache naturally misses (CF doesn't auto-invalidate on R2 PUT to
+/// the same key, and `pub-*.r2.dev` URLs aren't on a user zone, so
+/// the cache-purge API can't reach them).
+///
+/// Trade-off: the previous R2 key (if any) is orphaned ~200KB per
+/// replacement. Negligible at the rate we expect (≤ low hundreds of
+/// admin replacements/year). A future cleanup pass can sweep keys
+/// that no longer match any cards.json or applied_image_file.
 function safeFilenameForBobaId(bobaId) {
   // Mirror scripts/merge_approved_additions.py:safe_filename_for_boba_id
-  let out = "";
+  let base = "";
   for (const ch of bobaId) {
-    if (/[A-Za-z0-9._-]/.test(ch)) out += ch;
-    else out += "_";
+    if (/[A-Za-z0-9._-]/.test(ch)) base += ch;
+    else base += "_";
   }
-  out = out.replace(/[_-]+$/, "");
-  return out + ".webp";
-}
-
-/// Cloudflare cache purge for an array of URLs. Best-effort — if the
-/// token isn't configured, log + continue. Edge cache will eventually
-/// rotate; we only need this to make the new image visible sooner.
-async function purgeCloudflareCache(env, urls) {
-  if (!env.CF_API_TOKEN || !env.CF_ZONE_ID) {
-    return { purged: false, reason: "CF_API_TOKEN or CF_ZONE_ID missing" };
-  }
-  const res = await fetch(
-    `https://api.cloudflare.com/client/v4/zones/${env.CF_ZONE_ID}/purge_cache`,
-    {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${env.CF_API_TOKEN}`,
-        "Content-Type":  "application/json",
-      },
-      body: JSON.stringify({ files: urls }),
-    },
-  );
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    return { purged: false, reason: `CF purge HTTP ${res.status}`, detail };
-  }
-  return { purged: true };
+  base = base.replace(/[_-]+$/, "");
+  const ts = Math.floor(Date.now() / 1000);
+  return `${base}-v${ts}.webp`;
 }
 
 export default {
@@ -280,25 +266,28 @@ export default {
       const meta = {
         httpMetadata: {
           contentType:  "image/jpeg",   // bytes are JPEG; CDN serves as-is
-          cacheControl: "public, max-age=300",  // 5 min — lets cache-purge propagate before locking in
+          // v2.276 — versioned filenames make each upload's URL
+          // unique, so the file at that URL really is immutable.
+          // 1-year cache is correct + lets CF + browsers serve from
+          // edge indefinitely.
+          cacheControl: "public, max-age=31536000, immutable",
         },
       };
       await env.R2_CDN.put(fullKey,  bytes, meta);
       await env.R2_CDN.put(thumbKey, bytes, meta);
 
-      // 7. Purge Cloudflare edge cache so users see the new image
-      //    within seconds. Best-effort — token may be unset.
-      const urls = [`${CDN_BASE}/${fullKey}`, `${CDN_BASE}/${thumbKey}`];
-      const purge = await purgeCloudflareCache(env, urls);
-
-      // 8. Mark override applied so clients see the new filename
+      // 7. Mark override applied so clients see the new filename via
+      //    the runtime override map. Versioned filenames mean every
+      //    replacement is a fresh URL — CF cache invalidation isn't
+      //    needed (any prior cache entries live at the OLD versioned
+      //    filename and are simply orphaned).
       await markApplied(env, overrideId, filename);
 
+      const urls = [`${CDN_BASE}/${fullKey}`, `${CDN_BASE}/${thumbKey}`];
       return jsonResponse({
         ok:        true,
         imageFile: filename,
         urls,
-        purge,
         adminId,
       });
     } catch (e) {

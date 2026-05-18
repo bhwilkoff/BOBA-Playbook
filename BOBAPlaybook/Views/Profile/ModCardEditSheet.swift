@@ -382,9 +382,21 @@ struct ModCardEditSheet: View {
         }
         request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
         request.httpBody = data
-        let (_, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw APIError.serverError(0, "Image upload failed")
+        let (responseData, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.serverError(0, "Image upload failed — no HTTP response")
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            // Surface the actual status + Storage API error body so failures
+            // are diagnosable. v2.273 ship reported a generic "Image upload
+            // failed" that masked a 400 from a missing storage bucket; the
+            // beta tester + admin both lost time guessing at the cause.
+            let body = String(data: responseData, encoding: .utf8) ?? ""
+            let trimmed = body.prefix(240)
+            throw APIError.serverError(
+                http.statusCode,
+                "Image upload failed (HTTP \(http.statusCode)) — \(trimmed.isEmpty ? "no body" : String(trimmed))"
+            )
         }
         return path
     }

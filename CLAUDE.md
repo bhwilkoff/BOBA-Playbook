@@ -283,6 +283,15 @@ Cost + DBS for Plays render BELOW the canonical six.
 - **UI/UX:** `KUI:system/brand/screen/review/code/a11y/darkmode`, `ui-ux-pro-max`, `frontend-design`
 - **iOS:** `all-ios-skills:<name>` — swiftui-patterns, swiftui-navigation, swiftui-animation, swiftui-performance, swiftdata, ios-networking, ios-security, vision-framework, photos-camera-media, storekit, swift-charts, swift-concurrency, swift-testing, debugging-instruments, app-store-review, codable-patterns
 - **3D / RealityKit:** `realitykit-3d-card-rendering`, `3d-feature-sim-validation`, `3d-feature-debug-loop` — patterns + methodology for offline-sim-validated iteration on 3D card features. Read `docs/HERO_SHOT_ARCHITECTURE.md` for the BOBA-specific context.
+- **Workflow / discipline:**
+  - `binding-design-doc-discipline` — invoke before proposing any UI work; quote the rule from DESIGN.md / WEB-DESIGN.md / TRADE-DESIGN.md that justifies the change.
+  - `architectural-decision-log` — invoke when about to write a DECISIONS.md entry, or auditing one.
+  - `feature-shipping-discipline` — the end-to-end 7-step ship sequence (read docs → propose with rule quote → build → validate → bump version → commit with user-quote → push on authorization).
+- **Design principles:**
+  - `learning-orientation-design` — invoke before proposing any new feature; the four-question test (deepens understanding? invites participation? supports agency? clarity over cleverness?).
+  - `mobile-first-density-design` — invoke when designing any UI surface; density rules from DESIGN.md §4 / WEB-DESIGN.md §5.
+  - `native-platform-first` — invoke before reaching for custom UI; exhaust native iOS / web APIs first.
+  - `universal-feature-states` — invoke when designing any list / grid / feed / sheet; loading + empty + error + offline must be defined.
 - **Assets:** `app-store-screenshots`
 - **Quality:** `simplify`, `claude-api`
 

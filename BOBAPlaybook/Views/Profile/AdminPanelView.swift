@@ -6,6 +6,7 @@ import SwiftUI
 
 struct AdminPanelView: View {
     @Environment(AuthManager.self) private var auth
+    @Environment(CardStore.self) private var cardStore
     @State private var users: [AdminUserProfile] = []
     @State private var metrics: AdminMetrics? = nil
     @State private var pendingCorrections: [SupabaseClient.PendingCorrection] = []
@@ -269,6 +270,28 @@ struct AdminPanelView: View {
     private func approveImageOverride(id: String) async {
         do {
             try await SupabaseClient.shared.approveImageOverride(id: id)
+            // v2.275 — chain to the boba-mod-merge Worker so the
+            // approved row is immediately written to R2 + applied to
+            // the runtime override map. Without this, the image waits
+            // for the daily cron + git deploy. Failure here is non-
+            // fatal: the row stays approved and the daily merge will
+            // pick it up.
+            do {
+                let applied = try await SupabaseClient.shared.applyImageOverride(id: id)
+                if let imageFile = applied.imageFile {
+                    // Find the local row so we can update the CardStore
+                    // map with both card_number and boba_id.
+                    if let row = missingArt.first(where: { $0.id == id }) {
+                        cardStore.setAppliedOverride(
+                            cardNumber: row.cardNumber,
+                            bobaId: nil,        // override fetch shape doesn't include boba_id today
+                            imageFile: imageFile
+                        )
+                    }
+                }
+            } catch {
+                errorMessage = "Approved, but immediate apply failed: \(error.localizedDescription). Daily cron will sweep."
+            }
             missingArt.removeAll { $0.id == id }
         } catch {
             errorMessage = "Failed to approve: \(error.localizedDescription)"

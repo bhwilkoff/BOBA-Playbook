@@ -353,11 +353,56 @@ const API = (() => {
       status,
     };
     if (storagePath) payload.storage_path = storagePath;
-    // upsert on card_number — repeated submissions update the row, not add duplicates
-    const { error } = await supa()
+    // upsert on card_number — repeated submissions update the row, not add duplicates.
+    // Return the upserted row so the caller can chain to applyImageOverride().
+    const { data, error } = await supa()
       .from('card_image_overrides')
-      .upsert(payload, { onConflict: 'card_number' });
+      .upsert(payload, { onConflict: 'card_number' })
+      .select('id')
+      .single();
     if (error) throw new Error(error.message);
+    return data?.id ?? null;
+  }
+
+  // Trigger the boba-mod-merge Cloudflare Worker — applies an approved
+  // image override immediately (R2 write + CF cache purge + sets
+  // applied_image_file on the row so clients pick up the new filename
+  // before the daily cron + git deploy). Only admins succeed.
+  const MOD_MERGE_WORKER_URL = 'https://boba-mod-merge.benwilkoff.workers.dev';
+  async function applyImageOverride(overrideId) {
+    const { data: { session } } = await supa().auth.getSession();
+    if (!session) throw new Error('Not signed in');
+    const res = await fetch(`${MOD_MERGE_WORKER_URL}/merge`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({ overrideId }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`Merge worker failed (HTTP ${res.status}) — ${body.slice(0, 240) || 'no body'}`);
+    }
+    return res.json();
+  }
+
+  // Applied image overrides — runtime map for the client. Catalog
+  // rendering checks this before falling back to cards.json imageFile.
+  async function loadAppliedImageOverrides() {
+    const { data, error } = await supa()
+      .from('card_image_overrides')
+      .select('card_number, boba_id, applied_image_file')
+      .eq('status', 'applied')
+      .not('applied_image_file', 'is', null);
+    if (error) return { byBobaId: new Map(), byCardNumber: new Map() };
+    const byBobaId = new Map();
+    const byCardNumber = new Map();
+    for (const row of (data ?? [])) {
+      if (row.boba_id) byBobaId.set(String(row.boba_id), row.applied_image_file);
+      byCardNumber.set(String(row.card_number), row.applied_image_file);
+    }
+    return { byBobaId, byCardNumber };
   }
 
   // Fetch card numbers that have an active image removal (pending or approved, not rejected).
@@ -788,6 +833,8 @@ const API = (() => {
     adminReviewModRequest,
     submitCardCorrection,
     submitImageOverride,
+    applyImageOverride,
+    loadAppliedImageOverrides,
     uploadModImage,
     // Admin
     adminFetchCount,

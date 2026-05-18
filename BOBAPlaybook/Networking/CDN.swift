@@ -19,13 +19,18 @@ enum CDN {
         URL(string: "\(base)/sealed/optimized/\(imageFile)")!
     }
 
-    // Convenience: resolves the correct URL based on card type
-    static func thumbURL(for card: Card) -> URL? {
-        guard let file = card.imageFile, !file.isEmpty else { return nil }
-        return card.isSealed ? sealedThumb(for: file) : thumb(for: file)
+    // Convenience: resolves the correct URL based on card type.
+    // CardStore overlays runtime `applied_image_file` overrides from
+    // card_image_overrides on top of cards.json's imageFile — pass
+    // the resolved filename via the `override` parameter when known.
+    static func thumbURL(for card: Card, override: String? = nil) -> URL? {
+        let file = override ?? card.imageFile
+        guard let f = file, !f.isEmpty else { return nil }
+        return card.isSealed ? sealedThumb(for: f) : thumb(for: f)
     }
-    static func fullURL(for card: Card) -> URL? {
-        guard let file = card.imageFile, !file.isEmpty else { return nil }
-        return card.isSealed ? sealedFull(for: file) : full(for: file)
+    static func fullURL(for card: Card, override: String? = nil) -> URL? {
+        let file = override ?? card.imageFile
+        guard let f = file, !f.isEmpty else { return nil }
+        return card.isSealed ? sealedFull(for: f) : full(for: f)
     }
 }

@@ -53,6 +53,7 @@ struct BOBAPlaybookApp: App {
                     // No-ops silently if unauthenticated or the request fails.
                     if authManager.userId != nil {
                         await cardStore.loadImageRemovals()
+                        await cardStore.loadAppliedImageOverrides()
                     }
                 }
                 .task {

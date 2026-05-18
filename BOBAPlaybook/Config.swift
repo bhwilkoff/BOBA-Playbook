@@ -33,6 +33,14 @@ enum WorkerConfig {
     /// avatars/{user_id}.{ext}. Caller persists the returned URL via
     /// SupabaseClient.setAvatarUrl(_:). See workers/avatar-upload/.
     static let avatarUploadURL  = "https://boba-avatar-upload.benwilkoff.workers.dev"
+    /// boba-mod-merge — POST /merge with { overrideId }. Bound to the
+    /// boba-card-images R2 bucket; downloads the uploaded JPEG from
+    /// Supabase Storage, writes to full/{file} + thumbs/{file}, purges
+    /// Cloudflare cache, and marks the override row status='applied'
+    /// with applied_image_file set. Makes admin uploads + admin-
+    /// approved mod uploads appear in the app immediately rather than
+    /// waiting for the daily merge cron. See workers/mod-merge/.
+    static let modMergeURL      = "https://boba-mod-merge.benwilkoff.workers.dev"
 }
 
 // MARK: - Discord — Trade Room

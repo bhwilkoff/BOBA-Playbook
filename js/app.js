@@ -1075,6 +1075,37 @@
     }
   }
 
+  // v2.275 — apply runtime image-replacement overrides on top of the
+  // catalog. The boba-mod-merge Worker writes the new image to R2
+  // (full/ + thumbs/) and sets applied_image_file on the
+  // card_image_overrides row. We overwrite card.imageFile in-memory
+  // so all renderers (which read card.imageFile + API.cardThumbUrl)
+  // pick up the new filename without a cards.json deploy.
+  // Precedence: bobaId match > cardNumber match.
+  function applyImageOverridesMap(maps) {
+    if (!maps) return;
+    const { byBobaId, byCardNumber } = maps;
+    if (!byBobaId?.size && !byCardNumber?.size) return;
+    for (const card of cards) {
+      const fromBoba = card.bobaId ? byBobaId.get(String(card.bobaId)) : null;
+      const fromCN   = byCardNumber.get(String(card.cardNumber));
+      const applied  = fromBoba || fromCN;
+      if (applied) card.imageFile = applied;
+    }
+  }
+
+  // Expose for openModEditPanel + admin-panel approve callbacks so
+  // they can refresh the runtime map after a merge without a reload.
+  window.refreshAppliedImageOverrides = async function refreshAppliedImageOverrides() {
+    try {
+      const maps = await API.loadAppliedImageOverrides();
+      applyImageOverridesMap(maps);
+      if (typeof applyFilters === 'function') applyFilters(true);
+    } catch (e) {
+      console.warn('refreshAppliedImageOverrides failed:', e);
+    }
+  };
+
   function prepareData() {
     // Build cardsByNumber: string cardNumber → all Card variants (hero associations)
     // Kept for the modal "hero variants" panel — not used to collapse displayCards.
@@ -3248,6 +3279,14 @@
         applyFilters(true); // re-render grid with nulled imageFiles
       }
     });
+    // v2.275 — runtime image-replacement overrides (admin uploads
+    // and admin-approved mod uploads applied via boba-mod-merge).
+    API.loadAppliedImageOverrides().then(maps => {
+      if (maps && (maps.byBobaId.size || maps.byCardNumber.size)) {
+        applyImageOverridesMap(maps);
+        applyFilters(true);
+      }
+    });
 
     loadingState.hidden = true;
     buildShowcaseFilters();
@@ -3470,11 +3509,27 @@
           if (imageAction === 'replace' && imageFile) {
             storagePath = await API.uploadModImage(card.cardNumber, imageFile);
           }
-          await API.submitImageOverride(card.cardNumber, imageAction, storagePath, correctionStatus, card.bobaId ?? null);
+          const overrideId = await API.submitImageOverride(
+            card.cardNumber, imageAction, storagePath, correctionStatus, card.bobaId ?? null
+          );
           // Apply the removal immediately to in-memory card objects so the grid
           // reflects the change without a page reload.
           if (imageAction === 'remove') {
             applyImageRemovals(new Set([String(card.cardNumber)]));
+          }
+          // v2.275 — admin replace: chain to the boba-mod-merge Worker so
+          // the new image lands in R2 + CF cache purges + applied_image_file
+          // is set on the row immediately. Then refresh the runtime override
+          // map so subsequent renders pick up the new filename.
+          if (imageAction === 'replace' && isAdmin && overrideId) {
+            try {
+              await API.applyImageOverride(overrideId);
+              if (typeof window.refreshAppliedImageOverrides === 'function') {
+                await window.refreshAppliedImageOverrides();
+              }
+            } catch (mergeErr) {
+              console.warn('Immediate merge failed (daily cron will sweep):', mergeErr);
+            }
           }
         }
         statusEl.hidden = false;

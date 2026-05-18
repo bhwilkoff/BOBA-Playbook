@@ -1526,6 +1526,19 @@ const Collection = (() => {
           btn.disabled = true;
           try {
             await API.adminApproveImageOverride(btn.dataset.oid);
+            // v2.275 — chain to the boba-mod-merge Worker so the
+            // approved row's image is pushed to R2 + CF cache purged
+            // + applied_image_file set immediately. Failure is non-
+            // fatal: the row stays approved and the daily cron will
+            // sweep it.
+            try {
+              await API.applyImageOverride(btn.dataset.oid);
+              if (typeof window.refreshAppliedImageOverrides === 'function') {
+                await window.refreshAppliedImageOverrides();
+              }
+            } catch (mergeErr) {
+              console.warn('Immediate merge failed (daily cron will sweep):', mergeErr);
+            }
             btn.closest('.admin-correction-row').remove();
             if (!listEl.querySelector('.admin-correction-row')) {
               listEl.innerHTML = `<p class="mod-edit-note">No pending image overrides.</p>`;

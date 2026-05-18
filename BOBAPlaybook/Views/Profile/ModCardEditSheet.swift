@@ -342,13 +342,41 @@ struct ModCardEditSheet: View {
                     if action == .replace, let data = imageData {
                         storagePath = try await uploadImage(data: data)
                     }
-                    try await SupabaseClient.shared.submitImageOverride(
+                    let overrideId = try await SupabaseClient.shared.submitImageOverride(
                         cardNumber: card.cardNumber,
                         action: action.supabaseAction,
                         storagePath: storagePath,
                         status: correctionStatus,
                         bobaId: card.id
                     )
+
+                    // v2.275 — admin replace: trigger immediate merge via
+                    // the boba-mod-merge Cloudflare Worker so the new
+                    // image appears in the app right away (R2 write +
+                    // CF cache purge + applied_image_file on the row,
+                    // which CardStore reads into its runtime override map).
+                    // Non-admins: status='pending', wait for admin approve.
+                    // Removes: no merge needed (CardStore.hideImage handles
+                    // the runtime side, daily pipeline writes cards.json).
+                    if action == .replace,
+                       auth.role == "admin",
+                       let id = overrideId {
+                        do {
+                            let applied = try await SupabaseClient.shared.applyImageOverride(id: id)
+                            if let imageFile = applied.imageFile {
+                                cardStore.setAppliedOverride(
+                                    cardNumber: card.cardNumber,
+                                    bobaId: card.id,
+                                    imageFile: imageFile
+                                )
+                            }
+                        } catch {
+                            // Surface the merge failure to the user, but
+                            // keep the DB row — admin can retry via the
+                            // panel, or the daily cron will sweep it.
+                            saveError = "Saved, but immediate image apply failed: \(error.localizedDescription)"
+                        }
+                    }
                 }
 
                 // Immediately hide the image locally if it was removed

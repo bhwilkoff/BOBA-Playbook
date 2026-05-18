@@ -156,6 +156,63 @@ final class CardStore {
         hiddenImageCardNumbers = Set(removals)
     }
 
+    // MARK: - Applied image-replacement overrides
+    // Companion to the removal set above. Once the boba-mod-merge Worker
+    // has processed an approved card_image_overrides row (downloaded
+    // from Supabase Storage → wrote to R2 → purged CF cache), it sets
+    // applied_image_file on the row. iOS reads those on sign-in and
+    // resolves card_number / boba_id → filename here, so the runtime
+    // image URL reflects the new file even before cards.json's
+    // imageFile is updated by the next pipeline-cron + git deploy.
+    // Key precedence:
+    //   appliedImageFile[bobaId]      (most specific — set on every new submission)
+    //   appliedImageFile[cardNumber]  (legacy rows without boba_id)
+    //   card.imageFile from cards.json
+    private(set) var appliedImageOverridesByBobaId:     [String: String] = [:]
+    private(set) var appliedImageOverridesByCardNumber: [String: String] = [:]
+
+    /// Resolves the active image filename for a card, applying any
+    /// runtime override on top of cards.json's imageFile.
+    func resolvedImageFile(for card: Card) -> String? {
+        if let f = appliedImageOverridesByBobaId[card.id] { return f }
+        if let f = appliedImageOverridesByCardNumber[card.cardNumber] { return f }
+        return card.imageFile
+    }
+
+    /// Convenience builders matching CDN.thumbURL / fullURL that bake
+    /// the runtime override resolution in.
+    func thumbURL(for card: Card) -> URL? {
+        CDN.thumbURL(for: card, override: resolvedImageFile(for: card))
+    }
+    func fullURL(for card: Card) -> URL? {
+        CDN.fullURL(for: card, override: resolvedImageFile(for: card))
+    }
+
+    /// Called by SupabaseClient.applyImageOverride right after the merge
+    /// Worker returns, OR by loadImageRemovals' sibling fetch on launch.
+    /// Updates the runtime map so subsequent renders pick up the new
+    /// filename without a re-fetch.
+    func setAppliedOverride(cardNumber: String, bobaId: String?, imageFile: String) {
+        if let id = bobaId, !id.isEmpty {
+            appliedImageOverridesByBobaId[id] = imageFile
+        }
+        appliedImageOverridesByCardNumber[cardNumber] = imageFile
+    }
+
+    /// Fetches all applied overrides from Supabase and replaces the
+    /// runtime maps. Safe to call without auth.
+    func loadAppliedImageOverrides() async {
+        guard let rows = try? await SupabaseClient.shared.fetchAppliedImageOverrides() else { return }
+        var byBoba: [String: String] = [:]
+        var byCN:   [String: String] = [:]
+        for row in rows {
+            if let bid = row.bobaId, !bid.isEmpty { byBoba[bid] = row.appliedImageFile }
+            byCN[row.cardNumber] = row.appliedImageFile
+        }
+        appliedImageOverridesByBobaId     = byBoba
+        appliedImageOverridesByCardNumber = byCN
+    }
+
     // MARK: - Deep link
     // Card-detail deep links go through findNavigationPath (above)
     // — the URL handler appends a CardRoute directly. The previous

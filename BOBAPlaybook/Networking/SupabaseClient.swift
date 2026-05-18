@@ -771,14 +771,18 @@ final class SupabaseClient {
     /// Submits an image override (replace or remove). Only succeeds for moderator/admin accounts.
     /// Uses upsert on card_number so repeated submissions update the existing row, not add duplicates.
     /// Pass status="approved" for admin users so the removal is immediately active on all platforms.
-    func submitImageOverride(cardNumber: String, action: String, storagePath: String?, status: String = "pending", bobaId: String? = nil) async throws {
+    /// Returns the upserted row's id so callers can chain to applyImageOverride().
+    @discardableResult
+    func submitImageOverride(cardNumber: String, action: String, storagePath: String?, status: String = "pending", bobaId: String? = nil) async throws -> String? {
         guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
         let url = try makeURL(path: "/rest/v1/card_image_overrides")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         addHeaders(&request, authenticated: true)
-        // resolution=merge-duplicates: ON CONFLICT (card_number) DO UPDATE
-        request.setValue("resolution=merge-duplicates", forHTTPHeaderField: "Prefer")
+        // ON CONFLICT (card_number) DO UPDATE + return the row so we can
+        // chain a merge call without a second round-trip.
+        request.setValue("resolution=merge-duplicates,return=representation",
+                          forHTTPHeaderField: "Prefer")
         var body: [String: Any] = [
             "card_number":   cardNumber,
             "action":        action,
@@ -788,9 +792,11 @@ final class SupabaseClient {
         if let path = storagePath { body["storage_path"] = path }
         if let id = bobaId        { body["boba_id"]      = id }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        // Same as submitCardCorrection: go through voidExecute so a stale
-        // access token refreshes + retries instead of failing silently.
-        try await voidExecute(request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+        struct UpsertedRow: Decodable { let id: String }
+        let rows = (try? makeDecoder().decode([UpsertedRow].self, from: data)) ?? []
+        return rows.first?.id
     }
 
     // MARK: - Admin: image override management
@@ -839,6 +845,70 @@ final class SupabaseClient {
         request.httpBody = try JSONSerialization.data(withJSONObject: ["status": "rejected"])
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkStatus(data: data, response: response)
+    }
+
+    // MARK: - Mod merge (boba-mod-merge worker)
+
+    /// Trigger the boba-mod-merge Cloudflare Worker to apply an approved
+    /// image override IMMEDIATELY: downloads the JPEG from Supabase
+    /// Storage, writes to R2 (full/ + thumbs/), purges CF cache, marks
+    /// the override row status='applied' with applied_image_file set.
+    /// iOS reads applied overrides on sign-in into a runtime map so the
+    /// new image appears in the app without waiting for the daily merge
+    /// cron + git deploy.
+    /// Only admins succeed (Worker checks role); other callers get 403.
+    @discardableResult
+    func applyImageOverride(id: String) async throws -> AppliedImageOverride {
+        guard let url = URL(string: WorkerConfig.modMergeURL + "/merge") else {
+            throw APIError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        if let token = accessToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["overrideId": id])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            let trimmed = body.prefix(240)
+            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+            throw APIError.serverError(code, "Merge worker failed (HTTP \(code)) — \(trimmed.isEmpty ? "no body" : String(trimmed))")
+        }
+        return try makeDecoder().decode(AppliedImageOverride.self, from: data)
+    }
+
+    struct AppliedImageOverride: Decodable {
+        let ok: Bool
+        let imageFile: String?
+        let urls: [String]?
+    }
+
+    /// Applied-override rows used by the runtime image-override map.
+    /// CardStore loads these on sign-in via fetchAppliedImageOverrides
+    /// and resolves card_number / boba_id → applied_image_file at
+    /// render time, replacing cards.json's imageFile when present.
+    struct AppliedOverride: Decodable {
+        let cardNumber: String
+        let bobaId: String?
+        let appliedImageFile: String
+
+        enum CodingKeys: String, CodingKey {
+            case cardNumber       = "card_number"
+            case bobaId           = "boba_id"
+            case appliedImageFile = "applied_image_file"
+        }
+    }
+
+    func fetchAppliedImageOverrides() async throws -> [AppliedOverride] {
+        let url = try makeURL(path: "/rest/v1/card_image_overrides?status=eq.applied&applied_image_file=not.is.null&select=card_number,boba_id,applied_image_file")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addHeaders(&request, authenticated: true)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+        return try makeDecoder().decode([AppliedOverride].self, from: data)
     }
 
     // MARK: - user_cards CRUD

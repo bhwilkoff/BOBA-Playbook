@@ -56,6 +56,21 @@ struct CollectionView: View {
     /// mode. Persisted per tab. Sentinel `0` = unset → resolves to
     /// size-class default (compact: 3, regular: 5) per DESIGN.md §6.6.
     @AppStorage("bp_collectionGridColumns_v1") private var gridColumnsStorage: Int = 0
+    /// Whether the value summary at the top of the Collection shows
+    /// the WHOLE collection's totals (default) or just the totals for
+    /// the active filter + search + designation subset. Toggle lives
+    /// at the top of the Filter sheet so it's contextual with the
+    /// filters that drive the alternate calculation.
+    @AppStorage("bp_collectionTotalsMode_v1") private var totalsModeRaw: String = TotalsMode.collection.rawValue
+    private var totalsMode: TotalsMode {
+        get { TotalsMode(rawValue: totalsModeRaw) ?? .collection }
+    }
+    private var totalsModeBinding: Binding<TotalsMode> {
+        Binding(
+            get: { TotalsMode(rawValue: totalsModeRaw) ?? .collection },
+            set: { totalsModeRaw = $0.rawValue }
+        )
+    }
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var gridColumns: Int {
@@ -136,6 +151,20 @@ struct CollectionView: View {
         }
     }
 
+    /// Whether the value-summary header reflects the whole collection
+    /// or just the active filter + designation + search subset. Toggle
+    /// lives at the top of the Filter sheet.
+    enum TotalsMode: String, CaseIterable, Identifiable {
+        case collection, filter
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .collection: return "Collection"
+            case .filter:     return "Filter"
+            }
+        }
+    }
+
     var body: some View {
         Group {
             if horizontalSizeClass == .regular && auth.isAuthenticated {
@@ -186,7 +215,8 @@ struct CollectionView: View {
                 collectionSort: Binding(
                     get: { CollectionSortOrder(rawValue: collectionSortRaw) ?? .dateAddedDesc },
                     set: { collectionSortRaw = $0.rawValue }
-                )
+                ),
+                collectionTotalsMode: totalsModeBinding
             )
             // iPad: popover anchored on the toolbar Filters button.
             .presentationCompactAdaptation(.popover)
@@ -684,12 +714,52 @@ struct CollectionView: View {
 
     // MARK: - Value summary
 
+    /// Count + value for the active filter+search+designation subset.
+    /// Powers `valueSummary` when `totalsMode == .filter`. Walks the
+    /// same `collectionIdentifiers` set the visible grid uses, so the
+    /// totals always agree with what the user can see.
+    private var filterTotals: (count: Int, estimatedValue: Decimal, purchaseValue: Decimal) {
+        let identifierSet = Set(collectionIdentifiers(for: selectedDesignation))
+        var count = 0
+        var estimatedValue: Decimal = 0
+        var purchaseValue: Decimal = 0
+        for entry in collection.userCards where entry.designation == selectedDesignation {
+            guard let bobaId = entry.bobaId, identifierSet.contains(bobaId) else { continue }
+            count += 1
+            if let v = entry.estimatedValue { estimatedValue += v }
+            if let p = entry.purchasePrice { purchaseValue += p }
+        }
+        return (count, estimatedValue, purchaseValue)
+    }
+
     private var valueSummary: some View {
-        let estimated = collection.totalEstimatedValue
-        let purchased = collection.totalPurchaseValue
+        // v2.272 — toggle between whole-collection totals (default)
+        // and filter+search+designation subset totals. Toggle lives at
+        // the top of the Filter sheet. When in .filter mode, the count
+        // label flips to "CARDS" (the subset may include Wanted entries
+        // — "OWNED" is only accurate in the whole-collection view).
+        let isFiltered = totalsMode == .filter
+        let estimated: Decimal
+        let purchased: Decimal
+        let count: Int
+        if isFiltered {
+            let ft = filterTotals
+            estimated = ft.estimatedValue
+            purchased = ft.purchaseValue
+            count = ft.count
+        } else {
+            estimated = collection.totalEstimatedValue
+            purchased = collection.totalPurchaseValue
+            count = collection.userCards.filter { $0.designation.isOwned }.count
+        }
+        let countLabel = isFiltered ? "CARDS IN FILTER" : "CARDS OWNED"
+        let valueLabel: String = {
+            if estimated > 0 { return isFiltered ? "FILTER EST. VALUE" : "EST. MARKET VALUE" }
+            return isFiltered ? "FILTER COST BASIS" : "COST BASIS"
+        }()
         return HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(estimated > 0 ? "EST. MARKET VALUE" : "COST BASIS")
+                Text(valueLabel)
                     .font(Design.Fonts.mono(9, weight: .bold))
                     .foregroundStyle(Design.Colors.textMuted)
                     .tracking(1.5)
@@ -700,11 +770,11 @@ struct CollectionView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text("CARDS OWNED")
+                Text(countLabel)
                     .font(Design.Fonts.mono(9, weight: .bold))
                     .foregroundStyle(Design.Colors.textMuted)
                     .tracking(1.5)
-                Text("\(collection.userCards.filter { $0.designation.isOwned }.count)")
+                Text("\(count)")
                     .font(Design.Fonts.arena(28))
                     .foregroundStyle(Design.Colors.textPrimary)
             }

@@ -49,6 +49,11 @@ struct FilterSheetView: View {
     /// sort. The Find tab passes nil, so collection-specific options
     /// (date added, paid, market value) stay scoped to Collection.
     var collectionSort: Binding<CollectionSortOrder>? = nil
+    /// Optional binding for the Collection-only "totals" mode toggle.
+    /// When non-nil, the sheet renders a segmented control at the very
+    /// top to switch the value-summary header between whole-collection
+    /// totals and active-filter totals. Find passes nil.
+    var collectionTotalsMode: Binding<CollectionView.TotalsMode>? = nil
     @Environment(\.dismiss) private var dismiss
 
     // Local power input strings — convert to Int? on commit
@@ -58,6 +63,27 @@ struct FilterSheetView: View {
     var body: some View {
         NavigationStack {
             List {
+
+                // MARK: Totals mode (Collection-only — top of the sheet
+                // so the toggle reads as the framing for everything else
+                // below it: "what do these filters apply to?").
+                if let totalsBinding = collectionTotalsMode {
+                    Section {
+                        Picker("Show totals for", selection: totalsBinding) {
+                            ForEach(CollectionView.TotalsMode.allCases) { mode in
+                                Text(mode.label).tag(mode)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    } header: {
+                        sectionHeader("Show Totals For")
+                    } footer: {
+                        Text("Collection: count + value of your whole collection. Filter: count + value of just the cards matching the active filters and search.")
+                            .font(Design.Fonts.mono(11))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
+                    .listRowBackground(Design.Colors.surface2)
+                }
 
                 // MARK: Collection sort (only when invoked from Collection)
                 if let collectionSort = collectionSort {

@@ -190,13 +190,25 @@ final class CardStore {
 
     /// Called by SupabaseClient.applyImageOverride right after the merge
     /// Worker returns, OR by loadImageRemovals' sibling fetch on launch.
-    /// Updates the runtime map so subsequent renders pick up the new
-    /// filename without a re-fetch.
+    /// Updates the runtime map AND the in-memory displayCards array so
+    /// every callsite (CDN.fullURL/thumbURL(for: card), CardImageView,
+    /// the various Play/Decks views reading card.imageFile directly)
+    /// picks up the new filename without needing to consult a separate
+    /// resolver.
     func setAppliedOverride(cardNumber: String, bobaId: String?, imageFile: String) {
         if let id = bobaId, !id.isEmpty {
             appliedImageOverridesByBobaId[id] = imageFile
         }
         appliedImageOverridesByCardNumber[cardNumber] = imageFile
+        // Mutate the live in-memory cards. Hits all 30+ CDN.fullURL /
+        // thumbURL call sites that read card.imageFile directly.
+        for i in displayCards.indices {
+            let c = displayCards[i]
+            if (bobaId.map { !$0.isEmpty && c.id == $0 } ?? false)
+                || c.cardNumber == cardNumber {
+                displayCards[i].imageFile = imageFile
+            }
+        }
     }
 
     /// Fetches all applied overrides from Supabase and replaces the
@@ -211,6 +223,31 @@ final class CardStore {
         }
         appliedImageOverridesByBobaId     = byBoba
         appliedImageOverridesByCardNumber = byCN
+        // v2.278 — mirror the web pattern: mutate displayCards
+        // imageFile in-memory so every existing call site
+        // (CDN.fullURL(for: card), CardImageView, the 25+ Play views
+        // that read card.imageFile directly) picks up the override
+        // without having to thread an explicit override parameter
+        // through. Card.imageFile is `var` for exactly this purpose.
+        applyRuntimeImageOverrides()
+    }
+
+    /// Re-applies the runtime override map to displayCards. Called
+    /// after loadAppliedImageOverrides AND after setAppliedOverride
+    /// (live admin save) so a fresh upload reflects immediately
+    /// without a re-fetch of the catalog.
+    func applyRuntimeImageOverrides() {
+        guard !appliedImageOverridesByBobaId.isEmpty
+                || !appliedImageOverridesByCardNumber.isEmpty
+        else { return }
+        for i in displayCards.indices {
+            let card = displayCards[i]
+            if let f = appliedImageOverridesByBobaId[card.id] {
+                displayCards[i].imageFile = f
+            } else if let f = appliedImageOverridesByCardNumber[card.cardNumber] {
+                displayCards[i].imageFile = f
+            }
+        }
     }
 
     // MARK: - Deep link

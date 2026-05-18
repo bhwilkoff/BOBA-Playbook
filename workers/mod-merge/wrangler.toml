@@ -12,15 +12,12 @@ bucket_name = "boba-card-images"
 #   SUPABASE_URL          — https://pazkimtkwwwekuguxkff.supabase.co
 #   SUPABASE_SERVICE_KEY  — service_role key (bypasses RLS for the
 #                            override-row read/write + Storage fetch)
-#   CF_API_TOKEN          — Zone-scoped token with "Cache Purge" perm
-#                            for the zone serving pub-*.r2.dev (or
-#                            custom domain). Without it, edge cache
-#                            survives for up to ~1 year per the
-#                            CacheControl: immutable on the existing
-#                            tiers. Cache purge is best-effort; the
-#                            new objects are written with max-age=300
-#                            so they "win" quickly.
-#   CF_ZONE_ID            — The zone ID of the R2 CDN zone.
+#
+# v2.276 — CF_API_TOKEN + CF_ZONE_ID are NO LONGER needed. The Worker
+# writes to versioned R2 filenames ({safe-bobaId}-v{ts}.webp) so every
+# replacement is a fresh URL with no cached predecessor. The
+# pub-*.r2.dev URL isn't on a user-owned CF zone anyway, so the
+# cache-purge API couldn't reach it.
 #
 # Deploy:
 #   cd workers/mod-merge

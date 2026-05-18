@@ -575,3 +575,66 @@ LANGUAGE sql SECURITY DEFINER STABLE AS $$
      AND up.public_collection_enabled = true
    LIMIT 1;
 $$;
+
+
+-- ────────────────────────────────────────────────────────────────────
+-- 2026-05-18 — mod-card-images Storage bucket + RLS policies
+-- ────────────────────────────────────────────────────────────────────
+-- The bucket used by ModCardEditSheet (image replacements) and
+-- ModAddCardSheet (new-card additions). Without it every upload
+-- returned 400 from the Storage API. Captured as part of the v2.273
+-- audit + fix (see git log).
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'mod-card-images',
+  'mod-card-images',
+  false,                                          -- private; merge worker uses service-role key
+  5242880,                                        -- 5 MB cap (iOS JPEG Q85 ≤1200px ~200-500 KB)
+  ARRAY['image/jpeg','image/png','image/webp']
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- RLS policies on storage.objects scoped to bucket_id='mod-card-images'.
+-- Service role bypasses these (merge_approved_additions.py).
+
+CREATE POLICY "mod_card_images_mods_insert"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'mod-card-images'
+    AND EXISTS (SELECT 1 FROM public.user_profiles
+                WHERE user_id = auth.uid()
+                  AND role IN ('moderator','admin'))
+  );
+
+CREATE POLICY "mod_card_images_mods_select"
+  ON storage.objects FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'mod-card-images'
+    AND EXISTS (SELECT 1 FROM public.user_profiles
+                WHERE user_id = auth.uid()
+                  AND role IN ('moderator','admin'))
+  );
+
+CREATE POLICY "mod_card_images_admin_update"
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (
+    bucket_id = 'mod-card-images'
+    AND EXISTS (SELECT 1 FROM public.user_profiles
+                WHERE user_id = auth.uid()
+                  AND role = 'admin')
+  );
+
+-- Path convention: "{user_id}/{cardNumber}-{timestamp}.jpg"; check
+-- first path component against auth.uid().
+CREATE POLICY "mod_card_images_uploader_or_admin_delete"
+  ON storage.objects FOR DELETE TO authenticated
+  USING (
+    bucket_id = 'mod-card-images'
+    AND (
+      (storage.foldername(name))[1] = auth.uid()::text
+      OR EXISTS (SELECT 1 FROM public.user_profiles
+                 WHERE user_id = auth.uid()
+                   AND role = 'admin')
+    )
+  );

@@ -117,6 +117,23 @@ struct CardDetailView: View {
             scale = 1.0
             self.offset = .zero
         }
+        // Pull the live imageFile from the catalog whenever the
+        // displayed card changes — navigationCards may carry stale
+        // snapshots if it was prepared before the override map
+        // landed.
+        syncFromCardStore()
+    }
+
+    /// v2.280 — refresh the local @State `card` from the live
+    /// CardStore entry. Used on appear and whenever the runtime
+    /// override map changes, so an admin's just-uploaded image
+    /// appears in the open detail view without re-navigation.
+    private func syncFromCardStore() {
+        guard let live = cardStore.displayCards.first(where: { $0.id == card.id })
+        else { return }
+        if live.imageFile != card.imageFile {
+            card.imageFile = live.imageFile
+        }
     }
 
     @ViewBuilder
@@ -294,6 +311,13 @@ struct CardDetailView: View {
                 if WalkthroughsManager.shared.shouldShow(.cardDetail) {
                     walkthrough = .cardDetail
                 }
+                // v2.280 — re-resolve the live card on appear. The
+                // @State capture freezes whatever copy was passed in,
+                // so a card opened before applyRuntimeImageOverrides
+                // runs (e.g. signed-out launch) shows the stale
+                // imageFile until manually refreshed. Pull the live
+                // version from cardStore.displayCards.
+                syncFromCardStore()
                 // AddToCollectionIntent (DESIGN.md §7) hint — when the
                 // user invoked the intent from Spotlight/Siri/Shortcuts
                 // and we landed on this card, auto-present the add
@@ -308,6 +332,16 @@ struct CardDetailView: View {
                         showingSignIn = true
                     }
                 }
+            }
+            // v2.280 — when an admin saves a new image while this
+            // detail surface is open, setAppliedOverride mutates the
+            // displayCards entry and bumps the override map. Watch
+            // the map so the artPanel re-renders without a re-push.
+            .onChange(of: cardStore.appliedImageOverridesByBobaId) {
+                syncFromCardStore()
+            }
+            .onChange(of: cardStore.appliedImageOverridesByCardNumber) {
+                syncFromCardStore()
             }
         }
     }

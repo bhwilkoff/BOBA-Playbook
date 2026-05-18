@@ -398,7 +398,7 @@ struct HeroShotView: View {
     /// off-main on the Task.detached context. Returns nil only if CI
     /// can't produce a CGImage, in which case the caller falls back to
     /// the unscaled input (no worse than before).
-    private static func upsampleAndSharpen(_ image: UIImage, scale: CGFloat) -> UIImage? {
+    nonisolated private static func upsampleAndSharpen(_ image: UIImage, scale: CGFloat) -> UIImage? {
         guard let cg = image.cgImage else { return nil }
         let ci = CIImage(cgImage: cg)
         guard let lanczos = CIFilter(name: "CILanczosScaleTransform") else { return nil }

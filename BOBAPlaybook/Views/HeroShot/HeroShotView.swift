@@ -167,8 +167,12 @@ struct HeroShotView: View {
                 Text("STYLE")
                     .font(Design.Fonts.mono(10, weight: .bold))
                     .foregroundStyle(Design.Colors.textSecondary)
+                // v7.3 — Detail + Tech Demo removed per user request.
+                // Only Reveal + Showcase ship.
                 Picker("Style", selection: $arcPreset) {
-                    ForEach(HeroShotRenderer.ArcPreset.allCases) { preset in
+                    ForEach(HeroShotRenderer.ArcPreset.allCases.filter {
+                        $0 == .reveal || $0 == .showcase
+                    }) { preset in
                         Text(preset.displayName).tag(preset)
                     }
                 }
@@ -189,7 +193,7 @@ struct HeroShotView: View {
                     Text("5s").tag(TimeInterval(5))
                     Text("10s").tag(TimeInterval(10))
                     Text("15s").tag(TimeInterval(15))
-                    Text("30s").tag(TimeInterval(30))
+                    // v7.3 — 30s removed per user request.
                 }
                 .pickerStyle(.segmented)
                 .disabled(phase == .rendering)

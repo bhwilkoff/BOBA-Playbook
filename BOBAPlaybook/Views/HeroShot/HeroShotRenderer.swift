@@ -521,8 +521,8 @@ final class HeroShotRenderer {
         // EV +0.5 / sat 1.20 / con 1.10 produces a vivid, well-lit
         // card. Tested via sim_post_sweep.png with 6 EV settings
         // 0 to +1.0. +0.5 reads bright + saturated without bloom.
-        // v7.2 — match video EV 0.0 (was 0.8 — caused washout).
-        let exposed = Self.applyExposureEV(ci, ev: 0.0,
+        // v7.3 — match video EV -0.3.
+        let exposed = Self.applyExposureEV(ci, ev: -0.3,
                                             saturation: 1.15,
                                             contrast: 1.08)
         let ctx = CIContext(mtlDevice: device)
@@ -711,14 +711,9 @@ final class HeroShotRenderer {
             // full brightness over the graded scene.
             // v6.4 — see comment in renderPreviewFrame. UnlitMaterial
             // card needs no darkening; brighten with mild grading.
-            // v7.2 — EV 0.8 → 0.0. The post-process brightening was
-            // pushing the PBR-lit card into clipping at the push-
-            // climax frame (user: "incredibly washed out at the
-            // end of the video"). PBR's Lambert + IBL already
-            // produce a balanced exposure; the +0.8 EV stack was
-            // gratuitous. Saturation + contrast retained for the
-            // pigment-punch grade.
-            applyExposurePass(to: pixelBuffer, ev: 0.0,
+            // v7.3 — EV -0.3 per user "lower the brightness on the
+            // card by about 20%" (-0.3 EV ≈ -19% linear brightness).
+            applyExposurePass(to: pixelBuffer, ev: -0.3,
                                saturation: 1.15, contrast: 1.08,
                                ciContext: ciContext)
 
@@ -910,7 +905,12 @@ final class HeroShotRenderer {
             treatment: config.card.treatment,
             useHolofoil: false,
             frontVariant: .pbrMatte,  // base=art, no clearcoat, no emissive HDR risk
-            edgeTint: Self.sampleEdgeTint(from: config.frontImage),
+            // v7.3 — edge is WHITE per user request. Real-world card
+            // stock has white paper edges; the sampled-palette tint
+            // approach made dark cards' edges read as the dominant
+            // hue (red for fire cards, etc). Pure white matches what
+            // a physical card looks like edge-on.
+            edgeTint: UIColor.white,
             // 1.9 × halfThickness = 0.285mm. User cap: 0.30mm
             // (= 2.0 × halfT); 2.0 exactly = z-fight with planes.
             edgeThicknessMultiplier: 1.9
@@ -928,7 +928,9 @@ final class HeroShotRenderer {
         if let haloTex = Self.makeRimHaloTexture(palette: palette) {
             var haloMat = UnlitMaterial()
             haloMat.color = .init(tint: .white, texture: .init(haloTex))
-            haloMat.blending = .transparent(opacity: 1.0)
+            // v7.3 — opacity 1.0 → 0.85 per user "lower the glow
+            // around the card by about 15%."
+            haloMat.blending = .transparent(opacity: 0.85)
             let halo = ModelEntity(
                 mesh: MeshResource.generatePlane(width: Self.cardW * 1.8,
                                                   depth: Self.cardH * 1.8),

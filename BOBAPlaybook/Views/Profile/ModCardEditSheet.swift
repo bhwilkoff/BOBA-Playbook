@@ -188,13 +188,17 @@ struct ModCardEditSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     // v2.273 — always-rendered Button + .disabled(isSaving)
-                    // instead of conditional ProgressView swap. SwiftUI
-                    // toolbar items don't reliably re-render content
-                    // changes on iOS 17/18; the swap pattern left the
-                    // button tappable during the in-flight submission,
-                    // letting users multi-tap without seeing feedback.
-                    // Beta tester report: "hit submit twice, then cancel
-                    // as that's the only way out."
+                    // alongside an inline ProgressView. The previous
+                    // `if isSaving { ProgressView() } else { Button(...) }`
+                    // swap pattern was technically valid on iOS 26 but
+                    // produced ambiguous UX: the button disappeared
+                    // entirely while the spinner appeared in its slot,
+                    // and on a fast network the swap could happen so
+                    // briefly the user thought nothing had happened.
+                    // Beta tester report: "hit submit twice, then cancel."
+                    // New pattern keeps the labeled button visible with
+                    // an unambiguous "Submitting…" label + adjacent
+                    // spinner; .disabled(isSaving) prevents a re-tap.
                     HStack(spacing: 6) {
                         if isSaving {
                             ProgressView().controlSize(.small).tint(Design.Colors.bobaOrange)

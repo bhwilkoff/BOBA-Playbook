@@ -121,10 +121,9 @@ struct ModAddCardSheet: View {
                         .disabled(isSaving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    // v2.273 — see ModCardEditSheet for the same fix.
-                    // Always-rendered Button + .disabled(isSaving) replaces
-                    // the conditional ProgressView swap that left the
-                    // button tappable on iOS 17/18 toolbar items.
+                    // v2.273 — always-rendered Button + .disabled(isSaving)
+                    // alongside ProgressView for unambiguous in-flight UX.
+                    // See ModCardEditSheet for the full rationale.
                     HStack(spacing: 6) {
                         if isSaving {
                             ProgressView().controlSize(.small).tint(Design.Colors.bobaOrange)

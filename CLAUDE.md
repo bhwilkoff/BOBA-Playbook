@@ -115,7 +115,7 @@ header { flex-shrink: 0; position: relative; }
 ## iOS App
 
 ### Tech Stack
-- Swift 6, SwiftUI (`@Observable`, iOS 17+)
+- Swift 6, SwiftUI (`@Observable`, iOS 26+ — actual device share is >>90% on 26 by 2026-05; we optimize for current iOS, not back-compat)
 - SwiftData for local persistence
 - Keychain via Security framework for auth storage
 - URLSession directly to Supabase REST API (no third-party packages)
@@ -149,7 +149,7 @@ header { flex-shrink: 0; position: relative; }
 - **Version numbers**: edit `AppVersion.xcconfig`, never the Xcode identity panel
 
 ### iOS Constraints
-- iOS 17+ minimum deployment target
+- **iOS 26+ minimum deployment target** (`IPHONEOS_DEPLOYMENT_TARGET = 26.4` in pbxproj). Use iOS 26 native APIs directly — Liquid Glass, native `Tab(role: .search)`, scroll-edge effects, `.containerRelativeFrame`, `.scrollPosition`, etc. — without `@available` guards. Existing `@available(iOS 18.0, *)` guards in the codebase are no-ops; remove when touching the file but don't sweep proactively. Don't write code as a workaround for iOS 17/18 quirks.
 - No third-party Swift packages — Apple frameworks only
 - Keychain for all credential storage — never UserDefaults for secrets
 

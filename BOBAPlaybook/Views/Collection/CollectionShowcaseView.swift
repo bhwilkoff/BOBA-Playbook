@@ -73,6 +73,16 @@ final class ShowcaseSession {
     var cards: [Card] = []
     var pool = ShowcaseImagePool()
     var tiles: [ShowcaseTileState] = []
+    /// Column count used by the CURRENTLY rendering grid (phone or
+    /// TV) — drives tile-array sizing AND the 8-direction adjacency
+    /// rule. v2.282: previously this was always set to the TV's
+    /// column count, which left right-edge tiles BLANK whenever the
+    /// phone in landscape needed more columns than the TV layout
+    /// (smaller cell height → smaller cell width → more cells fit).
+    /// The currently-mounted grid (ShowcaseGridView for phone, or
+    /// ShowcaseTVRenderView for AirPlay) publishes its actual cols
+    /// here via the GeometryReader, and initializeTiles rebuilds
+    /// the array to match.
     var columns: Int = 0
 
     // Grid geometry — user-tunable.
@@ -123,6 +133,12 @@ final class ShowcaseSession {
         return active.isEmpty ? [.flip] : active
     }
 
+    /// Single Hashable key combining the two values that drive the
+    /// tile-array layout. `.task(id:)` re-fires on changes to either
+    /// rows (pinch) or columns (rotation / pinch / AirPlay-handoff
+    /// hands the rendering grid to a viewport with different cols).
+    var layoutKey: String { "\(rows)-\(columns)" }
+
     /// Initialize tile grid for the given total count. Splits into
     /// two phases for fast first paint:
     ///
@@ -144,21 +160,37 @@ final class ShowcaseSession {
         if tiles.count == count { return }
         pool.setCandidates(cards)
 
-        // Phase 1: card assignment with no-adjacent-duplicates rule.
+        // Phase 1: card assignment with 8-direction no-adjacent-
+        // duplicates rule. We walk row-major. At each cell, the only
+        // already-placed neighbors that touch this position are the
+        // four to the upper-left / above / upper-right / immediate-left
+        // — every other 8-neighbor relationship gets enforced when
+        // ITS later tile checks back against this one.
+        //
+        // v2.282 — replaced the prior "exclude the entire row above"
+        // rule, which over-excluded (no card from row-above anywhere,
+        // not just diagonals) and left the pool starving on small
+        // collections. Now we exclude exactly the 4 cells that share
+        // an edge or corner with the slot being filled.
         var assignments: [(Int, Card)] = []
-        var lastRow: [String] = []
-        var rowBuf: [String] = []
         let cols = max(1, columns)
+        var placedIds = Array<String?>(repeating: nil, count: count)
+        // Already-placed neighbors during a row-major walk: NW, N, NE, W.
+        let priorOffsets: [(dr: Int, dc: Int)] = [(-1, -1), (-1, 0), (-1, 1), (0, -1)]
         for i in 0..<count {
-            let col = i % cols
-            let exclude = Set(lastRow + rowBuf)
-            guard let card = pool.pickCard(excluding: exclude) else { break }
-            assignments.append((i, card))
-            rowBuf.append(card.id)
-            if col == cols - 1 {
-                lastRow = rowBuf
-                rowBuf = []
+            let r = i / cols, c = i % cols
+            var exclude: Set<String> = []
+            for (dr, dc) in priorOffsets {
+                let nr = r + dr, nc = c + dc
+                guard nr >= 0, nc >= 0, nc < cols else { continue }
+                let ni = nr * cols + nc
+                if ni >= 0, ni < placedIds.count, let id = placedIds[ni] {
+                    exclude.insert(id)
+                }
             }
+            guard let card = pool.pickCard(excluding: exclude) else { break }
+            placedIds[i] = card.id
+            assignments.append((i, card))
         }
 
         // Preserve images from the previous tile array, keyed by
@@ -304,18 +336,25 @@ final class ShowcaseSession {
         return active.first ?? .flip
     }
 
+    /// v2.282 — 8-direction adjacency (was 4-direction). Same rule
+    /// enforced at init Phase 1: when a tile cycles to a new card,
+    /// the new card must differ from any of its 8 surrounding tiles'
+    /// current cards. This prevents the eye-catching repetition of
+    /// the same card appearing right next to itself, including on
+    /// the diagonal.
     private func neighborBobaIds(of index: Int) -> Set<String> {
         guard columns > 0 else { return [] }
         var ids: Set<String> = []
         let row = index / columns, col = index % columns
-        let candidates: [(Int, Int)] = [
-            (row, col - 1), (row, col + 1),
-            (row - 1, col), (row + 1, col)
-        ]
-        for (r, c) in candidates where r >= 0 && r < rows && c >= 0 && c < columns {
-            let n = r * columns + c
-            if n < tiles.count, let id = tiles[n].currentBobaId {
-                ids.insert(id)
+        for dr in -1...1 {
+            for dc in -1...1 {
+                if dr == 0 && dc == 0 { continue }
+                let r = row + dr, c = col + dc
+                if r < 0 || r >= rows || c < 0 || c >= columns { continue }
+                let n = r * columns + c
+                if n < tiles.count, let id = tiles[n].currentBobaId {
+                    ids.insert(id)
+                }
             }
         }
         return ids
@@ -515,19 +554,23 @@ struct CollectionShowcaseView: View {
         .task(id: session.cycleEpoch) {
             await session.runCycleLoop(reduceMotion: reduceMotion)
         }
-        // Tile init — single source of truth keyed on session.rows.
-        // Sized for the LARGER of (phone grid, TV grid) so the TV's
-        // 1920×1080 canvas is always fully populated even when the
-        // user's collection has fewer cards than tiles (cards repeat
-        // with no-adjacent-duplicates). Phone renders the subset that
-        // fits its screen.
-        .task(id: session.rows) {
+        // Tile init — keyed on (rows, columns). v2.282: previously the
+        // tile array was sized to TV columns only, so when the phone
+        // rotated to landscape (which needs MORE columns than TV at
+        // the same row height) the right-edge tiles fell off the end
+        // of the array and rendered as black background. The active
+        // grid (ShowcaseGridView or ShowcaseTVRenderView) publishes
+        // its real column count to session.columns via its
+        // GeometryReader; this task re-fires whenever either rows or
+        // columns changes and rebuilds the tile array to fit.
+        //
+        // We wait for the GeometryReader to publish before initializing
+        // — running with cols=0 would produce zero tiles.
+        .task(id: session.layoutKey) {
+            let cols = session.columns
+            guard cols > 0 else { return }
             let rows = max(2, session.rows)
-            let tvCellH = CGFloat(ShowcaseVideoConstants.renderHeight) / CGFloat(rows)
-            let tvCellW = tvCellH * ShowcaseVideoConstants.cardAspect
-            let tvCols = max(1, Int(ceil(CGFloat(ShowcaseVideoConstants.renderWidth) / tvCellW)))
-            session.columns = tvCols
-            await session.initializeTiles(count: rows * tvCols)
+            await session.initializeTiles(count: rows * cols)
         }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
@@ -738,12 +781,33 @@ struct ShowcaseGridView: View {
                     // the count tracks the new visible area.
                     .onAppear {
                         session.phoneVisibleTileCount = session.rows * cols
+                        // v2.282 — publish the phone's actual column
+                        // count so initializeTiles sizes the array to
+                        // fit. Without this, landscape phone (more
+                        // cols than TV at the same row height) left
+                        // the rightmost cells with no tile data,
+                        // rendering as black background.
+                        if !session.airplayActive {
+                            session.columns = cols
+                        }
                     }
                     .onChange(of: cols) { _, newCols in
                         session.phoneVisibleTileCount = session.rows * newCols
+                        if !session.airplayActive {
+                            session.columns = newCols
+                        }
                     }
                     .onChange(of: session.rows) { _, newRows in
                         session.phoneVisibleTileCount = newRows * cols
+                    }
+                    // AirPlay engaging while the phone grid is mounted
+                    // hands rendering to the TV view; on disengage,
+                    // republish phone cols so the next init returns
+                    // to phone-sized layout.
+                    .onChange(of: session.airplayActive) { _, active in
+                        if !active {
+                            session.columns = cols
+                        }
                     }
                 }
 
@@ -2794,6 +2858,25 @@ struct ShowcaseTVRenderView: View {
                 .position(x: size.width / 2, y: size.height / 2)
             }
             .frame(width: size.width, height: size.height)
+            // v2.282 — TV viewport publishes its actual cols when it's
+            // the active renderer (AirPlay engaged). Adjacency rules +
+            // tile-array sizing then track the TV's grid, not whatever
+            // the phone had been showing before handoff.
+            .onAppear {
+                if session.airplayActive {
+                    session.columns = cols
+                }
+            }
+            .onChange(of: cols) { _, newCols in
+                if session.airplayActive {
+                    session.columns = newCols
+                }
+            }
+            .onChange(of: session.airplayActive) { _, active in
+                if active {
+                    session.columns = cols
+                }
+            }
         }
     }
 }

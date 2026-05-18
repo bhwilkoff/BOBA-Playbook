@@ -255,6 +255,8 @@ Cost + DBS for Plays render BELOW the canonical six.
 | `WEB-DESIGN.md` | Web design theory — binding rules for every web UI feature |
 | `TRADE-DESIGN.md` | P2P trading design — binding rules for matching, messaging, payment guidance, fraud prevention, dispute flow |
 | `SCRATCHPAD.md` | Feature parity tracker and milestone status |
+| `docs/HERO_SHOT_ARCHITECTURE.md` | Hero Shot 3D card-video feature — architecture, iteration journal, and how to use the sim for self-validation |
+| `tools/HeroShotSim/sim3d.swift` | macOS RealityFoundation sim mirroring the iOS Hero Shot scene — render PNG contact sheets to validate visual changes before shipping |
 
 ---
 
@@ -280,6 +282,7 @@ Cost + DBS for Plays render BELOW the canonical six.
 
 - **UI/UX:** `KUI:system/brand/screen/review/code/a11y/darkmode`, `ui-ux-pro-max`, `frontend-design`
 - **iOS:** `all-ios-skills:<name>` — swiftui-patterns, swiftui-navigation, swiftui-animation, swiftui-performance, swiftdata, ios-networking, ios-security, vision-framework, photos-camera-media, storekit, swift-charts, swift-concurrency, swift-testing, debugging-instruments, app-store-review, codable-patterns
+- **3D / RealityKit:** `realitykit-3d-card-rendering`, `3d-feature-sim-validation`, `3d-feature-debug-loop` — patterns + methodology for offline-sim-validated iteration on 3D card features. Read `docs/HERO_SHOT_ARCHITECTURE.md` for the BOBA-specific context.
 - **Assets:** `app-store-screenshots`
 - **Quality:** `simplify`, `claude-api`
 

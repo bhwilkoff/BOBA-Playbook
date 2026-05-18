@@ -5,9 +5,10 @@ import UniformTypeIdentifiers
 /// `nonisolated` overrides the project's default-MainActor isolation
 /// so this Sendable value type can be read from background actors
 /// (notably the grid-scan TaskGroup, which calls into ScanMatching
-/// off MainActor for parallelism). The struct is already Sendable
-/// and all properties are immutable `let`s — there's no concurrency
-/// hazard, just a default-isolation correction.
+/// off MainActor for parallelism). The struct is Sendable; mutation
+/// is by-value-copy so the lone `var` (imageFile — updated by
+/// CardStore.applyRuntimeImageOverrides from card_image_overrides
+/// applied rows) is safe across actors.
 nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
     let bvId: Int?
     let cardNumber: String
@@ -37,7 +38,7 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
     /// True when the hero's inspiration athlete was in their rookie season
     /// at print time. Non-Hero rows decode as false.
     let rookieInspired: Bool
-    let imageFile: String?
+    var imageFile: String?
     let imageSource: String?
     let imageAvailable: Bool
     let radishUrl: String?

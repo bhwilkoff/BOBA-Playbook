@@ -147,7 +147,18 @@ struct CardImageView: View {
         do {
             let (data, _) = try await cardImageSession.data(for: request)
             guard !Task.isCancelled else { return }
-            if let image = UIImage(data: data) {
+            if let raw = UIImage(data: data) {
+                // v2.281 — bake rounded corners into the loaded image.
+                // Pipeline-produced WebPs are lossy VP8 (no alpha) and
+                // admin-uploaded JPEGs have square opaque corners. The
+                // outer .clipShape on the artPanel/grid cell rounded
+                // the VIEW boundary, but the IMAGE pixels under the
+                // rounded corner area still drew dark filler from the
+                // source photo's background — visible as a square
+                // halo around the card's natural rounded edge. Pre-
+                // baking the alpha mask makes those corners truly
+                // transparent so the gradient shows through cleanly.
+                let image = BOBACardEntity.roundedCorners(raw) ?? raw
                 let cost = data.count
                 cardImageCache.setObject(image, forKey: key, cost: cost)
                 withAnimation(.easeInOut(duration: 0.25)) {

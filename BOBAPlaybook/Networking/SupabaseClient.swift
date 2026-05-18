@@ -775,7 +775,14 @@ final class SupabaseClient {
     @discardableResult
     func submitImageOverride(cardNumber: String, action: String, storagePath: String?, status: String = "pending", bobaId: String? = nil) async throws -> String? {
         guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
-        let url = try makeURL(path: "/rest/v1/card_image_overrides")
+        // v2.277 — `?on_conflict=card_number` tells PostgREST exactly
+        // which UNIQUE constraint to use for ON CONFLICT. Without it,
+        // PostgREST can't infer the target on tables with multiple
+        // unique constraints (pkey + card_number_key here) and falls
+        // back to plain INSERT, which fails when a row for this
+        // card_number already exists — exactly the duplicate-key
+        // violation the beta tester + admin both hit on retry.
+        let url = try makeURL(path: "/rest/v1/card_image_overrides?on_conflict=card_number")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         addHeaders(&request, authenticated: true)

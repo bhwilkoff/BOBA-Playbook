@@ -638,3 +638,19 @@ CREATE POLICY "mod_card_images_uploader_or_admin_delete"
                    AND role = 'admin')
     )
   );
+
+-- ────────────────────────────────────────────────────────────────────
+-- 2026-05-18 — extend card_image_overrides.status check for 'applied'
+-- ────────────────────────────────────────────────────────────────────
+-- v2.275 added the applied_image_file + applied_at columns but missed
+-- updating the CHECK constraint to allow status='applied'. The boba-
+-- mod-merge Worker's final markApplied PATCH was silently failing,
+-- leaving rows stuck in status='approved' with applied_image_file=null.
+-- v2.277 fixes the constraint.
+
+ALTER TABLE public.card_image_overrides
+  DROP CONSTRAINT IF EXISTS card_image_overrides_status_check;
+
+ALTER TABLE public.card_image_overrides
+  ADD CONSTRAINT card_image_overrides_status_check
+    CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'applied'::text]));

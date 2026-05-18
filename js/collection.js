@@ -69,13 +69,24 @@ const Collection = (() => {
 
     const tabCount   = key => _cards.filter(c => c.designation === key).length;
     const ownedCards = _cards.filter(c => ['personal','for_sale','for_trade'].includes(c.designation));
-    const totalCostBasis = ownedCards
+    // v2.272 — totals respect _totalsMode. 'collection' aggregates across
+    // owned designations (default); 'filter' uses just the active tab.
+    // Matches iOS @AppStorage("bp_collectionTotalsMode_v1") behavior.
+    const statsScope = _totalsMode === 'filter'
+      ? _cards.filter(c => c.designation === _activeTab)
+      : ownedCards;
+    const totalCostBasis = statsScope
       .filter(c => c.purchase_price)
       .reduce((sum, c) => sum + Number(c.purchase_price), 0);
-    const totalEstimatedValue = ownedCards
+    const totalEstimatedValue = statsScope
       .filter(c => c.estimated_value)
       .reduce((sum, c) => sum + Number(c.estimated_value), 0);
-    const uniqueNums = new Set(_cards.map(c => c.boba_id || c.card_number)).size;
+    const uniqueNums = new Set(statsScope.map(c => c.boba_id || c.card_number)).size;
+    const scopeCount = statsScope.length;
+    const isFilter = _totalsMode === 'filter';
+    const ownedLabel = isFilter ? 'In Filter' : 'Owned';
+    const valueLabel = isFilter ? 'Filter Est. Value' : 'Est. Value';
+    const paidLabel  = isFilter ? 'Filter Paid' : 'Total Paid';
 
     const tabsHtml = DESIGNATIONS.map(d => `
       <button class="desig-tab${_activeTab === d.key ? ' active' : ''}"
@@ -106,8 +117,8 @@ const Collection = (() => {
           <h2 class="view-heading">My Collection</h2>
           <div class="collection-stats-bar">
             <div class="cstat">
-              <span class="cstat-val">${ownedCards.length}</span>
-              <span class="cstat-label">Owned</span>
+              <span class="cstat-val">${scopeCount}</span>
+              <span class="cstat-label">${esc(ownedLabel)}</span>
             </div>
             <div class="cstat">
               <span class="cstat-val">${uniqueNums}</span>
@@ -116,13 +127,24 @@ const Collection = (() => {
             ${totalCostBasis > 0 ? `
             <div class="cstat">
               <span class="cstat-val">$${totalCostBasis.toFixed(2)}</span>
-              <span class="cstat-label">Total Paid</span>
+              <span class="cstat-label">${esc(paidLabel)}</span>
             </div>` : ''}
             ${totalEstimatedValue > 0 ? `
             <div class="cstat">
               <span class="cstat-val">$${totalEstimatedValue.toFixed(2)}</span>
-              <span class="cstat-label">Est. Value</span>
+              <span class="cstat-label">${esc(valueLabel)}</span>
             </div>` : ''}
+          </div>
+          <div class="collection-totals-toggle" role="radiogroup" aria-label="Show totals for">
+            <label class="collection-totals-label">Totals:</label>
+            <button class="collection-totals-btn${_totalsMode==='collection'?' active':''}"
+                    data-totals-mode="collection"
+                    role="radio"
+                    aria-checked="${_totalsMode==='collection'}">Collection</button>
+            <button class="collection-totals-btn${_totalsMode==='filter'?' active':''}"
+                    data-totals-mode="filter"
+                    role="radio"
+                    aria-checked="${_totalsMode==='filter'}">Filter</button>
           </div>
         </div>
         <div class="desig-tabs" role="tablist" aria-label="Collection designations">
@@ -157,6 +179,12 @@ const Collection = (() => {
 
     view.querySelector('#collection-sort')?.addEventListener('change', (e) => {
       setCollectionSort(e.target.value);
+    });
+
+    view.querySelectorAll('.collection-totals-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setTotalsMode(btn.dataset.totalsMode);
+      });
     });
 
     // Open detail on card item click (not on delete button)
@@ -312,6 +340,17 @@ const Collection = (() => {
     ? localStorage.getItem('bp_collectionSort_v1')
     : null) || 'added_desc';
 
+  /// Stats-bar mode. 'collection' = whole-collection totals across
+  /// owned designations (default; what shipped before v2.272).
+  /// 'filter' = totals for the active designation tab only (the
+  /// designation is web's primary collection filter axis). iOS
+  /// mirrors this via @AppStorage("bp_collectionTotalsMode_v1") in
+  /// CollectionView, with additional filter dimensions (weapon,
+  /// treatment, etc.) on that platform.
+  let _totalsMode = (typeof localStorage !== 'undefined'
+    ? localStorage.getItem('bp_collectionTotalsMode_v1')
+    : null) || 'collection';
+
   function sortCollectionGroups(groups) {
     const meta = (group) => {
       const first = group[0];
@@ -372,6 +411,13 @@ const Collection = (() => {
     renderCollectionView();
   }
   function getCollectionSort() { return _collectionSort; }
+
+  function setTotalsMode(value) {
+    if (value !== 'collection' && value !== 'filter') return;
+    _totalsMode = value;
+    try { localStorage.setItem('bp_collectionTotalsMode_v1', value); } catch (_) { /* noop */ }
+    renderCollectionView();
+  }
 
   /* ================================================================
      PROFILE VIEW

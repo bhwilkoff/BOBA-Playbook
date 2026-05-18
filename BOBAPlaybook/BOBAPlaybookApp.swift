@@ -49,12 +49,15 @@ struct BOBAPlaybookApp: App {
                 .environment(customRainbowStore)
                 .preferredColorScheme(.dark)
                 .task(id: authManager.userId) {
-                    // Reload image removal overrides whenever auth state changes.
-                    // No-ops silently if unauthenticated or the request fails.
-                    if authManager.userId != nil {
-                        await cardStore.loadImageRemovals()
-                        await cardStore.loadAppliedImageOverrides()
-                    }
+                    // v2.280 — image overrides apply globally (every
+                    // user sees admin-approved updates), so fetch
+                    // them whether the user is signed in or not.
+                    // RLS on card_image_overrides / card_image_removals
+                    // already permits anon SELECT. The auth-gated
+                    // version of this task left signed-out users
+                    // looking at the pre-override catalog.
+                    await cardStore.loadImageRemovals()
+                    await cardStore.loadAppliedImageOverrides()
                 }
                 .task {
                     // Load the feature-print index in the background.

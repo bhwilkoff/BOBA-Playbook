@@ -195,13 +195,14 @@ final class CardStore {
     /// the various Play/Decks views reading card.imageFile directly)
     /// picks up the new filename without needing to consult a separate
     /// resolver.
+    /// v2.280 — also rebuilds filteredCards via applyFilters(). Without
+    /// this, the SearchView grid (which renders from filteredCards, a
+    /// derived array) stayed stale even though displayCards was mutated.
     func setAppliedOverride(cardNumber: String, bobaId: String?, imageFile: String) {
         if let id = bobaId, !id.isEmpty {
             appliedImageOverridesByBobaId[id] = imageFile
         }
         appliedImageOverridesByCardNumber[cardNumber] = imageFile
-        // Mutate the live in-memory cards. Hits all 30+ CDN.fullURL /
-        // thumbURL call sites that read card.imageFile directly.
         for i in displayCards.indices {
             let c = displayCards[i]
             if (bobaId.map { !$0.isEmpty && c.id == $0 } ?? false)
@@ -209,6 +210,7 @@ final class CardStore {
                 displayCards[i].imageFile = imageFile
             }
         }
+        applyFilters()
     }
 
     /// Fetches all applied overrides from Supabase and replaces the
@@ -233,21 +235,29 @@ final class CardStore {
     }
 
     /// Re-applies the runtime override map to displayCards. Called
-    /// after loadAppliedImageOverrides AND after setAppliedOverride
-    /// (live admin save) so a fresh upload reflects immediately
-    /// without a re-fetch of the catalog.
+    /// after loadAppliedImageOverrides AND from loadFullCatalog so a
+    /// fresh catalog load doesn't wipe the override mutations.
+    /// v2.280 — also rebuilds filteredCards via applyFilters(). The
+    /// SearchView grid renders from filteredCards (derived), not
+    /// displayCards directly, so mutating the source isn't visible
+    /// to the UI without rebuilding the derivative.
     func applyRuntimeImageOverrides() {
         guard !appliedImageOverridesByBobaId.isEmpty
                 || !appliedImageOverridesByCardNumber.isEmpty
         else { return }
         for i in displayCards.indices {
             let card = displayCards[i]
-            if let f = appliedImageOverridesByBobaId[card.id] {
+            // bobaId is the canonical primary key; cardNumber is a
+            // fallback for legacy rows that didn't include boba_id.
+            // For Sealed Products Card.id (uses hero) != Card.bobaId
+            // (falls back to name), so prefer card.bobaId here.
+            if let f = appliedImageOverridesByBobaId[card.bobaId] {
                 displayCards[i].imageFile = f
             } else if let f = appliedImageOverridesByCardNumber[card.cardNumber] {
                 displayCards[i].imageFile = f
             }
         }
+        applyFilters()
     }
 
     // MARK: - Deep link
@@ -381,6 +391,13 @@ final class CardStore {
             releases      = releaseList
             isLoading     = false
             isLoadingMore = false
+            // v2.280 — re-apply the runtime override map BEFORE
+            // building filteredCards. Without this, a fresh catalog
+            // load wipes any in-place imageFile mutations the
+            // override map had previously written. (Race confirmed
+            // by the v2.279 audit — full-catalog load can finish
+            // after loadAppliedImageOverrides.)
+            applyRuntimeImageOverrides()
             applyFilters()
 
         } catch {

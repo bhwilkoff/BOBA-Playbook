@@ -3,5 +3,5 @@
 // Xcode identity panel; that creates a per-target override that shadows
 // this file and causes targets to drift apart again.
 
-MARKETING_VERSION = 2.278
-CURRENT_PROJECT_VERSION = 541
+MARKETING_VERSION = 2.279
+CURRENT_PROJECT_VERSION = 542

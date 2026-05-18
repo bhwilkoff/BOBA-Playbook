@@ -104,8 +104,8 @@ struct ModAddCardSheet: View {
                 if cardType == .play { playSection }
                 if cardType == .hero || cardType == .play { heroOptionsSection }
                 notesSection
-                errorSection
-                statusSection
+                // v2.273 — errorSection / statusSection replaced by
+                // .alert modifiers on the NavigationStack below.
             }
             .scrollContentBackground(.hidden)
             .background(Design.Colors.nearBlack)
@@ -118,17 +118,38 @@ struct ModAddCardSheet: View {
                     Button("Cancel") { dismiss() }
                         .font(Design.Fonts.mono(14))
                         .foregroundStyle(Design.Colors.textMuted)
+                        .disabled(isSaving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    if isSaving {
-                        ProgressView().tint(Design.Colors.bobaOrange)
-                    } else {
-                        Button(auth.role == "admin" ? "Add" : "Submit") { submit() }
+                    // v2.273 — see ModCardEditSheet for the same fix.
+                    // Always-rendered Button + .disabled(isSaving) replaces
+                    // the conditional ProgressView swap that left the
+                    // button tappable on iOS 17/18 toolbar items.
+                    HStack(spacing: 6) {
+                        if isSaving {
+                            ProgressView().controlSize(.small).tint(Design.Colors.bobaOrange)
+                        }
+                        Button(submitButtonLabel) { submit() }
                             .font(Design.Fonts.mono(14, weight: .bold))
                             .foregroundStyle(Design.Colors.bobaOrange)
-                            .disabled(!canSubmit)
+                            .disabled(isSaving || !canSubmit)
                     }
                 }
+            }
+            .alert("Submission received", isPresented: $saveSuccess) {
+                Button("OK") { dismiss() }
+            } message: {
+                Text(auth.role == "admin"
+                     ? "Card added to the catalog."
+                     : "Your new card is queued for admin review. You'll see it land in the catalog after approval.")
+            }
+            .alert("Submission failed", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("OK") { saveError = nil }
+            } message: {
+                Text(saveError ?? "")
             }
             .fullScreenCover(item: $croppingPayload) { payload in
                 CardCropView(
@@ -319,31 +340,9 @@ struct ModAddCardSheet: View {
         .listRowBackground(Design.Colors.surface)
     }
 
-    @ViewBuilder
-    private var errorSection: some View {
-        if let error = saveError {
-            Section {
-                Text(error)
-                    .font(Design.Fonts.mono(13))
-                    .foregroundStyle(.red)
-            }
-            .listRowBackground(Design.Colors.surface)
-        }
-    }
-
-    @ViewBuilder
-    private var statusSection: some View {
-        if saveSuccess {
-            Section {
-                Label(
-                    auth.role == "admin" ? "Card added." : "Submitted for admin review.",
-                    systemImage: "checkmark.circle.fill"
-                )
-                .font(Design.Fonts.mono(13))
-                .foregroundStyle(Design.Colors.bobaCyan)
-            }
-            .listRowBackground(Design.Colors.surface)
-        }
+    private var submitButtonLabel: String {
+        if isSaving { return "Submitting…" }
+        return auth.role == "admin" ? "Add" : "Submit"
     }
 
     // MARK: - Field builder
@@ -435,13 +434,14 @@ struct ModAddCardSheet: View {
                     imageStoragePath: storagePath,
                     status:           status
                 )
+                // v2.273 — alert handles dismiss via OK button now; no
+                // sleep-then-dismiss race.
+                isSaving = false
                 saveSuccess = true
-                try? await Task.sleep(nanoseconds: 1_500_000_000)
-                dismiss()
             } catch {
+                isSaving = false
                 saveError = error.localizedDescription
             }
-            isSaving = false
         }
     }
 

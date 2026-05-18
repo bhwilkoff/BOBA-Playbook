@@ -170,26 +170,8 @@ struct ModCardEditSheet: View {
                 }
                 .listRowBackground(Design.Colors.surface)
 
-                if let error = saveError {
-                    Section {
-                        Text(error)
-                            .font(Design.Fonts.mono(13))
-                            .foregroundStyle(.red)
-                    }
-                    .listRowBackground(Design.Colors.surface)
-                }
-
-                if saveSuccess {
-                    Section {
-                        Label(
-                            auth.role == "admin" ? "Changes saved." : "Correction submitted for review.",
-                            systemImage: "checkmark.circle.fill"
-                        )
-                        .font(Design.Fonts.mono(13))
-                        .foregroundStyle(Design.Colors.bobaCyan)
-                    }
-                    .listRowBackground(Design.Colors.surface)
-                }
+                // v2.273 — inline saveError / saveSuccess sections removed;
+                // both now surface as .alert above with explicit OK button.
             }
             .scrollContentBackground(.hidden)
             .background(Design.Colors.nearBlack)
@@ -202,17 +184,45 @@ struct ModCardEditSheet: View {
                     Button("Cancel") { dismiss() }
                         .font(Design.Fonts.mono(14))
                         .foregroundStyle(Design.Colors.textMuted)
+                        .disabled(isSaving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    if isSaving {
-                        ProgressView().tint(Design.Colors.bobaOrange)
-                    } else {
-                        Button(auth.role == "admin" ? "Save" : "Submit") { submit() }
+                    // v2.273 — always-rendered Button + .disabled(isSaving)
+                    // instead of conditional ProgressView swap. SwiftUI
+                    // toolbar items don't reliably re-render content
+                    // changes on iOS 17/18; the swap pattern left the
+                    // button tappable during the in-flight submission,
+                    // letting users multi-tap without seeing feedback.
+                    // Beta tester report: "hit submit twice, then cancel
+                    // as that's the only way out."
+                    HStack(spacing: 6) {
+                        if isSaving {
+                            ProgressView().controlSize(.small).tint(Design.Colors.bobaOrange)
+                        }
+                        Button(submitButtonLabel) { submit() }
                             .font(Design.Fonts.mono(14, weight: .bold))
                             .foregroundStyle(Design.Colors.bobaOrange)
-                            .disabled(correctionDict.isEmpty && imageAction == .none)
+                            .disabled(isSaving || (correctionDict.isEmpty && imageAction == .none))
                     }
                 }
+            }
+            // v2.273 — explicit success alert. The inline Section indicator
+            // shipped before was easy to miss before the 1.5s auto-dismiss.
+            // Now the user gets a modal that requires an explicit tap.
+            .alert("Submission received", isPresented: $saveSuccess) {
+                Button("OK") { dismiss() }
+            } message: {
+                Text(auth.role == "admin"
+                     ? "Changes saved to the catalog."
+                     : "Your correction is queued for admin review. You'll see it land in the catalog after approval.")
+            }
+            .alert("Submission failed", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("OK") { saveError = nil }
+            } message: {
+                Text(saveError ?? "")
             }
             .fullScreenCover(item: $croppingPayload) { payload in
                 CardCropView(
@@ -254,6 +264,11 @@ struct ModCardEditSheet: View {
     }
 
     // MARK: - Helpers
+
+    private var submitButtonLabel: String {
+        if isSaving { return "Submitting…" }
+        return auth.role == "admin" ? "Save" : "Submit"
+    }
 
     /// Fields that differ from the original card data
     private var correctionDict: [String: String] {
@@ -336,13 +351,14 @@ struct ModCardEditSheet: View {
                 if action == .remove {
                     cardStore.hideImage(cardNumber: card.cardNumber)
                 }
+                // v2.273 — alert handles dismiss via its OK button now;
+                // no more 1.5s sleep race that beta-tester report exposed.
+                isSaving = false
                 saveSuccess = true
-                try? await Task.sleep(nanoseconds: 1_500_000_000)
-                dismiss()
             } catch {
+                isSaving = false
                 saveError = error.localizedDescription
             }
-            isSaving = false
         }
     }
 

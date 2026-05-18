@@ -237,6 +237,122 @@ def mark_merged(sb: Client, row_id: str):
     sb.table("card_corrections").update({"merged_at": "now()"}).eq("id", row_id).execute()
 
 
+# ── Approved image-replacement processing ─────────────────────────────────
+#
+# Mods can submit a NEW IMAGE for an existing card via ModCardEditSheet
+# (action='replace' in card_image_overrides). Until v2.273, those approvals
+# sat in the DB forever — no script picked up the storage_path. This
+# function closes that gap: for each card_image_overrides row where
+# action=replace, status=approved, and storage_path is non-null, it
+# downloads the image from mod-card-images, re-encodes WebP tiers, and
+# uploads to R2, OVERWRITING the existing file (replacement intent).
+#
+# Cloudflare edge cache caveat: R2 PUT does NOT invalidate Cloudflare's
+# edge cache. Cache-Control on the new objects is "immutable, max-age=
+# 31536000". Users on edges that already cached the OLD image see the
+# OLD image until that cache entry rotates (CF default ~1 year for
+# immutable content). Two mitigations for future: (a) purge CF edge
+# cache via API after replacements merge, or (b) version the R2 key.
+# Both deferred — this lands the data path; cache invalidation is a
+# follow-up.
+def fetch_approved_replacements(sb: Client) -> list[dict]:
+    res = (sb.table("card_image_overrides")
+             .select("id,card_number,boba_id,action,storage_path,status")
+             .eq("action", "replace")
+             .eq("status", "approved")
+             .not_.is_("storage_path", "null")
+             .order("created_at")
+             .execute())
+    return res.data or []
+
+
+def process_approved_replacements(sb: Client, r2, bucket: str, dry: bool):
+    rows = fetch_approved_replacements(sb)
+    if not rows:
+        return
+
+    print(f"\nApproved image replacements awaiting merge: {len(rows)}")
+    cards_path = REPO / "assets" / "data" / "cards.json"
+    cards_data = json.loads(cards_path.read_text())
+    cards = (cards_data["cards"]
+             if isinstance(cards_data, dict) and "cards" in cards_data
+             else cards_data)
+    by_boba = {(c.get("bobaId") or boba_id(c)): c for c in cards}
+    by_card_num: dict[str, list[dict]] = {}
+    for c in cards:
+        by_card_num.setdefault(str(c.get("cardNumber", "")), []).append(c)
+
+    applied_ids: list[str] = []
+    cards_json_dirty = False
+
+    for row in rows:
+        bid = (row.get("boba_id") or "").strip()
+        card_num = str(row.get("card_number") or "").strip()
+        target: Optional[dict] = None
+        label = ""
+        if bid and bid in by_boba:
+            target = by_boba[bid]
+            label = bid
+        elif card_num and len(by_card_num.get(card_num, [])) == 1:
+            target = by_card_num[card_num][0]
+            label = card_num
+        else:
+            matches = len(by_card_num.get(card_num, []))
+            print(f"  warn skip row {row['id']}: card_number={card_num} boba_id={bid or '-'} — {matches} matches in catalog (need exactly 1)")
+            continue
+
+        img_bytes = fetch_image_from_supabase(row["storage_path"])
+        if img_bytes is None:
+            print(f"  warn skip {label}: storage_path={row['storage_path']} missing in mod-card-images")
+            continue
+
+        full, thumb = generate_tiers(img_bytes)
+        existing_filename = target.get("imageFile")
+        if existing_filename:
+            fname = existing_filename
+        else:
+            target_bid = target.get("bobaId") or boba_id(target)
+            fname = safe_filename_for_boba_id(target_bid)
+
+        if dry:
+            print(f"  would replace {label} → R2 full/{fname} + thumbs/{fname} ({len(full)//1024}K + {len(thumb)//1024}K)")
+            continue
+
+        # OVERWRITE in place — replacements intentionally clobber the
+        # existing R2 object (vs additions which HEAD-guard).
+        r2.put_object(
+            Bucket=bucket, Key=f"full/{fname}", Body=full,
+            ContentType="image/webp",
+            CacheControl="public, max-age=31536000, immutable",
+        )
+        r2.put_object(
+            Bucket=bucket, Key=f"thumbs/{fname}", Body=thumb,
+            ContentType="image/webp",
+            CacheControl="public, max-age=31536000, immutable",
+        )
+
+        if not existing_filename:
+            target["imageFile"]     = fname
+            target["imageAvailable"] = True
+            target["imageSource"]   = "mod_replace"
+            cards_json_dirty = True
+
+        applied_ids.append(row["id"])
+        print(f"  applied {label} → R2 full/{fname} + thumbs/{fname}")
+
+    if dry:
+        print(f"\nDRY RUN: would apply {len(rows)} replacement(s).")
+        return
+
+    if cards_json_dirty:
+        cards_path.write_text(json.dumps(cards_data, ensure_ascii=False, indent=2) + "\n")
+        print(f"  wrote {cards_path.name} (added imageFile to previously-missing cards)")
+
+    for rid in applied_ids:
+        sb.table("card_image_overrides").update({"status": "applied"}).eq("id", rid).execute()
+    print(f"\nDone. Applied {len(applied_ids)} image replacement(s); marked rows status='applied'.")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply", action="store_true",
@@ -246,9 +362,16 @@ def main():
     dry = not args.apply
 
     sb = supabase_client()
+    bucket = os.environ.get("R2_BUCKET", "boba-card-images")
+    r2 = None if dry else r2_client()
+
+    # ── Pass 2: approved image replacements ─────────────────────────────
+    # Runs even when no additions are pending — replacements are independent.
+    process_approved_replacements(sb, r2, bucket, dry)
+
     pending = fetch_pending(sb)
     if not pending:
-        print("No approved additions awaiting merge.")
+        print("\nNo approved additions awaiting merge.")
         return
 
     # Load existing catalog bobaIds for uniqueness defense.
@@ -256,9 +379,6 @@ def main():
     existing: set[str] = set()
     for c in json.loads(cards_path.read_text()):
         existing.add(c.get("bobaId") or boba_id(c))
-
-    bucket = os.environ.get("R2_BUCKET", "boba-card-images")
-    r2 = None if dry else r2_client()
 
     new_records: list[dict] = []
     merged_ids: list[str] = []

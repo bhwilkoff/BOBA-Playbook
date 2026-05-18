@@ -395,30 +395,52 @@ struct ModCardEditSheet: View {
     }
 
     /// Uploads image data to Supabase Storage `mod-card-images` bucket.
+    /// v2.279 — proactive refreshIfNeeded() + one retry on auth failure.
+    /// Supabase Storage doesn't go through voidExecute's 401-retry, so
+    /// an expired JWT here surfaces as a confusing 400-with-"exp claim"
+    /// body. Refresh-then-retry keeps the upload reliable across long
+    /// sessions where the token rotated mid-session.
     private func uploadImage(data: Data) async throws -> String {
         guard let userId = SupabaseClient.shared.userId else {
             throw APIError.serverError(401, "Not authenticated")
         }
         let path = "\(userId)/\(card.cardNumber)-\(Int(Date().timeIntervalSince1970)).jpg"
-        let urlString = SupabaseConfig.projectURL + "/storage/v1/object/mod-card-images/\(path)"
-        guard let url = URL(string: urlString) else { throw APIError.invalidURL }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
-        if let token = SupabaseClient.shared.accessToken {
+
+        func attempt() async throws -> (Data, HTTPURLResponse) {
+            let token = try await SupabaseClient.shared.refreshIfNeeded()
+            let urlString = SupabaseConfig.projectURL + "/storage/v1/object/mod-card-images/\(path)"
+            guard let url = URL(string: urlString) else { throw APIError.invalidURL }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+            request.httpBody = data
+            let (responseData, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                throw APIError.serverError(0, "Image upload failed — no HTTP response")
+            }
+            return (responseData, http)
         }
-        request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
-        request.httpBody = data
-        let (responseData, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw APIError.serverError(0, "Image upload failed — no HTTP response")
+
+        var (responseData, http) = try await attempt()
+        // Retry once on auth-failure responses. Supabase Storage returns
+        // HTTP 400 with a body like
+        //   {"statusCode":"403","error":"Unauthorized","message":"\"exp\" claim timestamp check failed"}
+        // for expired JWTs. The body shape is more reliable than the
+        // outer status code, so we sniff for "exp" / "Unauthorized".
+        if !(200..<300).contains(http.statusCode) {
+            let body = String(data: responseData, encoding: .utf8) ?? ""
+            let isAuthFailure = http.statusCode == 401 || http.statusCode == 403
+                                 || body.contains("\"exp\"")
+                                 || body.contains("Unauthorized")
+                                 || body.contains("JWT")
+            if isAuthFailure {
+                try await SupabaseClient.shared.refreshSession()
+                (responseData, http) = try await attempt()
+            }
         }
         guard (200..<300).contains(http.statusCode) else {
-            // Surface the actual status + Storage API error body so failures
-            // are diagnosable. v2.273 ship reported a generic "Image upload
-            // failed" that masked a 400 from a missing storage bucket; the
-            // beta tester + admin both lost time guessing at the cause.
             let body = String(data: responseData, encoding: .utf8) ?? ""
             let trimmed = body.prefix(240)
             throw APIError.serverError(

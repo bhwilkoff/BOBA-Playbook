@@ -81,6 +81,23 @@ final class SupabaseClient {
         return s
     }
 
+    /// Refresh the access token if it's missing OR within 60 seconds
+    /// of expiring. Cheap guard for paths that hit Supabase Storage /
+    /// other non-PostgREST surfaces directly (Storage doesn't go through
+    /// voidExecute's 401-retry pattern). Returns the current access token.
+    @discardableResult
+    func refreshIfNeeded() async throws -> String {
+        let now = Date()
+        let skew: TimeInterval = 60   // refresh if within a minute of expiry
+        if let s = session, s.expiresAt.timeIntervalSince(now) <= skew {
+            try await refreshSession()
+        }
+        guard let t = accessToken else {
+            throw APIError.serverError(401, "No access token after refreshIfNeeded")
+        }
+        return t
+    }
+
     func signOut() async throws {
         guard session != nil else { return }
         try await voidPost(path: "/auth/v1/logout", authenticated: true)
@@ -303,9 +320,10 @@ final class SupabaseClient {
     /// already invalidated server-side, but the local session needs
     /// clearing so AuthManager doesn't try to use the stale token.
     func deleteAccount() async throws {
-        guard let token = session?.accessToken else {
-            throw APIError.serverError(401, "Not authenticated")
-        }
+        // v2.279 — refreshIfNeeded() ensures the Bearer JWT we hand
+        // the Worker isn't already expired (Workers verify via
+        // Supabase /auth/v1/user; an expired JWT yields 401).
+        let token = try await refreshIfNeeded()
         guard let url = URL(string: WorkerConfig.accountDeleteURL + "/account/delete") else {
             throw APIError.serverError(0, "Invalid Worker URL")
         }
@@ -330,9 +348,7 @@ final class SupabaseClient {
     /// `mimeType` must be one of: image/jpeg, image/png, image/webp.
     /// Returns the public CDN URL + a version token for cache-busting.
     func uploadAvatar(data imageData: Data, mimeType: String) async throws -> AvatarUploadResponse {
-        guard let token = session?.accessToken else {
-            throw APIError.serverError(401, "Not authenticated")
-        }
+        let token = try await refreshIfNeeded()
         guard let url = URL(string: WorkerConfig.avatarUploadURL + "/avatar") else {
             throw APIError.serverError(0, "Invalid Worker URL")
         }
@@ -350,9 +366,7 @@ final class SupabaseClient {
     /// also calling `setAvatarUrl(nil)` so the resolver falls back to
     /// the Discord avatar (or default silhouette).
     func deleteAvatar() async throws {
-        guard let token = session?.accessToken else {
-            throw APIError.serverError(401, "Not authenticated")
-        }
+        let token = try await refreshIfNeeded()
         guard let url = URL(string: WorkerConfig.avatarUploadURL + "/avatar") else {
             throw APIError.serverError(0, "Invalid Worker URL")
         }
@@ -866,14 +880,13 @@ final class SupabaseClient {
     /// Only admins succeed (Worker checks role); other callers get 403.
     @discardableResult
     func applyImageOverride(id: String) async throws -> AppliedImageOverride {
+        let token = try await refreshIfNeeded()
         guard let url = URL(string: WorkerConfig.modMergeURL + "/merge") else {
             throw APIError.invalidURL
         }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        if let token = accessToken {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: ["overrideId": id])
         let (data, response) = try await URLSession.shared.data(for: request)

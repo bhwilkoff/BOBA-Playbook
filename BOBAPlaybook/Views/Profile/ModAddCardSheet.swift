@@ -497,29 +497,46 @@ struct ModAddCardSheet: View {
     /// Upload the cropped JPEG to the `mod-card-images` Supabase
     /// Storage bucket. Matches ModCardEditSheet.uploadImage but the
     /// filename prefix uses the new card's number + a timestamp.
+    /// v2.279 — proactive refreshIfNeeded() + retry on auth failure.
+    /// Mirrors ModCardEditSheet.uploadImage; both target Supabase
+    /// Storage's mod-card-images bucket.
     private func uploadImage(data: Data, cardNumber: String) async throws -> String {
         guard let userId = SupabaseClient.shared.userId else {
             throw APIError.serverError(401, "Not authenticated")
         }
-        // Sanitize the card number for the storage path — slashes /
-        // spaces are problematic.
         let safeCN = cardNumber
             .replacingOccurrences(of: " ", with: "_")
             .replacingOccurrences(of: "/", with: "_")
         let path = "\(userId)/new-\(safeCN)-\(Int(Date().timeIntervalSince1970)).jpg"
-        let urlString = SupabaseConfig.projectURL + "/storage/v1/object/mod-card-images/\(path)"
-        guard let url = URL(string: urlString) else { throw APIError.invalidURL }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
-        if let token = SupabaseClient.shared.accessToken {
+
+        func attempt() async throws -> (Data, HTTPURLResponse) {
+            let token = try await SupabaseClient.shared.refreshIfNeeded()
+            let urlString = SupabaseConfig.projectURL + "/storage/v1/object/mod-card-images/\(path)"
+            guard let url = URL(string: urlString) else { throw APIError.invalidURL }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+            request.httpBody = data
+            let (responseData, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                throw APIError.serverError(0, "Image upload failed — no HTTP response")
+            }
+            return (responseData, http)
         }
-        request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
-        request.httpBody = data
-        let (responseData, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw APIError.serverError(0, "Image upload failed — no HTTP response")
+
+        var (responseData, http) = try await attempt()
+        if !(200..<300).contains(http.statusCode) {
+            let body = String(data: responseData, encoding: .utf8) ?? ""
+            let isAuthFailure = http.statusCode == 401 || http.statusCode == 403
+                                 || body.contains("\"exp\"")
+                                 || body.contains("Unauthorized")
+                                 || body.contains("JWT")
+            if isAuthFailure {
+                try await SupabaseClient.shared.refreshSession()
+                (responseData, http) = try await attempt()
+            }
         }
         guard (200..<300).contains(http.statusCode) else {
             let body = String(data: responseData, encoding: .utf8) ?? ""

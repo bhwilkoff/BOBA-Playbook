@@ -2401,6 +2401,41 @@ dialog.modal-overlay[open] {
   text-transform: uppercase;
 }
 
+/* Totals toggle — Collection vs Filter (parity with iOS @AppStorage
+   bp_collectionTotalsMode_v1). Sits below the stats bar so the user
+   sees which scope the stats reflect. */
+.collection-totals-toggle {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+.collection-totals-label {
+  font-family: var(--font-mono); font-size: 0.62rem;
+  color: var(--boba-text-muted); letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.collection-totals-btn {
+  font-family: var(--font-mono); font-size: 0.72rem;
+  padding: var(--sp-1) var(--sp-3);
+  background: transparent;
+  color: var(--boba-text-muted);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.collection-totals-btn:hover { color: var(--boba-text); }
+.collection-totals-btn.active {
+  background: var(--boba-orange);
+  color: #0A0A0A;
+  border-color: var(--boba-orange);
+  font-weight: 600;
+}
+.collection-totals-btn:focus-visible {
+  outline: 2px solid var(--boba-cyan);
+  outline-offset: 2px;
+}
+
 /* Designation tabs */
 .desig-tabs {
   display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch;

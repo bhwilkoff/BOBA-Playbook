@@ -7,8 +7,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.bobaplaybook.app.feature.scan.ScanModuleAccessSeeder
 import com.bobaplaybook.app.ui.BOBAApp
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * Single-Activity host.
@@ -25,6 +27,14 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    /**
+     * Injected purely for its constructor side-effect: seeds the
+     * static `ScanModuleAccess.cardRepository` so the Compose Scan
+     * viewfinder can read the catalog without threading Hilt through
+     * an `AndroidView` factory. See ScanScreen.kt for the rationale.
+     */
+    @Inject lateinit var scanModuleAccessSeeder: ScanModuleAccessSeeder
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Splash screen MUST be installed before super.onCreate.

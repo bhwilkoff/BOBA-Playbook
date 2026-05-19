@@ -152,6 +152,14 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 
+    // Camera + ML Kit (M3 scan pipeline)
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
+    implementation(libs.camerax.mlkit)
+    implementation(libs.mlkit.text.recognition)
+
     // Networking
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)

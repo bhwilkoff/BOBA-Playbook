@@ -12,12 +12,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
-import com.bobaplaybook.app.feature.DecksPlaceholder
-import com.bobaplaybook.app.feature.LearnPlaceholder
-import com.bobaplaybook.app.feature.PurchasePlaceholder
 import com.bobaplaybook.app.feature.carddetail.CardDetailScreen
 import com.bobaplaybook.app.feature.collection.CollectionScreen
+import com.bobaplaybook.app.feature.decks.DecksScreen
 import com.bobaplaybook.app.feature.find.FindScreen
+import com.bobaplaybook.app.feature.learn.LearnScreen
+import com.bobaplaybook.app.feature.purchase.PurchaseScreen
 import com.bobaplaybook.app.feature.scan.ScanScreen
 import com.bobaplaybook.app.navigation.AppDestination
 import com.bobaplaybook.core.ui.theme.BobaTheme
@@ -93,10 +93,10 @@ fun BOBAApp() {
                         onProfileClick = { /* M7 — Profile sheet */ },
                         onScanClick = { scanActive = true },
                     )
-                    AppDestination.LEARN      -> LearnPlaceholder()
-                    AppDestination.DECKS      -> DecksPlaceholder()
+                    AppDestination.LEARN      -> LearnScreen()
+                    AppDestination.DECKS      -> DecksScreen(onCardClick = { detailBobaId = it })
                     AppDestination.COLLECTION -> CollectionScreen()
-                    AppDestination.PURCHASE   -> PurchasePlaceholder()
+                    AppDestination.PURCHASE   -> PurchaseScreen()
                 }
             }
         }

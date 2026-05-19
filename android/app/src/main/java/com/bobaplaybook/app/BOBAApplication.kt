@@ -10,6 +10,7 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import dagger.hilt.android.HiltAndroidApp
 import okhttp3.OkHttpClient
+import okio.Path.Companion.toOkioPath
 import java.util.concurrent.TimeUnit
 
 /**
@@ -59,7 +60,7 @@ class BOBAApplication : Application(), SingletonImageLoader.Factory {
             }
             .diskCache {
                 DiskCache.Builder()
-                    .directory(applicationContext.cacheDir.resolve("image_cache"))
+                    .directory(applicationContext.cacheDir.resolve("image_cache").toOkioPath())
                     .maxSizeBytes(500L * 1024 * 1024)  // 500 MB — matches iOS URLCache
                     .build()
             }

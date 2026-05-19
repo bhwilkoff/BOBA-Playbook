@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import coil3.request.placeholderMemoryCacheKey
 import com.bobaplaybook.core.network.CDN
 import com.bobaplaybook.core.ui.theme.BobaBrand
 import com.bobaplaybook.core.ui.theme.BobaTheme
@@ -39,9 +38,9 @@ import com.bobaplaybook.core.ui.theme.BobaTheme
  *
  * Two-tier loading per DECISIONS.md #024 + ANDROID-DEV.md §5.5:
  *  - The grid renders `thumbUrl` (~10 KB, 200 px). Coil caches it.
- *  - When the user taps to push into card detail, that screen uses
- *    `fullUrl` with `placeholderMemoryCacheKey(thumbUrl)` so the thumb
- *    appears instantly while full-res loads.
+ *  - When the user taps to push into card detail, that screen will
+ *    reuse the cached thumb as a placeholder while full-res loads.
+ *    (Coil 3 cache-key API to be wired in M1 when the detail view ships.)
  *
  * Placeholder + error states use [BobaBrand.Surface] so missing
  * artwork doesn't introduce a foreign-color band into the grid.

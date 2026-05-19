@@ -122,6 +122,7 @@ dependencies {
     // Core Android + Compose
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.browser)         // Chrome Custom Tabs for Discord OAuth + ToS / Privacy links
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
@@ -139,7 +140,10 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
 
-    // Navigation 3 — modern Compose-first navigation (replaces Nav2)
+    // Navigation Compose 2.x — workhorse for compact-width single-stack
+    // pushes (Find → CardDetail, Decks → Manage/Rules, Learn category →
+    // article). Nav3 wired for future when its API stabilizes.
+    implementation(libs.nav.compose)
     implementation(libs.nav3.runtime)
     implementation(libs.nav3.ui)
 

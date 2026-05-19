@@ -24,7 +24,7 @@
 
 [versions]
 # Build tooling
-agp                       = "9.2.0"
+agp                       = "9.2.1"
 kotlin                    = "2.3.21"
 ksp                       = "2.3.8"
 compose-bom               = "2026.05.00"
@@ -55,6 +55,7 @@ mockk                     = "1.13.13"
 roborazzi                 = "1.30.1"
 robolectric               = "4.13"
 androidx-core             = "1.13.1"
+androidx-browser          = "1.8.0"
 androidx-lifecycle        = "2.8.7"
 androidx-activity         = "1.9.3"
 splashscreen              = "1.0.1"
@@ -93,15 +94,19 @@ compose-animation           = { module = "androidx.compose.animation:animation" 
 
 # ----- AndroidX core -----
 androidx-core-ktx           = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
+androidx-browser            = { module = "androidx.browser:browser", version.ref = "androidx-browser" }
 androidx-core-splashscreen  = { module = "androidx.core:core-splashscreen", version.ref = "splashscreen" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
 androidx-activity-compose   = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
 androidx-window             = { module = "androidx.window:window", version.ref = "window" }
 
-# ----- Navigation 3 — new modern API (replaces Navigation Compose 2.x) -----
+# ----- Navigation 3 — Compose-first new generation -----
 nav3-runtime                = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3" }
 nav3-ui                     = { module = "androidx.navigation3:navigation3-ui", version.ref = "nav3" }
+
+# ----- Navigation Compose 2.x — stable, the workhorse. Used today. -----
+nav-compose                 = { module = "androidx.navigation:navigation-compose", version = "2.8.5" }
 
 # ----- DI -----
 hilt-android                = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }

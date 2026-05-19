@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.bobaplaybook.app.auth.AuthManager
+import com.bobaplaybook.app.connectivity.ConnectivityState
 import com.bobaplaybook.app.feature.scan.ScanModuleAccessSeeder
 import com.bobaplaybook.app.ui.BOBAApp
 import dagger.hilt.android.AndroidEntryPoint
@@ -37,6 +38,7 @@ class MainActivity : ComponentActivity() {
      */
     @Inject lateinit var scanModuleAccessSeeder: ScanModuleAccessSeeder
     @Inject lateinit var authManager: AuthManager
+    @Inject lateinit var connectivityState: ConnectivityState
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Splash screen MUST be installed before super.onCreate.
@@ -49,7 +51,7 @@ class MainActivity : ComponentActivity() {
         handleIncomingIntent(intent)
 
         setContent {
-            BOBAApp(authManager = authManager)
+            BOBAApp(authManager = authManager, connectivityState = connectivityState)
         }
     }
 

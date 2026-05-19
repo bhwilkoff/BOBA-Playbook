@@ -19,16 +19,16 @@ import com.bobaplaybook.app.R
  *
  * Material 3 Adaptive's `NavigationSuiteScaffold` reads this list and
  * adapts the chrome: `NavigationBar` on compact, `NavigationRail` on
- * medium/expanded, `PermanentNavigationDrawer` on extra-large.
+ * medium/expanded.
  */
 enum class AppDestination(
-    val route: TopRoute,
     @param:StringRes val labelRes: Int,
     val icon: ImageVector,
+    val startRoute: String,
 ) {
-    FIND      (TopRoute.Find,       R.string.tab_find,       Icons.Default.Search),
-    LEARN     (TopRoute.Learn,      R.string.tab_learn,      Icons.AutoMirrored.Filled.LibraryBooks),
-    DECKS     (TopRoute.Decks,      R.string.tab_decks,      Icons.Default.ViewModule),
-    COLLECTION(TopRoute.Collection, R.string.tab_collection, Icons.Default.Storefront),
-    PURCHASE  (TopRoute.Purchase,   R.string.tab_purchase,   Icons.Default.ShoppingCart),
+    FIND      (R.string.tab_find,       Icons.Default.Search,                      NavRoutes.FIND),
+    LEARN     (R.string.tab_learn,      Icons.AutoMirrored.Filled.LibraryBooks,    NavRoutes.LEARN),
+    DECKS     (R.string.tab_decks,      Icons.Default.ViewModule,                  NavRoutes.DECKS),
+    COLLECTION(R.string.tab_collection, Icons.Default.Storefront,                  NavRoutes.COLLECTION),
+    PURCHASE  (R.string.tab_purchase,   Icons.Default.ShoppingCart,                NavRoutes.PURCHASE),
 }

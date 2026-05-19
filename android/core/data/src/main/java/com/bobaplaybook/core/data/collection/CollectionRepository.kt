@@ -12,16 +12,13 @@ import kotlinx.coroutines.flow.map
 /**
  * Collection repository.
  *
- * M2 ships the interface + an in-memory stub. M7 swaps the stub for
- * the real Supabase + Room implementation when Credential Manager
- * lands and we have an authenticated `user_id` to scope queries to.
+ * v1 ships the interface + an in-memory store. v2 swaps in a real
+ * Supabase + Room layer when M7 lands Credential Manager and we have
+ * an authenticated `user_id` to scope queries to.
  *
- * The interface is intentionally compose-friendly — every read returns
- * `Flow<…>` so the ViewModel can `collectAsStateWithLifecycle()`
- * without further plumbing.
- *
- * Schema mirrors iOS `UserCardStore` and the Supabase `user_cards`
- * table — same columns, same designation keys (DECISIONS.md #023).
+ * Mutations re-emit a NEW list reference (never mutate in place) per
+ * iOS lesson [[feedback_derived_arrays_must_rebuild]] — Compose's
+ * `collectAsStateWithLifecycle` only fires on reference change.
  */
 @Singleton
 class CollectionRepository @Inject constructor() {
@@ -29,33 +26,62 @@ class CollectionRepository @Inject constructor() {
     private val _ownedCards = MutableStateFlow<List<UserCard>>(emptyList())
     val ownedCards: Flow<List<UserCard>> = _ownedCards.asStateFlow()
 
-    /**
-     * Read filtered by designation. UI grids consume this; switching
-     * the segmented row swaps the underlying Flow source.
-     */
     fun cardsByDesignation(designation: Designation): Flow<List<UserCard>> =
-        ownedCards.map { all -> all.filter { it.designation == designation } }
+        _ownedCards.map { all -> all.filter { it.designation == designation } }
 
-    /**
-     * Counts by designation — used by the segmented row's badge dots.
-     */
     fun countsByDesignation(): Flow<Map<Designation, Int>> =
-        ownedCards.map { all ->
+        _ownedCards.map { all ->
             Designation.entries.associateWith { d ->
                 all.count { it.designation == d }
             }
         }
 
     /**
+     * Add a card to the user's collection at the given designation.
+     * If the card+designation pair already exists, increment quantity;
+     * else create a new row.
+     */
+    fun add(cardBobaId: String, designation: Designation, userId: String) {
+        _ownedCards.value = _ownedCards.value.let { current ->
+            val existing = current.firstOrNull {
+                it.cardBobaId == cardBobaId && it.designation == designation && it.userId == userId
+            }
+            if (existing != null) {
+                current.map {
+                    if (it.id == existing.id) it.copy(quantity = it.quantity + 1) else it
+                }
+            } else {
+                current + UserCard(
+                    id = "${userId}-${cardBobaId}-${designation.key}-${System.currentTimeMillis()}",
+                    userId = userId,
+                    cardBobaId = cardBobaId,
+                    designation = designation,
+                )
+            }
+        }
+    }
+
+    fun remove(userCardId: String) {
+        _ownedCards.value = _ownedCards.value.filterNot { it.id == userCardId }
+    }
+
+    fun updateDesignation(userCardId: String, newDesignation: Designation) {
+        _ownedCards.value = _ownedCards.value.map {
+            if (it.id == userCardId) it.copy(designation = newDesignation) else it
+        }
+    }
+
+    /**
      * M7 hookup point: replace this stub with the real Supabase query.
-     * Until then `ownedCards` is always empty — UI shows the
-     * "Sign in to see your collection" empty state.
+     * Implementation plan (when M7 ships):
+     *  - supabase-kt postgrest query against user_cards filtered by
+     *    user_id (own-row RLS enforces server-side)
+     *  - decode into a typed `UserCardRow` data class
+     *  - map to domain UserCard
+     *  - persist into Room cache for offline browsing
+     *  - emit through _ownedCards on every change
      */
     fun primeFromRemote(@Suppress("unused") userId: String?) {
-        // TODO(M7): supabase-kt postgrest query against user_cards
-        //   .filter("user_id" eq userId)
-        //   .decodeList<UserCardRow>()
-        //   .map(::toDomain)
-        //   then write to Room cache + emit through _ownedCards
+        // TODO(M7-polish): supabase + room wiring
     }
 }

@@ -1,96 +1,73 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3AdaptiveApi::class,
+)
 
 package com.bobaplaybook.app.feature.learn
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.LibraryBooks
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.AutoStories
-import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Inventory
-import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.layout.AnimatedPane
+import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
+import androidx.compose.material3.adaptive.navigation.NavigableListDetailPaneScaffold
+import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.unit.dp
+import com.bobaplaybook.core.ui.adaptive.isCompactWidth
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
+import kotlinx.coroutines.launch
 
 /**
- * Learn tab (ANDROID-DESIGN.md §8.2).
+ * Learn tab — the educator (ANDROID-DESIGN.md §8.2 + §6.6).
  *
- * M5 ships the IA skeleton:
- *  - LargeTopAppBar with "Learn" title (exitUntilCollapsed scroll behavior)
- *  - 5 category rows (Rules / Strategy / Collect / Glossary / Tournament)
- *  - Tap → push to a per-category screen with a "Article content
- *    coming soon" placeholder; M5-polish lands the actual article
- *    corpus port from iOS (large body of text content; not blocking
- *    for the milestone marker)
+ * Compact: standard push nav (root list → push category, push article)
+ * Medium / Expanded: NavigableListDetailPaneScaffold with category list
+ * in the list pane and selected article in the detail pane.
  *
- * Deferred to M5-polish (substantial content port from iOS):
- *  - Full article corpus per category (Rules has ~20 articles on iOS,
- *    Strategy has ~30, etc. Each one is multi-paragraph reference text.
- *    Porting these is content work that's editor-time, not engineering
- *    time — does NOT need a re-architecture)
- *  - Skill-level SegmentedButton scope (Rookie / Sub / Playmaker)
- *  - Glossary TooltipBox on highlighted terms
- *  - In-corpus SearchBar
+ * On compact widths this composable just renders the category list and
+ * delegates pushes to the caller (the host NavHost handles routing).
+ * On medium+ widths the host's NavHost is bypassed in favor of an
+ * inline NavigableListDetailPaneScaffold so both panes coexist.
  */
 @Composable
-fun LearnScreen(modifier: Modifier = Modifier) {
-    var currentCategory by remember { mutableStateOf<LearnCategory?>(null) }
-
-    if (currentCategory != null) {
-        CategoryDetail(
-            category = currentCategory!!,
-            onBack = { currentCategory = null },
-            modifier = modifier,
-        )
+fun LearnScreen(
+    onCategoryClick: (categoryId: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (isCompactWidth()) {
+        LearnCategoryList(onCategoryClick = onCategoryClick, modifier = modifier)
     } else {
-        CategoryList(
-            onCategoryClick = { currentCategory = it },
-            modifier = modifier,
-        )
+        LearnListDetailScaffold(modifier = modifier)
     }
 }
 
-private enum class LearnCategory(val title: String, val icon: ImageVector, val blurb: String) {
-    RULES     ("Rules",      Icons.Default.AutoStories,             "Match flow, phases, win conditions"),
-    STRATEGY  ("Strategy",   Icons.Default.Lightbulb,                "Archetype guides + matchups"),
-    COLLECT   ("Collecting", Icons.Default.Inventory,                "Sets, treatments, parallels, rarity"),
-    GLOSSARY  ("Glossary",   Icons.AutoMirrored.Filled.MenuBook,     "Every BoBA term in one place"),
-    TOURNAMENT("Tournament", Icons.Default.EmojiEvents,              "Format rules, divisions, scoring"),
-}
-
 @Composable
-private fun CategoryList(
-    onCategoryClick: (LearnCategory) -> Unit,
+private fun LearnCategoryList(
+    onCategoryClick: (categoryId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
@@ -106,10 +83,15 @@ private fun CategoryList(
             )
         },
     ) { padding ->
-        LazyColumn(modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)) {
-            items(LearnCategory.entries) { category ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+        ) {
+            items(
+                items = LearnCategoryId.entries,
+                key = { it.name },
+            ) { category ->
                 ListItem(
                     leadingContent = {
                         Icon(
@@ -118,8 +100,19 @@ private fun CategoryList(
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     },
-                    headlineContent = { Text(category.title, style = MaterialTheme.typography.titleMedium) },
-                    supportingContent = { Text(category.blurb, style = MaterialTheme.typography.bodyMedium) },
+                    headlineContent = {
+                        Text(
+                            category.title,
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    },
+                    supportingContent = {
+                        Text(
+                            category.blurb,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
                     trailingContent = {
                         Icon(
                             imageVector = Icons.Default.ChevronRight,
@@ -127,7 +120,7 @@ private fun CategoryList(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     },
-                    modifier = Modifier.clickable { onCategoryClick(category) },
+                    modifier = Modifier.clickable { onCategoryClick(category.name) },
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
@@ -135,36 +128,154 @@ private fun CategoryList(
     }
 }
 
+/**
+ * Tablet / Chromebook adaptation — categories in list pane, article in
+ * detail pane.
+ *
+ * The list pane shows the 5 categories. Tapping a category populates
+ * the detail pane with article list; tapping an article in the detail
+ * pane swaps the detail content to the rendered article.
+ *
+ * We use a two-level scaffold: outer is category → article-list,
+ * embedded is article-list → article-body via local state. Reduces
+ * cognitive load vs nesting two ListDetailPaneScaffolds.
+ */
 @Composable
-private fun CategoryDetail(
-    category: LearnCategory,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Scaffold(
+private fun LearnListDetailScaffold(modifier: Modifier = Modifier) {
+    val navigator = rememberListDetailPaneScaffoldNavigator<String>()
+    val coroutineScope = rememberCoroutineScope()
+    var selectedArticleId by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val currentCategory = navigator.currentDestination?.contentKey?.let { id ->
+        LearnCategoryId.fromId(id)
+    }
+
+    NavigableListDetailPaneScaffold(
+        navigator = navigator,
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text(category.title) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+        listPane = {
+            AnimatedPane {
+                Scaffold(
+                    topBar = {
+                        LargeTopAppBar(
+                            title = { Text("Learn") },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            ),
+                        )
+                    },
+                ) { padding ->
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                    ) {
+                        items(
+                            items = LearnCategoryId.entries,
+                            key = { it.name },
+                        ) { category ->
+                            val isSelected = currentCategory == category
+                            ListItem(
+                                leadingContent = {
+                                    Icon(
+                                        imageVector = category.icon,
+                                        contentDescription = null,
+                                        tint = if (isSelected) MaterialTheme.colorScheme.primary
+                                               else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
+                                headlineContent = { Text(category.title) },
+                                supportingContent = { Text(category.blurb, style = MaterialTheme.typography.labelMedium) },
+                                modifier = Modifier.clickable {
+                                    selectedArticleId = null
+                                    coroutineScope.launch {
+                                        navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, category.name)
+                                    }
+                                },
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        }
+                    }
+                }
+            }
+        },
+        detailPane = {
+            AnimatedPane {
+                when {
+                    currentCategory != null && selectedArticleId == null -> {
+                        // Show article list for selected category
+                        TabletArticleList(
+                            category = currentCategory,
+                            onArticleClick = { selectedArticleId = it },
                         )
                     }
-                },
+                    currentCategory != null && selectedArticleId != null -> {
+                        // Show article body
+                        LearnArticleScreen(
+                            articleId = selectedArticleId!!,
+                            onBack = { selectedArticleId = null },
+                        )
+                    }
+                    else -> {
+                        BOBAEmptyState(
+                            headline = "LEARN BoBA",
+                            body = "Everything we know about the rules, strategy, collecting, and tournaments. Pick a category to start.",
+                        )
+                    }
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun TabletArticleList(
+    category: LearnCategoryId,
+    onArticleClick: (articleId: String) -> Unit,
+) {
+    val articles = remember(category) { LearnCorpus.articlesIn(category) }
+    Scaffold(
+        topBar = {
+            LargeTopAppBar(
+                title = { Text(category.title) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
             )
         },
     ) { padding ->
-        BOBAEmptyState(
-            icon = category.icon,
-            headline = "${category.title} content coming soon",
-            body = "iOS article corpus ports next. The category list + push navigation are ready; content is editor work.",
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        )
+        if (articles.isEmpty()) {
+            BOBAEmptyState(
+                icon = category.icon,
+                headline = "${category.title} content coming soon",
+                body = "Article corpus port from iOS in progress.",
+                modifier = Modifier.fillMaxSize().padding(padding),
+            )
+            return@Scaffold
+        }
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+            items(items = articles, key = { it.id }) { article ->
+                ListItem(
+                    headlineContent = { Text(article.title, style = MaterialTheme.typography.titleMedium) },
+                    supportingContent = {
+                        val sectionCount = article.sections.values.flatten().size
+                        Text(
+                            "$sectionCount sections · ${article.sections.size} skill level${if (article.sections.size != 1) "s" else ""}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    trailingContent = {
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    modifier = Modifier.clickable { onArticleClick(article.id) },
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+        }
     }
 }
-

@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.android.library)
     // AGP 9 auto-applies Kotlin support — no `kotlin.android` plugin needed.
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
 }
 
 android {
@@ -41,6 +43,10 @@ dependencies {
     implementation(platform(libs.supabase.bom))
     implementation(libs.supabase.postgrest)
     implementation(libs.supabase.auth)
+
+    // Hilt for DI of HttpClient + service singletons
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit)
 }

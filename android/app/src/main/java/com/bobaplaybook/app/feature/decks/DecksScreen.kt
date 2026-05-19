@@ -1,21 +1,41 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalFoundationApi::class,
+)
 
 package com.bobaplaybook.app.feature.decks
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ViewModule
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -24,68 +44,133 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bobaplaybook.app.feature.find.FindEvent
+import com.bobaplaybook.app.feature.find.FindViewModel
 import com.bobaplaybook.core.domain.model.Card
 import com.bobaplaybook.core.ui.components.BOBACardCell
-import com.bobaplaybook.core.ui.components.BOBASignInPrompt
-import com.bobaplaybook.app.feature.find.FindViewModel
+import com.bobaplaybook.core.ui.components.BOBAWordmark
+import com.bobaplaybook.core.ui.transitions.cardSharedBounds
 
 /**
- * Decks tab (ANDROID-DESIGN.md §8.3).
+ * Decks tab — the builder (ANDROID-DESIGN.md §8.3).
  *
- * M4 ships the compact-width shell:
- *  - TopAppBar
- *  - Card pool (reuses Find's filtered catalog as the source — same
- *    underlying CardRepository; M4 wires its own filter Composable
- *    once Decks-specific format constraints land)
- *  - DeckSummaryBar pinned at the bottom (Scaffold bottomBar) —
- *    shows "Sign in to save decks" inline prompt by default
- *
- * Deferred (post-M4 polish):
- *  - Tap-summary → ModalBottomSheet editor with sharedBounds zoom
- *    (full editor depends on Deck data layer which lands M7)
- *  - 3-pane NavigableListDetailPaneScaffold on tablet/Chromebook
- *  - Long-press on pool card to add (waiting on draft state)
- *  - Drag-and-drop add via Modifier.dragAndDropSource
- *  - Manage / Rules / Legality push destinations
+ * Anatomy:
+ *  - Pool grid (full screen background) with FilterChip filter row +
+ *    Find's catalog source
+ *  - DeckSummaryBar pinned via Scaffold bottomBar (always visible)
+ *  - Tap summary → opens ModalBottomSheet editor (M4-polish lands the
+ *    full editor; M4 ships the summary + add-to-draft on long-press)
+ *  - Long-press a pool card → adds to current draft (canonical mobile
+ *    add gesture per ANDROID-DESIGN.md §8.3)
+ *  - Tap a pool card → push to card detail (with container transform)
  */
 @Composable
 fun DecksScreen(
     onCardClick: (bobaId: String) -> Unit,
+    onOpenManage: () -> Unit,
+    onOpenRules: () -> Unit,
+    onOpenLegality: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Reuse Find's ViewModel as the pool data source for M4 — same
-    // catalog repository; Decks-specific filtering arrives when M7
-    // wires deck-format legality.
-    val viewModel: FindViewModel = hiltViewModel()
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val findViewModel: FindViewModel = hiltViewModel()
+    val findState by findViewModel.uiState.collectAsStateWithLifecycle()
+    val deckViewModel: DecksViewModel = hiltViewModel()
+    val draft by deckViewModel.draft.collectAsStateWithLifecycle()
+    var editorOpen by remember { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Decks") },
+                title = { BOBAWordmark() },
+                actions = {
+                    IconButton(onClick = { editorOpen = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Open deck editor",
+                        )
+                    }
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "More",
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = menuOpen,
+                            onDismissRequest = { menuOpen = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Manage decks") },
+                                leadingIcon = { Icon(Icons.Default.Save, contentDescription = null) },
+                                onClick = { menuOpen = false; onOpenManage() },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Deck rules") },
+                                leadingIcon = { Icon(Icons.Default.Build, contentDescription = null) },
+                                onClick = { menuOpen = false; onOpenRules() },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Legality") },
+                                leadingIcon = { Icon(Icons.Default.Verified, contentDescription = null) },
+                                onClick = { menuOpen = false; onOpenLegality() },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Clear draft") },
+                                onClick = { menuOpen = false; deckViewModel.clear() },
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
             )
         },
-        bottomBar = { DeckSummaryBar() },
+        bottomBar = {
+            DeckSummaryBar(
+                draft = draft,
+                onTap = { editorOpen = true },
+            )
+        },
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
         ) {
+            // M4 pool reuses FindViewModel's filtered catalog. Polish
+            // pass adds Decks-specific filters (format legality).
             CardPoolGrid(
-                cards = state.results,
+                cards = findState.results,
                 onCardClick = onCardClick,
+                onCardLongClick = deckViewModel::add,
                 modifier = Modifier.fillMaxSize(),
             )
         }
+    }
+
+    if (editorOpen) {
+        DeckEditorSheet(
+            draft = draft,
+            onDismiss = { editorOpen = false },
+            onRename = deckViewModel::rename,
+            onRemove = deckViewModel::remove,
+            onSave = {
+                // M7 — Supabase write. v1 just closes the sheet.
+                editorOpen = false
+            },
+        )
     }
 }
 
@@ -93,6 +178,7 @@ fun DecksScreen(
 private fun CardPoolGrid(
     cards: List<Card>,
     onCardClick: (bobaId: String) -> Unit,
+    onCardLongClick: (Card) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyVerticalGrid(
@@ -105,35 +191,75 @@ private fun CardPoolGrid(
         items(
             items = cards,
             key = { card -> card.bobaId },
-            contentType = { _ -> "card" },
+            contentType = { "card" },
         ) { card ->
-            Box(modifier = Modifier.padding(2.dp)) {
-                BOBACardCell(
-                    imageFile = card.imageFile,
-                    contentDescription = card.displayName,
-                )
-            }
+            BOBACardCell(
+                imageFile = card.imageFile,
+                contentDescription = card.displayName,
+                modifier = Modifier
+                    .cardSharedBounds(card.bobaId)
+                    .combinedClickable(
+                        onClick = { onCardClick(card.bobaId) },
+                        onLongClick = { onCardLongClick(card) },
+                    ),
+            )
         }
     }
 }
 
 /**
- * Persistent draft summary bar — the "always present" tap target for
- * the editor (ANDROID-DESIGN.md §8.3). M4 ships the not-signed-in
- * variant; M7 adds the live-draft variant once Deck data layer lands.
+ * Persistent draft summary bar. Pinned at the bottom via Scaffold's
+ * bottomBar slot. Tap → opens editor. Per ANDROID-DESIGN.md §8.3
+ * the pill is NOT draggable (drag-from-bottom is iOS's anti-pattern).
  */
 @Composable
-private fun DeckSummaryBar() {
+private fun DeckSummaryBar(
+    draft: DeckDraft,
+    onTap: () -> Unit,
+) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onTap() },
         color = MaterialTheme.colorScheme.surfaceContainer,
         tonalElevation = 3.dp,
     ) {
-        BOBASignInPrompt(
-            title = "Build a deck",
-            body = "Sign in to save your deck across iOS, web, and Android.",
-            actionLabel = "Sign in",
-            onAction = { /* M7 — Credential Manager bottom sheet */ },
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Edit,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    draft.name,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    "${draft.heroCount}/${draft.heroCap} H · ${draft.playCount + draft.bonusCount}/${draft.playCap} P · ${draft.bonusCount} BP · ${draft.totalHD}/${draft.hdCap} HD",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (draft.isStandardLegal) {
+                AssistChip(
+                    onClick = onTap,
+                    label = { Text("Legal") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Verified,
+                            contentDescription = null,
+                            modifier = Modifier.width(16.dp).height(16.dp),
+                        )
+                    },
+                )
+            }
+        }
     }
 }

@@ -2,38 +2,60 @@
 
 package com.bobaplaybook.app.feature.carddetail
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Style
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -42,25 +64,26 @@ import coil3.request.crossfade
 import com.bobaplaybook.app.R
 import com.bobaplaybook.core.domain.model.Card
 import com.bobaplaybook.core.network.CDN
+import com.bobaplaybook.core.network.PricingListing
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
+import com.bobaplaybook.core.ui.components.BOBAPriceTile
+import com.bobaplaybook.core.ui.components.BOBASectionHeader
 import com.bobaplaybook.core.ui.components.BOBAStatsGrid
 import com.bobaplaybook.core.ui.theme.BobaBrand
 import com.bobaplaybook.core.ui.theme.BobaElements
+import com.bobaplaybook.core.ui.transitions.cardSharedBounds
+import kotlinx.collections.immutable.ImmutableList
 
 /**
- * Card detail surface (ANDROID-DESIGN.md §8.6).
+ * Card detail surface — ANDROID-DESIGN.md §8.6.
  *
- * M1 ships the canonical anatomy:
- *  - Element-tinted gradient art panel with full-res image
- *  - Canonical 6-cell stats grid (DECISIONS.md #029)
- *  - Card name + element pill below stats
- *
- * Deferred to later milestones:
- *  - Container transform animation from grid cell (M2)
- *  - Pricing panels (M3)
- *  - Per-context body (Add to Collection / Deck / Show — M2-M4)
- *  - Other Versions browsing (M2)
- *  - Hero zoom + shared bounds (M2)
+ * Anatomy (top → bottom):
+ *  1. LargeTopAppBar w/ X close, Add overflow menu, Share action
+ *  2. Element-gradient art panel (full-res Coil image, sharedBounds key)
+ *  3. Canonical 6-cell BOBAStatsGrid (DECISIONS.md #029)
+ *  4. Cost/DBS/Power (Plays only) BELOW the canonical six
+ *  5. Pricing panels — Buy Now (eBay active) + Sold (Radish + eBay)
+ *  6. Add to Collection / Deck / Show CTAs at bottom
  */
 @Composable
 fun CardDetailScreen(
@@ -70,17 +93,16 @@ fun CardDetailScreen(
 ) {
     val viewModel: CardDetailViewModel = hiltViewModel()
     val state by viewModel.uiStateFor(bobaId).collectAsStateWithLifecycle()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val context = LocalContext.current
+
+    var addMenuOpen by remember { mutableStateOf(false) }
 
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = state.card?.displayName ?: "",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                },
+            LargeTopAppBar(
+                title = { Text(state.card?.displayName ?: "Card") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -89,6 +111,36 @@ fun CardDetailScreen(
                         )
                     }
                 },
+                actions = {
+                    IconButton(onClick = {
+                        state.card?.let { c -> shareCard(context, c) }
+                    }) {
+                        Icon(Icons.Default.Share, contentDescription = "Share")
+                    }
+                    Box {
+                        IconButton(onClick = { addMenuOpen = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "Add")
+                        }
+                        DropdownMenu(
+                            expanded = addMenuOpen,
+                            onDismissRequest = { addMenuOpen = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Add to Collection") },
+                                onClick = { addMenuOpen = false /* M7 — Auth-gated */ },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Add to Deck") },
+                                onClick = { addMenuOpen = false /* M7 — DeckStore.add */ },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Add to Show") },
+                                onClick = { addMenuOpen = false /* M7 — streamer-gated */ },
+                            )
+                        }
+                    }
+                },
+                scrollBehavior = scrollBehavior,
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
@@ -106,23 +158,29 @@ fun CardDetailScreen(
                     .fillMaxSize()
                     .padding(padding),
             )
-        } else {
-            CardDetailBody(
-                card = card,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-            )
+            return@Scaffold
         }
+        CardDetailBody(
+            card = card,
+            state = state,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+        )
     }
 }
 
 @Composable
-private fun CardDetailBody(card: Card, modifier: Modifier = Modifier) {
+private fun CardDetailBody(
+    card: Card,
+    state: CardDetailUiState,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
     ) {
         ArtPanel(card)
+
         BOBAStatsGrid(
             cardNumber = card.cardNumber,
             cardType   = card.cardType,
@@ -131,8 +189,8 @@ private fun CardDetailBody(card: Card, modifier: Modifier = Modifier) {
             set        = card.set,
             subSet     = card.subSet,
         )
-        // Power + cost when present (Plays only, but render them below
-        // the canonical six per DECISIONS.md #029).
+
+        // Power + cost + DBS (Plays only)
         val showPlayStats = card.cost != null || card.dbs != null || card.power != null
         if (showPlayStats) {
             Column(
@@ -146,6 +204,32 @@ private fun CardDetailBody(card: Card, modifier: Modifier = Modifier) {
                 card.dbs?.let   { Text("DBS: $it",   style = MaterialTheme.typography.bodyMedium) }
             }
         }
+
+        // Ability/Bonus text when present
+        card.abilityText?.takeIf { it.isNotBlank() }?.let { text ->
+            BOBASectionHeader(title = "Ability")
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+        }
+        card.bonusText?.takeIf { it.isNotBlank() }?.let { text ->
+            BOBASectionHeader(title = "Bonus")
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 16.dp),
+            color = MaterialTheme.colorScheme.outlineVariant,
+        )
+
+        // Pricing
+        PricingPanels(state = state)
     }
 }
 
@@ -162,7 +246,7 @@ private fun ArtPanel(card: Card) {
                     colors = listOf(accent.copy(alpha = 0.25f), BobaBrand.NearBlack),
                 ),
             ),
-        contentAlignment = androidx.compose.ui.Alignment.Center,
+        contentAlignment = Alignment.Center,
     ) {
         val fullUrl = remember(card.imageFile) { CDN.fullUrl(card.imageFile) }
         if (fullUrl != null) {
@@ -174,14 +258,111 @@ private fun ArtPanel(card: Card) {
                 contentDescription = card.displayName,
                 modifier = Modifier
                     .aspectRatio(5f / 7f)
-                    .clip(RoundedCornerShape(16.dp)),
+                    .clip(RoundedCornerShape(16.dp))
+                    .cardSharedBounds(card.bobaId),
             )
         } else {
             Text(
                 text = card.displayName,
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.cardSharedBounds(card.bobaId),
             )
         }
     }
+}
+
+@Composable
+private fun PricingPanels(state: CardDetailUiState) {
+    if (state.isLoadingPricing) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    // Market estimate header
+    state.marketEstimateUsd?.let { est ->
+        BOBASectionHeader(title = "Market estimate")
+        Text(
+            text = "~$${"%.2f".format(est)}",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+        state.marketEstimateBasis?.let { basis ->
+            Text(
+                text = basis,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+        }
+    }
+
+    BOBASectionHeader(title = "Buy Now")
+    if (state.ebayActive.isEmpty()) {
+        Text(
+            text = "No active listings",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+    } else {
+        ListingsRow(listings = state.ebayActive)
+    }
+
+    BOBASectionHeader(title = "Sold history")
+    val sold = (state.radishSales + state.ebaySold).distinctBy { it.url }
+    if (sold.isEmpty()) {
+        Text(
+            text = "No sold-comp data yet",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+    } else {
+        ListingsRow(listings = kotlinx.collections.immutable.persistentListOf<PricingListing>().addAll(sold))
+    }
+}
+
+@Composable
+private fun ListingsRow(listings: ImmutableList<PricingListing>) {
+    val context = LocalContext.current
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(items = listings, key = { it.url }) { listing ->
+            BOBAPriceTile(
+                priceUsd = listing.priceUsd,
+                title = listing.title,
+                thumbUrl = listing.thumbUrl,
+                source = listing.source.name.lowercase().replaceFirstChar { it.uppercase() },
+                onClick = {
+                    if (listing.url.isNotBlank()) {
+                        val intent = Intent(Intent.ACTION_VIEW, listing.url.toUri())
+                        context.startActivity(intent)
+                    }
+                },
+            )
+        }
+    }
+}
+
+private fun shareCard(context: android.content.Context, card: Card) {
+    val deepLink = "https://bobaplaybook.com/card/${card.bobaId}"
+    val text = "${card.displayName} (${card.cardNumber}) on BOBA Playbook\n$deepLink"
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, card.displayName)
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    context.startActivity(Intent.createChooser(intent, "Share ${card.displayName}"))
 }

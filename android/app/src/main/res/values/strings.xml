@@ -5,4 +5,22 @@
     <string name="app_name">Playbook</string>
     <string name="app_full_name">BOBA Playbook</string>
     <string name="app_tagline">Search. Scan. Collect. Play.</string>
+
+    <!-- Tab labels (ANDROID-DESIGN.md §2.1) -->
+    <string name="tab_find">Find</string>
+    <string name="tab_learn">Learn</string>
+    <string name="tab_decks">Decks</string>
+    <string name="tab_collection">Collection</string>
+    <string name="tab_purchase">Purchase</string>
+
+    <!-- Find tab -->
+    <string name="find_search_placeholder">Search 17,974 cards</string>
+    <string name="find_no_results_title">No matches</string>
+    <string name="find_no_results_body">Try a different search, or remove a filter.</string>
+
+    <!-- Generic states -->
+    <string name="empty_state_coming_soon_title">Coming soon</string>
+    <string name="action_back">Back</string>
+    <string name="action_profile">Profile</string>
+    <string name="action_scan">Scan</string>
 </resources>

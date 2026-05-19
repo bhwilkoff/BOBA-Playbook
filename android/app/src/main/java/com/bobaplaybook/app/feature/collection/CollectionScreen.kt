@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -88,6 +89,11 @@ fun CollectionScreen(
     var designation by rememberSaveable { mutableStateOf(Designation.PERSONAL) }
     var displayMode by rememberSaveable { mutableStateOf(DisplayMode.GRID) }
     var menuOpen by remember { mutableStateOf(false) }
+    var filterSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var collectionSort by rememberSaveable { mutableStateOf(CollectionSortOrder.DATE_ADDED_DESC) }
+    var totalsMode by rememberSaveable { mutableStateOf(TotalsMode.COLLECTION) }
+    val findViewModel: com.bobaplaybook.app.feature.find.FindViewModel = hiltViewModel()
+    val findState by findViewModel.uiState.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     Scaffold(
@@ -97,6 +103,17 @@ fun CollectionScreen(
                 title = { Text("Collection") },
                 actions = {
                     val context = LocalContext.current
+                    IconButton(onClick = { filterSheetOpen = true }) {
+                        androidx.compose.material3.BadgedBox(
+                            badge = {
+                                if (findState.activeFilterCount > 0) {
+                                    androidx.compose.material3.Badge { Text("${findState.activeFilterCount}") }
+                                }
+                            },
+                        ) {
+                            Icon(Icons.Default.Tune, contentDescription = "Filters")
+                        }
+                    }
                     IconButton(onClick = {
                         shareCollection(context, designation, displayMode)
                     }) {
@@ -179,6 +196,14 @@ fun CollectionScreen(
                 DisplayMode.WALL -> CollectionWall(entries = entries, onCardClick = onCardClick)
             }
         }
+    }
+
+    if (filterSheetOpen) {
+        com.bobaplaybook.app.feature.find.FilterSheet(
+            state = findState,
+            onEvent = findViewModel::onEvent,
+            onDismiss = { filterSheetOpen = false },
+        )
     }
 }
 
@@ -370,6 +395,34 @@ private fun QuantityBadge(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
         )
     }
+}
+
+/**
+ * Collection-only sort orders. Mirrors iOS CollectionSortOrder
+ * (FilterSheetView.swift). Adds date-added + market value + paid
+ * dimensions that depend on user-collection state.
+ */
+enum class CollectionSortOrder(val label: String) {
+    NAME_ASC        ("Name A → Z"),
+    NAME_DESC       ("Name Z → A"),
+    DATE_ADDED_DESC ("Recently Added"),
+    DATE_ADDED_ASC  ("Oldest Added"),
+    PRICE_DESC      ("Market Value: High → Low"),
+    PRICE_ASC       ("Market Value: Low → High"),
+    PAID_DESC       ("Paid: High → Low"),
+    PAID_ASC        ("Paid: Low → High"),
+    NUMBER_ASC      ("Card # Ascending"),
+    NUMBER_DESC     ("Card # Descending"),
+    POWER_DESC      ("Power: High → Low"),
+    POWER_ASC       ("Power: Low → High"),
+    COST_ASC        ("Hot Dog Cost: Low → High"),
+    COST_DESC       ("Hot Dog Cost: High → Low"),
+}
+
+/** Totals-mode segmented control state. iOS CollectionView.TotalsMode. */
+enum class TotalsMode(val label: String) {
+    COLLECTION ("Collection"),
+    FILTER     ("Filter"),
 }
 
 private fun shareCollection(

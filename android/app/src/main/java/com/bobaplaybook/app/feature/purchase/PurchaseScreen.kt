@@ -5,6 +5,7 @@ package com.bobaplaybook.app.feature.purchase
 import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -161,11 +162,7 @@ fun PurchaseScreen(modifier: Modifier = Modifier) {
                     }
                 }
                 PurchaseSection.STORES -> {
-                    BOBAEmptyState(
-                        icon = Icons.Default.Storefront,
-                        headline = "Find a Store",
-                        body = "Google Maps Compose + indie-store dataset proxy land in the M6 polish pass. ~330 indie + ~1,800 big-box stores; the dataset lives inside the iOS app today and gets ported to a Worker so all three clients share one source.",
-                    )
+                    StoresList(state = state, viewModel = viewModel, context = context)
                 }
             }
         }
@@ -283,6 +280,110 @@ private fun WhatnotTile(
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun StoresList(
+    state: PurchaseUiState,
+    viewModel: PurchaseViewModel,
+    context: android.content.Context,
+) {
+    if (state.isLoadingStores && state.stores.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+    if (state.stores.isEmpty()) {
+        BOBAEmptyState(
+            icon = Icons.Default.Storefront,
+            headline = "No stores yet",
+            body = "Couldn't fetch stores from bobaplaybook.com. Check connectivity and try again.",
+            actionLabel = "Retry",
+            onAction = { viewModel.refreshStores() },
+        )
+        return
+    }
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Query + filter row
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            androidx.compose.material3.OutlinedTextField(
+                value = state.storeQuery,
+                onValueChange = viewModel::setStoreQuery,
+                placeholder = { Text("Filter by name, city, or state") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            androidx.compose.material3.FilterChip(
+                selected = state.indieOnly,
+                onClick = { viewModel.setIndieOnly(!state.indieOnly) },
+                label = { Text("Indie only") },
+            )
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
+            Text(
+                "${state.filteredStores.size} stores",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            items(items = state.filteredStores, key = { it.id }) { store ->
+                StoreRow(
+                    store = store,
+                    onClick = {
+                        // Open in maps via geo: URI — system picker handles
+                        // routing (Google Maps, Waze, etc.)
+                        val geoUri = "geo:0,0?q=${store.lat},${store.lng}(${android.net.Uri.encode(store.name)})"
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, android.net.Uri.parse(geoUri)),
+                        )
+                    },
+                )
+                androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun StoreRow(
+    store: com.bobaplaybook.core.network.StoreLocation,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.Storefront,
+            contentDescription = null,
+            tint = if (store.isIndie) MaterialTheme.colorScheme.primary
+                   else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(store.name, style = MaterialTheme.typography.titleSmall)
+            Text(store.fullAddress, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (store.isIndie) {
+            androidx.compose.material3.AssistChip(
+                onClick = {},
+                label = { Text("Indie", style = MaterialTheme.typography.labelSmall) },
+            )
         }
     }
 }

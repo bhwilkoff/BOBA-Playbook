@@ -1,0 +1,157 @@
+# BOBA Playbook — Android version catalog
+#
+# Single source of truth for every dependency version across modules.
+# When Android Studio asks to bump a version, edit it here and let the
+# version catalog propagate to every module.
+#
+# Pinned versions reflect ANDROID-DEV.md §13.1. Android Studio may suggest
+# small bumps on first sync — accept them; this catalog is meant to track
+# the current stable train.
+
+[versions]
+# Build tooling
+agp                       = "8.7.0"            # AGP 9 wasn't stable on the day this was written; start on 8.7 and bump after Android Studio sync.
+kotlin                    = "2.0.21"           # Compose Compiler is bundled into the Kotlin plugin from 2.0+.
+ksp                       = "2.0.21-1.0.28"    # Track the Kotlin version; pair stays in lockstep.
+compose-bom               = "2024.10.01"       # Latest stable BOM at the time of bootstrap. ANDROID-DEV.md aspirationally targets 2026.05; bump when available.
+hilt                      = "2.52"
+nav-compose               = "2.8.3"
+room                      = "2.6.1"
+ktor                      = "3.0.0"
+coil                      = "3.0.0-rc02"       # Coil 3 is the first multiplatform-ready release; pin to RC until 3.0 final ships.
+supabase                  = "3.0.2"
+camerax                   = "1.4.0"
+mlkit-text                = "16.0.1"
+biometric                 = "1.4.0-alpha02"    # biometric-compose alpha — Compose-native API.
+credentials               = "1.3.0"
+play-services-auth        = "21.2.0"           # only used for the Google ID token type from Credential Manager
+work                      = "2.10.0"
+serialization             = "1.7.3"
+datastore                 = "1.1.1"
+tink                      = "1.15.0"
+collections-immutable     = "0.3.8"
+turbine                   = "1.2.0"
+mockk                     = "1.13.13"
+roborazzi                 = "1.30.1"
+robolectric               = "4.13"
+androidx-core             = "1.13.1"
+androidx-lifecycle        = "2.8.7"
+androidx-activity         = "1.9.3"
+splashscreen              = "1.0.1"
+window                    = "1.3.0"
+material3-adaptive        = "1.0.0"
+firebase-bom              = "33.5.1"
+junit                     = "4.13.2"
+junit-androidx            = "1.2.1"
+espresso                  = "3.6.1"
+
+# Project
+min-sdk                   = "29"      # Android 10 — DECISIONS.md #047 (>95% device coverage in 2026)
+target-sdk                = "35"      # Android 15 — bump to 36 once stable train carries it
+compile-sdk               = "35"
+
+[libraries]
+# ----- Compose -----
+compose-bom                 = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
+compose-ui                  = { module = "androidx.compose.ui:ui" }
+compose-ui-tooling          = { module = "androidx.compose.ui:ui-tooling" }
+compose-ui-tooling-preview  = { module = "androidx.compose.ui:ui-tooling-preview" }
+compose-ui-test-junit4      = { module = "androidx.compose.ui:ui-test-junit4" }
+compose-ui-test-manifest    = { module = "androidx.compose.ui:ui-test-manifest" }
+compose-foundation          = { module = "androidx.compose.foundation:foundation" }
+compose-material3           = { module = "androidx.compose.material3:material3" }
+compose-material3-adaptive  = { module = "androidx.compose.material3.adaptive:adaptive", version.ref = "material3-adaptive" }
+compose-material3-adaptive-layout = { module = "androidx.compose.material3.adaptive:adaptive-layout", version.ref = "material3-adaptive" }
+compose-material3-adaptive-navigation = { module = "androidx.compose.material3.adaptive:adaptive-navigation", version.ref = "material3-adaptive" }
+compose-material3-adaptive-nav-suite = { module = "androidx.compose.material3:material3-adaptive-navigation-suite" }
+compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
+compose-animation           = { module = "androidx.compose.animation:animation" }
+
+# ----- AndroidX core -----
+androidx-core-ktx           = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
+androidx-core-splashscreen  = { module = "androidx.core:core-splashscreen", version.ref = "splashscreen" }
+androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
+androidx-activity-compose   = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
+androidx-window             = { module = "androidx.window:window", version.ref = "window" }
+
+# ----- Navigation -----
+nav-compose                 = { module = "androidx.navigation:navigation-compose", version.ref = "nav-compose" }
+
+# ----- DI -----
+hilt-android                = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
+hilt-compiler               = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
+hilt-nav-compose            = { module = "androidx.hilt:hilt-navigation-compose", version = "1.2.0" }
+
+# ----- Networking -----
+ktor-client-core            = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-okhttp          = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-json     = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-client-logging         = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
+
+# ----- Supabase -----
+supabase-bom                = { module = "io.github.jan-tennert.supabase:bom", version.ref = "supabase" }
+supabase-postgrest          = { module = "io.github.jan-tennert.supabase:postgrest-kt" }
+supabase-auth               = { module = "io.github.jan-tennert.supabase:auth-kt" }
+supabase-realtime           = { module = "io.github.jan-tennert.supabase:realtime-kt" }
+supabase-compose-auth       = { module = "io.github.jan-tennert.supabase:compose-auth" }
+supabase-compose-auth-ui    = { module = "io.github.jan-tennert.supabase:compose-auth-ui" }
+
+# ----- Image loading -----
+coil-compose                = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-okhttp         = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+
+# ----- Camera + ML Kit -----
+camerax-core                = { module = "androidx.camera:camera-core", version.ref = "camerax" }
+camerax-camera2             = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }
+camerax-lifecycle           = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
+camerax-view                = { module = "androidx.camera:camera-view", version.ref = "camerax" }
+camerax-mlkit               = { module = "androidx.camera:camera-mlkit-vision", version.ref = "camerax" }
+mlkit-text-recognition      = { module = "com.google.mlkit:text-recognition", version.ref = "mlkit-text" }
+
+# ----- Persistence -----
+room-runtime                = { module = "androidx.room:room-runtime", version.ref = "room" }
+room-ktx                    = { module = "androidx.room:room-ktx", version.ref = "room" }
+room-compiler               = { module = "androidx.room:room-compiler", version.ref = "room" }
+datastore-preferences       = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+tink-android                = { module = "com.google.crypto.tink:tink-android", version.ref = "tink" }
+
+# ----- Auth + security -----
+credentials                 = { module = "androidx.credentials:credentials", version.ref = "credentials" }
+credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
+googleid                    = { module = "com.google.android.libraries.identity.googleid:googleid", version = "1.1.1" }
+biometric-compose           = { module = "androidx.biometric:biometric-compose", version.ref = "biometric" }
+
+# ----- Firebase -----
+firebase-bom                = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
+firebase-messaging          = { module = "com.google.firebase:firebase-messaging-ktx" }
+
+# ----- Other -----
+kotlinx-serialization-json  = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "collections-immutable" }
+
+# ----- Testing -----
+junit                       = { module = "junit:junit", version.ref = "junit" }
+androidx-test-ext-junit     = { module = "androidx.test.ext:junit", version.ref = "junit-androidx" }
+androidx-test-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso" }
+turbine                     = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
+mockk                       = { module = "io.mockk:mockk", version.ref = "mockk" }
+mockk-android               = { module = "io.mockk:mockk-android", version.ref = "mockk" }
+roborazzi                   = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi" }
+roborazzi-compose           = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi" }
+roborazzi-junit-rule        = { module = "io.github.takahirom.roborazzi:roborazzi-junit-rule", version.ref = "roborazzi" }
+robolectric                 = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+coroutines-test             = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version = "1.9.0" }
+
+[plugins]
+android-application         = { id = "com.android.application", version.ref = "agp" }
+android-library             = { id = "com.android.library", version.ref = "agp" }
+kotlin-android              = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-jvm                  = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-compose              = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization        = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp                         = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+hilt                        = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+google-services             = { id = "com.google.gms.google-services", version = "4.4.2" }
+roborazzi                   = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }

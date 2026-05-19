@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- XOXO playbook mark — X / O / O / X in 2×2 grid (DECISIONS.md #019).
+     This is the placeholder vector; replace with the same XOXO asset
+     used on iOS when convenient. 108×108dp adaptive-icon canvas, safe
+     zone is the inner 72×72dp circle. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Top-left: X -->
+    <path
+        android:strokeColor="@color/boba_orange"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M30,30 L48,48 M48,30 L30,48" />
+
+    <!-- Top-right: O -->
+    <path
+        android:strokeColor="@color/boba_orange"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M60,39 m-9,0 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0" />
+
+    <!-- Bottom-left: O -->
+    <path
+        android:strokeColor="@color/boba_orange"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M39,69 m-9,0 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0" />
+
+    <!-- Bottom-right: X -->
+    <path
+        android:strokeColor="@color/boba_orange"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M60,60 L78,78 M78,60 L60,78" />
+</vector>

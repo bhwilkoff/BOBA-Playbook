@@ -28,7 +28,11 @@ exclude:
   - .wrangler/
   - .claude/
   - ci_scripts/
+  - android/
+  - pipeline/
   - "*.swift"
+  - "*.kt"
+  - "*.kts"
   - "*.py"
   - AppVersion.xcconfig
   - "*.entitlements"
@@ -39,6 +43,9 @@ exclude:
   - DECISIONS.md
   - DESIGN.md
   - WEB-DESIGN.md
+  - ANDROID-DESIGN.md
+  - ANDROID-DEV.md
+  - PARITY.md
   - TRADE-DESIGN.md
   - SCRATCHPAD.md
   - ARCHIVE.md

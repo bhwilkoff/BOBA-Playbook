@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- BOBA's brand palette is dark by default; the night override here
+         exists so the system-bar contrast hints flip correctly when the
+         user has the system in dark mode. Compose's MaterialTheme is the
+         source of truth for actual colors. -->
+    <style name="Theme.BOBAPlaybook" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowBackground">@color/boba_near_black</item>
+    </style>
+
+</resources>

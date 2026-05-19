@@ -142,16 +142,40 @@ Research + binding docs ratified 2026-05-19. All open questions resolved (DECISI
 - Subscription monetization, Personal Showcase, House of BoBA, Hero Shot all deferred post-v1.
 - 3D path when prioritized: Filament (primary) / Vulkan via NDK.
 
-### ⏳ Android M0 — Foundation
-- Set up `/android/` Gradle project: Kotlin 2.2 + Compose + Material 3 + AGP 9
-- Single Activity + Compose Navigation set up with type-safe routes
-- `BobaTheme` (dark + light + dynamic-opt-in)
-- Primitives in `:core:ui`: `BOBACardCell`, `BOBAEmptyState`, `BOBABanner`, `BOBAOfflinePill`, `BOBAWordmark`, `BOBASignInPrompt`
-- Coil 3 ImageLoader configured at App start (60 MB memory / 500 MB disk parity with iOS)
-- Cards.json bundling pipeline (Gradle copy task from repo root)
-- Universal Links / App Links: `assetlinks.json` added to `/.well-known/`; intent-filters wired (`com.bobaplaybook.app`)
-- Firebase Android app registered + `google-services.json` committed
-- Baseline Profile module scaffolded (empty profile for now)
+### 🚧 Android M0 — Foundation (2026-05-19, in progress)
+
+**Scaffold landed:**
+- ✅ `/android/` Gradle project: Kotlin 2.0.21 + AGP 8.7 + Compose BOM 2024.10.01 + Material 3 + Material 3 Adaptive
+- ✅ Version catalog (`gradle/libs.versions.toml`) — 60+ dependencies pinned
+- ✅ Modular structure: `:app`, `:core:ui`, `:core:domain` (pure Kotlin), `:core:network`, `:core:data`
+- ✅ Single Activity (`MainActivity`) + Compose Navigation (NavHost wiring lands in M1)
+- ✅ `BobaTheme` with brand `colorScheme` (default) + dynamic-color opt-in path
+- ✅ Six design primitives in `:core:ui`: `BOBAWordmark`, `BOBACardCell`, `BOBAEmptyState`, `BOBABanner`, `BOBAOfflinePill`, `BOBASignInPrompt`
+- ✅ Coil 3 `ImageLoader` configured at App start (60 MB memory / 500 MB disk parity with iOS DECISIONS.md #024)
+- ✅ Shared OkHttp client between Coil and Supabase/Worker calls
+- ✅ Two-phase catalog loader (`CardCatalogLoader` + `CardRepository`) mirroring iOS DECISIONS.md #014
+- ✅ CDN helpers (`CDN.thumbUrl`/`fullUrl`) — never-hardcode-R2-URLs rule honored
+- ✅ Worker config (`WorkerConfig.kt`) — single source of truth
+- ✅ `sync_shared_assets.sh` syncs `cards-slim.json` + `categories.json` + fonts from repo root; wired to Gradle `preBuild`
+- ✅ Catalog bundle initially populated (~13 MB) so Android Studio first-open doesn't show empty grids
+- ✅ AndroidManifest with App Links (`https://bobaplaybook.com/{u,card,deck,learn,search}`) + custom-scheme `bobaplaybook://` intent-filter
+- ✅ Adaptive launcher icon (XOXO mark + monochrome variant for themed icons)
+- ✅ Splash screen via Android 12+ API; edge-to-edge enabled
+- ✅ `/.well-known/assetlinks.json` placeholder at web root; `_config.yml` updated to exclude `android/` from Jekyll Pages build
+- ✅ Hilt + KSP wiring (`@HiltAndroidApp` Application, empty `DataModule` placeholder)
+- ✅ Domain-model smoke tests in `:core:domain/src/test/` — verifies `bobaId` formula + JSON decoder
+- ✅ GitHub Actions workflow (`.github/workflows/android-build.yml`): PR builds, debug APK upload, Play Store upload stub for M8
+- ✅ Comprehensive `android/SETUP.md` walking Ben through every external-service setup
+
+**Pending Ben (SETUP.md):**
+- ⏳ Install Android Studio + JDK on PATH (Phase A1–A2)
+- ⏳ First Gradle sync — generates `gradle/wrapper/gradle-wrapper.jar` (Phase A3)
+- ⏳ Generate upload keystore via `keytool` + send SHA-256 + SHA-1 fingerprints back to Claude (Phase B1)
+- ⏳ Create Play Console developer account ($25 one-time fee, 24-48h verify, Phase B2)
+- ⏳ Create Firebase project + register Android app + download `google-services.json` (Phase B3)
+- ⏳ Generate Sign in with Google OAuth client ID + send to Claude (Phase B4)
+- ⏳ Send Supabase URL + anon key to Claude (Phase B5)
+- ⏳ First-build smoke test: app launches, BOBA wordmark renders on near-black background, no crash (Phase C1)
 
 ### ⏳ Android M1 — Find + foundational adaptive layouts (phone + tablet + Chromebook)
 - `NavigationSuiteScaffold` (5 destinations) — adapts to NavigationBar (compact) / NavigationRail (medium) / PermanentNavigationDrawer (expanded)

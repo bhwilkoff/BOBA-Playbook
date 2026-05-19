@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Under-icon home-screen label. iOS uses "Playbook" (CFBundleDisplayName)
+         per DECISIONS.md #032 — shorter form avoids truncation. Same posture here. -->
+    <string name="app_name">Playbook</string>
+    <string name="app_full_name">BOBA Playbook</string>
+    <string name="app_tagline">Search. Scan. Collect. Play.</string>
+</resources>

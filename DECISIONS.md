@@ -607,7 +607,7 @@ iOS lands in `aps.alert` + custom keys; Android lands in FCM `data` and `Firebas
 ## 046 — Android-specific app ID + signing strategy
 *2026-05-19*
 
-**Open for Ben's call:** package name. Recommended `com.bobaplaybook.app` (matches the bobaplaybook.com domain). Alternatives: `com.bhwilkoff.bobaplaybook` (developer-account-prefixed), `app.bobaplaybook.android` (parallel to iOS's `app.bobaplaybook.ios`).
+Package name: **`com.bobaplaybook.app`** (matches the bobaplaybook.com domain). Affects all signing + Play Console + `assetlinks.json` + Firebase config + every deep-link entry.
 
 **Signing:** Play App Signing is mandatory since 2021. Generate upload key locally via `keytool -genkey`; upload to Play Console. Play resigns every release with its production key. Upload-key credentials live in `gradle.properties` (git-excluded), mirrored to CI secrets.
 
@@ -616,3 +616,113 @@ iOS lands in `aps.alert` + custom keys; Android lands in FCM `data` and `Firebas
 **Why:** centralizing the App Links setup at `/.well-known/` means one Jekyll-exclude config covers both platforms. The same Cloudflare CDN, same hosting setup, same maintenance overhead.
 
 **How to apply:** ANDROID-DEV.md §8.5 (Play App Signing) + §14 (Universal Links).
+
+## 047 — Android v1 form-factor scope: phone + tablet + Chromebook (NO foldable)
+*2026-05-19*
+
+Android v1 ships **phone + tablet + Chromebook** support from M1 onward — adaptive layouts (`NavigationSuiteScaffold`, `NavigableListDetailPaneScaffold`, `WindowSizeClass`) are part of the foundation, not deferred to M8. **Foldable is NOT a v1 target.**
+
+**Why:**
+- Ben has a Chromebook available for testing right now — it's the fastest path to validating the build during early development.
+- Chromebooks running Android apps and Android tablets share the same `EXPANDED` window-size-class adaptation; supporting one essentially supports the other.
+- Foldables represent a small fraction of the market and add meaningful complexity (hinge-pose detection, posture-aware layouts, dual-screen mode). Not worth v1 cost.
+
+**How to apply:**
+- ANDROID-DESIGN.md §6.6 adaptation matrix is binding from M1.
+- M8 collapses into M1: tablet polish work happens alongside foundation, not after.
+- Every screen Composable declares its `COMPACT` / `MEDIUM` / `EXPANDED` behavior. PRs without it are rejected.
+- Don't optimize for foldable-specific affordances (`WindowInfoTracker.windowLayoutInfo`, posture detection, etc.). The standard `WindowSizeClass` adaptation will work *adequately* on foldables — just not optimized.
+
+## 048 — Android: Practice executor IS in v1, admin-gated
+*2026-05-19*
+
+The Practice executor (iOS DECISIONS.md #030 + #033) ships on Android in v1, admin-gated via the same mechanism — bolt icon on Profile role badge unlocks it.
+
+**Why:**
+- Ben wants to test the Battle Practice features on Android during development.
+- Practice content is largely platform-agnostic (game rules, state machine, deck loading). The UI translation work is the substantial part; the game logic ports straight.
+- Admin-gating means production users don't see it until it's ready for general release — same posture as iOS.
+
+**How to apply:**
+- ANDROID-DESIGN.md §12 "Practice / Battle simulator" moves from "Out of scope" to "In scope, admin-gated."
+- SCRATCHPAD.md Android milestone plan adds Practice work to a dedicated milestone (M5.5 — Practice executor) between Learn and Purchase.
+- Reuse the iOS state-machine architecture (DECISIONS.md #030) — `PersistentEffect` + `WeaponTransform` arrays, `firePersistentTriggers`, `applyHDRecover` pipeline. The Compose layer becomes a translation of the SwiftUI screen anatomy; the engine is pure Kotlin in `:core:domain`.
+- Same admin gate via `user_profiles.role` lookup.
+
+## 049 — Discord integration: authentication only, NO bot, across all platforms
+*2026-05-19*
+
+Discord usage in BOBA Playbook is **strictly authentication-only** across iOS, web, and Android until explicit permission is granted to integrate a bot within the BoBA Discord server.
+
+**What this means in practice:**
+- ✅ OAuth-based sign-in via Discord (existing, all three platforms)
+- ✅ Storing the authenticated user's Discord ID in `user_profiles.discord_user_id`
+- ✅ Constructing client-side deep-link URLs to other users' Discord profiles (`discord://users/{id}`) — this is URL construction, not API integration
+- 🚫 No Discord Bot SDK / API calls from BOBA's servers
+- 🚫 No reading BoBA Discord server channels, members, or messages from BOBA's servers
+- 🚫 No posting to the BoBA Discord server from BOBA's servers
+- 🚫 No webhooks, no Discord Activities, no embedded Discord WebViews beyond what's needed for the OAuth flow itself
+
+**Why:** the BoBA Discord server has its own moderators, rules, and community contracts. A bot operating in that server changes the social contract and needs explicit permission from the server operators. Until that permission is granted, BOBA's only Discord touchpoint is the auth handshake.
+
+**Trading implications (TRADE-DESIGN.md):** the architecture in TRADE-DESIGN.md §4 (pure introduction — send users to Discord to message) **does NOT require a bot.** The "Open Discord" deep link is a client-side URL construction using the authenticated user's stored Discord ID. No server-side Discord API calls. The architecture is compatible with this rule.
+
+**When to revisit:** when Ben has explicit permission from BoBA Discord moderators to deploy a bot. Documented here so future sessions don't quietly propose "BOBA Discord bot for [thing]" without checking back.
+
+## 050 — Android: Sign in with Apple is NOT offered
+*2026-05-19*
+
+Sign in with Apple is iOS+Web-only branding. Android does not include it.
+
+**Why:**
+- Sign in with Apple is technically possible on Android (via WebView OAuth flow), but it's a foreign brand cue on Android.
+- Android users expect Sign in with Google as the canonical "one-tap" sign-in.
+- Maintaining a third auth path adds complexity without proportional user-value on Android.
+
+**Auth path on Android (ANDROID-DESIGN.md §6.5):**
+1. **Sign in with Google** (primary) via Credential Manager — native one-tap bottom sheet
+2. **Discord OAuth** (secondary, but the most-used path for BoBA users in practice) via Auth Tab (Chrome 132+) / Custom Tabs fallback
+3. **Email / password** (tertiary fallback) — same Supabase shape as iOS + web
+
+Apple ID accounts created via Sign in with Apple on iOS map cleanly to email-based Supabase users; users can sign into Android with the same email address.
+
+**How to apply:** ANDROID-DESIGN.md §12 "Out of scope" already lists Sign in with Apple. Confirmed.
+
+## 051 — Android future 3D rendering: Filament (primary) or raw Vulkan/NDK
+*2026-05-19*
+
+If/when Hero Shot or House of BoBA gets ported to Android (currently deferred per ANDROID-DESIGN.md §12), the recommended 3D-rendering paths are:
+
+1. **Filament** (Google's open-source physically-based renderer) — primary recommendation. Built on Vulkan + OpenGL under the hood; written by Google specifically for Android (and macOS / Linux / iOS). Higher-level API similar in shape to RealityKit. Used by Google Maps, Google Earth, Wear OS.
+2. **Raw Vulkan via NDK** (https://developer.android.com/ndk/guides/graphics) — lower-level alternative if Filament's abstractions don't fit. More work to write material shaders, manage the swapchain, handle device-specific quirks. Pick only if Filament's API ceiling is hit.
+
+**Why NOT Sceneform:** deprecated by Google in 2021. Don't propose Sceneform.
+
+**Why NOT Unity-as-library:** brings a JS+Mono runtime overhead that doesn't fit BOBA's lean stack. Unity-as-library makes sense for AR/VR games, not for a card-rendering feature embedded in a Compose app.
+
+**RealityKit → Filament translation work (when it happens):**
+- iOS uses `BOBACardEntity` static helpers for card construction (front + back textured planes, rounded-corner alpha mask, off-white edge). Translate to Filament's `Material` + `MaterialInstance` + `Filament.IndexBuffer` / `VertexBuffer`.
+- iOS uses `PhysicsBodyComponent` for House of BoBA card-tower physics. Filament doesn't ship physics — bring in `Bullet` (`org.physics:bullet`) or a Kotlin-native physics layer. Significant additional work.
+- iOS Hero Shot's roughness-texture-keyed treatments + 3-point lighting + IBL all translate to Filament's PBR materials + IBL pipeline. Approximately 1:1 conceptual translation, multi-week implementation work.
+
+**When to revisit:** when Ben prioritizes Android Hero Shot / House of BoBA. Document this here so the future session has the path picked.
+
+## 052 — Firebase: stay on the Spark (free) plan
+*2026-05-19*
+
+BOBA Android uses Firebase **only** for Firebase Cloud Messaging (FCM) push notification delivery. No Firestore, no Realtime Database, no Firebase Auth (we use Supabase Auth via Credential Manager + supabase-kt), no Firebase Hosting, no Firebase Storage (R2 covers CDN per DECISIONS.md #008).
+
+**Spark (free) plan covers what we need:**
+- Unlimited FCM message delivery (subject to fair-use thresholds — for BOBA's projected match-alert volume, irrelevant)
+- 10 GB/month Cloud Functions invocations (we don't use these)
+- Other quotas (Firestore reads, Cloud Storage egress, hosting bandwidth) — we don't use these services
+
+**Setup:**
+- Single Firebase project (e.g. "BOBA Playbook")
+- One Android app registered under it: package `com.bobaplaybook.app`
+- `google-services.json` downloaded → committed to `android/app/` (contains only public identifiers; safe to commit per Firebase docs)
+- `com.google.firebase:firebase-messaging:24.x` dependency in `:app`
+
+**iOS doesn't currently use Firebase** (APNs directly). If/when iOS Analytics or iOS push routing through Firebase makes sense, a second Firebase app under the same project is the path. Stays on Spark unless we add Firestore / Cloud Functions / Storage (none planned).
+
+**How to apply:** ANDROID-DEV.md §7 + §13.1 — Firebase setup steps. No upgrade to Blaze (pay-as-you-go) needed for v1.

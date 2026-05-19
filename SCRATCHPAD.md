@@ -83,24 +83,34 @@
 
 ## Feature Parity Status
 
-✅ Both | 🌐 Web only | 📱 iOS only | ⏳ Planned | ❌ Deferred
+> **Full parity matrix lives in [PARITY.md](./PARITY.md) (single source of truth).** The snapshot below is a quick scan of high-level feature areas. Detail rows for sub-features (per-tab anatomy, specific affordances) are in PARITY.md.
 
-| Feature | Web | iOS | Notes |
-|---|---|---|---|
-| Search Mode | ✅ | ✅ | M1 complete |
-| App icon + branding | ✅ | ✅ | XOXO logo, wordmark, PWA |
-| Mobile Safari layout | ✅ | n/a | Body flex column, no viewport-fit=cover |
-| Collection Mode | ✅ | ✅ | M2 complete |
-| Scan Mode (camera OCR) | ❌ | ✅ | iOS only by design |
-| Pricing comps (links) | ✅ | ✅ | M3 complete |
-| Buy Now (active listings) | ✅ | ✅ | eBay + COMC (latter Turnstile-blocked) |
-| Deck Builder | ✅ | ✅ | iOS rebuilt to Music-pattern pill + zoom editor |
-| Streamer Shows | ✅ | ✅ | My Shows + Generate Wall (streamer role only) |
-| Find a Store | ✅ | ✅ | MapKit/Leaflet, ~330 indie + ~1,800 big-box |
-| Purchase view | ✅ | ✅ | Find a Store + Upcoming Breaks (Whatnot via boba-ebay-proxy `/whatnot/upcoming`) |
-| Profile (username, sharing, role-request, etc.) | ✅ | ✅ | v2.064-v2.080 |
-| Public collections (`/u/{username}`) | ✅ | n/a (auth) | Web-only render; iOS sets the toggle |
-| Walkthroughs | n/a | ✅ | iOS only — see WEB-DESIGN.md §12 for the open question |
+✅ Shipped | 🚧 In progress | ⏳ Planned | 🔮 Future | 🚫 Out of scope | n/a — inapplicable
+
+| Feature | Web | iOS | Android | Notes |
+|---|---|---|---|---|
+| Find / Search | ✅ | ✅ | ⏳ M1 | All three platforms |
+| App icon + branding | ✅ | ✅ | ⏳ M0 | Adaptive icon on Android (foreground + background + monochrome) |
+| Mobile Safari layout | ✅ | n/a | n/a | Body flex column, no viewport-fit=cover |
+| Collection | ✅ | ✅ | ⏳ M2 | All three platforms |
+| Scan Mode (camera OCR) | 🚫 | ✅ | ⏳ M3 | CameraX + ML Kit on Android; web has no camera/Vision parity |
+| Pricing comps | ✅ | ✅ | ⏳ M3 | Same Worker proxy, same waterfall |
+| Buy Now (active listings) | ✅ | ✅ | ⏳ M3 | eBay + COMC; COMC Turnstile-blocked |
+| Decks builder | ✅ | ✅ | ⏳ M4 | iOS Music-pattern pill + zoom; Android `ModalBottomSheet + sharedBounds`; web side-by-side desktop |
+| Streamer Shows | ✅ | ✅ | ⏳ M2 | Role-gated, push destination |
+| Find a Store | ✅ | ✅ | ⏳ M6 | MapKit / Leaflet / Google Maps Compose |
+| Purchase view | ✅ | ✅ | ⏳ M6 | Find a Store + Upcoming Breaks (Whatnot) |
+| Profile (username, sharing, role-request) | ✅ | ✅ | ⏳ M7 | Sign in with Google primary on Android (vs Sign in with Apple iOS) |
+| Public collections (`/u/{username}`) | ✅ | n/a | ⏳ M7 | Web renders; iOS/Android set the toggle + deep-link in |
+| Walkthroughs | 🚫 §11 | ✅ | 🚫 §6.10 | iOS-only; web + Android use EmptyState + tooltips |
+| Hero Shot 3D | n/a | ✅ | 🚫 v1 | Filament port deferred |
+| House of BoBA easter egg | n/a | ✅ | 🚫 v1 | RealityKit-specific |
+| Personal Showcase | n/a | ✅ | 🚫 v1 | Cast SDK port deferred |
+| Custom Rainbows | n/a | ✅ | ⏳ M2 | Web parity 🔮 |
+| Practice executor | n/a | ✅ admin-gated | 🔮 | Open-question deferred per DECISIONS.md #033 |
+| Trading (match alerts + Discord deep-link) | 🔮 Phase 1+ | 🔮 Phase 1+ | 🔮 Phase 1+ | TRADE-DESIGN.md governs all three |
+
+**See [PARITY.md](./PARITY.md)** for the detail-level matrix (per-tab anatomy, auth surfaces, deep linking, notifications, payments, etc.).
 
 ---
 
@@ -115,3 +125,99 @@ M0 (setup), M1 (search), M2 (collection), M3/M3.5 (scan + pricing). Profile + De
 
 ### ❌ M5 — Discord Trading Channel (FUTURE)
 Embed community trading channel. Research Discord Activity SDK vs WebView feasibility before committing.
+
+---
+
+## Android v1 Milestone Plan (2026)
+
+Research + binding docs ratified 2026-05-19. See [`ANDROID-DESIGN.md`](./ANDROID-DESIGN.md), [`ANDROID-DEV.md`](./ANDROID-DEV.md), [`PARITY.md`](./PARITY.md).
+
+**Open Ben-questions before M0** (ANDROID-DEV.md §16):
+1. Package name — `com.bobaplaybook.app` recommended (matches domain)
+2. Same monorepo `/android/` directory — confirmed
+3. Firebase project — new "BOBA Playbook (Android)" Firebase app
+4. Subscription monetization in v1 or defer? (TRADE-DESIGN.md §7)
+5. Discord-link requirement for trading — hard gate or soft warning?
+6. Tablet form-factor support at v1 or M8?
+7. Personal Showcase + AirPlay → Cast SDK in v1 or skip? (ANDROID-DESIGN.md §12 marks deferred)
+8. Hero Shot 3D port to Filament in v1 or skip? (deferred)
+9. Practice executor — admin-gated, mirrors iOS
+
+### ⏳ Android M0 — Foundation
+- Set up `/android/` Gradle project: Kotlin 2.2 + Compose + Material 3 + AGP 9
+- Single Activity + Compose Navigation set up with type-safe routes
+- `BobaTheme` (dark + light + dynamic-opt-in)
+- Primitives in `:core:ui`: `BOBACardCell`, `BOBAEmptyState`, `BOBABanner`, `BOBAOfflinePill`, `BOBAWordmark`, `BOBASignInPrompt`
+- Coil 3 ImageLoader configured at App start (60 MB memory / 500 MB disk parity with iOS)
+- Cards.json bundling pipeline (Gradle copy task from repo root)
+- Universal Links / App Links: `assetlinks.json` added to `/.well-known/`; intent-filters wired
+- Baseline Profile module scaffolded (empty profile for now)
+
+### ⏳ Android M1 — Find
+- `NavigationSuiteScaffold` (5 destinations)
+- Find tab with `ExpandedFullScreenSearchBar`
+- Featured `HorizontalMultiBrowseCarousel` rows (no-search state)
+- `LazyVerticalGrid(GridCells.Adaptive)` for search results
+- `FilterChip` row for committed tokens
+- Container transform (`sharedBounds`) into card detail
+- `CardDetailScreen` with canonical 6-cell stats grid
+
+### ⏳ Android M2 — Collection
+- Designation `SingleChoiceSegmentedButtonRow`
+- Grid / List / Wall display modes
+- Designation badges
+- Custom Rainbow editor (mirrors iOS v2.219+)
+- My Shows (role-gated push destination)
+
+### ⏳ Android M3 — Scan + Pricing
+- CameraX + ML Kit Text Recognition v2 bundled
+- `ScanCoordinator` + per-tab destination routing
+- Pricing panels in card detail (eBay + COMC + Radish)
+- `BottomAppBar` scan-active state surface
+
+### ⏳ Android M4 — Decks
+- Card pool + persistent `DeckSummaryBar`
+- Tap-summary → `ModalBottomSheet` editor with `sharedBounds` hero zoom
+- Manage Decks / Rules / Legality push destinations
+- Drag-and-drop via `Modifier.dragAndDropSource` / `dragAndDropTarget`
+- Long-press to add (canonical mobile add gesture)
+
+### ⏳ Android M5 — Learn
+- Single-stream articles + skill-level `SegmentedButton` scope
+- In-corpus `SearchBar`
+- Glossary `TooltipBox` for highlighted terms
+
+### ⏳ Android M6 — Purchase
+- `SingleChoiceSegmentedButtonRow` ("Upcoming Breaks" | "Find a Store")
+- Whatnot tile list via `boba-ebay-proxy /whatnot/upcoming`
+- Google Maps Compose for Find a Store with `ModalBottomSheet` store list
+
+### ⏳ Android M7 — Profile + Auth
+- Credential Manager (Sign in with Google primary + passkey support)
+- Discord OAuth via Auth Tab (Chrome 132+) / Custom Tabs fallback
+- Email/password fallback
+- Tink-encrypted DataStore for token storage
+- BiometricPrompt gate for sensitive Profile actions
+- Avatar upload via `boba-avatar-upload` Worker
+- Account deletion via `boba-account-delete` Worker
+- Universal Links / deep-link dispatch
+- `assetlinks.json` fingerprint deployed
+
+### ⏳ Android M8 — Tablet / Foldable / Chromebook polish
+- `NavigableListDetailPaneScaffold` on Decks (3-pane: saved / pool / editor)
+- `NavigableListDetailPaneScaffold` on Learn + Collection
+- `NavigationRail` adaptation for medium width
+- Modal side sheets replace bottom sheets on expanded width
+- Edge-to-edge + predictive back validated across orientations
+- WindowSizeClass adaptation tests + Roborazzi screenshot tests
+
+### 🔮 Android Post-v1 Future
+- Image fingerprinting (MediaPipe Image Embedder + parallel `feature-prints-android.bin`)
+- Multi-card grid scanning (OpenCV port)
+- Push notifications (FCM dispatcher via `boba-push-dispatcher` Worker; cross-platform symmetric payload)
+- Google Play Billing for BOBA Pro subscription
+- Personal Showcase + Cast SDK port
+- Hero Shot 3D port to Filament / Sceneform-successor
+- Home-screen widgets via Glance API
+- App Shortcuts + App Actions for Google Assistant integration
+- Wear OS companion (if ever)

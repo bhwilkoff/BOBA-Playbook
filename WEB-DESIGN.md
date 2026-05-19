@@ -2,9 +2,9 @@
 
 > **Binding.** Every new view/dialog/sidebar item/grid in the web app must trace to a rule here. Fix the document, then the feature.
 >
-> Companion to [`DESIGN.md`](./DESIGN.md) (iOS), [`CLAUDE.md`](./CLAUDE.md), [`DECISIONS.md`](./DECISIONS.md). DESIGN.md governs cross-platform principles; this doc owns web-specific implementation rules.
+> Companion to [`DESIGN.md`](./DESIGN.md) (iOS), [`ANDROID-DESIGN.md`](./ANDROID-DESIGN.md) (Android), [`CLAUDE.md`](./CLAUDE.md), [`DECISIONS.md`](./DECISIONS.md), [`PARITY.md`](./PARITY.md) (cross-platform feature matrix). DESIGN.md governs cross-platform principles; this doc owns web-specific implementation rules.
 >
-> Ratified 2026-05-05 from the prior research plan.
+> Ratified 2026-05-05 from the prior research plan. Cross-references to ANDROID-DESIGN.md added 2026-05-19.
 
 ---
 

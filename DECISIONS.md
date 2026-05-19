@@ -529,3 +529,90 @@ Three-tier resolver: **custom (R2-uploaded) → Discord avatar → default silho
 **Why R2+Worker, not Supabase Storage:** R2 (DECISIONS.md #008) = zero egress + edge cache + auth-free CDN URL. Supabase Storage avoided per #007.
 
 **Why server-side URL gating:** without the R2-prefix check on `set_avatar_url`, a malicious client could point `avatar_url` at any host (tracking pixels, inappropriate images rendered on others' devices). Worker controls who writes R2; RPC controls where the column points.
+
+
+
+## 041 — Android: Kotlin + Jetpack Compose (not KMP / Compose Multiplatform / Flutter / RN)
+*2026-05-19*
+
+Native Kotlin + Compose codebase, separate from iOS Swift/SwiftUI. Same monorepo (`/android/` at root). The iOS app is already shipped Swift-native (DECISIONS.md #004); migrating its business logic to a Kotlin "common" module for sharing means rewriting iOS at the same time, which we are not doing.
+
+**Why:**
+- KMP works best when both platforms start together. BOBA didn't — iOS is at v2.282+, web is shipped, Android is starting fresh.
+- Compose Multiplatform can't render the iOS-26 Liquid Glass surfaces (`Tab(role: .search)`, `.navigationTransition(.zoom)`, `.searchable` tokens) that the iOS DESIGN.md explicitly bets on. Picking CMP would force re-implementing core iOS components — net loss.
+- Flutter / React Native add a runtime layer and a bridge for every Android native API (ML Kit, CameraX, Play Integrity, biometrics). Strictly worse for an Android-only codebase.
+- Each platform speaks its native idiom; the verb-set is identical across iOS / web / Android, the implementations are not.
+
+**Future option:** if Web ever wants typed data models or a Desktop companion arrives, KMP is the upgrade path. Keep that door open by structuring Android's domain layer as pure-Kotlin from day one (no Android imports outside `:app` and `:data` modules — see ANDROID-DEV.md §3).
+
+**How to apply:** see ANDROID-DEV.md §1 for the alternatives matrix; ANDROID-DESIGN.md §1 for the binding implementation rules.
+
+## 042 — Android: Material 3 brand-first; dynamic color is opt-in
+*2026-05-19*
+
+BOBA Android ships with a **fixed brand theme** by default (orange/cyan/violet on near-black) — *not* dynamic color (Material You wallpaper-derived palette). Brand identity wins; user can opt into "Use system colors" in Settings.
+
+**Why:** the card-art palette is the focal point. A user's wallpaper-derived primary fighting with `#FF4D00` reads muddy and washes out the cards. Same rule as iOS DESIGN.md §11.2: element colors only on content semantics; brand colors only on chrome. Dynamic color is a third *opt-in* tier — not the default.
+
+**How to apply:** `BobaTheme.kt` builds the brand `colorScheme` from fixed seeds. When the user toggles "Use system colors" ON, `dynamicDarkColorScheme(LocalContext.current)` overrides `primary` only on Android 12+. Element colors never change. ANDROID-DESIGN.md §6.8 + §11.2 carry the binding rules.
+
+## 043 — Android Scan: CameraX + ML Kit Text Recognition v2 (bundled, Latin); OCR-only for v1
+*2026-05-19*
+
+Android scan uses **CameraX 1.5+** + **ML Kit Text Recognition v2 bundled** (Latin script model, ~5-7 MB APK delta). Matches iOS Vision `VNRecognizeTextRequest` shape.
+
+**Why bundled, not unbundled:** unbundled saves ~260 KB of APK but requires a one-time model download on first scan. Bundled is the iOS-parity choice — scan works offline immediately on install. The APK budget hit is small.
+
+**Why OCR-only for v1 (no image fingerprinting):** iOS DECISIONS.md #035 made fingerprint the primary key because OCR-only had a silent-wrong failure mode **in grid scan mode specifically** (a real-but-wrong card number that the printed hero contradicted). For single-card live scan, OCR + hero-name veto + confidence threshold is sufficient — it's the iOS pre-fingerprint design that shipped well for months.
+
+Adding image fingerprinting on Android requires MediaPipe Image Embedder (closest analog to Vision Feature Prints) + building a parallel `feature-prints-android.bin` artifact. Defer to v2 when scope pressure relaxes.
+
+**How to apply:** ANDROID-DEV.md §6.1–§6.5 covers the CameraX + MLKitAnalyzer pipeline, regex reuse, and fingerprint deferral.
+
+## 044 — Android: NO multi-step anchored walkthroughs
+*2026-05-19*
+
+Android doesn't ship the iOS-style multi-step anchored walkthroughs (DESIGN.md §6.10's seven-script catalog). Use M3 `TooltipBox` for single-step contextual hints and `BOBAHintBanner` (DataStore-backed dismissal) for inline teaching. Empty states (§6.7) carry the "first-time productive action" that a walkthrough's first step would have shown.
+
+**Why:**
+- iOS walkthroughs exist because the iOS interaction vocabulary (tab gestures, fullScreenCover, NavigationStack) has many novel idioms a first-time user must learn. Android conventions (NavigationBar, push/back, FAB, ModalBottomSheet) are universally legible across every Android app the user already uses.
+- The walkthrough engine in `BOBAPlaybook/Components/BOBAWalkthrough.swift` is ~600 lines of anchor preference plumbing, dim/cutout overlay, multi-step pager. Reproducing that in Compose for marginal value-add is on the wrong side of the cost/value line.
+- Onboarding splash decks are explicitly rejected (DESIGN.md §6.10 anti-pattern; same here on Android).
+
+**When to revisit:** if a future Android feature genuinely needs anchored multi-step teaching (Practice executor when it lands, or a complex new flow), revisit and propose a `BOBAWalkthroughHost`. Don't ship by guess.
+
+**How to apply:** ANDROID-DESIGN.md §6.10 + the iOS→Android walkthrough-replacement catalog table. Each iOS walkthrough has an Android replacement (EmptyState / TooltipBox / HintBanner).
+
+## 045 — Cross-platform push: one dispatcher Worker, two transports (APNs + FCM)
+*2026-05-19*
+
+When the match-alerts pipeline ships (DECISIONS.md #039 + TRADE-DESIGN.md Phase 5), the architecture is **one dispatcher, two transports.** A Cloudflare Worker `boba-push-dispatcher` (matches BOBA's existing backend pattern):
+
+1. Triggered by Supabase webhook OR cron Worker scanning `trade_matches`.
+2. Joins `user_devices` (`user_id`, `platform`, `token`) to get tokens.
+3. Routes by `platform`: `apns` → APNs HTTP/2 + JWT; `android` → FCM v1 + Google service-account access token.
+4. Both transports support batching.
+
+**Symmetric payload format** so the iOS and Android handlers can share the deep-link logic:
+```json
+{ "type": "match_alert", "match_id": "...", "other_user": "@handle", "card_count": 3, "deep_link": "bobaplaybook://matches/{match_id}" }
+```
+
+iOS lands in `aps.alert` + custom keys; Android lands in FCM `data` and `FirebaseMessagingService` builds the notification + tap-action. **Deep-link is the same string on both sides.**
+
+**Why Worker not Supabase Edge Function:** Cloudflare Workers have better cold-start performance; the existing Worker secrets pattern (`SUPABASE_SERVICE_KEY`, etc.) is already set up. Workers handle APNs JWT via Web Crypto API and FCM v1 via plain HTTPS. The pattern composes cleanly with the rest of BOBA's backend infrastructure.
+
+**How to apply:** ANDROID-DEV.md §7.3 details the dispatcher + `user_devices` table shape. SCRATCHPAD.md Android M7 is when this gets wired.
+
+## 046 — Android-specific app ID + signing strategy
+*2026-05-19*
+
+**Open for Ben's call:** package name. Recommended `com.bobaplaybook.app` (matches the bobaplaybook.com domain). Alternatives: `com.bhwilkoff.bobaplaybook` (developer-account-prefixed), `app.bobaplaybook.android` (parallel to iOS's `app.bobaplaybook.ios`).
+
+**Signing:** Play App Signing is mandatory since 2021. Generate upload key locally via `keytool -genkey`; upload to Play Console. Play resigns every release with its production key. Upload-key credentials live in `gradle.properties` (git-excluded), mirrored to CI secrets.
+
+**`assetlinks.json` lives at the same `/.well-known/` path as `apple-app-site-association`** on `bobaplaybook.com`. Both coexist; iOS reads AASA, Android reads `assetlinks.json`. The fingerprint must include BOTH the upload-key AND Play App Signing key SHA-256 fingerprints — internal-testing builds (upload-key-signed) won't verify against the production key otherwise.
+
+**Why:** centralizing the App Links setup at `/.well-known/` means one Jekyll-exclude config covers both platforms. The same Cloudflare CDN, same hosting setup, same maintenance overhead.
+
+**How to apply:** ANDROID-DEV.md §8.5 (Play App Signing) + §14 (Universal Links).

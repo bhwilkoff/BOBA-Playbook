@@ -155,6 +155,57 @@ header { flex-shrink: 0; position: relative; }
 
 ---
 
+## Android App
+
+Native second client, planned starting 2026. See [`ANDROID-DESIGN.md`](./ANDROID-DESIGN.md) (binding design) and [`ANDROID-DEV.md`](./ANDROID-DEV.md) (engineering reference) for the full pair.
+
+### Tech Stack
+- **Kotlin 2.2+** + **Jetpack Compose** + **Material 3 / Material 3 Expressive** (DECISIONS.md #041)
+- `minSdk = 29` (Android 10), `targetSdk = 36` (Android 16) at launch; `compileSdk = 36` or `37`
+- **Single-Activity architecture** — one `MainActivity` hosts a `NavHost`; no Fragments, no XML layouts, no AppCompat
+- **Hilt** (compile-time DI) + **Navigation Compose 2.8+** with type-safe routes
+- **Room 3.x** for structured data + **DataStore Preferences** for settings + **Tink-encrypted DataStore** for secrets (NOT EncryptedSharedPreferences — deprecated)
+- **Ktor Client 3.x** with OkHttp engine — shares connection pool with Coil 3
+- **Coil 3** for image loading (configured 60 MB memory / 500 MB disk to match iOS NSCache + URLCache)
+- **CameraX 1.5+** + **ML Kit Text Recognition v2 (bundled)** for scan (DECISIONS.md #043)
+- **Credential Manager** + Sign in with Google (primary); Discord OAuth via **Auth Tab / Custom Tabs**
+- **FCM** for push notifications; **Glance** for home-screen widgets (when scoped)
+- **kotlinx.serialization** for JSON; **kotlin.test** + MockK + Turbine + **Roborazzi** for screenshot tests
+
+### Project Structure
+```
+android/
+├── app/                  ← composition root, manifest, R8 config
+├── baselineprofile/      ← Macrobenchmark module producing baseline-prof.txt
+├── core/
+│   ├── ui/               ← BobaTheme + primitives (BOBACardCell etc.)
+│   ├── data/             ← Room DAOs, Repositories, sync layer
+│   ├── domain/           ← PURE Kotlin (no Android imports) — seed for future KMP :shared
+│   └── network/          ← Ktor wrappers, CDN helpers, Supabase client
+├── feature/{find,learn,decks,collection,purchase,scan,profile,carddetail}/
+└── build-logic/          ← Gradle convention plugins
+```
+
+### Android Conventions
+- All UI via Compose Material 3 / M3 Expressive — never XML, AppCompat, or legacy ActionBar
+- Single immutable `data class UiState` + sealed `Event` per screen — UDF / state hoisting
+- ViewModel injected at screen Composable only; pass `uiState` + `onEvent` lambda down
+- **Every Cloudflare Worker / Storage call calls `refreshIfNeeded()` first** (the iOS v2.279 lesson translated)
+- Stable keys on every `LazyVerticalGrid`/`LazyColumn` `items(...)` — non-negotiable for the 17K-card Find grid
+- **edge-to-edge mandatory** on `targetSdk >= 35` — let `Scaffold` handle insets; `WindowInsets` everywhere else
+- **Predictive back gesture** must work — let M3 components animate; `BackHandler` only for unsaved-changes confirmation
+- **Adaptive layouts via `currentWindowAdaptiveInfo()`** — single Composable hierarchy, size-class-responsive
+- Brand theme by default; dynamic color (Material You) is an opt-in user setting (DECISIONS.md #042)
+- **No multi-step walkthroughs** (DECISIONS.md #044) — use `TooltipBox` + `BOBAHintBanner` + `BOBAEmptyState`
+
+### Android Constraints
+- Same monorepo as iOS + web; Android lives under `/android/`
+- No XML layouts or AppCompat — Compose-only
+- Tink-encrypted DataStore for all secrets — never SharedPreferences
+- Material 3 components first; custom only when no spec component fits
+
+---
+
 ## Shared Design System
 
 **Design language:** Retro-futurism + Cyberpunk + Glassmorphism. Card art is always the focal point — UI chrome frames it, never competes. Bold, legible stats at a glance.
@@ -253,8 +304,11 @@ Cost + DBS for Plays render BELOW the canonical six.
 | `DECISIONS.md` | Architecture decision log |
 | `DESIGN.md` | iOS design theory — binding rules for every iOS UI feature |
 | `WEB-DESIGN.md` | Web design theory — binding rules for every web UI feature |
+| `ANDROID-DESIGN.md` | Android design theory — binding rules for every Android UI feature |
+| `ANDROID-DEV.md` | Android engineering reference — stack, build, integration, conventions |
 | `TRADE-DESIGN.md` | P2P trading design — binding rules for matching, messaging, payment guidance, fraud prevention, dispute flow |
-| `SCRATCHPAD.md` | Feature parity tracker and milestone status |
+| `PARITY.md` | Feature parity tracker across iOS / Web / Android — single source of truth for what ships where |
+| `SCRATCHPAD.md` | Active work notes and milestone status |
 | `docs/HERO_SHOT_ARCHITECTURE.md` | Hero Shot 3D card-video feature — architecture, iteration journal, and how to use the sim for self-validation |
 | `tools/HeroShotSim/sim3d.swift` | macOS RealityFoundation sim mirroring the iOS Hero Shot scene — render PNG contact sheets to validate visual changes before shipping |
 
@@ -282,9 +336,13 @@ Cost + DBS for Plays render BELOW the canonical six.
 
 - **UI/UX:** `KUI:system/brand/screen/review/code/a11y/darkmode`, `ui-ux-pro-max`, `frontend-design`
 - **iOS:** `all-ios-skills:<name>` — swiftui-patterns, swiftui-navigation, swiftui-animation, swiftui-performance, swiftdata, ios-networking, ios-security, vision-framework, photos-camera-media, storekit, swift-charts, swift-concurrency, swift-testing, debugging-instruments, app-store-review, codable-patterns
+- **Android** (install when starting M0): no single umbrella plugin equivalent to `all-ios-skills`. Recommended install set per ANDROID-DEV.md §15:
+  - Tier 1 (official): `android/skills` (Google), `Kotlin/kotlin-agent-skills` (JetBrains)
+  - Tier 2 (community): `chrisbanes/skills`, `rcosteira79/android-skills`, `Drjacky/claude-android-ninja`, `skydoves/android-testing-skills`, `skydoves/compose-performance-skills`, `aldefy/compose-skill`
+  - Gaps (write project-local skills): ML Kit, CameraX dev guide, Credential Manager, BiometricPrompt, FCM, App Links, Android Keystore, Play Billing tutorial
 - **3D / RealityKit:** `realitykit-3d-card-rendering`, `3d-feature-sim-validation`, `3d-feature-debug-loop` — patterns + methodology for offline-sim-validated iteration on 3D card features. Read `docs/HERO_SHOT_ARCHITECTURE.md` for the BOBA-specific context.
 - **Workflow / discipline:**
-  - `binding-design-doc-discipline` — invoke before proposing any UI work; quote the rule from DESIGN.md / WEB-DESIGN.md / TRADE-DESIGN.md that justifies the change.
+  - `binding-design-doc-discipline` — invoke before proposing any UI work; quote the rule from DESIGN.md / WEB-DESIGN.md / ANDROID-DESIGN.md / TRADE-DESIGN.md that justifies the change.
   - `architectural-decision-log` — invoke when about to write a DECISIONS.md entry, or auditing one.
   - `feature-shipping-discipline` — the end-to-end 7-step ship sequence (read docs → propose with rule quote → build → validate → bump version → commit with user-quote → push on authorization).
 - **Design principles:**
@@ -298,4 +356,10 @@ Cost + DBS for Plays render BELOW the canonical six.
 ---
 
 ## Current State
-See @SCRATCHPAD.md for milestone status. See @DECISIONS.md for architecture decisions. **For any UI / IA work, consult @DESIGN.md (iOS) or @WEB-DESIGN.md (web) before proposing — both are binding.** **For any P2P trading / matching / messaging / payment-guidance work, consult @TRADE-DESIGN.md — binding.**
+See @SCRATCHPAD.md for milestone status. See @DECISIONS.md for architecture decisions. See @PARITY.md for feature parity across iOS / Web / Android.
+
+**For any UI / IA work, consult the binding doc for the target platform BEFORE proposing:** @DESIGN.md (iOS), @WEB-DESIGN.md (web), or @ANDROID-DESIGN.md (Android). All three are binding for their respective platform.
+
+**For any P2P trading / matching / messaging / payment-guidance work, consult @TRADE-DESIGN.md — binding.**
+
+**Cross-platform parity rule:** when shipping any user-facing feature, mirror it on the other platforms in the same change set where feasible, and update @PARITY.md.

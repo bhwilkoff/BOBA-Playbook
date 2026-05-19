@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- BOBA brand palette — see ANDROID-DESIGN.md §11.2 + DECISIONS.md #010.
+     UI chrome uses these via BobaTheme's colorScheme. Element semantic
+     colors (FIRE/ICE/HEX/etc.) live in :core:ui's BobaElements, not here. -->
+<resources>
+    <color name="boba_orange">#FF4D00</color>
+    <color name="boba_cyan">#00F5FF</color>
+    <color name="boba_violet">#8B00FF</color>
+    <color name="boba_near_black">#080810</color>
+    <color name="boba_surface">#0D0D1A</color>
+</resources>

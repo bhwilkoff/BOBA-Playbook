@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS Keychain-equivalent secrets live in Tink-encrypted DataStore;
+     auto-backup excludes those by default. We don't add explicit
+     include/exclude here yet — revisit when v1 launches.  -->
+<full-backup-content>
+    <!-- Keep the catalog bundle out of cloud backup — it's bundled
+         in the APK anyway. -->
+    <exclude domain="file" path="cards.json" />
+    <exclude domain="file" path="cards-head.json" />
+</full-backup-content>

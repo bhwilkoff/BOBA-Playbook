@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Android 12+ Splash Screen API. -->
+    <style name="Theme.BOBAPlaybook.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/boba_near_black</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.BOBAPlaybook</item>
+    </style>
+
+</resources>

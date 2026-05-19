@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Base theme: edge-to-edge transparent system bars; everything else
+         comes from Compose's MaterialTheme via BobaTheme.kt. The XML theme
+         is intentionally minimal — the real palette + typography ship in
+         Compose so brand changes don't require dual-edit. -->
+    <style name="Theme.BOBAPlaybook" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="android:windowBackground">@color/boba_near_black</item>
+    </style>
+
+    <!-- Splash theme — Android 12+ Splash Screen API.
+         Same XOXO mark + near-black background. Concrete splash icon
+         ships via res/drawable + values-v31. -->
+    <style name="Theme.BOBAPlaybook.Splash" parent="Theme.BOBAPlaybook">
+        <!-- Pre-v31 fallback: render the brand window background while loading. -->
+    </style>
+
+</resources>

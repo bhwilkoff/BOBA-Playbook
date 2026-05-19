@@ -1,0 +1,111 @@
+name: Android · build
+
+# Symmetric with Xcode Cloud (which watches BOBAPlaybook.xcodeproj/).
+# This workflow watches android/ — PR builds, main-branch debug builds,
+# and tag-pushes promote to the Play Store Internal Testing track.
+#
+# Gradle wrapper is checked in by Android Studio on first project open;
+# this workflow assumes it's present.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - 'assets/data/**'
+      - 'BOBAPlaybook/Resources/Fonts/**'
+      - '.github/workflows/android-build.yml'
+    tags:
+      - 'v*-android'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - 'assets/data/**'
+      - 'BOBAPlaybook/Resources/Fonts/**'
+      - '.github/workflows/android-build.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-home-cache-cleanup: true
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Sync shared assets
+        run: bash android/scripts/sync_shared_assets.sh
+
+      - name: Assemble debug
+        working-directory: android
+        run: ./gradlew :app:assembleDebug --no-daemon
+
+      - name: Unit tests
+        working-directory: android
+        run: ./gradlew test --no-daemon
+
+      - name: Compose preview lint
+        working-directory: android
+        # M3 ships compose-only screens that ship @Preview alongside.
+        # Run lintDebug to catch obvious issues (missing previews,
+        # unused resources, etc.).
+        run: ./gradlew :app:lintDebug --no-daemon
+        continue-on-error: true   # advisory during M0; tighten in M8
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+
+  # M8 unlocks the Play Store upload job — gated on a `v*-android` tag.
+  # Stays as a stub for now; uncomment + wire ASC_*/PLAY_* secrets when
+  # the upload keystore is set up (SETUP.md B1) and Play Console is live.
+  #
+  # play-store-internal:
+  #   if: startsWith(github.ref, 'refs/tags/v') && endsWith(github.ref, '-android')
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Set up JDK 17
+  #       uses: actions/setup-java@v4
+  #       with:
+  #         distribution: temurin
+  #         java-version: 17
+  #     - name: Set up Gradle
+  #       uses: gradle/actions/setup-gradle@v4
+  #     - name: Decrypt keystore
+  #       env:
+  #         KEYSTORE_B64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+  #       run: echo "$KEYSTORE_B64" | base64 -d > android/app/boba-upload.jks
+  #     - name: Assemble release bundle
+  #       working-directory: android
+  #       env:
+  #         KEYSTORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+  #         KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
+  #         KEY_ALIAS: boba-upload
+  #       run: ./gradlew :app:bundleRelease --no-daemon
+  #     - name: Upload to Play Store
+  #       uses: r0adkll/upload-google-play@v1
+  #       with:
+  #         serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+  #         packageName: com.bobaplaybook.app
+  #         releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+  #         track: internal
+  #         status: completed

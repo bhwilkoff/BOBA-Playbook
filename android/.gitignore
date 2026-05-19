@@ -1,0 +1,58 @@
+# ------------------------------------------------------------
+# Gradle / Android build artifacts
+# ------------------------------------------------------------
+*.iml
+.gradle/
+local.properties
+.idea/
+**/build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# ------------------------------------------------------------
+# Keystores — NEVER COMMIT
+# ------------------------------------------------------------
+*.jks
+*.keystore
+keystore.properties
+
+# ------------------------------------------------------------
+# Secrets / generated config
+# ------------------------------------------------------------
+# google-services.json is safe to commit per Firebase docs (contains
+# only public identifiers), but until M7 wires Firebase fully, we don't
+# need it yet. Uncomment the line below if you want to keep it
+# git-ignored during development.
+# google-services.json
+
+# ------------------------------------------------------------
+# Bundled assets — synced from /assets/data/ + iOS Fonts/ via
+# scripts/sync_shared_assets.sh. We DO commit them (the iOS bundle
+# is already in git at BOBAPlaybook/display-cards.json; mirroring
+# the same posture keeps Android devs from needing to run the
+# sync before they can open the project). The Gradle preBuild task
+# refreshes them on every build so they stay current.
+# ------------------------------------------------------------
+# (no exclusion here — see scripts/sync_shared_assets.sh)
+
+# ------------------------------------------------------------
+# IntelliJ / Android Studio user-local files
+# ------------------------------------------------------------
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/gradle.xml
+.idea/assetWizardSettings.xml
+.idea/dictionaries
+.idea/libraries
+.idea/caches
+.idea/modules.xml
+.idea/navEditor.xml
+.idea/jarRepositories.xml
+.idea/runConfigurations.xml
+
+# ------------------------------------------------------------
+# OS noise
+# ------------------------------------------------------------
+.DS_Store
+Thumbs.db

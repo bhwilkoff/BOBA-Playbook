@@ -12,12 +12,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
-import com.bobaplaybook.app.feature.CollectionPlaceholder
 import com.bobaplaybook.app.feature.DecksPlaceholder
 import com.bobaplaybook.app.feature.LearnPlaceholder
 import com.bobaplaybook.app.feature.PurchasePlaceholder
 import com.bobaplaybook.app.feature.carddetail.CardDetailScreen
+import com.bobaplaybook.app.feature.collection.CollectionScreen
 import com.bobaplaybook.app.feature.find.FindScreen
+import com.bobaplaybook.app.feature.scan.ScanScreen
 import com.bobaplaybook.app.navigation.AppDestination
 import com.bobaplaybook.core.ui.theme.BobaTheme
 
@@ -46,10 +47,11 @@ fun BOBAApp() {
             mutableStateOf(AppDestination.FIND)
         }
         // M1 ships per-tab "selected card" as a single nullable bobaId.
-        // M2 promotes this to per-tab Nav3 back stacks. (Keeping the
-        // adoption surface small in M1 so the navigation skeleton
-        // proves out before we layer richer routing on top.)
+        // M2+ keeps the same lightweight model — Nav3 NavBackStack
+        // adoption deferred until a real second push level lands.
         var detailBobaId by rememberSaveable { mutableStateOf<String?>(null) }
+        // Cross-cutting Scan flow — modal over the current tab.
+        var scanActive by rememberSaveable { mutableStateOf(false) }
 
         NavigationSuiteScaffold(
             navigationSuiteItems = {
@@ -71,7 +73,15 @@ fun BOBAApp() {
                 }
             },
         ) {
-            if (detailBobaId != null) {
+            if (scanActive) {
+                ScanScreen(
+                    onBack = { scanActive = false },
+                    onMatch = { matchedBobaId ->
+                        scanActive = false
+                        detailBobaId = matchedBobaId
+                    },
+                )
+            } else if (detailBobaId != null) {
                 CardDetailScreen(
                     bobaId = detailBobaId!!,
                     onBack = { detailBobaId = null },
@@ -81,11 +91,11 @@ fun BOBAApp() {
                     AppDestination.FIND -> FindScreen(
                         onCardClick = { detailBobaId = it },
                         onProfileClick = { /* M7 — Profile sheet */ },
-                        onScanClick = { /* M3 — Scan flow */ },
+                        onScanClick = { scanActive = true },
                     )
                     AppDestination.LEARN      -> LearnPlaceholder()
                     AppDestination.DECKS      -> DecksPlaceholder()
-                    AppDestination.COLLECTION -> CollectionPlaceholder()
+                    AppDestination.COLLECTION -> CollectionScreen()
                     AppDestination.PURCHASE   -> PurchasePlaceholder()
                 }
             }

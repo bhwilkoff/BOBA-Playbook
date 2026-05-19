@@ -2,7 +2,7 @@
 
 > **Binding.** Every new view, sheet, button, filter in the iOS app must trace to a rule here. When something feels overwhelming or inconsistent, fix the document, then fix the feature.
 >
-> Companion to [`CLAUDE.md`](./CLAUDE.md), [`DECISIONS.md`](./DECISIONS.md). Reference, don't duplicate.
+> Companion to [`CLAUDE.md`](./CLAUDE.md), [`DECISIONS.md`](./DECISIONS.md), [`WEB-DESIGN.md`](./WEB-DESIGN.md) (web), [`ANDROID-DESIGN.md`](./ANDROID-DESIGN.md) (Android), [`PARITY.md`](./PARITY.md) (cross-platform feature matrix). This doc owns iOS-specific rules; sibling docs translate the principles to web and Android. Reference, don't duplicate.
 
 ---
 

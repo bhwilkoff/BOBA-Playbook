@@ -9,7 +9,9 @@
 >
 > Companion to [`DESIGN.md`](./DESIGN.md) (binding iOS doc),
 > [`WEB-DESIGN.md`](./WEB-DESIGN.md) (binding web doc),
-> [`DECISIONS.md`](./DECISIONS.md) (architecture log), and
+> [`ANDROID-DESIGN.md`](./ANDROID-DESIGN.md) (binding Android doc),
+> [`DECISIONS.md`](./DECISIONS.md) (architecture log),
+> [`PARITY.md`](./PARITY.md) (cross-platform feature matrix), and
 > [`CLAUDE.md`](./CLAUDE.md) (project context).
 >
 > Ratified 2026-05-05 from four parallel research agents (Apple

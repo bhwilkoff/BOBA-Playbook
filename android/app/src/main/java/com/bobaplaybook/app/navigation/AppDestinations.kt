@@ -23,7 +23,7 @@ import com.bobaplaybook.app.R
  */
 enum class AppDestination(
     val route: TopRoute,
-    @StringRes val labelRes: Int,
+    @param:StringRes val labelRes: Int,
     val icon: ImageVector,
 ) {
     FIND      (TopRoute.Find,       R.string.tab_find,       Icons.Default.Search),

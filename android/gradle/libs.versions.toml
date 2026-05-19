@@ -28,11 +28,10 @@ agp                       = "9.2.0"
 kotlin                    = "2.3.21"
 ksp                       = "2.3.8"
 compose-bom               = "2026.05.00"
-# Material 3 stays on the BOM's stable line for M0 (compileSdk 36).
-# To unlock M3 Expressive APIs (FAB Menu, Floating Toolbar, Wavy
-# Indicators), install Android 17 SDK (API 37) via Studio's SDK
-# Manager + bump compile-sdk to 37 + uncomment the override below.
-# compose-material3       = "1.5.0-alpha19"
+# Material 3 Expressive alpha (FAB Menu, Floating Toolbar, Wavy
+# Indicators, expressive motion tokens). Requires compileSdk 37 +
+# Android 17 SDK installed — we have both, so unlock.
+compose-material3         = "1.5.0-alpha19"
 material3-adaptive        = "1.1.0"
 hilt                      = "2.59.2"
 nav3                      = "1.0.1"
@@ -69,8 +68,8 @@ okhttp                    = "4.12.0"
 
 # Project SDK targets (DECISIONS.md #041, #047)
 min-sdk                   = "29"      # Android 10 — >95% device coverage
-target-sdk                = "36"      # Android 16 — required for Play Store publish in 2026
-compile-sdk               = "36"
+target-sdk                = "36"      # Android 16 — minimum-required for Play Store publish in 2026
+compile-sdk               = "37"      # Android 17 — Material 3 Expressive APIs require this
 
 [libraries]
 # ----- Compose -----
@@ -81,10 +80,10 @@ compose-ui-tooling-preview  = { module = "androidx.compose.ui:ui-tooling-preview
 compose-ui-test-junit4      = { module = "androidx.compose.ui:ui-test-junit4" }
 compose-ui-test-manifest    = { module = "androidx.compose.ui:ui-test-manifest" }
 compose-foundation          = { module = "androidx.compose.foundation:foundation" }
-# Material 3 — version-managed by the BOM by default.
-# Uncomment the version.ref to pin to the M3 Expressive alpha line
-# (requires compileSdk 37 — install API 37 in Studio SDK Manager first).
-compose-material3           = { module = "androidx.compose.material3:material3" }
+# Material 3 — pinned to the Expressive alpha line so we can opt into
+# FAB Menu, Floating Toolbar, Wavy Indicators, expressive motion.
+# Overrides the BOM's stable for this artifact only.
+compose-material3           = { module = "androidx.compose.material3:material3", version.ref = "compose-material3" }
 compose-material3-adaptive  = { module = "androidx.compose.material3.adaptive:adaptive", version.ref = "material3-adaptive" }
 compose-material3-adaptive-layout = { module = "androidx.compose.material3.adaptive:adaptive-layout", version.ref = "material3-adaptive" }
 compose-material3-adaptive-navigation = { module = "androidx.compose.material3.adaptive:adaptive-navigation", version.ref = "material3-adaptive" }

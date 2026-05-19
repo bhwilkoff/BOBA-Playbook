@@ -51,6 +51,7 @@ import com.bobaplaybook.app.feature.scan.rememberScanCoordinator
 import com.bobaplaybook.app.navigation.AppDestination
 import com.bobaplaybook.app.navigation.NavRoutes
 import com.bobaplaybook.core.ui.components.BOBAOfflinePill
+import com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar
 import com.bobaplaybook.core.ui.theme.BobaTheme
 import com.bobaplaybook.core.ui.transitions.LocalNavAnimatedVisibilityScope
 import com.bobaplaybook.core.ui.transitions.LocalSharedTransition
@@ -83,9 +84,13 @@ fun BOBAApp(
         var scanActive by rememberSaveable { mutableStateOf(false) }
         var profileOpen by rememberSaveable { mutableStateOf(false) }
         val isOnline by connectivityState.isOnline.collectAsStateWithLifecycle(initialValue = true)
+        val appSnackbar = remember { androidx.compose.material3.SnackbarHostState() }
 
         SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
-            CompositionLocalProvider(LocalSharedTransition provides this@SharedTransitionLayout) {
+            CompositionLocalProvider(
+                LocalSharedTransition provides this@SharedTransitionLayout,
+                LocalAppSnackbar provides appSnackbar,
+            ) {
                 NavigationSuiteScaffold(
                     navigationSuiteItems = {
                         AppDestination.entries.forEach { destination ->
@@ -181,6 +186,18 @@ fun BOBAApp(
                     BOBAOfflinePill()
                 }
             }
+        }
+
+        // App-scoped Snackbar host — bottom-anchored, reachable from
+        // any screen via LocalAppSnackbar.current.showSnackbar(...).
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            androidx.compose.material3.SnackbarHost(
+                hostState = appSnackbar,
+                modifier = Modifier.padding(bottom = 96.dp),
+            )
         }
     }
 }

@@ -20,10 +20,12 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import android.content.Intent
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -51,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -93,6 +96,12 @@ fun CollectionScreen(
             LargeTopAppBar(
                 title = { Text("Collection") },
                 actions = {
+                    val context = LocalContext.current
+                    IconButton(onClick = {
+                        shareCollection(context, designation, displayMode)
+                    }) {
+                        Icon(Icons.Default.Share, contentDescription = "Share")
+                    }
                     Box {
                         IconButton(onClick = { menuOpen = true }) {
                             Icon(Icons.Default.MoreVert, contentDescription = "More")
@@ -361,4 +370,23 @@ private fun QuantityBadge(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
         )
     }
+}
+
+private fun shareCollection(
+    context: android.content.Context,
+    designation: Designation,
+    displayMode: DisplayMode,
+) {
+    // v1 share: text link to the public collection page (requires the
+    // user to have toggled sharing ON in Profile). Full PNG export of
+    // the Wall view via GraphicsLayer.toImageBitmap() is a follow-up —
+    // needs FileProvider XML config + cache-cleanup policy.
+    val text = "Check out my BOBA Playbook ${designation.label.lowercase()}!\n" +
+               "https://bobaplaybook.com/u/your-handle"
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, "My BOBA ${designation.label}")
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    context.startActivity(Intent.createChooser(intent, "Share collection"))
 }

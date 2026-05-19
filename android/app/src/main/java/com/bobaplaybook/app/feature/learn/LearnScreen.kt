@@ -100,7 +100,7 @@ private fun CategoryList(
             LargeTopAppBar(
                 title = { Text("Learn") },
                 scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.largeTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
             )

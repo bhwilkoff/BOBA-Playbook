@@ -7,7 +7,6 @@ import com.bobaplaybook.app.BuildConfig
 import com.bobaplaybook.core.network.SupabaseConfig
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
@@ -44,9 +43,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * Custom Tabs instead of Credential Manager.
  */
 @Singleton
-class AuthManager @Inject constructor(
-    @ApplicationContext private val context: Context,
-) {
+class AuthManager @Inject constructor() {
 
     val client: SupabaseClient = createSupabaseClient(
         supabaseUrl = SupabaseConfig.URL,

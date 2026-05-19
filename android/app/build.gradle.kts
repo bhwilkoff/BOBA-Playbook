@@ -7,8 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
-    // Uncomment AFTER you commit `google-services.json` to /android/app/
-    // alias(libs.plugins.google.services)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -30,7 +29,11 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
+            // Don't suffix applicationId in debug — keeps the same
+            // package name as release so google-services.json's single
+            // Firebase Android app registration matches both build
+            // types. Trade-off: can't install debug + release side-by-
+            // side on the same device. Worth it for the simpler config.
             versionNameSuffix = "-debug"
             isMinifyEnabled = false
         }
@@ -144,9 +147,8 @@ dependencies {
     implementation(libs.coroutines.android)
 
     // Firebase (FCM only — DECISIONS.md #052)
-    // Uncomment AFTER committing google-services.json:
-    // implementation(platform(libs.firebase.bom))
-    // implementation(libs.firebase.messaging)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 
     // Tests
     testImplementation(libs.junit)

@@ -60,7 +60,7 @@ androidx-lifecycle        = "2.8.7"
 androidx-activity         = "1.9.3"
 splashscreen              = "1.0.1"
 window                    = "1.3.0"
-firebase-bom              = "33.5.1"
+firebase-bom              = "34.13.0"
 junit                     = "4.13.2"
 junit-androidx            = "1.2.1"
 espresso                  = "3.6.1"
@@ -152,7 +152,7 @@ biometric-compose           = { module = "androidx.biometric:biometric-compose",
 
 # ----- Firebase -----
 firebase-bom                = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
-firebase-messaging          = { module = "com.google.firebase:firebase-messaging-ktx" }
+firebase-messaging          = { module = "com.google.firebase:firebase-messaging" }
 
 # ----- Other -----
 kotlinx-serialization-json  = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
@@ -185,5 +185,5 @@ kotlin-compose              = { id = "org.jetbrains.kotlin.plugin.compose", vers
 kotlin-serialization        = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp                         = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt                        = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
-google-services             = { id = "com.google.gms.google-services", version = "4.4.2" }
+google-services             = { id = "com.google.gms.google-services", version = "4.4.4" }
 roborazzi                   = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }

@@ -129,10 +129,9 @@ private fun SectionRenderer(section: LearnSection, glossaryTerms: List<String>) 
     when (section) {
         is LearnSection.Body -> {
             section.heading?.let { BOBASectionHeader(title = it) }
-            Text(
+            GlossaryRichText(
                 text = section.text,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                glossaryTerms = glossaryTerms,
             )
         }
         is LearnSection.Bullets -> {

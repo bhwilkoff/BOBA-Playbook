@@ -28,6 +28,7 @@ data class CardDetailUiState(
     val ebayActive: ImmutableList<PricingListing> = persistentListOf(),
     val ebaySold: ImmutableList<PricingListing> = persistentListOf(),
     val radishSales: ImmutableList<PricingListing> = persistentListOf(),
+    val otherVersions: ImmutableList<Card> = persistentListOf(),
 ) {
     val marketEstimateUsd: Double?
         get() {
@@ -84,15 +85,24 @@ class CardDetailViewModel @Inject constructor(
                 }
         }
         return combine(
-            cardRepository.cards.map { it.firstOrNull { c -> c.bobaId == bobaId } },
+            cardRepository.cards,
             pricingState,
-        ) { card, pricing ->
+        ) { cards, pricing ->
+            val card = cards.firstOrNull { c -> c.bobaId == bobaId }
+            val otherVersions = card?.let { c ->
+                cards.asSequence()
+                    .filter { it.bobaId != bobaId && it.hero.equals(c.hero, ignoreCase = true) && c.hero.isNotEmpty() }
+                    .filter { !it.imageFile.isNullOrEmpty() }
+                    .take(12)
+                    .toList()
+            } ?: emptyList()
             CardDetailUiState(
                 card = card,
                 isLoadingPricing = pricing.isLoading,
                 ebayActive = pricing.ebayActive[bobaId].orEmpty().toPersistentList(),
                 ebaySold = pricing.ebaySold[bobaId].orEmpty().toPersistentList(),
                 radishSales = pricing.radish[bobaId].orEmpty().toPersistentList(),
+                otherVersions = otherVersions.toPersistentList(),
             )
         }.stateIn(
             scope = viewModelScope,

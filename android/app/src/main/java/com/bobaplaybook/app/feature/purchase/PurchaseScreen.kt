@@ -35,6 +35,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -128,25 +130,31 @@ fun PurchaseScreen(modifier: Modifier = Modifier) {
                             )
                         }
                         else -> {
-                            LazyColumn(
+                            PullToRefreshBox(
+                                isRefreshing = state.isLoadingBreaks,
+                                onRefresh = { viewModel.refreshBreaks() },
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                items(
-                                    items = state.upcomingBreaks,
-                                    key = { it.id },
-                                ) { show ->
-                                    WhatnotTile(
-                                        show = show,
-                                        onClick = {
-                                            if (show.showUrl.isNotBlank()) {
-                                                context.startActivity(
-                                                    Intent(Intent.ACTION_VIEW, show.showUrl.toUri()),
-                                                )
-                                            }
-                                        },
-                                    )
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    items(
+                                        items = state.upcomingBreaks,
+                                        key = { it.id },
+                                    ) { show ->
+                                        WhatnotTile(
+                                            show = show,
+                                            onClick = {
+                                                if (show.showUrl.isNotBlank()) {
+                                                    context.startActivity(
+                                                        Intent(Intent.ACTION_VIEW, show.showUrl.toUri()),
+                                                    )
+                                                }
+                                            },
+                                        )
+                                    }
                                 }
                             }
                         }

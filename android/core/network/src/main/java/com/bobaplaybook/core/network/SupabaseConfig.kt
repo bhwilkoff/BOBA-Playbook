@@ -12,11 +12,29 @@ package com.bobaplaybook.core.network
  */
 object SupabaseConfig {
 
-    // TODO(M7): fill these in from the existing iOS / web BOBAPlaybook
-    //  Supabase project. The URL pattern is `https://<project-id>.
-    //  supabase.co`. The anon key is the `eyJ...` Bearer JWT visible in
-    //  Supabase dashboard → Project Settings → API. Same values used by
-    //  iOS (`BOBAPlaybook/Networking/SupabaseClient.swift`).
-    const val URL = "https://REPLACE_WITH_SUPABASE_URL.supabase.co"
-    const val ANON_KEY = "REPLACE_WITH_SUPABASE_ANON_KEY"
+    /**
+     * Public project URL. Same project as iOS + web — confirmed by
+     * matching project ID `pazkimtkwwwekuguxkff` against
+     * `BOBAPlaybook/Networking/SupabaseClient.swift`.
+     */
+    const val URL = "https://pazkimtkwwwekuguxkff.supabase.co"
+
+    /**
+     * Publishable key (`sb_publishable_…`) — the modern equivalent of
+     * the legacy `anon` key. RLS-gated; safe to bundle in the client
+     * APK per Supabase docs.
+     *
+     * The matching `sb_secret_…` (service-role) key is NEVER stored
+     * here — that's a Cloudflare Worker secret only (see
+     * `WorkerConfig.kt` + worker `wrangler.toml` files).
+     */
+    const val PUBLISHABLE_KEY = "sb_publishable_SjHCvLfeJl4XsuMWgKe5Xg_OLE0rkVF"
+
+    /**
+     * Back-compat alias for code that still imports `ANON_KEY` — the
+     * publishable key is a drop-in replacement per the 2026 key
+     * migration (legacy anon stays valid through end of 2026 but
+     * publishable is the forward-compatible path).
+     */
+    const val ANON_KEY = PUBLISHABLE_KEY
 }

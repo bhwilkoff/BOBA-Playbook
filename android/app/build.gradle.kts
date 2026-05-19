@@ -123,6 +123,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.browser)         // Chrome Custom Tabs for Discord OAuth + ToS / Privacy links
+    implementation(libs.datastore.preferences)    // grid-density + first-run hint dismissal
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)

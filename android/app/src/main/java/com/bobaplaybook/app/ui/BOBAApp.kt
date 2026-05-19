@@ -43,8 +43,11 @@ import com.bobaplaybook.app.feature.decks.DecksScreen
 import com.bobaplaybook.app.feature.find.FindScreen
 import com.bobaplaybook.app.feature.learn.LearnScreen
 import com.bobaplaybook.app.feature.profile.ProfileSheet
+import com.bobaplaybook.app.feature.decks.DeckStore
 import com.bobaplaybook.app.feature.purchase.PurchaseScreen
+import com.bobaplaybook.app.feature.scan.ScanDestination
 import com.bobaplaybook.app.feature.scan.ScanScreen
+import com.bobaplaybook.app.feature.scan.rememberScanCoordinator
 import com.bobaplaybook.app.navigation.AppDestination
 import com.bobaplaybook.app.navigation.NavRoutes
 import com.bobaplaybook.core.ui.components.BOBAOfflinePill
@@ -65,7 +68,10 @@ import com.bobaplaybook.core.ui.transitions.LocalSharedTransition
  * adapt via `currentWindowAdaptiveInfo()`.
  */
 @Composable
-fun BOBAApp(authManager: AuthManager, connectivityState: ConnectivityState) {
+fun BOBAApp(
+    authManager: AuthManager,
+    connectivityState: ConnectivityState,
+) {
     BobaTheme {
         // One NavController per tab so back stacks don't cross-pollute.
         val tabControllers = remember {
@@ -108,12 +114,30 @@ fun BOBAApp(authManager: AuthManager, connectivityState: ConnectivityState) {
                     },
                 ) {
                     if (scanActive) {
+                        // Scan coordinator routes the match by current tab
+                        // context — Find/Collection → card detail push;
+                        // Decks → DeckStore.add, no nav. Single scan UI.
+                        val scanCoordinator = rememberScanCoordinator()
+                        val cardRepository = androidx.hilt.navigation.compose.hiltViewModel<com.bobaplaybook.app.feature.scan.ScanCoordinatorViewModel>()
+                            .cardRepository
                         ScanScreen(
                             onBack = { scanActive = false },
                             onMatch = { matchedBobaId ->
                                 scanActive = false
-                                val ctrl = tabControllers[currentDestination]
-                                ctrl?.navigate(NavRoutes.cardDetail(matchedBobaId))
+                                val destination = when (currentDestination) {
+                                    AppDestination.DECKS      -> ScanDestination.CURRENT_DECK
+                                    AppDestination.COLLECTION -> ScanDestination.COLLECTION
+                                    else                       -> ScanDestination.CARD_DETAIL
+                                }
+                                val navTarget = scanCoordinator.onMatch(
+                                    bobaId = matchedBobaId,
+                                    destination = destination,
+                                    cardRepository = cardRepository,
+                                )
+                                if (navTarget != null) {
+                                    val ctrl = tabControllers[currentDestination]
+                                    ctrl?.navigate(NavRoutes.cardDetail(navTarget))
+                                }
                             },
                         )
                     } else {

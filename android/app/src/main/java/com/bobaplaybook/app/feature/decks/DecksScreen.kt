@@ -54,8 +54,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bobaplaybook.app.feature.find.FindEvent
 import com.bobaplaybook.app.feature.find.FindViewModel
+import com.bobaplaybook.app.hints.HintsStore
+import com.bobaplaybook.app.hints.HintsViewModel
 import com.bobaplaybook.core.domain.model.Card
 import com.bobaplaybook.core.ui.components.BOBACardCell
+import com.bobaplaybook.core.ui.components.BOBAHintBanner
 import com.bobaplaybook.core.ui.components.BOBAWordmark
 import com.bobaplaybook.core.ui.transitions.cardSharedBounds
 
@@ -84,6 +87,10 @@ fun DecksScreen(
     val findState by findViewModel.uiState.collectAsStateWithLifecycle()
     val deckViewModel: DecksViewModel = hiltViewModel()
     val draft by deckViewModel.draft.collectAsStateWithLifecycle()
+    val hintsViewModel: HintsViewModel = hiltViewModel()
+    val longPressHintDismissed by hintsViewModel
+        .isDismissed(HintsStore.Ids.DECKS_LONG_PRESS_TO_ADD)
+        .collectAsStateWithLifecycle(initialValue = true)
     var editorOpen by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
 
@@ -149,6 +156,13 @@ fun DecksScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
+            if (!longPressHintDismissed) {
+                BOBAHintBanner(
+                    title = "Long-press to add",
+                    body = "Long-press any card in the pool to add it to your deck draft. Tap to see card detail instead.",
+                    onDismiss = { hintsViewModel.dismiss(HintsStore.Ids.DECKS_LONG_PRESS_TO_ADD) },
+                )
+            }
             // M4 pool reuses FindViewModel's filtered catalog. Polish
             // pass adds Decks-specific filters (format legality).
             CardPoolGrid(

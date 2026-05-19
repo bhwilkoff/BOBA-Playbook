@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -46,6 +48,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,6 +68,7 @@ import com.bobaplaybook.app.R
 import com.bobaplaybook.core.domain.model.Card
 import com.bobaplaybook.core.network.CDN
 import com.bobaplaybook.core.network.PricingListing
+import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
 import com.bobaplaybook.core.ui.components.BOBAPriceTile
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
@@ -93,13 +97,17 @@ fun CardDetailScreen(
 ) {
     val viewModel: CardDetailViewModel = hiltViewModel()
     val state by viewModel.uiStateFor(bobaId).collectAsStateWithLifecycle()
+    val decksViewModel: com.bobaplaybook.app.feature.decks.DecksViewModel = hiltViewModel()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val context = LocalContext.current
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     var addMenuOpen by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
         topBar = {
             LargeTopAppBar(
                 title = { Text(state.card?.displayName ?: "Card") },
@@ -127,15 +135,33 @@ fun CardDetailScreen(
                         ) {
                             DropdownMenuItem(
                                 text = { Text("Add to Collection") },
-                                onClick = { addMenuOpen = false /* M7 — Auth-gated */ },
+                                onClick = {
+                                    addMenuOpen = false
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Sign in required — open Profile from Find")
+                                    }
+                                },
                             )
                             DropdownMenuItem(
                                 text = { Text("Add to Deck") },
-                                onClick = { addMenuOpen = false /* M7 — DeckStore.add */ },
+                                onClick = {
+                                    addMenuOpen = false
+                                    state.card?.let { card ->
+                                        decksViewModel.add(card)
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Added ${card.displayName} to deck")
+                                        }
+                                    }
+                                },
                             )
                             DropdownMenuItem(
                                 text = { Text("Add to Show") },
-                                onClick = { addMenuOpen = false /* M7 — streamer-gated */ },
+                                onClick = {
+                                    addMenuOpen = false
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Streamer role required")
+                                    }
+                                },
                             )
                         }
                     }
@@ -230,6 +256,33 @@ private fun CardDetailBody(
 
         // Pricing
         PricingPanels(state = state)
+
+        // Other versions (same hero, different treatments)
+        if (state.otherVersions.isNotEmpty()) {
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 16.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
+            BOBASectionHeader(title = "Other versions of ${card.displayName}")
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(items = state.otherVersions, key = { it.bobaId }) { other ->
+                    Box(modifier = Modifier.width(80.dp)) {
+                        BOBACardCell(
+                            imageFile = other.imageFile,
+                            contentDescription = other.displayName,
+                            modifier = Modifier.clickable {
+                                // M2-polish — push to nested detail. v1 stays
+                                // on current card; the catalog navigation
+                                // happens via Find or Decks pool.
+                            },
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

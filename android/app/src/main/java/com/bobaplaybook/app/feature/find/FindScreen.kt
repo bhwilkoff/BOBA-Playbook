@@ -62,6 +62,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bobaplaybook.app.R
 import com.bobaplaybook.core.domain.model.Card
+import com.bobaplaybook.core.ui.adaptive.isCompactWidth
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.components.BOBACardSkeleton
 import com.bobaplaybook.core.ui.components.BOBAEmptyState

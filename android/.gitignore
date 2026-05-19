@@ -11,20 +11,38 @@ captures/
 .cxx/
 
 # ------------------------------------------------------------
-# Keystores — NEVER COMMIT
+# Keystores + private keys — NEVER COMMIT
 # ------------------------------------------------------------
 *.jks
 *.keystore
+*.p8
+*.p12
+*.pem
+*.key
 keystore.properties
+play-service-account*.json
+google-cloud-service-account*.json
+*.env
+.env.*
+secrets.properties
+local.properties
 
 # ------------------------------------------------------------
 # Secrets / generated config
 # ------------------------------------------------------------
-# google-services.json is safe to commit per Firebase docs (contains
-# only public identifiers), but until M7 wires Firebase fully, we don't
-# need it yet. Uncomment the line below if you want to keep it
-# git-ignored during development.
-# google-services.json
+# google-services.json IS committed (see android/app/) — Firebase
+# docs explicitly state these client identifiers are not secret. The
+# API key inside is hardware-restricted to com.bobaplaybook.app +
+# the SHA-1 fingerprints registered in Firebase Console, so a leaked
+# key can't be used by other apps. (Industry-standard posture; iOS
+# Apple-style equivalent files are also committed.)
+#
+# DO NOT commit:
+#   - upload-key keystore (~/.android/boba-upload.jks) — handled by *.jks above
+#   - keystore passwords — keep in ~/.gradle/gradle.properties (NOT here)
+#   - Supabase service role key — Worker-only secret, never bundled in app
+#   - Play Service Account JSON for CI — GitHub Actions secret only
+#   - Any *.p8 / *.p12 / *.pem private key
 
 # ------------------------------------------------------------
 # Bundled assets — synced from /assets/data/ + iOS Fonts/ via

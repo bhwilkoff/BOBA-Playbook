@@ -18,16 +18,17 @@ Work through them in order; later steps depend on earlier ones.
 
 ## Phase A — Local toolchain (one-time, ~30 min)
 
-### A1. Install Android Studio
+### A1. Install Android Studio Panda
 
-**Why:** the only practical way to build/run/debug Android. Gradle wrapper, AGP plugin, emulator, ADB, the Layout Inspector — all bundled. The wrapper auto-generates on first project open.
+**Why:** the only practical way to build/run/debug Android. Gradle wrapper, AGP plugin, emulator, ADB, Layout Inspector — all bundled. **Android Studio Panda 4 Patch 1 (2025.3.4)** is the current stable as of May 2026; that's what the project's version catalog targets (AGP 9.2.0, Gradle 9.1+, JDK 21 bundled).
 
 **How:**
-1. Download **Android Studio Otter (2024.x stable)** or whatever current stable is from <https://developer.android.com/studio>.
+1. Download **Android Studio Panda 4 Patch 1** (or current stable) from <https://developer.android.com/studio>.
 2. Drag to `/Applications/` and launch.
-3. First-launch wizard: accept the default install (includes Android SDK Platform-Tools, Build-Tools, an emulator image).
-4. When asked about JDK: Android Studio ships its own bundled JDK 17 — accept the bundled one.
-5. Once at the welcome screen, **don't open the project yet** — finish A2 first.
+3. First-launch wizard: accept the default install (includes Android SDK Platform 36 / Android 16, Build-Tools, emulator image).
+4. When asked about JDK: Android Studio Panda ships a bundled **JBR 21** (JetBrains Runtime, Java 21). Accept the bundled one — AGP 9 requires JDK 17 minimum and 21 is the new sweet spot.
+5. **Important — AGP 9 sets JDK criteria via Gradle Daemon JVM auto-detection.** This means you do NOT need a separate JDK install on the host; Studio's bundled JBR is auto-detected. If your shell's `java -version` reports anything older than 17, that's fine — Studio uses its bundled JBR independently.
+6. Once at the welcome screen, **don't open the project yet** — finish A2 first.
 
 **Verify:**
 ```sh
@@ -41,15 +42,16 @@ ls ~/Library/Android/sdk                  # SDK should be here
 
 ### A2. Install command-line tools
 
-**Why:** lets me run `./gradlew sync`, `gradle wrapper`, and `keytool` from my session if you ever want me to validate the build.
+**Why:** lets me run `./gradlew`, `keytool`, and `adb` from my session if you ever want me to validate the build without bouncing through Studio.
 
 **How:**
 ```sh
-# Adopted from Homebrew
+# adb / fastboot / platform-tools
 brew install --cask android-platform-tools
 
-# Add Android Studio's bundled JDK to your PATH (replace 'Otter' if a newer
-# Android Studio is current):
+# Point shell at Panda's bundled JBR 21 (the path is stable across
+# Studio versions on macOS — same /Contents/jbr/ path that worked
+# for Otter, Narwhal, etc.):
 echo 'export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"' >> ~/.zshrc
 echo 'export PATH="$JAVA_HOME/bin:$PATH"' >> ~/.zshrc
 source ~/.zshrc
@@ -57,9 +59,9 @@ source ~/.zshrc
 
 **Verify:**
 ```sh
-java -version       # should print openjdk 17.x or 21.x
+java -version       # should print openjdk 21.x (Panda's bundled JBR)
 adb --version       # should print Android Debug Bridge version
-keytool -h          # should print keytool usage (uses Java's keytool)
+keytool -h          # should print keytool usage
 ```
 
 **What I do after:** once Java is on your PATH, I can run `./gradlew` myself and validate builds without bouncing back to you.
@@ -68,32 +70,35 @@ keytool -h          # should print keytool usage (uses Java's keytool)
 
 ### A3. Open the project + sync
 
-**Why:** generates the Gradle wrapper (`gradlew`, `gradle-wrapper.jar`, `gradle-wrapper.properties`) which the rest of the workflow depends on.
+**Why:** generates the Gradle wrapper (`gradlew`, `gradle-wrapper.jar`, `gradle-wrapper.properties`) which the rest of the workflow depends on. Studio detects Gradle 9.1+ is required (AGP 9.x) and downloads/auto-configures the wrapper.
 
 **How:**
-1. Launch Android Studio → **Open** → navigate to `/Users/bhwilkoff/Documents/GitHub/BOBA-Playbook/android` → **Open**.
-2. Android Studio prompts: "Gradle wrapper not found. Generate?" → **Yes** (or it'll auto-generate silently).
-3. Wait for Gradle sync to complete (~3-5 min first time — it's downloading every dependency in the version catalog).
-4. If sync fails with a version-conflict error (it might — AGP 8.7 / Kotlin 2.0.21 are pinned but the version catalog may need a small bump): note the error, paste it to me, and I'll bump the relevant versions in `gradle/libs.versions.toml`.
+1. Launch Android Studio Panda → **Open** → navigate to `/Users/bhwilkoff/Documents/GitHub/BOBA-Playbook/android` → **Open**.
+2. Studio prompts: "Gradle wrapper not found. Generate?" → **Yes** (or auto-generates silently). Studio fetches Gradle 9.1+ to match AGP 9.2.0.
+3. Studio then runs the first **Gradle sync** (~3-5 min first time — downloading every dependency in the version catalog).
+4. **AGP 9 first-sync note:** Studio may show a one-time "AGP includes built-in Kotlin support" info card. That's expected; it confirms the catalog config worked. Dismiss it.
+5. **If sync fails with a version-conflict error**, paste the error to me. The most common cause in a Panda + AGP 9.2 setup is one library catalog entry needing a small bump (e.g., a `kotlin.compose` patch level), and I'll fix it in `gradle/libs.versions.toml`.
 
 **Verify:**
-- Bottom-right of Android Studio shows "Gradle build finished" without red errors.
-- The "Build" tool window has no compilation errors.
+- Bottom-right of Studio shows "Gradle build finished" without red errors.
+- The **Build** tool window has zero compilation errors.
 - `android/gradle/wrapper/gradle-wrapper.properties` now exists.
+- The Project view shows all five modules: `app`, `core:ui`, `core:domain`, `core:network`, `core:data`.
 
-**What I do after:** I can run gradle locally now. If you paste me any sync error, I fix the version catalog and re-trigger.
+**What I do after:** I can run gradle locally now. If you paste me any sync error, I fix the version catalog and we re-trigger.
 
 ---
 
 ### A4. Create an emulator + Chromebook profile (optional but useful)
 
-**Why:** lets you run the app on a virtual Pixel for compact-width testing, and on a virtual Chromebook for expanded-width / desktop-windowing testing (per DECISIONS.md #047, Chromebook support is a v1 priority).
+**Why:** lets you run the app on a virtual Pixel for compact-width testing, and on a virtual Chromebook for expanded-width / desktop-windowing testing (per DECISIONS.md #047, Chromebook support is a v1 priority from M1).
 
 **How:**
-1. **Tools → Device Manager** → **Create Device**
-2. Pick **Pixel 8** (or any modern phone) → next → choose an Android 15 (API 35) system image → **Finish**.
+1. **Tools → Device Manager** → **Create Device**.
+2. Pick **Pixel 9 Pro** (or any modern phone) → next → choose an **Android 16 (API 36) "Google APIs"** system image → **Finish**.
 3. Repeat with **Tablet → Pixel Tablet** for tablet adaptation testing.
-4. For Chromebook simulation, run the app in Resizable mode (Android Studio Otter's "Resizable" emulator profile) — that's the closest local-emulator option for Chromebook layout testing.
+4. **Resizable emulator** — Panda ships a "Resizable" device profile under Phone / Foldable / Desktop. Create one to swap between phone / unfolded / desktop layouts at runtime — closest local proxy for Chromebook windowing.
+5. Real Chromebook (you mentioned having one): enable Linux/ARC Android app support on the Chromebook, then run from Studio via `adb connect` once you have the IP.
 
 **Verify:** click ▶ next to each emulator in Device Manager — it should boot to the home screen.
 

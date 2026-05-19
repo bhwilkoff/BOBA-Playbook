@@ -25,6 +25,23 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
+
+        // BuildConfig fields — public identifiers safe to embed in the
+        // APK. Real secrets (Supabase service-role key, Play Service
+        // Account JSON) NEVER appear here — those are Worker/CI-only.
+        //
+        // GOOGLE_WEB_CLIENT_ID: the Web Application OAuth client ID
+        // consumed by Credential Manager's GetGoogleIdOption for Sign
+        // in with Google. NOT a secret — Google docs explicitly state
+        // OAuth client IDs are public. The matching Android-type
+        // OAuth client (350111546071-a5lcvfqmavueq07uiiomm4dg3gs9g82c)
+        // is auto-consumed by Google services via package + SHA-1
+        // match; no code reference needed.
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            "\"350111546071-8nr3kumje5uor60t3vufl6a005a8os93.apps.googleusercontent.com\""
+        )
     }
 
     buildTypes {

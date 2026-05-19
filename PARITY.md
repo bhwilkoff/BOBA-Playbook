@@ -87,7 +87,7 @@ When shipping any user-facing feature:
 | Rules + Legality push surfaces | ✅ | ✅ | ⏳ M4 | Push as destinations (not stacked sheets) |
 | Drag-and-drop add | ✅ iPad only | n/a | ⏳ M4 | `dragAndDropSource` + `dragAndDropTarget` |
 | Long-press add on pool | ✅ | n/a | ⏳ M4 | Canonical mobile add |
-| 3-column tablet layout (saved / pool / editor) | ✅ iPad | ⏳ desktop | ⏳ M8 | `NavigableListDetailPaneScaffold` 3-pane |
+| 3-column tablet layout (saved / pool / editor) | ✅ iPad | ⏳ desktop | ⏳ M4 | `NavigableListDetailPaneScaffold` 3-pane — in v1 from M4 per DECISIONS.md #047 |
 | Template gallery (empty editor) | ✅ | 🔮 | ⏳ M4 | Empty-state action |
 | Walkthrough | ✅ | 🚫 | 🚫 | Same skip rule |
 
@@ -237,16 +237,28 @@ Scan is iOS+Android only by design (DECISIONS.md #012). Web users see scan resul
 
 ---
 
-## 14. Easter eggs + extras
+## 14. Practice executor (admin-gated)
 
 | Feature | iOS | Web | Android | Notes |
 |---|---|---|---|---|
-| House of BoBA (card-tower playground) | ✅ | n/a | 🚫 | iOS RealityKit-specific; ANDROID-DESIGN.md §12 marks 3D out-of-scope for v1 |
-| Hero Shot (3D card video) | ✅ | n/a | 🚫 v1 | Filament port a separate effort |
+| Battle simulator engine | ✅ admin-gated | n/a | ⏳ M5.5 admin-gated | iOS DECISIONS.md #030; Android DECISIONS.md #048. State machine ports as pure Kotlin in `:core:domain` |
+| Practice setup screen | ✅ | n/a | ⏳ M5.5 | Deck + opponent selection |
+| Active battle UI | ✅ | n/a | ⏳ M5.5 | 5-phase flow: bench / plays / battle / resolve / next |
+| Tutorial overlay | ✅ | n/a | ⏳ M5.5 | First-launch tutorial |
+| Admin gate (bolt icon on Profile role badge) | ✅ | n/a | ⏳ M5.5 | Same `user_profiles.role` lookup |
 
 ---
 
-## 15. Web-specific affordances
+## 15. Easter eggs + extras
+
+| Feature | iOS | Web | Android | Notes |
+|---|---|---|---|---|
+| House of BoBA (card-tower playground) | ✅ | n/a | 🚫 v1 | iOS RealityKit-specific; Filament/Vulkan port future (DECISIONS.md #051) |
+| Hero Shot (3D card video) | ✅ | n/a | 🚫 v1 | Filament port a separate effort (DECISIONS.md #051) |
+
+---
+
+## 16. Web-specific affordances
 
 These are web-only by design; mobile platforms handle the same need natively.
 
@@ -260,7 +272,7 @@ These are web-only by design; mobile platforms handle the same need natively.
 
 ---
 
-## 16. iOS-specific affordances
+## 17. iOS-specific affordances
 
 These are iOS-only by design; other platforms handle the same need with platform-native equivalents.
 
@@ -276,7 +288,7 @@ These are iOS-only by design; other platforms handle the same need with platform
 
 ---
 
-## 17. Android-specific affordances
+## 18. Android-specific affordances
 
 These are Android-only by design; iOS / web handle the same need with platform-native equivalents.
 
@@ -292,7 +304,7 @@ These are Android-only by design; iOS / web handle the same need with platform-n
 
 ---
 
-## 18. Backend services (shared)
+## 19. Backend services (shared)
 
 All three clients consume the same backend:
 
@@ -320,6 +332,6 @@ When you ship a feature:
 3. **Link to the relevant section of DESIGN.md / WEB-DESIGN.md / ANDROID-DESIGN.md** that governs the feature's design rules.
 4. **Note any platform-specific deltas** in the Notes column.
 
-When a feature ships on one platform but is meaningfully different elsewhere, **add an entry to §15 / §16 / §17** explaining why.
+When a feature ships on one platform but is meaningfully different elsewhere, **add an entry to §16 / §17 / §18** explaining why.
 
 When a platform explicitly rejects a feature (e.g., walkthroughs on web + Android), **add an "Out of scope" row in the relevant design doc's §12** and link from this table.

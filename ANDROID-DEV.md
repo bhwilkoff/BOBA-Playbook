@@ -906,21 +906,33 @@ That stacks to **~150 Android/Kotlin/Compose-targeted skills**, vs `all-ios-skil
 
 ---
 
-## 16. Open questions to resolve before M0
+## 16. Decisions resolved (2026-05-19)
 
-These need Ben's call before kicking off the Android codebase:
+All eleven open questions from initial research have been answered. Final positions:
 
-1. **Package name / app ID.** `com.bobaplaybook.app`? `com.bhwilkoff.bobaplaybook`? `app.bobaplaybook.android`? (iOS is `app.bobaplaybook.ios` per the App Store listing.) Affects all signing + Play Console + assetlinks.json + Firebase config.
-2. **Subdirectory or sibling repo?** Recommendation: same monorepo, `/android/` at root. Affects CI workflow scope, asset sync, branch policy.
-3. **Firebase project: new or shared with future iOS Firebase setup?** Affects FCM token registration + Analytics config.
-4. **Subscription monetization (TRADE-DESIGN.md §7) — ship in v1 or defer?** Affects Play Billing wiring + `user_subscriptions` Supabase schema.
-5. **Discord-link requirement for trading — hard gate or soft warning?** Same question as iOS in TRADE-DESIGN.md §12; needs a consistent answer across platforms.
-6. **Initial supported form factors:** Phone-only for v1, or phone + tablet at v1? Tablet is significant additional work (multi-pane scaffolds) and could be M8 not M1.
-7. **Personal Showcase + AirPlay — port to Cast SDK in v1 or skip?** ANDROID-DESIGN.md §12 marks it out-of-scope; confirm.
-8. **Hero Shot 3D — port to Filament in v1 or skip?** ANDROID-DESIGN.md §12 marks it out-of-scope; confirm.
-9. **Practice executor — admin-gated, deferred per iOS DECISIONS.md #033.** Confirm Android tracks the same gate.
+| # | Question | Resolution | Captured in |
+|---|---|---|---|
+| 1 | Package name | **`com.bobaplaybook.app`** | DECISIONS.md #046 |
+| 2 | Same monorepo or sibling repo | **Same monorepo, `/android/` at root** with clear naming differentiation | DECISIONS.md #041 |
+| 3 | Firebase: new app or new project | **New "BOBA Playbook (Android)" app under a single BOBA Firebase project; stays on Spark (free) plan** | DECISIONS.md #052 |
+| 4 | Tablet / Chromebook support timing | **In v1 from M1** (Ben has Chromebook for testing); foldable NOT a v1 target | DECISIONS.md #047 |
+| 5 | Subscription monetization in v1 | **Defer** — iOS and web don't have it yet either; build BOBA Pro across all platforms together later | DECISIONS.md #052 (and TRADE-DESIGN.md §7 governs) |
+| 6 | Personal Showcase / House of BoBA port | **Defer** — keep iOS-only for now | ANDROID-DESIGN.md §12 |
+| 7 | Hero Shot 3D port + future 3D rendering path | **Defer Hero Shot/House of BoBA;** when prioritized, the path is **Filament (primary) or raw Vulkan via NDK** | DECISIONS.md #051 |
+| 8 | Discord integration scope | **Authentication only across all platforms;** no Discord bot until explicit permission from BoBA server moderators | DECISIONS.md #049 |
+| 9 | Practice executor on Android | **In v1, admin-gated** (mirrors iOS DECISIONS.md #033) | DECISIONS.md #048 |
+| 10 | Sign in with Apple on Android | **Removed** — Sign in with Google primary, Discord OAuth secondary, email fallback | DECISIONS.md #050 |
+| 11 | Theme: native cues + brand identity | **Native Material 3 components + motion + behavior with BOBA brand layered on top.** Brand colorScheme by default; dynamic color (Material You) opt-in | DECISIONS.md #042 |
 
-Resolved decisions get added to DECISIONS.md as #041–#046+ (see DECISIONS.md updates).
+**Net effect on milestone plan (SCRATCHPAD.md):**
+
+- Tablet + Chromebook adaptation moves from M8 into M1's foundation work.
+- Foldable specifically NOT a v1 target.
+- Practice executor (Android, admin-gated) added as a new milestone (M5.5) between Learn and Purchase.
+- Showcase, House of BoBA, Hero Shot remain deferred (Android v2+).
+- No Play Billing wiring in v1 (subscription deferred for cross-platform parity reasons).
+
+**No remaining blockers for starting M0.** When you're ready to kick off Android development, the design and engineering docs are ratified, all decisions are captured in DECISIONS.md, and the milestone plan in SCRATCHPAD.md is the authoritative ship list.
 
 ---
 

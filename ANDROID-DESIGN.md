@@ -579,17 +579,20 @@ Both lifted from streamer-only gate per DECISIONS.md #036.
 
 ## 9. The Android redesign roadmap
 
-v1 ship list (compact + medium + expanded, all 5 tabs, container transforms, M3 Expressive surfaces wired). Tracked in [SCRATCHPAD.md](./SCRATCHPAD.md) Android milestone section:
+v1 ship list (compact + medium + expanded across phone / tablet / Chromebook, all 5 tabs, container transforms, M3 Expressive surfaces wired, Practice admin-gated). Tracked in [SCRATCHPAD.md](./SCRATCHPAD.md) Android milestone section:
 
-- **M0** — Compose + Material 3 stable + Navigation Compose set up; `BobaTheme` (dark + light + dynamic-opt-in); `BOBACardCell` + `BOBAEmptyState` + `BOBABanner` + `BOBAOfflinePill` primitives.
-- **M1 — Find** — `NavigationSuiteScaffold` + Find tab w/ `ExpandedFullScreenSearchBar` + featured carousels + container-transform into card detail.
-- **M2 — Collection** — designation segmented button + grid/list/wall display modes + share Intent.
-- **M3 — Scan + Pricing** — CameraX + ML Kit; pricing panels in card detail.
-- **M4 — Decks** — pool + summary-bar + sheet editor (compact); `NavigableListDetailPaneScaffold` (medium+); drag-and-drop via `dragAndDropSource`/`dragAndDropTarget`.
-- **M5 — Learn** — single-stream articles + skill-level scope segmented button + glossary tooltips.
+- **M0** — Compose + Material 3 stable + Navigation Compose set up; `BobaTheme` (dark + light + dynamic-opt-in); `BOBACardCell` + `BOBAEmptyState` + `BOBABanner` + `BOBAOfflinePill` primitives; assetlinks.json deployed; Firebase Android app registered.
+- **M1 — Find + foundational adaptive layouts** — `NavigationSuiteScaffold` + Find tab w/ `ExpandedFullScreenSearchBar` + featured carousels + container-transform into card detail. **WindowSizeClass adaptation validated on phone + tablet + Chromebook from day one** (per DECISIONS.md #047).
+- **M2 — Collection** — designation segmented button + grid/list/wall display modes + share Intent + tablet list-detail panes.
+- **M3 — Scan + Pricing** — CameraX + ML Kit Text Recognition v2 bundled; pricing panels in card detail.
+- **M4 — Decks** — pool + summary-bar + sheet editor (compact); `NavigableListDetailPaneScaffold` 3-pane on tablet/Chromebook from day one; drag-and-drop via `dragAndDropSource` / `dragAndDropTarget`.
+- **M5 — Learn** — single-stream articles + skill-level scope segmented button + glossary tooltips + tablet list-detail panes.
+- **M5.5 — Practice executor (admin-gated)** — port iOS state-machine engine to pure Kotlin in `:core:domain`; Practice screens as Compose translations of SwiftUI anatomy. Admin gate via `user_profiles.role` (DECISIONS.md #048).
 - **M6 — Purchase** — Whatnot breaks tile list + Find a Store with Google Maps Compose.
-- **M7 — Profile + Credential Manager auth** — Sign in with Google + passkey bottom sheet + Discord OAuth via Auth Tab / CustomTabs.
-- **M8 — Tablet polish** — list-detail pane scaffolds on Decks + Learn + Collection.
+- **M7 — Profile + Credential Manager auth + deep-link dispatcher** — Sign in with Google + passkey bottom sheet + Discord OAuth via Auth Tab / CustomTabs; BiometricPrompt; account-delete; avatar upload; Universal Links.
+- **M8 — Internal testing + Play Console closed track** — Data Safety form, screenshots, 16 KB page-size validation, R8 + Baseline Profile validation, Macrobenchmark cold-start gate.
+
+**Foldable adaptation is intentionally NOT a v1 target** (DECISIONS.md #047) — the standard `WindowSizeClass` adaptation works adequately on foldables without specific posture-aware optimization.
 
 ---
 
@@ -668,7 +671,7 @@ Documented so future sessions don't re-add these as parity gaps.
 
 | Surface | Why out | When to revisit |
 |---|---|---|
-| **Practice / Battle simulator** | Different language; iOS-only when shipped per DECISIONS.md #030 | When practice ships universally |
+| ~~Practice / Battle simulator~~ | **MOVED INTO SCOPE** per DECISIONS.md #048 — admin-gated on Android same as iOS. M5.5 milestone. | n/a |
 | **Moderator corrections workflow** | Internal tool, mod-only audience | When mod tools open publicly |
 | **Multi-step anchored walkthroughs** | Android conventions are universally legible (§6.10); TooltipBox + BOBAHintBanner cover the gap | If a future feature genuinely needs one |
 | **Widgets / App Widgets / Quick Settings tiles** | No current implementation | When widgets scoped — Glance API for Compose-style widgets |

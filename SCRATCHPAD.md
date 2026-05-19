@@ -107,7 +107,7 @@
 | House of BoBA easter egg | n/a | ✅ | 🚫 v1 | RealityKit-specific |
 | Personal Showcase | n/a | ✅ | 🚫 v1 | Cast SDK port deferred |
 | Custom Rainbows | n/a | ✅ | ⏳ M2 | Web parity 🔮 |
-| Practice executor | n/a | ✅ admin-gated | 🔮 | Open-question deferred per DECISIONS.md #033 |
+| Practice executor | n/a | ✅ admin-gated | ⏳ M5.5 admin-gated | Both mobile platforms admin-gated per DECISIONS.md #033 + #048 |
 | Trading (match alerts + Discord deep-link) | 🔮 Phase 1+ | 🔮 Phase 1+ | 🔮 Phase 1+ | TRADE-DESIGN.md governs all three |
 
 **See [PARITY.md](./PARITY.md)** for the detail-level matrix (per-tab anatomy, auth surfaces, deep linking, notifications, payments, etc.).
@@ -130,18 +130,17 @@ Embed community trading channel. Research Discord Activity SDK vs WebView feasib
 
 ## Android v1 Milestone Plan (2026)
 
-Research + binding docs ratified 2026-05-19. See [`ANDROID-DESIGN.md`](./ANDROID-DESIGN.md), [`ANDROID-DEV.md`](./ANDROID-DEV.md), [`PARITY.md`](./PARITY.md).
+Research + binding docs ratified 2026-05-19. All open questions resolved (DECISIONS.md #041–#052). See [`ANDROID-DESIGN.md`](./ANDROID-DESIGN.md), [`ANDROID-DEV.md`](./ANDROID-DEV.md), [`PARITY.md`](./PARITY.md).
 
-**Open Ben-questions before M0** (ANDROID-DEV.md §16):
-1. Package name — `com.bobaplaybook.app` recommended (matches domain)
-2. Same monorepo `/android/` directory — confirmed
-3. Firebase project — new "BOBA Playbook (Android)" Firebase app
-4. Subscription monetization in v1 or defer? (TRADE-DESIGN.md §7)
-5. Discord-link requirement for trading — hard gate or soft warning?
-6. Tablet form-factor support at v1 or M8?
-7. Personal Showcase + AirPlay → Cast SDK in v1 or skip? (ANDROID-DESIGN.md §12 marks deferred)
-8. Hero Shot 3D port to Filament in v1 or skip? (deferred)
-9. Practice executor — admin-gated, mirrors iOS
+**Resolved direction:**
+- Package: `com.bobaplaybook.app`. Same monorepo, `/android/` at root.
+- Firebase Spark (free) plan — new Android app under one BOBA Firebase project.
+- **Tablet + Chromebook supported from M1** (Ben has Chromebook for early testing); foldable NOT v1.
+- **Practice executor IS in v1, admin-gated** (M5.5).
+- Sign in with Google primary; Sign in with Apple removed from Android.
+- Discord = authentication only across all platforms (no bot until BoBA server permission).
+- Subscription monetization, Personal Showcase, House of BoBA, Hero Shot all deferred post-v1.
+- 3D path when prioritized: Filament (primary) / Vulkan via NDK.
 
 ### ⏳ Android M0 — Foundation
 - Set up `/android/` Gradle project: Kotlin 2.2 + Compose + Material 3 + AGP 9
@@ -150,17 +149,20 @@ Research + binding docs ratified 2026-05-19. See [`ANDROID-DESIGN.md`](./ANDROID
 - Primitives in `:core:ui`: `BOBACardCell`, `BOBAEmptyState`, `BOBABanner`, `BOBAOfflinePill`, `BOBAWordmark`, `BOBASignInPrompt`
 - Coil 3 ImageLoader configured at App start (60 MB memory / 500 MB disk parity with iOS)
 - Cards.json bundling pipeline (Gradle copy task from repo root)
-- Universal Links / App Links: `assetlinks.json` added to `/.well-known/`; intent-filters wired
+- Universal Links / App Links: `assetlinks.json` added to `/.well-known/`; intent-filters wired (`com.bobaplaybook.app`)
+- Firebase Android app registered + `google-services.json` committed
 - Baseline Profile module scaffolded (empty profile for now)
 
-### ⏳ Android M1 — Find
-- `NavigationSuiteScaffold` (5 destinations)
-- Find tab with `ExpandedFullScreenSearchBar`
+### ⏳ Android M1 — Find + foundational adaptive layouts (phone + tablet + Chromebook)
+- `NavigationSuiteScaffold` (5 destinations) — adapts to NavigationBar (compact) / NavigationRail (medium) / PermanentNavigationDrawer (expanded)
+- Find tab with `ExpandedFullScreenSearchBar` on compact / `ExpandedDockedSearchBar` on medium+
 - Featured `HorizontalMultiBrowseCarousel` rows (no-search state)
 - `LazyVerticalGrid(GridCells.Adaptive)` for search results
 - `FilterChip` row for committed tokens
-- Container transform (`sharedBounds`) into card detail
+- Container transform (`sharedBounds`) into card detail — compact only; medium+ uses pane switch
 - `CardDetailScreen` with canonical 6-cell stats grid
+- **WindowSizeClass adaptation validated on Chromebook + Pixel Tablet emulator + phone** — every screen has explicit `COMPACT` / `MEDIUM` / `EXPANDED` behavior
+- Edge-to-edge + predictive back validated
 
 ### ⏳ Android M2 — Collection
 - Designation `SingleChoiceSegmentedButtonRow`
@@ -168,16 +170,19 @@ Research + binding docs ratified 2026-05-19. See [`ANDROID-DESIGN.md`](./ANDROID
 - Designation badges
 - Custom Rainbow editor (mirrors iOS v2.219+)
 - My Shows (role-gated push destination)
+- Tablet: `NavigableListDetailPaneScaffold` for Rainbow + Custom Rainbow detail panes
 
 ### ⏳ Android M3 — Scan + Pricing
-- CameraX + ML Kit Text Recognition v2 bundled
+- CameraX + ML Kit Text Recognition v2 bundled (Latin)
 - `ScanCoordinator` + per-tab destination routing
 - Pricing panels in card detail (eBay + COMC + Radish)
 - `BottomAppBar` scan-active state surface
+- `HorizontalFloatingToolbar` for medium+ widths
 
-### ⏳ Android M4 — Decks
-- Card pool + persistent `DeckSummaryBar`
-- Tap-summary → `ModalBottomSheet` editor with `sharedBounds` hero zoom
+### ⏳ Android M4 — Decks (3-pane on tablet from day one)
+- Card pool + persistent `DeckSummaryBar` (compact)
+- Tap-summary → `ModalBottomSheet` editor with `sharedBounds` hero zoom (compact)
+- **Tablet/Chromebook: `NavigableListDetailPaneScaffold` with 3 panes (saved decks / pool / editor)** — no hero-zoom, pane switching instead
 - Manage Decks / Rules / Legality push destinations
 - Drag-and-drop via `Modifier.dragAndDropSource` / `dragAndDropTarget`
 - Long-press to add (canonical mobile add gesture)
@@ -186,13 +191,23 @@ Research + binding docs ratified 2026-05-19. See [`ANDROID-DESIGN.md`](./ANDROID
 - Single-stream articles + skill-level `SegmentedButton` scope
 - In-corpus `SearchBar`
 - Glossary `TooltipBox` for highlighted terms
+- Tablet: `NavigableListDetailPaneScaffold` (category list pane + article detail pane)
+
+### ⏳ Android M5.5 — Practice executor (admin-gated)
+- Port iOS state-machine engine to pure Kotlin in `:core:domain` (`PersistentEffect`, `WeaponTransform`, `firePersistentTriggers`, `applyHDRecover` pipeline per DECISIONS.md #030)
+- `PracticeView` + bench / plays / battle Composables
+- Setup screen + tutorial overlay
+- Active-battle UI with the 5 phases
+- Admin gate via `user_profiles.role` lookup (mirrors iOS DECISIONS.md #033)
+- Practice content stays admin-only at production; admins (Ben + close beta) test on Android device + Chromebook
 
 ### ⏳ Android M6 — Purchase
 - `SingleChoiceSegmentedButtonRow` ("Upcoming Breaks" | "Find a Store")
 - Whatnot tile list via `boba-ebay-proxy /whatnot/upcoming`
 - Google Maps Compose for Find a Store with `ModalBottomSheet` store list
+- Tablet: segmented button splits into `NavigableListDetailPaneScaffold`
 
-### ⏳ Android M7 — Profile + Auth
+### ⏳ Android M7 — Profile + Auth + deep-link dispatcher
 - Credential Manager (Sign in with Google primary + passkey support)
 - Discord OAuth via Auth Tab (Chrome 132+) / Custom Tabs fallback
 - Email/password fallback
@@ -201,23 +216,25 @@ Research + binding docs ratified 2026-05-19. See [`ANDROID-DESIGN.md`](./ANDROID
 - Avatar upload via `boba-avatar-upload` Worker
 - Account deletion via `boba-account-delete` Worker
 - Universal Links / deep-link dispatch
-- `assetlinks.json` fingerprint deployed
+- `assetlinks.json` SHA-256 fingerprints (upload key + Play App Signing key) deployed to `bobaplaybook.com/.well-known/`
+- Public collection deep-link receiver (`/u/{username}`)
 
-### ⏳ Android M8 — Tablet / Foldable / Chromebook polish
-- `NavigableListDetailPaneScaffold` on Decks (3-pane: saved / pool / editor)
-- `NavigableListDetailPaneScaffold` on Learn + Collection
-- `NavigationRail` adaptation for medium width
-- Modal side sheets replace bottom sheets on expanded width
-- Edge-to-edge + predictive back validated across orientations
-- WindowSizeClass adaptation tests + Roborazzi screenshot tests
+### ⏳ Android M8 — Internal testing + Play Store closed track
+- Play Console setup (Internal testing track)
+- Data Safety form filled out
+- Screenshots + feature graphic + listing assets
+- Closed testing track with ≥12 testers × 14 days for production unlock (current Google requirement)
+- 16 KB page-size validation via `apkanalyzer` on each release
+- R8 + Baseline Profile validation
+- Macrobenchmark cold-start regression gate in CI (≤ 5%)
 
 ### 🔮 Android Post-v1 Future
 - Image fingerprinting (MediaPipe Image Embedder + parallel `feature-prints-android.bin`)
 - Multi-card grid scanning (OpenCV port)
-- Push notifications (FCM dispatcher via `boba-push-dispatcher` Worker; cross-platform symmetric payload)
-- Google Play Billing for BOBA Pro subscription
+- Push notifications (FCM dispatcher via `boba-push-dispatcher` Worker; cross-platform symmetric payload per DECISIONS.md #045)
+- Google Play Billing for BOBA Pro subscription (cross-platform launch with iOS + web)
 - Personal Showcase + Cast SDK port
-- Hero Shot 3D port to Filament / Sceneform-successor
+- House of BoBA + Hero Shot 3D port (Filament primary, raw Vulkan/NDK fallback per DECISIONS.md #051)
 - Home-screen widgets via Glance API
 - App Shortcuts + App Actions for Google Assistant integration
 - Wear OS companion (if ever)

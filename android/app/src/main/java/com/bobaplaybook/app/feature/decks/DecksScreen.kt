@@ -1,6 +1,7 @@
 @file:OptIn(
     ExperimentalMaterial3Api::class,
     ExperimentalFoundationApi::class,
+    androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi::class,
 )
 
 package com.bobaplaybook.app.feature.decks
@@ -57,8 +58,11 @@ import com.bobaplaybook.app.feature.find.FindViewModel
 import com.bobaplaybook.app.hints.HintsStore
 import com.bobaplaybook.app.hints.HintsViewModel
 import com.bobaplaybook.core.domain.model.Card
+import com.bobaplaybook.core.ui.adaptive.isCompactWidth
 import com.bobaplaybook.core.ui.components.BOBACardCell
+import com.bobaplaybook.core.ui.components.BOBAEmptyState
 import com.bobaplaybook.core.ui.components.BOBAHintBanner
+import com.bobaplaybook.core.ui.components.BOBASectionHeader
 import com.bobaplaybook.core.ui.components.BOBAWordmark
 import com.bobaplaybook.core.ui.transitions.cardSharedBounds
 
@@ -77,6 +81,33 @@ import com.bobaplaybook.core.ui.transitions.cardSharedBounds
  */
 @Composable
 fun DecksScreen(
+    onCardClick: (bobaId: String) -> Unit,
+    onOpenManage: () -> Unit,
+    onOpenRules: () -> Unit,
+    onOpenLegality: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (isCompactWidth()) {
+        DecksCompactScreen(
+            onCardClick = onCardClick,
+            onOpenManage = onOpenManage,
+            onOpenRules = onOpenRules,
+            onOpenLegality = onOpenLegality,
+            modifier = modifier,
+        )
+    } else {
+        DecksTabletScreen(
+            onCardClick = onCardClick,
+            onOpenManage = onOpenManage,
+            onOpenRules = onOpenRules,
+            onOpenLegality = onOpenLegality,
+            modifier = modifier,
+        )
+    }
+}
+
+@Composable
+private fun DecksCompactScreen(
     onCardClick: (bobaId: String) -> Unit,
     onOpenManage: () -> Unit,
     onOpenRules: () -> Unit,
@@ -274,6 +305,89 @@ private fun DeckSummaryBar(
                     },
                 )
             }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Tablet / Chromebook 3-pane: saved decks | pool | editor
+// ─────────────────────────────────────────────────────────────────
+
+@Composable
+private fun DecksTabletScreen(
+    onCardClick: (bobaId: String) -> Unit,
+    onOpenManage: () -> Unit,
+    onOpenRules: () -> Unit,
+    onOpenLegality: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val findViewModel: FindViewModel = hiltViewModel()
+    val findState by findViewModel.uiState.collectAsStateWithLifecycle()
+    val deckViewModel: DecksViewModel = hiltViewModel()
+    val draft by deckViewModel.draft.collectAsStateWithLifecycle()
+
+    Row(modifier = modifier.fillMaxSize()) {
+        // Saved decks sidebar (placeholder until Supabase wires up in M7)
+        Surface(
+            modifier = Modifier
+                .width(240.dp)
+                .fillMaxSize(),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            Column(modifier = Modifier.padding(8.dp)) {
+                BOBASectionHeader(title = "Saved decks")
+                BOBAEmptyState(
+                    icon = Icons.Default.Save,
+                    headline = "No saved decks",
+                    body = "Sign in to sync decks across iOS, web, and Android.",
+                    actionLabel = "Manage",
+                    onAction = onOpenManage,
+                )
+            }
+        }
+
+        androidx.compose.material3.VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+        // Pool middle column
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxSize(),
+        ) {
+            // Pool TopAppBar
+            TopAppBar(
+                title = { BOBAWordmark() },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+            )
+            CardPoolGrid(
+                cards = findState.results,
+                onCardClick = onCardClick,
+                onCardLongClick = deckViewModel::add,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+
+        androidx.compose.material3.VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+        // Editor pane (always visible on tablet — no sheet needed)
+        Surface(
+            modifier = Modifier
+                .width(380.dp)
+                .fillMaxSize(),
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            // Reuse the editor body content directly (without the sheet
+            // wrapper) so it lives in the pane.
+            DeckEditorContentInline(
+                draft = draft,
+                onRename = deckViewModel::rename,
+                onRemove = deckViewModel::remove,
+                onSave = { /* M7 polish — Supabase write */ },
+                onOpenRules = onOpenRules,
+                onOpenLegality = onOpenLegality,
+            )
         }
     }
 }

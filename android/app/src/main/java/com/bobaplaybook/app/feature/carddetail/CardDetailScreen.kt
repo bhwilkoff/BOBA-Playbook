@@ -73,6 +73,7 @@ import com.bobaplaybook.core.ui.components.BOBAEmptyState
 import com.bobaplaybook.core.ui.components.BOBAPriceTile
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 import com.bobaplaybook.core.ui.components.BOBAStatsGrid
+import com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar
 import com.bobaplaybook.core.ui.theme.BobaBrand
 import com.bobaplaybook.core.ui.theme.BobaElements
 import com.bobaplaybook.core.ui.transitions.cardSharedBounds
@@ -100,14 +101,20 @@ fun CardDetailScreen(
     val decksViewModel: com.bobaplaybook.app.feature.decks.DecksViewModel = hiltViewModel()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val context = LocalContext.current
-    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    // Prefer the app-level Snackbar host so confirmations stay visible
+    // even if the user navigates away during the message. Falls back to
+    // a local host when LocalAppSnackbar isn't provided (previews).
+    val appSnackbar = LocalAppSnackbar.current
+    val localSnackbar = remember { androidx.compose.material3.SnackbarHostState() }
+    val snackbarHostState = appSnackbar ?: localSnackbar
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     var addMenuOpen by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
+        // Snackbar host omitted — app-scoped via LocalAppSnackbar covers
+        // the cross-tab case; per-screen Scaffold doesn't double-paint.
         topBar = {
             LargeTopAppBar(
                 title = { Text(state.card?.displayName ?: "Card") },

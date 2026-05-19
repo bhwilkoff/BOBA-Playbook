@@ -79,6 +79,79 @@ fun DeckEditorSheet(
     }
 }
 
+/**
+ * Inline editor variant — same body content as the ModalBottomSheet
+ * editor, but rendered directly inside a tablet's right-pane Surface.
+ * No close button (the pane is always-visible on tablet).
+ */
+@Composable
+fun DeckEditorContentInline(
+    draft: DeckDraft,
+    onRename: (String) -> Unit,
+    onRemove: (bobaId: String) -> Unit,
+    onSave: () -> Unit,
+    onOpenRules: () -> Unit,
+    onOpenLegality: () -> Unit,
+) {
+    var name by remember { mutableStateOf(draft.name) }
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it; onRename(it) },
+                label = { Text("Deck name") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        StatsRow(draft = draft)
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            androidx.compose.material3.OutlinedButton(onClick = onOpenRules) { Text("Rules") }
+            androidx.compose.material3.OutlinedButton(onClick = onOpenLegality) { Text("Legality") }
+            Spacer(Modifier.weight(1f))
+            Button(
+                onClick = onSave,
+                enabled = draft.cards.isNotEmpty(),
+            ) {
+                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.width(18.dp).height(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Save")
+            }
+        }
+
+        HorizontalDivider()
+
+        if (draft.cards.isEmpty()) {
+            BOBAEmptyState(
+                icon = Icons.Default.Save,
+                headline = "Empty draft",
+                body = "Long-press cards in the pool to add them.",
+                modifier = Modifier.fillMaxSize(),
+            )
+            return
+        }
+
+        SectionedCardList(
+            draft = draft,
+            onRemove = onRemove,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
 @Composable
 private fun DeckEditorContent(
     draft: DeckDraft,

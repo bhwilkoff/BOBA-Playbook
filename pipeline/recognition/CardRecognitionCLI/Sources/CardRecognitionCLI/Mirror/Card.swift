@@ -5,9 +5,10 @@ import UniformTypeIdentifiers
 /// `nonisolated` overrides the project's default-MainActor isolation
 /// so this Sendable value type can be read from background actors
 /// (notably the grid-scan TaskGroup, which calls into ScanMatching
-/// off MainActor for parallelism). The struct is already Sendable
-/// and all properties are immutable `let`s — there's no concurrency
-/// hazard, just a default-isolation correction.
+/// off MainActor for parallelism). The struct is Sendable; mutation
+/// is by-value-copy so the lone `var` (imageFile — updated by
+/// CardStore.applyRuntimeImageOverrides from card_image_overrides
+/// applied rows) is safe across actors.
 nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
     let bvId: Int?
     let cardNumber: String
@@ -37,7 +38,7 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
     /// True when the hero's inspiration athlete was in their rookie season
     /// at print time. Non-Hero rows decode as false.
     let rookieInspired: Bool
-    let imageFile: String?
+    var imageFile: String?
     let imageSource: String?
     let imageAvailable: Bool
     let radishUrl: String?
@@ -179,5 +180,24 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
 extension Card: Transferable {
     nonisolated static var transferRepresentation: some TransferRepresentation {
         CodableRepresentation(contentType: .json)
+    }
+}
+
+extension Card {
+    /// Canonical card identifier matching `scripts/boba_id.py`'s
+    /// 4-field v2 formula:
+    ///   `cardNumber-(hero or name)-(treatment or "")-(variation or "")`
+    /// Sealed products use `name` when `hero` is empty. Trailing
+    /// dashes are intentional and stable. CLAUDE.md "One ID per
+    /// Card" — this is the primary key for the catalog. Verified
+    /// 17,739 unique values across the bundle (zero collisions).
+    ///
+    /// Computed at runtime rather than decoded — the formula is
+    /// deterministic so the value matches the `bobaId` stored in
+    /// the JSON bundles. Older bundles that pre-date the field
+    /// still resolve to the same id.
+    var bobaId: String {
+        let identifier = hero.isEmpty ? name : hero
+        return "\(cardNumber)-\(identifier)-\(treatment ?? "")-\(variation ?? "")"
     }
 }

@@ -3,6 +3,8 @@ package com.bobaplaybook.app.feature.purchase
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bobaplaybook.core.network.StoreLocatorService
+import com.bobaplaybook.core.network.StoreLocation
 import com.bobaplaybook.core.network.WhatnotService
 import com.bobaplaybook.core.network.WhatnotShow
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,11 +22,28 @@ data class PurchaseUiState(
     val isLoadingBreaks: Boolean = false,
     val upcomingBreaks: ImmutableList<WhatnotShow> = persistentListOf(),
     val breaksError: String? = null,
-)
+
+    val isLoadingStores: Boolean = false,
+    val stores: ImmutableList<StoreLocation> = persistentListOf(),
+    val indieOnly: Boolean = false,
+    val storeQuery: String = "",
+) {
+    val filteredStores: ImmutableList<StoreLocation>
+        get() {
+            val needle = storeQuery.lowercase().trim()
+            val pool = if (indieOnly) stores.filter { it.isIndie } else stores
+            val filtered = if (needle.isEmpty()) pool else pool.filter { store ->
+                listOf(store.name, store.city, store.state, store.stateShort)
+                    .joinToString(" ").lowercase().contains(needle)
+            }
+            return filtered.toPersistentList()
+        }
+}
 
 @HiltViewModel
 class PurchaseViewModel @Inject constructor(
     private val whatnotService: WhatnotService,
+    private val storeLocatorService: StoreLocatorService,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PurchaseUiState())
@@ -32,6 +51,7 @@ class PurchaseViewModel @Inject constructor(
 
     init {
         refreshBreaks()
+        refreshStores()
     }
 
     fun refreshBreaks() {
@@ -45,4 +65,18 @@ class PurchaseViewModel @Inject constructor(
             )
         }
     }
+
+    fun refreshStores() {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isLoadingStores = true)
+            val stores = storeLocatorService.fetchStores()
+            _state.value = _state.value.copy(
+                isLoadingStores = false,
+                stores = stores.toPersistentList(),
+            )
+        }
+    }
+
+    fun setIndieOnly(enabled: Boolean) { _state.value = _state.value.copy(indieOnly = enabled) }
+    fun setStoreQuery(query: String) { _state.value = _state.value.copy(storeQuery = query) }
 }

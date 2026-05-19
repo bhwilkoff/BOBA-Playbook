@@ -110,6 +110,7 @@ fun CardDetailScreen(
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     var addMenuOpen by remember { mutableStateOf(false) }
+    var addToCollectionOpen by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -144,9 +145,7 @@ fun CardDetailScreen(
                                 text = { Text("Add to Collection") },
                                 onClick = {
                                     addMenuOpen = false
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("Sign in required — open Profile from Find")
-                                    }
+                                    addToCollectionOpen = true
                                 },
                             )
                             DropdownMenuItem(
@@ -200,6 +199,24 @@ fun CardDetailScreen(
                 .fillMaxSize()
                 .padding(padding),
         )
+    }
+
+    if (addToCollectionOpen) {
+        state.card?.let { card ->
+            com.bobaplaybook.app.feature.collection.AddToCollectionSheet(
+                card = card,
+                onDismiss = { addToCollectionOpen = false },
+                onSubmit = { input ->
+                    addToCollectionOpen = false
+                    // M7 polish — actually call CollectionRepository.add with the
+                    // authenticated user_id. v1 surfaces a Snackbar so the flow
+                    // closes cleanly.
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Added ${card.displayName} to ${input.designation.label}")
+                    }
+                },
+            )
+        }
     }
 }
 

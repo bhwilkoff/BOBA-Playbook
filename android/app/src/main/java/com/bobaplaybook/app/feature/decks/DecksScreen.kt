@@ -26,11 +26,19 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -47,6 +55,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -124,6 +133,7 @@ private fun DecksCompactScreen(
         .collectAsStateWithLifecycle(initialValue = true)
     var editorOpen by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
+    var poolQuery by rememberSaveable { mutableStateOf("") }
 
     Scaffold(
         modifier = modifier,
@@ -149,10 +159,26 @@ private fun DecksCompactScreen(
                             onDismissRequest = { menuOpen = false },
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Manage decks") },
+                                text = { Text("Templates") },
+                                leadingIcon = { Icon(Icons.Default.Lightbulb, contentDescription = null) },
+                                onClick = { menuOpen = false /* M4 polish — template gallery */ },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Saved decks") },
                                 leadingIcon = { Icon(Icons.Default.Save, contentDescription = null) },
                                 onClick = { menuOpen = false; onOpenManage() },
                             )
+                            DropdownMenuItem(
+                                text = { Text("Import (CSV)") },
+                                leadingIcon = { Icon(Icons.Default.FileUpload, contentDescription = null) },
+                                onClick = { menuOpen = false /* M4 polish — CSV import */ },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Export (CSV)") },
+                                leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null) },
+                                onClick = { menuOpen = false /* M4 polish — CSV export */ },
+                            )
+                            androidx.compose.material3.HorizontalDivider()
                             DropdownMenuItem(
                                 text = { Text("Deck rules") },
                                 leadingIcon = { Icon(Icons.Default.Build, contentDescription = null) },
@@ -164,7 +190,14 @@ private fun DecksCompactScreen(
                                 onClick = { menuOpen = false; onOpenLegality() },
                             )
                             DropdownMenuItem(
+                                text = { Text("Scan into deck") },
+                                leadingIcon = { Icon(Icons.Default.QrCodeScanner, contentDescription = null) },
+                                onClick = { menuOpen = false /* opens scan modal via parent */ },
+                            )
+                            androidx.compose.material3.HorizontalDivider()
+                            DropdownMenuItem(
                                 text = { Text("Clear draft") },
+                                leadingIcon = { Icon(Icons.Default.Clear, contentDescription = null) },
                                 onClick = { menuOpen = false; deckViewModel.clear() },
                             )
                         }
@@ -194,8 +227,27 @@ private fun DecksCompactScreen(
                     onDismiss = { hintsViewModel.dismiss(HintsStore.Ids.DECKS_LONG_PRESS_TO_ADD) },
                 )
             }
-            // M4 pool reuses FindViewModel's filtered catalog. Polish
-            // pass adds Decks-specific filters (format legality).
+            // Pool search bar — type-to-narrow. Filters into the same
+            // FindViewModel so we don't duplicate the catalog read.
+            OutlinedTextField(
+                value = poolQuery,
+                onValueChange = { q ->
+                    poolQuery = q
+                    findViewModel.onEvent(com.bobaplaybook.app.feature.find.FindEvent.QueryChanged(q))
+                },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (poolQuery.isNotEmpty()) {
+                        IconButton(onClick = {
+                            poolQuery = ""
+                            findViewModel.onEvent(com.bobaplaybook.app.feature.find.FindEvent.QueryChanged(""))
+                        }) { Icon(Icons.Default.Clear, contentDescription = "Clear") }
+                    }
+                },
+                placeholder = { Text("Filter pool by hero, number, or weapon") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            )
             CardPoolGrid(
                 cards = findState.results,
                 onCardClick = onCardClick,

@@ -3,45 +3,84 @@ package com.bobaplaybook.app.feature.find
 import androidx.compose.runtime.Immutable
 import com.bobaplaybook.core.domain.model.Card
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
 
 /**
- * Immutable, Compose-stable UI state for the Find tab.
+ * Find tab UI state — mirrors iOS `CardStore` filter surface
+ * verbatim. ANDROID-DESIGN.md §8.1.
  *
- * Single source of truth, single re-emit point. `ImmutableList` instead
- * of `List` so Compose treats it as stable (ANDROID-DEV.md §11.3).
- *
- * Search-active state vs no-search state is encoded by [isSearching];
- * the screen renders [results] when searching and the featured shelves
- * ([recentlyAdded], [heroesByWeapon], [coachingStaff]) when not.
+ * Every dimension matches the iOS SearchView + FilterSheetView so the
+ * cross-platform behavior is identical:
+ *   - 8 filter dimensions (purpose, showcase, elements, set, treatment,
+ *     release, power range, has-image)
+ *   - 9 sort orders (default → variation)
+ *   - Catalog-wide search w/ alias expansion
  */
 @Immutable
 data class FindUiState(
+    // Search
     val query: String = "",
-    val activeWeapon: String? = null,
+
+    // Filters (mirrors CardStore — iOS field names preserved as
+    // comments where Kotlin names differ for idiom).
+    val activeWeapons: ImmutableSet<String> = persistentSetOf(),  // CardStore.selectedElements
     val activeTreatment: String? = null,
+    val activeSet: String? = null,
+    val activeRelease: String? = null,
+    val powerMin: Int? = null,
+    val powerMax: Int? = null,
+    val hasImageOnly: Boolean = false,
+    val cardPurpose: CardPurpose = CardPurpose.ALL,
+    val showcaseId: String? = null,
+
+    // Sort
+    val sortOrder: SortOrder = SortOrder.DEFAULT,
+
+    // Derived state
     val isLoading: Boolean = true,
     val results: ImmutableList<Card> = persistentListOf(),
     val suggestions: ImmutableList<SearchSuggestion> = persistentListOf(),
+
+    // Featured shelves (no-search state when showcaseMode is on)
     val recentlyAdded: ImmutableList<Card> = persistentListOf(),
     val heroesByWeapon: ImmutableList<WeaponShelf> = persistentListOf(),
     val coachingStaff: ImmutableList<Card> = persistentListOf(),
+
+    // Available filter values from the catalog (populated by VM)
+    val availableSets: ImmutableList<String> = persistentListOf(),
+    val availableTreatments: ImmutableList<String> = persistentListOf(),
+    val availableReleases: ImmutableList<String> = persistentListOf(),
+    val availableElements: ImmutableList<String> = persistentListOf(),
+
     val totalCatalogSize: Int = 0,
 ) {
     val isSearching: Boolean
-        get() = query.isNotBlank() || activeWeapon != null || activeTreatment != null
+        get() = query.isNotBlank() || activeFilterCount > 0
 
     val isEmpty: Boolean
         get() = !isLoading && isSearching && results.isEmpty()
 
     val hasFeatured: Boolean
         get() = !isLoading && recentlyAdded.isNotEmpty()
+
+    /** Active filter count for the toolbar badge. Mirrors iOS CardStore.activeFilterCount. */
+    val activeFilterCount: Int
+        get() = listOf(
+            activeWeapons.isNotEmpty(),
+            activeTreatment != null,
+            activeSet != null,
+            activeRelease != null,
+            powerMin != null,
+            powerMax != null,
+            hasImageOnly,
+            cardPurpose != CardPurpose.ALL,
+            showcaseId != null,
+        ).count { it }
 }
 
-/**
- * Featured shelf — one weapon's representative cards. Rendered as a
- * horizontal carousel row on the no-search state.
- */
+/** Featured shelf — one weapon's representative cards. */
 @Immutable
 data class WeaponShelf(
     val weapon: String,
@@ -51,11 +90,8 @@ data class WeaponShelf(
 /**
  * Live suggestion inside the expanded SearchBar content area.
  *
- *  - [Card]  — tap navigates to the card's detail
- *  - [Token] — tap commits a filter (weapon, treatment, etc.) as an
- *              InputChip inside the search field
- *
- * Matches M3 SearchBar suggestion pattern (ANDROID-DESIGN.md §7).
+ *  - [CardHit] — tap navigates to the card's detail
+ *  - [Token]   — tap commits a filter as an InputChip
  */
 @Immutable
 sealed interface SearchSuggestion {
@@ -67,11 +103,65 @@ sealed interface SearchSuggestion {
 
 enum class TokenKind { WEAPON, TREATMENT, SET }
 
-/** Events the screen emits up to the ViewModel. Exhaustive sealed interface. */
+/**
+ * Card-purpose chip-row filter (iOS CardPurpose enum).
+ *
+ * Each value is a single-select chip in the FilterSheet.
+ */
+enum class CardPurpose(val label: String) {
+    ALL("All"),
+    HEROES("Heroes"),
+    PLAYS("Plays"),
+    HOT_DOGS("Hot Dogs"),
+    SEALED("Sealed");
+}
+
+/**
+ * Sort orders (iOS CardSortOrder).
+ *
+ * Defaults to has-image-first (DEFAULT). Catalog sorts that work
+ * without user-collection state — Collection adds its own dimensions
+ * (date added, market value, paid).
+ */
+enum class SortOrder(val label: String) {
+    DEFAULT     ("Default (has image first)"),
+    NAME_ASC    ("Name A → Z"),
+    NAME_DESC   ("Name Z → A"),
+    POWER_DESC  ("Power: High → Low"),
+    POWER_ASC   ("Power: Low → High"),
+    NUMBER_ASC  ("Card # Ascending"),
+    NUMBER_DESC ("Card # Descending"),
+    COST_ASC    ("Hot Dog Cost: Low → High"),
+    COST_DESC   ("Hot Dog Cost: High → Low"),
+    VARIATION   ("Variation");
+}
+
+/** Power-range presets (iOS FilterSheetView.presetRow). */
+data class PowerPreset(val label: String, val min: Int?, val max: Int?) {
+    companion object {
+        val ANY   = PowerPreset("Any",   null, null)
+        val LOW   = PowerPreset("Low",   null, 114)
+        val MID   = PowerPreset("Mid",   115, 139)
+        val HIGH  = PowerPreset("High",  140, 164)
+        val ELITE = PowerPreset("Elite", 165, null)
+        val all = listOf(ANY, LOW, MID, HIGH, ELITE)
+    }
+}
+
+/** Events the screen emits up to the ViewModel. */
 sealed interface FindEvent {
-    data class QueryChanged(val query: String)        : FindEvent
-    data class WeaponToggled(val weapon: String?)     : FindEvent
-    data class TreatmentToggled(val treatment: String?) : FindEvent
-    data class SuggestionTapped(val suggestion: SearchSuggestion) : FindEvent
-    data object ClearFilters                          : FindEvent
+    data class QueryChanged       (val query: String)            : FindEvent
+    data class WeaponToggled      (val weapon: String)           : FindEvent
+    data class TreatmentChanged   (val treatment: String?)       : FindEvent
+    data class SetChanged         (val set: String?)             : FindEvent
+    data class ReleaseChanged     (val release: String?)         : FindEvent
+    data class PowerMinChanged    (val min: Int?)                : FindEvent
+    data class PowerMaxChanged    (val max: Int?)                : FindEvent
+    data class PowerPresetApplied (val preset: PowerPreset)      : FindEvent
+    data class HasImageToggled    (val enabled: Boolean)         : FindEvent
+    data class CardPurposeChanged (val purpose: CardPurpose)     : FindEvent
+    data class ShowcaseChanged    (val showcaseId: String?)      : FindEvent
+    data class SortChanged        (val sort: SortOrder)          : FindEvent
+    data class SuggestionTapped   (val suggestion: SearchSuggestion) : FindEvent
+    data object ClearAllFilters                                   : FindEvent
 }

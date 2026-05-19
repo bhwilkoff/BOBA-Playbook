@@ -28,7 +28,7 @@ The iOS app is already written in Swift 6 + SwiftUI with `@Observable` + SwiftDa
 
 | Layer | Choice | Why |
 |---|---|---|
-| Language | **Kotlin 2.2+** | Modern, official, Compose-first |
+| Language | **Kotlin 2.1.21** (on the AGP-9.2-stable 2.1.x line; Kotlin 2.2 / 2.3 available, deferred for now) | Modern, official, Compose-first |
 | UI | **Jetpack Compose** + **Material 3 / Material 3 Expressive** | Native, declarative, SwiftUI-analog |
 | `minSdk` | **29 (Android 10)** | >95% device coverage in 2026 |
 | `targetSdk` | **36 (Android 16)** at launch; bump to **37 (Android 17)** once stable Q2 2026 + Play deadlines force it | Required for Play Store; ships modern behaviors as contract |
@@ -36,7 +36,7 @@ The iOS app is already written in Swift 6 + SwiftUI with `@Observable` + SwiftDa
 | Plugin: AGP | **9.0+** | Ships built-in Kotlin support |
 | Codegen | **KSP 2.x** (NOT KAPT) | Up to 2× faster; KSP2 is default since Kotlin 2.0 |
 | DI | **Hilt** (NOT Koin) | Compile-time graph validation; broken DI fails the build |
-| Navigation | **Navigation Compose 2.8+** with type-safe routes (Kotlin Serialization-backed) | Compile-time route safety; auto deep-link wiring |
+| Navigation | **Navigation 3 (1.0.1)** — modern Compose-first nav; replaces Navigation Compose 2.x | Stable Nov 2025; direct back-stack control; type-safe routes; built for Compose from the ground up |
 | Persistence | **Room 3.x** (structured) + **DataStore Proto / Preferences** (settings) + **Tink-encrypted DataStore** (secrets) | Coroutines-native; SwiftData analog; EncryptedSharedPreferences is deprecated |
 | Networking | **Ktor Client 3.x with OkHttp engine** | Kotlin-native; coroutines / Flow / WebSockets first-class; shares connection pool with Coil 3 |
 | Image loading | **Coil 3** | Compose-native; multiplatform; smaller method count than Glide |
@@ -713,21 +713,24 @@ For BOBA: gate **Profile → Edit account settings** behind biometric (parity wi
 
 ### 13.1 Gradle Kotlin DSL + version catalog
 
-`gradle/libs.versions.toml`:
+`gradle/libs.versions.toml` (current modern May 2026 stack — the live catalog at `android/gradle/libs.versions.toml` is authoritative; this snippet documents the shape):
 
 ```toml
 [versions]
-kotlin = "2.2.0"
-agp = "9.0.0"
-compose-bom = "2026.05.00"
-coil = "3.0.0"
-supabase = "3.0.0"
+agp = "9.2.0"           # AGP 9 includes built-in Kotlin — no kotlin.android plugin needed
+kotlin = "2.1.21"       # AGP 9.2 stabilizes the Kotlin 2.1.x line
+ksp = "2.1.21-1.0.35"   # paired exactly with the Kotlin version
+compose-bom = "2026.05.00"   # Compose 1.11.1
+compose-material3 = "1.5.0-alpha19"  # Material 3 Expressive APIs (FAB Menu, Floating Toolbar, Wavy Indicators)
+material3-adaptive = "1.1.0"
+nav3 = "1.0.1"          # Navigation 3 — modern Compose-first; replaces Navigation Compose 2.x
+hilt = "2.57.1"
+coil = "3.4.0"
+ktor = "3.4.3"
+supabase = "3.0.2"
+room = "2.7.0"          # KMP-capable
 mlkit-text = "16.0.1"
-camerax = "1.5.0"
-ktor = "3.0.0"
-hilt = "2.52"
-room = "3.0.0"
-nav-compose = "2.8.0"
+camerax = "1.4.0"
 
 [libraries]
 kotlinx-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version = "1.7.3" }

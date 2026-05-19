@@ -145,7 +145,7 @@ Research + binding docs ratified 2026-05-19. All open questions resolved (DECISI
 ### 🚧 Android M0 — Foundation (2026-05-19, in progress)
 
 **Scaffold landed:**
-- ✅ `/android/` Gradle project: Kotlin 2.0.21 + AGP 8.7 + Compose BOM 2024.10.01 + Material 3 + Material 3 Adaptive
+- ✅ `/android/` Gradle project on the **current modern May 2026 stack**: Android Studio Panda 4 / **AGP 9.2.0** (Kotlin support built-in, no `kotlin.android` plugin) / Kotlin 2.1.21 / Compose BOM 2026.05.00 / Material 3 1.5 (Expressive APIs) / Material 3 Adaptive / Navigation 3 (1.0.1; supersedes Nav Compose 2.x) / Coil 3.4.0 / Ktor 3.4.3 / Hilt 2.57.1 / Room 2.7 (KMP-capable)
 - ✅ Version catalog (`gradle/libs.versions.toml`) — 60+ dependencies pinned
 - ✅ Modular structure: `:app`, `:core:ui`, `:core:domain` (pure Kotlin), `:core:network`, `:core:data`
 - ✅ Single Activity (`MainActivity`) + Compose Navigation (NavHost wiring lands in M1)

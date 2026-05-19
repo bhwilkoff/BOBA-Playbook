@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+    // AGP 9 auto-applies Kotlin support — no `kotlin.android` plugin needed.
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -119,8 +119,9 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
 
-    // Navigation
-    implementation(libs.nav.compose)
+    // Navigation 3 — modern Compose-first navigation (replaces Nav2)
+    implementation(libs.nav3.runtime)
+    implementation(libs.nav3.ui)
 
     // DI
     implementation(libs.hilt.android)
@@ -137,8 +138,10 @@ dependencies {
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.json)
     implementation(libs.ktor.client.logging)
+    implementation(libs.okhttp)                        // explicit so BOBAApplication's OkHttpClient compiles cleanly
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.collections.immutable)
+    implementation(libs.coroutines.android)
 
     // Firebase (FCM only — DECISIONS.md #052)
     // Uncomment AFTER committing google-services.json:

@@ -142,7 +142,28 @@ Research + binding docs ratified 2026-05-19. All open questions resolved (DECISI
 - Subscription monetization, Personal Showcase, House of BoBA, Hero Shot all deferred post-v1.
 - 3D path when prioritized: Filament (primary) / Vulkan via NDK.
 
-### 🚧 Android M0 — Foundation (2026-05-19, in progress)
+### ✅ Android M0–M7 — Foundation through Auth (2026-05-19 → 2026-05-19)
+
+**M0 through M7 shipped in a single rapid-pace session.** All eight milestones are at "fast-progress" state — screens render, build is green, key infrastructure (auth, scanning, navigation) is wired. Polish items called out in each milestone's commit message.
+
+Final stack in production: Android Studio Panda 4 / AGP 9.2.0 / Kotlin 2.3.21 / Compose BOM 2026.05.00 / Material 3 / Hilt 2.59.2 / Coil 3.4.0 / Ktor 3.4.3 / supabase-kt 3.0.2 / CameraX 1.4 / ML Kit 16.0.1 / Credential Manager 1.3.0 / Firebase BOM 34.13.0.
+
+**Shipped screens:** Find (search + filter + grid) · Card detail (canonical 6-cell stats) · Collection (designation segmented + sign-in prompt) · Scan (CameraX + ML Kit live OCR) · Decks (pool + summary bar) · Learn (category list + push) · Purchase (segmented Breaks/Stores) · Profile sheet (Sign in with Google via Credential Manager + supabase-kt).
+
+**Deferred follow-ups (post-v1):**
+- Material 3 Expressive APIs (FAB Menu / Floating Toolbar / Wavy Indicators) — needs compileSdk 37
+- M3 SearchBar full-screen morph (uses OutlinedTextField for M1)
+- Container transform / sharedBounds animations (M2 polish)
+- Whatnot tile list + Google Maps Find a Store (M6 polish — Worker wiring + Maps API key)
+- Article corpus port from iOS Swift (M5 polish — content work)
+- Custom Rainbows, Wall view, Shows (M2 polish)
+- Tablet 3-pane Decks editor + NavigableListDetailPaneScaffold rollout (post-M7 polish)
+- **Practice executor engine port** (M5.5 — admin-gated placeholder shipped; full state-machine port is multi-session)
+- Discord OAuth via Auth Tab / Custom Tabs (M7 polish — current Sign in with Google flow is wired; Discord path stubbed)
+- Tink-encrypted token storage (M7 polish — supabase-kt's default SessionManager used today)
+- Image fingerprinting (MediaPipe) + multi-card grid scan (DECISIONS.md #043 — v2)
+
+### Archived M0 details (kept for reference)
 
 **Scaffold landed:**
 - ✅ `/android/` Gradle project on the **current modern May 2026 stack**: Android Studio Panda 4 / **AGP 9.2.0** (Kotlin support built-in, no `kotlin.android` plugin) / Kotlin 2.1.21 / Compose BOM 2026.05.00 / Material 3 1.5 (Expressive APIs) / Material 3 Adaptive / Navigation 3 (1.0.1; supersedes Nav Compose 2.x) / Coil 3.4.0 / Ktor 3.4.3 / Hilt 2.57.1 / Room 2.7 (KMP-capable)

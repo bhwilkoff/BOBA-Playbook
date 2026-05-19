@@ -160,6 +160,16 @@ dependencies {
     implementation(libs.camerax.mlkit)
     implementation(libs.mlkit.text.recognition)
 
+    // Auth — Credential Manager (M7 Sign in with Google)
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services.auth)
+    implementation(libs.googleid)
+
+    // Supabase — wired in M7 for auth + writes
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.supabase.auth)
+    implementation(libs.supabase.postgrest)
+
     // Networking
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)

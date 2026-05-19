@@ -12,11 +12,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
+import com.bobaplaybook.app.auth.AuthManager
 import com.bobaplaybook.app.feature.carddetail.CardDetailScreen
 import com.bobaplaybook.app.feature.collection.CollectionScreen
 import com.bobaplaybook.app.feature.decks.DecksScreen
 import com.bobaplaybook.app.feature.find.FindScreen
 import com.bobaplaybook.app.feature.learn.LearnScreen
+import com.bobaplaybook.app.feature.profile.ProfileSheet
 import com.bobaplaybook.app.feature.purchase.PurchaseScreen
 import com.bobaplaybook.app.feature.scan.ScanScreen
 import com.bobaplaybook.app.navigation.AppDestination
@@ -41,7 +43,7 @@ import com.bobaplaybook.core.ui.theme.BobaTheme
  * adapts automatically. No manual size-class branching needed.
  */
 @Composable
-fun BOBAApp() {
+fun BOBAApp(authManager: AuthManager) {
     BobaTheme {
         var currentDestination by rememberSaveable {
             mutableStateOf(AppDestination.FIND)
@@ -52,6 +54,8 @@ fun BOBAApp() {
         var detailBobaId by rememberSaveable { mutableStateOf<String?>(null) }
         // Cross-cutting Scan flow — modal over the current tab.
         var scanActive by rememberSaveable { mutableStateOf(false) }
+        // Cross-cutting Profile sheet — Find-only entry per ANDROID-DESIGN.md §6.5
+        var profileOpen by rememberSaveable { mutableStateOf(false) }
 
         NavigationSuiteScaffold(
             navigationSuiteItems = {
@@ -90,7 +94,7 @@ fun BOBAApp() {
                 when (currentDestination) {
                     AppDestination.FIND -> FindScreen(
                         onCardClick = { detailBobaId = it },
-                        onProfileClick = { /* M7 — Profile sheet */ },
+                        onProfileClick = { profileOpen = true },
                         onScanClick = { scanActive = true },
                     )
                     AppDestination.LEARN      -> LearnScreen()
@@ -99,6 +103,13 @@ fun BOBAApp() {
                     AppDestination.PURCHASE   -> PurchaseScreen()
                 }
             }
+        }
+
+        if (profileOpen) {
+            ProfileSheet(
+                authManager = authManager,
+                onDismiss = { profileOpen = false },
+            )
         }
     }
 }

@@ -31,6 +31,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:network"))   // BOBACardCell uses CDN helpers
     implementation(platform(libs.compose.bom))
 
     implementation(libs.androidx.core.ktx)

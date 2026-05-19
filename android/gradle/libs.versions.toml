@@ -25,12 +25,16 @@
 [versions]
 # Build tooling
 agp                       = "9.2.0"
-kotlin                    = "2.1.21"
-ksp                       = "2.1.21-1.0.35"
+kotlin                    = "2.3.21"
+ksp                       = "2.3.8"
 compose-bom               = "2026.05.00"
-compose-material3         = "1.5.0-alpha19"      # M3 Expressive APIs — pulls in via explicit override of the BOM's stable line.
+# Material 3 stays on the BOM's stable line for M0 (compileSdk 36).
+# To unlock M3 Expressive APIs (FAB Menu, Floating Toolbar, Wavy
+# Indicators), install Android 17 SDK (API 37) via Studio's SDK
+# Manager + bump compile-sdk to 37 + uncomment the override below.
+# compose-material3       = "1.5.0-alpha19"
 material3-adaptive        = "1.1.0"
-hilt                      = "2.57.1"
+hilt                      = "2.59.2"
 nav3                      = "1.0.1"
 room                      = "2.7.0"              # KMP-capable
 ktor                      = "3.4.3"
@@ -77,10 +81,10 @@ compose-ui-tooling-preview  = { module = "androidx.compose.ui:ui-tooling-preview
 compose-ui-test-junit4      = { module = "androidx.compose.ui:ui-test-junit4" }
 compose-ui-test-manifest    = { module = "androidx.compose.ui:ui-test-manifest" }
 compose-foundation          = { module = "androidx.compose.foundation:foundation" }
-# Pin Material 3 to the Expressive alpha line. Overrides the BOM's
-# stable for this module so we can use FAB Menu, Floating Toolbar,
-# Wavy Indicators, expressive motion (ANDROID-DESIGN.md §6).
-compose-material3           = { module = "androidx.compose.material3:material3", version.ref = "compose-material3" }
+# Material 3 — version-managed by the BOM by default.
+# Uncomment the version.ref to pin to the M3 Expressive alpha line
+# (requires compileSdk 37 — install API 37 in Studio SDK Manager first).
+compose-material3           = { module = "androidx.compose.material3:material3" }
 compose-material3-adaptive  = { module = "androidx.compose.material3.adaptive:adaptive", version.ref = "material3-adaptive" }
 compose-material3-adaptive-layout = { module = "androidx.compose.material3.adaptive:adaptive-layout", version.ref = "material3-adaptive" }
 compose-material3-adaptive-navigation = { module = "androidx.compose.material3.adaptive:adaptive-navigation", version.ref = "material3-adaptive" }

@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -73,7 +75,7 @@ fun BOBABanner(
 private fun PreviewBanner() {
     BobaTheme {
         BOBABanner(
-            icon = androidx.compose.material.icons.Icons.Default.CloudOff,
+            icon = Icons.Default.CloudOff,
             message = "You're offline. Some features won't update until you reconnect.",
             actionLabel = "Retry",
             onAction = {},

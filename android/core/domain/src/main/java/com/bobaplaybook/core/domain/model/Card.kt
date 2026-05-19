@@ -62,6 +62,9 @@ data class Card(
     val radishUrl: String? = null,
     val bvUrl: String? = null,
 
+    /** The real-world athlete this card's hero is inspired by. */
+    val athleteInspiration: String? = null,
+
     // Play-only fields
     val persistent: List<PersistentEffectSpec> = emptyList(),
     val abilityText: String? = null,
@@ -85,6 +88,12 @@ data class Card(
     /** True for sealed-product entries (no hero, has a name like "Booster Box"). */
     val isSealed: Boolean
         get() = cardType.equals("Sealed Product", ignoreCase = true) || hero.isEmpty()
+
+    /** Card-type classifiers (mirrors iOS Card.swift). */
+    val isHero: Boolean   get() = cardType.equals("Hero", ignoreCase = true)
+    val isPlay: Boolean   get() = cardType.equals("Play", ignoreCase = true)
+    val isHotDog: Boolean get() = cardType.equals("HotDog", ignoreCase = true) ||
+                                  cardType.contains("Hot Dog", ignoreCase = true)
 
     /** User-facing display name. Heroes show their hero name; sealed shows product name. */
     val displayName: String

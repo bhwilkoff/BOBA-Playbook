@@ -82,6 +82,11 @@ class DecksViewModel @Inject constructor(
         viewModelScope.launch { repo.renameDeck(deckId, newName) }
     }
 
+    /** Force a refetch of saved decks from Supabase. Pull-to-refresh hook. */
+    fun refreshSavedDecks() {
+        viewModelScope.launch { repo.refresh() }
+    }
+
     fun deleteDeck(deckId: String) {
         viewModelScope.launch { repo.deleteDeck(deckId) }
     }

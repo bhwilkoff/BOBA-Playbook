@@ -97,6 +97,7 @@ fun DecksScreen(
     onOpenManage: () -> Unit,
     onOpenRules: () -> Unit,
     onOpenLegality: () -> Unit,
+    onSignInRequest: () -> Unit = {},
     onScanClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -106,6 +107,7 @@ fun DecksScreen(
             onOpenManage = onOpenManage,
             onOpenRules = onOpenRules,
             onOpenLegality = onOpenLegality,
+            onSignInRequest = onSignInRequest,
             onScanClick = onScanClick,
             modifier = modifier,
         )
@@ -115,6 +117,7 @@ fun DecksScreen(
             onOpenManage = onOpenManage,
             onOpenRules = onOpenRules,
             onOpenLegality = onOpenLegality,
+            onSignInRequest = onSignInRequest,
             modifier = modifier,
         )
     }
@@ -126,6 +129,7 @@ private fun DecksCompactScreen(
     onOpenManage: () -> Unit,
     onOpenRules: () -> Unit,
     onOpenLegality: () -> Unit,
+    onSignInRequest: () -> Unit,
     onScanClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -133,6 +137,8 @@ private fun DecksCompactScreen(
     val findState by findViewModel.uiState.collectAsStateWithLifecycle()
     val deckViewModel: DecksViewModel = hiltViewModel()
     val draft by deckViewModel.draft.collectAsStateWithLifecycle()
+    val authState by deckViewModel.authState.collectAsStateWithLifecycle()
+    val isSignedIn = authState is com.bobaplaybook.app.auth.AuthState.SignedIn
     val hintsViewModel: HintsViewModel = hiltViewModel()
     val longPressHintDismissed by hintsViewModel
         .isDismissed(HintsStore.Ids.DECKS_LONG_PRESS_TO_ADD)
@@ -277,6 +283,7 @@ private fun DecksCompactScreen(
     if (editorOpen) {
         DeckEditorSheet(
             draft = draft,
+            isSignedIn = isSignedIn,
             onDismiss = { editorOpen = false },
             onRename = deckViewModel::rename,
             onRemove = deckViewModel::remove,
@@ -284,6 +291,10 @@ private fun DecksCompactScreen(
                 deckViewModel.save { success ->
                     if (success) editorOpen = false
                 }
+            },
+            onSignInRequest = {
+                editorOpen = false
+                onSignInRequest()
             },
         )
     }
@@ -392,12 +403,15 @@ private fun DecksTabletScreen(
     onOpenManage: () -> Unit,
     onOpenRules: () -> Unit,
     onOpenLegality: () -> Unit,
+    onSignInRequest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val findViewModel: FindViewModel = hiltViewModel()
     val findState by findViewModel.uiState.collectAsStateWithLifecycle()
     val deckViewModel: DecksViewModel = hiltViewModel()
     val draft by deckViewModel.draft.collectAsStateWithLifecycle()
+    val authState by deckViewModel.authState.collectAsStateWithLifecycle()
+    val isSignedIn = authState is com.bobaplaybook.app.auth.AuthState.SignedIn
 
     Row(modifier = modifier.fillMaxSize()) {
         // Saved decks sidebar — Supabase-backed via DecksViewModel.savedDecks
@@ -471,9 +485,11 @@ private fun DecksTabletScreen(
             // wrapper) so it lives in the pane.
             DeckEditorContentInline(
                 draft = draft,
+                isSignedIn = isSignedIn,
                 onRename = deckViewModel::rename,
                 onRemove = deckViewModel::remove,
                 onSave = { deckViewModel.save { /* tablet pane stays open */ } },
+                onSignInRequest = onSignInRequest,
                 onOpenRules = onOpenRules,
                 onOpenLegality = onOpenLegality,
             )

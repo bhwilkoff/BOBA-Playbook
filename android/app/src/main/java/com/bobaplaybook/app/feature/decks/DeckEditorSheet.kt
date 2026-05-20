@@ -62,10 +62,12 @@ import com.bobaplaybook.core.ui.components.BOBASectionHeader
 @Composable
 fun DeckEditorSheet(
     draft: DeckDraft,
+    isSignedIn: Boolean,
     onDismiss: () -> Unit,
     onRename: (String) -> Unit,
     onRemove: (bobaId: String) -> Unit,
     onSave: () -> Unit,
+    onSignInRequest: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
@@ -74,10 +76,12 @@ fun DeckEditorSheet(
     ) {
         DeckEditorContent(
             draft = draft,
+            isSignedIn = isSignedIn,
             onDismiss = onDismiss,
             onRename = onRename,
             onRemove = onRemove,
             onSave = onSave,
+            onSignInRequest = onSignInRequest,
         )
     }
 }
@@ -90,9 +94,11 @@ fun DeckEditorSheet(
 @Composable
 fun DeckEditorContentInline(
     draft: DeckDraft,
+    isSignedIn: Boolean,
     onRename: (String) -> Unit,
     onRemove: (bobaId: String) -> Unit,
     onSave: () -> Unit,
+    onSignInRequest: () -> Unit,
     onOpenRules: () -> Unit,
     onOpenLegality: () -> Unit,
 ) {
@@ -126,14 +132,12 @@ fun DeckEditorContentInline(
             androidx.compose.material3.OutlinedButton(onClick = onOpenRules) { Text("Rules") }
             androidx.compose.material3.OutlinedButton(onClick = onOpenLegality) { Text("Legality") }
             Spacer(Modifier.weight(1f))
-            Button(
-                onClick = onSave,
-                enabled = draft.cards.isNotEmpty(),
-            ) {
-                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.width(18.dp).height(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Save")
-            }
+            SaveOrSignInButton(
+                isSignedIn = isSignedIn,
+                hasCards = draft.cards.isNotEmpty(),
+                onSave = onSave,
+                onSignInRequest = onSignInRequest,
+            )
         }
 
         HorizontalDivider()
@@ -159,10 +163,12 @@ fun DeckEditorContentInline(
 @Composable
 private fun DeckEditorContent(
     draft: DeckDraft,
+    isSignedIn: Boolean,
     onDismiss: () -> Unit,
     onRename: (String) -> Unit,
     onRemove: (bobaId: String) -> Unit,
     onSave: () -> Unit,
+    onSignInRequest: () -> Unit,
 ) {
     var name by remember { mutableStateOf(draft.name) }
 
@@ -189,18 +195,12 @@ private fun DeckEditorContent(
                 singleLine = true,
                 modifier = Modifier.weight(1f),
             )
-            Button(
-                onClick = onSave,
-                enabled = draft.cards.isNotEmpty(),
-            ) {
-                Icon(
-                    Icons.Default.Save,
-                    contentDescription = null,
-                    modifier = Modifier.width(18.dp).height(18.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("Save")
-            }
+            SaveOrSignInButton(
+                isSignedIn = isSignedIn,
+                hasCards = draft.cards.isNotEmpty(),
+                onSave = onSave,
+                onSignInRequest = onSignInRequest,
+            )
         }
 
         StatsRow(draft = draft)
@@ -223,6 +223,41 @@ private fun DeckEditorContent(
             onRemove = onRemove,
             modifier = Modifier.fillMaxSize(),
         )
+    }
+}
+
+/**
+ * iOS parity: SAVE button morphs to SIGN IN when signed-out. Tapping
+ * routes to the Profile destination (Find tab) for sign-in. Avoids
+ * the dead-click where signed-out users tap Save with no feedback.
+ *
+ * See `feedback_profile_only_on_find` memory + DESIGN.md §6.5
+ * inline-sign-in pattern.
+ */
+@Composable
+private fun SaveOrSignInButton(
+    isSignedIn: Boolean,
+    hasCards: Boolean,
+    onSave: () -> Unit,
+    onSignInRequest: () -> Unit,
+) {
+    if (isSignedIn) {
+        Button(
+            onClick = onSave,
+            enabled = hasCards,
+        ) {
+            Icon(
+                Icons.Default.Save,
+                contentDescription = null,
+                modifier = Modifier.width(18.dp).height(18.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("Save")
+        }
+    } else {
+        Button(onClick = onSignInRequest) {
+            Text("Sign in")
+        }
     }
 }
 

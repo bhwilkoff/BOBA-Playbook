@@ -370,10 +370,18 @@ private fun CardDetailBody(
                 color = MaterialTheme.colorScheme.outlineVariant,
             )
             BOBASectionHeader(title = "Decks with this card (${decksContaining.size})")
+            // For tap-to-load — needs the full catalog so DeckStore
+            // can resolve cardNumbers back to Card objects.
+            val catalogForDeckLoad: com.bobaplaybook.core.data.catalog.CardRepository =
+                remember { com.bobaplaybook.app.feature.scan.ScanModuleAccess.cardRepository }
+            val catalog by catalogForDeckLoad.cards.collectAsStateWithLifecycle()
             decksContaining.forEach { deck ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clickable {
+                            decksVmHere.loadSaved(deck, catalog)
+                        }
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

@@ -37,7 +37,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -99,7 +99,9 @@ fun CardDetailScreen(
     val viewModel: CardDetailViewModel = hiltViewModel()
     val state by viewModel.uiStateFor(bobaId).collectAsStateWithLifecycle()
     val decksViewModel: com.bobaplaybook.app.feature.decks.DecksViewModel = hiltViewModel()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    // Plain TopAppBar — Large variant was overscaled for a short card
+    // title and ate vertical space above the art panel.
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     val context = LocalContext.current
     // App-scoped Snackbar host (LocalAppSnackbar) — provided at the
     // BOBAApp root. No local fallback: tests render this through the
@@ -117,8 +119,8 @@ fun CardDetailScreen(
         // Snackbar host omitted — app-scoped via LocalAppSnackbar covers
         // the cross-tab case; per-screen Scaffold doesn't double-paint.
         topBar = {
-            LargeTopAppBar(
-                title = { Text(state.card?.displayName ?: "Card") },
+            TopAppBar(
+                title = { Text(state.card?.displayName ?: "Card", maxLines = 1) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(

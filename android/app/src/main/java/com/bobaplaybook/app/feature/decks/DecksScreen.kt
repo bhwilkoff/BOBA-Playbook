@@ -228,26 +228,15 @@ private fun DecksCompactScreen(
                     onDismiss = { hintsViewModel.dismiss(HintsStore.Ids.DECKS_LONG_PRESS_TO_ADD) },
                 )
             }
-            // Pool search bar — type-to-narrow. Filters into the same
-            // FindViewModel so we don't duplicate the catalog read.
-            OutlinedTextField(
-                value = poolQuery,
-                onValueChange = { q ->
+            // Pool search — slim single-line filter pill. Matches dense
+            // M3 chip aesthetics (no oversized OutlinedTextField label
+            // floating above the field).
+            DecksPoolSearchPill(
+                query = poolQuery,
+                onQueryChange = { q ->
                     poolQuery = q
                     findViewModel.onEvent(com.bobaplaybook.app.feature.find.FindEvent.QueryChanged(q))
                 },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (poolQuery.isNotEmpty()) {
-                        IconButton(onClick = {
-                            poolQuery = ""
-                            findViewModel.onEvent(com.bobaplaybook.app.feature.find.FindEvent.QueryChanged(""))
-                        }) { Icon(Icons.Default.Clear, contentDescription = "Clear") }
-                    }
-                },
-                placeholder = { Text("Filter pool by hero, number, or weapon") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
             )
             CardPoolGrid(
                 cards = findState.results,
@@ -440,6 +429,66 @@ private fun DecksTabletScreen(
                 onOpenRules = onOpenRules,
                 onOpenLegality = onOpenLegality,
             )
+        }
+    }
+}
+
+/**
+ * Dense single-line search pill — Surface + Row + TextField on one
+ * baseline. No floating label, no border. Sized to match M3 dense
+ * filter-row guidance (44dp content area, 8dp side padding).
+ */
+@Composable
+private fun DecksPoolSearchPill(
+    query: String,
+    onQueryChange: (String) -> Unit,
+) {
+    androidx.compose.material3.Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = MaterialTheme.shapes.extraLarge,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 8.dp),
+            )
+            androidx.compose.foundation.text.BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                ),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(vertical = 12.dp),
+                decorationBox = { inner ->
+                    if (query.isEmpty()) {
+                        Text(
+                            "Filter pool",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    inner()
+                },
+            )
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Default.Clear, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
     }
 }

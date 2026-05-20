@@ -185,6 +185,16 @@ fun CollectionScreen(
                 counts = state.entriesByDesignation.mapValues { it.value.size },
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
+            // Count summary — single line below the segmented row so
+            // the chips themselves stay readable on compact widths.
+            val currentCount = state.entriesByDesignation[designation]?.size ?: 0
+            Text(
+                text = if (currentCount == 0) "No ${designation.label.lowercase()}"
+                       else "$currentCount ${designation.label.lowercase()} card${if (currentCount == 1) "" else "s"}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+            )
 
             if (state.totalValueUsd > 0.0) {
                 ValueSummary(totalUsd = state.totalValueUsd)
@@ -241,10 +251,13 @@ private fun DesignationRow(
                 onClick = { onChange(designation) },
                 shape = SegmentedButtonDefaults.itemShape(index, entries.size),
             ) {
-                val count = counts[designation] ?: 0
+                // Label only — count moves to a separate row below the
+                // segmented control so "(12)" doesn't shove labels
+                // off-screen on compact widths.
                 Text(
-                    if (count > 0) "${designation.shortLabel} ($count)" else designation.shortLabel,
+                    designation.shortLabel,
                     style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
                 )
             }
         }
@@ -318,7 +331,7 @@ private fun CollectionList(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Box(modifier = Modifier.width(48.dp).height(67.dp)) {
+                Box(modifier = Modifier.width(40.dp).height(56.dp)) {
                     BOBACardCell(
                         imageFile = entry.card.imageFile,
                         contentDescription = entry.card.displayName,
@@ -328,11 +341,13 @@ private fun CollectionList(
                     Text(
                         entry.card.displayName,
                         style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
                     )
                     Text(
-                        "${entry.card.cardNumber} · ${entry.card.element.lowercase().replaceFirstChar { it.uppercase() }} · ${entry.userCard.designation.shortLabel}",
-                        style = MaterialTheme.typography.labelMedium,
+                        "${entry.card.cardNumber} · ${entry.card.element.lowercase().replaceFirstChar { it.uppercase() }}",
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
                     )
                 }
                 entry.userCard.estimatedValue?.let {

@@ -271,18 +271,7 @@ private fun TabNavHost(
             AppDestination.LEARN -> {
                 composable(NavRoutes.LEARN) {
                     LearnScreen(
-                        onCategoryClick = { categoryId -> navController.navigate(NavRoutes.learnCategory(categoryId)) },
-                    )
-                }
-                composable(
-                    NavRoutes.LEARN_CATEGORY_PATTERN,
-                    arguments = listOf(navArgument(NavRoutes.ARG_CATEGORY) { type = NavType.StringType }),
-                ) { backStackEntry ->
-                    val categoryId = backStackEntry.arguments?.getString(NavRoutes.ARG_CATEGORY).orEmpty()
-                    com.bobaplaybook.app.feature.learn.LearnCategoryScreen(
-                        categoryId = categoryId,
                         onArticleClick = { articleId -> navController.navigate(NavRoutes.learnArticle(articleId)) },
-                        onBack = { navController.popBackStack() },
                     )
                 }
                 composable(

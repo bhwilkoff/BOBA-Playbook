@@ -5,7 +5,9 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import android.graphics.Color as AndroidColor
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.bobaplaybook.app.auth.AuthManager
 import com.bobaplaybook.app.connectivity.ConnectivityState
@@ -47,8 +49,13 @@ class MainActivity : ComponentActivity() {
         // Splash screen MUST be installed before super.onCreate.
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        // Edge-to-edge per ANDROID-DESIGN.md §4.14. Required on targetSdk >= 35.
-        enableEdgeToEdge()
+        // Edge-to-edge per ANDROID-DESIGN.md §4.14. Required on
+        // targetSdk >= 35. Force dark-style system bars because BOBA is
+        // dark-first regardless of system setting (DECISIONS.md #042).
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
+        )
 
         // Dispatch any deep link that launched the activity.
         handleIncomingIntent(intent)

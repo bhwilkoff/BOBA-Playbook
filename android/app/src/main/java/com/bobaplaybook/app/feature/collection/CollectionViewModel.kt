@@ -112,6 +112,20 @@ class CollectionViewModel @Inject constructor(
             collectionRepository.updateDesignation(userCardId, newDesignation)
         }
     }
+
+    fun updateEntry(
+        userCardId: String,
+        purchasePrice: Double?,
+        askingPrice: Double?,
+        condition: String?,
+        notes: String?,
+    ) {
+        viewModelScope.launch {
+            collectionRepository.updateEntryFields(
+                userCardId, purchasePrice, askingPrice, condition, notes,
+            )
+        }
+    }
 }
 
 @Immutable

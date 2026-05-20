@@ -163,6 +163,15 @@ fun CollectionCardDetailScreen(
                     onDelete = {
                         viewModel.remove(entry.userCard.id)
                     },
+                    onSaveEdits = { purchase, asking, condition, notes ->
+                        viewModel.updateEntry(
+                            userCardId = entry.userCard.id,
+                            purchasePrice = purchase,
+                            askingPrice = asking,
+                            condition = condition,
+                            notes = notes,
+                        )
+                    },
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
@@ -281,8 +290,10 @@ private fun CopyRow(
     entry: CollectionEntry,
     onDesignationChange: (Designation) -> Unit,
     onDelete: () -> Unit,
+    onSaveEdits: (purchase: Double?, asking: Double?, condition: String?, notes: String?) -> Unit,
 ) {
     var deleteOpen by rememberSaveable { mutableStateOf(false) }
+    var editOpen by rememberSaveable { mutableStateOf(false) }
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
@@ -292,6 +303,9 @@ private fun CopyRow(
             )
             entry.userCard.quantity.takeIf { it > 1 }?.let {
                 Text("×$it", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            IconButton(onClick = { editOpen = true }) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             IconButton(onClick = { deleteOpen = true }) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
@@ -346,5 +360,115 @@ private fun CopyRow(
                 TextButton(onClick = { deleteOpen = false }) { Text("Cancel") }
             },
         )
+    }
+    if (editOpen) {
+        EditCopySheet(
+            entry = entry,
+            onDismiss = { editOpen = false },
+            onSave = { purchase, asking, condition, notes ->
+                onSaveEdits(purchase, asking, condition, notes)
+                editOpen = false
+            },
+        )
+    }
+}
+
+/**
+ * Edit-copy sheet — patches purchase price / asking price / condition
+ * / notes on an existing user_card row. Mirrors iOS
+ * EditCollectionEntrySheet from CollectionCardDetailView.swift.
+ *
+ * Doesn't switch designation (that's the per-row chip strip) and
+ * doesn't remove the copy (delete IconButton handles that). Pure
+ * field-level edit.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun EditCopySheet(
+    entry: CollectionEntry,
+    onDismiss: () -> Unit,
+    onSave: (purchase: Double?, asking: Double?, condition: String?, notes: String?) -> Unit,
+) {
+    var purchaseText by rememberSaveable { mutableStateOf(entry.userCard.purchasePrice?.toString().orEmpty()) }
+    var askingText by rememberSaveable { mutableStateOf(entry.userCard.askingPrice?.toString().orEmpty()) }
+    var conditionPick by rememberSaveable { mutableStateOf<String?>(null) }
+    var notesText by rememberSaveable { mutableStateOf(entry.userCard.notes.orEmpty()) }
+    val conditions = remember { listOf("Mint", "Near Mint", "Excellent", "Good", "Poor") }
+
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("Edit copy", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                entry.card.displayName,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            // Condition chips
+            Text("Condition", style = MaterialTheme.typography.titleSmall)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                conditions.forEach { c ->
+                    FilterChip(
+                        selected = conditionPick == c,
+                        onClick = { conditionPick = if (conditionPick == c) null else c },
+                        label = { Text(c, style = MaterialTheme.typography.labelSmall) },
+                    )
+                }
+            }
+            // Pricing
+            androidx.compose.material3.OutlinedTextField(
+                value = purchaseText,
+                onValueChange = { purchaseText = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                label = { Text("Purchase price ($)") },
+                singleLine = true,
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            androidx.compose.material3.OutlinedTextField(
+                value = askingText,
+                onValueChange = { askingText = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                label = { Text("Asking price ($) — For Sale / Trade") },
+                singleLine = true,
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            // Notes
+            androidx.compose.material3.OutlinedTextField(
+                value = notesText,
+                onValueChange = { notesText = it },
+                label = { Text("Notes") },
+                minLines = 2,
+                maxLines = 5,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+                androidx.compose.material3.Button(
+                    onClick = {
+                        onSave(
+                            purchaseText.toDoubleOrNull(),
+                            askingText.toDoubleOrNull(),
+                            conditionPick,
+                            notesText.takeIf { it.isNotBlank() },
+                        )
+                    },
+                ) { Text("Save") }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
     }
 }

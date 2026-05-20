@@ -1,6 +1,9 @@
 package com.bobaplaybook.app
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -47,8 +50,54 @@ class BOBAApplication : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
-        // TODO(M7): create notification channels for match-alerts / breaking-news /
-        // trade-messages here. See ANDROID-DEV.md §7.2.
+        createNotificationChannels()
+    }
+
+    /**
+     * Notification channels — required on API 26+. The FCM dispatcher
+     * (DECISIONS.md #045) routes match alerts / breaking news / trade
+     * messages by channel; we register the channels at launch so the
+     * first push has somewhere to land.
+     *
+     * Channel IDs are stable forever — once a user has dismissed/muted
+     * a channel, the system remembers the choice keyed on the id.
+     * Don't rename or recreate channels.
+     */
+    private fun createNotificationChannels() {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_MATCH_ALERTS,
+                "Match alerts",
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply {
+                description = "Wanted/Grail card matches with other collectors"
+            },
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_BREAKING_NEWS,
+                "Breaking news",
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = "New set drops, schedule changes, app-wide announcements"
+            },
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_TRADE_MESSAGES,
+                "Trade messages",
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "Direct messages from a trade partner you've opened a thread with"
+            },
+        )
+    }
+
+    companion object {
+        const val CHANNEL_MATCH_ALERTS = "match_alerts"
+        const val CHANNEL_BREAKING_NEWS = "breaking_news"
+        const val CHANNEL_TRADE_MESSAGES = "trade_messages"
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader =

@@ -146,11 +146,17 @@ fun ProfileScreen(
 
 @Composable
 private fun LoadingState() {
-    Box(
+    Column(
         modifier = Modifier.fillMaxWidth().padding(48.dp),
-        contentAlignment = Alignment.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Loading…", style = MaterialTheme.typography.bodyMedium)
+        androidx.compose.material3.CircularProgressIndicator()
+        Text(
+            "Loading profile…",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

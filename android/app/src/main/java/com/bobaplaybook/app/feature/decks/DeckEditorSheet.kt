@@ -416,6 +416,7 @@ private fun DeckCardRow(card: Card, onRemove: () -> Unit) {
         Box(modifier = Modifier.width(48.dp).height(67.dp)) {
             BOBACardCell(
                 imageFile = card.imageFile,
+                isSealed = card.isSealed,
                 contentDescription = card.displayName,
             )
         }

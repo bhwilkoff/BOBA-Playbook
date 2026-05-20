@@ -337,6 +337,7 @@ private fun CardPoolGrid(
         ) { card ->
             BOBACardCell(
                 imageFile = card.imageFile,
+                isSealed = card.isSealed,
                 contentDescription = card.displayName,
                 modifier = Modifier
                     .cardSharedBounds(card.bobaId)

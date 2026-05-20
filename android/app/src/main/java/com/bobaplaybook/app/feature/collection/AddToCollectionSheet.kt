@@ -176,7 +176,11 @@ private fun AddToCollectionContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Box(modifier = Modifier.width(60.dp).height(84.dp)) {
-                    BOBACardCell(imageFile = card.imageFile, contentDescription = card.displayName)
+                    BOBACardCell(
+                        imageFile = card.imageFile,
+                        contentDescription = card.displayName,
+                        isSealed = card.isSealed,
+                    )
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(card.displayName, style = MaterialTheme.typography.titleMedium)

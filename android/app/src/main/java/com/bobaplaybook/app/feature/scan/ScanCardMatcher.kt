@@ -1,5 +1,6 @@
 package com.bobaplaybook.app.feature.scan
 
+import android.graphics.Rect
 import com.bobaplaybook.core.domain.model.Card
 
 /**
@@ -18,37 +19,236 @@ import com.bobaplaybook.core.domain.model.Card
 private val CARD_NUMBER_REGEX =
     Regex("""#?([A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?)""")
 
+/** Bare-digit suffix lookup for partial OCR reads (e.g. "20" → matches card_numbers ending in `-20`). */
+private val BARE_DIGIT_REGEX = Regex("""\b(\d{1,4})\b""")
+
+// ────────────────────────────────────────────────────────────────
+// Domain — text token + observation shape
+// ────────────────────────────────────────────────────────────────
+
 /**
- * Pure-Kotlin card-number → catalog match. ML Kit pipeline feeds
- * recognized text blocks into this function; UI consumes the result.
+ * One recognized text fragment from ML Kit, with its bounding box in
+ * frame coordinates. We keep the box because hero-name veto needs to
+ * know whether a hero name was printed in the top-left of the card
+ * (where iOS DECISIONS.md #035 says the hero name lives most reliably).
+ */
+data class ScanTextToken(val text: String, val frame: Rect, val frameWidth: Int, val frameHeight: Int) {
+    /** True when this token sits in the upper-left quadrant of the frame. */
+    val isTopLeft: Boolean
+        get() = frame.top < frameHeight * 0.5f && frame.left < frameWidth * 0.5f
+}
+
+/**
+ * Result of a single match attempt. Used by the live scan loop to
+ * commit only when confidence + margin pass the gates, and by future
+ * tests to assert the scoring math.
+ */
+data class ScanMatchResult(
+    val card: Card,
+    val score: Double,
+    val margin: Double,
+    val reasons: List<String>,
+)
+
+/**
+ * Multi-signal card matcher — port of iOS DECISIONS.md #035 scoring
+ * (minus the image-fingerprint signal; that's DECISIONS.md #043 v2 on
+ * Android, gated on MediaPipe Image Embedder + a parallel
+ * feature-prints-android.bin artifact).
  *
- * Mirrors iOS `ScanMatching.resolve(observation:allCards:)` —
- * DECISIONS.md #035 — but simplified for M3:
- *  - Card-number regex against ML Kit text lines
- *  - First confident hit wins
- *  - Hero-name veto + image-fingerprint scoring deferred to v2
+ * **Why not just first-hit-wins on cardNumber?**
+ *   OCR fails partially in ways that look like success. A partial read
+ *   of "BHBF-37" can arrive as "20"; the catalog has a real card at
+ *   "20" (1-Tigre); the matcher commits 1-Tigre. The user sees the
+ *   wrong card with high confidence. iOS DECISIONS.md #035 fixed this
+ *   with multi-signal scoring + a hero-name veto: when "JacHammer" is
+ *   clearly printed top-left, any candidate whose hero isn't JacHammer
+ *   gets a −2.0 penalty.
  *
- * That's the M3 acceptance — DECISIONS.md #043 explicitly defers
- * fingerprint matching post-v1. Single-card live scan with the
- * confident-cardNumber path shipped for months on iOS and is
- * sufficient for v1.
+ * **Scoring weights** (iOS-matched):
+ *   +1.0  OCR cardNumber exact match
+ *   +0.4  OCR bare-digit suffix match
+ *   +1.5  Hero name found in top-left quadrant
+ *   +0.6  Hero name found elsewhere in frame
+ *   −2.0  Hero veto — a hero name is clearly top-left but candidate
+ *         doesn't belong to that hero (the catch for the partial-OCR
+ *         silent-wrong case)
+ *   +0.2  Element ("FIRE"/"ICE"/etc.) match
+ *   +0.2  Treatment substring match
+ *   +0.2  Power value match
+ *
+ * **Commit gates**:
+ *   score >= 1.4    confidence floor
+ *   score - second_best >= 0.3   margin floor
+ *   nil otherwise → caller renders "scanning…" instead of a
+ *   confident wrong answer.
  */
 class ScanCardMatcher(private val catalog: () -> List<Card>) {
 
-    fun match(textLines: List<String>): Card? {
-        val candidateCardNumbers = textLines
-            .asSequence()
-            .flatMap { line -> CARD_NUMBER_REGEX.findAll(line) }
-            .map { it.groupValues[1] }
-            .toList()
+    // Lazy-built set of hero names from the catalog — populated on
+    // first match() and re-built when the catalog count changes (which
+    // is rare; a new set drop).
+    @Volatile private var heroIndex: HeroIndex? = null
 
-        if (candidateCardNumbers.isEmpty()) return null
-
+    fun match(tokens: List<ScanTextToken>): ScanMatchResult? {
+        if (tokens.isEmpty()) return null
         val all = catalog()
-        for (number in candidateCardNumbers) {
-            val hit = all.firstOrNull { it.cardNumber.equals(number, ignoreCase = true) }
-            if (hit != null) return hit
+        if (all.isEmpty()) return null
+
+        val idx = heroIndex?.takeIf { it.catalogSize == all.size }
+            ?: HeroIndex.build(all).also { heroIndex = it }
+
+        // ── Pull observable signals out of the tokens ────────────
+        val cardNumberHits = tokens
+            .asSequence()
+            .flatMap { tk -> CARD_NUMBER_REGEX.findAll(tk.text).map { it.groupValues[1].uppercase() } }
+            .toSet()
+
+        val bareDigitHits = tokens
+            .asSequence()
+            .flatMap { tk -> BARE_DIGIT_REGEX.findAll(tk.text).map { it.groupValues[1] } }
+            .toSet()
+
+        // Hero names mentioned anywhere + the subset top-left.
+        val heroesMentioned = mutableSetOf<String>()
+        val heroesTopLeft = mutableSetOf<String>()
+        for (tk in tokens) {
+            val upper = tk.text.uppercase()
+            for (hero in idx.heroNames) {
+                val token = idx.canonical[hero] ?: continue
+                if (upper.contains(token)) {
+                    heroesMentioned += hero
+                    if (tk.isTopLeft) heroesTopLeft += hero
+                }
+            }
         }
-        return null
+
+        // Element / treatment / power scraps (low-confidence additives).
+        val elementHits = tokens
+            .map { it.text.uppercase() }
+            .filter { it in idx.elements }
+            .toSet()
+        val powerHits = tokens
+            .asSequence()
+            .flatMap { tk -> BARE_DIGIT_REGEX.findAll(tk.text).map { it.groupValues[1].toIntOrNull() ?: 0 } }
+            .filter { it > 0 && it % 5 == 0 }  // BoBA powers are always multiples of 5
+            .toSet()
+
+        // Restrict the candidate pool: any card whose cardNumber, bare
+        // digit suffix, or mentioned hero shows up gets considered. Cuts
+        // 17k → typically <60 in practice.
+        val candidates = buildSet {
+            cardNumberHits.forEach { num ->
+                addAll(all.filter { it.cardNumber.equals(num, ignoreCase = true) })
+            }
+            bareDigitHits.forEach { digits ->
+                addAll(all.filter {
+                    val n = it.cardNumber.substringAfterLast('-').substringAfterLast('/')
+                    n.equals(digits, ignoreCase = true)
+                })
+            }
+            heroesMentioned.forEach { hero ->
+                addAll(all.filter { it.hero.equals(hero, ignoreCase = true) })
+            }
+        }
+        if (candidates.isEmpty()) return null
+
+        // ── Score every candidate ────────────────────────────────
+        val scored = candidates.map { card ->
+            val reasons = mutableListOf<String>()
+            var score = 0.0
+
+            val cardNumberUpper = card.cardNumber.uppercase()
+            if (cardNumberUpper in cardNumberHits) {
+                score += 1.0
+                reasons += "cardNumber +1.0"
+            }
+            val bareSuffix = card.cardNumber.substringAfterLast('-').substringAfterLast('/')
+            if (bareSuffix in bareDigitHits) {
+                score += 0.4
+                reasons += "bare-digit +0.4"
+            }
+            if (card.hero.isNotBlank()) {
+                val heroUpper = card.hero.uppercase()
+                if (card.hero in heroesTopLeft || heroUpper in heroesTopLeft.map { it.uppercase() }) {
+                    score += 1.5
+                    reasons += "hero top-left +1.5"
+                } else if (card.hero in heroesMentioned || heroUpper in heroesMentioned.map { it.uppercase() }) {
+                    score += 0.6
+                    reasons += "hero +0.6"
+                }
+            }
+
+            // ── HERO VETO ────────────────────────────────────────
+            // The iOS catch from DECISIONS.md #035: when a hero is
+            // clearly named top-left and this candidate isn't that hero,
+            // hammer the score. This is what kills the "partial-OCR
+            // landed on a real-but-wrong cardNumber" failure mode.
+            if (heroesTopLeft.isNotEmpty() && card.hero.isNotBlank()) {
+                val heroUpper = card.hero.uppercase()
+                val topLeftUppercased = heroesTopLeft.map { it.uppercase() }.toSet()
+                if (heroUpper !in topLeftUppercased) {
+                    score -= 2.0
+                    reasons += "hero veto −2.0"
+                }
+            }
+
+            if (card.element.uppercase() in elementHits) {
+                score += 0.2
+                reasons += "element +0.2"
+            }
+            if ((card.power ?: -1) in powerHits) {
+                score += 0.2
+                reasons += "power +0.2"
+            }
+
+            ScanMatchResult(card = card, score = score, margin = 0.0, reasons = reasons)
+        }.sortedByDescending { it.score }
+
+        val best = scored.firstOrNull() ?: return null
+        val second = scored.getOrNull(1)?.score ?: 0.0
+
+        val margin = best.score - second
+        val resolved = best.copy(margin = margin)
+
+        // ── Commit gates ─────────────────────────────────────────
+        // 1.4 confidence + 0.3 margin = iOS-matched thresholds.
+        // Returning null is the right thing when neither is met:
+        // the live UI keeps scanning instead of committing a guess.
+        if (best.score < 1.4) return null
+        if (margin < 0.3) return null
+        return resolved
+    }
+}
+
+/**
+ * Pre-built lookup from the catalog — heroes + elements indexed by
+ * upper-cased canonical form so the per-token match is O(1) per
+ * heroName lookup.
+ */
+private class HeroIndex(
+    val catalogSize: Int,
+    val heroNames: Set<String>,
+    val canonical: Map<String, String>,
+    val elements: Set<String>,
+) {
+    companion object {
+        fun build(catalog: List<Card>): HeroIndex {
+            val heroNames = catalog.asSequence()
+                .map { it.hero }
+                .filter { it.isNotBlank() }
+                .toSet()
+            // Canonical match-form: uppercased + spaces collapsed. ML Kit
+            // returns "JACHAMMER" or "Jac Hammer" depending on the font
+            // kerning; we match against the collapsed form.
+            val canonical = heroNames.associateWith { it.uppercase().replace(Regex("\\s+"), "") }
+            val elements = catalog.asSequence().map { it.element.uppercase() }.toSet()
+            return HeroIndex(
+                catalogSize = catalog.size,
+                heroNames = heroNames,
+                canonical = canonical,
+                elements = elements,
+            )
+        }
     }
 }

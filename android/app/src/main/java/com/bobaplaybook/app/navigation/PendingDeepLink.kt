@@ -40,6 +40,7 @@ sealed interface DeepLinkRoute {
     data class SearchQuery(val query: String) : DeepLinkRoute
     data class LearnCategory(val categoryId: String) : DeepLinkRoute
     data class PublicCollection(val username: String) : DeepLinkRoute
+    data class DeckShare(val deckId: String) : DeepLinkRoute
     data object Scan : DeepLinkRoute
 
     companion object {
@@ -62,6 +63,8 @@ sealed interface DeepLinkRoute {
                     LearnCategory(segments[1])
                 segments.firstOrNull() == "u" && segments.size >= 2 ->
                     PublicCollection(segments[1])
+                segments.firstOrNull() == "deck" && segments.size >= 2 ->
+                    DeckShare(segments[1])
                 else -> null
             }
         }

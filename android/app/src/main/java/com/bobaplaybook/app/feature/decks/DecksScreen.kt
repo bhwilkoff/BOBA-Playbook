@@ -97,6 +97,7 @@ fun DecksScreen(
     onOpenManage: () -> Unit,
     onOpenRules: () -> Unit,
     onOpenLegality: () -> Unit,
+    onScanClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     if (isCompactWidth()) {
@@ -105,6 +106,7 @@ fun DecksScreen(
             onOpenManage = onOpenManage,
             onOpenRules = onOpenRules,
             onOpenLegality = onOpenLegality,
+            onScanClick = onScanClick,
             modifier = modifier,
         )
     } else {
@@ -124,6 +126,7 @@ private fun DecksCompactScreen(
     onOpenManage: () -> Unit,
     onOpenRules: () -> Unit,
     onOpenLegality: () -> Unit,
+    onScanClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val findViewModel: FindViewModel = hiltViewModel()
@@ -146,6 +149,12 @@ private fun DecksCompactScreen(
             CenterAlignedTopAppBar(
                 title = { BOBAWordmark() },
                 actions = {
+                    IconButton(onClick = onScanClick) {
+                        Icon(
+                            imageVector = Icons.Default.QrCodeScanner,
+                            contentDescription = "Scan a card",
+                        )
+                    }
                     IconButton(onClick = { editorOpen = true }) {
                         Icon(
                             imageVector = Icons.Default.Edit,

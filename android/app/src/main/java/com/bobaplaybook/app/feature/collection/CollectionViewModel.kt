@@ -91,6 +91,14 @@ class CollectionViewModel @Inject constructor(
     }
 
     /**
+     * Force a fresh refetch of user_cards from Supabase. Wired to
+     * pull-to-refresh on the Collection grid + list.
+     */
+    fun refreshFromServer() {
+        viewModelScope.launch { collectionRepository.refresh() }
+    }
+
+    /**
      * Add a card to the user's collection. No-ops when signed out.
      * Repository handles the optimistic update + Supabase insert; UI
      * just hands the bobaId + designation in.

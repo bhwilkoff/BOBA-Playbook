@@ -105,6 +105,7 @@ fun CollectionScreen(
 ) {
     val viewModel: CollectionViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     var designation by rememberSaveable { mutableStateOf(Designation.PERSONAL) }
     var menuOpen by remember { mutableStateOf(false) }
@@ -372,14 +373,35 @@ fun CollectionScreen(
                 )
             }
 
-            when (displayMode) {
-                DisplayMode.GRID -> CollectionGrid(entries = entries, onCardClick = onCardClick)
-                DisplayMode.LIST -> CollectionList(entries = entries, onCardClick = onCardClick)
-                DisplayMode.WALL -> CollectionWall(
-                    entries = entries,
-                    onCardClick = onCardClick,
-                    designationLabel = designation.label,
-                )
+            // Pull-to-refresh re-pulls user_cards from Supabase via
+            // CollectionRepository.refresh(). Wall-mode wraps the
+            // same way; refreshing then re-renders with whatever the
+            // server returned (e.g. picks up writes from another
+            // device on the same account).
+            var isRefreshing by remember { mutableStateOf(false) }
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    isRefreshing = true
+                    viewModel.refreshFromServer()
+                    // The repo refresh is fire-and-forget against
+                    // Flow; clear the indicator after a short tick.
+                    scope.launch {
+                        kotlinx.coroutines.delay(800)
+                        isRefreshing = false
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                when (displayMode) {
+                    DisplayMode.GRID -> CollectionGrid(entries = entries, onCardClick = onCardClick)
+                    DisplayMode.LIST -> CollectionList(entries = entries, onCardClick = onCardClick)
+                    DisplayMode.WALL -> CollectionWall(
+                        entries = entries,
+                        onCardClick = onCardClick,
+                        designationLabel = designation.label,
+                    )
+                }
             }
         }
     }

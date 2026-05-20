@@ -333,63 +333,119 @@ object LearnCorpus {
     // ════════════════════════════════════════════════════════════════
 
     val tournament: List<LearnSection> = listOf(
-        LearnSection.Body(
-            heading = "Pro Tour 2026",
-            text = "$500,000+ prize pool. Coaches register one Playbook per event; multiple events per Pro Tour stop. Top 8 advances to single elimination.",
-        ),
-        LearnSection.Bullets(
-            heading = "Hero Deck formats",
-            items = listOf(
-                "Apex — open format, all sets, all weapons legal",
-                "Spec — single-weapon decks only",
-                "Elite — pre-Standard rotation set only",
-                "SPEC+ — Spec with tiered Hero requirements",
-            ),
-        ),
-        LearnSection.Bullets(
-            heading = "Game modes (event-level)",
-            items = listOf(
-                "Rookie — best-of-3 matches, no subs, no Coach",
-                "Substitution — best-of-5 matches, 4 subs + 1 Coach",
-                "Playmaker — best-of-7 matches, full BoBA",
-            ),
+        // ─── Pro Tour intro ─────────────────────────────────────
+        LearnSection.Callout(
+            heading = "2026 PRO-TOUR",
+            text = "$500,000+ Prize Pool. The 2026 World Championships at The National offers an estimated $500,000+ in total prizing, with up to $375,000+ available as cash payouts. APEX events are free to enter.",
         ),
         LearnSection.Body(
-            heading = "Double-Up",
-            text = "Optional press-and-fold side-bet. Before any Battle, either coach may offer Double-Up. If accepted, the winner of the next Battle scores 2 toward the match. Stacks — sequential Double-Ups can scale 2 → 4 → 8.",
+            heading = "You are a Coach",
+            text = "As a Coach, you lead a squad of superheroes into battle. The Heroes bring the power; you bring the strategy. You decide the roster, call the Plays, and pick when to push or hold. Assistant Coaches are allowed in all events unless otherwise specified — a pairing to increase accessibility for younger Coaches or those with special needs.",
+        ),
+
+        // ─── Hero deck formats ──────────────────────────────────
+        LearnSection.Body(
+            heading = "Apex",
+            text = "No power limit. Standard deck rules (max 6 Heroes per power). The open-power-cap division.",
         ),
         LearnSection.Body(
-            heading = "Madness modes",
-            text = "Team-play variants for paired-coach events. Apex & AlphaTrilogy pairs two coaches per team; HiLo pairs one Apex deck with one rookie deck for handicapped play.",
+            heading = "Spec",
+            text = "160 Power cap. Every Hero ≤ 160 Power. Standard deck rules (max 6 per power).",
+        ),
+        LearnSection.Body(
+            heading = "Elite",
+            text = "8,250 total power cap. Combined Power across all Heroes ≤ 8,250. Starter cards legal; Trainer cards NOT legal. Otherwise standard rules.",
+        ),
+        LearnSection.Body(
+            heading = "SPEC+",
+            text = "Up to 70 Heroes (tiered). 60 Heroes ≤ 160 Power (a full Spec deck), plus up to 10 optional higher-power Heroes with stacking limits.",
         ),
         LearnSection.Bullets(
-            heading = "Nationals divisions",
+            heading = "SPEC+ optional 10-slot overflow tiers",
             items = listOf(
-                "Apex — premier open division",
-                "AlphaTrilogy — pre-Standard sets only",
-                "Granny's Gum — themed-foil only",
-                "Brawl — single-weapon Brawl decks",
-                "Tecmo Bowl — retro-themed format",
-                "Spec — single-weapon open",
+                "165 Power · max 2 per deck",
+                "170 Power · max 2 per deck",
+                "175 Power · max 1 per deck",
+                "180 Power · max 1 per deck",
+                "185 Power · max 1 per deck",
+                "190 Power · max 1 per deck",
+                "195 Power · max 1 per deck",
+                "200 Power · max 1 per deck",
+                "No Heroes above 200 Power.",
             ),
         ),
+        LearnSection.Callout(
+            heading = null,
+            text = "All Playmaker divisions are 1,000 DBS unless specified otherwise. Heroes can now appear unlimited times per deck (\"one-of\" still applies to an exact card).",
+        ),
+
+        // ─── Game modes ─────────────────────────────────────────
+        LearnSection.Body(
+            heading = "Rookie mode",
+            text = "Reduced rule surface for new Coaches and demo events. Best-of-3 matches; no Substitution Window; no Coach card; no Double-Up. Keeps the game on rails for first-timers.",
+        ),
+        LearnSection.Body(
+            heading = "Substitution mode",
+            text = "Adds the Substitution Window (pay 2 Hot Dogs to swap the revealed Hero before Plays resolve) and 1 Coach card. Best-of-5 matches. The first format where reading your opponent matters.",
+        ),
+        LearnSection.Body(
+            heading = "Playmaker mode",
+            text = "Full BoBA rule surface. Best-of-7 matches. Adds Bonus Plays from Alpha Update / Griffey / specialty sets, the full DBS economy, and every persistent-effect scope.",
+        ),
+
+        // ─── Double-Up ──────────────────────────────────────────
+        LearnSection.Body(
+            heading = "Double-Up (Press / Fold)",
+            text = "Optional betting mechanic any game mode can add. Each Coach gets one Press per game to double the game's point value; the opponent then Folds (ends the game) or Presses back, doubling again. A whole new \"Laundry Phase\" between battles for offering / accepting Presses.",
+        ),
+
+        // ─── Madness modes ─────────────────────────────────────
+        LearnSection.Body(
+            heading = "Madness — team play",
+            text = "Apex & AlphaTrilogy pairs two coaches per team — one Apex deck + one AlphaTrilogy deck per side, with strict mid-match swap rules. HiLo pairs one Apex deck with one Rookie deck for handicapped play; the higher-skill coach takes Rookie.",
+        ),
+
+        // ─── Nationals divisions ───────────────────────────────
+        LearnSection.Bullets(
+            heading = "2026 Nationals divisions",
+            items = listOf(
+                "Apex — premier open division. No power cap. Standard deck rules.",
+                "AlphaTrilogy — Alpha Edition + Alpha Update + Alpha Blast only.",
+                "Granny's Gum — themed-foil only. Bubble Gum + Granny's Linoleum + Great Granny's.",
+                "Brawl — single-weapon Brawl decks. Bo Jackson Battle Arena's heritage format.",
+                "Tecmo Bowl — retro-themed format. Tecmo + Pixel art treatments only.",
+                "Spec — single-weapon open. Pick your weapon and live with it for the event.",
+            ),
+        ),
+
+        // ─── Match structure ───────────────────────────────────
         LearnSection.Bullets(
             heading = "Match structure",
             items = listOf(
-                "Round-robin pools of 4 → top 2 advance",
+                "Pools of 4 round-robin → top 2 advance from each pool",
                 "Single elimination top 8 onward",
                 "Score: 3 for win, 1 for draw, 0 for loss",
                 "Tiebreakers: head-to-head → opponent match-win % → cumulative Power margin",
+                "Best-of-N varies by mode: Rookie BO3 / Substitution BO5 / Playmaker BO7",
             ),
         ),
+
+        // ─── Penalty reference ─────────────────────────────────
         LearnSection.Bullets(
             heading = "Penalty reference",
             items = listOf(
-                "Slow play — warning → game loss",
+                "Slow play — warning → game loss on repeat",
                 "Marked card — match loss",
-                "Misrepresentation — match loss + investigation",
+                "Misrepresentation of deck contents — match loss + investigation",
                 "Unsporting conduct — DQ from event",
+                "Outside assistance during a match — game loss; repeat = match loss",
+                "Tardiness > 10 min — game loss; > 20 min — match loss",
             ),
+        ),
+
+        LearnSection.Callout(
+            heading = null,
+            text = "The 2026 draft is marked NOT YET FINALIZED — check the official rules PDF for the current published version before any tournament.",
         ),
     )
 

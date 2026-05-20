@@ -42,6 +42,7 @@ data class WhatnotShow(
     val viewerCount: Int,
     val thumbnailUrl: String?,
     val showUrl: String,
+    val isLive: Boolean,
 )
 
 @Serializable
@@ -49,35 +50,45 @@ private data class WhatnotResponse(
     val shows: List<WhatnotRow> = emptyList(),
 )
 
+/**
+ * Worker `boba-ebay-proxy /whatnot/upcoming` returns camelCase fields,
+ * not snake_case. The Worker shape lives in workers/ebay-proxy/worker.js
+ * — keep this row in lockstep with it. Verified 2026-05-20 against
+ * the live endpoint.
+ */
 @Serializable
 private data class WhatnotRow(
-    val id: String? = null,
+    val showId: String? = null,
+    val showUrl: String? = null,
     val title: String? = null,
-    @SerialName("host_username") val host: String? = null,
-    @SerialName("host_avatar") val hostAvatarUrl: String? = null,
-    @SerialName("scheduled_at") val scheduledAt: Long? = null,
-    @SerialName("viewer_count") val viewerCount: Int? = null,
-    @SerialName("thumbnail") val thumbnailUrl: String? = null,
-    val url: String? = null,
+    val host: String? = null,
+    val hostUrl: String? = null,
+    val status: String? = null,
+    val isLive: Boolean? = null,
+    val scheduledTimeIso: String? = null,
+    val startTimeMs: Long? = null,
+    val viewerCount: Int? = null,
+    val thumbnailUrl: String? = null,
 ) {
     fun toDomain(): WhatnotShow {
         // Synthesize a stable ID when the Worker doesn't send one —
         // otherwise multiple shows collapse to id="" and the
         // LazyColumn's stable-key contract crashes with
         // IllegalArgumentException("Key \"\" was already used").
-        val resolvedId = id?.takeIf { it.isNotBlank() }
-            ?: listOfNotNull(host, title, scheduledAt?.toString(), url)
+        val resolvedId = showId?.takeIf { it.isNotBlank() }
+            ?: listOfNotNull(host, title, startTimeMs?.toString(), showUrl)
                 .joinToString("|")
                 .ifBlank { "show-${System.identityHashCode(this)}" }
         return WhatnotShow(
             id = resolvedId,
             title = title.orEmpty(),
             host = host.orEmpty(),
-            hostAvatarUrl = hostAvatarUrl,
-            scheduledAt = scheduledAt,
+            hostAvatarUrl = null,  // Worker doesn't surface a host avatar
+            scheduledAt = startTimeMs,
             viewerCount = viewerCount ?: 0,
             thumbnailUrl = thumbnailUrl,
-            showUrl = url.orEmpty(),
+            showUrl = showUrl.orEmpty(),
+            isLive = isLive ?: (status == "LIVE"),
         )
     }
 }

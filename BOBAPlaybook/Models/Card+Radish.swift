@@ -105,13 +105,19 @@ extension Card {
         }
 
         // Hero name normalization. Radish is case-sensitive and uses
-        // a different canonical spelling than ours for a few heroes;
-        // the URL 404s without this remap. Add to the table whenever
-        // you find a new mismatch (smoketest reports them).
+        // a different canonical spelling than ours for a few heroes.
+        // Verified 2026-05-20 via 100-card sweep:
+        //   - "ChetMate" (CamelCase) is correct on Radish (40 cards on
+        //     /Alpha_Update/ChetMate). An earlier alias mapped
+        //     ChetMate → Chetmate which returns a 200 but 0-card alias
+        //     page — wrong. Removed.
+        //   - "BoJax" → "Bojax" is correct on Radish (25 cards on
+        //     /Alpha_Update/Bojax; the CamelCase alias is empty).
+        //     Catalog has both spellings; alias normalizes BoJax to
+        //     the Bojax spelling Radish indexes.
         let rawHero = self.hero.isEmpty ? self.name : self.hero
         let heroAliases: [String: String] = [
-            "ChetMate": "Chetmate",
-            "BoJax":    "Bojax",
+            "BoJax": "Bojax",
         ]
         let radishHero = heroAliases[rawHero] ?? rawHero
 
@@ -146,6 +152,125 @@ extension Card {
         comps?.path = trimmed
         return comps?.url
     }
+
+    /// All Radish candidate URLs to probe in priority order before
+    /// falling back to hero-only. Captures three known sources of drift:
+    ///
+    /// 1. **CardNumber casing-flip:** Radish migrated newer sets (2026
+    ///    Griffey) to title-case cardNumber prefixes (`Rad-`, `Mix-`)
+    ///    while older sets (2024 Alpha Edition) stayed uppercase
+    ///    (`RAD-`, `MIX-`). No single rule resolves both — we probe both.
+    ///
+    /// 2. **Hero-name casing-flip:** Heroes with internal CamelCase
+    ///    (ChetMate, MaxLight, etc.) appear on Radish in inconsistent
+    ///    casing per set — ChetMate's Alpha_Update page uses CamelCase
+    ///    (40 cards); the World_Champions page uses lowercase
+    ///    "Chetmate" (6 OKC cards). Probe both variants.
+    ///
+    /// 3. **Cross-year namespace:** Some cards with set="World Champions"
+    ///    in our catalog live on Radish at /2025/World_Champions
+    ///    (not /2024). Generate the alternative-year URL.
+    var radishCandidateURLs: [URL] {
+        guard let primary = resolvedRadishURL else { return [] }
+
+        // Sealed products don't have card-specific pages — short-circuit.
+        if cardType == "Sealed Product" { return [primary] }
+
+        // Build a base set of (URL) candidates from year × hero × cardNum
+        // permutations. Each axis has 1-2 values; total candidate count
+        // stays bounded (≤8 per card).
+        let years = [primary.pathComponents[2]] + alternateYears(for: primary)
+        var candidates: [URL] = []
+        for year in years {
+            guard let yUrl = withYear(year, in: primary) else { continue }
+            // Hero variants: as-typed + internal-CamelCase-lowercased.
+            for heroUrl in heroCasingVariants(of: yUrl) {
+                candidates.append(heroUrl)
+                if let flipped = flippedCasingRadishURL(from: heroUrl) {
+                    candidates.append(flipped)
+                }
+            }
+        }
+        return candidates
+    }
+
+    /// Hero-name casing variants. If the hero contains internal
+    /// uppercase letters (ChetMate, MaxLight, BeKool), also probe the
+    /// version with those lowered (Chetmate, Maxlight, Bekool). Used
+    /// to handle Radish's inconsistent hero slugging across sets.
+    private func heroCasingVariants(of url: URL) -> [URL] {
+        let parts = url.pathComponents
+        guard parts.count >= 5 else { return [url] }
+        let hero = parts[4]
+        // Find any internal uppercase after the first character.
+        let chars = Array(hero)
+        guard chars.count > 1 else { return [url] }
+        let hasInternalUpper = chars.dropFirst().contains { $0.isUppercase }
+        if !hasInternalUpper { return [url] }
+        // Build "ChetMate" → "Chetmate" (keep first letter, lowercase the rest).
+        let lowered = String(chars[0]) + String(chars.dropFirst()).lowercased()
+        guard lowered != hero else { return [url] }
+        var loweredParts = parts
+        loweredParts[4] = lowered
+        var comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        comps?.path = "/" + loweredParts.dropFirst().joined(separator: "/")
+        guard let loweredURL = comps?.url else { return [url] }
+        return [url, loweredURL]
+    }
+
+    /// Swap the cardNumber prefix between uppercase and title-case.
+    /// Returns nil when the URL doesn't have the expected 5-segment
+    /// shape with an `XXX-Number` cardNumber tail.
+    private func flippedCasingRadishURL(from url: URL) -> URL? {
+        let parts = url.pathComponents
+        guard parts.count >= 6, let tail = parts.last else { return nil }
+        // Parse "RAD-137" or "Rad-137" or "Logo-263"
+        guard let dashIdx = tail.firstIndex(of: "-") else { return nil }
+        let prefix = String(tail[tail.startIndex..<dashIdx])
+        let rest   = String(tail[tail.index(after: dashIdx)...])
+        guard prefix.count >= 2 else { return nil }
+        let flipped: String
+        if prefix == prefix.uppercased() && prefix != prefix.lowercased() {
+            // ALLCAPS → Titlecase
+            flipped = prefix.prefix(1).uppercased() + prefix.dropFirst().lowercased()
+        } else {
+            // Titlecase / mixed → uppercase
+            flipped = prefix.uppercased()
+        }
+        if flipped == prefix { return nil }
+        var comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        let newTail = "\(flipped)-\(rest)"
+        let newPath = "/" + parts.dropFirst().dropLast().joined(separator: "/") + "/" + newTail
+        comps?.path = newPath
+        return comps?.url
+    }
+
+    /// Alternative year segments to probe when the primary URL's year
+    /// 404s. Hard-coded knowledge: World Champions exists at both
+    /// 2024 + 2025; Alpha Edition cards sometimes get re-hosted under
+    /// Alpha Update; Griffey is 2026 with no alternative; etc.
+    private func alternateYears(for url: URL) -> [String] {
+        let parts = url.pathComponents
+        guard parts.count >= 4 else { return [] }
+        let year = parts[2]
+        let slug = parts[3]
+        switch (year, slug) {
+        case ("2024", "World_Champions"): return ["2025"]
+        case ("2025", "World_Champions"): return ["2024"]
+        case ("2024", "Alpha_Edition"):   return ["2025"]  // some cards re-hosted under Alpha Update
+        default: return []
+        }
+    }
+
+    /// Replace the year segment in a Radish URL.
+    private func withYear(_ newYear: String, in url: URL) -> URL? {
+        var parts = url.pathComponents
+        guard parts.count >= 4 else { return nil }
+        parts[2] = newYear
+        var comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        comps?.path = "/" + parts.dropFirst().joined(separator: "/")
+        return comps?.url
+    }
 }
 
 // MARK: - RadishURLResolver
@@ -163,8 +288,10 @@ final class RadishURLResolver {
     static let shared = RadishURLResolver()
     private var cache: [String: URL] = [:]
 
-    /// Best URL for a card. Tries the cardNumber-specific URL first;
-    /// falls back to the hero-only URL when the specific card 404s.
+    /// Best URL for a card. Walks the candidate list (primary URL,
+    /// casing-flip, cross-year namespace combinations) and returns the
+    /// first one that HEAD-probes successfully. Falls back to the
+    /// hero-only URL when every card-specific candidate 404s.
     /// Returns nil only if the catalog can't even build a primary URL
     /// (e.g. missing set/hero).
     func resolve(for card: Card) async -> URL? {
@@ -177,17 +304,23 @@ final class RadishURLResolver {
             return primary
         }
 
-        if await urlIsReachable(primary) {
-            cache[card.id] = primary
-            return primary
+        // Probe each candidate in priority order. First reachable wins.
+        for candidate in card.radishCandidateURLs {
+            if await urlIsReachable(candidate) {
+                cache[card.id] = candidate
+                return candidate
+            }
         }
+        // Every card-specific candidate 404'd. Fall back to the hero
+        // page which aggregates every print and is almost always
+        // present.
         if let fallback = card.heroOnlyRadishURL,
            fallback != primary,
            await urlIsReachable(fallback) {
             cache[card.id] = fallback
             return fallback
         }
-        // Even when both options 404, return the primary so the
+        // Even when every option 404s, return the primary so the
         // button is at least clickable — Radish's 404 page lets the
         // user navigate up via breadcrumbs.
         cache[card.id] = primary

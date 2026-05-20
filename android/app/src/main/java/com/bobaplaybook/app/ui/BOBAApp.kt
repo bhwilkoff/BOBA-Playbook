@@ -11,6 +11,7 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.focusable
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -106,6 +107,7 @@ fun BOBAApp(
         var pendingCollectionScan by rememberSaveable { mutableStateOf<String?>(null) }
         val isOnline by connectivityState.isOnline.collectAsStateWithLifecycle(initialValue = true)
         val appSnackbar = remember { androidx.compose.material3.SnackbarHostState() }
+        val scope = androidx.compose.runtime.rememberCoroutineScope()
         val context = androidx.compose.ui.platform.LocalContext.current
 
         // Drain pending deep links — dispatch to the right NavController
@@ -245,6 +247,17 @@ fun BOBAApp(
                                             destination = ScanDestination.CURRENT_DECK,
                                             cardRepository = cardRepository,
                                         )
+                                        // The coordinator added the card to
+                                        // the draft silently — confirm via
+                                        // snackbar so the user knows the
+                                        // scan landed in Decks (not Find).
+                                        val cards = cardRepository.cards.value
+                                        val name = cards.firstOrNull {
+                                            it.bobaId == matchedBobaId
+                                        }?.displayName ?: matchedBobaId
+                                        scope.launch {
+                                            appSnackbar.showSnackbar("Added $name to deck draft")
+                                        }
                                     }
                                     else -> {
                                         scanCoordinator.onMatch(

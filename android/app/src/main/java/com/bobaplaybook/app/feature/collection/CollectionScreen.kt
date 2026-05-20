@@ -353,6 +353,25 @@ fun CollectionScreen(
                 return@Scaffold
             }
 
+            // First-run hint: point new users at the display-mode
+            // picker so they discover Grid / List / Wall (especially
+            // Wall, which is a shareable surface per DECISIONS.md
+            // #036 but lives one menu-tap away).
+            val hintsVm: com.bobaplaybook.app.hints.HintsViewModel =
+                androidx.hilt.navigation.compose.hiltViewModel()
+            val modesHintDismissed by hintsVm
+                .isDismissed(com.bobaplaybook.app.hints.HintsStore.Ids.COLLECTION_DISPLAY_MODES)
+                .collectAsStateWithLifecycle(initialValue = true)
+            if (!modesHintDismissed) {
+                com.bobaplaybook.core.ui.components.BOBAHintBanner(
+                    title = "Switch display modes",
+                    body = "Tap the overflow menu to flip between Grid, List, and Wall. Wall turns your collection into a shareable image.",
+                    onDismiss = {
+                        hintsVm.dismiss(com.bobaplaybook.app.hints.HintsStore.Ids.COLLECTION_DISPLAY_MODES)
+                    },
+                )
+            }
+
             when (displayMode) {
                 DisplayMode.GRID -> CollectionGrid(entries = entries, onCardClick = onCardClick)
                 DisplayMode.LIST -> CollectionList(entries = entries, onCardClick = onCardClick)

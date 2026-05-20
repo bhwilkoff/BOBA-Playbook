@@ -99,6 +99,24 @@ sealed interface LearnSection {
     ) : LearnSection {
         data class Row(val weapon: String, val plays: List<String>)
     }
+    /**
+     * Card-examples block — horizontal scroll of card thumbnails
+     * resolved against the live catalog. Used for hero-deck examples,
+     * play-card-type examples, hot-dog examples, etc. Provides the
+     * "this is what a Hot Dog looks like" visual context that text
+     * alone can't carry.
+     */
+    data class CardExamples(
+        override val heading: String? = null,
+        val description: String? = null,
+        val cardNames: List<String>,
+        /** When true, only Hot Dog cards match. Otherwise any card type. */
+        val hotDogsOnly: Boolean = false,
+        /** When true, only Plays match. */
+        val playsOnly: Boolean = false,
+        /** When true, only Heroes match. */
+        val heroesOnly: Boolean = false,
+    ) : LearnSection
 }
 
 /** Single source of truth for category content. */
@@ -242,9 +260,21 @@ object LearnCorpus {
                 "Control — counter-Plays that neutralize opposing persistents",
             ),
         ),
+        LearnSection.CardExamples(
+            heading = "Example Plays",
+            description = "Tap any card to open its detail.",
+            cardNames = listOf("Add Firepower", "First Draw", "Crystal Ball", "Frozen Resolve", "Steel Shield", "Forced Substitution"),
+            playsOnly = true,
+        ),
         LearnSection.Body(
             heading = "Resource management",
             text = "Bonus Plays are bounded (6 in Rookie, more with Hot Dogs). Don't blow your Bonus budget in Battles 1–2; the back half is where Bonus Plays compound. HD is its own resource — spending HD to win one Battle can cost you the next.",
+        ),
+        LearnSection.CardExamples(
+            heading = "Hot Dogs",
+            description = "Your 10-card resource pile. Always public; spent Hot Dogs go to Hot Dog Discard.",
+            cardNames = listOf("Frank", "Grillbert"),
+            hotDogsOnly = true,
         ),
         LearnSection.Callout(
             heading = "Picking an archetype to learn first",

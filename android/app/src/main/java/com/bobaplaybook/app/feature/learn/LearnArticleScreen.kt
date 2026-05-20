@@ -206,7 +206,14 @@ private fun StrategyPage() {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         itemsIndexed(items = LearnCorpus.strategy, key = { i, _ -> "strat-$i" }) { _, section ->
-            SectionRenderer(section)
+            // CardExamples requires the catalog — render here with the
+            // already-collected `catalog` rather than threading state
+            // into the generic SectionRenderer.
+            if (section is LearnSection.CardExamples) {
+                CardExamplesRow(section, catalog)
+            } else {
+                SectionRenderer(section)
+            }
         }
         item("archetypes-header") {
             BOBASectionHeader(title = "Archetype templates")
@@ -216,6 +223,94 @@ private fun StrategyPage() {
         }
         item("archetypes-spacer") {
             Spacer(modifier = Modifier.padding(bottom = 16.dp))
+        }
+    }
+}
+
+@Composable
+private fun CardExamplesRow(
+    section: LearnSection.CardExamples,
+    catalog: List<Card>,
+) {
+    val resolved = remember(section.cardNames, section.hotDogsOnly, section.playsOnly, section.heroesOnly, catalog) {
+        section.cardNames.mapNotNull { wanted ->
+            val matches = catalog.filter { c ->
+                c.name.equals(wanted, ignoreCase = true) &&
+                    !c.imageFile.isNullOrBlank() &&
+                    (!section.hotDogsOnly || c.cardType.contains("Hot Dog", ignoreCase = true) || c.cardType.contains("HotDog", ignoreCase = true)) &&
+                    (!section.playsOnly   || c.cardType.contains("Play", ignoreCase = true)) &&
+                    (!section.heroesOnly  || c.cardType.equals("Hero", ignoreCase = true))
+            }
+            matches.firstOrNull { it.treatment.equals("Plays", ignoreCase = true) && it.variation == "First Edition" }
+                ?: matches.firstOrNull { it.treatment.equals("Plays", ignoreCase = true) }
+                ?: matches.firstOrNull()
+        }
+    }
+    if (resolved.isEmpty()) return
+
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        section.heading?.let { BOBASectionHeader(title = it) }
+        section.description?.let { desc ->
+            Text(
+                desc,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(items = resolved, key = { it.bobaId }) { card ->
+                val accent = BobaElements.forElement(card.element.uppercase())
+                Column(
+                    modifier = Modifier.width(80.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(80.dp)
+                            .height(112.dp),
+                    ) {
+                        BOBACardCell(
+                            imageFile = card.imageFile,
+                            isSealed = card.isSealed,
+                            contentDescription = card.displayName,
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        card.hero.ifBlank { card.name },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        textAlign = TextAlign.Center,
+                    )
+                    when {
+                        card.cardType.contains("Hot Dog", ignoreCase = true) ||
+                        card.cardType.contains("HotDog", ignoreCase = true) -> Text(
+                            "HOT DOG",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        card.cardType.contains("Play", ignoreCase = true) -> {
+                            val cost = card.cost
+                            Text(
+                                if (cost == null || cost == 0) "FREE" else "${cost} HD",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (cost == null || cost == 0) com.bobaplaybook.core.ui.theme.BobaBrand.Cyan else accent,
+                            )
+                        }
+                        card.cardType.equals("Hero", ignoreCase = true) -> {
+                            Text(
+                                "${card.element.uppercase()} · ${card.power ?: 0}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = accent,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -602,6 +697,18 @@ private fun SectionRenderer(section: LearnSection) {
             Text(
                 text = "•  ${section.term}: ${section.definition}",
                 style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
+        is LearnSection.CardExamples -> {
+            // CardExamples needs the catalog and is rendered by callers
+            // that have it (StrategyPage). If one shows up in a flat
+            // page without catalog access, fall back to a labelled bullet.
+            section.heading?.let { BOBASectionHeader(title = it) }
+            Text(
+                text = "Examples: ${section.cardNames.joinToString(" · ")}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
         }

@@ -339,6 +339,16 @@ private fun SignedInContent(
     val vm: ProfileViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
     val usernameStatus by vm.usernameStatus.collectAsStateWithLifecycle(initialValue = null)
+
+    // When the user signed in with Discord, persist the discord_user_id +
+    // avatar URL on user_profiles so future trade-matching can deep-link
+    // to their Discord profile. DECISIONS.md #049 — we store the
+    // identifier; we never call the Discord API ourselves.
+    androidx.compose.runtime.LaunchedEffect(authState.provider, authState.providerUserId) {
+        if (authState.provider == "discord" && !authState.providerUserId.isNullOrEmpty()) {
+            vm.captureDiscordIdentity(authState.providerUserId, authState.providerAvatarUrl)
+        }
+    }
     var publicCollection by rememberSaveable { mutableStateOf(false) }
     var matchAlerts by rememberSaveable { mutableStateOf(false) }
     var deleteConfirmOpen by rememberSaveable { mutableStateOf(false) }
@@ -353,7 +363,8 @@ private fun SignedInContent(
             ProfileHeader(
                 username = username,
                 email = authState.email,
-                signInMethod = "Google",
+                signInMethod = authState.provider?.replaceFirstChar { it.uppercase() } ?: "Email",
+                avatarUrl = authState.providerAvatarUrl,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
             )
         }
@@ -648,6 +659,7 @@ private fun ProfileHeader(
     username: String,
     email: String?,
     signInMethod: String,
+    avatarUrl: String? = null,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -660,16 +672,25 @@ private fun ProfileHeader(
             color = BobaBrand.Orange,
             modifier = Modifier.size(72.dp),
         ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = (username.firstOrNull()?.uppercase() ?: "B"),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
+            if (avatarUrl != null) {
+                coil3.compose.AsyncImage(
+                    model = avatarUrl,
+                    contentDescription = "Avatar",
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxWidth(),
                 )
+            } else {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = (username.firstOrNull()?.uppercase() ?: "B"),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                }
             }
         }
         Column(modifier = Modifier.weight(1f)) {

@@ -51,10 +51,27 @@ class AuthManager @Inject constructor(
     suspend fun observeSession() {
         client.auth.sessionStatus.collect { status ->
             _authState.value = when (status) {
-                is SessionStatus.Authenticated -> AuthState.SignedIn(
-                    userId = status.session.user?.id.orEmpty(),
-                    email = status.session.user?.email,
-                )
+                is SessionStatus.Authenticated -> {
+                    val user = status.session.user
+                    val appMeta = user?.appMetadata
+                    val userMeta = user?.userMetadata
+                    val provider = appMeta?.get("provider")?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+                        ?: appMeta?.get("providers")?.let { providers ->
+                            (providers as? kotlinx.serialization.json.JsonArray)?.firstOrNull()
+                                ?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+                        }
+                    val providerAvatarUrl = userMeta?.get("avatar_url")?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+                        ?: userMeta?.get("picture")?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+                    val providerUserId = userMeta?.get("provider_id")?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+                        ?: userMeta?.get("sub")?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+                    AuthState.SignedIn(
+                        userId = user?.id.orEmpty(),
+                        email = user?.email,
+                        provider = provider,
+                        providerAvatarUrl = providerAvatarUrl,
+                        providerUserId = providerUserId,
+                    )
+                }
                 is SessionStatus.NotAuthenticated -> AuthState.SignedOut
                 is SessionStatus.RefreshFailure   -> AuthState.SignedOut
                 is SessionStatus.Initializing     -> AuthState.Unknown
@@ -196,7 +213,16 @@ class AuthManager @Inject constructor(
 sealed interface AuthState {
     data object Unknown   : AuthState
     data object SignedOut : AuthState
-    data class  SignedIn(val userId: String, val email: String?) : AuthState
+    data class  SignedIn(
+        val userId: String,
+        val email: String?,
+        /** OAuth provider id from supabase auth metadata: "google" / "discord" / "apple" / "email". */
+        val provider: String? = null,
+        /** Provider-supplied avatar URL (Discord avatar / Google profile pic), when present. */
+        val providerAvatarUrl: String? = null,
+        /** Provider-specific external user id — Discord snowflake when provider==discord. */
+        val providerUserId: String? = null,
+    ) : AuthState
 }
 
 /**

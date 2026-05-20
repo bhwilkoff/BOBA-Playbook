@@ -81,6 +81,25 @@ class ProfileService @Inject constructor(
         }.onFailure { Log.e(TAG, "set_notification_prefs failed", it) }
             .getOrDefault(false)
 
+    /**
+     * Persist Discord identity to user_profiles after a successful
+     * Discord OAuth flow. DECISIONS.md #049 — auth-only use; this
+     * just stores the discord_user_id + avatar URL for future
+     * trade-match deep-link construction.
+     */
+    suspend fun setDiscordIdentity(discordId: String?, avatarUrl: String?): Boolean =
+        runCatching {
+            supabase.postgrest.rpc(
+                "set_discord_identity",
+                buildJsonObject {
+                    put("discord_id", discordId?.let { kotlinx.serialization.json.JsonPrimitive(it) } ?: kotlinx.serialization.json.JsonNull)
+                    put("avatar_url", avatarUrl?.let { kotlinx.serialization.json.JsonPrimitive(it) } ?: kotlinx.serialization.json.JsonNull)
+                },
+            )
+            true
+        }.onFailure { Log.e(TAG, "set_discord_identity failed", it) }
+            .getOrDefault(false)
+
     suspend fun requestRole(role: String, reason: String): Boolean =
         runCatching {
             supabase.postgrest.rpc(

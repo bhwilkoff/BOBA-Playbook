@@ -7,6 +7,8 @@ import com.bobaplaybook.app.auth.AuthManager
 import com.bobaplaybook.app.auth.AuthState
 import com.bobaplaybook.core.data.catalog.CardRepository
 import com.bobaplaybook.core.data.collection.CollectionRepository
+import com.bobaplaybook.core.data.decks.DeckRepository
+import com.bobaplaybook.core.data.decks.SavedDeck
 import com.bobaplaybook.core.domain.model.Card
 import com.bobaplaybook.core.domain.model.Designation
 import com.bobaplaybook.core.domain.model.UserCard
@@ -37,8 +39,23 @@ import kotlinx.coroutines.launch
 class CollectionViewModel @Inject constructor(
     private val collectionRepository: CollectionRepository,
     private val cardRepository: CardRepository,
+    private val deckRepository: DeckRepository,
     private val authManager: AuthManager,
 ) : ViewModel() {
+
+    /**
+     * Saved decks flow — exposed so the Collection Card Detail screen
+     * can render "Decks containing this card." iOS DESIGN.md §8.4
+     * surfaces the same list off `SupabaseClient.decksContaining(bobaId:)`.
+     *
+     * Android's `deck_cards` row stores `card_number` (not `boba_id`)
+     * per the supabase_schema.sql, so the filter happens by cardNumber.
+     */
+    val savedDecks: StateFlow<List<SavedDeck>> = deckRepository.savedDecks
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val catalogCards: StateFlow<List<Card>> = cardRepository.cards
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val uiState: StateFlow<CollectionUiState> = combine(
         collectionRepository.ownedCards,

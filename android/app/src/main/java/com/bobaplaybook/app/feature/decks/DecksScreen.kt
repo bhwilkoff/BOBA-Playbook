@@ -254,8 +254,9 @@ private fun DecksCompactScreen(
             onRename = deckViewModel::rename,
             onRemove = deckViewModel::remove,
             onSave = {
-                // M7 — Supabase write. v1 just closes the sheet.
-                editorOpen = false
+                deckViewModel.save { success ->
+                    if (success) editorOpen = false
+                }
             },
         )
     }
@@ -425,7 +426,7 @@ private fun DecksTabletScreen(
                 draft = draft,
                 onRename = deckViewModel::rename,
                 onRemove = deckViewModel::remove,
-                onSave = { /* M7 polish — Supabase write */ },
+                onSave = { deckViewModel.save { /* tablet pane stays open */ } },
                 onOpenRules = onOpenRules,
                 onOpenLegality = onOpenLegality,
             )
@@ -476,7 +477,7 @@ private fun DecksPoolSearchPill(
                 decorationBox = { inner ->
                     if (query.isEmpty()) {
                         Text(
-                            "Filter pool",
+                            "Search cards…",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

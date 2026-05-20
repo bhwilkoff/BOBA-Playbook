@@ -282,6 +282,19 @@ private fun WhatnotTile(
                             )
                         }
                     }
+                    // Stream-time label — iOS UpcomingBreaksList.localTimeText
+                    // parity. "Today 7:00 PM" / "Tomorrow 7:00 PM" / "Fri 7:00 PM".
+                    // Renders in the user's local timezone so coaches outside PT
+                    // see the right clock time.
+                    show.scheduledAt?.let { ms ->
+                        formatStreamTime(ms)?.let { label ->
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
                 }
                 Icon(
                     Icons.AutoMirrored.Filled.OpenInNew,
@@ -423,6 +436,35 @@ private fun StoreRow(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+}
+
+/**
+ * Format a Whatnot show's epoch-ms scheduledAt as a human-readable
+ * local-time label. iOS UpcomingBreaksList.localTimeText parity:
+ *   - Today      → "Today 7:00 PM"
+ *   - Tomorrow   → "Tomorrow 7:00 PM"
+ *   - Other day  → "Fri 7:00 PM"
+ * Returns null when the timestamp is in the past (no upcoming label
+ * useful for a finished show — the worker should have filtered it,
+ * but we double-check).
+ */
+private fun formatStreamTime(epochMs: Long): String? {
+    val now = java.time.ZonedDateTime.now(java.time.ZoneId.systemDefault())
+    val when_ = java.time.Instant.ofEpochMilli(epochMs)
+        .atZone(java.time.ZoneId.systemDefault())
+    if (when_.isBefore(now.minusHours(1))) return null  // past show
+    val timeFmt = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
+    val timeStr = when_.format(timeFmt)
+    val today = now.toLocalDate()
+    val tomorrow = today.plusDays(1)
+    return when (when_.toLocalDate()) {
+        today    -> "Today $timeStr"
+        tomorrow -> "Tomorrow $timeStr"
+        else     -> {
+            val dayFmt = java.time.format.DateTimeFormatter.ofPattern("EEE h:mm a")
+            when_.format(dayFmt)
         }
     }
 }

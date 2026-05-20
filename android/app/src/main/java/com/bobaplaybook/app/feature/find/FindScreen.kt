@@ -7,6 +7,10 @@
 package com.bobaplaybook.app.feature.find
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import coil3.request.crossfade
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -167,11 +171,38 @@ private fun FindContent(
             CenterAlignedTopAppBar(
                 title = { BOBAWordmark() },
                 navigationIcon = {
+                    // Show the user's avatar (from user_profiles
+                    // or provider) when signed in; fall back to the
+                    // generic icon when signed out. iOS ProfileView
+                    // parity — small visual signal that the user is
+                    // authenticated.
+                    val profileVm: com.bobaplaybook.app.feature.profile.ProfileViewModel =
+                        androidx.hilt.navigation.compose.hiltViewModel()
+                    val authVm: com.bobaplaybook.app.auth.AuthViewModel =
+                        androidx.hilt.navigation.compose.hiltViewModel()
+                    val profile by profileVm.profile.collectAsStateWithLifecycle(initialValue = null)
+                    val authForAvatar by authVm.authState.collectAsStateWithLifecycle()
+                    val avatarUrl = (authForAvatar as? com.bobaplaybook.app.auth.AuthState.SignedIn)?.let { signed ->
+                        profile?.avatarUrl ?: profile?.discordAvatarUrl ?: signed.providerAvatarUrl
+                    }
                     IconButton(onClick = onProfileClick) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = stringResource(R.string.action_profile),
-                        )
+                        if (avatarUrl != null) {
+                            val avatarCtx = androidx.compose.ui.platform.LocalContext.current
+                            coil3.compose.AsyncImage(
+                                model = coil3.request.ImageRequest.Builder(avatarCtx)
+                                    .data(avatarUrl).crossfade(150).build(),
+                                contentDescription = stringResource(R.string.action_profile),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape),
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = stringResource(R.string.action_profile),
+                            )
+                        }
                     }
                 },
                 actions = {

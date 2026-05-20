@@ -48,6 +48,41 @@ object Showcases {
         countLabel = "2,733 cards",
     ) { card -> card.rookieInspired }
 
+    // ─── BoBA-team-curated Featured Collections ────────────────
+    // Mirrors iOS BrowseFeaturedData.collections (Bo Jackson, Ken Griffey
+    // Jr., Dr. J). Each is a hand-picked filter the design team flagged
+    // as "worth surfacing on the explore tab."
+    val bojax = Showcase(
+        id = "bojax",
+        name = "Bo Jackson",
+        searchTokens = listOf("bo jackson", "bojax"),
+        description = "The man who inspired it all — every BoJax card across every set and treatment.",
+        countLabel = "147 cards",
+    ) { card ->
+        card.athleteInspiration == "Bo Jackson" ||
+            card.hero == "BoJax" || card.hero == "Bojax"
+    }
+
+    val kenGriffeyJr = Showcase(
+        id = "kid",
+        name = "Ken Griffey Jr.",
+        searchTokens = listOf("ken griffey", "griffey", "the kid"),
+        description = "The Kid — one of baseball's most beloved players.",
+        countLabel = "~76 cards",
+    ) { card ->
+        card.athleteInspiration == "Ken Griffey Jr." || card.hero == "The Kid"
+    }
+
+    val drJ = Showcase(
+        id = "drj",
+        name = "Dr. J",
+        searchTokens = listOf("dr j", "dr. j", "julius erving"),
+        description = "Julius Erving — the original aerial artist of basketball.",
+        countLabel = "70 cards",
+    ) { card ->
+        card.athleteInspiration == "Julius Erving" || card.hero == "Dr. J"
+    }
+
     // ─── Sport showcases ───────────────────────────────────────
     private val basketball = setOf(
         "LeBron James", "Lebron James", "Steph Curry", "Kevin Durant",
@@ -71,17 +106,25 @@ object Showcases {
         "Ken Griffey Jr.", "Ken Griffey Sr.", "Shohei Ohtani", "Aaron Judge",
         "Mike Trout", "Mookie Betts", "Juan Soto", "Bo Jackson",
         "Ronald Acuna Jr.", "Fernando Tatis Jr.", "Fernando Tatís Jr.",
+        "Vladimir Guerrero Jr.", "Julio Rodriguez", "Jackson Holliday",
+        "Paul Skenes", "Rafael Devers", "Bobby Witt Jr", "Bobby Witt Jr.",
+        "Elly De La Cruz", "Gunnar Henderson", "Corbin Carroll", "Jackson Chourio",
     )
     private val hockey = setOf(
         "Connor McDavid", "Nathan MacKinnon", "Sidney Crosby", "Alexander Ovechkin",
-        "Wayne Gretzky", "Mario Lemieux", "Auston Matthews",
+        "Wayne Gretzky", "Mario Lemieux", "Auston Matthews", "Henrik Lundqvist",
     )
     private val soccer = setOf(
         "Lionel Messi", "Cristiano Ronaldo", "Kylian Mbappe", "Erling Haaland",
+        "Brandi Chastain", "Chastain", "Christie Pearce Rampone", "Jozy Altidore",
     )
     private val boxing = setOf(
         "Floyd Mayweather Jr.", "Muhammad Ali", "Manny Pacquiao", "Sugar Ray Robinson",
     )
+    // Smaller iOS-parity sports — added 2026-05-19 to match
+    // BrowseFeaturedData.sports verbatim.
+    private val tennis = setOf("Jessica Pegula", "Paula Badosa")
+    private val golf = setOf("Bryson DeChambeau", "Jordan Spieth")
 
     val sportAthletes: List<Pair<String, Set<String>>> = listOf(
         "Basketball" to basketball,
@@ -90,6 +133,8 @@ object Showcases {
         "Hockey"     to hockey,
         "Soccer"     to soccer,
         "Boxing"     to boxing,
+        "Tennis"     to tennis,
+        "Golf"       to golf,
     )
 
     val sports: List<Showcase> = sportAthletes.map { (sport, athletes) ->
@@ -102,7 +147,9 @@ object Showcases {
         ) { card -> card.athleteInspiration?.let { it in athletes } ?: false }
     }
 
-    val all: List<Showcase> = listOf(woba, rookieInspired) + sports
+    val all: List<Showcase> = listOf(
+        woba, bojax, kenGriffeyJr, drJ, rookieInspired,
+    ) + sports
 
     fun byId(id: String): Showcase? = all.firstOrNull { it.id == id }
 

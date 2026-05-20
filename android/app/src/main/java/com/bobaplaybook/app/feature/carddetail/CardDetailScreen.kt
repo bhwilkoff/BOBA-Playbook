@@ -261,20 +261,10 @@ private fun CardDetailBody(
             subSet     = card.subSet,
         )
 
-        // Power + cost + DBS (Plays only)
-        val showPlayStats = card.cost != null || card.dbs != null || card.power != null
-        if (showPlayStats) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                card.power?.let { Text("Power: $it", style = MaterialTheme.typography.titleMedium) }
-                card.cost?.let  { Text("Cost: $it",  style = MaterialTheme.typography.bodyMedium) }
-                card.dbs?.let   { Text("DBS: $it",   style = MaterialTheme.typography.bodyMedium) }
-            }
-        }
+        // Power + cost + DBS — big arena-font hero stat. iOS DESIGN.md
+        // §8.6 (Card detail) renders the primary number large + element-
+        // tinted so coaches read it at a glance.
+        HeroStatRow(card = card)
 
         // Ability/Bonus text when present
         card.abilityText?.takeIf { it.isNotBlank() }?.let { text ->
@@ -373,6 +363,92 @@ private fun BadgeRow(card: Card) {
                     style = MaterialTheme.typography.labelSmall,
                     color = com.bobaplaybook.core.ui.theme.BobaBrand.Violet,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Hero-stat row. iOS CardDetailView's title-row trailing slot renders
+ * the primary stat at arena-font 36pt, element-tinted: Power for
+ * Heroes, Hot Dog cost for Plays. Android translates that to its own
+ * top-of-body stat block.
+ *
+ * Nothing renders when the card has no meaningful stat (Sealed
+ * Products, hero-only Coach cards w/ no power).
+ */
+@Composable
+private fun HeroStatRow(card: Card) {
+    // Decide what's primary based on card type.
+    data class Stat(val number: String, val label: String, val color: androidx.compose.ui.graphics.Color)
+    val primary: Stat? = when {
+        card.cardType.equals("Hero", ignoreCase = true) -> {
+            val power = card.power
+            if (power != null && power > 0) {
+                Stat(
+                    number = "$power",
+                    label = "POWER",
+                    color = com.bobaplaybook.core.ui.theme.BobaElements.forElement(card.element),
+                )
+            } else null
+        }
+        card.cardType.contains("Play", ignoreCase = true) -> {
+            val cost = card.cost
+            if (cost != null) {
+                if (cost == 0) {
+                    Stat(
+                        number = "FREE",
+                        label = "COST",
+                        color = androidx.compose.ui.graphics.Color(0xFF7ECB82),
+                    )
+                } else {
+                    Stat(
+                        number = "$cost",
+                        label = if (cost == 1) "HOT DOG" else "HOT DOGS",
+                        color = com.bobaplaybook.core.ui.theme.BobaBrand.Cyan,
+                    )
+                }
+            } else null
+        }
+        else -> null
+    }
+    if (primary == null && card.dbs == null) return
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (primary != null) {
+            Column(horizontalAlignment = androidx.compose.ui.Alignment.Start) {
+                Text(
+                    text = primary.number,
+                    style = MaterialTheme.typography.displaySmall,
+                    color = primary.color,
+                )
+                Text(
+                    text = primary.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+        // DBS — Play-card-specific secondary stat, smaller display
+        card.dbs?.let { dbs ->
+            Column(horizontalAlignment = androidx.compose.ui.Alignment.Start) {
+                Text(
+                    text = "+$dbs",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = com.bobaplaybook.core.ui.theme.BobaBrand.Violet,
+                )
+                Text(
+                    text = "DBS",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
                 )
             }
         }

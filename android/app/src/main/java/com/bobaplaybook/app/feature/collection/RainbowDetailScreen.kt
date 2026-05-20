@@ -68,8 +68,13 @@ fun RainbowDetailScreen(
             .toSet()
     }
     val allCards = remember(catalogCards, hero) {
+        // Image-first per memory feedback_card_art_sort_priority.
+        // Pending-art placeholders sink to the bottom of the rainbow.
         catalogCards.filter { it.hero.equals(hero, ignoreCase = true) }
-            .sortedBy { it.cardNumber }
+            .sortedWith(
+                compareByDescending<com.bobaplaybook.core.domain.model.Card> { !it.imageFile.isNullOrEmpty() }
+                    .thenBy { it.cardNumber },
+            )
     }
 
     val ownedCount = allCards.count { it.bobaId in ownedBobaIds }

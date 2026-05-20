@@ -167,6 +167,7 @@ class CollectionRepository @Inject constructor(
             if (it.id == userCardId) it.copy(
                 purchasePrice = purchasePrice,
                 askingPrice = askingPrice,
+                condition = condition,
                 notes = notes,
             ) else it
         }
@@ -230,6 +231,7 @@ private data class UserCardRow(
         purchasePrice = purchasePrice,
         askingPrice = askingPrice,
         estimatedValue = estimatedValue,
+        condition = condition,
         notes = notes,
     )
 }

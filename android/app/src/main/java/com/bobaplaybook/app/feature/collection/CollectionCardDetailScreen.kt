@@ -391,7 +391,7 @@ private fun EditCopySheet(
 ) {
     var purchaseText by rememberSaveable { mutableStateOf(entry.userCard.purchasePrice?.toString().orEmpty()) }
     var askingText by rememberSaveable { mutableStateOf(entry.userCard.askingPrice?.toString().orEmpty()) }
-    var conditionPick by rememberSaveable { mutableStateOf<String?>(null) }
+    var conditionPick by rememberSaveable { mutableStateOf<String?>(entry.userCard.condition) }
     var notesText by rememberSaveable { mutableStateOf(entry.userCard.notes.orEmpty()) }
     val conditions = remember { listOf("Mint", "Near Mint", "Excellent", "Good", "Poor") }
 

@@ -116,6 +116,39 @@ class ScanCardMatcherTest {
     }
 
     @Test
+    fun `fuzzy hero match recovers from OCR character flip`() {
+        // "MAVERIK" (missing a C) should still match Maverick via the
+        // Levenshtein-bounded fuzzy match. Distance 1 vs Maverick's
+        // 8 chars → allowed since len > 6.
+        val tokens = listOf(
+            token("MAVERIK", topLeft = true),
+            token("1", topLeft = false),
+        )
+        val result = matcher.match(tokens)
+        assertNotNull("Expected fuzzy match to recover Maverick", result)
+        assertEquals("Maverick", result?.card?.hero)
+    }
+
+    @Test
+    fun `treatment text earns the 0_2 bonus`() {
+        val battlefoilMav = card("RBF-1", hero = "Maverick", element = "FIRE", power = 135, treatment = "Red Battlefoil")
+        val custom = ScanCardMatcher { listOf(maverickBase, battlefoilMav) }
+        val tokens = listOf(
+            token("RBF-1", topLeft = false),
+            token("Maverick", topLeft = true),
+            token("Red Battlefoil", topLeft = false),
+        )
+        val result = custom.match(tokens)
+        assertNotNull(result)
+        assertEquals("RBF-1", result?.card?.cardNumber)
+        assertTrue("Expected score >= 2.7 (1.0 cardNumber + 1.5 hero + 0.2 treatment)", (result?.score ?: 0.0) >= 2.7)
+        assertTrue(
+            "Expected reasons to include treatment bonus",
+            result?.reasons?.any { it.contains("treatment") } == true,
+        )
+    }
+
+    @Test
     fun `LeBoss disambiguated by hero top-left even when Maverick power leaks`() {
         // Adversarial case: tokens have LeBoss top-left but a "135"
         // (Maverick's power) somewhere else in frame — maybe a
@@ -138,6 +171,7 @@ class ScanCardMatcherTest {
         hero: String,
         element: String,
         power: Int,
+        treatment: String? = null,
     ): Card = Card(
         cardNumber = cardNumber,
         name = hero,
@@ -146,6 +180,7 @@ class ScanCardMatcherTest {
         element = element,
         set = "Test Set",
         power = power,
+        treatment = treatment,
     )
 
     private fun token(text: String, topLeft: Boolean): ScanTextToken {

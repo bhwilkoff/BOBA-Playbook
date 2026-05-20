@@ -172,10 +172,21 @@ private fun DecksCompactScreen(
                                 leadingIcon = { Icon(Icons.Default.Save, contentDescription = null) },
                                 onClick = { menuOpen = false; onOpenManage() },
                             )
+                            val catalogVm: com.bobaplaybook.app.feature.collection.RainbowCatalogViewModel = hiltViewModel()
+                            val catalog by catalogVm.cards.collectAsStateWithLifecycle()
+                            val csvPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+                                androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
+                            ) { uri ->
+                                if (uri == null) return@rememberLauncherForActivityResult
+                                importDraftFromCsv(context, uri, catalog, deckViewModel)
+                            }
                             DropdownMenuItem(
                                 text = { Text("Import (CSV)") },
                                 leadingIcon = { Icon(Icons.Default.FileUpload, contentDescription = null) },
-                                onClick = { menuOpen = false /* M4 polish — CSV import */ },
+                                onClick = {
+                                    menuOpen = false
+                                    csvPicker.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain", "*/*"))
+                                },
                             )
                             DropdownMenuItem(
                                 text = { Text("Export (CSV)") },
@@ -554,3 +565,75 @@ private fun exportDraftAsCsv(context: android.content.Context, draft: DeckDraft)
 /** Escape a CSV field if it contains comma / quote / newline. */
 private fun String.csvEscape(): String =
     if (any { it == ',' || it == '"' || it == '\n' }) "\"${replace("\"", "\"\"")}\"" else this
+
+/**
+ * Import a CSV file produced by [exportDraftAsCsv] (or any system
+ * matching the v2 shape — DECISIONS.md #033b). Replaces the current
+ * draft. Unknown card_numbers are silently skipped; partial decks
+ * still load with the cards we recognize so a user with a slightly
+ * stale catalog isn't blocked.
+ *
+ * Header detection is column-based: we look for `number` (the
+ * card_number column) and `name` to set the draft name. Other
+ * columns are advisory; the catalog is the source of truth for
+ * everything except `number`.
+ */
+private fun importDraftFromCsv(
+    context: android.content.Context,
+    uri: android.net.Uri,
+    catalog: List<com.bobaplaybook.core.domain.model.Card>,
+    deckViewModel: DecksViewModel,
+) {
+    val text = runCatching {
+        context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() }
+    }.getOrNull() ?: return
+    val lines = text.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.toList()
+    if (lines.isEmpty()) return
+    val header = lines.first().lowercase().split(',').map { it.trim() }
+    val numberIdx = header.indexOf("number").takeIf { it >= 0 }
+        ?: header.indexOf("card#").takeIf { it >= 0 }
+        ?: header.indexOf("cardnumber").takeIf { it >= 0 }
+        ?: return
+    val nameIdx = header.indexOf("name")
+    val byCardNumber = catalog.associateBy { it.cardNumber }
+
+    // First non-header row's name field becomes the deck name (if any).
+    val cardRows = lines.drop(1)
+    if (cardRows.isEmpty()) return
+
+    deckViewModel.clear()
+    cardRows.forEach { row ->
+        val cols = parseCsvRow(row)
+        val number = cols.getOrNull(numberIdx) ?: return@forEach
+        val card = byCardNumber[number] ?: return@forEach
+        deckViewModel.add(card)
+    }
+    if (nameIdx >= 0) {
+        // Use the deck's name from the first row's name column? In iOS the
+        // CSV stores the deck name separately. For now keep "Imported deck"
+        // and let the user rename in the editor.
+        deckViewModel.rename("Imported deck")
+    }
+    android.widget.Toast.makeText(context, "Imported ${cardRows.size} rows", android.widget.Toast.LENGTH_SHORT).show()
+}
+
+/** Minimal CSV row parser — handles quoted fields with embedded commas + escaped quotes. */
+private fun parseCsvRow(line: String): List<String> {
+    val out = mutableListOf<String>()
+    val sb = StringBuilder()
+    var inQuotes = false
+    var i = 0
+    while (i < line.length) {
+        val c = line[i]
+        when {
+            c == '"' && inQuotes && i + 1 < line.length && line[i + 1] == '"' -> {
+                sb.append('"'); i += 2
+            }
+            c == '"' -> { inQuotes = !inQuotes; i++ }
+            c == ',' && !inQuotes -> { out.add(sb.toString()); sb.setLength(0); i++ }
+            else -> { sb.append(c); i++ }
+        }
+    }
+    out.add(sb.toString())
+    return out
+}

@@ -1,0 +1,93 @@
+{
+  "lastBuiltAt": "2026-05-20",
+  "total": 9,
+  "description": "Sealed Product catalog rows without an R2 image. The sealed-image sourcing pipeline reads this list to know which products still need art. After uploading new files to r2:boba-card-images/sealed/optimized/ and sealed/thumbs/, re-run scripts/apply_sealed_images.py — matching rows auto-resolve.",
+  "expectedImageFile": "{slug_for_file(bobaId)}.webp",
+  "r2Paths": {
+    "optimized": "sealed/optimized/",
+    "thumbs": "sealed/thumbs/"
+  },
+  "products": [
+    {
+      "bobaId": "SEALED-alpha-blast-box-Alpha Blast Box--Blast Box",
+      "sealedProductId": "alpha-blast-box",
+      "name": "Alpha Blast Box",
+      "set": "Alpha Edition",
+      "cardNumber": "SEALED-alpha-blast-box",
+      "ebaySearchQuery": null,
+      "radishUrl": "https://radishpriceguide.com/boba/sealed"
+    },
+    {
+      "bobaId": "SEALED-blc-blaster-box-Big League Chew Blaster Box--Blaster Box",
+      "sealedProductId": "blc-blaster-box",
+      "name": "Big League Chew Blaster Box",
+      "set": "Big League Chew",
+      "cardNumber": "SEALED-blc-blaster-box",
+      "ebaySearchQuery": null,
+      "radishUrl": "https://radishpriceguide.com/boba/sealed"
+    },
+    {
+      "bobaId": "SEALED-griffey-release-day-blaster-Griffey Edition Release Day Blaster Box--Blaster Box",
+      "sealedProductId": "griffey-release-day-blaster",
+      "name": "Griffey Edition Release Day Blaster Box",
+      "set": "Griffey Edition",
+      "cardNumber": "SEALED-griffey-release-day-blaster",
+      "ebaySearchQuery": null,
+      "radishUrl": "https://radishpriceguide.com/boba/sealed"
+    },
+    {
+      "bobaId": "SEALED-national24-gold-pack-National '24 Gold Pack--Pack",
+      "sealedProductId": "national24-gold-pack",
+      "name": "National '24 Gold Pack",
+      "set": "National Starter Set",
+      "cardNumber": "SEALED-national24-gold-pack",
+      "ebaySearchQuery": null,
+      "radishUrl": "https://radishpriceguide.com/boba/sealed"
+    },
+    {
+      "bobaId": "SEALED-national24-silver-pack-National '24 Silver Pack--Pack",
+      "sealedProductId": "national24-silver-pack",
+      "name": "National '24 Silver Pack",
+      "set": "National Starter Set",
+      "cardNumber": "SEALED-national24-silver-pack",
+      "ebaySearchQuery": null,
+      "radishUrl": "https://radishpriceguide.com/boba/sealed"
+    },
+    {
+      "bobaId": "SEALED-national24-starter-kit-National '24 Starter Kit--Starter Kit",
+      "sealedProductId": "national24-starter-kit",
+      "name": "National '24 Starter Kit",
+      "set": "National Starter Set",
+      "cardNumber": "SEALED-national24-starter-kit",
+      "ebaySearchQuery": null,
+      "radishUrl": "https://radishpriceguide.com/boba/sealed"
+    },
+    {
+      "bobaId": "SEALED-sandstorm-super-fan-box-Sandstorm Super Fan Box--Super Fan Box",
+      "sealedProductId": "sandstorm-super-fan-box",
+      "name": "Sandstorm Super Fan Box",
+      "set": "Superfan Series",
+      "cardNumber": "SEALED-sandstorm-super-fan-box",
+      "ebaySearchQuery": null,
+      "radishUrl": "https://radishpriceguide.com/boba/sealed"
+    },
+    {
+      "bobaId": "SEALED-tecmo-hobby-box-Tecmo Bowl Edition Hobby Box--Hobby Box",
+      "sealedProductId": "tecmo-hobby-box",
+      "name": "Tecmo Bowl Edition Hobby Box",
+      "set": "Tecmo Bowl Edition",
+      "cardNumber": "SEALED-tecmo-hobby-box",
+      "ebaySearchQuery": null,
+      "radishUrl": "https://radishpriceguide.com/boba/sealed"
+    },
+    {
+      "bobaId": "SEALED-tecmo-hobby-case-Tecmo Bowl Edition Hobby Case--Case",
+      "sealedProductId": "tecmo-hobby-case",
+      "name": "Tecmo Bowl Edition Hobby Case",
+      "set": "Tecmo Bowl Edition",
+      "cardNumber": "SEALED-tecmo-hobby-case",
+      "ebaySearchQuery": null,
+      "radishUrl": "https://radishpriceguide.com/boba/sealed"
+    }
+  ]
+}

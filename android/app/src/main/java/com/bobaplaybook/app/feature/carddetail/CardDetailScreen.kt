@@ -110,6 +110,11 @@ fun CardDetailScreen(
     val viewModel: CardDetailViewModel = hiltViewModel()
     val state by viewModel.uiStateFor(bobaId).collectAsStateWithLifecycle()
     val decksViewModel: com.bobaplaybook.app.feature.decks.DecksViewModel = hiltViewModel()
+    val profileViewModel: com.bobaplaybook.app.feature.profile.ProfileViewModel = hiltViewModel()
+    val profile by profileViewModel.profile.collectAsStateWithLifecycle(initialValue = null)
+    androidx.compose.runtime.LaunchedEffect(Unit) { profileViewModel.refreshProfile() }
+    val isStreamer = profile?.role?.contains("streamer", ignoreCase = true) == true ||
+        profile?.role?.contains("admin", ignoreCase = true) == true
     // Plain TopAppBar — Large variant was overscaled for a short card
     // title and ate vertical space above the art panel.
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
@@ -170,15 +175,28 @@ fun CardDetailScreen(
                                     addToDeckOpen = true
                                 },
                             )
-                            DropdownMenuItem(
-                                text = { Text("Add to Show") },
-                                onClick = {
-                                    addMenuOpen = false
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("Streamer role required")
-                                    }
-                                },
-                            )
+                            // "Add to Show" only renders for users with the
+                            // streamer/admin role — non-streamers never see
+                            // the option (ANDROID-DESIGN.md §3.7 "show
+                            // features users can use, hide features they
+                            // can't"). Backed by the user_profiles.role
+                            // lookup. When the user IS a streamer, this
+                            // still no-ops because the full Whatnot show
+                            // management UI is deferred per the conversation
+                            // summary's "deferred follow-ups" list.
+                            if (isStreamer) {
+                                DropdownMenuItem(
+                                    text = { Text("Add to Show") },
+                                    onClick = {
+                                        addMenuOpen = false
+                                        scope.launch {
+                                            snackbarHostState?.showSnackbar(
+                                                "Show management ships in M2 polish",
+                                            )
+                                        }
+                                    },
+                                )
+                            }
                         }
                     }
                 },

@@ -349,6 +349,8 @@ fun CollectionScreen(
                         icon = Icons.Default.Inventory2,
                         headline = "No ${designation.label.lowercase()} cards yet",
                         body = "Scan a card or browse Find to add your first one.",
+                        actionLabel = "Scan a card",
+                        onAction = onScanClick,
                     )
                 }
                 return@Scaffold

@@ -407,14 +407,35 @@ private fun SignedInContent(
             )
         }
         item("avatar") {
+            val avatarPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
+            ) { uri ->
+                if (uri == null) return@rememberLauncherForActivityResult
+                val resolver = context.contentResolver
+                val mime = resolver.getType(uri) ?: "image/jpeg"
+                val bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
+                if (bytes == null) return@rememberLauncherForActivityResult
+                vm.uploadAvatar(bytes, mime) { _ ->
+                    // Success path: the URL is persisted via set_avatar_url
+                    // RPC by the service. The next sign-in / profile refresh
+                    // pulls the new column. (A user-visible avatar refresh
+                    // would need a getUserProfile() pull -- defer.)
+                }
+            }
             ListItem(
                 headlineContent = { Text("Profile picture") },
                 supportingContent = { Text("Upload a custom avatar (≤2 MB)", style = MaterialTheme.typography.labelMedium) },
                 leadingContent = { Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 trailingContent = {
-                    TextButton(onClick = { /* M7 polish — boba-avatar-upload Worker */ }) {
-                        Text("Upload")
-                    }
+                    TextButton(
+                        onClick = {
+                            avatarPicker.launch(
+                                androidx.activity.result.PickVisualMediaRequest(
+                                    androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                ),
+                            )
+                        },
+                    ) { Text("Upload") }
                 },
                 modifier = Modifier.fillMaxWidth(),
             )

@@ -109,19 +109,28 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
             .flatMap { tk -> BARE_DIGIT_REGEX.findAll(tk.text).map { it.groupValues[1] } }
             .toSet()
 
-        // Hero names mentioned anywhere + the subset top-left.
+        // Hero names mentioned anywhere + the subset top-left. Fuzzy
+        // match (Levenshtein ≤ 1 for short heroes, ≤ 2 for ≥6-char
+        // heroes) recovers from OCR character flips like "MAVERIK" →
+        // Maverick or "JACHAMMR" → JacHammer. iOS DECISIONS.md #035
+        // uses exact substring; we improve on it.
         val heroesMentioned = mutableSetOf<String>()
         val heroesTopLeft = mutableSetOf<String>()
         for (tk in tokens) {
-            val upper = tk.text.uppercase()
+            val upper = tk.text.uppercase().replace(Regex("\\s+"), "")
             for (hero in idx.heroNames) {
-                val token = idx.canonical[hero] ?: continue
-                if (upper.contains(token)) {
+                val canonical = idx.canonical[hero] ?: continue
+                if (matchesHero(upper, canonical)) {
                     heroesMentioned += hero
                     if (tk.isTopLeft) heroesTopLeft += hero
                 }
             }
         }
+
+        // Treatment text — if the user's card has a battlefoil/foil
+        // treatment, the print often says so explicitly. Score +0.2
+        // when an OCR token matches the candidate's treatment.
+        val treatmentTokens = tokens.map { it.text.uppercase() }
 
         // Element / treatment / power scraps (low-confidence additives).
         val elementHits = tokens
@@ -201,6 +210,14 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
                 score += 0.2
                 reasons += "power +0.2"
             }
+            // Treatment text — "Battlefoil", "Inspired Ink", "Superfoil",
+            // etc. When OCR catches the treatment label, candidates with
+            // a matching treatment get a small bonus.
+            val treatment = card.treatment?.uppercase() ?: ""
+            if (treatment.isNotEmpty() && treatmentTokens.any { it.contains(treatment) }) {
+                score += 0.2
+                reasons += "treatment +0.2"
+            }
 
             ScanMatchResult(card = card, score = score, margin = 0.0, reasons = reasons)
         }.sortedByDescending { it.score }
@@ -219,6 +236,56 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
         if (margin < 0.3) return null
         return resolved
     }
+}
+
+/**
+ * Fuzzy hero name match. Returns true if [token] contains [hero]
+ * exactly OR a Levenshtein-distance-bounded variant of it. Distance
+ * tolerance scales with name length so short heroes (TIGRE, BO) stay
+ * strict and long heroes (JACHAMMER, BURRDOCIOUS) allow 1-2 OCR
+ * character flips.
+ */
+private fun matchesHero(token: String, hero: String): Boolean {
+    if (token.contains(hero)) return true
+    // Slide a hero-length window across token; check Levenshtein on
+    // each. Bounded distance keeps short heroes strict.
+    val tolerance = when {
+        hero.length <= 4 -> 0  // 4-char heroes need exact match
+        hero.length <= 6 -> 1
+        else -> 2
+    }
+    if (tolerance == 0) return false
+    if (token.length < hero.length) {
+        // Token shorter than hero — only worth checking if very close.
+        return levenshtein(token, hero) <= tolerance
+    }
+    for (i in 0..(token.length - hero.length)) {
+        val sub = token.substring(i, i + hero.length)
+        if (levenshtein(sub, hero) <= tolerance) return true
+    }
+    return false
+}
+
+/** Standard iterative Levenshtein distance — O(n*m) with O(min(n,m)) space. */
+private fun levenshtein(a: String, b: String): Int {
+    if (a == b) return 0
+    if (a.isEmpty()) return b.length
+    if (b.isEmpty()) return a.length
+    val prev = IntArray(b.length + 1) { it }
+    val curr = IntArray(b.length + 1)
+    for (i in 1..a.length) {
+        curr[0] = i
+        for (j in 1..b.length) {
+            val cost = if (a[i - 1] == b[j - 1]) 0 else 1
+            curr[j] = minOf(
+                curr[j - 1] + 1,        // insert
+                prev[j] + 1,            // delete
+                prev[j - 1] + cost,     // substitute
+            )
+        }
+        System.arraycopy(curr, 0, prev, 0, prev.size)
+    }
+    return prev[b.length]
 }
 
 /**

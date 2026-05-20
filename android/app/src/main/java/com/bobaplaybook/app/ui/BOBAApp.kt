@@ -395,6 +395,7 @@ private fun TabNavHost(
                             onRainbowsClick = { navController.navigate(NavRoutes.COLLECTION_RAINBOWS) },
                             onShowsClick = { navController.navigate(NavRoutes.COLLECTION_SHOWS) },
                             onScanClick = onScanClick,
+                            onSignInRequest = { navController.navigate(NavRoutes.PROFILE) },
                         )
                     }
                 }
@@ -431,6 +432,19 @@ private fun TabNavHost(
                 }
                 composable(NavRoutes.COLLECTION_SHOWS) {
                     com.bobaplaybook.app.feature.collection.ShowsListScreen(
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                // Profile push from Collection (Sign in CTA on empty-state).
+                composable(NavRoutes.PROFILE) {
+                    com.bobaplaybook.app.feature.profile.ProfileScreen(
+                        authManager = authManager,
+                        onBack = { navController.popBackStack() },
+                        onPracticeUnlock = { navController.navigate(NavRoutes.PRACTICE) },
+                    )
+                }
+                composable(NavRoutes.PRACTICE) {
+                    com.bobaplaybook.app.feature.practice.PracticeScreen(
                         onBack = { navController.popBackStack() },
                     )
                 }

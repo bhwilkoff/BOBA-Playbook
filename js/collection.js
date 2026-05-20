@@ -183,6 +183,15 @@ const Collection = (() => {
         <div class="collection-card-list" role="list">
           ${listHtml}
         </div>
+        <!-- CUSTOM RAINBOWS — read-only display of user-defined
+             collecting goals stored in user_custom_rainbows. Hydrates
+             async on first view-render. iOS shipped v2.219-v2.221;
+             web parity ships here (web tick 7). Editor is iOS-only
+             today; web users can view + see progress. -->
+        <section class="custom-rainbows-section" id="custom-rainbows-section" hidden>
+          <h3 class="custom-rainbows-heading">Custom Rainbows</h3>
+          <div class="custom-rainbows-list" id="custom-rainbows-list"></div>
+        </section>
       </div>`;
 
     view.querySelectorAll('.desig-tab').forEach(tab => {
@@ -202,6 +211,11 @@ const Collection = (() => {
         cards: sortedGroups.map(g => g[0]),  // one card per group (representative)
       });
     });
+
+    // Custom Rainbows — fire async; render only when at least one
+    // rainbow comes back. No spinner; the section is hidden by
+    // default so an empty fetch is a no-op.
+    hydrateCustomRainbows(ownedCards);
 
     view.querySelectorAll('.collection-totals-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -631,6 +645,87 @@ const Collection = (() => {
       ov.close();
     }
   });
+
+  /* ────────────────────────────────────────────────────────────────
+     CUSTOM RAINBOWS — read-only display on the Collection page.
+     iOS v2.219-v2.221 ships the editor + detail; this is web parity
+     (read-only). Each rainbow renders as a row with name + criteria
+     summary + progress count + a horizontal scroll of matching
+     catalog cards. Owned matches are highlighted; un-owned are
+     dimmed so the user sees what they still need.
+  ──────────────────────────────────────────────────────────────── */
+
+  async function hydrateCustomRainbows(ownedCards) {
+    const section = document.getElementById('custom-rainbows-section');
+    const list    = document.getElementById('custom-rainbows-list');
+    if (!section || !list) return;
+    let rainbows;
+    try {
+      rainbows = await API.fetchCustomRainbows();
+    } catch {
+      return;
+    }
+    if (!rainbows || rainbows.length === 0) return;
+
+    // Owned card IDs for "X / Y collected" + per-card dim.
+    const groupKeyOf = c => c.boba_id || c.card_number;
+    const ownedKeys = new Set(ownedCards.map(groupKeyOf));
+
+    // The catalog is needed to expand each rainbow's criteria into
+    // a list of matching cards. _bobaIdLookup is keyed by bobaId
+    // but doesn't enumerate; iterate the cached array via window.
+    const catalog = window.__bobaCatalog || [];
+    if (catalog.length === 0) return;  // catalog not yet loaded
+
+    section.hidden = false;
+    list.innerHTML = rainbows.map(rainbow => {
+      const matching = catalog.filter(c => API.rainbowCriteriaMatches(c, rainbow.criteria));
+      // Limit visible thumbnails to avoid runaway rows for broad
+      // criteria (e.g. "All Glows" = thousands). Show 24 max; total
+      // count + summary still in the header.
+      const visible = matching.slice(0, 24);
+      const ownedMatching = matching.filter(c => ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber));
+      const pct = matching.length === 0 ? 0
+        : Math.round((ownedMatching.length / matching.length) * 100);
+      const thumbs = visible.map(c => {
+        const isOwned = ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber);
+        const url = API.cardThumbUrl(c) || '';
+        return `<button class="rainbow-thumb${isOwned ? ' owned' : ''}"
+                        type="button" data-detail-num="${esc(c.cardNumber)}"
+                        title="${esc((c.hero || c.name || '') + ' · ' + (c.treatment || ''))}">
+                  <img src="${esc(url)}" alt="${esc(c.hero || c.name || '')}" loading="lazy" />
+                </button>`;
+      }).join('');
+      return `
+        <details class="rainbow-row">
+          <summary>
+            <span class="rainbow-name">${esc(rainbow.name)}</span>
+            <span class="rainbow-summary">${esc(API.rainbowCriteriaSummary(rainbow.criteria) || 'No criteria')}</span>
+            <span class="rainbow-progress">
+              <span class="rainbow-progress-count">${ownedMatching.length}/${matching.length}</span>
+              <span class="rainbow-progress-bar"><span style="width:${pct}%"></span></span>
+              <span class="rainbow-progress-pct">${pct}%</span>
+            </span>
+          </summary>
+          <div class="rainbow-thumbs">
+            ${thumbs || '<div class="rainbow-empty">No matching cards in the catalog.</div>'}
+            ${matching.length > visible.length ? `<div class="rainbow-more">+${matching.length - visible.length} more</div>` : ''}
+          </div>
+        </details>`;
+    }).join('');
+
+    // Thumb tap → open card-detail (the existing handler already
+    // listens on data-detail-num).
+    list.querySelectorAll('[data-detail-num]').forEach(el => {
+      el.addEventListener('click', () => {
+        const cn = el.dataset.detailNum;
+        if (window.openCardModal) {
+          const card = catalog.find(c => c.cardNumber === cn);
+          if (card) window.openCardModal(card);
+        }
+      });
+    });
+  }
 
   function formatAddedDate(iso) {
     const d = new Date(iso);

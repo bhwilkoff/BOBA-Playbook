@@ -17,8 +17,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.Warning
@@ -66,8 +68,24 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val catalog by collectionViewModel.catalogCards.collectAsStateWithLifecycle()
     var pendingDelete by remember { mutableStateOf<String?>(null) }
     var pendingRename by remember { mutableStateOf<String?>(null) }
+    var query by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf("")
+    }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
+
+    // Filter saved decks by name OR archetype — both surfaces are
+    // user-meaningful when looking up "that Maverick deck I built
+    // last month." Case-insensitive substring (deck names are short
+    // so word-prefix isn't necessary the way it is for the catalog).
+    val needle = query.trim().lowercase()
+    val filteredDecks = remember(savedDecks, needle) {
+        if (needle.isEmpty()) savedDecks
+        else savedDecks.filter {
+            it.name.lowercase().contains(needle) ||
+                (it.archetype?.lowercase()?.contains(needle) == true)
+        }
+    }
 
     DeckSecondaryScaffold(title = "Manage Decks", onBack = onBack, modifier = modifier) {
         if (savedDecks.isEmpty()) {
@@ -77,8 +95,46 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 body = "Build a draft in the pool, then tap Save in the editor. Decks sync across iOS, web, and Android.",
             )
         } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(items = savedDecks, key = { it.id }) { deck ->
+            androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
+                // Persistent in-list filter — shows when there's at
+                // least one deck so the user can type even when none
+                // currently match (the empty-state below explains).
+                androidx.compose.material3.OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = { Text("Filter decks by name or archetype") },
+                    singleLine = true,
+                    leadingIcon = {
+                        Icon(
+                            androidx.compose.material.icons.Icons.Default.Search,
+                            contentDescription = null,
+                        )
+                    },
+                    trailingIcon = if (query.isNotEmpty()) {
+                        {
+                            IconButton(onClick = { query = "" }) {
+                                Icon(
+                                    androidx.compose.material.icons.Icons.Default.Clear,
+                                    contentDescription = "Clear",
+                                )
+                            }
+                        }
+                    } else null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+                if (filteredDecks.isEmpty()) {
+                    BOBAEmptyState(
+                        headline = "No matches",
+                        body = "No saved decks match \"$query\".",
+                        actionLabel = "Clear search",
+                        onAction = { query = "" },
+                    )
+                    return@Column
+                }
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(items = filteredDecks, key = { it.id }) { deck ->
                     ListItem(
                         headlineContent = { Text(deck.name) },
                         supportingContent = {
@@ -118,6 +174,7 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         },
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    }
                 }
             }
         }

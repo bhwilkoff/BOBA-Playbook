@@ -532,6 +532,15 @@
   // Expose showView for ad-hoc calls (purchase.js → "Open the store map" link).
   window.showView = showView;
 
+  // Expose catalog + modal opener for sibling modules (collection.js's
+  // Custom Rainbow render, etc.). Read-only access — modules should
+  // not mutate displayCards.
+  Object.defineProperty(window, '__bobaCatalog', {
+    get: () => displayCards,
+    configurable: true,
+  });
+  window.openCardModal = (card) => { if (card) openModal(card, -1); };
+
   // Admin-only UI visibility. Any element marked [data-admin-only]
   // stays hidden until the cached role is "admin" — practice mode is
   // currently the only consumer.

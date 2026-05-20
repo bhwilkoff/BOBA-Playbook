@@ -3930,6 +3930,117 @@ dialog.modal-overlay[open] {
 .stat-cell.dbs-tier-very-high .stat-val { color: var(--boba-orange); }
 .stat-cell.dbs-tier-very-high .dbs-tier-pill { color: var(--boba-orange); background: rgba(255,77,0,0.15); }
 
+/* Custom Rainbows — read-only display on the Collection page.
+   Each rainbow is a <details>: summary row + thumbnail strip below.
+   Parity with iOS CustomRainbowStore + RainbowDetailView (DESIGN.md
+   §8.4 + DECISIONS.md custom_rainbows). */
+.custom-rainbows-section {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--boba-border);
+}
+.custom-rainbows-heading {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--boba-text);
+  margin: 0 0 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.custom-rainbows-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.rainbow-row {
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.rainbow-row > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.4rem 0.75rem;
+  align-items: center;
+}
+.rainbow-row > summary::-webkit-details-marker { display: none; }
+.rainbow-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--boba-text);
+  grid-column: 1;
+}
+.rainbow-summary {
+  grid-column: 1;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--boba-text-muted);
+  line-height: 1.3;
+}
+.rainbow-progress {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--boba-text-muted);
+  min-width: 100px;
+}
+.rainbow-progress-count { color: var(--boba-text); font-weight: 700; }
+.rainbow-progress-pct   { color: var(--boba-cyan);  font-weight: 700; }
+.rainbow-progress-bar {
+  display: block;
+  width: 96px;
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.rainbow-progress-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--boba-cyan);
+  transition: width 0.2s;
+}
+.rainbow-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem 1rem;
+  border-top: 1px solid var(--boba-border);
+}
+.rainbow-thumb {
+  width: 56px;
+  aspect-ratio: 5 / 7;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: 4px;
+  opacity: 0.35;
+  transition: opacity 0.15s, border-color 0.15s, transform 0.15s;
+}
+.rainbow-thumb.owned { opacity: 1; border-color: rgba(0,245,255,0.5); }
+.rainbow-thumb:hover { transform: scale(1.05); border-color: var(--boba-orange); }
+.rainbow-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 3px; }
+.rainbow-more {
+  align-self: center;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--boba-text-muted);
+  padding: 0 0.5rem;
+}
+.rainbow-empty {
+  color: var(--boba-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 0.5rem 0;
+}
+
 /* Collection Wall view — opens from "Wall" button in collection-toolbar.
    Native <dialog> over a canvas-rendered share image. Parity with iOS
    CollectionWallSheet (DESIGN.md §8.4 + §8.8). */

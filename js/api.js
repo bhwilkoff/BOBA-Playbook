@@ -256,6 +256,69 @@ const API = (() => {
 
   let _userRole = null;
 
+  /* ----------------------------------------------------------------
+     Custom Rainbows — user-defined collecting goals stored in
+     `user_custom_rainbows` (iOS schema parity per DECISIONS.md
+     custom_rainbows + Models/CustomRainbow.swift). Web shipped as
+     read-only display in this tick; editor is iOS-only today.
+  ---------------------------------------------------------------- */
+
+  async function fetchCustomRainbows() {
+    const { data: { user } } = await supa().auth.getUser();
+    if (!user) return [];
+    const { data, error } = await supa()
+      .from('user_custom_rainbows')
+      .select('id, user_id, name, criteria, created_at, updated_at')
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.warn('fetchCustomRainbows failed', error);
+      return [];
+    }
+    return (data ?? []).map(row => ({
+      id: row.id,
+      name: row.name,
+      criteria: row.criteria || {},
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  }
+
+  /// Match a Card against a RainbowCriteria object. Mirrors iOS
+  /// RainbowCriteria.matches verbatim — each non-empty dimension's
+  /// values OR-combine, dimensions AND-combine.
+  function rainbowCriteriaMatches(card, criteria) {
+    const ci = (a, b) => a && b && a.toLowerCase() === b.toLowerCase();
+    const inList = (list, value) => Array.isArray(list) && list.length > 0
+      ? list.some(v => ci(v, value || ''))
+      : true;
+    if (!inList(criteria.heroes,     card.hero))              return false;
+    if (!inList(criteria.sets,       card.set))               return false;
+    if (!inList(criteria.subSets,    card.subSet || ''))      return false;
+    if (!inList(criteria.elements,   card.element))           return false;
+    if (!inList(criteria.treatments, card.treatment || ''))   return false;
+    if (!inList(criteria.cardTypes,  card.cardType))          return false;
+    if (!inList(criteria.releases,   card.release))           return false;
+    if (criteria.inspiredInkOnly && !(card.treatment || '').toLowerCase().includes('inspired ink')) {
+      return false;
+    }
+    return true;
+  }
+
+  /// One-line summary of the criteria. Mirrors iOS RainbowCriteria.summary.
+  function rainbowCriteriaSummary(criteria) {
+    const parts = [];
+    const push = (arr) => { if (Array.isArray(arr) && arr.length) parts.push(arr.join(' · ')); };
+    push(criteria.heroes);
+    push(criteria.sets);
+    push(criteria.subSets);
+    push(criteria.elements);
+    push(criteria.treatments);
+    push(criteria.cardTypes);
+    push(criteria.releases);
+    if (criteria.inspiredInkOnly) parts.push('Inspired Ink');
+    return parts.join(' · ');
+  }
+
   async function fetchUserRole() {
     const { data: { user } } = await supa().auth.getUser();
     if (!user) { _userRole = 'user'; return 'user'; }
@@ -791,6 +854,9 @@ const API = (() => {
     cardThumbUrl,
     cardFullUrl,
     cardImageSrcset,
+    fetchCustomRainbows,
+    rainbowCriteriaMatches,
+    rainbowCriteriaSummary,
     loadCards,
     loadSearchIndex,
     loadCategories,

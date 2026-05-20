@@ -105,7 +105,7 @@ When shipping any user-facing feature:
 | Grid density picker (1/2/3 cols) | ✅ | ✅ | ✅ | DataStore-backed on Android via `CollectionPrefsStore` |
 | Value summary | ✅ | ✅ | ✅ | `user_cards.estimated_value` |
 | Value history chart | ✅ | 🔮 | ⏳ M2 polish | Push destination |
-| Custom Rainbows | ✅ | 🔮 | ⏳ M2 polish | Per-user filter goals; Supabase `user_custom_rainbows` |
+| Custom Rainbows | ✅ | ✅ read-only | ⏳ M2 polish | Per-user filter goals; Supabase `user_custom_rainbows`. Web shipped read-only display + progress bar tick 7; editor is iOS-only. |
 | Per-hero Auto Rainbows | ✅ | 🔮 | ⏳ M2 polish | Same RainbowDetailView pattern |
 | My Shows (streamer-only) | ✅ | ✅ | ⏳ M2 polish | Push destination, role-gated |
 | Wall view (display mode + share) | ✅ | ✅ canvas-render | ⏳ M2 polish | Web shipped canvas-rendered PNG (download + clipboard + Web Share) tick 5. Lifted from streamer-only per DECISIONS.md #036. |

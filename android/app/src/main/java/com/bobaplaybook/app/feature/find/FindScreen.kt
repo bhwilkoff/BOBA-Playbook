@@ -200,8 +200,11 @@ private fun FindContent(
                 onEvent = onEvent,
             )
 
-            // Quick Add toast pill + results count
-            if (state.isSearching || state.hasFeatured) {
+            // Quick Add toast pill + results count.
+            // Only show when actually narrowing — otherwise "506 cards"
+            // reads as "BOBA has 506 cards" when it's actually the
+            // featured-shelf count (catalog is ~17,974).
+            if (state.isSearching) {
                 ResultsHeader(
                     count = state.results.size,
                     quickAdd = quickAdd,

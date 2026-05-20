@@ -314,11 +314,15 @@ private fun DropdownPickerSection(
             expanded = expanded,
             onExpandedChange = { expanded = it },
         ) {
+            // No label = { Text(title) } — BOBASectionHeader above
+            // already names the field. M3 OutlinedTextField w/ both
+            // an external section header AND its own label renders
+            // the same word twice (e.g., "Set" header + "Set" floated
+            // label inside the field).
             androidx.compose.material3.OutlinedTextField(
                 value = selected ?: allLabel,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text(title) },
                 trailingIcon = {
                     androidx.compose.material3.ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
                 },

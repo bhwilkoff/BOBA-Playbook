@@ -113,10 +113,12 @@ fun FindScreen(
     modifier: Modifier = Modifier,
 ) {
     val viewModel: FindViewModel = hiltViewModel()
+    val collectionViewModel: com.bobaplaybook.app.feature.collection.CollectionViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     FindContent(
         state = state,
         onEvent = viewModel::onEvent,
+        collectionViewModel = collectionViewModel,
         onCardClick = onCardClick,
         onProfileClick = onProfileClick,
         onScanClick = onScanClick,
@@ -128,6 +130,7 @@ fun FindScreen(
 private fun FindContent(
     state: FindUiState,
     onEvent: (FindEvent) -> Unit,
+    collectionViewModel: com.bobaplaybook.app.feature.collection.CollectionViewModel,
     onCardClick: (bobaId: String) -> Unit,
     onProfileClick: () -> Unit,
     onScanClick: () -> Unit,
@@ -232,10 +235,22 @@ private fun FindContent(
                         quickAdd = quickAdd,
                         onCardClick = onCardClick,
                         onQuickAdd = { card ->
-                            // M7 polish — actually call CollectionRepository.add.
-                            // For v1, surface the auth requirement.
-                            scope.launch {
-                                appSnackbar?.showSnackbar("Sign in to Quick Add ${card.displayName}")
+                            // Quick Add = add to Personal designation. Signed-out
+                            // users get a Snackbar telling them to sign in (the
+                            // write would fail at RLS anyway).
+                            val authState = collectionViewModel.uiState.value
+                            if (!authState.isSignedIn) {
+                                scope.launch {
+                                    appSnackbar?.showSnackbar("Sign in to Quick Add ${card.displayName}")
+                                }
+                            } else {
+                                collectionViewModel.add(
+                                    cardBobaId = card.bobaId,
+                                    designation = com.bobaplaybook.core.domain.model.Designation.PERSONAL,
+                                )
+                                scope.launch {
+                                    appSnackbar?.showSnackbar("Added ${card.displayName} to your Collection")
+                                }
                             }
                         },
                         modifier = Modifier.fillMaxSize(),

@@ -149,6 +149,30 @@ class AuthManager @Inject constructor(
     }
 
     /**
+     * Discord OAuth sign-in. Launches a Custom Tab to Discord's auth
+     * page (via Supabase as the OAuth broker); Discord redirects back
+     * to bobaplaybook://auth-callback, which MainActivity.onNewIntent
+     * routes to SupabaseClient.handleDeeplinks(intent) to import the
+     * session.
+     *
+     * Per DECISIONS.md #049 — auth-only Discord usage (no bot, no
+     * server-side API calls); the OAuth handshake is the entire
+     * surface area until BoBA Discord moderators grant bot permission.
+     */
+    suspend fun signInWithDiscord(): SignInResult {
+        return try {
+            client.auth.signInWith(io.github.jan.supabase.auth.providers.Discord)
+            // signInWith returns synchronously once the Custom Tab launches;
+            // session import happens later via handleDeeplinks(). The UI
+            // observes authState to know when the import lands.
+            SignInResult.Success
+        } catch (e: Exception) {
+            Log.e(TAG, "Discord OAuth launch failed", e)
+            SignInResult.SupabaseError(e.message ?: "Discord OAuth failed")
+        }
+    }
+
+    /**
      * Email password-reset request. Sends a magic-link email; the user
      * clicks the link to set a new password.
      */

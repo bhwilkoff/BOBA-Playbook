@@ -139,6 +139,27 @@ class DeckRepository @Inject constructor(
         }.getOrNull()
     }
 
+    /**
+     * Rename a saved deck. Optimistic local update + server PATCH;
+     * mirrors iOS DeckBuilderStore.renameSavedDeck.
+     */
+    suspend fun renameDeck(deckId: String, newName: String) {
+        val trimmed = newName.trim()
+        if (trimmed.isEmpty()) return
+        _savedDecks.value = _savedDecks.value.map {
+            if (it.id == deckId) it.copy(name = trimmed) else it
+        }
+        runCatching {
+            supabase.postgrest.from("decks")
+                .update({ set("name", trimmed) }) {
+                    filter { eq("id", deckId) }
+                }
+        }.onFailure { e ->
+            Log.e(TAG, "Failed to rename deck $deckId", e)
+            refresh()
+        }
+    }
+
     suspend fun deleteDeck(deckId: String) {
         _savedDecks.value = _savedDecks.value.filterNot { it.id == deckId }
         runCatching {

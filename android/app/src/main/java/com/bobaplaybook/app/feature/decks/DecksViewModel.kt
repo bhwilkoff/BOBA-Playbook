@@ -78,6 +78,10 @@ class DecksViewModel @Inject constructor(
         }
     }
 
+    fun renameSavedDeck(deckId: String, newName: String) {
+        viewModelScope.launch { repo.renameDeck(deckId, newName) }
+    }
+
     fun deleteDeck(deckId: String) {
         viewModelScope.launch { repo.deleteDeck(deckId) }
     }

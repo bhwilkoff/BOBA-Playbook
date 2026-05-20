@@ -70,6 +70,13 @@ data class Card(
     val abilityText: String? = null,
     val bonusText: String? = null,
     val bobaIdField: String? = null,     // when present in JSON, prefer this over computed
+
+    // Play subtype flags. iOS Card.swift lines 31-32. Used by
+    // CardFormatEligibility to surface "Bonus Play" / "HTD Play" badges
+    // that are toggled OFF in certain event formats (Spec Playmaker,
+    // Brawl Playmaker, Tecmo Bowl).
+    @SerialName("isBonusPlay") val isBonusPlay: Boolean? = null,
+    @SerialName("isHTD")       val isHTD: Boolean? = null,
 ) {
     /**
      * Canonical card identifier — matches `scripts/boba_id.py` v2 formula

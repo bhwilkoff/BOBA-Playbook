@@ -266,6 +266,11 @@ private fun CardDetailBody(
         // tinted so coaches read it at a glance.
         HeroStatRow(card = card)
 
+        // Format restrictions — only renders when the card has at least
+        // one. iOS CardDetailView.formatRestrictionsBlock. Empty for the
+        // typical sub-160 Hero / base-Set Play.
+        FormatRestrictionsBlock(card = card)
+
         // Ability/Bonus text when present
         card.abilityText?.takeIf { it.isNotBlank() }?.let { text ->
             BOBASectionHeader(title = "Ability")
@@ -364,6 +369,78 @@ private fun BadgeRow(card: Card) {
                     color = com.bobaplaybook.core.ui.theme.BobaBrand.Violet,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Format restrictions block. iOS CardDetailView.formatRestrictionsBlock —
+ * surfaces ONLY when a card has at least one per-card format
+ * restriction (Spec-ineligible Heroes, Bonus Plays, HTD Plays,
+ * Trainers). 99% of cards render nothing here.
+ *
+ * Deck-level legality (DBS budget, count caps) stays in the Decks tab.
+ */
+@Composable
+private fun FormatRestrictionsBlock(card: Card) {
+    val notes = remember(card.bobaId) {
+        com.bobaplaybook.core.domain.model.CardFormatEligibility.restrictions(card)
+    }
+    if (notes.isEmpty()) return
+    val amber = com.bobaplaybook.core.ui.theme.BobaBrand.Orange
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            "FORMAT RESTRICTIONS",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Bold,
+        )
+        androidx.compose.material3.Surface(
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                amber.copy(alpha = 0.35f),
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(vertical = 4.dp),
+            ) {
+                notes.forEach { note ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Bolt,
+                            contentDescription = null,
+                            tint = amber,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                note.label,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = amber,
+                            )
+                            Text(
+                                note.detail,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
             }
         }
     }

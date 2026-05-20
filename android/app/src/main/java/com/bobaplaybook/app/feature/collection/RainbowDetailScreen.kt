@@ -133,6 +133,7 @@ private fun RainbowTile(card: Card, owned: Boolean, onClick: () -> Unit) {
     Box(modifier = Modifier.fillMaxWidth()) {
         BOBACardCell(
             imageFile = card.imageFile,
+            isSealed = card.isSealed,
             contentDescription = card.displayName,
             modifier = Modifier.clickable(onClick = onClick),
         )

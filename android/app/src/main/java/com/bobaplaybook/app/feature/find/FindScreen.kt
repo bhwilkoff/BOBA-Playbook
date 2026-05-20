@@ -498,7 +498,11 @@ private fun SearchSuggestionsList(
                         },
                         leadingContent = {
                             Box(modifier = Modifier.width(40.dp).height(56.dp)) {
-                                BOBACardCell(imageFile = suggestion.card.imageFile, contentDescription = suggestion.card.displayName)
+                                BOBACardCell(
+                                    imageFile = suggestion.card.imageFile,
+                                    contentDescription = suggestion.card.displayName,
+                                    isSealed = suggestion.card.isSealed,
+                                )
                             }
                         },
                         modifier = Modifier.clickable { onSuggestionTap(suggestion) },
@@ -749,6 +753,7 @@ private fun CardCarousel(
                 BOBACardCell(
                     imageFile = card.imageFile,
                     contentDescription = card.displayName,
+                    isSealed = card.isSealed,
                     modifier = Modifier
                         .cardSharedBounds(card.bobaId)
                         .clickable { onCardClick(card.bobaId) },
@@ -778,6 +783,7 @@ private fun SearchResultsGrid(
             BOBACardCell(
                 imageFile = card.imageFile,
                 contentDescription = card.displayName,
+                isSealed = card.isSealed,
                 modifier = Modifier
                     .cardSharedBounds(card.bobaId)
                     .combinedClickable(

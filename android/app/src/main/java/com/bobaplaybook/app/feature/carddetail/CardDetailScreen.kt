@@ -391,6 +391,7 @@ private fun CardDetailBody(
                         BOBACardCell(
                             imageFile = other.imageFile,
                             contentDescription = other.displayName,
+                            isSealed = other.isSealed,
                             modifier = Modifier.clickable {
                                 onOpenOtherVersion(other.bobaId)
                             },

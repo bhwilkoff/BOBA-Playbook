@@ -401,7 +401,9 @@ private fun SignedInContent(
             OutlinedTextField(
                 value = username,
                 onValueChange = { raw ->
-                    val cleaned = raw.lowercase().filter { c -> c.isLetterOrDigit() || c == '_' || c == '-' }
+                    val cleaned = raw.lowercase()
+                        .filter { c -> c.isLetterOrDigit() || c == '_' || c == '-' }
+                        .take(30)  // matches Supabase username column constraint
                     username = cleaned
                     if (cleaned.length >= 3) vm.checkUsername(cleaned)
                 },

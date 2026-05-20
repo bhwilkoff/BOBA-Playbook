@@ -192,6 +192,15 @@ const Collection = (() => {
           <h3 class="custom-rainbows-heading">Custom Rainbows</h3>
           <div class="custom-rainbows-list" id="custom-rainbows-list"></div>
         </section>
+        <!-- HERO AUTO RAINBOWS — one synthesized rainbow per hero
+             the user owns at least one card of. Mirrors iOS
+             RainbowDetailView Kind.hero(_) pattern: every printing
+             of that hero across all sets / treatments is the
+             "set to collect." Sorted by completion % descending. -->
+        <section class="custom-rainbows-section" id="hero-rainbows-section" hidden>
+          <h3 class="custom-rainbows-heading">Rainbows by Hero</h3>
+          <div class="custom-rainbows-list" id="hero-rainbows-list"></div>
+        </section>
       </div>`;
 
     view.querySelectorAll('.desig-tab').forEach(tab => {
@@ -216,6 +225,10 @@ const Collection = (() => {
     // rainbow comes back. No spinner; the section is hidden by
     // default so an empty fetch is a no-op.
     hydrateCustomRainbows(ownedCards);
+    // Per-hero Auto Rainbows — synthesized from owned heroes ×
+    // catalog. Always runs; section stays hidden when ownedCards
+    // is empty.
+    hydrateHeroRainbows(ownedCards);
 
     view.querySelectorAll('.collection-totals-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -655,68 +668,45 @@ const Collection = (() => {
      dimmed so the user sees what they still need.
   ──────────────────────────────────────────────────────────────── */
 
-  async function hydrateCustomRainbows(ownedCards) {
-    const section = document.getElementById('custom-rainbows-section');
-    const list    = document.getElementById('custom-rainbows-list');
-    if (!section || !list) return;
-    let rainbows;
-    try {
-      rainbows = await API.fetchCustomRainbows();
-    } catch {
-      return;
-    }
-    if (!rainbows || rainbows.length === 0) return;
-
-    // Owned card IDs for "X / Y collected" + per-card dim.
-    const groupKeyOf = c => c.boba_id || c.card_number;
-    const ownedKeys = new Set(ownedCards.map(groupKeyOf));
-
-    // The catalog is needed to expand each rainbow's criteria into
-    // a list of matching cards. _bobaIdLookup is keyed by bobaId
-    // but doesn't enumerate; iterate the cached array via window.
-    const catalog = window.__bobaCatalog || [];
-    if (catalog.length === 0) return;  // catalog not yet loaded
-
-    section.hidden = false;
-    list.innerHTML = rainbows.map(rainbow => {
-      const matching = catalog.filter(c => API.rainbowCriteriaMatches(c, rainbow.criteria));
-      // Limit visible thumbnails to avoid runaway rows for broad
-      // criteria (e.g. "All Glows" = thousands). Show 24 max; total
-      // count + summary still in the header.
-      const visible = matching.slice(0, 24);
-      const ownedMatching = matching.filter(c => ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber));
-      const pct = matching.length === 0 ? 0
-        : Math.round((ownedMatching.length / matching.length) * 100);
-      const thumbs = visible.map(c => {
-        const isOwned = ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber);
-        const url = API.cardThumbUrl(c) || '';
-        return `<button class="rainbow-thumb${isOwned ? ' owned' : ''}"
-                        type="button" data-detail-num="${esc(c.cardNumber)}"
-                        title="${esc((c.hero || c.name || '') + ' · ' + (c.treatment || ''))}">
-                  <img src="${esc(url)}" alt="${esc(c.hero || c.name || '')}" loading="lazy" />
-                </button>`;
-      }).join('');
-      return `
-        <details class="rainbow-row">
-          <summary>
-            <span class="rainbow-name">${esc(rainbow.name)}</span>
-            <span class="rainbow-summary">${esc(API.rainbowCriteriaSummary(rainbow.criteria) || 'No criteria')}</span>
-            <span class="rainbow-progress">
-              <span class="rainbow-progress-count">${ownedMatching.length}/${matching.length}</span>
-              <span class="rainbow-progress-bar"><span style="width:${pct}%"></span></span>
-              <span class="rainbow-progress-pct">${pct}%</span>
-            </span>
-          </summary>
-          <div class="rainbow-thumbs">
-            ${thumbs || '<div class="rainbow-empty">No matching cards in the catalog.</div>'}
-            ${matching.length > visible.length ? `<div class="rainbow-more">+${matching.length - visible.length} more</div>` : ''}
-          </div>
-        </details>`;
+  /// Shared row-render: emits a <details> for one rainbow (custom or
+  /// auto-hero). Used by both hydrateCustomRainbows and
+  /// hydrateHeroRainbows. matchingCards is pre-computed by the caller
+  /// so the catalog filter only runs once per row.
+  function _renderRainbowRow({ name, summary, matching, ownedKeys }) {
+    const visible = matching.slice(0, 24);
+    const ownedMatching = matching.filter(c => ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber));
+    const pct = matching.length === 0 ? 0
+      : Math.round((ownedMatching.length / matching.length) * 100);
+    const thumbs = visible.map(c => {
+      const isOwned = ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber);
+      const url = API.cardThumbUrl(c) || '';
+      return `<button class="rainbow-thumb${isOwned ? ' owned' : ''}"
+                      type="button" data-detail-num="${esc(c.cardNumber)}"
+                      title="${esc((c.hero || c.name || '') + ' · ' + (c.treatment || ''))}">
+                <img src="${esc(url)}" alt="${esc(c.hero || c.name || '')}" loading="lazy" />
+              </button>`;
     }).join('');
+    return `
+      <details class="rainbow-row">
+        <summary>
+          <span class="rainbow-name">${esc(name)}</span>
+          <span class="rainbow-summary">${esc(summary || 'No criteria')}</span>
+          <span class="rainbow-progress">
+            <span class="rainbow-progress-count">${ownedMatching.length}/${matching.length}</span>
+            <span class="rainbow-progress-bar"><span style="width:${pct}%"></span></span>
+            <span class="rainbow-progress-pct">${pct}%</span>
+          </span>
+        </summary>
+        <div class="rainbow-thumbs">
+          ${thumbs || '<div class="rainbow-empty">No matching cards in the catalog.</div>'}
+          ${matching.length > visible.length ? `<div class="rainbow-more">+${matching.length - visible.length} more</div>` : ''}
+        </div>
+      </details>`;
+  }
 
-    // Thumb tap → open card-detail (the existing handler already
-    // listens on data-detail-num).
-    list.querySelectorAll('[data-detail-num]').forEach(el => {
+  /// Wires thumbnail-tap → card-detail on a freshly-rendered rainbow list.
+  function _wireRainbowThumbs(listEl, catalog) {
+    listEl.querySelectorAll('[data-detail-num]').forEach(el => {
       el.addEventListener('click', () => {
         const cn = el.dataset.detailNum;
         if (window.openCardModal) {
@@ -725,6 +715,89 @@ const Collection = (() => {
         }
       });
     });
+  }
+
+  async function hydrateCustomRainbows(ownedCards) {
+    const section = document.getElementById('custom-rainbows-section');
+    const list    = document.getElementById('custom-rainbows-list');
+    if (!section || !list) return;
+    let rainbows;
+    try { rainbows = await API.fetchCustomRainbows(); } catch { return; }
+    if (!rainbows || rainbows.length === 0) return;
+
+    const groupKeyOf = c => c.boba_id || c.card_number;
+    const ownedKeys = new Set(ownedCards.map(groupKeyOf));
+    const catalog = window.__bobaCatalog || [];
+    if (catalog.length === 0) return;
+
+    section.hidden = false;
+    list.innerHTML = rainbows.map(rainbow => {
+      const matching = catalog.filter(c => API.rainbowCriteriaMatches(c, rainbow.criteria));
+      return _renderRainbowRow({
+        name: rainbow.name,
+        summary: API.rainbowCriteriaSummary(rainbow.criteria),
+        matching,
+        ownedKeys,
+      });
+    }).join('');
+    _wireRainbowThumbs(list, catalog);
+  }
+
+  /// Per-hero Auto Rainbows — one row per unique hero in the user's
+  /// owned cards. Each row shows ALL printings of that hero across the
+  /// catalog (every set/treatment) as the "set to collect". Mirrors iOS
+  /// RainbowDetailView Kind.hero(_) pattern.
+  function hydrateHeroRainbows(ownedCards) {
+    const section = document.getElementById('hero-rainbows-section');
+    const list    = document.getElementById('hero-rainbows-list');
+    if (!section || !list) return;
+
+    const catalog = window.__bobaCatalog || [];
+    if (catalog.length === 0) return;
+
+    const groupKeyOf = c => c.boba_id || c.card_number;
+    const ownedKeys = new Set(ownedCards.map(groupKeyOf));
+
+    // Determine which heroes the user has at least one copy of.
+    // Look the user-card row up against the catalog for hero info
+    // (user_cards itself doesn't carry hero).
+    const ownedHeroes = new Set();
+    for (const uc of ownedCards) {
+      const cat = (uc.boba_id && _bobaIdLookup)
+        ? _bobaIdLookup(uc.boba_id)
+        : (_cardLookup ? _cardLookup(uc.card_number) : null);
+      const h = cat?.hero;
+      if (h && h.trim()) ownedHeroes.add(h);
+    }
+    if (ownedHeroes.size === 0) return;
+
+    // Build per-hero buckets in one catalog pass (no O(heroes × catalog)).
+    const buckets = {};
+    for (const c of catalog) {
+      if (!c.hero || !ownedHeroes.has(c.hero)) continue;
+      (buckets[c.hero] = buckets[c.hero] || []).push(c);
+    }
+
+    // Sort heroes by completion descending — heroes the user is
+    // closest to finishing surface first.
+    const heroes = Object.keys(buckets).sort((a, b) => {
+      const ar = buckets[a].filter(c => ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber)).length / buckets[a].length;
+      const br = buckets[b].filter(c => ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber)).length / buckets[b].length;
+      if (ar !== br) return br - ar;
+      return a.localeCompare(b);
+    });
+
+    section.hidden = false;
+    list.innerHTML = heroes.map(hero => {
+      const matching = buckets[hero];
+      return _renderRainbowRow({
+        name: hero,
+        summary: `All printings · ${matching.length} card${matching.length === 1 ? '' : 's'}`,
+        matching,
+        ownedKeys,
+      });
+    }).join('');
+    _wireRainbowThumbs(list, catalog);
   }
 
   function formatAddedDate(iso) {

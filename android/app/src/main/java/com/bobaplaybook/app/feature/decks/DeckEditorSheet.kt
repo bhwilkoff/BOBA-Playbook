@@ -30,6 +30,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -112,6 +115,7 @@ fun DeckEditorContentInline(
         }
 
         StatsRow(draft = draft)
+        PlayModeChipStrip(draft = draft)
 
         Row(
             modifier = Modifier
@@ -200,6 +204,7 @@ private fun DeckEditorContent(
         }
 
         StatsRow(draft = draft)
+        PlayModeChipStrip(draft = draft)
 
         HorizontalDivider()
 
@@ -219,6 +224,34 @@ private fun DeckEditorContent(
             modifier = Modifier.fillMaxSize(),
         )
     }
+}
+
+@Composable
+private fun PlayModeChipStrip(draft: DeckDraft) {
+    val vm: DecksViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val modes = remember { DeckPlayMode.entries }
+    SingleChoiceSegmentedButtonRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        modes.forEachIndexed { index, mode ->
+            SegmentedButton(
+                selected = mode == draft.playMode,
+                onClick = { vm.setPlayMode(mode) },
+                shape = SegmentedButtonDefaults.itemShape(index, modes.size),
+                icon = {},
+            ) {
+                Text(mode.label, style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+    Text(
+        text = draft.playMode.description,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+    )
 }
 
 @Composable

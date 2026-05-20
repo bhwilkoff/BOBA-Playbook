@@ -36,6 +36,10 @@ class DeckStore @Inject constructor() {
         _draft.value = _draft.value.copy(name = name)
     }
 
+    fun setPlayMode(mode: DeckPlayMode) {
+        _draft.value = _draft.value.copy(playMode = mode)
+    }
+
     fun clear() {
         _draft.value = DeckDraft()
     }

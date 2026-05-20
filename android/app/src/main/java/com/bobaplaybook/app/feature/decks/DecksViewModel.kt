@@ -42,6 +42,7 @@ class DecksViewModel @Inject constructor(
     fun add(card: Card) = store.add(card)
     fun remove(bobaId: String) = store.remove(bobaId)
     fun rename(name: String) = store.rename(name)
+    fun setPlayMode(mode: DeckPlayMode) = store.setPlayMode(mode)
     fun clear() = store.clear()
 
     /** Pull a saved deck into the in-memory draft. Joins via catalog. */

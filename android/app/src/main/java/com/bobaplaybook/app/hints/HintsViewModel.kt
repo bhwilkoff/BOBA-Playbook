@@ -19,7 +19,17 @@ class HintsViewModel @Inject constructor(
 
     fun isDismissed(id: String): Flow<Boolean> = store.isDismissed(id)
 
+    val globalEnabled: Flow<Boolean> = store.globalEnabled
+
     fun dismiss(id: String) {
         viewModelScope.launch { store.dismiss(id) }
+    }
+
+    fun setGlobalEnabled(enabled: Boolean) {
+        viewModelScope.launch { store.setGlobalEnabled(enabled) }
+    }
+
+    fun resetAll() {
+        viewModelScope.launch { store.resetAll() }
     }
 }

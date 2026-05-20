@@ -2330,6 +2330,42 @@
     <div class="auth-modal-box" id="auth-modal-box"></div>
   </dialog>
 
+  <!-- DBS EXPLAINER — native <dialog>. Tapped from the DBS stat cell
+       on Play cards. Parity with iOS DBSInfoSheet (Card detail). -->
+  <dialog class="modal-overlay" id="dbs-info-overlay"
+          aria-labelledby="dbs-info-title">
+    <div class="auth-modal-box dbs-info-box">
+      <button class="modal-close" data-action="close-dbs-info"
+              aria-label="Close DBS explainer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+      <h2 id="dbs-info-title" class="dbs-info-title">What is DBS?</h2>
+      <p class="dbs-info-lede">
+        The <strong>Deck Balancing System</strong> is a scoring system used in
+        Nationals-style formats to keep high-powered Plays from crowding out
+        the rest of a deck.
+      </p>
+      <ul class="dbs-info-bullets">
+        <li>Every Play card has a DBS score.</li>
+        <li>Your deck's total DBS across all 30 Plays must be ≤ <strong>1,000</strong> in formats that enforce it.</li>
+        <li>High-DBS Plays are individually powerful but force you to fill the rest of the deck with low-DBS Plays to stay under budget.</li>
+        <li>Non-Nationals formats (Rookie, Substitution, Playmaker) ignore DBS entirely — it's only a constraint when a format opts in.</li>
+      </ul>
+      <h3 class="dbs-tiers-heading">DBS tiers</h3>
+      <div class="dbs-tiers-table">
+        <div class="dbs-tier-row dbs-tier-low"><span>Low</span><span>1–20</span></div>
+        <div class="dbs-tier-row dbs-tier-medium"><span>Medium</span><span>21–40</span></div>
+        <div class="dbs-tier-row dbs-tier-high"><span>High</span><span>41–60</span></div>
+        <div class="dbs-tier-row dbs-tier-very-high"><span>Very High</span><span>67+</span></div>
+      </div>
+      <p class="dbs-info-footer">
+        The deck builder shows a running DBS total and warns you when you cross the budget — no mental math required.
+      </p>
+    </div>
+  </dialog>
+
   <!-- ADD TO COLLECTION SHEET — native <dialog> -->
   <dialog class="modal-overlay" id="add-collection-overlay"
           aria-label="Add card to collection">

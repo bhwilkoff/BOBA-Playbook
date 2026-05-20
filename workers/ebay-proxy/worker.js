@@ -1563,6 +1563,11 @@ export default {
     const power      = powerRaw != null ? parseInt(powerRaw, 10) : null;
     const days       = Math.min(Math.max(parseInt(searchParams.get("days") ?? "30", 10), 1), 90);
     const radishUrl  = searchParams.get("radishUrl") || "";
+    /// User-initiated refresh: when the client passes `fresh=1`, skip
+    /// the cache lookup AND don't write a fresh cached entry — so the
+    /// next click of the day-picker for the same card hits a clean
+    /// fetch instead of the stale cache the refresh tried to bypass.
+    const forceFresh = searchParams.get("fresh") === "1";
 
     if (!cardNumber) return json({ error: "cardNumber parameter required" }, 400);
     if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) return json({ error: "EBAY_APP_ID and EBAY_CERT_ID secrets required" }, 500);
@@ -1579,10 +1584,12 @@ export default {
     const cache    = caches.default;
     const cacheURL = `https://boba-cache.internal/v17/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
     const cacheKey = new Request(cacheURL);
-    const cached   = await cache.match(cacheKey);
-    if (cached) {
-      const body = await cached.json();
-      return json(body, 200, { "X-Cache": "HIT" });
+    if (!forceFresh) {
+      const cached = await cache.match(cacheKey);
+      if (cached) {
+        const body = await cached.json();
+        return json(body, 200, { "X-Cache": "HIT" });
+      }
     }
 
     // ── Search query ──────────────────────────────────────────────────────────

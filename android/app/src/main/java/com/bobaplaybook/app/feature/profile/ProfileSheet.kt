@@ -28,7 +28,9 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Public
@@ -493,6 +495,69 @@ private fun SignedInContent(
                     }
                 },
             )
+        }
+        // Surface copy + share affordances only when the toggle is on.
+        // iOS+web Profile both let the user immediately copy the link
+        // when they enable sharing — WEB-DESIGN.md §14.4 codifies this
+        // as binding ("Anyone toggling sharing on should immediately
+        // see the URL with a copy button").
+        if (publicCollection && username.isNotBlank()) {
+            item("public-url-actions") {
+                val publicUrl = "https://bobaplaybook.com/u/$username"
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            "bobaplaybook.com/u/$username",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    },
+                    supportingContent = {
+                        Text(
+                            "Public link to your collection",
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    },
+                    leadingContent = {
+                        Icon(Icons.Default.Public,
+                             contentDescription = null,
+                             tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
+                    trailingContent = {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            IconButton(onClick = {
+                                val cm = context.getSystemService(android.content.ClipboardManager::class.java)
+                                cm?.setPrimaryClip(
+                                    android.content.ClipData.newPlainText("BOBA Playbook", publicUrl)
+                                )
+                                scope.launch { appSnackbar?.showSnackbar("Link copied") }
+                            }) {
+                                Icon(Icons.Default.ContentCopy,
+                                     contentDescription = "Copy link",
+                                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            IconButton(onClick = {
+                                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(android.content.Intent.EXTRA_SUBJECT, "My BOBA collection")
+                                    putExtra(android.content.Intent.EXTRA_TEXT, publicUrl)
+                                }
+                                context.startActivity(
+                                    android.content.Intent.createChooser(intent, "Share collection link")
+                                )
+                            }) {
+                                Icon(Icons.Default.Share,
+                                     contentDescription = "Share link",
+                                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
 
         item("notify-header") { BOBASectionHeader(title = "Notifications") }

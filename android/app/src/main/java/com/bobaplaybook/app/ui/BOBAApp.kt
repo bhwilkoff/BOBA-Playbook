@@ -321,6 +321,12 @@ private fun TabNavHost(
                     com.bobaplaybook.app.feature.profile.ProfileScreen(
                         authManager = authManager,
                         onBack = { navController.popBackStack() },
+                        onPracticeUnlock = { navController.navigate(NavRoutes.PRACTICE) },
+                    )
+                }
+                composable(NavRoutes.PRACTICE) {
+                    com.bobaplaybook.app.feature.practice.PracticeScreen(
+                        onBack = { navController.popBackStack() },
                     )
                 }
                 cardDetailComposable(navController)

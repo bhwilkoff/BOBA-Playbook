@@ -47,6 +47,9 @@ object NavRoutes {
     // Profile (full-screen destination — Find-only entry)
     const val PROFILE = "profile"
 
+    // Practice executor (admin-gated; DECISIONS.md #048)
+    const val PRACTICE = "practice"
+
     // Learn category (depth 2 inside Learn tab — one bespoke page per category)
     const val ARG_CATEGORY = "category"
     const val LEARN_CATEGORY_PATTERN = "learn/{$ARG_CATEGORY}"

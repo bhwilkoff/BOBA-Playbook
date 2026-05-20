@@ -29,7 +29,6 @@ import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -44,9 +43,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
+import com.bobaplaybook.core.ui.components.BOBAEmptyState
 
 /**
  * Learn tab — canonical M3 **Feed** layout.
@@ -151,6 +152,18 @@ fun LearnScreen(
                         )
                     }
                 }
+                if (articles.isEmpty()) {
+                    item("empty") {
+                        BOBAEmptyState(
+                            icon = Icons.AutoMirrored.Filled.MenuBook,
+                            headline = "More on the way",
+                            body = selectedCategory?.let {
+                                "We're building out the ${it.title} library. Tap another tab for now."
+                            } ?: "We're filling in articles soon.",
+                            modifier = Modifier.padding(top = 48.dp),
+                        )
+                    }
+                }
                 items(items = articles, key = { it.id }) { article ->
                     ArticleCard(
                         article = article,
@@ -168,6 +181,9 @@ private fun FeaturedCarousel(
     articles: List<LearnArticle>,
     onArticleClick: (articleId: String) -> Unit,
 ) {
+    // M3 surfaceContainerHigh — not tertiaryContainer. In the dark
+    // brand theme tertiaryContainer resolves to ~background-purple
+    // and text on top reads as solid violet blocks.
     HorizontalUncontainedCarousel(
         state = rememberCarouselState(itemCount = { articles.size }),
         itemWidth = 220.dp,
@@ -181,7 +197,7 @@ private fun FeaturedCarousel(
         Card(
             onClick = { onArticleClick(article.id) },
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ),
             shape = MaterialTheme.shapes.large,
             modifier = Modifier
@@ -192,24 +208,26 @@ private fun FeaturedCarousel(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom),
+                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
             ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f),
-                    shape = MaterialTheme.shapes.small,
-                ) {
-                    Text(
-                        text = article.categoryId.title,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                    )
-                }
+                // Category icon — visual variety per article so the
+                // carousel doesn't read as identical tiles.
+                Icon(
+                    imageVector = article.categoryId.icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = article.categoryId.title,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Text(
                     text = article.title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    maxLines = 3,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
                 )
             }
         }

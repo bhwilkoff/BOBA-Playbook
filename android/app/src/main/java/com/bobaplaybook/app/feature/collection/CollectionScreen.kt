@@ -187,14 +187,18 @@ fun CollectionScreen(
             )
             // Count summary — single line below the segmented row so
             // the chips themselves stay readable on compact widths.
+            // Hide when 0 — the BOBAEmptyState / BOBASignInPrompt
+            // below carries the "nothing here" message; a small
+            // top-left "No personal" caption is redundant chrome.
             val currentCount = state.entriesByDesignation[designation]?.size ?: 0
-            Text(
-                text = if (currentCount == 0) "No ${designation.label.lowercase()}"
-                       else "$currentCount ${designation.label.lowercase()} card${if (currentCount == 1) "" else "s"}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
-            )
+            if (currentCount > 0) {
+                Text(
+                    text = "$currentCount ${designation.label.lowercase()} card${if (currentCount == 1) "" else "s"}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                )
+            }
 
             if (state.totalValueUsd > 0.0) {
                 ValueSummary(totalUsd = state.totalValueUsd)

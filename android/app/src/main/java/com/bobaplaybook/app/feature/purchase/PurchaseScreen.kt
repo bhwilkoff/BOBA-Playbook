@@ -259,11 +259,13 @@ private fun WhatnotTile(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(
-                            text = "@${show.host}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        if (show.host.isNotBlank()) {
+                            Text(
+                                text = "@${show.host}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                         if (show.viewerCount > 0) {
                             Icon(
                                 Icons.Default.Visibility,

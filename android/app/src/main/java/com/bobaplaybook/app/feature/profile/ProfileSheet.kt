@@ -163,7 +163,7 @@ private fun SignedOutContent(authManager: AuthManager) {
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Profile", style = MaterialTheme.typography.headlineSmall)
+        // LargeTopAppBar above already shows "Profile" — no second header here.
         Text(
             text = "Sign in to sync your collection, decks, and wanted list across iOS, web, and Android.",
             style = MaterialTheme.typography.bodyMedium,

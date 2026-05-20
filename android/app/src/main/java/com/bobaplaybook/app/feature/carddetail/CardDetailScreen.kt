@@ -200,14 +200,13 @@ fun CardDetailScreen(
 
     if (addToCollectionOpen) {
         state.card?.let { card ->
+            val collectionViewModel: com.bobaplaybook.app.feature.collection.CollectionViewModel = hiltViewModel()
             com.bobaplaybook.app.feature.collection.AddToCollectionSheet(
                 card = card,
                 onDismiss = { addToCollectionOpen = false },
                 onSubmit = { input ->
                     addToCollectionOpen = false
-                    // M7 polish — actually call CollectionRepository.add with the
-                    // authenticated user_id. v1 surfaces a Snackbar so the flow
-                    // closes cleanly.
+                    collectionViewModel.add(input.cardBobaId, input.designation)
                     scope.launch {
                         snackbarHostState.showSnackbar("Added ${card.displayName} to ${input.designation.label}")
                     }

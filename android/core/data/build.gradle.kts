@@ -36,6 +36,13 @@ dependencies {
     implementation(libs.kotlinx.collections.immutable)
     implementation(libs.androidx.core.ktx)
 
+    // Supabase — read/write user_cards w/ RLS-scoped JWT.
+    // core/network owns the SupabaseClient provider; data layer
+    // consumes the client + postgrest helpers.
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.supabase.postgrest)
+    implementation(libs.supabase.auth)
+
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 

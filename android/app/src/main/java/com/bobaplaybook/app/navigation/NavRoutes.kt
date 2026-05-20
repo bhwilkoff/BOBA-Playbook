@@ -41,12 +41,8 @@ object NavRoutes {
     // Profile (full-screen destination — Find-only entry)
     const val PROFILE = "profile"
 
-    // Learn category/article
+    // Learn category (depth 2 inside Learn tab — one bespoke page per category)
     const val ARG_CATEGORY = "category"
     const val LEARN_CATEGORY_PATTERN = "learn/{$ARG_CATEGORY}"
     fun learnCategory(category: String) = "learn/$category"
-
-    const val ARG_ARTICLE = "article"
-    const val LEARN_ARTICLE_PATTERN = "learn/article/{$ARG_ARTICLE}"
-    fun learnArticle(articleId: String) = "learn/article/$articleId"
 }

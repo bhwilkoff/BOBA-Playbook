@@ -287,10 +287,15 @@ private fun FindSearchBar(
     onScanClick: () -> Unit,
     onFilterClick: () -> Unit,
 ) {
+    // windowInsets = WindowInsets(0) — drop SearchBar's default
+    // statusBarsForVisualComponents inset; the TopAppBar above
+    // already draws the status bar zone. Without this override
+    // the search bar sits ~status-bar-height below the wordmark.
     SearchBar(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("find_search"),
+        windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         inputField = {
             SearchBarDefaults.InputField(
                 query = state.query,

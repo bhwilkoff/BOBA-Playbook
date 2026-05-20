@@ -4,14 +4,17 @@ package com.bobaplaybook.app.feature.learn
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
@@ -30,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
@@ -37,25 +41,33 @@ import com.bobaplaybook.core.ui.components.BOBAEmptyState
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 
 /**
- * Learn article screen — single article with skill-level segmented
- * picker (ANDROID-DESIGN.md §8.2). Skill level is a scope INSIDE the
- * article, never a third nav level.
+ * Learn category page — one bespoke surface per category, iOS parity.
+ *
+ * Rules has a Rookie/Substitution/Playmaker SegmentedButton at the
+ * page root that swaps the mode-aware body. Strategy / Collect /
+ * Glossary / Tournament / Watch are flat — content renders top to
+ * bottom with no picker (that's the iOS pattern; the old per-article
+ * skill-level picker on flat content was the bug).
+ *
+ * iOS reference: each iOS category has its own SwiftUI view (RulesView,
+ * StrategyView, CollectView, GlossaryView, TournamentView, WatchView).
+ * On Android we collapse those into one composable parameterized by
+ * category — same shapes, less file sprawl.
  */
 @Composable
-fun LearnArticleScreen(
-    articleId: String,
+fun LearnCategoryScreen(
+    categoryId: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val article = remember(articleId) { LearnCorpus.findArticle(articleId) }
+    val category = remember(categoryId) { LearnCategoryId.fromId(categoryId) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
-    var skill by rememberSaveable { mutableStateOf(SkillLevel.ROOKIE) }
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeTopAppBar(
-                title = { Text(article?.title ?: "Article") },
+                title = { Text(category?.title ?: "Learn") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -71,67 +83,159 @@ fun LearnArticleScreen(
             )
         },
     ) { padding ->
-        if (article == null) {
+        if (category == null) {
             BOBAEmptyState(
-                headline = "Article not found",
-                body = "Looking for article id `$articleId`. Has it been renamed?",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
+                headline = "Category not found",
+                body = "Looking for `$categoryId`. Has it been renamed?",
+                modifier = Modifier.fillMaxSize().padding(padding),
             )
             return@Scaffold
         }
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            // Skill-level scope picker (SegmentedButton)
-            val availableLevels = SkillLevel.entries.filter { it in article.sections }
-            if (availableLevels.size > 1) {
-                Surface(color = MaterialTheme.colorScheme.surface) {
-                    SingleChoiceSegmentedButtonRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                    ) {
-                        availableLevels.forEachIndexed { index, level ->
-                            SegmentedButton(
-                                selected = level == skill,
-                                onClick = { skill = level },
-                                shape = SegmentedButtonDefaults.itemShape(index, availableLevels.size),
-                            ) {
-                                Text(level.label, style = MaterialTheme.typography.labelMedium)
-                            }
-                        }
-                    }
-                }
-            }
-
-            val sections = article.sections[skill] ?: emptyList()
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                items(
-                    items = sections,
-                    key = { section -> "${section::class.simpleName}-${section.heading.orEmpty()}-${sections.indexOf(section)}" },
-                ) { section ->
-                    SectionRenderer(section, article.glossaryTerms)
-                }
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            when (category) {
+                LearnCategoryId.RULES      -> RulesPage()
+                LearnCategoryId.STRATEGY   -> FlatSectionsPage(LearnCorpus.strategy)
+                LearnCategoryId.COLLECT    -> FlatSectionsPage(LearnCorpus.collect)
+                LearnCategoryId.WATCH      -> FlatSectionsPage(LearnCorpus.watch)
+                LearnCategoryId.GLOSSARY   -> GlossaryPage()
+                LearnCategoryId.TOURNAMENT -> FlatSectionsPage(LearnCorpus.tournament)
             }
         }
     }
 }
 
+// ════════════════════════════════════════════════════════════════
+// Rules — mode-aware page with root-level skill-level picker
+// ════════════════════════════════════════════════════════════════
+
 @Composable
-private fun SectionRenderer(section: LearnSection, glossaryTerms: List<String>) {
+private fun RulesPage() {
+    var mode by rememberSaveable { mutableStateOf(GameMode.ROOKIE) }
+    val modes = remember { GameMode.entries }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp, horizontal = 0.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        // Always-visible intro
+        items(items = LearnCorpus.rulesIntro, key = { "intro-${LearnCorpus.rulesIntro.indexOf(it)}" }) { section ->
+            SectionRenderer(section)
+        }
+
+        // Mode picker — iOS keeps this at the page root, NOT per-section
+        item("mode-picker") {
+            Surface(color = MaterialTheme.colorScheme.surface) {
+                SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    modes.forEachIndexed { index, m ->
+                        SegmentedButton(
+                            selected = m == mode,
+                            onClick = { mode = m },
+                            shape = SegmentedButtonDefaults.itemShape(index, modes.size),
+                            icon = {},
+                        ) {
+                            Text(m.label, style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Mode-specific body
+        val modeBody = LearnCorpus.rulesForMode(mode)
+        itemsIndexed(items = modeBody, key = { i, _ -> "mode-${mode.name}-$i" }) { _, section ->
+            SectionRenderer(section)
+        }
+
+        // Always-visible appendix below the mode-specific body
+        itemsIndexed(items = LearnCorpus.rulesAppendix, key = { i, _ -> "appendix-$i" }) { _, section ->
+            SectionRenderer(section)
+        }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// Flat sections — Strategy / Collect / Watch / Tournament
+// ════════════════════════════════════════════════════════════════
+
+@Composable
+private fun FlatSectionsPage(sections: List<LearnSection>) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        itemsIndexed(items = sections, key = { i, _ -> i }) { _, section ->
+            SectionRenderer(section)
+        }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// Glossary — two flat term sections (Game + Trading)
+// ════════════════════════════════════════════════════════════════
+
+@Composable
+private fun GlossaryPage() {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item("game-head") { BOBASectionHeader(title = "Game glossary") }
+        items(items = LearnCorpus.glossaryGame, key = { "game-${it.term}" }) { term ->
+            TermRow(term)
+        }
+        item("divider") {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp, horizontal = 16.dp))
+        }
+        item("trading-head") { BOBASectionHeader(title = "Trading glossary") }
+        items(items = LearnCorpus.glossaryTrading, key = { "trade-${it.term}" }) { term ->
+            TermRow(term)
+        }
+    }
+}
+
+@Composable
+private fun TermRow(section: LearnSection.Term) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text(
+            text = section.term,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.padding(end = 12.dp),
+        )
+        Text(
+            text = section.definition,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// SectionRenderer — shared by every page type
+// ════════════════════════════════════════════════════════════════
+
+@Composable
+private fun SectionRenderer(section: LearnSection) {
     when (section) {
         is LearnSection.Body -> {
             section.heading?.let { BOBASectionHeader(title = it) }
-            GlossaryRichText(
+            Text(
                 text = section.text,
-                glossaryTerms = glossaryTerms,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
         is LearnSection.Bullets -> {
@@ -164,6 +268,15 @@ private fun SectionRenderer(section: LearnSection, glossaryTerms: List<String>) 
                     modifier = Modifier.padding(16.dp),
                 )
             }
+        }
+        is LearnSection.Term -> {
+            // Rendered separately by GlossaryPage; if a Term lands in a
+            // flat-page list (it shouldn't), render as a bullet for safety.
+            Text(
+                text = "•  ${section.term}: ${section.definition}",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
         }
     }
 }

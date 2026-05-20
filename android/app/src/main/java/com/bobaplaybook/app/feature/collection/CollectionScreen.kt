@@ -122,11 +122,6 @@ fun CollectionScreen(
                             Icon(Icons.Default.Tune, contentDescription = "Filters")
                         }
                     }
-                    IconButton(onClick = {
-                        shareCollection(context, designation, displayMode)
-                    }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
-                    }
                     Box {
                         IconButton(onClick = { menuOpen = true }) {
                             Icon(Icons.Default.MoreVert, contentDescription = "More")
@@ -163,6 +158,19 @@ fun CollectionScreen(
                                 text = { Text("My Shows") },
                                 leadingIcon = { Icon(Icons.Default.LiveTv, contentDescription = null) },
                                 onClick = { menuOpen = false; onShowsClick() },
+                            )
+                            androidx.compose.material3.HorizontalDivider()
+                            // Share moved into the overflow menu — was a
+                            // standalone toolbar action; per Ben's pref
+                            // the toolbar is cleaner with just Filters +
+                            // overflow.
+                            DropdownMenuItem(
+                                text = { Text("Share collection") },
+                                leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                                onClick = {
+                                    menuOpen = false
+                                    shareCollection(context, designation, displayMode)
+                                },
                             )
                         }
                     }
@@ -254,10 +262,12 @@ private fun DesignationRow(
                 selected = designation == selected,
                 onClick = { onChange(designation) },
                 shape = SegmentedButtonDefaults.itemShape(index, entries.size),
+                // Drop the default checkmark icon — M3's selected-state
+                // color change (secondaryContainer fill) is already the
+                // affordance; the redundant ✓ visually crowds the pill
+                // and shifts the label off-center on selection.
+                icon = {},
             ) {
-                // Label only — count moves to a separate row below the
-                // segmented control so "(12)" doesn't shove labels
-                // off-screen on compact widths.
                 Text(
                     designation.shortLabel,
                     style = MaterialTheme.typography.labelMedium,

@@ -1,20 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Splash icon — XOXO playbook mark sized for the Splash Screen API
-  canvas (240×240dp viewport with content inside the inner ~192dp
-  visible area).
+  Splash icon — XOXO playbook mark.
 
-  Per Android docs (developer.android.com/develop/ui/views/launch/splash-screen):
-    canvas      = 240×240dp
-    safe zone   = inner 192dp circle (where art is guaranteed visible)
-    content     = should fill ~85-90% of canvas for proper visual weight
+  Splash Screen API canvas: 240×240dp; visible safe zone is the
+  inner 192dp circle (radius 96dp from center 120,120). The icon
+  is clipped to that circle on round-icon devices, so every visual
+  pixel of the glyph must be inside it.
 
-  Distinct from ic_launcher_foreground (108-canvas adaptive icon) —
-  reusing the adaptive icon at splash causes content to render at ~50%
-  of the visible area, which is the "misaligned / undersized" effect.
+  Geometry: clean 2×2 grid of 56×56dp visual cells centered at
+  (88,88), (152,88), (88,152), (152,152) — outer cell corners at
+  radius ~85dp from center, well inside the 96dp safe zone with
+  ~11dp margin.
 
-  Bounds: XOXO grid spans (40, 40) to (200, 200) — centered, 160dp wide
-  on a 240dp canvas → 67% content ratio matching M3 splash guidance.
+  Stroke 16dp + round line cap means path endpoints sit 8dp inside
+  the visual edge. X paths drawn from (68,68)→(108,108) etc.
+  produce a 40×40 path diagonal that renders as a 56×56 visual X.
+
+  The 2026-05-19 attempt that scaled the 108-canvas launcher icon
+  by 2.667× placed X corners at (48,48) and (192,192) — distance
+  101.8dp from center, past the safe zone. The X glyphs clipped on
+  the circular mask. This version maintains the launcher icon's
+  XOXO arrangement but with proper splash-canvas sizing.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="240dp"
@@ -22,31 +28,31 @@
     android:viewportWidth="240"
     android:viewportHeight="240">
 
-    <!-- Top-left: X — centered at (70, 70), 40dp wide -->
+    <!-- Top-left: X — cell center (88,88), visual 56×56 -->
     <path
         android:strokeColor="@color/boba_orange"
-        android:strokeWidth="14"
+        android:strokeWidth="16"
         android:strokeLineCap="round"
-        android:pathData="M50,50 L90,90 M90,50 L50,90" />
+        android:pathData="M68,68 L108,108 M108,68 L68,108" />
 
-    <!-- Top-right: O — centered at (170, 70), radius 20 -->
+    <!-- Top-right: O — cell center (152,88), visual diameter 56 -->
     <path
         android:strokeColor="@color/boba_orange"
-        android:strokeWidth="14"
+        android:strokeWidth="16"
         android:strokeLineCap="round"
-        android:pathData="M170,70 m-20,0 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0" />
+        android:pathData="M152,88 m-20,0 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0" />
 
-    <!-- Bottom-left: O — centered at (70, 170), radius 20 -->
+    <!-- Bottom-left: O — cell center (88,152), visual diameter 56 -->
     <path
         android:strokeColor="@color/boba_orange"
-        android:strokeWidth="14"
+        android:strokeWidth="16"
         android:strokeLineCap="round"
-        android:pathData="M70,170 m-20,0 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0" />
+        android:pathData="M88,152 m-20,0 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0" />
 
-    <!-- Bottom-right: X — centered at (170, 170), 40dp wide -->
+    <!-- Bottom-right: X — cell center (152,152), visual 56×56 -->
     <path
         android:strokeColor="@color/boba_orange"
-        android:strokeWidth="14"
+        android:strokeWidth="16"
         android:strokeLineCap="round"
-        android:pathData="M150,150 L190,190 M190,150 L150,190" />
+        android:pathData="M132,132 L172,172 M172,132 L132,172" />
 </vector>

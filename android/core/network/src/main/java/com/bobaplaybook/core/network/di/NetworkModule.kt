@@ -1,9 +1,14 @@
 package com.bobaplaybook.core.network.di
 
+import com.bobaplaybook.core.network.SupabaseConfig
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.postgrest.Postgrest
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
@@ -41,5 +46,25 @@ object NetworkModule {
                 }
             )
         }
+    }
+
+    /**
+     * Single Supabase client for the entire app — Auth + Postgrest
+     * both flow through this instance so the session token JWT is
+     * shared between AuthManager (sign-in) and the data repositories
+     * (user_cards, decks, etc).
+     *
+     * supabase-kt's SessionManager auto-refreshes the JWT on expiry,
+     * which covers the iOS `refreshIfNeeded()` lesson (memory
+     * `feedback_refresh_jwt_for_workers_and_storage`).
+     */
+    @Provides
+    @Singleton
+    fun provideSupabaseClient(): SupabaseClient = createSupabaseClient(
+        supabaseUrl = SupabaseConfig.URL,
+        supabaseKey = SupabaseConfig.PUBLISHABLE_KEY,
+    ) {
+        install(Auth)
+        install(Postgrest)
     }
 }

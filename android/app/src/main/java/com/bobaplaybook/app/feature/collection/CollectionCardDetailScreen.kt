@@ -138,19 +138,23 @@ fun CollectionCardDetailScreen(
                 CopyRow(
                     entry = entry,
                     onDesignationChange = { newDesignation ->
-                        // M7 polish — call CollectionRepository.updateDesignation
+                        viewModel.updateDesignation(entry.userCard.id, newDesignation)
                     },
                     onDelete = {
-                        // M7 polish — call CollectionRepository.remove
+                        viewModel.remove(entry.userCard.id)
                     },
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
-            // Add another copy
+            // Add another copy — defaults to Personal designation; user can
+            // change immediately via the per-copy chip strip below.
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
-                OutlinedButton(onClick = { /* M7 polish — open AddToCollectionSheet */ }, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = { viewModel.add(bobaId, Designation.PERSONAL) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text("Add another copy")

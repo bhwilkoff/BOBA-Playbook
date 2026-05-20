@@ -300,10 +300,31 @@ private fun StatsRow(draft: DeckDraft) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        StatChip("Heroes", "${draft.heroCount}/${draft.heroCap}")
-        StatChip("Plays", "${draft.playCount + draft.bonusCount}/${draft.playCap}")
-        StatChip("Bonus", "${draft.bonusCount}/${draft.bonusCap}")
-        StatChip("HD", "${draft.totalHD}/${draft.hdCap}")
+        // Each chip tints red when it's BLOCKING legality. Heroes
+        // and Plays count exact equality (== cap) as the legal
+        // target; Bonus and HD are ≤-cap so only the strictly-over
+        // case is "wrong" — under-cap is just an unfinished deck,
+        // not an illegal one.
+        StatChip(
+            "Heroes",
+            "${draft.heroCount}/${draft.heroCap}",
+            overBudget = draft.heroCount > draft.heroCap,
+        )
+        StatChip(
+            "Plays",
+            "${draft.playCount + draft.bonusCount}/${draft.playCap}",
+            overBudget = (draft.playCount + draft.bonusCount) > draft.playCap,
+        )
+        StatChip(
+            "Bonus",
+            "${draft.bonusCount}/${draft.bonusCap}",
+            overBudget = draft.bonusCount > draft.bonusCap,
+        )
+        StatChip(
+            "HD",
+            "${draft.totalHD}/${draft.hdCap}",
+            overBudget = draft.totalHD > draft.hdCap,
+        )
         // DBS chip — Playmaker format only; matches iOS DeckBuilderView
         // line 428 (effectiveEnforceDBS gate). Tints red when over budget.
         if (draft.enforcesDBS) {

@@ -151,6 +151,41 @@ class CollectionRepository @Inject constructor(
         }
     }
 
+    /**
+     * Patch the editable fields on an existing user_card row.
+     * Passing `null` for any column writes NULL (= clear). Mirrors
+     * iOS EditCollectionEntrySheet's save path.
+     */
+    suspend fun updateEntryFields(
+        userCardId: String,
+        purchasePrice: Double?,
+        askingPrice: Double?,
+        condition: String?,
+        notes: String?,
+    ) {
+        _ownedCards.value = _ownedCards.value.map {
+            if (it.id == userCardId) it.copy(
+                purchasePrice = purchasePrice,
+                askingPrice = askingPrice,
+                notes = notes,
+            ) else it
+        }
+        runCatching {
+            supabase.postgrest.from("user_cards")
+                .update({
+                    set("purchase_price", purchasePrice)
+                    set("asking_price", askingPrice)
+                    set("condition", condition)
+                    set("notes", notes)
+                }) {
+                    filter { eq("id", userCardId) }
+                }
+        }.onFailure { e ->
+            Log.e(TAG, "Failed to update entry fields on $userCardId", e)
+            refresh()
+        }
+    }
+
     private suspend fun updateQuantity(userCardId: String, newQuantity: Int) {
         runCatching {
             // The supabase_schema.sql user_cards table doesn't have a

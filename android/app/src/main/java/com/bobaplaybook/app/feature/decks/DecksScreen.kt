@@ -679,11 +679,26 @@ private fun exportDraftAsCsv(context: android.content.Context, draft: DeckDraft)
     }
     val csv = (listOf(header) + rows).joinToString("\n")
     val filename = "${draft.name.replace(' ', '_').lowercase().take(40)}.csv"
+
+    // Write to FileProvider-shared cache so the share sheet
+    // attaches a real file (not just EXTRA_TEXT, which most chat
+    // apps render as a wall-of-text snippet). Cleanup is OS-managed
+    // — same lifecycle as the wall PNG (WallShareHelper).
+    val dir = java.io.File(context.cacheDir, "deck-csv").apply { mkdirs() }
+    val file = java.io.File(dir, filename)
+    file.writeText(csv)
+    val uri = androidx.core.content.FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        file,
+    )
     val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
         type = "text/csv"
         putExtra(android.content.Intent.EXTRA_SUBJECT, "BOBA deck: ${draft.name}")
         putExtra(android.content.Intent.EXTRA_TITLE, filename)
-        putExtra(android.content.Intent.EXTRA_TEXT, csv)
+        putExtra(android.content.Intent.EXTRA_STREAM, uri)
+        putExtra(android.content.Intent.EXTRA_TEXT, "${draft.cards.size}-card BOBA Playbook deck (CSV attached).")
+        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     context.startActivity(android.content.Intent.createChooser(intent, "Share deck CSV"))
 }

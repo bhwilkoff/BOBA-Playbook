@@ -4,6 +4,11 @@ package com.bobaplaybook.app.feature.carddetail
 
 import android.content.Intent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -565,6 +570,20 @@ private fun AthleteInspirationRow(athlete: String, card: Card) {
 private fun ArtPanel(card: Card) {
     val context = LocalContext.current
     val accent = if (card.isSealed) BobaBrand.Orange else BobaElements.forElement(card.element)
+    // Pinch-to-zoom + double-tap-to-reset. iOS CardDetailView.swift
+    // lines 461-490 use the same pattern (MagnificationGesture + drag
+    // when scale > 1 + double-tap to reset). M3 equivalent uses
+    // transformable + pointerInput for the double-tap reset.
+    var scale by remember { mutableStateOf(1f) }
+    var offset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    val transformState = androidx.compose.foundation.gestures.rememberTransformableState { zoomChange, panChange, _ ->
+        scale = (scale * zoomChange).coerceIn(1f, 6f)
+        if (scale > 1f) {
+            offset += panChange
+        } else {
+            offset = androidx.compose.ui.geometry.Offset.Zero
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -587,7 +606,22 @@ private fun ArtPanel(card: Card) {
                 modifier = Modifier
                     .aspectRatio(5f / 7f)
                     .clip(MaterialTheme.shapes.large)
-                    .cardSharedBounds(card.bobaId),
+                    .cardSharedBounds(card.bobaId)
+                    .graphicsLayer(
+                        scaleX = scale,
+                        scaleY = scale,
+                        translationX = offset.x,
+                        translationY = offset.y,
+                    )
+                    .transformable(state = transformState)
+                    .pointerInput(card.bobaId) {
+                        detectTapGestures(
+                            onDoubleTap = {
+                                scale = if (scale > 1f) 1f else 2.5f
+                                offset = androidx.compose.ui.geometry.Offset.Zero
+                            },
+                        )
+                    },
             )
         } else {
             Text(

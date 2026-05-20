@@ -320,7 +320,88 @@ Ben
 
 ---
 
-## 8. Files referenced (for follow-up sharing if Radish wants the code)
+## 8. Internal-only: what it would actually cost to walk away
+
+**This section is for Ben's own strategic awareness — do NOT include in the email to Radish.** It's the answer to "what's our BATNA?" — the alternative we have if the partnership conversation goes sideways.
+
+Three engineering agents analyzed each dependency surface independently. Headline finding:
+
+> **Total walk-away cost is much lower than expected: ~1.5-2 weeks defensive (do nothing, keep current images, swap Watch pin, delete deep-link buttons). The ONE expensive piece is rebuilding the pricing waterfall — 3-5 weeks for a v1 that ships, 6-8 weeks for full parity. And even that's bounded.**
+
+The negotiating leverage this creates is real: Radish has the most leverage on **pricing**, very little on images, and essentially none on the Watch tab / deep-link surfaces.
+
+### 8.1 Image sourcing — verdict: **LOW** (0 weeks defensive, 1-5 weeks clean)
+
+**The bytes are already permanently on R2.** Radish was the *discovery source* for 8,386 images, but the actual image bytes were downloaded into BOBA's own R2 bucket the moment they were ingested. Every existing user-facing image continues to serve from R2 even if Radish disappeared tomorrow. **Zero code change, zero user impact.**
+
+What stops working is *future discovery* for new sets / new cards. For that:
+
+- **97% of the 8,386 Radish-sourced cards are treatments/parallels** (Blizzard, Logofoil, Linoleum, Mixtape, Colosseum, Alpha foils) — print variants of the same hero art, not unique cards.
+- **63.6% (5,330 cards) already have a sibling on R2** with non-Radish art. A sister-card inheritance compositor (~3-5 days of Python+PIL) could re-derive those programmatically.
+- **the card source CSV has 23,660 real-image rows on disk; we currently consume 5,877** — 4× headroom inside an asset we already own. Just rerunning `stage_a_scrape_src.py` against the 8,386 bobaIds expects 70-85% hit rate.
+- Community submission flow (mod-approval already exists per `scripts/merge_approved_additions.py`) backstops the long tail.
+
+**Bottom line: image-sourcing dependency is essentially already broken.** This is the leverage point to flag if the conversation gets adversarial — "your scrape is upstream, our R2 is the canonical store, the dependency is one-way and already historical."
+
+### 8.2 Watch tab + deep-link buttons + Glossary — verdict: **LOW** (~2-3 days)
+
+- **Watch tab priority-0 slot** — one-line `KNOWN_CHANNELS` edit. Promote `BoBattleArena` (BoBA's official channel) to priority-0. The 📱 vertical-crop code is purely cosmetic and works for any vertical thumbnail.
+- **"Radish Guide" deep-link buttons** — 6 surfaces total (3 iOS, 2 web, 1 Android). Delete, don't replace. The pricing panel already shows the data inline; the buttons were "see it in its native habitat" links that lose value without the partnership context.
+- **`Card+Radish.swift` + `RadishURLResolver`** — clean delete cascade. 205 lines + button render + 4 user_cards insert sites. **No Supabase column exists** for `user_cards.radish_url` (verified via grep on `supabase_schema.sql`) — the iOS-side `radishUrl:` insert payloads have been silently dropped on write all along. No database migration needed.
+- **Glossary / Terms / README / Pitch** — ~7 lines of copy edits across 5 files. Trivial.
+
+**Bottom line: every non-pricing/non-image Radish surface can be removed in a half-week sprint.** Cleanest, lowest-risk delete in the codebase.
+
+### 8.3 Pricing waterfall — verdict: **MEDIUM** (~3-5 weeks v1, ~6-8 weeks parity)
+
+This is the only meaningful rebuild cost. Three tiers in the current waterfall; tier 1 and tier 3 are Radish.
+
+**Tier 1 — Radish recent sales (load-bearing on the cards that DO have activity):**
+- Replacement: lean harder on `normaliseSoldEnriched`. Bump treatment weight 0.05 → 0.15, hero 0.20 → 0.25, lower `SCORE_CONFIRMED` from 0.70 → 0.60. Add a second `searchSold` pass with `treatment` token appended. Extend default window from 90 → 180 days. Run AI image verification (`verifyCardImage`) on sold listings too, not just active.
+- Expected accuracy drop: **~10-20% on cards that do sell**, concentrated on Battlefoil treatment variants where listings get mis-attributed between similar color subsets.
+- Effort: **~2-3 days dev + ~1 week of threshold tuning against real listings.**
+
+**Tier 3 — Radish Market Est. (the load-bearing tier on the long tail):**
+- ⚠️ **This is the load-bearing piece. ~50-65% of the 17,974 catalog cards have NO eBay sold activity in 90 days.** They get a price today purely because Radish's Market Est. extrapolates from comparable cards. Without a replacement, those cards show "Pricing unavailable" or asking-only.
+- Replacement: write our own comparability function. Same-hero / same-(weapon, power-tier, treatment-family) / same-(set, cardType), weighted 0.6 / 0.3 / 0.1, clamped to ±50% of strongest signal. Build a nightly cron that snapshots per-card comparable-list to Cloudflare KV; lookup at card-detail time becomes single KV read + one targeted eBay sold query.
+- Bootstrap problem: real. For ~6 months after a new set drops, near-zero own-sales. Mitigation: cross-set hero anchoring (Maverick-FT-1 sells often → seeds Maverick-RBF-72 estimate via treatment-multipliers learned from other heroes).
+- Effort: **~1.5-2 weeks** for a v1 — new `boba-price-estimator` Worker + cron + KV schema + comparability math.
+
+**Additional data sources to investigate (would meaningfully reduce dependency):**
+- **Whatnot post-stream sales** — Whatnot is a major BoBA marketplace; public API likely doesn't expose post-stream sale prices but worth a manual scrape recon (~3 days). High-quality second source if found.
+- **Community-submitted comps** — auth-gated form + mod queue. Powerful long-term (deepens engagement); ~2 weeks build + ongoing moderation. Existing mod-correction queue is the plumbing.
+- **PSA / SGC** — graded-card-focused; <1% of BoBA cards graded. Skip for v1.
+- **COMC sold history** — Turnstile-blocked; not worth it.
+
+**Bottom line on pricing:** rebuilds are doable but the Market Est. replacement is the genuinely hard part. The "comparability function" math is well-defined, but the bootstrap problem is real and the first user-facing iteration will be visibly noisier than Radish on long-tail cards.
+
+### 8.4 Total walk-away cost — bottom line
+
+| Scenario | Effort | User impact |
+|---|---|---|
+| **Defensive (do nothing today; rely on existing R2 + lean harder on eBay)** | **~3-4 days** | Pricing-unavailable rate climbs to ~50-65% on long-tail cards. Existing images keep serving. Watch pin swaps to BoBattleArena. Deep-link buttons removed. |
+| **V1 replacement (own Market Est. + tuned eBay scorer + clean cascade)** | **~4-6 weeks** | ~85% pricing parity. Image-sourcing pipeline replaced with sibling inheritance + BV expansion. All non-pricing surfaces cleaned. |
+| **Full parity (V1 + Whatnot integration + community-submitted comps + AI treatment classifier)** | **~7-10 weeks** | Parity or better. Less Radish dependency, more BOBA-owned signal. Defensible for the long term. |
+
+### 8.5 What this means for the partnership conversation
+
+Read this carefully — it's the strategic frame.
+
+1. **We can walk away.** Cost is real but bounded; total full-parity rebuild is ~7-10 person-weeks. Not "we're stuck with Radish forever."
+
+2. **Their leverage is pricing, not images.** If they threaten to cut off image scraping, the answer is "the bytes are already on R2; we keep what we have and add sibling inheritance for new sets." If they threaten to cut off the pricing waterfall, that's the genuinely expensive replacement — 3-5 weeks of pricing accuracy regression on the long tail, plus the bootstrap problem on Market Est.
+
+3. **The right deal protects the pricing piece first.** A stable card-lookup endpoint, a documented data-license, and co-branding are worth meaningful concessions on our side because they preserve the most-expensive-to-rebuild surface. The Watch pin, deep-link buttons, image scraping — those are bargaining chips, not core requirements.
+
+4. **If they treat us as competitors** (and they implied they do), the rebuild-cost framing matters: we have a path forward without them, but we'd rather not take it. Partnership is the cheaper, faster, and higher-quality outcome **for both sides** — they keep the BOBA referral funnel and YouTube placement, we keep the long-tail pricing data. Walk-away hurts both parties.
+
+5. **Pricing approximations we could build ourselves are NOT as good as theirs.** Radish has been at this longer; their pre-match curation is a meaningful accuracy edge over what we could build from raw eBay in 3-5 weeks. Acknowledging that honestly in the partnership conversation is the right move — it's the basis for an actual value-exchange rather than a power play.
+
+**Strategic recommendation:** lead with the partnership pitch from §7 (which doesn't reference any of this). If they push back hard or float terms that aren't workable, the rebuild-cost analysis here is your fallback frame. Don't open with it — but keep it in your back pocket.
+
+---
+
+## 9. Files referenced (for follow-up sharing if Radish wants the code)
 
 - `BOBAPlaybook/Models/Card+Radish.swift` — iOS URL resolver + alias table + RadishURLResolver
 - `BOBAPlaybook/Components/PricingSection.swift` — pricing surface + Radish Guide button

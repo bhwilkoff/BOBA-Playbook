@@ -81,6 +81,7 @@ import com.bobaplaybook.core.network.PricingListing
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
 import com.bobaplaybook.core.ui.components.BOBAPriceTile
+import com.bobaplaybook.core.ui.format.formatUsdAmount
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 import com.bobaplaybook.core.ui.components.BOBAStatsGrid
 import com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar
@@ -857,7 +858,7 @@ private fun PricingPanels(state: CardDetailUiState) {
     state.marketEstimateUsd?.let { est ->
         BOBASectionHeader(title = "Market estimate")
         Text(
-            text = "~$${"%.2f".format(est)}",
+            text = "~$${est.formatUsdAmount()}",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold,

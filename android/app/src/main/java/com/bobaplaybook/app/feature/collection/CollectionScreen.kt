@@ -75,6 +75,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bobaplaybook.core.domain.model.Designation
 import com.bobaplaybook.core.ui.components.BOBACardCell
+import com.bobaplaybook.core.ui.format.formatUsdAmount
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
 import com.bobaplaybook.core.ui.components.BOBASignInPrompt
 import com.bobaplaybook.core.ui.components.BOBAWordmark
@@ -444,7 +445,7 @@ private fun ValueSummary(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = if (total > 0.0) "$${"%.2f".format(total)}" else "—",
+                text = if (total > 0.0) "$${total.formatUsdAmount()}" else "—",
                 style = MaterialTheme.typography.headlineSmall,
                 color = if (total > 0.0) BobaBrand.Orange
                         else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -548,7 +549,7 @@ private fun CollectionList(
                 }
                 entry.userCard.estimatedValue?.let {
                     Text(
-                        "$${"%.2f".format(it)}",
+                        "$${it.formatUsdAmount()}",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
                     )

@@ -65,6 +65,7 @@ import com.bobaplaybook.core.domain.model.Designation
 import com.bobaplaybook.core.domain.model.UserCard
 import com.bobaplaybook.core.network.CDN
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
+import com.bobaplaybook.core.ui.format.formatUsdAmount
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 import com.bobaplaybook.core.ui.components.BOBAStatsGrid
 import com.bobaplaybook.core.ui.theme.BobaBrand
@@ -326,7 +327,7 @@ private fun CopyRow(
         // Pricing summary
         entry.userCard.estimatedValue?.let { value ->
             Text(
-                "Market: $${"%.2f".format(value)}",
+                "Market: $${value.formatUsdAmount()}",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 4.dp),
@@ -334,7 +335,7 @@ private fun CopyRow(
         }
         entry.userCard.purchasePrice?.let { paid ->
             Text(
-                "Paid: $${"%.2f".format(paid)}",
+                "Paid: $${paid.formatUsdAmount()}",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

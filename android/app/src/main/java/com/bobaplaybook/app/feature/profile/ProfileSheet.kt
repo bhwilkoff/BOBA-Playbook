@@ -456,11 +456,16 @@ private fun SignedInContent(
                 val mime = resolver.getType(uri) ?: "image/jpeg"
                 val bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
                 if (bytes == null) return@rememberLauncherForActivityResult
-                vm.uploadAvatar(bytes, mime) { _ ->
-                    // Success path: the URL is persisted via set_avatar_url
-                    // RPC by the service. The next sign-in / profile refresh
-                    // pulls the new column. (A user-visible avatar refresh
-                    // would need a getUserProfile() pull -- defer.)
+                vm.uploadAvatar(bytes, mime) { url ->
+                    // Pull the fresh user_profiles row so the header
+                    // avatar updates immediately. Without this the new
+                    // avatar didn't surface until next sign-in.
+                    if (url != null) {
+                        vm.refreshProfile()
+                        scope.launch { appSnackbar?.showSnackbar("Profile picture updated") }
+                    } else {
+                        scope.launch { appSnackbar?.showSnackbar("Couldn't upload avatar. Try again.") }
+                    }
                 }
             }
             ListItem(

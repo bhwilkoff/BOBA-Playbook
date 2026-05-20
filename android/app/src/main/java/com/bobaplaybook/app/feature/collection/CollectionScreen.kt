@@ -21,12 +21,14 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import android.content.Intent
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Wallpaper
@@ -87,6 +89,7 @@ fun CollectionScreen(
     onProfileClick: () -> Unit,  // unused per feedback_profile_only_on_find; kept for nav signature symmetry
     onRainbowsClick: () -> Unit = {},
     onShowsClick: () -> Unit = {},
+    onScanClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val viewModel: CollectionViewModel = hiltViewModel()
@@ -111,6 +114,12 @@ fun CollectionScreen(
                 title = { BOBAWordmark() },
                 actions = {
                     val context = LocalContext.current
+                    IconButton(onClick = onScanClick) {
+                        Icon(
+                            imageVector = Icons.Default.QrCodeScanner,
+                            contentDescription = "Scan a card",
+                        )
+                    }
                     IconButton(onClick = { filterSheetOpen = true }) {
                         androidx.compose.material3.BadgedBox(
                             badge = {
@@ -149,6 +158,23 @@ fun CollectionScreen(
                                 onClick = { menuOpen = false; displayMode = DisplayMode.WALL },
                             )
                             androidx.compose.material3.HorizontalDivider()
+                            // Sort sub-menu — peer-collection iOS parity (P1 #17).
+                            // Material 3 doesn't have a built-in nested DropdownMenu;
+                            // we expose the active sort label in this row and open a
+                            // dedicated sort dialog when tapped.
+                            var sortDialogOpen by remember { mutableStateOf(false) }
+                            DropdownMenuItem(
+                                text = { Text("Sort: ${collectionSort.label}") },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null) },
+                                onClick = { menuOpen = false; sortDialogOpen = true },
+                            )
+                            if (sortDialogOpen) {
+                                CollectionSortDialog(
+                                    selected = collectionSort,
+                                    onSelected = { collectionSort = it; sortDialogOpen = false },
+                                    onDismiss = { sortDialogOpen = false },
+                                )
+                            }
                             DropdownMenuItem(
                                 text = { Text("Rainbow Progress") },
                                 leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
@@ -221,7 +247,8 @@ fun CollectionScreen(
                 return@Scaffold
             }
 
-            val entries = state.entriesByDesignation[designation].orEmpty()
+            val unsorted = state.entriesByDesignation[designation].orEmpty()
+            val entries = remember(unsorted, collectionSort) { applySort(unsorted, collectionSort) }
             if (entries.isEmpty()) {
                 BOBAEmptyState(
                     icon = Icons.Default.Inventory2,
@@ -450,6 +477,64 @@ private fun QuantityBadge(
  * (FilterSheetView.swift). Adds date-added + market value + paid
  * dimensions that depend on user-collection state.
  */
+/**
+ * Apply the selected sort order to the entries list. Mirrors iOS
+ * CollectionSortOrder semantics from CollectionView.swift.
+ */
+private fun applySort(
+    entries: List<CollectionEntry>,
+    order: CollectionSortOrder,
+): List<CollectionEntry> = when (order) {
+    CollectionSortOrder.NAME_ASC -> entries.sortedBy { it.card.displayName.lowercase() }
+    CollectionSortOrder.NAME_DESC -> entries.sortedByDescending { it.card.displayName.lowercase() }
+    CollectionSortOrder.DATE_ADDED_DESC -> entries  // already roughly date-added order from server
+    CollectionSortOrder.DATE_ADDED_ASC -> entries.reversed()
+    CollectionSortOrder.PRICE_DESC -> entries.sortedByDescending { it.userCard.estimatedValue ?: 0.0 }
+    CollectionSortOrder.PRICE_ASC -> entries.sortedBy { it.userCard.estimatedValue ?: Double.MAX_VALUE }
+    CollectionSortOrder.PAID_DESC -> entries.sortedByDescending { it.userCard.purchasePrice ?: 0.0 }
+    CollectionSortOrder.PAID_ASC -> entries.sortedBy { it.userCard.purchasePrice ?: Double.MAX_VALUE }
+    CollectionSortOrder.NUMBER_ASC -> entries.sortedBy { it.card.cardNumber }
+    CollectionSortOrder.NUMBER_DESC -> entries.sortedByDescending { it.card.cardNumber }
+    CollectionSortOrder.POWER_DESC -> entries.sortedByDescending { it.card.power ?: 0 }
+    CollectionSortOrder.POWER_ASC -> entries.sortedBy { it.card.power ?: Int.MAX_VALUE }
+    CollectionSortOrder.COST_ASC -> entries.sortedBy { it.card.cost ?: Int.MAX_VALUE }
+    CollectionSortOrder.COST_DESC -> entries.sortedByDescending { it.card.cost ?: 0 }
+}
+
+@Composable
+private fun CollectionSortDialog(
+    selected: CollectionSortOrder,
+    onSelected: (CollectionSortOrder) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Sort by") },
+        text = {
+            androidx.compose.foundation.lazy.LazyColumn {
+                items(items = CollectionSortOrder.entries, key = { it.name }) { order ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelected(order) }
+                            .padding(vertical = 8.dp),
+                    ) {
+                        androidx.compose.material3.RadioButton(
+                            selected = order == selected,
+                            onClick = { onSelected(order) },
+                        )
+                        Text(order.label, modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Done") }
+        },
+    )
+}
+
 enum class CollectionSortOrder(val label: String) {
     NAME_ASC        ("Name A → Z"),
     NAME_DESC       ("Name Z → A"),

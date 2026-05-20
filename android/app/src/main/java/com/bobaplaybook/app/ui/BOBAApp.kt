@@ -133,6 +133,15 @@ fun BOBAApp(
                         .build()
                         .launchUrl(context, android.net.Uri.parse(url))
                 }
+                is DeepLinkRoute.DeckShare -> {
+                    // Shared deck URLs route to the web app today (decks
+                    // render server-side with the public-collection-style
+                    // viewer). Custom Tab keeps brand chrome consistent.
+                    val url = "https://bobaplaybook.com/deck/${route.deckId}"
+                    androidx.browser.customtabs.CustomTabsIntent.Builder()
+                        .build()
+                        .launchUrl(context, android.net.Uri.parse(url))
+                }
             }
             pendingDeepLink.consume()
         }
@@ -341,6 +350,7 @@ private fun TabNavHost(
                             onOpenManage = { navController.navigate(NavRoutes.DECK_MANAGE) },
                             onOpenRules = { navController.navigate(NavRoutes.DECK_RULES) },
                             onOpenLegality = { navController.navigate(NavRoutes.DECK_LEGALITY) },
+                            onScanClick = onScanClick,
                         )
                     }
                 }
@@ -363,6 +373,7 @@ private fun TabNavHost(
                             onProfileClick = onProfileClick,
                             onRainbowsClick = { navController.navigate(NavRoutes.COLLECTION_RAINBOWS) },
                             onShowsClick = { navController.navigate(NavRoutes.COLLECTION_SHOWS) },
+                            onScanClick = onScanClick,
                         )
                     }
                 }

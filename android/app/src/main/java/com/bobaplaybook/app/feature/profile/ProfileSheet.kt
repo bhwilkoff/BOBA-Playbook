@@ -336,10 +336,13 @@ private fun SignedInContent(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val vm: ProfileViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val usernameStatus by vm.usernameStatus.collectAsStateWithLifecycle(initialValue = null)
     var publicCollection by rememberSaveable { mutableStateOf(false) }
     var matchAlerts by rememberSaveable { mutableStateOf(false) }
     var deleteConfirmOpen by rememberSaveable { mutableStateOf(false) }
     var username by rememberSaveable { mutableStateOf(deriveUsername(authState.email)) }
+    var roleRequestOpen by rememberSaveable { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
@@ -358,9 +361,32 @@ private fun SignedInContent(
         item("username") {
             OutlinedTextField(
                 value = username,
-                onValueChange = { username = it.lowercase().filter { c -> c.isLetterOrDigit() || c == '_' || c == '-' } },
+                onValueChange = { raw ->
+                    val cleaned = raw.lowercase().filter { c -> c.isLetterOrDigit() || c == '_' || c == '-' }
+                    username = cleaned
+                    if (cleaned.length >= 3) vm.checkUsername(cleaned)
+                },
                 label = { Text("Username (your public handle)") },
-                supportingText = { Text("bobaplaybook.com/u/$username") },
+                supportingText = {
+                    val statusMsg = when (usernameStatus) {
+                        "available"     -> "✓ available — bobaplaybook.com/u/$username"
+                        "taken"         -> "✗ taken — try ${username}2"
+                        "banned"        -> "✗ not allowed"
+                        "reserved"      -> "✗ reserved"
+                        "invalid_chars" -> "letters, digits, _ or - only"
+                        "too_short"     -> "at least 3 characters"
+                        "too_long"      -> "at most 30 characters"
+                        else            -> "bobaplaybook.com/u/$username"
+                    }
+                    Text(statusMsg)
+                },
+                trailingIcon = {
+                    if (usernameStatus == "available") {
+                        TextButton(onClick = { vm.setUsername(username) { /* no-op */ } }) {
+                            Text("Save")
+                        }
+                    }
+                },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -401,7 +427,12 @@ private fun SignedInContent(
                 subtitle = "Share at bobaplaybook.com/u/$username",
                 icon = Icons.Default.Public,
                 checked = publicCollection,
-                onCheckedChange = { publicCollection = it },
+                onCheckedChange = { enabled ->
+                    publicCollection = enabled  // optimistic
+                    vm.setPublicCollection(enabled) { ok ->
+                        if (!ok) publicCollection = !enabled  // revert on failure
+                    }
+                },
             )
         }
 
@@ -409,10 +440,15 @@ private fun SignedInContent(
         item("match-alerts") {
             ToggleRow(
                 title = "Match alerts",
-                subtitle = "Coming soon — APNs/FCM dispatcher in development",
+                subtitle = "Opt in now — push delivery lands when the dispatcher ships",
                 icon = Icons.Default.Notifications,
                 checked = matchAlerts,
-                onCheckedChange = { matchAlerts = it },
+                onCheckedChange = { enabled ->
+                    matchAlerts = enabled  // optimistic
+                    vm.setMatchAlerts(enabled) { ok ->
+                        if (!ok) matchAlerts = !enabled
+                    }
+                },
             )
         }
 
@@ -423,7 +459,7 @@ private fun SignedInContent(
                 supportingContent = { Text("Reviewed by Ben within 48h", style = MaterialTheme.typography.labelMedium) },
                 leadingContent = { Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 trailingContent = {
-                    TextButton(onClick = { /* M7 polish — request_role RPC */ }) {
+                    TextButton(onClick = { roleRequestOpen = true }) {
                         Text("Request")
                     }
                 },
@@ -501,6 +537,52 @@ private fun SignedInContent(
         }
     }
 
+    if (roleRequestOpen) {
+        var requestedRole by remember { mutableStateOf("moderator") }
+        var reason by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { roleRequestOpen = false },
+            title = { Text("Request role") },
+            text = {
+                Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                    Text("Which role?", style = MaterialTheme.typography.bodyMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.RadioButton(
+                            selected = requestedRole == "moderator",
+                            onClick = { requestedRole = "moderator" },
+                        )
+                        Text("Moderator — review card corrections")
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.RadioButton(
+                            selected = requestedRole == "streamer",
+                            onClick = { requestedRole = "streamer" },
+                        )
+                        Text("Streamer — manage Whatnot shows")
+                    }
+                    OutlinedTextField(
+                        value = reason,
+                        onValueChange = { reason = it },
+                        label = { Text("Why?") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        vm.requestRole(requestedRole, reason) { /* Snackbar — M7 polish */ }
+                        roleRequestOpen = false
+                    },
+                    enabled = reason.isNotBlank(),
+                ) { Text("Submit") }
+            },
+            dismissButton = {
+                TextButton(onClick = { roleRequestOpen = false }) { Text("Cancel") }
+            },
+        )
+    }
+
     if (deleteConfirmOpen) {
         AlertDialog(
             onDismissRequest = { deleteConfirmOpen = false },
@@ -514,7 +596,10 @@ private fun SignedInContent(
                 TextButton(
                     onClick = {
                         deleteConfirmOpen = false
-                        /* M7 polish — boba-account-delete Worker call */
+                        vm.deleteAccount { ok ->
+                            if (ok) onDismiss()
+                            // On failure, the account stays; UI keeps the user signed in.
+                        }
                     },
                 ) {
                     Text("Delete forever", color = MaterialTheme.colorScheme.error)

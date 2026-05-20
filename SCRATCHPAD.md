@@ -2,13 +2,41 @@
 
 > Active working notes only. Completed milestone implementation detail and the full session log live in [ARCHIVE.md](./ARCHIVE.md). See [DECISIONS.md](./DECISIONS.md) for architecture decisions and [DESIGN.md](./DESIGN.md) for binding iOS design rules.
 
-## Current State (2026-05-15)
+## Current State (2026-05-20)
 
 - **Catalog**: 17,974 cards · ~90% image coverage on R2 · OKC art still pending · 30 invalid-power records repaired
-- **Latest version**: iOS 2.223 / 486 — power-value cleanup (truth-from-image) + custom rainbows complete
-- **Latest commit**: redo power fixes by reading the printed value off each card image (supersedes v2.222 fallback)
+- **Latest version**: iOS 2.223 / 486; Android shipped 65 parity items overnight (see below)
+- **Hero Shot iteration**: headless CLI runner shipped (`tools/render-hero-shot-variants.sh`) — boots a simulator, renders 4 material variants to `/tmp/hero-shot-variants/grid.png` in ~20-30s
 
-## What Just Shipped (recent)
+## What Just Shipped (overnight 2026-05-20)
+
+Autonomous /loop ran from ~03:00 → ~09:30 MT closing Android iOS-parity gaps. Full commit-by-area index in memory: [[reference_overnight_parity_session_2026_05_20]]. Headline:
+
+- **iOS Hero Shot CLI runner** (e0a4b87). Env-gated `HeroShotCLIRunner` in BOBAPlaybookApp + `tools/render-hero-shot-variants.sh`. Pairs with `tools/HeroShotSim/sim3d.swift` for offline iteration without driving HeroShotView manually.
+
+- **Android Whatnot deserialization fix** (c325cb2). The worker emits camelCase (`showId`/`host`/`startTimeMs`/`thumbnailUrl`/`viewerCount`/`isLive`) but Android's `WhatnotRow` was `@SerialName("host_username")`/`scheduled_at`/`thumbnail` — every field except `title` deserialized to null. Side-effect: thumbnails / host names / viewer counts / stream-time labels / LIVE pill all surfaced for the first time. Lesson in [[reference_worker_field_shapes]].
+
+- **Android CDN sealed-routing** (b18d005 + 184cc9b + 9289344). Sealed products live at `/sealed/thumbs/` + `/sealed/optimized/` on R2 (not `/thumbs/` + `/full/`). Every BOBACardCell call site now threads `isSealed = card.isSealed`. Booster Boxes / Blasters that were silently 404'ing now render. Lesson in [[reference_android_cdn_sealed_routing]].
+
+- **Android prefs persistence** (ce2b0c2 + 0af2ccf + 2d7e728). New DataStore-backed stores (`FindPrefsStore`, `CollectionPrefsStore`, existing `GridDensityStore` wired) so Find showcase / quickAdd / grid density + Collection display mode / sort survive process death. iOS @AppStorage parity. Pattern in [[reference_android_prefs_pattern]].
+
+- **Android pricing parity** (df7e799 + 27796a4 + 9d7f8d7 + 6e5f6a8 + 19abc3d). Market estimate now prefers the Worker's pre-computed canonical average (with `priceType` / `count` context) instead of recomputing client-side. USD format clamped to Locale.US. Refresh IconButton. Buy URLs open in Custom Tab. Lesson in [[feedback_worker_canonical_average]] + [[feedback_usd_locale_format]].
+
+- **Android Decks polish** (multiple commits). DBS budget chip + Legality DBS row + AddToDeck post-add projection + over-cap StatChip tints + long-press add snackbar + remove-with-Undo snackbar + name validation + clear-draft confirm + Manage Decks rename / search / PTR + editor empty-state + pool empty-state + CSV export as FileProvider attachment + Rules screen DBS section.
+
+- **Android Card detail polish**. DBS explainer ModalBottomSheet + "Decks with this card" tap-to-load + "In your collection" summary + Other Versions treatment labels + image attached to share + Add-to-Show role-gated + tap-price hint + Worker market average + pricing refresh button + Custom Tab buy URLs.
+
+- **Android Profile polish**. Hints section + Public URL copy/share + Version row + Send Feedback row + Change Password row + Auth-state cache reset + Username 30-char clamp + Avatar refresh on upload + spinner-backed loading state + Find tab avatar leading icon.
+
+- **Android Collection polish**. Edit Copy sheet (purchase/asking/condition/notes) + condition domain round-trip + search field + display-mode persisted + Wall share enriched + display-mode hint + PTR + Scan empty-state action.
+
+- **Android Custom Rainbow delete** (60eb9fb). Delete IconButton + AlertDialog. Editor still create-only.
+
+- **Android cross-cutting**. Ctrl+1..5 keyboard shortcuts + new AuthViewModel adapter + Scan permanent-denial handler + USD formatter shared helper.
+
+**Patterns to remember:** [[feedback_state_from_prop_antipattern]] · [[feedback_viewmodel_reset_on_auth_change]] · [[reference_worker_field_shapes]] · [[reference_android_cdn_sealed_routing]] · [[reference_android_prefs_pattern]] · [[feedback_usd_locale_format]] · [[feedback_worker_canonical_average]].
+
+## What Just Shipped (recent — 2026-05-15)
 
 - **Power-value cleanup — v2.223** (2026-05-15). 30 catalog cards with `power % 5 != 0` (invalid — every BoBA card prints a power ending in 0 or 5) repaired by READING the truth off each card's R2 image, not by sibling-mode fallback. v2.222 used mode-of-siblings and got 23/30 wrong; v2.223's TRUTH dict in `scripts/apply_verified_powers.py` is the canonical record. Beta tester flagged Emmitt-164 cards specifically. Follow-up planned: [[project_power_audit_followup]] for valid-but-wrong values OCR may have landed on by chance. Don't repeat: [[feedback_card_data_truth_from_image]].
 

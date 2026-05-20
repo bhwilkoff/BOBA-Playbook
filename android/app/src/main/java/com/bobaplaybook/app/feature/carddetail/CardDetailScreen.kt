@@ -142,7 +142,9 @@ fun CardDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        state.card?.let { c -> shareCard(context, c) }
+                        state.card?.let { c ->
+                            scope.launch { CardShareHelper.share(context, c) }
+                        }
                     }) {
                         Icon(Icons.Default.Share, contentDescription = "Share")
                     }
@@ -838,13 +840,3 @@ private fun ListingsRow(listings: ImmutableList<PricingListing>) {
     }
 }
 
-private fun shareCard(context: android.content.Context, card: Card) {
-    val deepLink = "https://bobaplaybook.com/card/${card.bobaId}"
-    val text = "${card.displayName} (${card.cardNumber}) on BOBA Playbook\n$deepLink"
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(Intent.EXTRA_SUBJECT, card.displayName)
-        putExtra(Intent.EXTRA_TEXT, text)
-    }
-    context.startActivity(Intent.createChooser(intent, "Share ${card.displayName}"))
-}

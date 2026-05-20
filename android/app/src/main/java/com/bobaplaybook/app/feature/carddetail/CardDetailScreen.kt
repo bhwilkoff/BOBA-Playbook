@@ -324,6 +324,54 @@ private fun CardDetailBody(
         // Pricing
         PricingPanels(state = state)
 
+        // Decks with this card — iOS CollectionCardDetailView parity.
+        // Surfaces when the user has saved decks that include this
+        // card. v1 renders read-only; tap-through to load is a future
+        // iteration (the deck-load flow already exists via Saved decks
+        // sheet but a direct tap is nice-to-have polish).
+        val decksVmHere: com.bobaplaybook.app.feature.decks.DecksViewModel =
+            androidx.hilt.navigation.compose.hiltViewModel()
+        val savedDecksForCard by decksVmHere.savedDecks.collectAsStateWithLifecycle(initialValue = emptyList())
+        val decksContaining = remember(savedDecksForCard, card) {
+            savedDecksForCard.filter { sd ->
+                sd.cards.any { it.cardNumber == card.cardNumber }
+            }
+        }
+        if (decksContaining.isNotEmpty()) {
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 16.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
+            BOBASectionHeader(title = "Decks with this card (${decksContaining.size})")
+            decksContaining.forEach { deck ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(deck.name, style = MaterialTheme.typography.titleSmall)
+                        deck.archetype?.takeIf { it.isNotBlank() }?.let { arch ->
+                            Text(
+                                arch,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    val qty = deck.cards.firstOrNull { it.cardNumber == card.cardNumber }?.quantity ?: 0
+                    if (qty > 1) {
+                        Text(
+                            "×$qty",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            }
+        }
+
         // Other versions (same hero, different treatments)
         if (state.otherVersions.isNotEmpty()) {
             HorizontalDivider(

@@ -8,18 +8,14 @@ import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import com.bobaplaybook.app.BuildConfig
-import com.bobaplaybook.core.network.SupabaseConfig
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.providers.builtin.IDToken
 import io.github.jan.supabase.auth.status.SessionStatus
-import io.github.jan.supabase.createSupabaseClient
-import io.github.jan.supabase.postgrest.Postgrest
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,18 +36,12 @@ import kotlinx.coroutines.flow.asStateFlow
  * ("nothing happens when I tap Sign in").
  */
 @Singleton
-class AuthManager @Inject constructor() {
+class AuthManager @Inject constructor(
+    val client: SupabaseClient,
+) {
 
     companion object {
         private const val TAG = "AuthManager"
-    }
-
-    val client: SupabaseClient = createSupabaseClient(
-        supabaseUrl = SupabaseConfig.URL,
-        supabaseKey = SupabaseConfig.PUBLISHABLE_KEY,
-    ) {
-        install(Auth)
-        install(Postgrest)
     }
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)

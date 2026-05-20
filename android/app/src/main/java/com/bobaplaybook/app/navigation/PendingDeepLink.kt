@@ -38,7 +38,7 @@ class PendingDeepLink @Inject constructor() {
 sealed interface DeepLinkRoute {
     data class CardDetail(val bobaId: String) : DeepLinkRoute
     data class SearchQuery(val query: String) : DeepLinkRoute
-    data class LearnArticle(val articleId: String) : DeepLinkRoute
+    data class LearnCategory(val categoryId: String) : DeepLinkRoute
     data class PublicCollection(val username: String) : DeepLinkRoute
     data object Scan : DeepLinkRoute
 
@@ -59,7 +59,7 @@ sealed interface DeepLinkRoute {
                     if (q.isNotEmpty()) SearchQuery(q) else null
                 }
                 segments.firstOrNull() == "learn" && segments.size >= 2 ->
-                    LearnArticle(segments[1])
+                    LearnCategory(segments[1])
                 segments.firstOrNull() == "u" && segments.size >= 2 ->
                     PublicCollection(segments[1])
                 else -> null

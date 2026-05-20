@@ -3,6 +3,7 @@ package com.bobaplaybook.core.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,11 +37,16 @@ import com.bobaplaybook.core.ui.theme.BobaTheme
  * Used in EVERY card grid across Find / Decks pool / Collection / Wall.
  * Single canonical implementation — don't fork.
  *
- * Two-tier loading per DECISIONS.md #024 + ANDROID-DEV.md §5.5:
- *  - The grid renders `thumbUrl` (~10 KB, 200 px). Coil caches it.
- *  - When the user taps to push into card detail, that screen will
- *    reuse the cached thumb as a placeholder while full-res loads.
- *    (Coil 3 cache-key API to be wired in M1 when the detail view ships.)
+ * Resolution-aware (parity with iOS BOBACardGridItem, memory
+ * `feedback_grid_density_per_tab`):
+ *  - Cells ≥ 160 dp wide load `fullUrl` (~80 KB, ≤1200 px) because
+ *    thumbs are 200 px native and look soft when displayed bigger.
+ *  - Smaller cells (3-col grids, list rows) load `thumbUrl` (~10 KB,
+ *    200 px). Coil 3 caches both tiers independently.
+ *
+ * `forceFullRes` lets callers (carousels, hero shelves) override the
+ * size heuristic when they know they want the bigger asset regardless
+ * of measured width.
  *
  * Placeholder + error states use [BobaBrand.Surface] so missing
  * artwork doesn't introduce a foreign-color band into the grid.
@@ -50,9 +56,9 @@ fun BOBACardCell(
     imageFile: String?,
     contentDescription: String?,
     modifier: Modifier = Modifier,
+    forceFullRes: Boolean = false,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val thumbUrl = CDN.thumbUrl(imageFile)
 
     Box(
         modifier = modifier
@@ -60,18 +66,25 @@ fun BOBACardCell(
             .clip(MaterialTheme.shapes.medium)
             .background(BobaBrand.SurfaceLow),
     ) {
-        if (thumbUrl != null) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(thumbUrl)
-                    .crossfade(150)
-                    .build(),
-                contentDescription = contentDescription,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-        } else {
+        if (imageFile.isNullOrBlank()) {
             BOBACardPlaceholder(label = contentDescription ?: "Image pending")
+        } else {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val url = if (forceFullRes || maxWidth >= 160.dp) {
+                    CDN.fullUrl(imageFile)
+                } else {
+                    CDN.thumbUrl(imageFile)
+                }
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(url)
+                        .crossfade(150)
+                        .build(),
+                    contentDescription = contentDescription,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
     }
 }

@@ -1,88 +1,56 @@
-@file:OptIn(
-    ExperimentalMaterial3Api::class,
-    androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class,
-)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.bobaplaybook.app.feature.learn
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.carousel.HorizontalUncontainedCarousel
-import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
-import com.bobaplaybook.core.ui.components.BOBAEmptyState
 
 /**
- * Learn tab — canonical M3 **Feed** layout.
+ * Learn root — 6-tile category grid (iOS LearnView.swift parity).
  *
- * Pattern (sourced from M3 spec + Google News 2025 redesign):
- *   LargeTopAppBar  → "Learn BoBA" w/ exitUntilCollapsed
- *   PrimaryScrollableTabRow → 6 categories (All / Rules / Strategy / ...)
- *   HorizontalUncontainedCarousel → featured articles strip (when "All")
- *   LazyColumn of M3 Cards → one card per article, tap → push to body
+ * Tap a tile → push to the bespoke category page. No tabs, no
+ * article list, no per-article skill-level picker (those moved into
+ * the Rules category page where iOS keeps them).
  *
- * 2 nav levels max (feed + article body). No category-list intermediate
- * screen — that's the "2009" pattern this rebuild replaces.
- *
- * Sources:
- *   - M3 canonical layouts → Feed (m3.material.io)
- *   - PrimaryScrollableTabRow (composables.com/material3/primaryscrollabletabrow)
- *   - HorizontalUncontainedCarousel (developer.android.com/develop/ui/compose/components/carousel)
- *   - Google News Android redesign 2025
+ * iOS reference: BOBAPlaybook/Views/Play/LearnView.swift — `categories`
+ * array (line 148) renders as the tile grid in `body` (line 193).
  */
 @Composable
 fun LearnScreen(
-    onCategoryClick: (categoryId: String) -> Unit = {},  // legacy nav signature; ignored in feed model
-    onArticleClick: (articleId: String) -> Unit,
+    onCategoryClick: (categoryId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val tabs = remember { listOf<LearnCategoryId?>(null) + LearnCategoryId.entries }
-    var selectedIndex by rememberSaveable { mutableStateOf(0) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
-
-    val selectedCategory = tabs[selectedIndex]
-    val articles = remember(selectedCategory) {
-        if (selectedCategory == null) LearnCorpus.articles
-        else LearnCorpus.articlesIn(selectedCategory)
-    }
-    val featured = remember { LearnCorpus.articles.take(8) }
+    val categories = remember { LearnCategoryId.entries.toList() }
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -96,138 +64,19 @@ fun LearnScreen(
             )
         },
     ) { padding ->
-        Column(
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Sticky category tab strip — PrimaryScrollableTabRow is the
-            // M3 spec component for >5 categories on touch interfaces.
-            PrimaryScrollableTabRow(
-                selectedTabIndex = selectedIndex,
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ) {
-                tabs.forEachIndexed { index, category ->
-                    Tab(
-                        selected = index == selectedIndex,
-                        onClick = { selectedIndex = index },
-                        text = {
-                            Text(
-                                text = category?.title ?: "All",
-                                style = MaterialTheme.typography.labelLarge,
-                            )
-                        },
-                    )
-                }
-            }
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 32.dp),
-            ) {
-                // Featured carousel — only on the "All" tab. M3 spec
-                // says HorizontalUncontainedCarousel for "items of equal
-                // weight glance-browsable in a row."
-                if (selectedCategory == null && featured.isNotEmpty()) {
-                    item("featured-header") {
-                        Text(
-                            text = "Featured",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp),
-                        )
-                    }
-                    item("featured-carousel") {
-                        FeaturedCarousel(
-                            articles = featured,
-                            onArticleClick = onArticleClick,
-                        )
-                    }
-                    item("all-articles-header") {
-                        Text(
-                            text = "All articles",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp),
-                        )
-                    }
-                }
-                if (articles.isEmpty()) {
-                    item("empty") {
-                        BOBAEmptyState(
-                            icon = Icons.AutoMirrored.Filled.MenuBook,
-                            headline = "More on the way",
-                            body = selectedCategory?.let {
-                                "We're building out the ${it.title} library. Tap another tab for now."
-                            } ?: "We're filling in articles soon.",
-                            modifier = Modifier.padding(top = 48.dp),
-                        )
-                    }
-                }
-                items(items = articles, key = { it.id }) { article ->
-                    ArticleCard(
-                        article = article,
-                        onClick = { onArticleClick(article.id) },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FeaturedCarousel(
-    articles: List<LearnArticle>,
-    onArticleClick: (articleId: String) -> Unit,
-) {
-    // M3 surfaceContainerHigh — not tertiaryContainer. In the dark
-    // brand theme tertiaryContainer resolves to ~background-purple
-    // and text on top reads as solid violet blocks.
-    HorizontalUncontainedCarousel(
-        state = rememberCarouselState(itemCount = { articles.size }),
-        itemWidth = 220.dp,
-        itemSpacing = 12.dp,
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(168.dp),
-    ) { i ->
-        val article = articles[i]
-        Card(
-            onClick = { onArticleClick(article.id) },
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            ),
-            shape = MaterialTheme.shapes.large,
-            modifier = Modifier
-                .width(220.dp)
-                .height(168.dp),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
-            ) {
-                // Category icon — visual variety per article so the
-                // carousel doesn't read as identical tiles.
-                Icon(
-                    imageVector = article.categoryId.icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Spacer(Modifier.weight(1f))
-                Text(
-                    text = article.categoryId.title,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = article.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
+            items(categories, key = { it.name }) { category ->
+                CategoryTile(
+                    category = category,
+                    onClick = { onCategoryClick(category.name) },
                 )
             }
         }
@@ -235,53 +84,49 @@ private fun FeaturedCarousel(
 }
 
 @Composable
-private fun ArticleCard(
-    article: LearnArticle,
+private fun CategoryTile(
+    category: LearnCategoryId,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val skillLevels = article.sections.keys.toList().sortedBy { it.ordinal }
-    val sectionCount = article.sections.values.flatten().size
-    Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
-        shape = MaterialTheme.shapes.large,
-        modifier = modifier.fillMaxWidth(),
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(140.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .border(
+                width = 1.dp,
+                color = category.accent.copy(alpha = 0.25f),
+                shape = RoundedCornerShape(16.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .size(44.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(category.accent.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = article.categoryId.icon,
+                imageVector = category.icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(end = 12.dp),
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = article.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = "${article.categoryId.title} · $sectionCount sections · ${skillLevels.size} skill level${if (skillLevels.size != 1) "s" else ""}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = category.accent,
             )
         }
+        Text(
+            text = category.title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = category.blurb,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 3,
+        )
     }
 }

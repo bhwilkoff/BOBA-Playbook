@@ -112,9 +112,9 @@ fun BOBAApp(
                 }
                 is DeepLinkRoute.Scan -> { scanActive = true }
                 is DeepLinkRoute.SearchQuery -> { currentDestination = AppDestination.FIND }
-                is DeepLinkRoute.LearnArticle -> {
+                is DeepLinkRoute.LearnCategory -> {
                     currentDestination = AppDestination.LEARN
-                    tabControllers[AppDestination.LEARN]?.navigate(NavRoutes.learnArticle(route.articleId))
+                    tabControllers[AppDestination.LEARN]?.navigate(NavRoutes.learnCategory(route.categoryId))
                 }
                 is DeepLinkRoute.PublicCollection -> { /* M7 polish — open web URL or in-app viewer */ }
             }
@@ -284,16 +284,16 @@ private fun TabNavHost(
             AppDestination.LEARN -> {
                 composable(NavRoutes.LEARN) {
                     LearnScreen(
-                        onArticleClick = { articleId -> navController.navigate(NavRoutes.learnArticle(articleId)) },
+                        onCategoryClick = { categoryId -> navController.navigate(NavRoutes.learnCategory(categoryId)) },
                     )
                 }
                 composable(
-                    NavRoutes.LEARN_ARTICLE_PATTERN,
-                    arguments = listOf(navArgument(NavRoutes.ARG_ARTICLE) { type = NavType.StringType }),
+                    NavRoutes.LEARN_CATEGORY_PATTERN,
+                    arguments = listOf(navArgument(NavRoutes.ARG_CATEGORY) { type = NavType.StringType }),
                 ) { backStackEntry ->
-                    val articleId = backStackEntry.arguments?.getString(NavRoutes.ARG_ARTICLE).orEmpty()
-                    com.bobaplaybook.app.feature.learn.LearnArticleScreen(
-                        articleId = articleId,
+                    val categoryId = backStackEntry.arguments?.getString(NavRoutes.ARG_CATEGORY).orEmpty()
+                    com.bobaplaybook.app.feature.learn.LearnCategoryScreen(
+                        categoryId = categoryId,
                         onBack = { navController.popBackStack() },
                     )
                 }

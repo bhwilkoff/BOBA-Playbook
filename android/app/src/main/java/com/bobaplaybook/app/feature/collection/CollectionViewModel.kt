@@ -18,7 +18,9 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /**
  * Collection ViewModel. Wires:
@@ -69,6 +71,29 @@ class CollectionViewModel @Inject constructor(
         // Prime catalog so the join lookups work on first emit.
         cardRepository.primeSync()
         cardRepository.primeAsync()
+    }
+
+    /**
+     * Add a card to the user's collection. No-ops when signed out.
+     * Repository handles the optimistic update + Supabase insert; UI
+     * just hands the bobaId + designation in.
+     */
+    fun add(cardBobaId: String, designation: Designation) {
+        viewModelScope.launch {
+            val auth = authManager.authState.first()
+            val userId = (auth as? AuthState.SignedIn)?.userId ?: return@launch
+            collectionRepository.add(cardBobaId, designation, userId)
+        }
+    }
+
+    fun remove(userCardId: String) {
+        viewModelScope.launch { collectionRepository.remove(userCardId) }
+    }
+
+    fun updateDesignation(userCardId: String, newDesignation: Designation) {
+        viewModelScope.launch {
+            collectionRepository.updateDesignation(userCardId, newDesignation)
+        }
     }
 }
 

@@ -2,15 +2,30 @@ import SwiftUI
 import AVFoundation
 import UIKit
 
-// Guide dimensions — standard trading card aspect ratio (5:7), fills ~77% of screen width
-private let kGuideW: CGFloat = 300
-private let kGuideH: CGFloat = 420
+// Guide base dimensions — standard trading card aspect ratio (5:7).
+// On compact (iPhone) the guide fills ~77% of screen width at 300pt.
+// iPad regular scales these by 1.5× so the guide reads at usable
+// proportions in landscape (was previously fixed 300×420 → ~25% of
+// 1180×820 iPad landscape canvas, far too small).
+private let kGuideWBase: CGFloat = 300
+private let kGuideHBase: CGFloat = 420
+private let kGuideScale_Regular: CGFloat = 1.5
 
 struct ScanView: View {
     @Environment(CardStore.self)      private var cardStore
     @Environment(ScanStore.self)      private var scanStore
     @Environment(CollectionStore.self) private var collectionStore
     @Environment(AuthManager.self)    private var auth
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    /// Scaled guide width — 300 on iPhone, 450 on iPad regular.
+    private var kGuideW: CGFloat {
+        kGuideWBase * (horizontalSizeClass == .regular ? kGuideScale_Regular : 1.0)
+    }
+    /// Scaled guide height — 420 on iPhone, 630 on iPad regular.
+    private var kGuideH: CGFloat {
+        kGuideHBase * (horizontalSizeClass == .regular ? kGuideScale_Regular : 1.0)
+    }
 
     @State private var scanner         = CardScanner()
     @State private var detectedCard:    Card?

@@ -883,6 +883,23 @@ private fun PricingPanels(state: CardDetailUiState) {
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
     } else {
+        // First-run hint above the first non-empty tile row —
+        // teaches that price tiles tap-through to the buyer site
+        // (eBay / Radish). Dismissible per HintsStore.
+        val hintsVm: com.bobaplaybook.app.hints.HintsViewModel =
+            androidx.hilt.navigation.compose.hiltViewModel()
+        val tapHintDismissed by hintsVm
+            .isDismissed(com.bobaplaybook.app.hints.HintsStore.Ids.CARD_DETAIL_TAP_PRICE)
+            .collectAsStateWithLifecycle(initialValue = true)
+        if (!tapHintDismissed) {
+            com.bobaplaybook.core.ui.components.BOBAHintBanner(
+                title = "Tap a price to open",
+                body = "Each tile links straight to the listing — eBay for actives + sold comps, Radish when available.",
+                onDismiss = {
+                    hintsVm.dismiss(com.bobaplaybook.app.hints.HintsStore.Ids.CARD_DETAIL_TAP_PRICE)
+                },
+            )
+        }
         ListingsRow(listings = state.ebayActive)
     }
 

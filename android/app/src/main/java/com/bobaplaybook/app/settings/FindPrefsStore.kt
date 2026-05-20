@@ -29,7 +29,7 @@ class FindPrefsStore @Inject constructor(
     }
 
     val showcaseMode: Flow<Boolean> =
-        context.findPrefsDataStore.data.map { it[Keys.SHOWCASE_MODE] ?: true }
+        context.findPrefsDataStore.data.map { it[Keys.SHOWCASE_MODE] ?: false }
 
     val quickAdd: Flow<Boolean> =
         context.findPrefsDataStore.data.map { it[Keys.QUICK_ADD] ?: false }

@@ -152,7 +152,7 @@ fun DeckEditorContentInline(
             BOBAEmptyState(
                 icon = Icons.Default.Save,
                 headline = "Empty draft",
-                body = "Long-press cards in the pool to add them.",
+                body = "Long-press cards on the Decks tab to add them.",
                 modifier = Modifier.fillMaxSize(),
             )
             return
@@ -217,7 +217,7 @@ private fun DeckEditorContent(
             BOBAEmptyState(
                 icon = Icons.Default.Save,
                 headline = "Empty draft",
-                body = "Long-press cards in the pool to add them. Or scan a real deck via the scan icon.",
+                body = "Long-press cards on the Decks tab to add them. Or scan a real deck via the scan icon.",
                 modifier = Modifier.fillMaxSize(),
             )
             return
@@ -402,23 +402,45 @@ private fun SectionedCardList(
     onRemove: (bobaId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val sections = remember(draft.cards) {
-        listOf(
-            "Heroes" to draft.cards.filter { it.cardType.equals("Hero", ignoreCase = true) },
-            "Plays"  to draft.cards.filter { it.cardType.contains("Play", ignoreCase = true) && !it.cardType.contains("Bonus", ignoreCase = true) },
-            "Bonus"  to draft.cards.filter { it.cardType.contains("Bonus", ignoreCase = true) },
-            "Coach"  to draft.cards.filter { it.cardType.contains("Coach", ignoreCase = true) },
-        )
+    // Section the deck the same way iOS DecksView does — heroes by power
+    // tier (descending), then plays (by cost asc), bonus plays (cost asc),
+    // hot dogs (alphabetical). Coach cards are a Playmaker-format extra
+    // and only render when present. Power-tier subheaders inside Heroes
+    // mirror iOS's `pwrSubheader(...)` so the deck reads the same shape
+    // on both platforms.
+    val heroesByTier = remember(draft.cards) {
+        draft.cards
+            .filter { it.cardType.equals("Hero", ignoreCase = true) }
+            .groupBy { it.power ?: 0 }
+            .toSortedMap(compareByDescending { it })
     }
+    val plays = remember(draft.cards) {
+        draft.cards
+            .filter { it.cardType.contains("Play", ignoreCase = true) && !it.cardType.contains("Bonus", ignoreCase = true) }
+            .sortedWith(compareBy({ it.cost ?: 999 }, { it.displayName }))
+    }
+    val bonus = remember(draft.cards) {
+        draft.cards
+            .filter { it.cardType.contains("Bonus", ignoreCase = true) }
+            .sortedWith(compareBy({ it.cost ?: 999 }, { it.displayName }))
+    }
+    val hotDogs = remember(draft.cards) {
+        draft.cards
+            .filter { it.cardType.contains("Hot Dog", ignoreCase = true) || it.cardType.contains("HotDog", ignoreCase = true) }
+            .sortedBy { it.displayName }
+    }
+    val coach = remember(draft.cards) {
+        draft.cards
+            .filter { it.cardType.contains("Coach", ignoreCase = true) }
+            .sortedBy { it.displayName }
+    }
+    val heroCount = heroesByTier.values.sumOf { it.size }
 
-    // Empty-state when no cards are in any section yet. The pool
-    // below the editor is where users add cards (long-press); this
-    // surface explicitly explains that.
     if (draft.cards.isEmpty()) {
         com.bobaplaybook.core.ui.components.BOBAEmptyState(
             icon = Icons.Default.ViewModule,
             headline = "No cards yet",
-            body = "Close the editor and long-press cards in the pool to add them. Heroes, Plays, Bonus Plays, and Coach each get their own section here.",
+            body = "Close the editor and long-press any card to add it. Heroes, Plays, Bonus Plays, and Hot Dogs each get their own section here.",
             modifier = modifier,
         )
         return
@@ -428,14 +450,37 @@ private fun SectionedCardList(
         modifier = modifier,
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {
-        sections.forEach { (label, cards) ->
+        if (heroCount > 0) {
+            item(key = "header-heroes") {
+                BOBASectionHeader(title = "Heroes ($heroCount)")
+            }
+            heroesByTier.forEach { (power, cards) ->
+                item(key = "tier-$power") {
+                    PowerTierSubheader(power = power, weaponBreakdown = heroWeaponBreakdown(cards))
+                }
+                items(
+                    items = cards,
+                    key = { "hero-${it.bobaId}" },
+                    contentType = { "card-row" },
+                ) { card ->
+                    DeckCardRow(card = card, onRemove = { onRemove(card.bobaId) })
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
+            }
+        }
+        listOf(
+            "Plays" to plays,
+            "Bonus Plays" to bonus,
+            "Hot Dogs" to hotDogs,
+            "Coach" to coach,
+        ).forEach { (label, cards) ->
             if (cards.isEmpty()) return@forEach
             item(key = "header-$label") {
                 BOBASectionHeader(title = "$label (${cards.size})")
             }
             items(
                 items = cards,
-                key = { it.bobaId },
+                key = { "$label-${it.bobaId}" },
                 contentType = { "card-row" },
             ) { card ->
                 DeckCardRow(card = card, onRemove = { onRemove(card.bobaId) })
@@ -445,32 +490,115 @@ private fun SectionedCardList(
     }
 }
 
+/**
+ * Inline "PWR 160 · Maverick (FIRE×2), Cruschman (ICE)" header — same
+ * shape as iOS DecksView.pwrSubheader so heroes are scannable by tier.
+ */
+@Composable
+private fun PowerTierSubheader(power: Int, weaponBreakdown: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            "PWR $power",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        if (weaponBreakdown.isNotBlank()) {
+            Text(
+                weaponBreakdown,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** Per-tier "Maverick (FIRE×2, ICE)" breakdown — iOS DecksView parity. */
+private fun heroWeaponBreakdown(cards: List<Card>): String {
+    val elementOrder = listOf("FIRE", "ICE", "STEEL", "BRAWL", "GLOW", "HEX", "GUM", "SUPER", "CYBER", "ALT", "NONE")
+    val byHero = cards.groupBy { it.hero.ifEmpty { it.name } }
+    return byHero.entries
+        .sortedByDescending { it.value.size }
+        .joinToString(" · ") { (hero, hcards) ->
+            val weapons = hcards
+                .groupingBy { it.element.uppercase() }
+                .eachCount()
+                .entries
+                .sortedBy { elementOrder.indexOf(it.key).let { i -> if (i < 0) 99 else i } }
+                .joinToString(", ") { (el, n) -> if (n > 1) "$el×$n" else el }
+            "$hero ($weapons)"
+        }
+}
+
 @Composable
 private fun DeckCardRow(card: Card, onRemove: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(modifier = Modifier.width(48.dp).height(67.dp)) {
+        // Bigger thumbnail (72×100 — 5:7) so the artwork actually reads.
+        // The previous 48×67 felt cramped and indistinguishable from a
+        // mod tool. Matches iOS DeckCardRow's visual weight.
+        Box(modifier = Modifier.width(72.dp).height(100.dp)) {
             BOBACardCell(
                 imageFile = card.imageFile,
                 isSealed = card.isSealed,
                 contentDescription = card.displayName,
             )
         }
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 card.displayName,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 2,
             )
-            Text(
-                "${card.cardNumber} · ${card.element.lowercase().replaceFirstChar { it.uppercase() }}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Weapon pill (element-tinted) — primary attribute, in
+                // the user's vocabulary. Mirrors iOS card-row pill chip.
+                val elementUpper = card.element.uppercase()
+                val elementColor = com.bobaplaybook.core.ui.theme.BobaElements.forElement(elementUpper)
+                Surface(
+                    color = elementColor.copy(alpha = 0.18f),
+                    contentColor = elementColor,
+                    shape = MaterialTheme.shapes.small,
+                ) {
+                    Text(
+                        elementUpper,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                    )
+                }
+                Text(
+                    card.cardNumber,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                card.power?.let { p ->
+                    Text(
+                        "PWR $p",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                card.cost?.let { c ->
+                    Text(
+                        "${c}c",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
         IconButton(onClick = onRemove) {
             Icon(

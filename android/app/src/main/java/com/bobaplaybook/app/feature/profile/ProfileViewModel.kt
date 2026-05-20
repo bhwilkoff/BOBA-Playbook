@@ -76,12 +76,18 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    /** Commits the username; returns true on success ("available"). */
+    /** Commits the username; returns true on success ("available"). On success
+     *  also re-fetches the profile so the cached row reflects the new handle. */
     fun setUsername(newUsername: String, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             _busy.value = true
             val status = service.setUsername(newUsername)
             _usernameStatus.value = status
+            if (status == "available") {
+                // Refresh so observers reading profile.username see the
+                // server-canonical value (matches iOS behavior).
+                _profile.value = service.fetchUserProfile()
+            }
             _busy.value = false
             onResult(status == "available")
         }

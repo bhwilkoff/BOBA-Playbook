@@ -10,70 +10,112 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * Brand colorScheme — DEFAULT.
+ * Brand color schemes — DEFAULT.
  *
  * Per DECISIONS.md #042: BOBA ships with a fixed brand theme by default.
  * The card-art palette is the focal point, and a user's wallpaper-derived
  * primary fighting `#FF4D00` reads muddy.
  *
- * Dynamic color (Material You) is opt-in via [useDynamicColor]. M0
- * doesn't yet expose the toggle in Settings — it's the parameter to
- * [BobaTheme]. Settings UI lands in M7.
+ * Surface tokens use 5 distinct tonal stops so M3 tonal elevation
+ * actually reads — different chrome layers (TopAppBar / NavigationBar /
+ * ModalBottomSheet / FAB / DropdownMenu) stack with visible hierarchy.
+ *
+ * Container colors are SOLID (not alpha-on-transparent) so selection
+ * states (FilterChip selected, Badge, BadgedBox) paint consistently
+ * over any underlying surface.
+ *
+ * Dynamic color (Material You) is opt-in via [useDynamicColor].
  */
-
 private val BobaDarkColorScheme = darkColorScheme(
-    primary           = BobaBrand.Orange,
-    onPrimary         = BobaBrand.White,
-    primaryContainer  = BobaBrand.Orange.copy(alpha = 0.15f),
-    onPrimaryContainer = BobaBrand.Orange,
+    // Primary (orange / FIRE — brand anchor weapon)
+    primary               = BobaBrand.Orange,
+    onPrimary             = BobaBrand.White,
+    primaryContainer      = BobaBrand.OrangeContainer,
+    onPrimaryContainer    = BobaBrand.OnOrangeContainer,
 
-    secondary         = BobaBrand.Cyan,
-    onSecondary       = BobaBrand.NearBlack,
-    secondaryContainer = BobaBrand.Cyan.copy(alpha = 0.15f),
-    onSecondaryContainer = BobaBrand.Cyan,
+    // Secondary (cyan — links / active states)
+    secondary             = BobaBrand.Cyan,
+    onSecondary           = BobaBrand.NearBlack,
+    secondaryContainer    = BobaBrand.CyanContainer,
+    onSecondaryContainer  = BobaBrand.OnCyanContainer,
 
-    tertiary          = BobaBrand.Violet,
-    onTertiary        = BobaBrand.White,
-    tertiaryContainer = BobaBrand.Violet.copy(alpha = 0.15f),
-    onTertiaryContainer = BobaBrand.Violet,
+    // Tertiary (violet — HEX accent)
+    tertiary              = BobaBrand.Violet,
+    onTertiary            = BobaBrand.White,
+    tertiaryContainer     = BobaBrand.VioletContainer,
+    onTertiaryContainer   = BobaBrand.OnVioletContainer,
 
-    background        = BobaBrand.NearBlack,
-    onBackground      = BobaBrand.OnSurface,
+    // Background — same as NearBlack so card art has no chrome to compete with
+    background            = BobaBrand.NearBlack,
+    onBackground          = BobaBrand.OnSurface,
 
-    surface           = BobaBrand.NearBlack,
-    onSurface         = BobaBrand.OnSurface,
-    surfaceVariant    = BobaBrand.Surface,
-    onSurfaceVariant  = BobaBrand.OnSurfaceVariant,
+    // Surface family — 5 distinct tonal stops (the load-bearing change)
+    surface                 = BobaBrand.NearBlack,
+    onSurface               = BobaBrand.OnSurface,
+    surfaceVariant          = BobaBrand.SurfaceContainer,
+    onSurfaceVariant        = BobaBrand.OnSurfaceVariant,
+    surfaceContainerLowest  = BobaBrand.SurfaceLowest,
+    surfaceContainerLow     = BobaBrand.SurfaceLow,
+    surfaceContainer        = BobaBrand.SurfaceContainer,
+    surfaceContainerHigh    = BobaBrand.SurfaceContainerHigh,
+    surfaceContainerHighest = BobaBrand.SurfaceContainerMax,
 
-    error             = BobaBrand.OnError,
-    onError           = BobaBrand.NearBlack,
-    errorContainer    = BobaBrand.ErrorContainer,
-    onErrorContainer  = BobaBrand.OnError,
+    // Outlines
+    outline                 = BobaBrand.Outline,
+    outlineVariant          = BobaBrand.OutlineVariant,
 
-    outline           = BobaBrand.OnSurfaceVariant.copy(alpha = 0.4f),
-    outlineVariant    = BobaBrand.OnSurfaceVariant.copy(alpha = 0.2f),
-
-    surfaceContainerLowest  = BobaBrand.NearBlack,
-    surfaceContainerLow     = BobaBrand.Surface,
-    surfaceContainer        = BobaBrand.Surface,
-    surfaceContainerHigh    = BobaBrand.Surface.copy(alpha = 1f),
-    surfaceContainerHighest = BobaBrand.Surface,
+    // Errors
+    error                   = BobaBrand.Error,
+    onError                 = BobaBrand.OnError,
+    errorContainer          = BobaBrand.ErrorContainer,
+    onErrorContainer        = BobaBrand.OnErrorContainer,
 )
 
-// Light-mode brand palette. BOBA's brand identity is dark-first (the
-// card art carries most of the chroma), but Compose requires a light
-// scheme for users who force light mode. Tuned to keep the brand seed
-// colors recognizable on a light background.
+/**
+ * Light scheme — full M3 token set so users on system-light mode get
+ * a coherent surface family. Brand seeds (orange/cyan/violet) stay
+ * recognizable on a near-white background.
+ */
 private val BobaLightColorScheme = lightColorScheme(
-    primary           = BobaBrand.Orange,
-    onPrimary         = BobaBrand.White,
-    secondary         = BobaBrand.Cyan,
-    onSecondary       = BobaBrand.NearBlack,
-    tertiary          = BobaBrand.Violet,
-    onTertiary        = BobaBrand.White,
+    primary               = BobaBrand.Orange,
+    onPrimary             = Color.White,
+    primaryContainer      = Color(0xFFFFDBCB),
+    onPrimaryContainer    = Color(0xFF361100),
+
+    secondary             = Color(0xFF006875),         // darker cyan readable on white
+    onSecondary           = Color.White,
+    secondaryContainer    = Color(0xFFA1EFFD),
+    onSecondaryContainer  = Color(0xFF001F25),
+
+    tertiary              = Color(0xFF7028D5),         // darker violet
+    onTertiary            = Color.White,
+    tertiaryContainer     = Color(0xFFEDDBFF),
+    onTertiaryContainer   = Color(0xFF270060),
+
+    background            = Color(0xFFFFFBFF),
+    onBackground          = Color(0xFF201A18),
+
+    surface                 = Color(0xFFFFFBFF),
+    onSurface               = Color(0xFF201A18),
+    surfaceVariant          = Color(0xFFF4DED5),
+    onSurfaceVariant        = Color(0xFF52443D),
+    surfaceContainerLowest  = Color(0xFFFFFFFF),
+    surfaceContainerLow     = Color(0xFFFFF1EB),
+    surfaceContainer        = Color(0xFFFCEAE2),
+    surfaceContainerHigh    = Color(0xFFF7E4DC),
+    surfaceContainerHighest = Color(0xFFF1DED6),
+
+    outline                 = Color(0xFF85746C),
+    outlineVariant          = Color(0xFFD7C2B9),
+
+    error                   = Color(0xFFBA1A1A),
+    onError                 = Color.White,
+    errorContainer          = Color(0xFFFFDAD6),
+    onErrorContainer        = Color(0xFF410002),
 )
 
 /**

@@ -255,30 +255,19 @@ private fun SignedInContent(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        item("streamer-shows") {
-            ListItem(
-                headlineContent = { Text("My Shows") },
-                supportingContent = { Text("Streamer role required", style = MaterialTheme.typography.labelMedium) },
-                leadingContent = { Icon(Icons.Default.LiveTv, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                modifier = Modifier.fillMaxWidth().clickable(enabled = false) { },
-            )
-        }
-        item("mod-panel") {
-            ListItem(
-                headlineContent = { Text("Mod panel") },
-                supportingContent = { Text("Moderator role only", style = MaterialTheme.typography.labelMedium) },
-                leadingContent = { Icon(Icons.Default.PrivacyTip, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                modifier = Modifier.fillMaxWidth().clickable(enabled = false) { /* role-gated, M7 polish */ },
-            )
-        }
-        item("admin-panel") {
-            ListItem(
-                headlineContent = { Text("Admin panel") },
-                supportingContent = { Text("Admin role only", style = MaterialTheme.typography.labelMedium) },
-                leadingContent = { Icon(Icons.Default.PrivacyTip, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                modifier = Modifier.fillMaxWidth().clickable(enabled = false) { /* role-gated, M7 polish */ },
-            )
-        }
+        // Role-gated entries — hidden until M7 wires user_profiles.role.
+        // Always-disabled rows teach users a feature exists they can't
+        // access (M3 anti-pattern). When role state lands, render the
+        // matching entry only for users who have that role.
+        //
+        // ```
+        // item("streamer-shows") {
+        //     ListItem(headlineContent = { Text("My Shows") }, ...)
+        // } onlyIf userRole.includes(streamer)
+        //
+        // item("mod-panel") { ... } onlyIf userRole.includes(moderator)
+        // item("admin-panel") { ... } onlyIf userRole == admin
+        // ```
 
         item("legal-header") { BOBASectionHeader(title = "Legal") }
         item("terms") {
@@ -387,7 +376,7 @@ private fun ProfileHeader(
                 Text(
                     text = (username.firstOrNull()?.uppercase() ?: "B"),
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Black,
+                    fontWeight = FontWeight.Bold,
                     color = Color.White,
                 )
             }
@@ -404,21 +393,31 @@ private fun ProfileHeader(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            AssistChip(
-                onClick = {},
-                label = { Text("Signed in with $signInMethod", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = {
+            // Status label — not interactive. M3 spec: small Surface +
+            // Text, not a no-op Chip (which teaches users it's tappable).
+            androidx.compose.material3.Surface(
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.padding(top = 4.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     Icon(
                         Icons.Default.Verified,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
-                },
-                colors = AssistChipDefaults.assistChipColors(
-                    labelColor = MaterialTheme.colorScheme.primary,
-                ),
-                modifier = Modifier.padding(top = 4.dp),
-            )
+                    Text(
+                        "Signed in with $signInMethod",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+            }
         }
     }
 }

@@ -32,7 +32,7 @@ fun BOBAWordmark(modifier: Modifier = Modifier) {
     Text(
         text = "BOBA Playbook",
         style = MaterialTheme.typography.displayMedium.copy(
-            fontWeight = FontWeight.Black,
+            fontWeight = FontWeight.Bold,
             letterSpacing = 2.sp,
         ),
         color = BobaBrand.Orange,

@@ -36,6 +36,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -65,6 +66,7 @@ import com.bobaplaybook.core.domain.model.Designation
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
 import com.bobaplaybook.core.ui.components.BOBASignInPrompt
+import com.bobaplaybook.core.ui.components.BOBAWordmark
 import com.bobaplaybook.core.ui.theme.BobaBrand
 import com.bobaplaybook.core.ui.transitions.cardSharedBounds
 
@@ -98,13 +100,15 @@ fun CollectionScreen(
     var totalsMode by rememberSaveable { mutableStateOf(TotalsMode.COLLECTION) }
     val findViewModel: com.bobaplaybook.app.feature.find.FindViewModel = hiltViewModel()
     val findState by findViewModel.uiState.collectAsStateWithLifecycle()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    // CenterAlignedTopAppBar w/ wordmark — pinned so the brand mark
+    // stays visible during scroll (ANDROID-DESIGN.md §6.9).
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            LargeTopAppBar(
-                title = { Text("Collection") },
+            CenterAlignedTopAppBar(
+                title = { BOBAWordmark() },
                 actions = {
                     val context = LocalContext.current
                     IconButton(onClick = { filterSheetOpen = true }) {

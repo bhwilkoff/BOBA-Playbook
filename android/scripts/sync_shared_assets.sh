@@ -17,7 +17,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SRC_DATA="${REPO_ROOT}/assets/data"
 SRC_FONTS="${REPO_ROOT}/BOBAPlaybook/Resources/Fonts"
 DEST_ASSETS="${REPO_ROOT}/android/app/src/main/assets/data"
-DEST_FONTS="${REPO_ROOT}/android/app/src/main/res/font"
+DEST_FONTS="${REPO_ROOT}/android/core/ui/src/main/res/font"
 
 mode="${1:-update}"
 

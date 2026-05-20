@@ -31,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MoreVert
@@ -40,10 +41,10 @@ import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.ViewModule
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -61,6 +62,7 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -140,31 +142,56 @@ private fun FindContent(
     val appSnackbar = LocalAppSnackbar.current
     val scope = rememberCoroutineScope()
 
-    Scaffold(modifier = modifier) { paddingValues ->
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { BOBAWordmark() },
+                navigationIcon = {
+                    IconButton(onClick = onProfileClick) {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = stringResource(R.string.action_profile),
+                        )
+                    }
+                },
+                actions = {
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More")
+                        }
+                        FindOverflowMenu(
+                            expanded = menuOpen,
+                            onDismiss = { menuOpen = false },
+                            showcaseMode = showcaseMode,
+                            onShowcaseModeChange = { showcaseMode = it },
+                            quickAdd = quickAdd,
+                            onQuickAddChange = { quickAdd = it },
+                            gridColumns = gridColumns,
+                            onGridColumnsChange = { gridColumns = it },
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+            )
+        },
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
-            // M3 SearchBar
+            // M3 SearchBar — Filter + Scan as the only trailing actions
             FindSearchBar(
                 state = state,
                 expanded = searchExpanded,
                 onExpandedChange = { searchExpanded = it },
                 onEvent = onEvent,
                 onCardClick = { id -> searchExpanded = false; onCardClick(id) },
-                onProfileClick = onProfileClick,
                 onScanClick = onScanClick,
                 onFilterClick = { filterSheetOpen = true },
-                onMenuClick = { menuOpen = true },
-                menuExpanded = menuOpen,
-                onMenuDismiss = { menuOpen = false },
-                showcaseMode = showcaseMode,
-                onShowcaseModeChange = { showcaseMode = it },
-                quickAdd = quickAdd,
-                onQuickAddChange = { quickAdd = it },
-                gridColumns = gridColumns,
-                onGridColumnsChange = { gridColumns = it },
             )
 
             // Active filter chip strip
@@ -251,18 +278,8 @@ private fun FindSearchBar(
     onExpandedChange: (Boolean) -> Unit,
     onEvent: (FindEvent) -> Unit,
     onCardClick: (bobaId: String) -> Unit,
-    onProfileClick: () -> Unit,
     onScanClick: () -> Unit,
     onFilterClick: () -> Unit,
-    onMenuClick: () -> Unit,
-    menuExpanded: Boolean,
-    onMenuDismiss: () -> Unit,
-    showcaseMode: Boolean,
-    onShowcaseModeChange: (Boolean) -> Unit,
-    quickAdd: Boolean,
-    onQuickAddChange: (Boolean) -> Unit,
-    gridColumns: Int,
-    onGridColumnsChange: (Int) -> Unit,
 ) {
     SearchBar(
         modifier = Modifier
@@ -277,60 +294,40 @@ private fun FindSearchBar(
                 onExpandedChange = onExpandedChange,
                 placeholder = { Text(stringResource(R.string.find_search_placeholder)) },
                 leadingIcon = {
-                    if (expanded) {
-                        IconButton(onClick = { onExpandedChange(false) }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Close search")
-                        }
-                    } else {
-                        IconButton(onClick = onProfileClick) {
-                            Icon(
-                                imageVector = Icons.Default.AccountCircle,
-                                contentDescription = stringResource(R.string.action_profile),
-                            )
-                        }
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                    )
                 },
                 trailingIcon = {
-                    if (state.query.isNotEmpty() && expanded) {
-                        IconButton(onClick = { onEvent(FindEvent.QueryChanged("")) }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear")
+                    when {
+                        expanded && state.query.isNotEmpty() -> {
+                            IconButton(onClick = { onEvent(FindEvent.QueryChanged("")) }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear")
+                            }
                         }
-                    } else if (!expanded) {
-                        Row {
-                            // Filter button w/ active-count badge
-                            IconButton(onClick = onFilterClick) {
-                                BadgedBox(
-                                    badge = {
-                                        if (state.activeFilterCount > 0) {
-                                            Badge { Text("${state.activeFilterCount}") }
-                                        }
-                                    },
-                                ) {
-                                    Icon(Icons.Default.Tune, contentDescription = "Filters")
+                        !expanded -> {
+                            // Two trailing actions max: Filter (high-frequency,
+                            // contextual) + Scan (cross-cutting). Profile +
+                            // Overflow live in the TopAppBar above.
+                            Row {
+                                IconButton(onClick = onFilterClick) {
+                                    BadgedBox(
+                                        badge = {
+                                            if (state.activeFilterCount > 0) {
+                                                Badge { Text("${state.activeFilterCount}") }
+                                            }
+                                        },
+                                    ) {
+                                        Icon(Icons.Default.Tune, contentDescription = "Filters")
+                                    }
                                 }
-                            }
-                            // Scan
-                            IconButton(onClick = onScanClick) {
-                                Icon(
-                                    imageVector = Icons.Default.QrCodeScanner,
-                                    contentDescription = stringResource(R.string.action_scan),
-                                )
-                            }
-                            // Overflow menu
-                            Box {
-                                IconButton(onClick = onMenuClick) {
-                                    Icon(Icons.Default.MoreVert, contentDescription = "More")
+                                IconButton(onClick = onScanClick) {
+                                    Icon(
+                                        imageVector = Icons.Default.QrCodeScanner,
+                                        contentDescription = stringResource(R.string.action_scan),
+                                    )
                                 }
-                                FindOverflowMenu(
-                                    expanded = menuExpanded,
-                                    onDismiss = onMenuDismiss,
-                                    showcaseMode = showcaseMode,
-                                    onShowcaseModeChange = onShowcaseModeChange,
-                                    quickAdd = quickAdd,
-                                    onQuickAddChange = onQuickAddChange,
-                                    gridColumns = gridColumns,
-                                    onGridColumnsChange = onGridColumnsChange,
-                                )
                             }
                         }
                     }
@@ -367,41 +364,37 @@ private fun FindOverflowMenu(
     onGridColumnsChange: (Int) -> Unit,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-        // Columns picker
-        Text(
-            "Columns",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        )
+        // Columns picker — single-select group. Selected item gets Check.
         listOf(1, 2, 3).forEach { n ->
             DropdownMenuItem(
-                text = { Text("$n across") },
-                leadingIcon = { Icon(Icons.Default.ViewModule, contentDescription = null) },
-                trailingIcon = {
-                    if (gridColumns == n) Icon(Icons.Default.Visibility, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                text = { Text("$n column${if (n == 1) "" else "s"}") },
+                leadingIcon = {
+                    if (gridColumns == n) {
+                        Icon(Icons.Default.Check, contentDescription = "Selected")
+                    } else {
+                        Icon(Icons.Default.ViewModule, contentDescription = null)
+                    }
                 },
-                onClick = { onGridColumnsChange(n) },
+                onClick = { onGridColumnsChange(n); onDismiss() },
             )
         }
         androidx.compose.material3.HorizontalDivider()
-        // Card Showcases toggle
+        // Toggle commands — tapping inverts state. Check icon shows when on.
         DropdownMenuItem(
             text = { Text("Card Showcases") },
-            leadingIcon = { Icon(Icons.Default.Style, contentDescription = null) },
-            trailingIcon = {
-                androidx.compose.material3.Switch(checked = showcaseMode, onCheckedChange = onShowcaseModeChange)
+            leadingIcon = {
+                if (showcaseMode) Icon(Icons.Default.Check, contentDescription = "On")
+                else Icon(Icons.Default.Style, contentDescription = null)
             },
-            onClick = { onShowcaseModeChange(!showcaseMode) },
+            onClick = { onShowcaseModeChange(!showcaseMode); onDismiss() },
         )
-        // Quick Add toggle
         DropdownMenuItem(
             text = { Text("Quick Add to Collection") },
-            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
-            trailingIcon = {
-                androidx.compose.material3.Switch(checked = quickAdd, onCheckedChange = onQuickAddChange)
+            leadingIcon = {
+                if (quickAdd) Icon(Icons.Default.Check, contentDescription = "On")
+                else Icon(Icons.Default.Add, contentDescription = null)
             },
-            onClick = { onQuickAddChange(!quickAdd) },
+            onClick = { onQuickAddChange(!quickAdd); onDismiss() },
         )
         androidx.compose.material3.HorizontalDivider()
         DropdownMenuItem(

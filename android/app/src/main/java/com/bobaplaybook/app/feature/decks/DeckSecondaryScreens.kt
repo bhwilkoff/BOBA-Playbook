@@ -303,6 +303,16 @@ fun DeckLegalityScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 value = "${draft.totalHD} / ${draft.hdCap}",
                 ok = draft.totalHD <= draft.hdCap,
             )
+            // DBS row only renders in Playmaker (the only format that
+            // enforces it). Skipping the row on Rookie/Substitution
+            // keeps the screen short for formats where DBS is N/A.
+            if (draft.enforcesDBS) {
+                LegalityRow(
+                    rule = "DBS budget",
+                    value = "${draft.totalDBS} / ${draft.dbsBudget}",
+                    ok = draft.totalDBS <= draft.dbsBudget,
+                )
+            }
 
             if (!draft.isStandardLegal) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))

@@ -23,12 +23,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Auth Manager — Google + Email/password (M7).
+ * Auth Manager — Google + Email/password + Discord OAuth.
  *
  * Three sign-in paths:
  *  1. Google via Credential Manager (Sign in with Google bottom sheet)
  *  2. Email + password (sign up + sign in via supabase-kt)
- *  3. Discord OAuth (M7 polish — Auth Tab launch)
+ *  3. Discord OAuth via supabase-kt + Custom Tabs (DECISIONS.md #049 —
+ *     auth-only Discord usage; no bot, no server-side API calls)
  *
  * Each path surfaces a typed [SignInResult] so the UI can show the
  * actual failure reason. The old runCatching wrapper silently

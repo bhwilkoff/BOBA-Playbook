@@ -134,6 +134,7 @@ private fun DecksCompactScreen(
     val longPressHintDismissed by hintsViewModel
         .isDismissed(HintsStore.Ids.DECKS_LONG_PRESS_TO_ADD)
         .collectAsStateWithLifecycle(initialValue = true)
+    val context = androidx.compose.ui.platform.LocalContext.current
     var editorOpen by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var poolQuery by rememberSaveable { mutableStateOf("") }
@@ -179,7 +180,10 @@ private fun DecksCompactScreen(
                             DropdownMenuItem(
                                 text = { Text("Export (CSV)") },
                                 leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null) },
-                                onClick = { menuOpen = false /* M4 polish — CSV export */ },
+                                onClick = {
+                                    menuOpen = false
+                                    exportDraftAsCsv(context, draft)
+                                },
                             )
                             androidx.compose.material3.HorizontalDivider()
                             DropdownMenuItem(
@@ -511,3 +515,42 @@ private fun DecksPoolSearchPill(
         }
     }
 }
+
+/**
+ * Export the current draft as CSV in the canonical v2 shape
+ * (DECISIONS.md #033 part b). Fires the Android share sheet with the
+ * CSV body as text — receivers like Google Drive / Gmail / Files
+ * accept text directly. v1 bobaleagues-compat legacy format is
+ * deferred (the v2 format is what roundtrips correctly).
+ *
+ * CSV columns: id,name,type,release,number,cost,dbs,ability,bonus
+ */
+private fun exportDraftAsCsv(context: android.content.Context, draft: DeckDraft) {
+    val header = "id,name,type,release,number,cost,dbs,ability,bonus"
+    val rows = draft.cards.map { c ->
+        listOf(
+            c.bobaId,
+            c.displayName.csvEscape(),
+            c.cardType.csvEscape(),
+            (c.set ?: "").csvEscape(),
+            c.cardNumber.csvEscape(),
+            c.cost?.toString().orEmpty(),
+            c.dbs?.toString().orEmpty(),
+            "",  // ability — not in catalog model today
+            (c.hd ?: 0).toString(),
+        ).joinToString(",")
+    }
+    val csv = (listOf(header) + rows).joinToString("\n")
+    val filename = "${draft.name.replace(' ', '_').lowercase().take(40)}.csv"
+    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "text/csv"
+        putExtra(android.content.Intent.EXTRA_SUBJECT, "BOBA deck: ${draft.name}")
+        putExtra(android.content.Intent.EXTRA_TITLE, filename)
+        putExtra(android.content.Intent.EXTRA_TEXT, csv)
+    }
+    context.startActivity(android.content.Intent.createChooser(intent, "Share deck CSV"))
+}
+
+/** Escape a CSV field if it contains comma / quote / newline. */
+private fun String.csvEscape(): String =
+    if (any { it == ',' || it == '"' || it == '\n' }) "\"${replace("\"", "\"\"")}\"" else this

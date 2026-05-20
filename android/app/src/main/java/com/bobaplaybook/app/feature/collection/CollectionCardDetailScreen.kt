@@ -86,11 +86,31 @@ fun CollectionCardDetailScreen(
 ) {
     val viewModel: CollectionViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val savedDecks by viewModel.savedDecks.collectAsStateWithLifecycle()
+    val catalog by viewModel.catalogCards.collectAsStateWithLifecycle()
     val card = remember(state, bobaId) {
         state.entriesByDesignation.values.flatten().firstOrNull { it.card.bobaId == bobaId }?.card
     }
     val copies = remember(state, bobaId) {
         state.entriesByDesignation.values.flatten().filter { it.card.bobaId == bobaId }
+    }
+    // Decks-containing — filter saved decks for any deck_cards row
+    // matching THIS card's cardNumber. iOS uses bobaId but Supabase
+    // `deck_cards` ships card_number only (see DeckRepository.kt).
+    val decksContaining = remember(savedDecks, card) {
+        val cn = card?.cardNumber ?: return@remember emptyList()
+        savedDecks.filter { sd -> sd.cards.any { it.cardNumber == cn } }
+    }
+    // Other versions — same hero, different bobaId. Same shape as the
+    // Find tab's card-detail "Other versions" section.
+    val otherVersions = remember(catalog, card) {
+        val c = card ?: return@remember emptyList()
+        if (c.hero.isEmpty()) emptyList()
+        else catalog.asSequence()
+            .filter { it.bobaId != c.bobaId && it.hero.equals(c.hero, ignoreCase = true) }
+            .filter { !it.imageFile.isNullOrEmpty() }
+            .take(12)
+            .toList()
     }
 
     Scaffold(
@@ -158,6 +178,69 @@ fun CollectionCardDetailScreen(
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text("Add another copy")
+                }
+            }
+
+            // "Decks containing this card" — iOS DESIGN.md §8.4 surfaces
+            // this in CollectionCardDetail so coaches see their own decks
+            // using the card. Tap-through is a future iteration; v1
+            // renders the list for visibility.
+            if (decksContaining.isNotEmpty()) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+                BOBASectionHeader(title = "Decks with this card (${decksContaining.size})")
+                decksContaining.forEach { deck ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(deck.name, style = MaterialTheme.typography.titleSmall)
+                            deck.archetype?.takeIf { it.isNotBlank() }?.let { arch ->
+                                Text(
+                                    arch,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        val qty = deck.cards.firstOrNull { it.cardNumber == card.cardNumber }?.quantity ?: 0
+                        if (qty > 1) {
+                            Text(
+                                "×$qty",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // "Other versions" — same hero, different treatment. Tap an
+            // alt to navigate to that card's detail (read-only — Add to
+            // Collection lives in the catalog Find tab card detail).
+            if (otherVersions.isNotEmpty()) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+                BOBASectionHeader(title = "Other versions of ${card.displayName}")
+                androidx.compose.foundation.lazy.LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(items = otherVersions, key = { it.bobaId }) { other ->
+                        Box(modifier = Modifier.width(80.dp)) {
+                            com.bobaplaybook.core.ui.components.BOBACardCell(
+                                imageFile = other.imageFile,
+                                contentDescription = other.displayName,
+                            )
+                        }
+                    }
                 }
             }
             Spacer(Modifier.height(48.dp))

@@ -38,6 +38,26 @@ class ProfileService @Inject constructor(
 
     companion object { private const val TAG = "ProfileService" }
 
+    /**
+     * One-shot fetch of every user_profiles field that drives the
+     * Profile sheet. Direct PostgREST select; RLS scopes to own-row.
+     * Mirrors iOS SupabaseClient.swift fetchProfile() shape.
+     */
+    suspend fun fetchUserProfile(): UserProfile? =
+        runCatching {
+            val rows = supabase.postgrest.from("user_profiles")
+                .select(io.github.jan.supabase.postgrest.query.Columns.list(
+                    "username", "public_collection_enabled", "notifications_enabled",
+                    "match_alerts_enabled", "discord_user_id", "discord_avatar_url",
+                    "avatar_url", "requested_role", "requested_role_at",
+                )) {
+                    limit(1)
+                }
+                .decodeList<UserProfileRow>()
+            rows.firstOrNull()?.toDomain()
+        }.onFailure { Log.e(TAG, "fetchUserProfile failed", it) }
+            .getOrNull()
+
     /** Returns "available", "taken", "invalid_chars", "reserved", "banned", "too_short", "too_long". */
     suspend fun checkUsername(candidate: String): String =
         runCatching {
@@ -167,6 +187,31 @@ class ProfileService @Inject constructor(
     @Serializable
     private data class AvatarUploadResponse(val url: String, val version: String? = null)
 
+    @Serializable
+    private data class UserProfileRow(
+        val username: String? = null,
+        @kotlinx.serialization.SerialName("public_collection_enabled") val publicCollectionEnabled: Boolean = false,
+        @kotlinx.serialization.SerialName("notifications_enabled") val notificationsEnabled: Boolean = false,
+        @kotlinx.serialization.SerialName("match_alerts_enabled") val matchAlertsEnabled: Boolean = false,
+        @kotlinx.serialization.SerialName("discord_user_id") val discordUserId: String? = null,
+        @kotlinx.serialization.SerialName("discord_avatar_url") val discordAvatarUrl: String? = null,
+        @kotlinx.serialization.SerialName("avatar_url") val avatarUrl: String? = null,
+        @kotlinx.serialization.SerialName("requested_role") val requestedRole: String? = null,
+        @kotlinx.serialization.SerialName("requested_role_at") val requestedRoleAt: String? = null,
+    ) {
+        fun toDomain() = UserProfile(
+            username = username,
+            publicCollectionEnabled = publicCollectionEnabled,
+            notificationsEnabled = notificationsEnabled,
+            matchAlertsEnabled = matchAlertsEnabled,
+            discordUserId = discordUserId,
+            discordAvatarUrl = discordAvatarUrl,
+            avatarUrl = avatarUrl,
+            requestedRole = requestedRole,
+            requestedRoleAt = requestedRoleAt,
+        )
+    }
+
     suspend fun deleteAccount(): Boolean {
         val accessToken = supabase.auth.currentSessionOrNull()?.accessToken
         if (accessToken.isNullOrEmpty()) {
@@ -182,3 +227,16 @@ class ProfileService @Inject constructor(
             .getOrDefault(false)
     }
 }
+
+/** Domain shape of the user_profiles row — drives the Profile sheet. */
+data class UserProfile(
+    val username: String?,
+    val publicCollectionEnabled: Boolean,
+    val notificationsEnabled: Boolean,
+    val matchAlertsEnabled: Boolean,
+    val discordUserId: String?,
+    val discordAvatarUrl: String?,
+    val avatarUrl: String?,
+    val requestedRole: String?,
+    val requestedRoleAt: String?,
+)

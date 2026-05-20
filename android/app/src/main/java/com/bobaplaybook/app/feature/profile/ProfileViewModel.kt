@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bobaplaybook.app.auth.AuthManager
 import com.bobaplaybook.core.network.ProfileService
+import com.bobaplaybook.core.network.UserProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +37,16 @@ class ProfileViewModel @Inject constructor(
 
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
+
+    /** Current user_profiles snapshot — avatar, prefs, requested role. */
+    private val _profile = MutableStateFlow<UserProfile?>(null)
+    val profile: StateFlow<UserProfile?> = _profile.asStateFlow()
+
+    fun refreshProfile() {
+        viewModelScope.launch {
+            _profile.value = service.fetchUserProfile()
+        }
+    }
 
     fun checkUsername(candidate: String) {
         viewModelScope.launch {
@@ -93,6 +104,9 @@ class ProfileViewModel @Inject constructor(
             _busy.value = true
             val url = service.uploadAvatar(bytes, mimeType)
             _busy.value = false
+            // After a successful upload, refresh the profile so the
+            // header reads the new avatar URL.
+            if (url != null) _profile.value = service.fetchUserProfile()
             onResult(url)
         }
     }

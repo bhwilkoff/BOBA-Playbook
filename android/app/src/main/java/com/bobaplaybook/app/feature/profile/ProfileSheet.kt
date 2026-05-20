@@ -339,6 +339,15 @@ private fun SignedInContent(
     val vm: ProfileViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
     val usernameStatus by vm.usernameStatus.collectAsStateWithLifecycle(initialValue = null)
+    val profile by vm.profile.collectAsStateWithLifecycle(initialValue = null)
+
+    // Pull the user's row once on sheet open so the header avatar +
+    // public-collection + match-alerts toggles reflect server state
+    // (not just the local defaults). Re-fetches happen automatically
+    // when uploadAvatar succeeds.
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        vm.refreshProfile()
+    }
 
     // When the user signed in with Discord, persist the discord_user_id +
     // avatar URL on user_profiles so future trade-matching can deep-link
@@ -361,10 +370,12 @@ private fun SignedInContent(
     ) {
         item("header") {
             ProfileHeader(
-                username = username,
+                username = profile?.username ?: username,
                 email = authState.email,
                 signInMethod = authState.provider?.replaceFirstChar { it.uppercase() } ?: "Email",
-                avatarUrl = authState.providerAvatarUrl,
+                // Prefer the user-uploaded avatar on user_profiles; fall
+                // back to provider-supplied (Google / Discord) avatar.
+                avatarUrl = profile?.avatarUrl ?: profile?.discordAvatarUrl ?: authState.providerAvatarUrl,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
             )
         }

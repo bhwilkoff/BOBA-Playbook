@@ -9,7 +9,11 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import android.graphics.Color as AndroidColor
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.bobaplaybook.app.auth.AuthManager
+import kotlinx.coroutines.launch
 import com.bobaplaybook.app.connectivity.ConnectivityState
 import io.github.jan.supabase.auth.handleDeeplinks
 import com.bobaplaybook.app.feature.scan.ScanModuleAccessSeeder
@@ -60,6 +64,20 @@ class MainActivity : ComponentActivity() {
 
         // Dispatch any deep link that launched the activity.
         handleIncomingIntent(intent)
+
+        // Start observing the Supabase auth session at app launch — not in
+        // ProfileSheet's LaunchedEffect. Otherwise every other screen
+        // (Collection, Decks, Card detail) sees AuthState.Unknown until the
+        // user happens to open Profile, which is why "Collection doesn't
+        // show signed-in state" + "tapping Sign In just spins" both
+        // appeared. Lifecycle-scoped + repeatOnLifecycle means the
+        // observer survives config changes and stops when the activity
+        // is destroyed.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                authManager.observeSession()
+            }
+        }
 
         setContent {
             BOBAApp(

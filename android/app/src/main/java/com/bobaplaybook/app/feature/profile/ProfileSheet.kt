@@ -109,7 +109,9 @@ fun ProfileScreen(
     onPracticeUnlock: () -> Unit = {},
 ) {
     val authState by authManager.authState.collectAsStateWithLifecycle(initialValue = AuthState.Unknown)
-    LaunchedEffect(Unit) { authManager.observeSession() }
+    // observeSession() is started lifecycle-scoped from MainActivity so
+    // every screen sees authState immediately, not only after Profile
+    // has been opened.
     val scrollBehavior = androidx.compose.material3.TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
         androidx.compose.material3.rememberTopAppBarState(),
     )
@@ -383,6 +385,21 @@ private fun SignedInContent(
     var username by rememberSaveable { mutableStateOf(deriveUsername(authState.email)) }
     var roleRequestOpen by rememberSaveable { mutableStateOf(false) }
 
+    // Seed the local username field from the server-side profile when it
+    // arrives. Without this the field is permanently stuck on the
+    // email-derived candidate even when the user already has a saved
+    // handle — [[feedback_state_from_prop_antipattern]]. Uses
+    // `serverSeededFor` to avoid clobbering edits the user is making
+    // mid-stream; we only seed once per distinct server username.
+    var serverSeededFor by rememberSaveable { mutableStateOf<String?>(null) }
+    androidx.compose.runtime.LaunchedEffect(profile?.username) {
+        val serverName = profile?.username
+        if (!serverName.isNullOrBlank() && serverSeededFor != serverName) {
+            username = serverName
+            serverSeededFor = serverName
+        }
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(bottom = 32.dp),
@@ -430,8 +447,17 @@ private fun SignedInContent(
                     Text(statusMsg)
                 },
                 trailingIcon = {
-                    if (usernameStatus == "available") {
-                        TextButton(onClick = { vm.setUsername(username) { /* no-op */ } }) {
+                    val dirty = username.isNotBlank() && username != profile?.username
+                    val savable = dirty && (usernameStatus == "available" || usernameStatus == null)
+                    if (dirty) {
+                        TextButton(
+                            enabled = savable && username.length >= 3,
+                            onClick = {
+                                vm.setUsername(username) { ok ->
+                                    if (ok) scope.launch { appSnackbar?.showSnackbar("Username saved") }
+                                }
+                            },
+                        ) {
                             Text("Save")
                         }
                     }

@@ -166,12 +166,9 @@ private fun DecksCompactScreen(
                             contentDescription = "Scan a card",
                         )
                     }
-                    IconButton(onClick = { editorOpen = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Open deck editor",
-                        )
-                    }
+                    // Editor opens via the bottom DeckSummaryBar drawer.
+                    // The duplicate top-bar Edit button was confusing —
+                    // there's now exactly one way to open the editor.
                     Box {
                         IconButton(onClick = { menuOpen = true }) {
                             Icon(
@@ -268,7 +265,7 @@ private fun DecksCompactScreen(
             if (!longPressHintDismissed) {
                 BOBAHintBanner(
                     title = "Long-press to add",
-                    body = "Long-press any card in the pool to add it to your deck draft. Tap to see card detail instead.",
+                    body = "Long-press any card to add it to your deck draft. Tap to see card detail instead.",
                     onDismiss = { hintsViewModel.dismiss(HintsStore.Ids.DECKS_LONG_PRESS_TO_ADD) },
                 )
             }
@@ -400,7 +397,7 @@ private fun CardPoolGrid(
     if (cards.isEmpty()) {
         BOBAEmptyState(
             icon = Icons.Default.SearchOff,
-            headline = "No cards in the pool",
+            headline = "No cards match",
             body = "Tweak the search above or use Filters in the Find tab to widen the catalog scope.",
             modifier = modifier,
         )

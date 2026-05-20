@@ -92,7 +92,7 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             BOBAEmptyState(
                 icon = Icons.Default.Save,
                 headline = "No saved decks yet",
-                body = "Build a draft in the pool, then tap Save in the editor. Decks sync across iOS, web, and Android.",
+                body = "Start a draft on the Decks tab, then tap Save in the editor. Decks sync across iOS, web, and Android.",
             )
         } else {
             androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {

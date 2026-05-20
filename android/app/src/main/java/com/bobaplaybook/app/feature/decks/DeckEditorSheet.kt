@@ -142,6 +142,7 @@ fun DeckEditorContentInline(
                 hasCards = draft.cards.isNotEmpty(),
                 onSave = onSave,
                 onSignInRequest = onSignInRequest,
+                hasName = draft.name.trim().isNotEmpty(),
             )
         }
 
@@ -203,6 +204,7 @@ private fun DeckEditorContent(
                 hasCards = draft.cards.isNotEmpty(),
                 onSave = onSave,
                 onSignInRequest = onSignInRequest,
+                hasName = draft.name.trim().isNotEmpty(),
             )
         }
 
@@ -243,11 +245,15 @@ private fun SaveOrSignInButton(
     hasCards: Boolean,
     onSave: () -> Unit,
     onSignInRequest: () -> Unit,
+    hasName: Boolean = true,
 ) {
     if (isSignedIn) {
         Button(
             onClick = onSave,
-            enabled = hasCards,
+            // Require both at least one card AND a non-empty name —
+            // the viewModel rejects empty names too but disabling the
+            // button keeps the user from a failed-save snackbar loop.
+            enabled = hasCards && hasName,
         ) {
             Icon(
                 Icons.Default.Save,

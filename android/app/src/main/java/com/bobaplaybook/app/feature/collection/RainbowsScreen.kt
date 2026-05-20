@@ -95,8 +95,13 @@ fun RainbowsScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { editorOpen = true }) {
-                Icon(Icons.Default.Add, contentDescription = "New custom rainbow")
+            // Hide FAB when signed-out — tapping with no editor backing
+            // is a dead-click. The signed-out empty state already
+            // surfaces the sign-in CTA.
+            if (state.isSignedIn) {
+                FloatingActionButton(onClick = { editorOpen = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "New custom rainbow")
+                }
             }
         },
     ) { padding ->

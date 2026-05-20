@@ -486,6 +486,7 @@ private fun CollectionGrid(
             Box(modifier = Modifier.fillMaxWidth()) {
                 BOBACardCell(
                     imageFile = entry.card.imageFile,
+                    isSealed = entry.card.isSealed,
                     contentDescription = entry.card.displayName,
                     modifier = Modifier
                         .cardSharedBounds(entry.card.bobaId)
@@ -528,6 +529,7 @@ private fun CollectionList(
                 Box(modifier = Modifier.width(40.dp).height(56.dp)) {
                     BOBACardCell(
                         imageFile = entry.card.imageFile,
+                    isSealed = entry.card.isSealed,
                         contentDescription = entry.card.displayName,
                     )
                 }
@@ -639,6 +641,7 @@ private fun CollectionWall(
                 ) {
                     BOBACardCell(
                         imageFile = entry.card.imageFile,
+                    isSealed = entry.card.isSealed,
                         contentDescription = entry.card.displayName,
                     )
                     if (includePrices) {

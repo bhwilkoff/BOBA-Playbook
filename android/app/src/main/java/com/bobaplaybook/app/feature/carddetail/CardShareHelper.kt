@@ -45,7 +45,8 @@ object CardShareHelper {
 
     private suspend fun fetchAndCacheImage(context: Context, card: Card): android.net.Uri? =
         withContext(Dispatchers.IO) {
-            val cdnUrl = CDN.fullUrl(card.imageFile) ?: return@withContext null
+            // Card-aware: sealed products route to /sealed/optimized/.
+            val cdnUrl = CDN.fullUrl(card) ?: return@withContext null
             val dir = File(context.cacheDir, "share").apply { mkdirs() }
             val safeBobaId = card.bobaId.replace("[^A-Za-z0-9.-]".toRegex(), "_")
             val file = File(dir, "card-$safeBobaId.webp")

@@ -34,7 +34,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -496,6 +498,7 @@ private fun HeroStatRow(card: Card) {
         else -> null
     }
     if (primary == null && card.dbs == null) return
+    var dbsInfoOpen by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -518,14 +521,30 @@ private fun HeroStatRow(card: Card) {
                 )
             }
         }
-        // DBS — Play-card-specific secondary stat, smaller display
+        // DBS — Play-card-specific secondary stat. Tap opens an
+        // explainer sheet (iOS parity: ProfileView.swift DBSInfoSheet).
         card.dbs?.let { dbs ->
-            Column(horizontalAlignment = androidx.compose.ui.Alignment.Start) {
-                Text(
-                    text = "+$dbs",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = com.bobaplaybook.core.ui.theme.BobaBrand.Violet,
-                )
+            Column(
+                horizontalAlignment = androidx.compose.ui.Alignment.Start,
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.small)
+                    .clickable { dbsInfoOpen = true }
+                    .padding(4.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "+$dbs",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = com.bobaplaybook.core.ui.theme.BobaBrand.Violet,
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "What is DBS?",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
                 Text(
                     text = "DBS",
                     style = MaterialTheme.typography.labelSmall,
@@ -534,6 +553,107 @@ private fun HeroStatRow(card: Card) {
                 )
             }
         }
+    }
+    if (dbsInfoOpen) {
+        DBSInfoSheet(onDismiss = { dbsInfoOpen = false })
+    }
+}
+
+/**
+ * What-is-DBS explainer. Triggered from the DBS stat cell on Plays.
+ * Copy ported from iOS DBSInfoSheet (BOBAPlaybook/Views/Search/
+ * CardDetailView.swift) so iOS+Android stay in sync. Sourced from
+ * the 2026-04-22 Discord terminology handoff §4.1.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun DBSInfoSheet(onDismiss: () -> Unit) {
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text(
+                "What is DBS?",
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            Text(
+                "The Deck Balancing System is a scoring system used in " +
+                    "Nationals-style formats to keep high-powered plays " +
+                    "from crowding out the rest of a deck.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            listOf(
+                "Every Play card has a DBS score.",
+                "Your deck's total DBS across all 30 Plays must be ≤ 1,000 in formats that enforce it.",
+                "High-DBS plays are individually powerful but force you to fill the rest of the deck with low-DBS plays to stay under budget.",
+                "Non-Nationals formats (Rookie, Substitution, Playmaker) ignore DBS entirely — it's only a constraint when a format opts in.",
+            ).forEach { bullet ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "•",
+                        color = com.bobaplaybook.core.ui.theme.BobaBrand.Orange,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        bullet,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "DBS tiers",
+                style = MaterialTheme.typography.titleSmall,
+            )
+            androidx.compose.material3.Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column {
+                    DbsTierRow("Low", "1–20",
+                        androidx.compose.ui.graphics.Color(0xFF7ECB82))
+                    DbsTierRow("Medium", "21–40",
+                        com.bobaplaybook.core.ui.theme.BobaBrand.Cyan)
+                    DbsTierRow("High", "41–60",
+                        androidx.compose.ui.graphics.Color(0xFFFFD700))
+                    DbsTierRow("Very High", "67+",
+                        com.bobaplaybook.core.ui.theme.BobaBrand.Orange)
+                }
+            }
+            Text(
+                "The deck builder shows a running DBS total and warns " +
+                    "you when you cross the budget — no mental math required.",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun DbsTierRow(label: String, range: String, color: androidx.compose.ui.graphics.Color) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = color,
+             fontWeight = FontWeight.Bold)
+        Text(range, style = MaterialTheme.typography.labelMedium,
+             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

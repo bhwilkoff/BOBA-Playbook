@@ -38,6 +38,9 @@ object NavRoutes {
     const val COLLECTION_CARD_DETAIL_PATTERN = "collection/card/{$ARG_BOBA_ID}"
     fun collectionCardDetail(bobaId: String) = "collection/card/$bobaId"
 
+    // Profile (full-screen destination — Find-only entry)
+    const val PROFILE = "profile"
+
     // Learn category/article
     const val ARG_CATEGORY = "category"
     const val LEARN_CATEGORY_PATTERN = "learn/{$ARG_CATEGORY}"

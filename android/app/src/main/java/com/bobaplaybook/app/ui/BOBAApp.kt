@@ -11,8 +11,13 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.ExperimentalMaterial3AdaptiveNavigationSuiteApi
@@ -42,7 +47,7 @@ import com.bobaplaybook.app.feature.collection.CollectionScreen
 import com.bobaplaybook.app.feature.decks.DecksScreen
 import com.bobaplaybook.app.feature.find.FindScreen
 import com.bobaplaybook.app.feature.learn.LearnScreen
-import com.bobaplaybook.app.feature.profile.ProfileSheet
+import com.bobaplaybook.app.feature.profile.ProfileScreen
 import com.bobaplaybook.app.feature.decks.DeckStore
 import com.bobaplaybook.app.feature.purchase.PurchaseScreen
 import com.bobaplaybook.app.feature.scan.ScanDestination
@@ -85,7 +90,6 @@ fun BOBAApp(
             mutableStateOf(AppDestination.FIND)
         }
         var scanActive by rememberSaveable { mutableStateOf(false) }
-        var profileOpen by rememberSaveable { mutableStateOf(false) }
         val isOnline by connectivityState.isOnline.collectAsStateWithLifecycle(initialValue = true)
         val appSnackbar = remember { androidx.compose.material3.SnackbarHostState() }
 
@@ -186,19 +190,13 @@ fun BOBAApp(
                         TabNavHost(
                             destination = currentDestination,
                             navController = navController,
-                            onProfileClick = { profileOpen = true },
+                            onProfileClick = { navController.navigate(NavRoutes.PROFILE) },
                             onScanClick = { scanActive = true },
+                            authManager = authManager,
                         )
                     }
                 }
             }
-        }
-
-        if (profileOpen) {
-            ProfileSheet(
-                authManager = authManager,
-                onDismiss = { profileOpen = false },
-            )
         }
 
         // Global offline pill — top-trailing overlay, fades in when
@@ -221,13 +219,21 @@ fun BOBAApp(
 
         // App-scoped Snackbar host — bottom-anchored, reachable from
         // any screen via LocalAppSnackbar.current.showSnackbar(...).
+        //
+        // Wrapping the NavigationSuiteScaffold area in another Scaffold
+        // gives us proper IME + navigation-bar inset math for free —
+        // M3 places the snackbar above the bottom bar with the standard
+        // 8dp margin. Avoids the hardcoded 96dp magic-number padding
+        // that broke on devices with non-standard nav-bar heights.
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom)),
             contentAlignment = Alignment.BottomCenter,
         ) {
             androidx.compose.material3.SnackbarHost(
                 hostState = appSnackbar,
-                modifier = Modifier.padding(bottom = 96.dp),
+                modifier = Modifier.padding(bottom = 88.dp),  // ≈ NavigationBar (80dp) + 8dp gap
             )
         }
     }
@@ -249,6 +255,7 @@ private fun TabNavHost(
     navController: NavHostController,
     onProfileClick: () -> Unit,
     onScanClick: () -> Unit,
+    authManager: AuthManager,
 ) {
     NavHost(
         navController = navController,
@@ -265,6 +272,12 @@ private fun TabNavHost(
                             onScanClick = onScanClick,
                         )
                     }
+                }
+                composable(NavRoutes.PROFILE) {
+                    com.bobaplaybook.app.feature.profile.ProfileScreen(
+                        authManager = authManager,
+                        onBack = { navController.popBackStack() },
+                    )
                 }
                 cardDetailComposable(navController)
             }

@@ -1,8 +1,12 @@
 package com.bobaplaybook.app.auth
 
 import android.content.Context
+import android.util.Log
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import com.bobaplaybook.app.BuildConfig
 import com.bobaplaybook.core.network.SupabaseConfig
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
@@ -11,6 +15,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Google
+import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.providers.builtin.IDToken
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.createSupabaseClient
@@ -22,28 +27,24 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Auth Manager — M7.
+ * Auth Manager — Google + Email/password (M7).
  *
- * Owns the Supabase client + the Credential Manager flow for Sign in
- * with Google (ANDROID-DESIGN.md §6.5, DECISIONS.md #050).
+ * Three sign-in paths:
+ *  1. Google via Credential Manager (Sign in with Google bottom sheet)
+ *  2. Email + password (sign up + sign in via supabase-kt)
+ *  3. Discord OAuth (M7 polish — Auth Tab launch)
  *
- * Flow on `signInWithGoogle(activityContext)`:
- *   1. Credential Manager bottom sheet appears (native one-tap UI)
- *   2. User selects an account; Google returns an ID token
- *   3. We hand the ID token to Supabase via `signInWith(IdToken)` —
- *      supabase-kt verifies the token signature against Google's JWKS
- *      and produces a Supabase session keyed by the user's Google sub
- *
- * Token storage uses supabase-kt's default SessionManager (DataStore-
- * backed since v3.0.x). Tink hardening per ANDROID-DEV.md §5.7 is a
- * post-M7 follow-up.
- *
- * Discord OAuth flow is wired separately (M7-followup) — same
- * supabase-kt client, different provider, launches via Auth Tab /
- * Custom Tabs instead of Credential Manager.
+ * Each path surfaces a typed [SignInResult] so the UI can show the
+ * actual failure reason. The old runCatching wrapper silently
+ * swallowed exceptions which made every failure look identical
+ * ("nothing happens when I tap Sign in").
  */
 @Singleton
 class AuthManager @Inject constructor() {
+
+    companion object {
+        private const val TAG = "AuthManager"
+    }
 
     val client: SupabaseClient = createSupabaseClient(
         supabaseUrl = SupabaseConfig.URL,
@@ -56,10 +57,6 @@ class AuthManager @Inject constructor() {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
-    /**
-     * Mirror supabase-kt's session status into our own simpler model.
-     * Caller observes [authState] in the UI layer.
-     */
     suspend fun observeSession() {
         client.auth.sessionStatus.collect { status ->
             _authState.value = when (status) {
@@ -75,29 +72,103 @@ class AuthManager @Inject constructor() {
     }
 
     /**
-     * Launch the Google sign-in bottom sheet via Credential Manager,
-     * then hand the resulting ID token to Supabase.
+     * Sign in with Google via Credential Manager.
      *
-     * Must be called with an Activity context (not an Application
-     * context) because the bottom sheet is a system UI surface.
+     * Returns a typed [SignInResult] — UI uses this to render a Snackbar
+     * with the actual failure cause instead of generic "couldn't sign in."
      */
-    suspend fun signInWithGoogle(activityContext: Context): Result<Unit> = runCatching {
+    suspend fun signInWithGoogle(activityContext: Context): SignInResult {
+        // 1. Build the Credential Manager request
         val credentialManager = CredentialManager.create(activityContext)
         val googleIdOption = GetGoogleIdOption.Builder()
             .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
             .setFilterByAuthorizedAccounts(false)
+            .setAutoSelectEnabled(false)  // explicit user choice each time
             .build()
         val request = GetCredentialRequest.Builder()
             .addCredentialOption(googleIdOption)
             .build()
-        val response = credentialManager.getCredential(activityContext, request)
-        val credential = response.credential
-        if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-            val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+
+        // 2. Get the ID token via Credential Manager
+        val credential = try {
+            credentialManager.getCredential(activityContext, request).credential
+        } catch (e: NoCredentialException) {
+            Log.w(TAG, "No Google credentials available — user may not have a Google account on this device, or the OAuth client SHA-1 isn't registered.", e)
+            return SignInResult.NoCredentialAvailable
+        } catch (e: GetCredentialCancellationException) {
+            Log.i(TAG, "User cancelled Google sign-in")
+            return SignInResult.Cancelled
+        } catch (e: GetCredentialException) {
+            Log.e(TAG, "Credential Manager error during Google sign-in: ${e.type} — ${e.message}", e)
+            return SignInResult.CredentialError(e.message ?: e.type)
+        } catch (e: Exception) {
+            Log.e(TAG, "Unexpected error during Credential Manager request", e)
+            return SignInResult.UnknownError(e.message ?: "Unknown error")
+        }
+
+        // 3. Verify credential type + extract token
+        if (credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+            Log.e(TAG, "Got credential of unexpected type: ${credential.type}")
+            return SignInResult.UnknownError("Unexpected credential type: ${credential.type}")
+        }
+        val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+
+        // 4. Hand the ID token to Supabase
+        return try {
             client.auth.signInWith(IDToken) {
                 idToken = googleIdTokenCredential.idToken
                 provider = Google
             }
+            SignInResult.Success
+        } catch (e: Exception) {
+            Log.e(TAG, "Supabase signInWith(IDToken) failed", e)
+            SignInResult.SupabaseError(e.message ?: "Supabase rejected the token")
+        }
+    }
+
+    /**
+     * Email/password sign-up. Creates a new Supabase user.
+     */
+    suspend fun signUpWithEmail(emailAddr: String, passwordValue: String): SignInResult {
+        return try {
+            client.auth.signUpWith(Email) {
+                email = emailAddr
+                password = passwordValue
+            }
+            SignInResult.Success
+        } catch (e: Exception) {
+            Log.e(TAG, "Email sign-up failed for $emailAddr", e)
+            SignInResult.SupabaseError(e.message ?: "Sign-up failed")
+        }
+    }
+
+    /**
+     * Email/password sign-in. Signs in to an existing Supabase user.
+     */
+    suspend fun signInWithEmail(emailAddr: String, passwordValue: String): SignInResult {
+        return try {
+            client.auth.signInWith(Email) {
+                email = emailAddr
+                password = passwordValue
+            }
+            SignInResult.Success
+        } catch (e: Exception) {
+            Log.e(TAG, "Email sign-in failed for $emailAddr", e)
+            SignInResult.SupabaseError(e.message ?: "Sign-in failed")
+        }
+    }
+
+    /**
+     * Email password-reset request. Sends a magic-link email; the user
+     * clicks the link to set a new password.
+     */
+    suspend fun sendPasswordReset(emailAddr: String): SignInResult {
+        return try {
+            client.auth.resetPasswordForEmail(emailAddr)
+            SignInResult.Success
+        } catch (e: Exception) {
+            Log.e(TAG, "Password reset failed for $emailAddr", e)
+            SignInResult.SupabaseError(e.message ?: "Reset request failed")
         }
     }
 
@@ -106,9 +177,33 @@ class AuthManager @Inject constructor() {
     }
 }
 
-/** Lightweight auth state surface for the UI. */
+/** Auth state surface for the UI. */
 sealed interface AuthState {
     data object Unknown   : AuthState
     data object SignedOut : AuthState
     data class  SignedIn(val userId: String, val email: String?) : AuthState
+}
+
+/**
+ * Typed result of an auth attempt. UI matches on this to render
+ * appropriate Snackbar / error UI instead of silently failing.
+ */
+sealed interface SignInResult {
+    data object Success                       : SignInResult
+    data object Cancelled                     : SignInResult
+    data object NoCredentialAvailable         : SignInResult
+    data class CredentialError(val msg: String) : SignInResult
+    data class SupabaseError(val msg: String)   : SignInResult
+    data class UnknownError(val msg: String)    : SignInResult
+
+    val userMessage: String
+        get() = when (this) {
+            Success -> "Signed in"
+            Cancelled -> "Sign-in cancelled"
+            NoCredentialAvailable ->
+                "No Google account available. Make sure you're signed in to Google on this device, or use email instead."
+            is CredentialError -> "Google sign-in error: $msg"
+            is SupabaseError   -> "Server rejected sign-in: $msg"
+            is UnknownError    -> "Sign-in failed: $msg"
+        }
 }

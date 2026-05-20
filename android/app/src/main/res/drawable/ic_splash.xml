@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Splash icon — XOXO playbook mark sized for the Splash Screen API
+  canvas (240×240dp viewport with content inside the inner ~192dp
+  visible area).
+
+  Per Android docs (developer.android.com/develop/ui/views/launch/splash-screen):
+    canvas      = 240×240dp
+    safe zone   = inner 192dp circle (where art is guaranteed visible)
+    content     = should fill ~85-90% of canvas for proper visual weight
+
+  Distinct from ic_launcher_foreground (108-canvas adaptive icon) —
+  reusing the adaptive icon at splash causes content to render at ~50%
+  of the visible area, which is the "misaligned / undersized" effect.
+
+  Bounds: XOXO grid spans (40, 40) to (200, 200) — centered, 160dp wide
+  on a 240dp canvas → 67% content ratio matching M3 splash guidance.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp"
+    android:height="240dp"
+    android:viewportWidth="240"
+    android:viewportHeight="240">
+
+    <!-- Top-left: X — centered at (70, 70), 40dp wide -->
+    <path
+        android:strokeColor="@color/boba_orange"
+        android:strokeWidth="14"
+        android:strokeLineCap="round"
+        android:pathData="M50,50 L90,90 M90,50 L50,90" />
+
+    <!-- Top-right: O — centered at (170, 70), radius 20 -->
+    <path
+        android:strokeColor="@color/boba_orange"
+        android:strokeWidth="14"
+        android:strokeLineCap="round"
+        android:pathData="M170,70 m-20,0 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0" />
+
+    <!-- Bottom-left: O — centered at (70, 170), radius 20 -->
+    <path
+        android:strokeColor="@color/boba_orange"
+        android:strokeWidth="14"
+        android:strokeLineCap="round"
+        android:pathData="M70,170 m-20,0 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0" />
+
+    <!-- Bottom-right: X — centered at (170, 170), 40dp wide -->
+    <path
+        android:strokeColor="@color/boba_orange"
+        android:strokeWidth="14"
+        android:strokeLineCap="round"
+        android:pathData="M150,150 L190,190 M190,150 L150,190" />
+</vector>

@@ -102,28 +102,72 @@ private fun AddToCollectionContent(
     var askingText by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Header
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "Add to Collection",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.weight(1f),
-            )
-            IconButton(onClick = onDismiss) {
-                Icon(Icons.Default.Close, contentDescription = "Close")
+    androidx.compose.material3.Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            // Sheet header row — title + close icon
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Add to Collection",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Close")
+                }
             }
-        }
-        HorizontalDivider()
-
+        },
+        bottomBar = {
+            // Sticky bottom action bar — Cancel + Save always visible
+            // regardless of scroll position. M3 guidance for scrolling
+            // bottom-sheet forms.
+            androidx.compose.material3.Surface(
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                tonalElevation = 0.dp,
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = {
+                            onSubmit(
+                                AddToCollectionInput(
+                                    cardBobaId       = card.bobaId,
+                                    designation      = designation,
+                                    quantity         = quantity.toIntOrNull() ?: 1,
+                                    condition        = condition,
+                                    grade            = gradeText.takeIf { it.isNotBlank() },
+                                    gradingCompany   = gradingCompany,
+                                    purchasePriceUsd = purchaseText.toDoubleOrNull(),
+                                    askingPriceUsd   = askingText.toDoubleOrNull(),
+                                    notes            = notes.takeIf { it.isNotBlank() },
+                                ),
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.width(18.dp).height(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Save")
+                    }
+                }
+            }
+        },
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 96.dp),
+                .padding(padding)
+                .verticalScroll(rememberScrollState()),
         ) {
             // Card header card-row
             Row(
@@ -255,37 +299,8 @@ private fun AddToCollectionContent(
             }
 
             Spacer(Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                    Text("Cancel")
-                }
-                Button(
-                    onClick = {
-                        onSubmit(
-                            AddToCollectionInput(
-                                cardBobaId       = card.bobaId,
-                                designation      = designation,
-                                quantity         = quantity.toIntOrNull() ?: 1,
-                                condition        = condition,
-                                grade            = gradeText.takeIf { it.isNotBlank() },
-                                gradingCompany   = gradingCompany,
-                                purchasePriceUsd = purchaseText.toDoubleOrNull(),
-                                askingPriceUsd   = askingText.toDoubleOrNull(),
-                                notes            = notes.takeIf { it.isNotBlank() },
-                            ),
-                        )
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.width(18.dp).height(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Save")
-                }
-            }
+            // Action bar moved to Scaffold's bottomBar above — sticky
+            // regardless of scroll position.
         }
     }
 }

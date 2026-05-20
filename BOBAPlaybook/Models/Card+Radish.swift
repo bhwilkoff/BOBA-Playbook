@@ -288,43 +288,89 @@ final class RadishURLResolver {
     static let shared = RadishURLResolver()
     private var cache: [String: URL] = [:]
 
-    /// Best URL for a card. Walks the candidate list (primary URL,
-    /// casing-flip, cross-year namespace combinations) and returns the
-    /// first one that HEAD-probes successfully. Falls back to the
-    /// hero-only URL when every card-specific candidate 404s.
-    /// Returns nil only if the catalog can't even build a primary URL
-    /// (e.g. missing set/hero).
+    /// Best URL for a card. Three-tier resolution, all sitemap-derived:
+    ///
+    /// **Tier 1 (98.2% of catalog, instant):** read `card.radishUrl`
+    /// field. The offline pipeline (scripts/build_radish_url_map.py +
+    /// scripts/apply_radish_urls.py) bakes the canonical URL from
+    /// Radish's own sitemap into every catalog row at build time.
+    ///
+    /// **Tier 2 (residual ~1.8%):** call the Worker's
+    /// /radish-url endpoint, which does a live sitemap lookup against
+    /// an edge-cached parse of Radish's sitemap.xml (TTL 7 days). The
+    /// Worker is the SINGLE place URL construction happens — when
+    /// Radish changes shape (4-segment → 5-segment, hero-casing drift,
+    /// whatever's next), only the Worker needs an update; all clients
+    /// pick up the new shape automatically.
+    ///
+    /// **Tier 3 (Worker unreachable / network offline):** fall back to
+    /// the locally-constructed candidate URLs and HEAD-probe them.
+    /// This is the last-resort offline path; the existing
+    /// `radishCandidateURLs` logic preserves behavior pre-Worker.
     func resolve(for card: Card) async -> URL? {
         if let cached = cache[card.id] { return cached }
-        guard let primary = card.resolvedRadishURL else { return nil }
 
-        // Sealed Products use a static index page; no probe needed.
-        if card.cardType == "Sealed Product" {
-            cache[card.id] = primary
-            return primary
+        // Tier 1 — pre-baked from offline sitemap parse.
+        if let raw = card.radishUrl, !raw.isEmpty, let prebuilt = URL(string: raw) {
+            cache[card.id] = prebuilt
+            return prebuilt
         }
 
-        // Probe each candidate in priority order. First reachable wins.
+        // Sealed Products use a static index page; no Worker call needed.
+        if card.cardType == "Sealed Product" {
+            if let primary = card.resolvedRadishURL {
+                cache[card.id] = primary
+                return primary
+            }
+        }
+
+        // Tier 2 — Worker live lookup.
+        if let live = await fetchRadishURLFromWorker(for: card) {
+            cache[card.id] = live
+            return live
+        }
+
+        // Tier 3 — last-resort local construction + HEAD probe.
+        guard let primary = card.resolvedRadishURL else { return nil }
         for candidate in card.radishCandidateURLs {
             if await urlIsReachable(candidate) {
                 cache[card.id] = candidate
                 return candidate
             }
         }
-        // Every card-specific candidate 404'd. Fall back to the hero
-        // page which aggregates every print and is almost always
-        // present.
         if let fallback = card.heroOnlyRadishURL,
            fallback != primary,
            await urlIsReachable(fallback) {
             cache[card.id] = fallback
             return fallback
         }
-        // Even when every option 404s, return the primary so the
-        // button is at least clickable — Radish's 404 page lets the
-        // user navigate up via breadcrumbs.
         cache[card.id] = primary
         return primary
+    }
+
+    /// Worker-side resolution. Single GET against the boba-ebay-proxy
+    /// `/radish-url` endpoint. The Worker holds the only place that
+    /// constructs URLs from sitemap data — clients consume.
+    private func fetchRadishURLFromWorker(for card: Card) async -> URL? {
+        var comps = URLComponents(string: "\(WorkerConfig.ebayProxyURL)/radish-url")
+        comps?.queryItems = [
+            URLQueryItem(name: "set",        value: card.set),
+            URLQueryItem(name: "hero",       value: card.hero.isEmpty ? card.name : card.hero),
+            URLQueryItem(name: "cardNumber", value: card.cardNumber),
+        ]
+        guard let url = comps?.url else { return nil }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 4
+        do {
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else { return nil }
+            struct Body: Decodable { let url: String? }
+            let body = try JSONDecoder().decode(Body.self, from: data)
+            guard let s = body.url, !s.isEmpty else { return nil }
+            return URL(string: s)
+        } catch {
+            return nil
+        }
     }
 
     /// Promote a Worker-validated URL into the cache. When the

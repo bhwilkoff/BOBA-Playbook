@@ -650,21 +650,41 @@ async function fetchRadishSales(radishUrl, days) {
   return { items: null, resolvedUrl: null, stale: false };
 }
 
-/// Pull (year, slug, hero, cardNumber) out of a Radish card URL.
-/// Returns null when the URL doesn't have the four-segment shape
-/// (e.g. /boba/sealed or already a hero-only path).
+/// Pull (year, slug, hero, treatment?, cardNumber?) out of a Radish
+/// card URL. Handles both legacy 4-segment shape
+///   /boba/{year}/{slug}/{hero}/{cardNumber}
+/// AND the current canonical 5-segment shape
+///   /boba/{year}/{slug}/{hero}/{treatment}/{cardNumber}
+/// Returns null when the URL doesn't match either (e.g. /boba/sealed).
+///
+/// The catalog now bakes canonical 5-segment URLs sourced from
+/// Radish's sitemap (scripts/build_radish_url_map.py). When the
+/// client sends one of those, parts.length is 6 and the cardNumber
+/// is in the LAST segment, not parts[4].
 function parseRadishURL(url) {
   try {
     const u = new URL(url);
     const parts = u.pathname.split("/").filter(Boolean);
-    // Expecting ["boba", year, slug, hero, cardNumber?]
     if (parts.length < 4 || parts[0] !== "boba") return null;
-    const [, year, slug, heroEnc, cardNumberEnc] = parts;
+    const year = parts[1];
+    const slug = parts[2];
     if (!/^\d{4}$/.test(year)) return null;
+    const heroEnc = parts[3];
+    let treatment = null;
+    let cardNumberEnc = null;
+    if (parts.length === 5) {
+      // Legacy 4-segment shape: hero + cardNumber
+      cardNumberEnc = parts[4];
+    } else if (parts.length >= 6) {
+      // Current canonical shape: hero + treatment + cardNumber
+      treatment    = decodeURIComponent(parts[4]);
+      cardNumberEnc = parts[5];
+    }
     return {
       year,
       slug,
-      hero: decodeURIComponent(heroEnc),
+      hero:       decodeURIComponent(heroEnc),
+      treatment,
       cardNumber: cardNumberEnc ? decodeURIComponent(cardNumberEnc) : null,
     };
   } catch {
@@ -1345,6 +1365,182 @@ async function handleOCR(request, env) {
   }
 }
 
+// ── Radish URL resolver (sitemap-driven, edge-cached) ────────────────────────
+//
+// Single source of truth for Radish URL construction. Clients NEVER
+// hardcode Radish URL templates — they call /radish-url with the
+// catalog tuple (set, hero, cardNumber) and get back the canonical
+// URL. When Radish changes shape (4-segment → 5-segment, hero-casing
+// drift, whatever's next), only this Worker needs an update; the
+// edge cache evicts on the next miss and all clients get the new
+// shape on next launch.
+//
+// Storage strategy: pure Cloudflare edge cache (caches.default).
+// First call after expiry fetches Radish's sitemap.xml (~4 MB),
+// parses every 5-segment URL into a {key → URL} map, and stuffs
+// the JSON back into the cache with a 7-day TTL. Subsequent calls
+// hit cache and do a single hashmap lookup.
+//
+// Lookup key: `{year}/{slug}/{lower(hero)}/{lower(cardnum)}`. The
+// lowercase normalization means every drift dimension we've found
+// (RAD vs Rad, ChetMate vs Chetmate, etc.) resolves to the SAME
+// key — Radish's sitemap entry is the canonical answer regardless
+// of input casing.
+
+const RADISH_SITEMAP_URL = "https://radishpriceguide.com/sitemap.xml";
+const RADISH_MAP_CACHE_TTL = 7 * 24 * 3600;  // 7 days
+
+// Catalog set name → (year, slug). Mirrors SET_MAP on iOS / web /
+// scripts/apply_radish_urls.py. The ONLY hardcoded thing in this
+// pipeline that isn't auto-derived from Radish's sitemap.
+const SET_TO_NAMESPACE = {
+  "Alpha":                          ["2024", "Alpha_Edition"],
+  "Alpha Edition":                  ["2024", "Alpha_Edition"],
+  "Alpha Update":                   ["2025", "Alpha_Update"],
+  "Alpha Blast":                    ["2025", "Alpha_Blast"],
+  "Griffey":                        ["2026", "Griffey_Edition"],
+  "Griffey Edition":                ["2026", "Griffey_Edition"],
+  "National Starter Set":           ["2024", "National_24_Starter_Set"],
+  "2024 National Show Starter Set": ["2024", "National_24_Starter_Set"],
+  "National '24":                   ["2024", "National_24_Starter_Set"],
+  "National 24 Starter Set":        ["2024", "National_24_Starter_Set"],
+  "World Champions":                ["2024", "World_Champions"],
+  "World Champions 2024":           ["2024", "World_Champions"],
+  "World Champions 2025":           ["2025", "World_Champions"],
+  "Battle Trainer Kit":             ["2024", "Battle_Trainer_Kit"],
+  "Superfan Series":                ["2024", "Superfan_Series"],
+  "Promo Cards":                    ["2025", "Promo_Cards"],
+  "Big League Chew":                ["2025", "Big_League_Chew"],
+  "Tecmo Bowl Edition":             ["2025", "Tecmo_Bowl"],
+};
+
+/// Fetch + parse Radish's sitemap. Returns a JSON-serializable
+/// lookup object. Pure function — no side effects.
+async function fetchRadishURLMap() {
+  const res = await fetch(RADISH_SITEMAP_URL, {
+    headers: { "User-Agent": "Mozilla/5.0 (BOBA Playbook Worker)" },
+  });
+  if (!res.ok) {
+    await res.body?.cancel();
+    throw new Error(`Sitemap fetch failed: ${res.status}`);
+  }
+  const xml = await res.text();
+  const locRegex = /<loc>([^<]+)<\/loc>/g;
+  const map = {};
+  const byHeroCardnum = {};   // (lower_hero, lower_cardnum) → first URL across any namespace
+  const namespaces = new Set();
+  let total = 0;
+  let m;
+  while ((m = locRegex.exec(xml)) !== null) {
+    const u = m[1];
+    const idx = u.indexOf("/boba/");
+    if (idx < 0) continue;
+    const parts = u.slice(idx + 6).split("/");
+    if (parts.length !== 5) continue;  // only canonical 5-segment URLs
+    let year, slug, heroEnc, _treatmentEnc, cardnumEnc;
+    [year, slug, heroEnc, _treatmentEnc, cardnumEnc] = parts;
+    try {
+      year = decodeURIComponent(year);
+      slug = decodeURIComponent(slug);
+      const hero = decodeURIComponent(heroEnc);
+      const cardnum = decodeURIComponent(cardnumEnc);
+      const key = `${year}/${slug}/${hero.toLowerCase()}/${cardnum.toLowerCase()}`;
+      if (!(key in map)) {
+        map[key] = u;
+        total++;
+      }
+      const hcKey = `${hero.toLowerCase()}/${cardnum.toLowerCase()}`;
+      if (!(hcKey in byHeroCardnum)) byHeroCardnum[hcKey] = u;
+      namespaces.add(`${year}/${slug}`);
+    } catch { /* skip malformed URI */ }
+  }
+  return {
+    builtAt: new Date().toISOString(),
+    source: RADISH_SITEMAP_URL,
+    totalUrls: total,
+    namespaces: Array.from(namespaces).sort(),
+    map,
+    byHeroCardnum,
+  };
+}
+
+/// Edge-cached wrapper. First call after TTL expiry refetches.
+async function getRadishURLMap() {
+  const cache = caches.default;
+  const cacheKey = new Request("https://boba-cache.internal/radish-url-map/v1");
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached.json();
+  const data = await fetchRadishURLMap();
+  await cache.put(cacheKey, new Response(JSON.stringify(data), {
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": `public, max-age=${RADISH_MAP_CACHE_TTL}`,
+    },
+  }));
+  return data;
+}
+
+/// GET /radish-url?set=&hero=&cardNumber= → {url, namespace, lookup}
+async function handleRadishURL(request) {
+  const { searchParams } = new URL(request.url);
+  const setField   = (searchParams.get("set")        || "").trim();
+  const hero       = (searchParams.get("hero")       || "").trim();
+  const cardNumber = (searchParams.get("cardNumber") || "").trim();
+  if (!hero || !cardNumber) {
+    return json({ error: "hero + cardNumber required" }, 400);
+  }
+  let data;
+  try {
+    data = await getRadishURLMap();
+  } catch (err) {
+    return json({ error: `sitemap unavailable: ${err.message}` }, 502);
+  }
+  const lhero = hero.toLowerCase();
+  const lcn   = cardNumber.toLowerCase();
+
+  // Primary lookup: use the catalog set → namespace map.
+  const ns = SET_TO_NAMESPACE[setField];
+  if (ns) {
+    const [year, slug] = ns;
+    const url = data.map[`${year}/${slug}/${lhero}/${lcn}`];
+    if (url) return json({ url, namespace: `${year}/${slug}`, lookup: "primary" });
+  }
+
+  // Cross-namespace fallback: same (hero, cardnum) lives at a different (year, slug).
+  const crossUrl = data.byHeroCardnum[`${lhero}/${lcn}`];
+  if (crossUrl) {
+    return json({ url: crossUrl, namespace: null, lookup: "cross-namespace" });
+  }
+
+  // Hero-page fallback: at least direct to the hero index.
+  if (ns) {
+    return json({
+      url: `https://radishpriceguide.com/boba/${ns[0]}/${ns[1]}/${encodeURIComponent(hero)}`,
+      namespace: `${ns[0]}/${ns[1]}`,
+      lookup: "hero-only",
+    });
+  }
+  return json({ error: "no match", lookup: "none" }, 404);
+}
+
+/// GET /radish-url-map → the full lookup table (for offline catalog
+/// bake / batch refresh). Cached at edge for 7 days; clients should
+/// also cache locally.
+async function handleRadishURLMapDump(_request) {
+  try {
+    const data = await getRadishURLMap();
+    return json({
+      builtAt: data.builtAt,
+      source: data.source,
+      totalUrls: data.totalUrls,
+      namespaces: data.namespaces,
+      map: data.map,
+    }, 200, { "Cache-Control": `public, max-age=${RADISH_MAP_CACHE_TTL}` });
+  } catch (err) {
+    return json({ error: `sitemap unavailable: ${err.message}` }, 502);
+  }
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 export default {
@@ -1358,6 +1554,8 @@ export default {
     if (request.method === "GET"  && url.pathname.endsWith("/discord/messages")) return handleDiscordMessages(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/whatnot/upcoming")) return handleWhatnotUpcoming(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/scrape-ebay"))      return handleScrapeEbay(request, env);
+    if (request.method === "GET"  && url.pathname.endsWith("/radish-url"))       return handleRadishURL(request);
+    if (request.method === "GET"  && url.pathname.endsWith("/radish-url-map"))   return handleRadishURLMapDump(request);
     const { searchParams } = url;
     const cardNumber = searchParams.get("cardNumber");
     const hero       = searchParams.get("hero") || "";

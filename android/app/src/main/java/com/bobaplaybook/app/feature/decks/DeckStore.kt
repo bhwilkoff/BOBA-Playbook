@@ -1,9 +1,11 @@
 package com.bobaplaybook.app.feature.decks
 
+import com.bobaplaybook.core.data.decks.SavedDeck
 import com.bobaplaybook.core.domain.model.Card
 import dagger.hilt.android.scopes.ViewModelScoped
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,5 +38,25 @@ class DeckStore @Inject constructor() {
 
     fun clear() {
         _draft.value = DeckDraft()
+    }
+
+    /**
+     * Replace the current draft with a saved deck — used by
+     * AddToDeckSheet's "open saved deck" path and by DeckManageScreen.
+     *
+     * The saved deck stores card_number + quantity rows; we expand
+     * them by joining against the in-memory catalog. Cards not found
+     * in the catalog (legacy decks pointing at retired cards) are
+     * silently skipped.
+     */
+    fun loadFromSaved(saved: SavedDeck, catalog: List<Card>) {
+        val byCardNumber = catalog.associateBy { it.cardNumber }
+        val expanded = buildList {
+            saved.cards.forEach { row ->
+                val card = byCardNumber[row.cardNumber] ?: return@forEach
+                repeat(row.quantity) { add(card) }
+            }
+        }.toPersistentList()
+        _draft.value = DeckDraft(name = saved.name, cards = expanded)
     }
 }

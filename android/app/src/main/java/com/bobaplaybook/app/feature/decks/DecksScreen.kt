@@ -77,6 +77,7 @@ import com.bobaplaybook.core.ui.components.BOBAHintBanner
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 import com.bobaplaybook.core.ui.components.BOBAWordmark
 import com.bobaplaybook.core.ui.transitions.cardSharedBounds
+import kotlinx.coroutines.launch
 
 /**
  * Decks tab — the builder (ANDROID-DESIGN.md §8.3).
@@ -144,6 +145,8 @@ private fun DecksCompactScreen(
         .isDismissed(HintsStore.Ids.DECKS_LONG_PRESS_TO_ADD)
         .collectAsStateWithLifecycle(initialValue = true)
     val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
     var editorOpen by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var templatesOpen by remember { mutableStateOf(false) }
@@ -289,7 +292,16 @@ private fun DecksCompactScreen(
             onRemove = deckViewModel::remove,
             onSave = {
                 deckViewModel.save { success ->
-                    if (success) editorOpen = false
+                    if (success) {
+                        editorOpen = false
+                        scope.launch {
+                            appSnackbar?.showSnackbar("Saved \"${draft.name}\"")
+                        }
+                    } else {
+                        scope.launch {
+                            appSnackbar?.showSnackbar("Couldn't save deck. Check connectivity.")
+                        }
+                    }
                 }
             },
             onSignInRequest = {

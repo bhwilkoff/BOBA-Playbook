@@ -106,7 +106,7 @@ When shipping any user-facing feature:
 | Value summary | ✅ | ✅ | ✅ | `user_cards.estimated_value` |
 | Value history chart | ✅ | 🔮 | ⏳ M2 polish | Push destination |
 | Custom Rainbows | ✅ | ✅ read-only | ⏳ M2 polish | Per-user filter goals; Supabase `user_custom_rainbows`. Web shipped read-only display + progress bar tick 7; editor is iOS-only. |
-| Per-hero Auto Rainbows | ✅ | 🔮 | ⏳ M2 polish | Same RainbowDetailView pattern |
+| Per-hero Auto Rainbows | ✅ | ✅ read-only | ⏳ M2 polish | Web synthesizes one row per owned hero × catalog, sorted by completion % desc. Read-only. Tick 8. |
 | My Shows (streamer-only) | ✅ | ✅ | ⏳ M2 polish | Push destination, role-gated |
 | Wall view (display mode + share) | ✅ | ✅ canvas-render | ⏳ M2 polish | Web shipped canvas-rendered PNG (download + clipboard + Web Share) tick 5. Lifted from streamer-only per DECISIONS.md #036. |
 | Price Overlay (in Wall view) | ✅ | ✅ | ⏳ M2 polish | Per-designation defaults (For Sale ON / My price · For Trade ON / Market · Wanted ON / Market w/ WTB · Personal/Grails OFF) + source override dropdown. Live re-render on toggle (no image reload). |

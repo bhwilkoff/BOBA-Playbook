@@ -44,6 +44,8 @@ data class UserCard(
     val purchasePrice: Double? = null,
     val askingPrice: Double? = null,
     val estimatedValue: Double? = null,
+    /** Mint / Near Mint / Excellent / Good / Poor — surfaced in Edit. */
+    val condition: String? = null,
     val notes: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
 )

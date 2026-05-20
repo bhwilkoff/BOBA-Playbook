@@ -35,6 +35,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -60,7 +61,13 @@ fun RainbowsScreen(
     modifier: Modifier = Modifier,
 ) {
     val viewModel: CollectionViewModel = hiltViewModel()
+    val customVm: CustomRainbowsViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val customRainbows by customVm.rainbows.collectAsStateWithLifecycle()
+    var editorOpen by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf(false)
+    }
+
 
     // Group owned cards by hero for auto rainbows
     val heroRainbows: List<AutoRainbow> = state.entriesByDesignation.values.flatten()
@@ -88,7 +95,7 @@ fun RainbowsScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { /* M7 polish — Custom Rainbow Editor */ }) {
+            FloatingActionButton(onClick = { editorOpen = true }) {
                 Icon(Icons.Default.Add, contentDescription = "New custom rainbow")
             }
         },
@@ -107,13 +114,36 @@ fun RainbowsScreen(
             contentPadding = PaddingValues(bottom = 96.dp),
         ) {
             item("custom-header") { BOBASectionHeader(title = "Custom rainbows") }
-            item("custom-empty") {
-                Text(
-                    "User-defined collecting goals. Tap the + button to define a new rainbow with weapon, set, treatment, or hero criteria.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
+            if (customRainbows.isEmpty()) {
+                item("custom-empty") {
+                    Text(
+                        "User-defined collecting goals. Tap the + button to define a new rainbow with weapon, set, treatment, or hero criteria.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
+            } else {
+                items(items = customRainbows, key = { it.id }) { rainbow ->
+                    ListItem(
+                        headlineContent = { Text(rainbow.name) },
+                        supportingContent = {
+                            val parts = buildList {
+                                if (rainbow.criteria.heroes.isNotEmpty()) add("${rainbow.criteria.heroes.size} heroes")
+                                if (rainbow.criteria.elements.isNotEmpty()) add("${rainbow.criteria.elements.size} weapons")
+                                if (rainbow.criteria.treatments.isNotEmpty()) add("${rainbow.criteria.treatments.size} treatments")
+                                if (rainbow.criteria.inspiredInkOnly) add("Inspired Ink only")
+                            }
+                            Text(
+                                parts.joinToString(" · ").ifEmpty { "Any card" },
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        },
+                        trailingContent = { Icon(Icons.Default.ChevronRight, contentDescription = null) },
+                        modifier = Modifier.clickable { onRainbowClick("custom", rainbow.id) },
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
             }
             item("divider") { HorizontalDivider() }
             item("auto-header") { BOBASectionHeader(title = "Per-hero auto rainbows") }
@@ -145,6 +175,10 @@ fun RainbowsScreen(
                 }
             }
         }
+    }
+
+    if (editorOpen) {
+        CustomRainbowEditorSheet(onDismiss = { editorOpen = false })
     }
 }
 

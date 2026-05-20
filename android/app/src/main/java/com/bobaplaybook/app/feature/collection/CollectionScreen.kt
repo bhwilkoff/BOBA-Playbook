@@ -240,8 +240,28 @@ fun CollectionScreen(
                 )
             }
 
-            if (state.totalValueUsd > 0.0) {
-                ValueSummary(totalUsd = state.totalValueUsd)
+            // Totals — flip between the whole collection (default) and
+            // just the active designation subset. Mirrors iOS
+            // CollectionView's TotalsMode toggle (DESIGN.md §8.4 value
+            // summary). Hidden when there's no value yet.
+            val filterEntries = state.entriesByDesignation[designation].orEmpty()
+            val filterValue = remember(filterEntries) {
+                filterEntries.sumOf { it.userCard.estimatedValue ?: 0.0 }
+            }
+            val filterCount = filterEntries.size
+            if (state.totalValueUsd > 0.0 || filterValue > 0.0) {
+                ValueSummary(
+                    mode = totalsMode,
+                    onToggleMode = {
+                        totalsMode = if (totalsMode == TotalsMode.COLLECTION)
+                            TotalsMode.FILTER else TotalsMode.COLLECTION
+                    },
+                    collectionTotal = state.totalValueUsd,
+                    collectionCount = state.entriesByDesignation.values.sumOf { it.size },
+                    filterTotal = filterValue,
+                    filterCount = filterCount,
+                    designationLabel = designation.label,
+                )
             }
 
             if (!state.isSignedIn) {
@@ -315,13 +335,68 @@ private fun DesignationRow(
     }
 }
 
+/**
+ * Two-mode totals readout. iOS CollectionView.valueSummary parity —
+ * users can flip the value+count panel between the whole collection
+ * (everything owned across designations) and the currently-active
+ * designation subset.
+ *
+ * Tap anywhere on the row to flip modes; the chip on the right shows
+ * which mode is active. Keeping the toggle inline avoids burying it
+ * in a filter sheet the way iOS does — Android users haven't built
+ * the habit of opening the filter to find a totals toggle.
+ */
 @Composable
-private fun ValueSummary(totalUsd: Double) {
-    Text(
-        text = "Estimated value: $${"%.2f".format(totalUsd)}",
-        style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-    )
+private fun ValueSummary(
+    mode: TotalsMode,
+    onToggleMode: () -> Unit,
+    collectionTotal: Double,
+    collectionCount: Int,
+    filterTotal: Double,
+    filterCount: Int,
+    designationLabel: String,
+) {
+    val isFilter = mode == TotalsMode.FILTER
+    val total = if (isFilter) filterTotal else collectionTotal
+    val count = if (isFilter) filterCount else collectionCount
+    val valueLabel = if (isFilter) "${designationLabel.uppercase()} VALUE" else "EST. MARKET VALUE"
+    val countLabel = if (isFilter) "CARDS IN FILTER" else "CARDS OWNED"
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggleMode() }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = valueLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = if (total > 0.0) "$${"%.2f".format(total)}" else "—",
+                style = MaterialTheme.typography.headlineSmall,
+                color = if (total > 0.0) BobaBrand.Orange
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = countLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = "$count",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
 }
 
 @Composable

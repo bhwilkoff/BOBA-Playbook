@@ -137,6 +137,7 @@ private fun DecksCompactScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
     var editorOpen by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
+    var templatesOpen by remember { mutableStateOf(false) }
     var poolQuery by rememberSaveable { mutableStateOf("") }
 
     Scaffold(
@@ -165,7 +166,7 @@ private fun DecksCompactScreen(
                             DropdownMenuItem(
                                 text = { Text("Templates") },
                                 leadingIcon = { Icon(Icons.Default.Lightbulb, contentDescription = null) },
-                                onClick = { menuOpen = false /* M4 polish — template gallery */ },
+                                onClick = { menuOpen = false; templatesOpen = true },
                             )
                             DropdownMenuItem(
                                 text = { Text("Saved decks") },
@@ -276,6 +277,10 @@ private fun DecksCompactScreen(
                 }
             },
         )
+    }
+
+    if (templatesOpen) {
+        TemplateGallerySheet(onDismiss = { templatesOpen = false })
     }
 }
 

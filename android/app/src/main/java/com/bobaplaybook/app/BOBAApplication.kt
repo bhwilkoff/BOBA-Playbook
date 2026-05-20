@@ -30,8 +30,9 @@ import java.util.concurrent.TimeUnit
  *     DNS cache, one TLS session-resumption cache — ~30% cold-start
  *     memory win.
  *
- * Notification channels (FCM) get created here too once Firebase is
- * wired up; see ANDROID-DEV.md §7.2. Stub left as a TODO for M7.
+ * Notification channels (FCM) are created at onCreate per
+ * ANDROID-DEV.md §7.2 — channel IDs are stable forever so once a
+ * user mutes a channel the system remembers across reinstalls.
  */
 @HiltAndroidApp
 class BOBAApplication : Application(), SingletonImageLoader.Factory {

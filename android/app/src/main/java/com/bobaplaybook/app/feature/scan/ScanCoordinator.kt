@@ -12,8 +12,9 @@ import kotlinx.coroutines.runBlocking
  *
  *  - From Find: navigate to the card detail
  *  - From Decks: add the card to the active draft
- *  - From Collection: add to the user's collection at the chosen
- *    designation (M7 polish — designation prompt)
+ *  - From Collection: BOBAApp shows ScanDesignationSheet, then the
+ *    user picks which designation to file the scan under;
+ *    CollectionViewModel.add does the Supabase write
  *
  * Single coordinator — never fork the scan UI per tab. Anti-pattern
  * called out in §6.5.
@@ -53,8 +54,12 @@ class ScanCoordinator(
                 null
             }
             ScanDestination.COLLECTION -> {
-                // M7 polish — prompt for designation; for now fall through to
-                // card detail so the user can pick from the detail screen.
+                // Collection-context scans are intercepted at BOBAApp
+                // level — ScanDesignationSheet handles the write. The
+                // coordinator never reaches this branch from the
+                // Collection tab today (BOBAApp short-circuits) but we
+                // keep the case so misuse from other entry points
+                // still falls back to detail.
                 bobaId
             }
         }

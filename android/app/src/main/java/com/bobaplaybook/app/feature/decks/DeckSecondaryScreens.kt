@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.Warning
@@ -64,6 +65,7 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val collectionViewModel: com.bobaplaybook.app.feature.collection.CollectionViewModel = hiltViewModel()
     val catalog by collectionViewModel.catalogCards.collectAsStateWithLifecycle()
     var pendingDelete by remember { mutableStateOf<String?>(null) }
+    var pendingRename by remember { mutableStateOf<String?>(null) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
 
@@ -88,12 +90,21 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                             )
                         },
                         trailingContent = {
-                            IconButton(onClick = { pendingDelete = deck.id }) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = "Delete deck",
-                                    tint = MaterialTheme.colorScheme.error,
-                                )
+                            Row {
+                                IconButton(onClick = { pendingRename = deck.id }) {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = "Rename deck",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                IconButton(onClick = { pendingDelete = deck.id }) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Delete deck",
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                }
                             }
                         },
                         modifier = Modifier.clickable {
@@ -126,6 +137,36 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             },
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+            },
+        )
+    }
+    pendingRename?.let { id ->
+        val deck = savedDecks.firstOrNull { it.id == id } ?: return@let
+        var nameText by remember(id) { mutableStateOf(deck.name) }
+        AlertDialog(
+            onDismissRequest = { pendingRename = null },
+            title = { Text("Rename deck") },
+            text = {
+                androidx.compose.material3.OutlinedTextField(
+                    value = nameText,
+                    onValueChange = { nameText = it },
+                    label = { Text("Deck name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = nameText.trim().isNotEmpty() && nameText.trim() != deck.name,
+                    onClick = {
+                        vm.renameSavedDeck(id, nameText.trim())
+                        scope.launch { appSnackbar?.showSnackbar("Renamed to \"${nameText.trim()}\"") }
+                        pendingRename = null
+                    },
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRename = null }) { Text("Cancel") }
             },
         )
     }

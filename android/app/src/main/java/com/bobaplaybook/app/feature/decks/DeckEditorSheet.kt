@@ -302,6 +302,15 @@ private fun StatsRow(draft: DeckDraft) {
         StatChip("Plays", "${draft.playCount + draft.bonusCount}/${draft.playCap}")
         StatChip("Bonus", "${draft.bonusCount}/${draft.bonusCap}")
         StatChip("HD", "${draft.totalHD}/${draft.hdCap}")
+        // DBS chip — Playmaker format only; matches iOS DeckBuilderView
+        // line 428 (effectiveEnforceDBS gate). Tints red when over budget.
+        if (draft.enforcesDBS) {
+            StatChip(
+                label = "DBS",
+                value = "${draft.totalDBS}/${draft.dbsBudget}",
+                overBudget = draft.totalDBS > draft.dbsBudget,
+            )
+        }
         Spacer(Modifier.weight(1f))
         if (draft.isStandardLegal) {
             androidx.compose.material3.Surface(
@@ -331,9 +340,10 @@ private fun StatsRow(draft: DeckDraft) {
 }
 
 @Composable
-private fun StatChip(label: String, value: String) {
+private fun StatChip(label: String, value: String, overBudget: Boolean = false) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = if (overBudget) MaterialTheme.colorScheme.errorContainer
+                else MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = MaterialTheme.shapes.small,
     ) {
         Column(
@@ -343,12 +353,14 @@ private fun StatChip(label: String, value: String) {
             Text(
                 value,
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (overBudget) MaterialTheme.colorScheme.onErrorContainer
+                        else MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (overBudget) MaterialTheme.colorScheme.onErrorContainer
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

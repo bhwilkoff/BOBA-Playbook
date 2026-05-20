@@ -645,21 +645,28 @@ private fun QuantityBadge(
 private fun applySort(
     entries: List<CollectionEntry>,
     order: CollectionSortOrder,
-): List<CollectionEntry> = when (order) {
-    CollectionSortOrder.NAME_ASC -> entries.sortedBy { it.card.displayName.lowercase() }
-    CollectionSortOrder.NAME_DESC -> entries.sortedByDescending { it.card.displayName.lowercase() }
-    CollectionSortOrder.DATE_ADDED_DESC -> entries  // already roughly date-added order from server
-    CollectionSortOrder.DATE_ADDED_ASC -> entries.reversed()
-    CollectionSortOrder.PRICE_DESC -> entries.sortedByDescending { it.userCard.estimatedValue ?: 0.0 }
-    CollectionSortOrder.PRICE_ASC -> entries.sortedBy { it.userCard.estimatedValue ?: Double.MAX_VALUE }
-    CollectionSortOrder.PAID_DESC -> entries.sortedByDescending { it.userCard.purchasePrice ?: 0.0 }
-    CollectionSortOrder.PAID_ASC -> entries.sortedBy { it.userCard.purchasePrice ?: Double.MAX_VALUE }
-    CollectionSortOrder.NUMBER_ASC -> entries.sortedBy { it.card.cardNumber }
-    CollectionSortOrder.NUMBER_DESC -> entries.sortedByDescending { it.card.cardNumber }
-    CollectionSortOrder.POWER_DESC -> entries.sortedByDescending { it.card.power ?: 0 }
-    CollectionSortOrder.POWER_ASC -> entries.sortedBy { it.card.power ?: Int.MAX_VALUE }
-    CollectionSortOrder.COST_ASC -> entries.sortedBy { it.card.cost ?: Int.MAX_VALUE }
-    CollectionSortOrder.COST_DESC -> entries.sortedByDescending { it.card.cost ?: 0 }
+): List<CollectionEntry> {
+    // Image-first as PRIMARY criterion per memory
+    // `feedback_card_art_sort_priority` — image-pending placeholders
+    // never lead a sort regardless of which secondary criterion the
+    // user picked.
+    val artFirst = compareByDescending<CollectionEntry> { !it.card.imageFile.isNullOrEmpty() }
+    return when (order) {
+        CollectionSortOrder.NAME_ASC -> entries.sortedWith(artFirst.thenBy { it.card.displayName.lowercase() })
+        CollectionSortOrder.NAME_DESC -> entries.sortedWith(artFirst.thenByDescending { it.card.displayName.lowercase() })
+        CollectionSortOrder.DATE_ADDED_DESC -> entries.sortedWith(artFirst)  // server-roughly date-added already
+        CollectionSortOrder.DATE_ADDED_ASC -> entries.reversed().sortedWith(artFirst)
+        CollectionSortOrder.PRICE_DESC -> entries.sortedWith(artFirst.thenByDescending { it.userCard.estimatedValue ?: 0.0 })
+        CollectionSortOrder.PRICE_ASC -> entries.sortedWith(artFirst.thenBy { it.userCard.estimatedValue ?: Double.MAX_VALUE })
+        CollectionSortOrder.PAID_DESC -> entries.sortedWith(artFirst.thenByDescending { it.userCard.purchasePrice ?: 0.0 })
+        CollectionSortOrder.PAID_ASC -> entries.sortedWith(artFirst.thenBy { it.userCard.purchasePrice ?: Double.MAX_VALUE })
+        CollectionSortOrder.NUMBER_ASC -> entries.sortedWith(artFirst.thenBy { it.card.cardNumber })
+        CollectionSortOrder.NUMBER_DESC -> entries.sortedWith(artFirst.thenByDescending { it.card.cardNumber })
+        CollectionSortOrder.POWER_DESC -> entries.sortedWith(artFirst.thenByDescending { it.card.power ?: 0 })
+        CollectionSortOrder.POWER_ASC -> entries.sortedWith(artFirst.thenBy { it.card.power ?: Int.MAX_VALUE })
+        CollectionSortOrder.COST_ASC -> entries.sortedWith(artFirst.thenBy { it.card.cost ?: Int.MAX_VALUE })
+        CollectionSortOrder.COST_DESC -> entries.sortedWith(artFirst.thenByDescending { it.card.cost ?: 0 })
+    }
 }
 
 @Composable

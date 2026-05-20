@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
@@ -667,6 +668,35 @@ private fun SignedInContent(
                     .fillMaxWidth()
                     .clickable {
                         CustomTabsIntent.Builder().build().launchUrl(context, "https://bobaplaybook.com/privacy/".toUri())
+                    },
+            )
+        }
+        // Send Feedback — opens a mailto: with subject pre-filled to
+        // include the app version. iOS ProfileView.swift:798 same
+        // pattern. Helps Ben triage bug reports without asking for
+        // the build number.
+        item("feedback") {
+            ListItem(
+                headlineContent = { Text("Send feedback") },
+                supportingContent = {
+                    Text(
+                        "Email ben@bobaplaybook.com",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                },
+                leadingContent = {
+                    Icon(Icons.Default.Email, contentDescription = null)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        val v = "${com.bobaplaybook.app.BuildConfig.VERSION_NAME} (${com.bobaplaybook.app.BuildConfig.VERSION_CODE})"
+                        val subject = android.net.Uri.encode("BOBA Playbook feedback (v$v)")
+                        val intent = android.content.Intent(
+                            android.content.Intent.ACTION_VIEW,
+                            android.net.Uri.parse("mailto:ben@bobaplaybook.com?subject=$subject"),
+                        )
+                        runCatching { context.startActivity(intent) }
                     },
             )
         }

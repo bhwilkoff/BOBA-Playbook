@@ -384,20 +384,26 @@ private fun StoresList(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(items = state.filteredStores, key = { it.id }) { store ->
-                StoreRow(
-                    store = store,
-                    onClick = {
-                        // Open in maps via geo: URI — system picker handles
-                        // routing (Google Maps, Waze, etc.)
-                        val geoUri = "geo:0,0?q=${store.lat},${store.lng}(${android.net.Uri.encode(store.name)})"
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, android.net.Uri.parse(geoUri)),
-                        )
-                    },
-                )
-                androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = state.isLoadingStores,
+            onRefresh = { viewModel.refreshStores() },
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(items = state.filteredStores, key = { it.id }) { store ->
+                    StoreRow(
+                        store = store,
+                        onClick = {
+                            // Open in maps via geo: URI — system picker handles
+                            // routing (Google Maps, Waze, etc.)
+                            val geoUri = "geo:0,0?q=${store.lat},${store.lng}(${android.net.Uri.encode(store.name)})"
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, android.net.Uri.parse(geoUri)),
+                            )
+                        },
+                    )
+                    androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
             }
         }
     }

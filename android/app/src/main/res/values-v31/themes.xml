@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Android 12+ Splash Screen API. -->
+    <!-- Android 12+ Splash Screen API.
+         Uses dedicated ic_splash drawable (240×240 canvas, content
+         sized for the splash safe zone) rather than the adaptive icon
+         foreground — the adaptive foreground has a smaller content
+         safe-zone ratio (67% vs splash's expected ~85-89%) which made
+         the XOXO render undersized + visually off-center. -->
     <style name="Theme.BOBAPlaybook.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/boba_near_black</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
         <item name="postSplashScreenTheme">@style/Theme.BOBAPlaybook</item>
     </style>
 

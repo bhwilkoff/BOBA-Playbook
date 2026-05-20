@@ -4,6 +4,7 @@ package com.bobaplaybook.app.feature.profile
 
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.DeleteForever
@@ -29,6 +31,8 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -42,6 +46,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -71,38 +76,61 @@ import com.bobaplaybook.core.ui.theme.BobaBrand
 import kotlinx.coroutines.launch
 
 /**
- * Profile sheet (ANDROID-DESIGN.md §6.5).
+ * Profile — full-screen destination (M3 guidance for settings + multi-
+ * field auth surfaces). Was ModalBottomSheet; converted because
+ * (a) signed-out state has >2 form fields (email + password + sign-in
+ * options), (b) signed-in state drills into avatar upload / role request
+ * sub-sections, and (c) predictive back on a ModalBottomSheet collapses
+ * the sheet, not the nested push.
  *
- * Find-only entry. Bottom-sheet expanded to large by default. v1
- * sections:
- *  - Header (avatar / username / sign-in method pill)
- *  - Identity (username edit, Discord link)
+ * Sections (signed in):
+ *  - Header (avatar / username / sign-in method label)
+ *  - Identity (username edit, Discord link, avatar upload)
  *  - Sharing (public collection toggle)
- *  - Notifications (match alerts toggle — gated until APNs/FCM
- *    dispatcher lands per DECISIONS.md #039)
- *  - Role request (mod / streamer)
+ *  - Notifications (match alerts toggle — gated per DECISIONS.md #039)
+ *  - Role request
  *  - Legal (Terms / Privacy)
  *  - Sign out / delete account
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileSheet(
+fun ProfileScreen(
     authManager: AuthManager,
-    onDismiss: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val authState by authManager.authState.collectAsStateWithLifecycle(initialValue = AuthState.Unknown)
     LaunchedEffect(Unit) { authManager.observeSession() }
+    val scrollBehavior = androidx.compose.material3.TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
+        androidx.compose.material3.rememberTopAppBarState(),
+    )
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        modifier = modifier,
-    ) {
-        when (val s = authState) {
-            AuthState.Unknown -> LoadingState()
-            AuthState.SignedOut -> SignedOutContent(authManager)
-            is AuthState.SignedIn -> SignedInContent(authManager, s, onDismiss)
+    androidx.compose.material3.Scaffold(
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            androidx.compose.material3.LargeTopAppBar(
+                title = { Text("Profile") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+            )
+        },
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxWidth().padding(padding)) {
+            when (val s = authState) {
+                AuthState.Unknown -> LoadingState()
+                AuthState.SignedOut -> SignedOutContent(authManager)
+                is AuthState.SignedIn -> SignedInContent(authManager, s, onBack)
+            }
         }
     }
 }
@@ -121,12 +149,19 @@ private fun LoadingState() {
 private fun SignedOutContent(authManager: AuthManager) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    var mode by rememberSaveable { mutableStateOf(AuthMode.SIGN_IN) }
+    var emailText by rememberSaveable { mutableStateOf("") }
+    var passwordText by rememberSaveable { mutableStateOf("") }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var feedback by remember { mutableStateOf<String?>(null) }
+    var feedbackIsError by remember { mutableStateOf(true) }
+    var submitting by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text("Profile", style = MaterialTheme.typography.headlineSmall)
         Text(
@@ -134,11 +169,146 @@ private fun SignedOutContent(authManager: AuthManager) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Button(
-            onClick = { scope.launch { authManager.signInWithGoogle(context) } },
+
+        // M3 mode segmented switch — Sign in / Sign up
+        androidx.compose.material3.SingleChoiceSegmentedButtonRow(
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Sign in with Google")
+            AuthMode.entries.forEachIndexed { index, m ->
+                SegmentedButton(
+                    selected = mode == m,
+                    onClick = { mode = m; feedback = null },
+                    shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index, AuthMode.entries.size),
+                ) {
+                    Text(m.label, style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+
+        OutlinedTextField(
+            value = emailText,
+            onValueChange = { emailText = it; feedback = null },
+            label = { Text("Email") },
+            singleLine = true,
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                keyboardType = androidx.compose.ui.text.input.KeyboardType.Email,
+                imeAction = androidx.compose.ui.text.input.ImeAction.Next,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = passwordText,
+            onValueChange = { passwordText = it; feedback = null },
+            label = { Text("Password") },
+            singleLine = true,
+            visualTransformation = if (passwordVisible)
+                androidx.compose.ui.text.input.VisualTransformation.None
+            else
+                androidx.compose.ui.text.input.PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(
+                        imageVector = if (passwordVisible) Icons.Default.VisibilityOff
+                                      else Icons.Default.Visibility,
+                        contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                    )
+                }
+            },
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                keyboardType = androidx.compose.ui.text.input.KeyboardType.Password,
+                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        if (feedback != null) {
+            Text(
+                text = feedback!!,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (feedbackIsError) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.primary,
+            )
+        }
+
+        Button(
+            onClick = {
+                if (emailText.isBlank() || passwordText.length < 6) {
+                    feedback = "Enter a valid email and a password of at least 6 characters."
+                    feedbackIsError = true
+                    return@Button
+                }
+                submitting = true
+                feedback = null
+                scope.launch {
+                    val result = when (mode) {
+                        AuthMode.SIGN_IN -> authManager.signInWithEmail(emailText.trim(), passwordText)
+                        AuthMode.SIGN_UP -> authManager.signUpWithEmail(emailText.trim(), passwordText)
+                    }
+                    submitting = false
+                    when (result) {
+                        com.bobaplaybook.app.auth.SignInResult.Success -> {
+                            if (mode == AuthMode.SIGN_UP) {
+                                feedback = "Account created — check your email to verify, then sign in."
+                                feedbackIsError = false
+                            }
+                        }
+                        else -> {
+                            feedback = result.userMessage
+                            feedbackIsError = true
+                        }
+                    }
+                }
+            },
+            enabled = !submitting,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(if (mode == AuthMode.SIGN_IN) "Sign in" else "Create account")
+        }
+
+        if (mode == AuthMode.SIGN_IN) {
+            TextButton(
+                onClick = {
+                    if (emailText.isBlank()) {
+                        feedback = "Enter your email to receive a reset link."
+                        feedbackIsError = true
+                        return@TextButton
+                    }
+                    scope.launch {
+                        val result = authManager.sendPasswordReset(emailText.trim())
+                        feedback = when (result) {
+                            com.bobaplaybook.app.auth.SignInResult.Success -> "Reset link sent to $emailText"
+                            else -> result.userMessage
+                        }
+                        feedbackIsError = result !is com.bobaplaybook.app.auth.SignInResult.Success
+                    }
+                },
+                modifier = Modifier.align(Alignment.End),
+            ) {
+                Text("Forgot password?", style = MaterialTheme.typography.labelLarge)
+            }
+        }
+
+        androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+        Text(
+            text = "Or continue with",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        )
+
+        OutlinedButton(
+            onClick = {
+                scope.launch {
+                    val result = authManager.signInWithGoogle(context)
+                    if (result !is com.bobaplaybook.app.auth.SignInResult.Success && result !is com.bobaplaybook.app.auth.SignInResult.Cancelled) {
+                        feedback = result.userMessage
+                        feedbackIsError = true
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Google")
         }
         OutlinedButton(
             onClick = { launchDiscordOAuth(context) },
@@ -146,11 +316,16 @@ private fun SignedOutContent(authManager: AuthManager) {
         ) {
             Icon(Icons.Default.Group, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("Sign in with Discord")
+            Text("Discord")
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(8.dp))
         LegalLinks(context)
     }
+}
+
+private enum class AuthMode(val label: String) {
+    SIGN_IN("Sign in"),
+    SIGN_UP("Create account"),
 }
 
 @Composable

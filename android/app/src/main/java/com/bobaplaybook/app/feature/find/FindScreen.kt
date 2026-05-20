@@ -247,6 +247,9 @@ private fun FindContent(
                     )
                 }
                 else -> {
+                    // Render 3 rows × column-count skeleton cells — M3
+                    // guidance for LazyVerticalGrid loading state. More
+                    // cells just waste compose work.
                     LazyVerticalGrid(
                         modifier = Modifier.fillMaxSize(),
                         columns = GridCells.Fixed(gridColumns),
@@ -254,7 +257,7 @@ private fun FindContent(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(count = 12, key = { it }) { BOBACardSkeleton() }
+                        items(count = gridColumns * 3, key = { it }) { BOBACardSkeleton() }
                     }
                 }
             }

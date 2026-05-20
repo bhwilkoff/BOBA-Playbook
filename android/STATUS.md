@@ -1,6 +1,6 @@
 # BOBA Playbook Android — Current State
 
-Snapshot after first-class native M3 overhaul (2026-05-19).
+Snapshot after Round 3 iOS-parity push (2026-05-19).
 
 For the full picture (architectural patterns, deferred follow-ups, credential index), Claude reads the **`reference_android_v1_status.md`** memory file. This doc is the human-readable quick-reference.
 
@@ -19,35 +19,115 @@ For the full picture (architectural patterns, deferred follow-ups, credential in
 | Android Studio | Panda 4 Patch 1 |
 | AGP | 9.2.1 |
 | Kotlin | 2.3.21 / KSP 2.3.8 |
-| Compose BOM | 2026.05.00 + Material 3 1.5.0-alpha19 (Expressive APIs unlocked) |
-| Navigation Compose | 2.8.5 + Navigation 3 1.0.1 (deps wired) |
+| Compose BOM | 2026.05.00 + Material 3 1.5.0-alpha19 |
+| Navigation Compose | 2.8.5 |
 | Hilt | 2.59.2 |
 | Coil 3 / Ktor 3.4 / supabase-kt 3.0.2 / CameraX 1.4 / ML Kit 16.0.1 / Firebase BOM 34.13 |
 | minSdk 29 · targetSdk 36 · compileSdk 37 · JDK 21 |
 
-## What's wired (post-overhaul)
+## iOS parity status
 
-| Surface | Status | Notes |
-|---|---|---|
-| **Find** | ✅ M3 SearchBar morph | Featured carousels (Recently Added / Heroes by Weapon / Coaching Staff), live suggestions w/ token chips + card hits, InputChip filter row, shimmer skeletons on initial load, container transform into detail |
-| **Card detail** | ✅ canonical anatomy | LargeTopAppBar collapse, 6-cell stats, Power/Cost/DBS, Ability/Bonus text, pricing panels (eBay + Radish via Worker; COMC NOT wired — blocked all platforms), Other Versions row, real Add menu w/ Snackbar feedback, Share via Intent.ACTION_SEND, container transform from grid |
-| **Collection** | ✅ full anatomy | Designation SegmentedButton w/ live counts, three display modes (Grid / List / Wall), designation + quantity badge overlays, value summary header, signed-in vs signed-out branches, Share text intent |
-| **Decks (compact)** | ✅ summary bar + sheet editor | Persistent DeckSummaryBar w/ live stats + "Legal" chip, full-screen ModalBottomSheet editor with rename / stats row / sectioned card list / remove / save, long-press add, scan→add routing via ScanCoordinator, Manage/Rules/Legality push destinations, first-run hint banner |
-| **Decks (tablet)** | ✅ 3-pane | NavigableListDetailPaneScaffold w/ saved-decks sidebar (placeholder until M7 Supabase) + pool + always-visible editor pane. Inline editor reuses the same content as the sheet editor. |
-| **Learn (compact)** | ✅ corpus + skill scope | 5 categories × multiple articles each, skill-level SegmentedButton scope per article, glossary tooltips via TooltipBox on highlighted terms |
-| **Learn (tablet)** | ✅ list-detail | NavigableListDetailPaneScaffold w/ categories pane + articles + body |
-| **Purchase** | ✅ Whatnot live | Worker-backed Whatnot tile list with thumb + host avatar + viewer count, PullToRefreshBox, tap-through to Whatnot. Find a Store still a polished placeholder (waiting on Maps API key + store dataset) |
-| **Profile** | ✅ full sections | Header w/ avatar + sign-in pill, username field, Discord link, public collection toggle, match-alerts toggle (deferred), role request, Terms/Privacy via Chrome Custom Tabs, sign out + account delete AlertDialog |
-| **Scan** | ✅ working | CameraX + ML Kit live OCR. Routes match by ScanCoordinator: Find→detail, Decks→deck add, Collection→detail |
-| **Practice** | ⏳ admin-gated placeholder | Multi-session engine port post-v1 |
+### ✅ Find — full parity
 
-## Native M3 components in production
+- M3 SearchBar w/ ExpandedDockedSearchBar full-screen morph
+- Featured carousels (Recently Added, By Weapon, Coaching Staff, Showcases)
+- Live suggestions (card hits + token chips for weapon/treatment)
+- **Full FilterSheet** w/ 8 dimensions + 9 sorts + 5 power-range presets
+- **Filter button w/ active-count badge** in the SearchBar
+- **Overflow menu**: columns picker, Card Showcases toggle, Quick Add toggle, walkthrough re-launcher
+- Active filter chip strip below the bar (tap-to-remove)
+- Showcase smart-match (typing "WoBA" auto-narrows)
+- Quick Add mode pill below results
+- Long-press card → Quick Add
+- Container transform → card detail
+- Shimmer skeletons on initial load
+- BrowseFeaturedData (4 Featured Collections, 7 sports w/ athlete lists) ported from iOS
 
-`SearchBar` w/ `ExpandedDockedSearchBar` morph · `SharedTransitionLayout` + `sharedBounds` container transforms · `NavigationSuiteScaffold` (NavigationBar/Rail adaptive) · `NavigableListDetailPaneScaffold` on Learn + Decks (tablet) · `ModalBottomSheet` (editor + profile) · `LargeTopAppBar` w/ `exitUntilCollapsedScrollBehavior` · `SingleChoiceSegmentedButtonRow` (designations, skill levels) · `FilterChip` / `InputChip` / `SuggestionChip` / `AssistChip` · `DropdownMenu` (display modes, overflow actions) · `PullToRefreshBox` · `TooltipBox` + `PlainTooltip` (Glossary) · `Snackbar` + app-scoped `SnackbarHost` via `LocalAppSnackbar` · `AlertDialog` (delete confirm) · `HorizontalDivider` / `VerticalDivider` · `LinearProgressIndicator` / `CircularProgressIndicator` · Predictive back via NavHost.
+### ✅ Card Detail — canonical anatomy + actions
 
-## Custom primitives in `:core:ui`
+- LargeTopAppBar collapse + canonical 6-cell stats grid
+- Power/Cost/DBS (Plays only), Ability/Bonus text
+- Pricing panels (eBay active + sold + Radish via Worker; COMC NOT wired)
+- Market estimate header w/ Radish-first waterfall
+- Other Versions thumbnail row
+- **Add menu** opens proper sheets:
+  - Add to Collection → AddToCollectionSheet with designation, condition, grading, pricing, notes
+  - Add to Deck → AddToDeckSheet with current draft + saved-deck list
+  - Add to Show → Snackbar role hint
+- Share via Intent.ACTION_SEND with deep link
+- Container transform from grid
 
-`BOBACardCell` · `BOBACardSkeleton` (shimmer) · `BOBASectionHeader` · `BOBAEmptyState` · `BOBABanner` · `BOBAHintBanner` (cyan accent + dismissible) · `BOBAOfflinePill` · `BOBASignInPrompt` · `BOBAWordmark` · `BOBAStatsGrid` · `BOBAPriceTile` · `LocalSharedTransition` / `LocalNavAnimatedVisibilityScope` / `LocalAppSnackbar` CompositionLocals · `cardSharedBounds(bobaId)` Modifier · `isCompactWidth() / isMediumOrExpandedWidth()` adaptive helpers
+### ✅ Collection — parity
+
+- Designation SegmentedButton w/ live counts (5 designations)
+- Three display modes (Grid / List / Wall)
+- Designation badge + quantity badge overlays on cells
+- Value summary header
+- **Filter button** (Tune icon) w/ BadgedBox count → same FilterSheet as Find
+- Overflow Menu: Grid/List/Wall, **Rainbow Progress**, **My Shows**
+- Tap card → **CollectionCardDetailScreen** (multi-copy + designation switcher per copy)
+- Share intent (text-link, PNG export deferred)
+- Sign-in / sign-out branching
+
+### ✅ Decks — parity
+
+- Compact: persistent DeckSummaryBar + ModalBottomSheet editor with rename / stats / sectioned list / remove / save
+- Tablet: NavigableListDetailPaneScaffold 3-pane (saved / pool / inline editor)
+- **Pool search bar** w/ tap-to-clear, filters into FindViewModel
+- **Overflow Menu**: Templates, Saved decks, Import CSV, Export CSV, Deck rules, Legality, Scan into deck, Clear draft
+- Long-press pool card → add to draft (canonical mobile add gesture)
+- Scan→add routing via ScanCoordinator
+- Hint banner ("Long-press to add") via DataStore-backed HintsStore
+- Manage / Rules / Legality push destinations
+
+### ✅ Learn — parity
+
+- 5 categories × multiple articles
+- Skill-level SegmentedButton scope (Rookie / Substitution / Playmaker)
+- Glossary TooltipBox on highlighted terms via GlossaryRichText
+- Tablet list-detail scaffold
+
+### ✅ Purchase — parity (no maps yet)
+
+- Whatnot tile list (live from boba-ebay-proxy)
+- PullToRefreshBox
+- **Find a Store** — full list from bobaplaybook.com/assets/data/stores.json
+  - Filter by name/city/state
+  - Indie-only chip
+  - Tap → maps via geo: URI
+- ~330 indie + 1800 big-box stores
+
+### ✅ Profile — parity
+
+- Avatar header + sign-in pill + username field
+- Discord link (Custom Tabs to server invite stub; real OAuth deferred)
+- Public collection toggle
+- Match-alerts toggle (deferred per DECISIONS.md #039)
+- Role request
+- My Shows (streamer-gated, disabled)
+- **Mod panel + Admin panel entries** (role-gated, disabled until M7)
+- Terms / Privacy via Chrome Custom Tabs
+- Sign out + Delete Account AlertDialog
+
+### ✅ Cross-cutting — parity
+
+- Container transforms via SharedTransitionLayout + cardSharedBounds
+- App-scoped Snackbar via LocalAppSnackbar CompositionLocal
+- Connectivity-aware BOBAOfflinePill (animated overlay)
+- BOBAHintBanner DataStore-backed dismissals
+- **Deep links** — both `https://bobaplaybook.com/...` (App Links) and `bobaplaybook://...` route via PendingDeepLink → BOBAApp dispatches to right NavController
+- DeepLinkRoute.parse handles card/scan/search/learn/u segments
+
+### ⏳ Deferred — known thin spots
+
+- **Live data writes** — Supabase user_cards write path needs M7 to come online
+- **Discord OAuth via Auth Tab / Custom Tabs** — full OAuth (not just server invite)
+- **Find a Store Google Maps Compose** — Maps API key required
+- **PNG export of Wall view** — GraphicsLayer.toImageBitmap() + FileProvider
+- **Custom Rainbow editor** — sheet w/ 8 criterion dimensions
+- **Practice executor engine port** — multi-session
+- **Mod panel + Admin panel actual UIs** — role-gated stubs only
+- **Articles corpus expansion** — Tournament + Strategy + Glossary content
 
 ## Credentials all wired
 
@@ -65,17 +145,4 @@ JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" \
   ./gradlew :app:assembleDebug --no-configuration-cache
 ```
 
-Or in Android Studio: ▶ Run on a Pixel 9 Pro (API 36) emulator or Pixel Tablet (for 3-pane Decks / list-detail Learn).
-
-## Pending follow-ups (post-test)
-
-Listed in priority of impact:
-1. Whatever Ben reports broken during smoke test
-2. **M7 polish** — wire CollectionRepository to live Supabase user_cards (RLS auto-scopes by auth.uid)
-3. **M7 polish** — Discord OAuth via Auth Tab / Custom Tabs (today: sign-in path uses Google; Discord link button opens server invite as a stand-in)
-4. **M6 polish** — Find a Store Google Maps Compose (waiting on Maps API key + indie-store Worker)
-5. **M7 polish** — Tink-encrypted token storage (supabase-kt's default DataStore SessionManager today)
-6. **M5 polish** — clickable-span TooltipBox on every glossary term (today's RichText shows for the first term only)
-7. **Wall PNG export** — GraphicsLayer.toImageBitmap() + FileProvider + cache cleanup (today: text-link share intent)
-8. **M5.5** — Practice engine port (multi-session)
-9. **M8** — first AAB upload to Internal Testing
+Run on Pixel 9 Pro emulator (compact) or Pixel Tablet emulator (3-pane Decks, list-detail Learn).

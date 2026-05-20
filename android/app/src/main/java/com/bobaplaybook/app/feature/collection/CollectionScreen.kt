@@ -52,6 +52,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -564,6 +565,13 @@ private fun CollectionWall(
             androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
             // Compact share affordance — appears only in Wall view (DECISIONS.md
             // #036 calls Wall a sharing surface). Tap → capture → share PNG.
+            // Pulls the current username via ProfileViewModel so the share-text
+            // can deep-link to the user's public collection (when enabled).
+            val profileVm: com.bobaplaybook.app.feature.profile.ProfileViewModel =
+                androidx.hilt.navigation.compose.hiltViewModel()
+            val profile by profileVm.profile.collectAsStateWithLifecycle(initialValue = null)
+            LaunchedEffect(Unit) { profileVm.refreshProfile() }
+            val username = profile?.takeIf { it.publicCollectionEnabled }?.username
             androidx.compose.material3.TextButton(
                 onClick = {
                     scope.launch {
@@ -573,7 +581,7 @@ private fun CollectionWall(
                             context = context,
                             bitmap = bmp,
                             designationLabel = designationLabel,
-                            username = null,
+                            username = username,
                         )
                     }
                 },

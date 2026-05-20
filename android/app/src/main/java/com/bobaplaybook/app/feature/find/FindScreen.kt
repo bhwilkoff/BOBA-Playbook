@@ -139,7 +139,10 @@ private fun FindContent(
     var searchExpanded by rememberSaveable { mutableStateOf(false) }
     var filterSheetOpen by rememberSaveable { mutableStateOf(false) }
     var menuOpen by rememberSaveable { mutableStateOf(false) }
-    var showcaseMode by rememberSaveable { mutableStateOf(false) }
+    // Default to showcase / no-search state — iOS DESIGN.md §8.1 calls
+    // for featured ribbons above the grid when the user lands on Find
+    // with no query. Toggle in the overflow Menu flips to grid mode.
+    var showcaseMode by rememberSaveable { mutableStateOf(true) }
     var quickAdd by rememberSaveable { mutableStateOf(false) }
     var gridColumns by rememberSaveable { mutableStateOf(2) }
     val appSnackbar = LocalAppSnackbar.current

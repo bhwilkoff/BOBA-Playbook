@@ -2,15 +2,34 @@
 
 package com.bobaplaybook.app.feature.learn
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
+import com.bobaplaybook.core.domain.model.Card
+import com.bobaplaybook.core.ui.components.BOBACardCell
+import com.bobaplaybook.core.ui.theme.BobaElements
+import com.bobaplaybook.app.feature.collection.RainbowCatalogViewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
@@ -98,7 +117,7 @@ fun LearnCategoryScreen(
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             when (category) {
                 LearnCategoryId.RULES      -> RulesPage()
-                LearnCategoryId.STRATEGY   -> FlatSectionsPage(LearnCorpus.strategy)
+                LearnCategoryId.STRATEGY   -> StrategyPage()
                 LearnCategoryId.COLLECT    -> FlatSectionsPage(LearnCorpus.collect)
                 LearnCategoryId.WATCH      -> WatchPage()
                 LearnCategoryId.GLOSSARY   -> GlossaryPage()
@@ -173,7 +192,168 @@ private fun WatchPage() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// Flat sections — Strategy / Collect / Tournament
+// Strategy — flat sections + the five archetype templates (iOS parity)
+// ════════════════════════════════════════════════════════════════
+
+@Composable
+private fun StrategyPage() {
+    val catalogVm: RainbowCatalogViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val catalog by catalogVm.cards.collectAsStateWithLifecycle()
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        itemsIndexed(items = LearnCorpus.strategy, key = { i, _ -> "strat-$i" }) { _, section ->
+            SectionRenderer(section)
+        }
+        item("archetypes-header") {
+            BOBASectionHeader(title = "Archetype templates")
+        }
+        items(items = LearnCorpus.archetypes, key = { "archetype-${it.id}" }) { archetype ->
+            ArchetypeCard(archetype = archetype, catalog = catalog)
+        }
+        item("archetypes-spacer") {
+            Spacer(modifier = Modifier.padding(bottom = 16.dp))
+        }
+    }
+}
+
+@Composable
+private fun ArchetypeCard(
+    archetype: Archetype,
+    catalog: List<Card>,
+) {
+    val accent = BobaElements.forElement(archetype.element)
+    var expanded by rememberSaveable(archetype.id) { mutableStateOf(false) }
+
+    val keyPlayCards = remember(archetype.id, catalog) {
+        archetype.keyPlays.mapNotNull { playName ->
+            val candidates = catalog.filter { c ->
+                c.name.equals(playName, ignoreCase = true) &&
+                    c.cardType.contains("Play", ignoreCase = true) &&
+                    !c.imageFile.isNullOrBlank()
+            }
+            candidates.firstOrNull { it.treatment.equals("Plays", ignoreCase = true) && it.variation == "First Edition" }
+                ?: candidates.firstOrNull { it.treatment.equals("Plays", ignoreCase = true) }
+                ?: candidates.firstOrNull()
+        }
+    }
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.25f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .background(accent, shape = CircleShape),
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        archetype.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        archetype.tagline,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = accent,
+                )
+            }
+            if (expanded) {
+                HorizontalDivider(color = accent.copy(alpha = 0.2f))
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (keyPlayCards.isNotEmpty()) {
+                        Text(
+                            "KEY PLAYS",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(items = keyPlayCards, key = { it.bobaId }) { card ->
+                                Column(
+                                    modifier = Modifier.width(76.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(76.dp)
+                                            .height(106.dp),
+                                    ) {
+                                        BOBACardCell(
+                                            imageFile = card.imageFile,
+                                            isSealed = card.isSealed,
+                                            contentDescription = card.displayName,
+                                        )
+                                    }
+                                    Text(
+                                        card.name,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2,
+                                        textAlign = TextAlign.Center,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            "STRATEGY",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            archetype.strategy,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            "WEAKNESS",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            archetype.weakness,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = BobaElements.Brawl.copy(alpha = 0.9f),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// Flat sections — Collect / Tournament
 // ════════════════════════════════════════════════════════════════
 
 @Composable
@@ -307,6 +487,7 @@ private fun SectionRenderer(section: LearnSection) {
                 text = section.text,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
+                lineHeight = 22.sp,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
@@ -314,36 +495,110 @@ private fun SectionRenderer(section: LearnSection) {
             section.heading?.let { BOBASectionHeader(title = it) }
             Column(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 section.items.forEach { item ->
-                    Text(
-                        text = "•  $item",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "•",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.secondary,
+                        )
+                        Text(
+                            item,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
         }
         is LearnSection.Callout -> {
-            section.heading?.let { BOBASectionHeader(title = it) }
+            // Element-tinted callout — left border + heading color come
+            // from the element key when set. Matches iOS callout style.
+            val accent = section.element?.let { BobaElements.forElement(it) }
+                ?: MaterialTheme.colorScheme.secondary
             Surface(
-                color = MaterialTheme.colorScheme.surfaceContainer,
+                color = accent.copy(alpha = 0.08f),
                 shape = MaterialTheme.shapes.medium,
+                border = BorderStroke(1.dp, accent.copy(alpha = 0.4f)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             ) {
-                Text(
-                    text = section.text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(16.dp),
-                )
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    // 4dp left bar — matches iOS callout chrome
+                    Box(
+                        modifier = Modifier
+                            .width(4.dp)
+                            .padding(vertical = 12.dp)
+                            .background(accent),
+                    )
+                    Column(modifier = Modifier.padding(16.dp).weight(1f)) {
+                        section.heading?.let { h ->
+                            Text(
+                                h,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = accent,
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                        Text(
+                            text = section.text,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            lineHeight = 20.sp,
+                        )
+                    }
+                }
+            }
+        }
+        is LearnSection.WeaponSynergy -> {
+            section.heading?.let { BOBASectionHeader(title = it) }
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                section.rows.forEach { row ->
+                    val accent = BobaElements.forElement(row.weapon.uppercase())
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        shape = MaterialTheme.shapes.medium,
+                        border = BorderStroke(1.dp, accent.copy(alpha = 0.3f)),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                row.weapon,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = accent,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                row.plays.forEach { play ->
+                                    Surface(
+                                        color = accent.copy(alpha = 0.12f),
+                                        contentColor = accent,
+                                        shape = MaterialTheme.shapes.small,
+                                        border = BorderStroke(1.dp, accent.copy(alpha = 0.3f)),
+                                    ) {
+                                        Text(
+                                            play,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         is LearnSection.Term -> {
-            // Rendered separately by GlossaryPage; if a Term lands in a
-            // flat-page list (it shouldn't), render as a bullet for safety.
             Text(
                 text = "•  ${section.term}: ${section.definition}",
                 style = MaterialTheme.typography.bodyMedium,

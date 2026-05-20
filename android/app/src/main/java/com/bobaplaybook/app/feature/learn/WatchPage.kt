@@ -22,6 +22,9 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -90,39 +93,79 @@ internal fun WatchPageContent() {
             var isRefreshing by androidx.compose.runtime.remember {
                 androidx.compose.runtime.mutableStateOf(false)
             }
-            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = {
-                    isRefreshing = true
-                    vm.refresh()
-                    scope.launch {
-                        kotlinx.coroutines.delay(800)
-                        isRefreshing = false
-                    }
-                },
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+            // Tab picker — iOS WatchView parity. The previous stacked-
+            // section layout buried Live+Upcoming under Videos as the
+            // user scrolled. A segmented tab makes the three feeds
+            // explicit and surfaces the count per tab.
+            var tab by androidx.compose.runtime.saveable.rememberSaveable {
+                androidx.compose.runtime.mutableStateOf("upcoming")
+            }
+            val items = when (tab) {
+                "upcoming"   -> state.bundle.upcoming
+                "horizontal" -> state.bundle.horizontal
+                "vertical"   -> state.bundle.vertical
+                else         -> emptyList()
+            }
+            Column(modifier = Modifier.fillMaxSize()) {
+                SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                 ) {
-                    if (state.bundle.upcoming.isNotEmpty()) {
-                        item("upcoming-head") { BOBASectionHeader(title = "Live + upcoming") }
-                        items(state.bundle.upcoming, key = { "up-${it.videoId}" }) { v ->
-                            VideoRow(video = v, onClick = { openVideo(v.url) })
+                    val tabs = listOf(
+                        "upcoming"   to "Upcoming Live (${state.bundle.upcoming.size})",
+                        "horizontal" to "Horizontal (${state.bundle.horizontal.size})",
+                        "vertical"   to "Vertical (${state.bundle.vertical.size})",
+                    )
+                    tabs.forEachIndexed { index, pair ->
+                        val key = pair.first
+                        val label = pair.second
+                        SegmentedButton(
+                            selected = tab == key,
+                            onClick = { tab = key },
+                            shape = SegmentedButtonDefaults.itemShape(index, tabs.size),
+                            icon = {},
+                        ) {
+                            Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                         }
                     }
-                    if (state.bundle.horizontal.isNotEmpty()) {
-                        item("horiz-head") { BOBASectionHeader(title = "Videos") }
-                        items(state.bundle.horizontal, key = { "h-${it.videoId}" }) { v ->
-                            VideoRow(video = v, onClick = { openVideo(v.url) })
+                }
+                androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = {
+                        isRefreshing = true
+                        vm.refresh()
+                        scope.launch {
+                            kotlinx.coroutines.delay(800)
+                            isRefreshing = false
                         }
-                    }
-                    if (state.bundle.vertical.isNotEmpty()) {
-                        item("vert-head") { BOBASectionHeader(title = "Shorts") }
-                        items(state.bundle.vertical, key = { "v-${it.videoId}" }) { v ->
-                            VideoRow(video = v, onClick = { openVideo(v.url) }, vertical = true)
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    if (items.isEmpty()) {
+                        BOBAEmptyState(
+                            icon = Icons.Default.PlayArrow,
+                            headline = when (tab) {
+                                "upcoming"   -> "No upcoming streams"
+                                "horizontal" -> "No horizontal videos yet"
+                                else         -> "No vertical videos yet"
+                            },
+                            body = "Pull down to refresh. New uploads appear every few minutes.",
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(items, key = { "${tab}-${it.videoId}" }) { v ->
+                                VideoRow(
+                                    video = v,
+                                    onClick = { openVideo(v.url) },
+                                    vertical = (tab == "vertical"),
+                                )
+                            }
                         }
                     }
                 }

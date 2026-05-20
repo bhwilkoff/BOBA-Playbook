@@ -356,6 +356,7 @@ private fun TabNavHost(
                             onOpenManage = { navController.navigate(NavRoutes.DECK_MANAGE) },
                             onOpenRules = { navController.navigate(NavRoutes.DECK_RULES) },
                             onOpenLegality = { navController.navigate(NavRoutes.DECK_LEGALITY) },
+                            onSignInRequest = { navController.navigate(NavRoutes.PROFILE) },
                             onScanClick = onScanClick,
                         )
                     }
@@ -368,6 +369,20 @@ private fun TabNavHost(
                 }
                 composable(NavRoutes.DECK_LEGALITY) {
                     com.bobaplaybook.app.feature.decks.DeckLegalityScreen(onBack = { navController.popBackStack() })
+                }
+                // Profile push from Decks (Sign in CTA on editor) — Profile
+                // is global modal accessible from every tab's nav stack.
+                composable(NavRoutes.PROFILE) {
+                    com.bobaplaybook.app.feature.profile.ProfileScreen(
+                        authManager = authManager,
+                        onBack = { navController.popBackStack() },
+                        onPracticeUnlock = { navController.navigate(NavRoutes.PRACTICE) },
+                    )
+                }
+                composable(NavRoutes.PRACTICE) {
+                    com.bobaplaybook.app.feature.practice.PracticeScreen(
+                        onBack = { navController.popBackStack() },
+                    )
                 }
                 cardDetailComposable(navController)
             }

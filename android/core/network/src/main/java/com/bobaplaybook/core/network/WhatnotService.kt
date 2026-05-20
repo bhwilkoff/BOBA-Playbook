@@ -60,14 +60,24 @@ private data class WhatnotRow(
     @SerialName("thumbnail") val thumbnailUrl: String? = null,
     val url: String? = null,
 ) {
-    fun toDomain() = WhatnotShow(
-        id = id.orEmpty(),
-        title = title.orEmpty(),
-        host = host.orEmpty(),
-        hostAvatarUrl = hostAvatarUrl,
-        scheduledAt = scheduledAt,
-        viewerCount = viewerCount ?: 0,
-        thumbnailUrl = thumbnailUrl,
-        showUrl = url.orEmpty(),
-    )
+    fun toDomain(): WhatnotShow {
+        // Synthesize a stable ID when the Worker doesn't send one —
+        // otherwise multiple shows collapse to id="" and the
+        // LazyColumn's stable-key contract crashes with
+        // IllegalArgumentException("Key \"\" was already used").
+        val resolvedId = id?.takeIf { it.isNotBlank() }
+            ?: listOfNotNull(host, title, scheduledAt?.toString(), url)
+                .joinToString("|")
+                .ifBlank { "show-${System.identityHashCode(this)}" }
+        return WhatnotShow(
+            id = resolvedId,
+            title = title.orEmpty(),
+            host = host.orEmpty(),
+            hostAvatarUrl = hostAvatarUrl,
+            scheduledAt = scheduledAt,
+            viewerCount = viewerCount ?: 0,
+            thumbnailUrl = thumbnailUrl,
+            showUrl = url.orEmpty(),
+        )
+    }
 }

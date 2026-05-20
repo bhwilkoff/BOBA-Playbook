@@ -2345,6 +2345,21 @@
       <h2 id="wall-title" class="wall-title">Collection Wall</h2>
       <input type="text" id="wall-title-input" class="wall-title-input"
              maxlength="60" placeholder="Title (optional)" />
+      <!-- Price Overlay — per-designation defaults per iOS §8.8.
+           For Sale → asking price · For Trade / Wanted → estimated.
+           Personal / Grails → off by default. -->
+      <div class="wall-overlay-controls">
+        <label class="wall-overlay-toggle">
+          <input type="checkbox" id="wall-price-toggle" />
+          <span>Price overlay</span>
+        </label>
+        <select id="wall-price-source" class="wall-overlay-select" aria-label="Price source">
+          <option value="asking">My asking price</option>
+          <option value="estimated">Market estimate</option>
+          <option value="purchase">What I paid</option>
+        </select>
+        <span class="wall-overlay-caption" id="wall-overlay-caption"></span>
+      </div>
       <div class="wall-canvas-wrap">
         <canvas id="wall-canvas" class="wall-canvas" width="1080" height="1080"
                 aria-label="Rendered wall image"></canvas>

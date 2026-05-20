@@ -2161,12 +2161,15 @@
   }
 
   // Radish is case-sensitive and uses different canonical spellings
-  // for a handful of heroes than our catalog does. Without this
-  // remap the URL 404s. Add new entries when the smoketest
-  // (scripts/probe_radish_urls.py) reports a mismatch.
+  // for a handful of heroes than our catalog does. Verified 2026-05-20
+  // via 100-card URL sweep:
+  //   - "ChetMate" (CamelCase) is correct on Radish (40 cards on
+  //     /Alpha_Update/ChetMate). An earlier alias mapped ChetMate to
+  //     "Chetmate" which returns a 200 but 0-card alias page. Removed.
+  //   - "BoJax" -> "Bojax" is correct (Bojax page has 25 cards, BoJax
+  //     is the empty alias).
   const RADISH_HERO_ALIASES = {
-    ChetMate: 'Chetmate',
-    BoJax:    'Bojax',
+    BoJax: 'Bojax',
   };
 
   function buildRadishUrl(card) {

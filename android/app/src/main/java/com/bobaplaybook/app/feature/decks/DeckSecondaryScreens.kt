@@ -133,6 +133,23 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     )
                     return@Column
                 }
+                // Pull-to-refresh — re-pulls the decks list from
+                // Supabase so writes made on another device surface
+                // without a relaunch. Matches the Collection pattern
+                // (a09fd90).
+                var isRefreshing by remember { mutableStateOf(false) }
+                androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = {
+                        isRefreshing = true
+                        vm.refreshSavedDecks()
+                        scope.launch {
+                            kotlinx.coroutines.delay(800)
+                            isRefreshing = false
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                ) {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(items = filteredDecks, key = { it.id }) { deck ->
                     ListItem(
@@ -176,6 +193,7 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
+                }  // close PullToRefreshBox
             }
         }
     }

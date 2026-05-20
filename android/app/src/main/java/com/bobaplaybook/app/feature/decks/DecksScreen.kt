@@ -315,7 +315,25 @@ private fun DecksCompactScreen(
             isSignedIn = isSignedIn,
             onDismiss = { editorOpen = false },
             onRename = deckViewModel::rename,
-            onRemove = deckViewModel::remove,
+            onRemove = { bobaId ->
+                // Capture the card so an Undo action can re-add it
+                // without re-walking the catalog. iOS card-tap-remove
+                // also offers undo via the toast.
+                val removed = draft.cards.firstOrNull { it.bobaId == bobaId }
+                deckViewModel.remove(bobaId)
+                if (removed != null) {
+                    scope.launch {
+                        val result = appSnackbar?.showSnackbar(
+                            message = "Removed ${removed.displayName}",
+                            actionLabel = "Undo",
+                            duration = androidx.compose.material3.SnackbarDuration.Short,
+                        )
+                        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                            deckViewModel.add(removed)
+                        }
+                    }
+                }
+            },
             onSave = {
                 deckViewModel.save { success ->
                     if (success) {

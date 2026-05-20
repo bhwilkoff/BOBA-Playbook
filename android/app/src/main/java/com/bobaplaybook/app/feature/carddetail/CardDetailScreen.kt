@@ -798,7 +798,8 @@ private fun ArtPanel(card: Card) {
             ),
         contentAlignment = Alignment.Center,
     ) {
-        val fullUrl = remember(card.imageFile) { CDN.fullUrl(card.imageFile) }
+        // Card-aware so sealed products hit /sealed/optimized/.
+        val fullUrl = remember(card.bobaId, card.imageFile) { CDN.fullUrl(card) }
         if (fullUrl != null) {
             AsyncImage(
                 model = ImageRequest.Builder(context)

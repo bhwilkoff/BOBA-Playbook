@@ -268,7 +268,9 @@ private fun ArtPanel(card: Card) {
             .background(Brush.verticalGradient(colors = listOf(accent.copy(alpha = 0.25f), BobaBrand.NearBlack))),
         contentAlignment = Alignment.Center,
     ) {
-        val fullUrl = remember(card.imageFile) { CDN.fullUrl(card.imageFile) }
+        // Route via the Card overload so sealed products hit
+        // /sealed/optimized/ instead of /full/ (CDN parity with iOS).
+        val fullUrl = remember(card.bobaId, card.imageFile) { CDN.fullUrl(card) }
         if (fullUrl != null) {
             AsyncImage(
                 model = ImageRequest.Builder(context).data(fullUrl).crossfade(200).build(),

@@ -57,6 +57,14 @@ fun BOBACardCell(
     contentDescription: String?,
     modifier: Modifier = Modifier,
     forceFullRes: Boolean = false,
+    /**
+     * Routes the CDN call through the sealed-product path
+     * (/sealed/thumbs/ + /sealed/optimized/) instead of the regular
+     * /thumbs/ + /full/. iOS CDN.swift parity. Default false so most
+     * call sites can stay unchanged; callers rendering a sealed
+     * product (Booster Boxes etc.) should pass `isSealed = true`.
+     */
+    isSealed: Boolean = false,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -71,9 +79,9 @@ fun BOBACardCell(
         } else {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val url = if (forceFullRes || maxWidth >= 160.dp) {
-                    CDN.fullUrl(imageFile)
+                    if (isSealed) CDN.sealedFullUrl(imageFile) else CDN.fullUrl(imageFile)
                 } else {
-                    CDN.thumbUrl(imageFile)
+                    if (isSealed) CDN.sealedThumbUrl(imageFile) else CDN.thumbUrl(imageFile)
                 }
                 AsyncImage(
                     model = ImageRequest.Builder(context)

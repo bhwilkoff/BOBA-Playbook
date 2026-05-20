@@ -32,10 +32,10 @@ object CDN {
     fun fullUrl(imageFile: String?): String? =
         imageFile?.takeIf { it.isNotEmpty() }?.let { "$BASE/full/$it" }
 
-    private fun sealedThumbUrl(imageFile: String?): String? =
+    fun sealedThumbUrl(imageFile: String?): String? =
         imageFile?.takeIf { it.isNotEmpty() }?.let { "$BASE/sealed/thumbs/$it" }
 
-    private fun sealedFullUrl(imageFile: String?): String? =
+    fun sealedFullUrl(imageFile: String?): String? =
         imageFile?.takeIf { it.isNotEmpty() }?.let { "$BASE/sealed/optimized/$it" }
 
     /**

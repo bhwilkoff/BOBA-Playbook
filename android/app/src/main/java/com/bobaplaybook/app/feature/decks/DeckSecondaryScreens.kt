@@ -254,6 +254,23 @@ fun DeckRulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodyMedium,
             )
 
+            BOBASectionHeader(title = "DBS Budget (Playmaker only)")
+            Text(
+                "Playmaker decks must keep total DBS across all 30 Plays at " +
+                    "or below 1,000. The Deck Balancing System scores each Play " +
+                    "by power level — high-DBS plays force balance with low-DBS " +
+                    "ones. Rookie + Substitution formats ignore DBS entirely.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
+            BOBASectionHeader(title = "Format Tiers")
+            Text(
+                "• Rookie — 8 Heroes / 30 Plays / 6 Bonus / 10 HD. No DBS.\n" +
+                "• Substitution — Rookie + 4 subs + 1 Coach. No DBS.\n" +
+                "• Playmaker — full BoBA economy. DBS budget 1,000.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
             BOBASectionHeader(title = "Tournament Format")
             Text(
                 "Tournament play locks weapon distribution and adds a Sideboard. Tournament-legal subset enforced by the Legality screen.",

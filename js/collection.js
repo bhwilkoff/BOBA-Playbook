@@ -164,6 +164,21 @@ const Collection = (() => {
             <option value="name_asc"${_collectionSort==='name_asc'?' selected':''}>Name A → Z</option>
             <option value="name_desc"${_collectionSort==='name_desc'?' selected':''}>Name Z → A</option>
           </select>
+          <!-- Wall view — render the active designation as a single
+               shareable image. Parity with iOS CollectionWallSheet
+               (DESIGN.md §8.4 + §8.8; DECISIONS.md #036 lifted gate). -->
+          <button class="collection-wall-btn" id="collection-wall-btn"
+                  type="button" aria-label="Generate wall image"
+                  ${sortedGroups.length === 0 ? 'disabled' : ''}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 width="14" height="14" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/>
+            </svg>
+            Wall
+          </button>
         </div>
         <div class="collection-card-list" role="list">
           ${listHtml}
@@ -179,6 +194,13 @@ const Collection = (() => {
 
     view.querySelector('#collection-sort')?.addEventListener('change', (e) => {
       setCollectionSort(e.target.value);
+    });
+
+    view.querySelector('#collection-wall-btn')?.addEventListener('click', () => {
+      openWallSheet({
+        designation: _activeTab,
+        cards: sortedGroups.map(g => g[0]),  // one card per group (representative)
+      });
     });
 
     view.querySelectorAll('.collection-totals-btn').forEach(btn => {
@@ -317,6 +339,199 @@ const Collection = (() => {
 
   /// Short, glanceable acquired-on label. today / yesterday / Nd ago /
   /// Mon DD or Mon DD, YYYY for older entries. Matches the iOS row.
+  /* ────────────────────────────────────────────────────────────────
+     COLLECTION WALL — canvas render of the active designation as a
+     single shareable PNG. Parity with iOS CollectionWallSheet per
+     DESIGN.md §8.4 + §8.8. Tick 5 ships canvas-render + download
+     + clipboard-copy + Web Share (where available); per-card
+     selector + Price Overlay land in a later tick.
+  ──────────────────────────────────────────────────────────────── */
+
+  /// Open the Wall dialog for the given (designation, cards) pair.
+  /// Resolves each user-card row to its catalog Card (so we get
+  /// imageFile + isSealed for the right /sealed/ vs /full/ routing),
+  /// renders a grid into the <canvas>, then enables download / copy.
+  async function openWallSheet({ designation, cards }) {
+    const overlay = document.getElementById('wall-overlay');
+    if (!overlay) return;
+
+    const titleInput = document.getElementById('wall-title-input');
+    const canvas    = document.getElementById('wall-canvas');
+    const loading   = document.getElementById('wall-loading');
+    const loadText  = document.getElementById('wall-loading-text');
+    const dlBtn     = document.getElementById('wall-download-btn');
+    const cpBtn     = document.getElementById('wall-copy-btn');
+    const shBtn     = document.getElementById('wall-share-btn');
+
+    // Seed the title from the designation if blank.
+    if (!titleInput.value) {
+      const desigLabel = (DESIGNATIONS.find(d => d.key === designation)?.label) || 'Collection';
+      titleInput.value = `My ${desigLabel}`;
+    }
+
+    // Resolve each user-card row to its catalog Card. Drop ones with
+    // no image — they'd render as placeholders and look broken in a
+    // share image.
+    const resolved = cards
+      .map(c => {
+        const cat = (_bobaIdLookup && c.boba_id)
+          ? _bobaIdLookup(c.boba_id)
+          : (_cardLookup ? _cardLookup(c.card_number) : null);
+        return cat;
+      })
+      .filter(c => c && c.imageFile);
+
+    dlBtn.disabled = true;
+    cpBtn.disabled = true;
+    shBtn.disabled = true;
+    shBtn.hidden = !navigator.share;
+    loading.hidden = false;
+    loadText.textContent = `Loading ${resolved.length} card${resolved.length === 1 ? '' : 's'}…`;
+
+    overlay.showModal();
+
+    if (resolved.length === 0) {
+      loadText.textContent = 'No cards with images to render.';
+      return;
+    }
+
+    // Off-screen render plan. Square canvas, grid of card thumbs
+    // computed from total count. 5:7 aspect per card. 1080×1080
+    // output is a clean Instagram / Discord-share size.
+    const cols = Math.min(Math.max(Math.ceil(Math.sqrt(resolved.length * 1.4)), 3), 8);
+    const rows = Math.ceil(resolved.length / cols);
+    const PAD = 16;
+    const TITLE_H = titleInput.value.trim() ? 80 : 0;
+    const cellAspect = 5 / 7;
+    // Width drives cell sizing — leave PAD margins + small gutters.
+    const cellW = Math.floor((canvas.width - PAD * 2 - (cols - 1) * 8) / cols);
+    const cellH = Math.floor(cellW / cellAspect);
+    // Resize canvas height to fit content exactly.
+    canvas.height = TITLE_H + PAD + rows * cellH + (rows - 1) * 8 + PAD;
+    const ctx = canvas.getContext('2d');
+
+    // Background — near-black per BOBA brand.
+    ctx.fillStyle = '#080810';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Title strip — rendered if user typed one. Bebas Neue / system
+    // headline; centered.
+    if (TITLE_H > 0) {
+      ctx.fillStyle = '#FF4D00';
+      ctx.font = '700 36px "Bebas Neue", system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(titleInput.value.trim(), canvas.width / 2, TITLE_H / 2 + 16);
+    }
+
+    // Load every image in parallel. crossOrigin = 'anonymous' so the
+    // canvas stays untainted and toBlob / toDataURL work afterward.
+    let loaded = 0;
+    const loadImage = (card) => new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        loaded++;
+        loadText.textContent = `Loaded ${loaded}/${resolved.length}…`;
+        resolve(img);
+      };
+      img.onerror = () => { loaded++; resolve(null); };
+      img.src = API.cardFullUrl(card) || '';
+    });
+
+    const images = await Promise.all(resolved.map(loadImage));
+
+    // Draw each card into its grid cell. Letter-boxed via aspect-fit;
+    // cards keep their 5:7 ratio inside the slot.
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i];
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = PAD + col * (cellW + 8);
+      const y = TITLE_H + PAD + row * (cellH + 8);
+      // Rounded-corner clip mimics the in-app card cell.
+      ctx.save();
+      ctx.beginPath();
+      const r = Math.min(10, cellW * 0.06);
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + cellW, y,         x + cellW, y + cellH, r);
+      ctx.arcTo(x + cellW, y + cellH, x,          y + cellH, r);
+      ctx.arcTo(x,          y + cellH, x,          y,          r);
+      ctx.arcTo(x,          y,         x + cellW, y,          r);
+      ctx.closePath();
+      ctx.clip();
+      ctx.fillStyle = '#0D0D1A';
+      ctx.fillRect(x, y, cellW, cellH);
+      if (img) {
+        ctx.drawImage(img, x, y, cellW, cellH);
+      }
+      ctx.restore();
+    }
+
+    loading.hidden = true;
+    dlBtn.disabled = false;
+    cpBtn.disabled = false;
+    shBtn.disabled = false;
+
+    // Wire actions (clean any prior listeners by cloning).
+    const reset = (btn) => {
+      const fresh = btn.cloneNode(true);
+      btn.replaceWith(fresh);
+      return fresh;
+    };
+    const dl2 = reset(dlBtn);
+    const cp2 = reset(cpBtn);
+    const sh2 = reset(shBtn);
+
+    dl2.addEventListener('click', () => {
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const safeTitle = (titleInput.value || 'collection-wall').replace(/[^a-z0-9-_]+/gi, '-').toLowerCase();
+        a.download = `${safeTitle}.png`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      }, 'image/png');
+    });
+
+    cp2.addEventListener('click', async () => {
+      try {
+        const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+        if (!blob) throw new Error('no blob');
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        cp2.textContent = '✓ Copied';
+        setTimeout(() => { cp2.textContent = 'Copy Image'; }, 1800);
+      } catch {
+        cp2.textContent = 'Copy failed';
+        setTimeout(() => { cp2.textContent = 'Copy Image'; }, 1800);
+      }
+    });
+
+    if (navigator.share) {
+      sh2.addEventListener('click', async () => {
+        try {
+          const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+          if (!blob) return;
+          const file = new File([blob], 'wall.png', { type: 'image/png' });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], title: titleInput.value || 'My Collection' });
+          } else {
+            await navigator.share({ title: titleInput.value || 'My Collection', url: location.href });
+          }
+        } catch { /* user cancelled */ }
+      });
+    }
+  }
+
+  // Wall close handler — backdrop click + explicit close button.
+  document.getElementById('wall-overlay')?.addEventListener('click', (e) => {
+    const ov = document.getElementById('wall-overlay');
+    if (e.target.closest('[data-action="close-wall"]') || e.target === ov) {
+      ov.close();
+    }
+  });
+
   function formatAddedDate(iso) {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return '';

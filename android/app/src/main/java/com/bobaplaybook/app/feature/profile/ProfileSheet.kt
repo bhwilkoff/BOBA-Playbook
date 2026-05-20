@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Share
@@ -671,6 +672,40 @@ private fun SignedInContent(
                     },
             )
         }
+        // Change password — sends a password-reset email to the
+        // signed-in user's address. iOS ProfileView.swift line 422
+        // same flow (Supabase resetPasswordForEmail). Hidden for
+        // OAuth-only users (Google / Discord) who don't have a
+        // password to reset.
+        val authEmail = authState.email
+        if (!authEmail.isNullOrBlank() && authState.provider != "google" && authState.provider != "discord") {
+            item("change-password") {
+                ListItem(
+                    headlineContent = { Text("Change password") },
+                    supportingContent = {
+                        Text(
+                            "Email a reset link to $authEmail",
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    },
+                    leadingContent = {
+                        Icon(Icons.Default.Lock, contentDescription = null)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            scope.launch {
+                                val result = authManager.sendPasswordReset(authEmail)
+                                val msg = if (result is com.bobaplaybook.app.auth.SignInResult.Success)
+                                    "Reset link sent to $authEmail"
+                                else "Couldn't send reset link. Try again."
+                                appSnackbar?.showSnackbar(msg)
+                            }
+                        },
+                )
+            }
+        }
+
         // Send Feedback — opens a mailto: with subject pre-filled to
         // include the app version. iOS ProfileView.swift:798 same
         // pattern. Helps Ben triage bug reports without asking for

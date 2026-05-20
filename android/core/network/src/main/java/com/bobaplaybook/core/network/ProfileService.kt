@@ -6,9 +6,15 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
 import io.ktor.client.HttpClient
+import io.ktor.client.call.body
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.contentType
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.serialization.json.buildJsonObject
@@ -97,6 +103,51 @@ class ProfileService @Inject constructor(
      * The Worker is the only path that can call admin auth (the
      * service-role key never reaches the client).
      */
+    /**
+     * Upload an avatar image (jpeg/png/webp) to the boba-avatar-upload
+     * Worker. Worker writes R2 + returns `{url, version}`. We then call
+     * `set_avatar_url` so the column points at the new R2 object.
+     *
+     * Caller is responsible for bounding bytes to ≤2 MB (Worker rejects
+     * anything larger). Returns the public R2 URL on success, null on
+     * failure.
+     */
+    suspend fun uploadAvatar(bytes: ByteArray, mimeType: String): String? {
+        val accessToken = supabase.auth.currentSessionOrNull()?.accessToken
+        if (accessToken.isNullOrEmpty()) return null
+        if (bytes.size > 2 * 1024 * 1024) {
+            Log.w(TAG, "uploadAvatar: payload ${bytes.size} bytes exceeds 2 MB cap")
+            return null
+        }
+        return runCatching {
+            val response = httpClient.post("${WorkerConfig.AVATAR_UPLOAD}/avatar") {
+                headers { append(HttpHeaders.Authorization, "Bearer $accessToken") }
+                contentType(ContentType.parse(mimeType))
+                setBody(bytes)
+            }
+            if (response.status.value !in 200..299) {
+                Log.e(TAG, "uploadAvatar failed: HTTP ${response.status.value}")
+                return@runCatching null
+            }
+            val responseText = response.body<String>()
+            val payload = Json.decodeFromString<AvatarUploadResponse>(responseText)
+            // Persist to user_profiles via the SECURITY DEFINER RPC. The
+            // RPC verifies the URL is an R2 avatars/ path before writing.
+            supabase.postgrest.rpc(
+                "set_avatar_url",
+                kotlinx.serialization.json.buildJsonObject {
+                    put("new_url", kotlinx.serialization.json.JsonPrimitive(payload.url))
+                },
+            )
+            payload.url
+        }.onFailure { e ->
+            Log.e(TAG, "uploadAvatar failed", e)
+        }.getOrNull()
+    }
+
+    @Serializable
+    private data class AvatarUploadResponse(val url: String, val version: String? = null)
+
     suspend fun deleteAccount(): Boolean {
         val accessToken = supabase.auth.currentSessionOrNull()?.accessToken
         if (accessToken.isNullOrEmpty()) {

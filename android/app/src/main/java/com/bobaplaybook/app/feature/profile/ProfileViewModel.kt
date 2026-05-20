@@ -82,6 +82,15 @@ class ProfileViewModel @Inject constructor(
      * the local session afterwards so cached UI stops trying to read the
      * now-gone account.
      */
+    fun uploadAvatar(bytes: ByteArray, mimeType: String, onResult: (String?) -> Unit) {
+        viewModelScope.launch {
+            _busy.value = true
+            val url = service.uploadAvatar(bytes, mimeType)
+            _busy.value = false
+            onResult(url)
+        }
+    }
+
     fun deleteAccount(onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             _busy.value = true

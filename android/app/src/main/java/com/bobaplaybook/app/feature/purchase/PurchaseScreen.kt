@@ -143,9 +143,13 @@ fun PurchaseScreen(modifier: Modifier = Modifier) {
                                     verticalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
                                     items(
-                                        items = state.upcomingBreaks,
-                                        key = { it.id },
-                                    ) { show ->
+                                        count = state.upcomingBreaks.size,
+                                        // Index-suffix guarantees uniqueness even when
+                                        // the upstream Worker returns shows w/ duplicate
+                                        // or empty IDs (which crashed v1).
+                                        key = { i -> "${state.upcomingBreaks[i].id}#$i" },
+                                    ) { idx ->
+                                        val show = state.upcomingBreaks[idx]
                                         WhatnotTile(
                                             show = show,
                                             onClick = {

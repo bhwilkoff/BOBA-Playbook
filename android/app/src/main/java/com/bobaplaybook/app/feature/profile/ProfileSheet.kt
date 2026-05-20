@@ -100,6 +100,7 @@ fun ProfileScreen(
     authManager: AuthManager,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onPracticeUnlock: () -> Unit = {},
 ) {
     val authState by authManager.authState.collectAsStateWithLifecycle(initialValue = AuthState.Unknown)
     LaunchedEffect(Unit) { authManager.observeSession() }
@@ -131,7 +132,7 @@ fun ProfileScreen(
             when (val s = authState) {
                 AuthState.Unknown -> LoadingState()
                 AuthState.SignedOut -> SignedOutContent(authManager)
-                is AuthState.SignedIn -> SignedInContent(authManager, s, onBack)
+                is AuthState.SignedIn -> SignedInContent(authManager, s, onBack, onPracticeUnlock)
             }
         }
     }
@@ -335,6 +336,7 @@ private fun SignedInContent(
     authManager: AuthManager,
     authState: AuthState.SignedIn,
     onDismiss: () -> Unit,
+    onPracticeUnlock: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -382,7 +384,7 @@ private fun SignedInContent(
                 isAdmin = profile?.isAdmin == true,
                 isMod = profile?.isMod == true,
                 isStreamer = profile?.isStreamer == true,
-                onPracticeUnlock = { /* M5.5 Practice executor admin-gated entry */ },
+                onPracticeUnlock = onPracticeUnlock,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
             )
         }

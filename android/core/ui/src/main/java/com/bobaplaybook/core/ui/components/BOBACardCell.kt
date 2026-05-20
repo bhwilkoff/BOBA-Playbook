@@ -50,7 +50,6 @@ fun BOBACardCell(
     imageFile: String?,
     contentDescription: String?,
     modifier: Modifier = Modifier,
-    cornerRadius: Int = 12,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val thumbUrl = CDN.thumbUrl(imageFile)
@@ -58,8 +57,8 @@ fun BOBACardCell(
     Box(
         modifier = modifier
             .aspectRatio(5f / 7f)
-            .clip(RoundedCornerShape(cornerRadius.dp))
-            .background(BobaBrand.Surface),
+            .clip(MaterialTheme.shapes.medium)
+            .background(BobaBrand.SurfaceLow),
     ) {
         if (thumbUrl != null) {
             AsyncImage(
@@ -93,7 +92,7 @@ private fun BOBACardPlaceholder(label: String) {
         Text(
             text = "BOBA PB",
             style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Black,
+                fontWeight = FontWeight.Bold,
             ),
             color = BobaBrand.Orange.copy(alpha = 0.7f),
             textAlign = TextAlign.Center,

@@ -47,7 +47,7 @@ fun BOBACardSkeleton(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .aspectRatio(5f / 7f)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(MaterialTheme.shapes.medium)
             .background(
                 Brush.linearGradient(
                     colors = listOf(base, highlight, base),

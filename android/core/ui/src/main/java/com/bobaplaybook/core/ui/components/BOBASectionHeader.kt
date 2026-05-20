@@ -9,17 +9,16 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
- * Canonical section header (ANDROID-DESIGN.md §11.1).
+ * Canonical section header (ANDROID-DESIGN.md §11.1, M3 type scale).
  *
- * Uppercase brand display typeface, optional trailing action.
+ * Sentence case `titleSmall` — matches M3's section-header convention.
+ * NOT uppercase + Black weight (that's iOS Bebas Neue; on Android it
+ * reads as a port, not as native Material).
  *
- * Use above content shelves on Find, between Profile sections, etc.
- * Never paired with a colored block — the typography IS the separator
- * per §5.1 density rule (no tinted-box backgrounds).
+ * Optional trailing action ("See all", "Edit") on the same row.
  */
 @Composable
 fun BOBASectionHeader(
@@ -31,21 +30,18 @@ fun BOBASectionHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = title.uppercase(),
-            style = MaterialTheme.typography.titleSmall.copy(
-                fontWeight = FontWeight.Black,
-                letterSpacing = androidx.compose.ui.unit.TextUnit.Unspecified,
-            ),
-            color = MaterialTheme.colorScheme.onSurface,
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
         )
         if (actionLabel != null && onAction != null) {
             TextButton(onClick = onAction) {
-                Text(actionLabel, style = MaterialTheme.typography.labelMedium)
+                Text(actionLabel, style = MaterialTheme.typography.labelLarge)
             }
         }
     }

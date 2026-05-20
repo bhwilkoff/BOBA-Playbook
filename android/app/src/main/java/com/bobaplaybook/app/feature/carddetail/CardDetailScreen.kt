@@ -101,12 +101,11 @@ fun CardDetailScreen(
     val decksViewModel: com.bobaplaybook.app.feature.decks.DecksViewModel = hiltViewModel()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val context = LocalContext.current
-    // Prefer the app-level Snackbar host so confirmations stay visible
-    // even if the user navigates away during the message. Falls back to
-    // a local host when LocalAppSnackbar isn't provided (previews).
-    val appSnackbar = LocalAppSnackbar.current
-    val localSnackbar = remember { androidx.compose.material3.SnackbarHostState() }
-    val snackbarHostState = appSnackbar ?: localSnackbar
+    // App-scoped Snackbar host (LocalAppSnackbar) — provided at the
+    // BOBAApp root. No local fallback: tests render this through the
+    // theme which provides the local; previews don't show Snackbars.
+    val snackbarHostState = LocalAppSnackbar.current
+        ?: remember { androidx.compose.material3.SnackbarHostState() }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     var addMenuOpen by remember { mutableStateOf(false) }
@@ -340,13 +339,13 @@ private fun ArtPanel(card: Card) {
                 contentDescription = card.displayName,
                 modifier = Modifier
                     .aspectRatio(5f / 7f)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(MaterialTheme.shapes.large)
                     .cardSharedBounds(card.bobaId),
             )
         } else {
             Text(
                 text = card.displayName,
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black),
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.cardSharedBounds(card.bobaId),
             )

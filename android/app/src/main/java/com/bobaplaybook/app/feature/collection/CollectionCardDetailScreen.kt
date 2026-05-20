@@ -177,12 +177,12 @@ private fun ArtPanel(card: Card) {
             AsyncImage(
                 model = ImageRequest.Builder(context).data(fullUrl).crossfade(200).build(),
                 contentDescription = card.displayName,
-                modifier = Modifier.aspectRatio(5f / 7f).clip(RoundedCornerShape(16.dp)),
+                modifier = Modifier.aspectRatio(5f / 7f).clip(MaterialTheme.shapes.large),
             )
         } else {
             Text(
                 text = card.displayName,
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black),
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

@@ -184,7 +184,6 @@ private fun ScanViewfinder(
                     .padding(16.dp)
                     .align(Alignment.BottomCenter),
                 color = MaterialTheme.colorScheme.primaryContainer,
-                tonalElevation = 4.dp,
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(

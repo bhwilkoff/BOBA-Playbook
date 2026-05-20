@@ -43,6 +43,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -87,8 +88,8 @@ fun PurchaseScreen(modifier: Modifier = Modifier) {
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text("Purchase") },
+            CenterAlignedTopAppBar(
+                title = { com.bobaplaybook.core.ui.components.BOBAWordmark() },
                 actions = {
                     if (section == PurchaseSection.BREAKS) {
                         IconButton(onClick = { viewModel.refreshBreaks() }) {

@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -121,20 +122,20 @@ private fun FilterSheetContent(
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             item { SortSection(state.sortOrder, onChange = { onEvent(FindEvent.SortChanged(it)) }) }
-            item { HorizontalDivider() }
+            item { Spacer(Modifier.height(8.dp)) }
             item { CardPurposeSection(state.cardPurpose, onChange = { onEvent(FindEvent.CardPurposeChanged(it)) }) }
-            item { HorizontalDivider() }
+            item { Spacer(Modifier.height(8.dp)) }
             item { ShowcaseSection(state.showcaseId, onChange = { onEvent(FindEvent.ShowcaseChanged(it)) }) }
-            item { HorizontalDivider() }
+            item { Spacer(Modifier.height(8.dp)) }
             item { WeaponSection(state.activeWeapons, onToggle = { onEvent(FindEvent.WeaponToggled(it)) }) }
-            item { HorizontalDivider() }
+            item { Spacer(Modifier.height(8.dp)) }
             item {
                 HasImageRow(
                     enabled = state.hasImageOnly,
                     onToggle = { onEvent(FindEvent.HasImageToggled(it)) },
                 )
             }
-            item { HorizontalDivider() }
+            item { Spacer(Modifier.height(8.dp)) }
             item {
                 DropdownPickerSection(
                     title = "Set",
@@ -144,7 +145,7 @@ private fun FilterSheetContent(
                     allLabel = "All Sets",
                 )
             }
-            item { HorizontalDivider() }
+            item { Spacer(Modifier.height(8.dp)) }
             item {
                 DropdownPickerSection(
                     title = "Treatment",
@@ -154,7 +155,7 @@ private fun FilterSheetContent(
                     allLabel = "All Treatments",
                 )
             }
-            item { HorizontalDivider() }
+            item { Spacer(Modifier.height(8.dp)) }
             item {
                 DropdownPickerSection(
                     title = "Release",
@@ -164,7 +165,7 @@ private fun FilterSheetContent(
                     allLabel = "All Releases",
                 )
             }
-            item { HorizontalDivider() }
+            item { Spacer(Modifier.height(8.dp)) }
             item {
                 PowerRangeSection(
                     powerMin = state.powerMin,
@@ -297,6 +298,7 @@ private fun HasImageRow(enabled: Boolean, onToggle: (Boolean) -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DropdownPickerSection(
     title: String,
@@ -308,33 +310,26 @@ private fun DropdownPickerSection(
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         BOBASectionHeader(title = title)
         var expanded by remember { mutableStateOf(false) }
-        // Use a Surface + DropdownMenu pattern instead of
-        // ExposedDropdownMenuBox to avoid the M3 1.5-alpha API drift.
-        Box {
-            Surface(
+        androidx.compose.material3.ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+        ) {
+            androidx.compose.material3.OutlinedTextField(
+                value = selected ?: allLabel,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(title) },
+                trailingIcon = {
+                    androidx.compose.material3.ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = true },
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                shape = RoundedCornerShape(8.dp),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = selected ?: allLabel,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (selected != null) MaterialTheme.colorScheme.onSurface
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = null,
-                    )
-                }
-            }
+                    .menuAnchor(
+                        type = androidx.compose.material3.ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                        enabled = true,
+                    ),
+                colors = androidx.compose.material3.ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            )
             androidx.compose.material3.DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
@@ -342,11 +337,17 @@ private fun DropdownPickerSection(
                 DropdownMenuItem(
                     text = { Text(allLabel) },
                     onClick = { onChange(null); expanded = false },
+                    leadingIcon = {
+                        if (selected == null) Icon(Icons.Default.Check, contentDescription = null)
+                    },
                 )
                 options.forEach { option ->
                     DropdownMenuItem(
                         text = { Text(option) },
                         onClick = { onChange(option); expanded = false },
+                        leadingIcon = {
+                            if (selected == option) Icon(Icons.Default.Check, contentDescription = null)
+                        },
                     )
                 }
             }

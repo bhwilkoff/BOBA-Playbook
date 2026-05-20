@@ -1,0 +1,98 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
+package com.bobaplaybook.app.feature.decks
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bobaplaybook.app.feature.collection.RainbowCatalogViewModel
+import com.bobaplaybook.core.data.decks.DeckTemplate
+import com.bobaplaybook.core.data.decks.DeckTemplateLoader
+
+/**
+ * Template gallery — pick one of the five iOS-parity archetype decks
+ * to seed the draft. Tap a template → DeckStore expands its bobaId
+ * arrays against the live catalog and replaces the active draft.
+ */
+@Composable
+fun TemplateGallerySheet(
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val context = LocalContext.current
+    val decksViewModel: DecksViewModel = hiltViewModel()
+    val catalogVm: RainbowCatalogViewModel = hiltViewModel()
+    val catalog by catalogVm.cards.collectAsStateWithLifecycle()
+
+    // Load templates lazily off the assets bundle on first sheet open.
+    val templates by produceState(initialValue = emptyList<DeckTemplate>()) {
+        value = DeckTemplateLoader().load(context)
+    }
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Text("Start from a template", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "Pre-built archetype decks. Tap to replace your current draft.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+            )
+            HorizontalDivider()
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                items(items = templates, key = { it.id }) { template ->
+                    ListItem(
+                        headlineContent = { Text(template.name) },
+                        supportingContent = {
+                            Text(
+                                template.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        leadingContent = {
+                            Icon(Icons.Default.Lightbulb, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val cards = template.expand(catalog)
+                                if (cards.isNotEmpty()) {
+                                    decksViewModel.clear()
+                                    decksViewModel.rename(template.name)
+                                    cards.forEach { decksViewModel.add(it) }
+                                }
+                                onDismiss()
+                            },
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}

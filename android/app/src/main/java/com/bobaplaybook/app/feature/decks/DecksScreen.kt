@@ -277,7 +277,25 @@ private fun DecksCompactScreen(
             CardPoolGrid(
                 cards = findState.results,
                 onCardClick = onCardClick,
-                onCardLongClick = deckViewModel::add,
+                onCardLongClick = { card ->
+                    deckViewModel.add(card)
+                    // Snackbar confirms the long-press registered AND
+                    // surfaces whether the deck now exceeds a cap so
+                    // the user doesn't have to open the editor to find
+                    // out. Computed before-the-add because the new
+                    // draft state propagates via Flow on the next
+                    // recomposition.
+                    val newHD = draft.totalHD + (card.hd ?: 0)
+                    val newDBS = draft.totalDBS + (card.dbs ?: 0)
+                    val warn = when {
+                        newHD > draft.hdCap -> " — over HD cap"
+                        draft.enforcesDBS && newDBS > draft.dbsBudget -> " — over DBS budget"
+                        else -> ""
+                    }
+                    scope.launch {
+                        appSnackbar?.showSnackbar("Added ${card.displayName}$warn")
+                    }
+                },
                 modifier = Modifier.fillMaxSize(),
             )
         }

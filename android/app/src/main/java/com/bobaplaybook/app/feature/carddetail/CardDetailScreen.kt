@@ -322,6 +322,29 @@ private fun CardDetailBody(
             color = MaterialTheme.colorScheme.outlineVariant,
         )
 
+        // In-your-collection summary — iOS card detail surfaces this
+        // so the user always knows whether they already own the card
+        // they're looking at + which designation(s) it sits under.
+        val collectionVm: com.bobaplaybook.app.feature.collection.CollectionViewModel =
+            androidx.hilt.navigation.compose.hiltViewModel()
+        val collectionState by collectionVm.uiState.collectAsStateWithLifecycle()
+        val ownedEntries = remember(collectionState, card.bobaId) {
+            collectionState.entriesByDesignation.values.flatten()
+                .filter { it.card.bobaId == card.bobaId }
+        }
+        if (ownedEntries.isNotEmpty()) {
+            BOBASectionHeader(title = "In your collection (${ownedEntries.size})")
+            val byDesignation = ownedEntries.groupingBy { it.userCard.designation }.eachCount()
+            Text(
+                text = byDesignation.entries.joinToString(" · ") { (d, n) ->
+                    if (n > 1) "${d.label} ×$n" else d.label
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+        }
+
         // Pricing
         PricingPanels(state = state)
 

@@ -663,10 +663,7 @@ private fun FeaturedShelves(
         modifier = Modifier.fillMaxSize().verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Box(
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp),
-            contentAlignment = Alignment.Center,
-        ) { BOBAWordmark() }
+        Spacer(Modifier.height(8.dp))
 
         if (state.recentlyAdded.isNotEmpty()) {
             BOBASectionHeader(title = "Recently added")

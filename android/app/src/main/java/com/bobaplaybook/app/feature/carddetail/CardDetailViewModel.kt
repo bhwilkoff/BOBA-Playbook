@@ -15,7 +15,6 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -27,39 +26,42 @@ data class CardDetailUiState(
     val isLoadingPricing: Boolean = false,
     val ebayActive: ImmutableList<PricingListing> = persistentListOf(),
     val ebaySold: ImmutableList<PricingListing> = persistentListOf(),
-    val radishSales: ImmutableList<PricingListing> = persistentListOf(),
+    /** Worker-resolved Radish landing URL (when present); used for tap-through. */
+    val radishUrl: String? = null,
     val otherVersions: ImmutableList<Card> = persistentListOf(),
 ) {
+    /**
+     * Median of eBay-sold prices when available; falls back to median of
+     * active asking prices so the user always sees a number when there's
+     * any market signal at all. iOS DECISIONS.md #013 + #034 keep COMC
+     * asking out of the sold waterfall — same posture here.
+     */
     val marketEstimateUsd: Double?
         get() {
-            // Radish first (preferred TCG comps), eBay sold as fallback
-            val sales = if (radishSales.isNotEmpty()) radishSales else ebaySold
+            val sales = if (ebaySold.isNotEmpty()) ebaySold else ebayActive
             if (sales.isEmpty()) return null
             return sales.map { it.priceUsd }.sorted().let { sorted ->
-                // Median — robust to outliers in small samples
                 val n = sorted.size
                 if (n % 2 == 1) sorted[n / 2] else (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0
             }
         }
 
     val marketEstimateBasis: String?
-        get() {
-            val n = (radishSales.size + ebaySold.size).takeIf { it > 0 } ?: return null
-            return when {
-                radishSales.isNotEmpty() && ebaySold.isNotEmpty() -> "based on $n recent sales (Radish + eBay)"
-                radishSales.isNotEmpty()                          -> "based on ${radishSales.size} Radish sales"
-                else                                              -> "based on ${ebaySold.size} eBay sold"
-            }
+        get() = when {
+            ebaySold.isNotEmpty() -> "based on ${ebaySold.size} recent eBay sold comps"
+            ebayActive.isNotEmpty() -> "based on ${ebayActive.size} active listings (no sold comps yet)"
+            else -> null
         }
 }
 
 /**
  * Card detail ViewModel.
  *
- * Reactive lookup from the live catalog (so admin overrides on art
- * propagate instantly) plus on-demand pricing fetches when the screen
- * opens. Pricing soft-fails — a Worker outage shows "no data" rather
- * than crashing the detail view.
+ * Reactive lookup from the live catalog plus on-demand pricing fetch
+ * when the screen opens. ONE Worker round-trip per bobaId; Worker
+ * aggregates eBay active + sold + Radish into the same response.
+ * Pricing soft-fails — a Worker outage shows "no data" rather than
+ * crashing the detail view.
  */
 @HiltViewModel
 class CardDetailViewModel @Inject constructor(
@@ -101,7 +103,7 @@ class CardDetailViewModel @Inject constructor(
                 isLoadingPricing = pricing.isLoading,
                 ebayActive = pricing.ebayActive[bobaId].orEmpty().toPersistentList(),
                 ebaySold = pricing.ebaySold[bobaId].orEmpty().toPersistentList(),
-                radishSales = pricing.radish[bobaId].orEmpty().toPersistentList(),
+                radishUrl = pricing.radishUrl[bobaId],
                 otherVersions = otherVersions.toPersistentList(),
             )
         }.stateIn(
@@ -113,21 +115,18 @@ class CardDetailViewModel @Inject constructor(
 
     private fun loadPricing(bobaId: String, card: Card) {
         viewModelScope.launch {
-            // Three parallel fetches via coroutineScope for structured concurrency
-            kotlinx.coroutines.coroutineScope {
-                val active = async { pricingService.ebayActive(card.cardNumber, card.hero) }
-                val sold = async { pricingService.ebaySold(card.cardNumber, card.hero) }
-                val radish = async { pricingService.radish(card.cardNumber) }
-                val r1 = active.await()
-                val r2 = sold.await()
-                val r3 = radish.await()
-                pricingState.value = pricingState.value.copy(
-                    isLoading = false,
-                    ebayActive = pricingState.value.ebayActive + (bobaId to r1),
-                    ebaySold = pricingState.value.ebaySold + (bobaId to r2),
-                    radish = pricingState.value.radish + (bobaId to r3),
-                )
-            }
+            val bundle = pricingService.fetchAll(
+                cardNumber = card.cardNumber,
+                hero = card.hero,
+                set = card.set,
+                element = card.element.takeIf { !card.isSealed },
+            )
+            pricingState.value = pricingState.value.copy(
+                isLoading = false,
+                ebayActive = pricingState.value.ebayActive + (bobaId to bundle.ebayActive),
+                ebaySold = pricingState.value.ebaySold + (bobaId to bundle.ebaySold),
+                radishUrl = pricingState.value.radishUrl + (bobaId to bundle.radishResolvedUrl),
+            )
         }
     }
 }
@@ -137,5 +136,5 @@ private data class PricingState(
     val startedForBobaId: Set<String> = emptySet(),
     val ebayActive: Map<String, List<PricingListing>> = emptyMap(),
     val ebaySold: Map<String, List<PricingListing>> = emptyMap(),
-    val radish: Map<String, List<PricingListing>> = emptyMap(),
+    val radishUrl: Map<String, String?> = emptyMap(),
 )

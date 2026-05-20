@@ -90,6 +90,11 @@ fun BOBAApp(
             mutableStateOf(AppDestination.FIND)
         }
         var scanActive by rememberSaveable { mutableStateOf(false) }
+        // When a scan match lands while Collection is the current tab,
+        // we stash the matched bobaId here until the user picks which
+        // designation to file it under. iOS DESIGN.md §6.5 calls for
+        // this prompt sheet at the moment of capture.
+        var pendingCollectionScan by rememberSaveable { mutableStateOf<String?>(null) }
         val isOnline by connectivityState.isOnline.collectAsStateWithLifecycle(initialValue = true)
         val appSnackbar = remember { androidx.compose.material3.SnackbarHostState() }
         val context = androidx.compose.ui.platform.LocalContext.current
@@ -175,22 +180,41 @@ fun BOBAApp(
                             onBack = { scanActive = false },
                             onMatch = { matchedBobaId ->
                                 scanActive = false
-                                val destination = when (currentDestination) {
-                                    AppDestination.DECKS      -> ScanDestination.CURRENT_DECK
-                                    AppDestination.COLLECTION -> ScanDestination.COLLECTION
-                                    else                       -> ScanDestination.CARD_DETAIL
-                                }
-                                val navTarget = scanCoordinator.onMatch(
-                                    bobaId = matchedBobaId,
-                                    destination = destination,
-                                    cardRepository = cardRepository,
-                                )
-                                if (navTarget != null) {
-                                    val ctrl = tabControllers[currentDestination]
-                                    ctrl?.navigate(NavRoutes.cardDetail(navTarget))
+                                when (currentDestination) {
+                                    AppDestination.COLLECTION -> {
+                                        // Prompt for designation before writing —
+                                        // iOS parity per DESIGN.md §6.5.
+                                        pendingCollectionScan = matchedBobaId
+                                    }
+                                    AppDestination.DECKS -> {
+                                        scanCoordinator.onMatch(
+                                            bobaId = matchedBobaId,
+                                            destination = ScanDestination.CURRENT_DECK,
+                                            cardRepository = cardRepository,
+                                        )
+                                    }
+                                    else -> {
+                                        scanCoordinator.onMatch(
+                                            bobaId = matchedBobaId,
+                                            destination = ScanDestination.CARD_DETAIL,
+                                            cardRepository = cardRepository,
+                                        )?.let { navTarget ->
+                                            tabControllers[currentDestination]?.navigate(NavRoutes.cardDetail(navTarget))
+                                        }
+                                    }
                                 }
                             },
                         )
+
+                        // Designation chooser — fires after a Collection-context
+                        // scan match. Mirrors iOS DESIGN.md §6.5 scan→Collection
+                        // path: identify, then prompt for designation, then write.
+                        pendingCollectionScan?.let { bobaId ->
+                            ScanDesignationSheet(
+                                bobaId = bobaId,
+                                onDismiss = { pendingCollectionScan = null },
+                            )
+                        }
                     } else {
                         // Only the current tab is composed — keeps memory
                         // down. Each tab's nav controller persists across

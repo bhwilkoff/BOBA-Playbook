@@ -26,6 +26,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,27 +86,44 @@ internal fun WatchPageContent() {
             )
         }
         else -> {
-            LazyColumn(
+            val scope = androidx.compose.runtime.rememberCoroutineScope()
+            var isRefreshing by androidx.compose.runtime.remember {
+                androidx.compose.runtime.mutableStateOf(false)
+            }
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    isRefreshing = true
+                    vm.refresh()
+                    scope.launch {
+                        kotlinx.coroutines.delay(800)
+                        isRefreshing = false
+                    }
+                },
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (state.bundle.upcoming.isNotEmpty()) {
-                    item("upcoming-head") { BOBASectionHeader(title = "Live + upcoming") }
-                    items(state.bundle.upcoming, key = { "up-${it.videoId}" }) { v ->
-                        VideoRow(video = v, onClick = { openVideo(v.url) })
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (state.bundle.upcoming.isNotEmpty()) {
+                        item("upcoming-head") { BOBASectionHeader(title = "Live + upcoming") }
+                        items(state.bundle.upcoming, key = { "up-${it.videoId}" }) { v ->
+                            VideoRow(video = v, onClick = { openVideo(v.url) })
+                        }
                     }
-                }
-                if (state.bundle.horizontal.isNotEmpty()) {
-                    item("horiz-head") { BOBASectionHeader(title = "Videos") }
-                    items(state.bundle.horizontal, key = { "h-${it.videoId}" }) { v ->
-                        VideoRow(video = v, onClick = { openVideo(v.url) })
+                    if (state.bundle.horizontal.isNotEmpty()) {
+                        item("horiz-head") { BOBASectionHeader(title = "Videos") }
+                        items(state.bundle.horizontal, key = { "h-${it.videoId}" }) { v ->
+                            VideoRow(video = v, onClick = { openVideo(v.url) })
+                        }
                     }
-                }
-                if (state.bundle.vertical.isNotEmpty()) {
-                    item("vert-head") { BOBASectionHeader(title = "Shorts") }
-                    items(state.bundle.vertical, key = { "v-${it.videoId}" }) { v ->
-                        VideoRow(video = v, onClick = { openVideo(v.url) }, vertical = true)
+                    if (state.bundle.vertical.isNotEmpty()) {
+                        item("vert-head") { BOBASectionHeader(title = "Shorts") }
+                        items(state.bundle.vertical, key = { "v-${it.videoId}" }) { v ->
+                            VideoRow(video = v, onClick = { openVideo(v.url) }, vertical = true)
+                        }
                     }
                 }
             }

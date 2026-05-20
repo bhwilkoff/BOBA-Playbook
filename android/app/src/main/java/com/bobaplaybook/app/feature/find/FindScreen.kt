@@ -665,23 +665,20 @@ private fun FeaturedShelves(
             contentAlignment = Alignment.Center,
         ) { BOBAWordmark() }
 
-        BOBASectionHeader(title = "Card showcases")
-        LazyRow(
-            modifier = Modifier.padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 8.dp),
-        ) {
-            items(items = Showcases.all, key = { it.id }) { showcase ->
-                AssistChip(
-                    onClick = { onShowcaseTap(showcase.id) },
-                    label = { Text(showcase.name) },
-                )
-            }
-        }
-
         if (state.recentlyAdded.isNotEmpty()) {
             BOBASectionHeader(title = "Recently added")
             CardCarousel(cards = state.recentlyAdded, onCardClick = onCardClick, cellWidth = 120.dp)
+        }
+
+        // Card showcases — one carousel per Showcase (WoBA, Rookie
+        // Inspired, every named sport). iOS DESIGN.md sec 8.1 parity.
+        state.showcaseShelves.forEach { showcase ->
+            BOBASectionHeader(
+                title = showcase.name,
+                actionLabel = "See all",
+                onAction = { onShowcaseTap(showcase.showcaseId) },
+            )
+            CardCarousel(cards = showcase.cards, onCardClick = onCardClick, cellWidth = 110.dp)
         }
 
         BOBASectionHeader(title = "By weapon")
@@ -702,7 +699,9 @@ private fun FeaturedShelves(
             }
         }
 
-        state.heroesByWeapon.take(3).forEach { shelf ->
+        // Render all weapon carousels (was take(3) — audit P1 #3
+        // called for the full 8-weapon set).
+        state.heroesByWeapon.forEach { shelf ->
             BOBASectionHeader(title = "${shelf.weapon} heroes", actionLabel = "See all", onAction = { onWeaponTap(shelf.weapon) })
             CardCarousel(cards = shelf.cards, onCardClick = onCardClick, cellWidth = 110.dp)
         }

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
@@ -67,6 +68,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bobaplaybook.app.auth.AuthManager
@@ -376,6 +378,11 @@ private fun SignedInContent(
                 // Prefer the user-uploaded avatar on user_profiles; fall
                 // back to provider-supplied (Google / Discord) avatar.
                 avatarUrl = profile?.avatarUrl ?: profile?.discordAvatarUrl ?: authState.providerAvatarUrl,
+                role = profile?.role,
+                isAdmin = profile?.isAdmin == true,
+                isMod = profile?.isMod == true,
+                isStreamer = profile?.isStreamer == true,
+                onPracticeUnlock = { /* M5.5 Practice executor admin-gated entry */ },
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
             )
         }
@@ -671,6 +678,11 @@ private fun ProfileHeader(
     email: String?,
     signInMethod: String,
     avatarUrl: String? = null,
+    role: String? = null,
+    isAdmin: Boolean = false,
+    isMod: Boolean = false,
+    isStreamer: Boolean = false,
+    onPracticeUnlock: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -716,32 +728,80 @@ private fun ProfileHeader(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            // Status label — not interactive. M3 spec: small Surface +
-            // Text, not a no-op Chip (which teaches users it's tappable).
-            androidx.compose.material3.Surface(
-                shape = MaterialTheme.shapes.small,
-                color = MaterialTheme.colorScheme.secondaryContainer,
+            // Role + provider badge row. iOS DESIGN.md §6.5 — role
+            // badge primary, provider pill secondary. Admin row gets
+            // a bolt-icon button that unlocks the Practice executor
+            // (M5.5 — admin-only per DECISIONS.md #033 / #048).
+            Row(
                 modifier = Modifier.padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                val (roleLabel, roleColor) = when {
+                    isAdmin -> "ADMIN" to BobaBrand.Orange
+                    isMod -> "MOD" to BobaBrand.Cyan
+                    else -> "MEMBER" to MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                RoleBadgePill(label = roleLabel, color = roleColor)
+                if (isStreamer && !isAdmin) {
+                    RoleBadgePill(label = "STREAMER", color = BobaBrand.Cyan)
+                }
+                androidx.compose.material3.Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
                 ) {
-                    Icon(
-                        Icons.Default.Verified,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                    Text(
-                        "Signed in with $signInMethod",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Verified,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                        Text(
+                            signInMethod,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+                }
+                if (isAdmin) {
+                    androidx.compose.material3.IconButton(
+                        onClick = onPracticeUnlock,
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Bolt,
+                            contentDescription = "Practice (admin only)",
+                            tint = BobaBrand.Orange,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RoleBadgePill(label: String, color: androidx.compose.ui.graphics.Color) {
+    androidx.compose.material3.Surface(
+        shape = MaterialTheme.shapes.extraSmall,
+        color = color,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 9.sp,
+                letterSpacing = 1.sp,
+            ),
+            color = BobaBrand.NearBlack,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+        )
     }
 }
 

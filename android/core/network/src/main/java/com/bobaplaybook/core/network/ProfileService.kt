@@ -50,6 +50,7 @@ class ProfileService @Inject constructor(
                     "username", "public_collection_enabled", "notifications_enabled",
                     "match_alerts_enabled", "discord_user_id", "discord_avatar_url",
                     "avatar_url", "requested_role", "requested_role_at",
+                    "role",
                 )) {
                     limit(1)
                 }
@@ -198,6 +199,7 @@ class ProfileService @Inject constructor(
         @kotlinx.serialization.SerialName("avatar_url") val avatarUrl: String? = null,
         @kotlinx.serialization.SerialName("requested_role") val requestedRole: String? = null,
         @kotlinx.serialization.SerialName("requested_role_at") val requestedRoleAt: String? = null,
+        val role: String? = null,
     ) {
         fun toDomain() = UserProfile(
             username = username,
@@ -209,6 +211,7 @@ class ProfileService @Inject constructor(
             avatarUrl = avatarUrl,
             requestedRole = requestedRole,
             requestedRoleAt = requestedRoleAt,
+            role = role,
         )
     }
 
@@ -239,4 +242,14 @@ data class UserProfile(
     val avatarUrl: String?,
     val requestedRole: String?,
     val requestedRoleAt: String?,
-)
+    /**
+     * One of: "user" (default), "moderator", "streamer", "admin".
+     * Drives the role badge + admin-only practice unlock per iOS
+     * DECISIONS.md #033. RLS lets every user read their own row.
+     */
+    val role: String? = null,
+) {
+    val isAdmin: Boolean get() = role.equals("admin", ignoreCase = true)
+    val isMod: Boolean get() = role.equals("moderator", ignoreCase = true) || isAdmin
+    val isStreamer: Boolean get() = role.equals("streamer", ignoreCase = true) || isAdmin
+}

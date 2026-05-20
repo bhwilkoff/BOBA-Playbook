@@ -2181,9 +2181,14 @@
     //   /boba/2025/World_Champions/Chetmate/OKC-27
     // Programmatic fallback — mirrors iOS Card+Radish.swift.
     const [year, slug] = SET_SLUG_MAP[card.set] || ['2024', 'Alpha_Edition'];
-    // cardNumber prefix remap so LOGO-/RAD-/MIX- in the catalog
-    // become Logo-/Rad-/Mix- in the URL.
-    const prefixRemap = { LOGO: 'Logo', RAD: 'Rad', MIX: 'Mix' };
+    // cardNumber prefix casing per current Radish (verified 2026-05-20):
+    //   LOGO- → Logo-   (Radish uses title-case for Logofoil)
+    //   everything else stays UPPERCASE
+    // An earlier version of this builder lowercased RAD- and MIX- too
+    // ("Rad-", "Mix-") — that 404s on current Radish, sending the
+    // pricing pipeline + the "Radish Guide" button into a
+    // hero-only-fallback path for ~2,970 catalog cards.
+    const prefixRemap = { LOGO: 'Logo' };
     let cardNum = card.cardNumber || '';
     for (const [ours, theirs] of Object.entries(prefixRemap)) {
       if (cardNum.startsWith(ours + '-')) {

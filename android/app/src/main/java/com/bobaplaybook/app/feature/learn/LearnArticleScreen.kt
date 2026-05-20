@@ -34,8 +34,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
@@ -96,7 +98,7 @@ fun LearnCategoryScreen(
                 LearnCategoryId.RULES      -> RulesPage()
                 LearnCategoryId.STRATEGY   -> FlatSectionsPage(LearnCorpus.strategy)
                 LearnCategoryId.COLLECT    -> FlatSectionsPage(LearnCorpus.collect)
-                LearnCategoryId.WATCH      -> FlatSectionsPage(LearnCorpus.watch)
+                LearnCategoryId.WATCH      -> WatchPage()
                 LearnCategoryId.GLOSSARY   -> GlossaryPage()
                 LearnCategoryId.TOURNAMENT -> FlatSectionsPage(LearnCorpus.tournament)
             }
@@ -159,7 +161,51 @@ private fun RulesPage() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// Flat sections — Strategy / Collect / Watch / Tournament
+// Watch — opens BoBA YouTube channel via Custom Tab (iOS YT IFrame
+// player is iOS-only; CustomTabs is the pragmatic Android path)
+// ════════════════════════════════════════════════════════════════
+
+@Composable
+private fun WatchPage() {
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            "Bo Jackson Battle Arena · YouTube",
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        Text(
+            "Tutorials, top plays, live breaks, and deep-dives from the official BoBA channel.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        androidx.compose.material3.Button(
+            onClick = {
+                androidx.browser.customtabs.CustomTabsIntent.Builder()
+                    .build()
+                    .launchUrl(context, android.net.Uri.parse("https://www.youtube.com/@bobattlearena"))
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Open YouTube channel")
+        }
+        androidx.compose.material3.OutlinedButton(
+            onClick = {
+                androidx.browser.customtabs.CustomTabsIntent.Builder()
+                    .build()
+                    .launchUrl(context, android.net.Uri.parse("https://www.youtube.com/results?search_query=bo+jackson+battle+arena"))
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Search YouTube for BoBA")
+        }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// Flat sections — Strategy / Collect / Tournament
 // ════════════════════════════════════════════════════════════════
 
 @Composable

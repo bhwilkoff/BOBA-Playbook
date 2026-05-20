@@ -108,8 +108,8 @@ When shipping any user-facing feature:
 | Custom Rainbows | ✅ | 🔮 | ⏳ M2 polish | Per-user filter goals; Supabase `user_custom_rainbows` |
 | Per-hero Auto Rainbows | ✅ | 🔮 | ⏳ M2 polish | Same RainbowDetailView pattern |
 | My Shows (streamer-only) | ✅ | ✅ | ⏳ M2 polish | Push destination, role-gated |
-| Wall view (display mode + share) | ✅ | ⏳ M-future | ⏳ M2 polish | Lifted from streamer-only per DECISIONS.md #036 |
-| Price Overlay (in Wall view) | ✅ | ⏳ M-future | ⏳ M2 polish | Toggle on Wall toolbar |
+| Wall view (display mode + share) | ✅ | ✅ canvas-render | ⏳ M2 polish | Web shipped canvas-rendered PNG (download + clipboard + Web Share) tick 5. Lifted from streamer-only per DECISIONS.md #036. |
+| Price Overlay (in Wall view) | ✅ | ⏳ next tick | ⏳ M2 polish | Toggle on Wall toolbar |
 | Personal Showcase (iTunes-style screensaver) | ✅ | 🚫 | 🚫 v1 §12 | Android: Cast SDK port deferred |
 | AirPlay-Video for Showcase | ✅ | 🚫 | 🚫 v1 §12 | Android Cast SDK is the parallel |
 | Public collection URL (`/u/{username}`) | n/a (toggle only) | ✅ | ⏳ M7 | Web renders; Android sets the toggle |

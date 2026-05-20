@@ -3930,6 +3930,79 @@ dialog.modal-overlay[open] {
 .stat-cell.dbs-tier-very-high .stat-val { color: var(--boba-orange); }
 .stat-cell.dbs-tier-very-high .dbs-tier-pill { color: var(--boba-orange); background: rgba(255,77,0,0.15); }
 
+/* Collection Wall view — opens from "Wall" button in collection-toolbar.
+   Native <dialog> over a canvas-rendered share image. Parity with iOS
+   CollectionWallSheet (DESIGN.md §8.4 + §8.8). */
+.collection-wall-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: 1px solid var(--boba-border);
+  color: var(--boba-text);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-left: 0.5rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+.collection-wall-btn:hover  { border-color: var(--boba-cyan); color: var(--boba-cyan); }
+.collection-wall-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.wall-box {
+  max-width: 640px;
+  padding: 1.5rem;
+  position: relative;
+}
+.wall-title { font-family: var(--font-display); font-size: 1.3rem; margin: 0 0 0.5rem; color: var(--boba-text); }
+.wall-title-input {
+  width: 100%;
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-border);
+  color: var(--boba-text);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  box-sizing: border-box;
+}
+.wall-canvas-wrap {
+  position: relative;
+  background: #080810;
+  border: 1px solid var(--boba-border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+.wall-canvas { display: block; width: 100%; height: auto; }
+.wall-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(8,8,16,0.85);
+  color: var(--boba-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+.wall-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+.wall-footer-note {
+  font-size: 0.75rem;
+  color: var(--boba-text-muted);
+  font-family: var(--font-mono);
+  margin: 0.5rem 0 0;
+}
+
 /* DBS explainer dialog — parity with iOS DBSInfoSheet (CardDetailView). */
 .dbs-info-box {
   max-width: 480px;

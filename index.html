@@ -2330,6 +2330,47 @@
     <div class="auth-modal-box" id="auth-modal-box"></div>
   </dialog>
 
+  <!-- COLLECTION WALL — native <dialog>. Renders the active designation
+       as a single shareable image (canvas → PNG). Parity with iOS
+       CollectionWallSheet (DESIGN.md §8.4 + §8.8). -->
+  <dialog class="modal-overlay" id="wall-overlay"
+          aria-labelledby="wall-title">
+    <div class="auth-modal-box wall-box">
+      <button class="modal-close" data-action="close-wall"
+              aria-label="Close wall image">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+      <h2 id="wall-title" class="wall-title">Collection Wall</h2>
+      <input type="text" id="wall-title-input" class="wall-title-input"
+             maxlength="60" placeholder="Title (optional)" />
+      <div class="wall-canvas-wrap">
+        <canvas id="wall-canvas" class="wall-canvas" width="1080" height="1080"
+                aria-label="Rendered wall image"></canvas>
+        <div class="wall-loading" id="wall-loading" hidden>
+          <div class="loading-spinner-sm" aria-hidden="true"></div>
+          <span id="wall-loading-text">Rendering…</span>
+        </div>
+      </div>
+      <div class="wall-actions">
+        <button class="btn-primary" id="wall-download-btn" type="button" disabled>
+          Download PNG
+        </button>
+        <button class="btn-ghost-sm" id="wall-copy-btn" type="button" disabled>
+          Copy Image
+        </button>
+        <button class="btn-ghost-sm" id="wall-share-btn" type="button" disabled hidden>
+          Share
+        </button>
+      </div>
+      <p class="wall-footer-note">
+        Renders the cards in the current designation. Tap a card on the
+        Collection tab to add or remove copies first, then re-open Wall.
+      </p>
+    </div>
+  </dialog>
+
   <!-- DBS EXPLAINER — native <dialog>. Tapped from the DBS stat cell
        on Play cards. Parity with iOS DBSInfoSheet (Card detail). -->
   <dialog class="modal-overlay" id="dbs-info-overlay"

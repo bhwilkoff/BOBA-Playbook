@@ -136,6 +136,7 @@ private fun ScanViewfinder(
     val lifecycleOwner = LocalLifecycleOwner.current
     val cardRepository: CardRepository = remember { ScanModuleAccess.cardRepository }
     val matcher = remember { ScanCardMatcher { cardRepository.cards.value } }
+    val stabilizer = remember { ScanFrameStabilizer() }
     var lastMatchedDisplayName by remember { mutableStateOf<String?>(null) }
 
     val controller = remember {
@@ -177,10 +178,13 @@ private fun ScanViewfinder(
                 }
                 if (tokens.isEmpty()) return@MlKitAnalyzer
 
-                val result = matcher.match(tokens) ?: return@MlKitAnalyzer
-                if (lastMatchedDisplayName != result.card.displayName) {
-                    lastMatchedDisplayName = result.card.displayName
-                    onMatch(result.card.bobaId)
+                val perFrame = matcher.match(tokens)
+                // Push every frame (including misses) through the
+                // stabilizer so the de-dupe gate sees the gaps.
+                val stable = stabilizer.push(perFrame) ?: return@MlKitAnalyzer
+                if (lastMatchedDisplayName != stable.card.displayName) {
+                    lastMatchedDisplayName = stable.card.displayName
+                    onMatch(stable.card.bobaId)
                 }
             },
         )

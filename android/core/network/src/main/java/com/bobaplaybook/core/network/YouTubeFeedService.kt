@@ -101,4 +101,48 @@ data class YouTubeVideo(
                 else           -> "$n views"
             }
         }
+
+    /**
+     * Future-leaning broadcast time label for upcoming streams.
+     * "Today at 1:00 PM" · "Tomorrow at 1:00 PM" · "Wed at 1:00 PM"
+     * · "May 30 at 1:00 PM" · "Live now".
+     *
+     * Mirrors iOS YouTubeVideo.streamTimeLabel. Uses streamTime
+     * (actualStartTime || scheduledStartTime) so the display
+     * reflects when the show actually airs, not when the streamer
+     * created the YouTube placeholder.
+     */
+    val streamTimeLabel: String?
+        get() {
+            if (isLiveNow) return "Live now"
+            val iso = streamTime ?: return null
+            val instant = try {
+                java.time.Instant.parse(iso)
+            } catch (_: java.time.format.DateTimeParseException) {
+                return null
+            } catch (_: java.time.DateTimeException) {
+                return null
+            }
+            val zone = java.time.ZoneId.systemDefault()
+            val date = instant.atZone(zone)
+            val now = java.time.ZonedDateTime.now(zone)
+            val today = now.toLocalDate()
+            val target = date.toLocalDate()
+            val timeFmt = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
+            val timeStr = date.format(timeFmt)
+            return when {
+                target == today -> "Today at $timeStr"
+                target == today.plusDays(1) -> "Tomorrow at $timeStr"
+                target == today.minusDays(1) -> "Yesterday at $timeStr"
+                target.isAfter(today) && java.time.temporal.ChronoUnit.DAYS.between(today, target) < 6 -> {
+                    val dow = date.format(java.time.format.DateTimeFormatter.ofPattern("EEE"))
+                    "$dow at $timeStr"
+                }
+                else -> {
+                    val pattern = if (target.year == today.year) "MMM d" else "MMM d, yyyy"
+                    val dateStr = date.format(java.time.format.DateTimeFormatter.ofPattern(pattern))
+                    "$dateStr at $timeStr"
+                }
+            }
+        }
 }

@@ -201,6 +201,20 @@ private fun VideoRow(
                         maxLines = 1,
                     )
                 }
+                // Upcoming / live streams surface the stream-time label
+                // ("Tomorrow at 1:00 PM" / "Live now") so users can
+                // decide whether to tune in. Skips for VOD videos.
+                if (video.isLiveNow || video.isUpcoming) {
+                    video.streamTimeLabel?.let { label ->
+                        Text(
+                            label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (video.isLiveNow) Color(0xFFFF4D00)
+                                    else MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                        )
+                    }
+                }
             }
         }
     }

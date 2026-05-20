@@ -142,8 +142,13 @@ private fun FindContent(
     // Default to showcase / no-search state — iOS DESIGN.md §8.1 calls
     // for featured ribbons above the grid when the user lands on Find
     // with no query. Toggle in the overflow Menu flips to grid mode.
-    var showcaseMode by rememberSaveable { mutableStateOf(true) }
-    var quickAdd by rememberSaveable { mutableStateOf(false) }
+    // Persistent showcase + quick-add toggles — iOS @AppStorage parity
+    // via FindPrefsStore (DataStore<Preferences>). User preference
+    // survives process death.
+    val findPrefs: com.bobaplaybook.app.settings.FindPrefsViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
+    val showcaseMode by findPrefs.showcaseMode.collectAsStateWithLifecycle(initialValue = true)
+    val quickAdd by findPrefs.quickAdd.collectAsStateWithLifecycle(initialValue = false)
     // Grid density persists across launches via GridDensityStore
     // (DataStore<Preferences>) — iOS @AppStorage("bp_findGridColumns_v1")
     // parity. Sentinel 0 → use the size-class default of 2.
@@ -178,9 +183,9 @@ private fun FindContent(
                             expanded = menuOpen,
                             onDismiss = { menuOpen = false },
                             showcaseMode = showcaseMode,
-                            onShowcaseModeChange = { showcaseMode = it },
+                            onShowcaseModeChange = { findPrefs.setShowcaseMode(it) },
                             quickAdd = quickAdd,
-                            onQuickAddChange = { quickAdd = it },
+                            onQuickAddChange = { findPrefs.setQuickAdd(it) },
                             gridColumns = gridColumns,
                             onGridColumnsChange = {
                                 gridDensityVm.setColumns(

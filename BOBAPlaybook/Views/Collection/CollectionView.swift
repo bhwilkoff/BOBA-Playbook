@@ -185,10 +185,7 @@ struct CollectionView: View {
             // dismiss we land back on the same designation + display
             // mode the user left.
             let identifiers = collectionIdentifiers(for: selectedDesignation)
-            let cards: [Card] = identifiers.compactMap { id in
-                cardStore.displayCards.first { $0.id == id }
-                    ?? cardStore.displayCards.first { $0.cardNumber == id }
-            }
+            let cards: [Card] = identifiers.compactMap { cardStore.resolveCard(byId: $0) }
             let prices = collection.estimatedValuesByBobaId(forDesignation: selectedDesignation)
             CollectionWallSheet(
                 designation: selectedDesignation,
@@ -1279,9 +1276,24 @@ struct CollectionView: View {
     /// designations stay scannable from a single grid view.
     @ViewBuilder
     private func collectionGridCell(identifier: String) -> some View {
-        let catalog = cardStore.displayCards.first { $0.id == identifier }
-                   ?? cardStore.displayCards.first { $0.cardNumber == identifier }
+        let catalog = cardStore.resolveCard(byId: identifier)
         let allDesignations = Set(collection.entries(forBobaId: identifier).map { $0.designation })
+        // Per-cell price summary — parity with list view (beta feedback
+        // 2026-05-20). Sums estimatedValue across all copies of this
+        // identifier in the current designation; falls back to
+        // purchasePrice when no estimate exists.
+        let copiesHere = collection.entries(forBobaId: identifier)
+            .filter { $0.designation == selectedDesignation }
+        let priceLabel: String? = {
+            let est = copiesHere.compactMap { $0.estimatedValue }.reduce(Decimal(0), +)
+            if est > 0 { return formatCurrency(est) }
+            let paid = copiesHere.compactMap { $0.purchasePrice }.reduce(Decimal(0), +)
+            if paid > 0 { return formatCurrency(paid) }
+            // For Sale / For Trade: show asking when estimate+paid empty.
+            let ask = copiesHere.compactMap { $0.askingPrice }.reduce(Decimal(0), +)
+            if ask > 0 { return formatCurrency(ask) }
+            return nil
+        }()
 
         if let card = catalog {
             BOBACardGridItem(card: card, columnCount: gridColumns)
@@ -1297,6 +1309,20 @@ struct CollectionView: View {
                             }
                         }
                         .padding(4)
+                    }
+                }
+                // Price chip — bottom-leading so it doesn't collide with
+                // the designation pills. Hidden when nothing meaningful
+                // to display (no estimate, no paid, no asking).
+                .overlay(alignment: .bottomLeading) {
+                    if let p = priceLabel {
+                        Text(p)
+                            .font(Design.Fonts.mono(10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(Color.black.opacity(0.68)))
+                            .padding(4)
                     }
                 }
                 // iPad cross-window drag-drop per DESIGN.md §6.6.
@@ -1322,8 +1348,7 @@ struct CollectionView: View {
     private func collectionRow(identifier: String) -> some View {
         // identifier is a bobaId (e.g. "BOJ-123-BoJax-Base") for new entries,
         // or a plain cardNumber for legacy entries without a bobaId stored.
-        let catalog = cardStore.displayCards.first { $0.id == identifier }
-                   ?? cardStore.displayCards.first { $0.cardNumber == identifier }
+        let catalog = cardStore.resolveCard(byId: identifier)
         let copies = collection.entries(forBobaId: identifier).filter { $0.designation == selectedDesignation }
         // Total copies of this card across EVERY designation. The
         // quantity badge reflects the entire collection so a coach
@@ -1634,9 +1659,11 @@ struct CollectionView: View {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if !trimmed.isEmpty {
             owned = owned.filter { id in
-                let card = cardStore.displayCards.first { $0.id == id }
-                          ?? cardStore.displayCards.first { $0.cardNumber == id }
-                guard let card else { return false }
+                // O(1) — replaces a ~17k linear scan that previously ran
+                // PER OWNED CARD PER KEYSTROKE. For a 500-card collection
+                // that was ~8.5M comparisons per typed character; cards-by-id
+                // index makes it ~500 lookups.
+                guard let card = cardStore.resolveCard(byId: id) else { return false }
                 // FREE / 0 HD shortcut — Plays + Bonus Plays with
                 // playCost == 0 don't have "FREE" or "0" in their name
                 // / hero / cardNumber, so the literal substring search
@@ -1683,9 +1710,8 @@ struct CollectionView: View {
             }
         }
         let resolved: [(Card, Date)] = bestAcquired.compactMap { key, when in
-            let card = cardStore.displayCards.first { $0.id == key }
-                    ?? cardStore.displayCards.first { $0.cardNumber == key }
-            guard let card, let f = card.imageFile, !f.isEmpty else { return nil }
+            guard let card = cardStore.resolveCard(byId: key),
+                  let f = card.imageFile, !f.isEmpty else { return nil }
             return (card, when)
         }
         return resolved
@@ -1711,8 +1737,8 @@ struct CollectionView: View {
             let paid: Decimal
         }
         let metas: [Sortable] = ids.map { id in
-            let catalog = cardStore.displayCards.first { $0.id == id }
-                       ?? cardStore.displayCards.first { $0.cardNumber == id }
+            // O(1) catalog lookup — was a 17k linear scan per id.
+            let catalog = cardStore.resolveCard(byId: id)
             let copies = collection.entries(forBobaId: id).filter { $0.designation == designation }
             let added = copies.map { $0.acquiredAt }.min() ?? .distantPast
             let value = copies.compactMap { $0.estimatedValue }.reduce(Decimal(0), +)

@@ -35,18 +35,46 @@ struct ModPanelView: View {
             .listRowBackground(Design.Colors.surface)
 
             Section("CARD INFO CORRECTIONS") {
-                Text("Search for a card below to submit a correction or flag an image issue.")
+                Text("Search for a card to submit a correction or flag an image issue.")
                     .font(Design.Fonts.mono(12))
                     .foregroundStyle(Design.Colors.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
+                // Inline search field — the section text used to say
+                // "search below" but the only searchable surface was the
+                // nav bar at the top. Users hit a dead-end looking for
+                // a field here. Added per beta feedback 2026-05-20 so
+                // the search lives where the copy points.
+                HStack(spacing: Design.Spacing.sm) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(Design.Colors.textMuted)
+                    TextField("Card # or hero name", text: $searchText)
+                        .font(Design.Fonts.mono(14))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(Design.Colors.textMuted)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 4)
             }
             .listRowBackground(Design.Colors.surface)
 
             if !searchText.isEmpty {
-                let results = cardStore.displayCards.filter {
-                    $0.cardNumber.localizedCaseInsensitiveContains(searchText) ||
-                    $0.hero.localizedCaseInsensitiveContains(searchText)
-                }.prefix(20)
+                // CardSearch.matches mirrors the word-prefix behavior
+                // of Find / Decks so a query like "amon" finds Amon-Ra
+                // but not Johnny Damon (per
+                // feedback_search_word_prefix memory).
+                let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+                let results = cardStore.displayCards.filter { card in
+                    CardSearch.matches(query: q, fields: [card.name, card.cardNumber, card.hero])
+                }.prefix(50)
 
                 if results.isEmpty {
                     Section {

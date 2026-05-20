@@ -94,8 +94,46 @@ final class CardStore {
     var findNavigationPath = NavigationPath()
 
     // MARK: - Data
-    private(set) var displayCards: [Card] = []
+    private(set) var displayCards: [Card] = [] {
+        didSet { rebuildIdIndexes() }
+    }
     private(set) var filteredCards: [Card] = []
+
+    /// O(1) lookup by `Card.id` (== bobaId). Built each time
+    /// `displayCards` is reassigned or mutated through `applyImageOverrides`
+    /// / `applyImageRemovals`. Used by hot paths that previously did
+    /// `displayCards.first { $0.id == id }` per item — that's a linear
+    /// scan of ~17k cards which became catastrophic when called per
+    /// keystroke from Collection search (500 owned cards × 17k catalog
+    /// scan × per-keystroke recompute = ~8.5M comparisons / character).
+    private(set) var cardsById: [String: Card] = [:]
+    /// Secondary lookup keyed by cardNumber. Some legacy collection
+    /// rows store cardNumber where bobaId would now go; this index
+    /// preserves the fallback the old code did via a second `.first { $0.cardNumber == id }`.
+    private(set) var cardsByCardNumber: [String: Card] = [:]
+
+    /// Rebuild the two id → Card lookup tables. O(n) over displayCards;
+    /// runs only on data-load or image-override application, NOT per
+    /// keystroke.
+    func rebuildIdIndexes() {
+        var byId: [String: Card] = [:]
+        var byNum: [String: Card] = [:]
+        byId.reserveCapacity(displayCards.count)
+        byNum.reserveCapacity(displayCards.count)
+        for c in displayCards {
+            byId[c.id] = c
+            if byNum[c.cardNumber] == nil { byNum[c.cardNumber] = c }
+        }
+        cardsById = byId
+        cardsByCardNumber = byNum
+    }
+
+    /// Resolve a Card by either bobaId or cardNumber. O(1) — replaces
+    /// the old `displayCards.first { $0.id == id } ?? displayCards.first
+    /// { $0.cardNumber == id }` pattern at every hot call site.
+    func resolveCard(byId id: String) -> Card? {
+        cardsById[id] ?? cardsByCardNumber[id]
+    }
     private(set) var isLoading = true           // false once head cards are ready
     private(set) var isLoadingMore = false      // true while full catalog loads in background
     private(set) var loadError: String?

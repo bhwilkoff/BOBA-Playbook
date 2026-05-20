@@ -1,0 +1,77 @@
+name: Radish URL map weekly refresh
+
+# Re-fetches Radish's sitemap.xml, rebuilds assets/data/radish-url-map.json,
+# and bakes canonical URLs into every catalog bundle. Opens a PR when the
+# bundles change. Architecture docs in scripts/build_radish_url_map.py +
+# scripts/apply_radish_urls.py + workers/ebay-proxy/worker.js (handleRadishURL).
+#
+# Schedule: Mondays at 13:00 UTC (07:00 MT) — early-week catch of any
+# Radish redeploys + sitemap changes. Workflow_dispatch lets us run on
+# demand too.
+
+on:
+  schedule:
+    - cron: '0 13 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Rebuild Radish URL map from sitemap
+        run: python3 scripts/build_radish_url_map.py
+
+      - name: Bake canonical URLs into every catalog bundle
+        run: python3 scripts/apply_radish_urls.py
+
+      - name: Detect changes
+        id: diff
+        run: |
+          if git diff --quiet -- assets/data/cards.json assets/data/cards-head.json \
+                                  assets/data/display-cards.json \
+                                  BOBAPlaybook/cards-head.json \
+                                  BOBAPlaybook/display-cards.json \
+                                  android/app/src/main/assets/data/cards.json \
+                                  android/app/src/main/assets/data/cards-head.json \
+                                  assets/data/radish-url-map.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open PR with refreshed catalog
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: 'chore(radish): weekly URL map refresh'
+          title: 'chore(radish): weekly URL map refresh'
+          branch: 'radish-url-refresh/${{ github.run_id }}'
+          delete-branch: true
+          body: |
+            Automated weekly refresh of Radish URL map and catalog bake.
+
+            Triggered: `${{ github.event_name }}`
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            ### What changed
+            - `assets/data/radish-url-map.json` — fresh from Radish's sitemap.xml
+            - All 7 catalog bundles refreshed with canonical `radishUrl` per card
+
+            If Radish moved cards across namespaces, renamed a hero's
+            canonical spelling, or shipped a new set since last refresh,
+            those changes are reflected here.
+
+      - name: Report no-op
+        if: steps.diff.outputs.changed == 'false'
+        run: echo "No catalog drift since last refresh — nothing to PR."

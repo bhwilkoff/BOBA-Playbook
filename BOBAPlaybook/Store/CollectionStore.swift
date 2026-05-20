@@ -127,8 +127,8 @@ final class CollectionStore {
         }
 
         for uc in sorted {
-            let catalog = uc.bobaId.flatMap { id in cardStore.displayCards.first { $0.id == id } }
-                ?? cardStore.displayCards.first { $0.cardNumber == uc.cardNumber }
+            let catalog = uc.bobaId.flatMap { cardStore.cardsById[$0] }
+                ?? cardStore.cardsByCardNumber[uc.cardNumber]
 
             let prefix = catalog.map { Self.exportSetPrefixMap[$0.set].map { "\($0) - " } ?? "" } ?? ""
             let cardNumCell = "\(prefix)\(uc.cardNumber)"

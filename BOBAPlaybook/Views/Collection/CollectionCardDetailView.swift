@@ -33,15 +33,52 @@ struct CollectionCardDetailView: View {
     @State private var focusedEntryID: UUID?
     /// Pushed card detail when coach taps a variation / other-copy tile.
     @State private var jumpBobaId: String?
+    /// Mutable "current bobaId" so swipe-between-cards can advance
+    /// without popping/pushing the navigation stack. Initialized from
+    /// the constructor's `bobaId` parameter on first appearance.
+    @State private var currentBobaId: String? = nil
+
+    /// The bobaId actually displayed. Falls back to the init-time
+    /// parameter until the @State has been seeded.
+    private var activeBobaId: String { currentBobaId ?? bobaId }
 
     private var catalogCard: Card? {
-        // Try exact bobaId match first, then fall back to cardNumber for legacy entries
-        cardStore.displayCards.first { $0.id == bobaId }
-        ?? cardStore.displayCards.first { $0.cardNumber == bobaId }
+        // O(1) — was a 17k linear scan that ran on every view re-render.
+        cardStore.resolveCard(byId: activeBobaId)
     }
 
     private var entries: [UserCard] {
-        collection.entries(forBobaId: bobaId)
+        collection.entries(forBobaId: activeBobaId)
+    }
+
+    /// Every owned bobaId, deduped, ordered by most-recent acquisition
+    /// first. Drives swipe-between-cards on this surface.
+    private var ownedBobaIdsByRecency: [String] {
+        var best: [String: Date] = [:]
+        for uc in collection.userCards {
+            let key = uc.bobaId ?? uc.cardNumber
+            if let prior = best[key] {
+                if uc.acquiredAt > prior { best[key] = uc.acquiredAt }
+            } else {
+                best[key] = uc.acquiredAt
+            }
+        }
+        return best
+            .sorted { $0.value > $1.value }
+            .map(\.key)
+    }
+
+    /// Advance to next/previous owned card by recency. Wraps at ends.
+    private func advanceOwnedCard(by delta: Int) {
+        let list = ownedBobaIdsByRecency
+        guard list.count > 1 else { return }
+        guard let i = list.firstIndex(of: activeBobaId) else { return }
+        let n = list.count
+        let next = ((i + delta) % n + n) % n
+        guard next != i else { return }
+        withAnimation(.easeInOut(duration: 0.18)) {
+            currentBobaId = list[next]
+        }
     }
 
     // Other card_numbers with the same hero (variations/other printings)
@@ -85,11 +122,17 @@ struct CollectionCardDetailView: View {
                             decksSection
                         }
 
-                        if let card = catalogCard, !(card.isSealed) {
+                        // Pricing surface — sealed products DO get pricing
+                        // (the eBay/Radish lookup works on Sealed Product
+                        // bobaIds and Find already displays it for sealed).
+                        // The earlier `!card.isSealed` gate hid pricing
+                        // from sealed entries in Collection only — fixed
+                        // per beta feedback 2026-05-20.
+                        if let card = catalogCard {
                             PricingSection(card: card, showActiveListings: false)
                         }
 
-                        if let card = catalogCard, !(card.isSealed) {
+                        if let card = catalogCard {
                             externalLinksRow(card: card)
                         }
 
@@ -102,6 +145,21 @@ struct CollectionCardDetailView: View {
                     .padding(.bottom, Design.Spacing.lg)
                 }
             }
+            // Swipe left/right between owned cards (beta feedback
+            // 2026-05-20). Mirrors the CardDetailView gesture — only
+            // fires on horizontal swipe at rest. Drag bounds (|dx|>60,
+            // |dy|<40) yield to vertical scrolling.
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 60)
+                    .onEnded { value in
+                        let dx = value.translation.width
+                        let dy = value.translation.height
+                        guard abs(dx) > 60, abs(dy) < 40 else { return }
+                        if dx < 0 { advanceOwnedCard(by:  1) }
+                        else      { advanceOwnedCard(by: -1) }
+                    }
+            )
+            .onAppear { if currentBobaId == nil { currentBobaId = bobaId } }
             // STANDARDIZED toolbar setup — IDENTICAL to Find's
             // CardDetailView and Decks's BrowserCardDetailSheet.
             .scrollEdgeEffectStyle(.soft, for: .top)
@@ -426,11 +484,27 @@ struct CollectionCardDetailView: View {
                             .font(Design.Fonts.mono(11))
                             .foregroundStyle(Design.Colors.textMuted)
                     }
+                    if let company = entry.gradingCompany, !company.isEmpty {
+                        Text(company)
+                            .font(Design.Fonts.mono(11, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                    }
                     if let serial = entry.serialNumber {
                         Text("#\(serial)")
                             .font(Design.Fonts.mono(11))
                             .foregroundStyle(Design.Colors.bobaCyan)
                     }
+                }
+                // Notes — surface the per-copy notes inline (beta
+                // feedback 2026-05-20: "should show on the collection
+                // individual detail"). Capped at 2 lines so a long
+                // note doesn't push the price column off-screen.
+                if let n = entry.notes, !n.isEmpty {
+                    Text(n)
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .lineLimit(2)
+                        .padding(.top, 2)
                 }
             }
 
@@ -747,6 +821,57 @@ struct EditCollectionEntrySheet: View {
                                 .frame(width: 80)
                         }
                     }
+                    // Asking price — relevant for For Sale / For Trade.
+                    HStack {
+                        Text("Asking Price")
+                            .font(Design.Fonts.mono(14))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                        Spacer()
+                        HStack(spacing: 2) {
+                            Text("$")
+                                .font(Design.Fonts.mono(14))
+                                .foregroundStyle(Design.Colors.textMuted)
+                            TextField("0.00", text: $askingPriceText)
+                                .font(Design.Fonts.mono(14))
+                                .foregroundStyle(Design.Colors.textSecondary)
+                                .multilineTextAlignment(.trailing)
+                                .keyboardType(.decimalPad)
+                                .frame(width: 80)
+                        }
+                    }
+                }
+                .listRowBackground(Design.Colors.surface)
+
+                // Condition + grading — added per beta feedback 2026-05-20.
+                // These fields were already on UserCard / UpdateUserCard
+                // but the sheet never rendered them; only the @State
+                // vars existed. So users couldn't edit them anywhere.
+                Section("CONDITION & GRADING") {
+                    Picker("Condition", selection: $condition) {
+                        Text("Unspecified").tag("")
+                        ForEach(["Mint", "Near Mint", "Excellent", "Good", "Fair", "Poor"], id: \.self) { c in
+                            Text(c).tag(c)
+                        }
+                    }
+                    .font(Design.Fonts.mono(14))
+                    HStack {
+                        Text("Grade")
+                            .font(Design.Fonts.mono(14))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                        Spacer()
+                        TextField("e.g. 9.5", text: $grade)
+                            .font(Design.Fonts.mono(14))
+                            .foregroundStyle(Design.Colors.textSecondary)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                    }
+                    Picker("Grading Company", selection: $gradingCompany) {
+                        Text("Ungraded").tag("")
+                        ForEach(["PSA", "BGS", "SGC", "CGC", "Other"], id: \.self) { g in
+                            Text(g).tag(g)
+                        }
+                    }
+                    .font(Design.Fonts.mono(14))
                 }
                 .listRowBackground(Design.Colors.surface)
 
@@ -826,6 +951,7 @@ struct EditCollectionEntrySheet: View {
             grade: grade.isEmpty ? nil : grade,
             gradingCompany: gradingCompany.isEmpty ? nil : gradingCompany,
             purchasePrice: Decimal(string: purchasePriceText.isEmpty ? "0" : purchasePriceText),
+            askingPrice: askingPriceText.isEmpty ? nil : Decimal(string: askingPriceText),
             notes: notes.isEmpty ? nil : notes
         )
         Task {

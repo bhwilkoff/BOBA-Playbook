@@ -1911,13 +1911,40 @@ struct DeckManagementSheet: View {
 // ════════════════════════════════════════════════════════════════
 
 struct BrowserCardDetailSheet: View {
-    let card: Card
+    private let initialCard: Card
     let store: DeckBuilderStore
     let tab: DeckCardRole
+    /// Optional sibling list — drives swipe-between-cards. Pool callers
+    /// pass `store.filtered` (or equivalent visible list); deck-editor
+    /// callers pass the contents of the section the card was tapped in.
+    /// Empty array → swipe nav is a no-op.
+    var siblings: [Card] = []
     /// Sheet vs. push presentation — see CardDetailView.wrapInNavStack.
     var wrapInNavStack: Bool = true
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    /// Currently-displayed card. Mutates on swipe so the same sheet
+    /// re-renders against the new card without a fresh push.
+    @State private var card: Card
+
+    init(card: Card, store: DeckBuilderStore, tab: DeckCardRole, siblings: [Card] = [], wrapInNavStack: Bool = true) {
+        self.initialCard = card
+        self.store = store
+        self.tab = tab
+        self.siblings = siblings
+        self.wrapInNavStack = wrapInNavStack
+        self._card = State(initialValue: card)
+    }
+
+    private func advanceCard(by delta: Int) {
+        guard siblings.count > 1 else { return }
+        guard let i = siblings.firstIndex(where: { $0.id == card.id }) else { return }
+        let n = siblings.count
+        let next = ((i + delta) % n + n) % n
+        guard next != i else { return }
+        withAnimation(.easeInOut(duration: 0.18)) { card = siblings[next] }
+    }
 
     private var inDeck: Bool { store.isInDeck(card) }
     /// Specific rule blocking the add (or nil when allowed). Drives
@@ -2089,6 +2116,20 @@ struct BrowserCardDetailSheet: View {
                 // have one, and adding any push down opens a black gap
                 // between the nav bar and the artPanel gradient.)
             }
+            // Swipe between sibling cards (beta feedback 2026-05-20).
+            // Activates when caller passed a `siblings` list; no-op
+            // when empty. Same bounds as Find/Collection: |dx|>60,
+            // |dy|<40 so vertical scrolling still wins.
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 60)
+                    .onEnded { value in
+                        let dx = value.translation.width
+                        let dy = value.translation.height
+                        guard abs(dx) > 60, abs(dy) < 40 else { return }
+                        if dx < 0 { advanceCard(by:  1) }
+                        else      { advanceCard(by: -1) }
+                    }
+            )
             // STANDARDIZED toolbar setup — IDENTICAL to Find's
             // CardDetailView and Collection's CollectionCardDetailView.
             .scrollEdgeEffectStyle(.soft, for: .top)

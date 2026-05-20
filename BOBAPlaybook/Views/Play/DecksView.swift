@@ -249,6 +249,7 @@ struct DecksView: View {
                 BrowserCardDetailSheet(card: card,
                                        store: store,
                                        tab: pickRoleForCard(card),
+                                       siblings: cardStore.displayCards.filter { $0.cardType != "Sealed Product" },
                                        wrapInNavStack: false)
                     .compactZoomDestination(id: card.id, in: poolZoomNamespace)
             }
@@ -316,6 +317,7 @@ struct DecksView: View {
                 BrowserCardDetailSheet(card: card,
                                        store: store,
                                        tab: pickRoleForCard(card),
+                                       siblings: cardStore.displayCards.filter { $0.cardType != "Sealed Product" },
                                        wrapInNavStack: false)
                     .compactZoomDestination(id: card.id, in: editorZoomNamespace)
             }

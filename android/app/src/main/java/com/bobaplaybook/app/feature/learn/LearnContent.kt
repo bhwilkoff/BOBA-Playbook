@@ -53,14 +53,52 @@ enum class GameMode(val label: String, val blurb: String) {
     PLAYMAKER   ("Playmaker",    "Full deck-build: persistents, scopes, HD economy"),
 }
 
+/**
+ * Archetype catalog entry — port of iOS Archetype struct in
+ * LearnView.swift. Used by the Strategy page to render an expandable
+ * card with key-play thumbnails resolved against the live catalog.
+ */
+data class Archetype(
+    val id: String,
+    val name: String,
+    /** UPPERCASE element key — drives the accent color via BobaElements. */
+    val element: String,
+    val tagline: String,
+    val strategy: String,
+    val weakness: String,
+    val keyPlays: List<String>,
+)
+
 /** A vertical block inside a category page. */
 sealed interface LearnSection {
     val heading: String?
     data class Body    (override val heading: String?, val text: String)          : LearnSection
     data class Bullets (override val heading: String?, val items: List<String>)   : LearnSection
-    data class Callout (override val heading: String?, val text: String)          : LearnSection
+    /**
+     * Tinted callout box — left border + heading color come from the
+     * `element` key when provided (FIRE/ICE/HEX/etc.) so callouts read
+     * with the same color coding iOS uses for tips, warnings, and
+     * concept boxes. `element = null` defaults to the brand cyan
+     * (matches generic teaching callouts on iOS).
+     */
+    data class Callout (
+        override val heading: String?,
+        val text: String,
+        val element: String? = null,
+    ) : LearnSection
     /** A two-column term + definition row used by Glossary. */
     data class Term    (override val heading: String? = null, val term: String, val definition: String) : LearnSection
+    /**
+     * Weapon-synergy block — iOS WeaponSynergySection parity. Renders
+     * the weapon name in its element color, then a wrap-flow of
+     * element-tinted Play-name pills.
+     */
+    data class WeaponSynergy(
+        override val heading: String? = null,
+        val rows: List<Row>,
+    ) : LearnSection {
+        data class Row(val weapon: String, val plays: List<String>)
+    }
 }
 
 /** Single source of truth for category content. */
@@ -187,6 +225,14 @@ object LearnCorpus {
             heading = "Weapon synergy",
             text = "Fire chains burn damage across battles; Ice freezes opposing Plays for tempo; Steel stacks defensive layers. Mixed-weapon decks lose synergy bonuses — pick a primary and a secondary at deck-build.",
         ),
+        LearnSection.WeaponSynergy(
+            heading = "Plays that reward weapon focus",
+            rows = listOf(
+                LearnSection.WeaponSynergy.Row("FIRE",  listOf("Fire Boost", "Fire Crew", "Flame Wall", "Burning Fever", "Eternal Flame", "Smitty")),
+                LearnSection.WeaponSynergy.Row("ICE",   listOf("Ice Boost", "Ice Crew", "Icy Shield", "Frozen Resolve", "Frozen Lineup", "Unbreakable Ice")),
+                LearnSection.WeaponSynergy.Row("STEEL", listOf("Steel Boost", "Steel Crew", "Steel Defense", "Steel Shield", "Chrome Will", "Steel Cage")),
+            ),
+        ),
         LearnSection.Bullets(
             heading = "Play card types",
             items = listOf(
@@ -200,18 +246,66 @@ object LearnCorpus {
             heading = "Resource management",
             text = "Bonus Plays are bounded (6 in Rookie, more with Hot Dogs). Don't blow your Bonus budget in Battles 1–2; the back half is where Bonus Plays compound. HD is its own resource — spending HD to win one Battle can cost you the next.",
         ),
-        LearnSection.Bullets(
-            heading = "The four archetypes",
-            items = listOf(
-                "Aggro — high Power, low Cost, fast Battles",
-                "Control — defensive Heroes + counter-Plays",
-                "Combo — chain persistent effects for compounding bonuses",
-                "Midrange — balanced; reactive to the meta",
-            ),
-        ),
         LearnSection.Callout(
             heading = "Picking an archetype to learn first",
-            text = "Midrange is the most-forgiving entry point — it teaches you the full state-machine without locking you into one playstyle. Aggro is fast to win OR lose, so it skips a lot of game-state learning.",
+            text = "Frozen Tempo is the most-forgiving entry point — it teaches Substitution as a strategic axis without locking you into one weapon. Brawl Beatdown is fast to win OR lose, so it skips a lot of game-state learning.",
+            element = "ICE",
+        ),
+    )
+
+    // ════════════════════════════════════════════════════════════════
+    // ARCHETYPE TEMPLATES — port of iOS LearnView ArchetypesSection.
+    // Five meta-informed archetype decks matching TemplateDeck.json
+    // (DeckBuilderStore.swift metadata block, replaced 2026-04-28).
+    // Rendered by LearnArticleScreen as expandable cards with key-play
+    // thumbnails pulled from the live catalog.
+    // ════════════════════════════════════════════════════════════════
+
+    val archetypes: List<Archetype> = listOf(
+        Archetype(
+            id = "lockdown-locker",
+            name = "Lockdown Locker",
+            element = "STEEL",
+            tagline = "Steel-anchored disruption; close mid-game with high-DBS lockouts",
+            strategy = "60 STEEL Heroes (85–160 power) build hot-dog economy early, then pivot to Steel-stacked battles where lockout Plays end the round before your opponent can swing back. Teaches when to hold lockouts for late-battle swings rather than burning them on a bad matchup.",
+            weakness = "Stain-Less-Steel · early aggro before lockouts come online",
+            keyPlays = listOf("Molten Steel", "Frost-Hardened", "Frozen Resolve", "Hero Reset", "Crystal Ball", "Discard Rebate"),
+        ),
+        Archetype(
+            id = "frozen-tempo",
+            name = "Frozen Tempo",
+            element = "ICE",
+            tagline = "Ice synergy + substitution control + economy denial",
+            strategy = "60 ICE Heroes (75–160 power) anchor a substitution-heavy game plan. Forced Substitution and Blind Substitution flip matchups; Icy Shield prevents your Heroes from being subbed out. Teaches Substitution as a strategic axis, not just a panic button.",
+            weakness = "Ice Pick · Icevantage · opponents who don't substitute",
+            keyPlays = listOf("Forced Substitution", "Blind Substitution", "Icy Shield", "Frozen Resolve", "Deep In The Playbook", "Hero Reset"),
+        ),
+        Archetype(
+            id = "draw-and-adapt",
+            name = "Draw and Adapt",
+            element = "NONE",
+            tagline = "Engine-first deck; maximum draw and situational answers",
+            strategy = "12 Heroes each across FIRE / ICE / STEEL / GLOW / HEX gives you an answer for any matchup. The Plays package leans on draw, recovery, and lineup pressure rather than weapon synergy. Teaches how draw advantage compounds across 7 battles — every extra Play you see is leverage.",
+            weakness = "No single dominant synergy; loses to focused weapon-stacks early",
+            keyPlays = listOf("First Draw", "Crystal Ball", "Lineup Pressure", "Frozen Lineup", "Hero Reset", "Jump Ball"),
+        ),
+        Archetype(
+            id = "glow-sacrifice",
+            name = "Glow Sacrifice",
+            element = "GLOW",
+            tagline = "Discard-as-fuel + GLOW synergy + bonus-play toolbox",
+            strategy = "60 GLOW Heroes (95–160 power) feed a discard engine that turns spent Plays into power. Flip & Glow and Glowaway recycle resources; Lost Plays punishes opponents who hoard. Built around the SPEC format constraints (≤160 power) where every discard counts as a tempo move.",
+            weakness = "GLOW-counter Plays · empty hand mid-engine",
+            keyPlays = listOf("Flip & Glow", "Glowaway", "Lost Plays", "Frozen Resolve", "Discard Rebate", "Hero Reset"),
+        ),
+        Archetype(
+            id = "brawl-beatdown",
+            name = "Brawl Beatdown",
+            element = "BRAWL",
+            tagline = "Aggro tempo. BRAWL/FIRE mix; win the first 3–4 battles",
+            strategy = "30 BRAWL + 30 FIRE Heroes (80–160 power) front-load the curve. Add Firepower, Burn To Burn, and Banked Power push damage early; Flame Wall protects your tempo lead. Teaches tempo-aggro counter-strategy — you don't need to win all 7 battles, just the first four.",
+            weakness = "Late-game stall · economy decks that survive the first wave",
+            keyPlays = listOf("Add Firepower", "Burn To Burn", "Banked Power", "Fire Crew", "Flame Wall", "Molten Steel"),
         ),
     )
 
@@ -279,6 +373,7 @@ object LearnCorpus {
         LearnSection.Callout(
             heading = "Why this matters for trades",
             text = "Collectors who don't separate Treatments from Parallels will undervalue Parallels (scarce by edition limit) and overvalue mid-tier Treatments (scarce only within their treatment family).",
+            element = "GLOW",
         ),
     )
 

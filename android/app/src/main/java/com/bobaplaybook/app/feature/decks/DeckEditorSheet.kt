@@ -2,6 +2,8 @@
 
 package com.bobaplaybook.app.feature.decks
 
+import androidx.compose.foundation.clickable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -437,12 +439,7 @@ private fun SectionedCardList(
     val heroCount = heroesByTier.values.sumOf { it.size }
 
     if (draft.cards.isEmpty()) {
-        com.bobaplaybook.core.ui.components.BOBAEmptyState(
-            icon = Icons.Default.ViewModule,
-            headline = "No cards yet",
-            body = "Close the editor and long-press any card to add it. Heroes, Plays, Bonus Plays, and Hot Dogs each get their own section here.",
-            modifier = modifier,
-        )
+        EmptyDeckCTA(modifier = modifier)
         return
     }
 
@@ -488,6 +485,108 @@ private fun SectionedCardList(
             }
         }
     }
+}
+
+/**
+ * Empty-deck CTA — port of iOS DecksView.emptyDeckCTA. Inline template
+ * gallery with one row per archetype (Lockdown Locker, Frozen Tempo,
+ * Draw and Adapt, Glow Sacrifice, Brawl Beatdown). Tapping a row loads
+ * the template's cards into the active draft so a new user has a real
+ * starting point instead of an opaque "empty draft" prompt.
+ */
+@Composable
+private fun EmptyDeckCTA(modifier: Modifier = Modifier) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val decksVm: DecksViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val catalogVm: com.bobaplaybook.app.feature.collection.RainbowCatalogViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
+    val catalog by catalogVm.cards.collectAsStateWithLifecycle(initialValue = emptyList())
+    val templates by androidx.compose.runtime.produceState(initialValue = emptyList<com.bobaplaybook.core.data.decks.DeckTemplate>()) {
+        value = com.bobaplaybook.core.data.decks.DeckTemplateLoader().load(context)
+    }
+
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item("empty-cta-head") {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(
+                    "Build your first deck",
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Long-press any card on the Decks tab to start. Or pick a template below.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        item("empty-cta-divider") {
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+        }
+        item("empty-cta-templates-header") {
+            BOBASectionHeader(title = "START FROM A TEMPLATE")
+        }
+        items(items = templates, key = { it.id }) { template ->
+            val accent = templateAccent(template.id)
+            Surface(
+                color = accent.copy(alpha = 0.08f),
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                shape = MaterialTheme.shapes.medium,
+                border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.4f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .clickable {
+                        val cards = template.expand(catalog)
+                        if (cards.isNotEmpty()) {
+                            decksVm.clear()
+                            decksVm.rename(template.name)
+                            cards.forEach { decksVm.add(it) }
+                        }
+                    },
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ViewModule,
+                        contentDescription = null,
+                        tint = accent,
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            template.name,
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            template.description,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 3,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Match iOS DecksView.templateAccent — element color per archetype id. */
+@Composable
+private fun templateAccent(templateId: String) = when (templateId) {
+    "lockdown-locker" -> com.bobaplaybook.core.ui.theme.BobaElements.Steel
+    "frozen-tempo"    -> com.bobaplaybook.core.ui.theme.BobaElements.Ice
+    "draw-and-adapt"  -> com.bobaplaybook.core.ui.theme.BobaBrand.Cyan
+    "glow-sacrifice"  -> com.bobaplaybook.core.ui.theme.BobaElements.Glow
+    "brawl-beatdown"  -> com.bobaplaybook.core.ui.theme.BobaElements.Brawl
+    else              -> com.bobaplaybook.core.ui.theme.BobaBrand.Cyan
 }
 
 /**

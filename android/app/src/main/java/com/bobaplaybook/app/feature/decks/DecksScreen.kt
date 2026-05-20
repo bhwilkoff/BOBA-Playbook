@@ -150,6 +150,7 @@ private fun DecksCompactScreen(
     var editorOpen by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var templatesOpen by remember { mutableStateOf(false) }
+    var clearConfirmOpen by remember { mutableStateOf(false) }
     var poolQuery by rememberSaveable { mutableStateOf("") }
 
     Scaffold(
@@ -235,7 +236,13 @@ private fun DecksCompactScreen(
                             DropdownMenuItem(
                                 text = { Text("Clear draft") },
                                 leadingIcon = { Icon(Icons.Default.Clear, contentDescription = null) },
-                                onClick = { menuOpen = false; deckViewModel.clear() },
+                                onClick = {
+                                    menuOpen = false
+                                    // Confirm only when there's actual work to lose —
+                                    // an empty draft clears silently.
+                                    if (draft.cards.isNotEmpty()) clearConfirmOpen = true
+                                    else deckViewModel.clear()
+                                },
                             )
                         }
                     }
@@ -331,6 +338,36 @@ private fun DecksCompactScreen(
 
     if (templatesOpen) {
         TemplateGallerySheet(onDismiss = { templatesOpen = false })
+    }
+
+    if (clearConfirmOpen) {
+        // BackHandler-style guard against losing 30 cards to a stray
+        // tap. iOS shows an action sheet for the same path. Empty
+        // drafts skip the dialog (gated at the menu callback).
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { clearConfirmOpen = false },
+            title = { Text("Clear deck draft?") },
+            text = {
+                Text(
+                    "Remove all ${draft.cards.size} cards from the draft. " +
+                        "This doesn't affect any saved decks.",
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    deckViewModel.clear()
+                    clearConfirmOpen = false
+                    scope.launch { appSnackbar?.showSnackbar("Draft cleared") }
+                }) {
+                    Text("Clear", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { clearConfirmOpen = false }) {
+                    Text("Cancel")
+                }
+            },
+        )
     }
 }
 

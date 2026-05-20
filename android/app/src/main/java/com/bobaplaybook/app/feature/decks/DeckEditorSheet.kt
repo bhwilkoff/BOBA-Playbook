@@ -102,7 +102,11 @@ fun DeckEditorContentInline(
     onOpenRules: () -> Unit,
     onOpenLegality: () -> Unit,
 ) {
-    var name by remember { mutableStateOf(draft.name) }
+    // Bind directly to draft.name so loading a saved deck via the
+    // Manage screen actually updates the visible field. Earlier this
+    // captured draft.name via `var name by remember` which froze the
+    // initial value — typing worked, but loadSaved silently failed
+    // to refresh the TextField.
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
@@ -112,8 +116,8 @@ fun DeckEditorContentInline(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             OutlinedTextField(
-                value = name,
-                onValueChange = { name = it; onRename(it) },
+                value = draft.name,
+                onValueChange = { onRename(it) },
                 label = { Text("Deck name") },
                 singleLine = true,
                 modifier = Modifier.weight(1f),
@@ -170,7 +174,8 @@ private fun DeckEditorContent(
     onSave: () -> Unit,
     onSignInRequest: () -> Unit,
 ) {
-    var name by remember { mutableStateOf(draft.name) }
+    // Bind directly to draft.name — see DeckEditorContentInline
+    // comment for the same fix at the inline variant.
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -186,11 +191,8 @@ private fun DeckEditorContent(
                 Icon(Icons.Default.Close, contentDescription = "Close")
             }
             OutlinedTextField(
-                value = name,
-                onValueChange = {
-                    name = it
-                    onRename(it)
-                },
+                value = draft.name,
+                onValueChange = { onRename(it) },
                 label = { Text("Deck name") },
                 singleLine = true,
                 modifier = Modifier.weight(1f),

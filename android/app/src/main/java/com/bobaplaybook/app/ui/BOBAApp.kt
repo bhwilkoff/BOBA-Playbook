@@ -423,6 +423,9 @@ private fun androidx.navigation.NavGraphBuilder.cardDetailComposable(navControll
             CardDetailScreen(
                 bobaId = bobaId,
                 onBack = { navController.popBackStack() },
+                onOpenOtherVersion = { otherBobaId ->
+                    navController.navigate(NavRoutes.cardDetail(otherBobaId))
+                },
             )
         }
     }

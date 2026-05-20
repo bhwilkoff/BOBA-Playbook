@@ -14,9 +14,21 @@ import kotlinx.collections.immutable.toPersistentList
  * adds Room-backed persistence so unsigned-in users don't lose work
  * on app restart.
  */
+/**
+ * Tournament play modes. iOS DeckBuilderView.swift line 395 exposes
+ * these as chips; Android v1 ships them as labels (the per-format
+ * cap differences are a follow-up port).
+ */
+enum class DeckPlayMode(val label: String, val description: String) {
+    ROOKIE      ("Rookie",       "8 Heroes · 30 Plays · 6 Bonus · 10 HD"),
+    SUBSTITUTION("Substitution", "Rookie + 4 subs + 1 Coach"),
+    PLAYMAKER   ("Playmaker",    "Full BoBA — DBS economy + every persistent scope"),
+}
+
 @Immutable
 data class DeckDraft(
     val name: String = "New Deck",
+    val playMode: DeckPlayMode = DeckPlayMode.PLAYMAKER,
     val cards: ImmutableList<Card> = persistentListOf(),
 ) {
     /** Section breakdowns matching iOS DeckSummaryPill shape. */

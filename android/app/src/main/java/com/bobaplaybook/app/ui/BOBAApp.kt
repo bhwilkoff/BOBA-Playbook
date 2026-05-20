@@ -92,6 +92,7 @@ fun BOBAApp(
         var scanActive by rememberSaveable { mutableStateOf(false) }
         val isOnline by connectivityState.isOnline.collectAsStateWithLifecycle(initialValue = true)
         val appSnackbar = remember { androidx.compose.material3.SnackbarHostState() }
+        val context = androidx.compose.ui.platform.LocalContext.current
 
         // Drain pending deep links — dispatch to the right NavController
         // and consume so we don't repeatedly handle the same intent.
@@ -116,7 +117,17 @@ fun BOBAApp(
                     currentDestination = AppDestination.LEARN
                     tabControllers[AppDestination.LEARN]?.navigate(NavRoutes.learnCategory(route.categoryId))
                 }
-                is DeepLinkRoute.PublicCollection -> { /* M7 polish — open web URL or in-app viewer */ }
+                is DeepLinkRoute.PublicCollection -> {
+                    // Public collections render server-side at
+                    // bobaplaybook.com/u/{username} (web is the canonical
+                    // viewer per PARITY.md row "Public collection URL").
+                    // Open in a Custom Tab so the link previews with the
+                    // BOBA chrome and the user can return cleanly.
+                    val url = "https://bobaplaybook.com/u/${route.username}"
+                    androidx.browser.customtabs.CustomTabsIntent.Builder()
+                        .build()
+                        .launchUrl(context, android.net.Uri.parse(url))
+                }
             }
             pendingDeepLink.consume()
         }

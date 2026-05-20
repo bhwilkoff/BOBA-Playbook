@@ -69,6 +69,12 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    fun captureDiscordIdentity(discordId: String, avatarUrl: String?) {
+        viewModelScope.launch {
+            service.setDiscordIdentity(discordId, avatarUrl)
+        }
+    }
+
     fun requestRole(role: String, reason: String, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             val ok = service.requestRole(role, reason)

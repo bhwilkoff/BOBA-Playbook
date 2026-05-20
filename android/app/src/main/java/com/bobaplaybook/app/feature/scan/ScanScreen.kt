@@ -138,6 +138,7 @@ private fun ScanViewfinder(
     val matcher = remember { ScanCardMatcher { cardRepository.cards.value } }
     val stabilizer = remember { ScanFrameStabilizer() }
     var lastMatchedDisplayName by remember { mutableStateOf<String?>(null) }
+    var scanState by remember { mutableStateOf<ScanFrameStabilizer.State>(ScanFrameStabilizer.State.Idle) }
 
     val controller = remember {
         LifecycleCameraController(context).apply {
@@ -181,8 +182,9 @@ private fun ScanViewfinder(
                 val perFrame = matcher.match(tokens)
                 // Push every frame (including misses) through the
                 // stabilizer so the de-dupe gate sees the gaps.
-                val stable = stabilizer.push(perFrame) ?: return@MlKitAnalyzer
-                if (lastMatchedDisplayName != stable.card.displayName) {
+                val stable = stabilizer.push(perFrame)
+                scanState = stabilizer.state
+                if (stable != null && lastMatchedDisplayName != stable.card.displayName) {
                     lastMatchedDisplayName = stable.card.displayName
                     onMatch(stable.card.bobaId)
                 }
@@ -205,28 +207,56 @@ private fun ScanViewfinder(
             factory = { ctx -> PreviewView(ctx).apply { setController(controller) } },
         )
 
-        // Live result chip — appears once a card matches.
-        lastMatchedDisplayName?.let { name ->
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .align(Alignment.BottomCenter),
-                color = MaterialTheme.colorScheme.primaryContainer,
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Recognized:",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                    Text(
-                        text = name,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                }
-            }
+        // Live status chip — surfaces in-progress scoring AND the
+        // committed match, so the user always sees something happening.
+        // iOS DECISIONS.md #035 doesn't expose this state; it's an
+        // Android-better-than-iOS UX win.
+        ScanStatusChip(
+            state = scanState,
+            committedName = lastMatchedDisplayName,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .align(Alignment.BottomCenter),
+        )
+    }
+}
+
+/** Renders the scoring + committed-match states from the stabilizer. */
+@Composable
+private fun ScanStatusChip(
+    state: ScanFrameStabilizer.State,
+    committedName: String?,
+    modifier: Modifier = Modifier,
+) {
+    val (label, body, container) = when {
+        committedName != null -> Triple(
+            "Recognized",
+            committedName,
+            MaterialTheme.colorScheme.primaryContainer,
+        )
+        state is ScanFrameStabilizer.State.Scoring -> Triple(
+            "Scoring ${state.agreements}/${state.required}",
+            "${state.card.displayName} · ${"%.1f".format(state.avgScore)}",
+            MaterialTheme.colorScheme.secondaryContainer,
+        )
+        state is ScanFrameStabilizer.State.Scanning -> Triple(
+            "Scanning…",
+            "Hold a card in view",
+            MaterialTheme.colorScheme.surfaceContainerHigh,
+        )
+        else -> return  // Idle — show nothing
+    }
+    Surface(modifier = modifier, color = container) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+            )
+            Text(
+                text = body,
+                style = MaterialTheme.typography.titleMedium,
+            )
         }
     }
 }

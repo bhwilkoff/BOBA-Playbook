@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -64,6 +65,9 @@ fun RainbowsScreen(
     val customVm: CustomRainbowsViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val customRainbows by customVm.rainbows.collectAsStateWithLifecycle()
+    var pendingDeleteId by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf<String?>(null)
+    }
     var editorOpen by androidx.compose.runtime.saveable.rememberSaveable {
         androidx.compose.runtime.mutableStateOf(false)
     }
@@ -144,7 +148,18 @@ fun RainbowsScreen(
                                 style = MaterialTheme.typography.labelMedium,
                             )
                         },
-                        trailingContent = { Icon(Icons.Default.ChevronRight, contentDescription = null) },
+                        trailingContent = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = { pendingDeleteId = rainbow.id }) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Delete custom rainbow",
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                                Icon(Icons.Default.ChevronRight, contentDescription = null)
+                            }
+                        },
                         modifier = Modifier.clickable { onRainbowClick("custom", rainbow.id) },
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -180,6 +195,32 @@ fun RainbowsScreen(
                 }
             }
         }
+    }
+
+    pendingDeleteId?.let { id ->
+        val rb = customRainbows.firstOrNull { it.id == id }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pendingDeleteId = null },
+            title = { Text("Delete \"${rb?.name ?: "rainbow"}\"?") },
+            text = {
+                Text(
+                    "Removes the saved goal definition. Your owned cards stay in your collection.",
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    customVm.delete(id)
+                    pendingDeleteId = null
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { pendingDeleteId = null }) {
+                    Text("Cancel")
+                }
+            },
+        )
     }
 
     if (editorOpen) {

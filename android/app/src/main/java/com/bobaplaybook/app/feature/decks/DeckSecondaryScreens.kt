@@ -2,27 +2,46 @@
 
 package com.bobaplaybook.app.feature.decks
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Arrangement
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 
@@ -30,21 +49,66 @@ import com.bobaplaybook.core.ui.components.BOBASectionHeader
  * Push destinations off the Decks editor — Manage / Rules / Legality.
  *
  * ANDROID-DESIGN.md §8.3 — secondary surfaces push as nav destinations
- * inside the Decks NavHost, never stacked sheets on top of the editor
- * (sheet-on-sheet anti-pattern §4.4).
- *
- * v1 ships TopAppBar + content placeholder. Real content arrives with
- * the M4 polish pass (deck management UI, rules content port, legality
- * checker against deck Format).
+ * inside the Decks NavHost, never stacked sheets on top of the editor.
  */
 
 @Composable
 fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    val vm: DecksViewModel = hiltViewModel()
+    val savedDecks by vm.savedDecks.collectAsStateWithLifecycle()
+    var pendingDelete by remember { mutableStateOf<String?>(null) }
+
     DeckSecondaryScaffold(title = "Manage Decks", onBack = onBack, modifier = modifier) {
-        BOBAEmptyState(
-            icon = Icons.Default.Save,
-            headline = "Manage your decks",
-            body = "Sign in to save decks across iOS, web, and Android. Saved decks live in Supabase decks/deck_cards tables.",
+        if (savedDecks.isEmpty()) {
+            BOBAEmptyState(
+                icon = Icons.Default.Save,
+                headline = "No saved decks yet",
+                body = "Build a draft in the pool, then tap Save in the editor. Decks sync across iOS, web, and Android.",
+            )
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(items = savedDecks, key = { it.id }) { deck ->
+                    ListItem(
+                        headlineContent = { Text(deck.name) },
+                        supportingContent = {
+                            val total = deck.cards.sumOf { it.quantity }
+                            val archetypeLabel = deck.archetype?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""
+                            Text(
+                                "$total cards$archetypeLabel",
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        },
+                        trailingContent = {
+                            IconButton(onClick = { pendingDelete = deck.id }) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete deck",
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                        },
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
+            }
+        }
+    }
+
+    pendingDelete?.let { id ->
+        val deck = savedDecks.firstOrNull { it.id == id }
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Delete \"${deck?.name ?: "deck"}\"?") },
+            text = { Text("This removes the deck from every device. Can't be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.deleteDeck(id)
+                    pendingDelete = null
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+            },
         )
     }
 }
@@ -85,11 +149,117 @@ fun DeckRulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
 @Composable
 fun DeckLegalityScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    val vm: DecksViewModel = hiltViewModel()
+    val draft by vm.draft.collectAsStateWithLifecycle()
+
     DeckSecondaryScaffold(title = "Legality", onBack = onBack, modifier = modifier) {
-        BOBAEmptyState(
-            icon = Icons.Default.Verified,
-            headline = "Deck legality check",
-            body = "Live legality validator (Standard / Tournament / League) lands when the Deck data layer ships. The check runs against the current draft and flags violations inline.",
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // Overall verdict
+            LegalityVerdict(legal = draft.isStandardLegal)
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            // Per-rule rows
+            BOBASectionHeader(title = "Standard checks")
+            LegalityRow(
+                rule = "Heroes",
+                value = "${draft.heroCount} / ${draft.heroCap}",
+                ok = draft.heroCount == draft.heroCap,
+            )
+            LegalityRow(
+                rule = "Plays + Bonus",
+                value = "${draft.playCount + draft.bonusCount} / ${draft.playCap}",
+                ok = draft.playCount + draft.bonusCount == draft.playCap,
+            )
+            LegalityRow(
+                rule = "Bonus Plays",
+                value = "${draft.bonusCount} / ${draft.bonusCap}",
+                ok = draft.bonusCount <= draft.bonusCap,
+            )
+            LegalityRow(
+                rule = "Heroic Damage cap",
+                value = "${draft.totalHD} / ${draft.hdCap}",
+                ok = draft.totalHD <= draft.hdCap,
+            )
+
+            if (!draft.isStandardLegal) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = MaterialTheme.shapes.medium,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                        Text(
+                            "  Resolve the items above before submitting to a tournament.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LegalityVerdict(legal: Boolean) {
+    Surface(
+        color = if (legal) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = if (legal) Icons.Default.Verified else Icons.Default.Warning,
+                contentDescription = null,
+                tint = if (legal) MaterialTheme.colorScheme.onPrimaryContainer
+                       else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = if (legal) "  Standard legal — ready to submit"
+                       else "  Not yet legal — see checks below",
+                style = MaterialTheme.typography.titleMedium,
+                color = if (legal) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LegalityRow(rule: String, value: String, ok: Boolean) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = if (ok) Icons.Default.Verified else Icons.Default.Warning,
+            contentDescription = null,
+            tint = if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+        )
+        Text(
+            rule,
+            modifier = Modifier.padding(start = 8.dp).weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.titleSmall,
+            color = if (ok) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
         )
     }
 }
@@ -120,7 +290,7 @@ private fun DeckSecondaryScaffold(
             )
         },
     ) { padding ->
-        androidx.compose.foundation.layout.Box(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),

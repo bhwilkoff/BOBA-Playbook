@@ -343,7 +343,22 @@ private fun TabNavHost(
                 }
                 composable(NavRoutes.COLLECTION_RAINBOWS) {
                     com.bobaplaybook.app.feature.collection.RainbowsScreen(
-                        onRainbowClick = { _, _ -> /* M7 polish — push to RainbowDetail */ },
+                        onRainbowClick = { kind, id -> navController.navigate(NavRoutes.rainbowDetail(kind, id)) },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable(
+                    NavRoutes.RAINBOW_DETAIL_PATTERN,
+                    arguments = listOf(
+                        navArgument(NavRoutes.ARG_RAINBOW_KIND) { type = NavType.StringType },
+                        navArgument(NavRoutes.ARG_RAINBOW_ID)   { type = NavType.StringType },
+                    ),
+                ) { backStackEntry ->
+                    val id = backStackEntry.arguments?.getString(NavRoutes.ARG_RAINBOW_ID).orEmpty()
+                    // kind is currently "hero"; custom rainbows ship in a later pass
+                    com.bobaplaybook.app.feature.collection.RainbowDetailScreen(
+                        hero = java.net.URLDecoder.decode(id, "UTF-8"),
+                        onCardClick = { bobaId -> navController.navigate(NavRoutes.cardDetail(bobaId)) },
                         onBack = { navController.popBackStack() },
                     )
                 }

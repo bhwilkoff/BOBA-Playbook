@@ -34,6 +34,12 @@ object NavRoutes {
     const val COLLECTION_RAINBOWS = "collection/rainbows"
     const val COLLECTION_SHOWS    = "collection/shows"
 
+    // Rainbow detail (per-hero or custom)
+    const val ARG_RAINBOW_KIND = "kind"
+    const val ARG_RAINBOW_ID   = "rid"
+    const val RAINBOW_DETAIL_PATTERN = "collection/rainbow/{$ARG_RAINBOW_KIND}/{$ARG_RAINBOW_ID}"
+    fun rainbowDetail(kind: String, id: String) = "collection/rainbow/$kind/${java.net.URLEncoder.encode(id, "UTF-8")}"
+
     // Collection card detail (multi-copy + designation switcher)
     const val COLLECTION_CARD_DETAIL_PATTERN = "collection/card/{$ARG_BOBA_ID}"
     fun collectionCardDetail(bobaId: String) = "collection/card/$bobaId"

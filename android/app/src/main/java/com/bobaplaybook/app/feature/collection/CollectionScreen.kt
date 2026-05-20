@@ -58,6 +58,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.drawscope.draw
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import kotlinx.coroutines.launch
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -261,7 +267,11 @@ fun CollectionScreen(
             when (displayMode) {
                 DisplayMode.GRID -> CollectionGrid(entries = entries, onCardClick = onCardClick)
                 DisplayMode.LIST -> CollectionList(entries = entries, onCardClick = onCardClick)
-                DisplayMode.WALL -> CollectionWall(entries = entries, onCardClick = onCardClick)
+                DisplayMode.WALL -> CollectionWall(
+                    entries = entries,
+                    onCardClick = onCardClick,
+                    designationLabel = designation.label,
+                )
             }
         }
     }
@@ -408,26 +418,62 @@ private fun CollectionList(
 private fun CollectionWall(
     entries: List<CollectionEntry>,
     onCardClick: (String) -> Unit,
+    designationLabel: String,
 ) {
     // Wall view = small multiples grid w/ no padding, near-black bg —
-    // the shareable layout per DECISIONS.md #036
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 90.dp),
-        contentPadding = PaddingValues(2.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(MaterialTheme.shapes.medium),
-    ) {
-        items(items = entries, key = { it.userCard.id }) { entry ->
-            BOBACardCell(
-                imageFile = entry.card.imageFile,
-                contentDescription = entry.card.displayName,
-                modifier = Modifier
-                    .cardSharedBounds(entry.card.bobaId)
-                    .clickable { onCardClick(entry.card.bobaId) },
-            )
+    // the shareable layout per DECISIONS.md #036.
+    //
+    // Capture-on-tap path: a GraphicsLayer records the rendered grid so
+    // the share button can export a PNG to FileProvider + Intent.ACTION_SEND.
+    val graphicsLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
+    val context = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Compact share affordance — appears only in Wall view (DECISIONS.md
+        // #036 calls Wall a sharing surface). Tap → capture → share PNG.
+        androidx.compose.material3.TextButton(
+            onClick = {
+                scope.launch {
+                    val img = graphicsLayer.toImageBitmap()
+                    val bmp = img.asAndroidBitmap()
+                    WallShareHelper.share(
+                        context = context,
+                        bitmap = bmp,
+                        designationLabel = designationLabel,
+                        username = null,
+                    )
+                }
+            },
+            modifier = Modifier
+                .align(androidx.compose.ui.Alignment.End)
+                .padding(horizontal = 8.dp),
+        ) {
+            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.width(16.dp).height(16.dp))
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(end = 8.dp))
+            Text("Share Wall as image")
+        }
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 90.dp),
+            contentPadding = PaddingValues(2.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(MaterialTheme.shapes.medium)
+                .drawWithContent {
+                    graphicsLayer.record { this@drawWithContent.drawContent() }
+                    drawLayer(graphicsLayer)
+                },
+        ) {
+            items(items = entries, key = { it.userCard.id }) { entry ->
+                BOBACardCell(
+                    imageFile = entry.card.imageFile,
+                    contentDescription = entry.card.displayName,
+                    modifier = Modifier
+                        .cardSharedBounds(entry.card.bobaId)
+                        .clickable { onCardClick(entry.card.bobaId) },
+                )
+            }
         }
     }
 }

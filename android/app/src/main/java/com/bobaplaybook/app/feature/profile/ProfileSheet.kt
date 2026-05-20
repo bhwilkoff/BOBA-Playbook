@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.LiveTv
@@ -659,6 +660,36 @@ private fun SignedInContent(
                     .fillMaxWidth()
                     .clickable {
                         CustomTabsIntent.Builder().build().launchUrl(context, "https://bobaplaybook.com/privacy/".toUri())
+                    },
+            )
+        }
+        // App version — iOS Profile shows this under About per
+        // DESIGN.md §8.5 spec. Helps Ben triage bug reports
+        // ("which version is this?") when users email feedback.
+        item("version") {
+            ListItem(
+                headlineContent = { Text("Version") },
+                supportingContent = {
+                    Text(
+                        "${com.bobaplaybook.app.BuildConfig.VERSION_NAME} " +
+                            "(${com.bobaplaybook.app.BuildConfig.VERSION_CODE})",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                },
+                leadingContent = {
+                    Icon(Icons.Default.Info, contentDescription = null,
+                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        // Tap-to-copy the version string — useful for
+                        // including in bug reports.
+                        val v = "${com.bobaplaybook.app.BuildConfig.VERSION_NAME} " +
+                            "(${com.bobaplaybook.app.BuildConfig.VERSION_CODE})"
+                        val cm = context.getSystemService(android.content.ClipboardManager::class.java)
+                        cm?.setPrimaryClip(android.content.ClipData.newPlainText("BOBA Playbook version", v))
+                        scope.launch { appSnackbar?.showSnackbar("Version copied: $v") }
                     },
             )
         }

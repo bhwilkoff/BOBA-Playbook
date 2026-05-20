@@ -34,11 +34,11 @@ When shipping any user-facing feature:
 
 | Verb | iOS | Web | Android | Notes |
 |---|---|---|---|---|
-| **Find** (explore) | ✅ | ✅ | ⏳ M1 | DESIGN.md §8.1 · WEB-DESIGN.md §14.1 · ANDROID-DESIGN.md §8.1 |
-| **Learn** (understand) | ✅ | ✅ | ⏳ M5 | DESIGN.md §8.2 · WEB-DESIGN.md §14.2 · ANDROID-DESIGN.md §8.2 |
-| **Decks** (build) | ✅ | ✅ | ⏳ M4 | DESIGN.md §8.3 · WEB-DESIGN.md §14.3 · ANDROID-DESIGN.md §8.3 |
-| **Collection** (own) | ✅ | ✅ | ⏳ M2 | DESIGN.md §8.4 · WEB-DESIGN.md §14.4 · ANDROID-DESIGN.md §8.4 |
-| **Purchase** (acquire) | ✅ | ✅ | ⏳ M6 | DESIGN.md §8.5 · WEB-DESIGN.md §14.5 · ANDROID-DESIGN.md §8.5 |
+| **Find** (explore) | ✅ | ✅ | ✅ | DESIGN.md §8.1 · WEB-DESIGN.md §14.1 · ANDROID-DESIGN.md §8.1 — M1 scaffolding shipped + overnight 2026-05-20 polish landed |
+| **Learn** (understand) | ✅ | ✅ | ✅ | DESIGN.md §8.2 · WEB-DESIGN.md §14.2 · ANDROID-DESIGN.md §8.2 — Android articles + Archetype Templates + Watch shipped |
+| **Decks** (build) | ✅ | ✅ | ✅ | DESIGN.md §8.3 · WEB-DESIGN.md §14.3 · ANDROID-DESIGN.md §8.3 — Android editor + template gallery + DBS shipped |
+| **Collection** (own) | ✅ | ✅ | ✅ | DESIGN.md §8.4 · WEB-DESIGN.md §14.4 · ANDROID-DESIGN.md §8.4 — Android designation + display modes + edit copy shipped |
+| **Purchase** (acquire) | ✅ | ✅ | ✅ | DESIGN.md §8.5 · WEB-DESIGN.md §14.5 · ANDROID-DESIGN.md §8.5 — Android Whatnot fix + segmented picker shipped |
 
 ---
 
@@ -46,16 +46,16 @@ When shipping any user-facing feature:
 
 | Feature | iOS | Web | Android | Notes |
 |---|---|---|---|---|
-| Card grid with 17,974 cards | ✅ | ✅ | ⏳ M1 | `LazyVerticalGrid(GridCells.Adaptive)` |
-| `SearchBar` (search-first IA) | ✅ | ✅ | ⏳ M1 | `Tab(role: .search)` / `<input type="search">` / `ExpandedFullScreenSearchBar` |
-| Search tokens / chips | ✅ | ✅ | ⏳ M1 | `BOBAFilterToken` / URL params / `InputChip` |
-| Filter rows (weapon, cost, hero, treatment) | ✅ | ✅ | ⏳ M1 | `FilterChip` flow row |
-| Featured shelves (no-search state) | ✅ | ✅ | ⏳ M1 | `HorizontalMultiBrowseCarousel` on Android |
+| Card grid with 17,974 cards | ✅ | ✅ | ✅ | `LazyVerticalGrid(GridCells.Adaptive)` |
+| `SearchBar` (search-first IA) | ✅ | ✅ | ✅ | iOS `Tab(role: .search)` · Web `<input type="search">` · Android OutlinedTextField (M3 SearchBar morph is M1 polish) |
+| Search tokens / chips | ✅ | ✅ | ✅ | `BOBAFilterToken` / URL params / `InputChip` |
+| Filter rows (weapon, cost, hero, treatment) | ✅ | ✅ | ✅ | `FilterChip` flow row — Android shipped overnight 2026-05-20 |
+| Featured shelves (no-search state) | ✅ | ✅ | ✅ | Android: `HorizontalMultiBrowseCarousel` showcase carousels |
 | Multi-select + bulk add | n/a | ✅ | 🔮 | Web-only today; mobile uses long-press add |
-| Card detail push w/ hero zoom | ✅ | ✅ | ⏳ M1 | `.matchedTransitionSource` / View Transitions API / `sharedBounds` |
-| Card-size picker (S/M/L density) | ✅ | ✅ | ⏳ M1 | Toolbar Menu → 1/2/3 cols |
-| Profile entry (Find-only) | ✅ | ✅ | ⏳ M1 | TopAppBar leading icon — per `feedback_profile_only_on_find` |
-| Saved Searches | ✅ | ✅ | ⏳ M1 | Featured shelf |
+| Card detail push w/ hero zoom | ✅ | ✅ | ⏳ M1 polish | iOS + web shipped; Android destination scaffolding done, `sharedBounds` zoom is M1 polish |
+| Card-size picker (S/M/L density) | ✅ | ✅ | ✅ | Toolbar Menu → 1/2/3 cols on all three; Android persists via `GridDensityStore` (DataStore) |
+| Profile entry (Find-only) | ✅ | ✅ | ✅ | TopAppBar leading icon — per `feedback_profile_only_on_find` |
+| Saved Searches | 🔮 | 🔮 | 🔮 | **Not built anywhere.** Earlier ✅✅ claim was inaccurate; audit 2026-05-20 found zero `savedSearch` references in any client. Deferred until designed (DESIGN.md §8.1 mentions as no-search-state shelf candidate, but no implementation has landed). |
 | Walkthrough on first visit | ✅ | 🚫 §11 | 🚫 §6.10 | Web + Android skip; replaced by EmptyState + tooltip |
 
 ---
@@ -64,12 +64,14 @@ When shipping any user-facing feature:
 
 | Feature | iOS | Web | Android | Notes |
 |---|---|---|---|---|
-| Categories: Rules / Strategy / Collect / Glossary / Tournament | ✅ | ✅ | ⏳ M5 | Single-stream article rendering |
-| Skill-level scope (Rookie / Sub / Playmaker) | ✅ | ✅ | ⏳ M5 | `SegmentedButton` scope inside article |
-| Read/Watch toggle (when video exists) | ✅ | ✅ | ⏳ M5 | Same scope pattern |
-| In-corpus search | ✅ | ✅ | ⏳ M5 | `.searchable` / search input / `SearchBar` |
-| Glossary lookup (inline definitions) | ✅ | ✅ | ⏳ M5 | TooltipBox on Android |
+| Categories: Rules / Strategy / Collect / Glossary / Tournament | ✅ | ✅ | ✅ | Single-stream article rendering — Android Tournament richness is M5 polish |
+| Skill-level scope (Rookie / Sub / Playmaker) | ✅ | ✅ | ✅ | `SegmentedButton` scope inside Rules article |
+| Read/Watch toggle (when video exists) | ✅ | ✅ | ✅ | Same scope pattern |
+| In-corpus search | ✅ | ✅ | ✅ | `.searchable` / search input / `SearchBar` |
+| Glossary lookup (inline definitions) | ✅ | ✅ | ✅ | TooltipBox on Android |
 | Browse-by-hero | n/a | n/a | n/a | Moved to Find per DESIGN.md §1.1 verb separation |
+| Watch (YouTube feed: Upcoming Live / Vertical / Horizontal) | ✅ | ✅ | ✅ | Worker `boba-youtube-feed`. Android shipped Upcoming-Live/Horizontal/Vertical segmented tabs overnight 2026-05-20 |
+| Archetype Templates (5 strategy cards) | ✅ | ✅ | ✅ | Android shipped overnight 2026-05-20 with key-play thumbnails from catalog |
 
 ---
 
@@ -77,18 +79,18 @@ When shipping any user-facing feature:
 
 | Feature | iOS | Web | Android | Notes |
 |---|---|---|---|---|
-| Card pool (deck builder canvas) | ✅ | ✅ | ⏳ M4 | `LazyVerticalGrid` |
-| Pool search + filter | ✅ | ✅ | ⏳ M4 | Format chips + weapon/cost/hero |
-| Current deck summary | ✅ DeckSummaryPill | ✅ inline | ⏳ M4 DeckSummaryBar | Bottom-anchored |
-| Deck editor sheet w/ zoom | ✅ | ⏳ desktop pattern | ⏳ M4 | `.fullScreenCover` / web side-by-side / `ModalBottomSheet` |
-| Deck stats (counts + cost curve) | ✅ | ✅ | ⏳ M4 | Same canonical layout |
-| Save deck (Supabase `decks` table) | ✅ | ✅ | ⏳ M4 | Auth-required write |
-| Manage saved decks | ✅ | ✅ | ⏳ M4 | NavigationLink push within editor |
-| Rules + Legality push surfaces | ✅ | ✅ | ⏳ M4 | Push as destinations (not stacked sheets) |
-| Drag-and-drop add | ✅ iPad only | n/a | ⏳ M4 | `dragAndDropSource` + `dragAndDropTarget` |
-| Long-press add on pool | ✅ | n/a | ⏳ M4 | Canonical mobile add |
-| 3-column tablet layout (saved / pool / editor) | ✅ iPad | ⏳ desktop | ⏳ M4 | `NavigableListDetailPaneScaffold` 3-pane — in v1 from M4 per DECISIONS.md #047 |
-| Template gallery (empty editor) | ✅ | 🔮 | ⏳ M4 | Empty-state action |
+| Card pool (deck builder canvas) | ✅ | ✅ | ✅ | `LazyVerticalGrid` — Android shipped |
+| Pool search + filter | ✅ | ✅ | ✅ | Format chips + weapon/cost/hero |
+| Current deck summary | ✅ DeckSummaryPill | ✅ inline | ✅ DeckSummaryBar | Bottom-anchored |
+| Deck editor sheet w/ zoom | ✅ | ⏳ desktop pattern | ⏳ M4 polish | iOS shipped; web desktop split deferred; Android editor sheet shipped, `sharedBounds` zoom is polish |
+| Deck stats (counts + cost curve) | ✅ | ✅ | ✅ | Same canonical layout; Android DBS budget chip shipped overnight |
+| Save deck (Supabase `decks` table) | ✅ | ✅ | ✅ | Auth-required write |
+| Manage saved decks | ✅ | ✅ | ✅ | Android shipped: rename + search + PTR |
+| Rules + Legality push surfaces | ✅ | ✅ | ✅ | Push as destinations (not stacked sheets) |
+| Drag-and-drop add | ✅ iPad only | n/a | ⏳ M4 polish | `dragAndDropSource` + `dragAndDropTarget` |
+| Long-press add on pool | ✅ | n/a | ✅ | Canonical mobile add |
+| 3-column tablet layout (saved / pool / editor) | ✅ iPad | ⏳ desktop | ⏳ M4 polish | `NavigableListDetailPaneScaffold` 3-pane — in v1 from M4 per DECISIONS.md #047 |
+| Template gallery (empty editor) | ✅ | 🔮 | ✅ | Android shipped overnight (5-archetype gallery) |
 | Walkthrough | ✅ | 🚫 | 🚫 | Same skip rule |
 
 ---
@@ -97,17 +99,17 @@ When shipping any user-facing feature:
 
 | Feature | iOS | Web | Android | Notes |
 |---|---|---|---|---|
-| Designation: Personal / Sale / Trade / Wanted / Grails | ✅ | ✅ | ⏳ M2 | `SegmentedButton` |
-| Designation badge per cell | ✅ | ✅ | ⏳ M2 | Corner overlay |
-| Display modes: Grid / List / Wall | ✅ | ✅ | ⏳ M2 | Toolbar Menu |
-| Grid density picker (1/2/3 cols) | ✅ | ✅ | ⏳ M2 | DataStore-backed |
-| Value summary | ✅ | ✅ | ⏳ M2 | `user_cards.estimated_value` |
-| Value history chart | ✅ | 🔮 | ⏳ M2 | Push destination |
-| Custom Rainbows | ✅ | 🔮 | ⏳ M2 | Per-user filter goals; Supabase `user_custom_rainbows` |
-| Per-hero Auto Rainbows | ✅ | 🔮 | ⏳ M2 | Same RainbowDetailView pattern |
-| My Shows (streamer-only) | ✅ | ✅ | ⏳ M2 | Push destination, role-gated |
-| Wall view (display mode + share) | ✅ | ⏳ M-future | ⏳ M2 | Lifted from streamer-only per DECISIONS.md #036 |
-| Price Overlay (in Wall view) | ✅ | ⏳ M-future | ⏳ M2 | Toggle on Wall toolbar |
+| Designation: Personal / Sale / Trade / Wanted / Grails | ✅ | ✅ | ✅ | `SegmentedButton` — Android shipped |
+| Designation badge per cell | ✅ | ✅ | ✅ | Corner overlay |
+| Display modes: Grid / List / Wall | ✅ | ✅ | ⏳ M2 polish — Wall pending | Grid + List shipped on Android; Wall is M2 polish |
+| Grid density picker (1/2/3 cols) | ✅ | ✅ | ✅ | DataStore-backed on Android via `CollectionPrefsStore` |
+| Value summary | ✅ | ✅ | ✅ | `user_cards.estimated_value` |
+| Value history chart | ✅ | 🔮 | ⏳ M2 polish | Push destination |
+| Custom Rainbows | ✅ | 🔮 | ⏳ M2 polish | Per-user filter goals; Supabase `user_custom_rainbows` |
+| Per-hero Auto Rainbows | ✅ | 🔮 | ⏳ M2 polish | Same RainbowDetailView pattern |
+| My Shows (streamer-only) | ✅ | ✅ | ⏳ M2 polish | Push destination, role-gated |
+| Wall view (display mode + share) | ✅ | ⏳ M-future | ⏳ M2 polish | Lifted from streamer-only per DECISIONS.md #036 |
+| Price Overlay (in Wall view) | ✅ | ⏳ M-future | ⏳ M2 polish | Toggle on Wall toolbar |
 | Personal Showcase (iTunes-style screensaver) | ✅ | 🚫 | 🚫 v1 §12 | Android: Cast SDK port deferred |
 | AirPlay-Video for Showcase | ✅ | 🚫 | 🚫 v1 §12 | Android Cast SDK is the parallel |
 | Public collection URL (`/u/{username}`) | n/a (toggle only) | ✅ | ⏳ M7 | Web renders; Android sets the toggle |
@@ -118,10 +120,10 @@ When shipping any user-facing feature:
 
 | Feature | iOS | Web | Android | Notes |
 |---|---|---|---|---|
-| Upcoming Whatnot breaks | ✅ | ✅ | ⏳ M6 | Worker `boba-ebay-proxy /whatnot/upcoming` |
-| Find a Store (~330 indie + ~1,800 big-box) | ✅ MapKit | ✅ Leaflet | ⏳ M6 Google Maps Compose | Same data source |
-| Filters: radius, indie-only | ✅ | ✅ | ⏳ M6 | DropdownMenu on Android |
-| Tap break tile → external Whatnot | ✅ | ✅ | ⏳ M6 | `CustomTabsIntent` on Android |
+| Upcoming Whatnot breaks | ✅ | ✅ | ✅ | Worker `boba-ebay-proxy /whatnot/upcoming` — Android deserialization fix shipped overnight 2026-05-20 |
+| Find a Store (~330 indie + ~1,800 big-box) | ✅ MapKit | ✅ Leaflet | ⏳ M6 polish | Android needs Google Maps Compose + API key |
+| Filters: radius, indie-only | ✅ | ✅ | ⏳ M6 polish | DropdownMenu on Android pending Maps |
+| Tap break tile → external Whatnot | ✅ | ✅ | ✅ | Android shipped via `CustomTabsIntent` overnight |
 
 ---
 
@@ -145,19 +147,23 @@ Scan is iOS+Android only by design (DECISIONS.md #012). Web users see scan resul
 
 | Feature | iOS | Web | Android | Notes |
 |---|---|---|---|---|
-| Canonical 6-cell stats grid | ✅ | ✅ | ⏳ M1 | DECISIONS.md #029 |
-| Cost + DBS (Plays only) | ✅ | ✅ | ⏳ M1 | Rendered below the canonical 6 |
-| Pricing panels (Buy Now + Sold) | ✅ | ✅ | ⏳ M3 | DECISIONS.md #013 |
-| eBay listings | ✅ | ✅ | ⏳ M3 | Worker proxy |
-| eBay sold comps | ✅ | ✅ | ⏳ M3 | Worker proxy |
-| Radish recent sales | ✅ | ✅ | ⏳ M3 | Worker proxy |
-| COMC asking (separate, NOT in waterfall) | ✅ | ✅ | ⏳ M3 | DECISIONS.md #034 |
-| Add to Collection / Deck / Show | ✅ | ✅ | ⏳ M1-M4 | Auth-required |
-| Edit Designation | ✅ | ✅ | ⏳ M2 | Collection context |
-| Share (deep link + image) | ✅ | ✅ | ⏳ M7 | `Intent.ACTION_SEND` on Android |
-| Mod edit (mod-gated) | ✅ | ✅ | ⏳ M7 | Role check |
-| Other Versions browsing | ✅ | ✅ | ⏳ M1 | Same hero, different treatments |
-| Hero zoom animation | ✅ compact only | ✅ via View Transitions API | ⏳ M1 compact only | Compact-only per §6.6.2 each platform |
+| Canonical 6-cell stats grid | ✅ | ✅ | ✅ | DECISIONS.md #029 |
+| Cost + DBS (Plays only) | ✅ | ✅ | ✅ | Rendered below the canonical 6 |
+| Pricing panels (Buy Now + Sold) | ✅ | ✅ | ✅ | DECISIONS.md #013 |
+| eBay listings | ✅ | ✅ | ✅ | Worker proxy |
+| eBay sold comps | ✅ | ✅ | ✅ | Worker proxy |
+| Radish recent sales | ✅ | ✅ | ✅ | Worker proxy |
+| COMC asking (separate, NOT in waterfall) | ✅ | ✅ | 🚫 | DECISIONS.md #034 — Android skipping per `feedback_comc_blocked_all_platforms` Turnstile gate |
+| Add to Collection / Deck / Show | ✅ | ✅ | ✅ | Auth-required |
+| Edit Designation | ✅ | ✅ | ✅ | Collection context — Android Edit Copy sheet shipped |
+| Share (deep link + image) | ✅ | ✅ | ✅ | iOS share sheet · Web Share API · Android `Intent.ACTION_SEND` w/ FileProvider |
+| Mod edit (mod-gated) | ✅ | ✅ | 🔮 v2 | Role check; Android admin/mod panel deferred to v2 |
+| Other Versions browsing | ✅ | ✅ | ✅ | Same hero, different treatments |
+| Hero zoom animation | ✅ compact only | ✅ via View Transitions API | ⏳ M1 polish | Android destination scaffolding done; `sharedBounds` zoom is polish |
+| DBS explainer modal | ✅ | 🔮 | ✅ | iOS + Android shipped; web ModalBottomSheet equivalent pending |
+| Pricing refresh button | ✅ | 🔮 | ✅ | iOS + Android shipped overnight 2026-05-20; web parity pending |
+| Tap-price hint | ✅ | n/a | ✅ | Mobile-only first-run hint |
+| Card detail swipe nav (left/right) | ✅ | n/a (no nav) | 🔮 | iOS shipped v2.287 across Find / Decks / Collection; mobile gesture |
 
 ---
 
@@ -282,9 +288,13 @@ These are iOS-only by design; other platforms handle the same need with platform
 | Liquid Glass tab bar / toolbar | ✅ | Web uses `backdrop-filter`; Android uses Material 3 tonal elevation |
 | Hero Shot 3D RealityKit rendering | ✅ | Web / Android out-of-scope for v1 |
 | House of BoBA RealityKit-based playground | ✅ | Out-of-scope on other platforms |
+| Hero Shot entry from Collection card detail | ✅ | RealityKit-specific; out of scope on other platforms |
+| House of BoBA invocation from Profile menu | ✅ | Same RealityKit dependency |
+| Personal Showcase (iTunes-style screensaver) | ✅ | Cast SDK port deferred on Android; web 🚫 |
 | AirPlay-Video for Personal Showcase | ✅ | Android Cast SDK is the parallel — deferred |
 | Live Activities / Dynamic Island | 🔮 | Android has no exact equivalent; accept asymmetry |
 | `.matchedTransitionSource` + `.navigationTransition(.zoom)` | ✅ | Web uses View Transitions API; Android uses `sharedBounds` |
+| Hardware-keyboard shortcuts (Cmd+1..5 tabs) | ✅ | Web n/a (browser shortcuts conflict); Android ships Ctrl+1..5 on tablets/Chromebooks |
 
 ---
 

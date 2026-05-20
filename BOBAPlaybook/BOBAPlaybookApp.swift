@@ -60,6 +60,17 @@ struct BOBAPlaybookApp: App {
                     await cardStore.loadAppliedImageOverrides()
                 }
                 .task {
+                    // Headless Hero Shot CLI hook. When env var
+                    // BOBA_HERO_SHOT_CLI=1 is set, render the 4
+                    // material-variant comparison grid to disk and
+                    // exit(0). See HeroShotCLIRunner + the driver
+                    // script at tools/render-hero-shot-variants.sh.
+                    if #available(iOS 18.0, *), HeroShotCLIRunner.isRequested {
+                        await HeroShotCLIRunner.run(cardStore: cardStore)
+                        return
+                    }
+                }
+                .task {
                     // Load the feature-print index in the background.
                     // Quietly no-ops if `feature-prints.bin` isn't bundled
                     // (e.g. dev builds before Phase 2 ships) — the

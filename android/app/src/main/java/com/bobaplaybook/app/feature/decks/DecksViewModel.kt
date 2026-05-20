@@ -44,6 +44,10 @@ class DecksViewModel @Inject constructor(
     fun rename(name: String) = store.rename(name)
     fun clear() = store.clear()
 
+    /** Pull a saved deck into the in-memory draft. Joins via catalog. */
+    fun loadSaved(saved: SavedDeck, catalog: List<Card>) =
+        store.loadFromSaved(saved, catalog)
+
     /**
      * Persist the current draft. No-op when signed out — the UI should
      * route the user to sign-in before calling this.

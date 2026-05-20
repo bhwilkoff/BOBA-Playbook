@@ -48,6 +48,10 @@ fun AddToDeckSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val decksViewModel: DecksViewModel = hiltViewModel()
     val draft by decksViewModel.draft.collectAsStateWithLifecycle()
+    val savedDecks by decksViewModel.savedDecks.collectAsStateWithLifecycle()
+    // Catalog snapshot for the load-then-add path on saved decks.
+    val catalogVm: com.bobaplaybook.app.feature.collection.RainbowCatalogViewModel = hiltViewModel()
+    val catalog by catalogVm.cards.collectAsStateWithLifecycle()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -97,14 +101,44 @@ fun AddToDeckSheet(
                     },
             )
 
-            HorizontalDivider()
-            BOBASectionHeader(title = "Saved decks")
-            Text(
-                "Sign in to save and switch between multiple decks.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+            if (savedDecks.isNotEmpty()) {
+                HorizontalDivider()
+                BOBASectionHeader(title = "Saved decks")
+                savedDecks.forEach { saved ->
+                    ListItem(
+                        headlineContent = { Text(saved.name) },
+                        supportingContent = {
+                            val total = saved.cards.sumOf { it.quantity }
+                            Text("$total cards", style = MaterialTheme.typography.labelMedium)
+                        },
+                        leadingContent = {
+                            Icon(Icons.Default.ViewModule, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Icon(Icons.Default.Add, contentDescription = "Open and add")
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                // Load the saved deck as the draft, then push
+                                // the new card. User sees the deck open with
+                                // the card already added.
+                                decksViewModel.loadSaved(saved, catalog)
+                                decksViewModel.add(card)
+                                onDismiss()
+                            },
+                    )
+                }
+            } else {
+                HorizontalDivider()
+                BOBASectionHeader(title = "Saved decks")
+                Text(
+                    "Sign in + tap Save in the editor to keep decks across iOS, web, and Android.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
         }
     }
 }

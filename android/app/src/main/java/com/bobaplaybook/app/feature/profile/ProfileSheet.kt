@@ -337,6 +337,7 @@ private fun SignedInContent(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val vm: ProfileViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
     val usernameStatus by vm.usernameStatus.collectAsStateWithLifecycle(initialValue = null)
     var publicCollection by rememberSaveable { mutableStateOf(false) }
     var matchAlerts by rememberSaveable { mutableStateOf(false) }
@@ -594,7 +595,14 @@ private fun SignedInContent(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        vm.requestRole(requestedRole, reason) { /* Snackbar — M7 polish */ }
+                        val role = requestedRole
+                        vm.requestRole(role, reason) { ok ->
+                            scope.launch {
+                                val msg = if (ok) "Role request submitted — Ben reviews within 48h."
+                                          else "Couldn't submit role request. Try again later."
+                                appSnackbar?.showSnackbar(msg)
+                            }
+                        }
                         roleRequestOpen = false
                     },
                     enabled = reason.isNotBlank(),

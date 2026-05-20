@@ -94,6 +94,7 @@ import kotlinx.collections.immutable.ImmutableList
 fun CardDetailScreen(
     bobaId: String,
     onBack: () -> Unit,
+    onOpenOtherVersion: (bobaId: String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val viewModel: CardDetailViewModel = hiltViewModel()
@@ -192,6 +193,7 @@ fun CardDetailScreen(
         CardDetailBody(
             card = card,
             state = state,
+            onOpenOtherVersion = onOpenOtherVersion,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
@@ -229,6 +231,7 @@ fun CardDetailScreen(
 private fun CardDetailBody(
     card: Card,
     state: CardDetailUiState,
+    onOpenOtherVersion: (bobaId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -303,9 +306,7 @@ private fun CardDetailBody(
                             imageFile = other.imageFile,
                             contentDescription = other.displayName,
                             modifier = Modifier.clickable {
-                                // M2-polish — push to nested detail. v1 stays
-                                // on current card; the catalog navigation
-                                // happens via Find or Decks pool.
+                                onOpenOtherVersion(other.bobaId)
                             },
                         )
                     }

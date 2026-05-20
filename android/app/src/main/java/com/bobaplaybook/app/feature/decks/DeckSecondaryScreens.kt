@@ -2,7 +2,9 @@
 
 package com.bobaplaybook.app.feature.decks
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -56,7 +58,14 @@ import com.bobaplaybook.core.ui.components.BOBASectionHeader
 fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val vm: DecksViewModel = hiltViewModel()
     val savedDecks by vm.savedDecks.collectAsStateWithLifecycle()
+    // Use CollectionViewModel's exposed catalog flow. Both Find and
+    // Collection-detail screens already consume it; reusing it here
+    // avoids adding a third copy.
+    val collectionViewModel: com.bobaplaybook.app.feature.collection.CollectionViewModel = hiltViewModel()
+    val catalog by collectionViewModel.catalogCards.collectAsStateWithLifecycle()
     var pendingDelete by remember { mutableStateOf<String?>(null) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
 
     DeckSecondaryScaffold(title = "Manage Decks", onBack = onBack, modifier = modifier) {
         if (savedDecks.isEmpty()) {
@@ -86,6 +95,15 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                                     tint = MaterialTheme.colorScheme.error,
                                 )
                             }
+                        },
+                        modifier = Modifier.clickable {
+                            // Replace the draft with this saved deck + pop back
+                            // to the editor. Mirrors iOS DeckBuilderStore.loadDeck.
+                            vm.loadSaved(deck, catalog)
+                            scope.launch {
+                                appSnackbar?.showSnackbar("Loaded \"${deck.name}\"")
+                            }
+                            onBack()
                         },
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

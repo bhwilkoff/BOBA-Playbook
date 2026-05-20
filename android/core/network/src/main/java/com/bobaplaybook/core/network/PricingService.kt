@@ -69,10 +69,20 @@ class PricingService @Inject constructor(
 
             val activeItems = response.active?.items.orEmpty().map { it.toListing(PricingSource.EBAY) }
             val soldItems = response.sold?.items.orEmpty().map { it.toListing(PricingSource.EBAY) }
+            // Worker pre-computes the canonical low/average/high over
+            // the preferred source (sold first via Radish or Insights;
+            // active as fallback). The `priceType` field tags which
+            // source landed in the top-level fields. Surfacing these
+            // directly avoids re-deriving the waterfall on-device, so
+            // the iOS app and Android render identical market
+            // estimates for the same Worker response.
             PricingBundle(
                 ebayActive = activeItems,
                 ebaySold = soldItems,
                 radishResolvedUrl = response.radishResolvedUrl,
+                marketAverageUsd = response.average,
+                marketSource = response.priceType,
+                marketCount = response.count,
             )
         }.onFailure { e ->
             Log.e(TAG, "fetchAll($cardNumber) failed", e)
@@ -88,6 +98,17 @@ data class PricingBundle(
     val ebayActive: List<PricingListing> = emptyList(),
     val ebaySold: List<PricingListing> = emptyList(),
     val radishResolvedUrl: String? = null,
+    /**
+     * Worker's pre-computed canonical market average. Reflects the
+     * Worker's source-waterfall (sold > active). Use this directly
+     * in the UI instead of recomputing a median locally — keeps
+     * iOS + Android pricing displays in lockstep.
+     */
+    val marketAverageUsd: Double? = null,
+    /** "sold" or "listed" — names which underlying source the average came from. */
+    val marketSource: String? = null,
+    /** Number of items the Worker averaged over. */
+    val marketCount: Int = 0,
 )
 
 data class PricingListing(

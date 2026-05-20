@@ -106,10 +106,25 @@ fun CollectionScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     var designation by rememberSaveable { mutableStateOf(Designation.PERSONAL) }
-    var displayMode by rememberSaveable { mutableStateOf(DisplayMode.GRID) }
     var menuOpen by remember { mutableStateOf(false) }
     var filterSheetOpen by rememberSaveable { mutableStateOf(false) }
-    var collectionSort by rememberSaveable { mutableStateOf(CollectionSortOrder.DATE_ADDED_DESC) }
+
+    // Persistent display mode + sort order — iOS @AppStorage parity
+    // via CollectionPrefsStore (DataStore<Preferences>). Stored as
+    // enum.name() so the catalog can evolve without breaking saved
+    // values. Unknown / missing values fall back to the default.
+    val collectionPrefs: com.bobaplaybook.app.settings.CollectionPrefsViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
+    val storedDisplayMode by collectionPrefs.displayMode.collectAsStateWithLifecycle(initialValue = null)
+    val storedSortOrder by collectionPrefs.sortOrder.collectAsStateWithLifecycle(initialValue = null)
+    val displayMode = remember(storedDisplayMode) {
+        storedDisplayMode?.let { runCatching { DisplayMode.valueOf(it) }.getOrNull() }
+            ?: DisplayMode.GRID
+    }
+    val collectionSort = remember(storedSortOrder) {
+        storedSortOrder?.let { runCatching { CollectionSortOrder.valueOf(it) }.getOrNull() }
+            ?: CollectionSortOrder.DATE_ADDED_DESC
+    }
     var totalsMode by rememberSaveable { mutableStateOf(TotalsMode.COLLECTION) }
     // Collection-scoped search — iOS .searchable parity. Filters owned
     // cards by name/hero/cardNumber/set using the word-prefix matcher
@@ -156,7 +171,10 @@ fun CollectionScreen(
                             DropdownMenuItem(
                                 text = { Text("Grid") },
                                 leadingIcon = { Icon(Icons.Default.GridOn, contentDescription = null) },
-                                onClick = { menuOpen = false; displayMode = DisplayMode.GRID },
+                                onClick = {
+                                    menuOpen = false
+                                    collectionPrefs.setDisplayMode(DisplayMode.GRID.name)
+                                },
                                 trailingIcon = if (displayMode == DisplayMode.GRID) {
                                     { Icon(Icons.Default.GridOn, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                                 } else null,
@@ -164,12 +182,18 @@ fun CollectionScreen(
                             DropdownMenuItem(
                                 text = { Text("List") },
                                 leadingIcon = { Icon(Icons.AutoMirrored.Filled.ViewList, contentDescription = null) },
-                                onClick = { menuOpen = false; displayMode = DisplayMode.LIST },
+                                onClick = {
+                                    menuOpen = false
+                                    collectionPrefs.setDisplayMode(DisplayMode.LIST.name)
+                                },
                             )
                             DropdownMenuItem(
                                 text = { Text("Wall") },
                                 leadingIcon = { Icon(Icons.Default.Wallpaper, contentDescription = null) },
-                                onClick = { menuOpen = false; displayMode = DisplayMode.WALL },
+                                onClick = {
+                                    menuOpen = false
+                                    collectionPrefs.setDisplayMode(DisplayMode.WALL.name)
+                                },
                             )
                             androidx.compose.material3.HorizontalDivider()
                             // Sort sub-menu — peer-collection iOS parity (P1 #17).
@@ -185,7 +209,10 @@ fun CollectionScreen(
                             if (sortDialogOpen) {
                                 CollectionSortDialog(
                                     selected = collectionSort,
-                                    onSelected = { collectionSort = it; sortDialogOpen = false },
+                                    onSelected = {
+                                        collectionPrefs.setSortOrder(it.name)
+                                        sortDialogOpen = false
+                                    },
                                     onDismiss = { sortDialogOpen = false },
                                 )
                             }

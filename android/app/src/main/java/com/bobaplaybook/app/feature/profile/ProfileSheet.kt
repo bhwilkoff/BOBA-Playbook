@@ -311,7 +311,7 @@ private fun SignedOutContent(authManager: AuthManager) {
             Text("Google")
         }
         OutlinedButton(
-            onClick = { launchDiscordOAuth(context) },
+            onClick = { scope.launch { launchDiscordOAuth(authManager) } },
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(Icons.Default.Group, contentDescription = null)
@@ -399,7 +399,9 @@ private fun SignedInContent(
                 supportingContent = { Text("Required to enable trading", style = MaterialTheme.typography.labelMedium) },
                 leadingContent = { Icon(Icons.Default.Group, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 trailingContent = {
-                    TextButton(onClick = { launchDiscordOAuth(context) }) {
+                    TextButton(onClick = {
+                        scope.launch { launchDiscordOAuth(authManager) }
+                    }) {
                         Text("Link")
                     }
                 },
@@ -742,16 +744,19 @@ private fun LegalLinks(context: android.content.Context) {
 }
 
 /**
- * Launches Discord OAuth via Chrome Custom Tabs.
- * Real implementation goes through supabase-kt's Discord provider —
- * this is a v1 stub that opens the BoBA Discord server invite while
- * the full OAuth path is wired in M7 polish.
+ * Launches Discord OAuth via supabase-kt's Discord provider.
+ *
+ * Supabase opens a Custom Tab to Discord's auth page; Discord redirects
+ * back to bobaplaybook://auth-callback which MainActivity.onNewIntent
+ * passes to SupabaseClient.handleDeeplinks(intent) to import the
+ * session. Per DECISIONS.md #049 the OAuth handshake is the entire
+ * Discord surface — no bot, no server-side API calls, no message reads.
+ *
+ * Requires Discord to be added as a provider in the Supabase project
+ * dashboard with redirect URL `bobaplaybook://auth-callback` allowed.
  */
-private fun launchDiscordOAuth(context: android.content.Context) {
-    // M7 polish: replace with supabase-kt OAuth(Discord) launching Auth Tab.
-    // For v1 we open Discord directly so the user can join the community.
-    val url = "https://discord.com/invite/bobattlearena".toUri()
-    CustomTabsIntent.Builder().build().launchUrl(context, url)
+private suspend fun launchDiscordOAuth(authManager: AuthManager) {
+    authManager.signInWithDiscord()
 }
 
 private fun deriveUsername(email: String?): String {

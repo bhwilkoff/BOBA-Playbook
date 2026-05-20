@@ -64,7 +64,15 @@ object NetworkModule {
         supabaseUrl = SupabaseConfig.URL,
         supabaseKey = SupabaseConfig.PUBLISHABLE_KEY,
     ) {
-        install(Auth)
+        install(Auth) {
+            // OAuth (Discord/etc.) needs a scheme+host to redirect back into
+            // the app. Supabase project must list `bobaplaybook://auth-callback`
+            // as an allowed redirect URL; MainActivity.onNewIntent calls
+            // SupabaseClient.handleDeeplinks(intent) which parses the
+            // fragment / code and imports the session.
+            scheme = "bobaplaybook"
+            host = "auth-callback"
+        }
         install(Postgrest)
     }
 }

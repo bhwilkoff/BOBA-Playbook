@@ -11,6 +11,7 @@ import android.graphics.Color as AndroidColor
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.bobaplaybook.app.auth.AuthManager
 import com.bobaplaybook.app.connectivity.ConnectivityState
+import io.github.jan.supabase.auth.handleDeeplinks
 import com.bobaplaybook.app.feature.scan.ScanModuleAccessSeeder
 import com.bobaplaybook.app.navigation.DeepLinkRoute
 import com.bobaplaybook.app.navigation.PendingDeepLink
@@ -88,11 +89,17 @@ class MainActivity : ComponentActivity() {
      * installed (M7). For M0 this dispatcher is a stub.
      */
     private fun handleIncomingIntent(intent: Intent?) {
-        val uri: Uri = intent?.data ?: return
-        // Both Universal App Links (https://...) and custom-scheme deep
-        // links (bobaplaybook://...) parse the same way — segments +
-        // query. PendingDeepLink picks up via Flow inside BOBAApp and
-        // dispatches to the right NavController.
+        if (intent == null) return
+        // First chance: OAuth callbacks (Discord etc.) land at
+        // bobaplaybook://auth-callback. supabase-kt's handleDeeplinks
+        // parses the fragment / code, exchanges it, and imports the
+        // session. It's a no-op for non-auth schemes.
+        authManager.client.handleDeeplinks(intent)
+        val uri: Uri = intent.data ?: return
+        // App content deep links (cards, learn categories, public
+        // collections) parse via the route table. PendingDeepLink picks
+        // up via Flow inside BOBAApp and dispatches to the right
+        // NavController.
         DeepLinkRoute.parse(uri)?.let { pendingDeepLink.set(it) }
     }
 }

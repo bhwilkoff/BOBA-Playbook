@@ -984,8 +984,23 @@ private fun ListingsRow(listings: ImmutableList<PricingListing>) {
                 date = listing.date,
                 onClick = {
                     if (listing.url.isNotBlank()) {
-                        val intent = Intent(Intent.ACTION_VIEW, listing.url.toUri())
-                        context.startActivity(intent)
+                        // Custom Tab keeps the BOBA back-arrow context
+                        // — user taps Back and lands on the card detail
+                        // instead of leaving the app entirely. eBay /
+                        // Radish handle Custom Tab fine; if the user has
+                        // the eBay app installed it still routes there
+                        // via the Custom Tab app-handoff.
+                        runCatching {
+                            androidx.browser.customtabs.CustomTabsIntent.Builder()
+                                .build()
+                                .launchUrl(context, listing.url.toUri())
+                        }.onFailure {
+                            // Fallback for devices without a Custom Tabs
+                            // provider (rare; AOSP / older Chrome).
+                            runCatching {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, listing.url.toUri()))
+                            }
+                        }
                     }
                 },
             )

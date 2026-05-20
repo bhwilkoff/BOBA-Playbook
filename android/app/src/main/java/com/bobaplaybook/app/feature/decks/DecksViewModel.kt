@@ -63,10 +63,18 @@ class DecksViewModel @Inject constructor(
                 return@launch
             }
             val draft = store.draft.value
+            // Reject empty / whitespace-only names — Supabase column is
+            // non-nullable but accepts "" silently; saving "" produces
+            // an un-findable deck in Manage / AddToDeck.
+            val cleanName = draft.name.trim()
+            if (cleanName.isEmpty()) {
+                onResult(false)
+                return@launch
+            }
             val cardNumbers = draft.cards.map { it.cardNumber }
             val newId = repo.saveDeck(
                 userId = userId,
-                name = draft.name,
+                name = cleanName,
                 cardNumbers = cardNumbers,
             )
             if (newId != null) {

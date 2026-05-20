@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PrivacyTip
@@ -341,7 +342,10 @@ private fun SignedInContent(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val vm: ProfileViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val hintsVm: com.bobaplaybook.app.hints.HintsViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
     val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
+    val hintsEnabled by hintsVm.globalEnabled.collectAsStateWithLifecycle(initialValue = true)
     val usernameStatus by vm.usernameStatus.collectAsStateWithLifecycle(initialValue = null)
     val profile by vm.profile.collectAsStateWithLifecycle(initialValue = null)
 
@@ -534,6 +538,41 @@ private fun SignedInContent(
         // item("mod-panel") { ... } onlyIf userRole.includes(moderator)
         // item("admin-panel") { ... } onlyIf userRole == admin
         // ```
+
+        item("hints-header") { BOBASectionHeader(title = "Hints") }
+        item("hints-toggle") {
+            ToggleRow(
+                title = "Show first-run hints",
+                subtitle = "Tips like \"long-press to add\" surface once per device",
+                icon = Icons.Default.Lightbulb,
+                checked = hintsEnabled,
+                onCheckedChange = { hintsVm.setGlobalEnabled(it) },
+            )
+        }
+        item("hints-reset") {
+            ListItem(
+                headlineContent = { Text("Reset hints") },
+                supportingContent = {
+                    Text(
+                        "Make every hint banner re-appear",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                },
+                leadingContent = {
+                    Icon(Icons.Default.Lightbulb, contentDescription = null,
+                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                },
+                trailingContent = {
+                    TextButton(onClick = {
+                        hintsVm.resetAll()
+                        scope.launch { appSnackbar?.showSnackbar("Hints reset") }
+                    }) {
+                        Text("Reset")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
 
         item("legal-header") { BOBASectionHeader(title = "Legal") }
         item("terms") {

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -402,6 +403,19 @@ private fun SectionedCardList(
             "Bonus"  to draft.cards.filter { it.cardType.contains("Bonus", ignoreCase = true) },
             "Coach"  to draft.cards.filter { it.cardType.contains("Coach", ignoreCase = true) },
         )
+    }
+
+    // Empty-state when no cards are in any section yet. The pool
+    // below the editor is where users add cards (long-press); this
+    // surface explicitly explains that.
+    if (draft.cards.isEmpty()) {
+        com.bobaplaybook.core.ui.components.BOBAEmptyState(
+            icon = Icons.Default.ViewModule,
+            headline = "No cards yet",
+            body = "Close the editor and long-press cards in the pool to add them. Heroes, Plays, Bonus Plays, and Coach each get their own section here.",
+            modifier = modifier,
+        )
+        return
     }
 
     LazyColumn(

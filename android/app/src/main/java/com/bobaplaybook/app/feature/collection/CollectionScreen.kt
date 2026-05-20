@@ -503,29 +503,45 @@ private fun CollectionWall(
     val graphicsLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
+    // Price overlay — DESIGN.md §8.8 per-designation defaults. Sale +
+    // Trade + Wanted default ON; Personal + Grails default OFF.
+    val defaultOverlay = when (designationLabel.lowercase()) {
+        "for sale", "for trade", "wanted" -> true
+        else -> false
+    }
+    var includePrices by rememberSaveable(designationLabel) { mutableStateOf(defaultOverlay) }
     Column(modifier = Modifier.fillMaxSize()) {
-        // Compact share affordance — appears only in Wall view (DECISIONS.md
-        // #036 calls Wall a sharing surface). Tap → capture → share PNG.
-        androidx.compose.material3.TextButton(
-            onClick = {
-                scope.launch {
-                    val img = graphicsLayer.toImageBitmap()
-                    val bmp = img.asAndroidBitmap()
-                    WallShareHelper.share(
-                        context = context,
-                        bitmap = bmp,
-                        designationLabel = designationLabel,
-                        username = null,
-                    )
-                }
-            },
-            modifier = Modifier
-                .align(androidx.compose.ui.Alignment.End)
-                .padding(horizontal = 8.dp),
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
         ) {
-            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.width(16.dp).height(16.dp))
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(end = 8.dp))
-            Text("Share Wall as image")
+            androidx.compose.material3.FilterChip(
+                selected = includePrices,
+                onClick = { includePrices = !includePrices },
+                label = { Text("Prices") },
+                modifier = Modifier.padding(end = 8.dp),
+            )
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
+            // Compact share affordance — appears only in Wall view (DECISIONS.md
+            // #036 calls Wall a sharing surface). Tap → capture → share PNG.
+            androidx.compose.material3.TextButton(
+                onClick = {
+                    scope.launch {
+                        val img = graphicsLayer.toImageBitmap()
+                        val bmp = img.asAndroidBitmap()
+                        WallShareHelper.share(
+                            context = context,
+                            bitmap = bmp,
+                            designationLabel = designationLabel,
+                            username = null,
+                        )
+                    }
+                },
+            ) {
+                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.width(16.dp).height(16.dp))
+                androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(end = 8.dp))
+                Text("Share Wall as image")
+            }
         }
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 90.dp),
@@ -541,13 +557,36 @@ private fun CollectionWall(
                 },
         ) {
             items(items = entries, key = { it.userCard.id }) { entry ->
-                BOBACardCell(
-                    imageFile = entry.card.imageFile,
-                    contentDescription = entry.card.displayName,
+                Box(
                     modifier = Modifier
                         .cardSharedBounds(entry.card.bobaId)
                         .clickable { onCardClick(entry.card.bobaId) },
-                )
+                ) {
+                    BOBACardCell(
+                        imageFile = entry.card.imageFile,
+                        contentDescription = entry.card.displayName,
+                    )
+                    if (includePrices) {
+                        val price = entry.userCard.estimatedValue
+                        if (price != null && price > 0.0) {
+                            androidx.compose.material3.Surface(
+                                shape = MaterialTheme.shapes.small,
+                                color = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.7f),
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .padding(4.dp),
+                            ) {
+                                Text(
+                                    "$${"%.0f".format(price)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = com.bobaplaybook.core.ui.theme.BobaBrand.Orange,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }

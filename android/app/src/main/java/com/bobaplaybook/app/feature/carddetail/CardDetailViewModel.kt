@@ -29,15 +29,25 @@ data class CardDetailUiState(
     /** Worker-resolved Radish landing URL (when present); used for tap-through. */
     val radishUrl: String? = null,
     val otherVersions: ImmutableList<Card> = persistentListOf(),
+    /**
+     * Worker's pre-computed canonical market average — preferred over
+     * a locally-recomputed median so iOS + Android stay in lockstep
+     * for the same Worker response (DECISIONS.md #013 waterfall
+     * lives in the Worker, not the client).
+     */
+    val workerMarketAverageUsd: Double? = null,
+    val workerMarketSource: String? = null,
+    val workerMarketCount: Int = 0,
 ) {
     /**
-     * Median of eBay-sold prices when available; falls back to median of
-     * active asking prices so the user always sees a number when there's
-     * any market signal at all. iOS DECISIONS.md #013 + #034 keep COMC
-     * asking out of the sold waterfall — same posture here.
+     * Prefer the Worker's pre-computed canonical average; fall back to
+     * a local median over sold-then-active so the UI still shows a
+     * number when the Worker hasn't filled the top-level field (legacy
+     * response shape, or older cached entries).
      */
     val marketEstimateUsd: Double?
         get() {
+            workerMarketAverageUsd?.let { return it }
             val sales = if (ebaySold.isNotEmpty()) ebaySold else ebayActive
             if (sales.isEmpty()) return null
             return sales.map { it.priceUsd }.sorted().let { sorted ->
@@ -47,10 +57,20 @@ data class CardDetailUiState(
         }
 
     val marketEstimateBasis: String?
-        get() = when {
-            ebaySold.isNotEmpty() -> "based on ${ebaySold.size} recent eBay sold comps"
-            ebayActive.isNotEmpty() -> "based on ${ebayActive.size} active listings (no sold comps yet)"
-            else -> null
+        get() {
+            // Worker-derived basis when available — names the source
+            // the Worker actually used (sold via Radish/Insights vs
+            // active fallback) and the exact count it averaged over.
+            if (workerMarketAverageUsd != null) {
+                val srcLabel = if (workerMarketSource == "sold") "recent sold comps"
+                               else "active listings"
+                return "based on $workerMarketCount $srcLabel"
+            }
+            return when {
+                ebaySold.isNotEmpty() -> "based on ${ebaySold.size} recent eBay sold comps"
+                ebayActive.isNotEmpty() -> "based on ${ebayActive.size} active listings (no sold comps yet)"
+                else -> null
+            }
         }
 }
 
@@ -105,6 +125,9 @@ class CardDetailViewModel @Inject constructor(
                 ebaySold = pricing.ebaySold[bobaId].orEmpty().toPersistentList(),
                 radishUrl = pricing.radishUrl[bobaId],
                 otherVersions = otherVersions.toPersistentList(),
+                workerMarketAverageUsd = pricing.marketAverage[bobaId],
+                workerMarketSource = pricing.marketSource[bobaId],
+                workerMarketCount = pricing.marketCount[bobaId] ?: 0,
             )
         }.stateIn(
             scope = viewModelScope,
@@ -126,6 +149,9 @@ class CardDetailViewModel @Inject constructor(
                 ebayActive = pricingState.value.ebayActive + (bobaId to bundle.ebayActive),
                 ebaySold = pricingState.value.ebaySold + (bobaId to bundle.ebaySold),
                 radishUrl = pricingState.value.radishUrl + (bobaId to bundle.radishResolvedUrl),
+                marketAverage = pricingState.value.marketAverage + (bobaId to bundle.marketAverageUsd),
+                marketSource = pricingState.value.marketSource + (bobaId to bundle.marketSource),
+                marketCount = pricingState.value.marketCount + (bobaId to bundle.marketCount),
             )
         }
     }
@@ -137,4 +163,9 @@ private data class PricingState(
     val ebayActive: Map<String, List<PricingListing>> = emptyMap(),
     val ebaySold: Map<String, List<PricingListing>> = emptyMap(),
     val radishUrl: Map<String, String?> = emptyMap(),
+    /** Worker pre-computed average — per-bobaId. */
+    val marketAverage: Map<String, Double?> = emptyMap(),
+    /** "sold" / "listed" — per-bobaId. */
+    val marketSource: Map<String, String?> = emptyMap(),
+    val marketCount: Map<String, Int> = emptyMap(),
 )

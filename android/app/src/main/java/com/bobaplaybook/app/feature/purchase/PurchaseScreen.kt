@@ -156,9 +156,20 @@ fun PurchaseScreen(modifier: Modifier = Modifier) {
                                             show = show,
                                             onClick = {
                                                 if (show.showUrl.isNotBlank()) {
-                                                    context.startActivity(
-                                                        Intent(Intent.ACTION_VIEW, show.showUrl.toUri()),
-                                                    )
+                                                    // Custom Tab so back returns to BOBA Purchase
+                                                    // tab instead of leaving the app. Whatnot's
+                                                    // app deep-link handler still intercepts when
+                                                    // the Whatnot app is installed.
+                                                    runCatching {
+                                                        CustomTabsIntent.Builder().build()
+                                                            .launchUrl(context, show.showUrl.toUri())
+                                                    }.onFailure {
+                                                        runCatching {
+                                                            context.startActivity(
+                                                                Intent(Intent.ACTION_VIEW, show.showUrl.toUri()),
+                                                            )
+                                                        }
+                                                    }
                                                 }
                                             },
                                         )

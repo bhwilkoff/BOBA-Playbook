@@ -130,6 +130,7 @@ class FindViewModel @Inject constructor(
                 recentlyAdded      = featured.recentlyAdded,
                 heroesByWeapon     = featured.heroesByWeapon,
                 coachingStaff      = featured.coachingStaff,
+                showcaseShelves    = featured.showcaseShelves,
                 availableSets      = available.sets.toPersistentList(),
                 availableTreatments= available.treatments.toPersistentList(),
                 availableReleases  = available.releases.toPersistentList(),
@@ -293,13 +294,28 @@ private data class FeaturedShelves(
     val recentlyAdded: kotlinx.collections.immutable.ImmutableList<Card>,
     val heroesByWeapon: kotlinx.collections.immutable.ImmutableList<WeaponShelf>,
     val coachingStaff: kotlinx.collections.immutable.ImmutableList<Card>,
+    val showcaseShelves: kotlinx.collections.immutable.ImmutableList<ShowcaseShelf>,
 ) {
     companion object {
-        val EMPTY = FeaturedShelves(persistentListOf(), persistentListOf(), persistentListOf())
+        val EMPTY = FeaturedShelves(persistentListOf(), persistentListOf(), persistentListOf(), persistentListOf())
 
         fun build(cards: List<Card>): FeaturedShelves {
             val withArt = cards.filter { !it.imageFile.isNullOrEmpty() }
             val canonicalWeapons = listOf("FIRE", "ICE", "STEEL", "BRAWL", "GLOW", "HEX", "GUM", "SUPER")
+            // Pre-compute showcase carousels — iOS DECISIONS.md / Showcase.swift
+            // parity. WoBA + Rookie Inspired + every named sport. Cap each at
+            // 20 cards (visible on first carousel scroll without overwhelming).
+            val showcaseShelves = com.bobaplaybook.core.domain.showcase.Showcases.all.map { showcase ->
+                ShowcaseShelf(
+                    showcaseId = showcase.id,
+                    name = showcase.name,
+                    cards = withArt.asSequence()
+                        .filter { showcase.match(it) }
+                        .take(20)
+                        .toList()
+                        .toPersistentList(),
+                )
+            }.filter { it.cards.isNotEmpty() }.toPersistentList()
             return FeaturedShelves(
                 recentlyAdded = withArt.takeLast(24).reversed().toPersistentList(),
                 heroesByWeapon = canonicalWeapons.map { w ->
@@ -317,6 +333,7 @@ private data class FeaturedShelves(
                     .take(20)
                     .toList()
                     .toPersistentList(),
+                showcaseShelves = showcaseShelves,
             )
         }
     }

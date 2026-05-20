@@ -47,6 +47,8 @@ data class FindUiState(
     val recentlyAdded: ImmutableList<Card> = persistentListOf(),
     val heroesByWeapon: ImmutableList<WeaponShelf> = persistentListOf(),
     val coachingStaff: ImmutableList<Card> = persistentListOf(),
+    /** Per-showcase carousel rows — WoBA, Rookie Inspired, plus the named sports. */
+    val showcaseShelves: ImmutableList<ShowcaseShelf> = persistentListOf(),
 
     // Available filter values from the catalog (populated by VM)
     val availableSets: ImmutableList<String> = persistentListOf(),
@@ -84,6 +86,14 @@ data class FindUiState(
 @Immutable
 data class WeaponShelf(
     val weapon: String,
+    val cards: ImmutableList<Card>,
+)
+
+/** Featured shelf — one named Showcase (WoBA, Rookie Inspired, or a sport). */
+@Immutable
+data class ShowcaseShelf(
+    val showcaseId: String,
+    val name: String,
     val cards: ImmutableList<Card>,
 )
 

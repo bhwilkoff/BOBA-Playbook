@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SearchBar
@@ -378,6 +379,15 @@ private fun CardPoolGrid(
     onCardLongClick: (Card) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    if (cards.isEmpty()) {
+        BOBAEmptyState(
+            icon = Icons.Default.SearchOff,
+            headline = "No cards in the pool",
+            body = "Tweak the search above or use Filters in the Find tab to widen the catalog scope.",
+            modifier = modifier,
+        )
+        return
+    }
     LazyVerticalGrid(
         modifier = modifier,
         columns = GridCells.Adaptive(minSize = 110.dp),

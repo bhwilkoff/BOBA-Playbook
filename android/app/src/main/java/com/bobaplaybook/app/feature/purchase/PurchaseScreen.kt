@@ -214,17 +214,37 @@ private fun WhatnotTile(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column {
-            // Hero thumb (when present)
+            // Hero thumb (when present) — LIVE pill overlays the top-left
+            // corner when the show is currently broadcasting. Mirrors
+            // the YouTube Watch tab live treatment.
             show.thumbnailUrl?.let { url ->
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current).data(url).crossfade(150).build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(160.dp)
-                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-                )
+                Box {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current).data(url).crossfade(150).build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp)
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                    )
+                    if (show.isLive) {
+                        Surface(
+                            color = androidx.compose.ui.graphics.Color(0xFFFF4D00),
+                            shape = RoundedCornerShape(4.dp),
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(8.dp),
+                        ) {
+                            Text(
+                                "LIVE",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = androidx.compose.ui.graphics.Color.White,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            )
+                        }
+                    }
+                }
             }
             Row(
                 modifier = Modifier
@@ -283,17 +303,22 @@ private fun WhatnotTile(
                         }
                     }
                     // Stream-time label — iOS UpcomingBreaksList.localTimeText
-                    // parity. "Today 7:00 PM" / "Tomorrow 7:00 PM" / "Fri 7:00 PM".
-                    // Renders in the user's local timezone so coaches outside PT
-                    // see the right clock time.
-                    show.scheduledAt?.let { ms ->
-                        formatStreamTime(ms)?.let { label ->
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
+                    // parity. "Live now" / "Today 7:00 PM" / "Tomorrow 7:00 PM" /
+                    // "Fri 7:00 PM". Renders in the user's local timezone so
+                    // coaches outside PT see the right clock time.
+                    val scheduledAtMs = show.scheduledAt
+                    val timeLabel = when {
+                        show.isLive -> "Live now"
+                        scheduledAtMs != null -> formatStreamTime(scheduledAtMs)
+                        else -> null
+                    }
+                    if (timeLabel != null) {
+                        Text(
+                            text = timeLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (show.isLive) androidx.compose.ui.graphics.Color(0xFFFF4D00)
+                                    else MaterialTheme.colorScheme.primary,
+                        )
                     }
                 }
                 Icon(

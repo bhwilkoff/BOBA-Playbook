@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -142,6 +143,11 @@ private fun ScanViewfinder(
             cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
         }
     }
+    // PreviewView dimensions for top-left-quadrant detection. The
+    // MlKitAnalyzer maps text-block bounds into VIEW-REFERENCED
+    // coordinates, so frameWidth/Height is the PreviewView size.
+    var previewW by remember { mutableStateOf(1) }
+    var previewH by remember { mutableStateOf(1) }
     DisposableEffect(lifecycleOwner) {
         controller.bindToLifecycle(lifecycleOwner)
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -153,14 +159,28 @@ private fun ScanViewfinder(
                 ContextCompat.getMainExecutor(context),
             ) { result ->
                 val text = result.getValue(recognizer) ?: return@MlKitAnalyzer
-                val lines = text.textBlocks
-                    .flatMap { block -> block.lines.map { it.text } }
-                if (lines.isEmpty()) return@MlKitAnalyzer
-                matcher.match(lines)?.let { matched ->
-                    if (lastMatchedDisplayName != matched.displayName) {
-                        lastMatchedDisplayName = matched.displayName
-                        onMatch(matched.bobaId)
+                if (text.textBlocks.isEmpty()) return@MlKitAnalyzer
+
+                // Build the per-LINE token list with bounding boxes so
+                // ScanCardMatcher can apply iOS DECISIONS.md #035's
+                // hero-name top-left detection.
+                val tokens = text.textBlocks.flatMap { block ->
+                    block.lines.mapNotNull { line ->
+                        val bbox = line.boundingBox ?: return@mapNotNull null
+                        ScanTextToken(
+                            text = line.text,
+                            frame = bbox,
+                            frameWidth = previewW,
+                            frameHeight = previewH,
+                        )
                     }
+                }
+                if (tokens.isEmpty()) return@MlKitAnalyzer
+
+                val result = matcher.match(tokens) ?: return@MlKitAnalyzer
+                if (lastMatchedDisplayName != result.card.displayName) {
+                    lastMatchedDisplayName = result.card.displayName
+                    onMatch(result.card.bobaId)
                 }
             },
         )
@@ -170,7 +190,12 @@ private fun ScanViewfinder(
         }
     }
 
-    Box(modifier = modifier) {
+    Box(
+        modifier = modifier.onSizeChanged { size ->
+            previewW = size.width
+            previewH = size.height
+        },
+    ) {
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { ctx -> PreviewView(ctx).apply { setController(controller) } },

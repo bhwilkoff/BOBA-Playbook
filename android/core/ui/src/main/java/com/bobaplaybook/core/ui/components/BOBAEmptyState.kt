@@ -59,10 +59,10 @@ fun BOBAEmptyState(
         }
         Text(
             text = headline,
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 16.dp),
+            modifier = Modifier.padding(top = 12.dp),
         )
         body?.let {
             Text(

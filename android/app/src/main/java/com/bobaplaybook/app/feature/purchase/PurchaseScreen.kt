@@ -381,10 +381,17 @@ private fun StoreRow(
             Text(store.fullAddress, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (store.isIndie) {
-            androidx.compose.material3.AssistChip(
-                onClick = {},
-                label = { Text("Indie", style = MaterialTheme.typography.labelSmall) },
-            )
+            androidx.compose.material3.Surface(
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.secondaryContainer,
+            ) {
+                Text(
+                    "Indie",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
         }
     }
 }

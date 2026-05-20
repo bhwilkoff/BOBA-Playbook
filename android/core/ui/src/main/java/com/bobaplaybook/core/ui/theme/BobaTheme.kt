@@ -1,7 +1,6 @@
 package com.bobaplaybook.core.ui.theme
 
 import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -121,15 +120,20 @@ private val BobaLightColorScheme = lightColorScheme(
 /**
  * Single source of theming for every Composable in the app.
  *
- * @param useDarkTheme defaults to the system setting. Override to lock
- *   a particular Composable into dark/light for previews.
+ * Dark-first by default — BOBA is a dark-first brand (card art carries
+ * most of the chroma; chrome stays out of the way). System-light users
+ * get the dark theme too unless they explicitly opt into light from
+ * Settings (M7 polish).
+ *
+ * @param useDarkTheme defaults to `true`. Override to swap for previews
+ *   or once Settings ships a light-mode toggle.
  * @param useDynamicColor when `true`, replaces the brand primary with
  *   the Material You wallpaper-derived palette (Android 12+ only). Off
  *   by default per DECISIONS.md #042; flip in Settings.
  */
 @Composable
 fun BobaTheme(
-    useDarkTheme: Boolean = isSystemInDarkTheme(),
+    useDarkTheme: Boolean = true,
     useDynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {

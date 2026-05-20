@@ -236,20 +236,28 @@ private fun StatsRow(draft: DeckDraft) {
         StatChip("HD", "${draft.totalHD}/${draft.hdCap}")
         Spacer(Modifier.weight(1f))
         if (draft.isStandardLegal) {
-            AssistChip(
-                onClick = {},
-                label = { Text("Legal") },
-                leadingIcon = {
+            androidx.compose.material3.Surface(
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     Icon(
                         Icons.Default.Verified,
                         contentDescription = null,
-                        modifier = Modifier.width(16.dp).height(16.dp),
+                        modifier = Modifier.width(14.dp).height(14.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
-                },
-                colors = AssistChipDefaults.assistChipColors(
-                    labelColor = MaterialTheme.colorScheme.primary,
-                ),
-            )
+                    Text(
+                        "Legal",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
         }
     }
 }

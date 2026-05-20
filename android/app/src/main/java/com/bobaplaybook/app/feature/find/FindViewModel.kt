@@ -202,8 +202,10 @@ class FindViewModel @Inject constructor(
         if (f.query.isBlank() && f.weapons.isEmpty() && f.treatment == null && f.set == null &&
             f.release == null && f.powerMin == null && f.powerMax == null && !f.hasImageOnly &&
             f.purpose == CardPurpose.ALL && activeShowcase == null) {
-            // No filters active — return the full catalog (capped for grid perf)
-            return cards.take(2000)
+            // No filters active — return the full catalog. LazyVerticalGrid
+            // composes lazily with stable keys; 17k items materialize only as
+            // they scroll into view.
+            return cards
         }
 
         return cards.asSequence().filter { card ->
@@ -237,7 +239,7 @@ class FindViewModel @Inject constructor(
                 if (!haystack.contains(needle)) return@filter false
             }
             true
-        }.take(2000).toList()
+        }.toList()
     }
 
     /** Sort pipeline. Mirrors iOS CardStore sortOrder switch. */

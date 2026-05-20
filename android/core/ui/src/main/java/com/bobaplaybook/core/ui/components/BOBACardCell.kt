@@ -85,23 +85,24 @@ private fun BOBACardPlaceholder(label: String) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(8.dp),
+            .padding(4.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "BOBA PB",
-            style = MaterialTheme.typography.headlineSmall.copy(
+            text = "BOBA",
+            style = MaterialTheme.typography.titleSmall.copy(
                 fontWeight = FontWeight.Bold,
             ),
-            color = BobaBrand.Orange.copy(alpha = 0.7f),
+            color = BobaBrand.Orange.copy(alpha = 0.5f),
             textAlign = TextAlign.Center,
         )
         Text(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
+            maxLines = 2,
             modifier = Modifier.padding(top = 4.dp),
         )
     }

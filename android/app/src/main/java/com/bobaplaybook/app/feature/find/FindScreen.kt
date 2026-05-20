@@ -595,13 +595,29 @@ private fun ResultsHeader(count: Int, quickAdd: Boolean) {
             modifier = Modifier.weight(1f),
         )
         if (quickAdd) {
-            AssistChip(
-                onClick = {},
-                label = { Text("Quick Add ON", fontWeight = FontWeight.Bold) },
-                leadingIcon = {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.width(14.dp).height(14.dp))
-                },
-            )
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.width(14.dp).height(14.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                    Text(
+                        "Quick Add ON",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
         }
     }
 }

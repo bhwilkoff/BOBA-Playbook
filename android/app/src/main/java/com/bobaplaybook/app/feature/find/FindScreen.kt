@@ -144,7 +144,15 @@ private fun FindContent(
     // with no query. Toggle in the overflow Menu flips to grid mode.
     var showcaseMode by rememberSaveable { mutableStateOf(true) }
     var quickAdd by rememberSaveable { mutableStateOf(false) }
-    var gridColumns by rememberSaveable { mutableStateOf(2) }
+    // Grid density persists across launches via GridDensityStore
+    // (DataStore<Preferences>) — iOS @AppStorage("bp_findGridColumns_v1")
+    // parity. Sentinel 0 → use the size-class default of 2.
+    val gridDensityVm: com.bobaplaybook.app.settings.GridDensityViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
+    val storedColumns by gridDensityVm
+        .columnsFor(com.bobaplaybook.app.settings.GridDensityStore.Target.FIND)
+        .collectAsStateWithLifecycle(initialValue = 0)
+    val gridColumns = if (storedColumns > 0) storedColumns else 2
     val appSnackbar = LocalAppSnackbar.current
     val scope = rememberCoroutineScope()
 
@@ -174,7 +182,12 @@ private fun FindContent(
                             quickAdd = quickAdd,
                             onQuickAddChange = { quickAdd = it },
                             gridColumns = gridColumns,
-                            onGridColumnsChange = { gridColumns = it },
+                            onGridColumnsChange = {
+                                gridDensityVm.setColumns(
+                                    com.bobaplaybook.app.settings.GridDensityStore.Target.FIND,
+                                    it,
+                                )
+                            },
                         )
                     }
                 },

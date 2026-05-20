@@ -155,6 +155,18 @@ class CardDetailViewModel @Inject constructor(
             )
         }
     }
+
+    /**
+     * Force a fresh pricing fetch for [bobaId] — used by the manual
+     * refresh button on the pricing panels. Bypasses the
+     * startedForBobaId guard since the caller explicitly asked for
+     * a re-fetch.
+     */
+    fun refreshPricing(bobaId: String) {
+        val card = cardRepository.cards.value.firstOrNull { it.bobaId == bobaId } ?: return
+        pricingState.value = pricingState.value.copy(isLoading = true)
+        loadPricing(bobaId, card)
+    }
 }
 
 private data class PricingState(

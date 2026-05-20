@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.foundation.layout.Spacer
@@ -225,6 +226,7 @@ fun CardDetailScreen(
             card = card,
             state = state,
             onOpenOtherVersion = onOpenOtherVersion,
+            onRefreshPricing = { viewModel.refreshPricing(card.bobaId) },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
@@ -263,6 +265,7 @@ private fun CardDetailBody(
     card: Card,
     state: CardDetailUiState,
     onOpenOtherVersion: (bobaId: String) -> Unit,
+    onRefreshPricing: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -346,7 +349,7 @@ private fun CardDetailBody(
         }
 
         // Pricing
-        PricingPanels(state = state)
+        PricingPanels(state = state, onRefresh = onRefreshPricing)
 
         // Decks with this card — iOS CollectionCardDetailView parity.
         // Surfaces when the user has saved decks that include this
@@ -864,7 +867,7 @@ private fun ArtPanel(card: Card) {
 }
 
 @Composable
-private fun PricingPanels(state: CardDetailUiState) {
+private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
     if (state.isLoadingPricing) {
         Box(
             modifier = Modifier
@@ -877,9 +880,26 @@ private fun PricingPanels(state: CardDetailUiState) {
         return
     }
 
-    // Market estimate header
+    // Market estimate header — paired with a small refresh affordance
+    // so the user can force a fresh Worker fetch (active listings are
+    // cached for the lifetime of the screen otherwise).
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = "MARKET ESTIMATE",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).weight(1f),
+        )
+        IconButton(onClick = onRefresh) {
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = "Refresh pricing",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
     state.marketEstimateUsd?.let { est ->
-        BOBASectionHeader(title = "Market estimate")
         Text(
             text = "~$${est.formatUsdAmount()}",
             style = MaterialTheme.typography.headlineSmall,

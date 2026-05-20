@@ -234,10 +234,12 @@ class FindViewModel @Inject constructor(
             val p = card.power
             if (f.powerMin != null && (p == null || p < f.powerMin)) return@filter false
             if (f.powerMax != null && (p == null || p > f.powerMax)) return@filter false
-            // Text search — skip when typed-showcase consumes the query
+            // Text search — skip when typed-showcase consumes the query.
+            // Use word-prefix matching (CardSearch.matches) NOT raw
+            // String.contains() so "amon" finds Amon-Ra but never Johnny
+            // Damon — memory feedback_search_word_prefix.
             if (!isShowcaseSearch && needle.isNotEmpty()) {
-                val haystack = listOf(card.hero, card.name, card.cardNumber).joinToString(" ").lowercase()
-                if (!haystack.contains(needle)) return@filter false
+                if (!com.bobaplaybook.core.domain.search.CardSearch.matches(needle, card)) return@filter false
             }
             true
         }.toList()

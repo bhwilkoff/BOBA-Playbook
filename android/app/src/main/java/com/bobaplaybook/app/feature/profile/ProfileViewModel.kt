@@ -3,6 +3,7 @@ package com.bobaplaybook.app.feature.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bobaplaybook.app.auth.AuthManager
+import com.bobaplaybook.app.auth.AuthState
 import com.bobaplaybook.core.network.ProfileService
 import com.bobaplaybook.core.network.UserProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -10,6 +11,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.launch
 
 /**
@@ -41,6 +43,25 @@ class ProfileViewModel @Inject constructor(
     /** Current user_profiles snapshot — avatar, prefs, requested role. */
     private val _profile = MutableStateFlow<UserProfile?>(null)
     val profile: StateFlow<UserProfile?> = _profile.asStateFlow()
+
+    init {
+        // Reactive sign-out / sign-in handling. When the auth state
+        // drops to SignedOut (or sign-in switches to a different user
+        // id), wipe the cached profile so the next refreshProfile
+        // pulls the new row instead of leaking the old user's avatar
+        // / username / role into the new session.
+        viewModelScope.launch {
+            var lastUserId: String? = null
+            authManager.authState.collect { state ->
+                val current = (state as? AuthState.SignedIn)?.userId
+                if (current != lastUserId) {
+                    _profile.value = null
+                    _usernameStatus.value = null
+                    lastUserId = current
+                }
+            }
+        }
+    }
 
     fun refreshProfile() {
         viewModelScope.launch {

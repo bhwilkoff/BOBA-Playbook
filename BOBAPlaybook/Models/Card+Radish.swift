@@ -29,8 +29,13 @@ extension Card {
     ///     /boba/{year}/{slug}/{hero}/{cardNumber}
     ///
     /// Notes baked into the builder:
-    ///   - cardNumber prefix remap: catalog uses "LOGO-", "RAD-",
-    ///     "MIX-" but Radish's URLs use "Logo-", "Rad-", "Mix-".
+    ///   - cardNumber prefix casing per current Radish:
+    ///     • LOGO- → Logo-   (Radish uses title-case for Logofoil)
+    ///     • RAD-/MIX-/everything else stays UPPERCASE
+    ///     An earlier version lowercased RAD- and MIX- to title-case
+    ///     too — that 404s on current Radish and sent ~2,970 catalog
+    ///     cards to the hero-level fallback URL instead of the
+    ///     card-specific page.
     ///   - hero-name normalization: a small alias table fixes
     ///     CamelCase→canonical-spelling mismatches (e.g. our catalog
     ///     stores "ChetMate" but Radish indexes him as "Chetmate";
@@ -78,10 +83,20 @@ extension Card {
         ]
         let (year, slug) = setMap[set] ?? ("2024", "Alpha_Edition")
 
-        // cardNumber prefix remap so LOGO-/RAD-/MIX- in the catalog
-        // become Logo-/Rad-/Mix- in the URL.
+        // cardNumber prefix casing per current Radish (verified
+        // 2026-05-20 via curl on /Swoopes/RAD-137, /Bojax/MIX-1,
+        // /Bojax/Logo-263, /Bojax/CHILL-1, /Bojax/Logo-263). Pattern:
+        //   - LOGO- → Logo-   (Radish uses title-case for Logofoil)
+        //   - everything else stays UPPERCASE
+        //
+        // The earlier remap also lowercased RAD- and MIX- to title-case
+        // ("Rad-", "Mix-"), which 404s on current Radish — sending the
+        // resolver into a hero-only-fallback path for ~2,970 catalog
+        // cards (RAD- + MIX- combined). Pricing on those cards was also
+        // broken because the Worker reuses whatever cardNumber the
+        // client supplies. Fix: drop RAD/MIX from the remap, keep LOGO.
         var cardNum = cardNumber
-        let prefixMap = ["LOGO": "Logo", "RAD": "Rad", "MIX": "Mix"]
+        let prefixMap = ["LOGO": "Logo"]
         for (ours, theirs) in prefixMap {
             if cardNum.hasPrefix(ours + "-") {
                 cardNum = theirs + cardNum.dropFirst(ours.count)

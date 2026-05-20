@@ -4,6 +4,9 @@ package com.bobaplaybook.app.feature.carddetail
 
 import android.content.Intent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -239,6 +242,16 @@ private fun CardDetailBody(
     ) {
         ArtPanel(card)
 
+        // Badge row — weapon / treatment / set. iOS DESIGN.md §8.6
+        // renders these above the stats grid as a quick scan affordance.
+        BadgeRow(card = card)
+
+        // Athlete inspiration — when present, surfaced as a one-line
+        // "Inspired by {athlete}" with an element-tinted accent rail.
+        card.athleteInspiration?.takeIf { it.isNotBlank() }?.let { athlete ->
+            AthleteInspirationRow(athlete = athlete, card = card)
+        }
+
         BOBAStatsGrid(
             cardNumber = card.cardNumber,
             cardType   = card.cardType,
@@ -312,6 +325,85 @@ private fun CardDetailBody(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun BadgeRow(card: Card) {
+    val element = card.element.takeIf { !card.isSealed }?.lowercase()?.replaceFirstChar { it.uppercase() }
+    val treatment = card.treatment?.takeIf { it.isNotBlank() }
+    val setName = card.set.takeIf { it.isNotBlank() }
+    if (element == null && treatment == null && setName == null) return
+    androidx.compose.foundation.layout.FlowRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        if (element != null) {
+            val accent = com.bobaplaybook.core.ui.theme.BobaElements.forElement(card.element)
+            androidx.compose.material3.AssistChip(
+                onClick = {},
+                label = { Text(element) },
+                leadingIcon = {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(accent, androidx.compose.foundation.shape.CircleShape),
+                    )
+                },
+            )
+        }
+        treatment?.let {
+            androidx.compose.material3.AssistChip(onClick = {}, label = { Text(it) })
+        }
+        setName?.let {
+            androidx.compose.material3.AssistChip(onClick = {}, label = { Text(it) })
+        }
+        // "INSPIRED INK" capsule for serialized variants
+        if (card.treatment?.lowercase()?.contains("inspired ink") == true) {
+            androidx.compose.material3.Surface(
+                shape = MaterialTheme.shapes.small,
+                color = com.bobaplaybook.core.ui.theme.BobaBrand.Violet.copy(alpha = 0.18f),
+            ) {
+                Text(
+                    text = "INSPIRED INK",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = com.bobaplaybook.core.ui.theme.BobaBrand.Violet,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AthleteInspirationRow(athlete: String, card: Card) {
+    val accent = com.bobaplaybook.core.ui.theme.BobaElements.forElement(card.element)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .height(36.dp)
+                .background(accent),
+        )
+        Column(modifier = Modifier.padding(start = 12.dp)) {
+            Text(
+                text = "INSPIRED BY",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = athlete,
+                style = MaterialTheme.typography.titleMedium,
+            )
         }
     }
 }

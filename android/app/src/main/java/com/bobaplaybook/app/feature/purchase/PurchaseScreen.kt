@@ -57,7 +57,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.ui.platform.LocalContext
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -368,6 +370,7 @@ private fun StoreRow(
     store: com.bobaplaybook.core.network.StoreLocation,
     onClick: () -> Unit,
 ) {
+    val context = LocalContext.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -396,6 +399,28 @@ private fun StoreRow(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
+        }
+        // Open website in Custom Tab if the store has one. iOS shows
+        // this as a chevron / detail-disclosure on the row; Android
+        // uses an explicit Language icon since the whole row already
+        // opens Maps via geo: URI on tap. Both affordances coexist.
+        val webUrl = store.website ?: store.officialUrl
+        if (!webUrl.isNullOrBlank()) {
+            androidx.compose.material3.IconButton(
+                onClick = {
+                    val normalized = if (webUrl.startsWith("http")) webUrl else "https://$webUrl"
+                    runCatching {
+                        androidx.browser.customtabs.CustomTabsIntent.Builder().build()
+                            .launchUrl(context, android.net.Uri.parse(normalized))
+                    }
+                },
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Language,
+                    contentDescription = "Open store website",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

@@ -384,13 +384,28 @@ private fun CardDetailBody(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(items = state.otherVersions, key = { it.bobaId }) { other ->
-                    Box(modifier = Modifier.width(80.dp)) {
+                    Column(
+                        modifier = Modifier.width(80.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
                         BOBACardCell(
                             imageFile = other.imageFile,
                             contentDescription = other.displayName,
                             modifier = Modifier.clickable {
                                 onOpenOtherVersion(other.bobaId)
                             },
+                        )
+                        // Treatment / set label — iOS CardDetailView
+                        // variationsSection renders this under the
+                        // thumb so the user can tell base from
+                        // Battlefoil from Inspired Ink at a glance.
+                        val label = other.treatment?.takeIf { it.isNotBlank() } ?: other.set
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         )
                     }
                 }

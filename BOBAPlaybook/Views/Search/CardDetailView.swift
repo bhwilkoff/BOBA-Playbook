@@ -73,6 +73,27 @@ struct CardDetailView: View {
         navigationCards.firstIndex { $0.id == card.id } ?? -1
     }
 
+    /// Move to the next/previous card in `navigationCards`. Negative
+    /// `delta` goes backward, positive forward. Wraps around at the
+    /// ends so left-swiping at the first card jumps to the last and
+    /// right-swiping at the last jumps to the first — matches the
+    /// Photos.app expectation.
+    private func advanceCard(by delta: Int) {
+        guard !navigationCards.isEmpty else { return }
+        let n = navigationCards.count
+        let i = navIndex
+        guard i >= 0 else { return }
+        let next = ((i + delta) % n + n) % n
+        guard next != i else { return }
+        withAnimation(.easeInOut(duration: 0.18)) {
+            card = navigationCards[next]
+            // Reset zoom state on every nav so the new card starts at
+            // its natural size with no leftover pan.
+            scale = 1.0
+            offset = .zero
+        }
+    }
+
     private var collectionStatusIcon: String? {
         if collection.isOwned(bobaId: card.id) { return "checkmark.circle.fill" }
         if collection.isWanted(bobaId: card.id) { return "star.fill" }
@@ -153,6 +174,28 @@ struct CardDetailView: View {
                     infoPanel
                 }
             }
+            // Horizontal-swipe nav between cards. Only fires when:
+            //   - we have a navigation list (navigationCards non-empty)
+            //   - the art image isn't pinch-zoomed (scale == 1) — the art
+            //     panel's in-zoom drag pans the image; swiping at rest
+            //     navigates instead.
+            //   - the swipe is mostly horizontal (|dx| > 60, |dy| < 40)
+            //     so vertical scroll-flick wins as expected.
+            // Restored per beta feedback 2026-05-20; replaces the
+            // removed prev/next chevron buttons (DESIGN.md §8.6 anti-
+            // patterns called those "noisy" — gesture is the iOS-native
+            // answer).
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 60)
+                    .onEnded { value in
+                        guard !navigationCards.isEmpty, scale == 1 else { return }
+                        let dx = value.translation.width
+                        let dy = value.translation.height
+                        guard abs(dx) > 60, abs(dy) < 40 else { return }
+                        if dx < 0 { advanceCard(by:  1) }
+                        else      { advanceCard(by: -1) }
+                    }
+            )
             .scrollEdgeEffectStyle(.soft, for: .top)  // §5.6 reading content
             .background(Design.Colors.nearBlack)
             .navigationTitle("")

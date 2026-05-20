@@ -41,6 +41,8 @@ fun BOBAPriceTile(
     source: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Sale / list date string from the Worker — surfaces under source. */
+    date: String? = null,
 ) {
     Card(
         modifier = modifier
@@ -90,6 +92,14 @@ fun BOBAPriceTile(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
+            date?.takeIf { it.isNotBlank() }?.let { d ->
+                Text(
+                    text = d,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodySmall,

@@ -913,6 +913,7 @@ private fun ListingsRow(listings: ImmutableList<PricingListing>) {
                 title = listing.title,
                 thumbUrl = listing.thumbUrl,
                 source = listing.source.name.lowercase().replaceFirstChar { it.uppercase() },
+                date = listing.date,
                 onClick = {
                     if (listing.url.isNotBlank()) {
                         val intent = Intent(Intent.ACTION_VIEW, listing.url.toUri())

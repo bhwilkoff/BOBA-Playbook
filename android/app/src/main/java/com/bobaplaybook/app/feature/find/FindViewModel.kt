@@ -243,20 +243,29 @@ class FindViewModel @Inject constructor(
         }.toList()
     }
 
-    /** Sort pipeline. Mirrors iOS CardStore sortOrder switch. */
+    /**
+     * Sort pipeline. Mirrors iOS CardStore sortOrder switch.
+     *
+     * Every sort uses image-first as its PRIMARY key — memory
+     * `feedback_card_art_sort_priority`: "every card list/grid must
+     * sort cards with imageFile ahead of image-pending placeholders".
+     * Cards without art at the top of any sort feels broken; the
+     * user's chosen criterion becomes the tiebreaker WITHIN each
+     * art-status group.
+     */
     private fun applySort(cards: List<Card>, order: SortOrder): List<Card> {
+        val artFirst = compareByDescending<Card> { !it.imageFile.isNullOrEmpty() }
         return when (order) {
-            SortOrder.DEFAULT     -> cards.sortedWith(compareByDescending<Card> { !it.imageFile.isNullOrEmpty() }
-                                                    .thenBy { it.cardNumber })
-            SortOrder.NAME_ASC    -> cards.sortedBy { it.displayName.lowercase() }
-            SortOrder.NAME_DESC   -> cards.sortedByDescending { it.displayName.lowercase() }
-            SortOrder.POWER_DESC  -> cards.sortedByDescending { it.power ?: 0 }
-            SortOrder.POWER_ASC   -> cards.sortedBy { it.power ?: Int.MAX_VALUE }
-            SortOrder.NUMBER_ASC  -> cards.sortedBy { it.cardNumber }
-            SortOrder.NUMBER_DESC -> cards.sortedByDescending { it.cardNumber }
-            SortOrder.COST_ASC    -> cards.sortedBy { it.cost ?: Int.MAX_VALUE }
-            SortOrder.COST_DESC   -> cards.sortedByDescending { it.cost ?: 0 }
-            SortOrder.VARIATION   -> cards.sortedBy { it.variation ?: "" }
+            SortOrder.DEFAULT     -> cards.sortedWith(artFirst.thenBy { it.cardNumber })
+            SortOrder.NAME_ASC    -> cards.sortedWith(artFirst.thenBy { it.displayName.lowercase() })
+            SortOrder.NAME_DESC   -> cards.sortedWith(artFirst.thenByDescending { it.displayName.lowercase() })
+            SortOrder.POWER_DESC  -> cards.sortedWith(artFirst.thenByDescending { it.power ?: 0 })
+            SortOrder.POWER_ASC   -> cards.sortedWith(artFirst.thenBy { it.power ?: Int.MAX_VALUE })
+            SortOrder.NUMBER_ASC  -> cards.sortedWith(artFirst.thenBy { it.cardNumber })
+            SortOrder.NUMBER_DESC -> cards.sortedWith(artFirst.thenByDescending { it.cardNumber })
+            SortOrder.COST_ASC    -> cards.sortedWith(artFirst.thenBy { it.cost ?: Int.MAX_VALUE })
+            SortOrder.COST_DESC   -> cards.sortedWith(artFirst.thenByDescending { it.cost ?: 0 })
+            SortOrder.VARIATION   -> cards.sortedWith(artFirst.thenBy { it.variation ?: "" })
         }
     }
 

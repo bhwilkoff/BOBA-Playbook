@@ -48,6 +48,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.bobaplaybook.core.data.catalog.CardRepository
@@ -256,6 +257,29 @@ private fun ScanViewfinder(
         ScanGuideOverlay(
             modifier = Modifier.fillMaxSize(),
         )
+
+        // First-run hint — "hold steady for ~2s". Permanently
+        // dismissible per HintsStore. Renders only before first
+        // commit so it doesn't compete with the status chip.
+        val hintsViewModel: com.bobaplaybook.app.hints.HintsViewModel =
+            androidx.hilt.navigation.compose.hiltViewModel()
+        val scanHintDismissed by hintsViewModel
+            .isDismissed(com.bobaplaybook.app.hints.HintsStore.Ids.SCAN_HOLD_STEADY)
+            .collectAsStateWithLifecycle(initialValue = true)
+        if (!scanHintDismissed && lastMatchedDisplayName == null) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(top = 16.dp),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                com.bobaplaybook.core.ui.components.BOBAHintBanner(
+                    title = "Hold steady",
+                    body = "Frame one card inside the rectangle and keep the phone still for ~2 seconds. BOBA reads the card number and hero name on-device.",
+                    onDismiss = {
+                        hintsViewModel.dismiss(com.bobaplaybook.app.hints.HintsStore.Ids.SCAN_HOLD_STEADY)
+                    },
+                )
+            }
+        }
 
         // Live status chip — surfaces in-progress scoring AND the
         // committed match, so the user always sees something happening.

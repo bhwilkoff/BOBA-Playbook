@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -369,7 +371,8 @@ private fun DecksTabletScreen(
     val draft by deckViewModel.draft.collectAsStateWithLifecycle()
 
     Row(modifier = modifier.fillMaxSize()) {
-        // Saved decks sidebar (placeholder until Supabase wires up in M7)
+        // Saved decks sidebar — Supabase-backed via DecksViewModel.savedDecks
+        val savedDecks by deckViewModel.savedDecks.collectAsStateWithLifecycle()
         Surface(
             modifier = Modifier
                 .width(240.dp)
@@ -378,13 +381,28 @@ private fun DecksTabletScreen(
         ) {
             Column(modifier = Modifier.padding(8.dp)) {
                 BOBASectionHeader(title = "Saved decks")
-                BOBAEmptyState(
-                    icon = Icons.Default.Save,
-                    headline = "No saved decks",
-                    body = "Sign in to sync decks across iOS, web, and Android.",
-                    actionLabel = "Manage",
-                    onAction = onOpenManage,
-                )
+                if (savedDecks.isEmpty()) {
+                    BOBAEmptyState(
+                        icon = Icons.Default.Save,
+                        headline = "No saved decks",
+                        body = "Sign in + tap Save in the editor to sync decks across iOS, web, and Android.",
+                        actionLabel = "Manage",
+                        onAction = onOpenManage,
+                    )
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        lazyItems(items = savedDecks, key = { it.id }) { deck ->
+                            androidx.compose.material3.ListItem(
+                                headlineContent = { Text(deck.name) },
+                                supportingContent = {
+                                    val total = deck.cards.sumOf { it.quantity }
+                                    Text("$total cards", style = MaterialTheme.typography.labelMedium)
+                                },
+                                modifier = Modifier.clickable { onOpenManage() },
+                            )
+                        }
+                    }
+                }
             }
         }
 

@@ -401,7 +401,7 @@ private fun PricingPanels(state: CardDetailUiState) {
     }
 
     BOBASectionHeader(title = "Sold history")
-    val sold = (state.radishSales + state.ebaySold).distinctBy { it.url }
+    val sold = state.ebaySold.distinctBy { it.url }
     if (sold.isEmpty()) {
         Text(
             text = "No sold-comp data yet",

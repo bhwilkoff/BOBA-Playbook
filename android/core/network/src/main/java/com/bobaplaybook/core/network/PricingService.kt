@@ -1,12 +1,10 @@
 package com.bobaplaybook.core.network
 
+import android.util.Log
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.HttpRequestRetry
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
-import io.ktor.serialization.kotlinx.json.json
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
@@ -16,135 +14,132 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /**
- * Pricing service — eBay active + sold + Radish via the BOBA Worker
- * (`boba-ebay-proxy`). DECISIONS.md #013 + #034.
+ * Pricing service — single request to the `boba-ebay-proxy` Worker
+ * root which aggregates eBay active + eBay sold + Radish sales into
+ * one response. Matches iOS PricingService.swift exactly.
  *
- * COMC is INTENTIONALLY NOT WIRED — Turnstile-blocked across all
- * platforms per Ben note 2026-05-19.
+ * **Worker contract** (verified 2026-05-19 via curl):
+ *   `GET /?cardNumber={n}&hero={h}&set={s}&element={e}&days=90`
+ *   →
+ *   {
+ *     "active": { "low":..., "average":..., "high":..., "count":..., "items":[{title,price,date,url}] },
+ *     "sold":   { "low":..., "average":..., "high":..., "count":..., "items":[...] },
+ *     "low":..., "average":..., "high":..., "count":..., "priceType":"listed"|"sold",
+ *     "items":  [...],                  // legacy flat list (mirrors whichever section drove the headline)
+ *     "radishResolvedUrl": "..."        // Worker resolved this card's Radish landing page, optional
+ *   }
  *
- * Each method returns a typed result; soft-fails when the Worker
- * returns errors (we treat empty results as "no data" rather than
- * crashing the detail view).
+ * The previous Android impl hit `/ebay/active`, `/ebay/sold`, and
+ * `/radish/recent` as separate paths with a `q=` param. That returned
+ * `{"error":"cardNumber parameter required"}` from the Worker on every
+ * call, which the soft-fail catch turned into empty lists silently.
+ * Net effect: no pricing anywhere. Fix is a single request to root with
+ * the right param shape.
+ *
+ * COMC stays out of the sold-comp waterfall (DECISIONS.md #034); the
+ * Worker doesn't fold it in.
  */
 @Singleton
 class PricingService @Inject constructor(
     private val httpClient: HttpClient,
 ) {
+    companion object { private const val TAG = "PricingService" }
+
     private val json = Json {
         ignoreUnknownKeys = true
         coerceInputValues = true
     }
 
-    /**
-     * eBay active listings (Buy Now). Tile-renderable thumbnails +
-     * prices + tap-through URLs.
-     */
-    suspend fun ebayActive(cardNumber: String, hero: String?): List<PricingListing> =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                val response: EbayActiveResponse = httpClient.get(
-                    "${WorkerConfig.EBAY_PROXY}/ebay/active",
-                ) {
-                    parameter("q", buildQuery(cardNumber, hero))
-                    parameter("limit", 12)
-                }.body()
-                response.items.map { it.toListing() }
-            }.getOrDefault(emptyList())
-        }
+    /** Single fetch — populates both active and sold buckets. */
+    suspend fun fetchAll(
+        cardNumber: String,
+        hero: String?,
+        set: String?,
+        element: String?,
+        days: Int = 90,
+    ): PricingBundle = withContext(Dispatchers.IO) {
+        runCatching {
+            val response: PricingResponse = httpClient.get(WorkerConfig.EBAY_PROXY) {
+                parameter("cardNumber", cardNumber)
+                hero?.takeIf { it.isNotBlank() }?.let { parameter("hero", it) }
+                set?.takeIf { it.isNotBlank() }?.let { parameter("set", it) }
+                element?.takeIf { it.isNotBlank() }?.let { parameter("element", it) }
+                parameter("days", days)
+            }.body()
 
-    /**
-     * eBay sold history. Returns transacted prices for the Sold panel.
-     */
-    suspend fun ebaySold(cardNumber: String, hero: String?): List<PricingListing> =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                val response: EbayActiveResponse = httpClient.get(
-                    "${WorkerConfig.EBAY_PROXY}/ebay/sold",
-                ) {
-                    parameter("q", buildQuery(cardNumber, hero))
-                    parameter("limit", 12)
-                }.body()
-                response.items.map { it.toListing() }
-            }.getOrDefault(emptyList())
-        }
-
-    /**
-     * Radish recent sales — the preferred TCG comp source. When
-     * present, gets the headline "Market est." number.
-     */
-    suspend fun radish(cardNumber: String): List<PricingListing> =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                val response: RadishResponse = httpClient.get(
-                    "${WorkerConfig.EBAY_PROXY}/radish/recent",
-                ) {
-                    parameter("cardNumber", cardNumber)
-                    parameter("limit", 8)
-                }.body()
-                response.sales.map {
-                    PricingListing(
-                        priceUsd = it.priceUsd,
-                        title = it.title,
-                        thumbUrl = it.thumbUrl,
-                        url = it.url,
-                        source = PricingSource.RADISH,
-                    )
-                }
-            }.getOrDefault(emptyList())
-        }
-
-    private fun buildQuery(cardNumber: String, hero: String?): String =
-        buildString {
-            append("BoBA ")
-            append(cardNumber)
-            hero?.takeIf { it.isNotBlank() }?.let { append(" "); append(it) }
-        }
+            val activeItems = response.active?.items.orEmpty().map { it.toListing(PricingSource.EBAY) }
+            val soldItems = response.sold?.items.orEmpty().map { it.toListing(PricingSource.EBAY) }
+            PricingBundle(
+                ebayActive = activeItems,
+                ebaySold = soldItems,
+                radishResolvedUrl = response.radishResolvedUrl,
+            )
+        }.onFailure { e ->
+            Log.e(TAG, "fetchAll($cardNumber) failed", e)
+        }.getOrDefault(PricingBundle())
+    }
 }
 
-@Serializable
-private data class EbayActiveResponse(
-    val items: List<EbayItem> = emptyList(),
+// ─────────────────────────────────────────────────────────────────
+// Domain types
+// ─────────────────────────────────────────────────────────────────
+
+data class PricingBundle(
+    val ebayActive: List<PricingListing> = emptyList(),
+    val ebaySold: List<PricingListing> = emptyList(),
+    val radishResolvedUrl: String? = null,
 )
 
-@Serializable
-private data class EbayItem(
-    val title: String? = null,
-    @SerialName("price") val priceUsd: Double? = null,
-    @SerialName("image") val thumbUrl: String? = null,
-    val url: String? = null,
-) {
-    fun toListing() = PricingListing(
-        priceUsd = priceUsd ?: 0.0,
-        title = title.orEmpty(),
-        thumbUrl = thumbUrl,
-        url = url.orEmpty(),
-        source = PricingSource.EBAY,
-    )
-}
-
-@Serializable
-private data class RadishResponse(
-    val sales: List<RadishSale> = emptyList(),
-)
-
-@Serializable
-private data class RadishSale(
-    val title: String,
-    @SerialName("price") val priceUsd: Double,
-    @SerialName("image") val thumbUrl: String? = null,
-    val url: String,
-)
-
-/**
- * Domain pricing listing — uniform shape across eBay / Radish / future
- * sources. Source identified so tiles can render the right pill.
- */
 data class PricingListing(
     val priceUsd: Double,
     val title: String,
-    val thumbUrl: String?,
+    val thumbUrl: String?,   // Worker doesn't surface thumbnails today; reserved for future
     val url: String,
+    val date: String?,
     val source: PricingSource,
 )
 
 enum class PricingSource { EBAY, RADISH }
+
+// ─────────────────────────────────────────────────────────────────
+// Worker response wire shapes
+// ─────────────────────────────────────────────────────────────────
+
+@Serializable
+private data class PricingResponse(
+    val active: PricingSection? = null,
+    val sold: PricingSection? = null,
+    val low: Double? = null,
+    val average: Double? = null,
+    val high: Double? = null,
+    val count: Int = 0,
+    @SerialName("priceType") val priceType: String? = null,
+    val items: List<PricingItem> = emptyList(),
+    @SerialName("radishResolvedUrl") val radishResolvedUrl: String? = null,
+)
+
+@Serializable
+private data class PricingSection(
+    val low: Double? = null,
+    val average: Double? = null,
+    val high: Double? = null,
+    val count: Int = 0,
+    val items: List<PricingItem> = emptyList(),
+)
+
+@Serializable
+private data class PricingItem(
+    val title: String? = null,
+    val price: Double? = null,
+    val date: String? = null,
+    val url: String? = null,
+) {
+    fun toListing(source: PricingSource) = PricingListing(
+        priceUsd = price ?: 0.0,
+        title = title.orEmpty(),
+        thumbUrl = null,
+        url = url.orEmpty(),
+        date = date?.takeIf { it.isNotBlank() },
+        source = source,
+    )
+}

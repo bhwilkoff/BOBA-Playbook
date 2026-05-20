@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.bobaplaybook.core.ui.format.formatUsdAmount
 
 /**
  * Pricing tile (ANDROID-DESIGN.md §8.7). Renders one listing — thumb,
@@ -77,7 +78,7 @@ fun BOBAPriceTile(
                 ) {}
             }
             Text(
-                text = "$${"%.2f".format(priceUsd)}",
+                text = "$${priceUsd.formatUsdAmount()}",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,

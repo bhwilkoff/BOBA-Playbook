@@ -10,11 +10,20 @@ import androidx.camera.core.ImageAnalysis.COORDINATE_SYSTEM_VIEW_REFERENCED
 import androidx.camera.mlkit.vision.MlKitAnalyzer
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size as GSize
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
@@ -207,10 +216,15 @@ private fun ScanViewfinder(
             factory = { ctx -> PreviewView(ctx).apply { setController(controller) } },
         )
 
+        // iOS-parity overlay: 5:7 aspect guide rectangle with corner
+        // hint text below. Always visible — no card on screen = idle
+        // state; user needs to know where to aim.
+        ScanGuideOverlay(
+            modifier = Modifier.fillMaxSize(),
+        )
+
         // Live status chip — surfaces in-progress scoring AND the
         // committed match, so the user always sees something happening.
-        // iOS DECISIONS.md #035 doesn't expose this state; it's an
-        // Android-better-than-iOS UX win.
         ScanStatusChip(
             state = scanState,
             committedName = lastMatchedDisplayName,
@@ -219,6 +233,74 @@ private fun ScanViewfinder(
                 .padding(16.dp)
                 .align(Alignment.BottomCenter),
         )
+    }
+}
+
+/**
+ * 5:7 aspect guide rect centered on screen with a dimmed surround
+ * (drawn as four rects around the cutout) and a "Position card inside
+ * the frame" hint. Mirrors iOS ScanView's guide overlay.
+ */
+@Composable
+private fun ScanGuideOverlay(modifier: Modifier = Modifier) {
+    Box(modifier = modifier) {
+        // Compute the guide rect once; reuse for shadow + stroke + hint placement
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val cardW = w * 0.7f
+            val cardH = cardW * 7f / 5f
+            val finalW: Float; val finalH: Float
+            if (cardH > h * 0.65f) {
+                finalH = h * 0.65f
+                finalW = finalH * 5f / 7f
+            } else {
+                finalW = cardW
+                finalH = cardH
+            }
+            val left = (w - finalW) / 2f
+            val top = (h - finalH) / 2f - h * 0.04f
+
+            val dim = Color.Black.copy(alpha = 0.50f)
+            // Top band
+            drawRect(color = dim, topLeft = Offset(0f, 0f), size = GSize(w, top))
+            // Bottom band
+            drawRect(color = dim, topLeft = Offset(0f, top + finalH), size = GSize(w, h - top - finalH))
+            // Left band
+            drawRect(color = dim, topLeft = Offset(0f, top), size = GSize(left, finalH))
+            // Right band
+            drawRect(color = dim, topLeft = Offset(left + finalW, top), size = GSize(w - left - finalW, finalH))
+
+            // Cyan stroke around guide
+            drawRoundRect(
+                color = Color(0xFF00F5FF),
+                topLeft = Offset(left, top),
+                size = GSize(finalW, finalH),
+                cornerRadius = CornerRadius(20f, 20f),
+                style = Stroke(width = 6f),
+            )
+        }
+
+        // Hint pill — anchored below center
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(modifier = Modifier.height(200.dp))
+            Surface(
+                color = Color.Black.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(20.dp),
+            ) {
+                Text(
+                    text = "Position card inside the frame",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
+        }
     }
 }
 
@@ -245,7 +327,13 @@ private fun ScanStatusChip(
             "Hold a card in view",
             MaterialTheme.colorScheme.surfaceContainerHigh,
         )
-        else -> return  // Idle — show nothing
+        // Idle — still show feedback so the user knows the camera is
+        // active. Without this the screen looks frozen between scans.
+        else -> Triple(
+            "Ready",
+            "Hold a card inside the frame",
+            MaterialTheme.colorScheme.surfaceContainerHigh,
+        )
     }
     Surface(modifier = modifier, color = container) {
         Column(modifier = Modifier.padding(16.dp)) {

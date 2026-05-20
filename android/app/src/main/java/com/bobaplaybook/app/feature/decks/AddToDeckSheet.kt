@@ -79,13 +79,35 @@ fun AddToDeckSheet(
             )
 
             BOBASectionHeader(title = "Current draft")
+            // Project the post-add deck shape so the user can see at a
+            // glance whether this card pushes them over a cap. Mirrors
+            // iOS DeckBuilderView's add-time projection helper.
+            val projectedHD = draft.totalHD + (card.hd ?: 0)
+            val projectedDBS = draft.totalDBS + (card.dbs ?: 0)
+            val projectedPlays = draft.playCount + draft.bonusCount +
+                (if (card.cardType.contains("Play", ignoreCase = true)) 1 else 0)
+            val overHD = projectedHD > draft.hdCap
+            val overPlays = projectedPlays > draft.playCap
+            val overDBS = draft.enforcesDBS && projectedDBS > draft.dbsBudget
             ListItem(
                 headlineContent = { Text(draft.name) },
                 supportingContent = {
-                    Text(
-                        "${draft.heroCount} heroes · ${draft.playCount + draft.bonusCount} plays · ${draft.totalHD}/${draft.hdCap} HD",
-                        style = MaterialTheme.typography.labelMedium,
-                    )
+                    Column {
+                        Text(
+                            "${draft.heroCount} heroes · $projectedPlays/${draft.playCap} plays · $projectedHD/${draft.hdCap} HD",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (overHD || overPlays) MaterialTheme.colorScheme.error
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (draft.enforcesDBS) {
+                            Text(
+                                "DBS $projectedDBS/${draft.dbsBudget}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (overDBS) MaterialTheme.colorScheme.error
+                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 },
                 leadingContent = {
                     Icon(Icons.Default.ViewModule, contentDescription = null, tint = MaterialTheme.colorScheme.primary)

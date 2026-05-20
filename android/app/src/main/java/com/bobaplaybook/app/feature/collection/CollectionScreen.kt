@@ -23,8 +23,10 @@ import androidx.compose.material.icons.Icons
 import android.content.Intent
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ViewList
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
@@ -108,6 +110,10 @@ fun CollectionScreen(
     var filterSheetOpen by rememberSaveable { mutableStateOf(false) }
     var collectionSort by rememberSaveable { mutableStateOf(CollectionSortOrder.DATE_ADDED_DESC) }
     var totalsMode by rememberSaveable { mutableStateOf(TotalsMode.COLLECTION) }
+    // Collection-scoped search — iOS .searchable parity. Filters owned
+    // cards by name/hero/cardNumber/set using the word-prefix matcher
+    // (memory feedback_search_word_prefix). Empty = no filter.
+    var collectionQuery by rememberSaveable { mutableStateOf("") }
     val findViewModel: com.bobaplaybook.app.feature.find.FindViewModel = hiltViewModel()
     val findState by findViewModel.uiState.collectAsStateWithLifecycle()
     // CenterAlignedTopAppBar w/ wordmark — pinned so the brand mark
@@ -274,14 +280,47 @@ fun CollectionScreen(
                 return@Scaffold
             }
 
+            // Collection-scoped search pill — iOS Collection has
+            // .searchable over owned cards; we keep the pill compact and
+            // single-line per DESIGN.md §5.3 small-multiples density.
+            CollectionSearchPill(
+                query = collectionQuery,
+                onQueryChange = { collectionQuery = it },
+            )
+
             val unsorted = state.entriesByDesignation[designation].orEmpty()
-            val entries = remember(unsorted, collectionSort) { applySort(unsorted, collectionSort) }
+            val filtered = remember(unsorted, collectionQuery) {
+                if (collectionQuery.isBlank()) unsorted
+                else unsorted.filter { entry ->
+                    com.bobaplaybook.core.domain.search.CardSearch.matchesFields(
+                        query = collectionQuery,
+                        fields = listOf(
+                            entry.card.name,
+                            entry.card.hero,
+                            entry.card.cardNumber,
+                            entry.card.set,
+                            entry.card.treatment,
+                        ),
+                    )
+                }
+            }
+            val entries = remember(filtered, collectionSort) { applySort(filtered, collectionSort) }
             if (entries.isEmpty()) {
-                BOBAEmptyState(
-                    icon = Icons.Default.Inventory2,
-                    headline = "No ${designation.label.lowercase()} cards yet",
-                    body = "Scan a card or browse Find to add your first one.",
-                )
+                if (collectionQuery.isNotBlank()) {
+                    BOBAEmptyState(
+                        icon = Icons.Default.Inventory2,
+                        headline = "No matches",
+                        body = "Nothing in your ${designation.label.lowercase()} cards matches \"$collectionQuery\".",
+                        actionLabel = "Clear search",
+                        onAction = { collectionQuery = "" },
+                    )
+                } else {
+                    BOBAEmptyState(
+                        icon = Icons.Default.Inventory2,
+                        headline = "No ${designation.label.lowercase()} cards yet",
+                        body = "Scan a card or browse Find to add your first one.",
+                    )
+                }
                 return@Scaffold
             }
 
@@ -743,4 +782,61 @@ private fun shareCollection(
         putExtra(Intent.EXTRA_TEXT, text)
     }
     context.startActivity(Intent.createChooser(intent, "Share collection"))
+}
+
+/**
+ * Compact single-line search pill scoped to the visible designation.
+ * Mirrors iOS `.searchable` over Collection (CollectionView.swift).
+ * Word-prefix match via CardSearch.matchesFields — "amon" finds
+ * Amon-Ra but not Johnny Damon.
+ */
+@Composable
+private fun CollectionSearchPill(
+    query: String,
+    onQueryChange: (String) -> Unit,
+) {
+    androidx.compose.material3.Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = MaterialTheme.shapes.extraLarge,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            androidx.compose.material3.Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                modifier = Modifier.width(20.dp).height(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(8.dp))
+            androidx.compose.material3.TextField(
+                value = query,
+                onValueChange = onQueryChange,
+                placeholder = { Text("Search your collection") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                colors = androidx.compose.material3.TextFieldDefaults.colors(
+                    focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    disabledContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                ),
+            )
+            if (query.isNotEmpty()) {
+                androidx.compose.material3.IconButton(onClick = { onQueryChange("") }) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "Clear search",
+                    )
+                }
+            }
+        }
+    }
 }

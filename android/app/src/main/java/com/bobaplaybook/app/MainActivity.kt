@@ -10,6 +10,8 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.bobaplaybook.app.auth.AuthManager
 import com.bobaplaybook.app.connectivity.ConnectivityState
 import com.bobaplaybook.app.feature.scan.ScanModuleAccessSeeder
+import com.bobaplaybook.app.navigation.DeepLinkRoute
+import com.bobaplaybook.app.navigation.PendingDeepLink
 import com.bobaplaybook.app.ui.BOBAApp
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -39,6 +41,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var scanModuleAccessSeeder: ScanModuleAccessSeeder
     @Inject lateinit var authManager: AuthManager
     @Inject lateinit var connectivityState: ConnectivityState
+    @Inject lateinit var pendingDeepLink: PendingDeepLink
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Splash screen MUST be installed before super.onCreate.
@@ -51,7 +54,11 @@ class MainActivity : ComponentActivity() {
         handleIncomingIntent(intent)
 
         setContent {
-            BOBAApp(authManager = authManager, connectivityState = connectivityState)
+            BOBAApp(
+                authManager = authManager,
+                connectivityState = connectivityState,
+                pendingDeepLink = pendingDeepLink,
+            )
         }
     }
 
@@ -75,18 +82,10 @@ class MainActivity : ComponentActivity() {
      */
     private fun handleIncomingIntent(intent: Intent?) {
         val uri: Uri = intent?.data ?: return
-        when (uri.scheme) {
-            "https" -> routeUniversalLink(uri)
-            "bobaplaybook" -> routeDeepLink(uri)
-        }
-    }
-
-    private fun routeUniversalLink(uri: Uri) {
-        // TODO(M0+): parse pathSegments and push onto NavController.
-        // Wire when M1 stands up the NavHost.
-    }
-
-    private fun routeDeepLink(uri: Uri) {
-        // TODO(M7): supabase.handleDeeplinks(intent) for OAuth callbacks.
+        // Both Universal App Links (https://...) and custom-scheme deep
+        // links (bobaplaybook://...) parse the same way — segments +
+        // query. PendingDeepLink picks up via Flow inside BOBAApp and
+        // dispatches to the right NavController.
+        DeepLinkRoute.parse(uri)?.let { pendingDeepLink.set(it) }
     }
 }

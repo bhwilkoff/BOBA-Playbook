@@ -30,6 +30,14 @@ object NavRoutes {
     const val DECK_RULES   = "decks/rules"
     const val DECK_LEGALITY = "decks/legality"
 
+    // Collection secondary surfaces (depth 2 inside Collection tab)
+    const val COLLECTION_RAINBOWS = "collection/rainbows"
+    const val COLLECTION_SHOWS    = "collection/shows"
+
+    // Collection card detail (multi-copy + designation switcher)
+    const val COLLECTION_CARD_DETAIL_PATTERN = "collection/card/{$ARG_BOBA_ID}"
+    fun collectionCardDetail(bobaId: String) = "collection/card/$bobaId"
+
     // Learn category/article
     const val ARG_CATEGORY = "category"
     const val LEARN_CATEGORY_PATTERN = "learn/{$ARG_CATEGORY}"

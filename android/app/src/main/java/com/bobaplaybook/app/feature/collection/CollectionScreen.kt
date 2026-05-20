@@ -24,7 +24,9 @@ import android.content.Intent
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Wallpaper
@@ -81,6 +83,8 @@ import com.bobaplaybook.core.ui.transitions.cardSharedBounds
 fun CollectionScreen(
     onCardClick: (bobaId: String) -> Unit,
     onProfileClick: () -> Unit,  // unused per feedback_profile_only_on_find; kept for nav signature symmetry
+    onRainbowsClick: () -> Unit = {},
+    onShowsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val viewModel: CollectionViewModel = hiltViewModel()
@@ -144,6 +148,17 @@ fun CollectionScreen(
                                 text = { Text("Wall") },
                                 leadingIcon = { Icon(Icons.Default.Wallpaper, contentDescription = null) },
                                 onClick = { menuOpen = false; displayMode = DisplayMode.WALL },
+                            )
+                            androidx.compose.material3.HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("Rainbow Progress") },
+                                leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
+                                onClick = { menuOpen = false; onRainbowsClick() },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("My Shows") },
+                                leadingIcon = { Icon(Icons.Default.LiveTv, contentDescription = null) },
+                                onClick = { menuOpen = false; onShowsClick() },
                             )
                         }
                     }

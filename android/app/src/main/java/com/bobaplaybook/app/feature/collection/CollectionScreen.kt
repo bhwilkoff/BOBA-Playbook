@@ -96,6 +96,7 @@ fun CollectionScreen(
     onRainbowsClick: () -> Unit = {},
     onShowsClick: () -> Unit = {},
     onScanClick: () -> Unit = {},
+    onSignInRequest: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val viewModel: CollectionViewModel = hiltViewModel()
@@ -268,7 +269,7 @@ fun CollectionScreen(
                 BOBASignInPrompt(
                     title = "Sign in to see your collection",
                     body = "Your collection, decks, and wanted list sync across iOS, web, and Android.",
-                    onAction = { /* M7 wires this to Profile sheet's sign-in flow */ },
+                    onAction = onSignInRequest,
                 )
                 return@Scaffold
             }

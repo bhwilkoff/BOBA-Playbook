@@ -40,17 +40,30 @@ data class DeckDraft(
     val totalCost: Int get() = cards.sumOf { it.cost ?: 0 }
     val totalHD: Int get() = cards.sumOf { it.hd ?: 0 }
 
+    /**
+     * Deck Balancing System total — sum of `dbs` across all Plays
+     * (Bonus Plays included). Heroes / Hot Dogs / Coaches have no
+     * DBS contribution. Mirrors iOS `store.totalDBS`.
+     */
+    val totalDBS: Int
+        get() = cards.filter { isPlay(it) || isBonus(it) }.sumOf { it.dbs ?: 0 }
+
     /** Standard construction caps (Comprehensive Rules Guide v1). */
     val heroCap = 8
     val playCap = 30
     val bonusCap = 7
     val hdCap = 10
 
+    /** DBS budget enforced only in Playmaker (full BoBA) format. */
+    val dbsBudget = 1000
+    val enforcesDBS: Boolean get() = playMode == DeckPlayMode.PLAYMAKER
+
     val isStandardLegal: Boolean
         get() = heroCount == heroCap &&
                 playCount + bonusCount == playCap &&
                 bonusCount <= bonusCap &&
-                totalHD <= hdCap
+                totalHD <= hdCap &&
+                (!enforcesDBS || totalDBS <= dbsBudget)
 
     fun adding(card: Card): DeckDraft = copy(cards = (cards + card).toPersistentList())
     fun removing(bobaId: String): DeckDraft =

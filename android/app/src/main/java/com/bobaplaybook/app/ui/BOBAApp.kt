@@ -10,7 +10,16 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
@@ -146,11 +155,46 @@ fun BOBAApp(
             pendingDeepLink.consume()
         }
 
+        // Ctrl+1..5 hardware-keyboard shortcuts — useful on Chromebook
+        // and tablets with a paired keyboard. Mirrors iOS Cmd+1..5
+        // (ContentView.swift). Captured at the root via a focusable
+        // Box wrapping the scaffold; preview-stage key events let us
+        // intercept before child focus targets consume them.
+        val rootFocus = remember { FocusRequester() }
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            runCatching { rootFocus.requestFocus() }
+        }
+        val handleShortcut: (Int) -> Boolean = { tabIndex ->
+            val target = AppDestination.entries.getOrNull(tabIndex - 1)
+            if (target != null) {
+                currentDestination = target
+                true
+            } else false
+        }
+
         SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
             CompositionLocalProvider(
                 LocalSharedTransition provides this@SharedTransitionLayout,
                 LocalAppSnackbar provides appSnackbar,
             ) {
+              androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .focusRequester(rootFocus)
+                    .focusable()
+                    .onPreviewKeyEvent { event ->
+                        if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                        if (!event.isCtrlPressed) return@onPreviewKeyEvent false
+                        when (event.key) {
+                            Key.One   -> handleShortcut(1)
+                            Key.Two   -> handleShortcut(2)
+                            Key.Three -> handleShortcut(3)
+                            Key.Four  -> handleShortcut(4)
+                            Key.Five  -> handleShortcut(5)
+                            else -> false
+                        }
+                    },
+              ) {
                 NavigationSuiteScaffold(
                     navigationSuiteItems = {
                         AppDestination.entries.forEach { destination ->
@@ -240,6 +284,7 @@ fun BOBAApp(
                         )
                     }
                 }
+              }  // close Box (Ctrl+1..5 key handler)
             }
         }
 

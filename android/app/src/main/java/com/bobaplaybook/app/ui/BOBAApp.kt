@@ -49,7 +49,9 @@ import com.bobaplaybook.app.feature.scan.ScanDestination
 import com.bobaplaybook.app.feature.scan.ScanScreen
 import com.bobaplaybook.app.feature.scan.rememberScanCoordinator
 import com.bobaplaybook.app.navigation.AppDestination
+import com.bobaplaybook.app.navigation.DeepLinkRoute
 import com.bobaplaybook.app.navigation.NavRoutes
+import com.bobaplaybook.app.navigation.PendingDeepLink
 import com.bobaplaybook.core.ui.components.BOBAOfflinePill
 import com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar
 import com.bobaplaybook.core.ui.theme.BobaTheme
@@ -72,6 +74,7 @@ import com.bobaplaybook.core.ui.transitions.LocalSharedTransition
 fun BOBAApp(
     authManager: AuthManager,
     connectivityState: ConnectivityState,
+    pendingDeepLink: PendingDeepLink,
 ) {
     BobaTheme {
         // One NavController per tab so back stacks don't cross-pollute.
@@ -85,6 +88,34 @@ fun BOBAApp(
         var profileOpen by rememberSaveable { mutableStateOf(false) }
         val isOnline by connectivityState.isOnline.collectAsStateWithLifecycle(initialValue = true)
         val appSnackbar = remember { androidx.compose.material3.SnackbarHostState() }
+
+        // Drain pending deep links — dispatch to the right NavController
+        // and consume so we don't repeatedly handle the same intent.
+        val pendingRoute by pendingDeepLink.route.collectAsStateWithLifecycle(initialValue = null)
+        androidx.compose.runtime.LaunchedEffect(pendingRoute) {
+            val route = pendingRoute ?: return@LaunchedEffect
+            when (route) {
+                is DeepLinkRoute.CardDetail -> {
+                    val ctrl = tabControllers.getOrPut(AppDestination.FIND) {
+                        @Suppress("UNUSED_EXPRESSION") Unit
+                        // The NavController is created lazily by the
+                        // composable below; if we land here before
+                        // composition, defer. Re-collection picks up.
+                        return@LaunchedEffect
+                    }
+                    currentDestination = AppDestination.FIND
+                    ctrl.navigate(NavRoutes.cardDetail(route.bobaId))
+                }
+                is DeepLinkRoute.Scan -> { scanActive = true }
+                is DeepLinkRoute.SearchQuery -> { currentDestination = AppDestination.FIND }
+                is DeepLinkRoute.LearnArticle -> {
+                    currentDestination = AppDestination.LEARN
+                    tabControllers[AppDestination.LEARN]?.navigate(NavRoutes.learnArticle(route.articleId))
+                }
+                is DeepLinkRoute.PublicCollection -> { /* M7 polish — open web URL or in-app viewer */ }
+            }
+            pendingDeepLink.consume()
+        }
 
         SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
             CompositionLocalProvider(
@@ -291,10 +322,33 @@ private fun TabNavHost(
                 composable(NavRoutes.COLLECTION) {
                     CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this) {
                         CollectionScreen(
-                            onCardClick = { bobaId -> navController.navigate(NavRoutes.cardDetail(bobaId)) },
-                            onProfileClick = onProfileClick,  // Collection has no Profile entry per feedback_profile_only_on_find; kept for parity but unused
+                            onCardClick = { bobaId -> navController.navigate(NavRoutes.collectionCardDetail(bobaId)) },
+                            onProfileClick = onProfileClick,
+                            onRainbowsClick = { navController.navigate(NavRoutes.COLLECTION_RAINBOWS) },
+                            onShowsClick = { navController.navigate(NavRoutes.COLLECTION_SHOWS) },
                         )
                     }
+                }
+                composable(
+                    NavRoutes.COLLECTION_CARD_DETAIL_PATTERN,
+                    arguments = listOf(navArgument(NavRoutes.ARG_BOBA_ID) { type = NavType.StringType }),
+                ) { backStackEntry ->
+                    val bobaId = backStackEntry.arguments?.getString(NavRoutes.ARG_BOBA_ID).orEmpty()
+                    com.bobaplaybook.app.feature.collection.CollectionCardDetailScreen(
+                        bobaId = bobaId,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable(NavRoutes.COLLECTION_RAINBOWS) {
+                    com.bobaplaybook.app.feature.collection.RainbowsScreen(
+                        onRainbowClick = { _, _ -> /* M7 polish — push to RainbowDetail */ },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable(NavRoutes.COLLECTION_SHOWS) {
+                    com.bobaplaybook.app.feature.collection.ShowsListScreen(
+                        onBack = { navController.popBackStack() },
+                    )
                 }
                 cardDetailComposable(navController)
             }

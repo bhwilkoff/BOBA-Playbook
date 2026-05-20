@@ -263,6 +263,22 @@ private fun SignedInContent(
                 modifier = Modifier.fillMaxWidth().clickable(enabled = false) { },
             )
         }
+        item("mod-panel") {
+            ListItem(
+                headlineContent = { Text("Mod panel") },
+                supportingContent = { Text("Moderator role only", style = MaterialTheme.typography.labelMedium) },
+                leadingContent = { Icon(Icons.Default.PrivacyTip, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                modifier = Modifier.fillMaxWidth().clickable(enabled = false) { /* role-gated, M7 polish */ },
+            )
+        }
+        item("admin-panel") {
+            ListItem(
+                headlineContent = { Text("Admin panel") },
+                supportingContent = { Text("Admin role only", style = MaterialTheme.typography.labelMedium) },
+                leadingContent = { Icon(Icons.Default.PrivacyTip, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                modifier = Modifier.fillMaxWidth().clickable(enabled = false) { /* role-gated, M7 polish */ },
+            )
+        }
 
         item("legal-header") { BOBASectionHeader(title = "Legal") }
         item("terms") {

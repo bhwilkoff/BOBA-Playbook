@@ -111,6 +111,7 @@ fun CardDetailScreen(
 
     var addMenuOpen by remember { mutableStateOf(false) }
     var addToCollectionOpen by remember { mutableStateOf(false) }
+    var addToDeckOpen by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -152,12 +153,7 @@ fun CardDetailScreen(
                                 text = { Text("Add to Deck") },
                                 onClick = {
                                     addMenuOpen = false
-                                    state.card?.let { card ->
-                                        decksViewModel.add(card)
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar("Added ${card.displayName} to deck")
-                                        }
-                                    }
+                                    addToDeckOpen = true
                                 },
                             )
                             DropdownMenuItem(
@@ -215,6 +211,15 @@ fun CardDetailScreen(
                         snackbarHostState.showSnackbar("Added ${card.displayName} to ${input.designation.label}")
                     }
                 },
+            )
+        }
+    }
+
+    if (addToDeckOpen) {
+        state.card?.let { card ->
+            com.bobaplaybook.app.feature.decks.AddToDeckSheet(
+                card = card,
+                onDismiss = { addToDeckOpen = false },
             )
         }
     }

@@ -27,6 +27,9 @@ object WorkerConfig {
     /** Mod card-image merge / approval (auth + role-gated). */
     const val MOD_MERGE = "https://boba-mod-merge.benwilkoff.workers.dev"
 
+    /** YouTube feed aggregator for Learn → Watch tab. */
+    const val YOUTUBE_FEED = "https://boba-youtube-feed.benwilkoff.workers.dev"
+
     // Future: BOBA push dispatcher (DECISIONS.md #045)
     // const val PUSH_DISPATCHER = "https://boba-push-dispatcher.benwilkoff.workers.dev"
 }

@@ -161,47 +161,13 @@ private fun RulesPage() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// Watch — opens BoBA YouTube channel via Custom Tab (iOS YT IFrame
-// player is iOS-only; CustomTabs is the pragmatic Android path)
+// Watch — three-section YouTube feed sourced from `boba-youtube-feed`
+// Worker. Implementation lives in WatchPage.kt so imports stay clean.
 // ════════════════════════════════════════════════════════════════
 
 @Composable
 private fun WatchPage() {
-    val context = LocalContext.current
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            "Bo Jackson Battle Arena · YouTube",
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(
-            "Tutorials, top plays, live breaks, and deep-dives from the official BoBA channel.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        androidx.compose.material3.Button(
-            onClick = {
-                androidx.browser.customtabs.CustomTabsIntent.Builder()
-                    .build()
-                    .launchUrl(context, android.net.Uri.parse("https://www.youtube.com/@bobattlearena"))
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Open YouTube channel")
-        }
-        androidx.compose.material3.OutlinedButton(
-            onClick = {
-                androidx.browser.customtabs.CustomTabsIntent.Builder()
-                    .build()
-                    .launchUrl(context, android.net.Uri.parse("https://www.youtube.com/results?search_query=bo+jackson+battle+arena"))
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Search YouTube for BoBA")
-        }
-    }
+    WatchPageContent()
 }
 
 // ════════════════════════════════════════════════════════════════

@@ -1,0 +1,207 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
+package com.bobaplaybook.app.feature.learn
+
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import com.bobaplaybook.core.network.YouTubeVideo
+import com.bobaplaybook.core.ui.components.BOBAEmptyState
+import com.bobaplaybook.core.ui.components.BOBASectionHeader
+
+/**
+ * Watch tab — three feed sections (live+upcoming · videos · shorts)
+ * with M3 tap-to-open via Custom Tab. iOS YouTubeFeedService parity.
+ *
+ * Worker: `boba-youtube-feed.benwilkoff.workers.dev`
+ *  - Live broadcasts surface a brand-orange LIVE pill in the thumb
+ *  - Duration label badge bottom-right (omitted when live)
+ *  - Channel + view count subtitle
+ *  - Vertical Shorts use a portrait 80×142 thumbnail; horizontal
+ *    videos use a 16:9 140×80 landscape thumbnail
+ */
+@Composable
+internal fun WatchPageContent() {
+    val vm: WatchViewModel = hiltViewModel()
+    val state by vm.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    val openVideo: (String) -> Unit = { url ->
+        CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(url))
+    }
+
+    val emptyBundle = state.bundle.upcoming.isEmpty() &&
+        state.bundle.vertical.isEmpty() &&
+        state.bundle.horizontal.isEmpty()
+
+    when {
+        state.isLoading && emptyBundle -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        emptyBundle -> {
+            BOBAEmptyState(
+                icon = Icons.Default.PlayArrow,
+                headline = "Couldn't load videos",
+                body = state.error ?: "Tap retry to try again.",
+                actionLabel = "Retry",
+                onAction = { vm.refresh() },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        else -> {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (state.bundle.upcoming.isNotEmpty()) {
+                    item("upcoming-head") { BOBASectionHeader(title = "Live + upcoming") }
+                    items(state.bundle.upcoming, key = { "up-${it.videoId}" }) { v ->
+                        VideoRow(video = v, onClick = { openVideo(v.url) })
+                    }
+                }
+                if (state.bundle.horizontal.isNotEmpty()) {
+                    item("horiz-head") { BOBASectionHeader(title = "Videos") }
+                    items(state.bundle.horizontal, key = { "h-${it.videoId}" }) { v ->
+                        VideoRow(video = v, onClick = { openVideo(v.url) })
+                    }
+                }
+                if (state.bundle.vertical.isNotEmpty()) {
+                    item("vert-head") { BOBASectionHeader(title = "Shorts") }
+                    items(state.bundle.vertical, key = { "v-${it.videoId}" }) { v ->
+                        VideoRow(video = v, onClick = { openVideo(v.url) }, vertical = true)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VideoRow(
+    video: YouTubeVideo,
+    onClick: () -> Unit,
+    vertical: Boolean = false,
+) {
+    Surface(
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            val thumbWidth = if (vertical) 80.dp else 140.dp
+            val thumbHeight = if (vertical) 142.dp else 80.dp
+            Box(
+                modifier = Modifier
+                    .size(thumbWidth, thumbHeight)
+                    .clip(MaterialTheme.shapes.small)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            ) {
+                video.thumbnail?.let { url ->
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(url).crossfade(150).build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                if (video.isLiveNow) {
+                    Surface(
+                        color = Color(0xFFFF4D00),
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(4.dp),
+                    ) {
+                        Text(
+                            "LIVE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
+                }
+                if (!video.isLiveNow) {
+                    video.durationLabel?.let { label ->
+                        Surface(
+                            color = Color.Black.copy(alpha = 0.75f),
+                            shape = RoundedCornerShape(4.dp),
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(4.dp),
+                        ) {
+                            Text(
+                                label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                            )
+                        }
+                    }
+                }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    video.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2,
+                )
+                val subtitle = buildList {
+                    video.channelTitle?.let { add(it) }
+                    video.viewCountLabel?.let { add(it) }
+                }.joinToString(" · ")
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}

@@ -347,6 +347,29 @@ const Collection = (() => {
      selector + Price Overlay land in a later tick.
   ──────────────────────────────────────────────────────────────── */
 
+  /// Per-designation Price Overlay defaults — DESIGN.md §8.8 + iOS
+  /// CollectionWallSheet.defaultPriceOverlay.
+  function defaultPriceOverlayFor(designation) {
+    return ['for_sale', 'for_trade', 'wanted'].includes(designation);
+  }
+  function defaultPriceSourceFor(designation) {
+    // For Sale: my asking price ("My price") · everything else: market estimate.
+    return designation === 'for_sale' ? 'asking' : 'estimated';
+  }
+  function priceOverlayCaptionFor(designation, source) {
+    if (source === 'asking')   return 'Your asking price';
+    if (source === 'purchase') return 'What you paid';
+    return designation === 'wanted' ? 'Market estimate (WTB)' : 'Market estimate';
+  }
+  function pickPriceForCard(userCard, source) {
+    if (!userCard) return null;
+    const val = source === 'asking'   ? userCard.asking_price
+              : source === 'purchase' ? userCard.purchase_price
+              :                          userCard.estimated_value;
+    const n = Number(val);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+
   /// Open the Wall dialog for the given (designation, cards) pair.
   /// Resolves each user-card row to its catalog Card (so we get
   /// imageFile + isSealed for the right /sealed/ vs /full/ routing),
@@ -355,18 +378,37 @@ const Collection = (() => {
     const overlay = document.getElementById('wall-overlay');
     if (!overlay) return;
 
-    const titleInput = document.getElementById('wall-title-input');
-    const canvas    = document.getElementById('wall-canvas');
-    const loading   = document.getElementById('wall-loading');
-    const loadText  = document.getElementById('wall-loading-text');
-    const dlBtn     = document.getElementById('wall-download-btn');
-    const cpBtn     = document.getElementById('wall-copy-btn');
-    const shBtn     = document.getElementById('wall-share-btn');
+    const titleInput  = document.getElementById('wall-title-input');
+    const canvas      = document.getElementById('wall-canvas');
+    const loading     = document.getElementById('wall-loading');
+    const loadText    = document.getElementById('wall-loading-text');
+    const dlBtn       = document.getElementById('wall-download-btn');
+    const cpBtn       = document.getElementById('wall-copy-btn');
+    const shBtn       = document.getElementById('wall-share-btn');
+    const priceToggle = document.getElementById('wall-price-toggle');
+    const priceSource = document.getElementById('wall-price-source');
+    const priceCap    = document.getElementById('wall-overlay-caption');
+
+    // Per-designation defaults — iOS §8.8 parity.
+    priceToggle.checked = defaultPriceOverlayFor(designation);
+    priceSource.value   = defaultPriceSourceFor(designation);
+    priceCap.textContent = priceToggle.checked
+      ? priceOverlayCaptionFor(designation, priceSource.value)
+      : '';
 
     // Seed the title from the designation if blank.
     if (!titleInput.value) {
       const desigLabel = (DESIGNATIONS.find(d => d.key === designation)?.label) || 'Collection';
       titleInput.value = `My ${desigLabel}`;
+    }
+
+    // Keep the original user-card rows around so we can read
+    // asking_price / estimated_value / purchase_price for the price
+    // overlay. We index by bobaId for fast lookup at draw time.
+    const userCardByBobaId = {};
+    for (const c of cards) {
+      const k = c.boba_id || c.card_number;
+      if (k) userCardByBobaId[k] = c;
     }
 
     // Resolve each user-card row to its catalog Card. Drop ones with
@@ -410,19 +452,8 @@ const Collection = (() => {
     canvas.height = TITLE_H + PAD + rows * cellH + (rows - 1) * 8 + PAD;
     const ctx = canvas.getContext('2d');
 
-    // Background — near-black per BOBA brand.
-    ctx.fillStyle = '#080810';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Title strip — rendered if user typed one. Bebas Neue / system
-    // headline; centered.
-    if (TITLE_H > 0) {
-      ctx.fillStyle = '#FF4D00';
-      ctx.font = '700 36px "Bebas Neue", system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(titleInput.value.trim(), canvas.width / 2, TITLE_H / 2 + 16);
-    }
+    // (Background + title paint moved into drawWall below so toggling
+    // the overlay re-renders the whole canvas consistently.)
 
     // Load every image in parallel. crossOrigin = 'anonymous' so the
     // canvas stays untainted and toBlob / toDataURL work afterward.
@@ -441,32 +472,101 @@ const Collection = (() => {
 
     const images = await Promise.all(resolved.map(loadImage));
 
-    // Draw each card into its grid cell. Letter-boxed via aspect-fit;
-    // cards keep their 5:7 ratio inside the slot.
-    for (let i = 0; i < images.length; i++) {
-      const img = images[i];
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const x = PAD + col * (cellW + 8);
-      const y = TITLE_H + PAD + row * (cellH + 8);
-      // Rounded-corner clip mimics the in-app card cell.
-      ctx.save();
-      ctx.beginPath();
-      const r = Math.min(10, cellW * 0.06);
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + cellW, y,         x + cellW, y + cellH, r);
-      ctx.arcTo(x + cellW, y + cellH, x,          y + cellH, r);
-      ctx.arcTo(x,          y + cellH, x,          y,          r);
-      ctx.arcTo(x,          y,         x + cellW, y,          r);
-      ctx.closePath();
-      ctx.clip();
-      ctx.fillStyle = '#0D0D1A';
-      ctx.fillRect(x, y, cellW, cellH);
-      if (img) {
-        ctx.drawImage(img, x, y, cellW, cellH);
+    // Local render function — invoked initially and re-invoked when
+    // the user toggles price overlay or changes price source.
+    const drawWall = (opts) => {
+      const showPrices = opts.showPrices;
+      const source = opts.source;
+      const wantedPrefix = (designation === 'wanted' && showPrices);
+
+      // Repaint background + title (overlay toggle re-renders the
+      // whole canvas, not just an extra layer).
+      ctx.fillStyle = '#080810';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (TITLE_H > 0) {
+        ctx.fillStyle = '#FF4D00';
+        ctx.font = '700 36px "Bebas Neue", system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(titleInput.value.trim(), canvas.width / 2, TITLE_H / 2 + 16);
       }
-      ctx.restore();
-    }
+
+      for (let i = 0; i < images.length; i++) {
+        const img = images[i];
+        const card = resolved[i];
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x = PAD + col * (cellW + 8);
+        const y = TITLE_H + PAD + row * (cellH + 8);
+
+        // Rounded-corner clip + draw the card image.
+        ctx.save();
+        ctx.beginPath();
+        const r = Math.min(10, cellW * 0.06);
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + cellW, y,         x + cellW, y + cellH, r);
+        ctx.arcTo(x + cellW, y + cellH, x,          y + cellH, r);
+        ctx.arcTo(x,          y + cellH, x,          y,          r);
+        ctx.arcTo(x,          y,         x + cellW, y,          r);
+        ctx.closePath();
+        ctx.clip();
+        ctx.fillStyle = '#0D0D1A';
+        ctx.fillRect(x, y, cellW, cellH);
+        if (img) {
+          ctx.drawImage(img, x, y, cellW, cellH);
+        }
+        ctx.restore();
+
+        // Price overlay chip — black rounded-rect with bold mono price.
+        // Positioned at ~8% above the bottom edge of the card so it
+        // doesn't cover the in-print cardNumber badge / weapon symbol.
+        // Matches iOS ShowWallComposer.tile chipBottomInset.
+        if (showPrices) {
+          const k = card?.bobaId || card?.id || card?.cardNumber;
+          const userCard = userCardByBobaId[k];
+          const price = pickPriceForCard(userCard, source);
+          if (price != null) {
+            const fontSize = Math.max(11, Math.floor(cellW * 0.085));
+            ctx.font = `700 ${fontSize}px ui-monospace, "Chakra Petch", monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const label = (wantedPrefix ? 'WTB ' : '') +
+              `$${price.toFixed(price >= 100 ? 0 : 2)}`;
+            const padH = Math.max(6, cellW * 0.05);
+            const padV = Math.max(3, cellW * 0.025);
+            const metrics = ctx.measureText(label);
+            const chipW = Math.ceil(metrics.width + padH * 2);
+            const chipH = Math.ceil(fontSize + padV * 2);
+            const chipX = x + (cellW - chipW) / 2;
+            const chipY = y + cellH - (cellH * 0.08) - chipH;
+            ctx.fillStyle = 'rgba(0,0,0,0.72)';
+            const cr = chipH / 2;
+            ctx.beginPath();
+            ctx.moveTo(chipX + cr, chipY);
+            ctx.arcTo(chipX + chipW, chipY,           chipX + chipW, chipY + chipH, cr);
+            ctx.arcTo(chipX + chipW, chipY + chipH,   chipX,          chipY + chipH, cr);
+            ctx.arcTo(chipX,          chipY + chipH,   chipX,          chipY,          cr);
+            ctx.arcTo(chipX,          chipY,           chipX + chipW, chipY,          cr);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(label, chipX + chipW / 2, chipY + chipH / 2);
+          }
+        }
+      }
+    };
+
+    drawWall({ showPrices: priceToggle.checked, source: priceSource.value });
+
+    // Toggle / source changes re-render in place (no image reload).
+    const onOverlayChange = () => {
+      priceCap.textContent = priceToggle.checked
+        ? priceOverlayCaptionFor(designation, priceSource.value)
+        : '';
+      drawWall({ showPrices: priceToggle.checked, source: priceSource.value });
+    };
+    priceToggle.onchange = onOverlayChange;
+    priceSource.onchange = onOverlayChange;
 
     loading.hidden = true;
     dlBtn.disabled = false;

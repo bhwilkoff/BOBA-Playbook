@@ -13,6 +13,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -193,21 +195,79 @@ private fun FlatSectionsPage(sections: List<LearnSection>) {
 
 @Composable
 private fun GlossaryPage() {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        item("game-head") { BOBASectionHeader(title = "Game glossary") }
-        items(items = LearnCorpus.glossaryGame, key = { "game-${it.term}" }) { term ->
-            TermRow(term)
+    var query by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf("")
+    }
+    val needle = query.trim().lowercase()
+    val gameFiltered = remember(needle) {
+        if (needle.isEmpty()) LearnCorpus.glossaryGame
+        else LearnCorpus.glossaryGame.filter {
+            it.term.lowercase().contains(needle) ||
+                it.definition.lowercase().contains(needle)
         }
-        item("divider") {
-            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp, horizontal = 16.dp))
+    }
+    val tradingFiltered = remember(needle) {
+        if (needle.isEmpty()) LearnCorpus.glossaryTrading
+        else LearnCorpus.glossaryTrading.filter {
+            it.term.lowercase().contains(needle) ||
+                it.definition.lowercase().contains(needle)
         }
-        item("trading-head") { BOBASectionHeader(title = "Trading glossary") }
-        items(items = LearnCorpus.glossaryTrading, key = { "trade-${it.term}" }) { term ->
-            TermRow(term)
+    }
+    Column(modifier = Modifier.fillMaxSize()) {
+        // In-corpus filter — iOS DESIGN.md §6 (Search is the universal
+        // navigator) + the Glossary's high term density justify a
+        // persistent search field over the OutlinedTextField shape.
+        androidx.compose.material3.OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            placeholder = { Text("Filter terms or definitions") },
+            singleLine = true,
+            leadingIcon = {
+                Icon(Icons.Default.Search, contentDescription = null)
+            },
+            trailingIcon = if (query.isNotEmpty()) {
+                {
+                    IconButton(onClick = { query = "" }) {
+                        Icon(Icons.Default.Clear, contentDescription = "Clear")
+                    }
+                }
+            } else null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+        if (gameFiltered.isEmpty() && tradingFiltered.isEmpty()) {
+            BOBAEmptyState(
+                headline = "No matches",
+                body = "Try a different word — \"$query\" didn't match any term or definition.",
+                actionLabel = "Clear search",
+                onAction = { query = "" },
+                modifier = Modifier.fillMaxSize(),
+            )
+            return@Column
+        }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (gameFiltered.isNotEmpty()) {
+                item("game-head") { BOBASectionHeader(title = "Game glossary") }
+                items(items = gameFiltered, key = { "game-${it.term}" }) { term ->
+                    TermRow(term)
+                }
+            }
+            if (gameFiltered.isNotEmpty() && tradingFiltered.isNotEmpty()) {
+                item("divider") {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp, horizontal = 16.dp))
+                }
+            }
+            if (tradingFiltered.isNotEmpty()) {
+                item("trading-head") { BOBASectionHeader(title = "Trading glossary") }
+                items(items = tradingFiltered, key = { "trade-${it.term}" }) { term ->
+                    TermRow(term)
+                }
+            }
         }
     }
 }

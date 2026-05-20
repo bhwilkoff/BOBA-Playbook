@@ -112,6 +112,25 @@
   const modalNavPrev  = $('modal-nav-prev');
   const modalNavNext  = $('modal-nav-next');
 
+  // DBS explainer dialog wiring (parity with iOS DBSInfoSheet).
+  // Delegated click handler on the modal so dynamically-rendered DBS
+  // stat cells can open the explainer.
+  const dbsInfoOverlay = $('dbs-info-overlay');
+  modalContent?.addEventListener('click', (e) => {
+    const trigger = e.target.closest('[data-action="open-dbs-info"]');
+    if (trigger) {
+      e.preventDefault();
+      dbsInfoOverlay?.showModal();
+    }
+  });
+  dbsInfoOverlay?.addEventListener('click', (e) => {
+    const closeBtn = e.target.closest('[data-action="close-dbs-info"]');
+    // Close on click of explicit X OR on backdrop click (target === dialog).
+    if (closeBtn || e.target === dbsInfoOverlay) {
+      dbsInfoOverlay.close();
+    }
+  });
+
   // Index into filteredCards for the currently open modal (-1 = no modal or card not in list)
   let currentModalIndex = -1;
 
@@ -2217,6 +2236,11 @@
     const ebayUrl   = buildEbayUrl(card);
     const radishUrl = buildRadishUrl(card);
     let days = 30;
+    /// When the user taps Refresh, append `&fresh=1` so the Worker
+    /// bumps its cache key (the Worker also looks at this flag). Reset
+    /// to false after the request lands so subsequent day-toggle
+    /// fetches use the cache normally.
+    let forceRefresh = false;
 
     async function fetchAndRender() {
       section.innerHTML = `
@@ -2226,6 +2250,9 @@
             <button class="day-btn${days === 7  ? ' active' : ''}" data-days="7">7d</button>
             <button class="day-btn${days === 30 ? ' active' : ''}" data-days="30">30d</button>
             <button class="day-btn${days === 90 ? ' active' : ''}" data-days="90">90d</button>
+            <button class="day-btn pricing-refresh-btn" aria-label="Refresh pricing"
+                    title="Refresh now (bypass Worker cache)"
+                    type="button">↻</button>
           </div>
         </div>
         <div class="pricing-body">
@@ -2239,8 +2266,16 @@
           <a href="${escHtml(radishUrl)}" target="_blank" rel="noopener" class="btn-pricing-radish">Radish</a>
         </div>
       `;
-      section.querySelectorAll('.day-btn').forEach(btn => {
+      section.querySelectorAll('.day-btn:not(.pricing-refresh-btn)').forEach(btn => {
         btn.addEventListener('click', () => { days = parseInt(btn.dataset.days); fetchAndRender(); });
+      });
+      // Refresh — same fetch, but flags the Worker cache to bypass so
+      // a fresh eBay/Radish/Worker round-trip happens immediately
+      // instead of serving the 6-hour cached response. Parity with the
+      // iOS + Android pricing refresh button (PARITY.md §8).
+      section.querySelector('.pricing-refresh-btn')?.addEventListener('click', () => {
+        forceRefresh = true;
+        fetchAndRender();
       });
 
       try {
@@ -2259,7 +2294,9 @@
           ...(card.power    != null ? { power:     String(card.power) }  : {}),
           ...(card.treatment       ? { treatment: card.treatment }       : {}),
           ...(radishUrl            ? { radishUrl }                        : {}),
+          ...(forceRefresh         ? { fresh: '1', _t: String(Date.now()) } : {}),
         });
+        forceRefresh = false;
         // Fire eBay-pricing + COMC-listings in parallel. COMC is
         // additive (BUY NOW second source); soft-fails to [] so a
         // failure doesn't block the eBay/Radish pricing render.
@@ -2663,6 +2700,26 @@
          <div class="stat-val">${escHtml(s.val ?? '—')}</div>
        </div>`
     ).join('');
+
+    // DBS cell (Plays only) — parity with iOS + Android. Tappable;
+    // opens an explainer dialog. Color-tinted by tier matches iOS
+    // CardDetailView.dbsColor.
+    if (isPlay && card.dbs != null) {
+      const tier = (card.dbsTier || '').toLowerCase();
+      const tierClass = tier ? `dbs-tier-${tier.replace(/\s+/g, '-')}` : '';
+      statCells += `
+        <button class="stat-cell stat-cell-dbs ${tierClass}" type="button"
+                data-action="open-dbs-info"
+                aria-label="What is DBS? Open explainer">
+          <div class="stat-label-sm">
+            DBS <span class="dbs-help" aria-hidden="true">?</span>
+          </div>
+          <div class="stat-val">
+            ${escHtml(String(card.dbs))}
+            ${card.dbsTier ? `<span class="dbs-tier-pill">${escHtml(card.dbsTier.toUpperCase())}</span>` : ''}
+          </div>
+        </button>`;
+    }
 
     if (card.playAbility) {
       statCells += `

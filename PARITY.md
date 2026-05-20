@@ -160,8 +160,8 @@ Scan is iOS+Android only by design (DECISIONS.md #012). Web users see scan resul
 | Mod edit (mod-gated) | ✅ | ✅ | 🔮 v2 | Role check; Android admin/mod panel deferred to v2 |
 | Other Versions browsing | ✅ | ✅ | ✅ | Same hero, different treatments |
 | Hero zoom animation | ✅ compact only | ✅ via View Transitions API | ⏳ M1 polish | Android destination scaffolding done; `sharedBounds` zoom is polish |
-| DBS explainer modal | ✅ | 🔮 | ✅ | iOS + Android shipped; web ModalBottomSheet equivalent pending |
-| Pricing refresh button | ✅ | 🔮 | ✅ | iOS + Android shipped overnight 2026-05-20; web parity pending |
+| DBS explainer modal | ✅ | ✅ | ✅ | iOS sheet · web native `<dialog>` · Android `ModalBottomSheet` |
+| Pricing refresh button | ✅ | ✅ | ✅ | All three platforms; web sends `fresh=1` to Worker for cache bypass |
 | Tap-price hint | ✅ | n/a | ✅ | Mobile-only first-run hint |
 | Card detail swipe nav (left/right) | ✅ | n/a (no nav) | 🔮 | iOS shipped v2.287 across Find / Decks / Collection; mobile gesture |
 

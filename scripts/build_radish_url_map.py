@@ -5,8 +5,7 @@ Pulls Radish's sitemap (~4 MB, ~18k canonical card URLs), parses every
 5-segment /boba/{year}/{slug}/{hero}/{treatment}/{cardnum} URL, and
 writes a JSON lookup table that resolves any catalog
 (set, hero, cardNumber) tuple to a canonical Radish URL — including
-all the casing / treatment-in-path / cross-year drift we've documented
-(DECISIONS.md TODO + RADISH_PARTNERSHIP_CALL.md §8).
+all the casing / treatment-in-path / cross-year drift we've documented.
 
 Output:
     assets/data/radish-url-map.json

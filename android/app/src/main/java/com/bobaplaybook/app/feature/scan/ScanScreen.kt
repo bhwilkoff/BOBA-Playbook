@@ -83,20 +83,37 @@ fun ScanScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val activity = (context as? android.app.Activity)
     var hasPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
                 android.content.pm.PackageManager.PERMISSION_GRANTED
         )
     }
+    // Track whether we've asked at least once. shouldShowRationale
+    // returns false BOTH before the first ask AND after permanent
+    // denial — without this guard those two cases look identical.
+    var hasBeenAsked by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
-        onResult = { granted -> hasPermission = granted },
+        onResult = { granted ->
+            hasPermission = granted
+            hasBeenAsked = true
+        },
     )
 
     LaunchedEffect(Unit) {
         if (!hasPermission) launcher.launch(Manifest.permission.CAMERA)
     }
+
+    // Permanent denial heuristic: user has been asked, permission still
+    // denied, and the system says we can't show the rationale → the
+    // launcher will no-op silently. Surface a Settings deep-link
+    // instead of an Allow button that doesn't do anything.
+    val permanentlyDenied = hasBeenAsked && !hasPermission && activity != null &&
+        !androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(
+            activity, Manifest.permission.CAMERA,
+        )
 
     Scaffold(
         modifier = modifier,
@@ -117,6 +134,23 @@ fun ScanScreen(
         if (hasPermission) {
             ScanViewfinder(
                 onMatch = onMatch,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+            )
+        } else if (permanentlyDenied) {
+            BOBAEmptyState(
+                icon = Icons.Default.CameraAlt,
+                headline = "Camera access blocked",
+                body = "You previously denied camera access. Open Settings to allow BOBA Playbook to use the camera.",
+                actionLabel = "Open Settings",
+                onAction = {
+                    val intent = android.content.Intent(
+                        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        android.net.Uri.fromParts("package", context.packageName, null),
+                    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),

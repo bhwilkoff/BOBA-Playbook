@@ -102,6 +102,17 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 70 — 2026-05-20 — **OPTIMIZATION TICK (web, 5th 1-in-5)** — orphan api.js fns
+- **Cadence:** opt-rotation back to web (50+55+70 web · 60 Android · 65 iOS so far).
+- **Shipped:** removed two truly-orphan exports from api.js:
+  - **`hasPendingModRequest()`** — confirmed zero callers via `grep -rE "(API|window\.API)\.hasPendingModRequest"`. The function predated DECISIONS.md #038's generalized role-request; the new path uses `getCachedRole()` + `requested_role` directly.
+  - **`submitModRequest(reason)`** — replaced by `requestRole(role, reason)` per #038. The line-737 comment ("Replaces submitModRequest for new...") signaled intent; the deprecated fn was left in place as a compat shim. Zero external callers — confirmed via grep on `API.submitModRequest`.
+  - Both were defined + exported but never called outside api.js. Removed function bodies + the export entries.
+- **Line-count delta:** -28 lines from api.js.
+- **Verified:** node -c clean. `grep -rn` on both function names returns only api.js historical-reference comments (line-737 comment kept as breadcrumb for future contributors who might wonder why the role-request RPC exists alongside `submit_mod_request` SQL compat shim).
+- **Not removed:** `adminFetchPendingModRequests` + `adminReviewModRequest` — confirmed still in use by collection.js admin panel (lines 2336 + 2362).
+- **Cumulative across 5 optimization ticks:** -93 lines (50: -26 · 55: -24 · 60: -9 · 65: -6 · 70: -28).
+
 ### Tick 69 — 2026-05-20 — **Android** — Watch feed: error-vs-empty disambiguation + safe failure
 - **Cadence:** 69 % 5 = 4 → Android.
 - **Two real bugs found in WatchViewModel:**

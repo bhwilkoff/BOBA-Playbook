@@ -394,32 +394,6 @@ const API = (() => {
      Mod promotion requests
   ---------------------------------------------------------------- */
 
-  // Is the current user's mod-access request still pending?
-  async function hasPendingModRequest() {
-    const { data: { user } } = await supa().auth.getUser();
-    if (!user) return false;
-    const { data, error } = await supa()
-      .from('user_profiles')
-      .select('mod_request_at')
-      .eq('user_id', user.id)
-      .single();
-    if (error) return false;
-    return !!data?.mod_request_at;
-  }
-
-  // Submit a mod-access request (writes to own profile row, allowed by RLS).
-  async function submitModRequest(reason) {
-    const { data: { user } } = await supa().auth.getUser();
-    if (!user) throw new Error('Not signed in');
-    const { error } = await supa()
-      .from('user_profiles')
-      .update({
-        mod_request_reason: reason,
-        mod_request_at: new Date().toISOString(),
-      })
-      .eq('user_id', user.id);
-    if (error) throw new Error(error.message);
-  }
 
   // Admin-only: list pending mod requests via SECURITY DEFINER RPC.
   async function adminFetchPendingModRequests() {
@@ -957,8 +931,6 @@ const API = (() => {
     // Mod
     fetchUserRole,
     getCachedRole,
-    hasPendingModRequest,
-    submitModRequest,
     adminFetchPendingModRequests,
     adminReviewModRequest,
     submitCardCorrection,

@@ -276,12 +276,6 @@ final class DeckBuilderStore {
         ruleOverrides = preset.ruleOverrides
     }
 
-    /// Clear the active preset. Keeps the current format + overrides intact —
-    /// the coach has effectively turned the preset into a "custom" rule set.
-    func unlinkFromPreset() {
-        activePresetID = nil
-    }
-
     /// True when the coach has modified the rule overrides so they diverge
     /// from the active preset's baseline (or if no preset is attached and
     /// any non-default override is set). Drives the "Custom Rule Set"
@@ -661,11 +655,6 @@ final class DeckBuilderStore {
     /// True if this card is already in the deck (any role).
     func isInDeck(_ card: Card) -> Bool {
         heroes.contains(card) || plays.contains(card) || bonusPlays.contains(card) || hotDogs.contains(card) || sideboard.contains(card)
-    }
-
-    /// Count of a card already in the hero deck (for repeat-check).
-    func heroCount(for card: Card) -> Int {
-        heroes.filter { $0 == card }.count
     }
 
     /// True if adding this hero would violate a rule immediately.

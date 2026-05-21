@@ -76,6 +76,19 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 120 — 2026-05-20 — **OPTIMIZATION TICK (15th 1-in-5)** — 2 orphan iOS DeckBuilderStore helpers
+- **Cadence:** opt rotation. Web 5 · iOS 6 · Android 3. Bias-toward-Android couldn't find clean orphans this pass; settled on iOS again.
+- **Picked:**
+  - `DeckBuilderStore::unlinkFromPreset()` (3-line + 2-line doc comment): `grep -rn unlinkFromPreset BOBAPlaybook` returned only the definition. Designed for a "decouple from preset" UI affordance that never shipped — `applyPreset` is called instead.
+  - `DeckBuilderStore::heroCount(for: Card)` (3-line + 1-line doc comment): `grep -rn heroCount(for: BOBAPlaybook` + `grep -rn .heroCount(for:` both returned only the definition. Was a repeat-check helper; current code uses `isInDeck(_:)` which returns Bool instead.
+- **Shipped:** Removed both definitions + doc comments.
+- **Verified:** Final greps confirm zero callers. `applyPreset` + `isInDeck` + `heroViolationReason` (the live functions in the same neighborhood) untouched.
+- **Line-count delta:** -10 lines.
+- **Cumulative across 15 optimization ticks:** -178 lines (50: -26 · 55: -24 · 60: -9 · 65: -6 · 70: -28 · 75: -8 · 80: -2 · 85: -23 · 90: -19 · 95: -6 · 100: -1 · 105: -2 · 110: -13 · 115: -1 · 120: -10).
+- **Next:** tick 121 = Android; 122 = iOS; 123 = web; 124 = Android; 125 = opt.
+
+
+
 ### Tick 119 — 2026-05-20 — **Android** — Collection card detail delete: Snackbar + Undo (preserves form fields)
 - **Cadence:** 119 % 5 = 4 → Android.
 - **Picked:** `CollectionCardDetailScreen::onDelete` fired `viewModel.remove(entry.userCard.id)` silently. No confirmation, no Undo. Particularly painful given that tick 99 enabled rich-data persistence on add — a user who'd spent time entering purchase price + condition + notes lost ALL of it with an accidental tap, with no recovery path. iOS / web have the Decks remove-with-Undo (tick 117 / 118); this is the Collection equivalent.

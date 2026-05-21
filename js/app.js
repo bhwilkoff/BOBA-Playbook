@@ -209,6 +209,51 @@
       filterBadge.hidden = count === 0;
     }
     filterToggleBtn?.classList.toggle('has-filters', count > 0);
+    renderActiveFilterChips();
+  }
+
+  /// Render dismissible chips for every active filter, always-visible
+  /// above the (collapsible) filter panel. Without this, users with
+  /// the panel closed could only see the badge count + the empty-state
+  /// hint (when filter-yields-zero) — they had to open the panel to
+  /// see WHAT was filtering. Tick 73.
+  function renderActiveFilterChips() {
+    const container = document.getElementById('active-filter-chips');
+    if (!container) return;
+    const chips = [];
+    const push = (label, removeFn) => chips.push({ label, removeFn });
+    if (filters.element)    push(filters.element,                () => setElementFilter(''));
+    if (filters.set)        push(`Set: ${filters.set}`,          () => { setFilter.value = ''; filters.set = ''; buildTreatmentFilter(''); filters.treatment = ''; applyFilters(); });
+    if (filters.treatment)  push(`Treatment: ${filters.treatment}`, () => { treatmentFilter.value = ''; filters.treatment = ''; applyFilters(); });
+    if (filters.release)    push(`Release: ${filters.release}`,  () => { releaseFilter.value = ''; filters.release = ''; applyFilters(); });
+    if (filters.showcaseId) push(`Showcase: ${filters.showcaseId}`, () => setShowcaseFilter(''));
+    if (filters.hasImage)   push('Image only',                   () => { filters.hasImage = false; if (hasImageCheckbox) hasImageCheckbox.checked = false; applyFilters(); });
+    if (filters.powerMin != null || filters.powerMax != null) {
+      const min = filters.powerMin ?? 0;
+      const max = filters.powerMax ?? '∞';
+      push(`Power ${min}–${max}`, () => {
+        filters.powerMin = null;
+        filters.powerMax = null;
+        if (powerMinInput) powerMinInput.value = '';
+        if (powerMaxInput) powerMaxInput.value = '';
+        document.querySelectorAll('.power-preset').forEach(b => b.classList.remove('active'));
+        document.querySelector('.power-preset[data-min=""]')?.classList.add('active');
+        applyFilters();
+      });
+    }
+    container.hidden = chips.length === 0;
+    container.innerHTML = chips.map((c, i) =>
+      `<button type="button" class="active-filter-chip" data-chip-i="${i}" aria-label="Remove filter ${escHtml(c.label)}">
+        <span>${escHtml(c.label)}</span>
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>`
+    ).join('');
+    container.querySelectorAll('.active-filter-chip').forEach((btn, i) => {
+      btn.addEventListener('click', () => chips[i].removeFn(), { once: true });
+    });
   }
 
   /* ================================================================

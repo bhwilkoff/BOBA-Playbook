@@ -102,6 +102,18 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 73 — 2026-05-20 — **web** — Active-filter chips row
+- **Cadence:** 73 % 5 = 3 → web.
+- **Picked:** Find tab showed only a numeric badge count + empty-state hint to communicate active filters. The filter panel itself was inline-accordion (collapsed by default). A user with WOBA + FIRE + power 100-160 + a Set chose had no always-visible way to see WHAT was filtering — they had to expand the panel + scan all controls to find each one.
+- **Shipped:**
+  - `index.html`: new `<div id="active-filter-chips" hidden>` between the multi-select toolbar and the filter panel.
+  - `js/app.js`:
+    - `renderActiveFilterChips()` — iterates current filter state, builds a chip per active filter (Element / Set / Treatment / Release / Showcase / Image-only / Power range), each with × icon. Click → calls a per-filter remove function (resetting that field + UI control + calling applyFilters). `{ once: true }` listener since the chip gets re-rendered on next badge update anyway.
+    - Called from `updateFilterBadge` so the chip row stays in lockstep with the badge.
+  - `css/styles.css`: `.active-filter-chips` cyan-tinted bar with wrapping pill chips. Focus-visible cyan outline for keyboard a11y. Matches the design language of the other cyan pill affordances (Wall button etc.).
+- **Verified:** node -c clean. Trace: pick FIRE + WOBA + power 100-160 → three chips appear. Click each × → filter cleared + chip disappears + grid re-filters.
+- **PARITY.md:** No row — UX polish.
+
 ### Tick 72 — 2026-05-20 — **iOS** — Wall caller surface tick-67 cap to user
 - **Cadence:** 72 % 5 = 2 → iOS.
 - **Picked:** Tick 67 added `ShowWallComposer.HARD_CAP = 200` as a safety net, with a comment noting "caller is responsible for messaging the user when they pass > HARD_CAP." Today the only Wall caller, `CollectionWallSheet`, doesn't surface the truncation — a user with 500 owned cards who taps "Select all" silently gets a 200-card wall and loses their grails without explanation.

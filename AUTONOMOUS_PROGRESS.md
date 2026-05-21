@@ -76,6 +76,17 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 157 — 2026-05-21 — **iOS** — DecksView saveDeck: surface failure banner (was silent on error)
+- **Cadence:** 157 % 5 = 2 → iOS.
+- **Picked:** Mirror of Android tick 154 — same fire-and-forget bug on a different platform. `DecksView.saveDeck()` had `if store.saveError == nil { saveBanner = "Saved X" }` — the failure branch was completely absent. A coach taps Save → server write fails (network / RLS / empty name) → `store.saveError` is set BUT `saveBanner` stays nil so the user sees nothing. They might retry until either it succeeds (creating duplicate decks if retry happens to also work) or give up wondering if the button is broken.
+- **Shipped:**
+  - `DecksView.swift` `saveDeck()`:
+    - Restructured the conditional from "only show success banner" to "branch on success vs failure" — `if let err = store.saveError { saveBanner = "Couldn't save — \(err)" } else { saveBanner = "Saved X" }`.
+    - Auto-fade timeout extended to 4s on error (vs 2s on success) so the user has time to read the error before it disappears.
+- **Verified:** `store.saveError` is set by `DeckBuilderStore.saveDeck()` at line 1372 on every `catch` branch with `error.localizedDescription`. The existing `saveBanner` overlay rendering at the top of DecksView (line 740 area) handles arbitrary text — no shape change needed.
+- **PARITY.md:** No row — UX polish on already-✅ Decks Save. Closes parity with Android tick 154.
+- **Next:** tick 158 = web; 159 = Android; 160 = opt.
+
 ### Tick 156 — 2026-05-21 — **Android** — Custom Rainbow editor: Save success/failure Snackbars
 - **Cadence:** 156 % 5 = 1 → Android.
 - **Picked:** `CustomRainbowEditorSheet`'s Save button called `vm.create(...)` / `vm.update(...)` with a callback `{ ok -> if (ok) onDismiss() }`. On success → silent dismiss; on failure → silent no-op (sheet stays open, no error message). Two real UX gaps:

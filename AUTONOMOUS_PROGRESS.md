@@ -2611,3 +2611,29 @@ Status of each: queued / running / complete + findings folded back into Backlog.
   - Pattern parity: same cyan accent used on the Android version + `BOBACardCell`'s in-deck indicator.
 - **Version bump:** AppVersion.xcconfig → MARKETING_VERSION 2.290 (build number auto-bumped by ci_post_clone.sh via ASC API).
 - **Next:** tick 178 = web (178 % 5 = 3).
+
+### Tick 178 — 2026-05-21 — META: Discord-mined feature backlog (kills same-feature circling)
+- **Ben pushback:** *"these loops are really circling around the same exact features. Adjust the way you are looking for things to fix."* I was about to ship a 4th AddToDeck tick in a row.
+- **Action:** spawned a general-purpose Agent to mine `~/Documents/Claude/Projects/Bo Jackson Battle Arena Research/discord-exports/` (the `extracted/QUALITATIVE_FINDINGS.md` + `questions.txt` + `support.txt` + the 1MB feedback-and-support JSON). Filtered against PARITY.md + SCRATCHPAD.md so already-shipped + binding-rule-blocked items are out.
+- **Saved durability rule:** `[[feedback_autonomous_loop_must_pull_from_backlog]]` — every feature tick MUST pull from this backlog or SCRATCHPAD Deferred / PARITY 🚧, not invent same-tab polish.
+
+## Discord-mined feature backlog (May 2026 mining pass)
+
+Pick the top item for each upcoming tick's platform. Strike out shipped items inline. Re-mine when ≤2 items left.
+
+### TIER 1 — high-demand, mostly UI work on existing data
+
+1. **Power-level RANGE filter on Find** (S) — power is sortable but not filterable; Discord saturated with "ISO 140-160 fire" patterns. Add power min/max slider as a `FilterToken`. iOS + Web + Android.
+2. **Set Completion / Rainbow % progress dashboard** (S) — RainbowDetailView shows owned cards but no completion %, no "missing list" panel. Add `X of Y treatments · NN%` headers + "missing" tab. iOS + Web + Android.
+3. **Tap-to-define glossary terms inline in Learn articles** (M) — glossary tab exists but article prose has no tappable terms. Wrap with `TooltipBox` (Android) / Popover (web) / inline sheet (iOS) for HTD / Lino / OBF / G&S / Vouch. All three.
+4. **Format-eligibility badge on every card cell + "legal in" chip strip on detail** (S) — `CardFormatEligibility.swift` exists; expose it visibly. ~30-35% of rules Qs in Discord are "is this legal in Spec+ / Brawl / Checklist?" Tiny corner badge `S | S+ | C` on cells + full strip on detail. All three.
+
+### TIER 2 — moderate effort, sharp value
+
+5. **DBS explainer in Learn → Rules + per-card DBS context tooltip** (S/M) — card detail shows DBS for Plays; nobody explains the system. Add Learn → Rules → "Understanding DBS" page + replace `?` icon with mini-sheet ("This card costs 6 DBS. Your deck has 28/30 DBS used."). All three.
+6. **Wanted-list public sharing surface (`/u/{handle}/wanted`)** (M) — public collection ships, but NOT the Wanted designation. Per-designation public toggle. Web renders read-only `/u/handle/wanted`; iOS+Android set the toggle.
+7. **Print-run / SP / SSP indicator on cards** (M) — players distinguish SP / SSP / "/5 / /10 / /25 / /50" Inspired Ink as a first-class shopping concept. Render print-run chip on card cell + dedicated stat row on detail. All three.
+8. **Tournament / Release calendar page in Learn → Tournament** (M) — "When does Tecmo ship?", "When is nationals?" are constant. Single static page (refreshed via `assets/data/events.json`) listing upcoming events + release windows + format being played. All three.
+
+### Tick 178's own next step
+Skip the web AddToDeck parity that this tick replaced. Tick 179 = web (179 % 5 = 4 → Android, but use punch list anyway since Android is least mature and #1 fits Android cleanly). **Pick: item #1 (Power-level RANGE filter) on Android first** since Android Find filter sheet is the freshest implementation. Then 180 = opt, 181 = Android #1 follow-up to iOS/web, 182 = iOS picks item #2 or #4 (both S, both cross-platform).

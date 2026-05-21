@@ -67,6 +67,10 @@ struct ProfileView: View {
     @State private var avatarUploading     = false
     @State private var showingAvatarMenu   = false
     @State private var showingAvatarPicker = false
+    /// Tick 167 — Send Feedback fallback alert when no mail client is
+    /// installed. Mirrors Android tick 166's clipboard + Snackbar
+    /// graceful-fallback pattern.
+    @State private var showingFeedbackNoMailAlert = false
 
     var body: some View {
         NavigationStack {
@@ -842,7 +846,18 @@ struct ProfileView: View {
                         .foregroundStyle(Design.Colors.bobaCyan)
                 }
                 Button {
-                    if let url = feedbackMailto { UIApplication.shared.open(url) }
+                    guard let url = feedbackMailto else { return }
+                    // Use the completion-handler variant so we can detect
+                    // "no mail client installed" — open(url) silently
+                    // no-ops on iPhones where the user uninstalled Apple
+                    // Mail and hasn't added Gmail/Outlook. Tick 167
+                    // parity with Android tick 166.
+                    UIApplication.shared.open(url, options: [:]) { success in
+                        if !success {
+                            UIPasteboard.general.string = "ben@bobaplaybook.com"
+                            showingFeedbackNoMailAlert = true
+                        }
+                    }
                 } label: {
                     Label("Send Feedback", systemImage: "envelope")
                         .foregroundStyle(Design.Colors.bobaCyan)
@@ -859,6 +874,11 @@ struct ProfileView: View {
                 Label("About", systemImage: "info.circle")
                     .foregroundStyle(Design.Colors.textPrimary)
             }
+        }
+        .alert("No email app found", isPresented: $showingFeedbackNoMailAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Copied ben@bobaplaybook.com to your clipboard. Paste it into Gmail, Outlook, or your preferred mail client.")
         }
     }
 

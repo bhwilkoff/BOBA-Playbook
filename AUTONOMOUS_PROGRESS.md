@@ -76,6 +76,19 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 167 — 2026-05-21 — **iOS** — Profile Send Feedback: graceful fallback when no mail client (Android tick 166 parity)
+- **Cadence:** 167 % 5 = 2 → iOS.
+- **Picked:** Same silent-failure bug as Android tick 166. iOS Profile's "Send Feedback" button called `UIApplication.shared.open(url)` (fire-and-forget) for the `mailto:ben@bobaplaybook.com?subject=...` URL. If the user uninstalled Apple Mail and hasn't added Gmail/Outlook (uncommon but not zero — Apple Mail is uninstallable on iOS 14+), the open silently no-ops. Tap → nothing.
+- **Shipped:**
+  - `ProfileView.swift`:
+    - New `@State private var showingFeedbackNoMailAlert = false`.
+    - Send Feedback button switched to `UIApplication.shared.open(url, options: [:]) { success in ... }` — the completion-handler variant surfaces a Bool indicating whether iOS actually opened the URL.
+    - On `!success`: copies `ben@bobaplaybook.com` to `UIPasteboard.general.string` + sets `showingFeedbackNoMailAlert = true`.
+    - New `.alert("No email app found", isPresented:)` attached to the aboutSection Section. Body copy: *"Copied ben@bobaplaybook.com to your clipboard. Paste it into Gmail, Outlook, or your preferred mail client."*
+- **Verified:** `UIApplication.shared.open(_:options:completionHandler:)` is the documented async variant returning success on the main thread. `UIPasteboard.general.string` is the universal-pasteboard write path (also used at line 544 for public-URL copy). No new imports needed.
+- **PARITY.md:** No row — UX polish on already-✅ Profile. Closes parity with Android tick 166.
+- **Next:** tick 168 = web; 169 = Android; 170 = opt.
+
 ### Tick 166 — 2026-05-21 — **Android** — Profile Send Feedback: graceful fallback when no email app
 - **Cadence:** 166 % 5 = 1 → Android.
 - **Picked:** Real silent-failure bug. The Profile sheet's "Send feedback" `clickable` used `runCatching { context.startActivity(intent) }` for a `mailto:ben@bobaplaybook.com?subject=...` ACTION_VIEW. If the device has no email app installed — Pixel devices often ship WITHOUT a default Gmail in some configurations, and aftermarket ROMs increasingly omit one — `runCatching` swallowed the `ActivityNotFoundException` and the user saw NOTHING. Tap → empty void. Worst-case: a frustrated user who thinks the feedback button is broken silently abandons their bug report.

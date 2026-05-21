@@ -102,6 +102,18 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 26 — 2026-05-20 — Public collection Share button
+- **Picked:** Complement to tick-25's CTA. A visitor who landed via a shared link → enjoys the collection → wants to re-share it with a friend → had to copy the URL bar manually. One-tap share unlocks viral propagation.
+- **Shipped:**
+  - `index.html`: new `<button id="public-collection-share">` in the public-collection header next to the title. Lucide `share-2` icon (the three-dot connected graph) + "Share" label. Cyan pill style matching the brand's secondary action treatment.
+  - `js/app.js::renderPublicCollection`: wires the button via `window.bobaShareTarget({ title, text, url }, shareBtn)`. Title = `@handle on BOBA Playbook`. Text = `Check out @handle's BOBA card collection`. URL = canonical `${origin}/u/${handle}` (NOT the current `?u=…` form) so recipients see the same nice URL. `{ once: true }` so re-renders don't double-bind.
+  - `css/styles.css`: `.public-collection-share` cyan-pill button + made `.public-collection-titlebox` flex-grow so the button sits at the trailing edge of the header without crowding the title.
+- **Verified:** node -c clean. Logic trace: open `/u/ben` → click Share → if `navigator.share` available, system sheet pops up with the pre-filled title + text + URL; if not, URL copies to clipboard with "Link copied!" inline confirmation (the existing `bobaShareTarget` fallback path from `feedback_native_first`).
+- **Why this matters:** the CTA in tick 25 captures visitors who want to BUILD their own collection. The Share button captures visitors who want to PROPAGATE the collection they're viewing. Together they cover both intent paths from the same landing page.
+- **PARITY.md:** No row — public collection is web-only; iOS / Android deep-link IN to view it but the share affordance is the visitor's web-platform action.
+- **Architectural note:** `bobaShareTarget` (declared at app.js:390) is the shared share helper — Web Share API → clipboard fallback → toast. All sharing surfaces should use this, not navigator.share directly. Three call sites now (card detail, profile-public-link copy, this). Worth promoting to a documented primitive in WEB-DESIGN.md §16 in a future tick.
+- **Next:** Tick 27. Plausible: (a) "Wall this collection" button on public-collection (renders the visible cards via the tick-9/10 canvas pipeline so the visitor can download a PNG), (b) add a "View on BOBA Playbook" inline preview snippet for OG image rendering, (c) audit Sign-in modal accessibility (focus trap + ESC + return focus).
+
 ### Tick 25 — 2026-05-20 — Public collection CTA for unauth visitors
 - **Picked:** Web-only gain. Visitors landing on `/u/{username}` from a shared link saw the cards but had no obvious next step. High-leverage user-acquisition surface — they're already engaged enough to view someone else's collection.
 - **Considered Find Quick Add audit** first; concluded the existing flow is fine — duplicate-click adding two copies might be intentional (user just bought 2 copies of the same card). Skipped.

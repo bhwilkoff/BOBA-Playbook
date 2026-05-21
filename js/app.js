@@ -3507,6 +3507,19 @@
     // Per-handle tab title so a bookmarked /u/ben page reads as
     // "@ben · BOBA Playbook" not the generic "Public Collection".
     document.title = `@${handle} · BOBA Playbook`;
+
+    // Share button — wired once per render via { once: true }. Uses
+    // the canonical URL form (/u/{handle}) so the recipient lands
+    // on the same page even if the original opener used ?u={handle}.
+    const shareBtn = document.getElementById('public-collection-share');
+    shareBtn?.addEventListener('click', () => {
+      const url = `${location.origin}/u/${handle}`;
+      window.bobaShareTarget?.({
+        title: `@${handle} on BOBA Playbook`,
+        text:  `Check out @${handle}'s BOBA card collection`,
+        url,
+      }, shareBtn);
+    }, { once: true });
     updateOpenGraphMeta({
       title: `@${handle} · BOBA Playbook`,
       description: `Public BoBA card collection by @${handle}.`,

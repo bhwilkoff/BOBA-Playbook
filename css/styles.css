@@ -2884,7 +2884,29 @@ dialog.modal-overlay[open] {
 }
 .public-collection-titlebox {
   display: flex; flex-direction: column; gap: 2px; min-width: 0;
+  flex: 1 1 auto;
 }
+.public-collection-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0,245,255,0.08);
+  border: 1px solid rgba(0,245,255,0.35);
+  border-radius: 999px;
+  color: #00F5FF;
+  cursor: pointer;
+  font-family: var(--font-mono, 'Chakra Petch', monospace);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 5px 12px;
+  text-transform: uppercase;
+  transition: background 0.15s, border-color 0.15s, transform 0.05s;
+  flex: 0 0 auto;
+  align-self: center;
+}
+.public-collection-share:hover { background: rgba(0,245,255,0.16); border-color: rgba(0,245,255,0.6); }
+.public-collection-share:active { transform: translateY(1px); }
 #public-collection-title {
   margin: 0;
   color: var(--boba-orange);

@@ -664,6 +664,34 @@ function dbRenderGrid(allCards) {
   const grid = $('db-card-grid');
   if (!grid) return;
   const cards = dbFilterCards(allCards).slice(0, 180);
+  // Empty-state branch (iOS tick 92 + Android tick 89 parity).
+  // Disambiguates search-driven empty vs tab-driven empty so users
+  // know whether the issue is their query or the tab they're on.
+  if (cards.length === 0) {
+    const trimmedQ = (DB.search || '').trim();
+    if (trimmedQ) {
+      grid.innerHTML = `<div class="db-browser-empty">
+        <p class="db-browser-empty-headline">No cards match "${trimmedQ.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}"</p>
+        <p class="db-browser-empty-body">Try a different term or clear the search.</p>
+        <button type="button" class="btn-ghost-sm" data-action="db-clear-search">Clear search</button>
+      </div>`;
+      grid.querySelector('[data-action="db-clear-search"]')?.addEventListener('click', () => {
+        DB.search = '';
+        const input = $('db-search');
+        if (input) input.value = '';
+        // Hide the inline ✕ button too — its visibility tracks input value.
+        const clearBtn = $('db-search-clear');
+        if (clearBtn) clearBtn.hidden = true;
+        dbRenderGrid(allCards);
+      });
+    } else {
+      grid.innerHTML = `<div class="db-browser-empty">
+        <p class="db-browser-empty-headline">No cards in scope</p>
+        <p class="db-browser-empty-body">Pick a different tab above (Heroes / Plays / Bonus / Hot Dogs) to see eligible cards.</p>
+      </div>`;
+    }
+    return;
+  }
   grid.innerHTML = cards.map(card => {
     const imgUrl = card.imageFile ? thumbUrl(card.imageFile) : null;
     const inDeck = DB.isInDeck(card);

@@ -7279,6 +7279,23 @@ dialog.modal-overlay[open] {
 .db-saved-decks-close { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.55); border-radius: 4px; width: 22px; height: 22px; cursor: pointer; font-size: 0.75rem; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
 .db-saved-decks-close:hover { background: rgba(255,255,255,0.08); color: #fff; }
 .db-saved-decks-empty { font-family: var(--font-mono, monospace); font-size: 0.7rem; color: rgba(255,255,255,0.3); text-align: center; padding: 0.5rem; }
+/* Deck browser empty state — search-empty vs filter-empty branch
+   (parity with iOS DeckBuilderView empty + Android CardPoolGrid empty). */
+.db-browser-empty {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  padding: 2rem 1rem;
+}
+.db-browser-empty-headline {
+  font-family: var(--font-display); font-size: 1rem;
+  color: var(--boba-text-secondary); margin: 0;
+  text-align: center;
+}
+.db-browser-empty-body {
+  font-family: var(--font-mono); font-size: 0.78rem;
+  color: var(--boba-text-muted); margin: 0; max-width: 40ch;
+  text-align: center; line-height: 1.5;
+}
 .db-saved-decks-search-empty {
   display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
   padding: 1rem 0.5rem;

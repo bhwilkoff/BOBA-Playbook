@@ -31,14 +31,34 @@ class WatchViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
-            val bundle = service.loadAll()
-            val empty = bundle.upcoming.isEmpty() &&
-                bundle.vertical.isEmpty() &&
-                bundle.horizontal.isEmpty()
-            _state.value = WatchUiState(
-                isLoading = false,
-                bundle = bundle,
-                error = if (empty) "Couldn't load the YouTube feed. Pull to retry." else null,
+            // Wrap the network call. Without the try/catch, an
+            // unhandled exception (Worker offline, parse error) left
+            // the state stuck on isLoading = true forever — the user
+            // saw the loading spinner with no recovery path.
+            val result = runCatching { service.loadAll() }
+            result.fold(
+                onSuccess = { bundle ->
+                    val empty = bundle.upcoming.isEmpty() &&
+                        bundle.vertical.isEmpty() &&
+                        bundle.horizontal.isEmpty()
+                    _state.value = WatchUiState(
+                        isLoading = false,
+                        bundle = bundle,
+                        // Empty-but-loaded is NOT a fetch error — the
+                        // channel just doesn't have any current
+                        // content. Show nothing rather than a
+                        // misleading "couldn't load" message.
+                        error = null,
+                        isEmpty = empty,
+                    )
+                },
+                onFailure = {
+                    _state.value = WatchUiState(
+                        isLoading = false,
+                        bundle = YouTubeFeedService.EMPTY,
+                        error = "Couldn't load the YouTube feed. Pull to retry.",
+                    )
+                },
             )
         }
     }
@@ -48,4 +68,6 @@ data class WatchUiState(
     val isLoading: Boolean = false,
     val bundle: YouTubeFeedBundle = YouTubeFeedService.EMPTY,
     val error: String? = null,
+    /** True when the fetch succeeded but every category was empty. */
+    val isEmpty: Boolean = false,
 )

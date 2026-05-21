@@ -264,6 +264,7 @@ struct ProfileView: View {
             connectionsSection
             sharingSection
             displaySection
+            hintsSection
             notificationsSection
             roleAccessSection
             if auth.isMod { moderationSection }
@@ -676,6 +677,43 @@ struct ProfileView: View {
         guard UIApplication.shared.supportsAlternateIcons else { return }
         UIApplication.shared.setAlternateIconName(name) { error in
             if error == nil { selectedIconName = option.iconName }
+        }
+    }
+
+    // MARK: - Hints (parity with Android Profile sheet)
+
+    /// First-run hint controls — master toggle + a Reset row that
+    /// undismisses every hint. Mirrors Android ProfileSheet (tick
+    /// noted earlier) where the same controls live. Android shipped
+    /// these via `HintsViewModel.setGlobalEnabled` / `resetAll`; iOS
+    /// has had `HintsManager.shared` since DECISIONS.md #031 but
+    /// never surfaced the controls — coaches who dismissed a hint
+    /// they wanted to see again had no recovery path.
+    private var hintsSection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { HintsManager.shared.hintsEnabled },
+                set: { HintsManager.shared.hintsEnabled = $0 }
+            )) {
+                Label("Show first-run hints", systemImage: "lightbulb")
+                    .foregroundStyle(Design.Colors.textPrimary)
+            }
+            .tint(Design.Colors.bobaOrange)
+
+            Button {
+                HintsManager.shared.resetAll()
+            } label: {
+                Label("Reset hints", systemImage: "arrow.uturn.backward")
+                    .foregroundStyle(Design.Colors.bobaCyan)
+            }
+        } header: {
+            Text("Hints")
+                .font(Design.Fonts.mono(11, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+        } footer: {
+            Text("Hints are one-line tips that surface inside the app once. Reset to re-show them all.")
+                .font(Design.Fonts.mono(11))
+                .foregroundStyle(Design.Colors.textMuted)
         }
     }
 

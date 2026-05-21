@@ -76,6 +76,20 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 162 — 2026-05-21 — **iOS** — Profile: hints master toggle + Reset hints (Android parity)
+- **Cadence:** 162 % 5 = 2 → iOS.
+- **Picked:** Real iOS parity gap. Android ProfileSheet has a "Show first-run hints" toggle + a "Reset hints" button (line 670-720 area, used `HintsViewModel.setGlobalEnabled` / `resetAll`). iOS has had `HintsManager.shared` since DECISIONS.md #031 — the `hintsEnabled` master toggle and `resetAll()` API both exist (`Design.swift:230`) — but Profile never surfaced the UI. Coaches who dismissed a hint they wanted back had no recovery path; coaches who didn't want hints at all couldn't silence them.
+- **Shipped:**
+  - `ProfileView.swift`:
+    - New `private var hintsSection: some View` inserted between `displaySection` and `notificationsSection` (settings-style rows belong adjacent to Display).
+    - Section content:
+      - `Toggle` bound to `HintsManager.shared.hintsEnabled` (Binding shim — the @Observable singleton supports SwiftUI's property write).
+      - `Button("Reset hints")` calling `HintsManager.shared.resetAll()` — wipes every dismissed `HintID` from UserDefaults and clears the in-memory `dismissedIDs` set.
+    - Section header `"Hints"` (uppercase mono small-caps matching the existing pattern) + footer copy *"Hints are one-line tips that surface inside the app once. Reset to re-show them all."*.
+- **Verified:** `HintsManager` is `@Observable` so SwiftUI tracks reads of `hintsEnabled` automatically. The Binding shim uses get/set on the singleton; toggling writes both the property AND the UserDefaults mirror (line 239). `resetAll()` is also already public.
+- **PARITY.md:** No row — UX polish on already-✅ Profile. Closes the iOS gap relative to Android ProfileSheet's hints controls.
+- **Next:** tick 163 = web; 164 = Android; 165 = opt.
+
 ### Tick 161 — 2026-05-21 — **Android** — Decks pool: cyan border + ✓ badge on in-deck cards
 - **Cadence:** 161 % 5 = 1 → Android.
 - **Picked:** Real parity gap. iOS DeckBuilderView's `BrowserCardCell` highlights cards already in the active draft with a cyan border (`Design.Colors.bobaCyan`, 2.5pt) + a checkmark badge (line 1218-1255 area). Android's Decks `CardPoolGrid` showed every card identically — coaches couldn't see at a glance which cards they'd already picked, leading to unnecessary tap-attempts that hit "already in deck" rejections from tick 114's enforcement.

@@ -1183,6 +1183,14 @@ function initDeckBuilder(allCards) {
     DB_savedId = null;
     const nameEl = $('db-deck-name');
     if (nameEl) nameEl.value = DB.deckName;
+    // Manage Decks panel could be visible with the prior user's list —
+    // hide it so the next sign-in starts clean.
+    const savedPanel = $('db-saved-decks-panel');
+    if (savedPanel) savedPanel.hidden = true;
+    // Reset the saved-decks search input so user B doesn't inherit
+    // user A's typed query.
+    const savedSearch = $('db-saved-decks-search');
+    if (savedSearch) savedSearch.value = '';
     // Re-render so the empty draft replaces whatever the prior user
     // had drafted on screen.
     if (allCards) dbRender(allCards);

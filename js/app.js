@@ -737,6 +737,26 @@
       });
     });
 
+    // Glossary tap-to-copy — 3-platform parity with iOS tick 87 +
+    // Android tick 84. Writes "term — definition" to the clipboard,
+    // flashes the row with a checkmark for ~1.2s. Event delegation
+    // so the handler survives any future re-render of the panel.
+    document.addEventListener('click', e => {
+      const row = e.target?.closest?.('.glossary-row');
+      if (!row || row.classList.contains('copied')) return;
+      const term = row.dataset.term || '';
+      const def  = row.dataset.def  || '';
+      if (!term || !def) return;
+      const payload = `${term} — ${def}`;
+      navigator.clipboard.writeText(payload).then(() => {
+        row.classList.add('copied');
+        setTimeout(() => row.classList.remove('copied'), 1200);
+      }).catch(() => {
+        // Older browsers / file:// origins — silently fall through;
+        // user still sees the row but no clipboard write.
+      });
+    });
+
     // Mode switching — syncs rules-mode-btn tabs and rules-content visibility.
     const modeBtns    = document.querySelectorAll('.rules-mode-btn');
     const modeContent = document.querySelectorAll('.rules-content');

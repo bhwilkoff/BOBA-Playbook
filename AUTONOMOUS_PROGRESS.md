@@ -76,6 +76,16 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 165 — 2026-05-21 — **opt** — Drop orphan `LearnCorpus.watch` placeholder corpus (14 lines)
+- **Cadence:** 165 % 5 = 0 → opt.
+- **Picked:** `LearnContent.kt:581` defined `val watch: List<LearnSection>` — a 2-section placeholder ("Coming soon" + "Until then") for the Watch tab before the live Worker-backed `WatchPageContent()` shipped. Once the live feed landed, the `watch` corpus became unreferenced — `LearnArticleScreen.kt:124` switched to `WatchPageContent()` directly. Module-wide grep confirmed zero callers (1 reference = the definition itself).
+- **Shipped:**
+  - `LearnContent.kt`: drop the `// WATCH — placeholder; YouTube feed Worker wiring is M5-polish` comment block + `val watch = listOf(...)` — 14 lines total.
+- **Verified:** cross-platform orphan scans this round (iOS + Android + web) all came back empty besides this one. The orphan-detection logic improvement made after tick 140's CI blowup now correctly handles trailing-lambda invocations + fully-qualified Icons refs + delegate-keyword usage; this sweep is the first clean pass under the tightened rules.
+- **Net:** −14 lines.
+- **PARITY.md:** No row.
+- **Next:** tick 166 = Android.
+
 ### Tick 164 — 2026-05-21 — **Android** — Decks empty-state template tap: confirmation Snackbar
 - **Cadence:** 164 % 5 = 4 → Android.
 - **Picked:** `DeckEditorSheet.EmptyDeckCTA` (line 530) is the inline template gallery shown when the draft is empty. Tapping a template fires `decksVm.clear() + rename + cards.forEach add` then... silently returns. The visual flip from empty-state → populated editor IS the signal, but it lacks the "Loaded X" Snackbar confirmation that `TemplateGallerySheet` (tick 136) added to the standalone template picker. A coach who hasn't built decks before — exactly the audience of the empty-state CTA — benefits most from explicit verbal feedback that the tap registered.

@@ -4135,6 +4135,28 @@ dialog.modal-overlay[open] {
   border-radius: 999px;
   margin-left: 0.4rem;
 }
+/* Tick 198 — Discord backlog #7 print-run / SSP chip inside the
+   Treatment stat-cell. Cyan for numbered serials (/5 /10 /25 /50 +
+   "Serial"), orange for SSP. Matches iOS + Android accent treatment. */
+.print-run-chip {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  margin-left: 0.4rem;
+  border: 1px solid;
+}
+.print-run-numbered {
+  color: var(--boba-cyan);
+  background: rgba(0,245,255,0.15);
+  border-color: rgba(0,245,255,0.45);
+}
+.print-run-ssp {
+  color: var(--boba-orange);
+  background: rgba(255,77,0,0.15);
+  border-color: rgba(255,77,0,0.45);
+}
 .stat-cell.dbs-tier-low      .stat-val { color: #7ecb82; }
 .stat-cell.dbs-tier-low      .dbs-tier-pill { color: #7ecb82; background: rgba(126,203,130,0.15); }
 .stat-cell.dbs-tier-medium   .stat-val { color: var(--boba-cyan); }

@@ -736,6 +736,30 @@ struct CardDetailView: View {
                 }
             }
 
+            // "In your collection" summary — same shape as
+            // CollectionCardDetailView (tick 107 parity). Lets users
+            // tapping a card from Find see whether they already own a
+            // copy + at which designation, without switching tabs.
+            let ownedEntries = collection.entries(forBobaId: card.id)
+            if !ownedEntries.isEmpty {
+                Divider().background(Design.Colors.glassBorder)
+                let byDesig = Dictionary(grouping: ownedEntries, by: { $0.designation })
+                    .mapValues { $0.count }
+                let summary = byDesig
+                    .sorted { $0.key.rawValue < $1.key.rawValue }
+                    .map { (d, n) in n > 1 ? "\(d.displayName) ×\(n)" : d.displayName }
+                    .joined(separator: " · ")
+                VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+                    Text("IN YOUR COLLECTION (\(ownedEntries.count))")
+                        .font(Design.Fonts.mono(9, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .tracking(1.5)
+                    Text(summary)
+                        .font(Design.Fonts.mono(13, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                }
+            }
+
             Divider().background(Design.Colors.glassBorder)
 
             PricingSection(card: card)

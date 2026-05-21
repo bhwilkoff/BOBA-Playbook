@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 107 — 2026-05-20 — **iOS** — Find Card detail "IN YOUR COLLECTION" summary
+- **Cadence:** 107 % 5 = 2 → iOS.
+- **Picked:** Find-tab `CardDetailView` had NO "in your collection" summary — only the Collection-tab `CollectionCardDetailView` did. Find users tapping a card from search had no signal whether they already owned a copy + at which designation. iOS Android tick 94 + 99 + the existing CollectionCardDetail already had this summary; the Find tab was the missing surface.
+- **Shipped:**
+  - `CardDetailView.swift` body — new block inserted between the variations/extras area and the `Divider() / PricingSection` block:
+    - Reads `collection.entries(forBobaId: card.id)` (already exposed on `CollectionStore` per existing CollectionCardDetailView usage).
+    - When `ownedEntries.isNotEmpty`, groups by designation + builds a "Personal · For Sale ×2 · Wanted" summary string.
+    - Renders inside a cyan-accent block: "IN YOUR COLLECTION (N)" header + bold cyan summary line.
+    - Uses the existing `Design.Colors.bobaCyan` + mono fonts — same shape as `CollectionCardDetailView::ownedEntries` to keep visual identity consistent across the two card-detail surfaces.
+- **Verified:** `collection.entries(forBobaId:)` exists at `CollectionStore.swift:205`. `UserCard.Designation.displayName` already used elsewhere in this file. SourceKit cross-file noise preexisting.
+- **PARITY.md:** No row — UX polish on already-✅ Find Card detail row.
+- **Next:** tick 108 = web; 109 = Android; 110 = opt.
+
+
+
 ### Tick 106 — 2026-05-20 — **Android** — Practice placeholder: user-facing copy
 - **Cadence:** 106 % 5 = 1 → Android.
 - **Picked:** `PracticePlaceholder.kt`'s BOBAEmptyState body read "The iOS state-machine engine (DECISIONS.md #030) ports as pure Kotlin in :core:domain. Multi-session effort scheduled post-M8. Admin-gated." Pure developer jargon — referenced internal doc + Kotlin module path. The screen is admin-gated but admins ARE the BoBA team / close beta + they don't need to read DECISIONS.md to use the app. Empty-state copy should always be user-facing.

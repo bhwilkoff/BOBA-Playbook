@@ -2896,3 +2896,14 @@ Both flow into a single tick 192 commit. Bump v2.293 / build 555.
 - **Edge cases handled:** sign-out + sign-in-as-different-user → username changes → re-seed. Optimistic toggle that the server later confirms → re-fire keys but inner condition rejects re-seed (state stays in sync). Server rejection → local state reverts (existing onResult path), LaunchedEffect doesn't undo it because server value didn't change.
 - **PARITY note:** the audit at tick 196 marked `Public collection URL → toggle on Android` as ⏳ M7. The toggle exists; what was broken was the HYDRATION. Bumping it to ✅ Android now that this gap is closed.
 - **Next:** tick 200 = opt (200 % 5 = 0). Verify CI + look for net-removal opportunities.
+
+### Tick 200 — 2026-05-21 — opt: collapse stale Android M1/M2/M3/M5 plan checklists + Pending Ben SETUP (-44 lines)
+- **Milestone tick.** Verified CI on tick 199 (a5c72e9) green.
+- **Find:** SCRATCHPAD had two parallel narratives — line 173 says "M0 through M7 shipped" with a curated "Deferred follow-ups" list at lines 181-192, AND lines 229-302 had the ORIGINAL per-milestone planning checklists. The audit at tick 196 confirmed M1/M2/M3/M5 are fully shipped (Find adaptive layouts, Wall/Shows/Rainbows on Collection, live Scan, Learn glossary tooltips). The detail checklists were stale duplicates.
+- **Also removed:** "Pending Ben (SETUP.md)" 8-item bullet list. Ben has the Android dev env stood up, has shipped Firebase auth, runs CI builds, etc. The bullets are dead.
+- **Kept:** M4 (3-pane tablet + drag-and-drop NOT shipped), M5.5 (engine port still TBD), M6 (Google Maps Find a Store TBD), M7 (Discord OAuth via Auth Tab + Tink-encrypted storage TBD), M8 (closed testing not started).
+- **Trimmed M4 to its 3 remaining items:** 3-pane tablet, drag-and-drop, sharedBounds zoom.
+- **Net change:** -44 lines (3 insertions, 47 deletions) in SCRATCHPAD.md.
+- **Cadence rule:** opt tick should net-remove. ✓ -44.
+- **Status snapshot:** 4 of 8 Discord-backlog items fully shipped across all 3 platforms (#1 power-range, #2 rainbow lens, #5 DBS, #7 print-run). #3 (glossary tooltips), #4 (format-legality chip) need iOS+web. #6 (Wanted-list public sharing) and #8 (events calendar — needs iOS port) remain.
+- **Next:** tick 201 = Android. Look at remaining Android backlog or fresh Discord-mining pass.

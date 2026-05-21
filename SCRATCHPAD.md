@@ -216,55 +216,11 @@ Final stack in production: Android Studio Panda 4 / AGP 9.2.0 / Kotlin 2.3.21 / 
 - ✅ GitHub Actions workflow (`.github/workflows/android-build.yml`): PR builds, debug APK upload, Play Store upload stub for M8
 - ✅ Comprehensive `android/SETUP.md` walking Ben through every external-service setup
 
-**Pending Ben (SETUP.md):**
-- ⏳ Install Android Studio + JDK on PATH (Phase A1–A2)
-- ⏳ First Gradle sync — generates `gradle/wrapper/gradle-wrapper.jar` (Phase A3)
-- ⏳ Generate upload keystore via `keytool` + send SHA-256 + SHA-1 fingerprints back to Claude (Phase B1)
-- ⏳ Create Play Console developer account ($25 one-time fee, 24-48h verify, Phase B2)
-- ⏳ Create Firebase project + register Android app + download `google-services.json` (Phase B3)
-- ⏳ Generate Sign in with Google OAuth client ID + send to Claude (Phase B4)
-- ⏳ Send Supabase URL + anon key to Claude (Phase B5)
-- ⏳ First-build smoke test: app launches, BOBA wordmark renders on near-black background, no crash (Phase C1)
-
-### ⏳ Android M1 — Find + foundational adaptive layouts (phone + tablet + Chromebook)
-- `NavigationSuiteScaffold` (5 destinations) — adapts to NavigationBar (compact) / NavigationRail (medium) / PermanentNavigationDrawer (expanded)
-- Find tab with `ExpandedFullScreenSearchBar` on compact / `ExpandedDockedSearchBar` on medium+
-- Featured `HorizontalMultiBrowseCarousel` rows (no-search state)
-- `LazyVerticalGrid(GridCells.Adaptive)` for search results
-- `FilterChip` row for committed tokens
-- Container transform (`sharedBounds`) into card detail — compact only; medium+ uses pane switch
-- `CardDetailScreen` with canonical 6-cell stats grid
-- **WindowSizeClass adaptation validated on Chromebook + Pixel Tablet emulator + phone** — every screen has explicit `COMPACT` / `MEDIUM` / `EXPANDED` behavior
-- Edge-to-edge + predictive back validated
-
-### ⏳ Android M2 — Collection
-- Designation `SingleChoiceSegmentedButtonRow`
-- Grid / List / Wall display modes
-- Designation badges
-- Custom Rainbow editor (mirrors iOS v2.219+)
-- My Shows (role-gated push destination)
-- Tablet: `NavigableListDetailPaneScaffold` for Rainbow + Custom Rainbow detail panes
-
-### ⏳ Android M3 — Scan + Pricing
-- CameraX + ML Kit Text Recognition v2 bundled (Latin)
-- `ScanCoordinator` + per-tab destination routing
-- Pricing panels in card detail (eBay + COMC + Radish)
-- `BottomAppBar` scan-active state surface
-- `HorizontalFloatingToolbar` for medium+ widths
-
-### ⏳ Android M4 — Decks (3-pane on tablet from day one)
-- Card pool + persistent `DeckSummaryBar` (compact)
-- Tap-summary → `ModalBottomSheet` editor with `sharedBounds` hero zoom (compact)
+### ⏳ Android M4 — Decks (3-pane on tablet polish)
 - **Tablet/Chromebook: `NavigableListDetailPaneScaffold` with 3 panes (saved decks / pool / editor)** — no hero-zoom, pane switching instead
-- Manage Decks / Rules / Legality push destinations
 - Drag-and-drop via `Modifier.dragAndDropSource` / `dragAndDropTarget`
-- Long-press to add (canonical mobile add gesture)
-
-### ⏳ Android M5 — Learn
-- Single-stream articles + skill-level `SegmentedButton` scope
-- In-corpus `SearchBar`
-- Glossary `TooltipBox` for highlighted terms
-- Tablet: `NavigableListDetailPaneScaffold` (category list pane + article detail pane)
+- Container transform / `sharedBounds` hero zoom on the compact editor sheet
+- (Card pool + DeckSummaryBar + Manage Decks / Rules / Legality push surfaces shipped tick 196+ audit)
 
 ### ⏳ Android M5.5 — Practice executor (admin-gated)
 - Port iOS state-machine engine to pure Kotlin in `:core:domain` (`PersistentEffect`, `WeaponTransform`, `firePersistentTriggers`, `applyHDRecover` pipeline per DECISIONS.md #030)

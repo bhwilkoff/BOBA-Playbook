@@ -76,6 +76,28 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 150 — 2026-05-21 — **opt** — Drop ~239 lines of dead code across iOS + web
+- **Cadence:** 150 % 5 = 0 → opt.
+- **Picked:** Cross-platform sweep for orphans the earlier opt rounds didn't catch.
+- **Shipped:**
+  - **iOS @State / @AppStorage orphans (4 lines)**:
+    - `CollectionCardDetailView.swift:38`: `@State private var focusedEntryID: UUID?` — never read or written.
+    - `AdminPanelView.swift:18-19`: `roleUpdateTarget` + `showRolePicker` — leftover state from an earlier role-picker UI that got replaced by the inline role chip.
+    - `CollectionView.swift:65`: `@AppStorage("selectedIconName")` — duplicate declaration (ProfileView + SearchView each have their own valid @AppStorage on the same key; CollectionView's copy is unused).
+  - **iOS orphan `commitHeldCards()` (22 lines, HouseOfCardsView.swift)**: After tick 145 dropped `spawnHeldPair`, this helper that committed held cards from `heldCards[]` to `dynamicCards[]` no longer had a caller. The `heldCards[]` array itself stays — it's still used by the live-pickup pipeline; only the pair-spawn-commit path is gone.
+  - **Web orphan practice-mode helpers (213 lines, js/practice.js)**:
+    - `pmResolveEffect` (146 lines): the legacy regex-based play-effect resolver. Comment at line 1675 even labeled it "Callers fall back to the regex resolver (pmResolveEffect) when the card has no structured entry" — but no callers actually fall back to it; structured executor `pmExecStructured` is the only effect path. Earlier opt round (e82ed6f) dropped `pmDetectHDRecovery`; this is the next-layer purge.
+    - `pmFallbackEffect` (1 line): only ever called from inside the now-deleted `pmResolveEffect`.
+    - `pmIncompatibleHeroCount` (5 lines): leftover hero-deck-builder validator from a pre-`pmFormatPowerCap` era.
+    - `pmEffectDescription` (5 lines): unused; the live UI reads `card.playAbility` directly.
+    - `pmRenderPlaysUsedRow` (40 lines): an alternate plays-strip renderer that was superseded by inline rendering inside the battle-card column.
+    - `pmShowCpuPlayQueue` + `pmShowCpuSubCallout` (7 lines combined): "Legacy wrappers — kept for any remaining direct calls" said the comment, but no direct callers remain after the queue refactor. Both are pure passthroughs to `pmQueueCpuPlays`/`pmQueueCpuSub`.
+  - **Updated comment at line 1675** to no longer claim a regex fallback exists.
+- **Why it's safe:** every removed symbol verified zero remaining call sites via global `grep -E "\\bNAME\\b"` (word-boundary, no parens required so function references are caught). The 6 practice.js orphans share the same lineage — a structured-executor refactor that obsoleted the regex resolver and its descendants. The `commitHeldCards` removal is a clean rip-out of the dead `spawnHeldPair` ecosystem.
+- **Net:** −239 lines (+2 inserts for the updated comment) across 5 files (BOBAPlaybook/Views/Collection/CollectionView.swift, BOBAPlaybook/Views/Collection/CollectionCardDetailView.swift, BOBAPlaybook/Views/HouseOfCards/HouseOfCardsView.swift, BOBAPlaybook/Views/Profile/AdminPanelView.swift, js/practice.js).
+- **PARITY.md:** No row.
+- **Next:** tick 151 = Android.
+
 ### Tick 149 — 2026-05-21 — **Android** — Card detail "Decks with this card": destructive-overwrite warning + Undo
 - **Cadence:** 149 % 5 = 4 → Android.
 - **Picked:** Second-to-last untreated destructive-overwrite surface on Android. Tapping a "Decks with this card" row in the Card detail screen called `decksVmHere.loadSaved(deck, catalog)` then fired a Snackbar saying *"Loaded \"X\" into the Decks editor"* — silently wiping any in-progress draft. Same shape as the Manage-Decks load path before tick 144. Now that `restoreDraft(snapshot)` is wired (tick 139), Undo costs nothing.

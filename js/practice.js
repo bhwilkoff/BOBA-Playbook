@@ -1675,8 +1675,8 @@ window.showUndoToast = showUndoToast;
 // Loads the effect database lazily and exposes pmExecStructured, which
 // consumes an entry's `effects[]` and returns {selfDelta, oppDelta,
 // selfHDDelta, oppHDDelta, description, handled}. Unknown ops are
-// skipped (forward-compat). Callers fall back to the regex resolver
-// (pmResolveEffect) when the card has no structured entry.
+// skipped (forward-compat). Cards without a structured entry currently
+// fall through with handled=false; callers treat that as "no effect."
 
 let PM_PLAY_EFFECTS = null;
 let PM_PLAY_EFFECTS_PROMISE = null;
@@ -3951,156 +3951,6 @@ function pmPurgeExpiredBlocks() {
   }
 }
 
-// ── Play card effects engine (ported from iOS PracticeStore) ──────
-// Returns { playerDelta, cpuDelta } power changes
-function pmResolveEffect(card, playerCard, cpuCard) {
-  const ability = card.playAbility || '';
-  if (!ability) return pmFallbackEffect(card.playCost || 0);
-
-  // Numeric-only abilities (shorthand like "75", "100")
-  const numVal = parseInt(ability.trim());
-  if (!isNaN(numVal) && numVal > 0 && /^\d+$/.test(ability.trim())) return { playerDelta: numVal, cpuDelta: 0 };
-
-  const text = ability.toLowerCase();
-
-  // Power swap / set effects
-  if (text.includes('swap your hero\'s current power with your opponent') || text.includes('swap current power with your opponent')) {
-    const myPow = playerCard?.power || 0, theirPow = cpuCard?.power || 0;
-    return { playerDelta: theirPow - myPow, cpuDelta: myPow - theirPow };
-  }
-  if (text.includes('set your hero\'s power to 5 higher') || text.includes('set your hero\'s power to the same')) {
-    const theirPow = cpuCard?.power || 0, myPow = playerCard?.power || 0;
-    const target = text.includes('5 higher') ? theirPow + 5 : theirPow;
-    return { playerDelta: target - myPow, cpuDelta: 0 };
-  }
-  if (text.includes('same power as your opponent') || text.includes('same as your opponent')) {
-    return { playerDelta: (cpuCard?.power || 0) - (playerCard?.power || 0), cpuDelta: 0 };
-  }
-  if (text.includes('power is doubled')) return { playerDelta: playerCard?.power || 0, cpuDelta: 0 };
-
-  // Cancel effects
-  if (text.includes('cancel every play your opponent') || text.includes('cancel all plays')) return { playerDelta: 0, cpuDelta: 0 };
-
-  // Steal effects
-  if (text.includes('steal')) {
-    let m = text.match(/steal -(\d+).*\+(\d+)/);
-    if (m) return { playerDelta: parseInt(m[2]) || 5, cpuDelta: -(parseInt(m[1]) || 5) };
-    return { playerDelta: 5, cpuDelta: -5 };
-  }
-
-  // Coin flip
-  if (text.includes('flip a coin')) return pmResolveCoinFlip(text, playerCard);
-
-  // Dice roll
-  if (text.includes('roll a di') || text.includes('roll a die')) return pmResolveDiceRoll(text, playerCard, cpuCard);
-
-  // Simple "+N" to your hero — accepts "gets/gains +N" OR bare "give your hero +N"
-  let m = text.match(/(?:your|this|give your|the) (?:hero|current hero|hero's power|active hero)(?:'s power)?.*?(?:gets?|gains?|in the active battle.*?gets) \+(\d+)/)
-       || text.match(/give your (?:hero|current hero|active hero)(?:'s power)? \+(\d+)/)
-       || text.match(/your hero \+(\d+)/);
-  if (m) {
-    const bonus = parseInt(m[1]) || 0;
-    const wm = text.match(/if your hero has (?:a |an )?(\w+) weapon/);
-    if (wm && playerCard?.element !== wm[1].toUpperCase()) return { playerDelta: 0, cpuDelta: 0 };
-    return { playerDelta: bonus, cpuDelta: 0 };
-  }
-
-  // "All your heroes get +N"
-  m = text.match(/all your heroes get \+(\d+)/);
-  if (m) return { playerDelta: parseInt(m[1]) || 10, cpuDelta: 0 };
-  m = text.match(/all your opponent's heroes get -(\d+)/);
-  if (m) return { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 10) };
-
-  // Opponent power reduction patterns
-  m = text.match(/opponent's hero(?:'s power)?.*?(?:gets?|loses?) -(\d+)/);
-  if (m) return { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 0) };
-  m = text.match(/lower.*?opponent.*?-(\d+)/);
-  if (m) return { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 0) };
-  m = text.match(/their hero gets -(\d+)/);
-  if (m) return { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 0) };
-  if (text.includes('opponent')) {
-    m = text.match(/give it -(\d+)/);
-    if (m) return { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 0) };
-  }
-
-  // Weapon-conditional boost
-  m = text.match(/if your hero has (?:a |an )?(\w+) weapon.*?\+(\d+)/);
-  if (m) return playerCard?.element === m[1].toUpperCase() ? { playerDelta: parseInt(m[2]) || 0, cpuDelta: 0 } : { playerDelta: 0, cpuDelta: 0 };
-  m = text.match(/all heroes with (\w+) weapons get \+(\d+)/);
-  if (m) return playerCard?.element === m[1].toUpperCase() ? { playerDelta: parseInt(m[2]) || 10, cpuDelta: 0 } : { playerDelta: 0, cpuDelta: 0 };
-  m = text.match(/opponent's hero has (?:a |an )?(\w+) weapon.*?-(\d+)/);
-  if (m) return cpuCard?.element === m[1].toUpperCase() ? { playerDelta: 0, cpuDelta: -(parseInt(m[2]) || 15) } : { playerDelta: 0, cpuDelta: 0 };
-
-  // Weapon type matching
-  if (text.includes('different weapon type') && text.includes('opponent')) {
-    const same = playerCard?.element === cpuCard?.element;
-    m = text.match(/\+(\d+)/);
-    if (m) { const b = parseInt(m[1]) || 10; return same ? { playerDelta: 0, cpuDelta: 0 } : { playerDelta: b, cpuDelta: 0 }; }
-  }
-
-  // Defensive / protection
-  if (text.includes("can't drop below") || text.includes("can't lose any more power")) {
-    const wm = text.match(/(\w+) weapon/);
-    if (wm && playerCard?.element === wm[1].toUpperCase()) return { playerDelta: 15, cpuDelta: 0 };
-    return { playerDelta: 0, cpuDelta: 0 };
-  }
-  if (text.includes("can't have its power reduced") || text.includes("can't be affected")) return { playerDelta: 10, cpuDelta: 0 };
-
-  // Conditional bonuses
-  if (text.includes('if this battle is tied')) { m = text.match(/\+(\d+)/); if (m) return { playerDelta: parseInt(m[1]) || 1, cpuDelta: 0 }; }
-  if (text.includes('lost the previous') || text.includes('lost the first') || text.includes('lost the 2 previous')) { m = text.match(/\+(\d+)/); if (m) return { playerDelta: parseInt(m[1]) || 15, cpuDelta: 0 }; }
-  if (text.includes('won the first battle') || text.includes('won the last battle') || text.includes('won 2 battles') || text.includes('won at least')) { m = text.match(/\+(\d+)/); if (m) return { playerDelta: parseInt(m[1]) || 10, cpuDelta: 0 }; }
-  if (text.includes('if you substituted this battle')) { m = text.match(/\+(\d+)/); if (m) return { playerDelta: parseInt(m[1]) || 10, cpuDelta: 0 }; }
-
-  // Hot dog conditional
-  if (text.includes('hot dog') && text.includes('left')) { m = text.match(/\+(\d+)/); if (m) return { playerDelta: parseInt(m[1]) || 10, cpuDelta: 0 }; }
-
-  // Draw effects with power component
-  if (text.includes('draw') && text.includes('play')) {
-    m = text.match(/\+(\d+)/);
-    if (m && (text.includes('your hero gets') || text.includes('hero gains'))) return { playerDelta: parseInt(m[1]) || 0, cpuDelta: 0 };
-    // "your Hero loses -N" cost on a draw-based card
-    m = text.match(/your hero loses -(\d+)/);
-    if (m) return { playerDelta: -(parseInt(m[1]) || 0), cpuDelta: 0 };
-    return { playerDelta: 0, cpuDelta: 0 };
-  }
-
-  // Discard-based power — only gate on actual discard *actions* (verbs), not "discard pile" as a location
-  if (/\bdiscard(?:ed|s|ing)?\b(?!\s+pile)/.test(text)) {
-    m = text.match(/opponent's hero gets -(\d+)/);
-    if (m) return { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 20) };
-    m = text.match(/\+(\d+).*every card discarded/);
-    if (m) return { playerDelta: (parseInt(m[1]) || 5) * 3, cpuDelta: 0 };
-    m = text.match(/your hero gets \+(\d+)/);
-    if (m) return { playerDelta: parseInt(m[1]) || 10, cpuDelta: 0 };
-    // fall through so "+N" fallback can still resolve power changes on other discard-action cards
-  }
-
-  // For the rest of the game
-  if (text.includes('for the rest of the game')) {
-    m = text.match(/\+(\d+)/);
-    if (m) return { playerDelta: parseInt(m[1]) || 5, cpuDelta: 0 };
-    m = text.match(/-(\d+)/);
-    if (m) return { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 5) };
-    return { playerDelta: 5, cpuDelta: 0 };
-  }
-
-  // Hot dog economy (no power change)
-  if (text.includes('recover') && text.includes('hot dog')) return { playerDelta: 0, cpuDelta: 0 };
-  if (text.includes('hot dog')) return { playerDelta: 0, cpuDelta: 0 };
-  if (text.includes('honors')) return { playerDelta: 0, cpuDelta: 0 };
-  if (text.includes('look at') || text.includes('reveal the top')) return { playerDelta: 0, cpuDelta: 0 };
-
-  // Last resort: find any +N or -N
-  m = text.match(/\+(\d+)/);
-  if (m) return { playerDelta: parseInt(m[1]) || 0, cpuDelta: 0 };
-  m = text.match(/-(\d+)/);
-  if (m) return text.includes('opponent') ? { playerDelta: 0, cpuDelta: -(parseInt(m[1]) || 0) } : { playerDelta: -(parseInt(m[1]) || 0), cpuDelta: 0 };
-
-  return pmFallbackEffect(card.playCost || 0);
-}
-
-function pmFallbackEffect(cost) { return { playerDelta: cost * 6 + 5, cpuDelta: 0 }; }
 
 // ══════════════════════════════════════════════════════════════════
 // § Format-aware deck construction
@@ -4124,12 +3974,6 @@ function pmFormatHeroDeckSize(format) {
     default:        return 60;
   }
 }
-function pmIncompatibleHeroCount(existing, format) {
-  const cap = pmFormatPowerCap(format);
-  if (!cap) return 0;
-  return existing.filter(c => (c.power || 0) > cap).length;
-}
-
 // Build a 60-card (or 40 in limited) hero deck honoring the active
 // format's power cap and a realistic power curve: 50% high (≥135),
 // 40% mid (100–134), 10% low (55–99). Caps any single power value at
@@ -4375,11 +4219,6 @@ function pmResolveDiceRoll(text, playerCard, cpuCard) {
   return { playerDelta: 10, cpuDelta: 0 };
 }
 
-function pmEffectDescription(card) {
-  const ability = card.playAbility || '';
-  if (!ability) return `+${(card.playCost || 0) * 6 + 5} Power`;
-  return ability;
-}
 
 function pmElementColor(el) {
   const map = {
@@ -6396,46 +6235,6 @@ function pmScrollActiveIntoView() {
   active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
 }
 
-function pmRenderPlaysUsedRow(col, b) {
-  let host = col.querySelector('.pm-bc-plays-row');
-  const playerPlays = b.playerPlaysPlayed || [];
-  const cpuPlays    = b.cpuPlaysPlayed || b.cpuPlaysRan || [];
-  if (!playerPlays.length && !cpuPlays.length) {
-    if (host) host.remove();
-    return;
-  }
-  if (!host) {
-    host = document.createElement('div');
-    host.className = 'pm-bc-plays-row';
-    col.appendChild(host);
-  }
-  // Stash the cards on the host so the click handler can resolve a
-  // chip back to its play card without re-walking the battle slot.
-  host._playerPlays = playerPlays;
-  host._cpuPlays    = cpuPlays;
-
-  const chip = (name, side, idx) =>
-    `<button type="button" class="pm-bc-play-chip pm-bc-play-chip--${side}" data-side="${side}" data-idx="${idx}">${name}</button>`;
-  const playerStrip = playerPlays.map((c, i) => chip((c.name || '').substring(0, 14), 'you', i)).join('');
-  const cpuStrip    = cpuPlays.map((c, i)    => chip((c.name || '').substring(0, 14), 'opp', i)).join('');
-  host.innerHTML = `
-    ${playerPlays.length ? `<div class="pm-bc-plays-side"><span class="pm-bc-plays-count">YOU · ${playerPlays.length}</span>${playerStrip}</div>` : ''}
-    ${cpuPlays.length    ? `<div class="pm-bc-plays-side"><span class="pm-bc-plays-count">CPU · ${cpuPlays.length}</span>${cpuStrip}</div>` : ''}
-  `;
-
-  // Tap-to-review wiring — re-attach each render so newly-added chips
-  // also pick up the handler. Mirrors the iOS PlayReviewSheet.
-  host.querySelectorAll('.pm-bc-play-chip').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const side = btn.dataset.side;
-      const idx = parseInt(btn.dataset.idx, 10);
-      const arr = side === 'you' ? host._playerPlays : host._cpuPlays;
-      const card = arr && arr[idx];
-      if (card) pmShowPlayReviewSheet(card);
-    });
-  });
-}
 
 // Animated reveal for dice rolls and coin flips. Mirrors iOS
 // DiceCoinRevealOverlay — large glyphs spin briefly, settle on the
@@ -7677,15 +7476,6 @@ function pmShowSingleCpuPlay(entry, done) {
       dismiss();
     });
   }
-}
-
-// Legacy wrappers — kept for any remaining direct calls, but route through queue
-function pmShowCpuPlayQueue() {
-  pmQueueCpuPlays();
-}
-function pmShowCpuSubCallout(didSub) {
-  if (!didSub) return;
-  pmQueueCpuSub();
 }
 
 function pmInitPlaymat() {

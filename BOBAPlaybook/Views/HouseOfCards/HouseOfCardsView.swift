@@ -3237,29 +3237,6 @@ private final class HouseOfCardsCoordinator: NSObject {
         print("[HoC] Art applied (tex \(texture.width)×\(texture.height))")
     }
 
-    private func commitHeldCards() {
-        guard !heldCards.isEmpty else { return }
-        for card in heldCards {
-            if var body = card.entity.components[PhysicsBodyComponent.self] {
-                body.mode = .dynamic
-                body.isContinuousCollisionDetectionEnabled = true
-                card.entity.components.set(body)
-            }
-            // Small downward seed velocity so the body isn't at
-            // perfect rest on commit (avoids solver-equilibrium
-            // lock-in). With the v2.164 3mm collider this is much
-            // less critical — the thicker collider gives PhysX
-            // proper edge contact to compute around — but a small
-            // kick is cheap insurance.
-            var motion = PhysicsMotionComponent()
-            motion.linearVelocity = SIMD3<Float>(0, -0.02, 0)
-            card.entity.components.set(motion)
-            dynamicCards.append(card)
-        }
-        print("[HoC] Committed \(heldCards.count) cards. Tower: \(dynamicCards.count) total.")
-        heldCards.removeAll()
-    }
-
     private func clearAllCards() {
         selectedCardEntity = nil   // outline gets removed with entity
         for c in dynamicCards { c.entity.removeFromParent() }

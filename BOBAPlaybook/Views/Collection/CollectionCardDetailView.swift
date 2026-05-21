@@ -33,9 +33,6 @@ struct CollectionCardDetailView: View {
     /// Custom decks this card is in. Loaded on appear when the user is
     /// authenticated. `nil` = not yet loaded, `[]` = loaded and empty.
     @State private var containingDecks: [SavedDeck]? = nil
-    /// Selected copy for nav — identity comes from UserCard.id so
-    /// multiple entries of the same bobaId can be paged through.
-    @State private var focusedEntryID: UUID?
     /// Pushed card detail when coach taps a variation / other-copy tile.
     @State private var jumpBobaId: String?
     /// Mutable "current bobaId" so swipe-between-cards can advance

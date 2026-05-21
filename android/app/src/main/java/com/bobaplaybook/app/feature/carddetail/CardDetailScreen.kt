@@ -279,6 +279,14 @@ private fun CardDetailBody(
     onRefreshPricing: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Re-resolve the app-scoped snackbar host + coroutine scope so the
+    // "Decks with this card" tap-to-load (tick 149) can fire Snackbar
+    // feedback from inside this sub-Composable. The outer
+    // CardDetailScreen declares its own copies; redeclaring here keeps
+    // CardDetailBody's signature stable.
+    val snackbarHostState = LocalAppSnackbar.current
+        ?: remember { androidx.compose.material3.SnackbarHostState() }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
     ) {

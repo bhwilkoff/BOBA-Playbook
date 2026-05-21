@@ -2738,3 +2738,13 @@ Skip the web AddToDeck parity that this tick replaced. Tick 179 = web (179 % 5 =
 - **Punch-list #5:** ✅ Android · ✅ iOS · ✅ web. **DONE.**
 - **Backlog status:** 2 of 8 items closed across all 3 platforms (#2 + #5). 6 items remain.
 - **Next:** tick 189 = Android (cadence). Pick #4 (format-legality chip) iOS+web parity OR #3 (glossary tooltips) iOS+web parity OR a new punch-list item. #4 is ✅ Android, ⏳ iOS+web → tick 190+ picks up. For tick 189 (Android), pick #7 (print-run / SP / SSP indicator) since #1-5 are all at least partial Android.
+
+### Tick 189 — 2026-05-21 — Android: print-run / SSP badge on card detail (punch list #7)
+- **Verified CI on 6a65ecb / b85a277 green** (web tick 188 + Android tick 187 both clean).
+- **Discord backlog #7 — Android card detail:**
+  - Domain: added `isInspiredInk: Boolean = false` to `:core:domain/Card.kt` (field is in cards.json but the Android model never decoded it). Added `printRunLabel: String?` computed property — returns `/5` (Hex), `/10` (Glow), `/25` (Fire), `/50` (Ice) for Inspired Ink with documented weapon-tied print runs (DECISIONS.md #028), `"Serial"` for other Inspired Ink elements where print run isn't public (Steel/Gum/Brawl/Super), `"SSP"` for Superfoil, `null` for the typical 99% card.
+  - UI: `BadgeRow` in CardDetailScreen gets a new accent-bordered `Surface` chip rendering `card.printRunLabel`. SSP → brand orange; numbered → brand cyan. Null = chip absent.
+  - Renders alongside the existing "INSPIRED INK" violet capsule when both apply (Inspired Ink Fire → both INSPIRED INK + "/25" chips). At-a-glance scarcity comprehension.
+- **Punch-list status:** #7: ✅ Android · ⏳ iOS · ⏳ web. 8 of 8 backlog items have at least 1 platform shipped now.
+- **iOS request from Ben (queued for tick 192):** "On pull-to-refresh of Collection in iOS, there are 3 separate loading spinners as it refreshes est. market prices — collapse to one."
+- **Next:** tick 190 = opt (190 % 5 = 0). Then tick 191 = Android, tick 192 = iOS (Ben's spinner fix).

@@ -77,6 +77,14 @@ data class Card(
     // Brawl Playmaker, Tecmo Bowl).
     @SerialName("isBonusPlay") val isBonusPlay: Boolean? = null,
     @SerialName("isHTD")       val isHTD: Boolean? = null,
+
+    /**
+     * Tick 189 — Discord backlog #7. Catalog has `isInspiredInk` on
+     * every card; iOS Card.swift mirrors it as a non-optional Bool.
+     * Inspired Ink = Serialized variant with weapon-tied print runs
+     * (Hex /5, Glow /10, Fire /25, Ice /50 per DECISIONS.md #028).
+     */
+    @SerialName("isInspiredInk") val isInspiredInk: Boolean = false,
 ) {
     /**
      * Canonical card identifier — matches `scripts/boba_id.py` v2 formula
@@ -105,6 +113,30 @@ data class Card(
     /** User-facing display name. Heroes show their hero name; sealed shows product name. */
     val displayName: String
         get() = if (hero.isNotEmpty()) hero else name
+
+    /**
+     * Tick 189 — Discord backlog #7. Optional print-run label for the
+     * card. Returns null when there's no known scarcity indicator (the
+     * 99% case — Base Set, Battlefoils, etc.). Used by card detail +
+     * card cell to surface a "SSP / Numbered /N" badge for at-a-glance
+     * shopping comprehension.
+     *
+     * Source of truth: DECISIONS.md #028 "Inspired Ink = Serialized
+     * with weapon-tied print numbers: Hex /5, Glow /10, Fire /25, Ice
+     * /50." Superfoil is the next-rarest non-numbered treatment.
+     */
+    val printRunLabel: String?
+        get() = when {
+            isInspiredInk -> when (element.uppercase()) {
+                "HEX"  -> "/5"
+                "GLOW" -> "/10"
+                "FIRE" -> "/25"
+                "ICE"  -> "/50"
+                else   -> "Serial"   // Steel/Gum/Brawl/Super Inspired Ink — print run not public
+            }
+            treatment?.contains("Superfoil", ignoreCase = true) == true -> "SSP"
+            else -> null
+        }
 }
 
 /**

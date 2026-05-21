@@ -76,6 +76,27 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 118 — 2026-05-20 — **web** — Decks remove: Undo Snackbar (iOS 117 + Android 116 parity)
+- **Cadence:** 118 % 5 = 3 → web.
+- **Picked:** Web `DB.removeCard(bobaId, section)` fired silently — no toast, no Undo. iOS tick 117 just shipped "Removed X" banner; Android tick 116 has "Removed X · Undo" Snackbar on both compact + tablet panes. Web was the lone silent surface.
+- **Shipped:**
+  - `js/practice.js` event-delegated remove handler now:
+    - Captures the catalog card from `allCards.find(c => c.bobaId === bobaId)` BEFORE the remove so Undo re-adds the exact same Card object.
+    - Calls `DB.removeCard(bobaId, section)` + `dbRender`.
+    - Fires `showUndoToast("Removed {label}", undo)`. On Undo: temporarily flips `DB.browserTab` to the original section so `DB.addCard` routes to the right bucket; restores the prior tab; re-renders. AddResult discarded — the just-removed slot is free.
+  - New `showUndoToast(message, onUndo)` helper at the top of practice.js:
+    - Reuses the existing `#app-toast` element (same one `window.showToast` paints) but populates it with `<span>{msg}</span><button class="app-toast-action">Undo</button>`.
+    - 3s auto-clear (1.5s longer than the plain showToast — gives users time to react).
+    - `{ once: true }` on the Undo click listener prevents double-fires.
+  - `css/styles.css`:
+    - `.app-toast.visible` now sets `pointer-events: auto` so the Undo button is tappable (was `pointer-events: none` for the plain text toast).
+    - `.app-toast-action` cyan-accent button styling + `:focus-visible` outline for keyboard a11y.
+- **Verified:** `node -c js/practice.js` clean. The browserTab swap-and-restore around `DB.addCard` is the same pattern used elsewhere when adding cross-section. The plain `window.showToast` calls elsewhere keep working unchanged (the only difference is `pointer-events: auto` now — pure text toasts don't have tappable children so the change is invisible).
+- **PARITY.md:** No row — UX polish. 3-platform parity now: iOS banner (tick 117) + Android Snackbar+Undo (tick 116) + web Snackbar+Undo (tick 118).
+- **Next:** tick 119 = Android; 120 = opt.
+
+
+
 ### Tick 117 — 2026-05-20 — **iOS** — Decks remove gets "Removed X" banner (Add/Remove symmetry)
 - **Cadence:** 117 % 5 = 2 → iOS.
 - **Picked:** `editorDeckRow` had a silent remove path — both the tap-remove inside DeckCardRow (line 1024) AND the swipe-to-remove (line 1035) fired `store.removeCard(...)` with no banner. The add path has `addCardToDeck` → "Added X" banner since v2.038; the remove was silent. Add/Remove asymmetry users notice when swipes register without confirmation. Android tick 116 just shipped the same pattern (Snackbar + Undo); iOS now has the banner half (Undo defer to a future tick when the banner gets a richer action-state).

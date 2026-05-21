@@ -1070,8 +1070,29 @@ function initDeckBuilder(allCards) {
   view.addEventListener('click', e => {
     const btn = e.target.closest('.db-card-row-remove');
     if (!btn) return;
-    DB.removeCard(btn.dataset.remove, btn.dataset.section);
+    const bobaId = btn.dataset.remove;
+    const section = btn.dataset.section;
+    // Capture the card BEFORE remove so Undo can re-add it without
+    // re-walking the catalog. Tick 118 — Add/Remove banner symmetry
+    // + Undo affordance (parity with iOS tick 117 + Android tick 116).
+    const removed = allCards.find(c => c.bobaId === bobaId);
+    DB.removeCard(bobaId, section);
     dbRender(allCards);
+    if (removed) {
+      const label = removed.hero || removed.name || 'card';
+      showUndoToast(`Removed ${label}`, () => {
+        // Re-add via DB.addCard. AddResult discarded — the slot is
+        // free again so the add always succeeds.
+        // Restore section context first so addCard routes to the right
+        // bucket (Heroes / Plays / Bonus / HotDogs).
+        const tabBySection = { hero: 'hero', play: 'play', bonus: 'bonus', hotdog: 'hotdog' };
+        const prevTab = DB.browserTab;
+        DB.browserTab = tabBySection[section] || prevTab;
+        DB.addCard(removed);
+        DB.browserTab = prevTab;
+        dbRender(allCards);
+      });
+    }
   });
 
   // Deck name
@@ -1590,6 +1611,40 @@ function shuffle(arr) {
 }
 
 // Detect if a play card recovers hot dogs; returns number to restore (0 = no recovery)
+/// Inline toast with an Undo action button (Material Snackbar shape).
+/// Distinct from the plain `window.showToast` because that helper
+/// only accepts text. Auto-dismisses after 3s; tapping Undo within
+/// that window fires the callback + dismisses immediately. Tick 118
+/// — parity with iOS tick 117's "Removed X" banner + Android tick 116's
+/// Snackbar with Undo action.
+function showUndoToast(message, onUndo) {
+  // Reuse the same #app-toast element the plain showToast uses; just
+  // adds a tappable button child. Visibility class + 3s auto-clear
+  // handled inline to keep this self-contained.
+  let t = document.getElementById('app-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'app-toast';
+    t.className = 'app-toast';
+    document.body.appendChild(t);
+  }
+  t.textContent = '';  // clear any prior message
+  const text = document.createElement('span');
+  text.textContent = message;
+  const action = document.createElement('button');
+  action.type = 'button';
+  action.className = 'app-toast-action';
+  action.textContent = 'Undo';
+  action.addEventListener('click', () => {
+    onUndo?.();
+    t.classList.remove('visible');
+  }, { once: true });
+  t.append(text, action);
+  t.classList.add('visible');
+  if (showUndoToast._timer) clearTimeout(showUndoToast._timer);
+  showUndoToast._timer = setTimeout(() => t.classList.remove('visible'), 3000);
+}
+
 // ── Structured effect executor (play-effects.json) ────────────────
 // Loads the effect database lazily and exposes pmExecStructured, which
 // consumes an entry's `effects[]` and returns {selfDelta, oppDelta,

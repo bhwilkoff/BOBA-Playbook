@@ -2440,9 +2440,52 @@
              class="custom-rainbow-editor-input"
              placeholder="e.g. Cupid Griffey Chase, Glow Hunt…"
              maxlength="60" required />
-      <p class="custom-rainbow-editor-hint" id="custom-rainbow-editor-hint">
-        Filters land in a later release. For now, create a named rainbow as a checklist anchor — open it from the Collection tab to mark cards as you go.
-      </p>
+
+      <!-- Live progress preview — recalculates on every criteria
+           change. Renders even with empty criteria (= whole catalog). -->
+      <div class="custom-rainbow-editor-preview" id="custom-rainbow-editor-preview">
+        <span class="custom-rainbow-editor-preview-count" id="custom-rainbow-editor-preview-count">0 cards match</span>
+        <span class="custom-rainbow-editor-preview-owned" id="custom-rainbow-editor-preview-owned"></span>
+      </div>
+
+      <!-- Filters — one <details> per dimension. Sub-picker contents
+           hydrated on dialog-open from the catalog's distinct values. -->
+      <div class="custom-rainbow-editor-filters" id="custom-rainbow-editor-filters">
+        <label class="custom-rainbow-editor-label">Filters</label>
+        <details class="rainbow-filter" data-dim="heroes">
+          <summary><span class="rainbow-filter-name">Heroes</span><span class="rainbow-filter-count" aria-hidden="true"></span></summary>
+          <div class="rainbow-filter-body"></div>
+        </details>
+        <details class="rainbow-filter" data-dim="sets">
+          <summary><span class="rainbow-filter-name">Sets</span><span class="rainbow-filter-count" aria-hidden="true"></span></summary>
+          <div class="rainbow-filter-body"></div>
+        </details>
+        <details class="rainbow-filter" data-dim="subSets">
+          <summary><span class="rainbow-filter-name">Sub-sets</span><span class="rainbow-filter-count" aria-hidden="true"></span></summary>
+          <div class="rainbow-filter-body"></div>
+        </details>
+        <details class="rainbow-filter" data-dim="elements">
+          <summary><span class="rainbow-filter-name">Weapons</span><span class="rainbow-filter-count" aria-hidden="true"></span></summary>
+          <div class="rainbow-filter-body"></div>
+        </details>
+        <details class="rainbow-filter" data-dim="treatments">
+          <summary><span class="rainbow-filter-name">Treatments</span><span class="rainbow-filter-count" aria-hidden="true"></span></summary>
+          <div class="rainbow-filter-body"></div>
+        </details>
+        <details class="rainbow-filter" data-dim="cardTypes">
+          <summary><span class="rainbow-filter-name">Card types</span><span class="rainbow-filter-count" aria-hidden="true"></span></summary>
+          <div class="rainbow-filter-body"></div>
+        </details>
+        <details class="rainbow-filter" data-dim="releases">
+          <summary><span class="rainbow-filter-name">Releases</span><span class="rainbow-filter-count" aria-hidden="true"></span></summary>
+          <div class="rainbow-filter-body"></div>
+        </details>
+        <label class="rainbow-filter-toggle">
+          <input type="checkbox" id="custom-rainbow-editor-inspiredink" />
+          <span>Inspired Ink only</span>
+        </label>
+      </div>
+
       <div class="custom-rainbow-editor-error" id="custom-rainbow-editor-error" hidden></div>
       <div class="custom-rainbow-editor-actions">
         <button type="button" class="btn-ghost-sm" id="custom-rainbow-editor-delete" hidden>

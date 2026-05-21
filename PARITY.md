@@ -107,7 +107,7 @@ When shipping any user-facing feature:
 | Grid density picker (1/2/3 cols) | ✅ | ✅ | ✅ | DataStore-backed on Android via `CollectionPrefsStore` |
 | Value summary | ✅ | ✅ | ✅ | `user_cards.estimated_value` |
 | Value history chart | 🔮 | 🔮 | 🔮 | **Not built anywhere.** Both DESIGN.md §8.4 and ANDROID-DESIGN.md §8.4 describe it ("tap value summary → chart") but no implementation has landed on any platform. Was marked ✅ iOS in error; audit 2026-05-20 (tick 12) corrected. |
-| Custom Rainbows | ✅ | ✅ read + name-only editor | ⏳ M2 polish | Per-user filter goals; Supabase `user_custom_rainbows`. Web shipped read-only display + progress bar tick 7. Tick 15 added name-only editor (create + rename + delete) via `<dialog>`; sub-pickers for filter dimensions land in later ticks. |
+| Custom Rainbows | ✅ | ✅ | ⏳ M2 polish | Per-user filter goals; Supabase `user_custom_rainbows`. Web shipped tick 7 read-only display + tick 15 name editor + tick 16 full 7-dimension filter sub-pickers (heroes/sets/sub-sets/weapons/treatments/cardTypes/releases) + Inspired Ink toggle + live progress preview ("N cards match · X owned (Y%)"). |
 | Per-hero Auto Rainbows | ✅ | ✅ read-only | ⏳ M2 polish | Web synthesizes one row per owned hero × catalog, sorted by completion % desc. Read-only. Tick 8. |
 | My Shows (streamer-only) | ✅ | 🔮 | ⏳ M2 polish | iOS ships ShowsListView + ShowDetailView + show_cards table. Web has no streamer Shows surface (only Whatnot tile read on Purchase). Audit 2026-05-20 (tick 12) corrected the prior ✅ web claim. |
 | Wall view (display mode + share) | ✅ | ✅ canvas-render | ⏳ M2 polish | Web shipped canvas-rendered PNG (download + clipboard + Web Share) tick 5. Lifted from streamer-only per DECISIONS.md #036. |

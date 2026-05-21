@@ -2880,7 +2880,96 @@ const Collection = (() => {
      / updateCustomRainbow / deleteCustomRainbow.
   ──────────────────────────────────────────────────────────────── */
 
-  let _editingRainbow = null;  // null = create-new; non-null = edit
+  let _editingRainbow = null;   // null = create-new; non-null = edit
+  let _draftCriteria  = {};     // edit-form's in-flight criteria
+
+  // The seven catalog filter dimensions + the inspired-ink toggle —
+  // verbatim parity with iOS RainbowCriteria's struct shape (the
+  // matcher in API.rainbowCriteriaMatches consumes these keys).
+  const RAINBOW_DIMS = [
+    { key: 'heroes',     label: 'Heroes',     field: 'hero' },
+    { key: 'sets',       label: 'Sets',       field: 'set' },
+    { key: 'subSets',    label: 'Sub-sets',   field: 'subSet' },
+    { key: 'elements',   label: 'Weapons',    field: 'element' },
+    { key: 'treatments', label: 'Treatments', field: 'treatment' },
+    { key: 'cardTypes',  label: 'Card types', field: 'cardType' },
+    { key: 'releases',   label: 'Releases',   field: 'release' },
+  ];
+
+  /// Distinct non-empty values for one dimension across the catalog,
+  /// sorted case-insensitively. Memoized per dimension since the
+  /// catalog doesn't change during a session.
+  const _distinctValuesCache = {};
+  function distinctCatalogValues(dimKey) {
+    if (_distinctValuesCache[dimKey]) return _distinctValuesCache[dimKey];
+    const catalog = window.__bobaCatalog || [];
+    const field = RAINBOW_DIMS.find(d => d.key === dimKey)?.field;
+    if (!field) return [];
+    const seen = new Set();
+    for (const c of catalog) {
+      const v = c?.[field];
+      if (typeof v === 'string' && v.trim()) seen.add(v);
+    }
+    const sorted = [...seen].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    _distinctValuesCache[dimKey] = sorted;
+    return sorted;
+  }
+
+  function _criteriaSelections(criteria, dimKey) {
+    const list = criteria?.[dimKey];
+    return new Set(Array.isArray(list) ? list.map(v => String(v).toLowerCase()) : []);
+  }
+
+  /// Render one filter dimension's checkbox list inside its
+  /// `.rainbow-filter-body`. Each option is a `<label><input
+  /// type="checkbox">`. Selected count surfaces in the `<summary>`.
+  function _renderFilterDim(dim) {
+    const detailsEl = document.querySelector(`.rainbow-filter[data-dim="${dim.key}"]`);
+    if (!detailsEl) return;
+    const bodyEl  = detailsEl.querySelector('.rainbow-filter-body');
+    const countEl = detailsEl.querySelector('.rainbow-filter-count');
+    const values  = distinctCatalogValues(dim.key);
+    const selected = _criteriaSelections(_draftCriteria, dim.key);
+    bodyEl.innerHTML = values.map(v => `
+      <label class="rainbow-filter-option">
+        <input type="checkbox" data-value="${esc(v)}" ${selected.has(v.toLowerCase()) ? 'checked' : ''} />
+        <span>${esc(v)}</span>
+      </label>
+    `).join('');
+    countEl.textContent = selected.size > 0 ? `· ${selected.size}` : '';
+  }
+
+  /// Recompute "X cards match · Y of those owned (Z%)" from the
+  /// current draft criteria. Cheap enough to call on every checkbox
+  /// toggle even at 17k cards.
+  function _renderPreview() {
+    const catalog = window.__bobaCatalog || [];
+    const countEl = document.getElementById('custom-rainbow-editor-preview-count');
+    const ownedEl = document.getElementById('custom-rainbow-editor-preview-owned');
+    if (!countEl || !ownedEl) return;
+    if (!catalog.length) {
+      countEl.textContent = '… loading catalog';
+      ownedEl.textContent = '';
+      return;
+    }
+    const matching = catalog.filter(c => API.rainbowCriteriaMatches(c, _draftCriteria));
+    const ownedKeys = new Set(_cards
+      .filter(c => ['personal','for_sale','for_trade'].includes(c.designation))
+      .map(c => c.boba_id || c.card_number));
+    const ownedMatching = matching.filter(c => ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber));
+    countEl.textContent = `${matching.length.toLocaleString()} card${matching.length === 1 ? '' : 's'} match`;
+    const pct = matching.length === 0 ? 0
+      : Math.round((ownedMatching.length / matching.length) * 100);
+    ownedEl.textContent = `${ownedMatching.length} of those owned (${pct}%)`;
+  }
+
+  function _updateFilterCount(dimKey, delta) {
+    const detailsEl = document.querySelector(`.rainbow-filter[data-dim="${dimKey}"]`);
+    if (!detailsEl) return;
+    const countEl = detailsEl.querySelector('.rainbow-filter-count');
+    const list = _draftCriteria[dimKey] || [];
+    countEl.textContent = list.length > 0 ? `· ${list.length}` : '';
+  }
 
   function openCustomRainbowEditor(rainbow) {
     const dlg = document.getElementById('custom-rainbow-editor');
@@ -2888,13 +2977,23 @@ const Collection = (() => {
     const nameEl  = document.getElementById('custom-rainbow-editor-name');
     const delBtn  = document.getElementById('custom-rainbow-editor-delete');
     const errEl   = document.getElementById('custom-rainbow-editor-error');
+    const inkEl   = document.getElementById('custom-rainbow-editor-inspiredink');
     if (!dlg || !nameEl) return;
     _editingRainbow = rainbow || null;
+    // Deep-clone existing criteria so cancelling doesn't mutate the
+    // cached rainbow row.
+    _draftCriteria = rainbow
+      ? JSON.parse(JSON.stringify(rainbow.criteria || {}))
+      : {};
     titleEl.textContent = rainbow ? 'Edit Rainbow' : 'New Rainbow';
     nameEl.value = rainbow?.name || '';
+    if (inkEl) inkEl.checked = !!_draftCriteria.inspiredInkOnly;
     delBtn.hidden = !rainbow;
     errEl.hidden = true;
     errEl.textContent = '';
+    // Hydrate each filter dimension's checkbox list from the catalog.
+    RAINBOW_DIMS.forEach(_renderFilterDim);
+    _renderPreview();
     if (typeof dlg.showModal === 'function') dlg.showModal();
     setTimeout(() => nameEl.focus(), 50);
   }
@@ -2903,6 +3002,7 @@ const Collection = (() => {
     const dlg = document.getElementById('custom-rainbow-editor');
     if (dlg?.open) dlg.close();
     _editingRainbow = null;
+    _draftCriteria  = {};
   }
 
   function wireCustomRainbowEditor() {
@@ -2914,6 +3014,39 @@ const Collection = (() => {
       ?.addEventListener('click', closeCustomRainbowEditor);
     document.querySelector('[data-action="close-rainbow-editor"]')
       ?.addEventListener('click', closeCustomRainbowEditor);
+
+    // Delegate checkbox toggle handling to the filters container —
+    // keeps the wiring O(1) regardless of how many catalog values
+    // the user happens to see.
+    const filtersEl = document.getElementById('custom-rainbow-editor-filters');
+    filtersEl?.addEventListener('change', (e) => {
+      const cb = e.target;
+      if (!(cb instanceof HTMLInputElement)) return;
+      // Inspired Ink toggle (sibling to the dimension <details>).
+      if (cb.id === 'custom-rainbow-editor-inspiredink') {
+        if (cb.checked) _draftCriteria.inspiredInkOnly = true;
+        else delete _draftCriteria.inspiredInkOnly;
+        _renderPreview();
+        return;
+      }
+      // Per-dimension checkbox.
+      const detailsEl = cb.closest('.rainbow-filter');
+      const dimKey = detailsEl?.dataset?.dim;
+      if (!dimKey) return;
+      const value = cb.dataset.value;
+      if (!value) return;
+      const list = Array.isArray(_draftCriteria[dimKey]) ? _draftCriteria[dimKey] : [];
+      if (cb.checked) {
+        if (!list.some(v => v.toLowerCase() === value.toLowerCase())) list.push(value);
+      } else {
+        const i = list.findIndex(v => v.toLowerCase() === value.toLowerCase());
+        if (i >= 0) list.splice(i, 1);
+      }
+      if (list.length === 0) delete _draftCriteria[dimKey];
+      else _draftCriteria[dimKey] = list;
+      _updateFilterCount(dimKey);
+      _renderPreview();
+    });
 
     const saveBtn = document.getElementById('custom-rainbow-editor-save');
     saveBtn?.addEventListener('click', async () => {
@@ -2930,14 +3063,10 @@ const Collection = (() => {
         if (_editingRainbow) {
           await API.updateCustomRainbow(_editingRainbow.id, {
             name,
-            criteria: _editingRainbow.criteria,
+            criteria: _draftCriteria,
           });
         } else {
-          // Empty criteria = no filters applied yet. Matches the
-          // entire catalog as a no-op; user can later edit and add
-          // filters once the sub-picker UI ships. For now, this is
-          // a named "checklist anchor."
-          await API.createCustomRainbow(name, {});
+          await API.createCustomRainbow(name, _draftCriteria);
         }
         closeCustomRainbowEditor();
         // Re-render — load() rebuilds the rainbow list including

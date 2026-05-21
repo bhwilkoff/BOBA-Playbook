@@ -91,6 +91,7 @@ When shipping any user-facing feature:
 | Long-press add on pool | ✅ | n/a | ✅ | Canonical mobile add |
 | 3-column tablet layout (saved / pool / editor) | ✅ iPad | ⏳ desktop | ⏳ M4 polish | `NavigableListDetailPaneScaffold` 3-pane — in v1 from M4 per DECISIONS.md #047 |
 | Template gallery (empty editor) | ✅ | 🔮 | ✅ | Android shipped overnight (5-archetype gallery) |
+| Generate deck wall (share image) | ✅ | ✅ | 🔮 | Web shipped tick 9 — db-wall-btn in Decks toolbar reuses the shared canvas Wall pipeline (price overlay disabled for deck context). |
 | Walkthrough | ✅ | 🚫 | 🚫 | Same skip rule |
 
 ---

@@ -998,6 +998,24 @@ function initDeckBuilder(allCards) {
     outEl.hidden = !outEl.hidden;
   });
 
+  // Generate Deck Wall — iOS DESIGN.md §8.8 + DECISIONS.md #036.
+  // Pulls Heroes + Plays + Hot Dogs from the current builder state
+  // and hands them to the shared canvas Wall renderer. Empty deck
+  // shows a brief toast instead of opening an empty canvas.
+  $('db-wall-btn')?.addEventListener('click', () => {
+    const cards = [...(DB.heroes || []), ...(DB.plays || []), ...(DB.hotDogs || [])];
+    if (cards.length === 0) {
+      if (window.showToast) window.showToast('Add some cards to your deck first.');
+      return;
+    }
+    if (window.Collection?.openDeckWallSheet) {
+      window.Collection.openDeckWallSheet({
+        deckName: DB.deckName || 'My Deck',
+        cards,
+      });
+    }
+  });
+
   $('db-copy-btn')?.addEventListener('click', () => {
     const textEl = $('db-export-text');
     if (!textEl) return;

@@ -397,13 +397,17 @@ const Collection = (() => {
     return Number.isFinite(n) && n > 0 ? n : null;
   }
 
-  /// Open the Wall dialog for the given (designation, cards) pair.
-  /// Resolves each user-card row to its catalog Card (so we get
-  /// imageFile + isSealed for the right /sealed/ vs /full/ routing),
-  /// renders a grid into the <canvas>, then enables download / copy.
-  async function openWallSheet({ designation, cards }) {
+  /// Open the Wall dialog. Two callers:
+  ///   - Collection (default): `{ designation, cards }` where cards
+  ///     are user_card rows. Price overlay enabled per designation.
+  ///   - Decks: `{ context: 'deck', title, cards }` where cards are
+  ///     catalog Cards directly. Price overlay disabled (deck cards
+  ///     aren't designation-scoped). Title from caller (deck name).
+  async function openWallSheet({ designation, cards, context, title }) {
     const overlay = document.getElementById('wall-overlay');
     if (!overlay) return;
+
+    const isDeckContext = context === 'deck';
 
     const titleInput  = document.getElementById('wall-title-input');
     const canvas      = document.getElementById('wall-canvas');
@@ -415,40 +419,61 @@ const Collection = (() => {
     const priceToggle = document.getElementById('wall-price-toggle');
     const priceSource = document.getElementById('wall-price-source');
     const priceCap    = document.getElementById('wall-overlay-caption');
+    const priceRow    = priceToggle?.closest('.wall-overlay-controls');
 
-    // Per-designation defaults — iOS §8.8 parity.
-    priceToggle.checked = defaultPriceOverlayFor(designation);
-    priceSource.value   = defaultPriceSourceFor(designation);
-    priceCap.textContent = priceToggle.checked
-      ? priceOverlayCaptionFor(designation, priceSource.value)
-      : '';
-
-    // Seed the title from the designation if blank.
-    if (!titleInput.value) {
-      const desigLabel = (DESIGNATIONS.find(d => d.key === designation)?.label) || 'Collection';
-      titleInput.value = `My ${desigLabel}`;
+    // Price-overlay controls: defaults from designation (Collection
+    // path); disabled entirely for Decks path since deck cards
+    // aren't designation-scoped + don't carry asking/estimated.
+    if (isDeckContext) {
+      priceToggle.checked = false;
+      if (priceRow) priceRow.style.display = 'none';
+      priceCap.textContent = '';
+    } else {
+      if (priceRow) priceRow.style.display = '';
+      priceToggle.checked = defaultPriceOverlayFor(designation);
+      priceSource.value   = defaultPriceSourceFor(designation);
+      priceCap.textContent = priceToggle.checked
+        ? priceOverlayCaptionFor(designation, priceSource.value)
+        : '';
     }
 
-    // Keep the original user-card rows around so we can read
-    // asking_price / estimated_value / purchase_price for the price
-    // overlay. We index by bobaId for fast lookup at draw time.
+    // Title seed. Decks: passed-in deck name. Collection: derive
+    // from designation label.
+    if (!titleInput.value || isDeckContext) {
+      if (isDeckContext) {
+        titleInput.value = title || 'My Deck';
+      } else {
+        const desigLabel = (DESIGNATIONS.find(d => d.key === designation)?.label) || 'Collection';
+        titleInput.value = `My ${desigLabel}`;
+      }
+    }
+
+    // Collection: keep the original user-card rows around so the
+    // price-overlay layer can read asking_price / estimated_value /
+    // purchase_price. Indexed by bobaId for fast draw-time lookup.
+    // Decks: empty map; price overlay is forced off anyway.
     const userCardByBobaId = {};
-    for (const c of cards) {
-      const k = c.boba_id || c.card_number;
-      if (k) userCardByBobaId[k] = c;
+    if (!isDeckContext) {
+      for (const c of cards) {
+        const k = c.boba_id || c.card_number;
+        if (k) userCardByBobaId[k] = c;
+      }
     }
 
-    // Resolve each user-card row to its catalog Card. Drop ones with
-    // no image — they'd render as placeholders and look broken in a
-    // share image.
-    const resolved = cards
-      .map(c => {
-        const cat = (_bobaIdLookup && c.boba_id)
-          ? _bobaIdLookup(c.boba_id)
-          : (_cardLookup ? _cardLookup(c.card_number) : null);
-        return cat;
-      })
-      .filter(c => c && c.imageFile);
+    // Resolution. Decks: cards are already catalog Cards — pass
+    // through, just drop image-less. Collection: lookup catalog
+    // Card by boba_id / card_number, drop image-less (would render
+    // as placeholders and look broken in a share image).
+    const resolved = isDeckContext
+      ? cards.filter(c => c && c.imageFile)
+      : cards
+          .map(c => {
+            const cat = (_bobaIdLookup && c.boba_id)
+              ? _bobaIdLookup(c.boba_id)
+              : (_cardLookup ? _cardLookup(c.card_number) : null);
+            return cat;
+          })
+          .filter(c => c && c.imageFile);
 
     dlBtn.disabled = true;
     cpBtn.disabled = true;
@@ -2818,10 +2843,22 @@ const Collection = (() => {
     return saved;
   }
 
+  /// Open the Wall dialog for a deck. Caller passes catalog Cards
+  /// directly (no user-card row resolution needed) and a deck name
+  /// for the title.
+  function openDeckWallSheet({ deckName, cards }) {
+    return openWallSheet({
+      context: 'deck',
+      title: deckName,
+      cards: cards || [],
+    });
+  }
+
   return {
     init,
     load,
     openAddSheet,
+    openDeckWallSheet,
     quickAdd,
     isOwned,
     isWanted,
@@ -2832,3 +2869,9 @@ const Collection = (() => {
     getSortOrder:     getCollectionSort,
   };
 })();
+
+// Expose for sibling modules (practice.js, app.js) — classic-script
+// `const` at top level doesn't auto-promote to the global object, so
+// without this `window.Collection.openDeckWallSheet` from practice.js
+// would be undefined.
+window.Collection = Collection;

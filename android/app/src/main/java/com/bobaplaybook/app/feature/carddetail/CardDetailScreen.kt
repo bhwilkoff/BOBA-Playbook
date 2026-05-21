@@ -846,14 +846,14 @@ private fun HeroStatRow(card: Card) {
     if (dbsInfoOpen) {
         // Tick 186 — Discord backlog #5: pass active draft's DBS context
         // so the sheet can show the per-card "what does adding this do?"
-        // line. Draft state lives in the screen-scoped DecksViewModel;
-        // if the draft is empty or its format doesn't enforce DBS, the
-        // sheet falls back to the static explainer.
+        // line. Draft state lives in the screen-scoped DecksViewModel as
+        // a top-level `draft: StateFlow<DeckDraft>` — collect it
+        // directly. Falls back to static explainer when format doesn't
+        // enforce DBS.
         val decksVm: com.bobaplaybook.app.feature.decks.DecksViewModel =
             androidx.hilt.navigation.compose.hiltViewModel()
-        val deckState by decksVm.state.collectAsStateWithLifecycle()
-        val draft = deckState.draft
-        val showContext = draft.enforcesDBS && (draft.cards.isNotEmpty() || true)
+        val draft by decksVm.draft.collectAsStateWithLifecycle()
+        val showContext = draft.enforcesDBS
         DBSInfoSheet(
             onDismiss = { dbsInfoOpen = false },
             cardDBS    = card.dbs.takeIf { showContext },

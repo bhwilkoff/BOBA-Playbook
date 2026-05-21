@@ -2345,6 +2345,21 @@
         <h2 style="color: var(--boba-orange); margin: 0 0 0.5rem 0;">This collection isn't public.</h2>
         <p style="margin: 0; color: rgba(255,255,255,0.5);">If you own this profile, enable Public Collection in your Profile sheet.</p>
       </div>
+      <!-- CTA for unauthenticated visitors arriving via a shared
+           /u/{username} link. Hidden when the visitor is signed in
+           (they already have BOBA Playbook). Shown after the grid
+           renders so it doesn't compete with the collection itself
+           for attention. -->
+      <div id="public-collection-cta" class="public-collection-cta" hidden>
+        <div class="public-collection-cta-inner">
+          <h2 class="public-collection-cta-title">Start your own BOBA collection</h2>
+          <p class="public-collection-cta-body">Track your cards, build decks, share your collection — free, mobile-first, no installs needed.</p>
+          <div class="public-collection-cta-actions">
+            <button type="button" class="btn-primary" id="public-collection-cta-explore">Explore the catalog</button>
+            <button type="button" class="btn-ghost-sm" id="public-collection-cta-signin">Sign in / Create account</button>
+          </div>
+        </div>
+      </div>
     </section>
 
   </main>

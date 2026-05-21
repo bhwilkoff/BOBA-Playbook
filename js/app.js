@@ -3567,6 +3567,24 @@
       fragment.appendChild(buildCardElement(card, i));
     });
     gridEl.appendChild(fragment);
+
+    // Unauth visitor CTA — gentle "make your own BOBA collection"
+    // pitch below the grid. Hidden for signed-in users (they
+    // already have BOBA Playbook). Wired once per render so a
+    // visitor signing in mid-view also drops the CTA.
+    wirePublicCollectionCTA();
+  }
+
+  function wirePublicCollectionCTA() {
+    const cta = document.getElementById('public-collection-cta');
+    if (!cta) return;
+    const signedIn = !!(typeof Auth !== 'undefined' && Auth.isAuthenticated?.());
+    cta.hidden = signedIn;
+    if (signedIn) return;
+    cta.querySelector('#public-collection-cta-explore')
+      ?.addEventListener('click', () => showView('search'), { once: true });
+    cta.querySelector('#public-collection-cta-signin')
+      ?.addEventListener('click', () => Auth.open(), { once: true });
   }
 
   // ----------------------------------------------------------------

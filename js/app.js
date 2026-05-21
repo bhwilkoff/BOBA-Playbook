@@ -757,6 +757,56 @@
       });
     });
 
+    // Glossary share affordance — right-click (desktop) + long-press
+    // (touch). Tick 128 — parity with Android tick 126's ACTION_SEND
+    // chooser + iOS tick 127's contextMenu ShareLink. Progressive
+    // enhancement: no HTML change required; existing rows just gain
+    // a new gesture.
+    function glossaryShare(row) {
+      const term = row?.dataset?.term || '';
+      const def  = row?.dataset?.def  || '';
+      if (!term || !def) return;
+      const payload = `${term} — ${def}`;
+      // Web Share API w/ clipboard fallback (existing helper).
+      if (typeof window.bobaShareTarget === 'function') {
+        window.bobaShareTarget({
+          title: `BOBA Glossary: ${term}`,
+          text:  payload,
+        });
+      } else if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(payload).then(() => {
+          if (window.showToast) window.showToast('Copied — paste to share');
+        });
+      }
+    }
+    document.addEventListener('contextmenu', e => {
+      const row = e.target?.closest?.('.glossary-row');
+      if (!row) return;
+      e.preventDefault();  // suppress the browser's right-click menu
+      glossaryShare(row);
+    });
+    // Long-press for touch — 600ms timer, cleared on move/up so a
+    // scroll doesn't accidentally trigger share.
+    let _glossaryLongPressTimer = null;
+    document.addEventListener('touchstart', e => {
+      const row = e.target?.closest?.('.glossary-row');
+      if (!row) return;
+      clearTimeout(_glossaryLongPressTimer);
+      _glossaryLongPressTimer = setTimeout(() => {
+        glossaryShare(row);
+        _glossaryLongPressTimer = null;
+      }, 600);
+    }, { passive: true });
+    const clearLongPress = () => {
+      if (_glossaryLongPressTimer) {
+        clearTimeout(_glossaryLongPressTimer);
+        _glossaryLongPressTimer = null;
+      }
+    };
+    document.addEventListener('touchmove', clearLongPress, { passive: true });
+    document.addEventListener('touchend', clearLongPress, { passive: true });
+    document.addEventListener('touchcancel', clearLongPress, { passive: true });
+
     // Mode switching — syncs rules-mode-btn tabs and rules-content visibility.
     const modeBtns    = document.querySelectorAll('.rules-mode-btn');
     const modeContent = document.querySelectorAll('.rules-content');

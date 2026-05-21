@@ -29,10 +29,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bobaplaybook.core.domain.model.Card
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
+import com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar
+import kotlinx.coroutines.launch
 
 /**
  * Add to Deck sheet — mirrors iOS AddToDeckSheet.swift.
@@ -52,6 +55,8 @@ fun AddToDeckSheet(
     // Catalog snapshot for the load-then-add path on saved decks.
     val catalogVm: com.bobaplaybook.app.feature.collection.RainbowCatalogViewModel = hiltViewModel()
     val catalog by catalogVm.cards.collectAsStateWithLifecycle()
+    val appSnackbar = LocalAppSnackbar.current
+    val scope = rememberCoroutineScope()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -119,6 +124,9 @@ fun AddToDeckSheet(
                     .fillMaxWidth()
                     .clickable {
                         decksViewModel.add(card)
+                        scope.launch {
+                            appSnackbar?.showSnackbar("Added ${card.displayName} to ${draft.name}")
+                        }
                         onDismiss()
                     },
             )
@@ -143,10 +151,14 @@ fun AddToDeckSheet(
                             .fillMaxWidth()
                             .clickable {
                                 // Load the saved deck as the draft, then push
-                                // the new card. User sees the deck open with
-                                // the card already added.
+                                // the new card. Snackbar names BOTH actions
+                                // (load + add) so the user sees their draft
+                                // was swapped — not silently lost.
                                 decksViewModel.loadSaved(saved, catalog)
                                 decksViewModel.add(card)
+                                scope.launch {
+                                    appSnackbar?.showSnackbar("Loaded \"${saved.name}\" and added ${card.displayName}")
+                                }
                                 onDismiss()
                             },
                     )

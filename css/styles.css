@@ -7224,6 +7224,13 @@ dialog.modal-overlay[open] {
 .db-saved-decks-close { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.55); border-radius: 4px; width: 22px; height: 22px; cursor: pointer; font-size: 0.75rem; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
 .db-saved-decks-close:hover { background: rgba(255,255,255,0.08); color: #fff; }
 .db-saved-decks-empty { font-family: var(--font-mono, monospace); font-size: 0.7rem; color: rgba(255,255,255,0.3); text-align: center; padding: 0.5rem; }
+.db-saved-decks-search-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  padding: 1rem 0.5rem;
+}
+.db-saved-decks-empty-headline {
+  font-size: 0.75rem; color: rgba(255,255,255,0.6); margin: 0;
+}
 .db-saved-deck-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.35rem 0.4rem; border-radius: 5px; transition: background 0.15s; width: 100%; box-sizing: border-box; }
 .db-saved-deck-row:hover { background: rgba(255,255,255,0.04); }
 .db-saved-deck-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }

@@ -853,15 +853,27 @@ function applyDeckSearchFilter() {
     row.style.display = matches ? '' : 'none';
     if (matches) visibleCount++;
   });
-  // If the search yielded zero matches, show a transient inline
-  // hint so the empty-list state isn't ambiguous.
+  // If the search yielded zero matches, show an inline empty-state
+  // block with a productive "Clear search" button — universal-feature-
+  // states skill (empty states must invite action, not just announce
+  // absence). Mirrors web tick 78 Collection empty-search branch.
   let hint = list.querySelector('.db-saved-decks-search-empty');
   if (q && visibleCount === 0) {
     if (!hint) {
       hint = document.createElement('div');
       hint.className = 'db-saved-decks-empty db-saved-decks-search-empty';
-      hint.textContent = 'No saved decks match that name.';
+      hint.innerHTML = `
+        <p class="db-saved-decks-empty-headline">No saved decks match "${q.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}"</p>
+        <button type="button" class="btn-ghost-sm" data-action="clear-deck-search">Clear search</button>
+      `;
       list.appendChild(hint);
+      hint.querySelector('[data-action="clear-deck-search"]')?.addEventListener('click', () => {
+        if (input) {
+          input.value = '';
+          input.focus();
+          applyDeckSearchFilter();
+        }
+      });
     }
   } else if (hint) {
     hint.remove();

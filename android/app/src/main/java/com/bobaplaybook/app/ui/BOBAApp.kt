@@ -449,7 +449,6 @@ private fun TabNavHost(
                     CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this) {
                         CollectionScreen(
                             onCardClick = { bobaId -> navController.navigate(NavRoutes.collectionCardDetail(bobaId)) },
-                            onProfileClick = onProfileClick,
                             onRainbowsClick = { navController.navigate(NavRoutes.COLLECTION_RAINBOWS) },
                             onShowsClick = { navController.navigate(NavRoutes.COLLECTION_SHOWS) },
                             onScanClick = onScanClick,

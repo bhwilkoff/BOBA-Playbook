@@ -96,7 +96,6 @@ import com.bobaplaybook.core.ui.transitions.cardSharedBounds
 @Composable
 fun CollectionScreen(
     onCardClick: (bobaId: String) -> Unit,
-    onProfileClick: () -> Unit,  // unused per feedback_profile_only_on_find; kept for nav signature symmetry
     onRainbowsClick: () -> Unit = {},
     onShowsClick: () -> Unit = {},
     onScanClick: () -> Unit = {},

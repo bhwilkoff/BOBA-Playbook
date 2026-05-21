@@ -71,6 +71,9 @@ struct ProfileView: View {
     /// installed. Mirrors Android tick 166's clipboard + Snackbar
     /// graceful-fallback pattern.
     @State private var showingFeedbackNoMailAlert = false
+    /// Tick 172 — transient confirmation after Reset hints. iOS pattern
+    /// uses an inline checkmark fade (no Snackbar host on iOS Profile).
+    @State private var hintsResetConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -706,9 +709,28 @@ struct ProfileView: View {
 
             Button {
                 HintsManager.shared.resetAll()
+                hintsResetConfirm = true
+                // Auto-fade after 2 seconds — matches the success
+                // toast cadence in the rest of ProfileView.
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(2))
+                    withAnimation(.easeOut(duration: 0.3)) { hintsResetConfirm = false }
+                }
             } label: {
-                Label("Reset hints", systemImage: "arrow.uturn.backward")
-                    .foregroundStyle(Design.Colors.bobaCyan)
+                HStack {
+                    Label("Reset hints", systemImage: "arrow.uturn.backward")
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                    Spacer()
+                    if hintsResetConfirm {
+                        // Tick 172 — inline "Hints reset" confirmation
+                        // (Android ProfileSheet line 703 parity). Without
+                        // the visual signal, tapping Reset gave the user
+                        // no feedback that the action succeeded.
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Color(hex: "4CAF50"))
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
             }
         } header: {
             Text("Hints")

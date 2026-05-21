@@ -76,6 +76,22 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 140 — 2026-05-21 — **opt** — Drop 51 orphan Android imports
+- **Cadence:** 140 % 5 = 0 → opt.
+- **Picked:** Per-file orphan-import scan across the entire `android/app/src/main/java/com/bobaplaybook/app/` tree. Built an awk-driven detector that lists each import's last symbol, then greps its file for matching word-boundary references. Anything that resolved to exactly 1 match (the import line itself) is an orphan. Filtered out (a) `getValue` / `setValue` / `provideDelegate` — Kotlin uses these implicitly via the `by` delegate keyword and would never appear by name; (b) aliased imports (`X as Y`) — grep would only find the alias, not the original.
+- **Shipped:**
+  - 17 Compose files net-lose 51 import lines (52 deletions total per `git diff --shortstat`; +1 absorbed blank line).
+  - Heaviest offenders:
+    - `FilterSheet.kt` (-11): `clickable`, `Box`, `width`, `items`, `RoundedCornerShape`, `ArrowDropDown`, `AssistChip`, `Button`, `ButtonDefaults`, `Surface`, `TextField`
+    - `ProfileSheet.kt` (-7): `Apps`, `Edit`, `LiveTv`, `AssistChip`, `AssistChipDefaults`, `rememberModalBottomSheetState`, `clip`
+    - `RainbowsScreen.kt` (-7): `Arrangement`, `Box`, `Spacer`, `fillMaxWidth`, `height`, `width`, `LinearProgressIndicator`
+    - `CollectionCardDetailScreen.kt` (-5), `CardDetailScreen.kt` (-5), `AddToDeckSheet.kt` (-3), `DecksScreen.kt` (-2 — `SearchBar`/`SearchBarDefaults` legacy from before the OutlinedTextField swap), `DeckEditorSheet.kt` (-2), plus singletons across `MainActivity.kt`, `PendingDeepLink.kt`, `WatchPage.kt`, `ScanDesignationSheet.kt`, `DeckWallSheet.kt`, `DeckStore.kt`, `TemplateGallerySheet.kt`, `PurchaseScreen.kt`, `FindScreen.kt`, `FindViewModel.kt`.
+- **Why it's safe:** every removed symbol had exactly one in-file reference (the import line). Compose / Hilt / Kotlin stdlib symbols only resolve via explicit imports; an orphan import means the file genuinely doesn't use the thing.
+- **Why these accumulated:** Compose's IDE auto-imports when typing a symbol but doesn't reliably auto-remove when refactors strip the usage. Tick 80 (`SearchBar`→`OutlinedTextField` swap) is a textbook example — the import survived the migration. Periodic sweeps catch what the IDE misses.
+- **Net:** −51 lines. iOS / web unchanged this round.
+- **PARITY.md:** No row.
+- **Next:** tick 141 = Android (% 5 = 1).
+
 ### Tick 139 — 2026-05-21 — **Android** — Clear-deck draft: Undo Snackbar
 - **Cadence:** 139 % 5 = 4 → Android.
 - **Picked:** `DecksScreen` Clear-deck confirm path called `deckViewModel.clear()` then fired a one-shot `appSnackbar?.showSnackbar("Draft cleared")` with NO action. A coach could blast through the Clear confirm with one tap (it's the primary "Clear" button in the dialog) and lose 30 cards of work with no recovery window. The Manage Decks delete (tick 124) already has Undo Snackbar parity for the equivalent action on saved decks; the draft-clear path was the obvious omission.

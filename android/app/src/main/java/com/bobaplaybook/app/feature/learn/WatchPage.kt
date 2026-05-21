@@ -45,7 +45,6 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.bobaplaybook.core.network.YouTubeVideo
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
-import com.bobaplaybook.core.ui.components.BOBASectionHeader
 
 /**
  * Watch tab — three feed sections (live+upcoming · videos · shorts)

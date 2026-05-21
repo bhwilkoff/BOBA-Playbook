@@ -102,6 +102,21 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 25 — 2026-05-20 — Public collection CTA for unauth visitors
+- **Picked:** Web-only gain. Visitors landing on `/u/{username}` from a shared link saw the cards but had no obvious next step. High-leverage user-acquisition surface — they're already engaged enough to view someone else's collection.
+- **Considered Find Quick Add audit** first; concluded the existing flow is fine — duplicate-click adding two copies might be intentional (user just bought 2 copies of the same card). Skipped.
+- **Shipped:**
+  - `index.html`: new `<div id="public-collection-cta" hidden>` below the public-collection grid. Headline "Start your own BOBA collection" + body ("Track, build, share — free, mobile-first, no installs") + two actions: "Explore the catalog" (→ Find) and "Sign in / Create account" (→ Auth modal).
+  - `js/app.js`:
+    - `wirePublicCollectionCTA()` shows the CTA only when `Auth.isAuthenticated()` is false. Wired-once handlers (`{ once: true }`) on the two buttons so a click immediately advances and the CTA doesn't try to bind twice on re-render.
+    - Called at the end of `renderPublicCollection` after the grid mounts.
+  - `css/styles.css`: ~40 lines for `.public-collection-cta` — gradient background (orange→cyan brand glow at low alpha), centered max-width 480px, two-button row that wraps on mobile.
+- **Verified:** node -c clean. Logic trace: unauth visitor lands on `/u/ben` → grid renders → CTA appears below. Signed-in visitor → CTA hidden. Tap Explore → `showView('search')`. Tap Sign In → `Auth.open()`.
+- **Why this matters:** the public-collection page is BOBA's #1 organic user-acquisition surface — every shared link is a potential install. A passive grid with no CTA was leaving conversions on the floor. Two clear paths (browse first OR sign in first) honor the user's level of intent.
+- **PARITY.md:** No row — web-specific (no iOS/Android equivalent — they handle deep-link install via App Store / Play Store).
+- **Architectural note:** the CTA appends ONCE per render via `{ once: true }`. If a user signs in mid-view, the CTA's stale handlers won't re-bind to a different state; refresh would clear them. Acceptable trade-off vs. the more complex "rebind on auth-change" path.
+- **Next:** Tick 26. Plausible: (a) view-public-collection page also gets the Wall view affordance ("Generate wall image") for the viewer to easily share, (b) tap-to-zoom card detail on public-collection (currently opens card modal — confirm parity), (c) audit Profile sign-in modal for accessibility.
+
 ### Tick 24 — 2026-05-20 — Profile Delete Account: type-to-confirm
 - **Picked:** From tick-23 "Next" — highest-stakes destructive web flow. Prior version had a single `confirm()` with the warning text. Single-click confirm is sufficient for "are you sure?" but not for "permanent + cascading + can't undo." iOS uses a multi-step + type-to-confirm pattern; web matches now.
 - **Shipped:**

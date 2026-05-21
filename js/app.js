@@ -494,6 +494,37 @@
   /// either directly (no-transition path) or inside a
   /// startViewTransition callback. Pure side-effect; do not call
   /// directly from app code, always go through showView.
+  /// Update the Open Graph + Twitter meta tags in <head> to match
+  /// the current route. **Note:** link crawlers (Discord, Twitter,
+  /// iMessage, Slack) read only the STATIC <head> when they crawl a
+  /// URL — they don't run JS — so this client-side update only helps
+  /// in-app share affordances (Web Share API target string + browser
+  /// extensions that re-read the DOM). Server-side rendering would
+  /// be needed for crawler-visible per-route OG, which we don't do
+  /// on GitHub Pages.
+  function updateOpenGraphMeta({ title, description, url, image }) {
+    const setMeta = (selector, value) => {
+      if (value == null) return;
+      const el = document.head.querySelector(selector);
+      if (el) el.setAttribute('content', value);
+    };
+    if (title != null) {
+      setMeta('meta[property="og:title"]',  title);
+      setMeta('meta[name="twitter:title"]', title);
+    }
+    if (description != null) {
+      setMeta('meta[property="og:description"]',  description);
+      setMeta('meta[name="twitter:description"]', description);
+    }
+    if (url != null) {
+      setMeta('meta[property="og:url"]', url);
+    }
+    if (image != null) {
+      setMeta('meta[property="og:image"]',  image);
+      setMeta('meta[name="twitter:image"]', image);
+    }
+  }
+
   // Display-titles for each routable view, used both for the
   // browser-tab `document.title` and for shareable URL previews.
   // Closes WEB-DESIGN.md §4.1 "Pages that aren't pages" anti-pattern.
@@ -529,6 +560,10 @@
     // (see openModal) — we set the per-view fallback here.
     const viewTitle = VIEW_TITLES[name];
     document.title = viewTitle ? `${viewTitle} · BOBA Playbook` : 'BOBA Playbook';
+    updateOpenGraphMeta({
+      title: viewTitle ? `${viewTitle} · BOBA Playbook` : 'BOBA Playbook',
+      url:   `${location.origin}${location.pathname}${location.search}`,
+    });
     if (name === 'scan') {
       initScanView();
     } else {
@@ -2115,6 +2150,13 @@
     // to the view's title in closeModal().
     const cardLabel = card.name || card.hero || card.cardNumber || 'Card';
     document.title = `${cardLabel} · BOBA Playbook`;
+    updateOpenGraphMeta({
+      title: `${cardLabel} · BOBA Playbook`,
+      description: [card.hero, card.treatment, card.set].filter(Boolean).join(' · ') ||
+                   'A card from the Bo Jackson Battle Arena trading card game.',
+      url: buildCardURL(card),
+      image: card.imageFile ? (API.cardFullUrl(card) || undefined) : undefined,
+    });
 
     // Track position in filteredCards for prev/next navigation
     currentModalIndex = index >= 0 ? index : filteredCards.findIndex(c => c.cardNumber === card.cardNumber && c.hero === card.hero);
@@ -2641,6 +2683,12 @@
     // a stale card name after the modal closes.
     const viewTitle = VIEW_TITLES[currentView];
     document.title = viewTitle ? `${viewTitle} · BOBA Playbook` : 'BOBA Playbook';
+    updateOpenGraphMeta({
+      title: document.title,
+      description: 'The definitive companion app for the Bo Jackson Battle Arena trading card game.',
+      url: `${location.origin}${location.pathname}${location.search}`,
+      image: `${location.origin}/assets/icons/boba_playbook_icon_1024.png`,
+    });
   }
 
   function buildVersionsSection(card) {
@@ -3467,6 +3515,11 @@
     // Per-handle tab title so a bookmarked /u/ben page reads as
     // "@ben · BOBA Playbook" not the generic "Public Collection".
     document.title = `@${handle} · BOBA Playbook`;
+    updateOpenGraphMeta({
+      title: `@${handle} · BOBA Playbook`,
+      description: `Public BoBA card collection by @${handle}.`,
+      url: `${location.origin}/u/${handle}`,
+    });
     gridEl.innerHTML = '';
     emptyEl.hidden = true;
 

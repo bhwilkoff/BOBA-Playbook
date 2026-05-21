@@ -102,6 +102,25 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 21 — 2026-05-20 — Open Graph + Twitter card meta tags
+- **Picked:** Documented in tick-20 "Next" as the next obvious polish. The web app had zero OG / Twitter meta tags — any link to BOBA Playbook shared in Discord, iMessage, Slack, Twitter, etc. got either a blank preview or the browser's auto-generated text-only card. Cheap to ship with meaningful user-acquisition + sharing impact.
+- **Shipped:**
+  - `index.html`: static OG + Twitter card metadata in `<head>`. Defaults:
+    - `og:type = website` · `og:site_name = BOBA Playbook` · `og:title` + `og:description` describe the app shell.
+    - `og:url = https://bobaplaybook.com/`
+    - `og:image = https://bobaplaybook.com/assets/icons/boba_playbook_icon_1024.png` (1024×1024 XOXO mark — copied from `Logos/` into `assets/icons/` for web-accessibility).
+    - `twitter:card = summary_large_image` so the icon renders at the full preview width.
+  - `js/app.js`:
+    - `updateOpenGraphMeta({title, description, url, image})` helper — selects existing `<meta property="og:*">` and `<meta name="twitter:*">` elements by attribute and updates their `content`. Skips any field the caller didn't pass (partial updates supported).
+    - `applyView(name)` now updates og:title + og:url for the active route.
+    - `openModal(card)` updates og:title + og:description (hero · treatment · set) + og:url (the deep-link URL via `buildCardURL`) + og:image (the card's full-resolution R2 URL via `API.cardFullUrl`). Restored on `closeModal()` to the app shell defaults.
+    - `renderPublicCollection(handle)` updates the OG triple to "@handle · BOBA Playbook" + description "Public BoBA card collection by @handle" + URL `/u/{handle}`.
+  - **Caveat documented in code comment:** link crawlers (Discord / Twitter / iMessage / Slack) only read the STATIC `<head>` HTML they fetch — they do not run JS. So the client-side per-route updates only help in-app share affordances (`navigator.share()` reads `document.title`, browser extensions reading the DOM, the user's tab-switcher / Cmd+Shift+A). Server-side rendering of per-route OG isn't possible on GitHub Pages and is genuinely deferred.
+- **Verified:** node -c clean. Manual: load `https://localhost:8080/` → static OG defaults. Click card → openModal → OG image becomes that card's R2 URL. ESC → defaults restored. Public collection → "@handle · BOBA Playbook" OG.
+- **PARITY.md:** No row change — web platform polish; iOS / Android handle share previews via system mechanisms.
+- **Architectural note:** the `updateOpenGraphMeta` helper takes a partial object so callers don't need to pass every field. Callers that need a specific tag stable (e.g. `og:type` should always be "website") just don't pass that key.
+- **Next:** Tick 22. Looking at what's still pickable and meaningful. Plausible: (a) "Random card" affordance in Find search (1-tick fun feature, no parity gap), (b) Audit the Decks editor save flow for the empty-deck case, (c) Audit accessibility (tab-order / aria-current / aria-live) across Find grid and Card detail modal.
+
 ### Tick 20 — 2026-05-20 — Per-view browser tab title (WEB-DESIGN.md §4.1)
 - **Picked:** Documented anti-pattern in WEB-DESIGN.md §4.1 ("Pages that aren't pages") — `document.title` was static "BOBA Playbook" across all 10 routable views. Bookmarks, tab switchers, and shared-link previews all showed the same name. Long-standing UX gap; cheap to ship.
 - **Shipped:**

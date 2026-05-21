@@ -76,6 +76,20 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 160 — 2026-05-21 — **opt** — Drop 67 more lines of orphan practice.js helpers + audit
+- **Cadence:** 160 % 5 = 0 → opt.
+- **Picked:** Cascade cleanup after tick 150's `pmResolveEffect` removal. `pmResolveCoinFlip` (24 lines) and `pmResolveDiceRoll` (43 lines) were ONLY called from inside the now-deleted regex resolver. Tick 150's audit missed them because they shared the same code path — once `pmResolveEffect` went, these too became orphan helpers.
+- **Shipped:**
+  - `js/practice.js`:
+    - Drop `pmResolveCoinFlip(text, playerCard)` (lines 4153-4176 — coin-flip-with-N-flips ability resolver from the legacy regex path).
+    - Drop `pmResolveDiceRoll(text, playerCard, cpuCard)` (lines 4178-4220 — dice-roll-based ability resolver with reroll / 5x-multiplier / "both players roll" branches).
+  - Cross-module audit run on Android + iOS + web found NO additional orphans — every other function defined in the tree has at least one external call site.
+- **Why these accumulated:** the regex resolver was deeply branching (~146 lines), with these two sub-resolvers handling the dice/coin sub-paths. When tick 150 removed the entry point, the sub-resolvers stayed because grep on their names returned 1 ref (only the def). My filter was `\bNAME\b` not "(definition + external caller)" so it correctly flagged them — but tick 150's sweep was practice.js-only and the helpers were past the cutoff.
+- **Net:** −70 lines.
+- **Caveat:** an Android CI break landed mid-tick (tick 159 missed `import kotlinx.coroutines.launch`). Fixed in the prior commit; CI is back to green. This opt tick is a separate change touching only `js/practice.js`.
+- **PARITY.md:** No row.
+- **Next:** tick 161 = Android.
+
 ### Tick 159 — 2026-05-21 — **Android** — Custom Rainbow delete: Undo Snackbar (closes 3-platform parity loop)
 - **Cadence:** 159 % 5 = 4 → Android.
 - **Picked:** Mirror of web tick 158. Android Custom Rainbow delete in `RainbowsScreen.kt` used an `AlertDialog` confirm → `customVm.delete(id)` → silent dismissal. No Snackbar, no Undo. Same destructive-action-without-recovery shape that ticks 119/124/139/144/149/152/158 have been systematically closing.

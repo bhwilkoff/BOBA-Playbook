@@ -2757,3 +2757,12 @@ Ben's out-of-band asks for the next iOS tick (cadence 192 % 5 = 2 = iOS):
 2. **Make market-price refresh non-blocking.** The ongoing refresh task must continue in the background while the user searches/filters Collection OR navigates elsewhere in the app (Find, Decks, Profile, etc.). Today the refresh appears to be tied to view lifecycle — investigate and decouple. Likely: hoist the refresh Task to `CollectionStore` (or a dedicated `PricingRefresher` actor) with its own state machine + cancellation that survives view transitions; show a top-of-Collection passive progress chip while it runs in the background instead of a modal/blocking spinner.
 
 Both flow into a single tick 192 commit. Bump v2.293 / build 555.
+
+### Tick 190 — 2026-05-21 — opt: drop unused .rules-tip class + dead DB undefined guard
+- **Android CI on tick 189 still in_progress** — no need to wait for opt work (no Android files touched this tick).
+- **Drops:**
+  - `index.html`: tick 188's "Understanding DBS" tip paragraph used `class="rules-tip"` which has no CSS rule. Browser fell back to plain `<p>` anyway. Dropped the orphan class.
+  - `js/app.js`: tick 188's `maybeInjectDBSContext` had a `if (typeof DB !== 'object' || !DB) return;` guard. `DB` is a top-level const in `practice.js` loaded BEFORE `app.js` per `index.html` script order — guaranteed to exist. Dropped 3 lines of comment + 1 line of dead guard, kept a 1-line comment noting load order.
+- **Net change:** -3 lines (5 deletions, 2 insertions).
+- **Cadence rule:** opt tick should net-remove. ✓ -3 lines.
+- **Next:** tick 191 = Android (cadence). #1+#2+#5+#7 are Android-shipped; remaining backlog Android-eligible: #3 (already shipped Android), #4 (already shipped Android), #6 (Wanted-list public sharing — multi-platform infra), #8 (tournament/release calendar — needs JSON data). For Android: pick #8 since it's content-driven + foundational.

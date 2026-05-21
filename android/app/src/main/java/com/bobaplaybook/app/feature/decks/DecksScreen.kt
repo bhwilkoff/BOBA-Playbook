@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
@@ -148,6 +149,15 @@ private fun DecksCompactScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
+    // Per-tab grid density — was registered in GridDensityStore.Target.DECKS
+    // but the pool grid hardcoded Adaptive(minSize=110.dp). iOS DesksView
+    // exposes a 1/2/3 column picker via @AppStorage("bp_decksGridColumns_v1");
+    // this brings Android to parity.
+    val gridDensityVm: com.bobaplaybook.app.settings.GridDensityViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
+    val storedPoolColumns by gridDensityVm
+        .columnsFor(com.bobaplaybook.app.settings.GridDensityStore.Target.DECKS)
+        .collectAsStateWithLifecycle(initialValue = 0)
     var editorOpen by remember { mutableStateOf(false) }
     var wallOpen by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
@@ -232,6 +242,39 @@ private fun DecksCompactScreen(
                                 onClick = { menuOpen = false /* opens scan modal via parent */ },
                             )
                             androidx.compose.material3.HorizontalDivider()
+                            // Grid density picker — iOS DesksView parity.
+                            // Sub-menu would clutter; render the 3 options
+                            // inline (iOS pattern). Active row shows a
+                            // checkmark via DropdownMenuItem's leadingIcon
+                            // slot when matching the current density.
+                            Text(
+                                "Pool columns",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp),
+                            )
+                            listOf(1, 2, 3).forEach { col ->
+                                DropdownMenuItem(
+                                    text = { Text("$col column${if (col > 1) "s" else ""}") },
+                                    leadingIcon = {
+                                        if (storedPoolColumns == col) {
+                                            Icon(Icons.Default.Check, contentDescription = "Active")
+                                        } else {
+                                            Spacer(modifier = Modifier.width(24.dp))
+                                        }
+                                    },
+                                    onClick = {
+                                        menuOpen = false
+                                        scope.launch {
+                                            gridDensityVm.setColumns(
+                                                com.bobaplaybook.app.settings.GridDensityStore.Target.DECKS,
+                                                col,
+                                            )
+                                        }
+                                    },
+                                )
+                            }
+                            androidx.compose.material3.HorizontalDivider()
                             DropdownMenuItem(
                                 text = { Text("Clear draft") },
                                 leadingIcon = { Icon(Icons.Default.Clear, contentDescription = null) },
@@ -287,6 +330,7 @@ private fun DecksCompactScreen(
                     poolQuery = ""
                     findViewModel.onEvent(com.bobaplaybook.app.feature.find.FindEvent.QueryChanged(""))
                 },
+                columns = storedPoolColumns,
                 onCardClick = onCardClick,
                 onCardLongClick = { card ->
                     deckViewModel.add(card)
@@ -409,6 +453,12 @@ private fun CardPoolGrid(
     modifier: Modifier = Modifier,
     searchQuery: String = "",
     onClearSearch: (() -> Unit)? = null,
+    /**
+     * Fixed column count (1/2/3) from the user's per-tab grid-density
+     * preference. `0` uses the adaptive minSize default (iOS parity:
+     * defaults to ~3 cols on a typical phone, 5-7 on tablet).
+     */
+    columns: Int = 0,
 ) {
     if (cards.isEmpty()) {
         // Disambiguate: search-driven empty vs filter-driven empty.
@@ -437,7 +487,11 @@ private fun CardPoolGrid(
     }
     LazyVerticalGrid(
         modifier = modifier,
-        columns = GridCells.Adaptive(minSize = 110.dp),
+        // Sentinel 0 → adaptive (the M3 default that flows with width
+        // size class). Non-zero → fixed-count for the user's explicit
+        // density choice. iOS DesksView per-tab grid density parity.
+        columns = if (columns > 0) GridCells.Fixed(columns)
+                  else GridCells.Adaptive(minSize = 110.dp),
         contentPadding = PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),

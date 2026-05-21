@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-05-21",
+  "_schema": {
+    "_comment": "Per-event fields. Add real dates as BoBA announces them.",
+    "id":          "string — stable slug for cross-references",
+    "kind":        "release | tournament | community",
+    "title":       "string — user-facing event name",
+    "date":        "YYYY-MM-DD string OR null for 'TBA'",
+    "endDate":     "optional YYYY-MM-DD when the event spans days",
+    "location":    "optional string — venue / city / online",
+    "description": "1-3 sentence blurb",
+    "formats":     "optional [string] — formats being played (tournaments only)",
+    "set":         "optional string — set being released (releases only)",
+    "url":         "optional external link"
+  },
+  "events": [
+    {
+      "id": "tecmo-bowl-edition-release",
+      "kind": "release",
+      "title": "Tecmo Bowl Edition release",
+      "date": null,
+      "description": "Football-themed BoBA set crossing over with the classic Tecmo Bowl arcade aesthetic. 4 sealed product configurations in the catalog; release date TBA.",
+      "set": "Tecmo Bowl Edition"
+    },
+    {
+      "id": "okc-thunder-edition-followup",
+      "kind": "release",
+      "title": "OKC Thunder Edition (art pending)",
+      "date": null,
+      "description": "54 OKC Thunder Edition cards in the catalog without final art. Card data is published; art rollout TBA from the BoBA team.",
+      "set": "World Champions - 2025 OKC Thunder"
+    }
+  ]
+}

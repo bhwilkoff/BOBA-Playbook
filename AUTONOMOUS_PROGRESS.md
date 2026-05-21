@@ -2766,3 +2766,15 @@ Both flow into a single tick 192 commit. Bump v2.293 / build 555.
 - **Net change:** -3 lines (5 deletions, 2 insertions).
 - **Cadence rule:** opt tick should net-remove. ✓ -3 lines.
 - **Next:** tick 191 = Android (cadence). #1+#2+#5+#7 are Android-shipped; remaining backlog Android-eligible: #3 (already shipped Android), #4 (already shipped Android), #6 (Wanted-list public sharing — multi-platform infra), #8 (tournament/release calendar — needs JSON data). For Android: pick #8 since it's content-driven + foundational.
+
+### Tick 191 — 2026-05-21 — Android Tournament page: live events from assets/data/events.json (punch list #8)
+- **Verified Android CI on 2864a2b green** (printRunLabel + isInspiredInk serialized cleanly).
+- **Discord backlog #8 — foundational data + Android UI:**
+  - **NEW `assets/data/events.json`** at repo root with v1 schema documented inline (`_schema` field). Seeded with 2 known-from-catalog events: Tecmo Bowl Edition release (set in catalog, date TBA) and OKC Thunder Edition art-pending (54 cards in catalog awaiting art). Both honestly say `date: null` rather than fabricating dates.
+  - **NEW `android/app/src/main/java/com/bobaplaybook/app/feature/learn/EventsLoader.kt`** — synchronous decoder reading from Android assets. Tiny file (~1KB), no background-task needed. Falls back to empty list on missing/malformed file.
+  - **Sync wired:** `android/scripts/sync_shared_assets.sh` now syncs events.json into Android assets each preBuild.
+  - **New `TournamentPage` composable** replaces the old `FlatSectionsPage(LearnCorpus.tournament)` branch. Renders "Upcoming events" header → list of `EventRow`s → existing tournament reference content below. Empty-state copy when no events.
+  - **`EventRow`** uses brand-tinted accent border per kind: release=cyan, tournament=orange, community=violet. Kind label + date + title + description + optional location.
+- **Punch-list status:** #8: ✅ Android · ⏳ iOS · ⏳ web. Events.json is platform-shared so iOS+web port will reuse the same data file.
+- **Backlog status:** all 8 items now have at least 1 platform shipped. Items 1, 4, 7 still need iOS+web; items 3, 5 need iOS+web; item 2 + 5 are done across all 3.
+- **Next:** tick 192 = iOS (Ben's collection-refresh asks queued at end of AUTONOMOUS_PROGRESS.md "Pending iOS asks").

@@ -492,10 +492,13 @@ private fun TabNavHost(
                         navArgument(NavRoutes.ARG_RAINBOW_ID)   { type = NavType.StringType },
                     ),
                 ) { backStackEntry ->
+                    val kind = backStackEntry.arguments?.getString(NavRoutes.ARG_RAINBOW_KIND).orEmpty()
                     val id = backStackEntry.arguments?.getString(NavRoutes.ARG_RAINBOW_ID).orEmpty()
-                    // kind is currently "hero"; custom rainbows ship in a later pass
+                    // Tick 141 — custom rainbows now resolve via the
+                    // CustomRainbowsViewModel inside RainbowDetailScreen.
                     com.bobaplaybook.app.feature.collection.RainbowDetailScreen(
-                        hero = java.net.URLDecoder.decode(id, "UTF-8"),
+                        kind = kind,
+                        id = java.net.URLDecoder.decode(id, "UTF-8"),
                         onCardClick = { bobaId -> navController.navigate(NavRoutes.cardDetail(bobaId)) },
                         onBack = { navController.popBackStack() },
                     )

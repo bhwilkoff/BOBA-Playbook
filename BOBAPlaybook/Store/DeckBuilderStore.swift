@@ -261,6 +261,13 @@ final class DeckBuilderStore {
     /// auto-open the legality report on import (coaches tap it if they
     /// want it).
     var pendingImportReveal: Bool = false
+
+    /// Transient marker set by `loadTemplate` so the editor can surface
+    /// a banner. `nil` = no recent template load. Non-nil tuple carries
+    /// the template name + whether a non-empty draft was overwritten.
+    /// Observer clears this back to nil after rendering the banner.
+    var lastTemplateLoad: (name: String, overwroteDraft: Bool)? = nil
+
     var activePreset: RulePreset? {
         guard let id = activePresetID else { return nil }
         return RulePresets.find(id: id)
@@ -839,6 +846,10 @@ final class DeckBuilderStore {
     /// to the active format's max (Limited = 40, others = 60). The
     /// user's selected format and active rule preset stay intact.
     func loadTemplate(_ template: DeckTemplate, allCards: [Card]) {
+        // Capture pre-load state so the editor banner can warn the
+        // user when their draft is silently overwritten (parity with
+        // Android tick 136 Snackbar). Any non-empty section counts.
+        let hadDraft = !heroes.isEmpty || !plays.isEmpty || !bonusPlays.isEmpty || !hotDogs.isEmpty
         clearDeck()
         deckName = template.name
         // NOTE: format is intentionally NOT overwritten. The user
@@ -852,6 +863,7 @@ final class DeckBuilderStore {
         plays       = format.needsPlaybook ? allPlays   : []
         bonusPlays  = format.needsPlaybook ? allBonus   : []
         hotDogs     = format.needsHotDogs  ? allHotDogs : []
+        lastTemplateLoad = (template.name, hadDraft)
     }
 
     // MARK: - Draft persistence (local)

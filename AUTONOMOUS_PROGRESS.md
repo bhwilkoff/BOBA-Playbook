@@ -76,6 +76,28 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 88 — 2026-05-20 — **web** — Glossary tab + tap-to-copy (3-platform parity)
+- **Cadence:** 88 % 5 = 3 → web.
+- **Picked:** PARITY.md line 72 read "Glossary lookup (inline definitions) | ✅ | ✅ | ✅" but a `grep -rn Glossary` across `index.html` returned zero matches. Web has Rules / Strategy / Browse / Collect / Tournament panels but no Glossary. Real content-parity gap that PARITY.md misstated. Ticks 84 (Android) + 87 (iOS) both shipped tap-to-copy on their Glossary surfaces, so web needed both the surface itself AND the tap-to-copy.
+- **Shipped:**
+  - `index.html`:
+    - New `<button class="play-tab" data-tab="glossary">Glossary</button>` between Collect and Tournament in the play-tabs row.
+    - New `<div id="play-panel-glossary" class="play-panel" hidden>` with two `<section>` blocks (GAME GLOSSARY + TRADING GLOSSARY) — 11 game terms + 21 trading terms verbatim from iOS LearnView (the canonical content source).
+    - Each row is a `<button class="glossary-row" data-term="..." data-def="...">` with separate `<span class="glossary-term">` + `<span class="glossary-def">` for typography. Native button = inherent focus + tap + screen-reader support.
+  - `css/styles.css`:
+    - `.glossary-list` flex column inside a rounded surface, `.glossary-row` button with border-top between rows.
+    - Hover + focus-visible: cyan tint background + cyan outline (a11y).
+    - `.glossary-row.copied` state: green-tinted background + a `::after` "✓ copied" badge in the top-right (the web analog of iOS's checkmark flash + Android's Toast).
+    - `prefers-reduced-motion` override drops the row transition.
+  - `js/app.js`:
+    - Event delegation `document.addEventListener('click', ...)` matches `.glossary-row` via `e.target.closest`. Writes `"{term} — {definition}"` to `navigator.clipboard.writeText` + adds `.copied` class for 1.2s (matches the iOS / Android timing).
+    - Guard for clipboard rejection (older browsers / file:// origins) — silent fall-through so the click doesn't error.
+- **Verified:** `node -c js/app.js` clean. The existing `.play-tab` handler at app.js:727 doesn't need any change — it generically toggles `play-panel-${target}` and the new glossary panel is just another `.play-panel`.
+- **PARITY.md:** Line 72 note rewritten to reflect that the web surface actually exists now + all three platforms share tap-to-copy.
+- **Next:** tick 89 = Android; 90 = opt.
+
+
+
 ### Tick 87 — 2026-05-20 — **iOS** — Glossary tap-to-copy + hint banner (Android tick 84 parity)
 - **Cadence:** 87 % 5 = 2 → iOS.
 - **Picked:** Android tick 84 shipped tap-to-copy on Glossary term rows + the LEARN_LONG_PRESS_GLOSSARY hint banner. iOS Glossary had no equivalent affordance — term rows were inert display-only. Coaches who wanted to quote a definition in Discord had to manually retype or select-and-copy through the iOS text-selection menu.

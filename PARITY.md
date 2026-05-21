@@ -69,7 +69,7 @@ When shipping any user-facing feature:
 | Skill-level scope (Rookie / Sub / Playmaker) | ✅ | ✅ | ✅ | `SegmentedButton` scope inside Rules article |
 | Read/Watch toggle (when video exists) | ✅ | ✅ | ✅ | Same scope pattern |
 | In-corpus search | ✅ | ✅ | ✅ | `.searchable` / search input / `SearchBar` |
-| Glossary lookup (inline definitions) | ✅ | ✅ | ✅ | TooltipBox on Android |
+| Glossary lookup (inline definitions) | ✅ | ✅ | ✅ | iOS GlossaryView + Android LearnArticleScreen::GlossaryPage + web Learn Glossary tab (shipped tick 88) — all three tap-to-copy. Web uses event delegation on `.glossary-row` w/ `navigator.clipboard.writeText`. |
 | Browse-by-hero | n/a | n/a | n/a | Moved to Find per DESIGN.md §1.1 verb separation |
 | Watch (YouTube feed: Upcoming Live / Vertical / Horizontal) | ✅ | ✅ | ✅ | Worker `boba-youtube-feed`. Android shipped Upcoming-Live/Horizontal/Vertical segmented tabs overnight 2026-05-20 |
 | Archetype Templates (5 strategy cards) | ✅ | ✅ | ✅ | Android shipped overnight 2026-05-20 with key-play thumbnails from catalog |

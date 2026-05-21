@@ -6453,8 +6453,63 @@ dialog.modal-overlay[open] {
    TOURNAMENT PANEL
 ══════════════════════════════════════════════════════════════════ */
 
-.tournament-section {
+.tournament-section,
+.glossary-section {
   margin-bottom: var(--sp-7);
+}
+
+/* Glossary — 3-platform parity with iOS GlossaryView + Android
+   LearnArticleScreen::GlossaryPage. Rows are <button> elements so
+   they're inherently focusable, tappable, and screen-reader-friendly. */
+.glossary-blurb {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--boba-text-secondary);
+  margin: 0 0 var(--sp-3) 0;
+}
+.glossary-list {
+  display: flex; flex-direction: column;
+  border-radius: 10px;
+  border: 1px solid var(--boba-glass-border);
+  overflow: hidden;
+  background: var(--boba-surface);
+}
+.glossary-row {
+  appearance: none; background: var(--boba-surface);
+  border: none; border-top: 1px solid var(--boba-glass-border);
+  text-align: left; cursor: pointer;
+  padding: var(--sp-3) var(--sp-4);
+  display: flex; flex-direction: column; gap: 3px;
+  color: inherit;
+  transition: background 0.15s, transform 0.05s;
+  position: relative;
+}
+.glossary-row:first-child { border-top: none; }
+.glossary-row:hover,
+.glossary-row:focus-visible {
+  background: rgba(0, 245, 255, 0.04);
+  outline: 2px solid var(--boba-cyan); outline-offset: -2px;
+}
+.glossary-row.copied {
+  background: rgba(76, 175, 80, 0.18);
+}
+.glossary-row.copied::after {
+  content: "✓ copied";
+  position: absolute; top: var(--sp-2); right: var(--sp-3);
+  font-family: var(--font-mono); font-size: 0.7rem;
+  color: #4CAF50; font-weight: 700;
+}
+.glossary-term {
+  font-family: var(--font-mono); font-size: 0.82rem;
+  font-weight: 700; color: var(--boba-cyan);
+  letter-spacing: 0.02em;
+}
+.glossary-def {
+  font-family: var(--font-mono); font-size: 0.78rem;
+  color: var(--boba-text-secondary); line-height: 1.5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .glossary-row { transition: none; }
 }
 .tournament-heading {
   font-family: var(--font-mono);

@@ -99,6 +99,26 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
         }
     }
 
+    /// Tick 197 — Discord backlog #7 (Android tick 189 parity).
+    /// Optional print-run label for at-a-glance scarcity. Returns nil
+    /// for the typical 99% card. Source of truth: DECISIONS.md #028
+    /// "Inspired Ink = Serialized with weapon-tied print numbers:
+    /// Hex /5, Glow /10, Fire /25, Ice /50."  Superfoil is the
+    /// next-rarest non-numbered treatment.
+    var printRunLabel: String? {
+        if isInspiredInk {
+            switch element.uppercased() {
+            case "HEX":  return "/5"
+            case "GLOW": return "/10"
+            case "FIRE": return "/25"
+            case "ICE":  return "/50"
+            default:     return "Serial"   // Steel/Gum/Brawl/Super Inspired Ink — print run not public
+            }
+        }
+        if treatment?.lowercased().contains("superfoil") == true { return "SSP" }
+        return nil
+    }
+
     // Stable unique id — v2 formula matches boba_id.py: "{cardNumber}-{hero}-{treatment??''}-{variation??''}"
     var id: String { "\(cardNumber)-\(hero)-\(treatment ?? "")-\(variation ?? "")" }
 

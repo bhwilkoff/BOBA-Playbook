@@ -727,6 +727,19 @@ struct CardDetailView: View {
                             .background(Capsule().fill(Design.Colors.bobaViolet.opacity(0.15))
                                 .overlay(Capsule().strokeBorder(Design.Colors.bobaViolet.opacity(0.4), lineWidth: 0.5)))
                     }
+                    // Tick 197 — Discord backlog #7: print-run / SSP chip.
+                    // SSP=orange, numbered=cyan. nil for typical cards.
+                    if let label = card.printRunLabel {
+                        if !card.isInspiredInk { Spacer() }
+                        let accent = label == "SSP" ? Design.Colors.bobaOrange : Design.Colors.bobaCyan
+                        Text(label)
+                            .font(Design.Fonts.mono(9, weight: .bold))
+                            .foregroundStyle(accent)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(accent.opacity(0.15))
+                                .overlay(Capsule().strokeBorder(accent.opacity(0.45), lineWidth: 0.5)))
+                    }
                 }
             }
 

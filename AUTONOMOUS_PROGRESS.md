@@ -102,6 +102,18 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 68 — 2026-05-20 — **web** — Avatar upload: friendly errors + size guard + success toast
+- **Cadence:** 68 % 5 = 3 → web.
+- **Picked:** Avatar upload error path used blocking `alert('Could not upload avatar: ' + e.message)` — same anti-pattern as tick 54's multi-select alerts, and the raw error message was often unfriendly ("HTTP 401" or "TypeError: failed to fetch"). Also no client-side size check despite the Worker's 2MB cap, so a too-large image would fail with a server error after the upload trip.
+- **Shipped:**
+  - `js/collection.js`:
+    - **Client-side 2MB guard** BEFORE the upload — fails fast with a clear message if the cropped JPEG exceeds the Worker's cap. (After crop, blobs usually under 200KB; only a high-pixel-density source + low-compression encoder could trip this, but it's possible.)
+    - **Friendly error mapping** — 401/expired/"signed in" → "Sign-in expired. Sign in again and retry."; network/fetch errors → "Network error. Check your connection and retry."; everything else falls back to the raw message.
+    - **`showToast` instead of `alert`** — non-blocking, matches the tick-54 pattern. Falls back to alert() only when the toast helper isn't loaded (defensive).
+    - **Success toast** — "Avatar updated." on success. Closes the feedback loop; was previously silent (just the avatar refreshing in place).
+- **Verified:** node -c clean.
+- **PARITY.md:** No row — UX polish on already-✅ avatar upload row.
+
 ### Tick 67 — 2026-05-20 — **iOS** — ShowWallComposer 200-card safety cap (parity with web 43 + Android 64)
 - **Cadence:** 67 % 5 = 2 → iOS.
 - **Picked:** Web (tick 43) capped Wall at 200 cards to avoid canvas-height limits; Android (tick 64) capped to avoid bitmap-capture OOM. iOS uses a fixed 1080×1512 canvas so the canvas-size concern doesn't apply, but `fetchFullImages` spawns N parallel URLSession tasks + decodes N UIImage instances into memory simultaneously. At 500 cards = 500 in-flight UIImages on the main actor — meaningful memory pressure on older iPhones (12 mini, SE).

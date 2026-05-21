@@ -911,13 +911,6 @@ const API = (() => {
       const { data: { session } } = await supa().auth.getSession();
       return session;
     },
-    authSetSession: async (accessToken, refreshToken) => {
-      const { error } = await supa().auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-      if (error) throw new Error(error.message);
-    },
     authRefreshSession: async (refreshToken) => {
       const { data, error } = await supa().auth.refreshSession({ refresh_token: refreshToken });
       if (error) throw new Error(error.message);

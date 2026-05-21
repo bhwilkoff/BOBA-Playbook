@@ -76,6 +76,18 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 75 — 2026-05-20 — **OPTIMIZATION TICK (6th 1-in-5)** — orphan Android string + orphan auth fn
+- **Cadence:** opt-rotation. Web has had 3 opt ticks (50/55/70), iOS 1 (65), Android 1 (60). Bias-toward-not-web this round.
+- **Shipped two orphan removals:**
+  - **Android** — `find_no_results_body` string resource in `app/src/main/res/values/strings.xml`. Tick 74 replaced the static body with a runtime-computed dynamic line (filter-naming) and stopped referencing the resource. `grep -rn find_no_results_body android/` returned only the resource def itself. -1 line.
+  - **Web** — `authSetSession(accessToken, refreshToken)` export in `js/api.js`. Defined at api.js:914 but `grep -rn authSetSession` across all js/html returned only the definition itself. The actual session-restore path uses `authRefreshSession` (called from auth.js:303, 342, 396). -7 lines.
+- **Verified:** `node -c js/api.js` clean. `grep -rn find_no_results_body` and `grep -rn authSetSession` both return only the historical-reference diff context after removal.
+- **Line-count delta:** -8 lines (1 Android + 7 web).
+- **Cumulative across 6 optimization ticks:** -101 lines (50: -26 · 55: -24 · 60: -9 · 65: -6 · 70: -28 · 75: -8).
+- **Next:** tick 76 = Android (76 % 5 = 1); tick 77 = iOS; 78 = web; 79 = Android; 80 = opt.
+
+
+
 ### Tick 74 — 2026-05-20 — **Android** — Find empty-state body line (web tick 29 parity)
 - **Cadence:** 74 % 5 = 4 → Android.
 - **Picked:** Android Find empty state surfaced a single static body line "Try a different search, or remove a filter." regardless of what filters were active. Web tick 29 already shipped a dynamic body line ("Nothing matches FIRE. Try loosening or removing the filter.") that names the active filters back to the user. Real parity gap on the same surface — Android user with five filters active had no clue WHICH one was producing the empty results.

@@ -1963,7 +1963,12 @@ const Collection = (() => {
         }
       } catch (e) {
         toggle.checked = !enabled;
-        alert('Could not update sharing preference. ' + (e?.message || ''));
+        // Tick 163 — was a blocking alert(); same anti-pattern tick
+        // 123 / 143 / 158 have been replacing. Non-blocking toast lets
+        // the user continue without an OS-modal interrupt.
+        if (typeof window.showToast === 'function') {
+          window.showToast('Could not update sharing — ' + (e?.message || 'try again'));
+        }
       }
     });
 
@@ -2077,7 +2082,9 @@ const Collection = (() => {
         currentAvatarUrl = null;
         renderAvatar();
       } catch (e) {
-        alert('Could not switch to Discord avatar: ' + (e?.message || e));
+        if (typeof window.showToast === 'function') {
+          window.showToast('Could not switch to Discord avatar — ' + (e?.message || 'try again'));
+        }
       }
     });
     menuRemove.addEventListener('click', async () => {
@@ -2088,7 +2095,9 @@ const Collection = (() => {
         currentAvatarUrl = null;
         renderAvatar();
       } catch (e) {
-        alert('Could not remove custom avatar: ' + (e?.message || e));
+        if (typeof window.showToast === 'function') {
+          window.showToast('Could not remove custom avatar — ' + (e?.message || 'try again'));
+        }
       }
     });
 

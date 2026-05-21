@@ -242,7 +242,20 @@ fun CardDetailScreen(
                 onDismiss = { addToCollectionOpen = false },
                 onSubmit = { input ->
                     addToCollectionOpen = false
-                    collectionViewModel.add(input.cardBobaId, input.designation)
+                    // Pass through the full form input (tick 99). Previously
+                    // quantity / purchasePrice / askingPrice / condition /
+                    // notes were silently discarded — user filled out the
+                    // form expecting it to save and only the bobaId +
+                    // designation actually landed.
+                    collectionViewModel.add(
+                        cardBobaId    = input.cardBobaId,
+                        designation   = input.designation,
+                        quantity      = input.quantity,
+                        purchasePrice = input.purchasePriceUsd,
+                        askingPrice   = input.askingPriceUsd,
+                        condition     = input.condition,
+                        notes         = input.notes,
+                    )
                     scope.launch {
                         snackbarHostState.showSnackbar("Added ${card.displayName} to ${input.designation.label}")
                     }

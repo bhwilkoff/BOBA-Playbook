@@ -148,10 +148,7 @@
     document.getElementById('dbs-info-context')?.remove();
     const cardDBS = parseInt(trigger.dataset.cardDbs, 10);
     if (!Number.isFinite(cardDBS)) return;
-    // DB is a top-level const in practice.js (same classic-script
-    // global scope as app.js). When DB isn't loaded yet (rare — page
-    // didn't reach the deck builder), skip the contextual block.
-    if (typeof DB !== 'object' || !DB) return;
+    // DB is a top-level const in practice.js, loaded before app.js.
     if (!DB.effectiveEnforceDBS) return;
     const used      = DB.totalDBS || 0;
     const budget    = DB.effectiveDBSBudget || 1000;

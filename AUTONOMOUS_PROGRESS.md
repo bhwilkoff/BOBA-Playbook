@@ -76,6 +76,18 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 149 — 2026-05-21 — **Android** — Card detail "Decks with this card": destructive-overwrite warning + Undo
+- **Cadence:** 149 % 5 = 4 → Android.
+- **Picked:** Second-to-last untreated destructive-overwrite surface on Android. Tapping a "Decks with this card" row in the Card detail screen called `decksVmHere.loadSaved(deck, catalog)` then fired a Snackbar saying *"Loaded \"X\" into the Decks editor"* — silently wiping any in-progress draft. Same shape as the Manage-Decks load path before tick 144. Now that `restoreDraft(snapshot)` is wired (tick 139), Undo costs nothing.
+- **Shipped:**
+  - `CardDetailScreen.kt` (the `decksContaining.forEach { deck -> Row(...) }` block):
+    - New `val draftForOverwriteCheck by decksVmHere.draft.collectAsStateWithLifecycle()` so the click handler can read pre-load state.
+    - Row click handler now captures `val captured = if (draft.cards.isNotEmpty()) draft else null` BEFORE `loadSaved`, fires a Snackbar with `actionLabel = "Undo"` when `captured != null` (with destructive-overwrite copy), and falls back to the terse "Loaded X" message when the draft was empty.
+    - On `SnackbarResult.ActionPerformed`, calls `decksVmHere.restoreDraft(captured)` — atomic re-bind of the entire DeckDraft.
+- **Verified:** the existing `decksVmHere` reference is already in scope; only the new `draft` collector is added. Snackbar behavior matches tick 144's DeckManageScreen and tick 139's Clear-deck — same `restoreDraft` plumbing reused.
+- **PARITY.md:** No row — UX polish on already-✅ Card detail "Decks with this card".
+- **Next:** tick 150 = opt.
+
 ### Tick 148 — 2026-05-21 — **web** — Decks DBS chip tappable (closes 3-platform DBS-explainer loop)
 - **Cadence:** 148 % 5 = 3 → web.
 - **Picked:** Closes the 3-platform parity loop on the tappable-DBS-budget pattern (iOS tick 147, Android tick 134). Web already had the full DBS explainer dialog (`#dbs-info-overlay`) in `index.html:2643`, wired to open from the Card-detail modal via `[data-action="open-dbs-info"]` triggers, but the Decks editor's `#db-stat-dbs` chip was a plain `<span>` — no click affordance.

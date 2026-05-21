@@ -41,12 +41,12 @@ import com.bobaplaybook.core.data.rainbows.RainbowCriteria
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 
 /**
- * Custom rainbow editor — minimum viable Compose port of the iOS
- * editor (v2.219-v2.221). Eight criterion dimensions from the
- * migration; v1 surfaces the three most-used (Heroes / Weapons /
- * Treatments) plus the Inspired Ink toggle. Sets / Sub-sets /
- * Releases land in a polish pass when the iOS UX shows what bucket
- * the user reaches for most.
+ * Custom rainbow editor — Compose port of the iOS editor
+ * (v2.219-v2.221). All eight criterion dimensions surface:
+ * Heroes / Weapons / Treatments / Sets / Sub-sets / Releases /
+ * Card types, plus the Inspired Ink toggle. (Web tick 16 + iOS
+ * `CustomRainbowEditorSheet` already expose the full set; tick 81
+ * closes the Android polish gap.)
  *
  * Two modes:
  *  - `existing == null` → create mode. Save → vm.create.
@@ -71,13 +71,21 @@ fun CustomRainbowEditorSheet(
     var heroes by rememberSavedSet(existing?.criteria?.heroes?.toSet() ?: emptySet(), existing?.id)
     var elements by rememberSavedSet(existing?.criteria?.elements?.toSet() ?: emptySet(), existing?.id)
     var treatments by rememberSavedSet(existing?.criteria?.treatments?.toSet() ?: emptySet(), existing?.id)
+    var sets by rememberSavedSet(existing?.criteria?.sets?.toSet() ?: emptySet(), existing?.id)
+    var subSets by rememberSavedSet(existing?.criteria?.subSets?.toSet() ?: emptySet(), existing?.id)
+    var releases by rememberSavedSet(existing?.criteria?.releases?.toSet() ?: emptySet(), existing?.id)
+    var cardTypes by rememberSavedSet(existing?.criteria?.cardTypes?.toSet() ?: emptySet(), existing?.id)
     var inspiredInkOnly by rememberSavedField(existing?.criteria?.inspiredInkOnly ?: false, existing?.id)
 
     // Derive picker options from the live catalog so options stay in
     // sync as the catalog grows.
-    val heroOptions = remember(catalog) { catalog.map { it.hero }.filter { it.isNotBlank() }.distinct().sorted().take(60) }
-    val elementOptions = remember(catalog) { catalog.map { it.element }.filter { it.isNotBlank() }.distinct().sorted() }
+    val heroOptions      = remember(catalog) { catalog.map { it.hero }.filter { it.isNotBlank() }.distinct().sorted().take(60) }
+    val elementOptions   = remember(catalog) { catalog.map { it.element }.filter { it.isNotBlank() }.distinct().sorted() }
     val treatmentOptions = remember(catalog) { catalog.mapNotNull { it.treatment }.filter { it.isNotBlank() }.distinct().sorted().take(40) }
+    val setOptions       = remember(catalog) { catalog.map { it.set }.filter { it.isNotBlank() }.distinct().sorted() }
+    val subSetOptions    = remember(catalog) { catalog.mapNotNull { it.subSet }.filter { it.isNotBlank() }.distinct().sorted().take(40) }
+    val releaseOptions   = remember(catalog) { catalog.mapNotNull { it.release }.filter { it.isNotBlank() }.distinct().sorted() }
+    val cardTypeOptions  = remember(catalog) { catalog.map { it.cardType }.filter { it.isNotBlank() }.distinct().sorted() }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
@@ -112,6 +120,22 @@ fun CustomRainbowEditorSheet(
             ChipsPicker(options = treatmentOptions, selected = treatments, onToggle = { treatments = treatments.toggle(it) })
 
             HorizontalDivider()
+            BOBASectionHeader(title = "Sets (any of)")
+            ChipsPicker(options = setOptions, selected = sets, onToggle = { sets = sets.toggle(it) })
+
+            HorizontalDivider()
+            BOBASectionHeader(title = "Sub-sets (any of)")
+            ChipsPicker(options = subSetOptions, selected = subSets, onToggle = { subSets = subSets.toggle(it) })
+
+            HorizontalDivider()
+            BOBASectionHeader(title = "Releases (any of)")
+            ChipsPicker(options = releaseOptions, selected = releases, onToggle = { releases = releases.toggle(it) })
+
+            HorizontalDivider()
+            BOBASectionHeader(title = "Card types (any of)")
+            ChipsPicker(options = cardTypeOptions, selected = cardTypes, onToggle = { cardTypes = cardTypes.toggle(it) })
+
+            HorizontalDivider()
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Switch(checked = inspiredInkOnly, onCheckedChange = { inspiredInkOnly = it })
                 Spacer(modifier = Modifier.padding(end = 12.dp))
@@ -125,8 +149,12 @@ fun CustomRainbowEditorSheet(
                     onClick = {
                         val criteria = RainbowCriteria(
                             heroes = heroes.toList(),
+                            sets = sets.toList(),
+                            subSets = subSets.toList(),
                             elements = elements.toList(),
                             treatments = treatments.toList(),
+                            cardTypes = cardTypes.toList(),
+                            releases = releases.toList(),
                             inspiredInkOnly = inspiredInkOnly,
                         )
                         if (existing == null) {

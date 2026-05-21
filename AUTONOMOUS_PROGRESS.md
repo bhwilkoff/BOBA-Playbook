@@ -76,6 +76,26 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 130 — 2026-05-20 — **OPTIMIZATION TICK (17th 1-in-5)** — audit-only; no orphans found
+- **Cadence:** opt rotation. Web 5 · iOS 8 · Android 3 across opt ticks (cumulative -182 lines). Bias-toward-Android couldn't find a clean orphan target this pass.
+- **Audited:**
+  - Android `ScanCardMatcher` private helpers (`matchesHero`, `levenshtein`, `BARE_DIGIT_REGEX`) — all used.
+  - Android `ScanFrameStabilizer` — exported state class used by `ScanScreen` (`stabilizer`, `scanState`, `State.Scoring/Scanning`).
+  - Android `Showcase` enum properties (`woba`, `bojax`, `kenGriffeyJr`, `drJ`, `rookieInspired`, `wobaHeroes`) — all referenced in the `all` list or filter closures.
+  - Android `DeckTemplates.METADATA + Meta` data class — used by `DeckTemplates.list(...)`.
+  - Android `CollectionScreen` `@Composable` helpers (DesignationBadge, QuantityBadge, DesignationRow, ValueSummary) — all called.
+  - Android `CollectionScreen` state vars (designation, menuOpen, filterSheetOpen, totalsMode, collectionQuery, sortDialogOpen, isRefreshing, includePrices) — all referenced.
+  - Android `WatchPage::VideoRow` — used in the LazyColumn.
+  - Android profile auth fns (`signInWithDiscord`, `sendPasswordReset`, `captureDiscordIdentity`, `setMatchAlerts`, `setNotifications`) — all wired.
+  - iOS `PracticeStore` confirm/cancel pairs (dismissPeekedHand, cancelFutureBattlePick, cancelHandDiscard, cancelScareReveal, cancelPlayerChoice, cancelHeroDiscardSwap, confirmPendingRecycle, cancelPendingRecycle) — all wired in `PracticeView`.
+  - iOS `BOBAPlaybookApp::runHeroShotComparisonDebug` — referenced by `render-test-comparison` URL handler; serves a distinct artifact (single-frame PNG) vs HeroShotCLIRunner's 4-variant grid. Kept.
+  - iOS `DecksView` `@State` vars — all referenced post-tick-115 cleanup.
+- **No shipped change** — codebase is in a denser-than-baseline state after 16 opt ticks; remaining "private fn / orphan @State / unused export" patterns appear to have been swept. Future opt-tick targets will likely come from new code introduced by feature ticks (where additions outpace the next opt sweep) rather than legacy debt.
+- **Cumulative across 17 optimization ticks:** -182 lines (unchanged from tick 125 — no code change this round).
+- **Next:** tick 131 = Android; 132 = iOS; 133 = web; 134 = Android; 135 = opt.
+
+
+
 ### Tick 129 — 2026-05-20 — **Android** — Rainbow detail: Share progress action
 - **Cadence:** 129 % 5 = 4 → Android.
 - **Picked:** `RainbowDetailScreen` showed per-hero rainbow progress ("12 of 15 owned · 80%") but had no Share affordance. Coaches share rainbow progress in Discord all the time as bragging-rights — currently they screenshot the bar + add caption. A direct Share action skips both steps.

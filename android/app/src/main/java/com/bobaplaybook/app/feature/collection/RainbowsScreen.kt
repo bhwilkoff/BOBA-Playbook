@@ -170,11 +170,20 @@ fun RainbowsScreen(
                     ListItem(
                         headlineContent = { Text(rainbow.name) },
                         supportingContent = {
+                            // Reflect all 7 criterion dimensions (tick 81 added
+                            // sets / sub-sets / releases / card types to the
+                            // editor). Without this, custom rainbows whose
+                            // only filter is e.g. "Sets: Season One" looked
+                            // identical to "Any card" in the list.
                             val parts = buildList {
-                                if (rainbow.criteria.heroes.isNotEmpty()) add("${rainbow.criteria.heroes.size} heroes")
-                                if (rainbow.criteria.elements.isNotEmpty()) add("${rainbow.criteria.elements.size} weapons")
+                                if (rainbow.criteria.heroes.isNotEmpty())     add("${rainbow.criteria.heroes.size} heroes")
+                                if (rainbow.criteria.elements.isNotEmpty())   add("${rainbow.criteria.elements.size} weapons")
                                 if (rainbow.criteria.treatments.isNotEmpty()) add("${rainbow.criteria.treatments.size} treatments")
-                                if (rainbow.criteria.inspiredInkOnly) add("Inspired Ink only")
+                                if (rainbow.criteria.sets.isNotEmpty())       add("${rainbow.criteria.sets.size} sets")
+                                if (rainbow.criteria.subSets.isNotEmpty())    add("${rainbow.criteria.subSets.size} sub-sets")
+                                if (rainbow.criteria.releases.isNotEmpty())   add("${rainbow.criteria.releases.size} releases")
+                                if (rainbow.criteria.cardTypes.isNotEmpty())  add("${rainbow.criteria.cardTypes.size} card types")
+                                if (rainbow.criteria.inspiredInkOnly)         add("Inspired Ink only")
                             }
                             Text(
                                 parts.joinToString(" · ").ifEmpty { "Any card" },

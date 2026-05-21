@@ -76,6 +76,19 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 86 — 2026-05-20 — **Android** — Custom Rainbow row hints reflect all 7 dims
+- **Cadence:** 86 % 5 = 1 → Android.
+- **Picked:** Tick 81 extended the Custom Rainbow editor to all 7 criterion dimensions, but the list-row supporting-text helper at `RainbowsScreen.kt:172` still only iterated 3 dims (heroes / weapons / treatments) + the Inspired Ink toggle. A user who created a custom rainbow with "Sets: Season One" or "Card types: Hero" looked identical to "Any card" in the list — looked like the filter didn't save.
+- **Shipped:**
+  - `RainbowsScreen.kt::supportingContent`:
+    - `buildList` extended to include sets / sub-sets / releases / card types counts. Same `${count} {dim}` shape, joined with ` · `, falls back to "Any card" only when truly empty.
+    - Comment explains the tick-81 dependency so a future contributor doesn't shrink the list back.
+- **Verified:** RainbowCriteria fields confirmed at `CustomRainbowRepository.kt:142-150` — all 8 fields exist on the data class (heroes / sets / subSets / elements / treatments / cardTypes / releases / inspiredInkOnly). The list-row code paths weren't reading 4 of them.
+- **PARITY.md:** No row — the editor parity row stays ✅; this is the corresponding list-display polish.
+- **Next:** tick 87 = iOS; 88 = web; 89 = Android; 90 = opt.
+
+
+
 ### Tick 85 — 2026-05-20 — **OPTIMIZATION TICK (8th 1-in-5)** — iOS orphan `hasPendingModRequest` removal
 - **Cadence:** opt rotation. Web 4 opt ticks (50/55/70/75). Android 3 (60/75/80). iOS only 1 (65). Bias-toward-iOS this round.
 - **Picked:** `AuthManager.hasPendingModRequest` (Bool property) was set internally on profile-load, role-request, and reset — but `grep -rn auth.hasPendingModRequest` across the entire iOS codebase returned ZERO external readers. The comment "Keep the legacy hasPendingModRequest flag in sync so any remaining call sites (AdminPanelView) keep working" lied — AdminPanelView doesn't read it (verified). Same for `SupabaseClient.hasPendingModRequest()` (the REST helper) — zero callers since the generalized `requestRole` flow shipped (DECISIONS.md #038).

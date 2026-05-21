@@ -333,23 +333,32 @@ private fun DecksCompactScreen(
                 columns = storedPoolColumns,
                 onCardClick = onCardClick,
                 onCardLongClick = { card ->
-                    deckViewModel.add(card)
-                    // Snackbar confirms the long-press registered AND
-                    // surfaces whether the deck now exceeds a cap so
-                    // the user doesn't have to open the editor to find
-                    // out. Computed before-the-add because the new
-                    // draft state propagates via Flow on the next
-                    // recomposition.
-                    val newHD = draft.totalHD + (card.hd ?: 0)
-                    val newDBS = draft.totalDBS + (card.dbs ?: 0)
-                    val warn = when {
-                        newHD > draft.hdCap -> " — over HD cap"
-                        draft.enforcesDBS && newDBS > draft.dbsBudget -> " — over DBS budget"
-                        else -> ""
+                    // Snackbar branches on the actual add outcome
+                    // (tick 114 — store enforces caps + dup-checks now).
+                    // If the store rejected the add (duplicate / hard
+                    // cap), we surface "X — reason" instead of pretending
+                    // it landed. iOS tick 112 + web tick 113 use the
+                    // same outcome-shape.
+                    val result = deckViewModel.add(card)
+                    val msg = when (result) {
+                        is com.bobaplaybook.app.feature.decks.DeckStore.AddResult.Added -> {
+                            // Soft-cap (HD / DBS) warnings still fire on
+                            // a successful add — they're not hard rejects,
+                            // just legality concerns the user should see
+                            // before they tab-switch to the editor.
+                            val newHD = draft.totalHD + (card.hd ?: 0)
+                            val newDBS = draft.totalDBS + (card.dbs ?: 0)
+                            val warn = when {
+                                newHD > draft.hdCap -> " — over HD cap"
+                                draft.enforcesDBS && newDBS > draft.dbsBudget -> " — over DBS budget"
+                                else -> ""
+                            }
+                            "Added ${card.displayName}$warn"
+                        }
+                        is com.bobaplaybook.app.feature.decks.DeckStore.AddResult.Skipped ->
+                            "${card.displayName} — ${result.reason}"
                     }
-                    scope.launch {
-                        appSnackbar?.showSnackbar("Added ${card.displayName}$warn")
-                    }
+                    scope.launch { appSnackbar?.showSnackbar(msg) }
                 },
                 modifier = Modifier.fillMaxSize(),
             )

@@ -123,10 +123,18 @@ fun AddToDeckSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
-                        decksViewModel.add(card)
-                        scope.launch {
-                            appSnackbar?.showSnackbar("Added ${card.displayName} to ${draft.name}")
+                        // Honor the AddResult outcome (tick 114) — the
+                        // store now enforces caps + dup-checks, so the
+                        // snackbar reflects the actual outcome instead
+                        // of pretending the add always landed.
+                        val result = decksViewModel.add(card)
+                        val msg = when (result) {
+                            is DeckStore.AddResult.Added ->
+                                "Added ${card.displayName} to ${draft.name}"
+                            is DeckStore.AddResult.Skipped ->
+                                "${card.displayName} — ${result.reason}"
                         }
+                        scope.launch { appSnackbar?.showSnackbar(msg) }
                         onDismiss()
                     },
             )
@@ -153,12 +161,17 @@ fun AddToDeckSheet(
                                 // Load the saved deck as the draft, then push
                                 // the new card. Snackbar names BOTH actions
                                 // (load + add) so the user sees their draft
-                                // was swapped — not silently lost.
+                                // was swapped — not silently lost. Add result
+                                // honored (tick 114).
                                 decksViewModel.loadSaved(saved, catalog)
-                                decksViewModel.add(card)
-                                scope.launch {
-                                    appSnackbar?.showSnackbar("Loaded \"${saved.name}\" and added ${card.displayName}")
+                                val result = decksViewModel.add(card)
+                                val msg = when (result) {
+                                    is DeckStore.AddResult.Added ->
+                                        "Loaded \"${saved.name}\" and added ${card.displayName}"
+                                    is DeckStore.AddResult.Skipped ->
+                                        "Loaded \"${saved.name}\" — but ${card.displayName} ${result.reason}"
                                 }
+                                scope.launch { appSnackbar?.showSnackbar(msg) }
                                 onDismiss()
                             },
                     )

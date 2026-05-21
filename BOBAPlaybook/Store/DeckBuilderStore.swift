@@ -837,6 +837,45 @@ final class DeckBuilderStore {
         deckName = "New Deck"; currentDeckId = nil
     }
 
+    /// Build an in-memory DraftSnapshot of the current state without
+    /// touching UserDefaults. Used by the Clear-deck Undo banner
+    /// (tick 142) — the caller captures this BEFORE clearDeck() so a
+    /// tap of Undo can hand the same snapshot to applySnapshot(_:).
+    func currentSnapshot() -> DraftSnapshot {
+        DraftSnapshot(
+            deckName: deckName,
+            format: format.supabaseValue,
+            activePresetID: activePresetID,
+            ruleOverrides: ruleOverrides,
+            heroBobaIds: heroes.map(\.id),
+            playBobaIds: plays.map(\.id),
+            bonusPlayBobaIds: bonusPlays.map(\.id),
+            hotDogBobaIds: hotDogs.map(\.id),
+            sideboardBobaIds: sideboard.map(\.id),
+            currentDeckId: currentDeckId,
+            savedAt: Date()
+        )
+    }
+
+    /// Apply a previously-captured snapshot in-memory. Mirrors
+    /// restoreDraft(allCards:) but skips the UserDefaults round-trip —
+    /// the snapshot is already in hand. Tick 142.
+    func applySnapshot(_ snap: DraftSnapshot, allCards: [Card]) {
+        let byId = Dictionary(uniqueKeysWithValues: allCards.map { ($0.id, $0) })
+        deckName = snap.deckName
+        if let f = DeckFormat.allCases.first(where: { $0.supabaseValue == snap.format }) {
+            format = f
+        }
+        activePresetID = snap.activePresetID
+        ruleOverrides = snap.ruleOverrides
+        heroes = snap.heroBobaIds.compactMap { byId[$0] }
+        plays = snap.playBobaIds.compactMap { byId[$0] }
+        bonusPlays = snap.bonusPlayBobaIds.compactMap { byId[$0] }
+        hotDogs = snap.hotDogBobaIds.compactMap { byId[$0] }
+        sideboard = snap.sideboardBobaIds.compactMap { byId[$0] }
+        currentDeckId = snap.currentDeckId
+    }
+
     // MARK: - Load Template
 
     /// Load a starter deck without throwing away the user's chosen

@@ -102,12 +102,35 @@ class CollectionViewModel @Inject constructor(
      * Add a card to the user's collection. No-ops when signed out.
      * Repository handles the optimistic update + Supabase insert; UI
      * just hands the bobaId + designation in.
+     *
+     * Optional fields (quantity / purchase price / asking price /
+     * condition / notes) are persisted on the new row — matches the
+     * iOS UserCard shape so the AddToCollectionSheet form's rich-data
+     * path round-trips. Defaults preserve source-compat for the
+     * single-card Quick Add callers (Find tab + scan flow).
      */
-    fun add(cardBobaId: String, designation: Designation) {
+    fun add(
+        cardBobaId: String,
+        designation: Designation,
+        quantity: Int = 1,
+        purchasePrice: Double? = null,
+        askingPrice: Double? = null,
+        condition: String? = null,
+        notes: String? = null,
+    ) {
         viewModelScope.launch {
             val auth = authManager.authState.first()
             val userId = (auth as? AuthState.SignedIn)?.userId ?: return@launch
-            collectionRepository.add(cardBobaId, designation, userId)
+            collectionRepository.add(
+                cardBobaId       = cardBobaId,
+                designation      = designation,
+                userId           = userId,
+                quantity         = quantity,
+                purchasePrice    = purchasePrice,
+                askingPrice      = askingPrice,
+                condition        = condition,
+                notes            = notes,
+            )
         }
     }
 

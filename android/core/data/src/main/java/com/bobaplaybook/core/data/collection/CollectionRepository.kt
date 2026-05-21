@@ -98,26 +98,44 @@ class CollectionRepository @Inject constructor(
      * Add a card to the user's collection at the given designation.
      * If the card+designation pair already exists, increment quantity;
      * else insert a new row.
+     *
+     * Optional fields (purchase price / asking price / condition / notes /
+     * starting quantity) are persisted on the new row when supplied —
+     * matches the iOS shape so the AddToCollection form's rich-data path
+     * actually round-trips. Previously these were silently discarded.
      */
-    suspend fun add(cardBobaId: String, designation: Designation, userId: String) {
+    suspend fun add(
+        cardBobaId: String,
+        designation: Designation,
+        userId: String,
+        quantity: Int = 1,
+        purchasePrice: Double? = null,
+        askingPrice: Double? = null,
+        condition: String? = null,
+        notes: String? = null,
+    ) {
         val existing = _ownedCards.value.firstOrNull {
             it.cardBobaId == cardBobaId && it.designation == designation && it.userId == userId
         }
         if (existing != null) {
-            updateQuantity(existing.id, existing.quantity + 1)
+            updateQuantity(existing.id, existing.quantity + quantity.coerceAtLeast(1))
             return
         }
         // Insert a new row — Supabase generates `id` + `acquired_at`.
         runCatching {
             val cardNumber = cardBobaId.substringBefore('-')
-            supabase.postgrest.from("user_cards").insert(
-                mapOf(
-                    "user_id"     to userId,
-                    "card_number" to cardNumber,
-                    "boba_id"     to cardBobaId,
-                    "designation" to designation.key,
-                ),
-            )
+            val payload = buildMap<String, Any?> {
+                put("user_id", userId)
+                put("card_number", cardNumber)
+                put("boba_id", cardBobaId)
+                put("designation", designation.key)
+                if (quantity > 1) put("quantity", quantity)
+                purchasePrice?.let { put("purchase_price", it) }
+                askingPrice?.let   { put("asking_price",   it) }
+                condition?.takeIf { it.isNotBlank() }?.let { put("condition", it) }
+                notes?.takeIf     { it.isNotBlank() }?.let { put("notes",     it) }
+            }
+            supabase.postgrest.from("user_cards").insert(payload)
             refresh()
         }.onFailure { e ->
             Log.e(TAG, "Failed to insert user_card", e)

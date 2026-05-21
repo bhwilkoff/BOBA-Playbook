@@ -76,6 +76,22 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 99 — 2026-05-20 — **Android** — AddToCollection actually persists form fields (real bug fix)
+- **Cadence:** 99 % 5 = 4 → Android.
+- **Picked:** Audited Android AddToCollectionSheet → CardDetailScreen call path. The sheet's form collects **quantity, purchasePriceUsd, askingPriceUsd, condition, notes, grade** into an `AddToCollectionInput` data class — but `onSubmit` only called `collectionViewModel.add(input.cardBobaId, input.designation)`, silently discarding every other field. User would fill out condition + purchase price + notes, hit Save, and only the bobaId + designation actually landed in Supabase. **Real bug, not just polish.**
+- **Shipped:**
+  - `CollectionRepository.add()` signature extended with `quantity: Int = 1, purchasePrice: Double? = null, askingPrice: Double? = null, condition: String? = null, notes: String? = null` — all optional with sensible defaults so existing callers stay source-compatible.
+  - Insert payload built via `buildMap` — only includes non-null/non-blank optional fields so the Supabase row isn't littered with explicit nulls. `quantity` only included when > 1 so the column default (1) kicks in for the standard add.
+  - The duplicate-row branch (`existing != null`) now adds `quantity.coerceAtLeast(1)` to existing count instead of always +1 — handles the case where user explicitly wants "I just bought 3 of these."
+  - `CollectionViewModel.add()` signature extended with the same fields + threads them through to repository. Doc-comment explains the iOS-shape parity.
+  - `CardDetailScreen` onSubmit now passes all 5 form fields via named args.
+  - Find tab's Quick Add caller unchanged — relies on defaults (only `cardBobaId` + `designation` named).
+- **Verified:** Both call sites (`grep -rn collectionViewModel.add`) checked. Only 2 callers — `CardDetailScreen` (now passes full input) + `FindScreen` (Quick Add — relies on defaults).
+- **PARITY.md:** No row — bug fix on already-✅ AddToCollection row.
+- **Next:** tick 100 = opt (11th 1-in-5); 101 = Android; 102 = iOS.
+
+
+
 ### Tick 98 — 2026-05-20 — **web** — bulkAddToCollection: parallelize + better Toast
 - **Cadence:** 98 % 5 = 3 → web.
 - **Picked:** `bulkAddToCollection` (web Find multi-select → "Add N to {designation}") used a sequential `for-await` loop. For 50 cards = 50× longest-RTT (~10-15s on slow connections). Cloudflare + Supabase handle parallel writes fine at this scale; sequential was leftover from the simpler 1-card add. Also the toast just said "Added N cards · M failed" without disambiguating common failures (sign-out is the #1 cause; user didn't see "sign in" hint).

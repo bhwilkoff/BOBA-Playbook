@@ -1127,20 +1127,50 @@ function initDeckBuilder(allCards) {
       Auth?.open?.();
       return;
     }
-    const btn = $('db-save-btn');
+    const btn    = $('db-save-btn');
+    const banner = $('db-import-banner');  // reuse existing banner for save feedback
+
+    // Guard: empty deck. Saving a deck with zero cards across every
+    // section is almost certainly a misclick — fire an inline hint
+    // instead of writing a junk row. iOS parity: DeckBuilderStore
+    // refuses save when totalCardCount == 0.
+    const cards = [
+      ...DB.heroes.map(c => ({ bobaId: c.bobaId, cardType: 'hero' })),
+      ...DB.plays.map(c => ({ bobaId: c.bobaId, cardType: 'play' })),
+      ...DB.bonusPlays.map(c => ({ bobaId: c.bobaId, cardType: 'bonus_play' })),
+      ...DB.hotDogs.map(c => ({ bobaId: c.bobaId, cardType: 'hot_dog' })),
+    ];
+    if (cards.length === 0) {
+      if (banner) {
+        banner.textContent = 'Add at least one card before saving.';
+        banner.hidden = false;
+        setTimeout(() => { banner.hidden = true; }, 3000);
+      }
+      return;
+    }
+
+    // Guard: empty/whitespace name. Default the editable name field
+    // to "New Deck" rather than fighting the user — but never write
+    // an empty `name` to the server.
+    const deckName = (DB.deckName || '').trim() || 'New Deck';
+
     if (btn) { btn.disabled = true; }
     try {
-      const cards = [
-        ...DB.heroes.map(c => ({ bobaId: c.bobaId, cardType: 'hero' })),
-        ...DB.plays.map(c => ({ bobaId: c.bobaId, cardType: 'play' })),
-        ...DB.bonusPlays.map(c => ({ bobaId: c.bobaId, cardType: 'bonus_play' })),
-        ...DB.hotDogs.map(c => ({ bobaId: c.bobaId, cardType: 'hot_dog' })),
-      ];
-      DB_savedId = await API.deckSave(DB_savedId, DB.deckName, DB.format, cards);
+      DB_savedId = await API.deckSave(DB_savedId, deckName, DB.format, cards);
       if (btn) { btn.style.color = '#4CAF50'; setTimeout(() => { btn.style.color = ''; }, 2000); }
+      if (banner) {
+        banner.textContent = `Saved "${deckName}".`;
+        banner.hidden = false;
+        setTimeout(() => { banner.hidden = true; }, 2500);
+      }
     } catch (err) {
       console.error('Deck save failed:', err);
-      alert('Could not save deck. Please try again.');
+      if (banner) {
+        banner.textContent = `Save failed: ${err?.message || 'try again'}`;
+        banner.hidden = false;
+      } else {
+        alert('Could not save deck. Please try again.');
+      }
     } finally {
       if (btn) { btn.disabled = false; }
     }

@@ -395,18 +395,6 @@ final class SupabaseClient {
 
     // MARK: - Mod promotion requests
 
-    /// Returns true if the current user has an outstanding mod-access request.
-    func hasPendingModRequest() async throws -> Bool {
-        guard let uid = userId else { return false }
-        let url = try makeURL(path: "/rest/v1/user_profiles?select=mod_request_at&user_id=eq.\(uid.uuidString.lowercased())&limit=1")
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        addHeaders(&request, authenticated: true)
-        struct Row: Decodable { let mod_request_at: String? }
-        let rows: [Row] = try await executeArray(request)
-        return rows.first?.mod_request_at != nil
-    }
-
     /// Submits a mod-access request for the current user. Writes reason +
     /// timestamp to their own row (self-update, allowed by RLS).
     func submitModRequest(reason: String) async throws {

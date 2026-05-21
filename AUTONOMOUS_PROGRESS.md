@@ -76,6 +76,23 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 85 — 2026-05-20 — **OPTIMIZATION TICK (8th 1-in-5)** — iOS orphan `hasPendingModRequest` removal
+- **Cadence:** opt rotation. Web 4 opt ticks (50/55/70/75). Android 3 (60/75/80). iOS only 1 (65). Bias-toward-iOS this round.
+- **Picked:** `AuthManager.hasPendingModRequest` (Bool property) was set internally on profile-load, role-request, and reset — but `grep -rn auth.hasPendingModRequest` across the entire iOS codebase returned ZERO external readers. The comment "Keep the legacy hasPendingModRequest flag in sync so any remaining call sites (AdminPanelView) keep working" lied — AdminPanelView doesn't read it (verified). Same for `SupabaseClient.hasPendingModRequest()` (the REST helper) — zero callers since the generalized `requestRole` flow shipped (DECISIONS.md #038).
+- **Shipped:**
+  - `BOBAPlaybook/Networking/AuthManager.swift`:
+    - Dropped `private(set) var hasPendingModRequest = false` (line 21).
+    - Dropped 3 assignment sites (profile-load line ~153, requestRole line ~234, resetState line ~495) + 2 lines of doc comments justifying the legacy flag.
+    - Updated `pendingRoleRequest`'s doc comment to drop the reference to `hasPendingModRequest`. -10 lines net.
+  - `BOBAPlaybook/Networking/SupabaseClient.swift`:
+    - Dropped `func hasPendingModRequest() async throws -> Bool` + its 9-line body. -13 lines.
+- **Verified:** `grep -rn hasPendingModRequest BOBAPlaybook` post-edit returns nothing — all sites cleaned. SourceKit cross-file noise is preexisting. The "MARK: - Mod promotion requests" header preserved as a section divider for the remaining mod-related fns (fetchPendingModRequests, reviewModRequest).
+- **Line-count delta:** -23 lines.
+- **Cumulative across 8 optimization ticks:** -126 lines (50: -26 · 55: -24 · 60: -9 · 65: -6 · 70: -28 · 75: -8 · 80: -2 · 85: -23).
+- **Next:** tick 86 = Android; 87 = iOS; 88 = web; 89 = Android; 90 = opt.
+
+
+
 ### Tick 84 — 2026-05-20 — **Android** — Glossary tap-to-copy + wire orphan hint
 - **Cadence:** 84 % 5 = 4 → Android.
 - **Picked:** `HintsStore.Ids.LEARN_LONG_PRESS_GLOSSARY` was registered as a hint ID but had zero rendering sites — `grep -rn LEARN_LONG_PRESS_GLOSSARY` found only the definition + `all` array entry. Orphan UX scaffolding. The natural use case for a glossary hint is "tap-to-copy" — coaches frequently quote definitions verbatim in Discord and game-night chat, so a clipboard affordance is genuinely useful.
